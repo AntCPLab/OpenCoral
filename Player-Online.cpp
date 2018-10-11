@@ -1,9 +1,10 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 #include "Processor/Machine.h"
 #include "Math/Setup.h"
 #include "Tools/ezOptionParser.h"
 #include "Tools/Config.h"
+#include "Networking/Server.h"
 
 #include <iostream>
 #include <map>
@@ -138,6 +139,17 @@ int main(int argc, const char** argv)
           "-c", // Flag token.
           "--player-to-player-commsec" // Flag token.
     );
+    opt.add(
+          "", // Default.
+          0, // Required?
+          1, // Number of args expected.
+          0, // Delimiter if expecting multiple args.
+          "Number of players. Server.x is not used if given. "
+          "Player 0 must run on host given with -h then. "
+          "Default: Use Server.x or IP file", // Help description.
+          "-N", // Flag token.
+          "--nparties" // Flag token.
+    );
 
     opt.parse(argc, argv);
 
@@ -219,12 +231,23 @@ int main(int argc, const char** argv)
     }
 
     Names playerNames;
+    Server* server = 0;
     if (ipFileName.size() > 0) {
       if (my_port != Names::DEFAULT_PORT)
         throw runtime_error("cannot set port number when using IP file");
       playerNames.init(playerno, pnbase, ipFileName);
     } else {
-      playerNames.init(playerno, pnbase, my_port, hostname.c_str());
+      if (opt.get("-N")->isSet)
+      {
+        if (my_port != Names::DEFAULT_PORT)
+          throw runtime_error("cannot set port number when not using Server.x");
+        int nplayers;
+        opt.get("-N")->getInt(nplayers);
+        server = Server::start_networking(playerNames, mynum, nplayers,
+            hostname, pnbase);
+      }
+      else
+        playerNames.init(playerno, pnbase, my_port, hostname.c_str());
     }
     playerNames.set_keys(keys);
         
@@ -235,6 +258,9 @@ int main(int argc, const char** argv)
         Machine(playerno, playerNames, progname, memtype, lgp, lg2,
                 opt.get("--direct")->isSet, opening_sum, opt.get("--parallel")->isSet,
                 opt.get("--threads")->isSet, max_broadcast).run();
+
+        if (server)
+          delete server;
 
         cerr << "Command line:";
         for (int i = 0; i < argc; i++)

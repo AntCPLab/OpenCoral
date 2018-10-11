@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 
 #include "Math/gfp.h"
@@ -19,7 +19,7 @@ void gfp::AND(const gfp& x,const gfp& y)
   to_bigint(bi1,x);
   to_bigint(bi2,y);
   mpz_and(bi1.get_mpz_t(), bi1.get_mpz_t(), bi2.get_mpz_t());
-  to_gfp(*this, bi1);
+  convert_destroy(bi1);
 }
 
 void gfp::OR(const gfp& x,const gfp& y)
@@ -28,7 +28,7 @@ void gfp::OR(const gfp& x,const gfp& y)
   to_bigint(bi1,x);
   to_bigint(bi2,y);
   mpz_ior(bi1.get_mpz_t(), bi1.get_mpz_t(), bi2.get_mpz_t());
-  to_gfp(*this, bi1);
+  convert_destroy(bi1);
 }
 
 void gfp::XOR(const gfp& x,const gfp& y)
@@ -37,7 +37,7 @@ void gfp::XOR(const gfp& x,const gfp& y)
   to_bigint(bi1,x);
   to_bigint(bi2,y);
   mpz_xor(bi1.get_mpz_t(), bi1.get_mpz_t(), bi2.get_mpz_t());
-  to_gfp(*this, bi1);
+  convert_destroy(bi1);
 }
 
 void gfp::AND(const gfp& x,const bigint& y)
@@ -45,7 +45,7 @@ void gfp::AND(const gfp& x,const bigint& y)
   bigint bi;
   to_bigint(bi,x);
   mpz_and(bi.get_mpz_t(), bi.get_mpz_t(), y.get_mpz_t());
-  to_gfp(*this, bi);
+  convert_destroy(bi);
 }
 
 void gfp::OR(const gfp& x,const bigint& y)
@@ -53,7 +53,7 @@ void gfp::OR(const gfp& x,const bigint& y)
   bigint bi;
   to_bigint(bi,x);
   mpz_ior(bi.get_mpz_t(), bi.get_mpz_t(), y.get_mpz_t());
-  to_gfp(*this, bi);
+  convert_destroy(bi);
 }
 
 void gfp::XOR(const gfp& x,const bigint& y)
@@ -61,7 +61,7 @@ void gfp::XOR(const gfp& x,const bigint& y)
   bigint bi;
   to_bigint(bi,x);
   mpz_xor(bi.get_mpz_t(), bi.get_mpz_t(), y.get_mpz_t());
-  to_gfp(*this, bi);
+  convert_destroy(bi);
 }
 
 
@@ -76,7 +76,7 @@ void gfp::SHL(const gfp& x,int n)
           bigint bi;
           to_bigint(bi,x,false);
           mpn_lshift(bi.get_mpz_t()->_mp_d, bi.get_mpz_t()->_mp_d, bi.get_mpz_t()->_mp_size,n);
-          to_gfp(*this, bi);
+          convert_destroy(bi);
         }
       else
         assign(x);
@@ -97,7 +97,7 @@ void gfp::SHR(const gfp& x,int n)
           bigint bi;
           to_bigint(bi,x);
           mpn_rshift(bi.get_mpz_t()->_mp_d, bi.get_mpz_t()->_mp_d, bi.get_mpz_t()->_mp_size,n);
-          to_gfp(*this, bi);
+          convert_destroy(bi);
         }
       else
         assign(x);

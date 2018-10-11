@@ -1,4 +1,4 @@
-# (C) 2018 University of Bristol. See License.txt
+# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 if '_Array' not in dir():
     from oram import *
@@ -147,13 +147,17 @@ class PathORAM(TreeORAM):
         self.value_type = value_type
         if entry_size is not None:
             self.value_length = len(tuplify(entry_size))
+            self.entry_size = tuplify(entry_size)
         else:
             self.value_length = value_length
+            self.entry_size = [None] * value_length
         self.index_size = log2(size)
+        self.index_type = value_type.get_type(self.index_size)
         self.size = size
-        self.entry_type = Entry.get_empty(*self.internal_value_type()).types()
+        self.entry_type = Entry.get_empty(*self.internal_entry_size()).types()
 
-        self.buckets = RAM(self.bucket_size * 2**(self.D+1), self.entry_type)
+        self.buckets = RAM(self.bucket_size * 2**(self.D+1), self.entry_type,
+                           self.get_array)
         if init_rounds != -1:
             # put memory initialization in different timer
             stop_timer()
@@ -197,15 +201,15 @@ class PathORAM(TreeORAM):
 
         # temp storage for the path + stash in eviction
         self.temp_size = stash_size + self.bucket_size*(self.D+1)
-        self.temp_storage = RAM(self.temp_size, self.entry_type)
+        self.temp_storage = RAM(self.temp_size, self.entry_type, self.get_array)
         self.temp_levels =  [0] * self.temp_size # Array(self.temp_size, 'c')
         for i in range(self.temp_size):
             self.temp_levels[i] = 0
 
         # these include a read value from the stash
-        self.read_value = [Array(self.D + 2, self.value_type)
-                               for i in range(self.value_length)]
-        self.read_empty = Array(self.D + 2, self.value_type)
+        self.read_value = [Array(self.D + 2, self.value_type.get_type(l))
+                               for l in self.entry_size]
+        self.read_empty = Array(self.D + 2, self.value_type.bit_type)
 
         self.state = MemValue(self.value_type(0))
         self.eviction_count = MemValue(cint(0))
@@ -242,7 +246,8 @@ class PathORAM(TreeORAM):
                 for j, ram_index in enumerate(ram_indices):
                     self.temp_storage[i*self.bucket_size + j] = self.buckets[ram_index]
                     self.temp_levels[i*self.bucket_size + j] = i
-                    self.buckets[ram_index] = Entry.get_empty(self.value_type, 1)
+                    ies = self.internal_entry_size()
+                    self.buckets[ram_index] = Entry.get_empty(*ies)
 
             # load the stash
             for i in range(len(self.stash.ram)):
@@ -253,7 +258,7 @@ class PathORAM(TreeORAM):
                 entry = self.stash.ram[i]
                 self.temp_storage[i + self.bucket_size*(self.D+1)] = entry
                 
-                te = Entry.get_empty(self.value_type, 1)
+                te = Entry.get_empty(*self.internal_entry_size())
                 self.stash.ram[i] = te
 
             self.path_regs = [None] * self.bucket_size*(self.D+1)
@@ -268,11 +273,11 @@ class PathORAM(TreeORAM):
             #self.sizes = [Counter(0, max_val=4) for i in range(self.D + 1)]
             if self.use_shuffle_evict:
                 if self.bucket_size == 4:
-                    self.size_bits = [[self.value_type(i) for i in (0, 0, 0, 1)] for j in range(self.D+1)]
+                    self.size_bits = [[self.value_type.bit_type(i) for i in (0, 0, 0, 1)] for j in range(self.D+1)]
                 elif self.bucket_size == 2 or self.bucket_size == 3:
-                    self.size_bits = [[self.value_type(i) for i in (0, 0)] for j in range(self.D+1)]
+                    self.size_bits = [[self.value_type.bit_type(i) for i in (0, 0)] for j in range(self.D+1)]
             else:
-                self.size_bits = [[self.value_type(0) for i in range(self.bucket_size)] for j in range(self.D+1)]
+                self.size_bits = [[self.value_type.bit_type(0) for i in range(self.bucket_size)] for j in range(self.D+1)]
             self.stash_size = Counter(0, max_val=len(self.stash.ram))
 
             leaf = self.state.read().reveal()
@@ -308,7 +313,7 @@ class PathORAM(TreeORAM):
 
             empty_entry = self.empty_entry(False)
             skip = 1
-            found = Array(self.bucket_size, self.value_type)
+            found = Array(self.bucket_size, self.value_type.bit_type)
             entries = [self.buckets[j] for j in ram_indices]
             indices = [e.v for e in entries]
             empty_bits = [e.empty() for e in entries]
@@ -341,8 +346,8 @@ class PathORAM(TreeORAM):
         self.read_empty[self.D+1] = empty
 
     def empty_entry(self, apply_type=True):
-        vtype, vlength = self.internal_value_type()
-        return Entry.get_empty(vtype, vlength, apply_type)
+        vtype, entry_size = self.internal_entry_size()
+        return Entry.get_empty(vtype, entry_size, apply_type, self.index_size)
 
     def shuffle_evict(self, leaf):
         """ Evict using oblivious shuffling etc """
@@ -409,25 +414,25 @@ class PathORAM(TreeORAM):
             if self.bucket_size == 4:
                 c = s[0]*s[1]
                 if self.value_type == sgf2n:
-                    empty_bits_and_levels[j][0] = [1 - self.value_type(s[0] + s[1] + s[2] + c), self.value_type.clear_type(j)]
-                    empty_bits_and_levels[j][1] = [1 - self.value_type(s[1] + s[2]), self.value_type.clear_type(j)]
-                    empty_bits_and_levels[j][2] = [1 - self.value_type(c + s[2]), self.value_type.clear_type(j)]
-                    empty_bits_and_levels[j][3] = [1 - self.value_type(s[2]), self.value_type.clear_type(j)]
+                    empty_bits_and_levels[j][0] = [1 - self.value_type.bit_type(s[0] + s[1] + s[2] + c), self.value_type.clear_type(j)]
+                    empty_bits_and_levels[j][1] = [1 - self.value_type.bit_type(s[1] + s[2]), self.value_type.clear_type(j)]
+                    empty_bits_and_levels[j][2] = [1 - self.value_type.bit_type(c + s[2]), self.value_type.clear_type(j)]
+                    empty_bits_and_levels[j][3] = [1 - self.value_type.bit_type(s[2]), self.value_type.clear_type(j)]
                 else:
-                    empty_bits_and_levels[j][0] = [1 - self.value_type(s[0] + s[1] - c + s[2]), self.value_type.clear_type(j)]
-                    empty_bits_and_levels[j][1] = [1 - self.value_type(s[1] + s[2]), self.value_type.clear_type(j)]
-                    empty_bits_and_levels[j][2] = [1 - self.value_type(c + s[2]), self.value_type.clear_type(j)]
-                    empty_bits_and_levels[j][3] = [1 - self.value_type(s[2]), self.value_type.clear_type(j)]
+                    empty_bits_and_levels[j][0] = [1 - self.value_type.bit_type(s[0] + s[1] - c + s[2]), self.value_type.clear_type(j)]
+                    empty_bits_and_levels[j][1] = [1 - self.value_type.bit_type(s[1] + s[2]), self.value_type.clear_type(j)]
+                    empty_bits_and_levels[j][2] = [1 - self.value_type.bit_type(c + s[2]), self.value_type.clear_type(j)]
+                    empty_bits_and_levels[j][3] = [1 - self.value_type.bit_type(s[2]), self.value_type.clear_type(j)]
             elif self.bucket_size == 2:
                 if evict_debug:
                     print_str('%s,%s,', s[0].reveal(), s[1].reveal())
-                empty_bits_and_levels[j][0] = [1 - self.value_type(s[0] + s[1]), self.value_type.clear_type(j)]
-                empty_bits_and_levels[j][1] = [1 - self.value_type(s[1]), self.value_type.clear_type(j)]
+                empty_bits_and_levels[j][0] = [1 - self.value_type.bit_type(s[0] + s[1]), self.value_type.clear_type(j)]
+                empty_bits_and_levels[j][1] = [1 - self.value_type.bit_type(s[1]), self.value_type.clear_type(j)]
             elif self.bucket_size == 3:
                 c = s[0]*s[1]
-                empty_bits_and_levels[j][0] = [1 - self.value_type(s[0] + s[1] - c), self.value_type.clear_type(j)]
-                empty_bits_and_levels[j][1] = [1 - self.value_type(s[1]), self.value_type.clear_type(j)]
-                empty_bits_and_levels[j][2] = [1 - self.value_type(c), self.value_type.clear_type(j)]
+                empty_bits_and_levels[j][0] = [1 - self.value_type.bit_type(s[0] + s[1] - c), self.value_type.clear_type(j)]
+                empty_bits_and_levels[j][1] = [1 - self.value_type.bit_type(s[1]), self.value_type.clear_type(j)]
+                empty_bits_and_levels[j][2] = [1 - self.value_type.bit_type(c), self.value_type.clear_type(j)]
 
         if evict_debug:
             print_ln()
@@ -471,7 +476,7 @@ class PathORAM(TreeORAM):
         merged_entries = [e for e in merged_entries if e is not None]
 
         # need to copy entries/levels to memory for re-positioning
-        entries_ram = RAM(self.temp_size, self.entry_type)
+        entries_ram = RAM(self.temp_size, self.entry_type, self.get_array)
         levels_array = Array(self.temp_size, cint)
         
         for i,entrylev in enumerate(merged_entries):
@@ -570,10 +575,10 @@ class PathORAM(TreeORAM):
 
     def adjust_lca(self, lca_bits, lev, not_empty, prnt=False):
         """ Adjust LCA based on bucket capacities (and original clear level, lev) """
-        found = self.value_type(0)
-        assigned = self.value_type(0)
-        try_add_here = self.value_type(0)
-        new_lca = [self.value_type(0)] * (self.D + 1)
+        found = self.value_type.bit_type(0)
+        assigned = self.value_type.bit_type(0)
+        try_add_here = self.value_type.bit_type(0)
+        new_lca = [self.value_type.bit_type(0)] * (self.D + 1)
         
         upper = min(lev + self.sigma, self.D)
         lower = max(lev - self.tau, 0)
@@ -639,7 +644,7 @@ class PathORAM(TreeORAM):
         a_bits = bit_decompose(a, self.D)
         b_bits = bit_decompose(b, self.D)
         found = [None] * self.D
-        not_found = self.value_type(not_empty) #1
+        not_found = self.value_type.bit_type(not_empty) #1
         if limit is None:
             limit = self.D
 
@@ -722,13 +727,13 @@ class PathORAM(TreeORAM):
 
         return levstar, a
 
-    def add(self, entry, state=None):
+    def add(self, entry, state=None, evict=True):
         if state is None:
             state = self.state.read()
         l = state
-        x = tuple((self.value_type(i.read())) for i in entry.x)
+        x = tuple(i.read() for i in entry.x)
 
-        e = Entry(self.value_type(entry.v.read()), (l,) + x, entry.empty())
+        e = Entry(entry.v.read(), (l,) + x, entry.empty())
 
         #self.temp_storage[self.temp_size-1] = e * 1
         #self.temp_levels[self.temp_size-1] = 0
@@ -738,7 +743,8 @@ class PathORAM(TreeORAM):
         except Exception:
             print self
             raise
-        self.evict()
+        if evict:
+            self.evict()
 
 class LocalPathORAM(PathORAM):
     """ Debugging only. Path ORAM using index revealing the access

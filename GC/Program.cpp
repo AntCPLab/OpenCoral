@@ -1,0 +1,141 @@
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
+
+/*
+ * Program.cpp
+ *
+ */
+
+#include <GC/Program.h>
+
+#include "Secret.h"
+
+#include <valgrind/callgrind.h>
+
+#include "Yao/YaoGarbleWire.h"
+#include "Yao/YaoEvalWire.h"
+
+#ifdef MAX_INLINE
+#include "Instruction_inline.h"
+#endif
+
+namespace GC
+{
+
+template <class T>
+Program<T>::Program() :
+        offline_data_used(0), unknown_usage(false)
+{
+    compute_constants();
+}
+
+template <class T>
+void Program<T>::compute_constants()
+{
+    for (int reg_type = 0; reg_type < MAX_REG_TYPE; reg_type++)
+    {
+        max_reg[reg_type] = 0;
+        max_mem[reg_type] = 0;
+    }
+    for (unsigned int i = 0; i < p.size(); i++)
+    {
+        if (!p[i].get_offline_data_usage(offline_data_used))
+            unknown_usage = true;
+        for (int reg_type = 0; reg_type < MAX_REG_TYPE; reg_type++)
+        {
+            max_reg[reg_type] = max(max_reg[reg_type],
+                    p[i].get_max_reg(RegType(reg_type)));
+            max_mem[reg_type] = max(max_mem[reg_type],
+                    p[i].get_mem(RegType(reg_type)));
+        }
+    }
+}
+
+template <class T>
+void Program<T>::parse(const string& bytecode_name)
+{
+    string filename = "Programs/Bytecode/" + bytecode_name + ".bc";
+    ifstream s(filename.c_str());
+    if (s.bad() or s.fail())
+        throw runtime_error("Cannot open " + filename);
+    parse(s);
+}
+
+template <class T>
+void Program<T>::parse(istream& s)
+{
+    p.resize(0);
+    Instruction<T> instr;
+    s.peek();
+    int pos = 0;
+    CALLGRIND_STOP_INSTRUMENTATION;
+    while (!s.eof())
+    {
+        if (s.bad() or s.fail())
+            throw runtime_error("error reading program");
+        instr.parse(s, pos);
+        p.push_back(instr);
+        //cerr << "\t" << instr << endl;
+        s.peek();
+        pos++;
+    }
+    CALLGRIND_START_INSTRUMENTATION;
+    compute_constants();
+}
+
+template <class T>
+void Program<T>::print_offline_cost() const
+{
+    if (unknown_usage)
+    {
+        cerr << "Tape has unknown usage" << endl;
+        return;
+    }
+
+    cerr << "Cost of first tape: " << offline_data_used << endl;
+}
+
+template <class T>
+__attribute__((flatten))
+BreakType Program<T>::execute(Processor<T>& Proc, int PC) const
+{
+    if (PC != -1)
+        Proc.PC = PC;
+#ifdef DEBUG_ROUNDS
+    cout << typeid(T).name() << " starting at PC " << Proc.PC << endl;
+#endif
+    unsigned int size = p.size();
+    size_t time = Proc.time;
+    Proc.complexity = 0;
+    do
+    {
+#ifdef DEBUG_EXE
+    	cout << "execute " << time << "/" << Proc.PC << endl;
+#endif
+        if (Proc.PC >= size)
+        {
+            Proc.time = time;
+            return DONE_BREAK;
+        }
+        p[Proc.PC++].execute(Proc);
+        time++;
+#ifdef DEBUG_COMPLEXITY
+        cout << "complexity at " << time << ": " << Proc.complexity << endl;
+#endif
+    }
+    while (Proc.complexity < (1 << 20));
+    Proc.time = time;
+#ifdef DEBUG_ROUNDS
+    cout << "breaking at time " << Proc.time << endl;
+#endif
+    return TIME_BREAK;
+}
+
+template class Program<FakeSecret>;
+template class Program< Secret<PRFRegister> >;
+template class Program< Secret<EvalRegister> >;
+template class Program< Secret<GarbleRegister> >;
+template class Program< Secret<RandomRegister> >;
+template class Program< Secret<YaoGarbleWire> >;
+template class Program< Secret<YaoEvalWire> >;
+
+} /* namespace GC */

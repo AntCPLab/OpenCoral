@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 #ifndef _MAC_Check
 #define _MAC_Check
@@ -156,6 +156,16 @@ class Direct_MAC_Check: public Separate_MAC_Check<T>
 public:
   Direct_MAC_Check(const T& ai, Names& Nms, int thread_num);
   ~Direct_MAC_Check();
+
+  void POpen_Begin(vector<T>& values,const vector<Share<T> >& S,const Player& P);
+  void POpen_End(vector<T>& values,const vector<Share<T> >& S,const Player& P);
+};
+
+template <class T>
+class Passing_MAC_Check : public Separate_MAC_Check<T>
+{
+public:
+  Passing_MAC_Check(const T& ai, Names& Nms, int thread_num);
 
   void POpen_Begin(vector<T>& values,const vector<Share<T> >& S,const Player& P);
   void POpen_End(vector<T>& values,const vector<Share<T> >& S,const Player& P);

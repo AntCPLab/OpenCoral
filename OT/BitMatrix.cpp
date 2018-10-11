@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 /*
  * BitMatrix.cpp
@@ -136,7 +136,6 @@ inline void square32::transpose(square128& output, int x, int y)
 #endif
 
 #ifdef __AVX2__
-#warning Using AVX2 for transpose
 typedef square32 subsquare;
 #define N_SUBSQUARES 4
 #else

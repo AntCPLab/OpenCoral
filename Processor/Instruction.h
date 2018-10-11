@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 #ifndef _Instruction
 #define _Instruction
@@ -64,6 +64,8 @@ enum
     JOIN_TAPE = 0x1A,
     CRASH = 0x1B,
     USE_PREP = 0x1C,
+    STARTGRIND = 0x1D,
+    STOPGRIND = 0x1E,
     // Addition
     ADDC = 0x20,
     ADDS = 0x21,
@@ -89,6 +91,7 @@ enum
     MODCI = 0x37,
     LEGENDREC = 0x38,
     DIGESTC = 0x39,
+    INV2M = 0x3a,
     // Open
     STARTOPEN = 0xA0,
     STOPOPEN = 0xA1,
@@ -138,6 +141,7 @@ enum
     EQC = 0x97,
     JMPI = 0x98,
     // Integers
+    BITDECINT = 0x99,
     LDINT = 0x9A,
     ADDINT = 0x9B,
     SUBINT = 0x9C,
@@ -162,8 +166,8 @@ enum
     PRINTCHRINT = 0xBA,
     PRINTSTRINT = 0xBB,
     PRINTFLOATPLAIN = 0xBC,
-    WRITEFILESHARE = 0xBD,     
-    READFILESHARE = 0xBE,     
+    WRITEFILESHARE = 0xBD,
+    READFILESHARE = 0xBE,
 
     // GF(2^n) versions
     
@@ -280,6 +284,12 @@ struct TempVars {
   // GINPUT and GLDSI
   gf2n rr2,t2,tmp2;
   gf2n xi2;
+  // assign without allocation
+  void assign_ansp(int n)
+  {
+    aa = n;
+    ansp.convert_destroy(aa);
+  }
 };
 
 

@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 /*
  * WaitQueue.h
@@ -77,6 +77,21 @@ public:
         }
         unlock();
         return running;
+    }
+
+    bool pop_dont_stop(T& value)
+    {
+        lock();
+        if (running and queue.size() == 0)
+            wait();
+        bool something_for_you = queue.size() > 0;
+        if (something_for_you)
+        {
+            value = queue.front();
+            queue.pop_front();
+        }
+        unlock();
+        return something_for_you;
     }
 
     void stop()

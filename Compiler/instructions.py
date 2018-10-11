@@ -1,4 +1,4 @@
-# (C) 2018 University of Bristol. See License.txt
+# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 """ This module is for classes of actual assembly instructions.
 
@@ -295,7 +295,7 @@ class reqbl(base.Instruction):
     code = base.opcodes['REQBL']
     arg_format = ['int']
 
-class time(base.Instruction):
+class time(base.IOInstruction):
     r""" Output epoch time. """
     code = base.opcodes['TIME']
     arg_format = []
@@ -333,6 +333,14 @@ class join_tape(base.Instruction):
 class crash(base.IOInstruction):
     r""" Crash runtime. """
     code = base.opcodes['CRASH']
+    arg_format = []
+
+class start_grind(base.IOInstruction):
+    code = base.opcodes['STARTGRIND']
+    arg_format = []
+
+class stop_grind(base.IOInstruction):
+    code = base.opcodes['STOPGRIND']
     arg_format = []
 
 @base.gf2n
@@ -438,6 +446,12 @@ class modc(base.Instruction):
 
     def execute(self):
         self.args[0].value = self.args[1].value % self.args[2].value
+
+@base.vectorize
+class inv2m(base.Instruction):
+    __slots__ = []
+    code = base.opcodes['INV2M']
+    arg_format = ['cw','int']
 
 @base.vectorize
 class legendrec(base.Instruction):
@@ -928,6 +942,12 @@ class print_int(base.IOInstruction):
     code = base.opcodes['PRINTINT']
     arg_format = ['ci']
 
+@base.vectorize
+class print_float_plain(base.IOInstruction):
+    __slots__ = []
+    code = base.opcodes['PRINTFLOATPLAIN']
+    arg_format = ['c', 'c', 'c', 'c']
+
 class print_char(base.IOInstruction):
     r""" Print a single character to stdout. """
     code = base.opcodes['PRINTCHR']
@@ -1174,6 +1194,12 @@ class mulint(base.IntegerInstruction):
 class divint(base.IntegerInstruction):
     __slots__ = []
     code = base.opcodes['DIVINT']
+
+@base.vectorize
+class bitdecint(base.Instruction):
+    __slots__ = []
+    code = base.opcodes['BITDECINT']
+    arg_format = tools.chain(['ci'], itertools.repeat('ciw'))
 
 ###
 ### Clear comparison instructions

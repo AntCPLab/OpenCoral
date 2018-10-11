@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 #ifndef _gfp
 #define _gfp
@@ -50,9 +50,9 @@ class gfp
   void assign(const gfp& g) { a=g.a; } 
   void assign_zero()        { assignZero(a,ZpD); }
   void assign_one()         { assignOne(a,ZpD); } 
-  void assign(word aa)      { bigint b=aa; to_gfp(*this,b); }
-  void assign(long aa)      { bigint b=aa; to_gfp(*this,b); }
-  void assign(int aa)       { bigint b=aa; to_gfp(*this,b); }
+  void assign(word aa)      { bigint b=aa; convert_destroy(b); }
+  void assign(long aa)      { bigint b=aa; convert_destroy(b); }
+  void assign(int aa)       { bigint b=aa; convert_destroy(b); }
   void assign(const char* buffer) { a.assign(buffer, ZpD.get_t()); }
 
   modp get() const          { return a; }
@@ -198,6 +198,7 @@ class gfp
   void unpack(octetStream& o)
     { a.unpack(o,ZpD); }
 
+  void convert_destroy(bigint& x) { a.convert_destroy(x, ZpD); }
 
   // Convert representation to and from a bigint number
   friend void to_bigint(bigint& ans,const gfp& x,bool reduce=true)

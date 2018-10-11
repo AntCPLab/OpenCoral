@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 #ifndef _random
 #define _random
@@ -86,5 +86,42 @@ class PRNG
    const octet* get_seed() const
      { return seed; }
 };
+
+
+inline unsigned char PRNG::get_uchar()
+{
+  if (cnt>=RAND_SIZE) { next(); }
+  unsigned char ans=random[cnt];
+  cnt++;
+  // print_state(); cout << " UCHA " << (int) ans << endl;
+  return ans;
+}
+
+
+inline __m128i PRNG::get_doubleword()
+{
+    if (cnt > RAND_SIZE - 16)
+        next();
+    __m128i ans = _mm_loadu_si128((__m128i*)&random[cnt]);
+    cnt += 16;
+    return ans;
+}
+
+
+inline void PRNG::get_octets(octet* ans,int len)
+{
+  int pos=0;
+  while (len)
+    {
+      int step=min(len,RAND_SIZE-cnt);
+      avx_memcpy(ans+pos,random+cnt,step);
+      pos+=step;
+      len-=step;
+      cnt+=step;
+      if (cnt==RAND_SIZE)
+        next();
+    }
+}
+
 
 #endif

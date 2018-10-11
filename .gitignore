@@ -19,6 +19,7 @@ config_mine.py
 *.rej
 *.tmp
 callgrind.out.*
+HOSTS*
 
 # Vim
 .*.swp
@@ -44,6 +45,7 @@ callgrind.out.*
 
 # Compiled source #
 ###################
+Programs/Source/*
 Programs/Bytecode/*
 Programs/Schedules/*
 Programs/Public-Input/*

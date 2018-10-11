@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 
 #include "Share.h"
@@ -6,17 +6,6 @@
 #include "Math/gfp.h"
 #include "Math/gf2n.h"
 #include "Math/operators.h"
-
-
-template<class T>
-Share<T>::Share(const T& aa, int my_num, const T& alphai)
-{
-    if (my_num == 0)
-        a = aa;
-    else
-        a.assign_zero();
-    mac = aa * alphai;
-}
 
 
 template<class T>

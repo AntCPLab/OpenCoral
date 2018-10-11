@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 
 #include "Processor/Instruction.h"
@@ -12,7 +12,10 @@
 #include <algorithm>
 #include <sstream>
 #include <map>
+#include <valgrind/callgrind.h>
 
+// broken
+#undef DEBUG
 
 // Convert modp to signed bigint of a given bit length
 void to_signed_bigint(bigint& bi, const gfp& x, int len)
@@ -241,6 +244,7 @@ void BaseInstruction::parse_operands(istream& s, int pos)
       case INPUTMASK:
       case GINPUTMASK:
       case ACCEPTCLIENTCONNECTION:
+      case INV2M:
         r[0]=get_int(s);
         n = get_int(s);
         break;
@@ -256,6 +260,8 @@ void BaseInstruction::parse_operands(istream& s, int pos)
       // instructions with no operand
       case TIME:
       case CRASH:
+      case STARTGRIND:
+      case STOPGRIND:
       	break;
       // instructions with 4 register operands
       case PRINTFLOATPLAIN:
@@ -321,6 +327,11 @@ void BaseInstruction::parse_operands(istream& s, int pos)
         n = get_int(s);
         get_vector(num_var_args, start, s);
         break;
+      case BITDECINT:
+          num_var_args = get_int(s) - 1;
+          r[0] = get_int(s);
+          get_vector(num_var_args, start, s);
+          break;
       case PREP:
       case GPREP:
         // subtract extra argument
@@ -536,7 +547,7 @@ void Instruction::execute(Processor& Proc) const
   for (int i = 0; i < size; i++) 
   { switch (opcode)
     { case LDI: 
-        Proc.temp.ansp.assign(n);
+        Proc.temp.assign_ansp(n);
         Proc.write_Cp(r[0],Proc.temp.ansp);
         break;
       case GLDI: 
@@ -544,7 +555,7 @@ void Instruction::execute(Processor& Proc) const
         Proc.write_C2(r[0],Proc.temp.ans2);
         break;
       case LDSI:
-        { Proc.temp.ansp.assign(n);
+        { Proc.temp.assign_ansp(n);
           if (Proc.P.my_num()==0)
             Proc.get_Sp_ref(r[0]).set_share(Proc.temp.ansp);
           else
@@ -842,7 +853,7 @@ void Instruction::execute(Processor& Proc) const
         to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
         to_bigint(Proc.temp.aa2, Proc.read_Cp(r[2]));
         mpz_fdiv_r(Proc.temp.aa.get_mpz_t(), Proc.temp.aa.get_mpz_t(), Proc.temp.aa2.get_mpz_t());
-        to_gfp(Proc.temp.ansp, Proc.temp.aa);
+        Proc.temp.ansp.convert_destroy(Proc.temp.aa);
         Proc.write_Cp(r[0],Proc.temp.ansp);
         break;
       case LEGENDREC:
@@ -866,7 +877,7 @@ void Instruction::execute(Processor& Proc) const
       case DIVCI:
         if (n == 0)
           throw Processor_Error("Division by immediate zero");
-        to_gfp(Proc.temp.ansp,n%gfp::pr());
+        Proc.temp.assign_ansp(n);
         Proc.temp.ansp.invert();
         Proc.temp.ansp.mul(Proc.read_Cp(r[1]));
         Proc.write_Cp(r[0],Proc.temp.ansp);
@@ -879,9 +890,18 @@ void Instruction::execute(Processor& Proc) const
         Proc.temp.ans2.mul(Proc.read_C2(r[1]));
         Proc.write_C2(r[0],Proc.temp.ans2);
         break;
+      case INV2M:
+        if (Proc.inverses2m.find(n) == Proc.inverses2m.end())
+          {
+            to_gfp(Proc.inverses2m[n], bigint(1) << n);
+            Proc.inverses2m[n].invert();
+          }
+        Proc.write_Cp(r[0], Proc.inverses2m[n]);
+        break;
       case MODCI:
         to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
-        to_gfp(Proc.temp.ansp, mpz_fdiv_ui(Proc.temp.aa.get_mpz_t(), n));
+        Proc.temp.aa = mpz_fdiv_ui(Proc.temp.aa.get_mpz_t(), n);
+        Proc.temp.ansp.convert_destroy(Proc.temp.aa);
         Proc.write_Cp(r[0],Proc.temp.ansp);
         break;
       case GMULBITC:
@@ -901,7 +921,7 @@ void Instruction::execute(Processor& Proc) const
   #endif
         break;
       case ADDCI:
-        Proc.temp.ansp.assign(n);
+        Proc.temp.assign_ansp(n);
 	#ifdef DEBUG
            Proc.temp.ansp.add(Proc.temp.ansp,Proc.read_Cp(r[1]));
            Proc.write_Cp(r[0],Proc.temp.ansp);
@@ -919,7 +939,7 @@ void Instruction::execute(Processor& Proc) const
 	#endif
         break;
       case ADDSI:
-        Proc.temp.ansp.assign(n);
+        Proc.temp.assign_ansp(n);
 	#ifdef DEBUG
            Sansp.add(Proc.read_Sp(r[1]),Proc.temp.ansp,Proc.P.my_num()==0,Proc.MCp.get_alphai());
 	   Proc.write_Sp(r[0],Sansp);
@@ -937,7 +957,7 @@ void Instruction::execute(Processor& Proc) const
 	#endif
         break;
       case SUBCI:
-        Proc.temp.ansp.assign(n);
+        Proc.temp.assign_ansp(n);
 	#ifdef DEBUG
            Proc.temp.ansp.sub(Proc.read_Cp(r[1]),Proc.temp.ansp);
            Proc.write_Cp(r[0],Proc.temp.ansp);
@@ -955,7 +975,7 @@ void Instruction::execute(Processor& Proc) const
 	#endif
         break;
       case SUBSI:
-        Proc.temp.ansp.assign(n);
+        Proc.temp.assign_ansp(n);
   	#ifdef DEBUG
            Sansp.sub(Proc.read_Sp(r[1]),Proc.temp.ansp,Proc.P.my_num()==0,Proc.MCp.get_alphai());
 	   Proc.write_Sp(r[0],Sansp);
@@ -973,7 +993,7 @@ void Instruction::execute(Processor& Proc) const
         #endif
         break;
       case SUBCFI:
-        Proc.temp.ansp.assign(n);
+        Proc.temp.assign_ansp(n);
 	#ifdef DEBUG
            Proc.temp.ansp.sub(Proc.temp.ansp,Proc.read_Cp(r[1]));
            Proc.write_Cp(r[0],Proc.temp.ansp);
@@ -991,7 +1011,7 @@ void Instruction::execute(Processor& Proc) const
 	#endif
         break;
       case SUBSFI:
-        Proc.temp.ansp.assign(n);
+        Proc.temp.assign_ansp(n);
  	#ifdef DEBUG
            Sansp.sub(Proc.temp.ansp,Proc.read_Sp(r[1]),Proc.P.my_num()==0,Proc.MCp.get_alphai());
 	   Proc.write_Sp(r[0],Sansp);
@@ -1009,7 +1029,7 @@ void Instruction::execute(Processor& Proc) const
 	#endif
         break;
       case MULCI:
-        Proc.temp.ansp.assign(n);
+        Proc.temp.assign_ansp(n);
 	#ifdef DEBUG
            Proc.temp.ansp.mul(Proc.temp.ansp,Proc.read_Cp(r[1]));
            Proc.write_Cp(r[0],Proc.temp.ansp);
@@ -1027,7 +1047,7 @@ void Instruction::execute(Processor& Proc) const
 	#endif
         break;
       case MULSI:
-        Proc.temp.ansp.assign(n);
+        Proc.temp.assign_ansp(n);
 	#ifdef DEBUG
            Sansp.mul(Proc.read_Sp(r[1]),Proc.temp.ansp);
 	   Proc.write_Sp(r[0],Sansp);
@@ -1093,7 +1113,7 @@ void Instruction::execute(Processor& Proc) const
 	      #ifdef DEBUG
 	         printf("Enter your input : \n");
 	      #endif
-              word x;
+              long x;
               cin >> x;
               t.assign(x);
               t.sub(t,rr);
@@ -1259,7 +1279,7 @@ void Instruction::execute(Processor& Proc) const
         Proc.temp.aa2 = 1;
         Proc.temp.aa2 <<= n;
         Proc.temp.aa += Proc.temp.aa2;
-        to_gfp(Proc.temp.ansp, Proc.temp.aa);
+        Proc.temp.ansp.convert_destroy(Proc.temp.aa);
         Proc.write_Cp(r[0],Proc.temp.ansp);
         break;
       case GNOTC:
@@ -1346,6 +1366,15 @@ void Instruction::execute(Processor& Proc) const
             Proc.get_C2_ref(r[0] + j) = a;
           }
         return;
+      case BITDECINT:
+        {
+          long a = Proc.read_Ci(r[0]);
+          for (unsigned int i = 0; i < start.size(); i++)
+            {
+              Proc.get_Ci_ref(start[i]) = (a >> i) & 1;
+            }
+          break;
+        }
       case STARTOPEN:
         Proc.POpen_Start(start,Proc.P,Proc.MCp,size);
         return;
@@ -1418,7 +1447,8 @@ void Instruction::execute(Processor& Proc) const
         Proc.get_Ci_ref(r[0]) = Proc.read_Ci(r[1]) / Proc.read_Ci(r[2]);
         break;
       case CONVINT:
-        Proc.get_Cp_ref(r[0]).assign(Proc.read_Ci(r[1]));
+        Proc.temp.assign_ansp(Proc.read_Ci(r[1]));
+        Proc.get_Cp_ref(r[0]) = Proc.temp.ansp;
         break;
       case GCONVINT:
         Proc.get_C2_ref(r[0]).assign((word)Proc.read_Ci(r[1]));
@@ -1464,6 +1494,12 @@ void Instruction::execute(Processor& Proc) const
              cout << Proc.read_C2(r[0]) << flush;
            }
         break;
+      case PRINTINT:
+        if (Proc.P.my_num() == 0)
+           {
+             cout << Proc.read_Ci(r[0]) << flush;
+           }
+        break;
       case PRINTFLOATPLAIN:
         if (Proc.P.my_num() == 0)
           {
@@ -1489,12 +1525,6 @@ void Instruction::execute(Processor& Proc) const
             cout << res << flush;
           }
       break;
-      case PRINTINT:
-        if (Proc.P.my_num() == 0)
-           {
-             cout << Proc.read_Ci(r[0]) << flush;
-           }
-        break;
       case PRINTSTR:
         if (Proc.P.my_num() == 0)
            {
@@ -1546,6 +1576,12 @@ void Instruction::execute(Processor& Proc) const
         break;
       case CRASH:
         throw crash_requested();
+        break;
+      case STARTGRIND:
+        CALLGRIND_START_INSTRUMENTATION;
+        break;
+      case STOPGRIND:
+        CALLGRIND_STOP_INSTRUMENTATION;
         break;
       // ***
       // TODO: read/write shared GF(2^n) data instructions

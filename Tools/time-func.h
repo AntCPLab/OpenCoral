@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 #ifndef _timer
 #define _timer
@@ -6,6 +6,7 @@
 #include <sys/wait.h>   /* Wait for Process Termination */
 #include <sys/time.h>
 #include <time.h>
+#include <string>
 
 #include "Exceptions/Exceptions.h"
 
@@ -41,6 +42,18 @@ class TimeScope
 public:
   TimeScope(Timer& timer) : timer(timer) { timer.start(); }
   ~TimeScope() { timer.stop(); }
+};
+
+class DoubleTimer
+{
+  Timer wall, thread;
+
+public:
+  DoubleTimer() : thread(CLOCK_THREAD_CPUTIME_ID) {}
+  void start() { wall.start(); thread.start(); }
+  void stop() { wall.stop(); thread.stop(); }
+  string elapsed()
+  { return to_string(thread.elapsed()) + "/" + to_string(wall.elapsed()); }
 };
 
 inline Timer& Timer::start()

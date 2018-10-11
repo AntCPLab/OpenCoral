@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 /*
  * gf2n_longlong.cpp
@@ -30,6 +30,7 @@ ostream& operator<<(ostream& s, const int128& a)
 {
   word* tmp = (word*)&a.a;
   s << hex;
+  s << noshowbase;
   s.width(16);
   s.fill('0');
   s << tmp[1];
@@ -157,19 +158,6 @@ void gf2n_long::reduce_pentanomial(int128 xh, int128 xl)
       hi=a>>n;
     }
 */
-}
-
-
-gf2n_long& gf2n_long::mul(const gf2n_long& x,const gf2n_long& y)
-{
-  __m128i res[2];
-  avx_memzero(res, sizeof(res));
-
-  mul128(x.a.a,y.a.a,res,res+1);
-
-  reduce(res[1],res[0]);
-
-  return *this;
 }
 
 

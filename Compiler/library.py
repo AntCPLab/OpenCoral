@@ -1,4 +1,4 @@
-# (C) 2018 University of Bristol. See License.txt
+# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 from Compiler.types import cint,sint,cfix,sfix,sfloat,MPCThread,Array,MemValue,cgf2n,sgf2n,_number,_mem,_register,regint,Matrix,_types, cfloat
 from Compiler.instructions import *
@@ -77,32 +77,7 @@ def print_str(s, *args):
                 else:
                     raise CompilerError('Cannot print secret value:', args[i])
             elif isinstance(val, cfix):
-                # print decimal representation of a clear fixed point number
-                # number is encoded as [left].[right]
-                left = val.v
-                sign = -1 * (val.v < 0) + 1 * (val.v >= 0)
-                positive_left = cint(sign) * left
-                right = positive_left % 2**val.f
-                @if_(sign == -1)
-                def block():
-                    print_str('-')
-                cint((positive_left - right + 1) >> val.f).print_reg_plain()
-                x = 0
-                max_dec_base = 8 # max 32-bit precision
-                last_nonzero = 0
-                for i,b in enumerate(reversed(right.bit_decompose(val.f))):
-                    x += b * int(10**max_dec_base / 2**(i + 1))
-                v = x
-                for i in range(max_dec_base):
-                    t = v % 10
-                    b = (t > 0)
-                    last_nonzero = (1 - b) * last_nonzero + b * i
-                    v = (v - t) / 10
-                print_plain_str('.')
-                @for_range(max_dec_base - 1 - last_nonzero)
-                def f(i):
-                    print_str('0')
-                x.print_reg_plain()
+                val.print_plain()
             elif isinstance(val, sfix) or isinstance(val, sfloat):
                 raise CompilerError('Cannot print secret value:', args[i])
             elif isinstance(val, cfloat):
@@ -1269,33 +1244,34 @@ def FPDiv(a, b, k, f, kappa, simplex_flag=False):
         Goldschmidt method as presented in Catrina10,
     """
     theta = int(ceil(log(k/3.5) / log(2)))
-    alpha = two_power(2*f)
-    w = AppRcr(b, k, f, kappa, simplex_flag)
-    x = alpha - b * w
+    alpha = b.get_type(2 * k).two_power(2*f)
+    w = AppRcr(b, k, f, kappa, simplex_flag).extend(2 * k)
+    x = alpha - b.extend(2 * k) * w
 
-    y = a * w
-    y = TruncPr(y, 2*k, f, kappa)
+    y = a.extend(2 *k) * w
+    y = y.TruncPr(2*k, f, kappa)
 
     for i in range(theta):
-        y = y * (alpha + x)
+        x = x.extend(2 * k)
+        y = y.extend(2 * k) * (alpha + x).extend(2 * k)
         x = x * x
-        y = TruncPr(y, 2*k, 2*f, kappa)
-        x = TruncPr(x, 2*k, 2*f, kappa)
+        y = y.TruncPr(2*k, 2*f, kappa)
+        x = x.TruncPr(2*k, 2*f, kappa)
 
-    y = y * (alpha + x)
-    y = TruncPr(y, 2*k, 2*f, kappa)
+    y = y.extend(2 * k) * (alpha + x).extend(2 * k)
+    y = y.TruncPr(k + 2*f, 2*f, kappa)
     return y
 def AppRcr(b, k, f, kappa, simplex_flag=False):
     """
         Approximate reciprocal of [b]:
         Given [b], compute [1/b]
     """
-    alpha = cint(int(2.9142 * 2**k))
-    c, v = Norm(b, k, f, kappa, simplex_flag)
+    alpha = b.get_type(2 * k)(int(2.9142 * 2**k))
+    c, v = b.Norm(k, f, kappa, simplex_flag)
     #v should be 2**{k - m} where m is the length of the bitwise repr of [b]
     d = alpha - 2 * c
     w = d * v
-    w = TruncPr(w, 2 * k, 2 * (k - f))
+    w = w.TruncPr(2 * k, 2 * (k - f))
     # now w * 2 ^ {-f} should be an initial approximation of 1/b
     return w
 
@@ -1315,7 +1291,7 @@ def Norm(b, k, f, kappa, simplex_flag=False):
     absolute_val = sign * b
 
     #next 2 lines actually compute the SufOR for little indian encoding
-    bits = absolute_val.bit_decompose(k)[::-1]
+    bits = absolute_val.bit_decompose(k, kappa)[::-1]
     suffixes = PreOR(bits)[::-1]
 
     z = [0] * k

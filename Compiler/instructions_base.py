@@ -1,4 +1,4 @@
-# (C) 2018 University of Bristol. See License.txt
+# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 import itertools
 from random import randint
@@ -54,6 +54,8 @@ opcodes = dict(
     JOIN_TAPE = 0x1A,
     CRASH = 0x1B,
     USE_PREP = 0x1C,
+    STARTGRIND = 0x1D,
+    STOPGRIND = 0x1E,
     # Addition
     ADDC = 0x20,
     ADDS = 0x21,
@@ -79,6 +81,7 @@ opcodes = dict(
     MODCI = 0x37,
     LEGENDREC = 0x38,
     DIGESTC = 0x39,
+    INV2M = 0x3a,
     GMULBITC = 0x136,
     GMULBITM = 0x137,
     # Open
@@ -132,6 +135,7 @@ opcodes = dict(
     EQC = 0x97,
     JMPI = 0x98,
     # Integers
+    BITDECINT = 0x99,
     LDINT = 0x9A,
     ADDINT = 0x9B,
     SUBINT = 0x9C,
@@ -156,8 +160,8 @@ opcodes = dict(
     PRINTCHRINT = 0xBA,
     PRINTSTRINT = 0xBB,
     PRINTFLOATPLAIN = 0xBC,
-    WRITEFILESHARE = 0xBD,    
-    READFILESHARE = 0xBE,     
+    WRITEFILESHARE = 0xBD,     
+    READFILESHARE = 0xBE,
     GBITDEC = 0x184,
     GBITCOM = 0x185,
     # Secure socket
@@ -403,7 +407,7 @@ class ImmediateModpAF(IntArgFormat):
     @classmethod
     def check(cls, arg):
         super(ImmediateModpAF, cls).check(arg)
-        if arg >= 2**31 or arg < -2**31:
+        if arg >= 2**32 or arg < -2**32:
             raise ArgumentError(arg, 'Immediate value outside of 32-bit range')
 
 class ImmediateGF2NAF(IntArgFormat):
@@ -535,7 +539,11 @@ class Instruction(object):
         return ""
 
     def has_var_args(self):
-        return False
+        try:
+            len(self.arg_format)
+            return False
+        except:
+            return True
 
     def is_vec(self):
         return False

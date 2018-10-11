@@ -1,6 +1,7 @@
-# (C) 2018 University of Bristol. See License.txt
+# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 import compilerLib, program, instructions, types, library, floatingpoint
+import GC.types
 import inspect
 from config import *
 from compilerLib import run
@@ -10,8 +11,9 @@ from compilerLib import run
 compilerLib.VARS = {}
 instr_classes = [t[1] for t in inspect.getmembers(instructions, inspect.isclass)]
 
-instr_classes += [t[1] for t in inspect.getmembers(types, inspect.isclass)\
-    if t[1].__module__ == types.__name__]
+for mod in (types, GC.types):
+    instr_classes += [t[1] for t in inspect.getmembers(mod, inspect.isclass)\
+                      if t[1].__module__ == mod.__name__]
 
 instr_classes += [t[1] for t in inspect.getmembers(library, inspect.isfunction)\
     if t[1].__module__ == library.__name__]

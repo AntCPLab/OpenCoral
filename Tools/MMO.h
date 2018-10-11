@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 /*
  * MMO.h
@@ -9,6 +9,7 @@
 #define TOOLS_MMO_H_
 
 #include "Tools/aes.h"
+#include "BMR/Key.h"
 
 // Matyas-Meyer-Oseas hashing
 class MMO
@@ -32,6 +33,33 @@ public:
     void hashBlockWise(octet* output, octet* input);
     template <class T>
     void outputOneBlock(octet* output);
+    Key hash(const Key& input);
+    template <int N>
+    void hash(Key* output, const Key* input);
 };
+
+template<int N>
+inline void MMO::encrypt_and_xor(void* output, const void* input, const octet* key)
+{
+    __m128i in[N], out[N];
+    avx_memcpy(in, input, sizeof(in));
+    ecb_aes_128_encrypt<N>(out, in, key);
+    for (int i = 0; i < N; i++)
+        out[i] = _mm_xor_si128(out[i], in[i]);
+    avx_memcpy(output, out, sizeof(out));
+}
+
+inline Key MMO::hash(const Key& input)
+{
+    Key res;
+    encrypt_and_xor<1>(&res.r, &input.r, IV);
+    return res;
+}
+
+template <int N>
+inline void MMO::hash(Key* output, const Key* input)
+{
+    encrypt_and_xor<N>(output, input, IV);
+}
 
 #endif /* TOOLS_MMO_H_ */

@@ -1,4 +1,4 @@
-# (C) 2018 University of Bristol. See License.txt
+# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 import heapq
 from Compiler.exceptions import *
@@ -19,7 +19,7 @@ class SparseDiGraph(object):
         """ max_nodes: maximum no of nodes
         default_attributes: dict of node attributes and default values """
         if default_attributes is None:
-            default_attributes = { 'merges': None, 'stop': -1, 'start': -1, 'is_source': True }
+            default_attributes = { 'merges': None, 'stop': -1, 'start': -1 }
         self.default_attributes = default_attributes
         self.attribute_pos = dict(zip(default_attributes.keys(), range(len(default_attributes))))
         self.n = max_nodes

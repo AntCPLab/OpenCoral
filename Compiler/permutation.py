@@ -1,4 +1,4 @@
-# (C) 2018 University of Bristol. See License.txt
+# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 from random import randint
 import math
@@ -361,7 +361,7 @@ def rec_shuffle(x, config=None, value_type=sgf2n, reverse=False):
     if config is None:
         config = configure_waksman(random_perm(n))
         for i,c in enumerate(config):
-            config[i] = [value_type(b) for b in c]
+            config[i] = [value_type.bit_type(b) for b in c]
     waksman(x, config, reverse=reverse)
     waksman(x, config, reverse=reverse)
 

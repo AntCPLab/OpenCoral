@@ -1,4 +1,4 @@
-# (C) 2018 University of Bristol. See License.txt
+# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 """
 Functions for secure comparison of GF(p) types.
@@ -64,14 +64,11 @@ def ld2i(c, n):
 
 inverse_of_two = {}
 
-def divide_by_two(res, x):
+def divide_by_two(res, x, m=1):
     """ Faster clear division by two using a cached value of 2^-1 mod p """
-    from program import Program
-    import types
-    block = Program.prog.curr_block
-    if len(inverse_of_two) == 0 or block not in inverse_of_two:
-        inverse_of_two[block] = types.cint(1) / 2
-    mulc(res, x, inverse_of_two[block])
+    tmp = program.curr_block.new_reg('c')
+    inv2m(tmp, m)
+    mulc(res, x, tmp)
 
 def LTZ(s, a, k, kappa):
     """
@@ -104,8 +101,7 @@ def Trunc(d, a, k, m, kappa, signed):
         Mod2m(a_prime, a, k, m, kappa, signed)
     subs(t, a, a_prime)
     ldi(c[1], 1)
-    ld2i(c2m, m)
-    divc(c[2], c[1], c2m)
+    divide_by_two(c[2], c[1], m)
     mulm(d, t, c[2])
 
 def TruncRoundNearest(a, k, m, kappa):

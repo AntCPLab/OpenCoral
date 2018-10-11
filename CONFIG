@@ -1,4 +1,4 @@
-# (C) 2018 University of Bristol. See License.txt
+# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 ROOT = .
 
@@ -16,6 +16,10 @@ USE_GF2N_LONG = 0
 # set to -march=<architecture> for optimization
 # AVX2 support (Haswell or later) changes the bit matrix transpose
 ARCH = -mtune=native -mavx
+
+# defaults for BMR, change number of parties here
+CFLAGS = -DN_PARTIES=2 -DFREE_XOR -DKEY_SIGNAL -DSPDZ_AUTH -DNO_INPUT -DMAX_INLINE
+USE_GF2N_LONG = 1
 
 #use CONFIG.mine to overwrite DIR settings
 -include CONFIG.mine
@@ -39,8 +43,10 @@ ifeq ($(OS), Linux)
 LDLIBS += -lrt
 endif
 
+BOOST = -lboost_system -lboost_thread $(MY_BOOST)
+
 CXX = g++
-CFLAGS = $(ARCH) $(MY_CFLAGS) -g -Wextra -Wall $(OPTIM) -I$(ROOT) -pthread $(PROF) $(DEBUG) $(MOD) $(MEMPROTECT) $(GF2N_LONG) $(PREP_DIR) -maes -mpclmul -msse4.1 --std=c++11 -Werror
+CFLAGS += $(ARCH) $(MY_CFLAGS) -g -Wextra -Wall $(OPTIM) -I$(ROOT) -pthread $(PROF) $(DEBUG) $(MOD) $(MEMPROTECT) $(GF2N_LONG) $(PREP_DIR) -maes -mpclmul -msse4.1 -mavx2 --std=c++11 -Werror
 CPPFLAGS = $(CFLAGS)
 LD = g++
 

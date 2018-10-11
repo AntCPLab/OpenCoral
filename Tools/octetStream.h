@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 #ifndef _octetStream
 #define _octetStream
@@ -21,6 +21,7 @@
 
 #include "Networking/data.h"
 #include "Networking/sockets.h"
+#include "Tools/avx_memcpy.h"
 
 #include <string.h>
 #include <vector>
@@ -32,11 +33,16 @@
 using namespace std;
 
 class bigint;
+class FlexBuffer;
 
 class octetStream
 {
+  friend class FlexBuffer;
+
   size_t len,mxlen,ptr;  // len is the "write head", ptr is the "read head"
   octet *data;
+
+  void reset();
 
   public:
 
@@ -48,6 +54,7 @@ class octetStream
 
   octetStream() : len(0), mxlen(0), ptr(0), data(0) {}
   octetStream(size_t maxlen);
+  octetStream(FlexBuffer& buffer);
   octetStream(const octetStream& os);
   octetStream& operator=(const octetStream& os)
     { if (this!=&os) { assign(os); }
@@ -62,7 +69,7 @@ class octetStream
 
   bool done() const 	  { return ptr == len; }
   bool empty() const 	  { return len == 0; }
-  int left() const 		  { return len - ptr; }
+  size_t left() const 	  { return len - ptr; }
 
   octetStream hash()   const;
   // output must have length at least HASH_SIZE
@@ -87,6 +94,7 @@ class octetStream
 
   // Append with no padding for decoding
   void append(const octet* x,const size_t l);
+  void append_no_resize(const octet* x,const size_t l);
   // Read l octets, with no padding for decoding
   void consume(octet* x,const size_t l);
   // Return pointer to next l octets and advance pointer
@@ -143,10 +151,11 @@ class octetStream
   void encrypt(const octet* key);
   void decrypt(const octet* key);
 
-  void exchange(int send_socket, int receive_socket);
-
   void input(istream& s);
   void output(ostream& s);
+
+  void exchange(int send_socket, int receive_socket) { exchange(send_socket, receive_socket, *this); }
+  void exchange(int send_socket, int receive_socket, octetStream& receive_stream);
 
   friend ostream& operator<<(ostream& s,const octetStream& o);
   friend class PRNG;
@@ -181,14 +190,19 @@ inline void octetStream::append(const octet* x, const size_t l)
 {
   if (len+l>mxlen)
     resize(len+l);
-  memcpy(data+len,x,l*sizeof(octet));
+  avx_memcpy(data+len,x,l*sizeof(octet));
   len+=l;
 }
 
+inline void octetStream::append_no_resize(const octet* x, const size_t l)
+{
+  avx_memcpy(data+len,x,l*sizeof(octet));
+  len+=l;
+}
 
 inline void octetStream::consume(octet* x,const size_t l)
 {
-  memcpy(x,data+ptr,l*sizeof(octet));
+  avx_memcpy(x,data+ptr,l*sizeof(octet));
   ptr+=l;
 }
 

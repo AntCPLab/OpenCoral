@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 /*
  * gf2nlong.h
@@ -32,7 +32,8 @@ public:
     int128(const word& a) : a(_mm_cvtsi64_si128(a)) { }
     int128(const word& upper, const word& lower) : a(_mm_set_epi64x(upper, lower)) { }
 
-    word get_lower()                            { return (word)_mm_cvtsi128_si64(a); }
+    word get_lower() const                      { return (word)_mm_cvtsi128_si64(a); }
+    word get_upper() const                      { return _mm_extract_epi64(a, 1); }
 
     bool operator==(const int128& other) const  { return _mm_test_all_zeros(a ^ other.a, a ^ other.a); }
     bool operator!=(const int128& other) const  { return !(*this == other); }
@@ -54,6 +55,9 @@ public:
     int128& operator&=(const int128& other)     { a &= other.a; return *this; }
 
     friend ostream& operator<<(ostream& s, const int128& a);
+
+    static int128 ones(int n);
+    bool get_bit(int i) const;
 };
 
 
@@ -276,6 +280,34 @@ inline void mul128(__m128i a, __m128i b, __m128i *res1, __m128i *res2)
     // initial mul now in tmp3, tmp6
     *res1 = tmp3;
     *res2 = tmp6;
+}
+
+inline int128 int128::ones(int n)
+{
+    if (n < 64)
+        return int128(0, (1ULL << n) - 1);
+    else
+        return int128((1ULL << (n - 64)) - 1, -1);
+}
+
+inline bool int128::get_bit(int i) const
+{
+    if (i < 64)
+        return (get_lower() >> i) & 1;
+    else
+        return (get_upper() >> (i - 64)) & 1;
+}
+
+inline gf2n_long& gf2n_long::mul(const gf2n_long& x,const gf2n_long& y)
+{
+  __m128i res[2];
+  memset(res,0,sizeof(res));
+
+  mul128(x.a.a,y.a.a,res,res+1);
+
+  reduce(res[1],res[0]);
+
+  return *this;
 }
 
 #endif /* MATH_GF2NLONG_H_ */

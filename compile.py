@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# (C) 2018 University of Bristol. See License.txt
+# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 
 #     ===== Compiler usage instructions =====
@@ -43,11 +43,8 @@ def main():
     parser.add_option("-r", "--noreorder", dest="reorder_between_opens",
                       action="store_false", default=True,
                       help="don't attempt to place instructions between start/stop opens")
-    parser.add_option("-M", "--preserve-mem-order", action="store_true",
-                      dest="preserve_mem_order", default=True,
-                      help="preserve order of memory instructions; possible efficiency loss")
     parser.add_option("-O", "--optimize-hard", action="store_false",
-                      dest="preserve_mem_order", default=True,
+                      dest="preserve_mem_order", default=False,
                       help="don't preserve order of memory instructions; possible loss of correctness")
     parser.add_option("-u", "--noreallocate", action="store_true", dest="noreallocate",
                       default=False, help="don't reallocate")

@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 
 #ifndef _Share
@@ -43,10 +43,11 @@ class Share
      { a.assign_zero(); 
        mac.assign_zero(); 
      }
+   void assign(const T& aa, int my_num, const T& alphai);
 
    Share()                  { assign_zero(); }
    Share(const Share<T>& S) { assign(S); }
-   Share(const T& aa, int my_num, const T& alphai);
+   Share(const T& aa, int my_num, const T& alphai) { assign(aa, my_num, alphai); }
    ~Share()                 { ; }
    Share& operator=(const Share<T>& S)
      { if (this!=&S) { assign(S); }
@@ -130,6 +131,16 @@ inline void Share<T>::mul(const Share<T>& S,const T& aa)
 {
   a.mul(S.a,aa);
   mac.mul(S.mac,aa);
+}
+
+template<class T>
+inline void Share<T>::assign(const T& aa, int my_num, const T& alphai)
+{
+  if (my_num == 0)
+    a = aa;
+  else
+    a.assign_zero();
+  mac.mul(aa, alphai);
 }
 
 #endif

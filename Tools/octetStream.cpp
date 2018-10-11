@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 
 #include <fcntl.h>
@@ -11,8 +11,15 @@
 #include "Exceptions/Exceptions.h"
 #include "Networking/data.h"
 #include "Math/bigint.h"
-#include "Math/gfp.h"
+#include "Tools/time-func.h"
+#include "Tools/FlexBuffer.h"
 
+
+void octetStream::reset()
+{
+    data = 0;
+    len = mxlen = ptr = 0;
+}
 
 void octetStream::clear()
 {
@@ -51,6 +58,15 @@ octetStream::octetStream(const octetStream& os)
   data=new octet[mxlen];
   memcpy(data,os.data,len*sizeof(octet));
   ptr=os.ptr;
+}
+
+octetStream::octetStream(FlexBuffer& buffer)
+{
+  mxlen = buffer.capacity();
+  len = buffer.size();
+  data = (octet*)buffer.data();
+  ptr = buffer.ptr - buffer.data();
+  buffer.reset();
 }
 
 
@@ -131,7 +147,7 @@ void octetStream::store_int(size_t l, int n_bytes)
 void octetStream::store(int l)
 {
   resize(len+4);
-  INT_TO_BYTES(data+len,l);
+  encode_length(data+len,l,4);
   len+=4;
 }
 
@@ -145,7 +161,7 @@ size_t octetStream::get_int(int n_bytes)
 
 void octetStream::get(int& l)
 {
-  l=BYTES_TO_INT(data+ptr);
+  l=decode_length(data+ptr,4);
   ptr+=4;
 }
 
@@ -184,6 +200,69 @@ void octetStream::get(bigint& ans)
 }
 
 
+void octetStream::exchange(int send_socket, int receive_socket, octetStream& receive_stream)
+{
+  send(send_socket, len, LENGTH_SIZE);
+  const size_t buffer_size = 100000;
+  size_t sent = 0, received = 0;
+  bool length_received = false;
+  size_t new_len = 0;
+#ifdef TIME_ROUNDS
+  Timer recv_timer;
+#endif
+  while (received < new_len or sent < len or not length_received)
+    {
+      if (sent < len)
+        {
+          size_t to_send = min(buffer_size, len - sent);
+          send(send_socket, data + sent, to_send);
+          sent += to_send;
+        }
+
+      // avoid extra branching, false before length received
+      if (received < new_len)
+        {
+          // same buffer for sending and receiving
+          // only receive up to already sent data
+          // or when all is sent
+          size_t to_receive = 0;
+          if (sent == len)
+            to_receive = new_len - received;
+          else if (sent > received)
+            to_receive = sent - received;
+          if (to_receive > 0)
+            {
+#ifdef TIME_ROUNDS
+              TimeScope ts(recv_timer);
+#endif
+              received += receive_non_blocking(receive_socket,
+                  receive_stream.data + received, to_receive);
+            }
+        }
+      else if (not length_received)
+        {
+#ifdef TIME_ROUNDS
+          TimeScope ts(recv_timer);
+#endif
+          octet blen[LENGTH_SIZE];
+          if (receive_all_or_nothing(receive_socket,blen,LENGTH_SIZE) == LENGTH_SIZE)
+            {
+              new_len=decode_length(blen,sizeof(blen));
+              receive_stream.resize(max(new_len, len));
+              length_received = true;
+            }
+        }
+    }
+
+#ifdef TIME_ROUNDS
+  cout << "Exchange time: " << recv_timer.elapsed() << " seconds to receive "
+      << 1e-3 * new_len << " KB" << endl;
+#endif
+  receive_stream.len = new_len;
+  receive_stream.reset_read_head();
+}
+
+
 void octetStream::store(const vector<int>& v)
 {
   store(v.size());
@@ -201,34 +280,6 @@ void octetStream::get(vector<int>& v)
     get(x);
 }
 
-
-void octetStream::exchange(int send_socket, int receive_socket)
-{
-  send(send_socket, len, LENGTH_SIZE);
-  size_t new_len;
-  receive(receive_socket, new_len, LENGTH_SIZE);
-  if (new_len > mxlen)
-      resize_precise(max(new_len, len));
-  const size_t buffer_size = 100000;
-  size_t sent = 0, received = 0;
-  while (sent < len or received < new_len)
-    {
-      if (sent < len)
-        {
-          size_t to_send = min(buffer_size, len - sent);
-          send(send_socket, data + sent, to_send);
-          sent += to_send;
-        }
-      if (received < new_len)
-        {
-          size_t to_receive = min(buffer_size, new_len - received);
-          receive(receive_socket, data + received, to_receive);
-          received += to_receive;
-        }
-    }
-  len = new_len;
-  reset_read_head();
-}
 
 // Construct the ciphertext as `crypto_secretbox(pt, counter||random)`
 void octetStream::encrypt_sequence(const octet* key, uint64_t counter)

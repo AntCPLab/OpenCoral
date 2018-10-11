@@ -1,4 +1,4 @@
-# (C) 2018 University of Bristol. See License.txt
+# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 from math import log, floor, ceil
 from Compiler.instructions import *
@@ -57,7 +57,7 @@ def bits(a,m):
         c[1][0] = a
         for i in range(1,m):
             subc(c[0][i], c[1][i-1], res[i-1])
-            divci(c[1][i], c[0][i], 2)
+            comparison.divide_by_two(c[1][i], c[0][i])
             modci(res[i], c[1][i], 2)
     return res
 

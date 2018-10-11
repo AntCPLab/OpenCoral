@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 #ifndef _Player
 #define _Player
@@ -17,6 +17,7 @@
 using namespace std;
 
 #include "Tools/octetStream.h"
+#include "Tools/FlexBuffer.h"
 #include "Networking/sockets.h"
 #include "Networking/ServerSocket.h"
 #include "Tools/sha1.h"
@@ -116,6 +117,14 @@ public:
   virtual void pass_around(octetStream& o, int offset = 1) const = 0;
 };
 
+struct CommStats
+{
+  size_t data, rounds;
+  Timer timer;
+  CommStats() : data(0), rounds(0) {}
+  Timer& add(const octetStream& os) { data += os.get_length(); rounds++; return timer; }
+};
+
 class Player : public PlayerBase
 {
 protected:
@@ -131,6 +140,8 @@ protected:
   map<int,int> socket_players;
 
   int socket_to_send(int player) const { return player == player_no ? send_to_self_socket : sockets[player]; }
+
+  mutable map<string,CommStats> comm_stats;
 
 public:
   // The offset is used for the multi-threaded call, to ensure different
@@ -148,11 +159,16 @@ public:
   void send_int(int i,int a)  const    { send(sockets[i],a);    }
   void receive_int(int i,int& a) const { receive(sockets[i],a); }
 
+  void send_long(int i, long a) const;
+  long receive_long(int i) const;
+  long peek_long(int i) const;
+
   // Send an octetStream to all other players 
   //   -- And corresponding receive
   virtual void send_all(const octetStream& o,bool donthash=false) const;
   void send_to(int player,const octetStream& o,bool donthash=false) const;
   virtual void receive_player(int i,octetStream& o,bool donthash=false) const;
+  void receive_player(int i,FlexBuffer& buffer) const;
 
   // exchange data with minimal memory usage
   void exchange(int other, octetStream& o) const;

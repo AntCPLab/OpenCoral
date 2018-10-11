@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 
 #ifndef _Processor
@@ -115,6 +115,9 @@ class Processor : public ProcessorBase
   ExternalClients external_clients;
   Binary_File_IO binary_file_io;
   
+  // avoid re-computation of expensive division
+  map<int, gfp> inverses2m;
+
   static const int reg_bytes = 4;
   
   void reset(const Program& program,int arg); // Reset the state of the processor

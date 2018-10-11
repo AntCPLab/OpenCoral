@@ -1,4 +1,4 @@
-# (C) 2018 University of Bristol. See License.txt
+# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 
 include CONFIG
@@ -17,6 +17,8 @@ ifeq ($(USE_NTL),1)
 FHEOFFLINE = $(patsubst %.cpp,%.o,$(wildcard FHEOffline/*.cpp FHE/*.cpp))
 endif
 
+GC = $(patsubst %.cpp,%.o,$(wildcard GC/*.cpp))
+
 # OT stuff needs GF2N_LONG, so only compile if this is enabled
 ifeq ($(USE_GF2N_LONG),1)
 OT = $(patsubst %.cpp,%.o,$(filter-out OT/OText_main.cpp,$(wildcard OT/*.cpp)))
@@ -24,13 +26,16 @@ OT_EXE = ot.x ot-offline.x
 endif
 
 COMMON = $(MATH) $(TOOLS) $(NETWORK) $(AUTH)
-COMPLETE = $(COMMON) $(PROCESSOR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(OT)
+COMPLETE = $(COMMON) $(PROCESSOR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(GC) $(OT)
+YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp))
+BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp)) $(COMMON) $(PROCESSOR) $(GC) $(YAO)
+
 
 LIB = libSPDZ.a
 LIBSIMPLEOT = SimpleOT/libsimpleot.a
 
 # used for dependency generation
-OBJS = $(COMPLETE)
+OBJS = $(BMR) $(FHEOFFLINE) $(TINYOTOFFLINE)
 DEPS := $(OBJS:.o=.d)
 
 
@@ -52,6 +57,10 @@ offline: $(OT_EXE) Check-Offline.x
 gen_input: gen_input_f2n.x gen_input_fp.x
 
 externalIO: client-setup.x bankers-bonus-client.x bankers-bonus-commsec-client.x
+
+bmr: bmr-program-party.x bmr-program-tparty.x
+
+yao: yao-simulate.x yao-player.x
 
 she-offline: Check-Offline.x spdz2-offline.x
 
@@ -92,6 +101,18 @@ gen_input_f2n.x: Scripts/gen_input_f2n.cpp $(COMMON)
 gen_input_fp.x: Scripts/gen_input_fp.cpp $(COMMON)
 	$(CXX) $(CFLAGS) Scripts/gen_input_fp.cpp	-o gen_input_fp.x $(COMMON) $(LDLIBS)
 
+gc-emulate.x: $(GC) $(COMMON) $(PROCESSOR) gc-emulate.cpp $(BMR)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(BOOST)
+
+bmr-program-party.x: $(BMR) bmr-program-party.cpp
+	$(CXX) $(CFLAGS) -o $@ $^ $(BOOST) $(LDLIBS)
+
+bmr-program-tparty.x: $(BMR) bmr-program-tparty.cpp
+	$(CXX) $(CFLAGS) -o $@ $^ $(BOOST) $(LDLIBS)
+
+bmr-clean:
+	-rm BMR/*.o BMR/*/*.o GC/*.o
+
 client-setup.x: client-setup.cpp $(COMMON) $(PROCESSOR)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
@@ -115,5 +136,14 @@ spdz2-offline.x: $(COMMON) $(FHEOFFLINE) spdz2-offline.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 endif
 
+yao-simulate.x: $(YAO) $(BMR) yao-simulate.cpp
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(BOOST)
+
+yao-player.x: $(YAO) $(BMR) yao-player.cpp
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(BOOST)
+
+yao-clean:
+	-rm Yao/*.o
+
 clean:
-	-rm */*.o *.o */*.d *.d *.x core.* *.a gmon.out
+	-rm */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o

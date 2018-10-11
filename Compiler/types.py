@@ -1,4 +1,4 @@
-# (C) 2018 University of Bristol. See License.txt
+# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 from Compiler.program import Tape
 from Compiler.exceptions import *
@@ -111,10 +111,6 @@ def read_mem_value(operation):
 
 
 class _number(object):
-    @staticmethod
-    def bit_compose(bits):
-        return sum(b << i for i,b in enumerate(bits))
-
     def square(self):
         return self * self
 
@@ -231,6 +227,10 @@ class _register(Tape.Register, _number):
     def prep_res(cls, other):
         return cls()
 
+    @staticmethod
+    def bit_compose(bits):
+        return sum(b << i for i,b in enumerate(bits))
+
     def __init__(self, reg_type, val, size):
         super(_register, self).__init__(reg_type, program.curr_tape, size=size)
         if isinstance(val, (int, long)):
@@ -240,6 +240,9 @@ class _register(Tape.Register, _number):
 
     def sizeof(self):
         return self.size
+
+    def extend(self, n):
+        return self
 
 
 class _clear(_register):
@@ -791,13 +794,8 @@ class regint(_register, _int):
         return cint(self).mod2m(*args, **kwargs)
 
     def bit_decompose(self, bit_length=None):
-        res = []
-        x = self
-        two = regint(2)
-        for i in range(bit_length or program.bit_length):
-            y = x / two
-            res.append(x - two * y)
-            x = y
+        res = [regint() for i in range(bit_length or program.bit_length)]
+        bitdecint(self, *res)
         return res
 
     @staticmethod
@@ -818,6 +816,9 @@ class regint(_register, _int):
 
 class _secret(_register):
     __slots__ = []
+
+    PreOR = staticmethod(lambda l: floatingpoint.PreORC(l))
+    PreOp = staticmethod(lambda op, l: floatingpoint.PreOpL(op, l))
 
     @vectorized_classmethod
     @set_instruction_type
@@ -970,6 +971,10 @@ class sint(_secret, _int):
     instruction_type = 'modp'
     clear_type = cint
     reg_type = 's'
+
+    PreOp = staticmethod(floatingpoint.PreOpL)
+    PreOR = staticmethod(floatingpoint.PreOR)
+    get_type = staticmethod(lambda n: sint)
 
     @vectorized_classmethod
     def get_random_int(cls, bits):
@@ -1158,11 +1163,28 @@ class sint(_secret, _int):
         security = security or program.security
         return floatingpoint.BitDec(self, bit_length, bit_length, security)
 
+    def TruncMul(self, other, k, m, kappa=None):
+        return floatingpoint.TruncPr(self * other, k, m, kappa)
+
+    def TruncPr(self, k, m, kappa=None):
+        return floatingpoint.TruncPr(self, k, m, kappa)
+
+    def Norm(self, k, f, kappa=None, simplex_flag=False):
+        return library.Norm(self, k, f, kappa, simplex_flag)
+
+    @staticmethod
+    def two_power(n):
+        return floatingpoint.two_power(n)
+
 class sgf2n(_secret, _gf2n):
     __slots__ = []
     instruction_type = 'gf2n'
     clear_type = cgf2n
     reg_type = 'sg'
+
+    @classmethod
+    def get_type(cls, length):
+        return cls
 
     @classmethod
     def get_raw_input_from(cls, player):
@@ -1265,28 +1287,28 @@ class sgf2n(_secret, _gf2n):
         masked = sum([b * (one << wanted_positions[i]) for i,b in enumerate(random_bits)], self).reveal()
         return [self.clear_type((masked >> wanted_positions[i]) & one) + r for i,r in enumerate(random_bits)]
 
-sint.basic_type = sint
-sgf2n.basic_type = sgf2n
+for t in (sint, sgf2n):
+    t.bit_type = t
+    t.basic_type = t
+    t.default_type = t
 
 
-class sgf2nint(sgf2n):
+class _bitint(object):
     bits = None
+    log_rounds = False
 
     @classmethod
-    def compose(cls, bits):
-        bits = list(bits)
-        if len(bits) > cls.n_bits:
-            raise CompilerError('Too many bits')
-        res = cls()
-        res.bits = bits + [0] * (cls.n_bits - len(bits))
-        gmovs(res, sum(b << i for i,b in enumerate(bits)))
-        return res
-
-    @staticmethod
-    def bit_adder(a, b):
+    def bit_adder(cls, a, b):
         a, b = list(a), list(b)
         a += [0] * (len(b) - len(a))
         b += [0] * (len(a) - len(b))
+        if cls.log_rounds:
+            return cls.carry_lookahead_adder(a, b)
+        else:
+            return cls.carry_select_adder(a, b)
+
+    @staticmethod
+    def carry_lookahead_adder(a, b):
         lower = []
         for (ai,bi) in zip(a,b):
             if ai is 0 or bi is 0:
@@ -1304,10 +1326,50 @@ class sgf2nint(sgf2n):
             carries = []
         return lower + [ai + bi + carry for (ai,bi,carry) in zip(a,b,carries)]
 
+    @classmethod
+    def carry_select_adder(cls, a, b):
+        n = len(a)
+        for m in range(100):
+            if sum(range(m + 1)) + 1 >= n:
+                break
+        for k in range(m, 0, -1):
+            if sum(range(m, k - 1, -1)) + 1 >= n:
+                break
+        blocks = range(m, k, -1)
+        blocks.append(n - sum(blocks))
+        blocks.reverse()
+        #print 'blocks:', blocks
+        if len(blocks) > 1 and blocks[0] > blocks[1]:
+            raise Exception('block size not increasing:', blocks)
+        if sum(blocks) != n:
+            raise Exception('blocks not summing up: %s != %s' % \
+                            (sum(blocks), n))
+        res = []
+        carry = 0
+        for m in blocks:
+            aa = a[:m]
+            bb = b[:m]
+            a = a[m:]
+            b = b[m:]
+            cc = [cls.ripple_carry_adder(aa, bb, i) for i in (0,1)]
+            for i in range(m):
+                res.append(util.if_else(carry, cc[1][i], cc[0][i]))
+            carry = util.if_else(carry, cc[1][m], cc[0][m])
+        return res
+
+    @classmethod
+    def ripple_carry_adder(cls, a, b, carry=0):
+        res = []
+        for aa, bb in zip(a, b):
+            cc, carry = cls.full_adder(aa, bb, carry)
+            res.append(cc)
+        res.append(carry)
+        return res
+
     @staticmethod
     def full_adder(a, b, carry):
         s = a + b
-        return s + carry, util.or_op(a * b, s * carry)
+        return s + carry, util.if_else(s, carry, a)
 
     @staticmethod
     def half_adder(a, b):
@@ -1329,35 +1391,36 @@ class sgf2nint(sgf2n):
 
     def load_int(self, other):
         if -2**(self.n_bits-1) <= other < 2**(self.n_bits-1):
-            sgf2n.load_int(self, other + 2**self.n_bits if other < 0 else other)
+            self.bin_type.load_int(self, other + 2**self.n_bits \
+                                   if other < 0 else other)
         else:
             raise CompilerError('Invalid signed %d-bit integer: %d' % \
                                     (self.n_bits, other))
 
-    def load_other(self, other):
-        if isinstance(other, sgf2nint):
-            gmovs(self, self.compose(other.bit_decompose(self.n_bits)))
-        elif isinstance(other, sgf2n):
-            gmovs(self, other)
-        else:
-            gaddm(self, sgf2n(0), cgf2n(other))
-
     def add(self, other):
-        if type(other) == sgf2n:
+        if type(other) == self.bin_type:
             raise CompilerError('Unclear addition')
         a = self.bit_decompose()
         b = util.bit_decompose(other, self.n_bits)
         return self.compose(self.bit_adder(a, b))
 
     def mul(self, other):
-        if type(other) == sgf2n:
+        if type(other) == self.bin_type:
             raise CompilerError('Unclear multiplication')
         self_bits = self.bit_decompose()
         if isinstance(other, (int, long)):
             other_bits = util.bit_decompose(other, self.n_bits)
             bit_matrix = [[x * y for y in self_bits] for x in other_bits]
         else:
-            other = sgf2n(other)
+            try:
+                other_bits = other.bit_decompose()
+                if len(other_bits) == 1:
+                    return type(self)(other_bits[0] * self)
+                if len(self_bits) != len(other_bits):
+                   raise NotImplementedError('Multiplication of different lengths')
+            except AttributeError:
+                pass
+            other = self.bin_type(other)
             products = [x * other for x in self_bits]
             bit_matrix = [util.bit_decompose(x, self.n_bits) for x in products]
         columns = [filter(None, (bit_matrix[j][i-j] \
@@ -1411,7 +1474,7 @@ class sgf2nint(sgf2n):
 
     def bit_decompose(self, n_bits=None, *args):
         if self.bits is None:
-            self.bits = sgf2n(self).bit_decompose(self.n_bits)
+            self.bits = self.force_bit_decompose(self.n_bits)
         if n_bits is None:
             return self.bits[:]
         else:
@@ -1453,8 +1516,50 @@ class sgf2nint(sgf2n):
     def __gt__(self, other):
         return 1 - (self <= other)
 
+    def __eq__(self, other):
+        diff = self ^ other
+        diff_bits = [1 - x for x in diff.bit_decompose()]
+        return floatingpoint.KMul(diff_bits)
+
+    def __ne__(self, other):
+        return 1 - (self == other)
+
     def __neg__(self):
         return 1 + self.compose(1 ^ b for b in self.bit_decompose())
+
+    def __abs__(self):
+        return self.bit_decompose()[-1].if_else(-self, self)
+
+    less_than = lambda self, other, *args, **kwargs: self < other
+    greater_than = lambda self, other, *args, **kwargs: self > other
+    less_equal = lambda self, other, *args, **kwargs: self <= other
+    greater_equal = lambda self, other, *args, **kwargs: self >= other
+    equal = lambda self, other, *args, **kwargs: self == other
+    not_equal = lambda self, other, *args, **kwargs: self != other
+
+class sgf2nint(_bitint, sgf2n):
+    bin_type = sgf2n
+
+    @classmethod
+    def compose(cls, bits):
+        bits = list(bits)
+        if len(bits) > cls.n_bits:
+            raise CompilerError('Too many bits')
+        res = cls()
+        res.bits = bits + [0] * (cls.n_bits - len(bits))
+        gmovs(res, sum(b << i for i,b in enumerate(bits)))
+        return res
+
+    def load_other(self, other):
+        if isinstance(other, sgf2nint):
+            gmovs(self, self.compose(other.bit_decompose(self.n_bits)))
+        elif isinstance(other, sgf2n):
+            gmovs(self, other)
+        else:
+            gaddm(self, sgf2n(0), cgf2n(other))
+
+    def force_bit_decompose(self, n_bits=None):
+        return sgf2n(self).bit_decompose(n_bits)
 
 class sgf2nuint(sgf2nint):
     def load_int(self, other):
@@ -1770,11 +1875,22 @@ class cfix(_number):
         else:
             raise TypeError('Incompatible fixed point types in division')
 
-class sfix(_number):
+    def print_plain(self):
+        sign = self.v < 0
+        abs_v = sign.if_else(-self.v, self.v)
+        print_float_plain(cint(abs_v), cint(self.f - self.k + 1), \
+                          cint(0), cint(sign))
+
+class _fix(_number):
     """ Shared fixed point type. """
     __slots__ = ['v', 'f', 'k', 'size']
-    reg_type = 's'
     kappa = 40
+
+    @property
+    @classmethod
+    def reg_type(cls):
+        return cls.int_type.reg_type
+
     @classmethod
     def set_precision(cls, f, k = None):
         cls.f = f
@@ -1782,6 +1898,8 @@ class sfix(_number):
         if k is None:
             cls.k = 2 * f
         else:
+            if k < f:
+                raise CompilerError('bit length cannot be less than precision')
             cls.k = k
 
     def conv(self):
@@ -1791,14 +1909,14 @@ class sfix(_number):
     def receive_from_client(cls, n, client_id, message_type=ClientMessageType.NoType):
         """ Securely obtain shares of n values input by a client.
             Assumes client has already run bit shift to convert fixed point to integer."""
-        sint_inputs = sint.receive_from_client(n, client_id, ClientMessageType.TripleShares)
-        return map(sfix, sint_inputs)
+        sint_inputs = cls.int_type.receive_from_client(n, client_id, ClientMessageType.TripleShares)
+        return map(cls, sint_inputs)
 
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
         res = []
-        res.append(sint.load_mem(address))
-        return sfix(*res)
+        res.append(cls.int_type.load_mem(address))
+        return cls(*res)
 
     @classmethod
     def load_sint(cls, v):
@@ -1813,27 +1931,29 @@ class sfix(_number):
         k = self.k
         # warning: don't initialize a sfix from a sint, this is only used in internal methods;
         # for external initialization use load_int.
-        if isinstance(_v, sint):
+        if _v is None:
+            self.v = self.int_type(0)
+        elif isinstance(_v, self.int_type):
             self.v = _v
         elif isinstance(_v, cfix.scalars):
-            self.v = sint(int(round(_v * (2 ** f))), size=self.size)
-        elif isinstance(_v, sfloat):
+            self.v = self.int_type(int(round(_v * (2 ** f))), size=self.size)
+        elif isinstance(_v, self.float_type):
             p = (f + _v.p)
             b = (p >= 0)
             a = b*(_v.v << (p)) + (1-b)*(_v.v >> (-p))
             self.v = (1-2*_v.s)*a
-        elif isinstance(_v, sfix):
+        elif isinstance(_v, type(self)):
             self.v = _v.v
         elif isinstance(_v, MemFix):
             #this is a memvalue object
-            self.v = _v.v
-        # elif _v == None:
-        #     self.v = sint(0)
-        self.kappa = sfix.kappa 
+            self.v = _v
 
     @vectorize
     def load_int(self, v):
-        self.v = sint(v) * (2**self.f)
+        self.v = self.int_type(v) << self.f
+
+    def conv(self):
+        return self
 
     def store_in_mem(self, address):
         self.v.store_in_mem(address)
@@ -1844,25 +1964,28 @@ class sfix(_number):
     @vectorize 
     def add(self, other):
         other = parse_type(other)
-        if isinstance(other, (sfix, cfix)):
-            return sfix(self.v + other.v)
+        if isinstance(other, (_fix, cfix)):
+            return type(self)(self.v + other.v)
         elif isinstance(other, cfix.scalars):
             tmp = cfix(other)
             return self + tmp
         else:
-            raise CompilerError('Invalid type %s for sfix.__add__' % type(other))
+            raise CompilerError('Invalid type %s for _fix.__add__' % type(other))
 
     @vectorize 
     def mul(self, other):
         other = parse_type(other)
-        if isinstance(other, (sfix, cfix)):
-            val = floatingpoint.TruncPr(self.v * other.v, self.k * 2, self.f, self.kappa)
-            return sfix(val)
+        if isinstance(other, _fix):
+            val = self.v.TruncMul(other.v, self.k * 2, self.f, self.kappa)
+            return type(self)(val)
+        elif isinstance(other, cfix):
+            res = type(self)((self.v * other.v) >> self.f)
+            return res
         elif isinstance(other, cfix.scalars):
             scalar_fix = cfix(other)
             return self * scalar_fix
         else:
-            raise CompilerError('Invalid type %s for sfix.__mul__' % type(other))
+            raise CompilerError('Invalid type %s for _fix.__mul__' % type(other))
 
     @vectorize 
     def __sub__(self, other):
@@ -1871,7 +1994,7 @@ class sfix(_number):
 
     @vectorize
     def __neg__(self):
-        return sfix(-self.v)
+        return type(self)(-self.v)
 
     def __rsub__(self, other):
         return -self + other
@@ -1879,7 +2002,7 @@ class sfix(_number):
     @vectorize
     def __eq__(self, other):
         other = parse_type(other)
-        if isinstance(other, (cfix, sfix)):
+        if isinstance(other, (cfix, _fix)):
             return self.v.equal(other.v, self.k, self.kappa)
         else:
             raise NotImplementedError
@@ -1887,7 +2010,7 @@ class sfix(_number):
     @vectorize
     def __le__(self, other):
         other = parse_type(other)
-        if isinstance(other, (cfix, sfix)):
+        if isinstance(other, (cfix, _fix)):
             return self.v.less_equal(other.v, self.k, self.kappa)
         else:
             raise NotImplementedError
@@ -1895,7 +2018,7 @@ class sfix(_number):
     @vectorize 
     def __lt__(self, other):
         other = parse_type(other)
-        if isinstance(other, (cfix, sfix)):
+        if isinstance(other, (cfix, _fix)):
             return self.v.less_than(other.v, self.k, self.kappa)
         else:
             raise NotImplementedError
@@ -1903,7 +2026,7 @@ class sfix(_number):
     @vectorize
     def __ge__(self, other):
         other = parse_type(other)
-        if isinstance(other, (cfix, sfix)):
+        if isinstance(other, (cfix, _fix)):
             return self.v.greater_equal(other.v, self.k, self.kappa)
         else:
             raise NotImplementedError
@@ -1911,7 +2034,7 @@ class sfix(_number):
     @vectorize
     def __gt__(self, other):
         other = parse_type(other)
-        if isinstance(other, (cfix, sfix)):
+        if isinstance(other, (cfix, _fix)):
             return self.v.greater_than(other.v, self.k, self.kappa)
         else:
             raise NotImplementedError
@@ -1919,7 +2042,7 @@ class sfix(_number):
     @vectorize
     def __ne__(self, other):
         other = parse_type(other)
-        if isinstance(other, (cfix, sfix)):
+        if isinstance(other, (cfix, _fix)):
             return self.v.not_equal(other.v, self.k, self.kappa)
         else:
             raise NotImplementedError
@@ -1927,20 +2050,24 @@ class sfix(_number):
     @vectorize
     def __div__(self, other):
         other = parse_type(other)
-        if isinstance(other, sfix):
-            return sfix(library.FPDiv(self.v, other.v, self.k, self.f, self.kappa))
+        if isinstance(other, _fix):
+            return type(self)(library.FPDiv(self.v, other.v, self.k, self.f, self.kappa))
         elif isinstance(other, cfix):
-            return sfix(library.sint_cint_division(self.v, other.v, self.k, self.f, self.kappa))
+            return type(self)(library.sint_cint_division(self.v, other.v, self.k, self.f, self.kappa))
         else:
             raise TypeError('Incompatible fixed point types in division')
 
     @vectorize
     def compute_reciprocal(self):
-        return sfix(library.FPDiv(cint(2) ** self.f, self.v, self.k, self.f, self.kappa, True))
+        return type(self)(library.FPDiv(cint(2) ** self.f, self.v, self.k, self.f, self.kappa, True))
 
     def reveal(self):
         val = self.v.reveal()
-        return cfix(val)
+        return self.clear_type(val)
+
+class sfix(_fix):
+    int_type = sint
+    clear_type = cfix
 
 # this is for 20 bit decimal precision
 # with 40 bitlength of entire number
@@ -2246,6 +2373,8 @@ class cfloat(object):
     def print_float_plain(self):
         print_float_plain(self.v, self.p, self.z, self.s)
 
+sfix.float_type = sfloat
+
 _types = {
     'c': cint,
     's': sint,
@@ -2264,6 +2393,7 @@ class Array(object):
         self.value_type = value_type
         if address is None:
             self.address = self._malloc()
+        self.address_cache = {}
 
     def _malloc(self):
         return program.malloc(self.length, self.value_type)
@@ -2278,7 +2408,9 @@ class Array(object):
             if index >= self.length or index < 0:
                 raise IndexError('index %s, length %s' % \
                                      (str(index), str(self.length)))
-        return self.address + index
+        if (program.curr_block, index) not in self.address_cache:
+            self.address_cache[program.curr_block, index] = self.address + index
+        return self.address_cache[program.curr_block, index]
 
     def get_slice(self, index):
         if index.stop is None and self.length is None:
@@ -2305,13 +2437,13 @@ class Array(object):
                 self[i] = value[source_index]
                 source_index.iadd(1)
             return
-        self._store(self.value_type.conv(value), self.get_address(index))
+        self._store(value, self.get_address(index))
 
     def _load(self, address):
         return self.value_type.load_mem(address)
 
     def _store(self, value, address):
-        value.store_in_mem(address)
+        self.value_type.conv(value).store_in_mem(address)
 
     def __len__(self):
         return self.length
@@ -2335,41 +2467,19 @@ class Array(object):
                 self[i] = j
         return self
 
-    def assign_all(self, value):
-        mem_value = self.value_type.MemValue(value)
-        n_loops = 8 if len(self) > 2**20 else 1
-        @library.for_range_multithread(n_loops, 1024, len(self))
+    def assign_all(self, value, use_threads=True):
+        mem_value = MemValue(value)
+        n_threads = 8 if use_threads and len(self) > 2**20 else 1
+        @library.for_range_multithread(n_threads, 1024, len(self))
         def f(i):
             self[i] = mem_value
         return self
 
+    def get_mem_value(self, index):
+        return MemValue(self[index], self.get_address(index))
+
 sint.dynamic_array = Array
 sgf2n.dynamic_array = Array
-
-class Matrix(object):
-    def __init__(self, rows, columns, value_type, address=None):
-        self.rows = rows
-        self.columns = columns
-        if value_type in _types:
-            value_type = _types[value_type]
-        self.value_type = value_type
-        self.address = Array(rows * columns, value_type, address).address
-
-    def __getitem__(self, index):
-        return Array(self.columns, self.value_type, \
-                         self.address + index * self.columns)
-
-    def __len__(self):
-        return self.rows
-
-    def assign_all(self, value):
-        @library.for_range(len(self))
-        def f(i):
-            self[i].assign_all(value)
-        return self
-
-    def get_address(self):
-        return self.address
 
 
 class SubMultiArray(object):
@@ -2377,27 +2487,37 @@ class SubMultiArray(object):
         self.sizes = sizes
         self.value_type = value_type
         self.address = address + index * reduce(operator.mul, self.sizes)
+        self.sub_cache = {}
 
     def __getitem__(self, index):
-        if len(self.sizes) == 2:
-            return Array(self.sizes[1], self.value_type, \
-                             self.address + index *  self.sizes[0])
-        else:
-            return SubMultiArray(self.sizes[1:], self.value_type, \
-                                     self.address, index)
+        if index not in self.sub_cache:
+            if len(self.sizes) == 2:
+                self.sub_cache[index] = \
+                        Array(self.sizes[1], self.value_type, \
+                              self.address + index * self.sizes[1])
+            else:
+                self.sub_cache[index] = \
+                        SubMultiArray(self.sizes[1:], self.value_type, \
+                                      self.address, index)
+        return self.sub_cache[index]
 
-class MultiArray(object):
+    def assign_all(self, value):
+        @library.for_range(self.sizes[0])
+        def f(i):
+            self[i].assign_all(value)
+        return self
+
+class MultiArray(SubMultiArray):
     def __init__(self, sizes, value_type):
-        self.sizes = sizes
-        self.value_type = value_type
         self.array = Array(reduce(operator.mul, sizes), \
                                  value_type)
+        SubMultiArray.__init__(self, sizes, value_type, self.array.address, 0)
         if len(sizes) < 2:
             raise CompilerError('Use Array')
 
-    def __getitem__(self, index):
-        return SubMultiArray(self.sizes[1:], self.value_type, \
-                                 self.array.address, index)
+class Matrix(MultiArray):
+    def __init__(self, rows, columns, value_type):
+        MultiArray.__init__(self, [rows, columns], value_type)
 
 class VectorArray(object):
     def __init__(self, length, value_type, vector_size, address=None):
@@ -2529,7 +2649,7 @@ class _mem(_number):
 class MemValue(_mem):
     __slots__ = ['last_write_block', 'reg_type', 'register', 'address', 'deleted']
 
-    def __init__(self, value):
+    def __init__(self, value, address=None):
         self.last_write_block = None
         if isinstance(value, int):
             self.value_type = regint
@@ -2539,9 +2659,12 @@ class MemValue(_mem):
         else:
             self.value_type = type(value)
         self.reg_type = self.value_type.reg_type
-        self.address = program.malloc(1, self.value_type)
         self.deleted = False
-        self.write(value)
+        if address is None:
+            self.address = program.malloc(1, self.value_type)
+            self.write(value)
+        else:
+            self.address = address
 
     def delete(self):
         program.free(self.address, self.reg_type)
@@ -2624,7 +2747,14 @@ class MemFloat(_mem):
 
 class MemFix(_mem):
     def __init__(self, *args):
-        value = sfix(*args)
+        arg_type = type(*args)
+        if arg_type == sfix:
+            value = sfix(*args)
+        elif arg_type == cfix:
+            value = cfix(*args)
+        else:
+            raise CompilerError('MemFix init argument error')
+        self.reg_type = value.v.reg_type
         self.v = MemValue(value.v)
 
     def write(self, *args):

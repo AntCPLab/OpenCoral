@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 
 #include "Player.h"
@@ -182,6 +182,11 @@ Player::~Player()
   /* Close down the sockets */
   for (int i=0; i<nplayers; i++)
     close_client_socket(sockets[i]);
+
+  for (auto it = comm_stats.begin(); it != comm_stats.end(); it++)
+    cout << it->first << " " << 1e-6 * it->second.data << " MB in "
+        << it->second.rounds << " rounds, taking " << it->second.timer.elapsed()
+        << " seconds" << endl;
 }
 
 
@@ -225,9 +230,29 @@ void Player::setup_sockets(const vector<string>& names,const vector<int>& ports,
 }
 
 
-void Player::send_to(int player,const octetStream& o,bool donthash) const
+void Player::send_long(int i, long a) const
 {
-  TimeScope ts(timer);
+  send(sockets[i], (octet*)&a, sizeof(long));
+}
+
+long Player::receive_long(int i) const
+{
+  long res;
+  receive(sockets[i], (octet*)&res, sizeof(long));
+  return res;
+}
+
+long Player::peek_long(int i) const
+{
+  long res;
+  recv(sockets[i], &res, sizeof(res), MSG_PEEK);
+  return res;
+}
+
+
+void Player::send_to(int player,const octetStream& o,bool donthash) const
+{ 
+  TimeScope ts(comm_stats["Sending directly"].add(o));
   int socket = socket_to_send(player);
   o.Send(socket);
   if (!donthash)
@@ -238,7 +263,7 @@ void Player::send_to(int player,const octetStream& o,bool donthash) const
 
 void Player::send_all(const octetStream& o,bool donthash) const
 {
-  TimeScope ts(timer);
+  TimeScope ts(comm_stats["Sending to all"].add(o));
   for (int i=0; i<nplayers; i++)
      { if (i!=player_no)
          { o.Send(sockets[i]); }
@@ -258,10 +283,17 @@ void Player::receive_player(int i,octetStream& o,bool donthash) const
     { blk_SHA1_Update(&ctx,o.get_data(),o.get_length()); }
 }
 
+void Player::receive_player(int i, FlexBuffer& buffer) const
+{
+  octetStream os;
+  receive_player(i, os, true);
+  buffer = os;
+}
+
 
 void Player::exchange(int other, octetStream& o) const
 {
-  TimeScope ts(timer);
+  TimeScope ts(comm_stats["Exchanging"].add(o));
   o.exchange(sockets[other], sockets[other]);
   sent += o.get_length();
 }
@@ -269,7 +301,7 @@ void Player::exchange(int other, octetStream& o) const
 
 void Player::pass_around(octetStream& o, int offset) const
 {
-  TimeScope ts(timer);
+  TimeScope ts(comm_stats["Passing around"].add(o));
   o.exchange(sockets.at((my_num() + offset) % num_players()),
       sockets.at((my_num() + num_players() - offset) % num_players()));
   sent += o.get_length();
@@ -281,23 +313,15 @@ void Player::pass_around(octetStream& o, int offset) const
  */
 void Player::Broadcast_Receive(vector<octetStream>& o,bool donthash) const
 {
-  TimeScope ts(timer);
-  for (int i=0; i<nplayers; i++)
-     { if (i>player_no)
-	 { o[player_no].Send(sockets[i]); }
-       else if (i<player_no)
-         { o[i].reset_write_head();
-           o[i].Receive(sockets[i]);
-         }
-     }
-  for (int i=0; i<nplayers; i++)
-     { if (i<player_no)
-         { o[player_no].Send(sockets[i]); }
-       else if (i>player_no)
-         { o[i].reset_write_head();
-           o[i].Receive(sockets[i]);
-         }
-     }
+  if (o.size() != sockets.size())
+    throw runtime_error("player numbers don't match");
+  TimeScope ts(comm_stats["Broadcasting"].add(o[player_no]));
+  for (int i=1; i<nplayers; i++)
+    {
+      int send_to = (my_num() + i) % num_players();
+      int receive_from = (my_num() + num_players() - i) % num_players();
+      o[my_num()].exchange(sockets[send_to], sockets[receive_from], o[receive_from]);
+    }
   if (!donthash)
     { for (int i=0; i<nplayers; i++)
         { blk_SHA1_Update(&ctx,o[i].get_data(),o[i].get_length()); }
@@ -322,7 +346,6 @@ void Player::Check_Broadcast() const
     }
   blk_SHA1_Init(&ctx);
 }
-
 
 void Player::wait_for_available(vector<int>& players, vector<int>& result) const
 {

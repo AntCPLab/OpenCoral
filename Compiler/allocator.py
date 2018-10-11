@@ -1,4 +1,4 @@
-# (C) 2018 University of Bristol. See License.txt
+# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 import itertools, time
 from collections import defaultdict, deque
@@ -151,7 +151,7 @@ def determine_scope(block, options):
     block.defined_registers = set(last_def.iterkeys())
 
 class Merger:
-    def __init__(self, block, options):
+    def __init__(self, block, options, merge_classes, stop_class=stopopen_class):
         self.block = block
         self.instructions = block.instructions
         self.options = options
@@ -159,11 +159,15 @@ class Merger:
             self.max_parallel_open = int(options.max_parallel_open)
         else:
             self.max_parallel_open = float('inf')
-        self.dependency_graph()
+        self.dependency_graph(merge_classes, stop_class)
 
     def do_merge(self, merges_iter):
         """ Merge an iterable of nodes in G, returning the number of merged
         instructions and the index of the merged instruction. """
+        # sort merges, necessary for inputb
+        merge = list(merges_iter)
+        merge.sort()
+        merges_iter = iter(merge)
         instructions = self.instructions
         mergecount = 0
         try:
@@ -341,8 +345,7 @@ class Merger:
         preorder.extend(reversed(startinputs))
         return preorder
 
-    def longest_paths_merge(self, instruction_type=startopen_class,
-            merge_stopopens=True):
+    def longest_paths_merge(self, merge_stopopens=True):
         """ Attempt to merge instructions of type instruction_type (which are given in
         merge_nodes) using longest paths algorithm.
 
@@ -357,8 +360,6 @@ class Merger:
         instructions = self.instructions
         merge_nodes = self.open_nodes
         depths = self.depths
-        if instruction_type is not startopen_class and merge_stopopens:
-            raise CompilerError('Cannot merge stopopens whilst merging %s instructions' % instruction_type)
         if not merge_nodes and not self.input_nodes:
             return 0
 
@@ -379,8 +380,7 @@ class Merger:
                 my_merge = (m for m in merge if instructions[m] is not None and instructions[m].is_gf2n() is b)
                 
                 if merge_stopopens:
-                    my_stopopen = [G.get_attr(m, 'stop') for m in merge if instructions[m] is not None and instructions[m].is_gf2n() is b]
-                    
+                    my_stopopen = filter(lambda x: x != -1, (G.get_attr(m, 'stop') for m in merge if instructions[m] is not None and instructions[m].is_gf2n() is b))
                 mc, nodes[0,b] = self.do_merge(iter(my_merge))
 
                 if merge_stopopens:
@@ -420,8 +420,16 @@ class Merger:
 
         return len(merges)
 
-    def dependency_graph(self, merge_class=startopen_class):
+    def dependency_graph(self, merge_classes, stop_class):
         """ Create the program dependency graph. """
+        if len(merge_classes) != 1:
+            if stop_class is not type(None):
+                raise NotImplementedError('stop merging only implemented ' \
+                                          'for single instruction')
+            if int(self.options.max_parallel_open):
+                raise NotImplementedError('parallel limit only implemented ' \
+                                          'for single instruction')
+
         block = self.block
         options = self.options
         open_nodes = set()
@@ -453,13 +461,10 @@ class Merger:
         next_available_depth = {}
         self.sources = []
         self.real_depths = [0] * len(block.instructions)
+        round_type = {}
 
         def add_edge(i, j):
-            from_merge = isinstance(block.instructions[i], merge_class)
-            to_merge = isinstance(block.instructions[j], merge_class)
             G.add_edge(i, j)
-            is_source = G.get_attr(i, 'is_source') and G.get_attr(j, 'is_source') and not from_merge
-            G.set_attr(j, 'is_source', is_source)
             for d in (self.depths, self.real_depths):
                 if d[j] < d[i]:
                     d[j] = d[i]
@@ -515,7 +520,7 @@ class Merger:
         for n,instr in enumerate(block.instructions):
             outputs,inputs = instr.get_def(), instr.get_used()
 
-            G.add_node(n, is_source=True)
+            G.add_node(n)
 
             # if options.debug:
             #     col = colordict[instr.__class__.__name__]
@@ -534,13 +539,19 @@ class Merger:
                 else:
                     write(reg, n)
 
-            if isinstance(instr, merge_class):
+            if isinstance(instr, merge_classes):
                 open_nodes.add(n)
-                last_open.append(n)
                 G.add_node(n, merges=[])
+                if stop_class != type(None):
+                    last_open.append(n)
                 # the following must happen after adding the edge
                 self.real_depths[n] += 1
                 depth = depths[n] + 1
+                while depth in round_type:
+                    if round_type[depth] == type(instr):
+                        break
+                    depth += 1
+                round_type[depth] = type(instr)
                 if int(options.max_parallel_open):
                     skipped_depths = set()
                     while parallel_open[depth] >= int(options.max_parallel_open):
@@ -548,10 +559,12 @@ class Merger:
                         depth = next_available_depth.get(depth, depth + 1)
                     for d in skipped_depths:
                         next_available_depth[d] = depth
+                else:
+                    self.real_depths[n] = depth
                 parallel_open[depth] += len(instr.args) * instr.get_size()
                 depths[n] = depth
 
-            if isinstance(instr, stopopen_class):
+            if isinstance(instr, stop_class):
                 startopen = last_open.popleft()
                 add_edge(startopen, n)
                 G.set_attr(startopen, 'stop', n)
@@ -609,7 +622,7 @@ class Merger:
                     (n, len(block.instructions)), time.asctime()
 
         if len(open_nodes) > 1000:
-            print "Program has %d %s instructions" % (len(open_nodes), merge_class)
+            print "Program has %d %s instructions" % (len(open_nodes), merge_classes)
 
     def merge_nodes(self, i, j):
         """ Merge node j into i, removing node j """

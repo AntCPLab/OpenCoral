@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 #ifndef _Data
 #define _Data
@@ -27,8 +27,13 @@ inline void encode_length(octet *buff, size_t len, size_t n_bytes)
 {
     if (n_bytes > 8)
         throw invalid_length("length field cannot be more than 64 bits");
-    if (n_bytes < 8 && (len > (1ULL << (8 * n_bytes))))
-        throw invalid_length("length too large for length field");
+    if (n_bytes < 8)
+    {
+        long long upper = len;
+        upper >>= (8 * n_bytes);
+        if (upper != 0 and upper != -1)
+            throw invalid_length("length too large for length field");
+    }
     for (size_t i = 0; i < n_bytes; i++)
         buff[i] = len >> (8 * i);
 }

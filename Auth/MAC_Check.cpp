@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 
 #include "Auth/MAC_Check.h"
@@ -366,16 +366,76 @@ void Direct_MAC_Check<T>::POpen_End(vector<T>& values,const vector<Share<T> >& S
   this->CheckIfNeeded(P);
 }
 
+template<class T>
+Passing_MAC_Check<T>::Passing_MAC_Check(const T& ai, Names& Nms, int num) :
+  Separate_MAC_Check<T>(ai, Nms, num)
+{
+}
+
+template<class T, int t>
+void passing_add_openings(vector<T>& values, octetStream& os)
+{
+  octetStream new_os;
+  for (unsigned int i=0; i<values.size(); i++)
+    {
+      T tmp;
+      tmp.unpack(os);
+      (tmp + values[i]).pack(new_os);
+    }
+  os = new_os;
+}
+
+template<class T>
+void Passing_MAC_Check<T>::POpen_Begin(vector<T>& values,const vector<Share<T> >& S,const Player& P)
+{
+  values.resize(S.size());
+  this->os.reset_write_head();
+  for (unsigned int i=0; i<S.size(); i++)
+    {
+      S[i].get_share().pack(this->os);
+      values[i] = S[i].get_share();
+    }
+  this->AddToMacs(S);
+
+  for (int i = 0; i < P.num_players() - 1; i++)
+    {
+      P.pass_around(this->os);
+      if (T::t() == 2)
+        passing_add_openings<T,2>(values, this->os);
+      else
+        passing_add_openings<T,0>(values, this->os);
+    }
+
+  for (unsigned int i = 0; i < values.size(); i++)
+    {
+      T tmp;
+      tmp.unpack(this->os);
+      this->vals.push_back(tmp);
+    }
+}
+
+template<class T>
+void Passing_MAC_Check<T>::POpen_End(vector<T>& values,const vector<Share<T> >& S,const Player& P)
+{
+  (void)S;
+  this->GetValues(values);
+  this->popen_cnt += values.size();
+  this->CheckIfNeeded(P);
+}
+
 template class MAC_Check<gfp>;
 template class Direct_MAC_Check<gfp>;
 template class Parallel_MAC_Check<gfp>;
+template class Passing_MAC_Check<gfp>;
 
 template class MAC_Check<gf2n>;
 template class Direct_MAC_Check<gf2n>;
 template class Parallel_MAC_Check<gf2n>;
+template class Passing_MAC_Check<gf2n>;
 
 #ifdef USE_GF2N_LONG
 template class MAC_Check<gf2n_short>;
 template class Direct_MAC_Check<gf2n_short>;
 template class Parallel_MAC_Check<gf2n_short>;
+template class Passing_MAC_Check<gf2n_short>;
 #endif

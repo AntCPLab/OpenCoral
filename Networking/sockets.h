@@ -1,7 +1,7 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
-#ifndef _sockets
-#define _sockets
+#ifndef _sockets_h
+#define _sockets_h
 
 #include "Networking/data.h"
 
@@ -88,6 +88,37 @@ inline void receive(int socket,octet *msg,size_t len)
       else
         i=i+j;
     }
+}
+
+inline size_t check_non_blocking_result(int res)
+{
+  if (res < 0)
+    {
+      if (errno != EWOULDBLOCK)
+        error("Non-blocking receiving error");
+      return 0;
+    }
+  return res;
+}
+
+inline size_t receive_non_blocking(int socket,octet *msg,int len)
+{
+  int res = recv(socket, msg, len, MSG_DONTWAIT);
+  return check_non_blocking_result(res);
+}
+
+inline size_t receive_all_or_nothing(int socket,octet *msg,int len)
+{
+  int res = recv(socket, msg, len, MSG_DONTWAIT | MSG_PEEK);
+  check_non_blocking_result(res);
+  if (res == len)
+    {
+      if (recv(socket, msg, len, 0) != len)
+        error("All or nothing receiving error");
+      return len;
+    }
+  else
+    return 0;
 }
 
 #endif

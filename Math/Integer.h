@@ -1,4 +1,4 @@
-// (C) 2018 University of Bristol. See License.txt
+// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 /*
  * Integer.h
@@ -26,6 +26,7 @@ protected:
   Integer(long a) : a(a)    {}
 
   long get() const          { return a; }
+  bool get_bit(int i) const { return (a >> i) & 1; }
 
   void assign_zero()        { a = 0; }
 

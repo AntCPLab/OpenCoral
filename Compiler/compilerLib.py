@@ -1,4 +1,4 @@
-# (C) 2018 University of Bristol. See License.txt
+# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
 from Compiler.program import Program
 from Compiler.config import *
@@ -70,7 +70,7 @@ def run(args, options, param=-1, merge_opens=True, emulate=True, \
     if prog.main_thread_running:
         prog.update_req(prog.curr_tape)
     print 'Program requires:', repr(prog.req_num)
-    print 'Cost:', prog.req_num.cost()
+    print 'Cost:', 0 if prog.req_num is None else prog.req_num.cost()
     print 'Memory size:', prog.allocated_mem
 
     # finalize the memory
