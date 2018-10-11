@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * AndJob.cpp
  *
@@ -15,7 +13,7 @@ int AndJob::run()
 	printf("thread %d: run and job from %d to %d with %d gates\n",
 			pthread_self(), start, end, gates.size());
 #endif
-	__m128i prf_output[PAD_TO_8(MAX_N_PARTIES)];
+	__m128i prf_output[PAD_TO_8(ProgramParty::s().get_n_parties())];
 	auto gate = gates.begin();
 	vector< GC::Secret<EvalRegister> >& S = *this->S;
 	const vector<int>& args = *this->args;

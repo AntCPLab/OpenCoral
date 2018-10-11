@@ -1,8 +1,6 @@
 /*
  * config.h
  *
- *  Created on: 2 Oct. 2018
- *      Author: kel323
  */
 
 #ifndef FHEOFFLINE_CONFIG_H_

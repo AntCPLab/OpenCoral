@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #ifndef _Share
 #define _Share
@@ -12,6 +10,10 @@ using namespace std;
 
 #include "Math/gfp.h"
 #include "Math/gf2n.h"
+#include "Math/Integer.h"
+#include "Math/FixedVec.h"
+#include "Processor/SPDZ.h"
+#include "Processor/Replicated.h"
 
 // Forward declaration as apparently this is needed for friends in templates
 template<class T> class Share;
@@ -28,6 +30,12 @@ class Share
    public:
 
    typedef T value_type;
+   typedef typename T::value_type clear;
+
+   typedef typename T::MC MAC_Check;
+   typedef typename T::Inp Input;
+   typedef typename T::PO PrivateOutput;
+   typedef typename T::Protocol Protocol;
 
    static int size()
      { return 2 * T::size(); }
@@ -43,11 +51,11 @@ class Share
      { a.assign_zero(); 
        mac.assign_zero(); 
      }
-   void assign(const T& aa, int my_num, const T& alphai);
+   void assign(const clear& aa, int my_num, const T& alphai);
 
    Share()                  { assign_zero(); }
    Share(const Share<T>& S) { assign(S); }
-   Share(const T& aa, int my_num, const T& alphai) { assign(aa, my_num, alphai); }
+   Share(const clear& aa, int my_num, const T& alphai) { assign(aa, my_num, alphai); }
    ~Share()                 { ; }
    Share& operator=(const Share<T>& S)
      { if (this!=&S) { assign(S); }
@@ -62,16 +70,18 @@ class Share
    /* Arithmetic Routines */
    void mul(const Share<T>& S,const T& aa);
    void mul_by_bit(const Share<T>& S,const T& aa);
-   void add(const Share<T>& S,const T& aa,bool playerone,const T& alphai);
+   void add(const Share<T>& S,const clear& aa,int my_num,const T& alphai);
    void negate() { a.negate(); mac.negate(); }
-   void sub(const Share<T>& S,const T& aa,bool playerone,const T& alphai);
-   void sub(const T& aa,const Share<T>& S,bool playerone,const T& alphai);
+   void sub(const Share<T>& S,const clear& aa,int my_num,const T& alphai);
+   void sub(const clear& aa,const Share<T>& S,int my_num,const T& alphai);
    void add(const Share<T>& S1,const Share<T>& S2);
    void sub(const Share<T>& S1,const Share<T>& S2);
    void add(const Share<T>& S1) { add(*this,S1); }
 
    Share<T> operator+(const Share<T>& x) const
    { Share<T> res; res.add(*this, x); return res; }
+   Share<T> operator-(const Share<T>& x) const
+   { Share<T> res; res.sub(*this, x); return res; }
    template <class U>
    Share<T> operator*(const U& x) const
    { Share<T> res; res.mul(*this, x); return res; }
@@ -127,6 +137,13 @@ inline void Share<T>::add(const Share<T>& S1,const Share<T>& S2)
 }
 
 template<class T>
+void Share<T>::sub(const Share<T>& S1,const Share<T>& S2)
+{
+  a.sub(S1.a,S2.a);
+  mac.sub(S1.mac,S2.mac);
+}
+
+template<class T>
 inline void Share<T>::mul(const Share<T>& S,const T& aa)
 {
   a.mul(S.a,aa);
@@ -134,12 +151,27 @@ inline void Share<T>::mul(const Share<T>& S,const T& aa)
 }
 
 template<class T>
-inline void Share<T>::assign(const T& aa, int my_num, const T& alphai)
+inline void Share<T>::add(const Share<T>& S,const clear& aa,int my_num,const T& alphai)
 {
-  if (my_num == 0)
-    a = aa;
-  else
-    a.assign_zero();
+  *this = S + Share<T>(aa, my_num, alphai);
+}
+
+template<class T>
+inline void Share<T>::sub(const Share<T>& S,const clear& aa,int my_num,const T& alphai)
+{
+  *this = S - Share<T>(aa, my_num, alphai);
+}
+
+template<class T>
+inline void Share<T>::sub(const clear& aa,const Share<T>& S,int my_num,const T& alphai)
+{
+  *this = Share<T>(aa, my_num, alphai) - S;
+}
+
+template<class T>
+inline void Share<T>::assign(const clear& aa, int my_num, const T& alphai)
+{
+  Protocol::assign(a, aa, my_num);
   mac.mul(aa, alphai);
 }
 

@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #ifndef _BASE_OT
 #define _BASE_OT
 
@@ -36,6 +34,8 @@ public:
 	vector< vector<BitVector> > sender_inputs;
 	vector<BitVector> receiver_outputs;
 	TwoPartyPlayer* P;
+	int nOT, ot_length;
+	OT_ROLE ot_role;
 
 	BaseOT(int nOT, int ot_length, TwoPartyPlayer* player, OT_ROLE role=BOTH)
 		: P(player), nOT(nOT), ot_length(ot_length), ot_role(role)
@@ -53,6 +53,12 @@ public:
 			receiver_outputs[i] = BitVector(8 * AES_BLK_SIZE);
 		}
 	}
+
+	BaseOT(TwoPartyPlayer* player, OT_ROLE role) :
+			BaseOT(128, 128, player, role)
+	{
+	}
+
 	virtual ~BaseOT() {}
 
 	int length() { return ot_length; }
@@ -64,15 +70,21 @@ public:
 		receiver_inputs = new_inputs;
 	}
 
+	void set_receiver_inputs(int128 inputs)
+	{
+		vector<int> new_inputs(128);
+		for (int i = 0; i < 128; i++)
+			new_inputs[i] = (inputs >> i).get_lower() & 1;
+		set_receiver_inputs(new_inputs);
+	}
+
 	// do the OTs -- generate fresh random choice bits by default
 	virtual void exec_base(bool new_receiver_inputs=true);
 	// use PRG to get the next ot_length bits
 	void extend_length();
 	void check();
-protected:
-	int nOT, ot_length;
-	OT_ROLE ot_role;
 
+protected:
 	vector< vector<PRNG> > G_sender;
 	vector<PRNG> G_receiver;
 

@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 """ This module is for classes of actual assembly instructions.
 
 All base classes, utility functions etc. should go in
@@ -427,7 +425,7 @@ class mulm(base.MulBase):
 
 @base.gf2n
 @base.vectorize
-class divc(base.Instruction):
+class divc(base.InvertInstruction):
     r""" Clear division $c_i=c_j/c_k$. """
     __slots__ = []
     code = base.opcodes['DIVC']
@@ -448,7 +446,7 @@ class modc(base.Instruction):
         self.args[0].value = self.args[1].value % self.args[2].value
 
 @base.vectorize
-class inv2m(base.Instruction):
+class inv2m(base.InvertInstruction):
     __slots__ = []
     code = base.opcodes['INV2M']
     arg_format = ['cw','int']
@@ -648,7 +646,7 @@ class mulsi(base.SharedImmediate):
 
 @base.gf2n
 @base.vectorize
-class divci(base.ClearImmediate):
+class divci(base.InvertInstruction, base.ClearImmediate):
     r""" Clear division by immediate value $c_i=c_j/n$. """
     __slots__ = []
     code = base.opcodes['DIVCI']
@@ -1322,68 +1320,41 @@ class gconvgf2n(base.Instruction):
 ### Other instructions
 ###
 
+# rename 'open' to avoid conflict with built-in open function
 @base.gf2n
 @base.vectorize
-class startopen(base.VarArgsInstruction):
-    """ Start opening secret register $s_i$. """
+class asm_open(base.VarArgsInstruction):
+    """ Open the value in $s_j$ and assign it to $c_i$. """
     __slots__ = []
-    code = base.opcodes['STARTOPEN']
-    arg_format = itertools.repeat('s')
-    
-    def execute(self):
-        for arg in self.args[::-1]:
-            program.curr_block.open_queue.append(arg.value)
+    code = base.opcodes['OPEN']
+    arg_format = tools.cycle(['cw','s'])
 
 @base.gf2n
 @base.vectorize
-class stopopen(base.VarArgsInstruction):
-    """ Store previous opened value in $c_i$. """
+class muls(base.VarArgsInstruction):
+    """ Secret multiplication $s_i = s_j \cdot s_k$. """
     __slots__ = []
-    code = base.opcodes['STOPOPEN']
-    arg_format = itertools.repeat('cw')
-    
-    def execute(self):
-        for arg in self.args:
-            arg.value = program.curr_block.open_queue.pop()
+    code = base.opcodes['MULS']
+    arg_format = tools.cycle(['sw','s','s'])
+
+    # def expand(self):
+    #     s = [program.curr_block.new_reg('s') for i in range(9)]
+    #     c = [program.curr_block.new_reg('c') for i in range(3)]
+    #     triple(s[0], s[1], s[2])
+    #     subs(s[3], self.args[1], s[0])
+    #     subs(s[4], self.args[2], s[1])
+    #     asm_open(c[0], s[3])
+    #     asm_open(c[1], s[4])
+    #     mulm(s[5], s[1], c[0])
+    #     mulm(s[6], s[0], c[1])
+    #     mulc(c[2], c[0], c[1])
+    #     adds(s[7], s[2], s[5])
+    #     adds(s[8], s[7], s[6])
+    #     addm(self.args[0], s[8], c[2])
 
 ###
 ### CISC-style instructions
 ###
-
-# rename 'open' to avoid conflict with built-in open function
-@base.gf2n
-@base.vectorize
-class asm_open(base.CISC):
-    """ Open the value in $s_j$ and assign it to $c_i$. """
-    __slots__ = []
-    arg_format = ['cw','s']
-    
-    def expand(self):
-        startopen(self.args[1])
-        stopopen(self.args[0])
-
-
-@base.gf2n
-@base.vectorize
-class muls(base.CISC):
-    """ Secret multiplication $s_i = s_j \cdot s_k$. """
-    __slots__ = []
-    arg_format = ['sw','s','s']
-    
-    def expand(self):
-        s = [program.curr_block.new_reg('s') for i in range(9)]
-        c = [program.curr_block.new_reg('c') for i in range(3)]
-        triple(s[0], s[1], s[2])
-        subs(s[3], self.args[1], s[0])
-        subs(s[4], self.args[2], s[1])
-        startopen(s[3], s[4])
-        stopopen(c[0], c[1])
-        mulm(s[5], s[1], c[0])
-        mulm(s[6], s[0], c[1])
-        mulc(c[2], c[0], c[1])
-        adds(s[7], s[2], s[5])
-        adds(s[8], s[7], s[6])
-        addm(self.args[0], s[8], c[2])
 
 @base.gf2n
 @base.vectorize
@@ -1393,6 +1364,8 @@ class sqrs(base.CISC):
     arg_format = ['sw', 's']
     
     def expand(self):
+        if program.options.ring:
+            return muls(self.args[0], self.args[1], self.args[1])
         s = [program.curr_block.new_reg('s') for i in range(6)]
         c = [program.curr_block.new_reg('c') for i in range(2)]
         square(s[0], s[1])
@@ -1413,7 +1386,8 @@ class lts(base.CISC):
     arg_format = ['sw', 's', 's', 'int', 'int']
 
     def expand(self):
-        a = program.curr_block.new_reg('s')
+        from types import sint
+        a = sint()
         subs(a, self.args[1], self.args[2])
         comparison.LTZ(self.args[0], a, self.args[3], self.args[4])
 
@@ -1429,8 +1403,8 @@ class g2muls(base.CISC):
         gbittriple(s[0], s[1], s[2])
         gsubs(s[3], self.args[1], s[0])
         gsubs(s[4], self.args[2], s[1])
-        gstartopen(s[3], s[4])
-        gstopopen(c[0], c[1])
+        gasm_open(c[0], s[3])
+        gasm_open(c[1], s[4])
         gmulbitm(s[5], s[1], c[0])
         gmulbitm(s[6], s[0], c[1])
         gmulbitc(c[2], c[0], c[1])

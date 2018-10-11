@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Input.h
  *
@@ -19,21 +17,30 @@ using namespace std;
 class Processor;
 
 template<class T>
-class Input
+class InputBase
 {
-    Processor& proc;
-    MAC_Check<T>& MC;
-    vector< vector< Share<T> > > shares;
+protected:
     Buffer<T,T> buffer;
     Timer timer;
-
-    void adjust_mac(Share<T>& share, T& value);
 
 public:
     int values_input;
 
+    InputBase(Processor& proc);
+    ~InputBase();
+};
+
+template<class T>
+class Input : public InputBase<T>
+{
+    Processor& proc;
+    MAC_Check<T>& MC;
+    vector< vector< Share<T> > > shares;
+
+    void adjust_mac(Share<T>& share, T& value);
+
+public:
     Input(Processor& proc, MAC_Check<T>& mc);
-    ~Input();
 
     void start(int player, int n_inputs);
     void stop(int player, vector<int> targets);

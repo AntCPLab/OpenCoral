@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 include CONFIG
 
@@ -27,8 +25,8 @@ endif
 
 COMMON = $(MATH) $(TOOLS) $(NETWORK) $(AUTH)
 COMPLETE = $(COMMON) $(PROCESSOR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(GC) $(OT)
-YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp))
-BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp)) $(COMMON) $(PROCESSOR) $(GC) $(YAO)
+YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp)) $(OT)
+BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp)) $(COMMON) $(PROCESSOR) $(GC)
 
 
 LIB = libSPDZ.a
@@ -39,7 +37,11 @@ OBJS = $(BMR) $(FHEOFFLINE) $(TINYOTOFFLINE)
 DEPS := $(OBJS:.o=.d)
 
 
-all: gen_input online offline externalIO
+all: gen_input online offline externalIO yao replicated-party.x
+
+ifeq ($(USE_GF2N_LONG),1)
+all: bmr
+endif
 
 ifeq ($(USE_NTL),1)
 all: overdrive she-offline
@@ -60,7 +62,7 @@ externalIO: client-setup.x bankers-bonus-client.x bankers-bonus-commsec-client.x
 
 bmr: bmr-program-party.x bmr-program-tparty.x
 
-yao: yao-simulate.x yao-player.x
+yao: yao-player.x
 
 she-offline: Check-Offline.x spdz2-offline.x
 
@@ -104,11 +106,13 @@ gen_input_fp.x: Scripts/gen_input_fp.cpp $(COMMON)
 gc-emulate.x: $(GC) $(COMMON) $(PROCESSOR) gc-emulate.cpp $(BMR)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(BOOST)
 
+ifeq ($(USE_GF2N_LONG),1)
 bmr-program-party.x: $(BMR) bmr-program-party.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ $(BOOST) $(LDLIBS)
 
 bmr-program-tparty.x: $(BMR) bmr-program-tparty.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ $(BOOST) $(LDLIBS)
+endif
 
 bmr-clean:
 	-rm BMR/*.o BMR/*/*.o GC/*.o
@@ -136,14 +140,19 @@ spdz2-offline.x: $(COMMON) $(FHEOFFLINE) spdz2-offline.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 endif
 
-yao-simulate.x: $(YAO) $(BMR) yao-simulate.cpp
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(BOOST)
-
+ifeq ($(USE_GF2N_LONG),1)
 yao-player.x: $(YAO) $(BMR) yao-player.cpp
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(BOOST)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(BOOST) $(LIBSIMPLEOT)
+endif
 
 yao-clean:
 	-rm Yao/*.o
+
+galois-degree.x: $(COMMON) galois-degree.cpp
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
+
+replicated-party.x: $(BMR) replicated-party.cpp
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(BOOST)
 
 clean:
 	-rm */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o

@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Input.cpp
  *
@@ -9,14 +7,20 @@
 #include "Processor.h"
 
 template<class T>
-Input<T>::Input(Processor& proc, MAC_Check<T>& mc) :
-        proc(proc), MC(mc), shares(proc.P.num_players()), values_input(0)
+InputBase<T>::InputBase(Processor& proc) :
+        values_input(0)
 {
     buffer.setup(&proc.private_input, -1, proc.private_input_filename);
 }
 
 template<class T>
-Input<T>::~Input()
+Input<T>::Input(Processor& proc, MAC_Check<T>& mc) :
+        InputBase<T>(proc), proc(proc), MC(mc), shares(proc.P.num_players())
+{
+}
+
+template<class T>
+InputBase<T>::~InputBase()
 {
     if (timer.elapsed() > 0)
         cerr << T::type_string() << " inputs: " << timer.elapsed() << endl;
@@ -49,7 +53,7 @@ void Input<T>::start(int player, int n_inputs)
             T xi;
             try
             {
-                buffer.input(t);
+                this->buffer.input(t);
             }
             catch (not_enough_to_buffer& e)
             {
@@ -63,7 +67,7 @@ void Input<T>::start(int player, int n_inputs)
         }
 
         proc.P.send_all(o, true);
-        values_input += n_inputs;
+        this->values_input += n_inputs;
     }
     else
     {
@@ -83,9 +87,9 @@ void Input<T>::stop(int player, vector<int> targets)
     {
         T t;
         octetStream o;
-        timer.start();
+        this->timer.start();
         proc.P.receive_player(player, o, true);
-        timer.stop();
+        this->timer.stop();
         for (unsigned int i = 0; i < targets.size(); i++)
         {
             Share<T>& share = proc.get_S_ref<T>(targets[i]);
@@ -95,5 +99,9 @@ void Input<T>::stop(int player, vector<int> targets)
     }
 }
 
+template class InputBase<Integer>;
 template class Input<gf2n>;
+
+#ifndef REPLICATED
 template class Input<gfp>;
+#endif

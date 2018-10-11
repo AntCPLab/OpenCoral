@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 def test(actual, expected):
     if isinstance(actual, (sint, sgf2n)):
         actual = actual.reveal()

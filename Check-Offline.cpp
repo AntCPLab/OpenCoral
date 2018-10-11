@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Check-Offline.cpp
  *
@@ -262,7 +260,7 @@ int main(int argc, const char** argv)
 
   /* Find number players and MAC keys etc*/
   char filename[1024];
-  gfp keyp,pp; keyp.assign_zero();
+  sint::value_type keyp,pp; keyp.assign_zero();
   gf2n key2,p2; key2.assign_zero();
   int N=1;
   ifstream inpf;

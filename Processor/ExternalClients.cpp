@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #include "Processor/ExternalClients.h"
 #include <netinet/in.h>
 #include <arpa/inet.h>

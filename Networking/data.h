@@ -1,11 +1,10 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #ifndef _Data
 #define _Data
 
 #include <string.h>
 
 #include "Exceptions/Exceptions.h"
+#include "Tools/avx_memcpy.h"
 
 
 typedef unsigned char octet;
@@ -34,18 +33,18 @@ inline void encode_length(octet *buff, size_t len, size_t n_bytes)
         if (upper != 0 and upper != -1)
             throw invalid_length("length too large for length field");
     }
-    for (size_t i = 0; i < n_bytes; i++)
-        buff[i] = len >> (8 * i);
+    // use little-endian for optimization
+    uint64_t tmp = htole64(len);
+    avx_memcpy(buff, (void*)&tmp, n_bytes);
 }
 
 inline size_t decode_length(octet *buff, size_t n_bytes)
 {
-    size_t len = 0;
-    for (size_t i = 0; i < n_bytes; i++)
-    {
-        len += (size_t) buff[i] << (8 * i);
-    }
-    return len;
+    if (n_bytes > 8)
+        throw invalid_length("length field cannot be more than 64 bits");
+    uint64_t tmp = 0;
+    avx_memcpy((void*)&tmp, buff, n_bytes);
+    return le64toh(tmp);
 }
 
 #endif

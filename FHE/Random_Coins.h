@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #ifndef _Random_Coins
 #define _Random_Coins
 

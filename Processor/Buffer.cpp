@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Buffer.cpp
  *
@@ -191,10 +189,12 @@ void BufferHelper<U,V>::purge()
 
 template class Buffer< Share<gfp>, Share<gfp> >;
 template class Buffer< Share<gf2n>, Share<gf2n> >;
-template class Buffer< InputTuple<gfp>, RefInputTuple<gfp> >;
+template class Buffer< Share<FixedVec<Integer, 2> >, Share<FixedVec<Integer, 2> > >;
+template class Buffer< InputTuple<sint::value_type>, RefInputTuple<sint::value_type> >;
 template class Buffer< InputTuple<gf2n>, RefInputTuple<gf2n> >;
-template class Buffer< gfp, gfp >;
+template class Buffer< sint::value_type, sint::value_type >;
 template class Buffer< gf2n, gf2n >;
+template class Buffer< Integer, Integer >;
 
 template class BufferHelper<Share, Share>;
 template class BufferHelper<InputTuple, RefInputTuple>;

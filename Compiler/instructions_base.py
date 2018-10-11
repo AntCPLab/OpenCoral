@@ -1,13 +1,13 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 import itertools
 from random import randint
 import time
 import inspect
 import functools
+import copy
 from Compiler.exceptions import *
 from Compiler.config import *
 from Compiler import util
+from Compiler import tools
 
 
 ###
@@ -85,8 +85,8 @@ opcodes = dict(
     GMULBITC = 0x136,
     GMULBITM = 0x137,
     # Open
-    STARTOPEN = 0xA0,
-    STOPOPEN = 0xA1,
+    OPEN = 0xA5,
+    MULS = 0xA6,
     # Data access
     TRIPLE = 0x50,
     BIT = 0x51,
@@ -276,6 +276,19 @@ def gf2n(instruction):
         except KeyError:
             raise CompilerError('Cannot decorate instruction %s' % instruction)
 
+    def reformat(arg_format):
+        if isinstance(arg_format, list):
+            __format = []
+            for __f in arg_format:
+                if __f in ('int', 'p', 'ci', 'str'):
+                    __format.append(__f)
+                else:
+                    __format.append(__f[0] + 'g' + __f[1:])
+            arg_format[:] = __format
+        else:
+            for __f in arg_format.args:
+                reformat(__f)
+
     class GF2N_Instruction(instruction_cls):
         __doc__ = instruction_cls.__doc__.replace('c_', 'c^g_').replace('s_', 's^g_')
         __slots__ = []
@@ -291,13 +304,8 @@ def gf2n(instruction):
             if __f != 'int' and __f != 'p':
                 arg_format = itertools.repeat(__f[0] + 'g' + __f[1:])
         else:
-            __format = []
-            for __f in instruction_cls.arg_format:
-                if __f in ('int', 'p', 'ci', 'str'):
-                    __format.append(__f)
-                else:
-                    __format.append(__f[0] + 'g' + __f[1:])
-            arg_format = __format
+            arg_format = copy.deepcopy(instruction_cls.arg_format)
+            reformat(arg_format)
 
         def is_gf2n(self):
             return True
@@ -523,7 +531,7 @@ class Instruction(object):
                 raise CompilerError('Invalid argument "%s" to instruction: %s'
                     % (e.arg, self) + '\n' + e.msg)
             except KeyError as e:
-                raise CompilerError('Incorrect number of arguments for instruction %s' % (self))
+                raise CompilerError('Unknown argument %s for instruction %s' % (f, self))
     
     def get_used(self):
         """ Return the set of registers that are read in this instruction. """
@@ -712,14 +720,20 @@ class ClearShiftInstruction(ClearImmediate):
 
     def check_args(self):
         super(ClearShiftInstruction, self).check_args()
-        if program.galois_length > 64:
-            bits = 127
-        else:
-            # assume 64-bit machine
-            bits = 63
+        bits = float('nan')
+        if self.is_gf2n():
+            if program.galois_length > 64:
+                bits = 127
+            else:
+                # assume 64-bit machine
+                bits = 63
+        elif program.options.ring:
+            bits = int(program.options.ring) - 1
         if self.args[2] > bits:
             raise CompilerError('Shifting by more than %d bits '
                                 'not implemented' % bits)
+        elif self.args[2] < 0:
+            raise CompilerError('negative shift')
 
 ###
 ### Jumps etc
@@ -777,3 +791,12 @@ class CISC(Instruction):
     def expand(self):
         """ Expand this into a sequence of RISC instructions. """
         raise NotImplementedError('expand method must be implemented')
+
+
+class InvertInstruction(Instruction):
+    __slots__ = []
+
+    def __init__(self, *args, **kwargs):
+        if program.options.ring and not self.is_gf2n():
+            raise CompilerError('inverse undefined in rings')
+        super(InvertInstruction, self).__init__(*args, **kwargs)

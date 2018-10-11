@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Program.cpp
  *
@@ -8,6 +6,7 @@
 #include <GC/Program.h>
 
 #include "Secret.h"
+#include "ReplicatedSecret.h"
 
 #include <valgrind/callgrind.h>
 
@@ -54,6 +53,12 @@ template <class T>
 void Program<T>::parse(const string& bytecode_name)
 {
     string filename = "Programs/Bytecode/" + bytecode_name + ".bc";
+    parse_file(filename);
+}
+
+template <class T>
+void Program<T>::parse_file(const string& filename)
+{
     ifstream s(filename.c_str());
     if (s.bad() or s.fail())
         throw runtime_error("Cannot open " + filename);
@@ -131,11 +136,6 @@ BreakType Program<T>::execute(Processor<T>& Proc, int PC) const
 }
 
 template class Program<FakeSecret>;
-template class Program< Secret<PRFRegister> >;
-template class Program< Secret<EvalRegister> >;
-template class Program< Secret<GarbleRegister> >;
-template class Program< Secret<RandomRegister> >;
-template class Program< Secret<YaoGarbleWire> >;
-template class Program< Secret<YaoEvalWire> >;
+template class Program<ReplicatedSecret>;
 
 } /* namespace GC */

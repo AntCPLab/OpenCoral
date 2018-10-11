@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 import math
 import operator
 
@@ -72,12 +70,17 @@ def series(a):
 
 def if_else(cond, a, b):
     try:
+        if a is b:
+            return a
         if isinstance(cond, (bool, int)):
             if cond:
                 return a
             else:
                 return b
-        return cond.if_else(a, b)
+        if isinstance(a, (list, tuple)) and isinstance(b, (list, tuple)):
+            return [if_else(cond, x, y) for x, y in zip(a, b)]
+        else:
+            return cond.if_else(a, b)
     except:
         print cond, a, b
         raise
@@ -95,6 +98,7 @@ def log2(x):
     return int(math.ceil(math.log(x, 2)))
 
 def tree_reduce(function, sequence):
+    sequence = list(sequence)
     n = len(sequence)
     if n == 1:
         return sequence[0]
@@ -132,3 +136,29 @@ def reveal(x):
 
 def is_constant(x):
     return isinstance(x, (int, long, bool))
+
+def is_zero(x):
+    try:
+        return int(x) is 0
+    except:
+        return False
+
+def is_all_ones(x, n):
+    if is_constant(x):
+        return x == 2**n - 1
+    else:
+        return False
+
+def long_one(x):
+    try:
+        return x.long_one()
+    except:
+        try:
+            for y in x:
+                try:
+                    return y.long_one()
+                except:
+                    pass
+        except:
+            pass
+    return 1

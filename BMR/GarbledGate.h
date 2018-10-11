@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * GarbledGate.h
  *
@@ -33,8 +31,8 @@ struct PRFOutputs {
 	PRFOutputs(int n_parties) { (void)n_parties; }
 	PRFTuple* operator[](int i) { return tuples[i]; }
 #else
-	vector<PRFTuple> tuples;
 	int n_parties;
+	vector<PRFTuple> tuples;
 
 	PRFOutputs(int n_parties) : n_parties(n_parties), tuples(n_parties * n_parties) {}
 	PRFTuple* operator[](int i) { return &tuples[i*n_parties]; }

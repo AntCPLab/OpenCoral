@@ -1,12 +1,12 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #include "Player.h"
 #include "Exceptions/Exceptions.h"
 #include "Networking/STS.h"
+#include "Tools/int.h"
 
 #include <sys/select.h>
 #include <utility>
+#include <assert.h>
 
 using namespace std;
 
@@ -184,9 +184,10 @@ Player::~Player()
     close_client_socket(sockets[i]);
 
   for (auto it = comm_stats.begin(); it != comm_stats.end(); it++)
-    cout << it->first << " " << 1e-6 * it->second.data << " MB in "
+    cerr << it->first << " " << 1e-6 * it->second.data << " MB in "
         << it->second.rounds << " rounds, taking " << it->second.timer.elapsed()
         << " seconds" << endl;
+  cerr << "Receiving took " << timer.elapsed() << " seconds" << endl;
 }
 
 
@@ -288,6 +289,31 @@ void Player::receive_player(int i, FlexBuffer& buffer) const
   octetStream os;
   receive_player(i, os, true);
   buffer = os;
+}
+
+
+void Player::send_relative(const vector<octetStream>& os) const
+{
+  assert((int)os.size() == num_players() - 1);
+  for (int offset = 1; offset < num_players(); offset++)
+    send_relative(offset, os[offset - 1]);
+}
+
+void Player::send_relative(int offset, const octetStream& o) const
+{
+  send_to(positive_modulo(my_num() + offset, num_players()), o, true);
+}
+
+void Player::receive_relative(vector<octetStream>& os) const
+{
+  assert((int)os.size() == num_players() - 1);
+  for (int offset = 1; offset < num_players(); offset++)
+    receive_relative(offset, os[offset - 1]);
+}
+
+void Player::receive_relative(int offset, octetStream& o) const
+{
+  receive_player(positive_modulo(my_num() + offset, num_players()), o, true);
 }
 
 

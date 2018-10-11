@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #ifndef OT_TRIPLESETUP_H_
 #define OT_TRIPLESETUP_H_
 

@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #ifndef __BOOLEAN_CIRCUIT__
 #define __BOOLEAN_CIRCUIT__

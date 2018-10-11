@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #ifndef _bigint
 #define _bigint
 
@@ -28,6 +26,8 @@ class gfp;
 class bigint : public mpz_class
 {
 public:
+  static thread_local bigint tmp;
+
   bigint() : mpz_class() {}
   template <class T>
   bigint(const T& x) : mpz_class(x) {}
@@ -36,6 +36,7 @@ public:
   bigint& operator=(int n);
   bigint& operator=(long n);
   bigint& operator=(word n);
+  bigint& operator=(const gfp& other);
 
   void allocate_slots(const bigint& x) { *this = x; }
   int get_min_alloc() { return get_mpz_t()->_mp_alloc; }
@@ -101,7 +102,7 @@ inline bigint& bigint::operator=(word n)
 
 inline int gcd(const int x,const int y)
 {
-  bigint xx=x;
+  bigint& xx = bigint::tmp = x;
   return mpz_gcd_ui(NULL,xx.get_mpz_t(),y);
 }
 
@@ -128,7 +129,7 @@ inline int numBits(const bigint& m)
 
 inline int numBits(long m)
 {
-  bigint te=m;
+  bigint& te = bigint::tmp = m;
   return mpz_sizeinbase(te.get_mpz_t(),2);
 }
 

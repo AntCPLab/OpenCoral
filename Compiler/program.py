@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 from Compiler.config import *
 from Compiler.exceptions import *
 from Compiler.instructions_base import RegType
@@ -66,8 +64,13 @@ class Program(object):
         self.free_threads = set()
         self.public_input_file = open(self.programs_dir + '/Public-Input/%s' % self.name, 'w')
         self.types = {}
-        self.to_merge = [Compiler.instructions.startopen_class]
-        self.stop_class = Compiler.instructions.stopopen_class
+        self.to_merge = [Compiler.instructions.asm_open_class, \
+                         Compiler.instructions.gasm_open_class, \
+                         Compiler.instructions.muls_class, \
+                         Compiler.instructions.gmuls_class]
+        import Compiler.GC.instructions as gc
+        self.to_merge += [gc.ldmsdi, gc.stmsdi, gc.ldmsd, gc.stmsd, \
+                          gc.stmsdci, gc.xors, gc.andrs, gc.ands, gc.inputb]
         Program.prog = self
         
         self.reset_values()
@@ -386,9 +389,7 @@ class Program(object):
         print 'Changed statistical security for comparison etc. to', security
 
     def optimize_for_gc(self):
-        from Compiler.GC.instructions import *
-        self.to_merge = [ldmsdi, stmsdi, ldmsd, stmsd, stmsdci, xors, andrs]
-        self.stop_class = type(None)
+        pass
 
 class Tape:
     """ A tape contains a list of basic blocks, onto which instructions are added. """
@@ -543,8 +544,7 @@ class Tape:
                          len(block.instructions))
                 # the next call is necessary for allocation later even without merging
                 merger = al.Merger(block, options, \
-                                   tuple(self.program.to_merge), \
-                                   self.program.stop_class)
+                                   tuple(self.program.to_merge))
                 if options.dead_code_elimination:
                     if len(block.instructions) > 10000:
                         print 'Eliminate dead code...'
@@ -556,18 +556,17 @@ class Tape:
                         continue
                     if len(block.instructions) > 10000:
                         print 'Merging instructions...'
-                    numrounds = merger.longest_paths_merge(self.program.stop_class != type(None))
+                    numrounds = merger.longest_paths_merge()
                     if numrounds > 0:
                         print 'Program requires %d rounds of communication' % numrounds
-                    numinv = sum(len(i.args) for i in block.instructions if isinstance(i, Compiler.instructions.startopen_class))
-                    if numinv > 0:
-                        print 'Program requires %d invocations' % numinv
+                    if merger.counter:
+                        print 'Block requires', \
+                            ', '.join('%d %s' % (y, x.__name__) \
+                                     for x, y in merger.counter.items())
                 if options.dead_code_elimination:
                     block.instructions = filter(lambda x: x is not None, block.instructions)
         if not (options.merge_opens and self.merge_opens):
             print 'Not merging instructions in tape %s' % self.name
-        else:
-            print 'Rounds determined by', self.program.to_merge
 
         # add jumps
         offset = 0
@@ -588,7 +587,7 @@ class Tape:
         # allocate registers
         reg_counts = self.count_regs()
         if not options.noreallocate:
-            print 'Tape register usage:', reg_counts
+            print 'Tape register usage:', dict(reg_counts)
             print 'modp: %d clear, %d secret' % (reg_counts[RegType.ClearModp], reg_counts[RegType.SecretModp])
             print 'GF2N: %d clear, %d secret' % (reg_counts[RegType.ClearGF2N], reg_counts[RegType.SecretGF2N])
             print 'Re-allocating...'
@@ -639,9 +638,12 @@ class Tape:
         if not self.is_empty():
             # bit length requirement
             for x in ('p', '2'):
-                if self.req_bit_length['p']:
+                if self.req_bit_length[x]:
+                    bl = self.req_bit_length[x]
+                    if self.program.options.ring:
+                        bl = -int(self.program.options.ring)
                     self.basicblocks[-1].instructions.append(
-                        Compiler.instructions.reqbl(self.req_bit_length['p'],
+                        Compiler.instructions.reqbl(bl,
                                                     add_to_prog=False))
             print 'Tape requires prime bit length', self.req_bit_length['p']
             print 'Tape requires galois bit length', self.req_bit_length['2']

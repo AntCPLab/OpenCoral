@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #ifndef _OTEXTENSION
 #define _OTEXTENSION
 
@@ -32,6 +30,8 @@ public:
     vector<BitVector> receiverOutput;
     map<string,long long> times;
 
+    OTExtension(BaseOT& baseOT, TwoPartyPlayer* player, bool passive);
+
     OTExtension(int nbaseOTs, int baseLength,
                 int nloops, int nsubloops,
                 TwoPartyPlayer* player,
@@ -42,6 +42,12 @@ public:
                 bool passive=false)
         : baseReceiverInput(baseReceiverInput), passive_only(passive), nbaseOTs(nbaseOTs),
           baseLength(baseLength), nloops(nloops), nsubloops(nsubloops), ot_role(role), player(player)
+    {
+        init(baseSenderInput, baseReceiverOutput);
+    }
+
+    void init(vector< vector<BitVector> >& baseSenderInput,
+            vector<BitVector>& baseReceiverOutput)
     {
         G_sender.resize(nbaseOTs, vector<PRNG>(2));
         G_receiver.resize(nbaseOTs);

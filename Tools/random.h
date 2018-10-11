@@ -1,11 +1,10 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #ifndef _random
 #define _random
 
 #include "Tools/octetStream.h"
 #include "Tools/sha1.h"
 #include "Tools/aes.h"
+#include "Tools/avx_memcpy.h"
 
 #define USE_AES
 
@@ -74,14 +73,16 @@ class PRNG
    void randomBnd(bigint& res, const bigint& B, bool positive=true);
    bigint randomBnd(const bigint& B, bool positive=true);
    word get_word()
-     { word a=get_uint();
-       a<<=32; 
-       a+=get_uint();
-       return a;
+     {
+       word a;
+       get_octets<sizeof(a)>((octet*)&a);
+       return le64toh(a);
      }
    __m128i get_doubleword();
    void get_octetStream(octetStream& ans,int len);
    void get_octets(octet* ans, int len);
+   template <int L>
+   void get_octets(octet* ans);
 
    const octet* get_seed() const
      { return seed; }
@@ -123,5 +124,16 @@ inline void PRNG::get_octets(octet* ans,int len)
     }
 }
 
+template<int L>
+inline void PRNG::get_octets(octet* ans)
+{
+   if (L < RAND_SIZE - cnt)
+   {
+     avx_memcpy(ans, random + cnt, L);
+     cnt += L;
+   }
+   else
+     get_octets(ans, L);
+}
 
 #endif

@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Instruction_inline.h
  *
@@ -7,6 +5,8 @@
 
 #ifndef GC_INSTRUCTION_INLINE_H_
 #define GC_INSTRUCTION_INLINE_H_
+
+#include "BMR/config.h"
 
 #ifdef MAX_INLINE
 #define MAYBE_INLINE inline

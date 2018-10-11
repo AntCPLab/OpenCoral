@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #include "Processor/Data_Files.h"
 #include "Processor/Processor.h"
@@ -235,5 +233,5 @@ void Data_Files::get(Processor& proc, DataTag tag, const vector<int>& regs, int 
       extended[tag].input(proc.get_S_ref<T>(regs[i] + j));
 }
 
-template void Data_Files::get<gfp>(Processor& proc, DataTag tag, const vector<int>& regs, int vector_size);
+template void Data_Files::get<sint::value_type>(Processor& proc, DataTag tag, const vector<int>& regs, int vector_size);
 template void Data_Files::get<gf2n>(Processor& proc, DataTag tag, const vector<int>& regs, int vector_size);

@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * EvalSecret.h
  *
@@ -7,6 +5,9 @@
 
 #ifndef GC_SECRET_H_
 #define GC_SECRET_H_
+
+#include "GC/config.h"
+#include "BMR/config.h"
 
 #include "BMR/Register.h"
 #include "BMR/AndJob.h"
@@ -74,6 +75,9 @@ public:
     typedef AuthValue DynamicType;
 #endif
 
+    // dummy
+    typedef MAC_Check_Base<Secret<T> > MC;
+
     static string type_string() { return "evaluation secret"; }
     static string phase_name() { return T::name(); }
 
@@ -101,8 +105,12 @@ public:
 
     static void andrs(Processor< Secret<T> >& processor, const vector<int>& args)
     { T::andrs(processor, args); }
+    static void ands(Processor< Secret<T> >& processor, const vector<int>& args)
+    { T::ands(processor, args); }
     static void inputb(Processor< Secret<T> >& processor, const vector<int>& args)
     { T::inputb(processor, args); }
+
+    static void trans(Processor<Secret<T> >& processor, int n_inputs, const vector<int>& args);
 
     Secret();
     Secret(const Integer& x) { *this = x; }
@@ -126,7 +134,8 @@ public:
         for (int i = 0; i < n; i++)
             XOR<T>(registers[i], x.get_reg(i), y.get_reg(i));
     }
-    void andrs(int n, const Secret<T>& x, const Secret<T>& y);
+    void and_(int n, const Secret<T>& x, const Secret<T>& y, bool repeat);
+    void andrs(int n, const Secret<T>& x, const Secret<T>& y) { and_(n, x, y, true); }
 
     template <class U>
     void reveal(U& x);
@@ -139,6 +148,12 @@ public:
     T& get_reg(int i) { return *reinterpret_cast<T*>(&registers.at(i)); }
     void resize_regs(int n);
 };
+
+template <class T>
+int Secret<T>::default_length = 128;
+
+template <class T>
+typename T::out_type Secret<T>::out = T::out;
 
 template <class T>
 inline ostream& operator<<(ostream& o, Secret<T>& secret)

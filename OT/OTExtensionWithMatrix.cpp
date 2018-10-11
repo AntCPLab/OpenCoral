@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * OTExtensionWithMatrix.cpp
  *
@@ -7,6 +5,23 @@
 
 #include "OTExtensionWithMatrix.h"
 #include "Math/gfp.h"
+
+OTExtensionWithMatrix OTExtensionWithMatrix::setup(TwoPartyPlayer& player,
+        int128 delta, OT_ROLE role, bool passive)
+{
+    BaseOT baseOT(128, 128, &player, INV_ROLE(role));
+    PRNG G;
+    G.ReSeed();
+    baseOT.set_receiver_inputs(delta);
+    baseOT.exec_base(false);
+    return OTExtensionWithMatrix(baseOT, &player, passive);
+}
+
+OTExtensionWithMatrix::OTExtensionWithMatrix(BaseOT& baseOT, TwoPartyPlayer* player,
+        bool passive) : OTExtension(baseOT, player, passive)
+{
+    G.ReSeed();
+}
 
 void OTExtensionWithMatrix::seed(vector<BitMatrix>& baseSenderInput,
         BitMatrix& baseReceiverOutput)
@@ -77,10 +92,17 @@ void OTExtensionWithMatrix::resize(int nOTs)
 template <class T>
 void OTExtensionWithMatrix::extend(int nOTs_requested, BitVector& newReceiverInput)
 {
+    extend_correlated(nOTs_requested, newReceiverInput);
+    hash_outputs<T>(nOTs_requested);
+}
+
+void OTExtensionWithMatrix::extend_correlated(int nOTs_requested, BitVector& newReceiverInput)
+{
 //    if (nOTs % nbaseOTs != 0)
 //        throw invalid_length(); //"nOTs must be a multiple of nbaseOTs\n");
     if (nOTs_requested == 0)
         return;
+    nOTs_requested = DIV_CEIL(nOTs_requested, 128) * 128;
     // add k + s to account for discarding k OTs
     int nOTs = nOTs_requested + 2 * 128;
 
@@ -119,8 +141,6 @@ void OTExtensionWithMatrix::extend(int nOTs_requested, BitVector& newReceiverInp
         times["Total correlation check"] += timeval_diff(&startv, &endv);
 #endif
     }
-
-    hash_outputs<T>(nOTs);
 
     receiverOutputMatrix.resize(nOTs_requested);
     senderOutputMatrices[0].resize(nOTs_requested);

@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #include "FHEOffline/Reshare.h"
 #include "FHEOffline/DistDecrypt.h"

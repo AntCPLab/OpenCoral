@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #     ===== Compiler usage instructions =====
 # 
@@ -59,6 +57,8 @@ def main():
                       help="continuous computation")
     parser.add_option("-s", "--stop", action="store_true", dest="stop",
                       help="stop on register errors")
+    parser.add_option("-R", "--ring", dest="ring", default=0,
+                      help="bit length of ring (default: 0 for field)")
     options,args = parser.parse_args()
     if len(args) < 1:
         parser.print_help()

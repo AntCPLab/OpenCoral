@@ -1,5 +1,3 @@
-(C) 2018 University of Bristol, Bar-Ilan University. See License.txt.
-
 The ExternalIO directory contains examples of managing I/O between external client processes and SPDZ parties running SPDZ engines. These instructions assume that SPDZ has been built as per the [project readme](../README.md).
 
 ## I/O MPC Instructions

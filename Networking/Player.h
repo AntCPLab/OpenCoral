@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #ifndef _Player
 #define _Player
 
@@ -21,6 +19,7 @@ using namespace std;
 #include "Networking/sockets.h"
 #include "Networking/ServerSocket.h"
 #include "Tools/sha1.h"
+#include "Tools/int.h"
 #include "Networking/Receiver.h"
 #include "Networking/Sender.h"
 
@@ -154,6 +153,8 @@ public:
   int my_num() const { return player_no; }
   int socket(int i) const { return sockets[i]; }
 
+  int get_offset(int other_player) const { return positive_modulo(other_player - my_num(), num_players()); }
+
   // Send/Receive data to/from player i 
   // 8-bit ints only (mainly for testing)
   void send_int(int i,int a)  const    { send(sockets[i],a);    }
@@ -169,6 +170,12 @@ public:
   void send_to(int player,const octetStream& o,bool donthash=false) const;
   virtual void receive_player(int i,octetStream& o,bool donthash=false) const;
   void receive_player(int i,FlexBuffer& buffer) const;
+
+  // Communication relative to my number
+  void send_relative(const vector<octetStream>& o) const;
+  void send_relative(int offset, const octetStream& o) const;
+  void receive_relative(vector<octetStream>& o) const;
+  void receive_relative(int offset, octetStream& o) const;
 
   // exchange data with minimal memory usage
   void exchange(int other, octetStream& o) const;

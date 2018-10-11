@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #include <fcntl.h>
 #include <sodium.h>
@@ -137,13 +135,6 @@ void octetStream::get_bytes(octet* ans, size_t& length)
   ptr+=length;
 }
 
-void octetStream::store_int(size_t l, int n_bytes)
-{
-  resize(len+n_bytes);
-  encode_length(data+len,l,n_bytes);
-  len+=n_bytes;
-}
-
 void octetStream::store(int l)
 {
   resize(len+4);
@@ -151,13 +142,6 @@ void octetStream::store(int l)
   len+=4;
 }
 
-
-size_t octetStream::get_int(int n_bytes)
-{
-  size_t res=decode_length(data+ptr,n_bytes);
-  ptr+=n_bytes;
-  return res;
-}
 
 void octetStream::get(int& l)
 {
@@ -367,7 +351,7 @@ void octetStream::input(istream& s)
 {
   size_t size;
   s.read((char*)&size, sizeof(size));
-  resize_precise(size);
+  resize_min(size);
   s.read((char*)data, size);
 }
 

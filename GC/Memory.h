@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Memory.h
  *
@@ -25,6 +23,7 @@ class Memory : public vector<T>
 {
 public:
     void resize(size_t size, const char* name = "");
+    void resize_min(size_t size, const char* name = "");
     void check_index(Integer index) const;
     T& operator[] (Integer i);
     const T& operator[] (Integer i) const;
@@ -64,6 +63,21 @@ inline const T& Memory<T>::operator[] (Integer i) const
 {
     check_index(i);
     return vector<T>::operator[](i.get());
+}
+
+template <class T>
+inline void Memory<T>::resize(size_t size, const char* name)
+{
+    if (size > 1000)
+        cout << "Resizing " << T::type_string() << " " << name << " to " << size << endl;
+    vector<T>::resize(size);
+}
+
+template <class T>
+inline void Memory<T>::resize_min(size_t size, const char* name)
+{
+    if (this->size() < size)
+        resize(size, name);
 }
 
 } /* namespace GC */

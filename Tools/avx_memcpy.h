@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * memcpy.h
  *
@@ -28,8 +26,17 @@ inline void avx_memcpy(void* dest, const void* source, size_t length)
 		_mm_storeu_si128(d2++, _mm_loadu_si128(s2++));
 		length -= 16;
 	}
-	if (length)
+	switch (length)
+	{
+	case 0:
+		return;
+	case 1:
+		*(char*)d2 = *(char*)s2;
+		return;
+	default:
 		memcpy(d2, s2, length);
+		return;
+	}
 }
 
 inline void avx_memzero(void* dest, size_t length)

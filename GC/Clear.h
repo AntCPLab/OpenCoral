@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Clear.h
  *
@@ -20,7 +18,7 @@ public:
 
     Clear() : Integer() {}
     Clear(long a) : Integer(a) {}
-    Clear(const Integer& x) : Integer(x) {}
+    Clear(const IntBase& x) { IntBase::operator=(x); }
 
     void xor_(const Clear& x, const Clear& y) { a = x.a ^ y.a; }
     void xor_(const Clear& x, long y) { a = x.a ^ y; }

@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 import Compiler.instructions_base as base
 import Compiler.instructions as spdz
 import Compiler.tools as tools
@@ -28,6 +26,8 @@ opcodes = dict(
     LDMSD = 0x208,
     STMSD = 0x209,
     LDBITS = 0x20a,
+    ANDS = 0x20b,
+    TRANS = 0x20c,
     XORCI = 0x210,
     BITDECC = 0x211,
     CONVCINT = 0x213,
@@ -55,6 +55,10 @@ class xorci(base.Instruction):
 
 class andrs(base.Instruction):
     code = opcodes['ANDRS']
+    arg_format = tools.cycle(['int','sbw','sb','sb'])
+
+class ands(base.Instruction):
+    code = opcodes['ANDS']
     arg_format = tools.cycle(['int','sbw','sb','sb'])
 
 class addc(base.Instruction):
@@ -148,6 +152,13 @@ class convcint(base.Instruction):
 class movs(base.Instruction):
     code = base.opcodes['MOVS']
     arg_format = ['sbw','sb']
+
+class trans(base.VarArgsInstruction):
+    code = opcodes['TRANS']
+    def __init__(self, *args):
+        self.arg_format = ['int'] + ['sbw'] * args[0] + \
+                          ['sb'] * (len(args) - 1 - args[0])
+        super(trans, self).__init__(*args)
 
 class bit(base.Instruction):
     code = base.opcodes['BIT']

@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Instruction.h
  *
@@ -77,6 +75,8 @@ enum
     LDMSD = 0x208,
     STMSD = 0x209,
     LDBITS = 0x20a,
+    ANDS = 0x20b,
+    TRANS = 0x20c,
     // write to clear
     CLEAR_WRITE = 0x210,
     XORCI = 0x210,

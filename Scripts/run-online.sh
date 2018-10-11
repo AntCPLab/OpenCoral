@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 HERE=$(cd `dirname $0`; pwd)
 SPDZROOT=$HERE/..
 

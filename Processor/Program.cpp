@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #include "Processor/Program.h"
 #include "Processor/Data_Files.h"
@@ -61,22 +59,3 @@ ostream& operator<<(ostream& s,const Program& P)
     { s << i << " :: " << P.p[i] << endl; }
   return s;
 }
-
-
-
-void Program::execute(Processor& Proc) const
-{
-  unsigned int size = p.size();
-  Proc.PC=0;
-  octet seed[SEED_SIZE];
-  memset(seed, 0, SEED_SIZE);
-  Proc.prng.SetSeed(seed);
-  while (Proc.PC<size)
-    { p[Proc.PC].execute(Proc); }
-}
-
-
-
-
-
-

@@ -11,6 +11,7 @@
 #include "GC/Processor.h"
 
 class YaoGate;
+class YaoGarbler;
 
 class YaoGarbleWire : public Phase
 {
@@ -23,19 +24,34 @@ public:
 	static YaoGarbleWire new_reg() { return {}; }
 
 	static void andrs(GC::Processor<GC::Secret<YaoGarbleWire>>& processor,
-			const vector<int>& args);
-	static void andrs_multithread(
+			const vector<int>& args)
+	{
+		and_(processor, args, true);
+	}
+	static void ands(GC::Processor<GC::Secret<YaoGarbleWire>>& processor,
+			const vector<int>& args)
+	{
+		and_(processor, args, false);
+	}
+
+	static void and_(GC::Processor<GC::Secret<YaoGarbleWire>>& processor,
+			const vector<int>& args, bool repeat);
+	static void and_multithread(
 			GC::Processor<GC::Secret<YaoGarbleWire>>& processor,
-			const vector<int>& args);
-	static void andrs_singlethread(
+			const vector<int>& args, bool repeat);
+	static void and_singlethread(
 			GC::Processor<GC::Secret<YaoGarbleWire>>& processor,
-			const vector<int>& args);
-	static void andrs(GC::Memory<GC::Secret<YaoGarbleWire>>& S,
+			const vector<int>& args, bool repeat);
+	static void and_(GC::Memory<GC::Secret<YaoGarbleWire>>& S,
 			const vector<int>& args, size_t start, size_t end,
 			size_t total_ands, YaoGate* gate, long& counter, PRNG& prng,
-			map<string, Timer>& timers);
+			map<string, Timer>& timers, bool repeat, YaoGarbler& garbler);
+
+	static void inputb(GC::Processor<GC::Secret<YaoGarbleWire>>& processor,
+			const vector<int>& args);
 
 	void randomize(PRNG& prng);
+	void set(Key key, bool mask);
 
 	void random();
 	void public_input(bool value);

@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #include "FHE/FFT.h"
 #include "Math/Zp_Data.h"

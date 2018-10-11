@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 from path_oram import OptimalORAM
 
 array = OptimalORAM(10000)

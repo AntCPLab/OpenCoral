@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #include "OTExtension.h"
 
 #include "OT/Tools.h"
@@ -258,6 +256,22 @@ void naive_transpose64(vector<BitVector>& output, const vector<BitVector>& input
             //output[j + offset*word_size] ^= ((w >> j) & 1) << i;
         }
     }
+}
+
+
+OTExtension::OTExtension(BaseOT& baseOT, TwoPartyPlayer* player,
+        bool passive) : player(player)
+{
+    nbaseOTs = baseOT.nOT;
+    baseLength = baseOT.ot_length;
+    nloops = 1;
+    nsubloops = 1;
+    ot_role = INV_ROLE(baseOT.ot_role);
+    passive_only = passive;
+    baseReceiverInput.resize(nbaseOTs);
+    for (int i = 0; i < nbaseOTs; i++)
+        baseReceiverInput.set_bit(i, baseOT.receiver_inputs[i]);
+    init(baseOT.sender_inputs, baseOT.receiver_outputs);
 }
 
 void OTExtension::transfer(int nOTs,

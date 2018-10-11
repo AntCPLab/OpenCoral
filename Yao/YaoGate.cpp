@@ -20,8 +20,8 @@ YaoGate::YaoGate(const YaoGarbleWire& out, const YaoGarbleWire& left,
 			hashes[2 * i + j] = mmo.hash(
 					E_input(left.key ^ (i ? delta : 0),
 							right.key ^ (j ? delta : 0),
-							YaoGarbler::s().counter));
-	garble(out, hashes, left.mask, right.mask, func);
+							YaoGarbler::s().get_gate_id()));
+	garble(out, hashes, left.mask, right.mask, func, delta);
 #ifdef DEBUG
 	cout << "left " << left.mask << " " << left.key << " " << (left.key ^ delta) << endl;
 	cout << "right " << right.mask << " " << right.key << " " << (right.key ^ delta) << endl;
@@ -32,7 +32,7 @@ YaoGate::YaoGate(const YaoGarbleWire& out, const YaoGarbleWire& left,
 void YaoGate::eval(YaoEvalWire& out, const YaoEvalWire& left, const YaoEvalWire& right)
 {
 	MMO& mmo = YaoEvaluator::s().mmo;
-	Key key = E_input(left.key, right.key, YaoEvaluator::s().counter);
+	Key key = E_input(left.key, right.key, YaoEvaluator::s().get_gate_id());
 	eval(out, mmo.hash(key), get_entry(left.external, right.external));
 #ifdef DEBUG
 	cout << "external " << left.external << " " << right.external << endl;

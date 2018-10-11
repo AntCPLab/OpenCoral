@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #ifndef _MAC_Check
 #define _MAC_Check
 
@@ -58,7 +56,28 @@ public:
 
 
 template<class T>
-class MAC_Check : public TreeSum<T>
+class MAC_Check_Base
+{
+protected:
+  /* MAC Share */
+  T alphai;
+
+public:
+  int values_opened;
+
+  MAC_Check_Base() : values_opened(0) {}
+  virtual ~MAC_Check_Base() {}
+
+  virtual void Check(const Player& P) { (void)P; }
+
+  int number() const { return values_opened; }
+
+  const T& get_alphai() const { return alphai; }
+};
+
+
+template<class T>
+class MAC_Check : public TreeSum<T>, public MAC_Check_Base<T>
 {
   protected:
 
@@ -66,9 +85,6 @@ class MAC_Check : public TreeSum<T>
   int popen_cnt;
   vector<T> macs;
   vector<T> vals;
-
-  /* MAC Share */
-  T alphai;
 
   void AddToMacs(const vector< Share<T> >& shares);
   void AddToValues(vector<T>& values);
@@ -78,8 +94,6 @@ class MAC_Check : public TreeSum<T>
     { return max(macs.size(), vals.size()); }
 
   public:
-
-  int values_opened;
 
   MAC_Check(const T& ai, int opening_sum=10, int max_broadcast=10, int send_player=0);
   virtual ~MAC_Check();
@@ -93,12 +107,10 @@ class MAC_Check : public TreeSum<T>
    */
   virtual void POpen_Begin(vector<T>& values,const vector<Share<T> >& S,const Player& P);
   virtual void POpen_End(vector<T>& values,const vector<Share<T> >& S,const Player& P);
+  void POpen(vector<T>& values,const vector<Share<T> >& S,const Player& P);
+
   void AddToCheck(const T& mac, const T& value, const Player& P);
   virtual void Check(const Player& P);
-
-  int number() const { return values_opened; }
-
-  const T& get_alphai() const { return alphai; }
 };
 
 

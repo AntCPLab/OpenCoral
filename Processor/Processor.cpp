@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #include "Processor/Processor.h"
 #include "Networking/STS.h"
@@ -9,12 +7,18 @@
 #include <sodium.h>
 #include <string>
 
+template <class T>
+SubProcessor<T>::SubProcessor(Processor& Proc, typename T::MAC_Check& MC) :
+    Proc(Proc), MC(MC), P(Proc.P)
+{
+}
 
 Processor::Processor(int thread_num,Data_Files& DataF,Player& P,
-        MAC_Check<gf2n>& MC2,MAC_Check<gfp>& MCp,Machine& machine,
+        MAC_Check<gf2n>& MC2,sint::MAC_Check& MCp,Machine& machine,
         const Program& program)
 : thread_num(thread_num),DataF(DataF),P(P),MC2(MC2),MCp(MCp),machine(machine),
   private_input_filename(get_filename(PREP_DIR "Private-Input-",true)),
+  Proc2(*this,MC2),Procp(*this,MCp),
   input2(*this,MC2),inputp(*this,MCp),privateOutput2(*this),privateOutputp(*this),sent(0),rounds(0),
   external_clients(ExternalClients(P.my_num(), DataF.prep_data_dir)),binary_file_io(Binary_File_IO())
 {
@@ -24,6 +28,8 @@ Processor::Processor(int thread_num,Data_Files& DataF,Player& P,
   private_input.open(private_input_filename.c_str());
   public_output.open(get_filename(PREP_DIR "Public-Output-",true).c_str(), ios_base::out);
   private_output.open(get_filename(PREP_DIR "Private-Output-",true).c_str(), ios_base::out);
+
+  secure_prng.ReSeed();
 }
 
 
@@ -52,8 +58,8 @@ void Processor::reset(const Program& program,int arg)
   reg_max2 = program.num_reg(GF2N);
   reg_maxp = program.num_reg(MODP);
   reg_maxi = program.num_reg(INT);
-  C2.resize(reg_max2); Cp.resize(reg_maxp);
-  S2.resize(reg_max2); Sp.resize(reg_maxp);
+  Proc2.resize(reg_max2);
+  Procp.resize(reg_maxp);
   Ci.resize(reg_maxi);
   this->arg = arg;
 
@@ -95,13 +101,13 @@ void Processor::write_socket(const RegType reg_type, const SecrecyType secrecy_t
   {
     if (reg_type == MODP && secrecy_type == SECRET) {
       // Send vector of secret shares and optionally macs
-      get_S_ref<gfp>(registers[i]).get_share().pack(socket_stream);
+      get_S_ref<sint::value_type>(registers[i]).get_share().pack(socket_stream);
       if (send_macs)
-        get_S_ref<gfp>(registers[i]).get_mac().pack(socket_stream);
+        get_S_ref<sint::value_type>(registers[i]).get_mac().pack(socket_stream);
     }
     else if (reg_type == MODP && secrecy_type == CLEAR) {
       // Send vector of clear public field elements
-      get_C_ref<gfp>(registers[i]).pack(socket_stream);
+      get_C_ref<sint::clear>(registers[i]).pack(socket_stream);
     }
     else if (reg_type == INT && secrecy_type == CLEAR) {
       // Send vector of 32-bit clear ints
@@ -170,7 +176,7 @@ void Processor::read_socket_vector(int client_id, const vector<int>& registers)
   maybe_decrypt_sequence(client_id);
   for (int i = 0; i < m; i++)
   {
-    get_C_ref<T>(registers[i]).unpack(socket_stream);
+    get_C_ref<typename T::clear>(registers[i]).unpack(socket_stream);
   }
 }
 
@@ -348,7 +354,7 @@ void Processor::read_shares_from_file(int start_file_posn, int end_file_pos_regi
 
   unsigned int size = data_registers.size();
 
-  vector< Share<T> > outbuf(size);
+  vector< T > outbuf(size);
 
   int end_file_posn = start_file_posn;
 
@@ -357,8 +363,7 @@ void Processor::read_shares_from_file(int start_file_posn, int end_file_pos_regi
 
     for (unsigned int i = 0; i < size; i++)
     {
-      get_Sp_ref(data_registers[i]).set_share(outbuf[i].get_share());
-      get_Sp_ref(data_registers[i]).set_mac(outbuf[i].get_mac());
+      get_Sp_ref(data_registers[i]) = outbuf[i];
     }
 
     write_Ci(end_file_pos_register, (long)end_file_posn);    
@@ -384,15 +389,13 @@ void Processor::write_shares_to_file(const vector<int>& data_registers) {
     inpbuf[i] = get_S_ref<T>(data_registers[i]);
   }
 
-  binary_file_io.write_to_file<T>(filename, inpbuf);
+  binary_file_io.write_to_file(filename, inpbuf);
 }
 
 template <class T>
-void Processor::POpen_Start(const vector<int>& reg,const Player& P,MAC_Check<T>& MC,int size)
+void SubProcessor<T>::POpen_Start(const vector<int>& reg,const Player& P,int size)
 {
   int sz=reg.size();
-  vector< Share<T> >& Sh_PO = get_Sh_PO<T>();
-  vector<T>& PO = get_PO<T>();
   Sh_PO.clear();
   Sh_PO.reserve(sz*size);
   if (size>1)
@@ -400,14 +403,14 @@ void Processor::POpen_Start(const vector<int>& reg,const Player& P,MAC_Check<T>&
       for (typename vector<int>::const_iterator reg_it=reg.begin();
           reg_it!=reg.end(); reg_it++)
         {
-          typename vector<Share<T> >::iterator begin=get_S<T>().begin()+*reg_it;
+          auto begin=S.begin()+*reg_it;
           Sh_PO.insert(Sh_PO.end(),begin,begin+size);
         }
     }
   else
     {
       for (int i=0; i<sz; i++)
-        { Sh_PO.push_back(get_S_ref<T>(reg[i])); }
+        { Sh_PO.push_back(S[reg[i]]); }
     }
   PO.resize(sz*size);
   MC.POpen_Begin(PO,Sh_PO,P);
@@ -415,21 +418,18 @@ void Processor::POpen_Start(const vector<int>& reg,const Player& P,MAC_Check<T>&
 
 
 template <class T>
-void Processor::POpen_Stop(const vector<int>& reg,const Player& P,MAC_Check<T>& MC,int size)
+void SubProcessor<T>::POpen_Stop(const vector<int>& reg,const Player& P,int size)
 {
-  vector< Share<T> >& Sh_PO = get_Sh_PO<T>();
-  vector<T>& PO = get_PO<T>();
-  vector<T>& C = get_C<T>();
   int sz=reg.size();
   PO.resize(sz*size);
   MC.POpen_End(PO,Sh_PO,P);
   if (size>1)
     {
-      typename vector<T>::iterator PO_it=PO.begin();
+      auto PO_it=PO.begin();
       for (typename vector<int>::const_iterator reg_it=reg.begin();
           reg_it!=reg.end(); reg_it++)
         {
-          for (typename vector<T>::iterator C_it=C.begin()+*reg_it;
+          for (auto C_it=C.begin()+*reg_it;
               C_it!=C.begin()+*reg_it+size; C_it++)
             {
               *C_it=*PO_it;
@@ -440,11 +440,33 @@ void Processor::POpen_Stop(const vector<int>& reg,const Player& P,MAC_Check<T>& 
   else
     {
       for (unsigned int i=0; i<reg.size(); i++)
-        { get_C_ref<T>(reg[i]) = PO[i]; }
+        { C[reg[i]] = PO[i]; }
     }
 
-  sent += reg.size() * size;
-  rounds++;
+  Proc.sent += reg.size() * size;
+  Proc.rounds++;
+}
+
+void unzip_open(vector<int>& dest, vector<int>& source, const vector<int>& reg)
+{
+  int n = reg.size() / 2;
+  source.resize(n);
+  dest.resize(n);
+  for (int i = 0; i < n; i++)
+  {
+    source[i] = reg[2 * i + 1];
+    dest[i] = reg[2 * i];
+  }
+}
+
+template<class T>
+void SubProcessor<T>::POpen(const vector<int>& reg, const Player& P,
+    int size)
+{
+  vector<int> source, dest;
+  unzip_open(dest, source, reg);
+  POpen_Start(source, P, size);
+  POpen_Stop(dest, P, size);
 }
 
 ostream& operator<<(ostream& s,const Processor& P)
@@ -492,11 +514,10 @@ void Processor::maybe_encrypt_sequence(int client_id)
   }
 }
 
-template void Processor::POpen_Start(const vector<int>& reg,const Player& P,MAC_Check<gf2n>& MC,int size);
-template void Processor::POpen_Start(const vector<int>& reg,const Player& P,MAC_Check<gfp>& MC,int size);
-template void Processor::POpen_Stop(const vector<int>& reg,const Player& P,MAC_Check<gf2n>& MC,int size);
-template void Processor::POpen_Stop(const vector<int>& reg,const Player& P,MAC_Check<gfp>& MC,int size);
-template void Processor::read_socket_private<gfp>(int client_id, const vector<int>& registers, bool send_macs);
-template void Processor::read_socket_vector<gfp>(int client_id, const vector<int>& registers);
-template void Processor::read_shares_from_file<gfp>(int start_file_pos, int end_file_pos_register, const vector<int>& data_registers);
-template void Processor::write_shares_to_file<gfp>(const vector<int>& data_registers);
+template class SubProcessor<sgf2n>;
+template class SubProcessor<sint>;
+
+template void Processor::read_socket_private<sint>(int client_id, const vector<int>& registers, bool send_macs);
+template void Processor::read_socket_vector<sint>(int client_id, const vector<int>& registers);
+template void Processor::read_shares_from_file<sint>(int start_file_pos, int end_file_pos_register, const vector<int>& data_registers);
+template void Processor::write_shares_to_file<sint::value_type>(const vector<int>& data_registers);

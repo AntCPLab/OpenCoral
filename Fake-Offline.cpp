@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #include "Math/gf2n.h"
 #include "Math/gfp.h"
@@ -552,4 +550,8 @@ int main(int argc, const char** argv)
   make_bit_triples(key2,nplayers,nbitgf2ntrip,DATA_BITGF2NTRIPLE,zero);
   make_PreMulC(key2,nplayers,ninv,zero);
   make_PreMulC(keyp,nplayers,ninv,zero);
+
+#ifdef REPLICATED
+  make_bits(sint::value_type(), nplayers, nbitsp, "p", zero);
+#endif
 }

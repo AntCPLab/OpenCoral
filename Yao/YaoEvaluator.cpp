@@ -5,34 +5,43 @@
 
 #include "YaoEvaluator.h"
 
-YaoEvaluator* YaoEvaluator::singleton = 0;
+thread_local YaoEvaluator* YaoEvaluator::singleton = 0;
 
-YaoEvaluator::YaoEvaluator(string progname) : machine(MD), processor(machine)
+YaoEvaluator::YaoEvaluator(int thread_num, YaoEvalMaster& master) :
+		Thread<GC::Secret<YaoEvalWire>>(thread_num, master.machine, master.N),
+		master(master),
+		player(N, 0, thread_num << 24),
+		ot_ext(OTExtensionWithMatrix::setup(player, {}, RECEIVER, true))
 {
-	counter = 0;
+	set_n_program_threads(master.machine.nthreads);
+}
 
-	program.parse(progname + "-0");
-	processor.reset(program);
+void YaoEvaluator::pre_run()
+{
+	if (not continous())
+		receive_to_store(*P);
+}
 
-	if (singleton)
-		throw runtime_error("there can only be one");
+void YaoEvaluator::run(GC::Program<GC::Secret<YaoEvalWire>>& program)
+{
 	singleton = this;
+
+	if (continous())
+		run(program, *P);
+	else
+	{
+		run_from_store(program);
+	}
 }
 
-void YaoEvaluator::run()
-{
-	while(GC::DONE_BREAK != program.execute(processor, -1))
-		;
-}
-
-void YaoEvaluator::run(Player& P)
+void YaoEvaluator::run(GC::Program<GC::Secret<YaoEvalWire>>& program, Player& P)
 {
 	do
 		receive(P);
 	while(GC::DONE_BREAK != program.execute(processor, -1));
 }
 
-void YaoEvaluator::run_from_store()
+void YaoEvaluator::run_from_store(GC::Program<GC::Secret<YaoEvalWire>>& program)
 {
 	machine.reset_timer();
 	do

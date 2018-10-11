@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #ifndef _Instruction
 #define _Instruction
 
@@ -93,8 +91,8 @@ enum
     DIGESTC = 0x39,
     INV2M = 0x3a,
     // Open
-    STARTOPEN = 0xA0,
-    STOPOPEN = 0xA1,
+    OPEN = 0xA5,
+    MULS = 0xA6,
     // Data access
     TRIPLE = 0x50,
     BIT = 0x51,
@@ -213,8 +211,8 @@ enum
     GMULBITC = 0x136,
     GMULBITM = 0x137,
     // Open
-    GSTARTOPEN = 0x1A0,
-    GSTOPOPEN = 0x1A1,
+    GOPEN = 0x1A5,
+    GMULS = 0x1A6,
     // Data access
     GTRIPLE = 0x150,
     GBIT = 0x151,
@@ -276,19 +274,19 @@ enum SecrecyType {
 
 struct TempVars {
   gf2n ans2; Share<gf2n> Sans2;
-  gfp ansp;  Share<gfp>  Sansp;
+  sint::clear ansp;
+  sint Sansp;
   bigint aa,aa2;
   // INPUT and LDSI
-  gfp rrp,tp,tmpp;
-  gfp xip;
+  sint::value_type rrp,tp,tmpp;
+  sint::clear xip;
   // GINPUT and GLDSI
   gf2n rr2,t2,tmp2;
   gf2n xi2;
   // assign without allocation
   void assign_ansp(int n)
   {
-    aa = n;
-    ansp.convert_destroy(aa);
+    ansp = n;
   }
 };
 

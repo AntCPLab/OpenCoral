@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #include "Processor/Program.h"
 #include "Processor/Online-Thread.h"
@@ -42,26 +40,28 @@ void* Sub_Main_Func(void* ptr)
   Data_Files DataF(P.my_num(),P.num_players(),machine.prep_dir_prefix);
 
   MAC_Check<gf2n>* MC2;
-  MAC_Check<gfp>*  MCp;
+  sint::MAC_Check*  MCp;
 
   // Use MAC_Check instead for more than 10000 openings at once
   if (machine.direct)
     {
       cerr << "Using direct communication. If computation stalls, use -m when compiling." << endl;
       MC2 = new Direct_MAC_Check<gf2n>(*(tinfo->alpha2i),*(tinfo->Nms), num);
-      MCp = new Direct_MAC_Check<gfp>(*(tinfo->alphapi),*(tinfo->Nms), num);
+      //MCp = new Direct_MAC_Check<gfp>(*(tinfo->alphapi),*(tinfo->Nms), num);
+      throw not_implemented();
     }
   else if (machine.parallel)
     {
       cerr << "Using indirect communication with background threads." << endl;
       MC2 = new Parallel_MAC_Check<gf2n>(*(tinfo->alpha2i),*(tinfo->Nms), num, machine.opening_sum, machine.max_broadcast);
-      MCp = new Parallel_MAC_Check<gfp>(*(tinfo->alphapi),*(tinfo->Nms), num, machine.opening_sum, machine.max_broadcast);
+      //MCp = new Parallel_MAC_Check<gfp>(*(tinfo->alphapi),*(tinfo->Nms), num, machine.opening_sum, machine.max_broadcast);
+      throw not_implemented();
     }
   else
     {
       cerr << "Using indirect communication." << endl;
       MC2 = new MAC_Check<gf2n>(*(tinfo->alpha2i), machine.opening_sum, machine.max_broadcast);
-      MCp = new MAC_Check<gfp>(*(tinfo->alphapi), machine.opening_sum, machine.max_broadcast);
+      MCp = new sint::MAC_Check(*(tinfo->alphapi), machine.opening_sum, machine.max_broadcast);
     }
 
   // Allocate memory for first program before starting the clock

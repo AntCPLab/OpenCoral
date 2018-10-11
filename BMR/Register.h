@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Register.h
  *
@@ -13,6 +11,7 @@
 #include <stdint.h>
 using namespace std;
 
+#include "config.h"
 #include "Key.h"
 #include "Wire.h"
 #include "GC/Clear.h"
@@ -212,13 +211,17 @@ public:
 
 	template<class T>
 	static void store(GC::Memory<GC::SpdzShare>& dest,
-			const vector<GC::WriteAccess<T> >& accesses) { (void)dest; (void)accesses; }
+			const vector<GC::WriteAccess<T> >& accesses)
+	{ (void)dest; (void)accesses; throw runtime_error("dynamic memory not implemented"); }
 	template<class T>
 	static void load(vector<GC::ReadAccess<T> >& accesses,
-			const GC::Memory<GC::SpdzShare>& source) { (void)accesses; (void)source; }
+			const GC::Memory<GC::SpdzShare>& source)
+	{ (void)accesses; (void)source; throw runtime_error("dynamic memory not implemented"); }
 
 	template <class T>
 	static void andrs(T& processor, const vector<int>& args) { processor.andrs(args); }
+	template <class T>
+	static void ands(T& processor, const vector<int>& args) { processor.ands(args); }
 	template <class T>
 	static void inputb(T& processor, const vector<int>& args) { processor.input(args); }
 
@@ -235,6 +238,13 @@ public:
 	static Register new_reg();
 	static Register tmp_reg() { return new_reg(); }
 	static Register and_reg() { return new_reg(); }
+
+	template<class T>
+	static void store(GC::Memory<GC::SpdzShare>& dest,
+			const vector<GC::WriteAccess<T> >& accesses) { (void)dest; (void)accesses; }
+	template<class T>
+	static void load(vector<GC::ReadAccess<T> >& accesses,
+			const GC::Memory<GC::SpdzShare>& source) { (void)accesses; (void)source; }
 
 	char get_output() { return 0; }
 

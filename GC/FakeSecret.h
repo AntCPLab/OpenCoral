@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Secret.h
  *
@@ -14,6 +12,7 @@
 
 #include "Math/Share.h"
 #include "Math/gf2n.h"
+#include "Auth/MAC_Check.h"
 
 #include <random>
 #include <fstream>
@@ -21,12 +20,18 @@
 namespace GC
 {
 
-class FakeSecret : int128
+template <class T>
+class Processor;
+
+class FakeSecret
 {
     __uint128_t a;
 
 public:
     typedef FakeSecret DynamicType;
+
+    // dummy
+    typedef MAC_Check_Base<FakeSecret> MC;
 
     static string type_string() { return "fake secret"; }
     static string phase_name() { return "Faking"; }
@@ -45,9 +50,13 @@ public:
     template <class T>
     static void andrs(T& processor, const vector<int>& args)
     { processor.andrs(args); }
+    static void ands(GC::Processor<FakeSecret>& processor, const vector<int>& regs);
     template <class T>
     static void inputb(T& processor, const vector<int>& args)
     { processor.input(args); }
+
+    static void trans(Processor<FakeSecret>& processor, int n_inputs,
+            const vector<int>& args);
 
     static FakeSecret input(int from, ifstream& input_file, int n_bits);
     static FakeSecret input(int from, const int128& input, int n_bits);
@@ -72,6 +81,7 @@ public:
 
     template <class T>
     void xor_(int n, const FakeSecret& x, const T& y) { (void)n; a = x.a ^ y.a; }
+    void and_(int n, const FakeSecret& x, const FakeSecret& y, bool repeat);
     void andrs(int n, const FakeSecret& x, const FakeSecret& y) { (void)n; a = x.a * y.a; }
 
 

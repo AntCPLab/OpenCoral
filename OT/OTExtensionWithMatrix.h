@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * OTExtensionWithMatrix.h
  *
@@ -20,6 +18,9 @@ public:
     BitMatrix t1, u;
     PRNG G;
 
+    static OTExtensionWithMatrix setup(TwoPartyPlayer& player,
+            int128 delta, OT_ROLE role, bool passive);
+
     OTExtensionWithMatrix(int nbaseOTs, int baseLength,
                 int nloops, int nsubloops,
                 TwoPartyPlayer* player,
@@ -33,12 +34,15 @@ public:
       G.ReSeed();
     }
 
+    OTExtensionWithMatrix(BaseOT& baseOT, TwoPartyPlayer* player, bool passive);
+
     void seed(vector<BitMatrix>& baseSenderInput,
             BitMatrix& baseReceiverOutput);
     void transfer(int nOTs, const BitVector& receiverInput);
     void resize(int nOTs);
     template <class T>
     void extend(int nOTs, BitVector& newReceiverInput);
+    void extend_correlated(int nOTs, BitVector& newReceiverInput);
     template <class T>
     void expand(int start, int slice);
     template <class T>

@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Key.h
  *
@@ -84,8 +82,8 @@ inline __m128i Key::get() const
 
 inline void Key::set_signal(bool signal)
 {
-	r &= ~_mm_cvtsi64x_si128(1);
-	r ^= _mm_cvtsi64x_si128(signal);
+	r &= ~_mm_cvtsi64_si128(1);
+	r ^= _mm_cvtsi64_si128(signal);
 }
 
 inline Key Key::doubling(int i) const

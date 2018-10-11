@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Processor.h
  *
@@ -26,12 +24,10 @@ template <class T> class Program;
 template <class T>
 class Processor : public ::ProcessorBase
 {
-    static Processor<T>* singleton;
+    ifstream input_file;
+    string input_filename;
 
 public:
-    static Processor<T>& s();
-    static int get_PC();
-
     static int check_args(const vector<int>& args, int n);
 
     Machine<T>& machine;
@@ -42,8 +38,6 @@ public:
     // rough measure for the memory usage
     size_t complexity;
 
-    ifstream input_file;
-
     Memory<T> S;
     Memory<Clear> C;
     Memory<Integer> I;
@@ -51,8 +45,11 @@ public:
     Processor(Machine<T>& machine);
     ~Processor();
 
+    void reset(const Program<T>& program, int arg);
     void reset(const Program<T>& program);
     void open_input_file(const string& name);
+
+    long long get_input(int n_bits);
 
     void bitcoms(T& x, const vector<int>& regs) { x.bitcom(S, regs); }
     void bitdecs(const vector<int>& regs, const T& x) { x.bitdec(S, regs); }
@@ -68,7 +65,9 @@ public:
     void store_clear_in_dynamic(const vector<int>& args);
 
     void xors(const vector<int>& args);
-    void andrs(const vector<int>& args);
+    void and_(const vector<int>& args, bool repeat);
+    void andrs(const vector<int>& args) { and_(args, true); }
+    void ands(const vector<int>& args) { and_(args, false); }
 
     void input(const vector<int>& args);
 
@@ -80,12 +79,16 @@ public:
 };
 
 template <class T>
-int Processor<T>::get_PC()
+inline int GC::Processor<T>::check_args(const vector<int>& args, int n)
 {
-	if (singleton)
-		return singleton->PC;
-	else
-		return -1;
+    if (args.size() % n != 0)
+        throw runtime_error("invalid number of arguments");
+    int total = 0;
+    for (size_t i = 0; i < args.size(); i += n)
+    {
+        total += args[i];
+    }
+    return total;
 }
 
 } /* namespace GC */

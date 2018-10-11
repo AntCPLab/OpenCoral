@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #ifndef _Zp_Data
 #define _Zp_Data
 
@@ -12,6 +10,7 @@
  */
 
 #include "Math/bigint.h"
+#include "Math/mpn_fixed.h"
 #include "Tools/random.h"
 
 #include <smmintrin.h>
@@ -36,7 +35,10 @@ class Zp_Data
   mp_limb_t   prA[MAX_MOD_SZ+1];
   int         t;           // More Montgomery data
 
+  template <int T>
+  void Mont_Mult_(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const;
   void Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const;
+  void Mont_Mult_variable(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const;
 
   public:
 
@@ -52,7 +54,7 @@ class Zp_Data
   void unpack(octetStream& o);
 
   // This one does nothing, needed so as to make vectors of Zp_Data
-  Zp_Data() : montgomery(0), pi(0), mask(0) { t=1; }
+  Zp_Data() : montgomery(0), pi(0), mask(0) { t=MAX_MOD_SZ; }
 
   // The main init funciton
   Zp_Data(const bigint& p,bool mont=true)
@@ -68,6 +70,8 @@ class Zp_Data
   template <int T>
   void Add(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const;
   void Add(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const;
+  template <int T>
+  void Sub(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const;
   void Sub(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const;
 
   __m128i get_random128(PRNG& G);
@@ -110,6 +114,20 @@ inline void Zp_Data::Add<0>(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y
 }
 
 template<>
+inline void Zp_Data::Add<1>(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const
+{
+#ifdef __clang__
+  Add<0>(ans, x, y);
+#else
+  *ans = *x + *y;
+  asm goto ("jc %l[sub]" :::: sub);
+  if (*ans >= *prA)
+ sub:
+      *ans -= *prA;
+#endif
+}
+
+template<>
 inline void Zp_Data::Add<2>(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const
 {
 #ifdef __clang__
@@ -130,17 +148,90 @@ inline void Zp_Data::Add<2>(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y
 
 inline void Zp_Data::Add(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const
 {
-  if (t == 2)
+  switch (t)
+  {
+  case 2:
     return Add<2>(ans, x, y);
-  else
+  case 1:
+    return Add<1>(ans, x, y);
+  default:
     return Add<0>(ans, x, y);
+  }
 }
 
+template <int T>
 inline void Zp_Data::Sub(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const
+{
+  mp_limb_t tmp[T];
+  mp_limb_t borrow = mpn_sub_fixed_n_borrow<T>(tmp, x, y);
+  if (borrow != 0)
+    mpn_add_fixed_n<T>(ans, tmp, prA);
+  else
+    inline_mpn_copyi(ans, tmp, T);
+}
+
+template <>
+inline void Zp_Data::Sub<0>(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const
 {
   mp_limb_t borrow = mpn_sub_n(ans,x,y,t);
   if (borrow!=0)
     mpn_add_n(ans,ans,prA,t);
+}
+
+inline void Zp_Data::Sub(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const
+{
+  switch (t)
+  {
+  case 2:
+    Sub<2>(ans, x, y);
+    break;
+  case 1:
+    Sub<1>(ans, x, y);
+    break;
+  default:
+    Sub<0>(ans, x, y);
+    break;
+  }
+}
+
+template <int T>
+inline void Zp_Data::Mont_Mult_(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const
+{
+  mp_limb_t ans[2*MAX_MOD_SZ+1],u;
+  inline_mpn_zero(ans + T + 1, T);
+  // First loop
+  u=x[0]*y[0]*pi;
+  mpn_mul_1_fixed<T + 1, T>(ans,y,x[0]);
+  mpn_addmul_1_fixed_<T + 2, T + 1>(ans,prA,u);
+  for (int i=1; i<T; i++)
+    { // u=(ans0+xi*y0)*pd
+      u=(ans[i]+x[i]*y[0])*pi;
+      // ans=ans+xi*y+u*pr
+      mpn_addmul_1_fixed_<T + 1, T>(ans+i,y,x[i]);
+      mpn_addmul_1_fixed_<T + 2, T + 1>(ans+i,prA,u);
+    }
+  // if (ans>=pr) { ans=z-pr; }
+  // else         { z=ans;    }
+  if (mpn_cmp(ans+T,prA,T+1)>=0)
+     { mpn_sub_fixed_n<T>(z,ans+T,prA); }
+  else
+     { inline_mpn_copyi(z,ans+T,T); }
+}
+
+inline void Zp_Data::Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const
+{
+  switch (t)
+  {
+  case 2:
+    Mont_Mult_<2>(z, x, y);
+    break;
+  case 1:
+    Mont_Mult_<1>(z, x, y);
+    break;
+  default:
+    Mont_Mult_variable(z, x, y);
+    break;
+  }
 }
 
 #endif

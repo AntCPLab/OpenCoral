@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 from Compiler.program import Tape
 from Compiler.exceptions import *
 from Compiler.instructions import *
@@ -154,6 +152,9 @@ class _int(object):
         prod = self * (a - b)
         return a - prod, b + prod
 
+    def bit_xor(self, other):
+        return self + other - 2 * self * other
+
 class _gf2n(object):
     def if_else(self, a, b):
         return b ^ self * self.hard_conv(a ^ b)
@@ -165,6 +166,9 @@ class _gf2n(object):
             return res
         else:
             return tuple(t.conv(r) for r in res)
+
+    def bit_xor(self, other):
+        return self ^ other
 
 class _register(Tape.Register, _number):
     MemValue = staticmethod(lambda value: MemValue(value))
@@ -793,8 +797,12 @@ class regint(_register, _int):
     def mod2m(self, *args, **kwargs):
         return cint(self).mod2m(*args, **kwargs)
 
+    @vectorize
     def bit_decompose(self, bit_length=None):
-        res = [regint() for i in range(bit_length or program.bit_length)]
+        bit_length = bit_length or program.bit_length
+        if bit_length > 64:
+            raise CompilerError('too many bits demanded')
+        res = [regint() for i in range(bit_length)]
         bitdecint(self, *res)
         return res
 
@@ -1057,7 +1065,8 @@ class sint(_secret, _int):
     @vectorize
     def __lt__(self, other, bit_length=None, security=None):
         res = sint()
-        comparison.LTZ(res, self - other, bit_length or program.bit_length + 1,
+        comparison.LTZ(res, self - other, bit_length or program.bit_length +
+                       (not (int(program.options.ring) == program.bit_length)),
                        security or program.security)
         return res
 
@@ -1065,7 +1074,8 @@ class sint(_secret, _int):
     @vectorize
     def __gt__(self, other, bit_length=None, security=None):
         res = sint()
-        comparison.LTZ(res, other - self, bit_length or program.bit_length + 1,
+        comparison.LTZ(res, other - self, bit_length or program.bit_length +
+                       (not (int(program.options.ring) == program.bit_length)),
                        security or program.security)
         return res
 
@@ -1109,10 +1119,7 @@ class sint(_secret, _int):
             if m >= bit_length:
                 return self
             res = sint()
-            if m == 1:
-                comparison.Mod2(res, self, bit_length, security, signed)
-            else:
-                comparison.Mod2m(res, self, bit_length, m, security, signed)
+            comparison.Mod2m(res, self, bit_length, m, security, signed)
         else:
             res, pow2 = floatingpoint.Trunc(self, bit_length, m, security, True)
         return res
@@ -1302,13 +1309,17 @@ class _bitint(object):
         a, b = list(a), list(b)
         a += [0] * (len(b) - len(a))
         b += [0] * (len(a) - len(b))
+        return cls.bit_adder_selection(a, b)
+
+    @classmethod
+    def bit_adder_selection(cls, a, b):
         if cls.log_rounds:
             return cls.carry_lookahead_adder(a, b)
         else:
             return cls.carry_select_adder(a, b)
 
-    @staticmethod
-    def carry_lookahead_adder(a, b):
+    @classmethod
+    def carry_lookahead_adder(cls, a, b, fewer_inv=False):
         lower = []
         for (ai,bi) in zip(a,b):
             if ai is 0 or bi is 0:
@@ -1317,22 +1328,32 @@ class _bitint(object):
                 b.pop(0)
             else:
                 break
-        d = [(ai + bi, ai * bi) for (ai,bi) in zip(a,b)]
-        carry = lambda y,x,*args: \
-            (x[0] * y[0], 1 - (1 - x[1]) * (1 - x[0] * y[1]))
+        d = [cls.half_adder(ai, bi) for (ai,bi) in zip(a,b)]
+        carry = floatingpoint.carry
+        if fewer_inv:
+            pre_op = floatingpoint.PreOpL2
+        else:
+            pre_op = floatingpoint.PreOpL
         if d:
-            carries = (0,) + zip(*floatingpoint.PreOpL(carry, d))[1]
+            carries = (0,) + zip(*pre_op(carry, d))[1]
         else:
             carries = []
-        return lower + [ai + bi + carry for (ai,bi,carry) in zip(a,b,carries)]
+        return lower + cls.sum_from_carries(a, b, carries)
+
+    @staticmethod
+    def sum_from_carries(a, b, carries):
+        return [ai.bit_xor(bi).bit_xor(carry) \
+                for (ai, bi, carry) in zip(a, b, carries)]
 
     @classmethod
-    def carry_select_adder(cls, a, b):
+    def carry_select_adder(cls, a, b, get_carry=False):
+        a += [0] * (len(b) - len(a))
+        b += [0] * (len(a) - len(b))
         n = len(a)
         for m in range(100):
             if sum(range(m + 1)) + 1 >= n:
                 break
-        for k in range(m, 0, -1):
+        for k in range(m, -1, -1):
             if sum(range(m, k - 1, -1)) + 1 >= n:
                 break
         blocks = range(m, k, -1)
@@ -1346,15 +1367,18 @@ class _bitint(object):
                             (sum(blocks), n))
         res = []
         carry = 0
+        cin_one = util.long_one(a + b)
         for m in blocks:
             aa = a[:m]
             bb = b[:m]
             a = a[m:]
             b = b[m:]
-            cc = [cls.ripple_carry_adder(aa, bb, i) for i in (0,1)]
+            cc = [cls.ripple_carry_adder(aa, bb, i) for i in (0, cin_one)]
             for i in range(m):
                 res.append(util.if_else(carry, cc[1][i], cc[0][i]))
             carry = util.if_else(carry, cc[1][m], cc[0][m])
+        if get_carry:
+            res += [carry]
         return res
 
     @classmethod
@@ -1373,13 +1397,19 @@ class _bitint(object):
 
     @staticmethod
     def half_adder(a, b):
-        return a + b, a * b
+        return a + b, a & b
 
     @staticmethod
     def bit_comparator(a, b):
+        long_one = util.long_one(a + b)
         op = lambda y,x,*args: (util.if_else(x[1], x[0], y[0]), \
-                                    util.if_else(x[1], 1, y[1]))
+                                    util.if_else(x[1], long_one, y[1]))
         return floatingpoint.KOpL(op, [(bi, ai + bi) for (ai,bi) in zip(a,b)])        
+
+    @classmethod
+    def bit_less_than(cls, a, b):
+        x, not_equal = cls.bit_comparator(a, b)
+        return util.if_else(not_equal, x, 0)
 
     @staticmethod
     def get_highest_different_bits(a, b, index):
@@ -1426,7 +1456,11 @@ class _bitint(object):
         columns = [filter(None, (bit_matrix[j][i-j] \
                                      for j in range(min(len(bit_matrix), i + 1)))) \
                        for i in range(len(bit_matrix[0]))]
-        # Wallace tree
+        return self.compose(self.wallace_tree_from_columns(columns, False))
+
+    @classmethod
+    def wallace_tree_from_columns(cls, columns, get_carry=True):
+        self = cls
         while max(len(c) for c in columns) > 2:
             new_columns = [[] for i in range(len(columns) + 1)]
             for i,col in enumerate(columns):
@@ -1440,10 +1474,17 @@ class _bitint(object):
                     new_columns[i+1].append(carry)
                 else:
                     new_columns[i].extend(col)
-            columns = new_columns[:-1]
+            if get_carry:
+                columns = new_columns
+            else:
+                columns = new_columns[:-1]
         for col in columns:
             col.extend([0] * (2 - len(col)))
-        return self.compose(self.bit_adder(*zip(*columns)))
+        return self.bit_adder(*zip(*columns))
+
+    @classmethod
+    def wallace_tree(cls, rows):
+        return cls.wallace_tree_from_columns([list(x) for x in zip(*rows)])
 
     def __sub__(self, other):
         if type(other) == sgf2n:
@@ -1536,6 +1577,30 @@ class _bitint(object):
     greater_equal = lambda self, other, *args, **kwargs: self >= other
     equal = lambda self, other, *args, **kwargs: self == other
     not_equal = lambda self, other, *args, **kwargs: self != other
+
+class intbitint(_bitint, sint):
+    @staticmethod
+    def full_adder(a, b, carry):
+        s = a.bit_xor(b)
+        return s.bit_xor(carry), util.if_else(s, carry, a)
+
+    @staticmethod
+    def half_adder(a, b):
+        carry = a * b
+        return a + b - 2 * carry, carry
+
+    @staticmethod
+    def sum_from_carries(a, b, carries):
+        return [a[i] + b[i] + carries[i] - 2 * carries[i + 1] \
+                for i in range(len(a))]
+
+    @classmethod
+    def bit_adder_selection(cls, a, b):
+        # experimental cut-off with dead code elimination
+        if len(a) < 122 or cls.log_rounds:
+            return cls.carry_lookahead_adder(a, b)
+        else:
+            return cls.carry_select_adder(a, b)
 
 class sgf2nint(_bitint, sgf2n):
     bin_type = sgf2n
@@ -2235,11 +2300,19 @@ class sfloat(_number):
             #v3 = 2 * (vmax - s3) + 1
             v3 = vmax
             v4 = vmax * pow_delta + (1 - 2 * s3) * vmin
-            v = (d * v3 + (1 - d) * v4) * two_power(self.vlen + sfloat.round_nearest) \
-                * floatingpoint.Inv(pow_delta)
-            comparison.Trunc(t, v, 2 * self.vlen + 1 + sfloat.round_nearest,
-                             self.vlen - 1, self.kappa, False)
-            v = t
+            to_trunc = (d * v3 + (1 - d) * v4)
+            if program.options.ring:
+                to_trunc <<= 1 + sfloat.round_nearest
+                v = floatingpoint.TruncInRing(to_trunc,
+                                              2 * (self.vlen + 1 +
+                                                   sfloat.round_nearest),
+                                              pow_delta)
+            else:
+                to_trunc *= two_power(self.vlen + sfloat.round_nearest)
+                v = to_trunc * floatingpoint.Inv(pow_delta)
+                comparison.Trunc(t, v, 2 * self.vlen + 1 + sfloat.round_nearest,
+                                 self.vlen - 1, self.kappa, False)
+                v = t
             u = floatingpoint.BitDec(v, self.vlen + 2 + sfloat.round_nearest,
                                      self.vlen + 2 + sfloat.round_nearest, self.kappa,
                                      range(1 + sfloat.round_nearest,
@@ -2385,6 +2458,15 @@ _types = {
 
 
 class Array(object):
+    @classmethod
+    def create_from(cls, l):
+        if isinstance(l, cls):
+            return l
+        tmp = list(l)
+        res = cls(len(tmp), type(tmp[0]))
+        res.assign(tmp)
+        return res
+
     def __init__(self, length, value_type, address=None):
         if value_type in _types:
             value_type = _types[value_type]
@@ -2431,6 +2513,7 @@ class Array(object):
     def __setitem__(self, index, value):
         if isinstance(index, slice):
             start, stop, step = self.get_slice(index)
+            value = Array.create_from(value)
             source_index = MemValue(0)
             @library.for_range(start, stop, step)
             def f(i):
@@ -2438,6 +2521,15 @@ class Array(object):
                 source_index.iadd(1)
             return
         self._store(value, self.get_address(index))
+
+    # the following two are useful for compile-time lengths
+    # and thus differ from the usual Python syntax
+    def get_range(self, start, size):
+        return [self[start + i] for i in range(size)]
+
+    def set_range(self, start, values):
+        for i, value in enumerate(values):
+            self[start + i] = value
 
     def _load(self, address):
         return self.value_type.load_mem(address)
@@ -2478,6 +2570,20 @@ class Array(object):
     def get_mem_value(self, index):
         return MemValue(self[index], self.get_address(index))
 
+    def __add__(self, other):
+        assert len(self) == len(other)
+        return Array.create_from(x + y for x, y in zip(self, other))
+
+    def __sub__(self, other):
+        assert len(self) == len(other)
+        return Array.create_from(x - y for x, y in zip(self, other))
+
+    def __mul__(self, value):
+        return Array.create_from(x * value for x in self)
+
+    def reveal(self):
+        return Array.create_from(x.reveal() for x in self)
+
 sint.dynamic_array = Array
 sgf2n.dynamic_array = Array
 
@@ -2490,16 +2596,17 @@ class SubMultiArray(object):
         self.sub_cache = {}
 
     def __getitem__(self, index):
-        if index not in self.sub_cache:
+        key = program.curr_block, index
+        if key not in self.sub_cache:
             if len(self.sizes) == 2:
-                self.sub_cache[index] = \
+                self.sub_cache[key] = \
                         Array(self.sizes[1], self.value_type, \
                               self.address + index * self.sizes[1])
             else:
-                self.sub_cache[index] = \
+                self.sub_cache[key] = \
                         SubMultiArray(self.sizes[1:], self.value_type, \
                                       self.address, index)
-        return self.sub_cache[index]
+        return self.sub_cache[key]
 
     def assign_all(self, value):
         @library.for_range(self.sizes[0])
@@ -2518,6 +2625,16 @@ class MultiArray(SubMultiArray):
 class Matrix(MultiArray):
     def __init__(self, rows, columns, value_type):
         MultiArray.__init__(self, [rows, columns], value_type)
+
+    def __mul__(self, other):
+        assert isinstance(other, Array)
+        assert len(other) == self.sizes[1]
+        res = [None] * self.sizes[0]
+        for i in range(self.sizes[0]):
+            res[i] = sum(x * y for x, y in zip(self[i], other))
+        res_array = Array(self.sizes[0], type(res[0]))
+        res_array.assign(res)
+        return res_array
 
 class VectorArray(object):
     def __init__(self, length, value_type, vector_size, address=None):

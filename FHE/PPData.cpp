@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #include "Math/Subroutines.h"
 #include "FHE/PPData.h"
 #include "FHE/FFT.h"

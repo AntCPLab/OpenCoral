@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 while getopts t: opt; do
     case $opt in
 	t) threshold=$OPTARG ;;

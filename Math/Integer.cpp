@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Integer.cpp
  *
@@ -7,7 +5,7 @@
 
 #include "Integer.h"
 
-void Integer::output(ostream& s,bool human) const
+void IntBase::output(ostream& s,bool human) const
 {
   if (human)
     s << a;
@@ -15,10 +13,21 @@ void Integer::output(ostream& s,bool human) const
     s.write((char*)&a, sizeof(a));
 }
 
-void Integer::input(istream& s,bool human)
+void IntBase::input(istream& s,bool human)
 {
   if (human)
     s >> a;
   else
     s.read((char*)&a, sizeof(a));
+}
+
+void to_signed_bigint(bigint& res, const Integer& x, int n)
+{
+  res = abs(x.get());
+  bigint& tmp = bigint::tmp = 1;
+  tmp <<= n;
+  tmp -= 1;
+  res &= tmp;
+  if (x < 0)
+    res.negate();
 }

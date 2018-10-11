@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Buffer.h
  *
@@ -14,6 +12,7 @@ using namespace std;
 #include "Math/Share.h"
 #include "Math/field_types.h"
 #include "Tools/time-func.h"
+#include "config.h"
 
 #ifndef BUFFER_SIZE
 #define BUFFER_SIZE 101
@@ -66,12 +65,12 @@ template < template<class T> class U, template<class T> class V >
 class BufferHelper
 {
 public:
-    Buffer< U<gfp>, V<gfp> > bufferp;
+    Buffer< U<sint::value_type>, V<sint::value_type> > bufferp;
     Buffer< U<gf2n>, V<gf2n> > buffer2;
     ifstream* files[N_DATA_FIELD_TYPE];
 
     BufferHelper() { memset(files, 0, sizeof(files)); }
-    void input(V<gfp>& a) { bufferp.input(a); }
+    void input(V<sint::value_type>& a) { bufferp.input(a); }
     void input(V<gf2n>& a) { buffer2.input(a); }
     BufferBase& get_buffer(DataFieldType field_type);
     void setup(DataFieldType field_type, string filename, int tuple_length, const char* data_type = 0);

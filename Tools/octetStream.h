@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #ifndef _octetStream
 #define _octetStream
 
@@ -48,6 +46,7 @@ class octetStream
 
   void resize(size_t l);
   void resize_precise(size_t l);
+  void resize_min(size_t l);
   void clear();
 
   void assign(const octetStream& os);
@@ -185,6 +184,12 @@ inline void octetStream::resize_precise(size_t l)
   mxlen=l;
 }
 
+inline void octetStream::resize_min(size_t l)
+{
+  if (l > mxlen)
+    resize_precise(l);
+}
+
 
 inline void octetStream::append(const octet* x, const size_t l)
 {
@@ -206,6 +211,20 @@ inline void octetStream::consume(octet* x,const size_t l)
   ptr+=l;
 }
 
+inline void octetStream::store_int(size_t l, int n_bytes)
+{
+  resize(len+n_bytes);
+  encode_length(data+len,l,n_bytes);
+  len+=n_bytes;
+}
+
+inline size_t octetStream::get_int(int n_bytes)
+{
+  size_t res=decode_length(data+ptr,n_bytes);
+  ptr+=n_bytes;
+  return res;
+}
+
 
 inline void octetStream::Send(int socket_num) const
 {
@@ -219,7 +238,7 @@ inline void octetStream::Receive(int socket_num)
   size_t nlen=0;
   receive(socket_num,nlen,LENGTH_SIZE);
   len=0;
-  resize_precise(nlen);
+  resize_min(nlen);
   len=nlen;
 
   receive(socket_num,data,len);

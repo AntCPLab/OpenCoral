@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #include "Processor/Memory.h"
 #include "Processor/Instruction.h"
 #include "Math/gf2n.h"
@@ -112,8 +110,8 @@ template<class T>
 void Load_Memory(Memory<T>& M,ifstream& inpf)
 {
   int a;
-  T val;
-  Share<T> S;
+  typename T::clear val;
+  T S;
 
   inpf >> a;
   M.resize_s(a);
@@ -142,25 +140,18 @@ void Load_Memory(Memory<T>& M,ifstream& inpf)
     }
 }
 
-template class Memory<gfp>;
-template class Memory<gf2n>;
+template class Memory<sint>;
+template class Memory<sgf2n>;
 template class Memory<Integer>;
 
-template istream& operator>>(istream& s,Memory<gfp>& M);
-template istream& operator>>(istream& s,Memory<gf2n>& M);
+template istream& operator>>(istream& s,Memory<sint>& M);
+template istream& operator>>(istream& s,Memory<sgf2n>& M);
 template istream& operator>>(istream& s,Memory<Integer>& M);
 
-template ostream& operator<<(ostream& s,const Memory<gfp>& M);
-template ostream& operator<<(ostream& s,const Memory<gf2n>& M);
+template ostream& operator<<(ostream& s,const Memory<sint>& M);
+template ostream& operator<<(ostream& s,const Memory<sgf2n>& M);
 template ostream& operator<<(ostream& s,const Memory<Integer>& M);
 
-template void Load_Memory(Memory<gfp>& M,ifstream& inpf);
-template void Load_Memory(Memory<gf2n>& M,ifstream& inpf);
+template void Load_Memory(Memory<sint>& M,ifstream& inpf);
+template void Load_Memory(Memory<sgf2n>& M,ifstream& inpf);
 template void Load_Memory(Memory<Integer>& M,ifstream& inpf);
-
-#ifdef USE_GF2N_LONG
-template class Memory<gf2n_short>;
-template istream& operator>>(istream& s,Memory<gf2n_short>& M);
-template ostream& operator<<(ostream& s,const Memory<gf2n_short>& M);
-template void Load_Memory(Memory<gf2n_short>& M,ifstream& inpf);
-#endif

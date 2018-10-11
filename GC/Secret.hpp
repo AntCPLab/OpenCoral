@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * EvalSecret.cpp
  *
@@ -18,31 +16,10 @@
 namespace GC
 {
 
-template <class T>
-int Secret<T>::default_length = 128;
-
-template <class T>
-typename T::out_type Secret<T>::out = T::out;
-
-void AuthValue::assign(const word& value, const int128& mac_key, bool not_first_player)
-{
-    if (not_first_player)
-        share = 0;
-    else
-        share = value;
-    mac = _mm_clmulepi64_si128(_mm_cvtsi64_si128(mac_key.get_lower()), _mm_cvtsi64_si128(value), 0);
-}
-
-ostream& operator<<(ostream& o, const AuthValue& auth_value)
-{
-	o << hex << auth_value.share << " " << auth_value.mac;
-	return o;
-}
-
 template<class T>
 Secret<T> Secret<T>::input(party_id_t from, ifstream& input_file, int n_bits)
 {
-    long long int in;
+    long long int in = 0;
     if (from == CommonParty::s().get_id())
     {
         input_file >> in;
@@ -394,6 +371,20 @@ void Secret<T>::bitdec(Memory<Secret>& S, const vector<int>& regs) const
     }
 }
 
+template<class T>
+void Secret<T>::trans(Processor<Secret<T> >& processor, int n_outputs,
+        const vector<int>& args)
+{
+    int n_inputs = args.size() - n_outputs;
+    for (int i = 0; i < n_outputs; i++)
+    {
+        processor.S[args[i]].resize_regs(n_inputs);
+        for (int j = 0; j < n_inputs; j++)
+            processor.S[args[i]].registers[j] =
+                    processor.S[args[n_outputs + j]].registers[i];
+    }
+}
+
 template <class T>
 template <class U>
 void Secret<T>::reveal(U& x)
@@ -430,25 +421,5 @@ void Secret<T>::reveal(U& x)
     cout << endl;
 #endif
 }
-
-template <class T>
-MAYBE_INLINE void Secret<T>::resize_regs(int n)
-{
-    registers.resize(n, T::new_reg());
-}
-
-template class Secret<EvalRegister>;
-template class Secret<PRFRegister>;
-template class Secret<GarbleRegister>;
-template class Secret<RandomRegister>;
-template class Secret<YaoGarbleWire>;
-template class Secret<YaoEvalWire>;
-
-template void Secret<EvalRegister>::reveal(Clear& x);
-template void Secret<PRFRegister>::reveal(Clear& x);
-template void Secret<GarbleRegister>::reveal(Clear& x);
-template void Secret<RandomRegister>::reveal(Clear& x);
-template void Secret<YaoGarbleWire>::reveal(Clear& x);
-template void Secret<YaoEvalWire>::reveal(Clear& x);
 
 } /* namespace GC */

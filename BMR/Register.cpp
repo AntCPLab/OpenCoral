@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Register.cpp
  *
@@ -554,9 +552,7 @@ public:
 			party.load_wire(reg);
 		if (from == party.get_id())
 		{
-			long long in;
-			processor.input_file >> in;
-			EvalRegister::check_input(in, n_bits);
+			long long in = processor.get_input(n_bits);
 			for (size_t i = 0; i < n_bits; i++)
 			{
 				auto& reg = dest.get_reg(i);
@@ -945,7 +941,7 @@ void EvalRegister::store(GC::Memory<GC::SpdzShare>& mem,
 			Share<gf2n> tmp;
 			gf2n ext = (int)reg.get_external();
 			//cout << "ext:" << ext << "/" << (int)reg.get_external() << " " << endl;
-			tmp.add(spdz_wire.mask, ext, party.get_id() == 1, party.get_mac_key());
+			tmp.add(spdz_wire.mask, ext, party.get_id() - 1, party.get_mac_key());
 			S.push_back(tmp);
 			tmp *= gf2n(1) << i;
 			dest += tmp;

@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Program.h
  *
@@ -46,7 +44,8 @@ class Program
     Program();
 
     // Read in a program
-    void parse(const string& bytecoode_name);
+    void parse_file(const string& filename);
+    void parse(const string& programe);
     void parse(istream& s);
 
     int get_offline_data_used() const { return offline_data_used; }

@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #ifndef TOOLS_MKPATH_H_
 #define TOOLS_MKPATH_H_
 

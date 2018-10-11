@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 import compilerLib, program, instructions, types, library, floatingpoint
 import GC.types
 import inspect

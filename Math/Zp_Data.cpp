@@ -1,7 +1,6 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #include "Zp_Data.h"
+#include "mpn_fixed.h"
 
 
 void Zp_Data::init(const bigint& p,bool mont)
@@ -69,7 +68,7 @@ __m128i Zp_Data::get_random128(PRNG& G)
 
 #include <stdlib.h>
 
-void Zp_Data::Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const
+void Zp_Data::Mont_Mult_variable(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const
 {
   mp_limb_t ans[2*MAX_MOD_SZ+1],u;
   // First loop

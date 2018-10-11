@@ -1,5 +1,13 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
 
+gdb_screen()
+{
+    prog=$1
+    shift
+    IFS=
+    name=${*/-/}
+    IFS=' '
+    screen -S :$name -d -m bash -l -c "echo $*; echo $LIBRARY_PATH; gdb $prog -ex \"run $*\""
+}
 
 run_player() {
     port=$((RANDOM%10000+10000))
@@ -22,14 +30,15 @@ run_player() {
     for i in $(seq 0 $rem); do
       echo "trying with player $i"
       >&2 echo Running $prefix $SPDZROOT/$bin $i $params
-      $prefix $SPDZROOT/$bin $i $params 2>&1 | tee $SPDZROOT/logs/$i &
+      log=$SPDZROOT/logs/$i
+      $prefix $SPDZROOT/$bin $i $params 2>&1 |
+	  { if test $i = 0; then tee $log; else cat > $log; fi; } &
     done
     last_player=$(($players - 1))
     >&2 echo Running $prefix $SPDZROOT/$bin $last_player $params
     $prefix $SPDZROOT/$bin $last_player $params > $SPDZROOT/logs/$last_player 2>&1 || return 1
 }
 
-killall Player-Online.x Server.x
 sleep 0.5
 
 #mkdir /dev/shm/Player-Data

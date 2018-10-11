@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 ROOT = .
 
 OPTIM= -O3
@@ -10,16 +8,15 @@ OPTIM= -O3
 # set this to your preferred local storage directory
 PREP_DIR = '-DPREP_DIR="Player-Data/"'
 
-# set for 128-bit GF(2^n) and/or OT preprocessing
-USE_GF2N_LONG = 0
+# set for SHE preprocessing (SPDZ and Overdrive)
+USE_NTL = 0
+
+# set for using GF(2^128) online phase, OT, BMR, or Yao's garbled circuits
+USE_GF2N_LONG = 1
 
 # set to -march=<architecture> for optimization
 # AVX2 support (Haswell or later) changes the bit matrix transpose
 ARCH = -mtune=native -mavx
-
-# defaults for BMR, change number of parties here
-CFLAGS = -DN_PARTIES=2 -DFREE_XOR -DKEY_SIGNAL -DSPDZ_AUTH -DNO_INPUT -DMAX_INLINE
-USE_GF2N_LONG = 1
 
 #use CONFIG.mine to overwrite DIR settings
 -include CONFIG.mine
@@ -46,7 +43,8 @@ endif
 BOOST = -lboost_system -lboost_thread $(MY_BOOST)
 
 CXX = g++
-CFLAGS += $(ARCH) $(MY_CFLAGS) -g -Wextra -Wall $(OPTIM) -I$(ROOT) -pthread $(PROF) $(DEBUG) $(MOD) $(MEMPROTECT) $(GF2N_LONG) $(PREP_DIR) -maes -mpclmul -msse4.1 -mavx2 --std=c++11 -Werror
+CXX = g++ -no-pie
+CFLAGS += $(ARCH) $(MY_CFLAGS) -g -Wextra -Wall $(OPTIM) -I$(ROOT) -pthread $(PROF) $(DEBUG) $(MOD) $(MEMPROTECT) $(GF2N_LONG) $(PREP_DIR) -maes -mpclmul -msse4.1 -mavx -mavx2 -mbmi2 --std=c++11 -Werror
 CPPFLAGS = $(CFLAGS)
-LD = g++
+LD = g++ -no-pie
 

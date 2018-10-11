@@ -8,8 +8,6 @@ done
 
 shift $[OPTIND-1]
 
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 gdb_screen()
 {
     prog=$1

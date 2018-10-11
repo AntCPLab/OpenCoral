@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #include "Processor/Machine.h"
 #include "Math/Setup.h"
 #include "Tools/ezOptionParser.h"

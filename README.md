@@ -1,39 +1,137 @@
-(C) 2018 University of Bristol. See License.txt
+# Multi-Protocol SPDZ
 
-Software for the SPDZ, MASCOT, and Overdrive secure multi-party computation protocols.
-See `Programs/Source/` for some example MPC programs, and `tutorial.md` for
-a basic tutorial.
+Software to benchmark various secure multi-party computation (MPC)
+protocols such as SPDZ, MASCOT, Overdrive, BMR garbled circuits
+(evaluation only), Yao's garbled circuits, and computation based on
+semi-honest 3-party replicated secret sharing.
 
-The background information on the following page about a fork largely applies to this software as well: https://homes.esat.kuleuven.be/~nsmart/SCALE
+#### Preface
 
-#### Preface:
+The primary aim of this software is to benchmark the same computation
+in various protocols in order to compare the performance. In order to
+do, it uses functionality that is not secure. Many MPC protocols
+involve several phases that have to be executed in a secure manner for
+the whole protocol to be sure. However, for benchmarking it does not
+make a difference whether a previous phase was executed securely or
+whether its output were generated insecurely. The focus on this
+software is to benchmark each phases individually rather than running
+the whole sequence of phases at once.
 
-If you are mainly looking to run complete secure computation modulo a prime, [SCALE-MAMBA](https://github.com/KULeuven-COSIC/SCALE-MAMBA), which is a fork of this software, might be a better fit for you. The software in this repository is better suited to run the online phase (including for $GF(2^n)$) and various offline phases individually.
+Furthermore, the replicated secret sharing implementation currently
+uses unencrypted communication which reveals all information to an
+adversary wiretapping all connections.
 
-The software contains some functionality for benchmarking that breaks security. This is deactivated by default. See the compilation section on how to activate it if needed.
+In order to make it clear where insecure functionality is used, it is
+disabled by default but can be activated as explained in the section
+on compilation. Many parts of the software will not work without doing so.
 
-In particular, the online phase will discard preprocessed data and crash when it runs out if not in benchmarking mode. In benchmarking mode, it will reuse preprocessed data.
+#### History
 
-#### Requirements:
- - GCC (tested with 7.2) or LLVM (tested with 3.8)
+The software started out as an implementation of [the improved SPDZ
+protocol](https://eprint.iacr.org/2012/642). The name SPDZ is derived
+from the authors of the [original
+protocol](https://eprint.iacr.org/2011/535).
+
+This repository combines the functionality previously published in the
+following repositories:
+ - https://github.com/bristolcrypto/SPDZ-2
+ - https://github.com/mkskeller/SPDZ-BMR-ORAM
+ - https://github.com/mkskeller/SPDZ-Yao
+
+#### Alternatives
+
+There is another fork of SPDZ-2 called
+[SCALE-MAMBA](https://github.com/KULeuven-COSIC/SCALE-MAMBA). It
+focuses on providing an integrated system for computations modulo a
+large prime, using the SPDZ protocol (based on lattic-based
+homomorphic encryption) for a dishonest majority or using secret
+sharing for an honest majority. More information can be found here:
+https://homes.esat.kuleuven.be/~nsmart/SCALE
+
+#### Overview
+
+For the actual computation, the software implements a virtual machine
+that executes programs in a specific bytecode. Such code can be
+generated from high-level Python code using a compiler that optimizes
+the computation with a particular focus on minimizing the number of
+communication rounds (for protocol based on secret sharing) or on
+AES-NI pipelining (for garbled circuits).
+
+The software implements uses two different bytecode sets, one for
+arithmetic circuits and one for boolean circuits. The high-level code
+slightly differs between the two variants, but we aim to keep these
+differences a at minimum.
+
+The SPDZ protocol uses preprocessing, that is, in a first (sometimes
+called offline) phase correlated randomness is generated independent
+of the actual inputs of the computation. Only the second ("online")
+phase combines this randomness with the actual inputs in order to
+produce the desired results. The preprocessed data can only be used
+once, thus more computation requires more preprocessing. MASCOT and
+Overdrive are the names for two alternative preprocessing phases to go
+with the SPDZ online phase.
+
+In the section on computation we will explain how to run the SPDZ
+online phase and semi-honest 3-party replicated secret sharing as well
+as BMR and Yao's garbled circuits.
+
+The section on offline phases will then explain how to benchmark the
+offline phases required for the SPDZ protocol. Running the online
+phase outputs the amount of offline material required, which allows to
+compute the preprocessing time for a particulor computation.
+
+#### Requirements
+ - GCC (tested with 7.3) or LLVM (tested with 6.0; remove `-no-pie` from `CONFIG`)
  - MPIR library, compiled with C++ support (use flag --enable-cxx when running configure)
- - libsodium library, tested against 1.0.11
- - CPU supporting AES-NI and PCLMUL
- - Python 2.x, ideally with `gmpy` package (for testing)
- - NTL library for the SPDZ-2 and Overdrive offline phases (optional; tested with NTL 9.10)
- - If using macOS, Sierra or later
+ - libsodium library, tested against 1.0.16
+ - CPU supporting AES-NI, PCLMUL, AVX2
+ - Python 2.x
+ - NTL library for the SPDZ-2 and Overdrive offline phases (optional; tested with NTL 10.5)
+ - If using macOS, Sierra or later (see comment about LLVM)
 
-#### To compile SPDZ:
+#### Compilation
 
 1) Edit `CONFIG` or `CONFIG.mine` to your needs:
 
- - To benchmark the online phase while skipping the secure offline phase, or to benchmark any of the Overdrive offline phases, add the following line at the top: `MY_CFLAGS = -DINSECURE`
+ - To benchmark anything other than Yao's garbled circuits, add the following line at the top: `MY_CFLAGS = -DINSECURE`
+ - To use replicated secret sharing modulo 2^64 instead of SPDZ modulo a large prime, add `MY_CFLAGS = -DREPLICATED` (or add `#define REPLICATED` to `Processor/config.h`).
  - `PREP_DIR` should point to should be a local, unversioned directory to store preprocessing data (default is `Player-Data` in the current directory).
  - For the SPDZ-2 and Overdrive offline phases, set `USE_NTL = 1` and `MOD = -DMAX_MOD_SZ=6`.
- - For the MASCOT offline phase or to use GF(2^128) in the online phase, set `USE_GF2N_LONG = 1`.
- - For processors without AVX (e.g., Intel Atom) or for optimization, set `ARCH = -march=<architecture>`.
+ - To use GF(2^40) in the online phase, set `USE_GF2N_LONG = 1`. This will deactive anything that requires OT.
 
-2) Run make (use the flag -j for faster compilation multiple threads). Remember to run `make clean` first after changing `CONFIG` or `CONFIG.mine`.
+2) MASCOT and Yao's garbled circuits require SimpleOT:
+```
+git submodule update --init SimpleOT
+cd SimpleOT
+make -j
+```
+
+3) Run make to compile all the software (use the flag -j for faster
+compilation multiple threads). See below on how to compile specific
+parts only. Remember to run `make clean` first after changing `CONFIG`
+or `CONFIG.mine`.
+
+# Benchmarking computation
+
+See `Programs/Source/` for some example MPC programs, in particular
+`tutorial.mpc` and `fixed_point_tutorial.mpc` for arithmetic circuits
+and `gc_tutorial.mpc` and `gc_fixed_point_tutorial.mpc` for binary
+circuits.
+
+Because the focus is on benchmarking, the facilities for private
+inputs to communication are rather rudimentary. For arithmetic
+circuits, `sint.get_raw_input_from()` reads internal representations
+from `Player-Data/Private-Input-<playerno>`, and for binary circuits
+`sbits.get_input_from()` reads numbers in ASCII from
+`Player-Data/Input-P<playerno>-<threadno>`.
+
+## Arithmetic circuits
+
+All programs required in this section can be compiled with the target `online`:
+
+`make -j 8 online`
+
+### SPDZ
 
 #### To setup for benchmarking the online phase
 
@@ -43,7 +141,7 @@ Run:
 
 `Scripts/setup-online.sh`
 
-This sets up parameters for the online phase for 2 parties with a 128-bit prime field and 40-bit binary field, and creates fake offline data (multiplication triples etc.) for these parameters.
+This sets up parameters for the online phase for 2 parties with a 128-bit prime field and 128-bit binary field, and creates fake offline data (multiplication triples etc.) for these parameters.
 
 Parameters can be customised by running
 
@@ -52,7 +150,7 @@ Parameters can be customised by running
 
 #### To compile a program
 
-To compile the program in `./Programs/Source/tutorial.mpc`, run:
+To compile for example the program in `./Programs/Source/tutorial.mpc`, run:
 
 `./compile.py tutorial`
 
@@ -60,17 +158,11 @@ This creates the bytecode and schedule files in Programs/Bytecode/ and Programs/
 
 #### To run a program
 
-To run the above program (on one machine), first run:
+To run the above program with two parties on one machine, run:
 
-`./Server.x 2 5000 &`
+`./Player-Online.x -N 2 0 tutorial`
 
-(or replace `5000` with your desired port number)
-
-Then run both parties' online phase:
-
-`./Player-Online.x -pn 5000 0 tutorial`
-
-`./Player-Online.x -pn 5000 1 tutorial` (in a separate terminal)
+`./Player-Online.x -N 2 1 tutorial` (in a separate terminal)
 
 Or, you can use a script to do the above automatically:
 
@@ -78,12 +170,15 @@ Or, you can use a script to do the above automatically:
 
 To run a program on two different machines, firstly the preprocessing data must be
 copied across to the second machine (or shared using sshfs), and secondly, Player-Online.x
-needs to be passed the machine where Server.x is running.
+needs to be passed the machine where the first party is running.
 e.g. if this machine is name `diffie` on the local network:
 
-`./Player-Online.x -pn 5000 -h diffie 0 test_all`
+`./Player-Online.x -N 2 -h diffie 0 test_all`
 
-`./Player-Online.x -pn 5000 -h diffie 1 test_all`
+`./Player-Online.x -N 2 -h diffie 1 test_all`
+
+The software uses TCP ports around 5000 by default, use the `-pn`
+argument to change that.
 
 #### Compiling and running programs from external directories
 
@@ -103,6 +198,105 @@ $ ls
 Player-Data Programs
 $ ../spdz/Scripts/run-online.sh test
 ```
+
+### Semi-honest 3-party replicated secret sharing
+
+Make sure to compile for this setting according to compilation
+section and use `make clean` if you change `CONFIG` or `CONFIG.mine`.
+
+In order to compile a program, use `./compile.py -R 64`, for example:
+
+`./compile.py -R 64 tutorial`
+
+Running the computation is similar to SPDZ but you will need to start
+three parties:
+
+`./Player-Online.x -N 3 0 tutorial`
+
+`./Player-Online.x -N 3 1 tutorial` (in a separate terminal)
+
+`./Player-Online.x -N 3 2 tutorial` (in a separate terminal)
+
+or
+
+`PLAYERS=3 Scripts/run-online.sh tutorial`
+
+## Binary circuits
+
+Compilation is the same as for SPDZ (no need to use the `-R`
+argument), but you will need to use different types instead of `sint`
+and `sfix`. See `gc_tutorial.mpc` and `gc_fixed_point_tutorial.mpc` in
+`Programs/Source`.
+
+### Semi-honest 3-party replicated secret sharing
+
+Compile the virtual machine:
+
+`make -j 8 replicated-party.x`
+
+Generate the correlated randomness:
+
+`Scripts/setup-online.sh 3`
+
+After compilating the mpc file, run as follows:
+
+`replicated-party.x -h <host of party 0> -p <0/1/2> gc_tutorial`
+
+When running locally, you can omit the host argument.
+
+### Yao's garbled circuits
+
+We use the implementation optimized for AES-NI by [Bellare et al.](https://eprint.iacr.org/2013/426)
+
+Compile the virtual machine:
+
+`make -j 8 yao`
+
+After compilating the mpc file, run as follows:
+  - Garbler: ```./yao-player.x -p 0 <program>```
+  - Evaluator: ```./yao-player.x -p 1 -h <garbler host> <program>```
+
+When running locally, you can omit the host argument.
+
+By default, the circuit is garbled at once and stored on the evaluator
+side before evaluating. You can activate a more continuous operation
+by adding `-C` to the command line on both sides.
+
+### BMR
+
+This part has been developed to benchmark ORAM for the [Eurocrypt 2018
+paper](https://eprint.iacr.org/2017/981) by Marcel Keller and Avishay
+Yanay. It only allows to benchmark the data-dependent phase. The
+data-independent and function-independent phases are emulated
+insecurely.
+
+By default, the implementations is optimized for two parties. You can
+change this by defining `N_PARTIES` accordingly in `BMR/config.h`. If
+you entirely delete the definition, it will be able to run for any
+number of parties albeit slower.
+
+Compile the virtual machine:
+
+`make -j 8 bmr`
+
+After compiling the mpc file:
+- Run everything locally: `Scripts/bmr-program-run.sh <program>
+<number of parties>`.
+- Run on different hosts: `Scripts/bmr-program-run-remote.sh <program>
+<host1> <host2> [...]`
+
+#### Oblivious RAM
+
+You can benchmark the ORAM implementation as follows:
+
+1) Edit `Program/Source/gc_oram.mpc` to change size and to choose
+Circuit ORAM or linear scan without ORAM. 
+2) Run `./compile.py -D gc_oram`. The `-D` argument instructs the
+compiler to remove dead code. This is useful for more complex programs
+such as this one.
+3) Run `gc_oram` in the virtual machines as explained above.
+
+# Benchmarking offline phases
 
 #### SPDZ-2 offline phase
 

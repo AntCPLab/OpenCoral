@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #include "Auth/MAC_Check.h"
 #include "Auth/Subroutines.h"
@@ -11,6 +9,7 @@
 
 #include "Math/gfp.h"
 #include "Math/gf2n.h"
+#include "Math/BitVec.h"
 
 #include <algorithm>
 
@@ -27,14 +26,14 @@ const char* mc_timer_names[] = {
         "waiting for select()"
 };
 
-
 template<class T>
 MAC_Check<T>::MAC_Check(const T& ai, int opening_sum, int max_broadcast, int send_player) :
     TreeSum<T>(opening_sum, max_broadcast, send_player)
 {
   popen_cnt=0;
-  alphai=ai;
-  values_opened=0;
+  this->alphai=ai;
+  vals.reserve(2 * POPEN_MAX);
+  macs.reserve(2 * POPEN_MAX);
 }
 
 template<class T>
@@ -53,7 +52,7 @@ void MAC_Check<T>::POpen_Begin(vector<T>& values,const vector<Share<T> >& S,cons
 
   this->start(values, P);
 
-  values_opened += S.size();
+  this->values_opened += S.size();
 }
 
 template<class T>
@@ -71,6 +70,13 @@ void MAC_Check<T>::POpen_End(vector<T>& values,const vector<Share<T> >& S,const 
   if (send_player==P.num_players())
     { send_player=0; }
   */
+}
+
+template<class T>
+void MAC_Check<T>::POpen(vector<T>& values,const vector<Share<T> >& S,const Player& P)
+{
+  POpen_Begin(values, S, P);
+  POpen_End(values, S, P);
 }
 
 
@@ -153,7 +159,7 @@ void MAC_Check<T>::Check(const Player& P)
     }
   vals.erase(vals.begin(), vals.begin() + popen_cnt);
   macs.erase(macs.begin(), macs.begin() + popen_cnt);
-  temp.mul(alphai,a);
+  temp.mul(this->alphai,a);
   tau[P.my_num()].sub(gami,temp);
 
   //cerr << "\tCommit and Open" << endl;
@@ -439,3 +445,6 @@ template class Direct_MAC_Check<gf2n_short>;
 template class Parallel_MAC_Check<gf2n_short>;
 template class Passing_MAC_Check<gf2n_short>;
 #endif
+
+template class MAC_Check_Base<Integer>;
+template class MAC_Check_Base<BitVec>;

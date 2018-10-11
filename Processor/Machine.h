@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Machine.h
  *
@@ -25,9 +23,22 @@ class BaseMachine
 {
 protected:
     std::map<int,Timer> timer;
+
+    ifstream inpf;
+
     void print_timers();
 
+    virtual void load_program(string threadname, string filename);
+
 public:
+    string progname;
+    int nthreads;
+
+    virtual ~BaseMachine() {}
+
+    void load_schedule(string progname);
+    void print_compiler();
+
     void time();
     void start(int n);
     void stop(int n);
@@ -49,15 +60,13 @@ class Machine : public BaseMachine
   gfp  alphapi;
   gf2n alpha2i;
 
-  int nthreads;
-
-  ifstream inpf;
-
   // Keep record of used offline data
   DataPositions pos;
 
   int tn,numt;
   bool usage_unknown;
+
+  void load_program(string threadname, string filename);
 
   public:
 
@@ -66,15 +75,14 @@ class Machine : public BaseMachine
   vector<pthread_cond_t>  server_ready;
   vector<Program>  progs;
 
-  Memory<gf2n> M2;
-  Memory<gfp> Mp;
+  Memory<sgf2n> M2;
+  Memory<sint> Mp;
   Memory<Integer> Mi;
 
   vector<Timer> join_timer;
   Timer finish_timer;
   
   string prep_dir_prefix;
-  string progname;
 
   bool direct;
   int opening_sum;

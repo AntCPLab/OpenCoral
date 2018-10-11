@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * gf2nlong.h
  *
@@ -61,6 +59,11 @@ public:
 };
 
 
+template<class T> class MAC_Check;
+template<class T> class Input;
+template<class T> class PrivateOutput;
+template<class T> class SPDZ;
+
 /* This interface compatible with the gfp interface
  * which then allows us to template the Share
  * data type.
@@ -88,6 +91,11 @@ class gf2n_long
 
   typedef gf2n_long value_type;
   typedef int128 internal_type;
+
+  typedef MAC_Check<gf2n_long> MC;
+  typedef Input<gf2n_long> Inp;
+  typedef PrivateOutput<gf2n_long> PO;
+  typedef SPDZ<gf2n_long> Protocol;
 
   void reduce(int128 xh,int128 xl)
    {

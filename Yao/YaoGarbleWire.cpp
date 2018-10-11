@@ -6,15 +6,22 @@
 #include "YaoGarbleWire.h"
 #include "YaoGate.h"
 #include "YaoGarbler.h"
+#include "GC/ArgTuples.h"
 
 void YaoGarbleWire::randomize(PRNG& prng)
 {
 	key = prng.get_doubleword();
-	mask = prng.get_bit();
 #ifdef DEBUG
-	key = YaoGarbler::s().counter << 1;
+	//key = YaoGarbler::s().counter << 1;
 #endif
+	set(key, prng.get_bit());
+}
+
+void YaoGarbleWire::set(Key key, bool mask)
+{
 	key.set_signal(0);
+	this->key = key;
+	this->mask = mask;
 }
 
 void YaoGarbleWire::random()
@@ -29,26 +36,26 @@ void YaoGarbleWire::public_input(bool value)
 	key = 0;
 }
 
-void YaoGarbleWire::andrs(GC::Processor<GC::Secret<YaoGarbleWire> >& processor,
-		const vector<int>& args)
+void YaoGarbleWire::and_(GC::Processor<GC::Secret<YaoGarbleWire> >& processor,
+		const vector<int>& args, bool repeat)
 {
 #ifdef YAO_TIMINGS
 	auto& garbler = YaoGarbler::s();
 	TimeScope ts(garbler.and_timer), ts2(garbler.and_proc_timer),
 			ts3(garbler.and_main_thread_timer);
 #endif
-	andrs_multithread(processor, args);
+	and_multithread(processor, args, repeat);
 }
 
-void YaoGarbleWire::andrs_multithread(GC::Processor<GC::Secret<YaoGarbleWire> >& processor,
-		const vector<int>& args)
+void YaoGarbleWire::and_multithread(GC::Processor<GC::Secret<YaoGarbleWire> >& processor,
+		const vector<int>& args, bool repeat)
 {
 	YaoGarbler& party = YaoGarbler::s();
 	int total = processor.check_args(args, 4);
 	if (total < party.get_threshold())
 	{
 		// run in single thread
-		andrs_singlethread(processor, args);
+		and_singlethread(processor, args, repeat);
 		return;
 	}
 
@@ -57,7 +64,7 @@ void YaoGarbleWire::andrs_multithread(GC::Processor<GC::Secret<YaoGarbleWire> >&
 	SendBuffer& gates = party.gates;
 	gates.allocate(total * sizeof(YaoGate));
 	int max_gates_per_thread = max(party.get_threshold() / 2,
-			(total + party.get_n_threads() - 1) / party.get_n_threads());
+			(total + party.get_n_worker_threads() - 1) / party.get_n_worker_threads());
 	int i_thread = 0, i_gate = 0, start = 0;
 	for (size_t j = 0; j < args.size(); j += 4)
 	{
@@ -68,8 +75,8 @@ void YaoGarbleWire::andrs_multithread(GC::Processor<GC::Secret<YaoGarbleWire> >&
 			YaoGate* gate = (YaoGate*)gates.end();
 			gates.skip(i_gate * sizeof(YaoGate));
 			party.timers["Dispatch"].start();
-			party.and_jobs[i_thread++].dispatch(processor.S, args, start, end,
-					i_gate, gate, party.counter);
+			party.and_jobs[i_thread++]->dispatch(processor.S, args, start, end,
+					i_gate, gate, party.get_gate_id(), repeat);
 			party.timers["Dispatch"].stop();
 			party.counter += i_gate;
 			i_gate = 0;
@@ -79,12 +86,12 @@ void YaoGarbleWire::andrs_multithread(GC::Processor<GC::Secret<YaoGarbleWire> >&
 	party.and_prepare_timer.stop();
 	party.and_wait_timer.start();
 	for (int i = 0; i < i_thread; i++)
-		party.and_jobs[i].worker.done();
+		party.and_jobs[i]->worker.done();
 	party.and_wait_timer.stop();
 }
 
-void YaoGarbleWire::andrs_singlethread(GC::Processor<GC::Secret<YaoGarbleWire> >& processor,
-		const vector<int>& args)
+void YaoGarbleWire::and_singlethread(GC::Processor<GC::Secret<YaoGarbleWire> >& processor,
+		const vector<int>& args, bool repeat)
 {
 	int total_ands = processor.check_args(args, 4);
 	if (total_ands < 10)
@@ -94,13 +101,16 @@ void YaoGarbleWire::andrs_singlethread(GC::Processor<GC::Secret<YaoGarbleWire> >
 	auto& garbler = YaoGarbler::s();
 	SendBuffer& gates = garbler.gates;
 	YaoGate* gate = (YaoGate*)gates.allocate_and_skip(total_ands * sizeof(YaoGate));
-	andrs(processor.S, args, 0, n_args, total_ands, gate, garbler.counter,
-			garbler.prng, garbler.timers);
+	long counter = garbler.get_gate_id();
+	and_(processor.S, args, 0, n_args, total_ands, gate, counter,
+			garbler.prng, garbler.timers, repeat, garbler);
+	garbler.counter += counter - garbler.get_gate_id();
 }
 
-void YaoGarbleWire::andrs(GC::Memory<GC::Secret<YaoGarbleWire> >& S,
+void YaoGarbleWire::and_(GC::Memory<GC::Secret<YaoGarbleWire> >& S,
 		const vector<int>& args, size_t start, size_t end, size_t total_ands,
-		YaoGate* gate, long& counter, PRNG& prng, map<string, Timer>& timers)
+		YaoGate* gate, long& counter, PRNG& prng, map<string, Timer>& timers,
+		bool repeat, YaoGarbler& garbler)
 {
 	(void)timers;
 	Key* labels;
@@ -121,14 +131,14 @@ void YaoGarbleWire::andrs(GC::Memory<GC::Secret<YaoGarbleWire> >& S,
 		hashes = hash_vec.data();
 	}
 	//timers["Hash input"].start();
-	auto& garbler = YaoGarbler::s();
 	const Key& delta = garbler.get_delta();
 	size_t i_label = 0;
 	for (size_t i = start; i < end; i += 4)
 	{
-		const Key& right_key = S[args[i + 3]].get_reg(0).key;
-		for (auto& left_wire : S[args[i + 2]].get_regs())
+		for (int k = 0; k < args[i]; k++)
 		{
+			auto& left_wire = S[args[i + 2]].get_reg(k);
+			const Key& right_key = S[args[i + 3]].get_reg(repeat ? 0 : k).key;
 			counter++;
 			for (int i = 0; i < 2; i++)
 				for (int j = 0; j < 2; j++)
@@ -151,7 +161,6 @@ void YaoGarbleWire::andrs(GC::Memory<GC::Secret<YaoGarbleWire> >& S,
 	for (size_t i = start; i < end; i += 4)
 	{
 		//timers["Outer ref"].start();
-		YaoGarbleWire& right_wire = S[args[i + 3]].get_reg(0);
 		auto& out = S[args[i + 1]];
 		//timers["Outer ref"].stop();
 		//timers["Resizing"].start();
@@ -160,6 +169,7 @@ void YaoGarbleWire::andrs(GC::Memory<GC::Secret<YaoGarbleWire> >& S,
 		int n = args[i];
 		for (int k = 0; k < n; k++)
 		{
+			YaoGarbleWire& right_wire = S[args[i + 3]].get_reg(repeat ? 0 : k);
 			//timers["Inner ref"].start();
 			auto& left_wire = S[args[i + 2]].get_reg(k);
 			//timers["Inner ref"].stop();
@@ -168,12 +178,53 @@ void YaoGarbleWire::andrs(GC::Memory<GC::Secret<YaoGarbleWire> >& S,
 			//timers["Randomizing"].stop();
 			//timers["Gate computation"].start();
 			(gate++)->garble(out.get_reg(k), &hashes[i_hash], left_wire.mask,
-					right_wire.mask, 0x0001);
+					right_wire.mask, 0x0001, garbler.get_delta());
 			//timers["Gate computation"].stop();
 			i_hash += 4;
 		}
 	}
 	//timers["Garbling"].stop();
+}
+
+
+void YaoGarbleWire::inputb(GC::Processor<GC::Secret<YaoGarbleWire>>& processor,
+        const vector<int>& args)
+{
+	ArgList<InputArgs> a(args);
+	int n_evaluator_bits = 0;
+	for (auto x : a)
+	{
+		auto& dest = processor.S[x.dest];
+		dest.resize_regs(x.n_bits);
+		if (x.from == 0)
+		{
+			long long input = processor.get_input(x.n_bits);
+			for (auto& reg : dest.get_regs())
+			{
+				reg.public_input(input & 1);
+				input >>= 1;
+			}
+		}
+		else
+		{
+			n_evaluator_bits += x.n_bits;
+		}
+	}
+
+	auto& garbler = YaoGarbler::s();
+	garbler.receiver_input_keys.push_back({});
+
+	for (auto x : a)
+	{
+		if (x.from == 1)
+		{
+			for (auto& reg : processor.S[x.dest].get_regs())
+			{
+				reg.set(garbler.prng.get_doubleword(), 0);
+				garbler.receiver_input_keys.back().push_back(reg.key);
+			}
+		}
+	}
 }
 
 inline void YaoGarbler::store_gate(const YaoGate& gate)

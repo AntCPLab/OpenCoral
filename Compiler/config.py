@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 from collections import defaultdict
 
 #INIT_REG_MAX = 655360

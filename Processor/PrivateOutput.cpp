@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * PrivateOutput.cpp
  *
@@ -32,4 +30,7 @@ void PrivateOutput<T>::stop(int player, int source)
 }
 
 template class PrivateOutput<gf2n>;
+
+#ifndef REPLICATED
 template class PrivateOutput<gfp>;
+#endif

@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 from Compiler.types import cint,sint,cfix,sfix,sfloat,MPCThread,Array,MemValue,cgf2n,sgf2n,_number,_mem,_register,regint,Matrix,_types, cfloat
 from Compiler.instructions import *
 from Compiler.util import tuplify,untuplify
@@ -1283,7 +1281,7 @@ def Norm(b, k, f, kappa, simplex_flag=False):
     # For simplex, we can get rid of computing abs(b)
     temp = None
     if simplex_flag == False:
-        temp = sint(b < 0)
+        temp = b.less_than(0, 2 * k)
     elif simplex_flag == True:
         temp = cint(0)
 

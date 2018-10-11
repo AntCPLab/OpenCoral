@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 from Compiler.path_oram import *
 from Compiler.util import bit_compose

@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 from Compiler.oram import *
 
 from Compiler.program import Program

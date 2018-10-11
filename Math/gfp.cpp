@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #include "Math/gfp.h"
 
@@ -73,9 +71,9 @@ void gfp::SHL(const gfp& x,int n)
     {
       if (n != 0)
         {
-          bigint bi;
+          bigint& bi = bigint::tmp;
           to_bigint(bi,x,false);
-          mpn_lshift(bi.get_mpz_t()->_mp_d, bi.get_mpz_t()->_mp_d, bi.get_mpz_t()->_mp_size,n);
+          bi <<= n;
           convert_destroy(bi);
         }
       else
@@ -94,9 +92,9 @@ void gfp::SHR(const gfp& x,int n)
     {
       if (n != 0)
         {
-          bigint bi;
+          bigint& bi = bigint::tmp;
           to_bigint(bi,x);
-          mpn_rshift(bi.get_mpz_t()->_mp_d, bi.get_mpz_t()->_mp_d, bi.get_mpz_t()->_mp_size,n);
+          bi >>= n;
           convert_destroy(bi);
         }
       else

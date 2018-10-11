@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Secret_inline.h
  *
@@ -7,6 +5,8 @@
 
 #ifndef GC_SECRET_INLINE_H_
 #define GC_SECRET_INLINE_H_
+
+#include "BMR/config.h"
 
 #ifdef MAX_INLINE
 #define MAYBE_INLINE inline
@@ -67,11 +67,17 @@ inline Secret<T> GC::Secret<T>::operator+(const Secret<T> x) const
 }
 
 template <class T>
-MAYBE_INLINE void Secret<T>::andrs(int n, const Secret<T>& x, const Secret<T>& y)
+MAYBE_INLINE void Secret<T>::and_(int n, const Secret<T>& x, const Secret<T>& y, bool repeat)
 {
     resize_regs(n);
     for (int i = 0; i < n; i++)
-        AND<T>(registers[i], x.get_reg(i), y.get_reg(0));
+        AND<T>(registers[i], x.get_reg(i), y.get_reg(repeat ? 0 : i));
+}
+
+template <class T>
+inline void Secret<T>::resize_regs(int n)
+{
+    registers.resize(n, T::new_reg());
 }
 
 } /* namespace GC */

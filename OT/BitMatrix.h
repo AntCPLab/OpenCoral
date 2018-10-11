@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * BitMatrix.h
  *
@@ -75,6 +73,8 @@ public:
     BitMatrix(int length);
     void resize(int length);
     int size();
+
+    __m128i operator[](int i) { return squares[i / 128].rows[i % 128]; }
 
     template <class T>
     BitMatrix& add(BitMatrix& other);

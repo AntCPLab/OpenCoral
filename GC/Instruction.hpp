@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Instruction.cpp
  *
@@ -18,6 +16,7 @@
 #include "Tools/parse.h"
 
 #include "GC/Instruction_inline.h"
+#include "GC/ReplicatedSecret.h"
 
 #include "Yao/YaoGarbleWire.h"
 #include "Yao/YaoEvalWire.h"
@@ -94,6 +93,7 @@ int GC::Instruction<T>::get_max_reg(int reg_type) const
         break;
     case ANDRS:
     case XORS:
+    case ANDS:
         skip = 4;
         offset = 1;
         break;
@@ -205,12 +205,18 @@ void Instruction<T>::parse(istream& s, int pos)
         case STMSDCI:
         case XORS:
         case ANDRS:
+        case ANDS:
         case INPUTB:
             get_vector(get_int(s), start, s);
             break;
         case PRINTREGSIGNED:
             n = get_int(s);
             get_ints(r, s, 1);
+            break;
+        case TRANS:
+            m = get_int(s) - 1;
+            n = get_int(s);
+            get_vector(m, start, s);
             break;
         default:
             ostringstream os;
@@ -238,11 +244,6 @@ void Instruction<T>::parse(istream& s, int pos)
 
 
 template class Instruction<FakeSecret>;
-template class Instruction< Secret<PRFRegister> >;
-template class Instruction< Secret<EvalRegister> >;
-template class Instruction< Secret<GarbleRegister> >;
-template class Instruction< Secret<RandomRegister> >;
-template class Instruction< Secret<YaoGarbleWire> >;
-template class Instruction< Secret<YaoEvalWire> >;
+template class Instruction<ReplicatedSecret>;
 
 } /* namespace GC */

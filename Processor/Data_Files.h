@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #ifndef _Data_Files
 #define _Data_Files
 
@@ -110,6 +108,14 @@ class Data_Files
   DataPositions get_usage()
   {
     return usage;
+  }
+
+  template <class T>
+  void get(Dtype dtype, Share<T>* a)
+  {
+    usage.files[T::field_type()][dtype]++;
+    for (int i = 0; i < tuple_size[dtype]; i++)
+      buffers[dtype].input(a[i]);
   }
 
   template <class T>

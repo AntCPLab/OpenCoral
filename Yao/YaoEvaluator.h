@@ -7,25 +7,28 @@
 #define YAO_YAOEVALUATOR_H_
 
 #include "YaoGate.h"
+#include "YaoPlayer.h"
+#include "YaoEvalMaster.h"
+#include "YaoCommon.h"
 #include "GC/Secret.h"
 #include "GC/Program.h"
 #include "GC/Machine.h"
 #include "GC/Processor.h"
 #include "GC/Memory.h"
+#include "GC/Thread.h"
+#include "GC/ThreadMaster.h"
 #include "Tools/MMO.h"
+#include "OT/OTExtensionWithMatrix.h"
 
-class YaoEvaluator
+class YaoEvaluator : public GC::Thread<Secret<YaoEvalWire>>, public YaoCommon
 {
 protected:
-	static YaoEvaluator* singleton;
+	static thread_local YaoEvaluator* singleton;
 
 	ReceivedMsg gates;
 	ReceivedMsgStore gates_store;
 
-	GC::Program< GC::Secret<YaoEvalWire> > program;
-	GC::Machine< GC::Secret<YaoEvalWire> > machine;
-	GC::Processor< GC::Secret<YaoEvalWire> > processor;
-	GC::Memory<GC::Secret<YaoGarbleWire>::DynamicType> MD;
+	YaoEvalMaster& master;
 
 public:
 	ReceivedMsg output_masks;
@@ -33,18 +36,25 @@ public:
 
 	MMO mmo;
 
-	long counter;
+	TwoPartyPlayer player;
+	OTExtensionWithMatrix ot_ext;
 
 	static YaoEvaluator& s();
 
-	YaoEvaluator(string progname);
-	void run();
-	void run(Player& P);
-	void run_from_store();
+	YaoEvaluator(int thread_num, YaoEvalMaster& master);
+
+	bool continous() { return master.continuous and thread_num == 0; }
+
+	void pre_run();
+	void run(GC::Program<GC::Secret<YaoEvalWire>>& program);
+	void run(GC::Program<GC::Secret<YaoEvalWire>>& program, Player& P);
+	void run_from_store(GC::Program<GC::Secret<YaoEvalWire>>& program);
 	void receive(Player& P);
 	void receive_to_store(Player& P);
 
 	void load_gate(YaoGate& gate);
+
+	long get_gate_id() { return gate_id(thread_num); }
 };
 
 inline void YaoEvaluator::load_gate(YaoGate& gate)

@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-# coding: latin-1
 """
   Solve Bankers bonus, aka Millionaires problem.
   to deduce the maximum value from a range of integer input.

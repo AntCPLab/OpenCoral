@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 """
 Functions for secure comparison of GF(p) types.
 Most protocols come from [1], with a few subroutines described in [2].
@@ -76,7 +74,8 @@ def LTZ(s, a, k, kappa):
 
     k: bit length of a
     """
-    t = program.curr_block.new_reg('s')
+    from types import sint
+    t = sint()
     Trunc(t, a, k, k - 1, kappa, True)
     subsfi(s, t, 0)
 
@@ -95,6 +94,8 @@ def Trunc(d, a, k, m, kappa, signed):
     if m == 0:
         movs(d, a)
         return
+    elif program.options.ring:
+        return TruncRing(d, a, k, m, signed)
     elif m == 1:
         Mod2(a_prime, a, k, kappa, signed)
     else:
@@ -103,6 +104,33 @@ def Trunc(d, a, k, m, kappa, signed):
     ldi(c[1], 1)
     divide_by_two(c[2], c[1], m)
     mulm(d, t, c[2])
+
+def TruncRing(d, a, k, m, signed):
+    a_prime = Mod2mRing(None, a, k, m, signed)
+    a -= a_prime
+    res = TruncZeroesInRing(a, k, m, signed)
+    if d is not None:
+        movs(d, res)
+    return res
+
+def TruncZeroesInRing(a, k, m, signed):
+    """
+    Returns a >> m.
+    Requires 2^m | a and a < 2^k.
+    """
+    from types import sint, intbitint, cint, cgf2n
+    n_bits = k - m
+    n_shift = int(program.options.ring) - n_bits
+    r_bits = [sint.get_random_bit() for i in range(n_bits)]
+    r = sint.bit_compose(r_bits)
+    shifted = ((a << (n_shift - m)) - (r << n_shift)).reveal()
+    masked = shifted >> n_shift
+    res_bits = intbitint.bit_adder(r_bits, masked.bit_decompose(n_bits))
+    res = sint.bit_compose(res_bits)
+    if signed:
+        res = sint.conv(res_bits[-1].if_else(res - (sint(1) << n_bits),
+                                             res))
+    return res
 
 def TruncRoundNearest(a, k, m, kappa):
     """
@@ -114,9 +142,13 @@ def TruncRoundNearest(a, k, m, kappa):
     from types import sint, cint
     from library import reveal, load_int_to_secret
     if m == 1:
-        lsb = sint()
-        Mod2(lsb, a, k, kappa, False)
-        return (a + lsb) / 2
+        if program.options.ring:
+            lsb = Mod2mRing(None, a, k, 1, False)
+            return TruncRing(None, a + lsb, k + 1, 1, False)
+        else:
+            lsb = sint()
+            Mod2(lsb, a, k, kappa, False)
+            return (a + lsb) / 2
     r_dprime = sint()
     r_prime = sint()
     r = [sint() for i in range(m)]
@@ -128,13 +160,13 @@ def TruncRoundNearest(a, k, m, kappa):
         BitLTC1(u, c_prime, r[:-1], kappa)
     else:
         BitLTL(u, c_prime, r[:-1], kappa)
-    bit = ((c - c_prime) / (cint(1) << (m - 1))) % 2
+    bit = ((c - c_prime) >> (m - 1)) % 2
     xor = bit + u - 2 * bit * u
     prod = xor * r[-1]
     # u_prime = xor * u + (1 - xor) * r[-1]
     u_prime = bit * u + u - 2 * bit * u + r[-1] - prod
     a_prime = (c % (cint(1) << m)) - r_prime + (cint(1) << m) * u_prime
-    d = (a - a_prime) / (cint(1) << m)
+    d = (a - a_prime) >> m
     rounding = xor + r[-1] - 2 * prod
     return d + rounding
 
@@ -149,6 +181,30 @@ def Mod2m(a_prime, a, k, m, kappa, signed):
     if m >= k:
         movs(a_prime, a)
         return
+    if program.options.ring:
+        return Mod2mRing(a_prime, a, k, m, signed)
+    else:
+        if m == 1:
+            return Mod2(a_prime, a, k, kappa, signed)
+        else:
+            return Mod2mField(a_prime, a, k, m, kappa, signed)
+
+def Mod2mRing(a_prime, a, k, m, signed):
+    assert(int(program.options.ring) >= k)
+    from Compiler.types import sint, intbitint, cint
+    shift = int(program.options.ring) - m
+    r = [sint.get_random_bit() for i in range(m)]
+    r_prime = sint.bit_compose(r)
+    tmp = a + r_prime
+    c_prime = (tmp << shift).reveal() >> shift
+    u = sint()
+    BitLTL(u, c_prime, r, 0)
+    res = (u << m) + c_prime - r_prime
+    if a_prime is not None:
+        movs(a_prime, res)
+    return res
+
+def Mod2mField(a_prime, a, k, m, kappa, signed):
     r_dprime = program.curr_block.new_reg('s')
     r_prime = program.curr_block.new_reg('s')
     r = [program.curr_block.new_reg('s') for i in range(m)]
@@ -169,8 +225,7 @@ def Mod2m(a_prime, a, k, m, kappa, signed):
         t[1] = a
     adds(t[2], t[0], t[1])
     adds(t[3], t[2], r_prime)
-    startopen(t[3])
-    stopopen(c)
+    asm_open(c, t[3])
     modc(c_prime, c, c2m)
     if const_rounds:
         BitLTC1(u, c_prime, r, kappa)
@@ -220,29 +275,24 @@ def BitLTC1(u, a, b, kappa):
     """
     k = len(b)
     p = [program.curr_block.new_reg('s') for i in range(k)]
+    import floatingpoint
+    a_bits = floatingpoint.bits(a, k)
     if instructions_base.get_global_vector_size() == 1:
+        a_ = a_bits
+        a_bits = program.curr_block.new_reg('c', size=k)
         b_vec = program.curr_block.new_reg('s', size=k)
         for i in range(k):
+            movc(a_bits[i], a_[i])
             movs(b_vec[i], b[i])
-        a_bits = program.curr_block.new_reg('c', size=k)
         d = program.curr_block.new_reg('s', size=k)
         s = program.curr_block.new_reg('s', size=k)
         t = [program.curr_block.new_reg('s', size=k) for j in range(5)]
         c = [program.curr_block.new_reg('c', size=k) for j in range(4)]
     else:
-        a_bits = [program.curr_block.new_reg('c') for i in range(k)]
         d = [program.curr_block.new_reg('s') for i in range(k)]
         s = [program.curr_block.new_reg('s') for i in range(k)]
         t = [[program.curr_block.new_reg('s') for i in range(k)] for j in range(5)]
         c = [[program.curr_block.new_reg('c') for i in range(k)] for j in range(4)]
-    c[1] = [program.curr_block.new_reg('c') for i in range(k)]
-    # warning: computer scientists count from 0
-    modci(a_bits[0], a, 2)
-    c[1][0] = a
-    for i in range(1,k):
-        subc(c[0][i], c[1][i-1], a_bits[i-1])
-        divide_by_two(c[1][i], c[0][i])
-        modci(a_bits[i], c[1][i], 2)
     if instructions_base.get_global_vector_size() == 1:
         vmulci(k, c[2], a_bits, 2)
         vmulm(k, t[0], b_vec, c[2])
@@ -347,16 +397,10 @@ def BitLTL(res, a, b, kappa):
     b: array of secret bits (same length as a)
     """
     k = len(b)
-    a_bits = [program.curr_block.new_reg('c') for i in range(k)]
-    c = [[program.curr_block.new_reg('c') for i in range(k)] for j in range(2)]
+    import floatingpoint
+    a_bits = floatingpoint.bits(a, k)
     s = [[program.curr_block.new_reg('s') for i in range(k)] for j in range(2)]
     t = [program.curr_block.new_reg('s') for i in range(1)]
-    modci(a_bits[0], a, 2)
-    c[1][0] = a
-    for i in range(1,k):
-        subc(c[0][i], c[1][i-1], a_bits[i-1])
-        divide_by_two(c[1][i], c[0][i])
-        modci(a_bits[i], c[1][i], 2)
     for i in range(len(b)):
         subsfi(s[0][i], b[i], 1)
     CarryOut(t[0], a_bits[::-1], s[0][::-1], 1, kappa)
@@ -392,8 +436,7 @@ def PreMulC_with_inverses_and_vectors(p, a):
     movs(w[0], r[0])
     movs(a_vec[0], a[0])
     vmuls(k, t[0], w, a_vec)
-    vstartopen(k, t[0])
-    vstopopen(k, m)
+    vasm_open(k, m, t[0])
     PreMulC_end(p, a, c, m, z)
 
 def PreMulC_with_inverses(p, a):
@@ -421,8 +464,7 @@ def PreMulC_with_inverses(p, a):
     w[1][0] = r[0][0]
     for i in range(k):
         muls(t[0][i], w[1][i], a[i])
-        startopen(t[0][i])
-        stopopen(m[i])
+        asm_open(m[i], t[0][i])
     PreMulC_end(p, a, c, m, z)
 
 def PreMulC_without_inverses(p, a):
@@ -447,8 +489,7 @@ def PreMulC_without_inverses(p, a):
         #adds(tt[0][i], t[0][i], a[i])
         #subs(tt[1][i], tt[0][i], a[i])
         #startopen(tt[1][i])
-        startopen(t[0][i])
-        stopopen(u[i])
+        asm_open(u[i], t[0][i])
     for i in range(k-1):
         muls(v[i], r[i+1], s[i])
     w[0] = r[0]
@@ -464,8 +505,7 @@ def PreMulC_without_inverses(p, a):
         mulm(z[i], s[i], u_inv[i])
     for i in range(k):
         muls(t[1][i], w[i], a[i])
-        startopen(t[1][i])
-        stopopen(m[i])
+        asm_open(m[i], t[1][i])
     PreMulC_end(p, a, c, m, z)
 
 def PreMulC_end(p, a, c, m, z):
@@ -531,9 +571,9 @@ def Mod2(a_0, a, k, kappa, signed):
         t[1] = a
     adds(t[2], t[0], t[1])
     adds(t[3], t[2], r_prime)
-    startopen(t[3])
-    stopopen(c)
-    modci(c_0, c, 2)
+    asm_open(c, t[3])
+    import floatingpoint
+    c_0 = floatingpoint.bits(c, 1)[0]
     mulci(tc, c_0, 2)
     mulm(t[4], r_0, tc)
     addm(t[5], r_0, c_0)

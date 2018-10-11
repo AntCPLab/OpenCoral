@@ -80,27 +80,14 @@ YaoPlayer::YaoPlayer(int argc, const char** argv)
 	bool continuous = opt.get("-C")->isSet;
 	opt.get("-t")->getInt(threshold);
 
-	server = Server::start_networking(N, my_num, 2, hostname, pnb);
-	Player P(N);
-
+	ThreadMasterBase* master;
 	if (my_num == 0)
-	{
-		YaoGarbler garbler(progname, threshold);
-		garbler.run(P);
-		if (not continuous)
-			P.send_long(1, -1);
-	}
+	    master = new YaoGarbleMaster(continuous, threshold);
 	else
-	{
-		YaoEvaluator evaluator(progname);
-		if (continuous)
-			evaluator.run(P);
-		else
-		{
-			evaluator.receive_to_store(P);
-			evaluator.run_from_store();
-		}
-	}
+	    master = new YaoEvalMaster(continuous);
+
+	server = Server::start_networking(master->N, my_num, 2, hostname, pnb);
+	master->run(progname);
 }
 
 YaoPlayer::~YaoPlayer()

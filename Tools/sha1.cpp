@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * SHA1 routine optimized to do word accesses rather than byte accesses,
  * and to avoid unnecessary copies into the context array.

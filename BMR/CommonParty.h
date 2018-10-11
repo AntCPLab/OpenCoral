@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * CommonParty.h
  *
@@ -11,6 +9,7 @@
 #include <vector>
 using namespace std;
 
+#include "config.h"
 #include "GarbledGate.h"
 #include "Register.h"
 #include "proto_utils.h"

@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Processor.cpp
  *
@@ -13,6 +11,7 @@ using namespace std;
 #include "GC/Program.h"
 #include "Secret.h"
 #include "Access.h"
+#include "ReplicatedSecret.h"
 
 #include "Yao/YaoGarbleWire.h"
 #include "Yao/YaoEvalWire.h"
@@ -21,38 +20,32 @@ namespace GC
 {
 
 template <class T>
-Processor<T>* Processor<T>::singleton = 0;
-
-template <class T>
-Processor<T>& Processor<T>::s()
-{
-	if (singleton == 0)
-		throw runtime_error("no singleton");
-	return *singleton;
-}
-
-template <class T>
 Processor<T>::Processor(Machine<T>& machine) :
 		machine(machine), PC(0), time(0),
 		complexity(0)
 {
-	if (singleton)
-		throw runtime_error("there can only be one");
-	singleton = this;
 }
 
 template<class T>
 Processor<T>::~Processor()
 {
-	cout << "Finished after " << time << " instructions" << endl;
+	cerr << "Finished after " << time << " instructions" << endl;
+}
+
+template <class T>
+void Processor<T>::reset(const Program<T>& program, int arg)
+{
+    S.resize(program.num_reg(SBIT), "registers");
+    C.resize(program.num_reg(CBIT), "registers");
+    I.resize(program.num_reg(INT), "registers");
+    set_arg(arg);
+    PC = 0;
 }
 
 template <class T>
 void Processor<T>::reset(const Program<T>& program)
 {
-    S.resize(program.num_reg(SBIT), "registers");
-    C.resize(program.num_reg(CBIT), "registers");
-    I.resize(program.num_reg(INT), "registers");
+    reset(program, 0);
     machine.reset(program);
 }
 
@@ -61,7 +54,20 @@ void GC::Processor<T>::open_input_file(const string& name)
 {
     cout << "opening " << name << endl;
     input_file.open(name);
-    input_file.exceptions(ios::badbit | ios::eofbit);
+    input_filename = name;
+}
+
+template<class T>
+inline long long GC::Processor<T>::get_input(int n_bits)
+{
+    long long res;
+    input_file >> res;
+    if (input_file.eof())
+        throw IO_Error("not enough inputs in " + input_filename);
+    if (input_file.fail())
+        throw IO_Error("cannot read from " + input_filename);
+    EvalRegister::check_input(res, n_bits);
+    return res;
 }
 
 template <class T>
@@ -124,19 +130,6 @@ void GC::Processor<T>::store_dynamic_indirect(const vector<int>& args)
     complexity += accesses.size() / 2 * T::default_length;
 }
 
-template <class T>
-int GC::Processor<T>::check_args(const vector<int>& args, int n)
-{
-    if (args.size() % n != 0)
-        throw runtime_error("invalid number of arguments");
-    int total = 0;
-    for (size_t i = 0; i < args.size(); i += n)
-    {
-        total += args[i];
-    }
-    return total;
-}
-
 template<class T>
 void GC::Processor<T>::store_clear_in_dynamic(const vector<int>& args)
 {
@@ -162,12 +155,12 @@ void Processor<T>::xors(const vector<int>& args)
 }
 
 template <class T>
-void Processor<T>::andrs(const vector<int>& args)
+void Processor<T>::and_(const vector<int>& args, bool repeat)
 {
     check_args(args, 4);
     for (size_t i = 0; i < args.size(); i += 4)
     {
-        S[args[i+1]].andrs(args[i], S[args[i+2]], S[args[i+3]]);
+        S[args[i+1]].and_(args[i], S[args[i+2]], S[args[i+3]], repeat);
         complexity += args[i];
     }
 }
@@ -178,7 +171,8 @@ void Processor<T>::input(const vector<int>& args)
     check_args(args, 3);
     for (size_t i = 0; i < args.size(); i += 3)
     {
-        S[args[i+2]] = T::input(args[i] + 1, input_file, args[i+1]);
+        int n_bits = args[i + 1];
+        S[args[i+2]] = T::input(args[i] + 1, get_input(n_bits), n_bits);
 #ifdef DEBUG_INPUT
         cout << "input to " << args[i+2] << "/" << &S[args[i+2]] << endl;
 #endif
@@ -224,11 +218,6 @@ void Processor<T>::print_str(int n)
 }
 
 template class Processor<FakeSecret>;
-template class Processor< Secret<PRFRegister> >;
-template class Processor< Secret<EvalRegister> >;
-template class Processor< Secret<GarbleRegister> >;
-template class Processor< Secret<RandomRegister> >;
-template class Processor< Secret<YaoGarbleWire> >;
-template class Processor< Secret<YaoEvalWire> >;
+template class Processor<ReplicatedSecret>;
 
 } /* namespace GC */

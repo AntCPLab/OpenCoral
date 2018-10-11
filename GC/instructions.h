@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * instructions.h
  *
@@ -34,7 +32,7 @@
 #define EXTRA instruction.get_start()
 
 #define MSD M.MS[N]
-#define MC M.MC[N]
+#define MMC M.MC[N]
 #define MID M.MI[N]
 
 #define MSI M.MS[I1.get()]
@@ -47,6 +45,7 @@
     X(XORC, C0.xor_(C1, C2)) \
     X(XORCI, C0.xor_(C1, N)) \
     X(ANDRS, T::andrs(P, EXTRA)) \
+    X(ANDS, T::ands(P, EXTRA)) \
     X(INPUTB, T::inputb(P, EXTRA)) \
     X(ADDC, C0 = C1 + C2) \
     X(ADDCI, C0 = C1 + N) \
@@ -61,8 +60,8 @@
     X(STMS, MSD = S0) \
     X(LDMSI, S0 = MSI) \
     X(STMSI, MSI = S0) \
-    X(LDMC, C0 = MC) \
-    X(STMC, MC = C0) \
+    X(LDMC, C0 = MMC) \
+    X(STMC, MMC = C0) \
     X(LDMSD, P.load_dynamic_direct(EXTRA)) \
     X(STMSD, P.store_dynamic_direct(EXTRA)) \
     X(LDMSDI, P.load_dynamic_indirect(EXTRA)) \
@@ -71,6 +70,7 @@
     X(CONVSINT, S0.load(N, I1)) \
     X(CONVCINT, C0 = I1) \
     X(MOVS, S0 = S1) \
+    X(TRANS, T::trans(P, N, EXTRA)) \
     X(BIT, P.random_bit(S0)) \
     X(REVEAL, S1.reveal(C0)) \
     X(PRINTREG, P.print_reg(R0, N)) \
@@ -109,5 +109,7 @@
     X(PRINTINT, S0.out << I0) \
     X(STARTGRIND, CALLGRIND_START_INSTRUMENTATION) \
     X(STOPGRIND, CALLGRIND_STOP_INSTRUMENTATION) \
+    X(RUN_TAPE, M.run_tape(R0, N, R1)) \
+    X(JOIN_TAPE, M.join_tape(R0)) \
 
 #endif /* GC_INSTRUCTIONS_H_ */

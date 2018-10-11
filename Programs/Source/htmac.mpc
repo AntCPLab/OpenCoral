@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 """ Execfile can be avoided by implementing this ORAM-style
     (put .py sources in Compiler/ directory)
     - wanted to keep a clean directory structure hence

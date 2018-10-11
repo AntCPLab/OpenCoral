@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 // Preprocessing stage to:
 // Create the public/private key pairs for each client
 // Create the public/private key pairs for each spdz engine

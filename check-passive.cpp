@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #include "Math/gf2n.h"
 #include "Math/gfp.h"
 #include "Math/Setup.h"

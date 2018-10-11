@@ -1,11 +1,11 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Secret.cpp
  *
  */
 
 #include <GC/FakeSecret.h>
+#include "GC/Processor.h"
+#include "GC/square64.h"
 
 namespace GC
 {
@@ -55,6 +55,26 @@ void FakeSecret::store_clear_in_dynamic(Memory<DynamicType>& mem,
 		mem[access.address] = access.value;
 }
 
+void FakeSecret::ands(Processor<FakeSecret>& processor,
+        const vector<int>& regs)
+{
+	processor.check_args(regs, 4);
+	for (size_t i = 0; i < regs.size(); i += 4)
+		processor.S[regs[i + 1]] = processor.S[regs[i + 2]].a & processor.S[regs[i + 3]].a;
+}
+
+
+void FakeSecret::trans(Processor<FakeSecret>& processor, int n_outputs,
+        const vector<int>& args)
+{
+	square64 square;
+	for (size_t i = n_outputs; i < args.size(); i++)
+		square.rows[i - n_outputs] = processor.S[args[i]].a;
+	square.transpose(args.size() - n_outputs, n_outputs);
+	for (int i = 0; i < n_outputs; i++)
+		processor.S[args[i]] = square.rows[i];
+}
+
 FakeSecret FakeSecret::input(int from, ifstream& input_file, int n_bits)
 {
 	long long int in;
@@ -71,6 +91,15 @@ FakeSecret FakeSecret::input(int from, const int128& input, int n_bits)
 	if (res.a > ((__uint128_t)1 << n_bits))
 		throw out_of_range("input too large");
 	return res;
+}
+
+void FakeSecret::and_(int n, const FakeSecret& x, const FakeSecret& y,
+        bool repeat)
+{
+	if (repeat)
+		return andrs(n, x, y);
+	else
+		throw runtime_error("call static FakeSecret::ands()");
 }
 
 } /* namespace GC */

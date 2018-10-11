@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #ifndef _Memory
 #define _Memory
 
@@ -19,8 +17,8 @@ template<class T> istream& operator>>(istream& s,Memory<T>& M);
 template<class T> 
 class Memory
 {
-  vector<Share<T> > MS;
-  vector<T> MC;
+  vector<T> MS;
+  vector<typename T::clear> MC;
 #ifdef MEMPROTECT
   set< pair<unsigned int,unsigned int> > protected_s;
   set< pair<unsigned int,unsigned int> > protected_c;
@@ -38,12 +36,12 @@ class Memory
   int size_c()
     { return MC.size(); }
 
-  const T& read_C(int i) const
+  const typename T::clear& read_C(int i) const
     { return MC[i]; }
-  const Share<T> & read_S(int i) const
+  const T& read_S(int i) const
     { return MS[i]; }
 
-  void write_C(unsigned int i,const T& x,int PC=-1)
+  void write_C(unsigned int i,const typename T::clear& x,int PC=-1)
     { MC[i]=x;
       (void)PC;
 #ifdef MEMPROTECT
@@ -51,7 +49,7 @@ class Memory
       cerr << "Protected clear memory access of " << i << " by " << PC - 1 << endl;
 #endif
     }
-  void write_S(unsigned int i,const Share<T> & x,int PC=-1)
+  void write_S(unsigned int i,const T& x,int PC=-1)
     { MS[i]=x;
     (void)PC;
 #ifdef MEMPROTECT

@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #include "Zp_Data.h"
 #include "modp.h"
 
@@ -114,7 +112,7 @@ void to_modp(modp& ans,int x,const Zp_Data& ZpD)
     { if (ZpD.t==1)
 	{ ans.x[0]=(ZpD.prA[0]+x)%ZpD.prA[0]; }
       else
-        { bigint xx=ZpD.pr+x;
+        { bigint& xx = bigint::tmp = ZpD.pr+x;
           to_modp(ans,xx,ZpD);
           return;
         }
@@ -126,8 +124,18 @@ void to_modp(modp& ans,int x,const Zp_Data& ZpD)
 
 void to_modp(modp& ans,const bigint& x,const Zp_Data& ZpD)
 {
-  bigint xx(x);
-  ans.convert_destroy(xx, ZpD);
+  if (x == 0)
+  {
+    assignZero(ans, ZpD);
+    return;
+  }
+  else if (x == 1)
+  {
+    assignOne(ans, ZpD);
+    return;
+  }
+  bigint::tmp = x;
+  ans.convert_destroy(bigint::tmp, ZpD);
 }
 
 

@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 from Compiler.types import MemValue, read_mem_value, regint, Array
 from Compiler.types import _bitint, _number, _fix
 from Compiler.program import Tape, Program
@@ -61,7 +59,7 @@ class bits(Tape.Register):
             return [self]
         n = min(n, self.n)
         if self.decomposed is None or len(self.decomposed) < n:
-            res = [self.bit_type() for i in range(self.n)]
+            res = [self.bit_type() for i in range(n)]
             self.bitdec(self, *res)
             self.decomposed = res
             return res + suffix
@@ -104,6 +102,8 @@ class bits(Tape.Register):
             except:
                 raise CompilerError('cannot convert from %s to %s' % \
                                     (type(other), type(self)))
+    def long_one(self):
+        return 2**self.n - 1
     def __repr__(self):
         return '%s(%d/%d)' % \
             (super(bits, self).__repr__(), self.n, type(self).n)
@@ -272,6 +272,16 @@ class sbits(bits):
             return other * self
         else:
             return self.mul_int(other)
+    @read_mem_value
+    def __and__(self, other):
+        if util.is_zero(other):
+            return 0
+        elif util.is_all_ones(other, self.n):
+            return self
+        assert(self.n == other.n)
+        res = self.new(n=self.n)
+        inst.ands(self.n, res, self, other)
+        return res
     def xor_int(self, other):
         if other == 0:
             return self
@@ -330,20 +340,88 @@ class sbits(bits):
         else:
             res.load_int(1 << n)
         return res
+    def popcnt(self):
+        return sbitvec(self).popcnt().elements()[0]
+    @classmethod
+    def trans(cls, rows):
+        rows = list(rows)
+        if len(rows) == 1:
+            return rows[0].bit_decompose()
+        n_columns = rows[0].n
+        for row in rows:
+            assert(row.n == n_columns)
+        if n_columns == 1:
+            return [cls.bit_compose(rows)]
+        else:
+            res = [cls.new(n=len(rows)) for i in range(n_columns)]
+            inst.trans(len(res), *(res + rows))
+            return res
+    def if_else(self, x, y):
+        # vectorized if/else
+        return result_conv(x, y)(self & (x ^ y) ^ y)
+
+class sbitvec(object):
+    @classmethod
+    def from_vec(cls, vector):
+        res = cls()
+        res.v = list(vector)
+        return res
+    @classmethod
+    def combine(cls, vectors):
+        res = cls()
+        res.v = sum((vec.v for vec in vectors), [])
+        return res
+    @classmethod
+    def from_matrix(cls, matrix):
+        # any number of rows, limited number of columns
+        return cls.combine(cls(row) for row in matrix)
+    def __init__(self, elements=None):
+        if elements is not None:
+            self.v = sbits.trans(elements)
+    def popcnt(self):
+        res = sbitint.wallace_tree([[b] for b in self.v])
+        while res[-1] is 0:
+            del res[-1]
+        return self.from_vec(res)
+    def elements(self, start=None, stop=None):
+        if stop is None:
+            start, stop = stop, start
+        return sbits.trans(self.v[start:stop])
+    def __xor__(self, other):
+        return self.from_vec(x ^ y for x, y in zip(self.v, other.v))
+    def __and__(self, other):
+        return self.from_vec(x & y for x, y in zip(self.v, other.v))
+    def if_else(self, x, y):
+        assert(len(self.v) == 1)
+        try:
+            return self.from_vec(util.if_else(self.v[0], a, b) \
+                                 for a, b in zip(x, y))
+        except:
+            return util.if_else(self.v[0], x, y)
+    def __iter__(self):
+        return iter(self.v)
+    def __len__(self):
+        return len(self.v)
+    @classmethod
+    def conv(cls, other):
+        return cls.from_vec(other.v)
 
 class bit(object):
     n = 1
     
 def result_conv(x, y):
-    if util.is_constant(x):
+    try:
+        if util.is_constant(x):
+            if util.is_constant(y):
+                return lambda x: x
+            else:
+                return type(y).conv
         if util.is_constant(y):
-            return lambda x: x
-        else:
-            return type(y).conv
-    if util.is_constant(y):
-        return type(x).conv
-    if type(x) is type(y):
-        return type(x).conv
+            return type(x).conv
+        if type(x) is type(y):
+            return type(x).conv
+    except AttributeError:
+        pass
     return lambda x: x
 
 class sbit(bit, sbits):
@@ -465,6 +543,17 @@ class sbitint(_bitint, _number, sbits):
         bits = self.bit_decompose()
         bits += [bits[-1]] * (n - len(bits))
         return self.get_type(n).bit_compose(bits)
+
+class sbitintvec(sbitvec):
+    def __add__(self, other):
+        if other is 0:
+            return self
+        assert(len(self.v) == len(other.v))
+        return self.from_vec(sbitint.bit_adder(self.v, other.v))
+    __radd__ = __add__
+    def less_than(self, other, *args, **kwargs):
+        assert(len(self.v) == len(other.v))
+        return self.from_vec(sbitint.bit_less_than(self.v, other.v))
 
 class sbitfix(_fix):
     float_type = type(None)

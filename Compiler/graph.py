@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 import heapq
 from Compiler.exceptions import *
 
@@ -25,7 +23,8 @@ class SparseDiGraph(object):
         self.n = max_nodes
         # each node contains list of default attributes, followed by outoing edges
         self.nodes = [self.default_attributes.values() for i in range(self.n)]
-        self.pred = [[] for i in range(self.n)]
+        self.succ = [set() for i in range(self.n)]
+        self.pred = [set() for i in range(self.n)]
         self.weights = {}
 
     def __len__(self):
@@ -33,7 +32,7 @@ class SparseDiGraph(object):
 
     def __getitem__(self, i):
         """ Get list of the neighbours of node i """
-        return self.nodes[i][len(self.default_attributes):]
+        return self.succ[i]
 
     def __iter__(self):
         pass #return iter(self.nodes)
@@ -69,9 +68,7 @@ class SparseDiGraph(object):
             self.pred[v].remove(i)
             #del self.weights[(i,v)]
         for v in pred:
-            # find index to ensure attribute isn't removed instead
-            index = self[v].index(i) + len(self.default_attributes)
-            del self.nodes[v][index]
+            self.succ[v].remove(i)
             #del self.weights[(v,i)]
             #self.nodes[v].remove(i)
         self.pred[i] = []
@@ -79,8 +76,8 @@ class SparseDiGraph(object):
 
     def add_edge(self, i, j, weight=1):
         if j not in self[i]:
-            self.nodes[i].append(j)
-            self.pred[j].append(i)
+            self.pred[j].add(i)
+            self.succ[i].add(j)
         self.weights[(i,j)] = weight
 
     def add_edges_from(self, tuples):
@@ -92,8 +89,7 @@ class SparseDiGraph(object):
                 self.add_edge(edge[0], edge[1])
 
     def remove_edge(self, i, j):
-        jindex = self[i].index(j) + len(self.default_attributes)
-        del self.nodes[i][jindex]
+        self.succ[i].remove(j)
         self.pred[j].remove(i)
         del self.weights[(i,j)]
 
@@ -102,7 +98,7 @@ class SparseDiGraph(object):
             self.remove_edge(i, j)
 
     def degree(self, i):
-        return len(self.nodes[i]) - len(self.default_attributes)
+        return len(self.succ[i])
 
 
 def topological_sort(G, nbunch=None, pref=None):

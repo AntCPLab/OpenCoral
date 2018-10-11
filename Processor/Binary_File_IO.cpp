@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #include "Processor/Binary_File_IO.h"
 #include "Math/gfp.h"
 
@@ -26,13 +24,13 @@ void Binary_File_IO::write_to_file(const string filename, const vector< Share<T>
 }
 
 template<class T>
-void Binary_File_IO::read_from_file(const string filename, vector< Share<T> >& buffer, const int start_posn, int &end_posn)
+void Binary_File_IO::read_from_file(const string filename, vector< T >& buffer, const int start_posn, int &end_posn)
 {
   ifstream inf;
   inf.open(filename, ios::in | ios::binary);
   if (inf.fail()) { throw file_missing(filename, "Binary_File_IO.read_from_file expects this file to exist."); }
 
-  int size_in_bytes = Share<T>::size() * buffer.size();
+  int size_in_bytes = T::size() * buffer.size();
   int n_read = 0;
   char * read_buffer = new char[size_in_bytes];
   inf.seekg(start_posn);
@@ -65,8 +63,11 @@ void Binary_File_IO::read_from_file(const string filename, vector< Share<T> >& b
   inf.close();
 
   for (unsigned int i = 0; i < buffer.size(); i++)
-    buffer[i].assign(&read_buffer[i*Share<T>::size()]);
+    buffer[i].assign(&read_buffer[i*T::size()]);
 }
 
 template void Binary_File_IO::write_to_file(const string filename, const vector< Share<gfp> >& buffer);
 template void Binary_File_IO::read_from_file(const string filename, vector< Share<gfp> >& buffer, const int start_posn, int &end_posn);
+
+template void Binary_File_IO::write_to_file(const string filename, const vector< Share<FixedVec<Integer, 2> > >& buffer);
+template void Binary_File_IO::read_from_file(const string filename, vector< Share<FixedVec<Integer, 2> > >& buffer, const int start_posn, int &end_posn);

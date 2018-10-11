@@ -1,10 +1,9 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 from math import log, floor, ceil
 from Compiler.instructions import *
 import types
 import comparison
 import program
+import util
 
 ##
 ## Helper functions for floating point arithmetic
@@ -30,15 +29,29 @@ def shift_two(n, pos):
             res >>= 63
         return res
 
-def EQZ(a, k, kappa):
+
+def maskRing(a, k):
+    shift = int(program.Program.prog.options.ring) - k
+    r = [types.sint.get_random_bit() for i in range(k)]
+    r_prime = types.sint.bit_compose(r)
+    c = ((a + r_prime) << shift).reveal() >> shift
+    return c, r
+
+def maskField(a, k, kappa):
     r_dprime = types.sint()
     r_prime = types.sint()
     c = types.cint()
-    d = [None]*k
     r = [types.sint() for i in range(k)]
     comparison.PRandM(r_dprime, r_prime, r, k, k, kappa)
-    startopen(a + two_power(k) * r_dprime + r_prime)# + 2**(k-1))
-    stopopen(c)
+    asm_open(c, a + two_power(k) * r_dprime + r_prime)# + 2**(k-1))
+    return c, r
+
+def EQZ(a, k, kappa):
+    if program.Program.prog.options.ring:
+        c, r = maskRing(a, k)
+    else:
+        c, r = maskField(a, k, kappa)
+    d = [None]*k
     for i,b in enumerate(bits(c, k)):
         d[i] = b + r[i] - 2*b*r[i]
     return 1 - KOR(d, kappa)
@@ -51,14 +64,17 @@ def bits(a,m):
             res[i] = a & 1
             a >>= 1
     else:
-        c = [[types.cint() for i in range(m)] for i in range(2)]
-        res = [types.cint() for i in range(m)]
-        modci(res[0], a, 2)
-        c[1][0] = a
-        for i in range(1,m):
-            subc(c[0][i], c[1][i-1], res[i-1])
-            comparison.divide_by_two(c[1][i], c[0][i])
-            modci(res[i], c[1][i], 2)
+        res = []
+        from Compiler.types import regint, cint
+        while m > 0:
+            aa = regint()
+            convmodp(aa, a, bitlength=0)
+            res += [cint(x) for x in aa.bit_decompose(min(64, m))]
+            m -= 64
+            if m > 0:
+                aa = cint()
+                shrci(aa, a, 64)
+                a = aa
     return res
 
 def carry(b, a, compute_p=True):
@@ -127,6 +143,25 @@ def PreOpL(op, items):
             for z in range(1, 2**i+1):
                 if y+z < k:
                     output[y+z] = op(output[y], output[y+z], j != 0)
+    return output
+
+def PreOpL2(op, items):
+    """
+    Uses algorithm from SecureSCM WP9 deliverable.
+
+    op must be a binary function that outputs a new register
+    """
+    k = len(items)
+    half = k / 2
+    output = list(items)
+    if k == 0:
+        return []
+    u = [op(items[2 * i], items[2 * i + 1]) for i in range(half)]
+    v = PreOpL2(op, u)
+    for i in range(half):
+        output[2 * i + 1] = v[i]
+    for i in range(1,  (k + 1) / 2):
+        output[2 * i] = op(v[i - 1], items[2 * i])
     return output
 
 def PreOpN(op, items):
@@ -252,6 +287,20 @@ def BitAdd(a, b, bits_to_compute=None):
     return s
 
 def BitDec(a, k, m, kappa, bits_to_compute=None):
+    if program.Program.prog.options.ring:
+        return BitDecRing(a, k, m)
+    else:
+        return BitDecField(a, k, m, kappa, bits_to_compute)
+
+def BitDecRing(a, k, m):
+    n_shift = int(program.Program.prog.options.ring) - m
+    r_bits = [types.sint.get_random_bit() for i in range(m)]
+    r = types.sint.bit_compose(r_bits)
+    shifted = ((a - r) << n_shift).reveal()
+    masked = shifted >> n_shift
+    return types.intbitint.bit_adder(r_bits, masked.bit_decompose(m))
+
+def BitDecField(a, k, m, kappa, bits_to_compute=None):
     r_dprime = types.sint()
     r_prime = types.sint()
     c = types.cint()
@@ -269,7 +318,7 @@ def BitDec(a, k, m, kappa, bits_to_compute=None):
         print 'BitDec assertion failed'
         print 'a =', a.value
         print 'a mod 2^%d =' % k, (a.value % 2**k)
-    return BitAdd(list(bits(c,m)), r, bits_to_compute)[:-1]
+    return types.intbitint.bit_adder(list(bits(c,m)), r)
 
 
 def Pow2(a, l, kappa):
@@ -284,6 +333,9 @@ def Pow2(a, l, kappa):
 
 def B2U(a, l, kappa):
     pow2a = Pow2(a, l, kappa)
+    return B2U_from_Pow2(pow2a, l, kappa), pow2a
+
+def B2U_from_Pow2(pow2a, l, kappa):
     #assert(pow2a.value == 2**a.value)
     r = [types.sint() for i in range(l)]
     t = types.sint()
@@ -298,7 +350,7 @@ def B2U(a, l, kappa):
     #print ' '.join(str(b.value) for b in x)
     y = PreOR(x, kappa)
     #print ' '.join(str(b.value) for b in y)
-    return [1 - y[i] for i in range(l)], pow2a
+    return [1 - y[i] for i in range(l)]
 
 def Trunc(a, l, m, kappa, compute_modulo=False):
     """ Oblivious truncation by secret m """
@@ -338,15 +390,37 @@ def Trunc(a, l, m, kappa, compute_modulo=False):
         b = c_dprime - r_prime + pow2m * d
         return b, pow2m
     else:
-        pow2inv = Inv(pow2m)
-        #assert(pow2inv.value * pow2m.value % comparison.program.P == 1)
-        b = (a - c_dprime + r_prime) * pow2inv - d
+        to_shift = a - c_dprime + r_prime
+        if program.Program.prog.options.ring:
+            shifted = TruncInRing(to_shift, l, pow2m)
+        else:
+            pow2inv = Inv(pow2m)
+            #assert(pow2inv.value * pow2m.value % comparison.program.P == 1)
+            shifted = to_shift * pow2inv
+        b = shifted - d
     return b
+
+def TruncInRing(to_shift, l, pow2m):
+    n_shift = int(program.Program.prog.options.ring) - l
+    bits = BitDecRing(to_shift, l, l)
+    rev = types.sint.bit_compose(reversed(bits))
+    rev <<= n_shift
+    rev *= pow2m
+    r_bits = [types.sint.get_random_bit() for i in range(l)]
+    r = types.sint.bit_compose(r_bits)
+    shifted = (rev - (r << n_shift)).reveal()
+    masked = shifted >> n_shift
+    bits = types.intbitint.bit_adder(r_bits, masked.bit_decompose(l))
+    return types.sint.bit_compose(reversed(bits))
 
 def TruncRoundNearestAdjustOverflow(a, length, target_length, kappa):
     t = comparison.TruncRoundNearest(a, length, length - target_length, kappa)
     overflow = t.greater_equal(two_power(target_length), target_length + 1, kappa)
-    s = (1 - overflow) * t + overflow * t / 2
+    if program.Program.prog.options.ring:
+        s = (1 - overflow) * t + \
+            comparison.TruncZeroesInRing(overflow * t, length, 1, False)
+    else:
+        s = (1 - overflow) * t + overflow * t / 2
     return s, overflow
 
 def Int2FL(a, gamma, l, kappa):
@@ -402,7 +476,23 @@ def TruncPr(a, k, m, kappa=None):
     """
     if isinstance(a, types.cint):
         return shift_two(a, m)
+    if program.Program.prog.options.ring:
+        return TruncPrRing(a, k, m)
+    else:
+        return TruncPrField(a, k, m, kappa)
 
+def TruncPrRing(a, k, m):
+    if m == 0:
+        return a
+    n_shift = int(program.Program.prog.options.ring) - k
+    if n_shift < 0:
+        raise CompilerError('too many bits for ring: %d' % k)
+    r_bits = [types.sint.get_random_bit() for i in range(k)]
+    r = types.sint.bit_compose(r_bits)
+    masked = ((a + r) << n_shift).reveal() >> (n_shift + m)
+    return masked - types.sint.bit_compose(r_bits[m:])
+
+def TruncPrField(a, k, m, kappa=None):
     if kappa is None:
        kappa = 40 
 

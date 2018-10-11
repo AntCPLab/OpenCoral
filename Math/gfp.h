@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #ifndef _gfp
 #define _gfp
 
@@ -22,6 +20,8 @@ using namespace std;
  * for the FHE scheme
  */
 
+template<class T> class Input;
+template<class T> class SPDZ;
 
 class gfp
 {
@@ -31,6 +31,10 @@ class gfp
   public:
 
   typedef gfp value_type;
+  typedef MAC_Check<gfp> MC;
+  typedef Input<gfp> Inp;
+  typedef PrivateOutput<gfp> PO;
+  typedef SPDZ<gfp> Protocol;
 
   static void init_field(const bigint& p,bool mont=true)
     { ZpD.init(p,mont); }
@@ -50,9 +54,9 @@ class gfp
   void assign(const gfp& g) { a=g.a; } 
   void assign_zero()        { assignZero(a,ZpD); }
   void assign_one()         { assignOne(a,ZpD); } 
-  void assign(word aa)      { bigint b=aa; convert_destroy(b); }
-  void assign(long aa)      { bigint b=aa; convert_destroy(b); }
-  void assign(int aa)       { bigint b=aa; convert_destroy(b); }
+  void assign(word aa)      { bigint::tmp=aa; to_gfp(*this,bigint::tmp); }
+  void assign(long aa)      { bigint::tmp=aa; to_gfp(*this,bigint::tmp); }
+  void assign(int aa)       { bigint::tmp=aa; to_gfp(*this,bigint::tmp); }
   void assign(const char* buffer) { a.assign(buffer, ZpD.get_t()); }
 
   modp get() const          { return a; }
@@ -127,9 +131,9 @@ class gfp
   void mul(const gfp& x) 
     { Mul(a,a,x.a,ZpD); }
 
-  gfp operator+(const gfp& x) { gfp res; res.add(*this, x); return res; }
-  gfp operator-(const gfp& x) { gfp res; res.sub(*this, x); return res; }
-  gfp operator*(const gfp& x) { gfp res; res.mul(*this, x); return res; }
+  gfp operator+(const gfp& x) const { gfp res; res.add(*this, x); return res; }
+  gfp operator-(const gfp& x) const { gfp res; res.sub(*this, x); return res; }
+  gfp operator*(const gfp& x) const { gfp res; res.mul(*this, x); return res; }
   gfp& operator+=(const gfp& x) { add(x); return *this; }
   gfp& operator-=(const gfp& x) { sub(x); return *this; }
   gfp& operator*=(const gfp& x) { mul(x); return *this; }

@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #ifndef _gf2n
 #define _gf2n
 
@@ -51,6 +49,11 @@ class gf2n_short
 
   typedef gf2n_short value_type;
   typedef word internal_type;
+
+  typedef MAC_Check<gf2n_short> MC;
+  typedef Input<gf2n_short> Inp;
+  typedef PrivateOutput<gf2n_short> PO;
+  typedef SPDZ<gf2n_short> Protocol;
 
   static void init_field(int nn);
   static int degree() { return n; }

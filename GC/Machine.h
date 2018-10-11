@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * Machine.h
  *
@@ -34,14 +32,22 @@ public:
     Memory<Integer> MI;
     Memory<typename T::DynamicType>& MD;
 
+    vector<Program<T> > progs;
+
     Machine(Memory<typename T::DynamicType>& MD);
     ~Machine();
+
+    void load_schedule(string progname);
+    void load_program(string threadname, string filename);
 
     void reset(const Program<T>& program);
 
     void start_timer() { timer[0].start(); }
     void stop_timer() { timer[0].stop(); }
     void reset_timer() { timer[0].reset(); }
+
+    void run_tape(int thread_number, int tape_number, int arg);
+    void join_tape(int thread_numer);
 };
 
 } /* namespace GC */

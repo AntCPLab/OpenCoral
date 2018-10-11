@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #ifndef _FILE_IO_HEADER
 #define _FILE_IO_HEADER
 
@@ -37,7 +35,7 @@ class Binary_File_IO
    * Throws file_error.
    */
   template <class T>
-  void read_from_file(const string filename, vector< Share<T> >& buffer, const int start_posn, int &end_posn);
+  void read_from_file(const string filename, vector< T >& buffer, const int start_posn, int &end_posn);
 };
 
 #endif

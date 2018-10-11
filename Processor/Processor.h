@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #ifndef _Processor
 #define _Processor
@@ -15,13 +13,18 @@
 #include "Exceptions/Exceptions.h"
 #include "Networking/Player.h"
 #include "Auth/MAC_Check.h"
+#include "Auth/ReplicatedMC.h"
 #include "Data_Files.h"
 #include "Input.h"
+#include "ReplicatedInput.h"
 #include "PrivateOutput.h"
+#include "ReplicatedPrivateOutput.h"
 #include "Machine.h"
 #include "ExternalClients.h"
 #include "Binary_File_IO.h"
 #include "Instruction.h"
+#include "SPDZ.h"
+#include "Replicated.h"
 
 #include <stack>
 
@@ -49,20 +52,43 @@ public:
     }
 };
 
-class Processor : public ProcessorBase
+template <class T>
+class SubProcessor
 {
-  vector<gf2n>  C2;
-  vector<gfp>   Cp;
-  vector<Share<gf2n> > S2;
-  vector<Share<gfp> >  Sp;
-  vector<long> Ci;
+  vector<typename T::clear> C;
+  vector<T> S;
 
   // This is the vector of partially opened values and shares we need to store
   // as the Open commands are split in two
-  vector<gf2n> PO2;
-  vector<gfp>  POp;
-  vector<Share<gf2n> > Sh_PO2;
-  vector<Share<gfp> >  Sh_POp;
+  vector<typename T::clear> PO;
+  vector<T> Sh_PO;
+
+  void resize(int size)       { C.resize(size); S.resize(size); }
+
+  friend class Processor;
+  template<class U> friend class SPDZ;
+  template<class U> friend class Replicated;
+
+public:
+  Processor& Proc;
+  typename T::MAC_Check& MC;
+  Player& P;
+
+  typename T::Protocol protocol;
+
+  SubProcessor(Processor& Proc, typename T::MAC_Check& MC);
+
+  // Access to PO (via calls to POpen start/stop)
+  void POpen_Start(const vector<int>& reg,const Player& P,int size);
+  void POpen_Stop(const vector<int>& reg,const Player& P,int size);
+  void POpen(const vector<int>& reg,const Player& P,int size);
+
+  void muls(const vector<int>& reg,const Player& P,int size);
+};
+
+class Processor : public ProcessorBase
+{
+  vector<long> Ci;
 
   int reg_max2,reg_maxp,reg_maxi;
   int thread_num;
@@ -82,24 +108,27 @@ class Processor : public ProcessorBase
   vector<T>& get_C();
 
   template <class T>
-  vector< Share<T> >& get_Sh_PO();
+  vector<T>& get_Sh_PO();
   template <class T>
-  vector<T>& get_PO();
+  vector<typename T::clear>& get_PO();
 
   public:
   Data_Files& DataF;
   Player& P;
   MAC_Check<gf2n>& MC2;
-  MAC_Check<gfp>& MCp;
+  sint::MAC_Check& MCp;
   Machine& machine;
 
   string private_input_filename;
 
+  SubProcessor<sgf2n> Proc2;
+  SubProcessor<sint>  Procp;
+
   Input<gf2n> input2;
-  Input<gfp> inputp;
+  sint::Input inputp;
   
   PrivateOutput<gf2n> privateOutput2;
-  PrivateOutput<gfp>  privateOutputp;
+  sint::PrivateOutput privateOutputp;
 
   ifstream public_input;
   ifstream private_input;
@@ -108,7 +137,7 @@ class Processor : public ProcessorBase
 
   unsigned int PC;
   TempVars temp;
-  PRNG prng;
+  PRNG shared_prng, secure_prng;
 
   int sent, rounds;
 
@@ -116,7 +145,7 @@ class Processor : public ProcessorBase
   Binary_File_IO binary_file_io;
   
   // avoid re-computation of expensive division
-  map<int, gfp> inverses2m;
+  map<int, sint::clear> inverses2m;
 
   static const int reg_bytes = 4;
   
@@ -124,7 +153,7 @@ class Processor : public ProcessorBase
   string get_filename(const char* basename, bool use_number);
 
   Processor(int thread_num,Data_Files& DataF,Player& P,
-          MAC_Check<gf2n>& MC2,MAC_Check<gfp>& MCp,Machine& machine,
+          MAC_Check<gf2n>& MC2,sint::MAC_Check& MCp,Machine& machine,
           const Program& program);
   ~Processor();
 
@@ -137,55 +166,55 @@ class Processor : public ProcessorBase
     const gf2n& read_C2(int i) const
       { if (rw2[i]==0)
 	  { throw Processor_Error("Invalid read on clear register"); }
-        return C2.at(i);
+        return Proc2.C.at(i);
       }
     const Share<gf2n> & read_S2(int i) const
       { if (rw2[i+reg_max2]==0)
           { throw Processor_Error("Invalid read on shared register"); }
-        return S2.at(i);
+        return Proc2.S.at(i);
       }
     gf2n& get_C2_ref(int i)
       { rw2[i]=1;
-        return C2.at(i);
+        return Proc2.C.at(i);
       }
     Share<gf2n> & get_S2_ref(int i)
       { rw2[i+reg_max2]=1;
-        return S2.at(i);
+        return Proc2.S.at(i);
       }
     void write_C2(int i,const gf2n& x)
       { rw2[i]=1;
-        C2.at(i)=x;
+        Proc2.C.at(i)=x;
       }
     void write_S2(int i,const Share<gf2n> & x)
       { rw2[i+reg_max2]=1;
-        S2.at(i)=x;
+        Proc2.S.at(i)=x;
       }
 
-    const gfp& read_Cp(int i) const
+    const sint::clear& read_Cp(int i) const
       { if (rwp[i]==0)
 	  { throw Processor_Error("Invalid read on clear register"); }
-        return Cp.at(i);
+        return Procp.C.at(i);
       }
-    const Share<gfp> & read_Sp(int i) const
+    const sint & read_Sp(int i) const
       { if (rwp[i+reg_maxp]==0)
           { throw Processor_Error("Invalid read on shared register"); }
-        return Sp.at(i);
+        return Procp.S.at(i);
       }
-    gfp& get_Cp_ref(int i)
+    sint::clear& get_Cp_ref(int i)
       { rwp[i]=1;
-        return Cp.at(i);
+        return Procp.C.at(i);
       }
-    Share<gfp> & get_Sp_ref(int i)
+    sint & get_Sp_ref(int i)
       { rwp[i+reg_maxp]=1;
-        return Sp.at(i);
+        return Procp.S.at(i);
       }
-    void write_Cp(int i,const gfp& x)
+    void write_Cp(int i,const sint::clear& x)
       { rwp[i]=1;
-        Cp.at(i)=x;
+        Procp.C.at(i)=x;
       }
-    void write_Sp(int i,const Share<gfp> & x)
+    void write_Sp(int i,const sint & x)
       { rwp[i+reg_maxp]=1;
-        Sp.at(i)=x;
+        Procp.S.at(i)=x;
       }
 
     const long& read_Ci(int i) const
@@ -203,30 +232,30 @@ class Processor : public ProcessorBase
       }
  #else
     const gf2n& read_C2(int i) const
-      { return C2[i]; }
+      { return Proc2.C[i]; }
     const Share<gf2n> & read_S2(int i) const
-      { return S2[i]; }
+      { return Proc2.S[i]; }
     gf2n& get_C2_ref(int i)
-      { return C2[i]; }
+      { return Proc2.C[i]; }
     Share<gf2n> & get_S2_ref(int i)
-      { return S2[i]; }
+      { return Proc2.S[i]; }
     void write_C2(int i,const gf2n& x)
-      { C2[i]=x; }
+      { Proc2.C[i]=x; }
     void write_S2(int i,const Share<gf2n> & x)
-      { S2[i]=x; }
+      { Proc2.S[i]=x; }
   
-    const gfp& read_Cp(int i) const
-      { return Cp[i]; }
-    const Share<gfp> & read_Sp(int i) const
-      { return Sp[i]; }
-    gfp& get_Cp_ref(int i)
-      { return Cp[i]; }
-    Share<gfp> & get_Sp_ref(int i)
-      { return Sp[i]; }
-    void write_Cp(int i,const gfp& x)
-      { Cp[i]=x; }
-    void write_Sp(int i,const Share<gfp> & x)
-      { Sp[i]=x; }
+    const sint::clear& read_Cp(int i) const
+      { return Procp.C[i]; }
+    const sint & read_Sp(int i) const
+      { return Procp.S[i]; }
+    sint::clear& get_Cp_ref(int i)
+      { return Procp.C[i]; }
+    sint & get_Sp_ref(int i)
+      { return Procp.S[i]; }
+    void write_Cp(int i,const sint::clear& x)
+      { Procp.C[i]=x; }
+    void write_Sp(int i,const sint & x)
+      { Procp.S[i]=x; }
 
     const long& read_Ci(int i) const
       { return Ci[i]; }
@@ -263,36 +292,21 @@ class Processor : public ProcessorBase
   template <class T>
   void write_shares_to_file(const vector<int>& data_registers);
   
-  // Access to PO (via calls to POpen start/stop)
-  template <class T>
-  void POpen_Start(const vector<int>& reg,const Player& P,MAC_Check<T>& MC,int size);
-
-  template <class T>
-  void POpen_Stop(const vector<int>& reg,const Player& P,MAC_Check<T>& MC,int size);
-
   // Print the processor state
   friend ostream& operator<<(ostream& s,const Processor& P);
 
   private:
     void maybe_decrypt_sequence(int client_id);
     void maybe_encrypt_sequence(int client_id);
+
+  template<class T> friend class SPDZ;
+  template<class T> friend class SubProcessor;
 };
 
 template<> inline Share<gf2n>& Processor::get_S_ref(int i) { return get_S2_ref(i); }
 template<> inline gf2n& Processor::get_C_ref(int i)        { return get_C2_ref(i); }
-template<> inline Share<gfp>& Processor::get_S_ref(int i)  { return get_Sp_ref(i); }
-template<> inline gfp& Processor::get_C_ref(int i)         { return get_Cp_ref(i); }
-
-template<> inline vector< Share<gf2n> >& Processor::get_S()       { return S2; }
-template<> inline vector< Share<gfp> >& Processor::get_S()        { return Sp; }
-
-template<> inline vector<gf2n>& Processor::get_C()                { return C2; }
-template<> inline vector<gfp>& Processor::get_C()                 { return Cp; }
-
-template<> inline vector< Share<gf2n> >& Processor::get_Sh_PO()   { return Sh_PO2; }
-template<> inline vector<gf2n>& Processor::get_PO()               { return PO2; }
-template<> inline vector< Share<gfp> >& Processor::get_Sh_PO()    { return Sh_POp; }
-template<> inline vector<gfp>& Processor::get_PO()                { return POp; }
+template<> inline sint& Processor::get_S_ref(int i)        { return get_Sp_ref(i); }
+template<> inline sint::clear& Processor::get_C_ref(int i)         { return get_Cp_ref(i); }
 
 #endif
 

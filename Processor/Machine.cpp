@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 #include "Machine.h"
 
 #include "Exceptions/Exceptions.h"
@@ -18,8 +16,8 @@ using namespace std;
 Machine::Machine(int my_number, Names& playerNames,
     string progname_str, string memtype, int lgp, int lg2, bool direct,
     int opening_sum, bool parallel, bool receive_threads, int max_broadcast)
-  : my_number(my_number), N(playerNames), nthreads(0), tn(0), numt(0), usage_unknown(false),
-    progname(progname_str), direct(direct), opening_sum(opening_sum), parallel(parallel),
+  : my_number(my_number), N(playerNames), tn(0), numt(0), usage_unknown(false),
+    direct(direct), opening_sum(opening_sum), parallel(parallel),
     receive_threads(receive_threads), max_broadcast(max_broadcast)
 {
   if (opening_sum < 2)
@@ -78,36 +76,10 @@ Machine::Machine(int my_number, Names& playerNames,
        exit(1);
      }
 
-  string fname = "Programs/Schedules/" + progname + ".sch";
-  cerr << "Opening file " << fname << endl;
-  inpf.open(fname);
-  if (inpf.fail()) { throw file_error("Missing '" + fname + "'. Did you compile '" + progname + "'?"); }
-
-  int nprogs;
-  inpf >> nthreads;
-  inpf >> nprogs;
-
   // Keep record of used offline data
   pos.set_num_players(N.num_players());
 
-  cerr << "Number of threads I will run in parallel = " << nthreads << endl;
-  cerr << "Number of program sequences I need to load = " << nprogs << endl;
-
-  // Load in the programs 
-  progs.resize(nprogs,N.num_players());
-  string threadname;
-  for (int i=0; i<nprogs; i++)
-    { inpf >> threadname;
-      string filename = "Programs/Bytecode/" + threadname + ".bc";
-      cerr << "Loading program " << i << " from " << filename << endl;
-      ifstream pinp(filename);
-      if (pinp.fail()) { throw file_error(filename); }
-      progs[i].parse(pinp);
-      pinp.close();
-      M2.minimum_size(GF2N, progs[i], threadname);
-      Mp.minimum_size(MODP, progs[i], threadname);
-      Mi.minimum_size(INT, progs[i], threadname);
-    }
+  load_schedule(progname_str);
 
   progs[0].print_offline_cost();
 
@@ -146,6 +118,55 @@ Machine::Machine(int my_number, Names& playerNames,
         }
       pthread_mutex_unlock(&t_mutex[i]);
     }
+}
+
+void BaseMachine::load_schedule(string progname)
+{
+  this->progname = progname;
+  string fname = "Programs/Schedules/" + progname + ".sch";
+  cerr << "Opening file " << fname << endl;
+  inpf.open(fname);
+  if (inpf.fail()) { throw file_error("Missing '" + fname + "'. Did you compile '" + progname + "'?"); }
+
+  int nprogs;
+  inpf >> nthreads;
+  inpf >> nprogs;
+
+  cerr << "Number of threads I will run in parallel = " << nthreads << endl;
+  cerr << "Number of program sequences I need to load = " << nprogs << endl;
+
+  // Load in the programs
+  string threadname;
+  for (int i=0; i<nprogs; i++)
+    { inpf >> threadname;
+      string filename = "Programs/Bytecode/" + threadname + ".bc";
+      cerr << "Loading program " << i << " from " << filename << endl;
+      load_program(threadname, filename);
+    }
+}
+
+void BaseMachine::print_compiler()
+{
+
+  char compiler[1000];
+  inpf.get();
+  inpf.getline(compiler, 1000);
+  if (compiler[0] != 0)
+    cerr << "Compiler: " << compiler << endl;
+  inpf.close();
+}
+
+void Machine::load_program(string threadname, string filename)
+{
+  ifstream pinp(filename);
+  if (pinp.fail()) { throw file_error(filename); }
+  progs.push_back(N.num_players());
+  int i = progs.size() - 1;
+  progs[i].parse(pinp);
+  pinp.close();
+  M2.minimum_size(GF2N, progs[i], threadname);
+  Mp.minimum_size(MODP, progs[i], threadname);
+  Mi.minimum_size(INT, progs[i], threadname);
 }
 
 DataPositions Machine::run_tape(int thread_number, int tape_number, int arg, int line_number)
@@ -241,12 +262,7 @@ void Machine::run()
       }
     }
 
-  char compiler[1000];
-  inpf.get();
-  inpf.getline(compiler, 1000);
-  if (compiler[0] != 0)
-    cerr << "Compiler: " << compiler << endl;
-  inpf.close();
+  print_compiler();
 
   finish_timer.start();
   // Tell all C-threads to stop
@@ -335,6 +351,13 @@ void Machine::run()
 #endif
 
   cerr << "End of prog" << endl;
+}
+
+void BaseMachine::load_program(string threadname, string filename)
+{
+  (void)threadname;
+  (void)filename;
+  throw not_implemented();
 }
 
 void BaseMachine::time()

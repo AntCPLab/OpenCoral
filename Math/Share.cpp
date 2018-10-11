@@ -1,11 +1,11 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #include "Share.h"
 //#include "Tools/random.h"
 #include "Math/gfp.h"
 #include "Math/gf2n.h"
 #include "Math/operators.h"
+#include "Math/FixedVec.h"
+#include "Math/Integer.h"
 
 
 template<class T>
@@ -22,59 +22,6 @@ void Share<gf2n>::mul_by_bit(const Share<gf2n>& S, const gf2n& aa)
   mac.mul_by_bit(S.mac,aa);
 }
 
-template<class T>
-void Share<T>::add(const Share<T>& S,const T& aa,bool playerone,const T& alphai)
-{
-  if (playerone) 
-     { a.add(S.a,aa); }
-  else           
-     { a=S.a;   }
-
-  T tmp;
-  tmp.mul(alphai,aa);
-  mac.add(S.mac,tmp);
-}
-
-
-
-template<class T>
-void Share<T>::sub(const Share<T>& S,const T& aa,bool playerone,const T& alphai)
-{
-  if (playerone) 
-    { a.sub(S.a,aa); }
-  else           
-    { a=S.a;   }
-
-  T tmp;
-  tmp.mul(alphai,aa);
-  mac.sub(S.mac,tmp);
-}
-
-
-
-template<class T>
-void Share<T>::sub(const T& aa,const Share<T>& S,bool playerone,const T& alphai)
-{
-  if (playerone) 
-    { a.sub(aa,S.a); }
-  else           
-    { a=S.a;
-      a.negate(); 
-    }
-
-  T tmp;
-  tmp.mul(alphai,aa);
-  mac.sub(tmp,S.mac);
-}
-
-
-
-template<class T>
-void Share<T>::sub(const Share<T>& S1,const Share<T>& S2)
-{
-  a.sub(S1.a,S2.a);
-  mac.sub(S1.mac,S2.mac);
-}
 
 
 
@@ -130,3 +77,5 @@ template class Share<gf2n_short>;
 template gf2n_short combine(const vector< Share<gf2n_short> >& S);
 template bool check_macs(const vector< Share<gf2n_short> >& S,const gf2n_short& key);
 #endif
+
+template class Share<FixedVec<Integer, 2> >;

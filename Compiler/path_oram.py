@@ -1,5 +1,3 @@
-# (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 if '_Array' not in dir():
     from oram import *
     import permutation

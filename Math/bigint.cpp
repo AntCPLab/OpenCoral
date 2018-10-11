@@ -1,10 +1,9 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #include "bigint.h"
 #include "gfp.h"
 #include "Exceptions/Exceptions.h"
 
+thread_local bigint bigint::tmp;
 
 bigint sqrRootMod(const bigint& a,const bigint& p)
 {
@@ -98,7 +97,13 @@ int powerMod(int x,int e,int p)
 
 bigint::bigint(const gfp& x)
 {
+  *this = x;
+}
+
+bigint& bigint::operator=(const gfp& x)
+{
   to_bigint(*this, x);
+  return *this;
 }
 
 

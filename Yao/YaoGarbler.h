@@ -8,31 +8,30 @@
 
 #include "YaoGarbleWire.h"
 #include "YaoAndJob.h"
+#include "YaoGarbleMaster.h"
+#include "YaoCommon.h"
 #include "Tools/random.h"
 #include "Tools/MMO.h"
 #include "GC/Secret.h"
 #include "GC/Program.h"
 #include "Networking/Player.h"
+#include "OT/OTExtensionWithMatrix.h"
 #include "sys/sysinfo.h"
+
+using namespace GC;
 
 class YaoGate;
 
-class YaoGarbler
+class YaoGarbler : public GC::Thread<GC::Secret<YaoGarbleWire>>, public YaoCommon
 {
 	friend class YaoGarbleWire;
 
 protected:
-	static YaoGarbler* singleton;
+	static thread_local YaoGarbler* singleton;
 
-	Key delta;
+	YaoGarbleMaster& master;
+
 	SendBuffer gates;
-
-	GC::Program< GC::Secret<YaoGarbleWire> > program;
-	GC::Machine< GC::Secret<YaoGarbleWire> > machine;
-	GC::Processor< GC::Secret<YaoGarbleWire> > processor;
-	GC::Memory<GC::Secret<YaoGarbleWire>::DynamicType> MD;
-
-	int threshold;
 
 	Timer and_timer;
 	Timer and_proc_timer;
@@ -43,26 +42,35 @@ protected:
 public:
 	PRNG prng;
 	SendBuffer output_masks;
-	long counter;
 	MMO mmo;
 
-	YaoAndJob* and_jobs;
+	vector<YaoAndJob*> and_jobs;
 
 	map<string, Timer> timers;
 
+	TwoPartyPlayer player;
+	OTExtensionWithMatrix ot_ext;
+
+	deque<vector<Key>> receiver_input_keys;
+
 	static YaoGarbler& s();
 
-	YaoGarbler(string progname, int threshold = 1024);
+	YaoGarbler(int thread_num, YaoGarbleMaster& master);
 	~YaoGarbler();
-	void run();
-	void run(Player& P);
+	void run(GC::Program<GC::Secret<YaoGarbleWire>>& program);
+	void run(Player& P, bool continuous);
+	void post_run();
 	void send(Player& P);
 
-	const Key& get_delta() { return delta; }
+	void process_receiver_inputs();
+
+	const Key& get_delta() { return master.delta; }
 	void store_gate(const YaoGate& gate);
 
-	int get_n_threads() { return get_nprocs(); }
-	int get_threshold() { return threshold; }
+	int get_n_worker_threads() { return max(1, get_nprocs() / master.machine.nthreads); }
+	int get_threshold() { return master.threshold; }
+
+	long get_gate_id() { return gate_id(thread_num); }
 };
 
 inline YaoGarbler& YaoGarbler::s()

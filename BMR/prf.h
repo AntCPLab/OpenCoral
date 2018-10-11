@@ -1,5 +1,3 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 /*
  * prf.h
  *
@@ -37,7 +35,9 @@ inline void PRF_chunk(const Key& key, char* input, char* output, int number)
 		ecb_aes_128_encrypt<3>(out, in, (octet*)aes_key.rd_key);
 		break;
 	default:
-		throw not_implemented();
+		for (int i = 0; i < number; i++)
+			ecb_aes_128_encrypt<1>(&out[i], &in[i], (octet*)aes_key.rd_key);
+		break;
 	}
 }
 

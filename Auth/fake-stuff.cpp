@@ -1,11 +1,10 @@
-// (C) 2018 University of Bristol, Bar-Ilan University. See License.txt
-
 
 #include "Math/gf2n.h"
 #include "Math/gfp.h"
 #include "Math/Share.h"
 #include "Auth/fake-stuff.h"
 #include "Tools/benchmarking.h"
+#include "Processor/config.h"
 
 #include <fstream>
 
@@ -28,6 +27,27 @@ void make_share(vector<Share<T> >& Sa,const T& a,int N,const T& key,PRNG& G)
       S.sub(S,Sa[i]);
     }
   Sa[N-1]=S;
+}
+
+template<>
+void make_share(vector<Share<FixedVec<Integer, 2> > >& Sa,
+    const FixedVec<Integer, 2>& a, int N, const FixedVec<Integer, 2>& key,
+    PRNG& G)
+{
+  (void)key;
+  assert(N == 3);
+  insecure("share generation", false);
+  Sa.resize(N);
+  FixedVec<Integer, 3> add_shares;
+  // hack
+  add_shares.randomize_to_sum(a[0], G);
+  for (int i=0; i<N; i++)
+    {
+      FixedVec<Integer, 2> share;
+      share[0] = add_shares[(i + 1) % 3];
+      share[1] = add_shares[i];
+      Sa[i].set_share(share);
+    }
 }
 
 template<class T>
@@ -58,7 +78,7 @@ template void make_share(vector<Share<gf2n> >& Sa,const gf2n& a,int N,const gf2n
 template void make_share(vector<Share<gfp> >& Sa,const gfp& a,int N,const gfp& key,PRNG& G);
 
 template void check_share(vector<Share<gf2n> >& Sa,gf2n& value,gf2n& mac,int N,const gf2n& key);
-template void check_share(vector<Share<gfp> >& Sa,gfp& value,gfp& mac,int N,const gfp& key);
+template void check_share(vector<sint>& Sa,sint::value_type& value,sint::value_type& mac,int N,const sint::value_type& key);
 
 #ifdef USE_GF2N_LONG
 template void make_share(vector<Share<gf2n_short> >& Sa,const gf2n_short& a,int N,const gf2n_short& key,PRNG& G);
