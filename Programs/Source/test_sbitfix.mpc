@@ -1,0 +1,53 @@
+from Compiler.GC.types import sbitfix, cbits
+
+#sbitfix.set_precision(3, 7)
+
+def test(a, b, value_type=None):
+    try:
+        b = int(round((b * (1 << a.f))))
+        a = a.v.reveal()
+    except AttributeError:
+        pass
+    try:
+        a = a.reveal()
+    except AttributeError:
+        pass
+    import inspect
+    print_ln('%s: %s %s %s', inspect.currentframe().f_back.f_lineno, \
+             (a ^ cbits(b)).reveal(), a, (b))
+
+aa = 5321.0
+bb = 142.0
+
+for a_sign, b_sign in (1, -1), (-1, -1):
+    a = a_sign * aa
+    b = b_sign * bb
+
+    sa = sbitfix(a)
+    sb = sbitfix(b)
+
+    test(sa + sb, a+b)
+    test(sa - sb, a-b)
+    test(sa * sb, a*b)
+    test(sa / sb, a/b)
+
+    test(-sa, -a)
+
+a = 126
+b = 125
+sa = sbitfix(a)
+sb = sbitfix(b)
+
+test(sa < sb, int(a<b))
+test(sa < sa, int(a<a))
+test(sa < sa + sbitfix(1), int(a<a+1))
+test(-sa < sa, int(-a<a))
+test(-sb < sb, int(-b<b))
+test(sa < -sb, int(a<-b))
+test(-sa < -sb, int(-a<-b))
+test(sa > sb, int(a>b))
+test(sa <= sb, int(a<=b))
+test(sa >= sb, int(a>=b))
+test(sa == sb, int(a==b))
+test(sa != sb, int(a!=b))
+test(sa != sa, int(a!=a))
