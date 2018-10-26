@@ -7,15 +7,13 @@
 #define PROCESSOR_CONFIG_H_
 
 #include "Math/Share.h"
-
-//#define REPLICATED
+#include "Math/Rep3Share.h"
 
 #ifdef REPLICATED
-typedef Share<FixedVec<Integer, 2> > sint;
-#else
-typedef Share<gfp> sint;
+#error REPLICATED flag is obsolete
 #endif
 
 typedef Share<gf2n> sgf2n;
+typedef Share<gfp> sgfp;
 
 #endif /* PROCESSOR_CONFIG_H_ */

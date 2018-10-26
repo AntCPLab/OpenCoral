@@ -4,7 +4,7 @@
 #include "Processor/Instruction.h"
 #include "Processor/Data_Files.h"
 
-class Machine;
+template<class sint> class Machine;
 
 /* A program is a vector of instructions */
 
@@ -52,7 +52,8 @@ class Program
 
   // Execute this program, updateing the processor and memory
   // and streams pointing to the triples etc
-  void execute(Processor& Proc) const;
+  template<class sint>
+  void execute(Processor<sint>& Proc) const;
 
 };
 

@@ -60,23 +60,29 @@ public:
     void fill_buffer();
 };
 
-
-template < template<class T> class U, template<class T> class V >
-class BufferHelper
+template<class U, class V>
+class BufferOwner : public Buffer<U, V>
 {
-public:
-    Buffer< U<sint::value_type>, V<sint::value_type> > bufferp;
-    Buffer< U<gf2n>, V<gf2n> > buffer2;
-    ifstream* files[N_DATA_FIELD_TYPE];
+    ifstream* file;
 
-    BufferHelper() { memset(files, 0, sizeof(files)); }
-    void input(V<sint::value_type>& a) { bufferp.input(a); }
-    void input(V<gf2n>& a) { buffer2.input(a); }
-    BufferBase& get_buffer(DataFieldType field_type);
-    void setup(DataFieldType field_type, string filename, int tuple_length, const char* data_type = 0);
-    void close();
-    void prune();
-    void purge();
+public:
+    BufferOwner() :
+            file(0)
+    {
+    }
+
+    void setup(string filename, int tuple_length, const char* data_type = 0)
+    {
+        file = new ifstream(filename, ios::in | ios::binary);
+        Buffer<U, V>::setup(file, tuple_length, filename, data_type, U::type_string().c_str());
+    }
+
+    void close()
+    {
+        if (file)
+            delete file;
+        file = 0;
+    }
 };
 
 #endif /* PROCESSOR_BUFFER_H_ */

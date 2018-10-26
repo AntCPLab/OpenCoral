@@ -29,9 +29,8 @@ void make_share(vector<Share<T> >& Sa,const T& a,int N,const T& key,PRNG& G)
   Sa[N-1]=S;
 }
 
-template<>
-void make_share(vector<Share<FixedVec<Integer, 2> > >& Sa,
-    const FixedVec<Integer, 2>& a, int N, const FixedVec<Integer, 2>& key,
+void make_share(vector<Rep3Share>& Sa,
+    const Integer& a, int N, const Integer& key,
     PRNG& G)
 {
   (void)key;
@@ -40,13 +39,13 @@ void make_share(vector<Share<FixedVec<Integer, 2> > >& Sa,
   Sa.resize(N);
   FixedVec<Integer, 3> add_shares;
   // hack
-  add_shares.randomize_to_sum(a[0], G);
+  add_shares.randomize_to_sum(a, G);
   for (int i=0; i<N; i++)
     {
       FixedVec<Integer, 2> share;
       share[0] = add_shares[(i + 1) % 3];
       share[1] = add_shares[i];
-      Sa[i].set_share(share);
+      Sa[i] = share;
     }
 }
 
@@ -74,11 +73,29 @@ void check_share(vector<Share<T> >& Sa,T& value,T& mac,int N,const T& key)
     }
 }
 
+void check_share(vector<Rep3Share>& Sa,
+    Integer& value, Integer& mac, int N,
+    const Integer& key)
+{
+  assert(N == 3);
+  value = 0;
+  (void)key;
+  (void)mac;
+
+  for (int i = 0; i < N; i++)
+    {
+      auto share = Sa[i];
+      value += share[0];
+      if (share[1] != Sa[positive_modulo(i - 1, N)][0])
+        throw bad_value("invalid replicated secret sharing");
+    }
+}
+
 template void make_share(vector<Share<gf2n> >& Sa,const gf2n& a,int N,const gf2n& key,PRNG& G);
 template void make_share(vector<Share<gfp> >& Sa,const gfp& a,int N,const gfp& key,PRNG& G);
 
 template void check_share(vector<Share<gf2n> >& Sa,gf2n& value,gf2n& mac,int N,const gf2n& key);
-template void check_share(vector<sint>& Sa,sint::value_type& value,sint::value_type& mac,int N,const sint::value_type& key);
+template void check_share(vector<Share<gfp> >& Sa,gfp& value,gfp& mac,int N,const gfp& key);
 
 #ifdef USE_GF2N_LONG
 template void make_share(vector<Share<gf2n_short> >& Sa,const gf2n_short& a,int N,const gf2n_short& key,PRNG& G);

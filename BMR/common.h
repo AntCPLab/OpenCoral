@@ -6,11 +6,14 @@
 #ifndef CIRCUIT_INC_COMMON_H_
 #define CIRCUIT_INC_COMMON_H_
 
+#include <cstring>
 #include <string>
 #include <vector>
+using namespace std;
 
 typedef unsigned long wire_id_t;
 typedef unsigned long gate_id_t;
+typedef unsigned int party_id_t;
 
 class Function {
 	bool rep[4];

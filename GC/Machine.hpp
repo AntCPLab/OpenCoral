@@ -10,9 +10,6 @@
 #include "ReplicatedSecret.h"
 #include "ThreadMaster.h"
 
-#include "Yao/YaoGarbleWire.h"
-#include "Yao/YaoEvalWire.h"
-
 namespace GC
 {
 

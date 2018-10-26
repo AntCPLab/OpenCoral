@@ -3,6 +3,9 @@
  *
  */
 
+#include "Register.h"
+#include "GC/Secret.h"
+
 #include "GC/Instruction.hpp"
 #include "GC/Program.hpp"
 

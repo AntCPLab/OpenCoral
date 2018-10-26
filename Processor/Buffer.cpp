@@ -143,58 +143,13 @@ void Buffer<T,U>::input(U& a)
     next++;
 }
 
-template < template<class T> class U, template<class T> class V >
-BufferBase& BufferHelper<U,V>::get_buffer(DataFieldType field_type)
-{
-    if (field_type == DATA_MODP)
-        return bufferp;
-    else if (field_type == DATA_GF2N)
-        return buffer2;
-    else
-        throw not_implemented();
-}
-
-template < template<class T> class U, template<class T> class V >
-void BufferHelper<U,V>::setup(DataFieldType field_type, string filename, int tuple_length, const char* data_type)
-{
-    files[field_type] = new ifstream(filename.c_str(), ios::in | ios::binary);
-    get_buffer(field_type).setup(files[field_type], tuple_length, filename,
-            data_type, Data_Files::long_field_names[field_type]);
-}
-
-template<template<class T> class U, template<class T> class V>
-void BufferHelper<U,V>::close()
-{
-    for (int i = 0; i < N_DATA_FIELD_TYPE; i++)
-        if (files[i])
-        {
-            files[i]->close();
-            delete files[i];
-        }
-}
-
-template<template<class T> class U, template<class T> class V>
-void BufferHelper<U,V>::prune()
-{
-    buffer2.prune();
-    bufferp.prune();
-}
-
-template<template<class T> class U, template<class T> class V>
-void BufferHelper<U,V>::purge()
-{
-    buffer2.purge();
-    bufferp.purge();
-}
-
 template class Buffer< Share<gfp>, Share<gfp> >;
 template class Buffer< Share<gf2n>, Share<gf2n> >;
-template class Buffer< Share<FixedVec<Integer, 2> >, Share<FixedVec<Integer, 2> > >;
-template class Buffer< InputTuple<sint::value_type>, RefInputTuple<sint::value_type> >;
-template class Buffer< InputTuple<gf2n>, RefInputTuple<gf2n> >;
-template class Buffer< sint::value_type, sint::value_type >;
+template class Buffer< Rep3Share, Rep3Share>;
+template class Buffer< InputTuple<sgfp>, RefInputTuple<sgfp> >;
+template class Buffer< InputTuple<sgf2n>, RefInputTuple<sgf2n> >;
+template class Buffer< InputTuple<Rep3Share>, RefInputTuple<Rep3Share> >;
+template class Buffer< gfp, gfp >;
 template class Buffer< gf2n, gf2n >;
+template class Buffer< FixedVec<Integer, 2>, FixedVec<Integer, 2> >;
 template class Buffer< Integer, Integer >;
-
-template class BufferHelper<Share, Share>;
-template class BufferHelper<InputTuple, RefInputTuple>;

@@ -15,7 +15,7 @@ ifeq ($(USE_NTL),1)
 FHEOFFLINE = $(patsubst %.cpp,%.o,$(wildcard FHEOffline/*.cpp FHE/*.cpp))
 endif
 
-GC = $(patsubst %.cpp,%.o,$(wildcard GC/*.cpp))
+GC = $(patsubst %.cpp,%.o,$(wildcard GC/*.cpp)) $(PROCESSOR)
 
 # OT stuff needs GF2N_LONG, so only compile if this is enabled
 ifeq ($(USE_GF2N_LONG),1)
@@ -25,7 +25,7 @@ endif
 
 COMMON = $(MATH) $(TOOLS) $(NETWORK) $(AUTH)
 COMPLETE = $(COMMON) $(PROCESSOR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(GC) $(OT)
-YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp)) $(OT)
+YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp)) $(OT) $(GC)
 BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp)) $(COMMON) $(PROCESSOR) $(GC)
 
 
@@ -33,11 +33,11 @@ LIB = libSPDZ.a
 LIBSIMPLEOT = SimpleOT/libsimpleot.a
 
 # used for dependency generation
-OBJS = $(BMR) $(FHEOFFLINE) $(TINYOTOFFLINE)
+OBJS = $(BMR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(YAO) $(COMPLETE)
 DEPS := $(OBJS:.o=.d)
 
 
-all: gen_input online offline externalIO yao replicated-party.x
+all: gen_input online offline externalIO yao replicated-bin-party.x replicated-ring-party.x
 
 ifeq ($(USE_GF2N_LONG),1)
 all: bmr
@@ -141,8 +141,8 @@ spdz2-offline.x: $(COMMON) $(FHEOFFLINE) spdz2-offline.cpp
 endif
 
 ifeq ($(USE_GF2N_LONG),1)
-yao-player.x: $(YAO) $(BMR) yao-player.cpp
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(BOOST) $(LIBSIMPLEOT)
+yao-player.x: $(YAO) $(COMMON) yao-player.cpp
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(LIBSIMPLEOT)
 endif
 
 yao-clean:
@@ -151,8 +151,11 @@ yao-clean:
 galois-degree.x: $(COMMON) galois-degree.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
-replicated-party.x: $(BMR) replicated-party.cpp
+replicated-bin-party.x: $(BMR) replicated-bin-party.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(BOOST)
+
+replicated-ring-party.x: replicated-ring-party.cpp $(PROCESSOR) $(COMMON)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 clean:
 	-rm */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o

@@ -8,9 +8,7 @@
 
 #include "GC/config.h"
 #include "BMR/config.h"
-
-#include "BMR/Register.h"
-#include "BMR/AndJob.h"
+#include "BMR/common.h"
 
 #include "GC/Clear.h"
 #include "GC/Memory.h"
@@ -19,10 +17,15 @@
 
 #include "Math/Share.h"
 
+#include "Processor/DummyProtocol.h"
+
 #include <fstream>
 
 namespace GC
 {
+
+template<class T>
+class Secret;
 
 template <class T>
 inline void XOR(T& res, const T& left, const T& right)
@@ -77,6 +80,7 @@ public:
 
     // dummy
     typedef MAC_Check_Base<Secret<T> > MC;
+    typedef DummyProtocol Protocol;
 
     static string type_string() { return "evaluation secret"; }
     static string phase_name() { return T::name(); }
@@ -89,7 +93,7 @@ public:
     static const T& cast(const T& reg) { return *reinterpret_cast<const T*>(&reg); }
 
     static Secret<T> input(party_id_t from, const int128& input, int n_bits = -1);
-    static Secret<T> input(party_id_t from, ifstream& input_file, int n_bits = -1);
+    static Secret<T> input(party_id_t from, Processor<Secret<T>>& processor, int n_bits = -1);
     void random(int n_bits, int128 share);
     void random_bit();
     static Secret<T> reconstruct(const int128& x, int length);

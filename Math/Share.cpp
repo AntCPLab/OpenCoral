@@ -38,17 +38,19 @@ T combine(const vector< Share<T> >& S)
 
 
 template<class T>
-inline void Share<T>::pack(octetStream& os) const
+inline void Share<T>::pack(octetStream& os, bool full) const
 {
   a.pack(os);
-  mac.pack(os);
+  if (full)
+    mac.pack(os);
 }
 
 template<class T>
-inline void Share<T>::unpack(octetStream& os)
+inline void Share<T>::unpack(octetStream& os, bool full)
 {
   a.unpack(os);
-  mac.unpack(os);
+  if (full)
+    mac.unpack(os);
 }
 
 
@@ -77,5 +79,3 @@ template class Share<gf2n_short>;
 template gf2n_short combine(const vector< Share<gf2n_short> >& S);
 template bool check_macs(const vector< Share<gf2n_short> >& S,const gf2n_short& key);
 #endif
-
-template class Share<FixedVec<Integer, 2> >;

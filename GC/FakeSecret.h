@@ -10,9 +10,8 @@
 #include "GC/Memory.h"
 #include "GC/Access.h"
 
-#include "Math/Share.h"
-#include "Math/gf2n.h"
 #include "Auth/MAC_Check.h"
+#include "Processor/DummyProtocol.h"
 
 #include <random>
 #include <fstream>
@@ -32,6 +31,7 @@ public:
 
     // dummy
     typedef MAC_Check_Base<FakeSecret> MC;
+    typedef DummyProtocol Protocol;
 
     static string type_string() { return "fake secret"; }
     static string phase_name() { return "Faking"; }
@@ -58,7 +58,7 @@ public:
     static void trans(Processor<FakeSecret>& processor, int n_inputs,
             const vector<int>& args);
 
-    static FakeSecret input(int from, ifstream& input_file, int n_bits);
+    static FakeSecret input(int from, GC::Processor<FakeSecret>& processor, int n_bits);
     static FakeSecret input(int from, const int128& input, int n_bits);
 
     FakeSecret() : a(0) {}

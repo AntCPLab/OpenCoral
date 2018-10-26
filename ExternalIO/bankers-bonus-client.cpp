@@ -163,7 +163,7 @@ int main(int argc, char** argv)
         port_base = atoi(argv[6]);
 
     // init static gfp
-    string prep_data_prefix = get_prep_dir(nparties, 128, 40);
+    string prep_data_prefix = get_prep_dir(nparties, 128, gf2n::default_degree());
     initialise_fields(prep_data_prefix);
 
     // Setup connections from this client to each party socket

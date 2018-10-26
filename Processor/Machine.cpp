@@ -13,7 +13,26 @@
 #include <pthread.h>
 using namespace std;
 
-Machine::Machine(int my_number, Names& playerNames,
+BaseMachine* BaseMachine::singleton = 0;
+
+BaseMachine& BaseMachine::s()
+{
+  if (singleton)
+    return *singleton;
+  else
+    throw runtime_error("no singleton");
+}
+
+BaseMachine::BaseMachine() : nthreads(0)
+{
+  if (singleton)
+    throw runtime_error("there can only be one");
+  else
+    singleton = this;
+}
+
+template<class sint>
+Machine<sint>::Machine(int my_number, Names& playerNames,
     string progname_str, string memtype, int lgp, int lg2, bool direct,
     int opening_sum, bool parallel, bool receive_threads, int max_broadcast)
   : my_number(my_number), N(playerNames), tn(0), numt(0), usage_unknown(false),
@@ -58,9 +77,9 @@ Machine::Machine(int my_number, Names& playerNames,
      {sprintf(filename, PREP_DIR "Player-Memory-P%d", my_number);
        ifstream memfile(filename);
        if (memfile.fail()) { throw file_error(filename); }
-       Load_Memory(M2,memfile); 
-       Load_Memory(Mp,memfile); 
-       Load_Memory(Mi,memfile);
+       M2.Load_Memory(memfile);
+       Mp.Load_Memory(memfile);
+       Mi.Load_Memory(memfile);
        memfile.close();
      }
   else if (memtype.compare("old")==0)
@@ -105,7 +124,7 @@ Machine::Machine(int my_number, Names& playerNames,
       tinfo[i].machine=this;
       // lock for synchronization
       pthread_mutex_lock(&t_mutex[i]);
-      pthread_create(&threads[i],NULL,Main_Func,&tinfo[i]);
+      pthread_create(&threads[i],NULL,thread_info<sint>::Main_Func,&tinfo[i]);
     }
 
   // synchronize with clients before starting timer
@@ -156,7 +175,8 @@ void BaseMachine::print_compiler()
   inpf.close();
 }
 
-void Machine::load_program(string threadname, string filename)
+template<class sint>
+void Machine<sint>::load_program(string threadname, string filename)
 {
   ifstream pinp(filename);
   if (pinp.fail()) { throw file_error(filename); }
@@ -169,7 +189,8 @@ void Machine::load_program(string threadname, string filename)
   Mi.minimum_size(INT, progs[i], threadname);
 }
 
-DataPositions Machine::run_tape(int thread_number, int tape_number, int arg, int line_number)
+template<class sint>
+DataPositions Machine<sint>::run_tape(int thread_number, int tape_number, int arg, int line_number)
 {
   if (thread_number >= (int)tinfo.size())
     throw Processor_Error("invalid thread number: " + to_string(thread_number) + "/" + to_string(tinfo.size()));
@@ -208,7 +229,8 @@ DataPositions Machine::run_tape(int thread_number, int tape_number, int arg, int
     }
 }
 
-void Machine::join_tape(int i)
+template<class sint>
+void Machine<sint>::join_tape(int i)
 {
   join_timer[i].start();
   pthread_mutex_lock(&t_mutex[i]);
@@ -219,7 +241,8 @@ void Machine::join_tape(int i)
   join_timer[i].stop();
 }
 
-void Machine::run()
+template<class sint>
+void Machine<sint>::run()
 {
   Timer proc_timer(CLOCK_PROCESS_CPUTIME_ID);
   proc_timer.start();
@@ -328,14 +351,14 @@ void Machine::run()
 
   for (int dtype = 0; dtype < N_DTYPE; dtype++)
     {
-      cerr << "Num " << Data_Files::dtype_names[dtype] << "\t=";
+      cerr << "Num " << DataPositions::dtype_names[dtype] << "\t=";
       for (int field_type = 0; field_type < N_DATA_FIELD_TYPE; field_type++)
         cerr << " " << pos.files[field_type][dtype];
       cerr << endl;
    }
   for (int field_type = 0; field_type < N_DATA_FIELD_TYPE; field_type++)
     {
-      cerr << "Num " << Data_Files::long_field_names[field_type] << " Inputs\t=";
+      cerr << "Num " << DataPositions::field_names[field_type] << " Inputs\t=";
       for (int i = 0; i < N.num_players(); i++)
         cerr << " " << pos.inputs[i][field_type];
       cerr << endl;
@@ -385,3 +408,12 @@ void BaseMachine::print_timers()
   for (map<int,Timer>::iterator it = timer.begin(); it != timer.end(); it++)
     cerr << "Time" << it->first << " = " << it->second.elapsed() << " seconds " << endl;
 }
+
+template<class sint>
+void Machine<sint>::reqbl(int n)
+{
+  sint::Protocol::reqbl(n);
+}
+
+template class Machine<sgfp>;
+template class Machine<Rep3Share>;

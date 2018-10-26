@@ -8,8 +8,6 @@
 
 #include "ReplicatedSecret.h"
 #include "Secret.h"
-#include "Yao/YaoGarbleWire.h"
-#include "Yao/YaoEvalWire.h"
 
 namespace GC
 {

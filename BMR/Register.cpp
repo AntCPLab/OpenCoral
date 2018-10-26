@@ -511,22 +511,6 @@ void PRFRegister::random()
 #endif
 }
 
-void EvalRegister::check_input(long long in, int n_bits)
-{
-	auto test = in >> (n_bits - 1);
-	if (n_bits == 1)
-	{
-		if (not (in == 0 or in == 1))
-			throw runtime_error("input not a bit: " + to_string(in));
-	}
-	else if (not (test == 0 or test == -1))
-	{
-		throw runtime_error(
-				"input too large for a " + std::to_string(n_bits)
-						+ "-bit signed integer: " + to_string(in));
-	}
-}
-
 class InputAccess
 {
 	party_id_t from;

@@ -16,7 +16,7 @@ run_player() {
     if ! test -e $SPDZROOT/logs; then
         mkdir $SPDZROOT/logs
     fi
-    if test $bin = Player-Online.x; then
+    if test $bin = Player-Online.x -o $bin = replicated-ring-party.x; then
 	params="$* -pn $port -h localhost"
     else
 	params="$port localhost $*"

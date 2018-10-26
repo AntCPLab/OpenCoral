@@ -7,14 +7,13 @@
 #define GC_SECRET_INLINE_H_
 
 #include "BMR/config.h"
+#include "GC/Secret.h"
 
 #ifdef MAX_INLINE
 #define MAYBE_INLINE inline
 #else
 #define MAYBE_INLINE
 #endif
-
-#include "BMR/Register_inline.h"
 
 namespace GC {
 

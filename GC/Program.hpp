@@ -10,9 +10,6 @@
 
 #include <valgrind/callgrind.h>
 
-#include "Yao/YaoGarbleWire.h"
-#include "Yao/YaoEvalWire.h"
-
 #ifdef MAX_INLINE
 #include "Instruction_inline.h"
 #endif

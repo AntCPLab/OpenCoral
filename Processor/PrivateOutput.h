@@ -11,16 +11,14 @@ using namespace std;
 
 #include "Math/Share.h"
 
-class Processor;
-
 template<class T>
 class PrivateOutput
 {
-    Processor& proc;
+    SubProcessor<Share<T>>& proc;
     deque<T> masks;
 
 public:
-    PrivateOutput(Processor& proc) : proc(proc) { };
+    PrivateOutput(SubProcessor<Share<T>>& proc) : proc(proc) { };
 
     void start(int player, int target, int source);
     void stop(int player, int source);

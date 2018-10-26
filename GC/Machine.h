@@ -10,9 +10,6 @@
 #include "GC/Clear.h"
 #include "GC/Memory.h"
 
-#include "Math/Share.h"
-#include "Math/gf2n.h"
-
 #include "Processor/Machine.h"
 
 #include <vector>

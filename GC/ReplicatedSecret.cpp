@@ -92,7 +92,7 @@ void ReplicatedSecret::inputb(Processor<ReplicatedSecret>& processor,
     }
 }
 
-ReplicatedSecret ReplicatedSecret::input(int from, long input, int n_bits)
+ReplicatedSecret ReplicatedSecret::input(int from, Processor<ReplicatedSecret>& processor, int n_bits)
 {
     // BMR stuff counts from 1
     from--;
@@ -103,7 +103,7 @@ ReplicatedSecret ReplicatedSecret::input(int from, long input, int n_bits)
         o.reset_write_head();
     if (from == party.P->my_num())
     {
-        res.prepare_input(party.os, input, n_bits, party.secure_prng);
+        res.prepare_input(party.os, processor.get_input(n_bits), n_bits, party.secure_prng);
         party.P->send_relative(party.os);
     }
     else
@@ -142,7 +142,7 @@ void ReplicatedSecret::and_(Processor<ReplicatedSecret>& processor,
     for (size_t i = 0; i < args.size(); i += 4)
         processor.S[args[i + 1]].prepare_and(os, args[i],
                 processor.S[args[i + 2]], processor.S[args[i + 3]],
-                party.secure_prng, repeat);
+                party, repeat);
     party.P->send_relative(os);
     party.P->receive_relative(os);
     for (size_t i = 0; i < args.size(); i += 4)
@@ -151,7 +151,7 @@ void ReplicatedSecret::and_(Processor<ReplicatedSecret>& processor,
 
 inline void ReplicatedSecret::prepare_and(vector<octetStream>& os, int n,
         const ReplicatedSecret& x, const ReplicatedSecret& y,
-        PRNG& secure_prng, bool repeat)
+        Thread<ReplicatedSecret>& party, bool repeat)
 {
     ReplicatedSecret y_ext;
     if (repeat)
@@ -159,11 +159,14 @@ inline void ReplicatedSecret::prepare_and(vector<octetStream>& os, int n,
     else
         y_ext = y;
     auto add_share = x[0] * y_ext.sum() + x[1] * y_ext[0];
-    randomize_to_sum(add_share, secure_prng);
+    BitVec tmp[2];
+    for (int i = 0; i < 2; i++)
+        tmp[i].randomize(party.protocol->shared_prngs[i]);
+    add_share += tmp[0] - tmp[1];
+    (*this)[0] = add_share;
     BitVec mask = get_mask(n);
     *this &= mask;
-    for (int k = 0; k < 2; k++)
-        BitVec(mask & (*this)[k]).pack(os[k], n);
+    BitVec(mask & (*this)[0]).pack(os[0], n);
 }
 
 void ReplicatedSecret::and_(int n, const ReplicatedSecret& x,
@@ -184,7 +187,7 @@ void ReplicatedSecret::andrs(int n, const ReplicatedSecret& x,
     os.resize(2);
     for (auto& o : os)
         o.reset_write_head();
-    prepare_and(os, n, x, y, party.secure_prng, true);
+    prepare_and(os, n, x, y, party, true);
     party.P->send_relative(os);
     party.P->receive_relative(os);
     finalize_andrs(os, n);
@@ -192,12 +195,7 @@ void ReplicatedSecret::andrs(int n, const ReplicatedSecret& x,
 
 inline void ReplicatedSecret::finalize_andrs(vector<octetStream>& os, int n)
 {
-    for (int k = 0; k < 2; k++)
-    {
-        value_type tmp;
-        tmp.unpack(os[k], n);
-        (*this)[k] += tmp;
-    }
+    (*this)[1].unpack(os[1], n);
 }
 
 void ReplicatedSecret::trans(Processor<ReplicatedSecret>& processor,
@@ -217,8 +215,7 @@ void ReplicatedSecret::trans(Processor<ReplicatedSecret>& processor,
 
 void ReplicatedSecret::reveal(Clear& x)
 {
-    Share<ReplicatedSecret> share;
-    share.set_share(*this);
+    ReplicatedSecret share = *this;
     vector<BitVec> opened;
     auto& party = ReplicatedParty::s();
     party.MC.POpen_Begin(opened, {share}, *party.P);

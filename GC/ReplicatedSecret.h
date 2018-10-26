@@ -15,6 +15,7 @@ using namespace std;
 #include "Math/FixedVec.h"
 #include "Math/BitVec.h"
 #include "Tools/SwitchableOutput.h"
+#include "Processor/Replicated.h"
 
 namespace GC
 {
@@ -32,10 +33,12 @@ class ReplicatedSecret : public FixedVec<BitVec, 2>
 public:
     typedef ReplicatedSecret DynamicType;
 
+    typedef BitVec clear;
+
     typedef ReplicatedMC<ReplicatedSecret> MC;
     typedef void Inp;
     typedef void PO;
-    typedef void Protocol;
+    typedef ReplicatedBase Protocol;
 
     static string type_string() { return "replicated secret"; }
     static string phase_name() { return "Replicated computation"; }
@@ -61,7 +64,7 @@ public:
 
     static BitVec get_mask(int n) { return n >= 64 ? -1 : ((1L << n) - 1); }
 
-    static ReplicatedSecret input(int from, long input, int n_bits);
+    static ReplicatedSecret input(int from, Processor<ReplicatedSecret>& processor, int n_bits);
     void prepare_input(vector<octetStream>& os, long input, int n_bits, PRNG& secure_prng);
     void finalize_input(Thread<ReplicatedSecret>& party, octetStream& o, int from, int n_bits);
 
@@ -80,7 +83,7 @@ public:
     void andrs(int n, const ReplicatedSecret& x, const ReplicatedSecret& y);
     void prepare_and(vector<octetStream>& os, int n,
             const ReplicatedSecret& x, const ReplicatedSecret& y,
-            PRNG& secure_prng, bool repeat);
+            Thread<ReplicatedSecret>& party, bool repeat);
     void finalize_andrs(vector<octetStream>& os, int n);
 
     void reveal(Clear& x);

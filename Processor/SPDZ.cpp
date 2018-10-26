@@ -21,7 +21,7 @@ void SPDZ<T>::muls(const vector<int>& reg, SubProcessor<Share<T> >& proc, MAC_Ch
     for (int i = 0; i < n; i++)
         for (int j = 0; j < size; j++)
         {
-            proc.Proc.DataF.get(DATA_TRIPLE, triples[i][j]);
+            proc.DataF.get(DATA_TRIPLE, triples[i][j]);
             for (int k = 0; k < 2; k++)
                 shares.push_back(proc.S[reg[i * 3 + k + 1] + j] - triples[i][j][k]);
         }
@@ -46,8 +46,50 @@ void SPDZ<T>::muls(const vector<int>& reg, SubProcessor<Share<T> >& proc, MAC_Ch
         }
 }
 
-#ifndef REPLICATED
-template class SPDZ<gfp>;
-#endif
+template<>
+void SPDZ<gfp>::reqbl(int n)
+{
+    if ((int)n > 0 && gfp::pr() < bigint(1) << (n-1))
+    {
+        cout << "Tape requires prime of bit length " << n << endl;
+        throw invalid_params();
+    }
+    else if ((int)n < 0)
+    {
+        throw Processor_Error("Program compiled for rings not fields");
+    }
+}
 
+template<class T>
+inline void SPDZ<T>::input(SubProcessor<Share<T>>& Proc, int n, int* r)
+{
+    T rr, t, tmp;
+    Proc.DataF.get_input(Proc.get_S_ref(r[0]),rr,n);
+    octetStream o;
+    if (n==Proc.P.my_num())
+    {
+        T xi;
+#ifdef DEBUG
+        printf("Enter your input : \n");
+#endif
+        long x;
+        cin >> x;
+        t.assign(x);
+        t.sub(t,rr);
+        t.pack(o);
+        Proc.P.send_all(o);
+        xi.add(t,Proc.get_S_ref(r[0]).get_share());
+        Proc.get_S_ref(r[0]).set_share(xi);
+    }
+    else
+    {
+        Proc.P.receive_player(n,o);
+        t.unpack(o);
+    }
+    tmp.mul(t, Proc.MC.get_alphai());
+    tmp.add(Proc.get_S_ref(r[0]).get_mac(),tmp);
+    Proc.get_S_ref(r[0]).set_mac(tmp);
+}
+
+template class SPDZ<gfp>;
 template class SPDZ<gf2n>;

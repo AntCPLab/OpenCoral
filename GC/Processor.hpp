@@ -13,9 +13,6 @@ using namespace std;
 #include "Access.h"
 #include "ReplicatedSecret.h"
 
-#include "Yao/YaoGarbleWire.h"
-#include "Yao/YaoEvalWire.h"
-
 namespace GC
 {
 
@@ -66,8 +63,25 @@ inline long long GC::Processor<T>::get_input(int n_bits)
         throw IO_Error("not enough inputs in " + input_filename);
     if (input_file.fail())
         throw IO_Error("cannot read from " + input_filename);
-    EvalRegister::check_input(res, n_bits);
+    check_input(res, n_bits);
     return res;
+}
+
+template<class T>
+void GC::Processor<T>::check_input(long long in, int n_bits)
+{
+	auto test = in >> (n_bits - 1);
+	if (n_bits == 1)
+	{
+		if (not (in == 0 or in == 1))
+			throw runtime_error("input not a bit: " + to_string(in));
+	}
+	else if (not (test == 0 or test == -1))
+	{
+		throw runtime_error(
+				"input too large for a " + std::to_string(n_bits)
+						+ "-bit signed integer: " + to_string(in));
+	}
 }
 
 template <class T>
@@ -172,7 +186,7 @@ void Processor<T>::input(const vector<int>& args)
     for (size_t i = 0; i < args.size(); i += 3)
     {
         int n_bits = args[i + 1];
-        S[args[i+2]] = T::input(args[i] + 1, get_input(n_bits), n_bits);
+        S[args[i+2]] = T::input(args[i] + 1, *this, n_bits);
 #ifdef DEBUG_INPUT
         cout << "input to " << args[i+2] << "/" << &S[args[i+2]] << endl;
 #endif

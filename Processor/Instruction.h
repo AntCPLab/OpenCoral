@@ -14,8 +14,8 @@ using namespace std;
 #include "Math/Integer.h"
 #include "Auth/MAC_Check.h"
 
-class Machine;
-class Processor;
+template<class sint> class Machine;
+template<class sint> class Processor;
 
 /* 
  * Opcode constants
@@ -272,14 +272,15 @@ enum SecrecyType {
   MAX_SECRECY_TYPE
 };
 
+template<class sint>
 struct TempVars {
   gf2n ans2; Share<gf2n> Sans2;
-  sint::clear ansp;
+  typename sint::clear ansp;
   sint Sansp;
   bigint aa,aa2;
   // INPUT and LDSI
-  sint::value_type rrp,tp,tmpp;
-  sint::clear xip;
+  typename sint::value_type rrp,tp,tmpp;
+  typename sint::clear xip;
   // GINPUT and GLDSI
   gf2n rr2,t2,tmp2;
   gf2n xi2;
@@ -331,7 +332,8 @@ public:
 
   // Execute this instruction, updateing the processor and memory
   // and streams pointing to the triples etc
-  void execute(Processor& Proc) const;
+  template<class sint>
+  void execute(Processor<sint>& Proc) const;
 };
 
 

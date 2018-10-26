@@ -12,11 +12,7 @@
 #include "YaoCommon.h"
 #include "GC/Secret.h"
 #include "GC/Program.h"
-#include "GC/Machine.h"
-#include "GC/Processor.h"
-#include "GC/Memory.h"
 #include "GC/Thread.h"
-#include "GC/ThreadMaster.h"
 #include "Tools/MMO.h"
 #include "OT/OTExtensionWithMatrix.h"
 

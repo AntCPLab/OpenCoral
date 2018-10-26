@@ -22,7 +22,7 @@ void ReplicatedInput<T>::start(int player, int n_inputs)
             typename T::value_type t;
             this->buffer.input(t);
             T& my_share = shares[i];
-            my_share[0].randomize(proc.secure_prng);
+            my_share[0].randomize(proc.Proc.secure_prng);
             my_share[1] = t - my_share[0];
             for (int j = 0; j < 2; j++)
             {
@@ -41,7 +41,7 @@ void ReplicatedInput<T>::stop(int player, vector<int> targets)
     if (proc.P.my_num() == player)
     {
         for (unsigned int i = 0; i < targets.size(); i++)
-            proc.get_S_ref<T>(targets[i]).set_share(shares[i]);
+            proc.get_S_ref(targets[i]) = shares[i];
     }
     else
     {
@@ -57,11 +57,9 @@ void ReplicatedInput<T>::stop(int player, vector<int> targets)
             T share;
             share[j] = t;
             share[1 - j] = 0;
-            this->proc.template get_S_ref<T>(targets[i]).set_share(share);
+            this->proc.get_S_ref(targets[i]) = share;
         }
     }
 }
 
-#ifdef REPLICATED
-template class ReplicatedInput<FixedVec<Integer, 2> >;
-#endif
+template class ReplicatedInput<Rep3Share>;

@@ -30,15 +30,16 @@ public:
 	static void andrs(GC::Processor<GC::Secret<YaoEvalWire>>& processor,
 			const vector<int>& args)
 	{
-		and_(processor, args, true);
+		and_<true>(processor, args);
 	}
 	static void ands(GC::Processor<GC::Secret<YaoEvalWire>>& processor,
 			const vector<int>& args)
 	{
-		and_(processor, args, false);
+		and_<false>(processor, args);
 	}
+	template<bool repeat>
 	static void and_(GC::Processor<GC::Secret<YaoEvalWire>>& processor,
-			const vector<int>& args, bool repeat);
+			const vector<int>& args);
 
 	static void inputb(GC::Processor<GC::Secret<YaoEvalWire>>& processor,
 			const vector<int>& args);

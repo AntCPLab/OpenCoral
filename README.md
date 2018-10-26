@@ -94,7 +94,6 @@ compute the preprocessing time for a particulor computation.
 1) Edit `CONFIG` or `CONFIG.mine` to your needs:
 
  - To benchmark anything other than Yao's garbled circuits, add the following line at the top: `MY_CFLAGS = -DINSECURE`
- - To use replicated secret sharing modulo 2^64 instead of SPDZ modulo a large prime, add `MY_CFLAGS = -DREPLICATED` (or add `#define REPLICATED` to `Processor/config.h`).
  - `PREP_DIR` should point to should be a local, unversioned directory to store preprocessing data (default is `Player-Data` in the current directory).
  - For the SPDZ-2 and Overdrive offline phases, set `USE_NTL = 1` and `MOD = -DMAX_MOD_SZ=6`.
  - To use GF(2^40) in the online phase, set `USE_GF2N_LONG = 1`. This will deactive anything that requires OT.
@@ -199,10 +198,15 @@ Player-Data Programs
 $ ../spdz/Scripts/run-online.sh test
 ```
 
-### Semi-honest 3-party replicated secret sharing
+### Semi-honest 3-party replicated secret sharing modulo 2^64
 
-Make sure to compile for this setting according to compilation
-section and use `make clean` if you change `CONFIG` or `CONFIG.mine`.
+Compile the virtual machine:
+
+`make -j 8 replicated-ring-party.x`
+
+Run setup to create necessary files and random bits (needed for comparisons etc.):
+
+`Scripts/setup-online.sh 3`
 
 In order to compile a program, use `./compile.py -R 64`, for example:
 
@@ -211,15 +215,15 @@ In order to compile a program, use `./compile.py -R 64`, for example:
 Running the computation is similar to SPDZ but you will need to start
 three parties:
 
-`./Player-Online.x -N 3 0 tutorial`
+`./replicated-ring-party.x 0 tutorial`
 
-`./Player-Online.x -N 3 1 tutorial` (in a separate terminal)
+`./replicated-ring-party.x 1 tutorial` (in a separate terminal)
 
-`./Player-Online.x -N 3 2 tutorial` (in a separate terminal)
+`./replicated-ring-party.x 2 tutorial` (in a separate terminal)
 
 or
 
-`PLAYERS=3 Scripts/run-online.sh tutorial`
+`Scripts/ring.sh tutorial`
 
 ## Binary circuits
 
@@ -232,15 +236,11 @@ and `sfix`. See `gc_tutorial.mpc` and `gc_fixed_point_tutorial.mpc` in
 
 Compile the virtual machine:
 
-`make -j 8 replicated-party.x`
-
-Generate the correlated randomness:
-
-`Scripts/setup-online.sh 3`
+`make -j 8 replicated-bin-party.x`
 
 After compilating the mpc file, run as follows:
 
-`replicated-party.x -h <host of party 0> -p <0/1/2> gc_tutorial`
+`replicated-bin-party.x -h <host of party 0> -p <0/1/2> gc_tutorial`
 
 When running locally, you can omit the host argument.
 

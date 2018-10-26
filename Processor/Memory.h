@@ -76,23 +76,21 @@ class Memory
   friend ostream& operator<< <>(ostream& s,const Memory<T>& M);
   friend istream& operator>> <>(istream& s,Memory<T>& M);
 
+  /* This function loads a un-shared global memory from disk and
+   * produces the memory
+   *
+   * The global unshared memory is of the form
+   *     sz     <- Size
+   *    n val   <- Clear values
+   *    n val   <- Clear values
+   *    -1 -1   <- End of clear values
+   *    n val   <- Shared values
+   *    n val   <- Shared values
+   *    -1 -1
+   */
+  void Load_Memory(ifstream& inpf);
+
 };
-
-
-/* This function loads a un-shared global memory from disk and
- * produces the memory
- *
- * The global unshared memory is of the form 
- *     sz     <- Size
- *    n val   <- Clear values 
- *    n val   <- Clear values 
- *    -1 -1   <- End of clear values
- *    n val   <- Shared values 
- *    n val   <- Shared values
- *    -1 -1
- */
-template<class T>
-void Load_Memory(Memory<T>& M,ifstream& inpf);
 
 #endif
 

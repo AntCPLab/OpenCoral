@@ -98,3 +98,5 @@ test(mismatches[0][1], 0)
 test(mismatches[0][0], 64)
 test(mismatches[1][0], 64)
 test(mismatches[1][1], 128)
+
+print_ln('%sx%s linkage of %s bits', n, n, l * batch_size)

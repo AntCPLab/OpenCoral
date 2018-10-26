@@ -26,7 +26,7 @@ class Binary_File_IO
    * Throws file_error.   
    */
   template <class T>
-  void write_to_file(const string filename, const vector< Share<T> >& buffer);
+  void write_to_file(const string filename, const vector< T >& buffer);
 
   /*
    * Read from posn in the filename the binary values until the buffer is full.

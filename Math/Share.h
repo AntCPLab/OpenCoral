@@ -20,6 +20,7 @@ template<class T> class Share;
 template<class T> T combine(const vector< Share<T> >& S);
 template<class T> bool check_macs(const vector< Share<T> >& S,const T& key);
 
+template<class T> class Direct_MAC_Check;
 
 template<class T>
 class Share
@@ -33,6 +34,7 @@ class Share
    typedef typename T::value_type clear;
 
    typedef typename T::MC MAC_Check;
+   typedef Direct_MAC_Check<T> Direct_MC;
    typedef typename T::Inp Input;
    typedef typename T::PO PrivateOutput;
    typedef typename T::Protocol Protocol;
@@ -42,6 +44,12 @@ class Share
 
    static string type_string()
      { return T::type_string(); }
+
+   static char type_char()
+     { return T::type_char(); }
+
+   static DataFieldType field_type()
+     { return T::field_type(); }
 
    void assign(const Share<T>& S)
      { a=S.a; mac=S.mac; }
@@ -106,8 +114,8 @@ class Share
 
    friend ostream& operator<<(ostream& s, const Share<T>& x) { x.output(s, true); return s; }
 
-   void pack(octetStream& os) const;
-   void unpack(octetStream& os);
+   void pack(octetStream& os, bool full = true) const;
+   void unpack(octetStream& os, bool full = true);
 
     /* Takes a vector of shares, one from each player and
      * determines the shared value

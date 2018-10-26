@@ -31,6 +31,7 @@ public:
     Machine<T>& machine;
     Processor<T> processor;
     typename T::MC MC;
+    typename T::Protocol* protocol;
     Names& N;
     Player* P;
     PRNG secure_prng;

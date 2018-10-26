@@ -46,9 +46,13 @@ public:
 
 struct DataPositions
 {
-  vector< vector<int> > files;
-  vector< vector<int> > inputs;
-  map<DataTag, int> extended[N_DATA_FIELD_TYPE];
+  static const char* dtype_names[N_DTYPE];
+  static const char* field_names[N_DATA_FIELD_TYPE];
+  static const int tuple_size[N_DTYPE];
+
+  vector< vector<long long> > files;
+  vector< vector<long long> > inputs;
+  map<DataTag, long long> extended[N_DATA_FIELD_TYPE];
 
   DataPositions(int num_players = 0) { set_num_players(num_players); }
   void set_num_players(int num_players);
@@ -56,94 +60,66 @@ struct DataPositions
   void print_cost() const;
 };
 
-class Processor;
+template<class sint> class Processor;
+template<class sint> class Data_Files;
 
-class Data_Files
+template<class T>
+class Sub_Data_Files
 {
+  static const bool implemented[N_DTYPE];
+
   static map<DataTag, int> tuple_lengths;
   static Lock tuple_lengths_lock;
 
-  BufferHelper<Share, Share> buffers[N_DTYPE];
-  BufferHelper<Share, Share>* input_buffers;
-  BufferHelper<InputTuple, RefInputTuple> my_input_buffers;
-  map<DataTag, BufferHelper<Share, Share> > extended;
+  static int tuple_length(int dtype);
+
+  BufferOwner<T, T> buffers[N_DTYPE];
+  vector<BufferOwner<T, T>> input_buffers;
+  BufferOwner<InputTuple<T>, RefInputTuple<T>> my_input_buffers;
+  map<DataTag, BufferOwner<T, T> > extended;
 
   int my_num,num_players;
 
-  DataPositions usage;
-
-  public:
-
   const string prep_data_dir;
 
-  static const char* dtype_names[N_DTYPE];
-  static const char* field_names[N_DATA_FIELD_TYPE];
-  static const char* long_field_names[N_DATA_FIELD_TYPE];
-  static const bool implemented[N_DATA_FIELD_TYPE][N_DTYPE];
-  static const int tuple_size[N_DTYPE];
+  DataPositions& usage;
 
-  static int share_length(int field_type);
-  static int tuple_length(int field_type, int dtype);
+public:
+  Sub_Data_Files(int my_num, int num_players, const string& prep_data_dir,
+      DataPositions& usage);
+  ~Sub_Data_Files();
 
-  Data_Files(int my_num,int n,const string& prep_data_dir);
-  Data_Files(Names& N, const string& prep_data_dir) :
-      Data_Files(N.my_num(), N.num_players(), prep_data_dir) {}
-  ~Data_Files();
-
-  DataPositions tellg();
   void seekg(DataPositions& pos);
-  void skip(const DataPositions& pos);
   void prune();
   void purge();
 
-  template<class T>
   bool eof(Dtype dtype);
-  template<class T>
   bool input_eof(int player);
 
-  void setup_extended(DataFieldType field_type, const DataTag& tag, int tuple_size = 0);
-  template<class T>
-  void get(Processor& proc, DataTag tag, const vector<int>& regs, int vector_size);
+  void get(Dtype dtype, T* a);
 
-  DataPositions get_usage()
-  {
-    return usage;
-  }
-
-  template <class T>
-  void get(Dtype dtype, Share<T>* a)
+  void get_three(Dtype dtype, T& a, T& b, T& c)
   {
     usage.files[T::field_type()][dtype]++;
-    for (int i = 0; i < tuple_size[dtype]; i++)
-      buffers[dtype].input(a[i]);
-  }
-
-  template <class T>
-  void get_three(DataFieldType field_type, Dtype dtype, Share<T>& a, Share<T>& b, Share<T>& c)
-  {
-    usage.files[field_type][dtype]++;
     buffers[dtype].input(a);
     buffers[dtype].input(b);
     buffers[dtype].input(c);
   }
 
-  template <class T>
-  void get_two(DataFieldType field_type, Dtype dtype, Share<T>& a, Share<T>& b)
+  void get_two(Dtype dtype, T& a, T& b)
   {
-    usage.files[field_type][dtype]++;
+    usage.files[T::field_type()][dtype]++;
     buffers[dtype].input(a);
     buffers[dtype].input(b);
   }
 
-  template <class T>
-  void get_one(DataFieldType field_type, Dtype dtype, Share<T>& a)
+  void get_one(Dtype dtype, T& a)
   {
-    usage.files[field_type][dtype]++;
+    usage.files[T::field_type()][dtype]++;
     buffers[dtype].input(a);
   }
 
-  template <class T>
-  void get_input(Share<T>& a,T& x,int i)
+  void get_input(T& a,typename T::clear& x,int i)
   {
     usage.inputs[i][T::field_type()]++;
     RefInputTuple<T> tuple(a, x);
@@ -152,19 +128,140 @@ class Data_Files
     else
       input_buffers[i].input(a);
   }
+
+  void setup_extended(const DataTag& tag, int tuple_size = 0);
+  void get(SubProcessor<T>& proc, DataTag tag, const vector<int>& regs, int vector_size);
+};
+
+template<class sint>
+class Data_Files
+{
+  DataPositions usage;
+
+  public:
+
+  Sub_Data_Files<sint> DataFp;
+  Sub_Data_Files<sgf2n> DataF2;
+
+  const string& prep_data_dir;
+
+  Data_Files(int my_num,int n,const string& prep_data_dir);
+  Data_Files(Names& N, const string& prep_data_dir) :
+      Data_Files(N.my_num(), N.num_players(), prep_data_dir) {}
+
+  DataPositions tellg();
+  void seekg(DataPositions& pos);
+  void skip(const DataPositions& pos);
+  void prune();
+  void purge();
+
+  template<class T>
+  bool eof(Dtype dtype)
+  {
+    return get_sub<T>().eof(dtype);
+  }
+  template<class T>
+  bool input_eof(int player)
+  {
+    return get_sub<T>().input_eof(player);
+  }
+
+  void setup_extended(DataFieldType field_type, const DataTag& tag, int tuple_size = 0);
+  template<class T>
+  void get(SubProcessor<T>& proc, DataTag tag, const vector<int>& regs, int vector_size)
+  {
+    get_sub<T>().get(proc, tag, regs, vector_size);
+  }
+
+  DataPositions get_usage()
+  {
+    return usage;
+  }
+
+  template<class T>
+  Sub_Data_Files<T>& get_sub();
+
+  template <class T>
+  void get(Dtype dtype, T* a)
+  {
+    get_sub<T>().get(dtype, a);
+  }
+
+  template <class T>
+  void get_three(DataFieldType field_type, Dtype dtype, T& a, T& b, T& c)
+  {
+    (void)field_type;
+    get_sub<T>().get_three(dtype, a, b, c);
+  }
+
+  template <class T>
+  void get_two(DataFieldType field_type, Dtype dtype, T& a, T& b)
+  {
+    (void)field_type;
+    get_sub<T>().get_two(dtype, a, b);
+  }
+
+  template <class T>
+  void get_one(DataFieldType field_type, Dtype dtype, T& a)
+  {
+    (void)field_type;
+    get_sub<T>().get_one(dtype, a);
+  }
+
+  template <class T>
+  void get_input(T& a,typename T::clear& x,int i)
+  {
+    get_sub<T>().get_input(a, x, i);
+  }
 };
 
 template<class T> inline
-bool Data_Files::eof(Dtype dtype)
-  { return buffers[dtype].get_buffer(T::field_type()).eof; }
+bool Sub_Data_Files<T>::eof(Dtype dtype)
+  { return buffers[dtype].eof; }
 
 template<class T> inline
-bool Data_Files::input_eof(int player)
+bool Sub_Data_Files<T>::input_eof(int player)
 {
   if (player == my_num)
-    return my_input_buffers.get_buffer(T::field_type()).eof;
+    return my_input_buffers.eof;
   else
-    return input_buffers[player].get_buffer(T::field_type()).eof;
+    return input_buffers[player].eof;
+}
+
+template<class T>
+inline void Sub_Data_Files<T>::get(Dtype dtype, T* a)
+{
+  usage.files[T::field_type()][dtype]++;
+  for (int i = 0; i < DataPositions::tuple_size[dtype]; i++)
+    buffers[dtype].input(a[i]);
+}
+
+template<>
+template<>
+inline Sub_Data_Files<sgfp>& Data_Files<sgfp>::get_sub<sgfp>()
+{
+  return DataFp;
+}
+
+template<>
+template<>
+inline Sub_Data_Files<sgf2n>& Data_Files<sgfp>::get_sub<sgf2n>()
+{
+  return DataF2;
+}
+
+template<>
+template<>
+inline Sub_Data_Files<Rep3Share>& Data_Files<Rep3Share>::get_sub<Rep3Share>()
+{
+  return DataFp;
+}
+
+template<>
+template<>
+inline Sub_Data_Files<sgf2n>& Data_Files<Rep3Share>::get_sub<sgf2n>()
+{
+  return DataF2;
 }
 
 #endif

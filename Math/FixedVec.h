@@ -27,11 +27,6 @@ public:
     typedef T value_type;
     static const int length = L;
 
-    typedef ReplicatedMC<FixedVec<T, L> > MC;
-    typedef ReplicatedInput<FixedVec<T, L> > Inp;
-    typedef ReplicatedPrivateOutput<FixedVec<T, L> > PO;
-    typedef Replicated<FixedVec<T, L> > Protocol;
-
     static int size()
     {
         return L * T::size();
@@ -39,6 +34,10 @@ public:
     static string type_string()
     {
         return T::type_string() + "^" + to_string(L);
+    }
+    static char type_char()
+    {
+        return T::type_char();
     }
     static DataFieldType field_type()
     {
@@ -124,11 +123,25 @@ public:
 
     bool is_zero()
     {
-        throw not_implemented();
+        return equal(0);
     }
     bool is_one()
     {
-        throw not_implemented();
+        return equal(1);
+    }
+
+    FixedVec<T, L>operator+(const FixedVec<T, L>& other) const
+    {
+        FixedVec<T, L> res;
+        res.add(*this, other);
+        return res;
+    }
+
+    FixedVec<T, L>operator-(const FixedVec<T, L>& other) const
+    {
+        FixedVec<T, L> res;
+        res.sub(*this, other);
+        return res;
     }
 
     FixedVec<T, L>operator^(const FixedVec<T, L>& other) const
@@ -145,6 +158,12 @@ public:
         for (int i = 0; i < L; i++)
             res[i] = v[i] & other[i];
         return res;
+    }
+
+    FixedVec<T, L>& operator+=(const FixedVec<T, L>& other)
+    {
+        add(other);
+        return *this;
     }
 
     FixedVec<T, L>& operator^=(const FixedVec<T, L>& other)

@@ -7,15 +7,15 @@
 #include "Processor.h"
 
 template<class T>
-InputBase<T>::InputBase(Processor& proc) :
+InputBase<T>::InputBase(ArithmeticProcessor& proc) :
         values_input(0)
 {
     buffer.setup(&proc.private_input, -1, proc.private_input_filename);
 }
 
 template<class T>
-Input<T>::Input(Processor& proc, MAC_Check<T>& mc) :
-        InputBase<T>(proc), proc(proc), MC(mc), shares(proc.P.num_players())
+Input<T>::Input(SubProcessor<Share<T>>& proc, MAC_Check<T>& mc) :
+        InputBase<T>(proc.Proc), proc(proc), MC(mc), shares(proc.P.num_players())
 {
 }
 
@@ -81,7 +81,7 @@ template<class T>
 void Input<T>::stop(int player, vector<int> targets)
 {
     for (unsigned int i = 0; i < targets.size(); i++)
-        proc.get_S_ref<T>(targets[i]) = shares[player][i];
+        proc.get_S_ref(targets[i]) = shares[player][i];
 
     if (proc.P.my_num() != player)
     {
@@ -92,7 +92,7 @@ void Input<T>::stop(int player, vector<int> targets)
         this->timer.stop();
         for (unsigned int i = 0; i < targets.size(); i++)
         {
-            Share<T>& share = proc.get_S_ref<T>(targets[i]);
+            Share<T>& share = proc.get_S_ref(targets[i]);
             t.unpack(o);
             adjust_mac(share, t);
         }
@@ -101,7 +101,4 @@ void Input<T>::stop(int player, vector<int> targets)
 
 template class InputBase<Integer>;
 template class Input<gf2n>;
-
-#ifndef REPLICATED
 template class Input<gfp>;
-#endif

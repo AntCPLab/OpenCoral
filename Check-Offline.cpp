@@ -21,17 +21,17 @@ using namespace std;
 string PREP_DATA_PREFIX;
 
 template<class T>
-void check_mult_triples(const T& key,int N,vector<Data_Files*>& dataF,DataFieldType field_type)
+void check_mult_triples(const T& key,int N,vector<Sub_Data_Files<Share<T>>*>& dataF)
 {
   T a,b,c,mac,res;
   vector<Share<T> > Sa(N),Sb(N),Sc(N);
   int n = 0;
 
   try {
-      while (!dataF[0]->eof<T>(DATA_TRIPLE))
+      while (!dataF[0]->eof(DATA_TRIPLE))
         {
           for (int i = 0; i < N; i++)
-            dataF[i]->get_three(field_type, DATA_TRIPLE, Sa[i], Sb[i], Sc[i]);
+            dataF[i]->get_three(DATA_TRIPLE, Sa[i], Sb[i], Sc[i]);
           check_share(Sa, a, mac, N, key);
           check_share(Sb, b, mac, N, key);
           check_share(Sc, c, mac, N, key);
@@ -89,46 +89,45 @@ void check_tuple(const T& a, const T& b, int n, Dtype type)
 }
 
 template<class T>
-void check_tuples(const T& key,int N,vector<Data_Files*>& dataF, Dtype type)
+void check_tuples(const T& key,int N,vector<Sub_Data_Files<Share<T>>*>& dataF, Dtype type)
 {
   T a,b,c,mac,res;
   vector<Share<T> > Sa(N),Sb(N),Sc(N);
   int n = 0;
-  DataFieldType field_type = T::field_type();
 
   try {
-      while (!dataF[0]->eof<T>(type))
+      while (!dataF[0]->eof(type))
         {
           for (int i = 0; i < N; i++)
-            dataF[i]->get_two(field_type, type, Sa[i], Sb[i]);
+            dataF[i]->get_two(type, Sa[i], Sb[i]);
           check_share(Sa, a, mac, N, key);
           check_share(Sb, b, mac, N, key);
           check_tuple(a, b, n, type);
           n++;
         }
 
-        cout << n << " " << Data_Files::dtype_names[type] << " of type "
+        cout << n << " " << DataPositions::dtype_names[type] << " of type "
                 << T::type_string() << endl;
   }
   catch (exception& e)
   {
-      cout << "Error after " << n << " " << Data_Files::dtype_names[type] <<
+      cout << "Error after " << n << " " << DataPositions::dtype_names[type] <<
               " of type " << T::type_string() << endl;
   }
 }
 
 template<class T>
-void check_bits(const T& key,int N,vector<Data_Files*>& dataF,DataFieldType field_type)
+void check_bits(const typename T::value_type& key,int N,vector<Sub_Data_Files<T>*>& dataF)
 {
-  T a,b,c,mac,res;
-  vector<Share<T> > Sa(N),Sb(N),Sc(N);
+  typename T::clear a,b,c,mac,res;
+  vector<T> Sa(N),Sb(N),Sc(N);
   int n = 0;
 
   try {
-      while (!dataF[0]->eof<T>(DATA_BIT))
+      while (!dataF[0]->eof(DATA_BIT))
       {
           for (int i = 0; i < N; i++)
-              dataF[i]->get_one(field_type, DATA_BIT, Sa[i]);
+              dataF[i]->get_one(DATA_BIT, Sa[i]);
           check_share(Sa, a, mac, N, key);
 
           if (!(a.is_zero() || a.is_one()))
@@ -141,14 +140,14 @@ void check_bits(const T& key,int N,vector<Data_Files*>& dataF,DataFieldType fiel
 
       cout << n << " bits of type " << T::type_string() << endl;
   }
-  catch (exception& e)
+  catch (bad_value& e)
   {
       cout << "Error after " << n << " bits of type " << T::type_string() << endl;
   }
 }
 
 template<class T>
-void check_inputs(const T& key,int N,vector<Data_Files*>& dataF)
+void check_inputs(const T& key,int N,vector<Sub_Data_Files<Share<T>>*>& dataF)
 {
   T a, mac, x;
   vector< Share<T> > Sa(N);
@@ -157,7 +156,7 @@ void check_inputs(const T& key,int N,vector<Data_Files*>& dataF)
     {
       int n = 0;
       try {
-          while (!dataF[0]->input_eof<T>(player))
+          while (!dataF[0]->input_eof(player))
           {
               for (int i = 0; i < N; i++)
                   dataF[i]->get_input(Sa[i], x, player);
@@ -173,6 +172,31 @@ void check_inputs(const T& key,int N,vector<Data_Files*>& dataF)
           cout << "Error after " << n << " input masks of type "
               << T::type_string() << " for player " << player << endl;
       }
+  }
+}
+
+template<class T>
+vector<Sub_Data_Files<T>*> setup(int N, DataPositions& usage)
+{
+  vector<Sub_Data_Files<T>*> dataF(N);
+  for (int i = 0; i < N; i++)
+    dataF[i] = new Sub_Data_Files<T>(i, N, PREP_DATA_PREFIX, usage);
+  return dataF;
+}
+
+template<class T>
+void check(T key, int N, bool only_bits = false)
+{
+  DataPositions usage(N);
+  auto dataF = setup<Share<T>>(N, usage);
+  check_bits(key, N, dataF);
+
+  if (not only_bits)
+  {
+    check_mult_triples(key, N, dataF);
+    check_inputs(key, N, dataF);
+    check_tuples(key, N, dataF, DATA_SQUARE);
+    check_tuples(key, N, dataF, DATA_INVERSE);
   }
 }
 
@@ -194,11 +218,11 @@ int main(int argc, const char** argv)
         "--lgp" // Flag token.
   );
   opt.add(
-        "40", // Default.
+        to_string(gf2n::default_degree()).c_str(), // Default.
         0, // Required?
         1, // Number of args expected.
         0, // Delimiter if expecting multiple args.
-        "Bit length of GF(2^n) field (default: 40)", // Help description.
+        ("Bit length of GF(2^n) field (default: " + to_string(gf2n::default_degree()) + ")").c_str(), // Help description.
         "-lg2", // Flag token.
         "--lg2" // Flag token.
   );
@@ -260,7 +284,7 @@ int main(int argc, const char** argv)
 
   /* Find number players and MAC keys etc*/
   char filename[1024];
-  sint::value_type keyp,pp; keyp.assign_zero();
+  gfp keyp,pp; keyp.assign_zero();
   gf2n key2,p2; key2.assign_zero();
   int N=1;
   ifstream inpf;
@@ -280,19 +304,13 @@ int main(int argc, const char** argv)
   cout << "--------------\n";
   cout << "Final Keys :\t p: " << keyp << "\n\t\t 2: " << key2 << endl;
 
-  vector<Data_Files*> dataF(N);
-  for (int i = 0; i < N; i++)
-    dataF[i] = new Data_Files(i, N, PREP_DATA_PREFIX);
-  check_mult_triples(key2, N, dataF, DATA_GF2N);
-  check_mult_triples(keyp, N, dataF, DATA_MODP);
-  check_inputs(key2, N, dataF);
-  check_inputs(keyp, N, dataF);
-  check_bits(key2, N, dataF, DATA_GF2N);
-  check_bits(keyp, N, dataF, DATA_MODP);
-  check_tuples(key2, N, dataF, DATA_SQUARE);
-  check_tuples(keyp, N, dataF, DATA_SQUARE);
-  check_tuples(key2, N, dataF, DATA_INVERSE);
-  check_tuples(keyp, N, dataF, DATA_INVERSE);
-  for (int i = 0; i < N; i++)
-    delete dataF[i];
+  check(keyp, N);
+  check(key2, N);
+
+  if (N == 3)
+    {
+      DataPositions pos(N);
+      auto dataF = setup<Rep3Share>(N, pos);
+      check_bits({}, N, dataF);
+    }
 }

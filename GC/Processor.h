@@ -10,7 +10,6 @@
 using namespace std;
 
 #include "GC/Clear.h"
-#include <GC/FakeSecret.h>
 #include "GC/Machine.h"
 
 #include "Math/Integer.h"
@@ -29,6 +28,8 @@ class Processor : public ::ProcessorBase
 
 public:
     static int check_args(const vector<int>& args, int n);
+
+    static void check_input(long long in, int n_bits);
 
     Machine<T>& machine;
 

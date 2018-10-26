@@ -363,7 +363,7 @@ int main(int argc, char** argv)
     }
 
     // init static gfp
-    string prep_data_prefix = get_prep_dir(nparties, 128, 40);
+    string prep_data_prefix = get_prep_dir(nparties, 128, gf2n::default_degree());
     initialise_fields(prep_data_prefix);
 
     // Generate session keys to decrypt data sent from each spdz engine (party)

@@ -24,8 +24,6 @@ using namespace std;
 #warning not using free XOR has not been tested in a while
 #endif
 
-typedef unsigned int party_id_t;
-
 //#define PAD_TO_8(n) (n+8-n%8)
 #define PAD_TO_8(n) (n)
 
@@ -119,6 +117,8 @@ class Mask;
 class SpdzShare;
 template <class T>
 class Secret;
+template <class T>
+class Processor;
 }
 
 class Register {
@@ -224,8 +224,12 @@ public:
 	static void ands(T& processor, const vector<int>& args) { processor.ands(args); }
 	template <class T>
 	static void inputb(T& processor, const vector<int>& args) { processor.input(args); }
+	template <class T>
 
-	static void check_input(long long in, int n_bits) { (void)in; (void)n_bits; }
+	static T get_input(int from, GC::Processor<T>& processor, int n_bits)
+	{ return T::input(from, processor.get_input(n_bits), n_bits); }
+
+//	static void check_input(long long in, int n_bits) { (void)in; (void)n_bits; }
 	void input(party_id_t from, char value = -1) { (void)from; (void)value; }
 	void public_input(bool value) { (void)value; }
 	void random() {}
@@ -245,6 +249,11 @@ public:
 	template<class T>
 	static void load(vector<GC::ReadAccess<T> >& accesses,
 			const GC::Memory<GC::SpdzShare>& source) { (void)accesses; (void)source; }
+
+	// most BMR phases don't need actual input
+	template<class T>
+	static T get_input(int from, GC::Processor<T>& processor, int n_bits)
+	{ (void)processor; return T::input(from, 0, n_bits); }
 
 	char get_output() { return 0; }
 
@@ -294,6 +303,13 @@ public:
 	static void andrs(T& processor, const vector<int>& args);
 	template <class T>
 	static void inputb(T& processor, const vector<int>& args);
+
+	template <class T>
+	static T get_input(int from, GC::Processor<T>& processor, int n_bits)
+	{
+		(void)from, (void)processor, (void)n_bits;
+		throw runtime_error("use EvalRegister::inputb()");
+	}
 
 	EvalRegister(const Register& reg) : ProgramRegister(reg) {}
 

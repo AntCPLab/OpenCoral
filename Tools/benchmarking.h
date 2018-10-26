@@ -7,6 +7,8 @@
 #define TOOLS_BENCHMARKING_H_
 
 #include <stdexcept>
+#include <string>
+using namespace std;
 
 // call before insecure benchmarking functionality
 inline void insecure(string message, bool warning = true)

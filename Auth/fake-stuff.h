@@ -5,15 +5,20 @@
 #include "Math/gf2n.h"
 #include "Math/gfp.h"
 #include "Math/Share.h"
+#include "Math/Rep3Share.h"
 
 #include <fstream>
 using namespace std;
 
 template<class T>
 void make_share(vector<Share<T> >& Sa,const T& a,int N,const T& key,PRNG& G);
+void make_share(vector<Rep3Share>& Sa, const Integer& a, int N,
+    const Integer& key, PRNG& G);
 
 template<class T>
 void check_share(vector<Share<T> >& Sa,T& value,T& mac,int N,const T& key);
+void check_share(vector<Rep3Share>& Sa, Integer& value, Integer& mac, int N,
+    const Integer& key);
 
 void expand_byte(gf2n_short& a,int b);
 void collapse_byte(int& b,const gf2n_short& a);

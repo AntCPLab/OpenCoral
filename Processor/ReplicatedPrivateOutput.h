@@ -6,15 +6,18 @@
 #ifndef PROCESSOR_REPLICATEDPRIVATEOUTPUT_H_
 #define PROCESSOR_REPLICATEDPRIVATEOUTPUT_H_
 
-class Processor;
+template<class T>
+class SubProcessor;
+template<class T>
+class Share;
 
 template <class T>
 class ReplicatedPrivateOutput
 {
-    Processor& proc;
+    SubProcessor<T>& proc;
 
 public:
-    ReplicatedPrivateOutput(Processor& proc) : proc(proc) {}
+    ReplicatedPrivateOutput(SubProcessor<T>& proc);
 
     void start(int player, int target, int source);
     void stop(int player, int source);

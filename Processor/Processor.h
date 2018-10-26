@@ -65,18 +65,20 @@ class SubProcessor
 
   void resize(int size)       { C.resize(size); S.resize(size); }
 
-  friend class Processor;
+  template<class sint> friend class Processor;
   template<class U> friend class SPDZ;
   template<class U> friend class Replicated;
 
 public:
-  Processor& Proc;
+  ArithmeticProcessor& Proc;
   typename T::MAC_Check& MC;
   Player& P;
+  Sub_Data_Files<T>& DataF;
 
   typename T::Protocol protocol;
 
-  SubProcessor(Processor& Proc, typename T::MAC_Check& MC);
+  SubProcessor(ArithmeticProcessor& Proc, typename T::MAC_Check& MC,
+      Sub_Data_Files<T>& DataF, Player& P);
 
   // Access to PO (via calls to POpen start/stop)
   void POpen_Start(const vector<int>& reg,const Player& P,int size);
@@ -84,9 +86,37 @@ public:
   void POpen(const vector<int>& reg,const Player& P,int size);
 
   void muls(const vector<int>& reg,const Player& P,int size);
+
+  T& get_S_ref(int i)
+  {
+    return S[i];
+  }
+
+  typename T::clear& get_C_ref(int i)
+  {
+    return C[i];
+  }
 };
 
-class Processor : public ProcessorBase
+class ArithmeticProcessor : public ProcessorBase
+{
+public:
+  PRNG secure_prng;
+
+  string private_input_filename;
+
+  ifstream private_input;
+  ifstream public_input;
+  ofstream public_output;
+  ofstream private_output;
+
+  int sent, rounds;
+
+  ArithmeticProcessor() : sent(0), rounds(0) {}
+};
+
+template<class sint>
+class Processor : public ArithmeticProcessor
 {
   vector<long> Ci;
 
@@ -113,47 +143,39 @@ class Processor : public ProcessorBase
   vector<typename T::clear>& get_PO();
 
   public:
-  Data_Files& DataF;
+  Data_Files<sint>& DataF;
   Player& P;
   MAC_Check<gf2n>& MC2;
-  sint::MAC_Check& MCp;
-  Machine& machine;
-
-  string private_input_filename;
+  typename sint::MAC_Check& MCp;
+  Machine<sint>& machine;
 
   SubProcessor<sgf2n> Proc2;
   SubProcessor<sint>  Procp;
 
   Input<gf2n> input2;
-  sint::Input inputp;
+  typename sint::Input inputp;
   
   PrivateOutput<gf2n> privateOutput2;
-  sint::PrivateOutput privateOutputp;
-
-  ifstream public_input;
-  ifstream private_input;
-  ofstream public_output;
-  ofstream private_output;
+  typename sint::PrivateOutput privateOutputp;
 
   unsigned int PC;
-  TempVars temp;
-  PRNG shared_prng, secure_prng;
+  TempVars<sint> temp;
 
-  int sent, rounds;
+  PRNG shared_prng;
 
   ExternalClients external_clients;
   Binary_File_IO binary_file_io;
   
   // avoid re-computation of expensive division
-  map<int, sint::clear> inverses2m;
+  map<int, typename sint::clear> inverses2m;
 
   static const int reg_bytes = 4;
   
   void reset(const Program& program,int arg); // Reset the state of the processor
   string get_filename(const char* basename, bool use_number);
 
-  Processor(int thread_num,Data_Files& DataF,Player& P,
-          MAC_Check<gf2n>& MC2,sint::MAC_Check& MCp,Machine& machine,
+  Processor(int thread_num,Data_Files<sint>& DataF,Player& P,
+          MAC_Check<gf2n>& MC2,typename sint::MAC_Check& MCp,Machine<sint>& machine,
           const Program& program);
   ~Processor();
 
@@ -244,15 +266,15 @@ class Processor : public ProcessorBase
     void write_S2(int i,const Share<gf2n> & x)
       { Proc2.S[i]=x; }
   
-    const sint::clear& read_Cp(int i) const
+    const typename sint::clear& read_Cp(int i) const
       { return Procp.C[i]; }
     const sint & read_Sp(int i) const
       { return Procp.S[i]; }
-    sint::clear& get_Cp_ref(int i)
+    typename sint::clear& get_Cp_ref(int i)
       { return Procp.C[i]; }
     sint & get_Sp_ref(int i)
       { return Procp.S[i]; }
-    void write_Cp(int i,const sint::clear& x)
+    void write_Cp(int i,const typename sint::clear& x)
       { Procp.C[i]=x; }
     void write_Sp(int i,const sint & x)
       { Procp.S[i]=x; }
@@ -264,10 +286,6 @@ class Processor : public ProcessorBase
     void write_Ci(int i,const long& x)
       { Ci[i]=x; }
   #endif
-
-  // Template-based access
-  template<class T> Share<T>& get_S_ref(int i);
-  template<class T> T& get_C_ref(int i);
 
   // Access to external client sockets for reading clear/shared data
   void read_socket_ints(int client_id, const vector<int>& registers);
@@ -281,19 +299,16 @@ class Processor : public ProcessorBase
   void write_socket(const RegType reg_type, const SecrecyType secrecy_type, const bool send_macs,
                              int socket_id, int message_type, const vector<int>& registers);
 
-  template <class T>
   void read_socket_vector(int client_id, const vector<int>& registers);
-  template <class T>
   void read_socket_private(int client_id, const vector<int>& registers, bool send_macs);
 
   // Read and write secret numeric data to file (name hardcoded at present)
-  template <class T>
   void read_shares_from_file(int start_file_pos, int end_file_pos_register, const vector<int>& data_registers);
-  template <class T>
   void write_shares_to_file(const vector<int>& data_registers);
   
   // Print the processor state
-  friend ostream& operator<<(ostream& s,const Processor& P);
+  template<class T>
+  friend ostream& operator<<(ostream& s,const Processor<T>& P);
 
   private:
     void maybe_decrypt_sequence(int client_id);
@@ -302,11 +317,6 @@ class Processor : public ProcessorBase
   template<class T> friend class SPDZ;
   template<class T> friend class SubProcessor;
 };
-
-template<> inline Share<gf2n>& Processor::get_S_ref(int i) { return get_S2_ref(i); }
-template<> inline gf2n& Processor::get_C_ref(int i)        { return get_C2_ref(i); }
-template<> inline sint& Processor::get_S_ref(int i)        { return get_Sp_ref(i); }
-template<> inline sint::clear& Processor::get_C_ref(int i)         { return get_Cp_ref(i); }
 
 #endif
 

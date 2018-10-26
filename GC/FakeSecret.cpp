@@ -75,11 +75,9 @@ void FakeSecret::trans(Processor<FakeSecret>& processor, int n_outputs,
 		processor.S[args[i]] = square.rows[i];
 }
 
-FakeSecret FakeSecret::input(int from, ifstream& input_file, int n_bits)
+FakeSecret FakeSecret::input(int from, GC::Processor<FakeSecret>& processor, int n_bits)
 {
-	long long int in;
-	input_file >> in;
-	return input(from, in, n_bits);
+	return input(from, processor.get_input(n_bits), n_bits);
 }
 
 FakeSecret FakeSecret::input(int from, const int128& input, int n_bits)

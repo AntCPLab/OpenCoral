@@ -73,7 +73,7 @@ void make_bit_triples(const gf2n& key,int N,int ntrip,Dtype dtype,bool zero)
   /* Generate Triples */
   for (int i=0; i<N; i++)
     { stringstream filename;
-      filename << prep_data_prefix << Data_Files::dtype_names[dtype] << "-2-P" << i;
+      filename << prep_data_prefix << DataPositions::dtype_names[dtype] << "-2-P" << i;
       cout << "Opening " << filename.str() << endl;
       outf[i].open(filename.str().c_str(),ios::out | ios::binary);
       if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
@@ -143,21 +143,20 @@ void make_square_tuples(const T& key,int N,int ntrip,const string& str,bool zero
 
 /* N      = Number players
  * ntrip  = Number bits needed
- * str    = "2" or "p"
  */
 template<class T>
-void make_bits(const T& key,int N,int ntrip,const string& str,bool zero)
+void make_bits(const typename T::value_type& key,int N,int ntrip,bool zero)
 {
   PRNG G;
   G.ReSeed();
 
   ofstream* outf=new ofstream[N];
-  T a;
-  vector<Share<T> > Sa(N);
+  typename T::value_type a;
+  vector<T> Sa(N);
   /* Generate Bits */
   for (int i=0; i<N; i++)
     { stringstream filename;
-      filename << prep_data_prefix << "Bits-" << str << "-P" << i;
+      filename << prep_data_prefix << "Bits-" << T::type_char() << "-P" << i;
       cout << "Opening " << filename.str() << endl;
       outf[i].open(filename.str().c_str(),ios::out | ios::binary);
       if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
@@ -538,8 +537,8 @@ int main(int argc, const char** argv)
 
   make_mult_triples(key2,nplayers,ntrip2,"2",zero);
   make_mult_triples(keyp,nplayers,ntripp,"p",zero);
-  make_bits(key2,nplayers,nbits2,"2",zero);
-  make_bits(keyp,nplayers,nbitsp,"p",zero);
+  make_bits<Share<gf2n>>(key2,nplayers,nbits2,zero);
+  make_bits<Share<gfp>>(keyp,nplayers,nbitsp,zero);
   make_square_tuples(key2,nplayers,nsqr2,"2",zero);
   make_square_tuples(keyp,nplayers,nsqrp,"p",zero);
   make_inputs(key2,nplayers,ninp2,"2",zero);
@@ -551,7 +550,7 @@ int main(int argc, const char** argv)
   make_PreMulC(key2,nplayers,ninv,zero);
   make_PreMulC(keyp,nplayers,ninv,zero);
 
-#ifdef REPLICATED
-  make_bits(sint::value_type(), nplayers, nbitsp, "p", zero);
-#endif
+  // replicated secret sharing only for three parties
+  if (nplayers == 3)
+    make_bits<Rep3Share>({}, nplayers, nbitsp, zero);
 }

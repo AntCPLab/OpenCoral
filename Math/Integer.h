@@ -66,11 +66,15 @@ class Integer : public IntBase
   typedef Integer value_type;
   typedef Integer clear;
 
+  static char type_char() { return 'R'; }
+
   Integer()                 { a = 0; }
   Integer(long a) : IntBase(a) {}
   Integer(const bigint& x)  { *this = x.get_si(); }
 
   void convert_destroy(bigint& other) { *this = other.get_si(); }
+
+  void assign_one()         { a = 1; }
 
   bool is_zero() const      { return a == 0; }
   bool is_one() const       { return a == 1; }

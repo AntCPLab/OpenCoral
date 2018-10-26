@@ -33,6 +33,9 @@ inline void avx_memcpy(void* dest, const void* source, size_t length)
 	case 1:
 		*(char*)d2 = *(char*)s2;
 		return;
+	case 8:
+	    *(int64_t*)d2 = *(int64_t*)s2;
+	    return;
 	default:
 		memcpy(d2, s2, length);
 		return;

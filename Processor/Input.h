@@ -14,7 +14,7 @@ using namespace std;
 #include "Processor/Buffer.h"
 #include "Tools/time-func.h"
 
-class Processor;
+class ArithmeticProcessor;
 
 template<class T>
 class InputBase
@@ -26,21 +26,21 @@ protected:
 public:
     int values_input;
 
-    InputBase(Processor& proc);
+    InputBase(ArithmeticProcessor& proc);
     ~InputBase();
 };
 
 template<class T>
 class Input : public InputBase<T>
 {
-    Processor& proc;
+    SubProcessor<Share<T>>& proc;
     MAC_Check<T>& MC;
     vector< vector< Share<T> > > shares;
 
     void adjust_mac(Share<T>& share, T& value);
 
 public:
-    Input(Processor& proc, MAC_Check<T>& mc);
+    Input(SubProcessor<Share<T>>& proc, MAC_Check<T>& mc);
 
     void start(int player, int n_inputs);
     void stop(int player, vector<int> targets);

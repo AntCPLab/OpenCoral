@@ -8,8 +8,6 @@
 
 #include "ReplicatedSecret.h"
 #include "Secret.h"
-#include "Yao/YaoGarbleWire.h"
-#include "Yao/YaoEvalWire.h"
 
 namespace GC
 {
@@ -23,7 +21,8 @@ void* Thread<T>::run_thread(void* thread)
 
 template<class T>
 Thread<T>::Thread(int thread_num, Machine<T>& machine, Names& N) :
-        machine(machine), processor(machine), N(N), P(0), thread_num(thread_num)
+        machine(machine), processor(machine), protocol(0), N(N), P(0),
+        thread_num(thread_num)
 {
     pthread_create(&thread, 0, run_thread, this);
 }
@@ -33,6 +32,8 @@ Thread<T>::~Thread()
 {
     if (P)
         delete P;
+    if (protocol)
+        delete protocol;
 }
 
 template<class T>
@@ -43,6 +44,7 @@ void Thread<T>::run()
     singleton = this;
     secure_prng.ReSeed();
     P = new Player(N, thread_num << 16);
+    protocol = new typename T::Protocol(*P);
     string input_file = "Player-Data/Input-P" + to_string(N.my_num()) + "-" + to_string(thread_num);
     processor.open_input_file(input_file);
     done.push(0);
@@ -82,10 +84,6 @@ void Thread<T>::finish()
 }
 
 template class Thread<FakeSecret>;
-template class Thread< Secret<PRFRegister> >;
-template class Thread< Secret<EvalRegister> >;
-template class Thread< Secret<GarbleRegister> >;
-template class Thread< Secret<RandomRegister> >;
 template class Thread<ReplicatedSecret>;
 
 } /* namespace GC */

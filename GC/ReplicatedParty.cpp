@@ -20,7 +20,7 @@ ReplicatedParty::ReplicatedParty(int argc, const char** argv)
             1, // Required?
             1, // Number of args expected.
             0, // Delimiter if expecting multiple args.
-            "This player's number, 0 for garbling, 1 for evaluating.", // Help description.
+            "This player's number (required)", // Help description.
             "-p", // Flag token.
             "--player" // Flag token.
     );
@@ -43,7 +43,7 @@ ReplicatedParty::ReplicatedParty(int argc, const char** argv)
             "--portnum" // Flag token.
     );
     opt.parse(argc, argv);
-    opt.syntax = "./replicated-party.x [OPTIONS] <progname>";
+    opt.syntax = "./replicated-bin-party.x [OPTIONS] <progname>";
     if (opt.lastArgs.size() == 1)
     {
         progname = *opt.lastArgs[0];

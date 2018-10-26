@@ -10,11 +10,11 @@
 template <class T>
 struct InputTuple
 {
-  Share<T> share;
-  T value;
+  T share;
+  typename T::clear value;
 
   static int size()
-    { return Share<T>::size() + T::size(); }
+    { return T::clear::size() + T::size(); }
 
   static string type_string()
     { return T::type_string(); }
@@ -22,7 +22,7 @@ struct InputTuple
   void assign(const char* buffer)
     {
       share.assign(buffer);
-      value.assign(buffer + Share<T>::size());
+      value.assign(buffer + T::size());
     }
 };
 
@@ -30,9 +30,9 @@ struct InputTuple
 template <class T>
 struct RefInputTuple
 {
-  Share<T>& share;
-  T& value;
-  RefInputTuple(Share<T>& share, T& value) : share(share), value(value) {}
+  T& share;
+  typename T::clear& value;
+  RefInputTuple(T& share, typename T::clear& value) : share(share), value(value) {}
   void operator=(InputTuple<T>& other) { share = other.share; value = other.value; }
 };
 

@@ -347,29 +347,7 @@ void BaseInstruction::parse_operands(istream& s, int pos)
         break;
       case REQBL:
         n = get_int(s);
-#ifdef REPLICATED
-        if ((int)n < 0 && sint::value_type::value_type::size() * 8 != -(int)n)
-          {
-            throw Processor_Error(
-                "Program compiled for rings of length " + to_string(-(int)n)
-                + " but VM supports only "
-                + to_string(sint::value_type::value_type::size() * 8));
-          }
-        else if ((int)n > 0)
-          {
-            throw Processor_Error("Program compiled for fields not rings");
-          }
-#else
-        if ((int)n > 0 && gfp::pr() < bigint(1) << (n-1))
-          {
-            cout << "Tape requires prime of bit length " << n << endl;
-            throw invalid_params();
-          }
-        else if ((int)n < 0)
-          {
-            throw Processor_Error("Program compiled for rings not fields");
-          }
-#endif
+        BaseMachine::s().reqbl(n);
         break;
       case GREQBL:
         n = get_int(s);
@@ -520,10 +498,11 @@ ostream& operator<<(ostream& s,const Instruction& instr)
 } 
 
 
+template<class sint>
 #ifndef __clang__
 __attribute__((always_inline))
 #endif
-inline void Instruction::execute(Processor& Proc) const
+inline void Instruction::execute(Processor<sint>& Proc) const
 {
   Proc.PC+=1;
 
@@ -942,7 +921,7 @@ inline void Instruction::execute(Processor& Proc) const
         break;
       case MODCI:
         to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
-        to_gfp(Proc.temp.ansp, bigint::tmp = mpz_fdiv_ui(Proc.temp.aa.get_mpz_t(), n));
+        to_gfp(Proc.temp.ansp, Proc.temp.aa2 = mpz_fdiv_ui(Proc.temp.aa.get_mpz_t(), n));
         Proc.write_Cp(r[0],Proc.temp.ansp);
         break;
       case GMULBITC:
@@ -1146,31 +1125,7 @@ inline void Instruction::execute(Processor& Proc) const
           Proc.temp.ans2.output(Proc.private_output, false);
         break;
       case INPUT:
-        { auto& rr=Proc.temp.rrp; auto& t=Proc.temp.tp; auto& tmp=Proc.temp.tmpp;
-          Proc.DataF.get_input(Proc.get_Sp_ref(r[0]),rr,n);
-          octetStream o;
-          if (n==Proc.P.my_num())
-            { auto& xi=Proc.temp.xip;
-	      #ifdef DEBUG
-	         printf("Enter your input : \n");
-	      #endif
-              long x;
-              cin >> x;
-              t.assign(x);
-              t.sub(t,rr);
-              t.pack(o);
-              Proc.P.send_all(o);
-              xi.add(t,Proc.get_Sp_ref(r[0]).get_share());
-              Proc.get_Sp_ref(r[0]).set_share(xi);
-            }
-          else
-            { Proc.P.receive_player(n,o);
-              t.unpack(o);
-            }
-          tmp.mul(t, Proc.MCp.get_alphai());
-          tmp.add(Proc.get_Sp_ref(r[0]).get_mac(),tmp);
-          Proc.get_Sp_ref(r[0]).set_mac(tmp);
-        }
+        sint::Protocol::input(Proc.Procp, n, r);
         break;
       case GINPUT:
         { gf2n& rr=Proc.temp.rr2; gf2n& t=Proc.temp.t2; gf2n& tmp=Proc.temp.tmp2;
@@ -1553,10 +1508,10 @@ inline void Instruction::execute(Processor& Proc) const
       case PRINTFLOATPLAIN:
         if (Proc.P.my_num() == 0)
           {
-            sint::clear v = Proc.read_Cp(start[0]);
-            sint::clear p = Proc.read_Cp(start[1]);
-            sint::clear z = Proc.read_Cp(start[2]);
-            sint::clear s = Proc.read_Cp(start[3]);
+            typename sint::clear v = Proc.read_Cp(start[0]);
+            typename sint::clear p = Proc.read_Cp(start[1]);
+            typename sint::clear z = Proc.read_Cp(start[2]);
+            typename sint::clear s = Proc.read_Cp(start[3]);
             to_bigint(Proc.temp.aa, v);
             // MPIR can't handle more precision in exponent
             to_signed_bigint(Proc.temp.aa2, p, 31);
@@ -1674,11 +1629,11 @@ inline void Instruction::execute(Processor& Proc) const
         Proc.read_socket_ints(Proc.read_Ci(r[0]), start);
         break;
       case READSOCKETC:
-        Proc.read_socket_vector<sint>(Proc.read_Ci(r[0]), start);
+        Proc.read_socket_vector(Proc.read_Ci(r[0]), start);
         break;
       case READSOCKETS:
         // read shares and MAC shares
-        Proc.read_socket_private<sint>(Proc.read_Ci(r[0]), start, true);
+        Proc.read_socket_private(Proc.read_Ci(r[0]), start, true);
         break;
       case GREADSOCKETS:
         //Proc.get_S2_ref(r[0]).get_share().pack(socket_octetstream);
@@ -1705,11 +1660,11 @@ inline void Instruction::execute(Processor& Proc) const
         break;*/
       case WRITEFILESHARE:
         // Write shares to file system
-        Proc.write_shares_to_file<sint::value_type>(start);
+        Proc.write_shares_to_file(start);
         break;
       case READFILESHARE:
         // Read shares from file system
-        Proc.read_shares_from_file<sint>(Proc.read_Ci(r[0]), r[1], start);
+        Proc.read_shares_from_file(Proc.read_Ci(r[0]), r[1], start);
         break;        
       case PUBINPUT:
         Proc.public_input >> Proc.get_Ci_ref(r[0]);
@@ -1733,10 +1688,10 @@ inline void Instruction::execute(Processor& Proc) const
         Proc.privateOutput2.stop(n,r[0]);
         break;
       case PREP:
-        Proc.DataF.get<sint::value_type>(Proc, r, start, size);
+        Proc.DataF.get(Proc.Procp, r, start, size);
         return;
       case GPREP:
-        Proc.DataF.get<gf2n>(Proc, r, start, size);
+        Proc.DataF.get(Proc.Proc2, r, start, size);
         return;
       default:
         printf("Case of opcode=%d not implemented yet\n",opcode);
@@ -1750,7 +1705,8 @@ inline void Instruction::execute(Processor& Proc) const
   }
 }
 
-void Program::execute(Processor& Proc) const
+template<class sint>
+void Program::execute(Processor<sint>& Proc) const
 {
   unsigned int size = p.size();
   Proc.PC=0;
@@ -1760,3 +1716,6 @@ void Program::execute(Processor& Proc) const
   while (Proc.PC<size)
     { p[Proc.PC].execute(Proc); }
 }
+
+template void Program::execute(Processor<sgfp>& Proc) const;
+template void Program::execute(Processor<Rep3Share>& Proc) const;

@@ -10,16 +10,12 @@
 #include "GC/Secret_inline.h"
 #endif
 #include "Processor/Instruction.h"
-#include "BMR/Party.h"
 
 #include "Secret.h"
 #include "Tools/parse.h"
 
 #include "GC/Instruction_inline.h"
 #include "GC/ReplicatedSecret.h"
-
-#include "Yao/YaoGarbleWire.h"
-#include "Yao/YaoEvalWire.h"
 
 namespace GC
 {

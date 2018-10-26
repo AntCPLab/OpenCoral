@@ -3,6 +3,9 @@
  *
  */
 
+#include "YaoEvalWire.h"
+#include "YaoGarbleWire.h"
+
 #include "GC/Instruction.hpp"
 #include "GC/Program.hpp"
 

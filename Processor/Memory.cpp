@@ -107,8 +107,10 @@ istream& operator>>(istream& s,Memory<T>& M)
 
 
 template<class T>
-void Load_Memory(Memory<T>& M,ifstream& inpf)
+void Memory<T>::Load_Memory(ifstream& inpf)
 {
+  Memory<T>& M = *this;
+
   int a;
   typename T::clear val;
   T S;
@@ -140,18 +142,17 @@ void Load_Memory(Memory<T>& M,ifstream& inpf)
     }
 }
 
-template class Memory<sint>;
+template class Memory<sgfp>;
 template class Memory<sgf2n>;
 template class Memory<Integer>;
+template class Memory<Rep3Share>;
 
-template istream& operator>>(istream& s,Memory<sint>& M);
+template istream& operator>>(istream& s,Memory<sgfp>& M);
 template istream& operator>>(istream& s,Memory<sgf2n>& M);
 template istream& operator>>(istream& s,Memory<Integer>& M);
+template istream& operator>>(istream& s,Memory<Rep3Share>& M);
 
-template ostream& operator<<(ostream& s,const Memory<sint>& M);
+template ostream& operator<<(ostream& s,const Memory<sgfp>& M);
 template ostream& operator<<(ostream& s,const Memory<sgf2n>& M);
 template ostream& operator<<(ostream& s,const Memory<Integer>& M);
-
-template void Load_Memory(Memory<sint>& M,ifstream& inpf);
-template void Load_Memory(Memory<sgf2n>& M,ifstream& inpf);
-template void Load_Memory(Memory<Integer>& M,ifstream& inpf);
+template ostream& operator<<(ostream& s,const Memory<Rep3Share>& M);

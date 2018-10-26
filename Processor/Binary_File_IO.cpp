@@ -1,4 +1,5 @@
 #include "Processor/Binary_File_IO.h"
+#include "Math/Rep3Share.h"
 #include "Math/gfp.h"
 
 /* 
@@ -8,7 +9,7 @@
  */
 
 template<class T> 
-void Binary_File_IO::write_to_file(const string filename, const vector< Share<T> >& buffer)
+void Binary_File_IO::write_to_file(const string filename, const vector< T >& buffer)
 {
   ofstream outf;
 
@@ -69,5 +70,5 @@ void Binary_File_IO::read_from_file(const string filename, vector< T >& buffer, 
 template void Binary_File_IO::write_to_file(const string filename, const vector< Share<gfp> >& buffer);
 template void Binary_File_IO::read_from_file(const string filename, vector< Share<gfp> >& buffer, const int start_posn, int &end_posn);
 
-template void Binary_File_IO::write_to_file(const string filename, const vector< Share<FixedVec<Integer, 2> > >& buffer);
-template void Binary_File_IO::read_from_file(const string filename, vector< Share<FixedVec<Integer, 2> > >& buffer, const int start_posn, int &end_posn);
+template void Binary_File_IO::write_to_file(const string filename, const vector< Rep3Share >& buffer);
+template void Binary_File_IO::read_from_file(const string filename, vector< Rep3Share >& buffer, const int start_posn, int &end_posn);

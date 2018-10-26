@@ -9,6 +9,7 @@
  *
  */
 
+#include "Math/config.h"
 #include "Math/bigint.h"
 #include "Math/mpn_fixed.h"
 #include "Tools/random.h"

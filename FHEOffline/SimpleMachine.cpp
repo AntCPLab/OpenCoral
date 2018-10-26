@@ -151,7 +151,7 @@ string MachineBase::item_type()
     if (produce_inputs)
         res = "Inputs";
     else
-        res = Data_Files::dtype_names[data_type];
+        res = DataPositions::dtype_names[data_type];
     transform(res.begin(), res.end(), res.begin(), ::tolower);
     return res;
 }

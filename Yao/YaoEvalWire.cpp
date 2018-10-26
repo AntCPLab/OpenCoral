@@ -24,8 +24,9 @@ void YaoEvalWire::public_input(bool value)
 	set(0);
 }
 
+template<bool repeat>
 void YaoEvalWire::and_(GC::Processor<GC::Secret<YaoEvalWire> >& processor,
-		const vector<int>& args, bool repeat)
+		const vector<int>& args)
 {
 	int total_ands = processor.check_args(args, 4);
 	if (total_ands < 10)
@@ -53,11 +54,13 @@ void YaoEvalWire::and_(GC::Processor<GC::Secret<YaoEvalWire> >& processor,
 	auto& evaluator = YaoEvaluator::s();
 	for (size_t i = 0; i < n_args; i += 4)
 	{
+		auto& left = processor.S[args[i + 2]];
+		auto& right = processor.S[args[i + 3]];
+
 		for (int k = 0; k < args[i]; k++)
 		{
-			auto& left_wire = processor.S[args[i + 2]].get_reg(k);
-			auto& right_key =
-					processor.S[args[i + 3]].get_reg(repeat ? 0 : k).key;
+			auto& left_wire = left.get_reg(k);
+			auto& right_key = right.get_reg(repeat ? 0 : k).key;
 			evaluator.counter++;
 			labels[i_label++] = YaoGate::E_input(left_wire.key, right_key,
 					evaluator.get_gate_id());
@@ -72,13 +75,16 @@ void YaoEvalWire::and_(GC::Processor<GC::Secret<YaoEvalWire> >& processor,
 	size_t j = 0;
 	for (size_t i = 0; i < n_args; i += 4)
 	{
+		auto& left = processor.S[args[i + 2]];
+		auto& right = processor.S[args[i + 3]];
 		auto& out = processor.S[args[i + 1]];
 		out.resize_regs(args[i]);
 		int n = args[i];
+
 		for (int k = 0; k < n; k++)
 		{
-			auto& right_wire = processor.S[args[i + 3]].get_reg(repeat ? 0 : k);
-			auto& left_wire = processor.S[args[i + 2]].get_reg(k);
+			auto& right_wire = right.get_reg(repeat ? 0 : k);
+			auto& left_wire = left.get_reg(k);
 			YaoGate gate;
 			evaluator.load_gate(gate);
 			gate.eval(out.get_reg(k), hashes[j++],
@@ -173,3 +179,10 @@ void YaoEvalWire::set(Key key, bool external)
 	key.set_signal(external);
 	set(key);
 }
+
+template void YaoEvalWire::and_<false>(
+        GC::Processor<GC::Secret<YaoEvalWire> >& processor,
+        const vector<int>& args);
+template void YaoEvalWire::and_<true>(
+        GC::Processor<GC::Secret<YaoEvalWire> >& processor,
+        const vector<int>& args);

@@ -10,8 +10,9 @@
 #include <vector>
 using namespace std;
 
-class Machine;
+template<class sint> class Machine;
 
+template<class sint>
 class thread_info
 {
   public: 
@@ -30,12 +31,12 @@ class thread_info
   // Integer arg (optional)
   int arg;
 
-  Machine* machine;
+  Machine<sint>* machine;
+
+  static void* Main_Func(void *ptr);
+
+  static void purge_preprocessing(Names& N, string prep_dir);
 };
-
-void* Main_Func(void *ptr);
-
-void purge_preprocessing(Names& N, string prep_dir);
 
 #endif
 

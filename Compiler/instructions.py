@@ -809,7 +809,12 @@ class inverse(base.DataInstruction):
     code = base.opcodes['INV']
     arg_format = ['sw','sw']
     data_type = 'inverse'
-    
+
+    def __init__(self, *args, **kwargs):
+        if program.options.ring and not self.is_gf2n():
+            raise CompilerError('random inverse in ring not implemented')
+        base.DataInstruction.__init__(self, *args, **kwargs)
+
     def execute(self):
         self.args[0].value = randint(0,program.P)
         import gmpy
@@ -1331,11 +1336,18 @@ class asm_open(base.VarArgsInstruction):
 
 @base.gf2n
 @base.vectorize
-class muls(base.VarArgsInstruction):
+class muls(base.VarArgsInstruction, base.DataInstruction):
     """ Secret multiplication $s_i = s_j \cdot s_k$. """
     __slots__ = []
     code = base.opcodes['MULS']
     arg_format = tools.cycle(['sw','s','s'])
+    data_type = 'triple'
+
+    def get_repeat(self):
+        if program.options.ring:
+            return 0
+        else:
+            return len(self.args) / 3
 
     # def expand(self):
     #     s = [program.curr_block.new_reg('s') for i in range(9)]

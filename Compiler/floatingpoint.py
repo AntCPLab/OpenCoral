@@ -484,13 +484,9 @@ def TruncPr(a, k, m, kappa=None):
 def TruncPrRing(a, k, m):
     if m == 0:
         return a
-    n_shift = int(program.Program.prog.options.ring) - k
-    if n_shift < 0:
-        raise CompilerError('too many bits for ring: %d' % k)
-    r_bits = [types.sint.get_random_bit() for i in range(k)]
-    r = types.sint.bit_compose(r_bits)
-    masked = ((a + r) << n_shift).reveal() >> (n_shift + m)
-    return masked - types.sint.bit_compose(r_bits[m:])
+    res = types.sint()
+    comparison.TruncRing(res, a, k, m, True)
+    return res
 
 def TruncPrField(a, k, m, kappa=None):
     if kappa is None:

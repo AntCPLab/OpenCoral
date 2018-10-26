@@ -78,9 +78,10 @@ class invalid_params:  public exception
     { virtual const char* what() const throw()
         { return "Invalid Params"; }
     };
-class bad_value: public exception
-    { virtual const char* what() const throw()
-        { return "Some value is wrong somewhere"; }
+class bad_value: public runtime_error
+    {
+      public:
+      bad_value(string msg = "Some value is wrong somewhere") : runtime_error(msg) {}
     };
 class Offline_Check_Error: public runtime_error
     {
@@ -88,7 +89,7 @@ class Offline_Check_Error: public runtime_error
       Offline_Check_Error(string m) :
           runtime_error("Offline-Check-Error : " + m) {}
     };
-class mac_fail:  public exception
+class mac_fail:  public bad_value
     { virtual const char* what() const throw()
         { return "MacCheck Failure"; }
     };

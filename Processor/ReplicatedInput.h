@@ -9,16 +9,18 @@
 #include "Auth/ReplicatedMC.h"
 #include "Input.h"
 
-class Processor;
-
 template <class T>
 class ReplicatedInput : public InputBase<typename T::value_type>
 {
-    Processor& proc;
+    SubProcessor<T>& proc;
     vector<T> shares;
 
 public:
-    ReplicatedInput(Processor& proc, ReplicatedMC<T>& MC) : InputBase<typename T::value_type>(proc), proc(proc) { (void)MC; }
+    ReplicatedInput(SubProcessor<T>& proc, ReplicatedMC<T>& MC) :
+            InputBase<typename T::value_type>(proc.Proc), proc(proc)
+    {
+        (void) MC;
+    }
 
     void start(int player, int n_inputs);
     void stop(int player, vector<int> targets);

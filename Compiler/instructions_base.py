@@ -687,7 +687,11 @@ class DataInstruction(Instruction):
     field_type = 'modp'
 
     def add_usage(self, req_node):
-        req_node.increment((self.field_type, self.data_type), self.get_size())
+        req_node.increment((self.field_type, self.data_type),
+                           self.get_size() * self.get_repeat())
+
+    def get_repeat(self):
+        return 1
 
 ###
 ### Integer operations
