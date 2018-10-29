@@ -11,7 +11,8 @@ PREP_DIR = '-DPREP_DIR="Player-Data/"'
 # set for SHE preprocessing (SPDZ and Overdrive)
 USE_NTL = 0
 
-# set for using GF(2^128) online phase, OT, BMR, or Yao's garbled circuits
+# set for using GF(2^128) online phase, OT, MASCOT, or BMR
+# unset for GF(2^40) online and offline phase
 USE_GF2N_LONG = 1
 
 # set to -march=<architecture> for optimization

@@ -17,6 +17,8 @@ endif
 
 GC = $(patsubst %.cpp,%.o,$(wildcard GC/*.cpp)) $(PROCESSOR)
 
+# OT needed by Yao
+OT = OT/BaseOT.o OT/BitMatrix.o OT/BitVector.o OT/OTExtension.o OT/OTExtensionWithMatrix.o OT/Tools.o
 # OT stuff needs GF2N_LONG, so only compile if this is enabled
 ifeq ($(USE_GF2N_LONG),1)
 OT = $(patsubst %.cpp,%.o,$(filter-out OT/OText_main.cpp,$(wildcard OT/*.cpp)))
@@ -103,7 +105,7 @@ gen_input_f2n.x: Scripts/gen_input_f2n.cpp $(COMMON)
 gen_input_fp.x: Scripts/gen_input_fp.cpp $(COMMON)
 	$(CXX) $(CFLAGS) Scripts/gen_input_fp.cpp	-o gen_input_fp.x $(COMMON) $(LDLIBS)
 
-gc-emulate.x: $(GC) $(COMMON) $(PROCESSOR) gc-emulate.cpp $(BMR)
+gc-emulate.x: $(GC) $(COMMON) $(PROCESSOR) gc-emulate.cpp $(GC)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(BOOST)
 
 ifeq ($(USE_GF2N_LONG),1)
@@ -140,10 +142,8 @@ spdz2-offline.x: $(COMMON) $(FHEOFFLINE) spdz2-offline.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 endif
 
-ifeq ($(USE_GF2N_LONG),1)
 yao-player.x: $(YAO) $(COMMON) yao-player.cpp $(LIBSIMPLEOT)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
-endif
 
 yao-clean:
 	-rm Yao/*.o
@@ -151,7 +151,7 @@ yao-clean:
 galois-degree.x: $(COMMON) galois-degree.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
-replicated-bin-party.x: $(BMR) replicated-bin-party.cpp
+replicated-bin-party.x: $(COMMON) $(GC) replicated-bin-party.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(BOOST)
 
 replicated-ring-party.x: replicated-ring-party.cpp $(PROCESSOR) $(COMMON)

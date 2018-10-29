@@ -644,7 +644,7 @@ template BitMatrix& BitMatrix::add<gf2n>(BitMatrix& other);
 template BitMatrix& BitMatrix::add<gfp>(BitMatrix& other);
 template BitMatrix& BitMatrix::sub<gf2n>(BitMatrix& other);
 template BitMatrix& BitMatrix::sub<gfp>(BitMatrix& other);
-template void BitMatrixSlice::print<gf2n>();
+template void BitMatrixSlice::print<gf2n_long>();
 template void BitMatrixSlice::print<gfp>();
 template void BitMatrixSlice::randomize<gf2n>(int row, PRNG& G);
 template void BitMatrixSlice::randomize<gfp>(int row, PRNG& G);

@@ -83,7 +83,4 @@ void Thread<T>::finish()
     pthread_join(thread, 0);
 }
 
-template class Thread<FakeSecret>;
-template class Thread<ReplicatedSecret>;
-
 } /* namespace GC */

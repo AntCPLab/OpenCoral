@@ -132,7 +132,4 @@ BreakType Program<T>::execute(Processor<T>& Proc, int PC) const
     return TIME_BREAK;
 }
 
-template class Program<FakeSecret>;
-template class Program<ReplicatedSecret>;
-
 } /* namespace GC */

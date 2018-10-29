@@ -345,13 +345,13 @@ void OTExtensionWithMatrix::print(BitVector& newReceiverInput, int i)
 {
     if (player->my_num() == 0)
     {
-        print_receiver<gf2n>(newReceiverInput, receiverOutputMatrix, i);
+        print_receiver<gf2n_long>(newReceiverInput, receiverOutputMatrix, i);
         print_sender(senderOutputMatrices[0].squares[i], senderOutputMatrices[1].squares[i]);
     }
     else
     {
         print_sender(senderOutputMatrices[0].squares[i], senderOutputMatrices[1].squares[i]);
-        print_receiver<gf2n>(newReceiverInput, receiverOutputMatrix, i);
+        print_receiver<gf2n_long>(newReceiverInput, receiverOutputMatrix, i);
     }
 }
 
@@ -418,7 +418,7 @@ void OTExtensionWithMatrix::print_pre_correlate(int i)
     if (player->my_num() == 0)
         print_sender(receiverOutputMatrix.squares[i], t1.squares[i]);
     else
-        print_receiver<gf2n>(baseReceiverInput, senderOutputMatrices[0], i);
+        print_receiver<gf2n_long>(baseReceiverInput, senderOutputMatrices[0], i);
 }
 
 void OTExtensionWithMatrix::print_post_transpose(BitVector& newReceiverInput, int i, int sender)
@@ -426,7 +426,7 @@ void OTExtensionWithMatrix::print_post_transpose(BitVector& newReceiverInput, in
     cout << "post transpose, sender " << sender << endl;
     if (player->my_num() == sender)
     {
-        print_receiver<gf2n>(newReceiverInput, receiverOutputMatrix);
+        print_receiver<gf2n_long>(newReceiverInput, receiverOutputMatrix);
     }
     else
     {
@@ -468,7 +468,7 @@ template void OTExtensionWithMatrix::correlate<gf2n>(int start, int slice,
         BitVector& newReceiverInput, bool useConstantBase, int repeat);
 template void OTExtensionWithMatrix::correlate<gfp>(int start, int slice,
         BitVector& newReceiverInput, bool useConstantBase, int repeat);
-template void OTExtensionWithMatrix::print_post_correlate<gf2n>(
+template void OTExtensionWithMatrix::print_post_correlate<gf2n_long>(
         BitVector& newReceiverInput, int j, int offset, int sender);
 template void OTExtensionWithMatrix::print_post_correlate<gfp>(
         BitVector& newReceiverInput, int j, int offset, int sender);
@@ -481,6 +481,6 @@ template void OTExtensionWithMatrix::expand<gfp>(int start, int slice);
 template void OTExtensionWithMatrix::expand_transposed<gf2n>();
 template void OTExtensionWithMatrix::expand_transposed<gfp>();
 template void OTExtensionWithMatrix::reduce_squares(unsigned int nTriples,
-        vector<gf2n>& output);
+        vector<gf2n_long>& output);
 template void OTExtensionWithMatrix::reduce_squares(unsigned int nTriples,
         vector<gfp>& output);

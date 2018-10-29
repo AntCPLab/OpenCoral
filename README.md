@@ -96,16 +96,9 @@ compute the preprocessing time for a particulor computation.
  - To benchmark anything other than Yao's garbled circuits, add the following line at the top: `MY_CFLAGS = -DINSECURE`
  - `PREP_DIR` should point to should be a local, unversioned directory to store preprocessing data (default is `Player-Data` in the current directory).
  - For the SPDZ-2 and Overdrive offline phases, set `USE_NTL = 1` and `MOD = -DMAX_MOD_SZ=6`.
- - To use GF(2^40) in the online phase, set `USE_GF2N_LONG = 1`. This will deactive anything that requires OT.
+ - To use GF(2^40), set `USE_GF2N_LONG = 0`. This will deactive anything that requires GF(2^128) such as MASCOT.
 
-2) MASCOT and Yao's garbled circuits require SimpleOT:
-```
-git submodule update --init SimpleOT
-cd SimpleOT
-make -j
-```
-
-3) Run make to compile all the software (use the flag -j for faster
+2) Run make to compile all the software (use the flag -j for faster
 compilation multiple threads). See below on how to compile specific
 parts only. Remember to run `make clean` first after changing `CONFIG`
 or `CONFIG.mine`.
@@ -302,6 +295,8 @@ such as this one.
 
 This implementation is suitable to generate the preprocessed data used in the online phase.
 
+It requires compilation with `USE_GF2N_LONG = 0` in `CONFIG` or `CONFIG.mine`. Remember to run `make clean` before recompiling.
+
 For quick run on one machine, you can call the following:
 
 `./spdz2-offline.x -p 0 & ./spdz2-offline.x -p 1`
@@ -324,14 +319,7 @@ In order to compile the MASCOT code, the following must be set in CONFIG or CONF
 
 `USE_GF2N_LONG = 1`
 
-It also requires SimpleOT:
-```
-git submodule update --init SimpleOT
-cd SimpleOT
-make
-```
-
-If SPDZ has been built before, any compiled code needs to be removed:
+If SPDZ has been built before with `USE_GF2N_LONG = 0`, any compiled code needs to be removed:
 
 `make clean`
 

@@ -81,9 +81,4 @@ void ThreadMaster<T>::run()
     cerr << "Time = " << timer.elapsed() << endl;
 }
 
-
-template class ThreadMaster<FakeSecret>;
-template class ThreadMaster<ReplicatedSecret>;
-
-
 } /* namespace GC */

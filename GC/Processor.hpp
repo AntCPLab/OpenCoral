@@ -231,7 +231,4 @@ void Processor<T>::print_str(int n)
     T::out << string((char*)&n,sizeof(n)) << flush;
 }
 
-template class Processor<FakeSecret>;
-template class Processor<ReplicatedSecret>;
-
 } /* namespace GC */

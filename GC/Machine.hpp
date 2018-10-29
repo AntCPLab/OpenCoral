@@ -71,7 +71,4 @@ void Machine<T>::join_tape(int thread_number)
     ThreadMaster<T>::s().join_tape(thread_number);
 }
 
-template class Machine<FakeSecret>;
-template class Machine<ReplicatedSecret>;
-
 } /* namespace GC */

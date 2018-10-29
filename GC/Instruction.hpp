@@ -237,9 +237,4 @@ void Instruction<T>::parse(istream& s, int pos)
     }
 }
 
-
-
-template class Instruction<FakeSecret>;
-template class Instruction<ReplicatedSecret>;
-
 } /* namespace GC */
