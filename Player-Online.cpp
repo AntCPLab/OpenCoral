@@ -268,7 +268,7 @@ int main(int argc, const char** argv)
 #ifndef INSECURE
     catch(...)
     {
-        purge_preprocessing(playerNames,
+        thread_info<sgfp>::purge_preprocessing(playerNames,
                 get_prep_dir(playerNames.num_players(), lgp, lg2));
         throw;
     }

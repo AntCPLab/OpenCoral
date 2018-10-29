@@ -368,7 +368,7 @@ void Machine<sint>::run()
   pos.print_cost();
 
 #ifndef INSECURE
-  Data_Files df(N.my_num(), N.num_players(), prep_dir_prefix);
+  Data_Files<sint> df(N.my_num(), N.num_players(), prep_dir_prefix);
   df.seekg(pos);
   df.prune();
 #endif
