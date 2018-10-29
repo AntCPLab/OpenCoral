@@ -19,11 +19,11 @@ int main(int argc, const char** argv) {
           "--lgp" // Flag token.
     );
     opt.add(
-          "40", // Default.
+          to_string(gf2n::default_degree()).c_str(), // Default.
           0, // Required?
           1, // Number of args expected.
           0, // Delimiter if expecting multiple args.
-          "Bit length of GF(2^n) field (default: 40)", // Help description.
+          ("Bit length of GF(2^n) field (default: " + to_string(gf2n::default_degree()) + ")").c_str(), // Help description.
           "-lg2", // Flag token.
           "--lg2" // Flag token.
     );

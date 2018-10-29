@@ -9,7 +9,7 @@ int main() {
 	ifstream cin("gf2n_vals.in");
 	ofstream cout("gf2n_vals.out");
 
-	gf2n::init_field(40);
+	gf2n::init_field(gf2n::default_degree());
 
 	int n; cin >> n;
 	for (int i = 0; i < n; ++i) {
