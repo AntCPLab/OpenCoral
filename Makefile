@@ -141,8 +141,8 @@ spdz2-offline.x: $(COMMON) $(FHEOFFLINE) spdz2-offline.cpp
 endif
 
 ifeq ($(USE_GF2N_LONG),1)
-yao-player.x: $(YAO) $(COMMON) yao-player.cpp
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(LIBSIMPLEOT)
+yao-player.x: $(YAO) $(COMMON) yao-player.cpp $(LIBSIMPLEOT)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 endif
 
 yao-clean:
@@ -156,6 +156,15 @@ replicated-bin-party.x: $(BMR) replicated-bin-party.cpp
 
 replicated-ring-party.x: replicated-ring-party.cpp $(PROCESSOR) $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
+
+$(LIBSIMPLEOT): SimpleOT/Makefile
+	$(MAKE) -C SimpleOT
+
+OT/BaseOT.o: SimpleOT/Makefile
+	$(CXX) $(CFLAGS) -MMD -c -o $@ $(@:.o=.cpp)
+
+SimpleOT/Makefile:
+	git submodule update --init SimpleOT
 
 clean:
 	-rm */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o
