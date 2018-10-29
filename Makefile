@@ -81,8 +81,8 @@ Player-Online.x: Player-Online.cpp $(COMMON) $(PROCESSOR)
 	$(CXX) $(CFLAGS) Player-Online.cpp -o Player-Online.x $(COMMON) $(PROCESSOR) $(LDLIBS)
 
 ifeq ($(USE_GF2N_LONG),1)
-ot.x: $(OT) $(COMMON) OT/OText_main.cpp
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(LIBSIMPLEOT)
+ot.x: $(OT) $(COMMON) OT/OText_main.cpp $(LIBSIMPLEOT)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 ot-check.x: $(OT) $(COMMON)
 	$(CXX) $(CFLAGS) -o ot-check.x OT/BitVector.o OT/OutputCheck.cpp $(COMMON) $(LDLIBS)
@@ -90,8 +90,8 @@ ot-check.x: $(OT) $(COMMON)
 ot-bitmatrix.x: $(OT) $(COMMON) OT/BitMatrixTest.cpp
 	$(CXX) $(CFLAGS) -o ot-bitmatrix.x OT/BitMatrixTest.cpp OT/BitMatrix.o OT/BitVector.o $(COMMON) $(LDLIBS)
 
-ot-offline.x: $(OT) $(COMMON) ot-offline.cpp
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(LIBSIMPLEOT)
+ot-offline.x: $(OT) $(COMMON) ot-offline.cpp $(LIBSIMPLEOT)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 endif
 
 check-passive.x: $(COMMON) check-passive.cpp
