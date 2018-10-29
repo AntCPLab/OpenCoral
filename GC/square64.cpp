@@ -34,6 +34,7 @@ union matrix32x8
     }
 };
 
+#ifdef DEBUG_TRANS
 ostream& operator<<(ostream& os, const __m256i& x)
 {
     for (int i = 0; i < 4; i++)
@@ -41,6 +42,7 @@ ostream& operator<<(ostream& os, const __m256i& x)
     os << dec;
     return os;
 }
+#endif
 
 
 #define ZIP_CASE(I, LOWS, HIGHS, A, B) \
