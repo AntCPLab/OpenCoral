@@ -59,6 +59,8 @@ def main():
                       help="stop on register errors")
     parser.add_option("-R", "--ring", dest="ring", default=0,
                       help="bit length of ring (default: 0 for field)")
+    parser.add_option("-B", "--binary", dest="binary", default=0,
+                      help="bit length of sint in binary circuit (default: 0 for arithmetic)")
     options,args = parser.parse_args()
     if len(args) < 1:
         parser.print_help()

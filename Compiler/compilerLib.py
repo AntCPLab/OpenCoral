@@ -2,6 +2,7 @@ from Compiler.program import Program
 from Compiler.config import *
 from Compiler.exceptions import *
 import instructions, instructions_base, types, comparison, library
+import GC.types
 
 import random
 import time
@@ -23,6 +24,8 @@ def run(args, options, param=-1, merge_opens=True, emulate=True, \
     prog.EMULATE = emulate
     prog.DEBUG = debug
     VARS['program'] = prog
+    if options.binary:
+        VARS['sint'] = GC.types.sbitint.get_type(int(options.binary))
     comparison.set_variant(options)
     
     print 'Compiling file', prog.infile
