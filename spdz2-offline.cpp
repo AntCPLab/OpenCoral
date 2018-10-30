@@ -24,10 +24,12 @@ public:
     int covert;
     Names N;
     bool stop_requested;
+    bool minimal;
     DataSetup setup;
     int prime_length, gf2n_length;
 
     Spdz2() : sec(40), covert(2), stop_requested(false),
+            minimal(false),
             prime_length(128), gf2n_length(40) {}
 
     void stop()
@@ -71,10 +73,10 @@ public:
         vector<octetStream> os(P.num_players());
         while (true)
         {
-            bool stop = false;
+            bool stop = spdz2.stop_requested or (spdz2.minimal and total > 0);
             // see if all happy to continue
             os[P.my_num()].reset_write_head();
-            os[P.my_num()].store_int(spdz2.stop_requested, 1);
+            os[P.my_num()].store_int(stop, 1);
             P.Broadcast_Receive(os);
             for (auto& o : os)
                 if(o.get_int(1))
@@ -139,11 +141,15 @@ public:
         for (int i = 0; i < 5; i++)
         {
             generators.push_back(new Spdz2GeneratorThread<FD>(*this, *producers[i], i));
-            pthread_create(&generators[i]->thread, 0, run_producer<FD>, generators[i]);
+            if (not spdz2.minimal)
+                pthread_create(&generators[i]->thread, 0, run_producer<FD>, generators[i]);
         }
         for (int i = 0; i < 5; i++)
         {
-            pthread_join(generators[i]->thread, 0);
+            if (spdz2.minimal)
+                generators[i]->run();
+            else
+                pthread_join(generators[i]->thread, 0);
             delete generators[i];
             delete producers[i];
         }
@@ -234,6 +240,15 @@ int main(int argc, const char** argv)
             "-c", // Flag token.
             "--covert" // Flag token.
     );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Minimal production with minimal memory (default: run forever)", // Help description.
+            "-m", // Flag token.
+            "--minimal" // Flag token.
+    );
     opt.parse(argc, argv);
     if (!opt.isSet("-p"))
     {
@@ -253,6 +268,7 @@ int main(int argc, const char** argv)
     opt.get("-pn")->getInt(portnum_base);
     opt.get("-h")->getString(hostname);
     opt.get("-c")->getInt(spdz2.covert);
+    spdz2.minimal = opt.get("-m")->isSet;
 
     if(mkdir_p(PREP_DIR) == -1)
     {
@@ -273,11 +289,22 @@ int main(int argc, const char** argv)
     Spdz2SetupThread<FFT_Data> thread_p(spdz2.prime_length, spdz2);
     Spdz2SetupThread<P2Data> thread_2(spdz2.gf2n_length, spdz2);
     pthread_t threads[2];
-    pthread_create(&threads[0], 0, run_setup<FFT_Data>, &thread_p);
-    pthread_create(&threads[1], 0, run_setup<P2Data>, &thread_2);
+    if (spdz2.minimal)
+    {
+        thread_p.signal.unlock();
+        thread_2.signal.unlock();
+        thread_p.run();
+        thread_2.run();
+    }
+    else
+    {
+        pthread_create(&threads[0], 0, run_setup<FFT_Data>, &thread_p);
+        pthread_create(&threads[1], 0, run_setup<P2Data>, &thread_2);
+    }
 
     // gfp parameter generation is much faster
-    thread_p.signal.wait();
+    if (not spdz2.minimal)
+        thread_p.signal.wait();
     DataSetup& setup = spdz2.setup;
     setup.setup_p = thread_p.setup;
     // write preliminary data for early checking
@@ -285,13 +312,15 @@ int main(int argc, const char** argv)
     setup.output(spdz2.N.my_num(), spdz2.N.num_players(), true);
 
     // gf2n is slower
-    thread_2.signal.wait();
+    if (not spdz2.minimal)
+        thread_2.signal.wait();
     setup.setup_2 = thread_2.setup;
     setup.write_setup(spdz2.N, false);
     setup.output(spdz2.N.my_num(), spdz2.N.num_players(), true);
 
     for (int i = 0; i < 2; i++)
-        pthread_join(threads[i], 0);
+        if (not spdz2.minimal)
+            pthread_join(threads[i], 0);
     pthread_cancel(interrupt_thread);
 
     if (server)

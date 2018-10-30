@@ -357,6 +357,7 @@ void Run_Gen_Protocol(FHE_PK& pk,FHE_SK& sk,const Player& P,int num_runs,
   for (int i=0; i<num_runs; i++)
     keys[i].sum_a(a[i]);
 
+  a.clear();
   cout << "Done Step 2.5 " << endl;
 
   stop=clock();
@@ -403,6 +404,7 @@ void Run_Gen_Protocol(FHE_PK& pk,FHE_SK& sk,const Player& P,int num_runs,
       enc_dash[i][P.my_num()] = keys[i].enc_dash;
     }
 
+  b.clear();
   cout << "Done Step 5/6 " << endl;
 
   stop=clock();
@@ -426,7 +428,7 @@ void Run_Gen_Protocol(FHE_PK& pk,FHE_SK& sk,const Player& P,int num_runs,
   /***********************
    *    Step 8/9/10      *
    ***********************/
-  vector< vector<Ciphertext> > enc(num_runs, vector<Ciphertext>(P.num_players(),params));
+  vector< vector<Ciphertext> >& enc = enc_dash;
   for (int i=0; i<num_runs; i++)
     {
       keys[i].compute_enc(enc_dash[i]);
