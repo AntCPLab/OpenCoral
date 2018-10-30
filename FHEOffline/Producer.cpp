@@ -494,7 +494,7 @@ void gfpBitProducer::run(const Player& P, const FHE_PK& pk,
             a.set_share(vi.element(i));
             a.set_mac(gam_vi.element(i));
             // Form (1/2)*a+1
-            a.add(a, one, P.my_num() == 0, alphai);
+            a.add(a, one, P.my_num(), alphai);
             a.mul(a, two_inv);
             bits.push_back(a);
         }

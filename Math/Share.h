@@ -86,6 +86,11 @@ class Share
    void sub(const Share<T>& S1,const Share<T>& S2);
    void add(const Share<T>& S1) { add(*this,S1); }
 
+   // obsolete interface
+   void add(const Share<T>& S,const clear& aa,bool playerone,const T& alphai);
+   void sub(const Share<T>& S,const clear& aa,bool playerone,const T& alphai);
+   void sub(const clear& aa,const Share<T>& S,bool playerone,const T& alphai);
+
    Share<T> operator+(const Share<T>& x) const
    { Share<T> res; res.add(*this, x); return res; }
    Share<T> operator-(const Share<T>& x) const
