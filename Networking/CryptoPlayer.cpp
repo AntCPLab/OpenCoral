@@ -8,7 +8,7 @@
 
 CryptoPlayer::CryptoPlayer(const Names& Nms, int id_base) :
         MultiPlayer<ssl_socket*>(Nms, id_base), plaintext_player(Nms, id_base),
-        ctx(boost::asio::ssl::context::tls)
+        ctx(boost::asio::ssl::context::tlsv12)
 {
     string prefix = PREP_DIR "P" + to_string(my_num());
     ctx.use_certificate_file(prefix + ".pem", ctx.pem);
