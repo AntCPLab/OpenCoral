@@ -18,7 +18,9 @@ template<class T>
 void* Thread<T>::run_thread(void* thread)
 {
     ((Thread<T>*)thread)->run();
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
     OPENSSL_thread_stop();
+#endif
     return 0;
 }
 

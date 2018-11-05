@@ -170,7 +170,9 @@ void* Sub_Main_Func(void* ptr)
   delete MCp;
   delete player;
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
   OPENSSL_thread_stop();
+#endif
   return NULL;
 }
 
