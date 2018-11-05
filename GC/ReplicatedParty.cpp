@@ -42,6 +42,15 @@ ReplicatedParty::ReplicatedParty(int argc, const char** argv)
             "-pn", // Flag token.
             "--portnum" // Flag token.
     );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Unencrypted communication.", // Help description.
+            "-u", // Flag token.
+            "--unencrypted" // Flag token.
+    );
     opt.parse(argc, argv);
     opt.syntax = "./replicated-bin-party.x [OPTIONS] <progname>";
     if (opt.lastArgs.size() == 1)
@@ -62,11 +71,14 @@ ReplicatedParty::ReplicatedParty(int argc, const char** argv)
     opt.get("-p")->getInt(my_num);
     opt.get("-pn")->getInt(pnb);
     opt.get("-h")->getString(hostname);
+    machine.use_encryption = not opt.get("-u")->isSet;
 
     if (my_num != 0)
         ReplicatedSecret::out.activate(false);
 
-    insecure("unencrypted communication");
+    if (not machine.use_encryption)
+        insecure("unencrypted communication");
+
     Server* server = Server::start_networking(N, my_num, 3, hostname, pnb);
 
     run();

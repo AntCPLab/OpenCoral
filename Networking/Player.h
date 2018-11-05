@@ -40,6 +40,8 @@ public:
     ~CommsecKeysPackage();
 };
 
+template<class T> class MultiPlayer;
+
 /* Class to get the names off the server */
 class Names
 {
@@ -91,6 +93,7 @@ class Names
 
   friend class PlayerBase;
   friend class Player;
+  template<class T> friend class MultiPlayer;
   friend class TwoPartyPlayer;
 };
 
@@ -127,33 +130,75 @@ struct CommStats
 class Player : public PlayerBase
 {
 protected:
-  vector<int> sockets;
-  int send_to_self_socket;
-
-  void setup_sockets(const vector<string>& names,const vector<int>& ports,int id_base,ServerSocket& server);
-
   int nplayers;
 
   mutable blk_SHA_CTX ctx;
 
-  map<int,int> socket_players;
-
-  int socket_to_send(int player) const { return player == player_no ? send_to_self_socket : sockets[player]; }
-
   mutable map<string,CommStats> comm_stats;
 
 public:
-  // The offset is used for the multi-threaded call, to ensure different
-  // portnum bases in each thread
-  Player(const Names& Nms,int id_base=0);
-
+  Player(const Names& Nms);
   virtual ~Player();
 
   int num_players() const { return nplayers; }
   int my_num() const { return player_no; }
-  int socket(int i) const { return sockets[i]; }
 
   int get_offset(int other_player) const { return positive_modulo(other_player - my_num(), num_players()); }
+
+  virtual bool is_encrypted() { return false; }
+
+  virtual void send_long(int i, long a) const = 0;
+  virtual long receive_long(int i) const = 0;
+
+  virtual void send_all(const octetStream& o,bool donthash=false) const = 0;
+  virtual void send_to(int player,const octetStream& o,bool donthash=false) const = 0;
+  virtual void receive_player(int i,octetStream& o,bool donthash=false) const = 0;
+  virtual void receive_player(int i,FlexBuffer& buffer) const;
+
+  // Communication relative to my number
+  void send_relative(const vector<octetStream>& o) const;
+  void send_relative(int offset, const octetStream& o) const;
+  void receive_relative(vector<octetStream>& o) const;
+  void receive_relative(int offset, octetStream& o) const;
+
+  /* Broadcast and Receive data to/from all players
+   *  - Assumes o[player_no] contains the thing broadcast by me
+   */
+  virtual void Broadcast_Receive(vector<octetStream>& o,bool donthash=false) const = 0;
+
+  /* Run Protocol To Verify Broadcast Is Correct
+   *     - Resets the blk_SHA_CTX at the same time
+   */
+  virtual void Check_Broadcast() const;
+
+  // dummy functions for compatibility
+  virtual void request_receive(int i, octetStream& o) const { (void)i; (void)o; }
+  virtual void wait_receive(int i, octetStream& o, bool donthash=false) const { receive_player(i, o, donthash); }
+};
+
+template<class T>
+class MultiPlayer : public Player
+{
+protected:
+  vector<T> sockets;
+  T send_to_self_socket;
+
+  void setup_sockets(const vector<string>& names,const vector<int>& ports,int id_base,ServerSocket& server);
+
+  map<T,int> socket_players;
+
+  T socket_to_send(int player) const { return player == player_no ? send_to_self_socket : sockets[player]; }
+
+  friend class CryptoPlayer;
+
+public:
+  // The offset is used for the multi-threaded call, to ensure different
+  // portnum bases in each thread
+  MultiPlayer(const Names& Nms,int id_base=0);
+
+  virtual ~MultiPlayer() {}
+
+  T socket(int i) const { return sockets[i]; }
 
   // Send/Receive data to/from player i 
   // 8-bit ints only (mainly for testing)
@@ -162,20 +207,12 @@ public:
 
   void send_long(int i, long a) const;
   long receive_long(int i) const;
-  long peek_long(int i) const;
 
   // Send an octetStream to all other players 
   //   -- And corresponding receive
   virtual void send_all(const octetStream& o,bool donthash=false) const;
   void send_to(int player,const octetStream& o,bool donthash=false) const;
   virtual void receive_player(int i,octetStream& o,bool donthash=false) const;
-  void receive_player(int i,FlexBuffer& buffer) const;
-
-  // Communication relative to my number
-  void send_relative(const vector<octetStream>& o) const;
-  void send_relative(int offset, const octetStream& o) const;
-  void receive_relative(vector<octetStream>& o) const;
-  void receive_relative(int offset, octetStream& o) const;
 
   // exchange data with minimal memory usage
   void exchange(int other, octetStream& o) const;
@@ -190,21 +227,14 @@ public:
    */
   void Broadcast_Receive(vector<octetStream>& o,bool donthash=false) const;
 
-  /* Run Protocol To Verify Broadcast Is Correct
-   *     - Resets the blk_SHA_CTX at the same time
-   */
-  void Check_Broadcast() const;
-
   // wait for available inputs
   void wait_for_available(vector<int>& players, vector<int>& result) const;
-
-  // dummy functions for compatibility
-  virtual void request_receive(int i, octetStream& o) const { sockets[i]; o.get_length(); }
-  virtual void wait_receive(int i, octetStream& o, bool donthash=false) const { receive_player(i, o, donthash); }
 };
 
+typedef MultiPlayer<int> PlainPlayer;
 
-class ThreadPlayer : public Player
+
+class ThreadPlayer : public MultiPlayer<int>
 {
 public:
   mutable vector<Receiver*> receivers;

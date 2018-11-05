@@ -162,6 +162,7 @@ void close_client_socket(int socket)
 unsigned long long sent_amount = 0, sent_counter = 0;
 
 
+template<>
 void send(int socket,int a)
 {
   unsigned char msg[1];
@@ -171,6 +172,7 @@ void send(int socket,int a)
 }
 
 
+template<>
 void receive(int socket,int& a)
 {
   unsigned char msg[1];
@@ -180,22 +182,6 @@ void receive(int socket,int& a)
       if (i<0) { error("Receiving error - 2"); }
     }
   a=msg[0];
-}
-
-
-void send(int socket, size_t a, size_t len)
-{
-  octet blen[len];
-  encode_length(blen, a, len);
-  send(socket, blen, len);
-}
-
-
-void receive(int socket, size_t& a, size_t len)
-{
-  octet blen[len];
-  receive(socket, blen, len);
-  a = decode_length(blen, len);
 }
 
 

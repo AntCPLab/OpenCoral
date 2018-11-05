@@ -39,13 +39,13 @@ public:
 
 	YaoEvaluator(int thread_num, YaoEvalMaster& master);
 
-	bool continous() { return master.continuous and thread_num == 0; }
+	bool continuous() { return master.continuous and thread_num == 0; }
 
 	void pre_run();
 	void run(GC::Program<GC::Secret<YaoEvalWire>>& program);
 	void run(GC::Program<GC::Secret<YaoEvalWire>>& program, Player& P);
 	void run_from_store(GC::Program<GC::Secret<YaoEvalWire>>& program);
-	void receive(Player& P);
+	bool receive(Player& P);
 	void receive_to_store(Player& P);
 
 	void load_gate(YaoGate& gate);

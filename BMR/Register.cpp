@@ -925,7 +925,7 @@ void EvalRegister::store(GC::Memory<GC::SpdzShare>& mem,
 			Share<gf2n> tmp;
 			gf2n ext = (int)reg.get_external();
 			//cout << "ext:" << ext << "/" << (int)reg.get_external() << " " << endl;
-			tmp.add(spdz_wire.mask, ext, party.get_id() - 1, party.get_mac_key());
+			tmp.add(spdz_wire.mask, ext, (int)party.get_id() - 1, party.get_mac_key());
 			S.push_back(tmp);
 			tmp *= gf2n(1) << i;
 			dest += tmp;

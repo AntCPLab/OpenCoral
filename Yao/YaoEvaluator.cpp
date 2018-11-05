@@ -18,7 +18,7 @@ YaoEvaluator::YaoEvaluator(int thread_num, YaoEvalMaster& master) :
 
 void YaoEvaluator::pre_run()
 {
-	if (not continous())
+	if (not continuous())
 		receive_to_store(*P);
 }
 
@@ -26,7 +26,7 @@ void YaoEvaluator::run(GC::Program<GC::Secret<YaoEvalWire>>& program)
 {
 	singleton = this;
 
-	if (continous())
+	if (continuous())
 		run(program, *P);
 	else
 	{
@@ -52,19 +52,20 @@ void YaoEvaluator::run_from_store(GC::Program<GC::Secret<YaoEvalWire>>& program)
 	while(GC::DONE_BREAK != program.execute(processor, -1));
 }
 
-void YaoEvaluator::receive(Player& P)
+bool YaoEvaluator::receive(Player& P)
 {
+	if (P.receive_long(0) == YaoCommon::DONE)
+		return false;
 	P.receive_player(0, gates);
 	P.receive_player(0, output_masks);
+	return true;
 }
 
 void YaoEvaluator::receive_to_store(Player& P)
 {
-	while (P.peek_long(0) != -1)
+	while (receive(P))
 	{
-		receive(P);
 		gates_store.push(gates);
 		output_masks_store.push(output_masks);
 	}
-	P.receive_long(0);
 }

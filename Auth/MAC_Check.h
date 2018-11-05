@@ -122,7 +122,7 @@ template<class T>
 class Separate_MAC_Check: public MAC_Check<T>
 {
   // Different channel for checks
-  Player check_player;
+  PlainPlayer check_player;
 
 protected:
   // No sense to expose this
@@ -138,7 +138,7 @@ template<class T>
 class Parallel_MAC_Check: public Separate_MAC_Check<T>
 {
   // Different channel for every round
-  Player send_player;
+  PlainPlayer send_player;
   // Managed by Summer
   Player* receive_player;
 

@@ -1,5 +1,8 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enchancements are committed between releases and not documented here.
 
+## 0.0.5 (Nov 5, 2018)
+- Encrypted communication for replicated secret sharing
+
 ## 0.0.4 (Oct 11, 2018)
 
 - Added BMR, Yao's garbled circuits, and semi-honest 3-party replicated secret sharing for arithmetic and binary circuits.

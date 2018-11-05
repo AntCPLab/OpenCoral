@@ -23,7 +23,7 @@ class ShareTriple;
 class NPartyTripleGenerator
 {
     //OTTripleSetup* setup;
-    Player globalPlayer;
+    PlainPlayer globalPlayer;
 
     int thread_num;
     int my_num;

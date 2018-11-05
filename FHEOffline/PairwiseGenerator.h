@@ -33,7 +33,7 @@ class PairwiseGenerator : public GeneratorBase
 
 public:
     PairwiseMachine& machine;
-    Player global_player;
+    PlainPlayer global_player;
 
     PairwiseGenerator(int thread_num, PairwiseMachine& machine);
     ~PairwiseGenerator();

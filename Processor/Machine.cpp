@@ -34,10 +34,12 @@ BaseMachine::BaseMachine() : nthreads(0)
 template<class sint>
 Machine<sint>::Machine(int my_number, Names& playerNames,
     string progname_str, string memtype, int lgp, int lg2, bool direct,
-    int opening_sum, bool parallel, bool receive_threads, int max_broadcast)
+    int opening_sum, bool parallel, bool receive_threads, int max_broadcast,
+    bool use_encryption)
   : my_number(my_number), N(playerNames), tn(0), numt(0), usage_unknown(false),
     direct(direct), opening_sum(opening_sum), parallel(parallel),
-    receive_threads(receive_threads), max_broadcast(max_broadcast)
+    receive_threads(receive_threads), max_broadcast(max_broadcast),
+    use_encryption(use_encryption)
 {
   if (opening_sum < 2)
     this->opening_sum = N.num_players();

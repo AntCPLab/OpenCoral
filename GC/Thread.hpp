@@ -9,6 +9,8 @@
 #include "ReplicatedSecret.h"
 #include "Secret.h"
 
+#include "Networking/CryptoPlayer.h"
+
 namespace GC
 {
 
@@ -16,6 +18,7 @@ template<class T>
 void* Thread<T>::run_thread(void* thread)
 {
     ((Thread<T>*)thread)->run();
+    OPENSSL_thread_stop();
     return 0;
 }
 
@@ -43,7 +46,10 @@ void Thread<T>::run()
          throw runtime_error("there can only be one");
     singleton = this;
     secure_prng.ReSeed();
-    P = new Player(N, thread_num << 16);
+    if (machine.use_encryption)
+        P = new CryptoPlayer(N, thread_num << 16);
+    else
+        P = new PlainPlayer(N, thread_num << 16);
     protocol = new typename T::Protocol(*P);
     string input_file = "Player-Data/Input-P" + to_string(N.my_num()) + "-" + to_string(thread_num);
     processor.open_input_file(input_file);

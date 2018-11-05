@@ -208,7 +208,7 @@ void MultiplicativeMachine::generate_setup(int slack)
 template <class FD>
 void MultiplicativeMachine::fake_keys(int slack)
 {
-    Player P(N, -1 * N.num_players() * N.num_players());
+    PlainPlayer P(N, -1 * N.num_players() * N.num_players());
     octetStream os;
     PartSetup<FD>& part_setup = setup.part<FD>();
     if (P.my_num() == 0)

@@ -60,7 +60,7 @@ public:
     {
         PartSetup<FD>& setup = setup_thread.setup;
         const Spdz2& spdz2 = setup_thread.spdz2;
-        Player P(spdz2.N, ((id + 1) << 8) + FD::T::type_char());
+        PlainPlayer P(spdz2.N, ((id + 1) << 8) + FD::T::type_char());
         EncCommit_<FD> EC(P, setup.pk, spdz2.covert, producer.required_randomness());
         DistDecrypt<FD> dd(P, setup.sk, setup.pk, setup.FieldD);
         MAC_Check<typename FD::T> MC(setup.alphai);
@@ -120,7 +120,7 @@ public:
 
     void* run()
     {
-        Player P(spdz2.N, FD::T::type_char());
+        PlainPlayer P(spdz2.N, FD::T::type_char());
         setup.generate_setup(P.num_players(), plaintext_length, spdz2.sec, 0, false);
         Run_Gen_Protocol(setup.pk, setup.sk, P, spdz2.covert, false);
         generate_mac_key(setup.alphai, setup.calpha, setup.FieldD, setup.pk, P, spdz2.covert);

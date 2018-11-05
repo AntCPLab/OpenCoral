@@ -97,10 +97,11 @@ class Machine : public BaseMachine
   bool parallel;
   bool receive_threads;
   int max_broadcast;
+  bool use_encryption;
 
   Machine(int my_number, Names& playerNames, string progname,
       string memtype, int lgp, int lg2, bool direct, int opening_sum, bool parallel,
-      bool receive_threads, int max_broadcast);
+      bool receive_threads, int max_broadcast, bool use_encryption);
 
   DataPositions run_tape(int thread_number, int tape_number, int arg, int line_number);
   void join_tape(int thread_number);

@@ -5,6 +5,7 @@
 #include "octetStream.h"
 #include <string.h>
 #include "Networking/sockets.h"
+#include "Networking/ssl_sockets.h"
 #include "Tools/sha1.h"
 #include "Exceptions/Exceptions.h"
 #include "Networking/data.h"
@@ -184,7 +185,8 @@ void octetStream::get(bigint& ans)
 }
 
 
-void octetStream::exchange(int send_socket, int receive_socket, octetStream& receive_stream)
+template<class T>
+void octetStream::exchange(T send_socket, T receive_socket, octetStream& receive_stream)
 {
   send(send_socket, len, LENGTH_SIZE);
   const size_t buffer_size = 100000;
@@ -372,5 +374,5 @@ ostream& operator<<(ostream& s,const octetStream& o)
 }
 
 
-
-
+template void octetStream::exchange(int, int);
+template void octetStream::exchange(ssl_socket*, ssl_socket*);

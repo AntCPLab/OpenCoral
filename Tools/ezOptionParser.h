@@ -1319,6 +1319,7 @@ public:
   // How to layout usage descriptions with the option flags.
   enum Layout { ALIGN, INTERLEAVE, STAGGER };
 
+  inline ezOptionParser();
   inline ~ezOptionParser();
   
   inline void add(const char * defaults, bool required, int expectArgs, char delim, const char * help, const char * flag1, ezOptionValidator* validator=0);
@@ -1367,6 +1368,10 @@ public:
   // Maps group id to a validator index into vector of validators. Validator index is -1 if there is no validator for group.
   std::map< int, int > groupValidators;
 };
+/* ################################################################### */
+ezOptionParser::ezOptionParser() {
+  reset();
+}
 /* ################################################################### */
 ezOptionParser::~ezOptionParser() {
   reset();

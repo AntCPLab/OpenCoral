@@ -224,7 +224,7 @@ Parallel_MAC_Check<T>::Parallel_MAC_Check(const T& ai, Names& Nms,
       if (sum_players == 0)
         break;
       Player* summer_receive_player = summer_send_player;
-      summer_send_player = new Player(Nms, mc_base_id<T>(3, thread_num));
+      summer_send_player = new PlainPlayer(Nms, mc_base_id<T>(3, thread_num));
       summers.push_back(new Summer<T>(sum_players, last_sum_players, next_sum_players,
               summer_send_player, summer_receive_player, *this));
       pthread_create(&(summers[i]->thread), 0, run_summer_thread<T>, summers[i]);

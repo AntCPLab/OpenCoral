@@ -31,6 +31,8 @@ public:
 
     vector<Program<T> > progs;
 
+    bool use_encryption;
+
     Machine(Memory<typename T::DynamicType>& MD);
     ~Machine();
 

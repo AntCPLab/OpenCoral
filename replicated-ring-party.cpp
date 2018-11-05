@@ -30,6 +30,15 @@ int main(int argc, const char** argv)
             "-pn", // Flag token.
             "--portnum" // Flag token.
     );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Unencrypted communication.", // Help description.
+            "-u", // Flag token.
+            "--unencrypted" // Flag token.
+    );
     opt.syntax = "./replicated-ring-party.x [OPTIONS] <playerno> <progname>";
     opt.parse(argc, argv);
     vector<string*> allArgs(opt.firstArgs);
@@ -60,13 +69,15 @@ int main(int argc, const char** argv)
     string hostname;
     opt.get("-pn")->getInt(pnb);
     opt.get("-h")->getString(hostname);
+    bool use_encryption = not opt.get("-u")->isSet;
 
-    insecure("unencrypted communication");
+    if (not use_encryption)
+        insecure("unencrypted communication");
     Names N;
     Server* server = Server::start_networking(N, playerno, 3, hostname, pnb);
 
     Machine<Rep3Share>(playerno, N, progname, "empty", 128,
-            gf2n::default_degree(), 0, 0, 0, 0, 0).run();
+            gf2n::default_degree(), 0, 0, 0, 0, 0, use_encryption).run();
 
     if (server)
         delete server;

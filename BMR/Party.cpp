@@ -768,7 +768,7 @@ ProgramParty::ProgramParty(int argc, char** argv) :
 		getline(schfile, curr);
 	}
 	cout << "Compiler: " << prev << endl;
-	P = new Player(N, 0);
+	P = new PlainPlayer(N, 0);
 	if (argc > 4)
 		threshold = atoi(argv[4]);
 	else

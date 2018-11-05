@@ -34,12 +34,21 @@ void set_up_client_socket(int& mysocket,const char* hostname,int Portnum);
 void close_client_socket(int socket);
 
 /* Send and receive 8 bit integers */
-void send(int socket,int a);
-void receive(int socket,int& a);
+template<class T>
+void send(T socket,int a);
+template<class T>
+void receive(T socket,int& a);
 
 // same for words
-void send(int socket, size_t a, size_t len);
-void receive(int socket, size_t& a, size_t len);
+template<class T>
+void send(T& socket, size_t a, size_t len);
+template<class T>
+void receive(T& socket, size_t& a, size_t len);
+
+template<class T>
+void send(T socket, octet* msg, size_t len);
+template<class T>
+void receive(T socket, octet* msg, size_t len);
 
 void send_ack(int socket);
 int get_ack(int socket);
@@ -47,6 +56,7 @@ int get_ack(int socket);
 
 extern unsigned long long sent_amount, sent_counter;
 
+template<>
 inline void send(int socket,octet *msg,size_t len)
 {
   size_t i = 0;
@@ -62,6 +72,15 @@ inline void send(int socket,octet *msg,size_t len)
   sent_counter++;
 }
 
+template<class T>
+inline void send(T& socket, size_t a, size_t len)
+{
+  octet blen[len];
+  encode_length(blen, a, len);
+  send(socket, blen, len);
+}
+
+template<>
 inline void receive(int socket,octet *msg,size_t len)
 {
   size_t i=0;
@@ -86,6 +105,14 @@ inline void receive(int socket,octet *msg,size_t len)
       else
         i=i+j;
     }
+}
+
+template<class T>
+inline void receive(T& socket, size_t& a, size_t len)
+{
+  octet blen[len];
+  receive(socket, blen, len);
+  a = decode_length(blen, len);
 }
 
 inline size_t check_non_blocking_result(int res)

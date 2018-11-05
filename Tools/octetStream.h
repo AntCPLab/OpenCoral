@@ -133,8 +133,10 @@ class octetStream
       s.len=l;
     }
 
-  void Send(int socket_num) const;
-  void Receive(int socket_num);
+  template<class T>
+  void Send(T& socket_num) const;
+  template<class T>
+  void Receive(T& socket_num);
   void ReceiveExpected(int socket_num, size_t expected);
 
   // In-place authenticated encryption using sodium; key of length crypto_generichash_BYTES
@@ -153,8 +155,10 @@ class octetStream
   void input(istream& s);
   void output(ostream& s);
 
-  void exchange(int send_socket, int receive_socket) { exchange(send_socket, receive_socket, *this); }
-  void exchange(int send_socket, int receive_socket, octetStream& receive_stream);
+  template<class T>
+  void exchange(T send_socket, T receive_socket) { exchange(send_socket, receive_socket, *this); }
+  template<class T>
+  void exchange(T send_socket, T receive_socket, octetStream& receive_stream);
 
   friend ostream& operator<<(ostream& s,const octetStream& o);
   friend class PRNG;
@@ -226,14 +230,16 @@ inline size_t octetStream::get_int(int n_bytes)
 }
 
 
-inline void octetStream::Send(int socket_num) const
+template<class T>
+inline void octetStream::Send(T& socket_num) const
 {
   send(socket_num,len,LENGTH_SIZE);
   send(socket_num,data,len);
 }
 
 
-inline void octetStream::Receive(int socket_num)
+template<class T>
+inline void octetStream::Receive(T& socket_num)
 {
   size_t nlen=0;
   receive(socket_num,nlen,LENGTH_SIZE);

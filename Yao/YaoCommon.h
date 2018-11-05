@@ -13,6 +13,9 @@ class YaoCommon
     int log_n_threads;
 
 public:
+    static const int DONE = -1;
+    static const int MORE = -2;
+
     long counter;
 
     YaoCommon() :

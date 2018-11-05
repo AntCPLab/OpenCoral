@@ -31,6 +31,7 @@ endif
 # MOD = -DMAX_MOD_SZ=2
 
 LDLIBS = -lmpirxx -lmpir -lsodium $(MY_LDLIBS) -lm -lpthread 
+LDLIBS += -lboost_system -lssl -lcrypto
 
 ifeq ($(USE_NTL),1)
 LDLIBS := -lntl $(LDLIBS)

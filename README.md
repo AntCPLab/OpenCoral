@@ -84,6 +84,9 @@ compute the preprocessing time for a particulor computation.
  - GCC (tested with 7.3) or LLVM (tested with 6.0; remove `-no-pie` from `CONFIG`)
  - MPIR library, compiled with C++ support (use flag --enable-cxx when running configure)
  - libsodium library, tested against 1.0.16
+ - OpenSSL, tested against 1.1.0
+ - Boost.Asio with SSL support, tested against 1.65
+ - Boost.Thread for BMR, tested against 1.65
  - CPU supporting AES-NI, PCLMUL, AVX2
  - Python 2.x
  - NTL library for the SPDZ-2 and Overdrive offline phases (optional; tested with NTL 10.5)
@@ -93,10 +96,10 @@ compute the preprocessing time for a particulor computation.
 
 1) Edit `CONFIG` or `CONFIG.mine` to your needs:
 
- - To benchmark anything other than Yao's garbled circuits, add the following line at the top: `MY_CFLAGS = -DINSECURE`
+ - To benchmark anything other than replicated secret sharing for binary circuits, Yao's garbled circuits, or covertly secure SPDZ, add the following line at the top: `MY_CFLAGS = -DINSECURE`
  - `PREP_DIR` should point to should be a local, unversioned directory to store preprocessing data (default is `Player-Data` in the current directory).
  - For the SPDZ-2 and Overdrive offline phases, set `USE_NTL = 1` and `MOD = -DMAX_MOD_SZ=6`.
- - To use GF(2^40), set `USE_GF2N_LONG = 0`. This will deactive anything that requires GF(2^128) such as MASCOT.
+ - To use GF(2^40), in particular for the SPDZ-2 offline phase, set `USE_GF2N_LONG = 0`. This will deactive anything that requires GF(2^128) such as MASCOT.
 
 2) Run make to compile all the software (use the flag -j for faster
 compilation multiple threads). See below on how to compile specific
@@ -201,6 +204,8 @@ Run setup to create necessary files and random bits (needed for comparisons etc.
 
 `Scripts/setup-online.sh 3`
 
+This will also generate SSL keys and certificates. See the section replicated secret sharing for binary circuits below for details.
+
 In order to compile a program, use `./compile.py -R 64`, for example:
 
 `./compile.py -R 64 tutorial`
@@ -230,6 +235,12 @@ and `sfix`. See `gc_tutorial.mpc` and `gc_fixed_point_tutorial.mpc` in
 Compile the virtual machine:
 
 `make -j 8 replicated-bin-party.x`
+
+Set up SSL certificate and keys:
+
+`Scripts/setup-ssl.sh`
+
+The programs expect the keys and certificates to be in `Player-Data/P<i>.key` and Player-Data/P<i>.pem`, respectively, and the certificates to have the common name 'P<i>' for player `<i>`. Furthermore, the relevant root certificates have to be in `Player-Data` such that OpenSSL can find them (run `c_rehash Player-Data`). The script above takes care of all this by generating self-signed certificates. Therefore, if you are running the programs on different hosts you will need to copy the certificate files.
 
 After compilating the mpc file, run as follows:
 

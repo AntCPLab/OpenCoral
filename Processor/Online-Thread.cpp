@@ -5,6 +5,7 @@
 #include "Processor/Data_Files.h"
 #include "Processor/Machine.h"
 #include "Processor/Processor.h"
+#include "Networking/CryptoPlayer.h"
 
 #include <iostream>
 #include <fstream>
@@ -25,10 +26,15 @@ void* Sub_Main_Func(void* ptr)
   int num=tinfo->thread_num;
   fprintf(stderr, "\tI am in thread %d\n",num);
   Player* player;
-  if (!machine.receive_threads or machine.direct or machine.parallel)
+  if (machine.use_encryption)
+    {
+      cerr << "Using encrypted single-threaded communication" << endl;
+      player = new CryptoPlayer(*(tinfo->Nms), num << 16);
+    }
+  else if (!machine.receive_threads or machine.direct or machine.parallel)
     {
       cerr << "Using single-threaded receiving" << endl;
-      player = new Player(*(tinfo->Nms), num << 16);
+      player = new PlainPlayer(*(tinfo->Nms), num << 16);
     }
   else
     {
@@ -164,6 +170,7 @@ void* Sub_Main_Func(void* ptr)
   delete MCp;
   delete player;
 
+  OPENSSL_thread_stop();
   return NULL;
 }
 

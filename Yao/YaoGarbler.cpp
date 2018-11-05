@@ -67,13 +67,14 @@ void YaoGarbler::post_run()
 {
 	if (not (master.continuous and thread_num == 0))
 	{
-		P->send_long(1, -1);
+		P->send_long(1, YaoCommon::DONE);
 		process_receiver_inputs();
 	}
 }
 
 void YaoGarbler::send(Player& P)
 {
+	P.send_long(1, YaoCommon::MORE);
 	P.send_to(1, gates, true);
 	P.send_to(1, output_masks, true);
 }

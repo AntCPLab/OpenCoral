@@ -53,7 +53,7 @@ Thread<T>* ThreadMaster<T>::new_thread(int i)
 template<class T>
 void ThreadMaster<T>::run()
 {
-    P = new Player(N, 1 << 24);
+    P = new PlainPlayer(N, 1 << 24);
 
     machine.load_schedule(progname);
     for (int i = 0; i < machine.nthreads; i++)

@@ -1,5 +1,6 @@
 
 #include "Player.h"
+#include "ssl_sockets.h"
 #include "Exceptions/Exceptions.h"
 #include "Networking/STS.h"
 #include "Tools/int.h"
@@ -166,23 +167,34 @@ Names::~Names()
 }
 
 
-
-Player::Player(const Names& Nms, int id) :
-        PlayerBase(Nms.my_num()), send_to_self_socket(-1)
+Player::Player(const Names& Nms) :
+        PlayerBase(Nms.my_num())
 {
   nplayers=Nms.nplayers;
   player_no=Nms.player_no;
-  setup_sockets(Nms.names, Nms.ports, id, *Nms.server);
   blk_SHA1_Init(&ctx);
+}
+
+
+template<class T>
+MultiPlayer<T>::MultiPlayer(const Names& Nms, int id) :
+        Player(Nms), send_to_self_socket(0)
+{
+  setup_sockets(Nms.names, Nms.ports, id, *Nms.server);
+}
+
+
+template<>
+MultiPlayer<int>::~MultiPlayer()
+{
+  /* Close down the sockets */
+  for (int i=0; i<nplayers; i++)
+    close_client_socket(sockets[i]);
 }
 
 
 Player::~Player()
 {
-  /* Close down the sockets */
-  for (int i=0; i<nplayers; i++)
-    close_client_socket(sockets[i]);
-
   for (auto it = comm_stats.begin(); it != comm_stats.end(); it++)
     cerr << it->first << " " << 1e-6 * it->second.data << " MB in "
         << it->second.rounds << " rounds, taking " << it->second.timer.elapsed()
@@ -195,7 +207,8 @@ Player::~Player()
 // Set up nmachines client and server sockets to send data back and fro
 //   A machine is a server between it and player i if i<=my_number
 //   Can also communicate with myself, but only with send_to and receive_from
-void Player::setup_sockets(const vector<string>& names,const vector<int>& ports,int id_base,ServerSocket& server)
+template<>
+void MultiPlayer<int>::setup_sockets(const vector<string>& names,const vector<int>& ports,int id_base,ServerSocket& server)
 {
     sockets.resize(nplayers);
     // Set up the client side
@@ -231,30 +244,26 @@ void Player::setup_sockets(const vector<string>& names,const vector<int>& ports,
 }
 
 
-void Player::send_long(int i, long a) const
+template<class T>
+void MultiPlayer<T>::send_long(int i, long a) const
 {
   send(sockets[i], (octet*)&a, sizeof(long));
 }
 
-long Player::receive_long(int i) const
+template<class T>
+long MultiPlayer<T>::receive_long(int i) const
 {
   long res;
   receive(sockets[i], (octet*)&res, sizeof(long));
   return res;
 }
 
-long Player::peek_long(int i) const
+
+template<class T>
+void MultiPlayer<T>::send_to(int player,const octetStream& o,bool donthash) const
 {
-  long res;
-  recv(sockets[i], &res, sizeof(res), MSG_PEEK);
-  return res;
-}
-
-
-void Player::send_to(int player,const octetStream& o,bool donthash) const
-{ 
   TimeScope ts(comm_stats["Sending directly"].add(o));
-  int socket = socket_to_send(player);
+  T socket = socket_to_send(player);
   o.Send(socket);
   if (!donthash)
     { blk_SHA1_Update(&ctx,o.get_data(),o.get_length()); }
@@ -262,7 +271,8 @@ void Player::send_to(int player,const octetStream& o,bool donthash) const
 }
 
 
-void Player::send_all(const octetStream& o,bool donthash) const
+template<class T>
+void MultiPlayer<T>::send_all(const octetStream& o,bool donthash) const
 {
   TimeScope ts(comm_stats["Sending to all"].add(o));
   for (int i=0; i<nplayers; i++)
@@ -275,7 +285,8 @@ void Player::send_all(const octetStream& o,bool donthash) const
 }
 
 
-void Player::receive_player(int i,octetStream& o,bool donthash) const
+template<class T>
+void MultiPlayer<T>::receive_player(int i,octetStream& o,bool donthash) const
 {
   TimeScope ts(timer);
   o.reset_write_head();
@@ -316,8 +327,8 @@ void Player::receive_relative(int offset, octetStream& o) const
   receive_player(positive_modulo(my_num() + offset, num_players()), o, true);
 }
 
-
-void Player::exchange(int other, octetStream& o) const
+template<class T>
+void MultiPlayer<T>::exchange(int other, octetStream& o) const
 {
   TimeScope ts(comm_stats["Exchanging"].add(o));
   o.exchange(sockets[other], sockets[other]);
@@ -325,7 +336,8 @@ void Player::exchange(int other, octetStream& o) const
 }
 
 
-void Player::pass_around(octetStream& o, int offset) const
+template<class T>
+void MultiPlayer<T>::pass_around(octetStream& o, int offset) const
 {
   TimeScope ts(comm_stats["Passing around"].add(o));
   o.exchange(sockets.at((my_num() + offset) % num_players()),
@@ -337,7 +349,8 @@ void Player::pass_around(octetStream& o, int offset) const
 /* This is deliberately weird to avoid problems with OS max buffer
  * size getting in the way
  */
-void Player::Broadcast_Receive(vector<octetStream>& o,bool donthash) const
+template<class T>
+void MultiPlayer<T>::Broadcast_Receive(vector<octetStream>& o,bool donthash) const
 {
   if (o.size() != sockets.size())
     throw runtime_error("player numbers don't match");
@@ -373,7 +386,8 @@ void Player::Check_Broadcast() const
   blk_SHA1_Init(&ctx);
 }
 
-void Player::wait_for_available(vector<int>& players, vector<int>& result) const
+template<>
+void MultiPlayer<int>::wait_for_available(vector<int>& players, vector<int>& result) const
 {
   fd_set rfds;
   FD_ZERO(&rfds);
@@ -409,7 +423,7 @@ void Player::wait_for_available(vector<int>& players, vector<int>& result) const
 }
 
 
-ThreadPlayer::ThreadPlayer(const Names& Nms, int id_base) : Player(Nms, id_base)
+ThreadPlayer::ThreadPlayer(const Names& Nms, int id_base) : PlainPlayer(Nms, id_base)
 {
   for (int i = 0; i < Nms.num_players(); i++)
     {
@@ -622,3 +636,6 @@ void TwoPartyPlayer::exchange(octetStream& o) const
   sent += o.get_length();
   o.exchange(socket, socket);
 }
+
+template class MultiPlayer<int>;
+template class MultiPlayer<ssl_socket*>;

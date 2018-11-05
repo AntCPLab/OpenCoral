@@ -255,7 +255,7 @@ int main(int argc, const char** argv)
     {
         Machine<sgfp>(playerno, playerNames, progname, memtype, lgp, lg2,
                 opt.get("--direct")->isSet, opening_sum, opt.get("--parallel")->isSet,
-                opt.get("--threads")->isSet, max_broadcast).run();
+                opt.get("--threads")->isSet, max_broadcast, false).run();
 
         if (server)
           delete server;

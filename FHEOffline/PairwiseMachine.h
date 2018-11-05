@@ -15,7 +15,7 @@ class PairwiseMachine : public MachineBase
 public:
     PairwiseSetup<FFT_Data> setup_p;
     PairwiseSetup<P2Data> setup_2;
-    Player P;
+    PlainPlayer P;
 
     vector<FHE_PK> other_pks;
     FHE_PK& pk;

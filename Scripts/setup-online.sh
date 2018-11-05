@@ -28,6 +28,8 @@ do
     echo "$arg" | grep -E -q '^[0-9]+$' || die "Integer argument required, $arg provided"
 done
 
+$HERE/setup-ssl.sh ${players}
+
 $SPDZROOT/Fake-Offline.x ${players} -lgp ${bits} -lg2 ${g} --default ${default}
 
 for i in $(seq 0 $[players-1]) ; do

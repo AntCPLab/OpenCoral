@@ -17,7 +17,8 @@ Replicated<T>::Replicated(Player& P) : ReplicatedBase(P), counter(0)
 
 ReplicatedBase::ReplicatedBase(Player& P)
 {
-	insecure("unencrypted communication");
+	if (not P.is_encrypted())
+		insecure("unencrypted communication");
 
 	shared_prngs[0].ReSeed();
 	octetStream os;

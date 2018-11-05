@@ -22,7 +22,7 @@ protected:
     int thread_num;
 
 public:
-    Player P;
+    PlainPlayer P;
     pthread_t thread;
     long long total;
 
