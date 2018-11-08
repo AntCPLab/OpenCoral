@@ -18,7 +18,7 @@
 #define TED_FILE
 
 #include <wmmintrin.h>
-#include "Config.h"
+#include "defs.h"
 
 
 
