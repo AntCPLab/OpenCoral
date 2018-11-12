@@ -115,7 +115,7 @@ inline void PRNG::get_octets(octet* ans,int len)
   while (len)
     {
       int step=min(len,RAND_SIZE-cnt);
-      avx_memcpy(ans+pos,random+cnt,step);
+      memcpy(ans+pos,random+cnt,step);
       pos+=step;
       len-=step;
       cnt+=step;
