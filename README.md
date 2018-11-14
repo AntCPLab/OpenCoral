@@ -132,7 +132,7 @@ All programs required in this section can be compiled with the target `online`:
 
 This requires the INSECURE flag to be set before compilation as explained above. For a secure offline phase, see the section on SPDZ-2 below.
 
-Run the command below. *If you haven't added `MY_CFLAGS = -DINSECURE` to `CONFIG.mine` before compiling, it will fail.*
+Run the command below. **If you haven't added `MY_CFLAGS = -DINSECURE` to `CONFIG.mine` before compiling, it will fail.**
 
 `Scripts/setup-online.sh`
 
