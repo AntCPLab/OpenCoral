@@ -81,7 +81,7 @@ phase outputs the amount of offline material required, which allows to
 compute the preprocessing time for a particulor computation.
 
 #### Requirements
- - GCC (tested with 7.3) or LLVM (tested with 6.0; remove `-no-pie` from `CONFIG`)
+ - GCC 4.8 or later (tested with 7.3; remove `-no-pie` from `CONFIG` for GCC 4.8) or LLVM (tested with 6.0; remove `-no-pie` from `CONFIG`)
  - MPIR library, compiled with C++ support (use flag --enable-cxx when running configure)
  - libsodium library, tested against 1.0.16
  - OpenSSL, tested against 1.1.0
