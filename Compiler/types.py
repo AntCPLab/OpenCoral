@@ -1943,7 +1943,7 @@ class cfix(_number):
     def print_plain(self):
         sign = self.v < 0
         abs_v = sign.if_else(-self.v, self.v)
-        print_float_plain(cint(abs_v), cint(self.f - self.k + 1), \
+        print_float_plain(cint(abs_v), cint(-self.f), \
                           cint(0), cint(sign))
 
 class _fix(_number):
