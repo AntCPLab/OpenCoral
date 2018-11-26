@@ -1941,7 +1941,7 @@ class cfix(_number):
             raise TypeError('Incompatible fixed point types in division')
 
     def print_plain(self):
-        sign = self.v < 0
+        sign = cint(self.v < 0)
         abs_v = sign.if_else(-self.v, self.v)
         print_float_plain(cint(abs_v), cint(-self.f), \
                           cint(0), cint(sign))
