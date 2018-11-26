@@ -16,33 +16,36 @@ void SPDZ<T>::muls(const vector<int>& reg, SubProcessor<Share<T> >& proc, MAC_Ch
     vector<Share<T> >& shares = proc.Sh_PO;
     vector<T>& opened = proc.PO;
     shares.clear();
-    Share<T> triples[n][size][3];
+    vector<array<Share<T>, 3>> triples(n * size);
+    auto triple = triples.begin();
 
     for (int i = 0; i < n; i++)
         for (int j = 0; j < size; j++)
         {
-            proc.DataF.get(DATA_TRIPLE, triples[i][j]);
+            proc.DataF.get(DATA_TRIPLE, triple->data());
             for (int k = 0; k < 2; k++)
-                shares.push_back(proc.S[reg[i * 3 + k + 1] + j] - triples[i][j][k]);
+                shares.push_back(proc.S[reg[i * 3 + k + 1] + j] - (*triple)[k]);
+            triple++;
         }
 
     MC.POpen_Begin(opened, shares, proc.P);
     MC.POpen_End(opened, shares, proc.P);
     auto it = opened.begin();
+    triple = triples.begin();
 
     for (int i = 0; i < n; i++)
         for (int j = 0; j < size; j++)
         {
             T masked[2];
-            Share<T>& tmp = triples[i][j][2];
+            Share<T>& tmp = (*triple)[2];
             for (int k = 0; k < 2; k++)
             {
                 masked[k] = *it++;
-                tmp.add(masked[k] * triples[i][j][1 - k]);
-
+                tmp.add(masked[k] * (*triple)[1 - k]);
             }
             tmp.add(tmp, masked[0] * masked[1], proc.P.my_num(), MC.get_alphai());
             proc.S[reg[i * 3] + j] = tmp;
+            triple++;
         }
 }
 
