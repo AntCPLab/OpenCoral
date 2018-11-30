@@ -70,7 +70,7 @@ she-offline: Check-Offline.x spdz2-offline.x
 
 overdrive: simple-offline.x pairwise-offline.x cnc-offline.x
 
-rep-field: malicious-rep-bin-party.x replicated-field-party.x Setup.x
+rep-field: malicious-rep-field-party.x replicated-field-party.x Setup.x
 
 rep-ring: replicated-ring-party.x Fake-Offline.x
 
