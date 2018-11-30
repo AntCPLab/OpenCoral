@@ -3,13 +3,31 @@
 Software to benchmark various secure multi-party computation (MPC)
 protocols such as SPDZ, MASCOT, Overdrive, BMR garbled circuits
 (evaluation only), Yao's garbled circuits, and computation based on
-semi-honest 3-party replicated secret sharing.
+semi-honest three-party replicated secret sharing (with an honest majority).
+
+#### TL;DR
+
+This requires `sudo` rights as well as a working toolchain installed
+for the first step, refer to [the requirements](#requirements)
+otherwise. It will execute [the
+tutorial](Programs/Source/tutorial.mpc) with three
+parties, an honest majority, and malicious security.
+
+```
+make -j 8 mpir
+make -j 8 tldr
+./compile.py tutorial
+Scripts/setup-replicated.sh
+echo 1 2 3 > Player-Data/Input-P0-0
+echo 1 2 3 > Player-Data/Input-P1-0
+Scripts/mal-rep-field.sh tutorial
+```
 
 #### Preface
 
 The primary aim of this software is to benchmark the same computation
 in various protocols in order to compare the performance. In order to
-do, it uses functionality that is not secure. Many MPC protocols
+do, it sometimes uses functionality that is not secure. Many MPC protocols
 involve several phases that have to be executed in a secure manner for
 the whole protocol to be sure. However, for benchmarking it does not
 make a difference whether a previous phase was executed securely or
@@ -17,13 +35,9 @@ whether its output were generated insecurely. The focus on this
 software is to benchmark each phases individually rather than running
 the whole sequence of phases at once.
 
-Furthermore, the replicated secret sharing implementation currently
-uses unencrypted communication which reveals all information to an
-adversary wiretapping all connections.
-
 In order to make it clear where insecure functionality is used, it is
 disabled by default but can be activated as explained in the section
-on compilation. Many parts of the software will not work without doing so.
+on compilation. Some parts of the software will not work without doing so.
 
 #### History
 
@@ -72,7 +86,7 @@ Overdrive are the names for two alternative preprocessing phases to go
 with the SPDZ online phase.
 
 In the section on computation we will explain how to run the SPDZ
-online phase and semi-honest 3-party replicated secret sharing as well
+online phase and the various honest-majority three-party comptuation as well
 as BMR and Yao's garbled circuits.
 
 The section on offline phases will then explain how to benchmark the
@@ -85,8 +99,8 @@ compute the preprocessing time for a particulor computation.
  - MPIR library, compiled with C++ support (use flag --enable-cxx when running configure)
  - libsodium library, tested against 1.0.16
  - OpenSSL, tested against 1.1.0
- - Boost.Asio with SSL support, tested against 1.65
- - Boost.Thread for BMR, tested against 1.65
+ - Boost.Asio with SSL support (`libboost-dev` on Ubuntu), tested against 1.65
+ - Boost.Thread for BMR (`libboost-thread-dev` on Ubuntu), tested against 1.65
  - CPU supporting AES-NI, PCLMUL, AVX2
  - Python 2.x
  - NTL library for the SPDZ-2 and Overdrive offline phases (optional; tested with NTL 10.5)
@@ -96,7 +110,7 @@ compute the preprocessing time for a particulor computation.
 
 1) Edit `CONFIG` or `CONFIG.mine` to your needs:
 
- - To benchmark anything other than replicated secret sharing for binary circuits, Yao's garbled circuits, or covertly secure SPDZ, add the following line at the top: `MY_CFLAGS = -DINSECURE`
+ - To benchmark malicious SPDZ, some honest-majority three-party computation (semi-honest modulo 2^64 or malicious binary), or BMR, add the following line at the top: `MY_CFLAGS = -DINSECURE`
  - `PREP_DIR` should point to should be a local, unversioned directory to store preprocessing data (default is `Player-Data` in the current directory).
  - For the SPDZ-2 and Overdrive offline phases, set `USE_NTL = 1` and `MOD = -DMAX_MOD_SZ=6`.
  - To use GF(2^40), in particular for the SPDZ-2 offline phase, set `USE_GF2N_LONG = 0`. This will deactive anything that requires GF(2^128) such as MASCOT.
@@ -109,24 +123,15 @@ or `CONFIG.mine`.
 # Benchmarking computation
 
 See `Programs/Source/` for some example MPC programs, in particular
-`tutorial.mpc` and `fixed_point_tutorial.mpc` for arithmetic circuits
-and `gc_tutorial.mpc` and `gc_fixed_point_tutorial.mpc` for binary
-circuits.
-
-Because the focus is on benchmarking, the facilities for private
-inputs to communication are rather rudimentary. For arithmetic
-circuits, `sint.get_raw_input_from()` reads internal representations
-from `Player-Data/Private-Input-<playerno>`, and for binary circuits
-`sbits.get_input_from()` reads numbers in ASCII from
-`Player-Data/Input-P<playerno>-<threadno>`.
+`tutorial.mpc`.
 
 ## Arithmetic circuits
+
+### SPDZ
 
 All programs required in this section can be compiled with the target `online`:
 
 `make -j 8 online`
-
-### SPDZ
 
 #### To setup for benchmarking the online phase
 
@@ -194,11 +199,50 @@ Player-Data Programs
 $ ../spdz/Scripts/run-online.sh test
 ```
 
-### Semi-honest 3-party replicated secret sharing modulo 2^64
+### Three-party honest-majority computation modulo a prime
 
-Compile the virtual machine:
+Compile the virtual machines:
 
-`make -j 8 replicated-ring-party.x`
+`make -j 8 rep-field`
+
+Run setup to generate a 128-bit prime. This will also generate SSL keys and certificates. See the section replicated secret sharing for binary circuits below for details.
+
+`Scripts/setup-replicated.sh`
+
+In order to compile a program, use `./compile.py`, for example:
+
+`./compile.py tutorial`
+
+Running the computation is similar to SPDZ but you will need to start
+three parties:
+
+`./malicious-rep-field-party.x -I 0 tutorial`
+
+`./malicious-rep-field-party.x -I 1 tutorial` (in a separate terminal)
+
+`./malicious-rep-field-party.x -I 2 tutorial` (in a separate terminal)
+
+The `-I` enable interactive inputs, and in the tutorial party 0 and 1
+will be asked to provide three numbers. Using
+`./replicated-field-party.x` will provide semi-honest security instead
+of malicious.
+
+You can run all parties at once with
+
+`Scripts/mal-rep-field.sh tutorial`
+
+for malicious security or
+
+`Scripts/rep-field.sh tutorial`
+
+for semi-honest security. In this case, the inputs are read from
+`Player-Data/Input-P<playerno>-0`.
+
+### Semi-honest honest-majority computation modulo 2^64
+
+Compile the necessary programs:
+
+`make -j 8 rep-ring`
 
 Run setup to create necessary files and random bits (needed for comparisons etc.):
 
@@ -210,31 +254,41 @@ In order to compile a program, use `./compile.py -R 64`, for example:
 
 `./compile.py -R 64 tutorial`
 
-Running the computation is similar to SPDZ but you will need to start
-three parties:
+Then, run the three parties as follows:
 
-`./replicated-ring-party.x 0 tutorial`
+`./replicated-ring-party.x -I 0 tutorial`
 
-`./replicated-ring-party.x 1 tutorial` (in a separate terminal)
+`./replicated-ring-party.x -I 1 tutorial` (in a separate terminal)
 
-`./replicated-ring-party.x 2 tutorial` (in a separate terminal)
+`./replicated-ring-party.x -I 2 tutorial` (in a separate terminal)
 
 or
 
 `Scripts/ring.sh tutorial`
 
+Again, `-I` activates interactive input, otherwise inputs are read
+from `Player-Data/Input-P<playerno>-0`.
+
 ## Binary circuits
 
-Compilation is the same as for SPDZ (no need to use the `-R`
-argument), but you will need to use different types instead of `sint`
-and `sfix`. See `gc_tutorial.mpc` and `gc_fixed_point_tutorial.mpc` in
-`Programs/Source`.
+For binary circuits, you can compile your programs giving the desired
+integer length, for example:
 
-### Semi-honest 3-party replicated secret sharing
+`./compile.py -B 32 tutorial`
 
-Compile the virtual machine:
+for using 32-bit integers with `sint` and 16/16-bit fixed-point
+numbers for `sfix`. The latter is independent of the `-B` option and
+can be changed with `sfix.set_precision`. See [the
+tutorial](Programs/Source/tutorial.mpc).
 
-`make -j 8 replicated-bin-party.x`
+Alternatively, you can directly use `sbitint.get_type(n)` and
+`sbitfix` instead of `sint`and `sfix`, respectively.
+
+### Honest-majority three-party computation
+
+Compile the virtual machines:
+
+`make -j 8 rep-bin`
 
 Set up SSL certificate and keys:
 
@@ -244,9 +298,20 @@ The programs expect the keys and certificates to be in `Player-Data/P<i>.key` an
 
 After compilating the mpc file, run as follows:
 
-`replicated-bin-party.x -h <host of party 0> -p <0/1/2> gc_tutorial`
+`replicated-bin-party.x [-I] -h <host of party 0> -p <0/1/2> tutorial`
 
-When running locally, you can omit the host argument.
+When running locally, you can omit the host argument. As above, `-I`
+activates interactive input, otherwise inputs are read from
+`Player-Data/Input-P<playerno>-0`.
+
+The program above runs a semi-honest computation. For malicious
+security you have to generate some preprocessing data (requires
+compilation with the INSECURE flag):
+
+`Scripts/setup-online.sh 3`
+
+and then use `malicious-rep-bin-party.x` instead of
+`replicated-bin-party.x`.
 
 ### Yao's garbled circuits
 
@@ -257,10 +322,12 @@ Compile the virtual machine:
 `make -j 8 yao`
 
 After compilating the mpc file, run as follows:
-  - Garbler: ```./yao-player.x -p 0 <program>```
-  - Evaluator: ```./yao-player.x -p 1 -h <garbler host> <program>```
+  - Garbler: ```./yao-player.x [-I] -p 0 <program>```
+  - Evaluator: ```./yao-player.x [-I] -p 1 -h <garbler host> <program>```
 
-When running locally, you can omit the host argument.
+When running locally, you can omit the host argument. As above, `-I`
+activates interactive input, otherwise inputs are read from
+`Player-Data/Input-P<playerno>-0`.
 
 By default, the circuit is garbled at once and stored on the evaluator
 side before evaluating. You can activate a more continuous operation

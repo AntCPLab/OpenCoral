@@ -7,6 +7,7 @@
 #define GC_REPLICATEDPARTY_H_
 
 #include "Auth/ReplicatedMC.h"
+#include "Auth/MaliciousRepMC.h"
 #include "ReplicatedSecret.h"
 #include "Processor.h"
 #include "Program.h"
@@ -16,17 +17,26 @@
 namespace GC
 {
 
-class ReplicatedParty : public ThreadMaster<ReplicatedSecret>
+template<class T>
+class ReplicatedParty : public ThreadMaster<T>
 {
+    ez::ezOptionParser opt;
+    OnlineOptions online_opts;
+
 public:
-    static Thread<ReplicatedSecret>& s();
+    static Thread<T>& s();
 
     ReplicatedParty(int argc, const char** argv);
+
+    Thread<T>* new_thread(int i);
+
+    void post_run();
 };
 
-inline Thread<ReplicatedSecret>& ReplicatedParty::s()
+template<class T>
+inline Thread<T>& ReplicatedParty<T>::s()
 {
-    return Thread<ReplicatedSecret>::s();
+    return Thread<T>::s();
 }
 
 }

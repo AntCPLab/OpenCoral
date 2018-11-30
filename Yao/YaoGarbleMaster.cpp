@@ -6,8 +6,8 @@
 #include "YaoGarbleMaster.h"
 #include "YaoGarbler.h"
 
-YaoGarbleMaster::YaoGarbleMaster(bool continuous, int threshold) :
-        continuous(continuous), threshold(threshold)
+YaoGarbleMaster::YaoGarbleMaster(bool continuous, OnlineOptions& opts, int threshold) :
+        super(opts), continuous(continuous), threshold(threshold)
 {
     PRNG G;
     G.ReSeed();

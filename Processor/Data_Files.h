@@ -60,12 +60,39 @@ struct DataPositions
   void print_cost() const;
 };
 
-template<class sint> class Processor;
-template<class sint> class Data_Files;
+template<class sint, class sgf2n> class Processor;
+template<class sint, class sgf2n> class Data_Files;
+template<class sint, class sgf2n> class Machine;
 
 template<class T>
-class Sub_Data_Files
+class Preprocessing
 {
+public:
+  template<class U, class V>
+  static Preprocessing<T>* get_new(Machine<U, V>& machine, DataPositions& usage);
+
+  virtual ~Preprocessing() {}
+
+  virtual void set_protocol(typename T::Protocol& protocol) = 0;
+
+  virtual void seekg(DataPositions& pos) { (void) pos; }
+  virtual void prune() {}
+  virtual void purge() {}
+
+  virtual void get(Dtype dtype, T* a);
+  virtual void get_three(Dtype dtype, T& a, T& b, T& c) = 0;
+  virtual void get_two(Dtype dtype, T& a, T& b) = 0;
+  virtual void get_one(Dtype dtype, T& a) = 0;
+  virtual void get_input(T& a, typename T::clear& x, int i) = 0;
+  virtual void get(vector<T>& S, DataTag tag, const vector<int>& regs,
+      int vector_size) = 0;
+};
+
+template<class T>
+class Sub_Data_Files : public Preprocessing<T>
+{
+  template<class U> friend class Sub_Data_Files;
+
   static const bool implemented[N_DTYPE];
 
   static map<DataTag, int> tuple_lengths;
@@ -85,9 +112,18 @@ class Sub_Data_Files
   DataPositions& usage;
 
 public:
+  static string get_suffix(int thread_num);
+
   Sub_Data_Files(int my_num, int num_players, const string& prep_data_dir,
-      DataPositions& usage);
+      DataPositions& usage, int thread_num = -1);
+  Sub_Data_Files(const Names& N, const string& prep_data_dir,
+      DataPositions& usage, int thread_num = -1) :
+      Sub_Data_Files(N.my_num(), N.num_players(), prep_data_dir, usage, thread_num)
+  {
+  }
   ~Sub_Data_Files();
+
+  void set_protocol(typename T::Protocol& protocol) { (void) protocol; }
 
   void seekg(DataPositions& pos);
   void prune();
@@ -130,24 +166,20 @@ public:
   }
 
   void setup_extended(const DataTag& tag, int tuple_size = 0);
-  void get(SubProcessor<T>& proc, DataTag tag, const vector<int>& regs, int vector_size);
+  void get(vector<T>& S, DataTag tag, const vector<int>& regs, int vector_size);
 };
 
-template<class sint>
+template<class sint, class sgf2n>
 class Data_Files
 {
   DataPositions usage;
 
   public:
 
-  Sub_Data_Files<sint> DataFp;
-  Sub_Data_Files<sgf2n> DataF2;
+  Preprocessing<sint>& DataFp;
+  Preprocessing<sgf2n>& DataF2;
 
-  const string& prep_data_dir;
-
-  Data_Files(int my_num,int n,const string& prep_data_dir);
-  Data_Files(Names& N, const string& prep_data_dir) :
-      Data_Files(N.my_num(), N.num_players(), prep_data_dir) {}
+  Data_Files(Machine<sint, sgf2n>& machine);
 
   DataPositions tellg();
   void seekg(DataPositions& pos);
@@ -155,63 +187,9 @@ class Data_Files
   void prune();
   void purge();
 
-  template<class T>
-  bool eof(Dtype dtype)
-  {
-    return get_sub<T>().eof(dtype);
-  }
-  template<class T>
-  bool input_eof(int player)
-  {
-    return get_sub<T>().input_eof(player);
-  }
-
-  void setup_extended(DataFieldType field_type, const DataTag& tag, int tuple_size = 0);
-  template<class T>
-  void get(SubProcessor<T>& proc, DataTag tag, const vector<int>& regs, int vector_size)
-  {
-    get_sub<T>().get(proc, tag, regs, vector_size);
-  }
-
   DataPositions get_usage()
   {
     return usage;
-  }
-
-  template<class T>
-  Sub_Data_Files<T>& get_sub();
-
-  template <class T>
-  void get(Dtype dtype, T* a)
-  {
-    get_sub<T>().get(dtype, a);
-  }
-
-  template <class T>
-  void get_three(DataFieldType field_type, Dtype dtype, T& a, T& b, T& c)
-  {
-    (void)field_type;
-    get_sub<T>().get_three(dtype, a, b, c);
-  }
-
-  template <class T>
-  void get_two(DataFieldType field_type, Dtype dtype, T& a, T& b)
-  {
-    (void)field_type;
-    get_sub<T>().get_two(dtype, a, b);
-  }
-
-  template <class T>
-  void get_one(DataFieldType field_type, Dtype dtype, T& a)
-  {
-    (void)field_type;
-    get_sub<T>().get_one(dtype, a);
-  }
-
-  template <class T>
-  void get_input(T& a,typename T::clear& x,int i)
-  {
-    get_sub<T>().get_input(a, x, i);
   }
 };
 
@@ -236,32 +214,24 @@ inline void Sub_Data_Files<T>::get(Dtype dtype, T* a)
     buffers[dtype].input(a[i]);
 }
 
-template<>
-template<>
-inline Sub_Data_Files<sgfp>& Data_Files<sgfp>::get_sub<sgfp>()
+template<class T>
+inline void Preprocessing<T>::get(Dtype dtype, T* a)
 {
-  return DataFp;
-}
-
-template<>
-template<>
-inline Sub_Data_Files<sgf2n>& Data_Files<sgfp>::get_sub<sgf2n>()
-{
-  return DataF2;
-}
-
-template<>
-template<>
-inline Sub_Data_Files<Rep3Share>& Data_Files<Rep3Share>::get_sub<Rep3Share>()
-{
-  return DataFp;
-}
-
-template<>
-template<>
-inline Sub_Data_Files<sgf2n>& Data_Files<Rep3Share>::get_sub<sgf2n>()
-{
-  return DataF2;
+  switch (dtype)
+  {
+  case DATA_TRIPLE:
+      get_three(dtype, a[0], a[1], a[2]);
+      break;
+  case DATA_SQUARE:
+  case DATA_INVERSE:
+      get_two(dtype, a[0], a[1]);
+      break;
+  case DATA_BIT:
+      get_one(dtype, a[0]);
+      break;
+  default:
+      throw not_implemented();
+  }
 }
 
 #endif

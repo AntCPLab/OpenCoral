@@ -146,6 +146,21 @@ void PRNG::get_octetStream(octetStream& ans,int len)
 }
 
 
+void PRNG::randomBnd(mp_limb_t* res, const mp_limb_t* B, size_t n_bytes)
+{
+  if (n_bytes == 16)
+    do
+      get_octets<16>((octet*) res);
+    while (mpn_cmp(res, B, 2) >= 0);
+  else
+    {
+      size_t n_limbs = (n_bytes + sizeof(mp_limb_t) - 1) / sizeof(mp_limb_t);
+      do
+        get_octets((octet*) res, n_bytes);
+      while (mpn_cmp(res, B, n_limbs) >= 0);
+    }
+}
+
 bigint PRNG::randomBnd(const bigint& B, bool positive)
 {
   bigint x;

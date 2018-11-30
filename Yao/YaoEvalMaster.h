@@ -17,7 +17,7 @@ class YaoEvalMaster : public GC::ThreadMaster<GC::Secret<YaoEvalWire>>
 public:
     bool continuous;
 
-    YaoEvalMaster(bool continuous);
+    YaoEvalMaster(bool continuous, OnlineOptions& opts);
 
     Thread<Secret<YaoEvalWire>>* new_thread(int i);
 };

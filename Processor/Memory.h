@@ -31,9 +31,9 @@ class Memory
   void resize_c(int sz)
     { MC.resize(sz); }
 
-  int size_s()
+  unsigned size_s()
     { return MS.size(); }
-  int size_c()
+  unsigned size_c()
     { return MC.size(); }
 
   const typename T::clear& read_C(int i) const

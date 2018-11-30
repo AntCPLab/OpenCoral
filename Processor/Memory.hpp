@@ -9,7 +9,7 @@
 template<class T>
 void Memory<T>::minimum_size(RegType reg_type, const Program& program, string threadname)
 {
-  const int* sizes = program.direct_mem(reg_type);
+  const unsigned* sizes = program.direct_mem(reg_type);
   if (sizes[SECRET] > size_s())
     {
       cerr << threadname << " needs more secret " << T::type_string() << " memory, resizing to "
@@ -141,18 +141,3 @@ void Memory<T>::Load_Memory(ifstream& inpf)
       S.input(inpf,true);
     }
 }
-
-template class Memory<sgfp>;
-template class Memory<sgf2n>;
-template class Memory<Integer>;
-template class Memory<Rep3Share>;
-
-template istream& operator>>(istream& s,Memory<sgfp>& M);
-template istream& operator>>(istream& s,Memory<sgf2n>& M);
-template istream& operator>>(istream& s,Memory<Integer>& M);
-template istream& operator>>(istream& s,Memory<Rep3Share>& M);
-
-template ostream& operator<<(ostream& s,const Memory<sgfp>& M);
-template ostream& operator<<(ostream& s,const Memory<sgf2n>& M);
-template ostream& operator<<(ostream& s,const Memory<Integer>& M);
-template ostream& operator<<(ostream& s,const Memory<Rep3Share>& M);

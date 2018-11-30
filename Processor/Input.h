@@ -10,7 +10,6 @@
 using namespace std;
 
 #include "Math/Share.h"
-#include "Auth/MAC_Check.h"
 #include "Processor/Buffer.h"
 #include "Tools/time-func.h"
 
@@ -20,31 +19,38 @@ template<class T>
 class InputBase
 {
 protected:
-    Buffer<T,T> buffer;
+    Buffer<typename T::clear, typename T::clear> buffer;
     Timer timer;
 
 public:
     int values_input;
+
+    static void input(SubProcessor<T>& Proc, const vector<int>& args);
 
     InputBase(ArithmeticProcessor& proc);
     ~InputBase();
 };
 
 template<class T>
-class Input : public InputBase<T>
+class Input : public InputBase<Share<T>>
 {
     SubProcessor<Share<T>>& proc;
     MAC_Check<T>& MC;
     vector< vector< Share<T> > > shares;
+    octetStream o;
 
     void adjust_mac(Share<T>& share, T& value);
 
 public:
     Input(SubProcessor<Share<T>>& proc, MAC_Check<T>& mc);
 
-    void start(int player, int n_inputs);
-    void stop(int player, vector<int> targets);
+    void reset(int player);
+    void add_mine(const T& input);
+    void add_other(int player);
+    void send_mine();
 
+    void start(int player, int n_inputs);
+    void stop(int player, const vector<int>& targets);
 };
 
 #endif /* PROCESSOR_INPUT_H_ */

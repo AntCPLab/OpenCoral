@@ -9,6 +9,7 @@
 #include "Networking/Player.h"
 #include "Tools/random.h"
 #include "Processor.h"
+#include "ArgTuples.h"
 
 namespace GC
 {
@@ -20,6 +21,8 @@ struct ScheduleItem
     ScheduleItem(int tape = 0, int arg = 0) : tape(tape), arg(arg) {}
 };
 
+template<class T> class ThreadMaster;
+
 template<class T>
 class Thread
 {
@@ -28,9 +31,10 @@ class Thread
     static void* run_thread(void* thread);
 
 public:
+    ThreadMaster<T>& master;
     Machine<T>& machine;
     Processor<T> processor;
-    typename T::MC MC;
+    typename T::MC* MC;
     typename T::Protocol* protocol;
     Names& N;
     Player* P;
@@ -44,8 +48,10 @@ public:
 
     static Thread<T>& s();
 
-    Thread(int thread_num, Machine<T>& machine, Names& N);
+    Thread(int thread_num, ThreadMaster<T>& master);
     virtual ~Thread();
+
+    virtual typename T::MC* new_mc() { return new typename T::MC; }
 
     void run();
     virtual void pre_run() {}
@@ -54,6 +60,8 @@ public:
 
     void join_tape();
     void finish();
+
+    int n_interactive_inputs_from_me(InputArgList& args);
 };
 
 template<class T>

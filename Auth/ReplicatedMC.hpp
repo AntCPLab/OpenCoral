@@ -4,8 +4,6 @@
  */
 
 #include "ReplicatedMC.h"
-#include "GC/ReplicatedSecret.h"
-#include "Math/Rep3Share.h"
 
 template<class T>
 void ReplicatedMC<T>::POpen_Begin(vector<typename T::clear>& values,
@@ -13,18 +11,17 @@ void ReplicatedMC<T>::POpen_Begin(vector<typename T::clear>& values,
 {
     assert(T::length == 2);
     (void)values;
-    octetStream o;
+    o.reset_write_head();
     for (auto& x : S)
         x[0].pack(o);
-    P.send_relative(-1, o);
+    P.pass_around(o, -1);
 }
 
 template<class T>
 void ReplicatedMC<T>::POpen_End(vector<typename T::clear>& values,
         const vector<T>& S, const Player& P)
 {
-    octetStream o;
-    P.receive_relative(1, o);
+    (void)P;
     values.resize(S.size());
     for (size_t i = 0; i < S.size(); i++)
     {
@@ -33,6 +30,3 @@ void ReplicatedMC<T>::POpen_End(vector<typename T::clear>& values,
         values[i] = S[i].sum() + tmp;
     }
 }
-
-template class ReplicatedMC<Rep3Share>;
-template class ReplicatedMC<GC::ReplicatedSecret>;

@@ -8,7 +8,8 @@
 
 #include "BMR/Key.h"
 #include "BMR/Register.h"
-#include "GC/Processor.h"
+
+#include <map>
 
 class YaoGate;
 class YaoGarbler;

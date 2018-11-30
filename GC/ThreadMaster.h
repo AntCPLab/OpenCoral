@@ -9,6 +9,8 @@
 #include "Thread.h"
 #include "Program.h"
 
+#include "Processor/OnlineOptions.h"
+
 namespace GC
 {
 
@@ -45,9 +47,11 @@ public:
     Machine<T> machine;
     Memory<typename T::DynamicType> memory;
 
+    OnlineOptions& opts;
+
     static ThreadMaster<T>& s();
 
-    ThreadMaster();
+    ThreadMaster(OnlineOptions& opts);
     virtual ~ThreadMaster() {}
 
     void run_tape(int thread_number, int tape_number, int arg);
@@ -56,6 +60,8 @@ public:
     virtual Thread<T>* new_thread(int i);
 
     void run();
+
+    virtual void post_run() {}
 };
 
 } /* namespace GC */

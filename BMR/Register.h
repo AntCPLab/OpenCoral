@@ -229,7 +229,6 @@ public:
 	static T get_input(int from, GC::Processor<T>& processor, int n_bits)
 	{ return T::input(from, processor.get_input(n_bits), n_bits); }
 
-//	static void check_input(long long in, int n_bits) { (void)in; (void)n_bits; }
 	void input(party_id_t from, char value = -1) { (void)from; (void)value; }
 	void public_input(bool value) { (void)value; }
 	void random() {}

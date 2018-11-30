@@ -6,6 +6,8 @@
 #include <algorithm>
 
 #include "GC/Instruction.h"
+#include "GC/Processor.h"
+
 #ifdef MAX_INLINE
 #include "GC/Secret_inline.h"
 #endif
@@ -73,7 +75,7 @@ int Instruction<T>::get_reg_type() const
 }
 
 template<class T>
-int GC::Instruction<T>::get_max_reg(int reg_type) const
+unsigned GC::Instruction<T>::get_max_reg(int reg_type) const
 {
     int skip;
     int offset = 0;
@@ -101,17 +103,17 @@ int GC::Instruction<T>::get_max_reg(int reg_type) const
         return BaseInstruction::get_max_reg(reg_type);
     }
 
-    int m = 0;
+    unsigned m = 0;
     if (reg_type == SBIT)
         for (size_t i = offset; i < start.size(); i += skip)
-            m = max(m, start[i] + 1);
+            m = max(m, (unsigned)start[i] + 1);
     return m;
 }
 
 template <class T>
-int Instruction<T>::get_mem(RegType reg_type) const
+unsigned Instruction<T>::get_mem(RegType reg_type) const
 {
-    int m = n + 1;
+    unsigned m = n + 1;
     switch (opcode)
     {
     case LDMSD:
@@ -119,7 +121,7 @@ int Instruction<T>::get_mem(RegType reg_type) const
         {
             m = 0;
             for (size_t i = 0; i < start.size() / 3; i++)
-                m = max(m, start[3*i+1] + 1);
+                m = max(m, (unsigned)start[3*i+1] + 1);
             return m;
         }
         break;
@@ -128,7 +130,7 @@ int Instruction<T>::get_mem(RegType reg_type) const
         {
             m = 0;
             for (size_t i = 0; i < start.size() / 2; i++)
-                m = max(m, start[2*i+1] + 1);
+                m = max(m, (unsigned)start[2*i+1] + 1);
             return m;
         }
         break;
@@ -232,6 +234,8 @@ void Instruction<T>::parse(istream& s, int pos)
     default:
         ostringstream os;
         os << "Code not defined for instruction " << showbase << hex << opcode << dec;
+        os << "This virtual machine executes binary circuits only." << endl;
+        os << "Try compiling with '-B' or use only sbit* types." << endl;
         throw Invalid_Instruction(os.str());
         break;
     }

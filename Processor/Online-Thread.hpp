@@ -5,7 +5,12 @@
 #include "Processor/Data_Files.h"
 #include "Processor/Machine.h"
 #include "Processor/Processor.h"
+#include "Auth/ReplicatedMC.h"
 #include "Networking/CryptoPlayer.h"
+
+#include "Processor/Processor.hpp"
+#include "Processor/Input.hpp"
+#include "Auth/MaliciousRepMC.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -13,11 +18,11 @@
 using namespace std;
 
 
-template<class sint>
+template<class sint, class sgf2n>
 void* Sub_Main_Func(void* ptr)
 {
-  thread_info<sint> *tinfo=(thread_info<sint> *) ptr;
-  Machine<sint>& machine=*(tinfo->machine);
+  thread_info<sint, sgf2n> *tinfo=(thread_info<sint, sgf2n> *) ptr;
+  Machine<sint, sgf2n>& machine=*(tinfo->machine);
   vector<pthread_mutex_t>& t_mutex      = machine.t_mutex;
   vector<pthread_cond_t>& client_ready  = machine.client_ready;
   vector<pthread_cond_t>& server_ready  = machine.server_ready;
@@ -44,34 +49,34 @@ void* Sub_Main_Func(void* ptr)
   Player& P = *player;
   fprintf(stderr, "\tSet up player in thread %d\n",num);
 
-  Data_Files<sint> DataF(P.my_num(),P.num_players(),machine.prep_dir_prefix);
+  Data_Files<sint, sgf2n> DataF(machine);
 
-  MAC_Check<gf2n>* MC2;
+  typename sgf2n::MAC_Check* MC2;
   typename sint::MAC_Check*  MCp;
 
   // Use MAC_Check instead for more than 10000 openings at once
   if (machine.direct)
     {
       cerr << "Using direct communication. If computation stalls, use -m when compiling." << endl;
-      MC2 = new Direct_MAC_Check<gf2n>(*(tinfo->alpha2i),*(tinfo->Nms), num);
+      MC2 = new typename sgf2n::Direct_MC(*(tinfo->alpha2i),*(tinfo->Nms), num);
       MCp = new typename sint::Direct_MC(*(tinfo->alphapi),*(tinfo->Nms), num);
     }
   else if (machine.parallel)
     {
       cerr << "Using indirect communication with background threads." << endl;
-      MC2 = new Parallel_MAC_Check<gf2n>(*(tinfo->alpha2i),*(tinfo->Nms), num, machine.opening_sum, machine.max_broadcast);
+      //MC2 = new Parallel_MAC_Check<gf2n>(*(tinfo->alpha2i),*(tinfo->Nms), num, machine.opening_sum, machine.max_broadcast);
       //MCp = new Parallel_MAC_Check<gfp>(*(tinfo->alphapi),*(tinfo->Nms), num, machine.opening_sum, machine.max_broadcast);
       throw not_implemented();
     }
   else
     {
       cerr << "Using indirect communication." << endl;
-      MC2 = new MAC_Check<gf2n>(*(tinfo->alpha2i), machine.opening_sum, machine.max_broadcast);
+      MC2 = new typename sgf2n::MAC_Check(*(tinfo->alpha2i), machine.opening_sum, machine.max_broadcast);
       MCp = new typename sint::MAC_Check(*(tinfo->alphapi), machine.opening_sum, machine.max_broadcast);
     }
 
   // Allocate memory for first program before starting the clock
-  Processor<sint> Proc(tinfo->thread_num,DataF,P,*MC2,*MCp,machine,progs[0]);
+  Processor<sint, sgf2n> Proc(tinfo->thread_num,DataF,P,*MC2,*MCp,machine,progs[0]);
   Share<gf2n> a,b,c;
 
   bool flag=true;
@@ -177,21 +182,20 @@ void* Sub_Main_Func(void* ptr)
 }
 
 
-template<class sint>
-void* thread_info<sint>::Main_Func(void* ptr)
+template<class sint, class sgf2n>
+void* thread_info<sint, sgf2n>::Main_Func(void* ptr)
 {
 #ifndef INSECURE
   try
 #endif
   {
-      Sub_Main_Func<sint>(ptr);
+      Sub_Main_Func<sint, sgf2n>(ptr);
   }
 #ifndef INSECURE
   catch (...)
   {
-      thread_info<sint>* ti = (thread_info<sint>*)ptr;
-      purge_preprocessing(*ti->Nms,
-          ti->machine->prep_dir_prefix);
+      thread_info<sint, sgf2n>* ti = (thread_info<sint, sgf2n>*)ptr;
+      ti->purge_preprocessing(*ti->machine);
       throw;
   }
 #endif
@@ -199,13 +203,13 @@ void* thread_info<sint>::Main_Func(void* ptr)
 }
 
 
-template<class sint>
-void thread_info<sint>::purge_preprocessing(Names& N, string prep_dir)
+template<class sint, class sgf2n>
+void thread_info<sint, sgf2n>::purge_preprocessing(Machine<sint, sgf2n>& machine)
 {
   cerr << "Purging preprocessed data because something is wrong" << endl;
   try
   {
-      Data_Files<sint> df(N, prep_dir);
+      Data_Files<sint, sgf2n> df(machine);
       df.purge();
   }
   catch(...)
@@ -214,7 +218,3 @@ void thread_info<sint>::purge_preprocessing(Names& N, string prep_dir)
           << "SECURITY FAILURE; YOU ARE ON YOUR OWN NOW!" << endl;
   }
 }
-
-
-template class thread_info<sgfp>;
-template class thread_info<Rep3Share>;

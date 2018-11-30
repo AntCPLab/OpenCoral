@@ -45,6 +45,7 @@ class Zp_Data
 
   bigint       pr;
   mp_limb_t    mask;
+  size_t       pr_byte_length;
 
   void assign(const Zp_Data& Zp);
   void init(const bigint& p,bool mont=true);
@@ -55,7 +56,7 @@ class Zp_Data
   void unpack(octetStream& o);
 
   // This one does nothing, needed so as to make vectors of Zp_Data
-  Zp_Data() : montgomery(0), pi(0), mask(0) { t=MAX_MOD_SZ; }
+  Zp_Data() : montgomery(0), pi(0), mask(0), pr_byte_length(0) { t=MAX_MOD_SZ; }
 
   // The main init funciton
   Zp_Data(const bigint& p,bool mont=true)

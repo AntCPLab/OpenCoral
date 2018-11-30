@@ -78,6 +78,21 @@ public:
     }
 };
 
+class InputArgList : public ArgList<InputArgs>
+{
+public:
+    InputArgList(const vector<int>& args) :
+            ArgList<InputArgs>(args)
+    {
+    }
 
+    int n_inputs_from(int from)
+    {
+        int res = 0;
+        for (auto x : *this)
+            res += x.from == from;
+        return res;
+    }
+};
 
 #endif /* GC_ARGTUPLES_H_ */

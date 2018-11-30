@@ -56,6 +56,7 @@ YaoPlayer::YaoPlayer(int argc, const char** argv)
 			"-t", // Flag token.
 			"--threshold" // Flag token.
 	);
+	OnlineOptions online_opts(opt, argc, argv);
 	opt.parse(argc, argv);
 	opt.syntax = "./yao-player.x [OPTIONS] <progname>";
 	if (opt.lastArgs.size() == 1)
@@ -82,9 +83,9 @@ YaoPlayer::YaoPlayer(int argc, const char** argv)
 
 	ThreadMasterBase* master;
 	if (my_num == 0)
-	    master = new YaoGarbleMaster(continuous, threshold);
+	    master = new YaoGarbleMaster(continuous, online_opts, threshold);
 	else
-	    master = new YaoEvalMaster(continuous);
+	    master = new YaoEvalMaster(continuous, online_opts);
 
 	server = Server::start_networking(master->N, my_num, 2, hostname, pnb);
 	master->run(progname);

@@ -7,11 +7,9 @@
 #define YAO_YAOEVALUATOR_H_
 
 #include "YaoGate.h"
-#include "YaoPlayer.h"
 #include "YaoEvalMaster.h"
 #include "YaoCommon.h"
 #include "GC/Secret.h"
-#include "GC/Program.h"
 #include "GC/Thread.h"
 #include "Tools/MMO.h"
 #include "OT/OTExtensionWithMatrix.h"

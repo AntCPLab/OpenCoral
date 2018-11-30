@@ -13,6 +13,8 @@
 #include "Math/Setup.h"
 #include "Processor/Data_Files.h"
 
+#include "Auth/fake-stuff.hpp"
+
 #include <sstream>
 #include <fstream>
 #include <vector>
@@ -21,10 +23,10 @@ using namespace std;
 string PREP_DATA_PREFIX;
 
 template<class T>
-void check_mult_triples(const T& key,int N,vector<Sub_Data_Files<Share<T>>*>& dataF)
+void check_mult_triples(const typename T::value_type& key,int N,vector<Sub_Data_Files<T>*>& dataF)
 {
-  T a,b,c,mac,res;
-  vector<Share<T> > Sa(N),Sb(N),Sc(N);
+  typename T::clear a,b,c,mac,res;
+  vector<T> Sa(N),Sb(N),Sc(N);
   int n = 0;
 
   try {
@@ -89,10 +91,10 @@ void check_tuple(const T& a, const T& b, int n, Dtype type)
 }
 
 template<class T>
-void check_tuples(const T& key,int N,vector<Sub_Data_Files<Share<T>>*>& dataF, Dtype type)
+void check_tuples(const typename T::value_type& key,int N,vector<Sub_Data_Files<T>*>& dataF, Dtype type)
 {
-  T a,b,c,mac,res;
-  vector<Share<T> > Sa(N),Sb(N),Sc(N);
+  typename T::clear a,b,c,mac,res;
+  vector<T> Sa(N),Sb(N),Sc(N);
   int n = 0;
 
   try {
@@ -147,10 +149,10 @@ void check_bits(const typename T::value_type& key,int N,vector<Sub_Data_Files<T>
 }
 
 template<class T>
-void check_inputs(const T& key,int N,vector<Sub_Data_Files<Share<T>>*>& dataF)
+void check_inputs(const typename T::value_type& key,int N,vector<Sub_Data_Files<T>*>& dataF)
 {
-  T a, mac, x;
-  vector< Share<T> > Sa(N);
+  typename T::clear a, mac, x;
+  vector<T> Sa(N);
 
   for (int player = 0; player < N; player++)
     {
@@ -176,27 +178,27 @@ void check_inputs(const T& key,int N,vector<Sub_Data_Files<Share<T>>*>& dataF)
 }
 
 template<class T>
-vector<Sub_Data_Files<T>*> setup(int N, DataPositions& usage)
+vector<Sub_Data_Files<T>*> setup(int N, DataPositions& usage, int thread_num = -1)
 {
   vector<Sub_Data_Files<T>*> dataF(N);
   for (int i = 0; i < N; i++)
-    dataF[i] = new Sub_Data_Files<T>(i, N, PREP_DATA_PREFIX, usage);
+    dataF[i] = new Sub_Data_Files<T>(i, N, PREP_DATA_PREFIX, usage, thread_num);
   return dataF;
 }
 
 template<class T>
-void check(T key, int N, bool only_bits = false)
+void check(typename T::value_type key, int N, bool only_bits = false)
 {
   DataPositions usage(N);
-  auto dataF = setup<Share<T>>(N, usage);
+  auto dataF = setup<T>(N, usage);
   check_bits(key, N, dataF);
 
   if (not only_bits)
   {
     check_mult_triples(key, N, dataF);
-    check_inputs(key, N, dataF);
-    check_tuples(key, N, dataF, DATA_SQUARE);
-    check_tuples(key, N, dataF, DATA_INVERSE);
+    check_inputs<T>(key, N, dataF);
+    check_tuples<T>(key, N, dataF, DATA_SQUARE);
+    check_tuples<T>(key, N, dataF, DATA_INVERSE);
   }
 }
 
@@ -304,13 +306,19 @@ int main(int argc, const char** argv)
   cout << "--------------\n";
   cout << "Final Keys :\t p: " << keyp << "\n\t\t 2: " << key2 << endl;
 
-  check(keyp, N);
-  check(key2, N);
+  check<sgfp>(keyp, N);
+  check<Share<gf2n>>(key2, N);
 
   if (N == 3)
     {
       DataPositions pos(N);
-      auto dataF = setup<Rep3Share>(N, pos);
+      auto dataF = setup<Rep3Share<Integer>>(N, pos);
       check_bits({}, N, dataF);
+
+      check<Rep3Share<gfp>>({}, N);
+
+      auto dataF2 = setup<GC::MaliciousRepSecret>(N, pos, 0);
+      check_mult_triples({}, N, dataF2);
+      check_bits({}, N, dataF2);
     }
 }

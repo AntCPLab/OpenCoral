@@ -349,3 +349,49 @@ void gf2n_short::input(istream& s,bool human)
 
   a &= mask;
 }
+
+// Expansion is by x=y^5+1 (as we embed GF(256) into GF(2^40)
+void expand_byte(gf2n_short& a,int b)
+{
+  gf2n_short x,xp;
+  x.assign(32+1);
+  xp.assign_one();
+  a.assign_zero();
+
+  while (b!=0)
+    { if ((b&1)==1)
+        { a.add(a,xp); }
+      xp.mul(x);
+      b>>=1;
+    }
+}
+
+
+// Have previously worked out the linear equations we need to solve
+void collapse_byte(int& b,const gf2n_short& aa)
+{
+  word w=aa.get();
+  int e35=(w>>35)&1;
+  int e30=(w>>30)&1;
+  int e25=(w>>25)&1;
+  int e20=(w>>20)&1;
+  int e15=(w>>15)&1;
+  int e10=(w>>10)&1;
+  int  e5=(w>>5)&1;
+  int  e0=w&1;
+  int a[8];
+  a[7]=e35;
+  a[6]=e30^a[7];
+  a[5]=e25^a[7];
+  a[4]=e20^a[5]^a[6]^a[7];
+  a[3]=e15^a[7];
+  a[2]=e10^a[3]^a[6]^a[7];
+  a[1]=e5^a[3]^a[5]^a[7];
+  a[0]=e0^a[1]^a[2]^a[3]^a[4]^a[5]^a[6]^a[7];
+
+  b=0;
+  for (int i=7; i>=0; i--)
+    { b=b<<1;
+      b+=a[i];
+    }
+}

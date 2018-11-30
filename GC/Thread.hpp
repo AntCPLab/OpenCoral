@@ -25,8 +25,9 @@ void* Thread<T>::run_thread(void* thread)
 }
 
 template<class T>
-Thread<T>::Thread(int thread_num, Machine<T>& machine, Names& N) :
-        machine(machine), processor(machine), protocol(0), N(N), P(0),
+Thread<T>::Thread(int thread_num, ThreadMaster<T>& master) :
+        master(master), machine(master.machine), processor(machine),
+        protocol(0), N(master.N), P(0),
         thread_num(thread_num)
 {
     pthread_create(&thread, 0, run_thread, this);
@@ -35,6 +36,8 @@ Thread<T>::Thread(int thread_num, Machine<T>& machine, Names& N) :
 template<class T>
 Thread<T>::~Thread()
 {
+    if (MC)
+        delete MC;
     if (P)
         delete P;
     if (protocol)
@@ -53,8 +56,8 @@ void Thread<T>::run()
     else
         P = new PlainPlayer(N, thread_num << 16);
     protocol = new typename T::Protocol(*P);
-    string input_file = "Player-Data/Input-P" + to_string(N.my_num()) + "-" + to_string(thread_num);
-    processor.open_input_file(input_file);
+    MC = this->new_mc();
+    processor.open_input_file(N.my_num(), thread_num);
     done.push(0);
     pre_run();
 
@@ -67,7 +70,7 @@ void Thread<T>::run()
     }
 
     post_run();
-    MC.Check(*P);
+    MC->Check(*P);
 }
 
 template<class T>
@@ -89,6 +92,18 @@ void Thread<T>::finish()
 {
     tape_schedule.stop();
     pthread_join(thread, 0);
+}
+
+
+template<class T>
+int GC::Thread<T>::n_interactive_inputs_from_me(InputArgList& args)
+{
+    int res = 0;
+    if (thread_num == 0 and master.opts.interactive)
+        res = args.n_inputs_from(P->my_num());
+    if (res > 0)
+        cout << "Please enter " << res << " numbers:" << endl;
+    return res;
 }
 
 } /* namespace GC */

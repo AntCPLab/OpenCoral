@@ -7,16 +7,19 @@
 #include "Processor.h"
 #include "Math/FixedVec.h"
 #include "Math/Integer.h"
+#include "Math/MaliciousRep3Share.h"
 #include "Tools/benchmarking.h"
 #include "GC/ReplicatedSecret.h"
 
 template<class T>
 Replicated<T>::Replicated(Player& P) : ReplicatedBase(P), counter(0)
 {
+    assert(T::length == 2);
 }
 
-ReplicatedBase::ReplicatedBase(Player& P)
+ReplicatedBase::ReplicatedBase(Player& P) : P(P)
 {
+    assert(P.num_players() == 3);
 	if (not P.is_encrypted())
 		insecure("unencrypted communication");
 
@@ -31,7 +34,7 @@ ReplicatedBase::ReplicatedBase(Player& P)
 template<class T>
 inline Replicated<T>::~Replicated()
 {
-    cout << "Number of multiplications: " << counter << endl;
+    cerr << "Number of multiplications: " << counter << endl;
 }
 
 template<class T>
@@ -43,60 +46,75 @@ void Replicated<T>::muls(const vector<int>& reg,
     assert(reg.size() % 3 == 0);
     int n = reg.size() / 3;
 
-    os.resize(2);
-    for (auto& o : os)
-        o.reset_write_head();
-    results.resize(n * size);
+    init_mul();
     for (int i = 0; i < n; i++)
         for (int j = 0; j < size; j++)
         {
             auto& x = proc.S[reg[3 * i + 1] + j];
             auto& y = proc.S[reg[3 * i + 2] + j];
-            typename T::value_type add_share = x[0] * y.sum() + x[1] * y[0];
-            typename T::value_type tmp[2];
-            for (int i = 0; i < 2; i++)
-                tmp[i].randomize(shared_prngs[i]);
-            add_share += tmp[0] - tmp[1];
-            add_share.pack(os[0]);
-            auto& result = results[i * size + j];
-            result[0] = add_share;
+            prepare_mul(x, y);
         }
-    proc.P.send_relative(1, os[0]);
-    proc.P.receive_relative(- 1, os[0]);
+    exchange();
     for (int i = 0; i < n; i++)
         for (int j = 0; j < size; j++)
         {
-            auto& result = results[i * size + j];
-            result[1].unpack(os[0]);
-            proc.S[reg[3 * i] + j] = result;
+            proc.S[reg[3 * i] + j] = finalize_mul();
         }
 
     counter += n * size;
 }
 
-template<>
-void Replicated<Rep3Share>::reqbl(int n)
+template<class T>
+void Replicated<T>::init_mul()
 {
-    if ((int)n < 0 && Integer::size() * 8 != -(int)n)
-    {
-        throw Processor_Error(
-                "Program compiled for rings of length " + to_string(-(int)n)
-                + " but VM supports only "
-                + to_string(Integer::size() * 8));
-    }
-    else if ((int)n > 0)
-    {
-        throw Processor_Error("Program compiled for fields not rings");
-    }
+    os.resize(2);
+    for (auto& o : os)
+        o.reset_write_head();
+    add_shares.clear();
 }
 
 template<class T>
-inline void Replicated<T>::input(SubProcessor<T>& Proc, int n, int* r)
+typename T::clear Replicated<T>::prepare_mul(const T& x,
+        const T& y)
 {
-    (void)Proc;
-    (void)n;
-    (void)r;
-    throw not_implemented();
+    typename T::value_type add_share = x[0] * y.sum() + x[1] * y[0];
+    typename T::value_type tmp[2];
+    for (int i = 0; i < 2; i++)
+        tmp[i].randomize(shared_prngs[i]);
+    add_share += tmp[0] - tmp[1];
+    add_share.pack(os[0]);
+    add_shares.push_back(add_share);
+    return add_share;
 }
 
-template class Replicated<Rep3Share>;
+template<class T>
+void Replicated<T>::exchange()
+{
+    P.send_relative(1, os[0]);
+    P.receive_relative(- 1, os[0]);
+}
+
+template<class T>
+T Replicated<T>::finalize_mul()
+{
+    T result;
+    result[0] = add_shares.front();
+    add_shares.pop_front();
+    result[1].unpack(os[0]);
+    return result;
+}
+
+template<class T>
+T Replicated<T>::get_random()
+{
+    T res;
+    for (int i = 0; i < 2; i++)
+        res[i].randomize(shared_prngs[i]);
+    return res;
+}
+
+template class Replicated<Rep3Share<Integer>>;
+template class Replicated<Rep3Share<gfp>>;
+template class Replicated<Rep3Share<gf2n>>;
+template class Replicated<MaliciousRep3Share<gfp>>;
+template class Replicated<MaliciousRep3Share<gf2n>>;

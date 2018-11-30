@@ -10,7 +10,6 @@
 #include "BMR/Key.h"
 #include "YaoGarbleWire.h"
 #include "YaoEvalWire.h"
-#include "YaoGarbler.h"
 
 class YaoGate
 {

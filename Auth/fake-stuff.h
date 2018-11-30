@@ -6,22 +6,19 @@
 #include "Math/gfp.h"
 #include "Math/Share.h"
 #include "Math/Rep3Share.h"
+#include "GC/MaliciousRepSecret.h"
 
 #include <fstream>
 using namespace std;
 
 template<class T>
 void make_share(vector<Share<T> >& Sa,const T& a,int N,const T& key,PRNG& G);
-void make_share(vector<Rep3Share>& Sa, const Integer& a, int N,
-    const Integer& key, PRNG& G);
 
 template<class T>
 void check_share(vector<Share<T> >& Sa,T& value,T& mac,int N,const T& key);
-void check_share(vector<Rep3Share>& Sa, Integer& value, Integer& mac, int N,
-    const Integer& key);
-
-void expand_byte(gf2n_short& a,int b);
-void collapse_byte(int& b,const gf2n_short& a);
+template<class T>
+void check_share(vector<T>& Sa, typename T::clear& value,
+    typename T::value_type& mac, int N, const typename T::value_type& key);
 
 // Generate MAC key shares
 void generate_keys(const string& directory, int nplayers);
@@ -38,9 +35,9 @@ class Files
 public:
   ofstream* outf;
   int N;
-  T key;
+  typename T::value_type key;
   PRNG G;
-  Files(int N, const T& key, const string& prefix) : N(N), key(key)
+  Files(int N, const typename T::value_type& key, const string& prefix) : N(N), key(key)
   {
     outf = new ofstream[N];
     for (int i=0; i<N; i++)
@@ -58,9 +55,9 @@ public:
   {
     delete[] outf;
   }
-  void output_shares(const T& a)
+  void output_shares(const typename T::clear& a)
   {
-    vector<Share<T> > Sa(N);
+    vector<T> Sa(N);
     make_share(Sa,a,N,key,G);
     for (int j=0; j<N; j++)
       Sa[j].output(outf[j],false);

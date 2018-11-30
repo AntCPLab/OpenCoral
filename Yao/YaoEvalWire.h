@@ -9,13 +9,12 @@
 #include "BMR/Key.h"
 #include "BMR/Gate.h"
 #include "BMR/Register.h"
-#include "GC/Processor.h"
-#include "Auth/MAC_Check.h"
+#include "Processor/DummyProtocol.h"
 
 class YaoEvalWire : public Phase
 {
 public:
-	typedef MAC_Check_Base<YaoEvalWire> MC;
+	typedef DummyMC MC;
 
 	static string name() { return "YaoEvalWire"; }
 

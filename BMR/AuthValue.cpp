@@ -3,7 +3,7 @@
  *
  */
 
-#include "Secret.h"
+#include "GC/Secret.h"
 
 namespace GC
 {

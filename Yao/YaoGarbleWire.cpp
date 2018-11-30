@@ -190,15 +190,17 @@ void YaoGarbleWire::and_(GC::Memory<GC::Secret<YaoGarbleWire> >& S,
 void YaoGarbleWire::inputb(GC::Processor<GC::Secret<YaoGarbleWire>>& processor,
         const vector<int>& args)
 {
-	ArgList<InputArgs> a(args);
+	InputArgList a(args);
 	int n_evaluator_bits = 0;
+	auto& garbler = YaoGarbler::s();
+	bool interactive = garbler.n_interactive_inputs_from_me(a) > 0;
 	for (auto x : a)
 	{
 		auto& dest = processor.S[x.dest];
 		dest.resize_regs(x.n_bits);
 		if (x.from == 0)
 		{
-			long long input = processor.get_input(x.n_bits);
+			long long input = processor.get_input(x.n_bits, interactive);
 			for (auto& reg : dest.get_regs())
 			{
 				reg.public_input(input & 1);
@@ -211,7 +213,9 @@ void YaoGarbleWire::inputb(GC::Processor<GC::Secret<YaoGarbleWire>>& processor,
 		}
 	}
 
-	auto& garbler = YaoGarbler::s();
+	if (interactive)
+	    cout << "Thank you";
+
 	garbler.receiver_input_keys.push_back({});
 
 	for (auto x : a)

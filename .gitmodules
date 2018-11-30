@@ -1,3 +1,6 @@
 [submodule "SimpleOT"]
 	path = SimpleOT
-	url = https://github.com/pascholl/SimpleOT
+	url = https://github.com/mkskeller/SimpleOT
+[submodule "mpir"]
+	path = mpir
+	url = git://github.com/wbhart/mpir.git

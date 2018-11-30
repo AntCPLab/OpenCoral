@@ -1,10 +1,14 @@
 #include "Machine.h"
 
+#include "Memory.hpp"
+#include "Online-Thread.hpp"
+
 #include "Exceptions/Exceptions.h"
 
 #include <sys/time.h>
 
 #include "Math/Setup.h"
+#include "Math/MaliciousRep3Share.h"
 
 #include <iostream>
 #include <vector>
@@ -31,15 +35,15 @@ BaseMachine::BaseMachine() : nthreads(0)
     singleton = this;
 }
 
-template<class sint>
-Machine<sint>::Machine(int my_number, Names& playerNames,
+template<class sint, class sgf2n>
+Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
     string progname_str, string memtype, int lgp, int lg2, bool direct,
     int opening_sum, bool parallel, bool receive_threads, int max_broadcast,
-    bool use_encryption)
+    bool use_encryption, bool live_prep, OnlineOptions opts)
   : my_number(my_number), N(playerNames), tn(0), numt(0), usage_unknown(false),
     direct(direct), opening_sum(opening_sum), parallel(parallel),
     receive_threads(receive_threads), max_broadcast(max_broadcast),
-    use_encryption(use_encryption)
+    use_encryption(use_encryption), live_prep(live_prep), opts(opts)
 {
   if (opening_sum < 2)
     this->opening_sum = N.num_players();
@@ -86,8 +90,7 @@ Machine<sint>::Machine(int my_number, Names& playerNames,
      }
   else if (memtype.compare("old")==0)
      {
-       sprintf(filename, PREP_DIR "Memory-P%d", my_number);
-       inpf.open(filename,ios::in | ios::binary);
+       inpf.open(memory_filename(), ios::in | ios::binary);
        if (inpf.fail()) { throw file_error(); }
        inpf >> M2 >> Mp >> Mi;
        inpf.close();
@@ -126,7 +129,7 @@ Machine<sint>::Machine(int my_number, Names& playerNames,
       tinfo[i].machine=this;
       // lock for synchronization
       pthread_mutex_lock(&t_mutex[i]);
-      pthread_create(&threads[i],NULL,thread_info<sint>::Main_Func,&tinfo[i]);
+      pthread_create(&threads[i],NULL,thread_info<sint, sgf2n>::Main_Func,&tinfo[i]);
     }
 
   // synchronize with clients before starting timer
@@ -177,8 +180,8 @@ void BaseMachine::print_compiler()
   inpf.close();
 }
 
-template<class sint>
-void Machine<sint>::load_program(string threadname, string filename)
+template<class sint, class sgf2n>
+void Machine<sint, sgf2n>::load_program(string threadname, string filename)
 {
   ifstream pinp(filename);
   if (pinp.fail()) { throw file_error(filename); }
@@ -191,8 +194,8 @@ void Machine<sint>::load_program(string threadname, string filename)
   Mi.minimum_size(INT, progs[i], threadname);
 }
 
-template<class sint>
-DataPositions Machine<sint>::run_tape(int thread_number, int tape_number, int arg, int line_number)
+template<class sint, class sgf2n>
+DataPositions Machine<sint, sgf2n>::run_tape(int thread_number, int tape_number, int arg, int line_number)
 {
   if (thread_number >= (int)tinfo.size())
     throw Processor_Error("invalid thread number: " + to_string(thread_number) + "/" + to_string(tinfo.size()));
@@ -231,8 +234,8 @@ DataPositions Machine<sint>::run_tape(int thread_number, int tape_number, int ar
     }
 }
 
-template<class sint>
-void Machine<sint>::join_tape(int i)
+template<class sint, class sgf2n>
+void Machine<sint, sgf2n>::join_tape(int i)
 {
   join_timer[i].start();
   pthread_mutex_lock(&t_mutex[i]);
@@ -243,8 +246,8 @@ void Machine<sint>::join_tape(int i)
   join_timer[i].stop();
 }
 
-template<class sint>
-void Machine<sint>::run()
+template<class sint, class sgf2n>
+void Machine<sint, sgf2n>::run()
 {
   Timer proc_timer(CLOCK_PROCESS_CPUTIME_ID);
   proc_timer.start();
@@ -332,16 +335,14 @@ void Machine<sint>::run()
     cerr << "Full broadcast" << endl;
 
   // Reduce memory size to speed up
-  int max_size = 1 << 20;
+  unsigned max_size = 1 << 20;
   if (M2.size_s() > max_size)
     M2.resize_s(max_size);
   if (Mp.size_s() > max_size)
     Mp.resize_s(max_size);
 
   // Write out the memory to use next time
-  char filename[1024];
-  sprintf(filename,PREP_DIR "Memory-P%d",my_number);
-  ofstream outf(filename,ios::out | ios::binary);
+  ofstream outf(memory_filename(), ios::out | ios::binary);
   outf << M2 << Mp << Mi;
   outf.close();
 
@@ -370,12 +371,18 @@ void Machine<sint>::run()
   pos.print_cost();
 
 #ifndef INSECURE
-  Data_Files<sint> df(N.my_num(), N.num_players(), prep_dir_prefix);
+  Data_Files<sint, sgf2n> df(*this);
   df.seekg(pos);
   df.prune();
 #endif
 
   cerr << "End of prog" << endl;
+}
+
+template<class sint, class sgf2n>
+string Machine<sint, sgf2n>::memory_filename()
+{
+  return PREP_DIR "Memory-" + sint::type_short() + "-P" + to_string(my_number);
 }
 
 void BaseMachine::load_program(string threadname, string filename)
@@ -411,11 +418,13 @@ void BaseMachine::print_timers()
     cerr << "Time" << it->first << " = " << it->second.elapsed() << " seconds " << endl;
 }
 
-template<class sint>
-void Machine<sint>::reqbl(int n)
+template<class sint, class sgf2n>
+void Machine<sint, sgf2n>::reqbl(int n)
 {
-  sint::Protocol::reqbl(n);
+  sint::clear::reqbl(n);
 }
 
-template class Machine<sgfp>;
-template class Machine<Rep3Share>;
+template class Machine<sgfp, Share<gf2n>>;
+template class Machine<Rep3Share<Integer>, Rep3Share<gf2n>>;
+template class Machine<Rep3Share<gfp>, Rep3Share<gf2n>>;
+template class Machine<MaliciousRep3Share<gfp>, MaliciousRep3Share<gf2n>>;

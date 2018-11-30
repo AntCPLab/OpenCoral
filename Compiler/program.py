@@ -67,7 +67,9 @@ class Program(object):
         self.to_merge = [Compiler.instructions.asm_open_class, \
                          Compiler.instructions.gasm_open_class, \
                          Compiler.instructions.muls_class, \
-                         Compiler.instructions.gmuls_class]
+                         Compiler.instructions.gmuls_class, \
+                         Compiler.instructions.asm_input_class, \
+                         Compiler.instructions.gasm_input_class]
         import Compiler.GC.instructions as gc
         self.to_merge += [gc.ldmsdi, gc.stmsdi, gc.ldmsd, gc.stmsd, \
                           gc.stmsdci, gc.xors, gc.andrs, gc.ands, gc.inputb]
@@ -563,6 +565,8 @@ class Tape:
                         print 'Block requires', \
                             ', '.join('%d %s' % (y, x.__name__) \
                                      for x, y in merger.counter.items())
+                # free memory
+                merger = None
                 if options.dead_code_elimination:
                     block.instructions = filter(lambda x: x is not None, block.instructions)
         if not (options.merge_opens and self.merge_opens):

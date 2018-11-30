@@ -89,6 +89,10 @@ class shrci(base.Instruction):
     code = base.opcodes['SHRCI']
     arg_format = ['cbw','cb','int']
 
+class shlci(base.Instruction):
+    code = base.opcodes['SHLCI']
+    arg_format = ['cbw','cb','int']
+
 class ldbits(base.Instruction):
     code = opcodes['LDBITS']
     arg_format = ['sbw','i','i']
@@ -186,3 +190,16 @@ class print_reg_plain(base.IOInstruction):
 class print_reg_signed(base.IOInstruction):
     code = opcodes['PRINTREGSIGNED']
     arg_format = ['int','cb']
+
+class print_float_plain(base.IOInstruction):
+    __slots__ = []
+    code = base.opcodes['PRINTFLOATPLAIN']
+    arg_format = ['cb', 'cb', 'cb', 'cb']
+
+class cond_print_str(base.IOInstruction):
+    r""" Print a 4 character string. """
+    code = base.opcodes['CONDPRINTSTR']
+    arg_format = ['cb', 'int']
+
+    def __init__(self, cond, val):
+        super(cond_print_str, self).__init__(cond, self.str_to_int(val))

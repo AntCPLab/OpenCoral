@@ -7,8 +7,9 @@
 
 #include "Secret.h"
 #include "ReplicatedSecret.h"
+#include "config.h"
 
-#include <valgrind/callgrind.h>
+#include "Tools/callgrind.h"
 
 #ifdef MAX_INLINE
 #include "Instruction_inline.h"
@@ -118,6 +119,9 @@ BreakType Program<T>::execute(Processor<T>& Proc, int PC) const
             Proc.time = time;
             return DONE_BREAK;
         }
+#ifdef COUNT_INSTRUCTIONS
+        Proc.stats[p[Proc.PC].get_opcode()]++;
+#endif
         p[Proc.PC++].execute(Proc);
         time++;
 #ifdef DEBUG_COMPLEXITY

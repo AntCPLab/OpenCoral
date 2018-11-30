@@ -12,6 +12,11 @@ using namespace std;
 #include "Math/gf2nlong.h"
 #include "Math/field_types.h"
 
+class gf2n_short;
+
+void expand_byte(gf2n_short& a,int b);
+void collapse_byte(int& b,const gf2n_short& a);
+
 /* This interface compatible with the gfp interface
  * which then allows us to template the Share
  * data type.
@@ -138,12 +143,13 @@ class gf2n_short
   // x * y when one of x,y is a bit
   void mul_by_bit(const gf2n_short& x, const gf2n_short& y)   { a = x.a * y.a; }
 
-  gf2n_short operator+(const gf2n_short& x) { gf2n_short res; res.add(*this, x); return res; }
-  gf2n_short operator*(const gf2n_short& x) { gf2n_short res; res.mul(*this, x); return res; }
+  gf2n_short operator+(const gf2n_short& x) const { gf2n_short res; res.add(*this, x); return res; }
+  gf2n_short operator*(const gf2n_short& x) const { gf2n_short res; res.mul(*this, x); return res; }
   gf2n_short& operator+=(const gf2n_short& x) { add(x); return *this; }
   gf2n_short& operator*=(const gf2n_short& x) { mul(x); return *this; }
-  gf2n_short operator-(const gf2n_short& x) { gf2n_short res; res.add(*this, x); return res; }
+  gf2n_short operator-(const gf2n_short& x) const { gf2n_short res; res.add(*this, x); return res; }
   gf2n_short& operator-=(const gf2n_short& x) { sub(x); return *this; }
+  gf2n_short operator/(const gf2n_short& x) const { gf2n_short tmp; tmp.invert(x); return *this * tmp; }
 
   void square(); 
   void square(const gf2n_short& aa);
@@ -161,12 +167,12 @@ class gf2n_short
   void SHL(const gf2n_short& x,int n)         { a=(x.a<<n)&mask; }
   void SHR(const gf2n_short& x,int n)         { a=x.a>>n; }
 
-  gf2n_short operator&(const gf2n_short& x) { gf2n_short res; res.AND(*this, x); return res; }
-  gf2n_short operator^(const gf2n_short& x) { gf2n_short res; res.XOR(*this, x); return res; }
-  gf2n_short operator|(const gf2n_short& x) { gf2n_short res; res.OR(*this, x); return res; }
-  gf2n_short operator!() { gf2n_short res; res.NOT(*this); return res; }
-  gf2n_short operator<<(int i) { gf2n_short res; res.SHL(*this, i); return res; }
-  gf2n_short operator>>(int i) { gf2n_short res; res.SHR(*this, i); return res; }
+  gf2n_short operator&(const gf2n_short& x) const { gf2n_short res; res.AND(*this, x); return res; }
+  gf2n_short operator^(const gf2n_short& x) const { gf2n_short res; res.XOR(*this, x); return res; }
+  gf2n_short operator|(const gf2n_short& x) const { gf2n_short res; res.OR(*this, x); return res; }
+  gf2n_short operator!() const { gf2n_short res; res.NOT(*this); return res; }
+  gf2n_short operator<<(int i) const { gf2n_short res; res.SHL(*this, i); return res; }
+  gf2n_short operator>>(int i) const { gf2n_short res; res.SHR(*this, i); return res; }
 
   /* Crap RNG */
   void randomize(PRNG& G);

@@ -5,6 +5,9 @@
 #include "Tools/sha1.h"
 #include "Tools/aes.h"
 #include "Tools/avx_memcpy.h"
+#include "Networking/data.h"
+
+#include <mpir.h>
 
 #define USE_AES
 
@@ -72,6 +75,8 @@ class PRNG
    void get(int& res, int n_bits, bool positive = true);
    void randomBnd(bigint& res, const bigint& B, bool positive=true);
    bigint randomBnd(const bigint& B, bool positive=true);
+   // only efficient if byte length of B is exactly n_bytes
+   void randomBnd(mp_limb_t* res, const mp_limb_t* B, size_t n_bytes);
    word get_word()
      {
        word a;
@@ -86,6 +91,15 @@ class PRNG
 
    const octet* get_seed() const
      { return seed; }
+};
+
+class SeededPRNG : public PRNG
+{
+public:
+  SeededPRNG()
+  {
+    ReSeed();
+  }
 };
 
 

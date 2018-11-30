@@ -7,6 +7,8 @@
 #include "Tools/benchmarking.h"
 #include "Auth/fake-stuff.h"
 
+#include "Auth/fake-stuff.hpp"
+
 PairwiseMachine::PairwiseMachine(int argc, const char** argv) :
     MachineBase(argc, argv), P(N, 0xffff << 16),
     other_pks(N.num_players(), {setup_p.params, 0}),

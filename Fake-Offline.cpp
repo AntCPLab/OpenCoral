@@ -5,12 +5,15 @@
 #include "Math/Setup.h"
 #include "Auth/fake-stuff.h"
 #include "Exceptions/Exceptions.h"
+#include "GC/MaliciousRepSecret.h"
 
 #include "Math/Setup.h"
 #include "Processor/Data_Files.h"
 #include "Tools/mkpath.h"
 #include "Tools/ezOptionParser.h"
 #include "Tools/benchmarking.h"
+
+#include "Auth/fake-stuff.hpp"
 
 #include <sstream>
 #include <fstream>
@@ -24,18 +27,20 @@ string prep_data_prefix;
  * str    = "2" or "p"
  */
 template<class T>
-void make_mult_triples(const T& key,int N,int ntrip,const string& str,bool zero)
+void make_mult_triples(const typename T::value_type& key, int N, int ntrip,
+    bool zero, int thread_num = -1)
 {
   PRNG G;
   G.ReSeed();
 
   ofstream* outf=new ofstream[N];
-  T a,b,c;
-  vector<Share<T> > Sa(N),Sb(N),Sc(N);
+  typename T::value_type a,b,c;
+  vector<T> Sa(N),Sb(N),Sc(N);
   /* Generate Triples */
   for (int i=0; i<N; i++)
     { stringstream filename;
-      filename << prep_data_prefix << "Triples-" << str << "-P" << i;
+      filename << prep_data_prefix << "Triples-" << T::type_short() << "-P" << i
+          << Sub_Data_Files<T>::get_suffix(thread_num);
       cout << "Opening " << filename.str() << endl;
       outf[i].open(filename.str().c_str(),ios::out | ios::binary);
       if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
@@ -108,14 +113,14 @@ void make_bit_triples(const gf2n& key,int N,int ntrip,Dtype dtype,bool zero)
  * str    = "2" or "p"
  */
 template<class T>
-void make_square_tuples(const T& key,int N,int ntrip,const string& str,bool zero)
+void make_square_tuples(const typename T::value_type& key,int N,int ntrip,const string& str,bool zero)
 {
   PRNG G;
   G.ReSeed();
 
   ofstream* outf=new ofstream[N];
-  T a,c;
-  vector<Share<T> > Sa(N),Sc(N);
+  typename T::clear a,c;
+  vector<T> Sa(N),Sc(N);
   /* Generate Squares */
   for (int i=0; i<N; i++)
     { stringstream filename;
@@ -145,7 +150,8 @@ void make_square_tuples(const T& key,int N,int ntrip,const string& str,bool zero
  * ntrip  = Number bits needed
  */
 template<class T>
-void make_bits(const typename T::value_type& key,int N,int ntrip,bool zero)
+void make_bits(const typename T::value_type& key, int N, int ntrip, bool zero,
+    int thread_num = -1)
 {
   PRNG G;
   G.ReSeed();
@@ -156,7 +162,8 @@ void make_bits(const typename T::value_type& key,int N,int ntrip,bool zero)
   /* Generate Bits */
   for (int i=0; i<N; i++)
     { stringstream filename;
-      filename << prep_data_prefix << "Bits-" << T::type_char() << "-P" << i;
+      filename << prep_data_prefix << "Bits-" << T::type_short() << "-P" << i
+          << Sub_Data_Files<T>::get_suffix(thread_num);
       cout << "Opening " << filename.str() << endl;
       outf[i].open(filename.str().c_str(),ios::out | ios::binary);
       if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
@@ -180,14 +187,14 @@ void make_bits(const typename T::value_type& key,int N,int ntrip,bool zero)
  *
  */
 template<class T>
-void make_inputs(const T& key,int N,int ntrip,const string& str,bool zero)
+void make_inputs(const typename T::value_type& key,int N,int ntrip,const string& str,bool zero)
 {
   PRNG G;
   G.ReSeed();
 
   ofstream* outf=new ofstream[N];
-  T a;
-  vector<Share<T> > Sa(N);
+  typename T::clear a;
+  vector<T> Sa(N);
   /* Generate Inputs */
   for (int player=0; player<N; player++)
     { for (int i=0; i<N; i++)
@@ -220,18 +227,18 @@ void make_inputs(const T& key,int N,int ntrip,const string& str,bool zero)
  * str    = "2" or "p"
  */
 template<class T>
-void make_inverse(const T& key,int N,int ntrip,bool zero)
+void make_inverse(const typename T::value_type& key,int N,int ntrip,bool zero)
 {
   PRNG G;
   G.ReSeed();
 
   ofstream* outf=new ofstream[N];
-  T a,b;
-  vector<Share<T> > Sa(N),Sb(N);
+  typename T::clear a,b;
+  vector<T> Sa(N),Sb(N);
   /* Generate Triples */
   for (int i=0; i<N; i++)
     { stringstream filename;
-      filename << prep_data_prefix << "Inverses-" << T::type_char() << "-P" << i;
+      filename << prep_data_prefix << "Inverses-" << T::type_short() << "-P" << i;
       cout << "Opening " << filename.str() << endl;
       outf[i].open(filename.str().c_str(),ios::out | ios::binary);
       if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
@@ -260,14 +267,14 @@ void make_inverse(const T& key,int N,int ntrip,bool zero)
 
 
 template<class T>
-void make_PreMulC(const T& key, int N, int ntrip, bool zero)
+void make_PreMulC(const typename T::value_type& key, int N, int ntrip, bool zero)
 {
   stringstream ss;
-  ss << prep_data_prefix << "PreMulC-" << T::type_char();
+  ss << prep_data_prefix << "PreMulC-" << T::type_short();
   Files<T> files(N, key, ss.str());
   PRNG G;
   G.ReSeed();
-  T a, b, c;
+  typename T::clear a, b, c;
   c = 1;
   for (int i=0; i<ntrip; i++)
     {
@@ -285,6 +292,17 @@ void make_PreMulC(const T& key, int N, int ntrip, bool zero)
       files.output_shares(a * c);
       c = b;
     }
+}
+
+template<class T>
+void make_basic(const typename T::value_type& key, int nplayers, int nitems, bool zero)
+{
+    make_mult_triples<T>(key, nplayers, nitems, zero);
+    make_bits<T>(key, nplayers, nitems, zero);
+    make_square_tuples<T>(key, nplayers, nitems, T::type_short(), zero);
+    make_inputs<T>(key, nplayers, nitems, T::type_short(), zero);
+    make_inverse<T>(key, nplayers, nitems, zero);
+    make_PreMulC<T>(key, nplayers, nitems, zero);
 }
 
 int main(int argc, const char** argv)
@@ -535,22 +553,31 @@ int main(int argc, const char** argv)
   cout << "--------------\n";
   cout << "Final Keys :\t p: " << keyp << "\n\t\t 2: " << key2 << endl;
 
-  make_mult_triples(key2,nplayers,ntrip2,"2",zero);
-  make_mult_triples(keyp,nplayers,ntripp,"p",zero);
+  typedef Share<gf2n> sgf2n;
+
+  make_mult_triples<sgf2n>(key2,nplayers,ntrip2,zero);
+  make_mult_triples<sgfp>(keyp,nplayers,ntripp,zero);
   make_bits<Share<gf2n>>(key2,nplayers,nbits2,zero);
   make_bits<Share<gfp>>(keyp,nplayers,nbitsp,zero);
-  make_square_tuples(key2,nplayers,nsqr2,"2",zero);
-  make_square_tuples(keyp,nplayers,nsqrp,"p",zero);
-  make_inputs(key2,nplayers,ninp2,"2",zero);
-  make_inputs(keyp,nplayers,ninpp,"p",zero);
-  make_inverse(key2,nplayers,ninv,zero);
-  make_inverse(keyp,nplayers,ninv,zero);
+  make_square_tuples<sgf2n>(key2,nplayers,nsqr2,"2",zero);
+  make_square_tuples<sgfp>(keyp,nplayers,nsqrp,"p",zero);
+  make_inputs<sgf2n>(key2,nplayers,ninp2,"2",zero);
+  make_inputs<sgfp>(keyp,nplayers,ninpp,"p",zero);
+  make_inverse<sgf2n>(key2,nplayers,ninv,zero);
+  make_inverse<sgfp>(keyp,nplayers,ninv,zero);
   make_bit_triples(key2,nplayers,nbittrip,DATA_BITTRIPLE,zero);
   make_bit_triples(key2,nplayers,nbitgf2ntrip,DATA_BITGF2NTRIPLE,zero);
-  make_PreMulC(key2,nplayers,ninv,zero);
-  make_PreMulC(keyp,nplayers,ninv,zero);
+  make_PreMulC<sgf2n>(key2,nplayers,ninv,zero);
+  make_PreMulC<sgfp>(keyp,nplayers,ninv,zero);
 
   // replicated secret sharing only for three parties
   if (nplayers == 3)
-    make_bits<Rep3Share>({}, nplayers, nbitsp, zero);
+  {
+    make_bits<Rep3Share<Integer>>({}, nplayers, nbitsp, zero);
+    make_basic<Rep3Share<gfp>>({}, nplayers, default_num, zero);
+    make_basic<Rep3Share<gf2n>>({}, nplayers, default_num, zero);
+
+    make_mult_triples<GC::MaliciousRepSecret>({}, nplayers, ntrip2, zero);
+    make_bits<GC::MaliciousRepSecret>({}, nplayers, nbits2, zero);
+  }
 }

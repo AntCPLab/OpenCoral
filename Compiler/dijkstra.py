@@ -443,7 +443,7 @@ class VectorArray(Vector):
     def __len__(self):
         return len(self.arrays[0])
 
-class IntVectorArray(Array, Vector):
+class IntVectorArray(Vector, Array):
     def __init__(self, length):
         Array.__init__(self, length, 's')
 

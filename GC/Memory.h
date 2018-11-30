@@ -14,6 +14,7 @@ using namespace std;
 
 #include "Exceptions/Exceptions.h"
 #include "Clear.h"
+#include "config.h"
 
 namespace GC
 {
@@ -41,7 +42,7 @@ inline void Memory<T>::check_index(Integer index) const
     if (i >= vector<T>::size())
     {
         stringstream ss;
-        ss << "Memory overflow: " << i << "/" << vector<T>::size();
+        ss << T::type_string() << " memory overflow: " << i << "/" << vector<T>::size();
         throw Processor_Error(ss.str());
     }
 #endif
@@ -69,7 +70,7 @@ template <class T>
 inline void Memory<T>::resize(size_t size, const char* name)
 {
     if (size > 1000)
-        cout << "Resizing " << T::type_string() << " " << name << " to " << size << endl;
+        cerr << "Resizing " << T::type_string() << " " << name << " to " << size << endl;
     vector<T>::resize(size);
 }
 

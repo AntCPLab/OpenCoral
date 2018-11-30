@@ -63,6 +63,14 @@ int Open_Challenge(vector<unsigned int>& e,vector<octetStream>& Open_e,
 template<class T>
 void Create_Random(T& ans,const Player& P);
 
+template<class T>
+T Create_Random(const Player& P)
+{
+  T res;
+  Create_Random(res, P);
+  return res;
+}
+
 /* Produce a random seed of length len */
 void Create_Random_Seed(octet* seed,const Player& P,int len);
 

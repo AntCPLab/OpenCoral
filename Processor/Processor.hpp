@@ -2,26 +2,34 @@
 #include "Processor/Processor.h"
 #include "Networking/STS.h"
 #include "Auth/MAC_Check.h"
-
+#include "Auth/ReplicatedMC.h"
 #include "Auth/fake-stuff.h"
+
+#include "Processor/ReplicatedInput.hpp"
+#include "Processor/ReplicatedPrivateOutput.hpp"
+
 #include <sodium.h>
 #include <string>
 
 template <class T>
 SubProcessor<T>::SubProcessor(ArithmeticProcessor& Proc, typename T::MAC_Check& MC,
-    Sub_Data_Files<T>& DataF, Player& P) :
-    Proc(Proc), MC(MC), P(P), DataF(DataF), protocol(P)
+    Preprocessing<T>& DataF, Player& P) :
+    Proc(Proc), MC(MC), P(P), DataF(DataF), protocol(P), input(*this, MC)
 {
+  DataF.set_protocol(protocol);
 }
 
-template<class sint>
-Processor<sint>::Processor(int thread_num,Data_Files<sint>& DataF,Player& P,
-        MAC_Check<gf2n>& MC2,typename sint::MAC_Check& MCp,Machine<sint>& machine,
+template<class sint, class sgf2n>
+Processor<sint, sgf2n>::Processor(int thread_num,Data_Files<sint, sgf2n>& DataF,Player& P,
+        typename sgf2n::MAC_Check& MC2,typename sint::MAC_Check& MCp,
+        Machine<sint, sgf2n>& machine,
         const Program& program)
-: thread_num(thread_num),DataF(DataF),P(P),MC2(MC2),MCp(MCp),machine(machine),
+: ArithmeticProcessor(machine.opts, thread_num),DataF(DataF),P(P),
+  MC2(MC2),MCp(MCp),machine(machine),
   Proc2(*this,MC2,DataF.DataF2,P),Procp(*this,MCp,DataF.DataFp,P),
-  input2(Proc2,MC2),inputp(Procp,MCp),privateOutput2(Proc2),privateOutputp(Procp),
-  external_clients(ExternalClients(P.my_num(), DataF.prep_data_dir)),binary_file_io(Binary_File_IO())
+  privateOutput2(Proc2),privateOutputp(Procp),
+  external_clients(ExternalClients(P.my_num(), machine.prep_dir_prefix)),
+  binary_file_io(Binary_File_IO())
 {
   reset(program,0);
 
@@ -31,18 +39,22 @@ Processor<sint>::Processor(int thread_num,Data_Files<sint>& DataF,Player& P,
   public_output.open(get_filename(PREP_DIR "Public-Output-",true).c_str(), ios_base::out);
   private_output.open(get_filename(PREP_DIR "Private-Output-",true).c_str(), ios_base::out);
 
+  open_input_file(P.my_num(), thread_num);
+
   secure_prng.ReSeed();
+
+  out.activate(P.my_num() == 0 or machine.opts.interactive);
 }
 
 
-template<class sint>
-Processor<sint>::~Processor()
+template<class sint, class sgf2n>
+Processor<sint, sgf2n>::~Processor()
 {
   cerr << "Sent " << sent << " elements in " << rounds << " rounds" << endl;
 }
 
-template<class sint>
-string Processor<sint>::get_filename(const char* prefix, bool use_number)
+template<class sint, class sgf2n>
+string Processor<sint, sgf2n>::get_filename(const char* prefix, bool use_number)
 {
   stringstream filename;
   filename << prefix;
@@ -57,8 +69,8 @@ string Processor<sint>::get_filename(const char* prefix, bool use_number)
 }
 
 
-template<class sint>
-void Processor<sint>::reset(const Program& program,int arg)
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::reset(const Program& program,int arg)
 {
   reg_max2 = program.num_reg(GF2N);
   reg_maxp = program.num_reg(MODP);
@@ -86,8 +98,8 @@ void Processor<sint>::reset(const Program& program,int arg)
 // If message_type is > 0, send message_type in bytes 0 - 3, to allow an external client to
 //  determine the data structure being sent in a message.
 // Encryption is enabled if key material (for DH Auth Encryption and/or STS protocol) has been already setup.
-template<class sint>
-void Processor<sint>::write_socket(const RegType reg_type, const SecrecyType secrecy_type, const bool send_macs,
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::write_socket(const RegType reg_type, const SecrecyType secrecy_type, const bool send_macs,
                              int socket_id, int message_type, const vector<int>& registers)
 {
   if (socket_id >= (int)external_clients.external_client_sockets.size())
@@ -144,8 +156,8 @@ void Processor<sint>::write_socket(const RegType reg_type, const SecrecyType sec
 
 
 // Receive vector of 32-bit clear ints
-template<class sint>
-void Processor<sint>::read_socket_ints(int client_id, const vector<int>& registers)
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::read_socket_ints(int client_id, const vector<int>& registers)
 {
   if (client_id >= (int)external_clients.external_client_sockets.size())
   {
@@ -166,8 +178,8 @@ void Processor<sint>::read_socket_ints(int client_id, const vector<int>& registe
 }
 
 // Receive vector of public field elements
-template<class sint>
-void Processor<sint>::read_socket_vector(int client_id, const vector<int>& registers)
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::read_socket_vector(int client_id, const vector<int>& registers)
 {
   if (client_id >= (int)external_clients.external_client_sockets.size())
   {
@@ -186,8 +198,8 @@ void Processor<sint>::read_socket_vector(int client_id, const vector<int>& regis
 }
 
 // Receive vector of field element shares over private channel
-template<class sint>
-void Processor<sint>::read_socket_private(int client_id, const vector<int>& registers, bool read_macs)
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::read_socket_private(int client_id, const vector<int>& registers, bool read_macs)
 {
   if (client_id >= (int)external_clients.external_client_sockets.size())
   {
@@ -211,8 +223,8 @@ void Processor<sint>::read_socket_private(int client_id, const vector<int>& regi
 }
 
 // Read socket for client public key as 8 ints, calculate session key for client.
-template<class sint>
-void Processor<sint>::read_client_public_key(int client_id, const vector<int>& registers) {
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::read_client_public_key(int client_id, const vector<int>& registers) {
 
   read_socket_ints(client_id, registers);
 
@@ -225,8 +237,8 @@ void Processor<sint>::read_client_public_key(int client_id, const vector<int>& r
   external_clients.generate_session_key_for_client(client_id, client_public_key);  
 }
 
-template<class sint>
-void Processor<sint>::init_secure_socket_internal(int client_id, const vector<int>& registers) {
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::init_secure_socket_internal(int client_id, const vector<int>& registers) {
   external_clients.symmetric_client_commsec_send_keys.erase(client_id);
   external_clients.symmetric_client_commsec_recv_keys.erase(client_id);
   unsigned char client_public_bytes[crypto_sign_PUBLICKEYBYTES];
@@ -276,8 +288,8 @@ void Processor<sint>::init_secure_socket_internal(int client_id, const vector<in
   external_clients.symmetric_client_commsec_recv_keys[client_id] = make_pair(recvKey,0);
 }
 
-template<class sint>
-void Processor<sint>::init_secure_socket(int client_id, const vector<int>& registers) {
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::init_secure_socket(int client_id, const vector<int>& registers) {
 
   try {
       init_secure_socket_internal(client_id, registers);
@@ -287,8 +299,8 @@ void Processor<sint>::init_secure_socket(int client_id, const vector<int>& regis
   }
 }
 
-template<class sint>
-void Processor<sint>::resp_secure_socket(int client_id, const vector<int>& registers) {
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::resp_secure_socket(int client_id, const vector<int>& registers) {
   try {
       resp_secure_socket_internal(client_id, registers);
   } catch (char const *e) {
@@ -297,8 +309,8 @@ void Processor<sint>::resp_secure_socket(int client_id, const vector<int>& regis
   }
 }
 
-template<class sint>
-void Processor<sint>::resp_secure_socket_internal(int client_id, const vector<int>& registers) {
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::resp_secure_socket_internal(int client_id, const vector<int>& registers) {
   external_clients.symmetric_client_commsec_send_keys.erase(client_id);
   external_clients.symmetric_client_commsec_recv_keys.erase(client_id);
   unsigned char client_public_bytes[crypto_sign_PUBLICKEYBYTES];
@@ -351,8 +363,8 @@ void Processor<sint>::resp_secure_socket_internal(int client_id, const vector<in
 // Read share data from a file starting at file_pos until registers filled.
 // file_pos_register is written with new file position (-1 is eof).
 // Tolerent to no file if no shares yet persisted.
-template<class sint>
-void Processor<sint>::read_shares_from_file(int start_file_posn, int end_file_pos_register, const vector<int>& data_registers) {
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::read_shares_from_file(int start_file_posn, int end_file_pos_register, const vector<int>& data_registers) {
   string filename;
   filename = "Persistence/Transactions-P" + to_string(P.my_num()) + ".data";
 
@@ -379,8 +391,8 @@ void Processor<sint>::read_shares_from_file(int start_file_posn, int end_file_po
 }
 
 // Append share data in data_registers to end of file. Expects Persistence directory to exist.
-template<class sint>
-void Processor<sint>::write_shares_to_file(const vector<int>& data_registers) {
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::write_shares_to_file(const vector<int>& data_registers) {
   string filename;
   filename = "Persistence/Transactions-P" + to_string(P.my_num()) + ".data";
 
@@ -451,7 +463,7 @@ void SubProcessor<T>::POpen_Stop(const vector<int>& reg,const Player& P,int size
   Proc.rounds++;
 }
 
-void unzip_open(vector<int>& dest, vector<int>& source, const vector<int>& reg)
+inline void unzip_open(vector<int>& dest, vector<int>& source, const vector<int>& reg)
 {
   int n = reg.size() / 2;
   source.resize(n);
@@ -473,8 +485,8 @@ void SubProcessor<T>::POpen(const vector<int>& reg, const Player& P,
   POpen_Stop(dest, P, size);
 }
 
-template<class sint>
-ostream& operator<<(ostream& s,const Processor<sint>& P)
+template<class sint, class sgf2n>
+ostream& operator<<(ostream& s,const Processor<sint, sgf2n>& P)
 {
   s << "Processor State" << endl;
   s << "Char 2 Registers" << endl;
@@ -499,8 +511,8 @@ ostream& operator<<(ostream& s,const Processor<sint>& P)
   return s;
 }
 
-template<class sint>
-void Processor<sint>::maybe_decrypt_sequence(int client_id)
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::maybe_decrypt_sequence(int client_id)
 {
   map<int, pair<vector<octet>,uint64_t> >::iterator it_cs = external_clients.symmetric_client_commsec_recv_keys.find(client_id);
   if (it_cs != external_clients.symmetric_client_commsec_recv_keys.end())
@@ -510,8 +522,8 @@ void Processor<sint>::maybe_decrypt_sequence(int client_id)
   }
 }
 
-template<class sint>
-void Processor<sint>::maybe_encrypt_sequence(int client_id)
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::maybe_encrypt_sequence(int client_id)
 {
   map<int, pair<vector<octet>,uint64_t> >::iterator it_cs = external_clients.symmetric_client_commsec_send_keys.find(client_id);
   if (it_cs != external_clients.symmetric_client_commsec_send_keys.end())
@@ -520,10 +532,3 @@ void Processor<sint>::maybe_encrypt_sequence(int client_id)
     it_cs->second.second++;
   }
 }
-
-template class SubProcessor<sgf2n>;
-template class SubProcessor<sgfp>;
-template class SubProcessor<Rep3Share>;
-
-template class Processor<sgfp>;
-template class Processor<Rep3Share>;

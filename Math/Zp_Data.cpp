@@ -6,6 +6,7 @@
 void Zp_Data::init(const bigint& p,bool mont)
 { pr=p;
   mask=(1<<((mpz_sizeinbase(pr.get_mpz_t(),2)-1)%(8*sizeof(mp_limb_t))))-1;
+  pr_byte_length = numBytes(pr);
 
   montgomery=mont;
   t=mpz_size(pr.get_mpz_t());

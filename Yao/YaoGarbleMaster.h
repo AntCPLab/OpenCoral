@@ -9,17 +9,20 @@
 #include "GC/ThreadMaster.h"
 #include "GC/Secret.h"
 #include "YaoGarbleWire.h"
+#include "Processor/OnlineOptions.h"
 
 using namespace GC;
 
 class YaoGarbleMaster : public GC::ThreadMaster<GC::Secret<YaoGarbleWire>>
 {
+    typedef GC::ThreadMaster<GC::Secret<YaoGarbleWire>> super;
+
 public:
     bool continuous;
     int threshold;
     Key delta;
 
-    YaoGarbleMaster(bool continuous, int threshold = 1024);
+    YaoGarbleMaster(bool continuous, OnlineOptions& opts, int threshold = 1024);
 
     Thread<Secret<YaoGarbleWire>>* new_thread(int i);
 };

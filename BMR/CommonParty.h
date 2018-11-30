@@ -45,6 +45,11 @@ public:
 	int get_i() { return i; }
 };
 
+namespace GC
+{
+template<class T> class Machine;
+}
+
 class CommonParty : public NodeUpdatable
 {
 protected:

@@ -9,13 +9,12 @@
 #include <vector>
 using namespace std;
 
-#include "Processor/Data_Files.h"
 #include "Networking/Player.h"
 #include "Math/Integer.h"
-#include "Auth/MAC_Check.h"
+#include "Math/Share.h"
 
-template<class sint> class Machine;
-template<class sint> class Processor;
+template<class sint, class sgf2n> class Machine;
+template<class sint, class sgf2n> class Processor;
 
 /* 
  * Opcode constants
@@ -166,6 +165,7 @@ enum
     PRINTFLOATPLAIN = 0xBC,
     WRITEFILESHARE = 0xBD,
     READFILESHARE = 0xBE,
+    CONDPRINTSTR = 0xBF,
 
     // GF(2^n) versions
     
@@ -272,7 +272,7 @@ enum SecrecyType {
   MAX_SECRECY_TYPE
 };
 
-template<class sint>
+template<class sint, class sgf2n>
 struct TempVars {
   gf2n ans2; Share<gf2n> Sans2;
   typename sint::clear ansp;
@@ -312,9 +312,10 @@ public:
   bool is_direct_memory_access(SecrecyType sec_type) const;
 
   // Returns the maximal register used
-  int get_max_reg(int reg_type) const;
+  unsigned get_max_reg(int reg_type) const;
 };
 
+struct DataPositions;
 
 class Instruction : public BaseInstruction
 {
@@ -326,14 +327,14 @@ public:
   bool get_offline_data_usage(DataPositions& usage);
 
   // Returns the memory size used if applicable and known
-  int get_mem(RegType reg_type, SecrecyType sec_type) const;
+  unsigned get_mem(RegType reg_type, SecrecyType sec_type) const;
 
   friend ostream& operator<<(ostream& s,const Instruction& instr);
 
   // Execute this instruction, updateing the processor and memory
   // and streams pointing to the triples etc
-  template<class sint>
-  void execute(Processor<sint>& Proc) const;
+  template<class sint, class sgf2n>
+  void execute(Processor<sint, sgf2n>& Proc) const;
 };
 
 

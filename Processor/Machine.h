@@ -6,11 +6,12 @@
 #ifndef MACHINE_H_
 #define MACHINE_H_
 
+#include "Processor/BaseMachine.h"
 #include "Processor/Memory.h"
 #include "Processor/Program.h"
+#include "Processor/OnlineOptions.h"
 
 #include "Processor/Online-Thread.h"
-#include "Processor/Data_Files.h"
 #include "Math/gfp.h"
 
 #include "Tools/time-func.h"
@@ -19,39 +20,7 @@
 #include <map>
 using namespace std;
 
-class BaseMachine
-{
-protected:
-    static BaseMachine* singleton;
-
-    std::map<int,Timer> timer;
-
-    ifstream inpf;
-
-    void print_timers();
-
-    virtual void load_program(string threadname, string filename);
-
-public:
-    string progname;
-    int nthreads;
-
-    static BaseMachine& s();
-
-    BaseMachine();
-    virtual ~BaseMachine() {}
-
-    void load_schedule(string progname);
-    void print_compiler();
-
-    void time();
-    void start(int n);
-    void stop(int n);
-
-    virtual void reqbl(int n) { (void)n; }
-};
-
-template<class sint>
+template<class sint, class sgf2n>
 class Machine : public BaseMachine
 {
   /* The mutex's lock the C-threads and then only release
@@ -60,12 +29,12 @@ class Machine : public BaseMachine
    * MPC thread releases the mutex
    */
 
-  vector<thread_info<sint>> tinfo;
+  vector<thread_info<sint, sgf2n>> tinfo;
   vector<pthread_t> threads;
 
   int my_number;
   Names& N;
-  gfp  alphapi;
+  typename sint::value_type alphapi;
   gf2n alpha2i;
 
   // Keep record of used offline data
@@ -98,17 +67,25 @@ class Machine : public BaseMachine
   bool receive_threads;
   int max_broadcast;
   bool use_encryption;
+  bool live_prep;
+
+  OnlineOptions opts;
 
   Machine(int my_number, Names& playerNames, string progname,
       string memtype, int lgp, int lg2, bool direct, int opening_sum, bool parallel,
-      bool receive_threads, int max_broadcast, bool use_encryption);
+      bool receive_threads, int max_broadcast, bool use_encryption, bool live_prep,
+      OnlineOptions opts);
+
+  const Names& get_N() { return N; }
 
   DataPositions run_tape(int thread_number, int tape_number, int arg, int line_number);
   void join_tape(int thread_number);
   void run();
 
+  string memory_filename();
+
   // Only for Player-Demo.cpp
-  Machine(): N(*(new Names())) {}
+  Machine(Names& N = *(new Names())): N(N) {}
 
   void reqbl(int n);
 };

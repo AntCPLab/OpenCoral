@@ -17,6 +17,7 @@ template <class T>
 Machine<T>::Machine(Memory<typename T::DynamicType>& dynamic_memory) : MD(dynamic_memory)
 {
     use_encryption = false;
+    more_comm_less_comp = false;
     start_timer();
 }
 

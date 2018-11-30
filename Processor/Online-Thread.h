@@ -10,9 +10,9 @@
 #include <vector>
 using namespace std;
 
-template<class sint> class Machine;
+template<class sint, class sgf2n> class Machine;
 
-template<class sint>
+template<class sint, class sgf2n>
 class thread_info
 {
   public: 
@@ -21,7 +21,7 @@ class thread_info
   int covert;
   Names*  Nms;
   gf2n *alpha2i;
-  gfp  *alphapi;
+  typename sint::value_type *alphapi;
   int prognum;
   bool finished;
   bool ready;
@@ -31,11 +31,11 @@ class thread_info
   // Integer arg (optional)
   int arg;
 
-  Machine<sint>* machine;
+  Machine<sint, sgf2n>* machine;
 
   static void* Main_Func(void *ptr);
 
-  static void purge_preprocessing(Names& N, string prep_dir);
+  static void purge_preprocessing(Machine<sint, sgf2n>& machine);
 };
 
 #endif

@@ -1,9 +1,22 @@
 
 #include "bigint.h"
 #include "gfp.h"
+#include "Integer.h"
+#include "GC/Clear.h"
 #include "Exceptions/Exceptions.h"
 
+class gmp_random
+{
+public:
+  gmp_randclass Gen;
+  gmp_random() : Gen(gmp_randinit_default)
+  {
+    Gen.seed(0);
+  }
+};
+
 thread_local bigint bigint::tmp;
+thread_local gmp_random bigint::random;
 
 bigint sqrRootMod(const bigint& a,const bigint& p)
 {
@@ -18,13 +31,11 @@ bigint sqrRootMod(const bigint& a,const bigint& p)
     }
   else
     { // Shanks algorithm
-      gmp_randclass Gen(gmp_randinit_default);
-      Gen.seed(0);
       bigint x,y,n,q,t,b,temp;
       // Find n such that (n/p)=-1
       int leg=1;
       while (leg!=-1)
-	  { n=Gen.get_z_range(p);
+	  { n=bigint::random.Gen.get_z_range(p);
             leg=mpz_legendre(n.get_mpz_t(),p.get_mpz_t());
           }
       // Split p-1 = 2^e q
@@ -134,6 +145,27 @@ int limb_size<int>()
   return 0;
 }
 
+template<class T>
+mpf_class bigint::get_float(T v, Integer exp, T z, T s)
+{
+    bigint tmp;
+    to_signed_bigint(tmp, v);
+    mpf_class res = tmp;
+    if (exp > 0)
+        mpf_mul_2exp(res.get_mpf_t(), res.get_mpf_t(), exp.get());
+    else
+        mpf_div_2exp(res.get_mpf_t(), res.get_mpf_t(), -exp.get());
+    if (z.is_one())
+        res = 0;
+    if (s.is_one())
+    {
+        res *= -1;
+    }
+    if (not z.is_bit() or not s.is_bit())
+        throw Processor_Error("invalid floating point number");
+    return res;
+}
+
 #ifdef REALLOC_POLICE
 void bigint::lottery()
 {
@@ -142,3 +174,7 @@ void bigint::lottery()
       throw runtime_error("much deallocation");
 }
 #endif
+
+template mpf_class bigint::get_float(gfp, Integer, gfp, gfp);
+template mpf_class bigint::get_float(Integer, Integer, Integer, Integer);
+template mpf_class bigint::get_float(GC::Clear, Integer, GC::Clear, GC::Clear);

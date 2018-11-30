@@ -13,19 +13,27 @@ using namespace std;
 #include "GC/Machine.h"
 
 #include "Math/Integer.h"
-#include "Processor/Processor.h"
+#include "Processor/ProcessorBase.h"
 
 namespace GC
 {
 
 template <class T> class Program;
 
+class ExecutionStats : public map<int, size_t>
+{
+public:
+    ExecutionStats& operator+=(const ExecutionStats& other)
+    {
+        for (auto it : other)
+            (*this)[it.first] += it.second;
+        return *this;
+    }
+};
+
 template <class T>
 class Processor : public ::ProcessorBase
 {
-    ifstream input_file;
-    string input_filename;
-
 public:
     static int check_args(const vector<int>& args, int n);
 
@@ -43,14 +51,15 @@ public:
     Memory<Clear> C;
     Memory<Integer> I;
 
+    ExecutionStats stats;
+
     Processor(Machine<T>& machine);
     ~Processor();
 
     void reset(const Program<T>& program, int arg);
     void reset(const Program<T>& program);
-    void open_input_file(const string& name);
 
-    long long get_input(int n_bits);
+    long long get_input(int n_bits, bool interactive = false);
 
     void bitcoms(T& x, const vector<int>& regs) { x.bitcom(S, regs); }
     void bitdecs(const vector<int>& regs, const T& x) { x.bitdec(S, regs); }
@@ -77,6 +86,7 @@ public:
     void print_reg_signed(unsigned n_bits, Clear& value);
     void print_chr(int n);
     void print_str(int n);
+    void print_float(const vector<int>& args);
 };
 
 template <class T>

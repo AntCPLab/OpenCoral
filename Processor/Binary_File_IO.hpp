@@ -66,9 +66,3 @@ void Binary_File_IO::read_from_file(const string filename, vector< T >& buffer, 
   for (unsigned int i = 0; i < buffer.size(); i++)
     buffer[i].assign(&read_buffer[i*T::size()]);
 }
-
-template void Binary_File_IO::write_to_file(const string filename, const vector< Share<gfp> >& buffer);
-template void Binary_File_IO::read_from_file(const string filename, vector< Share<gfp> >& buffer, const int start_posn, int &end_posn);
-
-template void Binary_File_IO::write_to_file(const string filename, const vector< Rep3Share >& buffer);
-template void Binary_File_IO::read_from_file(const string filename, vector< Rep3Share >& buffer, const int start_posn, int &end_posn);

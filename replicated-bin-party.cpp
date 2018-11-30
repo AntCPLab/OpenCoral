@@ -7,5 +7,5 @@
 
 int main(int argc, const char** argv)
 {
-    GC::ReplicatedParty(argc, argv);
+    GC::ReplicatedParty<GC::SemiHonestRepSecret>(argc, argv);
 }

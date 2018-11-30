@@ -19,21 +19,23 @@ template<class T> class ReplicatedMC;
 template<class T> class ReplicatedInput;
 template<class T> class ReplicatedPrivateOutput;
 template<class T> class Share;
-template<class sint> class Processor;
+template<class T> class Rep3Share;
 
 class ReplicatedBase
 {
 public:
     PRNG shared_prngs[2];
 
+    Player& P;
+
     ReplicatedBase(Player& P);
 };
 
 template <class T>
-class Replicated : ReplicatedBase
+class Replicated : public ReplicatedBase
 {
     vector<octetStream> os;
-    vector<T> results;
+    deque<typename T::clear> add_shares;
     int counter;
 
 public:
@@ -55,9 +57,12 @@ public:
     void muls(const vector<int>& reg, SubProcessor<T>& proc, ReplicatedMC<T>& MC,
             int size);
 
-    static void reqbl(int n);
+    void init_mul();
+    typename T::clear prepare_mul(const T& x, const T& y);
+    void exchange();
+    T finalize_mul();
 
-    static void input(SubProcessor<T>& Proc, int n, int* r);
+    T get_random();
 };
 
 #endif /* PROCESSOR_REPLICATED_H_ */

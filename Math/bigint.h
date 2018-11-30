@@ -22,11 +22,17 @@ enum ReportType
 };
 
 class gfp;
+class gmp_random;
+class Integer;
 
 class bigint : public mpz_class
 {
 public:
   static thread_local bigint tmp;
+  static thread_local gmp_random random;
+
+  template<class T>
+  static mpf_class get_float(T v, Integer exp, T z, T s);
 
   bigint() : mpz_class() {}
   template <class T>

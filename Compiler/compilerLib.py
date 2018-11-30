@@ -26,6 +26,7 @@ def run(args, options, param=-1, merge_opens=True, emulate=True, \
     VARS['program'] = prog
     if options.binary:
         VARS['sint'] = GC.types.sbitint.get_type(int(options.binary))
+        VARS['sfix'] = GC.types.sbitfix
     comparison.set_variant(options)
     
     print 'Compiling file', prog.infile

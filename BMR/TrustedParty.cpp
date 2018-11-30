@@ -17,6 +17,8 @@
 #include "SpdzWire.h"
 #include "Auth/fake-stuff.h"
 
+#include "Auth/fake-stuff.hpp"
+
 TrustedProgramParty* TrustedProgramParty::singleton = 0;
 
 

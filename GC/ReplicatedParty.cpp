@@ -5,6 +5,7 @@
 
 #include "ReplicatedParty.h"
 #include "Thread.h"
+#include "MaliciousRepThread.h"
 #include "Networking/Server.h"
 #include "Tools/ezOptionParser.h"
 #include "Tools/benchmarking.h"
@@ -12,9 +13,10 @@
 namespace GC
 {
 
-ReplicatedParty::ReplicatedParty(int argc, const char** argv)
+template<class T>
+ReplicatedParty<T>::ReplicatedParty(int argc, const char** argv) :
+        ThreadMaster<T>(online_opts), online_opts(opt, argc, argv)
 {
-    ez::ezOptionParser opt;
     opt.add(
             "", // Default.
             1, // Required?
@@ -51,11 +53,20 @@ ReplicatedParty::ReplicatedParty(int argc, const char** argv)
             "-u", // Flag token.
             "--unencrypted" // Flag token.
     );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Check opening by communication instead of hashing.", // Help description.
+            "-c", // Flag token.
+            "--communication" // Flag token.
+    );
     opt.parse(argc, argv);
     opt.syntax = "./replicated-bin-party.x [OPTIONS] <progname>";
     if (opt.lastArgs.size() == 1)
     {
-        progname = *opt.lastArgs[0];
+        this->progname = *opt.lastArgs[0];
     }
     else
     {
@@ -71,20 +82,52 @@ ReplicatedParty::ReplicatedParty(int argc, const char** argv)
     opt.get("-p")->getInt(my_num);
     opt.get("-pn")->getInt(pnb);
     opt.get("-h")->getString(hostname);
-    machine.use_encryption = not opt.get("-u")->isSet;
+    this->machine.use_encryption = not opt.get("-u")->isSet;
+    this->machine.more_comm_less_comp = opt.get("-c")->isSet;
 
-    if (my_num != 0)
-        ReplicatedSecret::out.activate(false);
+    T::out.activate(my_num == 0 or online_opts.interactive);
 
-    if (not machine.use_encryption)
+    if (not this->machine.use_encryption)
         insecure("unencrypted communication");
 
-    Server* server = Server::start_networking(N, my_num, 3, hostname, pnb);
+    Server* server = Server::start_networking(this->N, my_num, 3, hostname, pnb);
 
-    run();
+    this->run();
 
     if (server)
         delete server;
 }
+
+template<>
+Thread<SemiHonestRepSecret>* ReplicatedParty<SemiHonestRepSecret>::new_thread(int i)
+{
+    return ThreadMaster<SemiHonestRepSecret>::new_thread(i);
+}
+
+template<>
+Thread<MaliciousRepSecret>* ReplicatedParty<MaliciousRepSecret>::new_thread(int i)
+{
+    return new MaliciousRepThread(i, *this);
+}
+
+template<>
+void ReplicatedParty<SemiHonestRepSecret>::post_run()
+{
+}
+
+template<>
+void ReplicatedParty<MaliciousRepSecret>::post_run()
+{
+    DataPositions usage;
+    for (auto thread : threads)
+        usage.increase(((MaliciousRepThread*)thread)->usage);
+    usage.print_cost();
+}
+
+extern template class ReplicatedSecret<SemiHonestRepSecret>;
+extern template class ReplicatedSecret<MaliciousRepSecret>;
+
+template class ReplicatedParty<SemiHonestRepSecret>;
+template class ReplicatedParty<MaliciousRepSecret>;
 
 }

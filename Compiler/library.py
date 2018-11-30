@@ -1,7 +1,7 @@
 from Compiler.types import cint,sint,cfix,sfix,sfloat,MPCThread,Array,MemValue,cgf2n,sgf2n,_number,_mem,_register,regint,Matrix,_types, cfloat
 from Compiler.instructions import *
 from Compiler.util import tuplify,untuplify
-from Compiler import instructions,instructions_base,comparison,program
+from Compiler import instructions,instructions_base,comparison,program,util
 import inspect,math
 import random
 import collections
@@ -92,6 +92,16 @@ def print_ln(s='', *args):
     """ Print line, with optional args for adding variables/registers with %s """
     print_str(s, *args)
     print_char('\n')
+
+def print_ln_if(cond, s):
+    if util.is_constant(cond):
+        if cond:
+            print_ln(s)
+    else:
+        s += '\n'
+        while s:
+            cond.print_if(s[:4])
+            s = s[4:]
 
 def runtime_error(msg='', *args):
     """ Print an error message and abort the runtime. """

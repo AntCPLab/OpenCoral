@@ -35,13 +35,13 @@ public:
     {
         return T::type_string() + "^" + to_string(L);
     }
-    static char type_char()
+    static string type_short()
     {
-        return T::type_char();
+        return string(1, T::type_char());
     }
     static DataFieldType field_type()
     {
-        return DATA_MODP;
+        return T::field_type();
     }
 
     FixedVec<T, L>(const T& other = 0)
@@ -71,8 +71,8 @@ public:
     }
     void assign(const char* buffer)
     {
-        for (auto& x : v)
-            x.assign(buffer);
+        for (int i = 0; i < L; i++)
+            v[i].assign(buffer + i * T::size());
     }
 
     void assign_zero()
@@ -144,6 +144,21 @@ public:
         return res;
     }
 
+    FixedVec<T, L>operator*(const FixedVec<T, L>& other) const
+    {
+        FixedVec<T, L> res;
+        res.mul(*this, other);
+        return res;
+    }
+
+    FixedVec<T, L>operator/(const FixedVec<T, L>& other) const
+    {
+        FixedVec<T, L> res;
+        for (int i = 0; i < L; i++)
+            res[i] = v[i] / other[i];
+        return res;
+    }
+
     FixedVec<T, L>operator^(const FixedVec<T, L>& other) const
     {
         FixedVec<T, L> res;
@@ -163,6 +178,12 @@ public:
     FixedVec<T, L>& operator+=(const FixedVec<T, L>& other)
     {
         add(other);
+        return *this;
+    }
+
+    FixedVec<T, L>& operator/=(const FixedVec<T, L>& other)
+    {
+        *this = *this / other;
         return *this;
     }
 
@@ -196,6 +217,12 @@ public:
         return res;
     }
 
+    FixedVec<T, L>& operator>>=(int i)
+    {
+        *this = *this >> i;
+        return *this;
+    }
+
     T sum() const
     {
         T res = 0;
@@ -209,6 +236,14 @@ public:
         FixedVec<T, L> res;
         for (int i = 0; i < L; i++)
             res[i] = v[i].extend_bit();
+        return res;
+    }
+
+    FixedVec<T, L> mask(int n_bits) const
+    {
+        FixedVec<T, L> res;
+        for (int i = 0; i < L; i++)
+            res[i] = v[i].mask(n_bits);
         return res;
     }
 
@@ -250,6 +285,12 @@ public:
             x.unpack(os);
     }
 };
+
+template <class T, int L>
+FixedVec<T, L> operator*(const T& a, const FixedVec<T, L>& b)
+{
+    return b * a;
+}
 
 template <class T, int L>
 ostream& operator<<(ostream& os, const FixedVec<T, L>& v)

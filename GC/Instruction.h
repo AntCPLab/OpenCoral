@@ -10,8 +10,6 @@
 #include <iostream>
 using namespace std;
 
-#include "GC/Processor.h"
-
 #include "Processor/Instruction.h"
 
 namespace GC
@@ -27,6 +25,7 @@ enum RegType {
     NONE
 };
 
+template<class T> class Processor;
 
 template <class T>
 class Instruction : public ::BaseInstruction
@@ -49,10 +48,10 @@ public:
     int get_reg_type() const;
 
     // Returns the maximal register used
-    int get_max_reg(int reg_type) const;
+    unsigned get_max_reg(int reg_type) const;
 
     // Returns the memory size used if applicable and known
-    int get_mem(RegType reg_type) const;
+    unsigned get_mem(RegType reg_type) const;
 
     // Execute this instruction
     bool exe(Processor<T>& processor) const { return code(*this, processor); }

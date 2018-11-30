@@ -16,7 +16,7 @@ run_player() {
     if ! test -e $SPDZROOT/logs; then
         mkdir $SPDZROOT/logs
     fi
-    if test $bin = Player-Online.x -o $bin = replicated-ring-party.x; then
+    if [[ $bin = Player-Online.x || $bin =~ 'party.x' ]]; then
 	params="$* -pn $port -h localhost"
     else
 	params="$port localhost $*"
@@ -24,8 +24,10 @@ run_player() {
     if test $bin = Player-KeyGen.x -a ! -e Player-Data/Params-Data; then
 	./Setup.x $players $size 40
     fi
-    >&2 echo Running $SPDZROOT/Server.x $players $port
-    $SPDZROOT/Server.x $players $port &
+    if [[ $bin =~ Player- ]]; then
+	>&2 echo Running $SPDZROOT/Server.x $players $port
+	$SPDZROOT/Server.x $players $port &
+    fi
     rem=$(($players - 2))
     for i in $(seq 0 $rem); do
       echo "trying with player $i"

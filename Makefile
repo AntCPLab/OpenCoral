@@ -28,7 +28,7 @@ endif
 COMMON = $(MATH) $(TOOLS) $(NETWORK) $(AUTH)
 COMPLETE = $(COMMON) $(PROCESSOR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(GC) $(OT)
 YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp)) $(OT) $(GC)
-BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp)) $(COMMON) $(PROCESSOR) $(GC)
+BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp)) $(COMMON) $(PROCESSOR)
 
 
 LIB = libSPDZ.a
@@ -39,7 +39,7 @@ OBJS = $(BMR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(YAO) $(COMPLETE)
 DEPS := $(OBJS:.o=.d)
 
 
-all: gen_input online offline externalIO yao replicated-bin-party.x replicated-ring-party.x
+all: gen_input online offline externalIO yao replicated
 
 ifeq ($(USE_GF2N_LONG),1)
 all: bmr
@@ -70,10 +70,20 @@ she-offline: Check-Offline.x spdz2-offline.x
 
 overdrive: simple-offline.x pairwise-offline.x cnc-offline.x
 
-Fake-Offline.x: Fake-Offline.cpp $(COMMON) $(PROCESSOR)
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
+rep-field: malicious-rep-bin-party.x replicated-field-party.x Setup.x
 
-Check-Offline.x: Check-Offline.cpp $(COMMON) $(PROCESSOR)
+rep-ring: replicated-ring-party.x Fake-Offline.x
+
+rep-bin: replicated-bin-party.x malicious-rep-bin-party.x Fake-Offline.x
+
+replicated: rep-field rep-ring rep-bin
+
+tldr: malicious-rep-field-party.x Setup.x
+
+Fake-Offline.x: Fake-Offline.cpp $(COMMON) $(PROCESSOR)
+	$(CXX) $(CFLAGS) -o $@ Fake-Offline.cpp $(COMMON) $(PROCESSOR) $(LDLIBS)
+
+Check-Offline.x: Check-Offline.cpp $(COMMON) $(PROCESSOR) Auth/fake-stuff.hpp
 	$(CXX) $(CFLAGS) Check-Offline.cpp -o Check-Offline.x $(COMMON) $(PROCESSOR) $(LDLIBS)
 
 Server.x: Server.cpp $(COMMON)
@@ -81,6 +91,9 @@ Server.x: Server.cpp $(COMMON)
 
 Player-Online.x: Player-Online.cpp $(COMMON) $(PROCESSOR)
 	$(CXX) $(CFLAGS) Player-Online.cpp -o Player-Online.x $(COMMON) $(PROCESSOR) $(LDLIBS)
+
+Setup.x: Setup.cpp $(COMMON)
+	$(CXX) $(CFLAGS) Setup.cpp -o Setup.x $(COMMON) $(LDLIBS)
 
 ifeq ($(USE_GF2N_LONG),1)
 ot.x: $(OT) $(COMMON) OT/OText_main.cpp $(LIBSIMPLEOT)
@@ -106,7 +119,7 @@ gen_input_fp.x: Scripts/gen_input_fp.cpp $(COMMON)
 	$(CXX) $(CFLAGS) Scripts/gen_input_fp.cpp	-o gen_input_fp.x $(COMMON) $(LDLIBS)
 
 gc-emulate.x: $(GC) $(COMMON) $(PROCESSOR) gc-emulate.cpp $(GC)
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(BOOST)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 ifeq ($(USE_GF2N_LONG),1)
 bmr-program-party.x: $(BMR) bmr-program-party.cpp
@@ -152,9 +165,18 @@ galois-degree.x: $(COMMON) galois-degree.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 replicated-bin-party.x: $(COMMON) $(GC) replicated-bin-party.cpp
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(BOOST)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
+
+malicious-rep-bin-party.x: $(COMMON) $(GC) malicious-rep-bin-party.cpp
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 replicated-ring-party.x: replicated-ring-party.cpp $(PROCESSOR) $(COMMON)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
+
+replicated-field-party.x: replicated-field-party.cpp $(PROCESSOR) $(COMMON)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
+
+malicious-rep-field-party.x: malicious-rep-field-party.cpp $(PROCESSOR) $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 $(LIBSIMPLEOT): SimpleOT/Makefile
@@ -165,6 +187,19 @@ OT/BaseOT.o: SimpleOT/Makefile
 
 SimpleOT/Makefile:
 	git submodule update --init SimpleOT
+
+.PHONY: mpir
+mpir:
+	git submodule update --init mpir
+	cd mpir; \
+	libtoolize --force; \
+	aclocal; \
+	autoheader; \
+	automake --force-missing --add-missing; \
+	autoconf; \
+	./configure --enable-cxx;
+	$(MAKE) -C mpir
+	sudo $(MAKE) -C mpir install
 
 clean:
 	-rm */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o

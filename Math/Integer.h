@@ -12,6 +12,7 @@ using namespace std;
 #include "Tools/octetStream.h"
 #include "Tools/random.h"
 #include "bigint.h"
+#include "field_types.h"
 
 
 // Functionality shared between integers and bit vectors
@@ -30,9 +31,16 @@ public:
   long get() const          { return a; }
   bool get_bit(int i) const { return (a >> i) & 1; }
 
+  unsigned long debug() const { return a; }
+
   void assign(long x)       { *this = x; }
   void assign(const char* buffer) { avx_memcpy(&a, buffer, sizeof(a)); }
   void assign_zero()        { a = 0; }
+  void assign_one()         { a = 1; }
+
+  bool is_zero() const      { return a == 0; }
+  bool is_one() const       { return a == 1; }
+  bool is_bit() const       { return is_zero() or is_one(); }
 
   long operator>>(const IntBase& other) const { return a >> other.a; }
   long operator<<(const IntBase& other) const { return a << other.a; }
@@ -43,6 +51,8 @@ public:
 
   bool operator==(const IntBase& other) const { return a == other.a; }
   bool operator!=(const IntBase& other) const { return a != other.a; }
+
+  bool equal(const IntBase& other) const { return *this == other; }
 
   long operator^=(const IntBase& other) { return a ^= other.a; }
   long operator&=(const IntBase& other) { return a &= other.a; }
@@ -67,18 +77,15 @@ class Integer : public IntBase
   typedef Integer clear;
 
   static char type_char() { return 'R'; }
+  static DataFieldType field_type() { return DATA_INT64; }
+
+  static void reqbl(int n);
 
   Integer()                 { a = 0; }
   Integer(long a) : IntBase(a) {}
   Integer(const bigint& x)  { *this = x.get_si(); }
 
   void convert_destroy(bigint& other) { *this = other.get_si(); }
-
-  void assign_one()         { a = 1; }
-
-  bool is_zero() const      { return a == 0; }
-  bool is_one() const       { return a == 1; }
-  bool is_bit() const       { return is_zero() or is_one(); }
 
   long operator+(const Integer& other) const { return a + other.a; }
   long operator-(const Integer& other) const { return a - other.a; }
@@ -124,6 +131,11 @@ inline void IntBase::randomize(PRNG& G)
 inline void to_bigint(bigint& res, const Integer& x)
 {
   res = (unsigned long)x.get();
+}
+
+inline void to_signed_bigint(bigint& res, const Integer& x)
+{
+  res = x.get();
 }
 
 void to_signed_bigint(bigint& res, const Integer& x, int n);

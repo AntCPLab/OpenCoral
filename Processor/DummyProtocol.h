@@ -8,6 +8,15 @@
 
 class Player;
 
+class DummyMC
+{
+public:
+    void Check(Player& P)
+    {
+        (void) P;
+    }
+};
+
 class DummyProtocol
 {
 public:

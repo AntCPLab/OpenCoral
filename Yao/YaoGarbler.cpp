@@ -9,7 +9,7 @@
 thread_local YaoGarbler* YaoGarbler::singleton = 0;
 
 YaoGarbler::YaoGarbler(int thread_num, YaoGarbleMaster& master) :
-		Thread<Secret<YaoGarbleWire>>(thread_num, master.machine, master.N),
+		Thread<Secret<YaoGarbleWire>>(thread_num, master),
 		master(master),
 		and_proc_timer(CLOCK_PROCESS_CPUTIME_ID),
 		and_main_thread_timer(CLOCK_THREAD_CPUTIME_ID),

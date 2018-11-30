@@ -28,5 +28,3 @@ void ReplicatedPrivateOutput<T>::stop(int player, int source)
 {
     (void)player, (void)source;
 }
-
-template class ReplicatedPrivateOutput<Rep3Share>;

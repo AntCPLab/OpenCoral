@@ -6,7 +6,8 @@
 #include "YaoEvalMaster.h"
 #include "YaoEvaluator.h"
 
-YaoEvalMaster::YaoEvalMaster(bool continuous) : continuous(continuous)
+YaoEvalMaster::YaoEvalMaster(bool continuous, OnlineOptions& opts) :
+        ThreadMaster<GC::Secret<YaoEvalWire>>(opts), continuous(continuous)
 {
 }
 

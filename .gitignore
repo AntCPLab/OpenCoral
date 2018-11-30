@@ -30,6 +30,7 @@ tags
 .project
 .cproject
 .settings
+.pydevproject
 
 # VS Code IDE #
 ###############

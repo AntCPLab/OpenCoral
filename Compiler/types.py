@@ -192,6 +192,8 @@ class _register(Tape.Register, _number):
                 return type(val)(cls.conv(v) for v in val)
             except TypeError:
                 pass
+            except CompilerError:
+                pass
         return cls(val)
 
     @vectorized_classmethod
@@ -516,6 +518,9 @@ class cint(_clear, _int):
         res = cint()
         digestc(res, self, num_bytes)
         return res
+
+    def print_if(self, string):
+        cond_print_str(self, string)
 
 
 
@@ -1941,7 +1946,12 @@ class cfix(_number):
             raise TypeError('Incompatible fixed point types in division')
 
     def print_plain(self):
-        sign = cint(self.v < 0)
+        if self.k > 64:
+            raise CompilerError('Printing of fixed-point numbers not ' +
+                                'implemented for more than 64-bit precision')
+        tmp = regint()
+        convmodp(tmp, self.v, bitlength=self.k)
+        sign = cint(tmp < 0)
         abs_v = sign.if_else(-self.v, self.v)
         print_float_plain(cint(abs_v), cint(-self.f), \
                           cint(0), cint(sign))
@@ -1984,10 +1994,21 @@ class _fix(_number):
         return cls(*res)
 
     @classmethod
-    def load_sint(cls, v):
+    def from_sint(cls, other):
         res = cls()
-        res.load_int(v)
+        res.load_int(cls.int_type.conv(other))
         return res
+
+    @classmethod
+    def conv(cls, other):
+        if isinstance(other, cls):
+            return other
+        else:
+            try:
+                return cls.from_sint(other)
+            except (TypeError, CompilerError):
+                pass
+        return cls(other)
 
     @vectorize_init
     def __init__(self, _v=None, size=None):
@@ -2017,9 +2038,6 @@ class _fix(_number):
     def load_int(self, v):
         self.v = self.int_type(v) << self.f
 
-    def conv(self):
-        return self
-
     def store_in_mem(self, address):
         self.v.store_in_mem(address)
 
@@ -2028,7 +2046,7 @@ class _fix(_number):
 
     @vectorize 
     def add(self, other):
-        other = parse_type(other)
+        other = self.conv(other)
         if isinstance(other, (_fix, cfix)):
             return type(self)(self.v + other.v)
         elif isinstance(other, cfix.scalars):
@@ -2039,7 +2057,7 @@ class _fix(_number):
 
     @vectorize 
     def mul(self, other):
-        other = parse_type(other)
+        other = self.conv(other)
         if isinstance(other, _fix):
             val = self.v.TruncMul(other.v, self.k * 2, self.f, self.kappa)
             return type(self)(val)
@@ -2054,7 +2072,7 @@ class _fix(_number):
 
     @vectorize 
     def __sub__(self, other):
-        other = parse_type(other)
+        other = self.conv(other)
         return self + (-other)
 
     @vectorize
@@ -2066,7 +2084,7 @@ class _fix(_number):
 
     @vectorize
     def __eq__(self, other):
-        other = parse_type(other)
+        other = self.conv(other)
         if isinstance(other, (cfix, _fix)):
             return self.v.equal(other.v, self.k, self.kappa)
         else:
@@ -2074,7 +2092,7 @@ class _fix(_number):
 
     @vectorize
     def __le__(self, other):
-        other = parse_type(other)
+        other = self.conv(other)
         if isinstance(other, (cfix, _fix)):
             return self.v.less_equal(other.v, self.k, self.kappa)
         else:
@@ -2082,7 +2100,7 @@ class _fix(_number):
 
     @vectorize 
     def __lt__(self, other):
-        other = parse_type(other)
+        other = self.conv(other)
         if isinstance(other, (cfix, _fix)):
             return self.v.less_than(other.v, self.k, self.kappa)
         else:
@@ -2090,7 +2108,7 @@ class _fix(_number):
 
     @vectorize
     def __ge__(self, other):
-        other = parse_type(other)
+        other = self.conv(other)
         if isinstance(other, (cfix, _fix)):
             return self.v.greater_equal(other.v, self.k, self.kappa)
         else:
@@ -2098,7 +2116,7 @@ class _fix(_number):
 
     @vectorize
     def __gt__(self, other):
-        other = parse_type(other)
+        other = self.conv(other)
         if isinstance(other, (cfix, _fix)):
             return self.v.greater_than(other.v, self.k, self.kappa)
         else:
@@ -2106,7 +2124,7 @@ class _fix(_number):
 
     @vectorize
     def __ne__(self, other):
-        other = parse_type(other)
+        other = self.conv(other)
         if isinstance(other, (cfix, _fix)):
             return self.v.not_equal(other.v, self.k, self.kappa)
         else:
@@ -2114,7 +2132,7 @@ class _fix(_number):
 
     @vectorize
     def __div__(self, other):
-        other = parse_type(other)
+        other = self.conv(other)
         if isinstance(other, _fix):
             return type(self)(library.FPDiv(self.v, other.v, self.k, self.f, self.kappa))
         elif isinstance(other, cfix):
@@ -2122,17 +2140,27 @@ class _fix(_number):
         else:
             raise TypeError('Incompatible fixed point types in division')
 
+    def __rdiv__(self, other):
+        return self.conv(other) / self
+
     @vectorize
     def compute_reciprocal(self):
         return type(self)(library.FPDiv(cint(2) ** self.f, self.v, self.k, self.f, self.kappa, True))
 
     def reveal(self):
         val = self.v.reveal()
-        return self.clear_type(val)
+        res = self.clear_type(val)
+        res.f = self.f
+        res.k = self.k
+        return res
 
 class sfix(_fix):
     int_type = sint
     clear_type = cfix
+
+    @classmethod
+    def conv(cls, other):
+        return parse_type(other)
 
 # this is for 20 bit decimal precision
 # with 40 bitlength of entire number
@@ -2467,7 +2495,7 @@ class Array(object):
         res.assign(tmp)
         return res
 
-    def __init__(self, length, value_type, address=None):
+    def __init__(self, length, value_type, address=None, debug=None):
         if value_type in _types:
             value_type = _types[value_type]
         self.address = address
@@ -2476,6 +2504,7 @@ class Array(object):
         if address is None:
             self.address = self._malloc()
         self.address_cache = {}
+        self.debug = debug
 
     def _malloc(self):
         return program.malloc(self.length, self.value_type)
@@ -2492,6 +2521,9 @@ class Array(object):
                                      (str(index), str(self.length)))
         if (program.curr_block, index) not in self.address_cache:
             self.address_cache[program.curr_block, index] = self.address + index
+            if self.debug:
+                library.print_ln_if(index >= self.length, 'OF:' + self.debug)
+                library.print_ln_if(self.address_cache[program.curr_block, index] >= program.allocated_mem[self.value_type.reg_type], 'AOF:' + self.debug)
         return self.address_cache[program.curr_block, index]
 
     def get_slice(self, index):
@@ -2589,24 +2621,36 @@ sgf2n.dynamic_array = Array
 
 
 class SubMultiArray(object):
-    def __init__(self, sizes, value_type, address, index):
+    def __init__(self, sizes, value_type, address, index, debug=None):
         self.sizes = sizes
         self.value_type = value_type
         self.address = address + index * reduce(operator.mul, self.sizes)
         self.sub_cache = {}
+        self.debug = debug
+        if debug:
+            library.print_ln_if(self.address + reduce(operator.mul, self.sizes) > program.allocated_mem[self.value_type.reg_type], 'AOF%d:' % len(self.sizes) + self.debug)
 
     def __getitem__(self, index):
+        if util.is_constant(index) and index >= self.sizes[0]:
+            raise StopIteration
         key = program.curr_block, index
         if key not in self.sub_cache:
+            if self.debug:
+                library.print_ln_if(index >= self.sizes[0], \
+                                    'OF%d:' % len(self.sizes) + self.debug)
             if len(self.sizes) == 2:
                 self.sub_cache[key] = \
                         Array(self.sizes[1], self.value_type, \
-                              self.address + index * self.sizes[1])
+                              self.address + index * self.sizes[1], \
+                              debug=self.debug)
             else:
                 self.sub_cache[key] = \
                         SubMultiArray(self.sizes[1:], self.value_type, \
-                                      self.address, index)
+                                      self.address, index, debug=self.debug)
         return self.sub_cache[key]
+
+    def __len__(self):
+        return self.sizes[0]
 
     def assign_all(self, value):
         @library.for_range(self.sizes[0])
@@ -2615,16 +2659,17 @@ class SubMultiArray(object):
         return self
 
 class MultiArray(SubMultiArray):
-    def __init__(self, sizes, value_type):
+    def __init__(self, sizes, value_type, debug=None):
         self.array = Array(reduce(operator.mul, sizes), \
                                  value_type)
-        SubMultiArray.__init__(self, sizes, value_type, self.array.address, 0)
+        SubMultiArray.__init__(self, sizes, value_type, self.array.address, 0, \
+                               debug=debug)
         if len(sizes) < 2:
             raise CompilerError('Use Array')
 
 class Matrix(MultiArray):
-    def __init__(self, rows, columns, value_type):
-        MultiArray.__init__(self, [rows, columns], value_type)
+    def __init__(self, rows, columns, value_type, debug=None):
+        MultiArray.__init__(self, [rows, columns], value_type, debug=debug)
 
     def __mul__(self, other):
         assert isinstance(other, Array)

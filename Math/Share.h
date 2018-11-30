@@ -45,8 +45,8 @@ class Share
    static string type_string()
      { return T::type_string(); }
 
-   static char type_char()
-     { return T::type_char(); }
+   static string type_short()
+     { return string(1, T::type_char()); }
 
    static DataFieldType field_type()
      { return T::field_type(); }

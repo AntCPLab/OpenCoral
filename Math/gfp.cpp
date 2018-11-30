@@ -131,3 +131,25 @@ gfp gfp::sqrRoot()
     to_gfp(temp, ti);
     return temp;
 }
+
+void gfp::reqbl(int n)
+{
+  if ((int)n > 0 && gfp::pr() < bigint(1) << (n-1))
+    {
+      cout << "Tape requires prime of bit length " << n << endl;
+      throw invalid_params();
+    }
+  else if ((int)n < 0)
+    {
+      throw Processor_Error("Program compiled for rings not fields");
+    }
+}
+
+void to_signed_bigint(bigint& ans, const gfp& x)
+{
+    to_bigint(ans, x);
+    // get sign and abs(x)
+    bigint& p_half = bigint::tmp = (gfp::pr()-1)/2;
+    if (mpz_cmp(ans.get_mpz_t(), p_half.get_mpz_t()) > 0)
+        ans = gfp::pr() - ans;
+}

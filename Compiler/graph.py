@@ -123,7 +123,7 @@ def topological_sort(G, nbunch=None, pref=None):
                     yield i
 
     if nbunch is None:
-        nbunch = range(len(G))
+        nbunch = reversed(range(len(G)))
     for v in nbunch:     # process all vertices in G
         if v in explored: 
             continue

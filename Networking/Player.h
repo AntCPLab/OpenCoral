@@ -125,6 +125,13 @@ struct CommStats
   Timer timer;
   CommStats() : data(0), rounds(0) {}
   Timer& add(const octetStream& os) { data += os.get_length(); rounds++; return timer; }
+  CommStats& operator+=(const CommStats& other);
+};
+
+class NamedCommStats : public map<string, CommStats>
+{
+public:
+  NamedCommStats& operator+=(const NamedCommStats& other);
 };
 
 class Player : public PlayerBase
@@ -134,9 +141,9 @@ protected:
 
   mutable blk_SHA_CTX ctx;
 
-  mutable map<string,CommStats> comm_stats;
-
 public:
+  mutable NamedCommStats comm_stats;
+
   Player(const Names& Nms);
   virtual ~Player();
 
@@ -144,6 +151,7 @@ public:
   int my_num() const { return player_no; }
 
   int get_offset(int other_player) const { return positive_modulo(other_player - my_num(), num_players()); }
+  int get_player(int offset) const { return positive_modulo(offset + my_num(), num_players()); }
 
   virtual bool is_encrypted() { return false; }
 

@@ -9,6 +9,8 @@
 #include "ReplicatedSecret.h"
 #include "Secret.h"
 
+#include "instructions.h"
+
 namespace GC
 {
 
@@ -25,7 +27,8 @@ ThreadMaster<T>& ThreadMaster<T>::s()
 }
 
 template<class T>
-ThreadMaster<T>::ThreadMaster() : P(0), machine(memory)
+ThreadMaster<T>::ThreadMaster(OnlineOptions& opts) :
+        P(0), machine(memory), opts(opts)
 {
     if (singleton)
         throw runtime_error("there can only be one");
@@ -47,13 +50,13 @@ void ThreadMaster<T>::join_tape(int thread_number)
 template<class T>
 Thread<T>* ThreadMaster<T>::new_thread(int i)
 {
-    return new Thread<T>(i, machine, N);
+    return new Thread<T>(i, *this);
 }
 
 template<class T>
 void ThreadMaster<T>::run()
 {
-    P = new PlainPlayer(N, 1 << 24);
+    P = new PlainPlayer(N, 0xff << 24);
 
     machine.load_schedule(progname);
     for (int i = 0; i < machine.nthreads; i++)
@@ -73,10 +76,29 @@ void ThreadMaster<T>::run()
     vector<octetStream> os(P->num_players());
     P->Broadcast_Receive(os);
 
+    post_run();
+
+    NamedCommStats stats = P->comm_stats;
+    ExecutionStats exe_stats;
     for (auto thread : threads)
+    {
+        stats += thread->P->comm_stats;
+        exe_stats += thread->processor.stats;
         delete thread;
+    }
 
     delete P;
+
+    for (auto it : exe_stats)
+        switch (it.first)
+        {
+#define X(NAME, CODE) case NAME: cerr << it.second << " " #NAME << endl; break;
+        INSTRUCTIONS
+        }
+
+    for (auto it = stats.begin(); it != stats.end(); it++)
+        if (it->second.data > 0)
+            cerr << it->first << " " << 1e-6 * it->second.data << " MB" << endl;
 
     cerr << "Time = " << timer.elapsed() << endl;
 }

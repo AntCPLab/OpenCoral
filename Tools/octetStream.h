@@ -87,6 +87,7 @@ class octetStream
 
   bool equals(const octetStream& a) const;
   bool operator==(const octetStream& a) const { return equals(a); }
+  bool operator!=(const octetStream& a) const { return not equals(a); }
 
   /* Append NUM random bytes from dev/random */
   void append_random(size_t num);
@@ -117,6 +118,9 @@ class octetStream
 
   void store(const bigint& x);
   void get(bigint& ans);
+
+  template<class T>
+  T get();
 
   // works for all statically allocated types
   template <class T>
@@ -266,6 +270,14 @@ inline void octetStream::ReceiveExpected(int socket_num, size_t expected)
   len=nlen;
 
   receive(socket_num,data,len);
+}
+
+template<class T>
+T octetStream::get()
+{
+    T res;
+    res.unpack(*this);
+    return res;
 }
 
 #endif

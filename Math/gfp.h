@@ -51,15 +51,25 @@ class gfp
 
   static int size() { return t() * sizeof(mp_limb_t); }
 
+  static void reqbl(int n);
+
   void assign(const gfp& g) { a=g.a; } 
   void assign_zero()        { assignZero(a,ZpD); }
   void assign_one()         { assignOne(a,ZpD); } 
   void assign(word aa)      { bigint::tmp=aa; to_gfp(*this,bigint::tmp); }
-  void assign(long aa)      { bigint::tmp=aa; to_gfp(*this,bigint::tmp); }
-  void assign(int aa)       { bigint::tmp=aa; to_gfp(*this,bigint::tmp); }
+  void assign(long aa)
+  {
+    if (aa == 0)
+      assignZero(a, ZpD);
+    else
+      to_gfp(*this, bigint::tmp = aa);
+  }
+  void assign(int aa)       { assign(long(aa)); }
   void assign(const char* buffer) { a.assign(buffer, ZpD.get_t()); }
 
   modp get() const          { return a; }
+
+  unsigned long debug() const { return a.get_limb(0); }
 
   // Assumes prD behind x is equal to ZpD
   void assign(modp& x) { a=x; }
@@ -134,6 +144,7 @@ class gfp
   gfp operator+(const gfp& x) const { gfp res; res.add(*this, x); return res; }
   gfp operator-(const gfp& x) const { gfp res; res.sub(*this, x); return res; }
   gfp operator*(const gfp& x) const { gfp res; res.mul(*this, x); return res; }
+  gfp operator/(const gfp& x) const { gfp tmp; tmp.invert(x); return *this * tmp; }
   gfp& operator+=(const gfp& x) { add(x); return *this; }
   gfp& operator-=(const gfp& x) { sub(x); return *this; }
   gfp& operator*=(const gfp& x) { mul(x); return *this; }
@@ -211,5 +222,6 @@ class gfp
     { to_modp(ans.a,x,ans.ZpD); }
 };
 
+void to_signed_bigint(bigint& ans,const gfp& x);
 
 #endif

@@ -96,9 +96,12 @@ void YaoEvalWire::and_(GC::Processor<GC::Secret<YaoEvalWire> >& processor,
 void YaoEvalWire::inputb(GC::Processor<GC::Secret<YaoEvalWire> >& processor,
         const vector<int>& args)
 {
-	ArgList<InputArgs> a(args);
+	InputArgList a(args);
 	BitVector inputs;
 	inputs.resize(0);
+	auto& evaluator = YaoEvaluator::s();
+	bool interactive = evaluator.n_interactive_inputs_from_me(a) > 0;
+
 	for (auto x : a)
 	{
 		auto& dest = processor.S[x.dest];
@@ -112,7 +115,7 @@ void YaoEvalWire::inputb(GC::Processor<GC::Secret<YaoEvalWire> >& processor,
 		}
 		else
 		{
-			long long input = processor.get_input(x.n_bits);
+			long long input = processor.get_input(x.n_bits, interactive);
 			size_t start = inputs.size();
 			inputs.resize(start + x.n_bits);
 			for (int i = 0; i < x.n_bits; i++)
@@ -120,7 +123,9 @@ void YaoEvalWire::inputb(GC::Processor<GC::Secret<YaoEvalWire> >& processor,
 		}
 	}
 
-	auto& evaluator = YaoEvaluator::s();
+	if (interactive)
+	    cout << "Thank you" << endl;
+
 	evaluator.ot_ext.extend_correlated(inputs.size(), inputs);
 	octetStream os;
 	evaluator.player.receive(os);

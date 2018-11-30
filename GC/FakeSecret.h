@@ -10,7 +10,8 @@
 #include "GC/Memory.h"
 #include "GC/Access.h"
 
-#include "Auth/MAC_Check.h"
+#include "Math/gf2nlong.h"
+
 #include "Processor/DummyProtocol.h"
 
 #include <random>
@@ -30,7 +31,7 @@ public:
     typedef FakeSecret DynamicType;
 
     // dummy
-    typedef MAC_Check_Base<FakeSecret> MC;
+    typedef DummyMC MC;
     typedef DummyProtocol Protocol;
 
     static string type_string() { return "fake secret"; }

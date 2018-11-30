@@ -10,6 +10,8 @@
 #include "Math/gfp.h"
 #include "Math/gf2n.h"
 #include "Math/BitVec.h"
+#include "Math/Rep3Share.h"
+#include "Math/MaliciousRep3Share.h"
 
 #include <algorithm>
 
@@ -73,12 +75,19 @@ void MAC_Check<T>::POpen_End(vector<T>& values,const vector<Share<T> >& S,const 
 }
 
 template<class T>
-void MAC_Check<T>::POpen(vector<T>& values,const vector<Share<T> >& S,const Player& P)
+void MAC_Check_Base<T>::POpen(vector<typename T::clear>& values,const vector<T>& S,const Player& P)
 {
   POpen_Begin(values, S, P);
   POpen_End(values, S, P);
 }
 
+template<class T>
+typename T::clear MAC_Check_Base<T>::POpen(const T& secret, const Player& P)
+{
+  vector<typename T::clear> opened;
+  POpen(opened, {secret}, P);
+  return opened[0];
+}
 
 template<class T>
 void MAC_Check<T>::AddToMacs(const vector<Share<T> >& shares)
@@ -446,5 +455,7 @@ template class Parallel_MAC_Check<gf2n_short>;
 template class Passing_MAC_Check<gf2n_short>;
 #endif
 
-template class MAC_Check_Base<Integer>;
-template class MAC_Check_Base<BitVec>;
+template class MAC_Check_Base<Rep3Share<gfp>>;
+template class MAC_Check_Base<Rep3Share<gf2n>>;
+template class MAC_Check_Base<MaliciousRep3Share<gfp>>;
+template class MAC_Check_Base<MaliciousRep3Share<gf2n>>;

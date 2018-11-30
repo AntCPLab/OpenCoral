@@ -29,20 +29,30 @@ void make_share(vector<Share<T> >& Sa,const T& a,int N,const T& key,PRNG& G)
   Sa[N-1]=S;
 }
 
-void make_share(vector<Rep3Share>& Sa,
-    const Integer& a, int N, const Integer& key,
+template<class T>
+void make_share(FixedVec<T, 2>* Sa, const T& a, int N, PRNG& G);
+
+template<class T>
+inline void make_share(vector<T>& Sa,
+    const typename T::clear& a, int N, const typename T::value_type& key,
     PRNG& G)
 {
   (void)key;
+  Sa.resize(N);
+  make_share(Sa.data(), a, N, G);
+}
+
+template<class T>
+void make_share(FixedVec<T, 2>* Sa, const T& a, int N, PRNG& G)
+{
   assert(N == 3);
   insecure("share generation", false);
-  Sa.resize(N);
-  FixedVec<Integer, 3> add_shares;
+  FixedVec<T, 3> add_shares;
   // hack
   add_shares.randomize_to_sum(a, G);
   for (int i=0; i<N; i++)
     {
-      FixedVec<Integer, 2> share;
+      FixedVec<T, 2> share;
       share[0] = add_shares[(i + 1) % 3];
       share[1] = add_shares[i];
       Sa[i] = share;
@@ -73,9 +83,9 @@ void check_share(vector<Share<T> >& Sa,T& value,T& mac,int N,const T& key)
     }
 }
 
-void check_share(vector<Rep3Share>& Sa,
-    Integer& value, Integer& mac, int N,
-    const Integer& key)
+template<class T>
+void check_share(vector<T>& Sa, typename T::clear& value,
+    typename T::value_type& mac, int N, const typename T::value_type& key)
 {
   assert(N == 3);
   value = 0;
@@ -86,69 +96,20 @@ void check_share(vector<Rep3Share>& Sa,
     {
       auto share = Sa[i];
       value += share[0];
-      if (share[1] != Sa[positive_modulo(i - 1, N)][0])
+      auto a = share[1];
+      auto b = Sa[positive_modulo(i - 1, N)][0];
+      if (a != b)
+      {
+        cout << a << " != " << b << endl;
+        cout << hex << a.debug() << " != " << b.debug() << endl;
+        for (int i = 0; i < N; i++)
+          cout << Sa[i] << endl;
         throw bad_value("invalid replicated secret sharing");
+      }
     }
 }
 
-template void make_share(vector<Share<gf2n> >& Sa,const gf2n& a,int N,const gf2n& key,PRNG& G);
-template void make_share(vector<Share<gfp> >& Sa,const gfp& a,int N,const gfp& key,PRNG& G);
-
-template void check_share(vector<Share<gf2n> >& Sa,gf2n& value,gf2n& mac,int N,const gf2n& key);
-template void check_share(vector<Share<gfp> >& Sa,gfp& value,gfp& mac,int N,const gfp& key);
-
-#ifdef USE_GF2N_LONG
-template void make_share(vector<Share<gf2n_short> >& Sa,const gf2n_short& a,int N,const gf2n_short& key,PRNG& G);
-template void check_share(vector<Share<gf2n_short> >& Sa,gf2n_short& value,gf2n_short& mac,int N,const gf2n_short& key);
-#endif
-
-// Expansion is by x=y^5+1 (as we embed GF(256) into GF(2^40)
-void expand_byte(gf2n_short& a,int b)
-{
-  gf2n_short x,xp;
-  x.assign(32+1);
-  xp.assign_one();
-  a.assign_zero();
-
-  while (b!=0)
-    { if ((b&1)==1)
-        { a.add(a,xp); }
-      xp.mul(x);
-      b>>=1;
-    }
-}
-
-
-// Have previously worked out the linear equations we need to solve
-void collapse_byte(int& b,const gf2n_short& aa)
-{
-  word w=aa.get();
-  int e35=(w>>35)&1;
-  int e30=(w>>30)&1;
-  int e25=(w>>25)&1;
-  int e20=(w>>20)&1;
-  int e15=(w>>15)&1;
-  int e10=(w>>10)&1;
-  int  e5=(w>>5)&1;
-  int  e0=w&1;
-  int a[8];
-  a[7]=e35;
-  a[6]=e30^a[7];
-  a[5]=e25^a[7];
-  a[4]=e20^a[5]^a[6]^a[7];
-  a[3]=e15^a[7];
-  a[2]=e10^a[3]^a[6]^a[7];
-  a[1]=e5^a[3]^a[5]^a[7];
-  a[0]=e0^a[1]^a[2]^a[3]^a[4]^a[5]^a[6]^a[7];
-
-  b=0;
-  for (int i=7; i>=0; i--)
-    { b=b<<1;
-      b+=a[i]; 
-    }
-}
-
-void generate_keys(const string& directory, int nplayers)
+inline void generate_keys(const string& directory, int nplayers)
 {
   PRNG G;
   G.ReSeed();
@@ -166,14 +127,19 @@ void generate_keys(const string& directory, int nplayers)
   }
 }
 
+inline string mac_filename(string directory, int playerno)
+{
+  if (directory.empty())
+    directory = ".";
+  return directory + "/Player-MAC-Keys-P" + to_string(playerno);
+}
+
 template <class T>
 void write_mac_keys(const string& directory, int i, int nplayers, gfp macp, T mac2)
 {
   ofstream outf;
   stringstream filename;
-  if (directory.size())
-    filename << directory << "/";
-  filename << "Player-MAC-Keys-P" << i;
+  filename << mac_filename(directory, i);
   cout << "Writing to " << filename.str().c_str() << endl;
   outf.open(filename.str().c_str());
   outf << nplayers << endl;
@@ -184,7 +150,7 @@ void write_mac_keys(const string& directory, int i, int nplayers, gfp macp, T ma
   outf.close();
 }
 
-void read_keys(const string& directory, gfp& keyp, gf2n& key2, int nplayers)
+inline void read_keys(const string& directory, gfp& keyp, gf2n& key2, int nplayers)
 {   
     gfp sharep;
     gf2n share2;
@@ -217,6 +183,3 @@ void read_keys(const string& directory, gfp& keyp, gf2n& key2, int nplayers)
     }
     std::cout << "Final MAC keys :\t p: " << keyp << "\n\t\t 2: " << key2 << std::endl;
 }
-
-template void write_mac_keys(const string& directory, int i, int nplayers, gfp macp, gf2n_short mac2);
-template void write_mac_keys(const string& directory, int i, int nplayers, gfp macp, gf2n_long mac2);

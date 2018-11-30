@@ -4,7 +4,7 @@
 #include "Processor/Instruction.h"
 #include "Processor/Data_Files.h"
 
-template<class sint> class Machine;
+template<class sint, class sgf2n> class Machine;
 
 /* A program is a vector of instructions */
 
@@ -18,10 +18,10 @@ class Program
   DataPositions offline_data_used;
 
   // Maximal register used
-  int max_reg[MAX_REG_TYPE];
+  unsigned max_reg[MAX_REG_TYPE];
 
   // Memory size used directly
-  int max_mem[MAX_REG_TYPE][MAX_SECRECY_TYPE];
+  unsigned max_mem[MAX_REG_TYPE][MAX_SECRECY_TYPE];
 
   // True if program contains variable-sized loop
   bool unknown_usage;
@@ -45,15 +45,15 @@ class Program
   int num_reg(RegType reg_type) const
     { return max_reg[reg_type]; }
 
-  const int* direct_mem(RegType reg_type) const
+  const unsigned* direct_mem(RegType reg_type) const
     { return max_mem[reg_type]; }
 
   friend ostream& operator<<(ostream& s,const Program& P);
 
   // Execute this program, updateing the processor and memory
   // and streams pointing to the triples etc
-  template<class sint>
-  void execute(Processor<sint>& Proc) const;
+  template<class sint, class sgf2n>
+  void execute(Processor<sint, sgf2n>& Proc) const;
 
 };
 

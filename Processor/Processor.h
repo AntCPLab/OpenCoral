@@ -12,8 +12,6 @@
 #include "Math/Integer.h"
 #include "Exceptions/Exceptions.h"
 #include "Networking/Player.h"
-#include "Auth/MAC_Check.h"
-#include "Auth/ReplicatedMC.h"
 #include "Data_Files.h"
 #include "Input.h"
 #include "ReplicatedInput.h"
@@ -25,32 +23,8 @@
 #include "Instruction.h"
 #include "SPDZ.h"
 #include "Replicated.h"
-
-#include <stack>
-
-class ProcessorBase
-{
-  // Stack
-  stack<long> stacki;
-
-protected:
-  // Optional argument to tape
-  int arg;
-
-public:
-  void pushi(long x) { stacki.push(x); }
-  void popi(long& x) { x = stacki.top(); stacki.pop(); }
-
-  int get_arg() const
-    {
-      return arg;
-    }
-
-  void set_arg(int new_arg)
-    {
-      arg=new_arg;
-    }
-};
+#include "ProcessorBase.h"
+#include "Tools/SwitchableOutput.h"
 
 template <class T>
 class SubProcessor
@@ -65,20 +39,22 @@ class SubProcessor
 
   void resize(int size)       { C.resize(size); S.resize(size); }
 
-  template<class sint> friend class Processor;
+  template<class sint, class sgf2n> friend class Processor;
   template<class U> friend class SPDZ;
   template<class U> friend class Replicated;
+  template<class U> friend class Beaver;
 
 public:
   ArithmeticProcessor& Proc;
   typename T::MAC_Check& MC;
   Player& P;
-  Sub_Data_Files<T>& DataF;
+  Preprocessing<T>& DataF;
 
   typename T::Protocol protocol;
+  typename T::Input input;
 
   SubProcessor(ArithmeticProcessor& Proc, typename T::MAC_Check& MC,
-      Sub_Data_Files<T>& DataF, Player& P);
+      Preprocessing<T>& DataF, Player& P);
 
   // Access to PO (via calls to POpen start/stop)
   void POpen_Start(const vector<int>& reg,const Player& P,int size);
@@ -86,6 +62,11 @@ public:
   void POpen(const vector<int>& reg,const Player& P,int size);
 
   void muls(const vector<int>& reg,const Player& P,int size);
+
+  vector<T>& get_S()
+  {
+    return S;
+  }
 
   T& get_S_ref(int i)
   {
@@ -101,6 +82,8 @@ public:
 class ArithmeticProcessor : public ProcessorBase
 {
 public:
+  int thread_num;
+
   PRNG secure_prng;
 
   string private_input_filename;
@@ -112,16 +95,18 @@ public:
 
   int sent, rounds;
 
-  ArithmeticProcessor() : sent(0), rounds(0) {}
+  OnlineOptions opts;
+
+  ArithmeticProcessor(OnlineOptions opts, int thread_num) : thread_num(thread_num),
+          sent(0), rounds(0), opts(opts) {}
 };
 
-template<class sint>
+template<class sint, class sgf2n>
 class Processor : public ArithmeticProcessor
 {
   vector<long> Ci;
 
   int reg_max2,reg_maxp,reg_maxi;
-  int thread_num;
 
   // Data structure used for reading/writing data to/from a socket (i.e. an external party to SPDZ)
   octetStream socket_stream;
@@ -143,23 +128,20 @@ class Processor : public ArithmeticProcessor
   vector<typename T::clear>& get_PO();
 
   public:
-  Data_Files<sint>& DataF;
+  Data_Files<sint, sgf2n>& DataF;
   Player& P;
-  MAC_Check<gf2n>& MC2;
+  typename sgf2n::MAC_Check& MC2;
   typename sint::MAC_Check& MCp;
-  Machine<sint>& machine;
+  Machine<sint, sgf2n>& machine;
 
   SubProcessor<sgf2n> Proc2;
   SubProcessor<sint>  Procp;
 
-  Input<gf2n> input2;
-  typename sint::Input inputp;
-  
-  PrivateOutput<gf2n> privateOutput2;
+  typename sgf2n::PrivateOutput privateOutput2;
   typename sint::PrivateOutput privateOutputp;
 
   unsigned int PC;
-  TempVars<sint> temp;
+  TempVars<sint, sgf2n> temp;
 
   PRNG shared_prng;
 
@@ -169,13 +151,16 @@ class Processor : public ArithmeticProcessor
   // avoid re-computation of expensive division
   map<int, typename sint::clear> inverses2m;
 
+  SwitchableOutput out;
+
   static const int reg_bytes = 4;
   
   void reset(const Program& program,int arg); // Reset the state of the processor
   string get_filename(const char* basename, bool use_number);
 
-  Processor(int thread_num,Data_Files<sint>& DataF,Player& P,
-          MAC_Check<gf2n>& MC2,typename sint::MAC_Check& MCp,Machine<sint>& machine,
+  Processor(int thread_num,Data_Files<sint, sgf2n>& DataF,Player& P,
+          typename sgf2n::MAC_Check& MC2,typename sint::MAC_Check& MCp,
+          Machine<sint, sgf2n>& machine,
           const Program& program);
   ~Processor();
 
@@ -255,15 +240,15 @@ class Processor : public ArithmeticProcessor
  #else
     const gf2n& read_C2(int i) const
       { return Proc2.C[i]; }
-    const Share<gf2n> & read_S2(int i) const
+    const sgf2n& read_S2(int i) const
       { return Proc2.S[i]; }
     gf2n& get_C2_ref(int i)
       { return Proc2.C[i]; }
-    Share<gf2n> & get_S2_ref(int i)
+    sgf2n& get_S2_ref(int i)
       { return Proc2.S[i]; }
     void write_C2(int i,const gf2n& x)
       { Proc2.C[i]=x; }
-    void write_S2(int i,const Share<gf2n> & x)
+    void write_S2(int i,const sgf2n& x)
       { Proc2.S[i]=x; }
   
     const typename sint::clear& read_Cp(int i) const
@@ -307,8 +292,8 @@ class Processor : public ArithmeticProcessor
   void write_shares_to_file(const vector<int>& data_registers);
   
   // Print the processor state
-  template<class T>
-  friend ostream& operator<<(ostream& s,const Processor<T>& P);
+  template<class T, class U>
+  friend ostream& operator<<(ostream& s,const Processor<T, U>& P);
 
   private:
     void maybe_decrypt_sequence(int client_id);

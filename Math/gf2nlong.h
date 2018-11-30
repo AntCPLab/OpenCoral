@@ -187,12 +187,13 @@ class gf2n_long
   // x * y when one of x,y is a bit
   void mul_by_bit(const gf2n_long& x, const gf2n_long& y)   { a = x.a.a * y.a.a; }
 
-  gf2n_long operator+(const gf2n_long& x) { gf2n_long res; res.add(*this, x); return res; }
-  gf2n_long operator*(const gf2n_long& x) { gf2n_long res; res.mul(*this, x); return res; }
+  gf2n_long operator+(const gf2n_long& x) const { gf2n_long res; res.add(*this, x); return res; }
+  gf2n_long operator*(const gf2n_long& x) const { gf2n_long res; res.mul(*this, x); return res; }
   gf2n_long& operator+=(const gf2n_long& x) { add(x); return *this; }
   gf2n_long& operator*=(const gf2n_long& x) { mul(x); return *this; }
-  gf2n_long operator-(const gf2n_long& x) { gf2n_long res; res.add(*this, x); return res; }
+  gf2n_long operator-(const gf2n_long& x) const { gf2n_long res; res.add(*this, x); return res; }
   gf2n_long& operator-=(const gf2n_long& x) { sub(x); return *this; }
+  gf2n_long operator/(const gf2n_long& x) const { gf2n_long tmp; tmp.invert(x); return *this * tmp; }
 
   void square();
   void square(const gf2n_long& aa);
@@ -210,12 +211,12 @@ class gf2n_long
   void SHL(const gf2n_long& x,int n)         { a=(x.a<<n)&mask; }
   void SHR(const gf2n_long& x,int n)         { a=x.a>>n; }
 
-  gf2n_long operator&(const gf2n_long& x) { gf2n_long res; res.AND(*this, x); return res; }
-  gf2n_long operator^(const gf2n_long& x) { gf2n_long res; res.XOR(*this, x); return res; }
-  gf2n_long operator|(const gf2n_long& x) { gf2n_long res; res.OR(*this, x); return res; }
-  gf2n_long operator!() { gf2n_long res; res.NOT(*this); return res; }
-  gf2n_long operator<<(int i) { gf2n_long res; res.SHL(*this, i); return res; }
-  gf2n_long operator>>(int i) { gf2n_long res; res.SHR(*this, i); return res; }
+  gf2n_long operator&(const gf2n_long& x) const { gf2n_long res; res.AND(*this, x); return res; }
+  gf2n_long operator^(const gf2n_long& x) const { gf2n_long res; res.XOR(*this, x); return res; }
+  gf2n_long operator|(const gf2n_long& x) const { gf2n_long res; res.OR(*this, x); return res; }
+  gf2n_long operator!() const { gf2n_long res; res.NOT(*this); return res; }
+  gf2n_long operator<<(int i) const { gf2n_long res; res.SHL(*this, i); return res; }
+  gf2n_long operator>>(int i) const { gf2n_long res; res.SHR(*this, i); return res; }
 
   /* Crap RNG */
   void randomize(PRNG& G);

@@ -1,10 +1,17 @@
 
 #include "Processor/Data_Files.h"
 #include "Processor/Processor.h"
+#include "Processor/ReplicatedPrep.h"
+#include "Processor/MaliciousRepPrep.h"
+#include "GC/MaliciousRepSecret.h"
+#include "Math/MaliciousRep3Share.h"
+
+#include "Processor/MaliciousRepPrep.hpp"
 
 #include <iomanip>
+#include <numeric>
 
-const char* DataPositions::field_names[] = { "sint", "sgf2n" };
+const char* DataPositions::field_names[] = { "gfp", "gf2n", "bit", "int64" };
 
 template<>
 const bool Sub_Data_Files<sgfp>::implemented[N_DTYPE] =
@@ -12,13 +19,38 @@ const bool Sub_Data_Files<sgfp>::implemented[N_DTYPE] =
 ;
 
 template<>
-const bool Sub_Data_Files<sgf2n>::implemented[N_DTYPE] =
+const bool Sub_Data_Files<Share<gf2n>>::implemented[N_DTYPE] =
     { true, true, true, true, true, true }
 ;
 
 template<>
-const bool Sub_Data_Files<Rep3Share>::implemented[N_DTYPE] =
+const bool Sub_Data_Files<Rep3Share<Integer>>::implemented[N_DTYPE] =
     { false, false, true, false, false, false }
+;
+
+template<>
+const bool Sub_Data_Files<Rep3Share<gfp>>::implemented[N_DTYPE] =
+    { true, true, true, true, false, false }
+;
+
+template<>
+const bool Sub_Data_Files<Rep3Share<gf2n>>::implemented[N_DTYPE] =
+    { true, true, true, true, false, false }
+;
+
+template<>
+const bool Sub_Data_Files<MaliciousRep3Share<gfp>>::implemented[N_DTYPE] =
+    { true, true, true, true, false, false }
+;
+
+template<>
+const bool Sub_Data_Files<MaliciousRep3Share<gf2n>>::implemented[N_DTYPE] =
+    { true, true, true, true, false, false }
+;
+
+template<>
+const bool Sub_Data_Files<GC::MaliciousRepSecret>::implemented[N_DTYPE] =
+    { true, false, true, false, false, false }
 ;
 
 const int DataPositions::tuple_size[N_DTYPE] = { 3, 2, 1, 2, 3, 3 };
@@ -28,6 +60,58 @@ Lock Sub_Data_Files<T>::tuple_lengths_lock;
 template<class T>
 map<DataTag, int> Sub_Data_Files<T>::tuple_lengths;
 
+template<>
+template<>
+Preprocessing<Rep3Share<gfp>>* Preprocessing<Rep3Share<gfp>>::get_new(
+    Machine<Rep3Share<gfp>, Rep3Share<gf2n>>& machine, DataPositions& usage)
+{
+  if (machine.live_prep)
+    return new ReplicatedPrep<Rep3Share<gfp>>;
+  else
+    return new Sub_Data_Files<Rep3Share<gfp>>(machine.get_N(), machine.prep_dir_prefix, usage);
+}
+
+template<>
+template<>
+Preprocessing<Rep3Share<gf2n>>* Preprocessing<Rep3Share<gf2n>>::get_new(
+    Machine<Rep3Share<gfp>, Rep3Share<gf2n>>& machine, DataPositions& usage)
+{
+  if (machine.live_prep)
+    return new ReplicatedPrep<Rep3Share<gf2n>>;
+  else
+    return new Sub_Data_Files<Rep3Share<gf2n>>(machine.get_N(), machine.prep_dir_prefix, usage);
+}
+
+template<>
+template<>
+Preprocessing<MaliciousRep3Share<gfp>>* Preprocessing<MaliciousRep3Share<gfp>>::get_new(
+    Machine<MaliciousRep3Share<gfp>, MaliciousRep3Share<gf2n>>& machine, DataPositions& usage)
+{
+  if (machine.live_prep)
+    return new MaliciousRepPrep<gfp>;
+  else
+    return new Sub_Data_Files<MaliciousRep3Share<gfp>>(machine.get_N(), machine.prep_dir_prefix, usage);
+}
+
+template<>
+template<>
+Preprocessing<MaliciousRep3Share<gf2n>>* Preprocessing<MaliciousRep3Share<gf2n>>::get_new(
+    Machine<MaliciousRep3Share<gfp>, MaliciousRep3Share<gf2n>>& machine, DataPositions& usage)
+{
+  if (machine.live_prep)
+    return new MaliciousRepPrep<gf2n>;
+  else
+    return new Sub_Data_Files<MaliciousRep3Share<gf2n>>(machine.get_N(), machine.prep_dir_prefix, usage);
+}
+
+
+template<class T>
+template<class U, class V>
+Preprocessing<T>* Preprocessing<T>::get_new(Machine<U, V>& machine,
+    DataPositions& usage)
+{
+  return new Sub_Data_Files<T>(machine.get_N(), machine.prep_dir_prefix, usage);
+}
 
 void DataPositions::set_num_players(int num_players)
 {
@@ -59,13 +143,19 @@ void DataPositions::print_cost() const
   double total_cost = 0;
   for (int i = 0; i < N_DATA_FIELD_TYPE; i++)
     {
-      cerr << "  Type " << field_names[i] << endl;
+      if (accumulate(files[i].begin(), files[i].end(), 0) > 0)
+        cerr << "  Type " << field_names[i] << endl;
+      bool reading_field = true;
       for (int j = 0; j < N_DTYPE; j++)
         {
           double cost_per_item = 0;
-          file >> cost_per_item;
+          if (reading_field)
+            file >> cost_per_item;
           if (cost_per_item < 0)
-            break;
+            {
+              reading_field = false;
+              cost_per_item = 0;
+            }
           long long items_used = files[i][j];
           double cost = items_used * cost_per_item;
           total_cost += cost;
@@ -83,7 +173,8 @@ void DataPositions::print_cost() const
         }
     }
 
-  cerr << "Total cost: " << total_cost << endl;
+  if (total_cost > 0)
+    cerr << "Total cost: " << total_cost << endl;
 }
 
 
@@ -94,19 +185,34 @@ int Sub_Data_Files<T>::tuple_length(int dtype)
 }
 
 template<class T>
+string Sub_Data_Files<T>::get_suffix(int thread_num)
+{
+#ifdef INSECURE
+  (void) thread_num;
+  return "";
+#else
+  if (thread_num >= 0)
+    return "-T" + to_string(thread_num);
+  else
+    return "";
+#endif
+}
+
+template<class T>
 Sub_Data_Files<T>::Sub_Data_Files(int my_num, int num_players,
-    const string& prep_data_dir, DataPositions& usage) :
+    const string& prep_data_dir, DataPositions& usage, int thread_num) :
     my_num(my_num), num_players(num_players), prep_data_dir(prep_data_dir),
     usage(usage)
 {
   cerr << "Setting up Data_Files in: " << prep_data_dir << endl;
   char filename[1024];
+  string suffix = get_suffix(thread_num);
   for (int dtype = 0; dtype < N_DTYPE; dtype++)
     {
       if (implemented[dtype])
         {
-          sprintf(filename,(prep_data_dir + "%s-%s-P%d").c_str(),DataPositions::dtype_names[dtype],
-              string(1, T::type_char()).c_str(),my_num);
+          sprintf(filename,(prep_data_dir + "%s-%s-P%d%s").c_str(),DataPositions::dtype_names[dtype],
+              (T::type_short()).c_str(),my_num,suffix.c_str());
           buffers[dtype].setup(filename,
               tuple_length(dtype), DataPositions::dtype_names[dtype]);
         }
@@ -115,8 +221,8 @@ Sub_Data_Files<T>::Sub_Data_Files(int my_num, int num_players,
   input_buffers.resize(num_players);
   for (int i=0; i<num_players; i++)
     {
-      sprintf(filename,(prep_data_dir + "Inputs-%s-P%d-%d").c_str(),
-          string(1, T::type_char()).c_str(),my_num,i);
+      sprintf(filename,(prep_data_dir + "Inputs-%s-P%d-%d%s").c_str(),
+          (T::type_short()).c_str(),my_num,i,suffix.c_str());
       if (i == my_num)
         my_input_buffers.setup(filename,
             T::size() * 3 / 2);
@@ -128,10 +234,11 @@ Sub_Data_Files<T>::Sub_Data_Files(int my_num, int num_players,
   cerr << "done\n";
 }
 
-template<class sint>
-Data_Files<sint>::Data_Files(int myn, int n, const string& prep_data_dir) :
-    usage(n), DataFp(myn, n, prep_data_dir, usage),
-    DataF2(myn, n, prep_data_dir, usage), prep_data_dir(prep_data_dir)
+template<class sint, class sgf2n>
+Data_Files<sint, sgf2n>::Data_Files(Machine<sint, sgf2n>& machine) :
+    usage(machine.get_N().num_players()),
+    DataFp(*Preprocessing<sint>::get_new(machine, usage)),
+    DataF2(*Preprocessing<sgf2n>::get_new(machine, usage))
 {
 }
 
@@ -168,16 +275,16 @@ void Sub_Data_Files<T>::seekg(DataPositions& pos)
     }
 }
 
-template<class sint>
-void Data_Files<sint>::seekg(DataPositions& pos)
+template<class sint, class sgf2n>
+void Data_Files<sint, sgf2n>::seekg(DataPositions& pos)
 {
   DataFp.seekg(pos);
   DataF2.seekg(pos);
   usage = pos;
 }
 
-template<class sint>
-void Data_Files<sint>::skip(const DataPositions& pos)
+template<class sint, class sgf2n>
+void Data_Files<sint, sgf2n>::skip(const DataPositions& pos)
 {
   DataPositions new_pos = usage;
   new_pos.increase(pos);
@@ -196,8 +303,8 @@ void Sub_Data_Files<T>::prune()
     it.second.prune();
 }
 
-template<class sint>
-void Data_Files<sint>::prune()
+template<class sint, class sgf2n>
+void Data_Files<sint, sgf2n>::prune()
 {
   DataFp.prune();
   DataF2.prune();
@@ -215,8 +322,8 @@ void Sub_Data_Files<T>::purge()
     it.second.purge();
 }
 
-template<class sint>
-void Data_Files<sint>::purge()
+template<class sint, class sgf2n>
+void Data_Files<sint, sgf2n>::purge()
 {
   DataFp.purge();
   DataF2.purge();
@@ -247,24 +354,31 @@ void Sub_Data_Files<T>::setup_extended(const DataTag& tag, int tuple_size)
   if (!buffer.is_up())
     {
       stringstream ss;
-      ss << prep_data_dir << tag.get_string() << "-" << T::type_char() << "-P" << my_num;
+      ss << prep_data_dir << tag.get_string() << "-" << T::type_short() << "-P" << my_num;
       extended[tag].setup(ss.str(), tuple_length);
     }
 }
 
 template<class T>
-void Sub_Data_Files<T>::get(SubProcessor<T>& proc, DataTag tag, const vector<int>& regs, int vector_size)
+void Sub_Data_Files<T>::get(vector<T>& S, DataTag tag, const vector<int>& regs, int vector_size)
 {
   usage.extended[T::field_type()][tag] += vector_size;
   setup_extended(tag, regs.size());
   for (int j = 0; j < vector_size; j++)
     for (unsigned int i = 0; i < regs.size(); i++)
-      extended[tag].input(proc.get_S_ref(regs[i] + j));
+      extended[tag].input(S[regs[i] + j]);
 }
 
-template class Sub_Data_Files<sgf2n>;
+template class Sub_Data_Files<Share<gf2n>>;
 template class Sub_Data_Files<sgfp>;
-template class Sub_Data_Files<Rep3Share>;
+template class Sub_Data_Files<Rep3Share<Integer>>;
+template class Sub_Data_Files<Rep3Share<gfp>>;
+template class Sub_Data_Files<Rep3Share<gf2n>>;
+template class Sub_Data_Files<GC::MaliciousRepSecret>;
+template class Sub_Data_Files<MaliciousRep3Share<gfp>>;
+template class Sub_Data_Files<MaliciousRep3Share<gf2n>>;
 
-template class Data_Files<sgfp>;
-template class Data_Files<Rep3Share>;
+template class Data_Files<sgfp, Share<gf2n>>;
+template class Data_Files<Rep3Share<Integer>, Rep3Share<gf2n>>;
+template class Data_Files<Rep3Share<gfp>, Rep3Share<gf2n>>;
+template class Data_Files<MaliciousRep3Share<gfp>, MaliciousRep3Share<gf2n>>;

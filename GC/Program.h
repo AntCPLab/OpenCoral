@@ -29,10 +29,10 @@ class Program
     int offline_data_used;
 
     // Maximal register used
-    int max_reg[MAX_REG_TYPE];
+    unsigned max_reg[MAX_REG_TYPE];
 
     // Memory size used directly
-    int max_mem[MAX_REG_TYPE];
+    unsigned max_mem[MAX_REG_TYPE];
 
     // True if program contains variable-sized loop
     bool unknown_usage;
@@ -53,10 +53,10 @@ class Program
 
     bool usage_unknown() const { return unknown_usage; }
 
-    int num_reg(RegType reg_type) const
+    unsigned num_reg(RegType reg_type) const
       { return max_reg[reg_type]; }
 
-    int direct_mem(RegType reg_type) const
+    unsigned direct_mem(RegType reg_type) const
       { return max_mem[reg_type]; }
 
     // Execute this program, updateing the processor and memory

@@ -3,24 +3,34 @@
  *
  */
 
+#include "MaliciousRepSecret.h"
+#include "Auth/ReplicatedMC.h"
+#include "Auth/MaliciousRepMC.h"
+
+#include "Instruction.hpp"
 #include "Machine.hpp"
 #include "Processor.hpp"
+#include "Program.hpp"
 #include "Thread.hpp"
 #include "ThreadMaster.hpp"
+#include "Auth/MaliciousRepMC.hpp"
 
 namespace GC
 {
 
-template class Machine<FakeSecret>;
-template class Machine<ReplicatedSecret>;
+extern template class ReplicatedSecret<SemiHonestRepSecret>;
+extern template class ReplicatedSecret<MaliciousRepSecret>;
 
-template class Processor<FakeSecret>;
-template class Processor<ReplicatedSecret>;
+#define GC_MACHINE(T) \
+    template class Instruction<T>; \
+    template class Machine<T>; \
+    template class Processor<T>; \
+    template class Program<T>; \
+    template class Thread<T>; \
+    template class ThreadMaster<T>; \
 
-template class Thread<FakeSecret>;
-template class Thread<ReplicatedSecret>;
-
-template class ThreadMaster<FakeSecret>;
-template class ThreadMaster<ReplicatedSecret>;
+GC_MACHINE(FakeSecret);
+GC_MACHINE(SemiHonestRepSecret);
+GC_MACHINE(MaliciousRepSecret)
 
 } /* namespace GC */

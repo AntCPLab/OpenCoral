@@ -11,7 +11,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 
-#include <valgrind/callgrind.h>
+#include "Tools/callgrind.h"
 
 #include "proto_utils.h"
 #include "msg_types.h"

@@ -4,8 +4,6 @@
  */
 
 #include "Buffer.h"
-#include "Processor/InputTuple.h"
-#include "Processor/Data_Files.h"
 
 bool BufferBase::rewind = false;
 
@@ -36,7 +34,7 @@ void BufferBase::try_rewind()
 {
 #ifndef INSECURE
     string type;
-    if (field_type and data_type)
+    if (field_type.size() and data_type.size())
         type = (string)" of " + field_type + " " + data_type;
     throw not_enough_to_buffer(type);
 #endif
@@ -75,81 +73,3 @@ void BufferBase::purge()
         file = 0;
     }
 }
-
-template<class T, class U>
-Buffer<T, U>::~Buffer()
-{
-    if (timer.elapsed() && data_type)
-        cerr << T::type_string() << " " << data_type << " reading: "
-                << timer.elapsed() << endl;
-}
-
-template<class T, class U>
-void Buffer<T, U>::fill_buffer()
-{
-  if (T::size() == sizeof(T))
-    {
-      // read directly
-      read((char*)buffer);
-    }
-  else
-    {
-      char read_buffer[sizeof(buffer)];
-      read(read_buffer);
-      //memset(buffer, 0, sizeof(buffer));
-      for (int i = 0; i < BUFFER_SIZE; i++)
-        buffer[i].assign(&read_buffer[i*T::size()]);
-    }
-}
-
-template<class T, class U>
-void Buffer<T, U>::read(char* read_buffer)
-{
-    int size_in_bytes = T::size() * BUFFER_SIZE;
-    int n_read = 0;
-    timer.start();
-    do
-    {
-        file->read(read_buffer + n_read, size_in_bytes - n_read);
-        n_read += file->gcount();
-        if (file->eof())
-        {
-            try_rewind();
-        }
-        if (file->fail())
-          {
-            stringstream ss;
-            ss << "IO problem when buffering " << T::type_string();
-            if (data_type)
-              ss << " " << data_type;
-            ss << " from " << filename;
-            throw file_error(ss.str());
-          }
-    }
-    while (n_read < size_in_bytes);
-    timer.stop();
-}
-
-template <class T, class U>
-void Buffer<T,U>::input(U& a)
-{
-    if (next == BUFFER_SIZE)
-    {
-        fill_buffer();
-        next = 0;
-    }
-
-    a = buffer[next];
-    next++;
-}
-
-template class Buffer< Share<gfp>, Share<gfp> >;
-template class Buffer< Share<gf2n>, Share<gf2n> >;
-template class Buffer< Rep3Share, Rep3Share>;
-template class Buffer< InputTuple<sgfp>, RefInputTuple<sgfp> >;
-template class Buffer< InputTuple<sgf2n>, RefInputTuple<sgf2n> >;
-template class Buffer< InputTuple<Rep3Share>, RefInputTuple<Rep3Share> >;
-template class Buffer< gfp, gfp >;
-template class Buffer< gf2n, gf2n >;
-template class Buffer< FixedVec<Integer, 2>, FixedVec<Integer, 2> >;
-template class Buffer< Integer, Integer >;

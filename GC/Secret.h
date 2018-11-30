@@ -13,7 +13,6 @@
 #include "GC/Clear.h"
 #include "GC/Memory.h"
 #include "GC/Access.h"
-#include "GC/Processor.h"
 
 #include "Math/Share.h"
 
@@ -64,6 +63,8 @@ public:
     { Share<gf2n>::assign(value, first_player ? 0 : 1, mac_key); }
 };
 
+template<class T> class Processor;
+
 template <class T>
 class Secret
 {
@@ -79,7 +80,7 @@ public:
 #endif
 
     // dummy
-    typedef MAC_Check_Base<Secret<T> > MC;
+    typedef DummyMC MC;
     typedef DummyProtocol Protocol;
 
     static string type_string() { return "evaluation secret"; }

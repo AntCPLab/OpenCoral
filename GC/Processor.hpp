@@ -47,22 +47,9 @@ void Processor<T>::reset(const Program<T>& program)
 }
 
 template<class T>
-void GC::Processor<T>::open_input_file(const string& name)
+inline long long GC::Processor<T>::get_input(int n_bits, bool interactive)
 {
-    cout << "opening " << name << endl;
-    input_file.open(name);
-    input_filename = name;
-}
-
-template<class T>
-inline long long GC::Processor<T>::get_input(int n_bits)
-{
-    long long res;
-    input_file >> res;
-    if (input_file.eof())
-        throw IO_Error("not enough inputs in " + input_filename);
-    if (input_file.fail())
-        throw IO_Error("cannot read from " + input_filename);
+    long long res = ProcessorBase::get_input(interactive);
     check_input(res, n_bits);
     return res;
 }
@@ -229,6 +216,12 @@ template <class T>
 void Processor<T>::print_str(int n)
 {
     T::out << string((char*)&n,sizeof(n)) << flush;
+}
+
+template <class T>
+void Processor<T>::print_float(const vector<int>& args)
+{
+    T::out << bigint::get_float(C[args[0]], C[args[1]], C[args[2]], C[args[3]]) << flush;
 }
 
 } /* namespace GC */

@@ -856,15 +856,16 @@ class prep(base.Instruction):
 
 @base.gf2n
 @base.vectorize
-class asm_input(base.IOInstruction):
+class asm_input(base.VarArgsInstruction):
     r""" Receive input from player $p$ and put in register $s_i$. """
     __slots__ = []
     code = base.opcodes['INPUT']
-    arg_format = ['sw', 'p']
+    arg_format = tools.cycle(['sw', 'p'])
     field_type = 'modp'
 
     def add_usage(self, req_node):
-        req_node.increment((self.field_type, 'input', self.args[1]), \
+        for player in self.args[1::2]:
+            req_node.increment((self.field_type, 'input', player), \
                                self.get_size())
     def execute(self):
         self.args[0].value = _python_input("Enter player %d's input:" % self.args[1]) % program.P
@@ -966,6 +967,14 @@ class print_char4(base.IOInstruction):
 
     def __init__(self, val):
         super(print_char4, self).__init__(self.str_to_int(val))
+
+class cond_print_str(base.IOInstruction):
+    r""" Print a 4 character string. """
+    code = base.opcodes['CONDPRINTSTR']
+    arg_format = ['c', 'int']
+
+    def __init__(self, cond, val):
+        super(cond_print_str, self).__init__(cond, self.str_to_int(val))
 
 @base.vectorize
 class print_char_regint(base.IOInstruction):

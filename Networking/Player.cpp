@@ -199,7 +199,8 @@ Player::~Player()
     cerr << it->first << " " << 1e-6 * it->second.data << " MB in "
         << it->second.rounds << " rounds, taking " << it->second.timer.elapsed()
         << " seconds" << endl;
-  cerr << "Receiving took " << timer.elapsed() << " seconds" << endl;
+  if (timer.elapsed() > 0)
+    cerr << "Receiving took " << timer.elapsed() << " seconds" << endl;
 }
 
 
@@ -213,7 +214,7 @@ void MultiPlayer<int>::setup_sockets(const vector<string>& names,const vector<in
     sockets.resize(nplayers);
     // Set up the client side
     for (int i=player_no; i<nplayers; i++) {
-        int pn=id_base+i*nplayers+player_no;
+        int pn=id_base+player_no;
         if (i==player_no) {
           const char* localhost = "127.0.0.1";
           fprintf(stderr, "Setting up send to self socket to %s:%d with id 0x%x\n",localhost,ports[i],pn);
@@ -227,7 +228,7 @@ void MultiPlayer<int>::setup_sockets(const vector<string>& names,const vector<in
     send_to_self_socket = sockets[player_no];
     // Setting up the server side
     for (int i=0; i<=player_no; i++) {
-        int id=id_base+player_no*nplayers+i;
+        int id=id_base+i;
         fprintf(stderr, "As a server, waiting for client with id 0x%x to connect.\n",id);
         sockets[i] = server.get_connection_socket(id);
     }
@@ -340,8 +341,7 @@ template<class T>
 void MultiPlayer<T>::pass_around(octetStream& o, int offset) const
 {
   TimeScope ts(comm_stats["Passing around"].add(o));
-  o.exchange(sockets.at((my_num() + offset) % num_players()),
-      sockets.at((my_num() + num_players() - offset) % num_players()));
+  o.exchange(sockets.at(get_player(offset)), sockets.at(get_player(-offset)));
   sent += o.get_length();
 }
 
@@ -563,6 +563,7 @@ static pair<keyinfo,keyinfo> sts_responder(int socket, CommsecKeysPackage *keys,
 
 void TwoPartyPlayer::setup_sockets(int other_player, const Names &nms, int portNum, int id)
 {
+    id += 0xF << 28;
     const char *hostname = nms.names[other_player].c_str();
     ServerSocket *server = nms.server;
     if (is_server) {
@@ -635,6 +636,19 @@ void TwoPartyPlayer::exchange(octetStream& o) const
   TimeScope ts(timer);
   sent += o.get_length();
   o.exchange(socket, socket);
+}
+
+CommStats& CommStats::operator +=(const CommStats& other)
+{
+  data += other.data;
+  return *this;
+}
+
+NamedCommStats& NamedCommStats::operator +=(const NamedCommStats& other)
+{
+  for (auto it = other.begin(); it != other.end(); it++)
+    (*this)[it->first] += it->second;
+  return *this;
 }
 
 template class MultiPlayer<int>;

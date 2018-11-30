@@ -60,7 +60,7 @@ class MAC_Check_Base
 {
 protected:
   /* MAC Share */
-  T alphai;
+  typename T::clear alphai;
 
 public:
   int values_opened;
@@ -72,12 +72,17 @@ public:
 
   int number() const { return values_opened; }
 
-  const T& get_alphai() const { return alphai; }
+  const typename T::clear& get_alphai() const { return alphai; }
+
+  virtual void POpen_Begin(vector<typename T::clear>& values,const vector<T>& S,const Player& P) = 0;
+  virtual void POpen_End(vector<typename T::clear>& values,const vector<T>& S,const Player& P) = 0;
+  void POpen(vector<typename T::clear>& values,const vector<T>& S,const Player& P);
+  typename T::clear POpen(const T& secret, const Player& P);
 };
 
 
 template<class T>
-class MAC_Check : public TreeSum<T>, public MAC_Check_Base<T>
+class MAC_Check : public TreeSum<T>, public MAC_Check_Base<Share<T>>
 {
   protected:
 
@@ -107,7 +112,6 @@ class MAC_Check : public TreeSum<T>, public MAC_Check_Base<T>
    */
   virtual void POpen_Begin(vector<T>& values,const vector<Share<T> >& S,const Player& P);
   virtual void POpen_End(vector<T>& values,const vector<Share<T> >& S,const Player& P);
-  void POpen(vector<T>& values,const vector<Share<T> >& S,const Player& P);
 
   void AddToCheck(const T& mac, const T& value, const Player& P);
   virtual void Check(const Player& P);

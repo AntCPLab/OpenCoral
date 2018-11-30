@@ -8,7 +8,7 @@
 thread_local YaoEvaluator* YaoEvaluator::singleton = 0;
 
 YaoEvaluator::YaoEvaluator(int thread_num, YaoEvalMaster& master) :
-		Thread<GC::Secret<YaoEvalWire>>(thread_num, master.machine, master.N),
+		Thread<GC::Secret<YaoEvalWire>>(thread_num, master),
 		master(master),
 		player(N, 0, thread_num << 24),
 		ot_ext(OTExtensionWithMatrix::setup(player, {}, RECEIVER, true))

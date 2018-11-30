@@ -10,7 +10,7 @@
 #include "GC/Clear.h"
 #include "GC/Memory.h"
 
-#include "Processor/Machine.h"
+#include "Processor/BaseMachine.h"
 
 #include <vector>
 using namespace std;
@@ -32,6 +32,7 @@ public:
     vector<Program<T> > progs;
 
     bool use_encryption;
+    bool more_comm_less_comp;
 
     Machine(Memory<typename T::DynamicType>& MD);
     ~Machine();

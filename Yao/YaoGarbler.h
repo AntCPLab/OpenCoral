@@ -13,7 +13,6 @@
 #include "Tools/random.h"
 #include "Tools/MMO.h"
 #include "GC/Secret.h"
-#include "GC/Program.h"
 #include "Networking/Player.h"
 #include "OT/OTExtensionWithMatrix.h"
 #include "sys/sysinfo.h"

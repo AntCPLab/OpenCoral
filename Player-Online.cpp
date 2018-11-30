@@ -1,8 +1,11 @@
 #include "Processor/Machine.h"
+#include "Processor/OnlineOptions.h"
 #include "Math/Setup.h"
 #include "Tools/ezOptionParser.h"
 #include "Tools/Config.h"
 #include "Networking/Server.h"
+
+#include "Processor/Online-Thread.hpp"
 
 #include <iostream>
 #include <map>
@@ -13,6 +16,7 @@ using namespace std;
 int main(int argc, const char** argv)
 {
     ez::ezOptionParser opt;
+    OnlineOptions online_opts(opt, argc, argv);
 
     opt.syntax = "./Player-Online.x [OPTIONS] <playernum> <progname>\n";
     opt.example = "./Player-Online.x -lgp 64 -lg2 128 -m new 0 sample-prog\n./Player-Online.x -pn 13000 -h localhost 1 sample-prog\n";
@@ -27,11 +31,11 @@ int main(int argc, const char** argv)
           "--lgp" // Flag token.
     );
     opt.add(
-          "40", // Default.
+          to_string(gf2n::default_degree()).c_str(), // Default.
           0, // Required?
           1, // Number of args expected.
           0, // Delimiter if expecting multiple args.
-          "Bit length of GF(2^n) field (default: 40)", // Help description.
+          ("Bit length of GF(2^n) field (default: " + to_string(gf2n::default_degree()) + ")").c_str(), // Help description.
           "-lg2", // Flag token.
           "--lg2" // Flag token.
     );
@@ -149,6 +153,7 @@ int main(int argc, const char** argv)
           "--nparties" // Flag token.
     );
 
+    opt.resetArgs();
     opt.parse(argc, argv);
 
     vector<string*> allArgs(opt.firstArgs);
@@ -253,9 +258,10 @@ int main(int argc, const char** argv)
     try
 #endif
     {
-        Machine<sgfp>(playerno, playerNames, progname, memtype, lgp, lg2,
+        Machine<sgfp, Share<gf2n>>(playerno, playerNames, progname, memtype, lgp, lg2,
                 opt.get("--direct")->isSet, opening_sum, opt.get("--parallel")->isSet,
-                opt.get("--threads")->isSet, max_broadcast, false).run();
+                opt.get("--threads")->isSet, max_broadcast, false, false,
+                online_opts).run();
 
         if (server)
           delete server;
@@ -268,8 +274,9 @@ int main(int argc, const char** argv)
 #ifndef INSECURE
     catch(...)
     {
-        thread_info<sgfp>::purge_preprocessing(playerNames,
-                get_prep_dir(playerNames.num_players(), lgp, lg2));
+        Machine<sgfp, Share<gf2n>> machine(playerNames);
+        machine.live_prep = false;
+        thread_info<sgfp, Share<gf2n>>::purge_preprocessing(machine);
         throw;
     }
 #endif

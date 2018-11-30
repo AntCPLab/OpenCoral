@@ -11,8 +11,7 @@ bool modp::rewind = false;
 
 void modp::randomize(PRNG& G, const Zp_Data& ZpD)
 {
-  bigint x=G.randomBnd(ZpD.pr);
-  memcpy(this->x, x.get_mpz_t()->_mp_d, ZpD.get_t() * sizeof(mp_limb_t));
+  G.randomBnd(x, ZpD.get_prA(), ZpD.pr_byte_length);
 }
 
 void modp::pack(octetStream& o,const Zp_Data& ZpD) const

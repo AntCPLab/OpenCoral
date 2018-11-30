@@ -155,11 +155,17 @@ class cbits(bits):
         res = cbits(n=self.n-other)
         inst.shrci(res, self, other)
         return res
+    def __lshift__(self, other):
+        res = cbits(n=self.n+other)
+        inst.shlci(res, self, other)
+        return res
     def print_reg(self, desc=''):
         inst.print_reg(self, desc)
     def print_reg_plain(self):
         inst.print_reg_signed(self.n, self)
     output = print_reg_plain
+    def print_if(self, string):
+        inst.cond_print_str(self, string)
     def reveal(self):
         return self
 
@@ -557,9 +563,18 @@ class sbitintvec(sbitvec):
         assert(len(self.v) == len(other.v))
         return self.from_vec(sbitint.bit_less_than(self.v, other.v))
 
+class cbitfix(object):
+    def __init__(self, value):
+        self.v = value
+    def output(self):
+        bits = self.v.bit_decompose(self.k)
+        sign = bits[-1]
+        v = self.v + (sign << (self.k)) * -1
+        inst.print_float_plain(v, cbits(-self.f, n=32), cbits(0), cbits(0))
+
 class sbitfix(_fix):
     float_type = type(None)
-    clear_type = staticmethod(lambda x: x)
+    clear_type = cbitfix
     @classmethod
     def set_precision(cls, f, k=None):
         super(cls, sbitfix).set_precision(f, k)

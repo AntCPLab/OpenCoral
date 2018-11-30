@@ -7,11 +7,15 @@
 #define MATH_BITVEC_H_
 
 #include "Integer.h"
+#include "field_types.h"
 
 class BitVec : public IntBase
 {
 public:
     static const int n_bits = sizeof(a) * 8;
+
+    static char type_char() { return 'B'; }
+    static DataFieldType field_type() { return DATA_GF2; }
 
     BitVec() {}
     BitVec(long a) : IntBase(a) {}
@@ -24,6 +28,9 @@ public:
     BitVec& operator+=(const BitVec& other) { *this ^= other; return *this; }
 
     BitVec extend_bit() const { return -(a & 1); }
+    BitVec mask(int n) const { return n < n_bits ? *this & ((1L << n) - 1) : *this; }
+
+    void mul(const BitVec& a, const BitVec& b) { *this = a * b; }
 
     void pack(octetStream& os, int n = n_bits) const { os.store_int(a, DIV_CEIL(n, 8)); }
     void unpack(octetStream& os, int n = n_bits) { a = os.get_int(DIV_CEIL(n, 8)); }
