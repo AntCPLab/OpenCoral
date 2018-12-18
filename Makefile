@@ -192,12 +192,8 @@ SimpleOT/Makefile:
 mpir:
 	git submodule update --init mpir
 	cd mpir; \
-	libtoolize --force; \
-	aclocal; \
-	autoheader; \
-	libtoolize --force; \
-	automake --force-missing --add-missing; \
-	autoconf; \
+	autoreconf -i; \
+	autoreconf -i; \
 	./configure --enable-cxx;
 	$(MAKE) -C mpir
 	sudo $(MAKE) -C mpir install
