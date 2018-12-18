@@ -192,9 +192,10 @@ SimpleOT/Makefile:
 mpir:
 	git submodule update --init mpir
 	cd mpir; \
-	aclocal; \
 	libtoolize --force; \
+	aclocal; \
 	autoheader; \
+	libtoolize --force; \
 	automake --force-missing --add-missing; \
 	autoconf; \
 	./configure --enable-cxx;
