@@ -192,8 +192,8 @@ SimpleOT/Makefile:
 mpir:
 	git submodule update --init mpir
 	cd mpir; \
-	libtoolize --force; \
 	aclocal; \
+	libtoolize --force; \
 	autoheader; \
 	automake --force-missing --add-missing; \
 	autoconf; \
