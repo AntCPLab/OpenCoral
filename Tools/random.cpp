@@ -146,7 +146,7 @@ void PRNG::get_octetStream(octetStream& ans,int len)
 }
 
 
-void PRNG::randomBnd(mp_limb_t* res, const mp_limb_t* B, size_t n_bytes)
+void PRNG::randomBnd(mp_limb_t* res, const mp_limb_t* B, size_t n_bytes, mp_limb_t mask)
 {
   if (n_bytes == 16)
     do
@@ -156,7 +156,10 @@ void PRNG::randomBnd(mp_limb_t* res, const mp_limb_t* B, size_t n_bytes)
     {
       size_t n_limbs = (n_bytes + sizeof(mp_limb_t) - 1) / sizeof(mp_limb_t);
       do
+      {
         get_octets((octet*) res, n_bytes);
+        res[n_limbs - 1] &= mask;
+      }
       while (mpn_cmp(res, B, n_limbs) >= 0);
     }
 }
