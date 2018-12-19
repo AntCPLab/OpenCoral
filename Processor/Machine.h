@@ -72,7 +72,7 @@ class Machine : public BaseMachine
   OnlineOptions opts;
 
   Machine(int my_number, Names& playerNames, string progname,
-      string memtype, int lgp, int lg2, bool direct, int opening_sum, bool parallel,
+      string memtype, int lg2, bool direct, int opening_sum, bool parallel,
       bool receive_threads, int max_broadcast, bool use_encryption, bool live_prep,
       OnlineOptions opts);
 

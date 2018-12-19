@@ -12,6 +12,7 @@ class OnlineOptions
 {
 public:
     bool interactive;
+    int lgp;
 
     OnlineOptions();
     OnlineOptions(ez::ezOptionParser& opt, int argc, const char** argv);

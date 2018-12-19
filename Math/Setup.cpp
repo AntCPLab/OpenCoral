@@ -12,6 +12,14 @@
  * Just setup the primes, doesn't need NTL.
  * Sets idx and m to be used by SHE setup if necessary
  */
+bigint SPDZ_Data_Setup_Primes(int lgp)
+{
+  int idx, m;
+  bigint p;
+  SPDZ_Data_Setup_Primes(p, lgp, idx, m);
+  return p;
+}
+
 void SPDZ_Data_Setup_Primes(bigint& p,int lgp,int& idx,int& m)
 {
   cout << "Setting up parameters" << endl;
@@ -137,12 +145,12 @@ void read_setup(const string& dir_prefix)
   bigint p;
 
   string filename = dir_prefix + "Params-Data";
-  cerr << "loading params from: " << filename << endl;
 
   // backwards compatibility hack
   if (dir_prefix.compare("") == 0)
     filename = string(PREP_DIR "Params-Data");
 
+  cerr << "loading params from: " << filename << endl;
   ifstream inpf(filename.c_str());
   if (inpf.fail()) { throw file_error(filename.c_str()); }
   inpf >> p;

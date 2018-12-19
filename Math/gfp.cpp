@@ -1,9 +1,15 @@
 
 #include "Math/gfp.h"
+#include "Math/Setup.h"
 
 #include "Exceptions/Exceptions.h"
 
 Zp_Data gfp::ZpD;
+
+void gfp::init_default(int lgp)
+{
+  init_field(SPDZ_Data_Setup_Primes(lgp));
+}
 
 void gfp::almost_randomize(PRNG& G)
 {

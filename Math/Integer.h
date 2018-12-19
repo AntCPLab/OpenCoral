@@ -25,6 +25,8 @@ public:
   static int size() { return sizeof(a); }
   static string type_string() { return "integer"; }
 
+  static void init_default(int lgp) { (void)lgp; }
+
   IntBase()                 { a = 0; }
   IntBase(long a) : a(a)    {}
 

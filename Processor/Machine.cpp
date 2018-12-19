@@ -37,7 +37,7 @@ BaseMachine::BaseMachine() : nthreads(0)
 
 template<class sint, class sgf2n>
 Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
-    string progname_str, string memtype, int lgp, int lg2, bool direct,
+    string progname_str, string memtype, int lg2, bool direct,
     int opening_sum, bool parallel, bool receive_threads, int max_broadcast,
     bool use_encryption, bool live_prep, OnlineOptions opts)
   : my_number(my_number), N(playerNames), tn(0), numt(0), usage_unknown(false),
@@ -51,32 +51,42 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
     this->max_broadcast = N.num_players();
 
   // Set up the fields
-  prep_dir_prefix = get_prep_dir(N.num_players(), lgp, lg2);
-  read_setup(prep_dir_prefix);
-
+  prep_dir_prefix = get_prep_dir(N.num_players(), opts.lgp, lg2);
   char filename[1024];
-  int nn;
 
-  sprintf(filename, (prep_dir_prefix + "Player-MAC-Keys-P%d").c_str(), my_number);
-  inpf.open(filename);
-  if (inpf.fail())
-  {
-    cerr << "Could not open MAC key file. Perhaps it needs to be generated?\n";
-    throw file_error(filename);
-  }
-  inpf >> nn;
-  if (nn!=N.num_players())
-    { cerr << "KeyGen was last run with " << nn << " players." << endl;
-      cerr << "  - You are running Online with " << N.num_players() << " players." << endl;
-      exit(1);
+  try
+    {
+      read_setup(prep_dir_prefix);
+
+      int nn;
+
+      sprintf(filename, (prep_dir_prefix + "Player-MAC-Keys-P%d").c_str(), my_number);
+      inpf.open(filename);
+      if (inpf.fail())
+        {
+          cerr << "Could not open MAC key file. Perhaps it needs to be generated?\n";
+          throw file_error(filename);
+        }
+      inpf >> nn;
+      if (nn!=N.num_players())
+        { cerr << "KeyGen was last run with " << nn << " players." << endl;
+          cerr << "  - You are running Online with " << N.num_players() << " players." << endl;
+          exit(1);
+        }
+
+      alphapi.input(inpf,true);
+      alpha2i.input(inpf,true);
+      cerr << "MAC Key p = " << alphapi << endl;
+      cerr << "MAC Key 2 = " << alpha2i << endl;
+      inpf.close();
     }
-
-  alphapi.input(inpf,true);
-  alpha2i.input(inpf,true);
-  cerr << "MAC Key p = " << alphapi << endl;
-  cerr << "MAC Key 2 = " << alpha2i << endl;
-  inpf.close();
-
+  catch (file_error& e)
+    {
+      cerr << "Field or MAC key setup failed, using defaults"
+          << endl;
+      sint::clear::init_default(opts.lgp);
+      gf2n::init_field(gf2n::default_degree());
+    }
 
   // Initialize the global memory
   if (memtype.compare("new")==0)

@@ -84,6 +84,17 @@ Preprocessing<Rep3Share<gf2n>>* Preprocessing<Rep3Share<gf2n>>::get_new(
 
 template<>
 template<>
+Preprocessing<Rep3Share<Integer>>* Preprocessing<Rep3Share<Integer>>::get_new(
+    Machine<Rep3Share<Integer>, Rep3Share<gf2n>>& machine, DataPositions& usage)
+{
+  if (machine.live_prep)
+    return new ReplicatedRingPrep<Rep3Share<Integer>>;
+  else
+    return new Sub_Data_Files<Rep3Share<Integer>>(machine.get_N(), machine.prep_dir_prefix, usage);
+}
+
+template<>
+template<>
 Preprocessing<MaliciousRep3Share<gfp>>* Preprocessing<MaliciousRep3Share<gfp>>::get_new(
     Machine<MaliciousRep3Share<gfp>, MaliciousRep3Share<gf2n>>& machine, DataPositions& usage)
 {

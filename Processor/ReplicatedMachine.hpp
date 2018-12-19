@@ -48,7 +48,7 @@ ReplicatedMachine<T, U>::ReplicatedMachine(int argc, const char** argv,
             0, // Required?
             0, // Number of args expected.
             0, // Delimiter if expecting multiple args.
-            "Preprocessing from files (default for rings).", // Help description.
+            "Preprocessing from files", // Help description.
             "-F", // Flag token.
             "--file-preprocessing" // Flag token.
     );
@@ -91,7 +91,7 @@ ReplicatedMachine<T, U>::ReplicatedMachine(int argc, const char** argv,
     Names N;
     Server* server = Server::start_networking(N, playerno, 3, hostname, pnb);
 
-    Machine<T, U>(playerno, N, progname, "empty", 128,
+    Machine<T, U>(playerno, N, progname, "empty",
             gf2n::default_degree(), 0, 0, 0, 0, 0, use_encryption,
             live_prep, online_opts).run();
 

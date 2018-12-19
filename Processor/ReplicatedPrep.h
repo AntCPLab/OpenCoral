@@ -41,21 +41,28 @@ public:
 };
 
 template<class T>
-class ReplicatedPrep : public BufferPrep<T>
+class ReplicatedRingPrep : public BufferPrep<T>
 {
+protected:
     template<class U> friend class MaliciousRepPrep;
 
     Replicated<T>* protocol;
 
     void buffer_triples();
     void buffer_squares();
-    void buffer_inverses();
+    void buffer_inverses() { throw runtime_error("not inverses in rings"); }
     void buffer_bits();
 
 public:
-    ReplicatedPrep();
+    ReplicatedRingPrep();
 
     void set_protocol(Replicated<T>& protocol) { this->protocol = &protocol; }
+};
+
+template<class T>
+class ReplicatedPrep: public ReplicatedRingPrep<T>
+{
+    void buffer_inverses();
 };
 
 #endif /* PROCESSOR_REPLICATEDPREP_H_ */

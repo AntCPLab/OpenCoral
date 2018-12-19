@@ -110,7 +110,7 @@ compute the preprocessing time for a particulor computation.
 
 1) Edit `CONFIG` or `CONFIG.mine` to your needs:
 
- - To benchmark malicious SPDZ, some honest-majority three-party computation (semi-honest modulo 2^64 or malicious binary), or BMR, add the following line at the top: `MY_CFLAGS = -DINSECURE`
+ - To benchmark malicious SPDZ or BMR, add the following line at the top: `MY_CFLAGS = -DINSECURE`
  - `PREP_DIR` should point to should be a local, unversioned directory to store preprocessing data (default is `Player-Data` in the current directory).
  - For the SPDZ-2 and Overdrive offline phases, set `USE_NTL = 1` and `MOD = -DMAX_MOD_SZ=6`.
  - To use GF(2^40), in particular for the SPDZ-2 offline phase, set `USE_GF2N_LONG = 0`. This will deactive anything that requires GF(2^128) such as MASCOT.
@@ -244,11 +244,9 @@ Compile the necessary programs:
 
 `make -j 8 rep-ring`
 
-Run setup to create necessary files and random bits (needed for comparisons etc.):
+Run setup to generate SSL keys and certificates. See the section replicated secret sharing for binary circuits below for details.
 
-`Scripts/setup-online.sh 3`
-
-This will also generate SSL keys and certificates. See the section replicated secret sharing for binary circuits below for details.
+`Scripts/setup-ssl.sh`
 
 In order to compile a program, use `./compile.py -R 64`, for example:
 

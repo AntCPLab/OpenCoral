@@ -9,12 +9,12 @@
 #include "Auth/ReplicatedMC.h"
 
 template<class T>
-ReplicatedPrep<T>::ReplicatedPrep() : protocol(0)
+ReplicatedRingPrep<T>::ReplicatedRingPrep() : protocol(0)
 {
 }
 
 template<class T>
-void ReplicatedPrep<T>::buffer_triples()
+void ReplicatedRingPrep<T>::buffer_triples()
 {
     assert(protocol != 0);
     auto& triples = this->triples;
@@ -48,7 +48,7 @@ void BufferPrep<T>::get_three(Dtype dtype, T& a, T& b, T& c)
 }
 
 template<class T>
-void ReplicatedPrep<T>::buffer_squares()
+void ReplicatedRingPrep<T>::buffer_squares()
 {
     assert(protocol != 0);
     auto& squares = this->squares;
@@ -68,6 +68,7 @@ void ReplicatedPrep<T>::buffer_squares()
 template<class T>
 void ReplicatedPrep<T>::buffer_inverses()
 {
+	auto protocol = this->protocol;
     assert(protocol != 0);
     ReplicatedMC<T> MC;
     BufferPrep<T>::buffer_inverses(MC, protocol->P);
@@ -124,8 +125,8 @@ void BufferPrep<T>::get_two(Dtype dtype, T& a, T& b)
     }
 }
 
-template<>
-void ReplicatedPrep<Rep3Share<gfp>>::buffer_bits()
+template<class T>
+void ReplicatedRingPrep<T>::buffer_bits()
 {
     assert(protocol != 0);
 #ifdef BIT_BY_SQUARE
@@ -146,7 +147,9 @@ void ReplicatedPrep<Rep3Share<gfp>>::buffer_bits()
     if (bits.empty())
         throw runtime_error("squares were all zero");
 #else
-    vector<vector<Rep3Share<gfp>>> player_bits(3, vector<Rep3Share<gfp>>(buffer_size));
+    auto buffer_size = this->buffer_size;
+    auto& bits = this->bits;
+    vector<vector<T>> player_bits(3, vector<T>(buffer_size));
     vector<octetStream> os(2);
     SeededPRNG G;
     for (auto& share : player_bits[protocol->P.my_num()])
@@ -165,8 +168,8 @@ void ReplicatedPrep<Rep3Share<gfp>>::buffer_bits()
     for (int i = 0; i < buffer_size; i++)
         prot.prepare_mul(player_bits[0][i], player_bits[1][i]);
     prot.exchange();
-    vector<Rep3Share<gfp>> first_xor(buffer_size);
-    gfp two(2);
+    vector<T> first_xor(buffer_size);
+    typename T::clear two(2);
     for (int i = 0; i < buffer_size; i++)
         first_xor[i] = player_bits[0][i] + player_bits[1][i] - prot.finalize_mul() * two;
     prot.init_mul();
@@ -180,7 +183,7 @@ void ReplicatedPrep<Rep3Share<gfp>>::buffer_bits()
 }
 
 template<>
-void ReplicatedPrep<Rep3Share<gf2n>>::buffer_bits()
+void ReplicatedRingPrep<Rep3Share<gf2n>>::buffer_bits()
 {
     assert(protocol != 0);
     for (int i = 0; i < DIV_CEIL(buffer_size, gf2n::degree()); i++)
@@ -228,3 +231,6 @@ template class BufferPrep<MaliciousRep3Share<gfp>>;
 template class BufferPrep<MaliciousRep3Share<gf2n>>;
 template class ReplicatedPrep<Rep3Share<gfp>>;
 template class ReplicatedPrep<Rep3Share<gf2n>>;
+template class ReplicatedRingPrep<Rep3Share<Integer>>;
+template class ReplicatedRingPrep<Rep3Share<gfp>>;
+template class ReplicatedRingPrep<Rep3Share<gf2n>>;

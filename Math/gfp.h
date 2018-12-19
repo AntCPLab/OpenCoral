@@ -38,6 +38,8 @@ class gfp
 
   static void init_field(const bigint& p,bool mont=true)
     { ZpD.init(p,mont); }
+  static void init_default(int lgp);
+
   static bigint pr()   
     { return ZpD.pr; }
   static int t()

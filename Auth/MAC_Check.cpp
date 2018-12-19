@@ -457,5 +457,6 @@ template class Passing_MAC_Check<gf2n_short>;
 
 template class MAC_Check_Base<Rep3Share<gfp>>;
 template class MAC_Check_Base<Rep3Share<gf2n>>;
+template class MAC_Check_Base<Rep3Share<Integer>>;
 template class MAC_Check_Base<MaliciousRep3Share<gfp>>;
 template class MAC_Check_Base<MaliciousRep3Share<gf2n>>;

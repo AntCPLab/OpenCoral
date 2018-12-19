@@ -22,15 +22,6 @@ int main(int argc, const char** argv)
     opt.example = "./Player-Online.x -lgp 64 -lg2 128 -m new 0 sample-prog\n./Player-Online.x -pn 13000 -h localhost 1 sample-prog\n";
 
     opt.add(
-          "128", // Default.
-          0, // Required?
-          1, // Number of args expected.
-          0, // Delimiter if expecting multiple args.
-          "Bit length of GF(p) field (default: 128)", // Help description.
-          "-lgp", // Flag token.
-          "--lgp" // Flag token.
-    );
-    opt.add(
           to_string(gf2n::default_degree()).c_str(), // Default.
           0, // Required?
           1, // Number of args expected.
@@ -200,12 +191,11 @@ int main(int argc, const char** argv)
     }
 
     string memtype, hostname, ipFileName;
-    int lg2, lgp, pnbase, opening_sum, max_broadcast;
+    int lg2, pnbase, opening_sum, max_broadcast;
     int p2pcommsec;
     int my_port;
 
     opt.get("--portnumbase")->getInt(pnbase);
-    opt.get("--lgp")->getInt(lgp);
     opt.get("--lg2")->getInt(lg2);
     opt.get("--memory")->getString(memtype);
     opt.get("--hostname")->getString(hostname);
@@ -228,7 +218,7 @@ int main(int argc, const char** argv)
         vector<public_signing_key> pubkeys;
         secret_signing_key mykey;
         public_signing_key mypublickey;
-        string prep_data_prefix = get_prep_dir(2, lgp, lg2);
+        string prep_data_prefix = get_prep_dir(2, online_opts.lgp, lg2);
         Config::read_player_config(prep_data_prefix,mynum,pubkeys,mykey,mypublickey);
         keys = new CommsecKeysPackage(pubkeys,mykey,mypublickey);
     }
@@ -258,7 +248,7 @@ int main(int argc, const char** argv)
     try
 #endif
     {
-        Machine<sgfp, Share<gf2n>>(playerno, playerNames, progname, memtype, lgp, lg2,
+        Machine<sgfp, Share<gf2n>>(playerno, playerNames, progname, memtype, lg2,
                 opt.get("--direct")->isSet, opening_sum, opt.get("--parallel")->isSet,
                 opt.get("--threads")->isSet, max_broadcast, false, false,
                 online_opts).run();
