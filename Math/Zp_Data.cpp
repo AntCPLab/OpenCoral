@@ -44,6 +44,7 @@ void Zp_Data::init(const bigint& p,bool mont)
 void Zp_Data::assign(const Zp_Data& Zp)
 { pr=Zp.pr;
   mask=Zp.mask;
+  pr_byte_length = Zp.pr_byte_length;
 
   montgomery=Zp.montgomery;
   t=Zp.t;
@@ -113,6 +114,7 @@ ostream& operator<<(ostream& s,const Zp_Data& ZpD)
 istream& operator>>(istream& s,Zp_Data& ZpD)
 {
   s >> ZpD.pr >> ZpD.montgomery;
+  ZpD.init(ZpD.pr, ZpD.montgomery);
   if (ZpD.montgomery)
     { s >> ZpD.t >> ZpD.pi;
       if (ZpD.t>MAX_MOD_SZ)
