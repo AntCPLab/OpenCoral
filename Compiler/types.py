@@ -237,6 +237,10 @@ class _register(Tape.Register, _number):
     def bit_compose(bits):
         return sum(b << i for i,b in enumerate(bits))
 
+    @classmethod
+    def malloc(cls, size):
+        return program.malloc(size, cls)
+
     def __init__(self, reg_type, val, size):
         super(_register, self).__init__(reg_type, program.curr_tape, size=size)
         if isinstance(val, (int, long)):
@@ -2010,6 +2014,10 @@ class _fix(_number):
                 pass
         return cls(other)
 
+    @classmethod
+    def malloc(cls, size):
+        return program.malloc(size, cls.int_type)
+
     @vectorize_init
     def __init__(self, _v=None, size=None):
         self.size = get_global_vector_size()
@@ -2507,7 +2515,7 @@ class Array(object):
         self.debug = debug
 
     def _malloc(self):
-        return program.malloc(self.length, self.value_type)
+        return self.value_type.malloc(self.length)
 
     def delete(self):
         if program:
@@ -2592,7 +2600,7 @@ class Array(object):
         return self
 
     def assign_all(self, value, use_threads=True):
-        mem_value = MemValue(value)
+        mem_value = MemValue(self.value_type.conv(value))
         n_threads = 8 if use_threads and len(self) > 2**20 else 1
         @library.for_range_multithread(n_threads, 1024, len(self))
         def f(i):
