@@ -1811,6 +1811,10 @@ class cfix(_number):
         cint_values = map(cfix_to_cint, values)
         writesocketc(client_id, message_type, *cint_values)
 
+    @staticmethod
+    def malloc(size):
+        return program.malloc(size, cint)
+
     @vectorize_init
     def __init__(self, v=None, size=None):
         f = self.f
@@ -1824,10 +1828,27 @@ class cfix(_number):
             self.v = v.v
         elif isinstance(v, MemValue):
             self.v = v
+        elif v is None:
+            self.v = cint(0)
+        else:
+            raise CompilerError('cannot initialize cfix with %s' % v)
 
     @vectorize
     def load_int(self, v):
         self.v = cint(v) * (2 ** self.f)
+
+    @classmethod
+    def conv(cls, other):
+        if isinstance(other, cls):
+            return other
+        else:
+            try:
+                res = cfix()
+                res.load_int(other)
+                return res
+            except (TypeError, CompilerError):
+                pass
+        return cls(other)
 
     def store_in_mem(self, address):
         self.v.store_in_mem(address)
