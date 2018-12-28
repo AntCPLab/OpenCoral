@@ -2036,6 +2036,10 @@ class _fix(_number):
         return cls(other)
 
     @classmethod
+    def coerce(cls, other):
+        return cls.conv(other)
+
+    @classmethod
     def malloc(cls, size):
         return program.malloc(size, cls.int_type)
 
@@ -2075,7 +2079,7 @@ class _fix(_number):
 
     @vectorize 
     def add(self, other):
-        other = self.conv(other)
+        other = self.coerce(other)
         if isinstance(other, (_fix, cfix)):
             return type(self)(self.v + other.v)
         elif isinstance(other, cfix.scalars):
@@ -2086,7 +2090,7 @@ class _fix(_number):
 
     @vectorize 
     def mul(self, other):
-        other = self.conv(other)
+        other = self.coerce(other)
         if isinstance(other, _fix):
             val = self.v.TruncMul(other.v, self.k * 2, self.f, self.kappa)
             return type(self)(val)
@@ -2101,7 +2105,7 @@ class _fix(_number):
 
     @vectorize 
     def __sub__(self, other):
-        other = self.conv(other)
+        other = self.coerce(other)
         return self + (-other)
 
     @vectorize
@@ -2113,7 +2117,7 @@ class _fix(_number):
 
     @vectorize
     def __eq__(self, other):
-        other = self.conv(other)
+        other = self.coerce(other)
         if isinstance(other, (cfix, _fix)):
             return self.v.equal(other.v, self.k, self.kappa)
         else:
@@ -2121,7 +2125,7 @@ class _fix(_number):
 
     @vectorize
     def __le__(self, other):
-        other = self.conv(other)
+        other = self.coerce(other)
         if isinstance(other, (cfix, _fix)):
             return self.v.less_equal(other.v, self.k, self.kappa)
         else:
@@ -2129,7 +2133,7 @@ class _fix(_number):
 
     @vectorize 
     def __lt__(self, other):
-        other = self.conv(other)
+        other = self.coerce(other)
         if isinstance(other, (cfix, _fix)):
             return self.v.less_than(other.v, self.k, self.kappa)
         else:
@@ -2137,7 +2141,7 @@ class _fix(_number):
 
     @vectorize
     def __ge__(self, other):
-        other = self.conv(other)
+        other = self.coerce(other)
         if isinstance(other, (cfix, _fix)):
             return self.v.greater_equal(other.v, self.k, self.kappa)
         else:
@@ -2145,7 +2149,7 @@ class _fix(_number):
 
     @vectorize
     def __gt__(self, other):
-        other = self.conv(other)
+        other = self.coerce(other)
         if isinstance(other, (cfix, _fix)):
             return self.v.greater_than(other.v, self.k, self.kappa)
         else:
@@ -2153,7 +2157,7 @@ class _fix(_number):
 
     @vectorize
     def __ne__(self, other):
-        other = self.conv(other)
+        other = self.coerce(other)
         if isinstance(other, (cfix, _fix)):
             return self.v.not_equal(other.v, self.k, self.kappa)
         else:
@@ -2161,7 +2165,7 @@ class _fix(_number):
 
     @vectorize
     def __div__(self, other):
-        other = self.conv(other)
+        other = self.coerce(other)
         if isinstance(other, _fix):
             return type(self)(library.FPDiv(self.v, other.v, self.k, self.f, self.kappa))
         elif isinstance(other, cfix):
@@ -2170,7 +2174,7 @@ class _fix(_number):
             raise TypeError('Incompatible fixed point types in division')
 
     def __rdiv__(self, other):
-        return self.conv(other) / self
+        return self.coerce(other) / self
 
     @vectorize
     def compute_reciprocal(self):
@@ -2188,7 +2192,7 @@ class sfix(_fix):
     clear_type = cfix
 
     @classmethod
-    def conv(cls, other):
+    def coerce(cls, other):
         return parse_type(other)
 
 # this is for 20 bit decimal precision
