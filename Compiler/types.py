@@ -2063,9 +2063,11 @@ class _fix(_number):
             self.v = (1-2*_v.s)*a
         elif isinstance(_v, type(self)):
             self.v = _v.v
-        elif isinstance(_v, MemFix):
+        elif isinstance(_v, (MemValue, MemFix)):
             #this is a memvalue object
-            self.v = _v
+            self.v = self.conv(_v.read())
+        else:
+            raise CompilerError('cannot convert %s to sfix' % _v)
 
     @vectorize
     def load_int(self, v):
