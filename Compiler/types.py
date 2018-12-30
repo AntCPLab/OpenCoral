@@ -2746,14 +2746,26 @@ class Matrix(MultiArray):
         MultiArray.__init__(self, [rows, columns], value_type, debug=debug)
 
     def __mul__(self, other):
-        assert isinstance(other, Array)
-        assert len(other) == self.sizes[1]
-        res = [None] * self.sizes[0]
-        for i in range(self.sizes[0]):
-            res[i] = sum(x * y for x, y in zip(self[i], other))
-        res_array = Array(self.sizes[0], type(res[0]))
-        res_array.assign(res)
-        return res_array
+        if isinstance(other, Array):
+            assert len(other) == self.sizes[1]
+            res = [None] * self.sizes[0]
+            for i in range(self.sizes[0]):
+                res[i] = sum(x * y for x, y in zip(self[i], other))
+            res_array = Array(self.sizes[0], type(res[0]))
+            res_array.assign(res)
+            return res_array
+        elif isinstance(other, Matrix):
+            assert other.sizes[0] == self.sizes[1]
+            res = [None] * self.sizes[0] * other.sizes[1]
+            for i in range(self.sizes[0]):
+                for j in range(other.sizes[1]):
+                    res[i * other.sizes[1] + j] = sum(self[i][k] * other[k][j] \
+                                                      for k in range(self.sizes[1]))
+            res_matrix = Matrix(self.sizes[0], other.sizes[1], type(res[0]))
+            res_matrix.array.assign(res)
+            return res_matrix
+        else:
+            raise NotImplementedError
 
 class VectorArray(object):
     def __init__(self, length, value_type, vector_size, address=None):
