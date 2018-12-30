@@ -170,8 +170,8 @@ class _gf2n(object):
     def bit_xor(self, other):
         return self ^ other
 
-class _register(Tape.Register, _number):
-    MemValue = staticmethod(lambda value: MemValue(value))
+class _structure(object):
+    MemValue = classmethod(lambda cls, value: MemValue(cls.conv(value)))
 
     @classmethod
     def Array(cls, size, *args, **kwargs):
@@ -180,6 +180,11 @@ class _register(Tape.Register, _number):
     @classmethod
     def Matrix(cls, rows, columns, *args, **kwargs):
         return Matrix(rows, columns, cls, *args, **kwargs)
+
+class _register(Tape.Register, _number, _structure):
+    @staticmethod
+    def n_elements():
+        return 1
 
     @vectorized_classmethod
     def conv(cls, val):
@@ -1764,7 +1769,7 @@ def parse_type(other):
     else:
         return other
 
-class cfix(_number):
+class cfix(_number, _structure):
     """ Clear fixed point type. """
     __slots__ = ['value', 'f', 'k', 'size']
     reg_type = 'c'
@@ -1778,9 +1783,6 @@ class cfix(_number):
             cls.k = 2 * f
         else:
             cls.k = k
-
-    def conv(self):
-        return self.v
 
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
@@ -1814,6 +1816,10 @@ class cfix(_number):
     @staticmethod
     def malloc(size):
         return program.malloc(size, cint)
+
+    @staticmethod
+    def n_elements():
+        return 1
 
     @vectorize_init
     def __init__(self, v=None, size=None):
@@ -1981,7 +1987,7 @@ class cfix(_number):
         print_float_plain(cint(abs_v), cint(-self.f), \
                           cint(0), cint(sign))
 
-class _fix(_number):
+class _fix(_number, _structure):
     """ Shared fixed point type. """
     __slots__ = ['v', 'f', 'k', 'size']
     kappa = 40
@@ -2001,9 +2007,6 @@ class _fix(_number):
             if k < f:
                 raise CompilerError('bit length cannot be less than precision')
             cls.k = k
-
-    def conv(self):
-        return self.v
 
     @classmethod
     def receive_from_client(cls, n, client_id, message_type=ClientMessageType.NoType):
@@ -2042,6 +2045,10 @@ class _fix(_number):
     @classmethod
     def malloc(cls, size):
         return program.malloc(size, cls.int_type)
+
+    @staticmethod
+    def n_elements():
+        return 1
 
     @vectorize_init
     def __init__(self, _v=None, size=None):
@@ -2209,7 +2216,7 @@ fixed_upper = 40
 sfix.set_precision(fixed_lower, fixed_upper)
 cfix.set_precision(fixed_lower, fixed_upper)
 
-class sfloat(_number):
+class sfloat(_number, _structure):
     """ Shared floating point data type, representing (1 - 2s)*(1 - z)*v*2^p.
         
         v: significand
@@ -2226,8 +2233,25 @@ class sfloat(_number):
     round_nearest = False
     error = 0
 
+    @staticmethod
+    def n_elements():
+        return 4
+
+    @classmethod
+    def malloc(cls, size):
+        return program.malloc(size * cls.n_elements(), sint)
+
+    @classmethod
+    def is_address_tuple(cls, address):
+        if isinstance(address, (list, tuple)):
+            assert(len(address) == cls.n_elements())
+            return True
+        return False
+
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
+        if cls.is_address_tuple(address):
+            return sfloat(*(sint.load_mem(a) for a in address))
         res = []
         for i in range(4):
             res.append(sint.load_mem(address + i * get_global_vector_size()))
@@ -2236,6 +2260,13 @@ class sfloat(_number):
     @classmethod
     def set_error(cls, error):
         cls.error += error - cls.error * error
+
+    @classmethod
+    def conv(cls, other):
+        if isinstance(other, cls):
+            return other
+        else:
+            return cls(other)
 
     @staticmethod
     def convert_float(v, vlen, plen):
@@ -2317,11 +2348,15 @@ class sfloat(_number):
         yield self.s
 
     def store_in_mem(self, address):
+        if self.is_address_tuple(address):
+            for a, x in zip(address, self):
+                x.store_in_mem(a)
+            return
         for i,x in enumerate((self.v, self.p, self.z, self.s)):
             x.store_in_mem(address + i * get_global_vector_size())
 
     def sizeof(self):
-        return self.size * 4
+        return self.size * self.n_elements()
 
     @vectorize
     def add(self, other):
@@ -2555,7 +2590,9 @@ class Array(object):
                 raise IndexError('index %s, length %s' % \
                                      (str(index), str(self.length)))
         if (program.curr_block, index) not in self.address_cache:
-            self.address_cache[program.curr_block, index] = self.address + index
+            n = self.value_type.n_elements()
+            self.address_cache[program.curr_block, index] = \
+                util.untuplify([self.address + index * n + i for i in range(n)])
             if self.debug:
                 library.print_ln_if(index >= self.length, 'OF:' + self.debug)
                 library.print_ln_if(self.address_cache[program.curr_block, index] >= program.allocated_mem[self.value_type.reg_type], 'AOF:' + self.debug)
@@ -2659,11 +2696,12 @@ class SubMultiArray(object):
     def __init__(self, sizes, value_type, address, index, debug=None):
         self.sizes = sizes
         self.value_type = value_type
-        self.address = address + index * reduce(operator.mul, self.sizes)
+        self.address = address + index * reduce(operator.mul, self.sizes) * \
+                       self.value_type.n_elements()
         self.sub_cache = {}
         self.debug = debug
         if debug:
-            library.print_ln_if(self.address + reduce(operator.mul, self.sizes) > program.allocated_mem[self.value_type.reg_type], 'AOF%d:' % len(self.sizes) + self.debug)
+            library.print_ln_if(self.address + reduce(operator.mul, self.sizes) * self.value_type.n_elements() > program.allocated_mem[self.value_type.reg_type], 'AOF%d:' % len(self.sizes) + self.debug)
 
     def __getitem__(self, index):
         if util.is_constant(index) and index >= self.sizes[0]:
@@ -2676,7 +2714,8 @@ class SubMultiArray(object):
             if len(self.sizes) == 2:
                 self.sub_cache[key] = \
                         Array(self.sizes[1], self.value_type, \
-                              self.address + index * self.sizes[1], \
+                              self.address + index * self.sizes[1] *
+                              self.value_type.n_elements(), \
                               debug=self.debug)
             else:
                 self.sub_cache[key] = \
@@ -2731,62 +2770,6 @@ class VectorArray(object):
         if value.size != self.vector_size:
             raise CompilerError('vector size mismatch')
         value.store_in_mem(self.array.address + index * self.vector_size)
-
-class sfloatArray(Array):
-    def __init__(self, length, address=None):
-        self.matrix = Matrix(length, 4, sint, address)
-        self.length = length
-        self.value_type = sfloat
-
-    def __getitem__(self, index):
-        if isinstance(index, slice):
-            return Array.__getitem__(self, index)
-        return sfloat(*self.matrix[index])
-
-    def __setitem__(self, index, value):
-        if isinstance(index, slice):
-            return Array.__setitem__(self, index, value)
-        self.matrix[index].assign(iter(sfloat(value)))
-
-class sfloatMatrix(Matrix):
-    def __init__(self, rows, columns):
-        self.rows = rows
-        self.columns = columns
-        self.multi_array = MultiArray([rows, columns, 4], sint)
-
-    def __getitem__(self, index):
-        return sfloatArray(self.columns, self.multi_array[index].address)
-
-class sfixArray(Array):
-    def __init__(self, length, address=None):
-        self.array = Array(length, sint, address)
-        self.length = length
-        self.value_type = sfix
-
-    def __getitem__(self, index):
-        if isinstance(index, slice):
-            return Array.__getitem__(self, index)
-        return sfix(*self.array[index])
-
-    def __setitem__(self, index, value):
-        if isinstance(index, slice):
-            return Array.__setitem__(self, index, value)
-        self.array[index] = value.v
-
-    def get_address(self, index):
-        return self.array.get_address(index)
-
-class sfixMatrix(Matrix):
-    def __init__(self, rows, columns, address=None):
-        self.rows = rows
-        self.columns = columns
-        self.multi_array = Matrix(rows, columns, sint, address)
-
-    def __getitem__(self, index):
-        return sfixArray(self.columns, self.multi_array[index].address)
-
-    def get_address(self):
-        return self.multi_array.get_address()
 
 class _mem(_number):
     __add__ = lambda self,other: self.read() + other
@@ -2855,16 +2838,15 @@ class MemValue(_mem):
             self.value_type = value.value_type
         else:
             self.value_type = type(value)
-        self.reg_type = self.value_type.reg_type
         self.deleted = False
         if address is None:
-            self.address = program.malloc(1, self.value_type)
+            self.address = self.value_type.malloc(1)
             self.write(value)
         else:
             self.address = address
 
     def delete(self):
-        program.free(self.address, self.reg_type)
+        self.value_type.free(self.address)
         self.deleted = True
 
     def check(self):
@@ -2894,10 +2876,7 @@ class MemValue(_mem):
         return self
 
     def reveal(self):
-        if self.register.is_clear:
-            return self.read()
-        else:
-            return self.read().reveal()
+        return self.read().reveal()
 
     less_than = lambda self,other,bit_length=None,security=None: \
         self.read().less_than(other,bit_length,security)
@@ -3003,20 +2982,5 @@ def getNamedTupleType(*names):
         def reveal(self):
             return self.__type__(x.reveal() for x in self)
     return NamedTuple
-
-sfloat.Array = sfloatArray
-sfloat.Matrix = sfloatMatrix
-sfloat.MemValue = MemFloat
-
-sfix.Array = sfixArray
-sfix.Matrix = sfixMatrix
-
-sfix.MemValue = MemFix
-
-cint.MemValue = MemValue
-sint.MemValue = MemValue
-
-sgf2n.MemValue = MemValue
-cgf2n.MemValue = MemValue
 
 import library
