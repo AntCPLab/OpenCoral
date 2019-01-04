@@ -166,6 +166,7 @@ enum
     WRITEFILESHARE = 0xBD,
     READFILESHARE = 0xBE,
     CONDPRINTSTR = 0xBF,
+    PRINTFLOATPREC = 0xE0,
 
     // GF(2^n) versions
     

@@ -952,6 +952,11 @@ class print_float_plain(base.IOInstruction):
     code = base.opcodes['PRINTFLOATPLAIN']
     arg_format = ['c', 'c', 'c', 'c']
 
+class print_float_prec(base.IOInstruction):
+    __slots__ = []
+    code = base.opcodes['PRINTFLOATPREC']
+    arg_format = ['int']
+
 class print_char(base.IOInstruction):
     r""" Print a single character to stdout. """
     code = base.opcodes['PRINTCHR']

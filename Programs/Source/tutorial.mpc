@@ -57,6 +57,10 @@ test(a[99], 99 * 98)
 
 sfix.set_precision(16, 32)
 
+# and the output precision in decimal digits
+
+print_float_precision(4)
+
 # you can do all basic arithmetic with sfix, including division
 
 a = sfix(2)

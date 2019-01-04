@@ -87,6 +87,7 @@ public:
     void print_chr(int n);
     void print_str(int n);
     void print_float(const vector<int>& args);
+    void print_float_prec(int n);
 };
 
 template <class T>

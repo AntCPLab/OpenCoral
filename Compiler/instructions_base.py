@@ -163,6 +163,7 @@ opcodes = dict(
     WRITEFILESHARE = 0xBD,     
     READFILESHARE = 0xBE,
     CONDPRINTSTR = 0xBF,
+    PRINTFLOATPREC = 0xE0,
     GBITDEC = 0x184,
     GBITCOM = 0x185,
     # Secure socket

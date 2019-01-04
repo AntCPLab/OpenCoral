@@ -6,6 +6,7 @@
 #include <GC/Processor.h>
 
 #include <iostream>
+#include <iomanip>
 using namespace std;
 
 #include "GC/Program.h"
@@ -222,6 +223,12 @@ template <class T>
 void Processor<T>::print_float(const vector<int>& args)
 {
     T::out << bigint::get_float(C[args[0]], C[args[1]], C[args[2]], C[args[3]]) << flush;
+}
+
+template <class T>
+void Processor<T>::print_float_prec(int n)
+{
+    T::out << setprecision(n);
 }
 
 } /* namespace GC */

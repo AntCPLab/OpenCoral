@@ -78,6 +78,7 @@
     X(PRINTCHR, PROC.print_chr(IMM)) \
     X(PRINTSTR, PROC.print_str(IMM)) \
     X(PRINTFLOATPLAIN, PROC.print_float(EXTRA)) \
+    X(PRINTFLOATPREC, PROC.print_float_prec(IMM)) \
     X(CONDPRINTSTR, if(C0.get()) PROC.print_str(IMM)) \
     X(LDINT, I0 = int(IMM)) \
     X(ADDINT, I0 = I1 + I2) \

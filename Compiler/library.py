@@ -103,6 +103,9 @@ def print_ln_if(cond, s):
             cond.print_if(s[:4])
             s = s[4:]
 
+def print_float_precision(n):
+    print_float_prec(n)
+
 def runtime_error(msg='', *args):
     """ Print an error message and abort the runtime. """
     print_str('User exception: ')

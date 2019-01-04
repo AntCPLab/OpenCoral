@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <sstream>
 #include <map>
+#include <iomanip>
 
 #include "Tools/callgrind.h"
 
@@ -261,6 +262,7 @@ void BaseInstruction::parse_operands(istream& s, int pos)
       case START:
       case STOP:
       case LISTEN:
+      case PRINTFLOATPREC:
         n = get_int(s);
         break;
       // instructions with no operand
@@ -1503,6 +1505,9 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
             Proc.out << bigint::get_float(v, exp, z, s) << flush;
           }
       break;
+      case PRINTFLOATPREC:
+        Proc.out << setprecision(n);
+        break;
       case PRINTSTR:
            {
              Proc.out << string((char*)&n,sizeof(n)) << flush;
