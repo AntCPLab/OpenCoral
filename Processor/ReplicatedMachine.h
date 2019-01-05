@@ -13,7 +13,8 @@ template<class T, class U>
 class ReplicatedMachine
 {
 public:
-    ReplicatedMachine(int argc, const char** argv, string name);
+    ReplicatedMachine(int argc, const char** argv, string name,
+            ez::ezOptionParser& opt, int nplayers = 3);
 };
 
 #endif /* PROCESSOR_REPLICATEDMACHINE_H_ */

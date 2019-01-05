@@ -6,6 +6,7 @@
 #include "Processor/Machine.h"
 #include "Processor/Processor.h"
 #include "Auth/ReplicatedMC.h"
+#include "Auth/ShamirMC.h"
 #include "Networking/CryptoPlayer.h"
 
 #include "Processor/Processor.hpp"
@@ -49,8 +50,6 @@ void* Sub_Main_Func(void* ptr)
   Player& P = *player;
   fprintf(stderr, "\tSet up player in thread %d\n",num);
 
-  Data_Files<sint, sgf2n> DataF(machine);
-
   typename sgf2n::MAC_Check* MC2;
   typename sint::MAC_Check*  MCp;
 
@@ -76,7 +75,7 @@ void* Sub_Main_Func(void* ptr)
     }
 
   // Allocate memory for first program before starting the clock
-  Processor<sint, sgf2n> Proc(tinfo->thread_num,DataF,P,*MC2,*MCp,machine,progs[0]);
+  Processor<sint, sgf2n> Proc(tinfo->thread_num,P,*MC2,*MCp,machine,progs[0]);
   Share<gf2n> a,b,c;
 
   bool flag=true;
@@ -115,7 +114,7 @@ void* Sub_Main_Func(void* ptr)
           Proc.reset(progs[program],tinfo->arg);
 
           // Bits, Triples, Squares, and Inverses skipping
-          DataF.seekg(tinfo->pos);
+          Proc.DataF.seekg(tinfo->pos);
              
           //printf("\tExecuting program");
           // Execute the program
@@ -123,7 +122,7 @@ void* Sub_Main_Func(void* ptr)
 
          if (progs[program].usage_unknown())
            { // communicate file positions to main thread
-             tinfo->pos = DataF.get_usage();
+             tinfo->pos = Proc.DataF.get_usage();
            }
 
           //double elapsed = timeval_diff(&startv, &endv);

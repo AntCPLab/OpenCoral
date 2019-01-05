@@ -2,6 +2,11 @@
 
 #include "Memory.hpp"
 #include "Online-Thread.hpp"
+#include "ShamirInput.hpp"
+#include "Shamir.hpp"
+#include "Replicated.hpp"
+#include "Auth/ShamirMC.hpp"
+#include "Auth/MaliciousShamirMC.hpp"
 
 #include "Exceptions/Exceptions.h"
 
@@ -9,6 +14,8 @@
 
 #include "Math/Setup.h"
 #include "Math/MaliciousRep3Share.h"
+#include "Math/ShamirShare.h"
+#include "Math/MaliciousShamirShare.h"
 
 #include <iostream>
 #include <vector>
@@ -61,6 +68,7 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
       int nn;
 
       sprintf(filename, (prep_dir_prefix + "Player-MAC-Keys-P%d").c_str(), my_number);
+      ifstream inpf;
       inpf.open(filename);
       if (inpf.fail())
         {
@@ -86,6 +94,10 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
           << endl;
       sint::clear::init_default(opts.lgp);
       gf2n::init_field(gf2n::default_degree());
+    }
+  catch (end_of_file& e)
+    {
+      cerr << "End of file reading MAC key but maybe we don't need it" << endl;
     }
 
   // Initialize the global memory
@@ -438,3 +450,5 @@ template class Machine<sgfp, Share<gf2n>>;
 template class Machine<Rep3Share<Integer>, Rep3Share<gf2n>>;
 template class Machine<Rep3Share<gfp>, Rep3Share<gf2n>>;
 template class Machine<MaliciousRep3Share<gfp>, MaliciousRep3Share<gf2n>>;
+template class Machine<ShamirShare<gfp>, ShamirShare<gf2n>>;
+template class Machine<MaliciousShamirShare<gfp>, MaliciousShamirShare<gf2n>>;

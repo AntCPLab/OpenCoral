@@ -5,8 +5,16 @@
 #include "Processor/MaliciousRepPrep.h"
 #include "GC/MaliciousRepSecret.h"
 #include "Math/MaliciousRep3Share.h"
+#include "Math/ShamirShare.h"
+#include "Math/MaliciousShamirShare.h"
 
 #include "Processor/MaliciousRepPrep.hpp"
+#include "Processor/Replicated.hpp"
+#include "Processor/ReplicatedPrep.hpp"
+#include "Processor/Input.hpp"
+#include "Processor/ReplicatedInput.hpp"
+#include "Processor/Shamir.hpp"
+#include "Auth/MaliciousShamirMC.hpp"
 
 #include <iomanip>
 #include <numeric>
@@ -53,6 +61,26 @@ const bool Sub_Data_Files<GC::MaliciousRepSecret>::implemented[N_DTYPE] =
     { true, false, true, false, false, false }
 ;
 
+template<>
+const bool Sub_Data_Files<ShamirShare<gfp>>::implemented[N_DTYPE] =
+    { false, false, false, false, false, false }
+;
+
+template<>
+const bool Sub_Data_Files<ShamirShare<gf2n>>::implemented[N_DTYPE] =
+    { false, false, false, false, false, false }
+;
+
+template<>
+const bool Sub_Data_Files<MaliciousShamirShare<gfp>>::implemented[N_DTYPE] =
+    { false, false, false, false, false, false }
+;
+
+template<>
+const bool Sub_Data_Files<MaliciousShamirShare<gf2n>>::implemented[N_DTYPE] =
+    { false, false, false, false, false, false }
+;
+
 const int DataPositions::tuple_size[N_DTYPE] = { 3, 2, 1, 2, 3, 3 };
 
 template<class T>
@@ -61,67 +89,89 @@ template<class T>
 map<DataTag, int> Sub_Data_Files<T>::tuple_lengths;
 
 template<>
-template<>
-Preprocessing<Rep3Share<gfp>>* Preprocessing<Rep3Share<gfp>>::get_new(
-    Machine<Rep3Share<gfp>, Rep3Share<gf2n>>& machine, DataPositions& usage)
+Preprocessing<Rep3Share<gfp>>* Preprocessing<Rep3Share<gfp>>::get_live_prep(
+    SubProcessor<Rep3Share<gfp>>* proc)
 {
-  if (machine.live_prep)
-    return new ReplicatedPrep<Rep3Share<gfp>>;
-  else
-    return new Sub_Data_Files<Rep3Share<gfp>>(machine.get_N(), machine.prep_dir_prefix, usage);
+  return new ReplicatedPrep<Rep3Share<gfp>>(proc);
 }
 
 template<>
-template<>
-Preprocessing<Rep3Share<gf2n>>* Preprocessing<Rep3Share<gf2n>>::get_new(
-    Machine<Rep3Share<gfp>, Rep3Share<gf2n>>& machine, DataPositions& usage)
+Preprocessing<Rep3Share<gf2n>>* Preprocessing<Rep3Share<gf2n>>::get_live_prep(
+    SubProcessor<Rep3Share<gf2n>>* proc)
 {
-  if (machine.live_prep)
-    return new ReplicatedPrep<Rep3Share<gf2n>>;
-  else
-    return new Sub_Data_Files<Rep3Share<gf2n>>(machine.get_N(), machine.prep_dir_prefix, usage);
+  return new ReplicatedPrep<Rep3Share<gf2n>>(proc);
 }
 
 template<>
-template<>
-Preprocessing<Rep3Share<Integer>>* Preprocessing<Rep3Share<Integer>>::get_new(
-    Machine<Rep3Share<Integer>, Rep3Share<gf2n>>& machine, DataPositions& usage)
+Preprocessing<Rep3Share<Integer>>* Preprocessing<Rep3Share<Integer>>::get_live_prep(
+    SubProcessor<Rep3Share<Integer>>* proc)
 {
-  if (machine.live_prep)
-    return new ReplicatedRingPrep<Rep3Share<Integer>>;
-  else
-    return new Sub_Data_Files<Rep3Share<Integer>>(machine.get_N(), machine.prep_dir_prefix, usage);
+  return new ReplicatedRingPrep<Rep3Share<Integer>>(proc);
 }
 
 template<>
-template<>
-Preprocessing<MaliciousRep3Share<gfp>>* Preprocessing<MaliciousRep3Share<gfp>>::get_new(
-    Machine<MaliciousRep3Share<gfp>, MaliciousRep3Share<gf2n>>& machine, DataPositions& usage)
+Preprocessing<MaliciousRep3Share<gfp>>* Preprocessing<MaliciousRep3Share<gfp>>::get_live_prep(
+    SubProcessor<MaliciousRep3Share<gfp>>* proc)
 {
-  if (machine.live_prep)
-    return new MaliciousRepPrep<gfp>;
-  else
-    return new Sub_Data_Files<MaliciousRep3Share<gfp>>(machine.get_N(), machine.prep_dir_prefix, usage);
+  (void) proc;
+  return new MaliciousRepPrep<MaliciousRep3Share<gfp>>(proc);
 }
 
 template<>
-template<>
-Preprocessing<MaliciousRep3Share<gf2n>>* Preprocessing<MaliciousRep3Share<gf2n>>::get_new(
-    Machine<MaliciousRep3Share<gfp>, MaliciousRep3Share<gf2n>>& machine, DataPositions& usage)
+Preprocessing<MaliciousRep3Share<gf2n>>* Preprocessing<MaliciousRep3Share<gf2n>>::get_live_prep(
+    SubProcessor<MaliciousRep3Share<gf2n>>* proc)
 {
-  if (machine.live_prep)
-    return new MaliciousRepPrep<gf2n>;
-  else
-    return new Sub_Data_Files<MaliciousRep3Share<gf2n>>(machine.get_N(), machine.prep_dir_prefix, usage);
+  (void) proc;
+  return new MaliciousRepPrep<MaliciousRep3Share<gf2n>>(proc);
 }
 
+template<>
+Preprocessing<ShamirShare<gfp>>* Preprocessing<ShamirShare<gfp>>::get_live_prep(
+    SubProcessor<ShamirShare<gfp>>* proc)
+{
+  return new ReplicatedPrep<ShamirShare<gfp>>(proc);
+}
+
+template<>
+Preprocessing<ShamirShare<gf2n>>* Preprocessing<ShamirShare<gf2n>>::get_live_prep(
+    SubProcessor<ShamirShare<gf2n>>* proc)
+{
+  return new ReplicatedPrep<ShamirShare<gf2n>>(proc);
+}
+
+template<>
+Preprocessing<MaliciousShamirShare<gfp>>* Preprocessing<MaliciousShamirShare<gfp>>::get_live_prep(
+    SubProcessor<MaliciousShamirShare<gfp>>* proc)
+{
+  (void) proc;
+  return new MaliciousRepPrep<MaliciousShamirShare<gfp>>(proc);
+}
+
+template<>
+Preprocessing<MaliciousShamirShare<gf2n>>* Preprocessing<MaliciousShamirShare<gf2n>>::get_live_prep(
+    SubProcessor<MaliciousShamirShare<gf2n>>* proc)
+{
+  (void) proc;
+  return new MaliciousRepPrep<MaliciousShamirShare<gf2n>>(proc);
+}
+
+template<class T>
+Preprocessing<T>* Preprocessing<T>::get_live_prep(SubProcessor<T>* proc)
+{
+  (void) proc;
+  throw not_implemented();
+}
 
 template<class T>
 template<class U, class V>
-Preprocessing<T>* Preprocessing<T>::get_new(Machine<U, V>& machine,
-    DataPositions& usage)
+Preprocessing<T>* Preprocessing<T>::get_new(
+    Machine<U, V>& machine,
+    DataPositions& usage, SubProcessor<T>* proc)
 {
-  return new Sub_Data_Files<T>(machine.get_N(), machine.prep_dir_prefix, usage);
+  if (machine.live_prep)
+    return get_live_prep(proc);
+  else
+    return new Sub_Data_Files<T>(machine.get_N(), machine.prep_dir_prefix, usage);
 }
 
 void DataPositions::set_num_players(int num_players)
@@ -246,11 +296,19 @@ Sub_Data_Files<T>::Sub_Data_Files(int my_num, int num_players,
 }
 
 template<class sint, class sgf2n>
-Data_Files<sint, sgf2n>::Data_Files(Machine<sint, sgf2n>& machine) :
+Data_Files<sint, sgf2n>::Data_Files(Machine<sint, sgf2n>& machine, SubProcessor<sint>* procp,
+    SubProcessor<sgf2n>* proc2) :
     usage(machine.get_N().num_players()),
-    DataFp(*Preprocessing<sint>::get_new(machine, usage)),
-    DataF2(*Preprocessing<sgf2n>::get_new(machine, usage))
+    DataFp(*Preprocessing<sint>::get_new(machine, usage, procp)),
+    DataF2(*Preprocessing<sgf2n>::get_new(machine, usage, proc2))
 {
+}
+
+template<class sint, class sgf2n>
+Data_Files<sint, sgf2n>::~Data_Files()
+{
+  delete &DataFp;
+  delete &DataF2;
 }
 
 template<class T>
@@ -393,3 +451,5 @@ template class Data_Files<sgfp, Share<gf2n>>;
 template class Data_Files<Rep3Share<Integer>, Rep3Share<gf2n>>;
 template class Data_Files<Rep3Share<gfp>, Rep3Share<gf2n>>;
 template class Data_Files<MaliciousRep3Share<gfp>, MaliciousRep3Share<gf2n>>;
+template class Data_Files<ShamirShare<gfp>, ShamirShare<gf2n>>;
+template class Data_Files<MaliciousShamirShare<gfp>, MaliciousShamirShare<gf2n>>;

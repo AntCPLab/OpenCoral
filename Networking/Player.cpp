@@ -371,6 +371,8 @@ void MultiPlayer<T>::Broadcast_Receive(vector<octetStream>& o,bool donthash) con
 
 void Player::Check_Broadcast() const
 {
+  if (ctx.size == 0)
+    return;
   octet hashVal[HASH_SIZE];
   vector<octetStream> h(nplayers);
   blk_SHA1_Final(hashVal,&ctx);

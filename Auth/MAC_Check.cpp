@@ -12,6 +12,8 @@
 #include "Math/BitVec.h"
 #include "Math/Rep3Share.h"
 #include "Math/MaliciousRep3Share.h"
+#include "Math/ShamirShare.h"
+#include "Math/MaliciousShamirShare.h"
 
 #include <algorithm>
 
@@ -460,3 +462,7 @@ template class MAC_Check_Base<Rep3Share<gf2n>>;
 template class MAC_Check_Base<Rep3Share<Integer>>;
 template class MAC_Check_Base<MaliciousRep3Share<gfp>>;
 template class MAC_Check_Base<MaliciousRep3Share<gf2n>>;
+template class MAC_Check_Base<ShamirShare<gfp>>;
+template class MAC_Check_Base<ShamirShare<gf2n>>;
+template class MAC_Check_Base<MaliciousShamirShare<gfp>>;
+template class MAC_Check_Base<MaliciousShamirShare<gf2n>>;

@@ -15,8 +15,6 @@ template<class T>
 class BufferPrep : public Preprocessing<T>
 {
 protected:
-    static const int buffer_size = 1000;
-
     vector<array<T, 3>> triples;
     vector<array<T, 2>> squares;
     vector<array<T, 2>> inverses;
@@ -30,6 +28,8 @@ protected:
     virtual void buffer_inverses(MAC_Check_Base<T>& MC, Player& P);
 
 public:
+    static const int buffer_size = 1000;
+
     virtual ~BufferPrep() {}
 
     void get_three(Dtype dtype, T& a, T& b, T& c);
@@ -46,23 +46,31 @@ class ReplicatedRingPrep : public BufferPrep<T>
 protected:
     template<class U> friend class MaliciousRepPrep;
 
-    Replicated<T>* protocol;
+    typename T::Protocol* protocol;
+    SubProcessor<T>* proc;
 
     void buffer_triples();
     void buffer_squares();
     void buffer_inverses() { throw runtime_error("not inverses in rings"); }
-    void buffer_bits();
 
 public:
-    ReplicatedRingPrep();
+    ReplicatedRingPrep(SubProcessor<T>* proc);
+    virtual ~ReplicatedRingPrep() {}
 
-    void set_protocol(Replicated<T>& protocol) { this->protocol = &protocol; }
+    void set_protocol(typename T::Protocol& protocol) { this->protocol = &protocol; }
+
+    virtual void buffer_bits();
 };
 
 template<class T>
 class ReplicatedPrep: public ReplicatedRingPrep<T>
 {
     void buffer_inverses();
+
+public:
+    ReplicatedPrep(SubProcessor<T>* proc = 0) : ReplicatedRingPrep<T>(proc) {}
+
+    void buffer_bits();
 };
 
 #endif /* PROCESSOR_REPLICATEDPREP_H_ */

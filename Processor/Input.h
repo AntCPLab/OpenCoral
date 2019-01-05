@@ -27,7 +27,7 @@ public:
 
     static void input(SubProcessor<T>& Proc, const vector<int>& args);
 
-    InputBase(ArithmeticProcessor& proc);
+    InputBase(ArithmeticProcessor* proc);
     ~InputBase();
 };
 

@@ -101,6 +101,11 @@ class modp
 };
 
 
+inline void modp::pack(octetStream& o,const Zp_Data& ZpD) const
+{
+  o.append((octet*) x,ZpD.t*sizeof(mp_limb_t));
+}
+
 inline void assignZero(modp& x,const Zp_Data& ZpD)
 {
   if (sizeof(x.x) <= 3 * 16)

@@ -8,5 +8,7 @@
 
 int main(int argc, const char** argv)
 {
-    ReplicatedMachine<MaliciousRep3Share<gfp>, MaliciousRep3Share<gf2n>>(argc, argv, "malicious-rep-field");
+    ez::ezOptionParser opt;
+    ReplicatedMachine<MaliciousRep3Share<gfp>, MaliciousRep3Share<gf2n>>(argc,
+            argv, "malicious-rep-field", opt);
 }

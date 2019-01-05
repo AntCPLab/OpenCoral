@@ -90,6 +90,10 @@ class PRNG
 
    const octet* get_seed() const
      { return seed; }
+
+   template<class T>
+   T get()
+     { T res; res.randomize(*this); return res; }
 };
 
 class SeededPRNG : public PRNG

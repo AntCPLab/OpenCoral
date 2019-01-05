@@ -18,13 +18,16 @@ run_player() {
     fi
     if [[ $bin = Player-Online.x || $bin =~ 'party.x' ]]; then
 	params="$* -pn $port -h localhost"
+	if [[ ! $bin =~ 'rep' ]]; then
+	    params="$params -N $players"
+	fi
     else
 	params="$port localhost $*"
     fi
     if test $bin = Player-KeyGen.x -a ! -e Player-Data/Params-Data; then
 	./Setup.x $players $size 40
     fi
-    if [[ $bin =~ Player- ]]; then
+    if [[ $bin =~ Player- && ! $bin =~ Player-Online.x ]]; then
 	>&2 echo Running $SPDZROOT/Server.x $players $port
 	$SPDZROOT/Server.x $players $port &
     fi

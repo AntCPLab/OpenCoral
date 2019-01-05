@@ -1773,7 +1773,7 @@ class cfix(_number, _structure):
     """ Clear fixed point type. """
     __slots__ = ['value', 'f', 'k', 'size']
     reg_type = 'c'
-    scalars = (int, long, float)
+    scalars = (int, long, float, regint)
     @classmethod
     def set_precision(cls, f, k = None):
         # k is the whole bitlength of fixed point
@@ -1829,7 +1829,12 @@ class cfix(_number, _structure):
         if isinstance(v, cint):
             self.v = cint(v,size=self.size)
         elif isinstance(v, cfix.scalars):
-            self.v = cint(int(round(v * (2 ** f))),size=self.size)
+            v = v * (2 ** f)
+            try:
+                v = int(round(v))
+            except TypeError:
+                pass
+            self.v = cint(v, size=self.size)
         elif isinstance(v, cfix):
             self.v = v.v
         elif isinstance(v, MemValue):
@@ -2072,9 +2077,11 @@ class _fix(_number, _structure):
             self.v = _v.v
         elif isinstance(_v, (MemValue, MemFix)):
             #this is a memvalue object
-            self.v = self.conv(_v.read())
+            self.v = sfix(_v.read()).v
         else:
             raise CompilerError('cannot convert %s to sfix' % _v)
+        if not isinstance(self.v, self.int_type):
+            raise CompilerError('sfix conversion failure: %s/%s' % (_v, self.v))
 
     @vectorize
     def load_int(self, v):
@@ -2304,16 +2311,17 @@ class sfloat(_number, _structure):
                 z = v.z
                 s = v.s
                 v = v.v
-            elif isinstance(v, sint):
-                v, p, z, s = floatingpoint.Int2FL(v, program.bit_length,
-                                                  self.vlen, self.kappa)
             elif isinstance(v, sfix):
                 f = v.f
                 v, p, z, s = floatingpoint.Int2FL(v.v, v.k,
                                                   self.vlen, self.kappa)
                 p = p - f
-            else:
+            elif util.is_constant_float(v):
                 v, p, z, s = self.convert_float(v, self.vlen, self.plen)
+            else:
+                v, p, z, s = floatingpoint.Int2FL(sint.conv(v),
+                                                  program.bit_length,
+                                                  self.vlen, self.kappa)
         if isinstance(v, int):
             if not ((v >= 2**(self.vlen-1) and v < 2**(self.vlen)) or v == 0):
                 raise CompilerError('Floating point number malformed: significand')
@@ -2554,6 +2562,11 @@ _types = {
     'ci': regint,
 }
 
+def _get_type(t):
+    if t in _types:
+        return _types[t]
+    else:
+        return t
 
 class Array(object):
     @classmethod
@@ -2566,8 +2579,7 @@ class Array(object):
         return res
 
     def __init__(self, length, value_type, address=None, debug=None):
-        if value_type in _types:
-            value_type = _types[value_type]
+        value_type = _get_type(value_type)
         self.address = address
         self.length = length
         self.value_type = value_type
@@ -2695,7 +2707,7 @@ sgf2n.dynamic_array = Array
 class SubMultiArray(object):
     def __init__(self, sizes, value_type, address, index, debug=None):
         self.sizes = sizes
-        self.value_type = value_type
+        self.value_type = _get_type(value_type)
         self.address = address + index * reduce(operator.mul, self.sizes) * \
                        self.value_type.n_elements()
         self.sub_cache = {}

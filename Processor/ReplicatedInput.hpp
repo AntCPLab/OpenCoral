@@ -10,9 +10,10 @@
 template<class T>
 void ReplicatedInput<T>::reset(int player)
 {
-    if (player == proc.P.my_num())
+    if (player == P.my_num())
     {
-        shares.clear();
+        this->shares.clear();
+        this->i_share = 0;
         os.resize(2);
         for (auto& o : os)
             o.reset_write_head();
@@ -22,9 +23,10 @@ void ReplicatedInput<T>::reset(int player)
 template<class T>
 void ReplicatedInput<T>::add_mine(const typename T::clear& input)
 {
+    auto& shares = this->shares;
     shares.push_back({});
     T& my_share = shares.back();
-    my_share[0].randomize(proc.Proc.secure_prng);
+    my_share[0].randomize(secure_prng);
     my_share[1] = input - my_share[0];
     for (int j = 0; j < 2; j++)
     {
@@ -42,14 +44,14 @@ void ReplicatedInput<T>::add_other(int player)
 template<class T>
 void ReplicatedInput<T>::send_mine()
 {
-    proc.P.send_relative(os);
+    P.send_relative(os);
 }
 
 template<class T>
-void ReplicatedInput<T>::start(int player, int n_inputs)
+void PrepLessInput<T>::start(int player, int n_inputs)
 {
-    assert(T::length == 2);
-
+    assert(processor != 0);
+    auto& proc = *processor;
     reset(player);
 
     if (player == proc.P.my_num())
@@ -66,12 +68,14 @@ void ReplicatedInput<T>::start(int player, int n_inputs)
 }
 
 template<class T>
-void ReplicatedInput<T>::stop(int player, vector<int> targets)
+void PrepLessInput<T>::stop(int player, vector<int> targets)
 {
+    assert(processor != 0);
+    auto& proc = *processor;
     if (proc.P.my_num() == player)
     {
         for (unsigned int i = 0; i < targets.size(); i++)
-            proc.get_S_ref(targets[i]) = shares[i];
+            proc.get_S_ref(targets[i]) = finalize_mine();
     }
     else
     {
@@ -80,14 +84,25 @@ void ReplicatedInput<T>::stop(int player, vector<int> targets)
         proc.P.receive_player(player, o, true);
         this->timer.stop();
         for (unsigned int i = 0; i < targets.size(); i++)
-        {
-            typename T::value_type t;
-            t.unpack(o);
-            int j = proc.P.get_offset(player) == 2;
-            T share;
-            share[j] = t;
-            share[1 - j] = 0;
-            this->proc.get_S_ref(targets[i]) = share;
-        }
+            finalize_other(player, proc.get_S_ref(targets[i]), o);
     }
+}
+
+template<class T>
+void ReplicatedInput<T>::finalize_other(int player, T& target,
+        octetStream& o)
+{
+    typename T::value_type t;
+    t.unpack(o);
+    int j = P.get_offset(player) == 2;
+    T share;
+    share[j] = t;
+    share[1 - j] = 0;
+    target = share;
+}
+
+template<class T>
+T PrepLessInput<T>::finalize_mine()
+{
+    return this->shares[this->i_share++];
 }

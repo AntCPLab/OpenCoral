@@ -7,12 +7,19 @@
 #include "Tools/parse.h"
 #include "Auth/ReplicatedMC.h"
 #include "Math/MaliciousRep3Share.h"
+#include "Math/ShamirShare.h"
+#include "Auth/ShamirMC.h"
+#include "Math/MaliciousShamirShare.h"
 
 #include "Processor/Processor.hpp"
 #include "Processor/Binary_File_IO.hpp"
 #include "Processor/Input.hpp"
 #include "Processor/Beaver.hpp"
+#include "Processor/Shamir.hpp"
+#include "Processor/ShamirInput.hpp"
+#include "Processor/Replicated.hpp"
 #include "Auth/MaliciousRepMC.hpp"
+#include "Auth/ShamirMC.hpp"
 
 #include <stdlib.h>
 #include <algorithm>
@@ -1699,3 +1706,5 @@ template void Program::execute(Processor<sgfp, Share<gf2n>>& Proc) const;
 template void Program::execute(Processor<Rep3Share<Integer>, Rep3Share<gf2n>>& Proc) const;
 template void Program::execute(Processor<Rep3Share<gfp>, Rep3Share<gf2n>>& Proc) const;
 template void Program::execute(Processor<MaliciousRep3Share<gfp>, MaliciousRep3Share<gf2n>>& Proc) const;
+template void Program::execute(Processor<ShamirShare<gfp>, ShamirShare<gf2n>>& Proc) const;
+template void Program::execute(Processor<MaliciousShamirShare<gfp>, MaliciousShamirShare<gf2n>>& Proc) const;

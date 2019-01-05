@@ -1,6 +1,12 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enchancements are committed between releases and not documented here.
 
+## 0.0.6 (Jan 5, 2019)
+
+- Shamir secret sharing
+
 ## 0.0.5 (Nov 5, 2018)
+
+- More three-party replicated secret sharing
 - Encrypted communication for replicated secret sharing
 
 ## 0.0.4 (Oct 11, 2018)

@@ -7,9 +7,11 @@
 #include "Auth/Subroutines.h"
 #include "Auth/MaliciousRepMC.hpp"
 
-template<class U>
-MaliciousRepPrep<U>::MaliciousRepPrep() : replicated(0)
+template<class T>
+MaliciousRepPrep<T>::MaliciousRepPrep(SubProcessor<T>* proc) :
+        honest_prep(0), replicated(0)
 {
+    (void) proc;
 }
 
 template<class U>
@@ -19,10 +21,10 @@ MaliciousRepPrep<U>::~MaliciousRepPrep()
         delete replicated;
 }
 
-template<class U>
-void MaliciousRepPrep<U>::set_protocol(Beaver<T>& protocol)
+template<class T>
+void MaliciousRepPrep<T>::set_protocol(Beaver<T>& protocol)
 {
-    replicated = new Replicated<Rep3Share<U>>(protocol.P);
+    replicated = new typename T::Honest::Protocol(protocol.P);
     honest_prep.set_protocol(*replicated);
 }
 
@@ -35,8 +37,8 @@ void MaliciousRepPrep<U>::clear_tmp()
     check_squares.clear();
 }
 
-template<class U>
-void MaliciousRepPrep<U>::buffer_triples()
+template<class T>
+void MaliciousRepPrep<T>::buffer_triples()
 {
     auto& triples = this->triples;
     auto& buffer_size = this->buffer_size;
@@ -80,8 +82,8 @@ void MaliciousRepPrep<U>::buffer_triples()
     MC.Check(P);
 }
 
-template<class U>
-void MaliciousRepPrep<U>::buffer_squares()
+template<class T>
+void MaliciousRepPrep<T>::buffer_squares()
 {
     auto& squares = this->squares;
     auto& buffer_size = this->buffer_size;
@@ -120,14 +122,14 @@ void MaliciousRepPrep<U>::buffer_squares()
             throw Offline_Check_Error("square");
 }
 
-template<class U>
-void MaliciousRepPrep<U>::buffer_inverses()
+template<class T>
+void MaliciousRepPrep<T>::buffer_inverses()
 {
     BufferPrep<T>::buffer_inverses(MC, honest_prep.protocol->P);
 }
 
-template<class U>
-void MaliciousRepPrep<U>::buffer_bits()
+template<class T>
+void MaliciousRepPrep<T>::buffer_bits()
 {
     auto& bits = this->bits;
     auto& buffer_size = this->buffer_size;

@@ -8,5 +8,7 @@
 
 int main(int argc, const char** argv)
 {
-    ReplicatedMachine<Rep3Share<Integer>, Rep3Share<gf2n>>(argc, argv, "replicated-ring");
+    ez::ezOptionParser opt;
+    ReplicatedMachine<Rep3Share<Integer>, Rep3Share<gf2n>>(argc, argv,
+            "replicated-ring", opt);
 }

@@ -218,6 +218,8 @@ class gf2n_long
   gf2n_long operator<<(int i) const { gf2n_long res; res.SHL(*this, i); return res; }
   gf2n_long operator>>(int i) const { gf2n_long res; res.SHR(*this, i); return res; }
 
+  gf2n_long& operator>>=(int i) { SHR(*this, i); return *this; }
+
   /* Crap RNG */
   void randomize(PRNG& G);
   // compatibility with gfp

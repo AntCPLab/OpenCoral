@@ -174,6 +174,8 @@ class gf2n_short
   gf2n_short operator<<(int i) const { gf2n_short res; res.SHL(*this, i); return res; }
   gf2n_short operator>>(int i) const { gf2n_short res; res.SHR(*this, i); return res; }
 
+  gf2n_short& operator>>=(int i) { SHR(*this, i); return *this; }
+
   /* Crap RNG */
   void randomize(PRNG& G);
   // compatibility with gfp

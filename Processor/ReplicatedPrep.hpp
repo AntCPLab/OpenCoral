@@ -7,9 +7,11 @@
 #include "Math/gfp.h"
 #include "Math/MaliciousRep3Share.h"
 #include "Auth/ReplicatedMC.h"
+#include "Auth/ShamirMC.h"
 
 template<class T>
-ReplicatedRingPrep<T>::ReplicatedRingPrep() : protocol(0)
+ReplicatedRingPrep<T>::ReplicatedRingPrep(SubProcessor<T>* proc) :
+        protocol(0), proc(proc)
 {
 }
 
@@ -19,7 +21,7 @@ void ReplicatedRingPrep<T>::buffer_triples()
     assert(protocol != 0);
     auto& triples = this->triples;
     triples.resize(this->buffer_size);
-    protocol->init_mul();
+    protocol->init_mul(proc);
     for (size_t i = 0; i < triples.size(); i++)
     {
         auto& triple = triples[i];
@@ -53,7 +55,7 @@ void ReplicatedRingPrep<T>::buffer_squares()
     assert(protocol != 0);
     auto& squares = this->squares;
     squares.resize(this->buffer_size);
-    protocol->init_mul();
+    protocol->init_mul(proc);
     for (size_t i = 0; i < squares.size(); i++)
     {
         auto& square = squares[i];
@@ -70,7 +72,7 @@ void ReplicatedPrep<T>::buffer_inverses()
 {
 	auto protocol = this->protocol;
     assert(protocol != 0);
-    ReplicatedMC<T> MC;
+    typename T::MAC_Check MC;
     BufferPrep<T>::buffer_inverses(MC, protocol->P);
 }
 
@@ -126,60 +128,96 @@ void BufferPrep<T>::get_two(Dtype dtype, T& a, T& b)
 }
 
 template<class T>
+void XOR(vector<T>& res, vector<T>& x, vector<T>& y, int buffer_size,
+		typename T::Protocol& prot, SubProcessor<T>* proc)
+{
+    prot.init_mul(proc);
+    for (int i = 0; i < buffer_size; i++)
+        prot.prepare_mul(x[i], y[i]);
+    prot.exchange();
+    res.resize(buffer_size);
+    typename T::clear two = typename T::clear(1) + typename T::clear(1);
+    for (int i = 0; i < buffer_size; i++)
+        res[i] = x[i] + y[i] - prot.finalize_mul() * two;
+}
+
+int get_n_relevant_players(Player& P)
+{
+    int n_relevant_players = P.num_players();
+    try
+    {
+        n_relevant_players = ShamirMachine::s().threshold + 1;
+    }
+    catch (...)
+    {
+    }
+    return n_relevant_players;
+}
+
+template<template<class U> class T>
+void buffer_bits_spec(ReplicatedPrep<T<gfp>>& prep, vector<T<gfp>>& bits,
+    typename T<gfp>::Protocol& prot)
+{
+    (void) bits, (void) prot;
+    if (get_n_relevant_players(prot.P) > 10)
+    {
+        vector<array<T<gfp>, 2>> squares(prep.buffer_size);
+        vector<T<gfp>> s;
+        for (int i = 0; i < prep.buffer_size; i++)
+        {
+            prep.get_two(DATA_SQUARE, squares[i][0], squares[i][1]);
+            s.push_back(squares[i][1]);
+        }
+        vector<gfp> open;
+        typename T<gfp>::MAC_Check().POpen(open, s, prot.P);
+        auto one = T<gfp>(1, prot.P.my_num());
+        for (size_t i = 0; i < s.size(); i++)
+            if (open[i] != 0)
+                bits.push_back((squares[i][0] / open[i].sqrRoot() + one) / 2);
+        squares.clear();
+        if (bits.empty())
+            throw runtime_error("squares were all zero");
+    }
+    else
+        prep.ReplicatedRingPrep<T<gfp>>::buffer_bits();
+}
+
+template<class T>
 void ReplicatedRingPrep<T>::buffer_bits()
 {
     assert(protocol != 0);
-#ifdef BIT_BY_SQUARE
-    vector<array<Rep3Share<gfp>, 2>> squares(buffer_size);
-    vector<Rep3Share<gfp>> s;
-    for (int i = 0; i < buffer_size; i++)
-    {
-        get_two(DATA_SQUARE, squares[i][0], squares[i][1]);
-        s.push_back(squares[i][1]);
-    }
-    vector<gfp> open;
-    ReplicatedMC<Rep3Share<gfp>>().POpen(open, s, protocol->P);
-    auto one = Rep3Share<gfp>(1, protocol->P.my_num());
-    for (size_t i = 0; i < s.size(); i++)
-        if (open[i] != 0)
-            bits.push_back((squares[i][0] / open[i].sqrRoot() + one) / 2);
-    squares.clear();
-    if (bits.empty())
-        throw runtime_error("squares were all zero");
-#else
     auto buffer_size = this->buffer_size;
     auto& bits = this->bits;
-    vector<vector<T>> player_bits(3, vector<T>(buffer_size));
-    vector<octetStream> os(2);
-    SeededPRNG G;
-    for (auto& share : player_bits[protocol->P.my_num()])
+    auto& P = protocol->P;
+    int n_relevant_players = get_n_relevant_players(P);
+    vector<vector<T>> player_bits(n_relevant_players, vector<T>(buffer_size));
+    typename T::Input input(proc, P);
+    for (int i = 0; i < n_relevant_players; i++)
+        input.reset(i);
+    if (P.my_num() < n_relevant_players)
     {
-        share.randomize_to_sum(G.get_bit(), G);
-        for (int i = 0; i < 2; i++)
-            share[i].pack(os[i]);
+        SeededPRNG G;
+        for (int i = 0; i < buffer_size; i++)
+            input.add_mine(G.get_bit());
+        input.send_mine();
     }
+    for (int i = 0; i < n_relevant_players; i++)
+        if (i == P.my_num())
+            for (auto& x : player_bits[i])
+                x = input.finalize_mine();
+        else
+        {
+            octetStream os;
+            P.receive_player(i, os, true);
+            for (auto& x : player_bits[i])
+                input.finalize_other(i, x, os);
+        }
     auto& prot = *protocol;
-    prot.P.send_relative(os);
-    prot.P.receive_relative(os);
-    for (int i = 0; i < 2; i++)
-        for (auto& share : player_bits[prot.P.get_player(i + 1)])
-            share[i].unpack(os[i]);
-    prot.init_mul();
-    for (int i = 0; i < buffer_size; i++)
-        prot.prepare_mul(player_bits[0][i], player_bits[1][i]);
-    prot.exchange();
-    vector<T> first_xor(buffer_size);
-    typename T::clear two(2);
-    for (int i = 0; i < buffer_size; i++)
-        first_xor[i] = player_bits[0][i] + player_bits[1][i] - prot.finalize_mul() * two;
-    prot.init_mul();
-    for (int i = 0; i < buffer_size; i++)
-        prot.prepare_mul(player_bits[2][i], first_xor[i]);
-    prot.exchange();
-    bits.resize(buffer_size);
-    for (int i = 0; i < buffer_size; i++)
-        bits[i] = player_bits[2][i] + first_xor[i] - prot.finalize_mul() * two;
-#endif
+    vector<T> tmp;
+    XOR(tmp, player_bits[0], player_bits[1], buffer_size, prot, proc);
+    for (int i = 2; i < n_relevant_players - 1; i++)
+    	XOR(tmp, tmp, player_bits[i], buffer_size, prot, proc);
+    XOR(bits, tmp, player_bits[n_relevant_players - 1], buffer_size, prot, proc);
 }
 
 template<>
@@ -195,6 +233,21 @@ void ReplicatedRingPrep<Rep3Share<gf2n>>::buffer_bits()
             share >>= 1;
         }
     }
+}
+
+template<template<class U> class T>
+void buffer_bits_spec(ReplicatedPrep<T<gf2n>>& prep, vector<T<gf2n>>& bits,
+    typename T<gf2n>::Protocol& prot)
+{
+    (void) bits, (void) prot;
+    prep.ReplicatedRingPrep<T<gf2n>>::buffer_bits();
+}
+
+template<class T>
+void ReplicatedPrep<T>::buffer_bits()
+{
+    assert(this->protocol != 0);
+    buffer_bits_spec(*this, this->bits, *this->protocol);
 }
 
 template<class T>
@@ -224,13 +277,3 @@ void BufferPrep<T>::get(vector<T>& S, DataTag tag,
     (void) S, (void) tag, (void) regs, (void) vector_size;
     throw not_implemented();
 }
-
-template class BufferPrep<Rep3Share<gfp>>;
-template class BufferPrep<Rep3Share<gf2n>>;
-template class BufferPrep<MaliciousRep3Share<gfp>>;
-template class BufferPrep<MaliciousRep3Share<gf2n>>;
-template class ReplicatedPrep<Rep3Share<gfp>>;
-template class ReplicatedPrep<Rep3Share<gf2n>>;
-template class ReplicatedRingPrep<Rep3Share<Integer>>;
-template class ReplicatedRingPrep<Rep3Share<gfp>>;
-template class ReplicatedRingPrep<Rep3Share<gf2n>>;

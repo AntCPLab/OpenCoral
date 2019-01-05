@@ -20,11 +20,11 @@ SubProcessor<T>::SubProcessor(ArithmeticProcessor& Proc, typename T::MAC_Check& 
 }
 
 template<class sint, class sgf2n>
-Processor<sint, sgf2n>::Processor(int thread_num,Data_Files<sint, sgf2n>& DataF,Player& P,
+Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
         typename sgf2n::MAC_Check& MC2,typename sint::MAC_Check& MCp,
         Machine<sint, sgf2n>& machine,
         const Program& program)
-: ArithmeticProcessor(machine.opts, thread_num),DataF(DataF),P(P),
+: ArithmeticProcessor(machine.opts, thread_num),DataF(machine, &Procp, &Proc2),P(P),
   MC2(MC2),MCp(MCp),machine(machine),
   Proc2(*this,MC2,DataF.DataF2,P),Procp(*this,MCp,DataF.DataFp,P),
   privateOutput2(Proc2),privateOutputp(Procp),

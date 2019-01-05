@@ -39,7 +39,7 @@ OBJS = $(BMR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(YAO) $(COMPLETE)
 DEPS := $(OBJS:.o=.d)
 
 
-all: gen_input online offline externalIO yao replicated
+all: gen_input online offline externalIO yao replicated shamir
 
 ifeq ($(USE_GF2N_LONG),1)
 all: bmr
@@ -79,6 +79,8 @@ rep-bin: replicated-bin-party.x malicious-rep-bin-party.x Fake-Offline.x
 replicated: rep-field rep-ring rep-bin
 
 tldr: malicious-rep-field-party.x Setup.x
+
+shamir: shamir-party.x malicious-shamir-party.x galois-degree.x
 
 Fake-Offline.x: Fake-Offline.cpp $(COMMON) $(PROCESSOR)
 	$(CXX) $(CFLAGS) -o $@ Fake-Offline.cpp $(COMMON) $(PROCESSOR) $(LDLIBS)
@@ -177,6 +179,12 @@ replicated-field-party.x: replicated-field-party.cpp $(PROCESSOR) $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 malicious-rep-field-party.x: malicious-rep-field-party.cpp $(PROCESSOR) $(COMMON)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
+
+shamir-party.x: shamir-party.cpp $(PROCESSOR) $(COMMON)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
+
+malicious-shamir-party.x: malicious-shamir-party.cpp $(PROCESSOR) $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 $(LIBSIMPLEOT): SimpleOT/Makefile

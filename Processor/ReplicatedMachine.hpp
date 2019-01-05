@@ -12,9 +12,8 @@
 
 template<class T, class U>
 ReplicatedMachine<T, U>::ReplicatedMachine(int argc, const char** argv,
-          string name)
+          string name, ez::ezOptionParser& opt, int nplayers)
 {
-    ez::ezOptionParser opt;
     OnlineOptions online_opts(opt, argc, argv);
     opt.add(
             "localhost", // Default.
@@ -89,7 +88,7 @@ ReplicatedMachine<T, U>::ReplicatedMachine(int argc, const char** argv,
     if (not use_encryption)
         insecure("unencrypted communication");
     Names N;
-    Server* server = Server::start_networking(N, playerno, 3, hostname, pnb);
+    Server* server = Server::start_networking(N, playerno, nplayers, hostname, pnb);
 
     Machine<T, U>(playerno, N, progname, "empty",
             gf2n::default_degree(), 0, 0, 0, 0, 0, use_encryption,

@@ -1,5 +1,5 @@
 from Compiler.types import MemValue, read_mem_value, regint, Array
-from Compiler.types import _bitint, _number, _fix
+from Compiler.types import _bitint, _number, _fix, _structure
 from Compiler.program import Tape, Program
 from Compiler.exceptions import *
 from Compiler import util, oram, floatingpoint
@@ -65,6 +65,12 @@ class bits(Tape.Register):
             return res + suffix
         else:
             return self.decomposed[:n] + suffix
+    @classmethod
+    def malloc(cls, size):
+        return Program.prog.malloc(size, cls)
+    @staticmethod
+    def n_elements():
+        return 1
     @classmethod
     def load_mem(cls, address, mem_type=None):
         res = cls()

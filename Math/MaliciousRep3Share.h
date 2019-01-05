@@ -23,6 +23,7 @@ public:
     typedef MAC_Check Direct_MC;
     typedef ReplicatedInput<MaliciousRep3Share<T>> Input;
     typedef ReplicatedPrivateOutput<MaliciousRep3Share<T>> PrivateOutput;
+    typedef Rep3Share<T> Honest;
 
     static string type_short()
     {

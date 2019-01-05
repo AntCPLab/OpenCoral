@@ -13,15 +13,14 @@
 
 #include <array>
 
-template<class U>
-class MaliciousRepPrep : public BufferPrep<MaliciousRep3Share<U>>
+template<class T>
+class MaliciousRepPrep : public BufferPrep<T>
 {
-    typedef MaliciousRep3Share<U> T;
-    typedef BufferPrep<MaliciousRep3Share<U>> super;
+    typedef BufferPrep<T> super;
 
-    ReplicatedPrep<Rep3Share<U>> honest_prep;
-    Replicated<Rep3Share<U>>* replicated;
-    HashMaliciousRepMC<T> MC;
+    ReplicatedPrep<typename T::Honest> honest_prep;
+    typename T::Honest::Protocol* replicated;
+    typename T::MAC_Check MC;
 
     vector<T> masked;
     vector<T> checks;
@@ -38,7 +37,7 @@ class MaliciousRepPrep : public BufferPrep<MaliciousRep3Share<U>>
     void buffer_bits();
 
 public:
-    MaliciousRepPrep();
+    MaliciousRepPrep(SubProcessor<T>* proc);
     ~MaliciousRepPrep();
 
     void set_protocol(Beaver<T>& protocol);

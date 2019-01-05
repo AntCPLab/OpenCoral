@@ -41,7 +41,7 @@ class SubProcessor
 
   template<class sint, class sgf2n> friend class Processor;
   template<class U> friend class SPDZ;
-  template<class U> friend class Replicated;
+  template<class U> friend class PrepLessProtocol;
   template<class U> friend class Beaver;
 
 public:
@@ -128,7 +128,7 @@ class Processor : public ArithmeticProcessor
   vector<typename T::clear>& get_PO();
 
   public:
-  Data_Files<sint, sgf2n>& DataF;
+  Data_Files<sint, sgf2n> DataF;
   Player& P;
   typename sgf2n::MAC_Check& MC2;
   typename sint::MAC_Check& MCp;
@@ -158,7 +158,7 @@ class Processor : public ArithmeticProcessor
   void reset(const Program& program,int arg); // Reset the state of the processor
   string get_filename(const char* basename, bool use_number);
 
-  Processor(int thread_num,Data_Files<sint, sgf2n>& DataF,Player& P,
+  Processor(int thread_num,Player& P,
           typename sgf2n::MAC_Check& MC2,typename sint::MAC_Check& MCp,
           Machine<sint, sgf2n>& machine,
           const Program& program);

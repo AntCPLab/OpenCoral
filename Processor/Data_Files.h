@@ -69,7 +69,9 @@ class Preprocessing
 {
 public:
   template<class U, class V>
-  static Preprocessing<T>* get_new(Machine<U, V>& machine, DataPositions& usage);
+  static Preprocessing<T>* get_new(Machine<U, V>& machine, DataPositions& usage,
+      SubProcessor<T>* proc);
+  static Preprocessing<T>* get_live_prep(SubProcessor<T>* proc);
 
   virtual ~Preprocessing() {}
 
@@ -179,7 +181,9 @@ class Data_Files
   Preprocessing<sint>& DataFp;
   Preprocessing<sgf2n>& DataF2;
 
-  Data_Files(Machine<sint, sgf2n>& machine);
+  Data_Files(Machine<sint, sgf2n>& machine, SubProcessor<sint>* procp = 0,
+      SubProcessor<sgf2n>* proc2 = 0);
+  ~Data_Files();
 
   DataPositions tellg();
   void seekg(DataPositions& pos);

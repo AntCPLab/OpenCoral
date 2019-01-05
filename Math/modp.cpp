@@ -14,12 +14,6 @@ void modp::randomize(PRNG& G, const Zp_Data& ZpD)
   G.randomBnd(x, ZpD.get_prA(), ZpD.pr_byte_length);
 }
 
-void modp::pack(octetStream& o,const Zp_Data& ZpD) const
-{
-  o.append((octet*) x,ZpD.t*sizeof(mp_limb_t));
-}
-
-
 void modp::unpack(octetStream& o,const Zp_Data& ZpD)
 {
   o.consume((octet*) x,ZpD.t*sizeof(mp_limb_t));

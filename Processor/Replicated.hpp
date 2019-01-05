@@ -8,16 +8,22 @@
 #include "Math/FixedVec.h"
 #include "Math/Integer.h"
 #include "Math/MaliciousRep3Share.h"
+#include "Math/ShamirShare.h"
 #include "Tools/benchmarking.h"
 #include "GC/ReplicatedSecret.h"
 
 template<class T>
-Replicated<T>::Replicated(Player& P) : ReplicatedBase(P), counter(0)
+PrepLessProtocol<T>::PrepLessProtocol() : counter(0)
+{
+}
+
+template<class T>
+Replicated<T>::Replicated(Player& P) : ReplicatedBase(P)
 {
     assert(T::length == 2);
 }
 
-ReplicatedBase::ReplicatedBase(Player& P) : P(P)
+inline ReplicatedBase::ReplicatedBase(Player& P) : P(P)
 {
     assert(P.num_players() == 3);
 	if (not P.is_encrypted())
@@ -32,21 +38,21 @@ ReplicatedBase::ReplicatedBase(Player& P) : P(P)
 }
 
 template<class T>
-inline Replicated<T>::~Replicated()
+PrepLessProtocol<T>::~PrepLessProtocol()
 {
-    cerr << "Number of multiplications: " << counter << endl;
+    if (counter)
+        cerr << "Number of multiplications: " << counter << endl;
 }
 
 template<class T>
-void Replicated<T>::muls(const vector<int>& reg,
-        SubProcessor<T>& proc, ReplicatedMC<T>& MC, int size)
+void PrepLessProtocol<T>::muls(const vector<int>& reg,
+        SubProcessor<T>& proc, MAC_Check_Base<T>& MC, int size)
 {
     (void)MC;
-    assert(T::length == 2);
     assert(reg.size() % 3 == 0);
     int n = reg.size() / 3;
 
-    init_mul();
+    init_mul(&proc);
     for (int i = 0; i < n; i++)
         for (int j = 0; j < size; j++)
         {
@@ -62,6 +68,13 @@ void Replicated<T>::muls(const vector<int>& reg,
         }
 
     counter += n * size;
+}
+
+template<class T>
+void Replicated<T>::init_mul(SubProcessor<T>* proc)
+{
+    (void) proc;
+    init_mul();
 }
 
 template<class T>
@@ -112,9 +125,3 @@ T Replicated<T>::get_random()
         res[i].randomize(shared_prngs[i]);
     return res;
 }
-
-template class Replicated<Rep3Share<Integer>>;
-template class Replicated<Rep3Share<gfp>>;
-template class Replicated<Rep3Share<gf2n>>;
-template class Replicated<MaliciousRep3Share<gfp>>;
-template class Replicated<MaliciousRep3Share<gf2n>>;

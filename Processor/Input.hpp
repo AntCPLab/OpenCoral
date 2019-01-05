@@ -8,15 +8,16 @@
 #include "Auth/MAC_Check.h"
 
 template<class T>
-InputBase<T>::InputBase(ArithmeticProcessor& proc) :
+InputBase<T>::InputBase(ArithmeticProcessor* proc) :
         values_input(0)
 {
-    buffer.setup(&proc.private_input, -1, proc.private_input_filename);
+    if (proc)
+        buffer.setup(&proc->private_input, -1, proc->private_input_filename);
 }
 
 template<class T>
 Input<T>::Input(SubProcessor<Share<T>>& proc, MAC_Check<T>& mc) :
-        InputBase<Share<T>>(proc.Proc), proc(proc), MC(mc), shares(proc.P.num_players())
+        InputBase<Share<T>>(&proc.Proc), proc(proc), MC(mc), shares(proc.P.num_players())
 {
 }
 

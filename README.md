@@ -199,6 +199,45 @@ Player-Data Programs
 $ ../spdz/Scripts/run-online.sh test
 ```
 
+### Honest-majority computation based on Shamir secret sharing
+
+Compile the virtual machines:
+
+`make -j 8 shamir`
+
+Run setup to generate SSL keys and certificates. See the section replicated secret sharing for binary circuits below for details.
+
+`Scripts/setup-ssl.sh <nparties>`
+
+In order to compile a program, use `./compile.py`, for example:
+
+`./compile.py tutorial`
+
+Running the computation is similar to SPDZ but you will need to start
+at least three parties:
+
+`./malicious-shamir-party.x -N 3 -I 0 tutorial`
+
+`./malicious-shamir-party.x -N 3 -I 1 tutorial` (in a separate terminal)
+
+`./malicious-shamir-party.x -N 3 -I 2 tutorial` (in a separate terminal)
+
+The `-I` enable interactive inputs, and in the tutorial party 0 and 1
+will be asked to provide three numbers. Using
+`./shamir-party.x` will provide semi-honest security instead
+of malicious.
+
+You can run all parties at once with
+
+`Scripts/mal-shamir.sh tutorial`
+
+for malicious security or
+
+`Scripts/shamir.sh tutorial`
+
+for semi-honest security. In this case, the inputs are read from
+`Player-Data/Input-P<playerno>-0`.
+
 ### Three-party honest-majority computation modulo a prime
 
 Compile the virtual machines:
