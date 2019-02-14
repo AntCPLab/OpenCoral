@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include "Math/gfp.h"
-#include "Processor/Buffer.h"
+#include "Tools/Buffer.h"
 #include "Tools/ezOptionParser.h"
 #include "Math/Setup.h"
 

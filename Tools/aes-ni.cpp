@@ -35,6 +35,7 @@ void aes_128_schedule( octet* key, const octet* userkey )
   __m128i *Key_Schedule = (__m128i*)key; 
   temp1 = _mm_loadu_si128((__m128i*)userkey); 
   Key_Schedule[0] = temp1;
+#ifdef __AES__
   temp2 = _mm_aeskeygenassist_si128 (temp1 ,0x1); 
   temp1 = AES_128_ASSIST(temp1, temp2); 
   Key_Schedule[1] = temp1; 
@@ -65,8 +66,13 @@ void aes_128_schedule( octet* key, const octet* userkey )
   temp2 = _mm_aeskeygenassist_si128 (temp1,0x36); 
   temp1 = AES_128_ASSIST(temp1, temp2); 
   Key_Schedule[10] = temp1; 
+#else
+  (void) temp2;
+  throw runtime_error("need to compile with AES-NI support");
+#endif
 }
 
+#ifdef __AES__
 inline void KEY_192_ASSIST(__m128i* temp1, __m128i * temp2, __m128i * temp3)
 { __m128i temp4;
   *temp2 = _mm_shuffle_epi32 (*temp2, 0x55);
@@ -222,7 +228,7 @@ void aes_256_encrypt(octet* out, const octet* in, const octet* key)
   tmp = _mm_aesenclast_si128 (tmp,((__m128i*)key)[j]); 
   _mm_storeu_si128 (&((__m128i*)out)[0],tmp); 
 }
-
+#endif
 
 
 

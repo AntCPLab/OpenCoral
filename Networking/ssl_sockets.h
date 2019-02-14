@@ -14,12 +14,17 @@
 
 typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;
 
+inline size_t send_non_blocking(ssl_socket* socket, octet* data, size_t length)
+{
+    return socket->write_some(boost::asio::buffer(data, length));
+}
+
 template<>
 inline void send(ssl_socket* socket, octet* data, size_t length)
 {
     size_t sent = 0;
     while (sent < length)
-        sent += socket->write_some(boost::asio::buffer(data + sent, length - sent));
+        sent += send_non_blocking(socket, data + sent, length - sent);
 }
 
 template<>

@@ -6,11 +6,10 @@ from Compiler import util, oram, floatingpoint
 import Compiler.GC.instructions as inst
 import operator
 
-class bits(Tape.Register):
+class bits(Tape.Register, _structure):
     n = 40
     size = 1
     PreOp = staticmethod(floatingpoint.PreOpN)
-    MemValue = staticmethod(lambda value: MemValue(value))
     decomposed = None
     @staticmethod
     def PreOR(l):
@@ -72,7 +71,10 @@ class bits(Tape.Register):
     def n_elements():
         return 1
     @classmethod
-    def load_mem(cls, address, mem_type=None):
+    def load_mem(cls, address, mem_type=None, size=None):
+        if size not in (None, 1):
+            v = [cls.load_mem(address + i) for i in range(size)]
+            return cls.vec(v)
         res = cls()
         if mem_type == 'sd':
             return cls.load_dynamic_mem(address)
@@ -376,6 +378,9 @@ class sbits(bits):
 
 class sbitvec(object):
     @classmethod
+    def get_type(cls, n):
+        return cls
+    @classmethod
     def from_vec(cls, vector):
         res = cls()
         res.v = list(vector)
@@ -419,6 +424,15 @@ class sbitvec(object):
     @classmethod
     def conv(cls, other):
         return cls.from_vec(other.v)
+    @property
+    def size(self):
+        return self.v[0].n
+    def store_in_mem(self, address):
+        for i, x in enumerate(self.elements()):
+            x.store_in_mem(address + i)
+    def bit_decompose(self):
+        return self.v
+    bit_compose = from_vec
 
 class bit(object):
     n = 1
@@ -499,7 +513,9 @@ class sbitint(_bitint, _number, sbits):
     bin_type = None
     types = {}
     @classmethod
-    def get_type(cls, n):
+    def get_type(cls, n, other=None):
+        if isinstance(other, sbitvec):
+            return sbitvec
         if n in cls.types:
             return cls.types[n]
         sbits_type = sbits.get_type(n)
@@ -510,6 +526,12 @@ class sbitint(_bitint, _number, sbits):
         _.__name__ = 'sbitint' + str(n)
         cls.types[n] = _
         return _
+    @classmethod
+    def combo_type(cls, other):
+        if isinstance(other, sbitintvec):
+            return sbitintvec
+        else:
+            return cls
     @classmethod
     def new(cls, value=None, n=None):
         return cls.get_type(n)(value)
@@ -523,7 +545,9 @@ class sbitint(_bitint, _number, sbits):
         return super(sbitint, cls).bit_compose(bits)
     def force_bit_decompose(self, n_bits=None):
         return sbits.bit_decompose(self, n_bits)
-    def TruncMul(self, other, k, m, kappa=None):
+    def TruncMul(self, other, k, m, kappa=None, nearest=False):
+        if nearest:
+            raise CompilerError('round to nearest not implemented')
         self_bits = self.bit_decompose()
         other_bits = other.bit_decompose()
         if len(self_bits) + len(other_bits) != k:
@@ -532,10 +556,12 @@ class sbitint(_bitint, _number, sbits):
                             (len(self_bits), len(other_bits), k))
         t = self.get_type(k)
         a = t.bit_compose(self_bits + [self_bits[-1]] * (k - len(self_bits)))
+        t = other.get_type(k)
         b = t.bit_compose(other_bits + [other_bits[-1]] * (k - len(other_bits)))
         product = a * b
         res_bits = product.bit_decompose()[m:k]
-        return self.bit_compose(res_bits)
+        t = self.combo_type(other)
+        return t.bit_compose(res_bits)
     def Norm(self, k, f, kappa=None, simplex_flag=False):
         absolute_val = abs(self)
         #next 2 lines actually compute the SufOR for little indian encoding
@@ -557,17 +583,32 @@ class sbitint(_bitint, _number, sbits):
         bits = self.bit_decompose()
         bits += [bits[-1]] * (n - len(bits))
         return self.get_type(n).bit_compose(bits)
+    def __mul__(self, other):
+        if isinstance(other, sbitintvec):
+            return other * self
+        else:
+            return super(sbitint, self).__mul__(other)
 
 class sbitintvec(sbitvec):
     def __add__(self, other):
         if other is 0:
             return self
         assert(len(self.v) == len(other.v))
-        return self.from_vec(sbitint.bit_adder(self.v, other.v))
+        v = sbitint.bit_adder(self.v, other.v)
+        return self.from_vec(v)
     __radd__ = __add__
     def less_than(self, other, *args, **kwargs):
         assert(len(self.v) == len(other.v))
         return self.from_vec(sbitint.bit_less_than(self.v, other.v))
+    def __mul__(self, other):
+        assert isinstance(other, sbitint)
+        matrix = [[x * b for x in self.v] for b in other.bit_decompose()]
+        v = sbitint.wallace_tree_from_matrix(matrix)
+        return self.from_vec(v)
+    __rmul__ = __mul__
+    reduce_after_mul = lambda x: x
+
+sbitint.vec = sbitintvec
 
 class cbitfix(object):
     def __init__(self, value):
@@ -585,6 +626,13 @@ class sbitfix(_fix):
     def set_precision(cls, f, k=None):
         super(cls, sbitfix).set_precision(f, k)
         cls.int_type = sbitint.get_type(cls.k)
+    @classmethod
+    def load_mem(cls, address, size=None):
+        if size not in (None, 1):
+            v = [cls.int_type.load_mem(address + i) for i in range(size)]
+            return sbitfixvec._new(sbitintvec(v))
+        else:
+            return super(sbitfix, cls).load_mem(address)
     def __xor__(self, other):
         return type(self)(self.v ^ other.v)
     def __mul__(self, other):
@@ -596,3 +644,17 @@ class sbitfix(_fix):
     __rmul__ = __mul__
 
 sbitfix.set_precision(20, 41)
+
+class sbitfixvec(_fix):
+    int_type = sbitintvec
+    float_type = type(None)
+    @staticmethod
+    @property
+    def f():
+        return sbitfix.f
+    @staticmethod
+    @property
+    def k():
+        return sbitfix.k
+
+sbitfix.vec = sbitfixvec

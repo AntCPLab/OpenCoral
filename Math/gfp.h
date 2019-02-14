@@ -47,13 +47,15 @@ class gfp
   static Zp_Data& get_ZpD()
     { return ZpD; }
 
-  static DataFieldType field_type() { return DATA_MODP; }
+  static DataFieldType field_type() { return DATA_INT; }
   static char type_char() { return 'p'; }
   static string type_string() { return "gfp"; }
 
   static int size() { return t() * sizeof(mp_limb_t); }
 
   static void reqbl(int n);
+
+  static bool allows(Dtype type);
 
   void assign(const gfp& g) { a=g.a; } 
   void assign_zero()        { assignZero(a,ZpD); }

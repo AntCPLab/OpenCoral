@@ -13,8 +13,9 @@
 #include "Program.hpp"
 #include "Thread.hpp"
 #include "ThreadMaster.hpp"
-#include "Auth/MaliciousRepMC.hpp"
-#include "Processor/Replicated.hpp"
+
+#include "Processor/Machine.hpp"
+#include "Processor/Instruction.hpp"
 
 namespace GC
 {

@@ -5,7 +5,7 @@
 
 #include "MaliciousRepPrep.h"
 #include "Auth/Subroutines.h"
-#include "Auth/MaliciousRepMC.hpp"
+//#include "Auth/MaliciousRepMC.hpp"
 
 template<class T>
 MaliciousRepPrep<T>::MaliciousRepPrep(SubProcessor<T>* proc) :
@@ -41,7 +41,7 @@ template<class T>
 void MaliciousRepPrep<T>::buffer_triples()
 {
     auto& triples = this->triples;
-    auto& buffer_size = this->buffer_size;
+    auto buffer_size = this->buffer_size;
     clear_tmp();
     Player& P = honest_prep.protocol->P;
     triples.clear();
@@ -51,8 +51,8 @@ void MaliciousRepPrep<T>::buffer_triples()
         T f, g, h;
         honest_prep.get_three(DATA_TRIPLE, a, b, c);
         honest_prep.get_three(DATA_TRIPLE, f, g, h);
-        triples.push_back({a, b, c});
-        check_triples.push_back({f, g, h});
+        triples.push_back({{a, b, c}});
+        check_triples.push_back({{f, g, h}});
     }
     auto t = Create_Random<typename T::clear>(P);
     for (int i = 0; i < buffer_size; i++)
@@ -86,7 +86,7 @@ template<class T>
 void MaliciousRepPrep<T>::buffer_squares()
 {
     auto& squares = this->squares;
-    auto& buffer_size = this->buffer_size;
+    auto buffer_size = this->buffer_size;
     clear_tmp();
     Player& P = honest_prep.protocol->P;
     squares.clear();
@@ -96,8 +96,8 @@ void MaliciousRepPrep<T>::buffer_squares()
         T f, h;
         honest_prep.get_two(DATA_SQUARE, a, b);
         honest_prep.get_two(DATA_SQUARE, f, h);
-        squares.push_back({a, b});
-        check_squares.push_back({f, h});
+        squares.push_back({{a, b}});
+        check_squares.push_back({{f, h}});
     }
     auto t = Create_Random<typename T::clear>(P);
     for (int i = 0; i < buffer_size; i++)
@@ -132,7 +132,7 @@ template<class T>
 void MaliciousRepPrep<T>::buffer_bits()
 {
     auto& bits = this->bits;
-    auto& buffer_size = this->buffer_size;
+    auto buffer_size = this->buffer_size;
     clear_tmp();
     Player& P = honest_prep.protocol->P;
     bits.clear();
@@ -142,7 +142,7 @@ void MaliciousRepPrep<T>::buffer_bits()
         honest_prep.get_one(DATA_BIT, a);
         honest_prep.get_two(DATA_SQUARE, f, h);
         bits.push_back(a);
-        check_squares.push_back({f, h});
+        check_squares.push_back({{f, h}});
     }
     auto t = Create_Random<typename T::clear>(P);
     for (int i = 0; i < buffer_size; i++)

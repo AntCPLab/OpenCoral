@@ -9,6 +9,8 @@
 #include "GC/Instruction.hpp"
 #include "GC/Program.hpp"
 
+#include "Processor/Instruction.hpp"
+
 namespace GC
 {
 

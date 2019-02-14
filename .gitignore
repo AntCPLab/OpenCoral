@@ -62,6 +62,7 @@ Programs/Public-Input/*
 *.a
 *.static
 *.d
+local/
 
 # Packages #
 ############

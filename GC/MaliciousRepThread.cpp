@@ -8,6 +8,7 @@
 #include "Math/Setup.h"
 
 #include "Auth/MaliciousRepMC.hpp"
+#include "Processor/Data_Files.hpp"
 
 namespace GC
 {
@@ -61,7 +62,7 @@ void MaliciousRepThread::and_(Processor<MaliciousRepSecret>& processor,
         int n_bits = args[i];
         int left = args[i + 2];
         int right = args[i + 3];
-        triples.push_back({0});
+        triples.push_back({{0}});
         DataF.get(DATA_TRIPLE, triples.back().data());
         shares.push_back((processor.S[left] - triples.back()[0]).mask(n_bits));
         MaliciousRepSecret y_ext;

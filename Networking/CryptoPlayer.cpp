@@ -76,6 +76,7 @@ CryptoPlayer::CryptoPlayer(const Names& Nms, int id_base) :
 
 CryptoPlayer::~CryptoPlayer()
 {
+    close_client_socket(plaintext_player.socket(my_num()));
     plaintext_player.sockets.clear();
     for (int i = 0; i < num_players(); i++)
         delete sockets[i];

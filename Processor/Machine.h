@@ -18,6 +18,7 @@
 
 #include <vector>
 #include <map>
+#include <atomic>
 using namespace std;
 
 template<class sint, class sgf2n>
@@ -70,6 +71,8 @@ class Machine : public BaseMachine
   bool live_prep;
 
   OnlineOptions opts;
+
+  atomic<size_t> data_sent;
 
   Machine(int my_number, Names& playerNames, string progname,
       string memtype, int lg2, bool direct, int opening_sum, bool parallel,

@@ -28,21 +28,24 @@ endif
 COMMON = $(MATH) $(TOOLS) $(NETWORK) $(AUTH)
 COMPLETE = $(COMMON) $(PROCESSOR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(GC) $(OT)
 YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp)) $(OT) $(GC)
-BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp)) $(COMMON) $(PROCESSOR)
+BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp)) $(COMMON) Processor/BaseMachine.o Processor/ProcessorBase.o
 
 
 LIB = libSPDZ.a
+LIBHM = libhm.a
 LIBSIMPLEOT = SimpleOT/libsimpleot.a
 
 # used for dependency generation
-OBJS = $(BMR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(YAO) $(COMPLETE)
+OBJS = $(BMR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(YAO) $(COMPLETE) $(patsubst %.cpp,%.o,$(wildcard Machines/*.cpp))
 DEPS := $(OBJS:.o=.d)
 
 
 all: gen_input online offline externalIO yao replicated shamir
 
 ifeq ($(USE_GF2N_LONG),1)
+ifneq ($(OS), Darwin)
 all: bmr
+endif
 endif
 
 ifeq ($(USE_NTL),1)
@@ -78,21 +81,40 @@ rep-bin: replicated-bin-party.x malicious-rep-bin-party.x Fake-Offline.x
 
 replicated: rep-field rep-ring rep-bin
 
-tldr: malicious-rep-field-party.x Setup.x
+tldr:
+	-echo ARCH = -march=native >> CONFIG.mine
+	$(MAKE) malicious-rep-field-party.x Setup.x
+
+ifeq ($(OS), Darwin)
+tldr: mac-setup
+else
+tldr: mpir
+endif
 
 shamir: shamir-party.x malicious-shamir-party.x galois-degree.x
 
-Fake-Offline.x: Fake-Offline.cpp $(COMMON) $(PROCESSOR)
-	$(CXX) $(CFLAGS) -o $@ Fake-Offline.cpp $(COMMON) $(PROCESSOR) $(LDLIBS)
+$(LIBHM): Machines/Rep.o Machines/ShamirMachine.o $(PROCESSOR) $(COMMON)
+	$(AR) -csr $@ $^
+
+static/%.x: %.cpp $(LIBHM) $(LIBSIMPLEOT)
+	$(CXX) $(CFLAGS) -o $@ $^ -Wl,-Map=$<.map -Wl,-Bstatic -static-libgcc -static-libstdc++ $(BOOST) $(LDLIBS) -Wl,-Bdynamic -ldl
+
+static-dir:
+	@ mkdir static 2> /dev/null; true
+
+static-hm: static-dir $(patsubst %.cpp, static/%.x, $(wildcard *ring*.cpp *field*.cpp *shamir*.cpp ))
+
+Fake-Offline.x: Fake-Offline.cpp $(COMMON)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 Check-Offline.x: Check-Offline.cpp $(COMMON) $(PROCESSOR) Auth/fake-stuff.hpp
-	$(CXX) $(CFLAGS) Check-Offline.cpp -o Check-Offline.x $(COMMON) $(PROCESSOR) $(LDLIBS)
+	$(CXX) $(CFLAGS) Check-Offline.cpp -o Check-Offline.x $(COMMON) $(LDLIBS)
 
 Server.x: Server.cpp $(COMMON)
 	$(CXX) $(CFLAGS) Server.cpp -o Server.x $(COMMON) $(LDLIBS)
 
-Player-Online.x: Player-Online.cpp $(COMMON) $(PROCESSOR)
-	$(CXX) $(CFLAGS) Player-Online.cpp -o Player-Online.x $(COMMON) $(PROCESSOR) $(LDLIBS)
+Player-Online.x: Player-Online.cpp Machines/SPDZ.o $(COMMON) $(PROCESSOR)
+	$(CXX) $(CFLAGS) -o Player-Online.x $^ $(LDLIBS)
 
 Setup.x: Setup.cpp $(COMMON)
 	$(CXX) $(CFLAGS) Setup.cpp -o Setup.x $(COMMON) $(LDLIBS)
@@ -134,13 +156,13 @@ endif
 bmr-clean:
 	-rm BMR/*.o BMR/*/*.o GC/*.o
 
-client-setup.x: client-setup.cpp $(COMMON) $(PROCESSOR)
+client-setup.x: client-setup.cpp $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
-bankers-bonus-client.x: ExternalIO/bankers-bonus-client.cpp $(COMMON) $(PROCESSOR)
+bankers-bonus-client.x: ExternalIO/bankers-bonus-client.cpp $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
-bankers-bonus-commsec-client.x: ExternalIO/bankers-bonus-commsec-client.cpp $(COMMON) $(PROCESSOR)
+bankers-bonus-commsec-client.x: ExternalIO/bankers-bonus-commsec-client.cpp $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 ifeq ($(USE_NTL),1)
@@ -172,19 +194,19 @@ replicated-bin-party.x: $(COMMON) $(GC) replicated-bin-party.cpp
 malicious-rep-bin-party.x: $(COMMON) $(GC) malicious-rep-bin-party.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
-replicated-ring-party.x: replicated-ring-party.cpp $(PROCESSOR) $(COMMON)
+replicated-ring-party.x: replicated-ring-party.cpp Machines/Rep.o $(PROCESSOR) $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
-replicated-field-party.x: replicated-field-party.cpp $(PROCESSOR) $(COMMON)
+replicated-field-party.x: replicated-field-party.cpp Machines/Rep.o $(PROCESSOR) $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
-malicious-rep-field-party.x: malicious-rep-field-party.cpp $(PROCESSOR) $(COMMON)
+malicious-rep-field-party.x: malicious-rep-field-party.cpp Machines/Rep.o $(PROCESSOR) $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
-shamir-party.x: shamir-party.cpp $(PROCESSOR) $(COMMON)
+shamir-party.x: shamir-party.cpp Machines/ShamirMachine.o $(PROCESSOR) $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
-malicious-shamir-party.x: malicious-shamir-party.cpp $(PROCESSOR) $(COMMON)
+malicious-shamir-party.x: malicious-shamir-party.cpp Machines/ShamirMachine.o $(PROCESSOR) $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 $(LIBSIMPLEOT): SimpleOT/Makefile
@@ -196,15 +218,31 @@ OT/BaseOT.o: SimpleOT/Makefile
 SimpleOT/Makefile:
 	git submodule update --init SimpleOT
 
-.PHONY: mpir
-mpir:
+.PHONY: mpir-setup mpir-global mpir
+mpir-setup:
 	git submodule update --init mpir
 	cd mpir; \
 	autoreconf -i; \
-	autoreconf -i; \
+	autoreconf -i
+	- $(MAKE) -C mpir clean
+
+mpir-global: mpir-setup
+	cd mpir; \
 	./configure --enable-cxx;
 	$(MAKE) -C mpir
 	sudo $(MAKE) -C mpir install
 
+mpir: mpir-setup
+	cd mpir; \
+	./configure --enable-cxx --prefix=$(CURDIR)/local
+	$(MAKE) -C mpir install
+	-echo MY_CFLAGS += -I./local/include >> CONFIG.mine
+	-echo MY_LDLIBS += -Wl,-rpath -Wl,./local/lib -L./local/lib >> CONFIG.mine
+
+mac-setup:
+	brew install openssl boost libsodium mpir yasm
+	-echo MY_CFLAGS += -I/usr/local/opt/openssl/include >> CONFIG.mine
+	-echo MY_LDLIBS += -L/usr/local/opt/openssl/lib >> CONFIG.mine
+
 clean:
-	-rm */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o
+	-rm */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o static/*.x

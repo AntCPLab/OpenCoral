@@ -10,10 +10,11 @@ using namespace std;
 
 PRNG::PRNG() : cnt(0)
 {
+#ifdef __AES__
   #ifdef USE_AES
     useC=(Check_CPU_support_AES()==0);
   #endif
-  
+#endif
 }
 
 void PRNG::ReSeed()

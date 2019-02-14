@@ -3,13 +3,17 @@
  *
  */
 
-#include "ShamirMachine.h"
+#include <Machines/ShamirMachine.h>
 #include "Math/ShamirShare.h"
 #include "Math/MaliciousShamirShare.h"
 #include "Math/gfp.h"
 #include "Math/gf2n.h"
 
-#include "ReplicatedMachine.hpp"
+#include "Processor/ReplicatedMachine.hpp"
+
+#include "Processor/Data_Files.hpp"
+#include "Processor/Instruction.hpp"
+#include "Processor/Machine.hpp"
 
 ShamirMachine* ShamirMachine::singleton = 0;
 
@@ -64,5 +68,38 @@ ShamirMachineSpec<T>::ShamirMachineSpec(int argc, const char** argv) :
     ReplicatedMachine<T<gfp>, T<gf2n>>(argc, argv, "shamir", opt, nparties);
 }
 
+template<>
+Preprocessing<ShamirShare<gfp>>* Preprocessing<ShamirShare<gfp>>::get_live_prep(
+   SubProcessor<ShamirShare<gfp>>* proc)
+{
+ return new ReplicatedPrep<ShamirShare<gfp>>(proc);
+}
+
+template<>
+Preprocessing<ShamirShare<gf2n>>* Preprocessing<ShamirShare<gf2n>>::get_live_prep(
+   SubProcessor<ShamirShare<gf2n>>* proc)
+{
+ return new ReplicatedPrep<ShamirShare<gf2n>>(proc);
+}
+
+template<>
+Preprocessing<MaliciousShamirShare<gfp>>* Preprocessing<MaliciousShamirShare<gfp>>::get_live_prep(
+   SubProcessor<MaliciousShamirShare<gfp>>* proc)
+{
+ (void) proc;
+ return new MaliciousRepPrep<MaliciousShamirShare<gfp>>(proc);
+}
+
+template<>
+Preprocessing<MaliciousShamirShare<gf2n>>* Preprocessing<MaliciousShamirShare<gf2n>>::get_live_prep(
+   SubProcessor<MaliciousShamirShare<gf2n>>* proc)
+{
+ (void) proc;
+ return new MaliciousRepPrep<MaliciousShamirShare<gf2n>>(proc);
+}
+
 template class ShamirMachineSpec<ShamirShare>;
 template class ShamirMachineSpec<MaliciousShamirShare>;
+
+template class Machine<ShamirShare<gfp>, ShamirShare<gf2n>>;
+template class Machine<MaliciousShamirShare<gfp>, MaliciousShamirShare<gf2n>>;

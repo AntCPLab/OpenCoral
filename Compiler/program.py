@@ -68,6 +68,10 @@ class Program(object):
                          Compiler.instructions.gasm_open_class, \
                          Compiler.instructions.muls_class, \
                          Compiler.instructions.gmuls_class, \
+                         Compiler.instructions.mulrs_class, \
+                         Compiler.instructions.gmulrs, \
+                         Compiler.instructions.dotprods_class, \
+                         Compiler.instructions.gdotprods, \
                          Compiler.instructions.asm_input_class, \
                          Compiler.instructions.gasm_input_class]
         import Compiler.GC.instructions as gc
@@ -433,6 +437,7 @@ class Tape:
                 self.alloc_pool = scope.alloc_pool
             else:
                 self.alloc_pool = defaultdict(set)
+            self.purged = False
 
         def new_reg(self, reg_type, size=None):
             return self.parent.new_reg(reg_type, size=size)
@@ -468,6 +473,23 @@ class Tape:
             offset = self.get_offset(self.exit_block)
             self.exit_condition.set_relative_jump(offset)
             #print 'Basic block %d jumps to %d (%d)' % (next_block_index, jump_index, offset)
+
+        def purge(self):
+            relevant = lambda inst: inst.add_usage.__func__ is not \
+                       Compiler.instructions_base.Instruction.add_usage.__func__
+            self.usage_instructions = filter(relevant, self.instructions)
+            del self.instructions
+            del self.defined_registers
+            self.purged = True
+
+        def add_usage(self, req_node):
+            if self.purged:
+                instructions = self.usage_instructions
+            else:
+                instructions = self.instructions
+            for inst in instructions:
+                inst.add_usage(req_node)
+
         def __str__(self):
             return self.name
 
@@ -507,6 +529,8 @@ class Tape:
         self.outfile = self.program.programs_dir + '/Bytecode/' + self.name + '.bc'
 
     def purge(self):
+        for block in self.basicblocks:
+            block.purge()
         self._is_empty = (len(self.basicblocks) == 0)
         del self.reg_values
         del self.basicblocks
@@ -772,8 +796,7 @@ class Tape:
         def aggregate(self, *args):
             self.num = Tape.ReqNum()
             for block in self.blocks:
-                for inst in block.instructions:
-                    inst.add_usage(self)
+                block.add_usage(self)
             res = reduce(lambda x,y: x + y.aggregate(self.name),
                          self.children, self.num)
             return res
@@ -842,7 +865,7 @@ class Tape:
             if size is None:
                 size = Compiler.instructions_base.get_global_vector_size()
             self.size = size
-            if i:
+            if i is not None:
                 self.i = i
             else:
                 self.i = program.reg_counter[reg_type]
@@ -878,10 +901,13 @@ class Tape:
                 raise CompilerError('Cannot reset size of vector register')
 
         def set_vectorbase(self, vectorbase):
-            if self.vectorbase != self:
+            if self.vectorbase is not self:
                 raise CompilerError('Cannot assign one register' \
                                         'to several vectors')
             self.vectorbase = vectorbase
+
+        def _new_by_number(self, i):
+            return Tape.Register(self.reg_type, self.program, size=1, i=i)
 
         def create_vector_elements(self):
             if self.vector:
@@ -889,11 +915,14 @@ class Tape:
             elif self.size == 1:
                 self.vector = [self]
                 return
-            self.vector = [self]
-            for i in range(1,self.size):
-                reg = Tape.Register(self.reg_type, self.program, size=1, i=self.i+i)
+            self.vector = []
+            for i in range(self.size):
+                reg = self._new_by_number(self.i + i)
                 reg.set_vectorbase(self)
                 self.vector.append(reg)
+
+        def get_all(self):
+            return self.vector or [self]
 
         def __getitem__(self, index):
             if not self.vector:

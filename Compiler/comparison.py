@@ -108,67 +108,54 @@ def Trunc(d, a, k, m, kappa, signed):
 def TruncRing(d, a, k, m, signed):
     a_prime = Mod2mRing(None, a, k, m, signed)
     a -= a_prime
-    res = TruncZeroesInRing(a, k, m, signed)
+    res = TruncLeakyInRing(a, k, m, signed)
     if d is not None:
         movs(d, res)
     return res
 
-def TruncZeroesInRing(a, k, m, signed):
+def TruncZeroes(a, k, m, signed):
+    if program.options.ring:
+        return TruncLeakyInRing(a, k, m, signed)
+    else:
+        import types
+        tmp = types.cint()
+        inv2m(tmp, m)
+        return a * tmp
+
+def TruncLeakyInRing(a, k, m, signed):
     """
     Returns a >> m.
-    Requires 2^m | a and a < 2^k.
+    Requires a < 2^k and leaks a % 2^m (needs to be constant or random).
     """
+    assert k > m
+    assert int(program.options.ring) >= k
     from types import sint, intbitint, cint, cgf2n
     n_bits = k - m
     n_shift = int(program.options.ring) - n_bits
     r_bits = [sint.get_random_bit() for i in range(n_bits)]
     r = sint.bit_compose(r_bits)
-    shifted = ((a << (n_shift - m)) - (r << n_shift)).reveal()
-    masked = shifted >> n_shift
-    res_bits = intbitint.bit_adder(r_bits, masked.bit_decompose(n_bits))
-    res = sint.bit_compose(res_bits)
     if signed:
-        res = sint.conv(res_bits[-1].if_else(res - (sint(1) << n_bits),
-                                             res))
+        a += (1 << (k - 1))
+    shifted = ((a << (n_shift - m)) + (r << n_shift)).reveal()
+    masked = shifted >> n_shift
+    u = sint()
+    BitLTL(u, masked, r_bits, 0)
+    res = (u << n_bits) + masked - r
+    if signed:
+        res -= (1 << (n_bits - 1))
     return res
 
-def TruncRoundNearest(a, k, m, kappa):
+def TruncRoundNearest(a, k, m, kappa, signed=False):
     """
     Returns a / 2^m, rounded to the nearest integer.
 
-    k: bit length of m
+    k: bit length of a
     m: compile-time integer
     """
-    from types import sint, cint
-    from library import reveal, load_int_to_secret
-    if m == 1:
-        if program.options.ring:
-            lsb = Mod2mRing(None, a, k, 1, False)
-            return TruncRing(None, a + lsb, k + 1, 1, False)
-        else:
-            lsb = sint()
-            Mod2(lsb, a, k, kappa, False)
-            return (a + lsb) / 2
-    r_dprime = sint()
-    r_prime = sint()
-    r = [sint() for i in range(m)]
-    u = sint()
-    PRandM(r_dprime, r_prime, r, k, m, kappa)
-    c = reveal((cint(1) << (k - 1)) + a + (cint(1) << m) * r_dprime + r_prime)
-    c_prime = c % (cint(1) << (m - 1))
-    if const_rounds:
-        BitLTC1(u, c_prime, r[:-1], kappa)
-    else:
-        BitLTL(u, c_prime, r[:-1], kappa)
-    bit = ((c - c_prime) >> (m - 1)) % 2
-    xor = bit + u - 2 * bit * u
-    prod = xor * r[-1]
-    # u_prime = xor * u + (1 - xor) * r[-1]
-    u_prime = bit * u + u - 2 * bit * u + r[-1] - prod
-    a_prime = (c % (cint(1) << m)) - r_prime + (cint(1) << m) * u_prime
-    d = (a - a_prime) >> m
-    rounding = xor + r[-1] - 2 * prod
-    return d + rounding
+    from types import sint
+    res = sint()
+    Trunc(res, a + (1 << (m - 1)), k + 1, m, kappa, signed)
+    return res
 
 def Mod2m(a_prime, a, k, m, kappa, signed):
     """

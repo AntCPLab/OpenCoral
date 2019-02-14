@@ -8,7 +8,7 @@
 
 #include "MAC_Check.h"
 #include "Math/ShamirShare.h"
-#include "Processor/ShamirMachine.h"
+#include "Machines/ShamirMachine.h"
 
 template<class T>
 class ShamirMC : public MAC_Check_Base<T>

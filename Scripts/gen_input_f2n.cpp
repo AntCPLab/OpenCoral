@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include "Math/gf2n.h"
-#include "Processor/Buffer.h"
+#include "Tools/Buffer.h"
 
 using namespace std;
 

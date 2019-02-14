@@ -91,7 +91,11 @@ void gf2n_short::init_field(int nn)
 
   mask=(1ULL<<n)-1;
 
+#ifdef __PCLMUL__
   useC=(Check_CPU_support_AES()==0);
+#else
+  useC = true;
+#endif
 }
   
 
@@ -222,6 +226,7 @@ void gf2n_short::mul(const gf2n_short& x,const gf2n_short& y)
     }
   else
     { /* Use Intel Instructions */
+#ifdef __PCLMUL__
       __m128i xx,yy,zz;
       uint64_t c[] __attribute__((aligned (16))) = { 0,0 };
       xx=_mm_set1_epi64x(x.a);
@@ -230,6 +235,9 @@ void gf2n_short::mul(const gf2n_short& x,const gf2n_short& y)
       _mm_store_si128((__m128i*)c,zz);
       lo=c[0];
       hi=c[1];
+#else
+      throw runtime_error("need to compile with PCLMUL support");
+#endif
     }
 
   reduce(hi,lo);

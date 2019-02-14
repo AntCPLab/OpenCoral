@@ -143,6 +143,15 @@ int main(int argc, const char** argv)
           "-N", // Flag token.
           "--nparties" // Flag token.
     );
+    opt.add(
+          "", // Default.
+          0, // Required?
+          0, // Number of args expected.
+          0, // Delimiter if expecting multiple args.
+          "Use encrypted channels.", // Help description.
+          "-e", // Flag token.
+          "--encrypted" // Flag token.
+    );
 
     opt.resetArgs();
     opt.parse(argc, argv);
@@ -250,7 +259,8 @@ int main(int argc, const char** argv)
     {
         Machine<sgfp, Share<gf2n>>(playerno, playerNames, progname, memtype, lg2,
                 opt.get("--direct")->isSet, opening_sum, opt.get("--parallel")->isSet,
-                opt.get("--threads")->isSet, max_broadcast, false, false,
+                opt.get("--threads")->isSet, max_broadcast,
+                opt.get("--encrypted")->isSet, false,
                 online_opts).run();
 
         if (server)

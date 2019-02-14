@@ -151,7 +151,7 @@ void set_up_client_socket(int& mysocket,const char* hostname,int Portnum)
 
 void close_client_socket(int socket)
 {
-  if (close(socket) < 0 and errno != EBADF)
+  if (close(socket))
     {
       char tmp[1000];
       sprintf(tmp, "close(%d)", socket);

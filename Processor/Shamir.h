@@ -19,7 +19,7 @@ template<class T> class ShamirInput;
 class Player;
 
 template<class U>
-class Shamir : public PrepLessProtocol<ShamirShare<U>>
+class Shamir : public ProtocolBase<ShamirShare<U>>
 {
     typedef ShamirShare<U> T;
 
@@ -44,6 +44,8 @@ public:
 
     Shamir(Player& P);
     ~Shamir();
+
+    int get_n_relevant_players();
 
     void reset();
 

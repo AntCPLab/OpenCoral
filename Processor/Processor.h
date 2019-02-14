@@ -41,7 +41,7 @@ class SubProcessor
 
   template<class sint, class sgf2n> friend class Processor;
   template<class U> friend class SPDZ;
-  template<class U> friend class PrepLessProtocol;
+  template<class U> friend class ProtocolBase;
   template<class U> friend class Beaver;
 
 public:
@@ -61,7 +61,9 @@ public:
   void POpen_Stop(const vector<int>& reg,const Player& P,int size);
   void POpen(const vector<int>& reg,const Player& P,int size);
 
-  void muls(const vector<int>& reg,const Player& P,int size);
+  void muls(const vector<int>& reg, int size);
+  void mulrs(const vector<int>& reg);
+  void dotprods(const vector<int>& reg);
 
   vector<T>& get_S()
   {

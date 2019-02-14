@@ -8,8 +8,8 @@
 
 template <class T>
 T operator*(const bool& x, const T& y) { return x ? y : T(); }
-template <class T>
-T operator*(const T& y, const bool& x) { return x ? y : T(); }
+//template <class T>
+//T operator*(const T& y, const bool& x) { return x ? y : T(); }
 template <class T>
 T& operator*=(const T& y, const bool& x) { y = x ? y : T(); return y; }
 

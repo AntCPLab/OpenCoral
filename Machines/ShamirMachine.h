@@ -3,8 +3,8 @@
  *
  */
 
-#ifndef PROCESSOR_SHAMIRMACHINE_H_
-#define PROCESSOR_SHAMIRMACHINE_H_
+#ifndef MACHINES_SHAMIRMACHINE_H_
+#define MACHINES_SHAMIRMACHINE_H_
 
 #include "Tools/ezOptionParser.h"
 
@@ -31,4 +31,4 @@ public:
     ShamirMachineSpec(int argc, const char** argv);
 };
 
-#endif /* PROCESSOR_SHAMIRMACHINE_H_ */
+#endif /* MACHINES_SHAMIRMACHINE_H_ */

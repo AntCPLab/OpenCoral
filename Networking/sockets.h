@@ -56,16 +56,27 @@ int get_ack(int socket);
 
 extern unsigned long long sent_amount, sent_counter;
 
+
+inline size_t send_non_blocking(int socket, octet* msg, size_t len)
+{
+  int j = send(socket,msg,len,0);
+  if (j < 0)
+    {
+      if (errno != EINTR)
+        { error("Send error - 1 ");  }
+      else
+        return 0;
+    }
+  return j;
+}
+
 template<>
 inline void send(int socket,octet *msg,size_t len)
 {
   size_t i = 0;
   while (i < len)
     {
-      int j = send(socket,msg+i,len-i,0);
-      i += j;
-      if (j < 0 and errno != EINTR)
-        { error("Send error - 1 ");  }
+      i += send_non_blocking(socket, msg + i, len - i);
     }
 
   sent_amount += len;

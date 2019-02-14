@@ -369,6 +369,8 @@ def Trunc(a, l, m, kappa, compute_modulo=False):
     x, pow2m = B2U(m, l, kappa)
     #assert(pow2m.value == 2**m.value)
     #assert(sum(b.value for b in x) == m.value)
+    if program.Program.prog.options.ring and not compute_modulo:
+        return TruncInRing(a, l, pow2m)
     for i in range(l):
         bit(r[i])
         t1 = two_power(i) * r[i]
@@ -418,7 +420,7 @@ def TruncRoundNearestAdjustOverflow(a, length, target_length, kappa):
     overflow = t.greater_equal(two_power(target_length), target_length + 1, kappa)
     if program.Program.prog.options.ring:
         s = (1 - overflow) * t + \
-            comparison.TruncZeroesInRing(overflow * t, length, 1, False)
+            comparison.TruncLeakyInRing(overflow * t, length, 1, False)
     else:
         s = (1 - overflow) * t + overflow * t / 2
     return s, overflow
@@ -484,9 +486,22 @@ def TruncPr(a, k, m, kappa=None):
 def TruncPrRing(a, k, m):
     if m == 0:
         return a
-    res = types.sint()
-    comparison.TruncRing(res, a, k, m, True)
-    return res
+    n_ring = int(program.Program.prog.options.ring)
+    if k == n_ring:
+        for i in range(m):
+            a += types.sint.get_random_bit() << i
+        return comparison.TruncLeakyInRing(a, k, m, True)
+    else:
+        from types import sint
+        # extra bit to mask overflow
+        r_bits = [sint.get_random_bit() for i in range(k + 1)]
+        n_shift = n_ring - len(r_bits)
+        tmp = a + sint.bit_compose(r_bits)
+        masked = (tmp << n_shift).reveal()
+        shifted = (masked << 1 >> (n_shift + m + 1))
+        overflow = r_bits[-1].bit_xor(masked >> (n_ring - 1))
+        res = shifted - sint.bit_compose(r_bits[m:k]) + (overflow << (k - m))
+        return res
 
 def TruncPrField(a, k, m, kappa=None):
     if kappa is None:
@@ -504,27 +519,26 @@ def TruncPrField(a, k, m, kappa=None):
     d = (a - a_prime) / two_to_m
     return d
 
-def SDiv(a, b, l, kappa):
+def SDiv(a, b, l, kappa, round_nearest=False):
     theta = int(ceil(log(l / 3.5) / log(2)))
     alpha = two_power(2*l)
-    beta = 1 / types.cint(two_power(l))
     w = types.cint(int(2.9142 * two_power(l))) - 2 * b
     x = alpha - b * w
     y = a * w
-    y = TruncPr(y, 2 * l, l, kappa)
+    y = y.round(2 * l + 1, l, kappa, round_nearest)
     x2 = types.sint()
     comparison.Mod2m(x2, x, 2 * l + 1, l, kappa, False)
-    x1 = (x - x2) * beta
+    x1 = comparison.TruncZeroes(x - x2, 2 * l + 1, l, True)
     for i in range(theta-1):
-        y = y * (x1 + two_power(l)) + TruncPr(y * x2, 2 * l, l, kappa)
-        y = TruncPr(y, 2 * l + 1, l + 1, kappa)
-        x = x1 * x2 + TruncPr(x2**2, 2 * l + 1, l + 1, kappa)
-        x = x1 * x1 + TruncPr(x, 2 * l + 1, l - 1, kappa)
+        y = y * (x1 + two_power(l)) + (y * x2).round(2 * l, l, kappa, round_nearest)
+        y = y.round(2 * l + 1, l + 1, kappa, round_nearest)
+        x = x1 * x2 + (x2**2).round(2 * l + 1, l + 1, kappa, round_nearest)
+        x = x1 * x1 + x.round(2 * l + 1, l - 1, kappa, round_nearest)
         x2 = types.sint()
         comparison.Mod2m(x2, x, 2 * l, l, kappa, False)
-        x1 = (x - x2) * beta
-    y = y * (x1 + two_power(l)) + TruncPr(y * x2, 2 * l, l, kappa)
-    y = TruncPr(y, 2 * l + 1, l - 1, kappa)
+        x1 = comparison.TruncZeroes(x - x2, 2 * l + 1, l, True)
+    y = y * (x1 + two_power(l)) + (y * x2).round(2 * l, l, kappa, round_nearest)
+    y = y.round(2 * l + 1, l - 1, kappa, round_nearest)
     return y
 
 def SDiv_mono(a, b, l, kappa):

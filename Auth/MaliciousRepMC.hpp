@@ -85,14 +85,15 @@ void CommMaliciousRepMC<T>::POpen_Begin(vector<typename T::clear>& values,
     for (auto& x : S)
         for (int i = 0; i < 2; i++)
             x[i].pack(os[1 - i]);
-    P.send_relative(os);
+    P.pass_around(os[0], 1);
+    P.pass_around(os[1], 2);
 }
 
 template<class T>
 void CommMaliciousRepMC<T>::POpen_End(vector<typename T::clear>& values,
         const vector<T>& S, const Player& P)
 {
-    P.receive_relative(os);
+    (void) P;
     if (os[0] != os[1])
         throw mac_fail();
     values.clear();

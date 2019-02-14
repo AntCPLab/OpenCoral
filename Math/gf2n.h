@@ -80,6 +80,8 @@ class gf2n_short
 
   static int default_length() { return 40; }
 
+  static bool allows(Dtype type) { (void) type; return true; }
+
   word get() const { return a; }
   word get_word() const { return a; }
 

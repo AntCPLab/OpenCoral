@@ -83,6 +83,11 @@ public:
         *this = Rep3Share(aa, my_num) - S;
     }
 
+    clear local_mul(const Rep3Share& other) const
+    {
+        return (*this)[0] * other.sum() + (*this)[1] * other[0];
+    }
+
     void mul_by_bit(const Rep3Share& x, const T& y)
     {
         (void) x, (void) y;

@@ -10,7 +10,7 @@
 using namespace std;
 
 #include "Math/Share.h"
-#include "Processor/Buffer.h"
+#include "Tools/Buffer.h"
 #include "Tools/time-func.h"
 
 class ArithmeticProcessor;

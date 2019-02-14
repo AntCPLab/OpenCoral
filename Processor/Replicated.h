@@ -30,33 +30,42 @@ public:
     Player& P;
 
     ReplicatedBase(Player& P);
+
+    int get_n_relevant_players() { return P.num_players() - 1; }
 };
 
 template <class T>
-class PrepLessProtocol
+class ProtocolBase
 {
+public:
     int counter;
 
-public:
-    PrepLessProtocol();
-    virtual ~PrepLessProtocol();
+    ProtocolBase();
+    virtual ~ProtocolBase();
 
     void muls(const vector<int>& reg, SubProcessor<T>& proc, MAC_Check_Base<T>& MC,
             int size);
+    void mulrs(const vector<int>& reg, SubProcessor<T>& proc);
+    void dotprods(const vector<int>& reg, SubProcessor<T>& proc);
 
     virtual void init_mul(SubProcessor<T>* proc) = 0;
     virtual typename T::clear prepare_mul(const T& x, const T& y) = 0;
     virtual void exchange() = 0;
     virtual T finalize_mul() = 0;
 
-    virtual T get_random() = 0;
+    void init_dotprod(SubProcessor<T>* proc) { init_mul(proc); }
+    void prepare_dotprod(const T& x, const T& y) { prepare_mul(x, y); }
+    void next_dotprod() {}
+    T finalize_dotprod(int length);
 };
 
 template <class T>
-class Replicated : public ReplicatedBase, public PrepLessProtocol<T>
+class Replicated : public ReplicatedBase, public ProtocolBase<T>
 {
     vector<octetStream> os;
     deque<typename T::clear> add_shares;
+    typename T::clear dotprod_share;
+
 public:
     typedef ReplicatedMC<T> MAC_Check;
     typedef ReplicatedInput<T> Input;
@@ -77,6 +86,13 @@ public:
     typename T::clear prepare_mul(const T& x, const T& y);
     void exchange();
     T finalize_mul();
+
+    void prepare_reshare(const typename T::clear& share);
+
+    void init_dotprod(SubProcessor<T>* proc);
+    void prepare_dotprod(const T& x, const T& y);
+    void next_dotprod();
+    T finalize_dotprod(int length);
 
     T get_random();
 };

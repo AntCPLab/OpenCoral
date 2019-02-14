@@ -3,6 +3,8 @@
 #include "Processor/Data_Files.h"
 #include "Processor/Processor.h"
 
+#include "Processor/Instruction.hpp"
+
 void Program::compute_constants()
 {
   for (int reg_type = 0; reg_type < MAX_REG_TYPE; reg_type++)

@@ -169,6 +169,10 @@ public:
   void receive_relative(vector<octetStream>& o) const;
   void receive_relative(int offset, octetStream& o) const;
 
+  // exchange data with minimal memory usage
+  void exchange(int other, octetStream& o) const = 0;
+  void exchange_relative(int offset, octetStream& o) const;
+
   /* Broadcast and Receive data to/from all players
    *  - Assumes o[player_no] contains the thing broadcast by me
    */
@@ -204,7 +208,7 @@ public:
   // portnum bases in each thread
   MultiPlayer(const Names& Nms,int id_base=0);
 
-  virtual ~MultiPlayer() {}
+  virtual ~MultiPlayer();
 
   T socket(int i) const { return sockets[i]; }
 

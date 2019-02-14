@@ -1,5 +1,11 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enchancements are committed between releases and not documented here.
 
+## 0.0.7 (Feb 14, 2019)
+
+- Simplified installation on macOS
+- Optimized matrix multiplication
+- Data type for quantization
+
 ## 0.0.6 (Jan 5, 2019)
 
 - Shamir secret sharing

@@ -31,9 +31,13 @@ public:
     int128(const word& upper, const word& lower) : a(_mm_set_epi64x(upper, lower)) { }
 
     word get_lower() const                      { return (word)_mm_cvtsi128_si64(a); }
-    word get_upper() const                      { return _mm_extract_epi64(a, 1); }
+    word get_upper() const     { return _mm_cvtsi128_si64(_mm_unpackhi_epi64(a, a)); }
 
+#ifdef __SSE41__
     bool operator==(const int128& other) const  { return _mm_test_all_zeros(a ^ other.a, a ^ other.a); }
+#else
+    bool operator==(const int128& other) const  { return get_lower() == other.get_lower() and get_upper() == other.get_upper(); }
+#endif
     bool operator!=(const int128& other) const  { return !(*this == other); }
 
     int128 operator<<(const int& other) const;
@@ -124,6 +128,8 @@ class gf2n_long
   static int t()    { return 0; }
 
   static int default_length() { return 128; }
+
+  static bool allows(Dtype type) { (void) type; return true; }
 
   int128 get() const { return a; }
   __m128i to_m128i() const { return a.a; }
@@ -278,10 +284,15 @@ inline void mul128(__m128i a, __m128i b, __m128i *res1, __m128i *res2)
 {
     __m128i tmp3, tmp4, tmp5, tmp6;
 
+#ifdef __PCLMUL__
     tmp3 = _mm_clmulepi64_si128(a, b, 0x00);
     tmp4 = _mm_clmulepi64_si128(a, b, 0x10);
     tmp5 = _mm_clmulepi64_si128(a, b, 0x01);
     tmp6 = _mm_clmulepi64_si128(a, b, 0x11);
+#else
+    (void) a, (void) b;
+    throw runtime_error("need to compile with PCLMUL support");
+#endif
 
     tmp4 = _mm_xor_si128(tmp4, tmp5);
     tmp5 = _mm_slli_si128(tmp4, 8);

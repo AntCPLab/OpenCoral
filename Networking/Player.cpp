@@ -188,10 +188,15 @@ template<>
 MultiPlayer<int>::~MultiPlayer()
 {
   /* Close down the sockets */
-  for (int i=0; i<nplayers; i++)
-    close_client_socket(sockets[i]);
+  for (auto socket : sockets)
+    close_client_socket(socket);
+  close_client_socket(send_to_self_socket);
 }
 
+template<class T>
+MultiPlayer<T>::~MultiPlayer()
+{
+}
 
 Player::~Player()
 {
@@ -334,6 +339,11 @@ void MultiPlayer<T>::exchange(int other, octetStream& o) const
   TimeScope ts(comm_stats["Exchanging"].add(o));
   o.exchange(sockets[other], sockets[other]);
   sent += o.get_length();
+}
+
+void Player::exchange_relative(int offset, octetStream& o) const
+{
+  exchange(get_player(offset), o);
 }
 
 

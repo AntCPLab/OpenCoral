@@ -54,4 +54,4 @@ SPDZROOT=${SPDZROOT:-.}
 
 #. Scripts/setup.sh
 
-mkdir logs
+mkdir logs 2> /dev/null

@@ -117,3 +117,17 @@ print_ln('weighted average: %s', result.reveal())
 
 print_ln_if((sum(point[0] for point in data) == 0).reveal(), \
             'but the inputs were invalid (weights add up to zero)')
+
+# permutation matrix
+
+M = Matrix(2, 2, sfix)
+M[0][0] = 0
+M[1][0] = 1
+M[0][1] = 1
+M[1][1] = 0
+
+# matrix multiplication
+
+M = data * M
+test(M[0][0], data[0][1].reveal())
+test(M[1][1], data[1][0].reveal())

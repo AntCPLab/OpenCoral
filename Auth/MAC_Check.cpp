@@ -466,3 +466,5 @@ template class MAC_Check_Base<ShamirShare<gfp>>;
 template class MAC_Check_Base<ShamirShare<gf2n>>;
 template class MAC_Check_Base<MaliciousShamirShare<gfp>>;
 template class MAC_Check_Base<MaliciousShamirShare<gf2n>>;
+template class MAC_Check_Base<Share<gfp>>;
+template class MAC_Check_Base<Share<gf2n>>;

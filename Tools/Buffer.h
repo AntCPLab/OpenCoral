@@ -3,8 +3,8 @@
  *
  */
 
-#ifndef PROCESSOR_BUFFER_H_
-#define PROCESSOR_BUFFER_H_
+#ifndef TOOLS_BUFFER_H_
+#define TOOLS_BUFFER_H_
 
 #include <fstream>
 using namespace std;
@@ -12,7 +12,7 @@ using namespace std;
 #include "Math/Share.h"
 #include "Math/field_types.h"
 #include "Tools/time-func.h"
-#include "config.h"
+#include "Processor/config.h"
 
 #ifndef BUFFER_SIZE
 #define BUFFER_SIZE 101
@@ -153,4 +153,4 @@ inline void Buffer<T,U>::input(U& a)
     next++;
 }
 
-#endif /* PROCESSOR_BUFFER_H_ */
+#endif /* TOOLS_BUFFER_H_ */

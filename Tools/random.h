@@ -16,7 +16,11 @@
   #define SEED_SIZE   HASH_SIZE
   #define RAND_SIZE   HASH_SIZE
 #else
+#ifdef __AES__
   #define PIPELINES   8
+#else
+  #define PIPELINES   1
+#endif
   #define SEED_SIZE   AES_BLK_SIZE
   #define RAND_SIZE   (PIPELINES * AES_BLK_SIZE)
 #endif
@@ -38,7 +42,11 @@ class PRNG
    octet random[RAND_SIZE] __attribute__((aligned (16)));
 
    #ifdef USE_AES
+#ifdef __AES__
      bool useC;
+#else
+     const static bool useC = true;
+#endif
 
      // Two types of key schedule for the different implementations 
      // of AES

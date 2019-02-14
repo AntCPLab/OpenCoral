@@ -21,7 +21,7 @@ void ReplicatedInput<T>::reset(int player)
 }
 
 template<class T>
-void ReplicatedInput<T>::add_mine(const typename T::clear& input)
+inline void ReplicatedInput<T>::add_mine(const typename T::clear& input)
 {
     auto& shares = this->shares;
     shares.push_back({});
@@ -89,7 +89,7 @@ void PrepLessInput<T>::stop(int player, vector<int> targets)
 }
 
 template<class T>
-void ReplicatedInput<T>::finalize_other(int player, T& target,
+inline void ReplicatedInput<T>::finalize_other(int player, T& target,
         octetStream& o)
 {
     typename T::value_type t;

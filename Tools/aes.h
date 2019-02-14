@@ -54,10 +54,14 @@ __attribute__((optimize("unroll-loops")))
 inline __m128i aes_128_encrypt(__m128i in, const octet* key)
 { __m128i& tmp = in;
   tmp = _mm_xor_si128 (tmp,((__m128i*)key)[0]);
+#ifdef __AES__
   int j;
   for(j=1; j <10; j++)
       { tmp = _mm_aesenc_si128 (tmp,((__m128i*)key)[j]); }
   tmp = _mm_aesenclast_si128 (tmp,((__m128i*)key)[j]);
+#else
+    throw runtime_error("need to compile with AES-NI support");
+#endif
   return tmp;
 }
 
@@ -70,12 +74,17 @@ inline void ecb_aes_128_encrypt(__m128i* out, __m128i* in, const octet* key)
     __m128i tmp[N];
     for (int i = 0; i < N; i++)
         tmp[i] = _mm_xor_si128 (in[i],((__m128i*)key)[0]);
+#ifdef __AES__
     int j;
     for(j=1; j <10; j++)
         for (int i = 0; i < N; i++)
             tmp[i] = _mm_aesenc_si128 (tmp[i],((__m128i*)key)[j]);
     for (int i = 0; i < N; i++)
         out[i] = _mm_aesenclast_si128 (tmp[i],((__m128i*)key)[j]);
+#else
+    (void) tmp, (void) out;
+    throw runtime_error("need to compile with AES-NI support");
+#endif
 }
 
 template <int N>

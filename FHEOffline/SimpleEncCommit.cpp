@@ -340,12 +340,14 @@ void MultiEncCommit<FD>::add_ciphertexts(vector<Ciphertext>& ciphertexts,
 
 template class SimpleEncCommitBase<gfp, FFT_Data, bigint>;
 template class SimpleEncCommit<gfp, FFT_Data, bigint>;
+template class SimpleEncCommitFactory<FFT_Data>;
 template class SummingEncCommit<FFT_Data>;
 template class NonInteractiveProofSimpleEncCommit<FFT_Data>;
 template class MultiEncCommit<FFT_Data>;
 
 template class SimpleEncCommitBase<gf2n_short, P2Data, int>;
 template class SimpleEncCommit<gf2n_short, P2Data, int>;
+template class SimpleEncCommitFactory<P2Data>;
 template class SummingEncCommit<P2Data>;
 template class NonInteractiveProofSimpleEncCommit<P2Data>;
 template class MultiEncCommit<P2Data>;

@@ -27,6 +27,8 @@ public:
 
   static void init_default(int lgp) { (void)lgp; }
 
+  static bool allows(Dtype type) { return type <= DATA_BIT; }
+
   IntBase()                 { a = 0; }
   IntBase(long a) : a(a)    {}
 
@@ -79,7 +81,7 @@ class Integer : public IntBase
   typedef Integer clear;
 
   static char type_char() { return 'R'; }
-  static DataFieldType field_type() { return DATA_INT64; }
+  static DataFieldType field_type() { return DATA_INT; }
 
   static void reqbl(int n);
 

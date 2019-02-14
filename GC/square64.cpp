@@ -13,7 +13,7 @@ union matrix32x8
     __m256i whole;
     octet rows[32];
 
-    matrix32x8(__m256i x = _mm256_setzero_si256()) : whole(x) {}
+    matrix32x8(const __m256i& x = _mm256_setzero_si256()) : whole(x) {}
 
     matrix32x8(square64& input, int x, int y)
     {
@@ -23,6 +23,7 @@ union matrix32x8
 
     void transpose(square64& output, int x, int y)
     {
+#ifdef __AVX2__
         for (int j = 0; j < 8; j++)
         {
             int row = _mm256_movemask_epi8(whole);
@@ -31,6 +32,10 @@ union matrix32x8
             // _mm_movemask_epi8 uses most significant bit, hence +7-j
             output.halfrows[8*x+7-j][y] = row;
         }
+#else
+        (void) output, (void) x, (void) y;
+        throw runtime_error("need to compile with AVX2 support");
+#endif
     }
 };
 
@@ -51,8 +56,10 @@ case I: \
     HIGHS = _mm256_unpackhi_epi##I(A, B); \
     break;
 
-void zip(int chunk_size, __m256i& lows, __m256i& highs, __m256i a, __m256i b)
+void zip(int chunk_size, __m256i& lows, __m256i& highs,
+        const __m256i& a, const __m256i& b)
 {
+#ifdef __AVX2__
     switch (chunk_size)
     {
     ZIP_CASE(8, lows, highs, a, b);
@@ -67,6 +74,10 @@ void zip(int chunk_size, __m256i& lows, __m256i& highs, __m256i a, __m256i b)
     default:
         throw invalid_argument("not supported");
     }
+#else
+    (void) chunk_size, (void) lows, (void) highs, (void) a, (void) b;
+    throw runtime_error("need to compile with AVX2 support");
+#endif
 }
 
 void square64::transpose(int n_rows, int n_cols)

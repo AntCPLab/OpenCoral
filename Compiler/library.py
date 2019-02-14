@@ -1,4 +1,4 @@
-from Compiler.types import cint,sint,cfix,sfix,sfloat,MPCThread,Array,MemValue,cgf2n,sgf2n,_number,_mem,_register,regint,Matrix,_types, cfloat
+from Compiler.types import cint,sint,cfix,sfix,sfloat,MPCThread,Array,MemValue,cgf2n,sgf2n,_number,_mem,_register,regint,Matrix,_types, cfloat, _single
 from Compiler.instructions import *
 from Compiler.util import tuplify,untuplify
 from Compiler import instructions,instructions_base,comparison,program,util
@@ -98,6 +98,7 @@ def print_ln_if(cond, s):
         if cond:
             print_ln(s)
     else:
+        s += ' ' * ((len(s) + 3) % 4)
         s += '\n'
         while s:
             cond.print_if(s[:4])
@@ -816,7 +817,7 @@ def map_reduce_single(n_parallel, n_loops, initializer, reducer, mem_state=None)
     n_parallel = n_parallel or 1
     if mem_state is None:
         # default to list of MemValues to allow varying types
-        mem_state = [type(x).MemValue(x) for x in initializer()]
+        mem_state = [MemValue(x) for x in initializer()]
         use_array = False
     else:
         # use Arrays for multithread version

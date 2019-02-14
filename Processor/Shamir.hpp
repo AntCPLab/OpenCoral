@@ -5,7 +5,7 @@
 
 #include "Shamir.h"
 #include "ShamirInput.h"
-#include "ShamirMachine.h"
+#include "Machines/ShamirMachine.h"
 
 template<class U>
 U Shamir<U>::get_rec_factor(int i, int n)
@@ -29,6 +29,12 @@ Shamir<U>::~Shamir()
 {
     if (resharing != 0)
         delete resharing;
+}
+
+template<class U>
+int Shamir<U>::get_n_relevant_players()
+{
+    return ShamirMachine::s().threshold + 1;
 }
 
 template<class U>

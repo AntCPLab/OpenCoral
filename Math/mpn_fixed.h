@@ -192,6 +192,7 @@ inline void mpn_add_n_use_fixed(mp_limb_t* res, const mp_limb_t* x, const mp_lim
 	}
 }
 
+#ifdef __BMI2__
 template <int L, int M, bool ADD>
 inline void mpn_addmul_1_fixed__(mp_limb_t* res, const mp_limb_t* y, mp_limb_t x)
 {
@@ -267,5 +268,6 @@ inline void mpn_mul_fixed(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y
 {
     mpn_mul_fixed_<N + M, N, M>(res, x, y);
 }
+#endif
 
 #endif /* MATH_MPN_FIXED_H_ */

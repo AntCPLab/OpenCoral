@@ -43,8 +43,7 @@ class StraightlineAllocator:
         if base.vector:
             for i,r in enumerate(base.vector):
                 r.i = self.alloc[base] + i
-        else:
-            base.i = self.alloc[base]
+        base.i = self.alloc[base]
 
     def dealloc_reg(self, reg, inst, free):
         self.dealloc.add(reg)
@@ -57,6 +56,7 @@ class StraightlineAllocator:
                     return
         free[reg.reg_type, base.size].add(self.alloc[base])
         if inst.is_vec() and base.vector:
+            self.defined[base] = inst
             for i in base.vector:
                 self.defined[i] = inst
         else:

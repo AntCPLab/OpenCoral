@@ -11,15 +11,15 @@
 #include "Auth/ShamirMC.h"
 #include "Math/MaliciousShamirShare.h"
 
-#include "Processor/Processor.hpp"
+//#include "Processor/Processor.hpp"
 #include "Processor/Binary_File_IO.hpp"
-#include "Processor/Input.hpp"
-#include "Processor/Beaver.hpp"
-#include "Processor/Shamir.hpp"
-#include "Processor/ShamirInput.hpp"
-#include "Processor/Replicated.hpp"
-#include "Auth/MaliciousRepMC.hpp"
-#include "Auth/ShamirMC.hpp"
+//#include "Processor/Input.hpp"
+//#include "Processor/Beaver.hpp"
+//#include "Processor/Shamir.hpp"
+//#include "Processor/ShamirInput.hpp"
+//#include "Processor/Replicated.hpp"
+//#include "Auth/MaliciousRepMC.hpp"
+//#include "Auth/ShamirMC.hpp"
 
 #include <stdlib.h>
 #include <algorithm>
@@ -33,6 +33,7 @@
 #undef DEBUG
 
 // Convert modp to signed bigint of a given bit length
+inline
 void to_signed_bigint(bigint& bi, const gfp& x, int len)
 {
   to_bigint(bi, x);
@@ -53,7 +54,7 @@ void to_signed_bigint(bigint& bi, const gfp& x, int len)
     bi = -bi;
 }
 
-
+inline
 void Instruction::parse(istream& s)
 {
   n=0; start.resize(0);
@@ -70,7 +71,7 @@ void Instruction::parse(istream& s)
   parse_operands(s, pos);
 }
 
-
+inline
 void BaseInstruction::parse_operands(istream& s, int pos)
 {
   int num_var_args = 0;
@@ -277,7 +278,7 @@ void BaseInstruction::parse_operands(istream& s, int pos)
       case CRASH:
       case STARTGRIND:
       case STOPGRIND:
-      	break;
+        break;
       // instructions with 4 register operands
       case PRINTFLOATPLAIN:
         get_vector(4, start, s);
@@ -288,6 +289,10 @@ void BaseInstruction::parse_operands(istream& s, int pos)
       case GOPEN:
       case MULS:
       case GMULS:
+      case MULRS:
+      case GMULRS:
+      case DOTPRODS:
+      case GDOTPRODS:
       case INPUT:
       case GINPUT:
         num_var_args = get_int(s);
@@ -385,7 +390,7 @@ void BaseInstruction::parse_operands(istream& s, int pos)
   }
 }
 
-
+inline
 bool Instruction::get_offline_data_usage(DataPositions& usage)
 {
   switch (opcode)
@@ -415,6 +420,7 @@ bool Instruction::get_offline_data_usage(DataPositions& usage)
   }
 }
 
+inline
 int BaseInstruction::get_reg_type() const
 {
   switch (opcode) {
@@ -451,9 +457,26 @@ int BaseInstruction::get_reg_type() const
   }
 }
 
+inline
 unsigned BaseInstruction::get_max_reg(int reg_type) const
 {
   if (get_reg_type() != reg_type) { return 0; }
+
+  switch (opcode)
+  {
+  case DOTPRODS:
+  {
+      int res = 0;
+      auto it = start.begin();
+      while (it != start.end())
+      {
+          int n = *it;
+          res = max(res, *it++);
+          it += n - 1;
+      }
+      return res;
+  }
+  }
 
   const int *begin, *end;
   if (start.size())
@@ -473,6 +496,7 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
   return res + size;
 }
 
+inline
 unsigned Instruction::get_mem(RegType reg_type, SecrecyType sec_type) const
 {
   if (get_reg_type() == reg_type and is_direct_memory_access(sec_type))
@@ -481,6 +505,7 @@ unsigned Instruction::get_mem(RegType reg_type, SecrecyType sec_type) const
     return 0;
 }
 
+inline
 bool BaseInstruction::is_direct_memory_access(SecrecyType sec_type) const
 {
   if (sec_type == SECRET)
@@ -514,7 +539,7 @@ bool BaseInstruction::is_direct_memory_access(SecrecyType sec_type) const
 }
 
 
-
+inline
 ostream& operator<<(ostream& s,const Instruction& instr)
 {
   s << instr.opcode << " : ";
@@ -1386,6 +1411,18 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       case GMULS:
         Proc.Proc2.protocol.muls(start, Proc.Proc2, Proc.MC2, size);
         return;
+      case MULRS:
+        Proc.Procp.protocol.mulrs(start, Proc.Procp);
+        return;
+      case GMULRS:
+        Proc.Proc2.protocol.mulrs(start, Proc.Proc2);
+        return;
+      case DOTPRODS:
+        Proc.Procp.protocol.dotprods(start, Proc.Procp);
+        return;
+      case GDOTPRODS:
+        Proc.Proc2.protocol.dotprods(start, Proc.Proc2);
+        return;
       case JMP:
         Proc.PC += (signed int) n;
         break;
@@ -1701,10 +1738,3 @@ void Program::execute(Processor<sint, sgf2n>& Proc) const
   while (Proc.PC<size)
     { p[Proc.PC].execute(Proc); }
 }
-
-template void Program::execute(Processor<sgfp, Share<gf2n>>& Proc) const;
-template void Program::execute(Processor<Rep3Share<Integer>, Rep3Share<gf2n>>& Proc) const;
-template void Program::execute(Processor<Rep3Share<gfp>, Rep3Share<gf2n>>& Proc) const;
-template void Program::execute(Processor<MaliciousRep3Share<gfp>, MaliciousRep3Share<gf2n>>& Proc) const;
-template void Program::execute(Processor<ShamirShare<gfp>, ShamirShare<gf2n>>& Proc) const;
-template void Program::execute(Processor<MaliciousShamirShare<gfp>, MaliciousShamirShare<gf2n>>& Proc) const;

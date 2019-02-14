@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "Tools/FlexBuffer.h"
+#include "Math/gf2nlong.h"
 
 using namespace std;
 
@@ -54,8 +55,7 @@ ostream& operator<<(ostream& o, const __m128i& x);
 
 
 inline bool Key::operator==(const Key& other) {
-    __m128i neq = _mm_xor_si128(r, other.r);
-    return _mm_test_all_zeros(neq,neq);
+    return int128(r) == other.r;
 }
 
 inline Key& Key::operator-=(const Key& other) {
@@ -88,7 +88,14 @@ inline void Key::set_signal(bool signal)
 
 inline Key Key::doubling(int i) const
 {
+#ifdef __AVX2__
 	return _mm_sllv_epi64(r, _mm_set_epi64x(i, i));
+#else
+	uint64_t halfs[2];
+	halfs[1] = _mm_cvtsi128_si64(_mm_unpackhi_epi64(r, r)) << i;
+	halfs[0] = _mm_cvtsi128_si64(r) << i;
+	return _mm_loadu_si128((__m128i*)halfs);
+#endif
 }
 
 

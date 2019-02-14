@@ -11,15 +11,6 @@
 
 #include "Tools/aes.h"
 
-void PRF_single(const Key& key, char* input, char* output);
-
-inline Key PRF_single(const Key& key, const Key& input)
-{
-	Key output;
-	PRF_single(key, (char*)&input, (char*)&output);
-	return output;
-}
-
 inline void PRF_chunk(const Key& key, char* input, char* output, int number)
 {
 	__m128i* in = (__m128i*)input;

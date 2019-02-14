@@ -9,7 +9,7 @@
 #include "Math/gf2n.h"
 #include "Math/Share.h"
 #include "Math/field_types.h"
-#include "Processor/Buffer.h"
+#include "Tools/Buffer.h"
 #include "Processor/InputTuple.h"
 #include "Tools/Lock.h"
 #include "Networking/Player.h"
@@ -17,8 +17,6 @@
 #include <fstream>
 #include <map>
 using namespace std;
-
-enum Dtype { DATA_TRIPLE, DATA_SQUARE, DATA_BIT, DATA_INVERSE, DATA_BITTRIPLE, DATA_BITGF2NTRIPLE, N_DTYPE };
 
 class DataTag
 {
@@ -94,8 +92,6 @@ template<class T>
 class Sub_Data_Files : public Preprocessing<T>
 {
   template<class U> friend class Sub_Data_Files;
-
-  static const bool implemented[N_DTYPE];
 
   static map<DataTag, int> tuple_lengths;
   static Lock tuple_lengths_lock;

@@ -933,13 +933,6 @@ class print_reg_plain(base.IOInstruction):
     code = base.opcodes['PRINTREGPLAIN']
     arg_format = ['c']
 
-
-@base.vectorize
-class print_float_plain(base.IOInstruction):
-    __slots__ = []
-    code = base.opcodes['PRINTFLOATPLAIN']
-    arg_format = ['c', 'c', 'c', 'c']
-
 class print_int(base.IOInstruction):
     r""" Print only the value of register \verb|ci| to stdout. """
     __slots__ = []
@@ -1358,10 +1351,7 @@ class muls(base.VarArgsInstruction, base.DataInstruction):
     data_type = 'triple'
 
     def get_repeat(self):
-        if program.options.ring:
-            return 0
-        else:
-            return len(self.args) / 3
+        return len(self.args) / 3
 
     # def expand(self):
     #     s = [program.curr_block.new_reg('s') for i in range(9)]
@@ -1377,6 +1367,73 @@ class muls(base.VarArgsInstruction, base.DataInstruction):
     #     adds(s[7], s[2], s[5])
     #     adds(s[8], s[7], s[6])
     #     addm(self.args[0], s[8], c[2])
+
+@base.gf2n
+class mulrs(base.VarArgsInstruction, base.DataInstruction):
+    """ Secret multiplication $s_i = s_j \cdot s_k$. """
+    __slots__ = []
+    code = base.opcodes['MULRS']
+    arg_format = tools.cycle(['int','sw','s','s'])
+    data_type = 'triple'
+    is_vec = lambda self: True
+
+    def __init__(self, res, x, y):
+        assert y.size == 1
+        assert res.size == x.size
+        base.Instruction.__init__(self, res.size, res, x, y)
+
+    def get_repeat(self):
+        return sum(self.args[::4])
+
+    def get_def(self):
+        return sum((arg.get_all() for arg in self.args[1::4]), [])
+
+    def get_used(self):
+        return sum((arg.get_all()
+                    for arg in self.args[2::4] + self.args[3::4]), [])
+
+@base.gf2n
+class dotprods(base.VarArgsInstruction, base.DataInstruction):
+    """ Secret dot product. """
+    __slots__ = []
+    code = base.opcodes['DOTPRODS']
+    data_type = 'triple'
+
+    def __init__(self, *args):
+        flat_args = []
+        for i in range(0, len(args), 3):
+            res, x, y = args[i:i+3]
+            assert len(x) == len(y)
+            flat_args += [2 * len(x) + 2, res]
+            for x, y in zip(x, y):
+                flat_args += [x, y]
+        base.Instruction.__init__(self, *flat_args)
+
+    @property
+    def arg_format(self):
+        field = 'g' if self.is_gf2n() else ''
+        for i in self.bases():
+            yield 'int'
+            yield 's' + field + 'w'
+            for j in range(self.args[i] - 2):
+                yield 's' + field
+
+    def bases(self):
+        i = 0
+        while i < len(self.args):
+            yield i
+            i += self.args[i]
+
+    def get_repeat(self):
+        return sum(self.args[i] / 2 for i in self.bases())
+
+    def get_def(self):
+        return [self.args[i + 1] for i in self.bases()]
+
+    def get_used(self):
+        for i in self.bases():
+            for reg in self.args[i + 2:i + self.args[i]]:
+                yield reg
 
 ###
 ### CISC-style instructions

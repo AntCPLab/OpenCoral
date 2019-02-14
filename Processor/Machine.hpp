@@ -5,6 +5,7 @@
 #include "ShamirInput.hpp"
 #include "Shamir.hpp"
 #include "Replicated.hpp"
+#include "Beaver.hpp"
 #include "Auth/ShamirMC.hpp"
 #include "Auth/MaliciousShamirMC.hpp"
 
@@ -24,24 +25,6 @@
 #include <pthread.h>
 using namespace std;
 
-BaseMachine* BaseMachine::singleton = 0;
-
-BaseMachine& BaseMachine::s()
-{
-  if (singleton)
-    return *singleton;
-  else
-    throw runtime_error("no singleton");
-}
-
-BaseMachine::BaseMachine() : nthreads(0)
-{
-  if (singleton)
-    throw runtime_error("there can only be one");
-  else
-    singleton = this;
-}
-
 template<class sint, class sgf2n>
 Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
     string progname_str, string memtype, int lg2, bool direct,
@@ -50,7 +33,8 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   : my_number(my_number), N(playerNames), tn(0), numt(0), usage_unknown(false),
     direct(direct), opening_sum(opening_sum), parallel(parallel),
     receive_threads(receive_threads), max_broadcast(max_broadcast),
-    use_encryption(use_encryption), live_prep(live_prep), opts(opts)
+    use_encryption(use_encryption), live_prep(live_prep), opts(opts),
+    data_sent(0)
 {
   if (opening_sum < 2)
     this->opening_sum = N.num_players();
@@ -164,42 +148,6 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
         }
       pthread_mutex_unlock(&t_mutex[i]);
     }
-}
-
-void BaseMachine::load_schedule(string progname)
-{
-  this->progname = progname;
-  string fname = "Programs/Schedules/" + progname + ".sch";
-  cerr << "Opening file " << fname << endl;
-  inpf.open(fname);
-  if (inpf.fail()) { throw file_error("Missing '" + fname + "'. Did you compile '" + progname + "'?"); }
-
-  int nprogs;
-  inpf >> nthreads;
-  inpf >> nprogs;
-
-  cerr << "Number of threads I will run in parallel = " << nthreads << endl;
-  cerr << "Number of program sequences I need to load = " << nprogs << endl;
-
-  // Load in the programs
-  string threadname;
-  for (int i=0; i<nprogs; i++)
-    { inpf >> threadname;
-      string filename = "Programs/Bytecode/" + threadname + ".bc";
-      cerr << "Loading program " << i << " from " << filename << endl;
-      load_program(threadname, filename);
-    }
-}
-
-void BaseMachine::print_compiler()
-{
-
-  char compiler[1000];
-  inpf.get();
-  inpf.getline(compiler, 1000);
-  if (compiler[0] != 0)
-    cerr << "Compiler: " << compiler << endl;
-  inpf.close();
 }
 
 template<class sint, class sgf2n>
@@ -345,6 +293,7 @@ void Machine<sint, sgf2n>::run()
   cerr << "Finish timer: " << finish_timer.elapsed() << endl;
   cerr << "Process timer: " << proc_timer.elapsed() << endl;
   print_timers();
+  cerr << "Data sent = " << data_sent / 1e6 << " MB" << endl;
 
   if (opening_sum < N.num_players() && !direct)
     cerr << "Summed at most " << opening_sum << " shares at once with indirect communication" << endl;
@@ -367,12 +316,6 @@ void Machine<sint, sgf2n>::run()
   ofstream outf(memory_filename(), ios::out | ios::binary);
   outf << M2 << Mp << Mi;
   outf.close();
-
-  extern unsigned long long sent_amount, sent_counter;
-  cerr << "Data sent = " << sent_amount << " bytes in "
-      << sent_counter << " calls,";
-  cerr << sent_amount / sent_counter / N.num_players()
-      << " bytes per call" << endl;
 
   for (int dtype = 0; dtype < N_DTYPE; dtype++)
     {
@@ -407,48 +350,8 @@ string Machine<sint, sgf2n>::memory_filename()
   return PREP_DIR "Memory-" + sint::type_short() + "-P" + to_string(my_number);
 }
 
-void BaseMachine::load_program(string threadname, string filename)
-{
-  (void)threadname;
-  (void)filename;
-  throw not_implemented();
-}
-
-void BaseMachine::time()
-{
-  cout << "Elapsed time: " << timer[0].elapsed() << endl;
-}
-
-void BaseMachine::start(int n)
-{
-  cout << "Starting timer " << n << " at " << timer[n].elapsed()
-    << " after " << timer[n].idle() << endl;
-  timer[n].start();
-}
-
-void BaseMachine::stop(int n)
-{
-  timer[n].stop();
-  cout << "Stopped timer " << n << " at " << timer[n].elapsed() << endl;
-}
-
-void BaseMachine::print_timers()
-{
-  cerr << "Time = " << timer[0].elapsed() << " seconds " << endl;
-  timer.erase(0);
-  for (map<int,Timer>::iterator it = timer.begin(); it != timer.end(); it++)
-    cerr << "Time" << it->first << " = " << it->second.elapsed() << " seconds " << endl;
-}
-
 template<class sint, class sgf2n>
 void Machine<sint, sgf2n>::reqbl(int n)
 {
   sint::clear::reqbl(n);
 }
-
-template class Machine<sgfp, Share<gf2n>>;
-template class Machine<Rep3Share<Integer>, Rep3Share<gf2n>>;
-template class Machine<Rep3Share<gfp>, Rep3Share<gf2n>>;
-template class Machine<MaliciousRep3Share<gfp>, MaliciousRep3Share<gf2n>>;
-template class Machine<ShamirShare<gfp>, ShamirShare<gf2n>>;
-template class Machine<MaliciousShamirShare<gfp>, MaliciousShamirShare<gf2n>>;

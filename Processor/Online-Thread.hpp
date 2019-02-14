@@ -170,6 +170,8 @@ void* Sub_Main_Func(void* ptr)
   cerr << "Thread " << num << " timer: " << thread_timer.elapsed() << endl;
   cerr << "Thread " << num << " wait timer: " << wait_timer.elapsed() << endl;
 
+  machine.data_sent += P.sent;
+
   delete MC2;
   delete MCp;
   delete player;

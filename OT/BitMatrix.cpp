@@ -384,8 +384,7 @@ bool square128::operator==(square128& other)
 {
     for (int i = 0; i < 128; i++)
     {
-        __m128i tmp = rows[i] ^ other.rows[i];
-        if (not _mm_test_all_zeros(tmp, tmp))
+        if (int128(rows[i]) != other.rows[i])
             return false;
     }
     return true;

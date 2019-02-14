@@ -7,44 +7,46 @@
 
 #include <array>
 
+
 template<class T>
-void Beaver<T>::muls(const vector<int>& reg, SubProcessor<T>& proc, MAC_Check_Base<T>& MC,
-        int size)
+void Beaver<T>::init_mul(SubProcessor<T>* proc)
 {
-    assert(reg.size() % 3 == 0);
-    int n = reg.size() / 3;
-    vector<T>& shares = proc.Sh_PO;
-    vector<typename T::clear>& opened = proc.PO;
+    this->proc = proc;
     shares.clear();
-    vector<array<T, 3>> triples(n * size);
-    auto triple = triples.begin();
+    opened.clear();
+    triples.clear();
+}
 
-    for (int i = 0; i < n; i++)
-        for (int j = 0; j < size; j++)
-        {
-            proc.DataF.get(DATA_TRIPLE, triple->data());
-            for (int k = 0; k < 2; k++)
-                shares.push_back(proc.S[reg[i * 3 + k + 1] + j] - (*triple)[k]);
-            triple++;
-        }
+template<class T>
+typename T::clear Beaver<T>::prepare_mul(const T& x, const T& y)
+{
+    triples.push_back({{}});
+    auto& triple = triples.back();
+    proc->DataF.get(DATA_TRIPLE, triple.data());
+    shares.push_back(x - triple[0]);
+    shares.push_back(y - triple[1]);
+    return 0;
+}
 
-    MC.POpen_Begin(opened, shares, proc.P);
-    MC.POpen_End(opened, shares, proc.P);
-    auto it = opened.begin();
+template<class T>
+void Beaver<T>::exchange()
+{
+    proc->MC.POpen(opened, shares, P);
+    it = opened.begin();
     triple = triples.begin();
+}
 
-    for (int i = 0; i < n; i++)
-        for (int j = 0; j < size; j++)
-        {
-            typename T::clear masked[2];
-            T& tmp = (*triple)[2];
-            for (int k = 0; k < 2; k++)
-            {
-                masked[k] = *it++;
-                tmp += (masked[k] * (*triple)[1 - k]);
-            }
-            tmp.add(tmp, masked[0] * masked[1], proc.P.my_num(), MC.get_alphai());
-            proc.S[reg[i * 3] + j] = tmp;
-            triple++;
-        }
+template<class T>
+T Beaver<T>::finalize_mul()
+{
+    typename T::clear masked[2];
+    T& tmp = (*triple)[2];
+    for (int k = 0; k < 2; k++)
+    {
+        masked[k] = *it++;
+        tmp += (masked[k] * (*triple)[1 - k]);
+    }
+    tmp.add(tmp, masked[0] * masked[1], P.my_num(), proc->MC.get_alphai());
+    triple++;
+    return tmp;
 }

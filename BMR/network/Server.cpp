@@ -36,7 +36,7 @@ Server::Server(int port, int expected_clients, ServerUpdatable* updatable, unsig
 	_servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	_servaddr.sin_port   = htons(_port);
 
-	if( 0 != bind(_servfd, (struct sockaddr *) &_servaddr, sizeof(_servaddr)) )
+	if( 0 != ::bind(_servfd, (struct sockaddr *) &_servaddr, sizeof(_servaddr)) )
 		printf("Server:: Error binding to %d: \n%s\n", _port, strerror(errno));
 
 	if(0 != listen(_servfd, _expected_clients))

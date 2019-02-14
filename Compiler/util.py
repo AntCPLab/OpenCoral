@@ -27,11 +27,11 @@ def greater_than(a, b, bits):
     else:
         return a.greater_than(b, bits)
 
-def pow2(a, bits):
-    if isinstance(a, int):
+def pow2_value(a, bit_length=None, security=None):
+    if is_constant_float(a):
         return 2**a
     else:
-        return a.pow2(bits)
+        return a.pow2(bit_length, security)
 
 def mod2m(a, b, bits, signed):
     if isinstance(a, int):
@@ -95,7 +95,16 @@ def cond_swap(cond, a, b):
 
 def log2(x):
     #print 'Compute log2 of', x
-    return int(math.ceil(math.log(x, 2)))
+    if is_constant_float(x):
+        return int(math.ceil(math.log(x, 2)))
+    else:
+        return x.log2()
+
+def round_to_int(x):
+    if is_constant_float(x):
+        return int(round(x))
+    else:
+        return x.round_to_int()
 
 def tree_reduce(function, sequence):
     sequence = list(sequence)
@@ -165,3 +174,9 @@ def long_one(x):
         except:
             pass
     return 1
+
+def expand(x, size):
+    try:
+        return x.expand_to_vector(size)
+    except AttributeError:
+        return x

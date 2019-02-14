@@ -87,6 +87,8 @@ opcodes = dict(
     # Open
     OPEN = 0xA5,
     MULS = 0xA6,
+    MULRS = 0xA7,
+    DOTPRODS = 0xA8,
     # Data access
     TRIPLE = 0x50,
     BIT = 0x51,
@@ -177,19 +179,14 @@ def int_to_bytes(x):
     return [(x >> 8*i) % 256 for i in (3,2,1,0)]
 
 
-global_vector_size = 1
-global_vector_size_depth = 0
+global_vector_size_stack = []
 global_instruction_type_stack = ['modp']
 
 def set_global_vector_size(size):
-    global global_vector_size, global_vector_size_depth
-    if size == 1:
+    stack = global_vector_size_stack
+    if size == 1 and not stack:
         return
-    if global_vector_size == 1 or global_vector_size == size:
-        global_vector_size = size
-        global_vector_size_depth += 1
-    else:
-        raise CompilerError('Cannot set global vector size when already set')
+    stack.append(size)
 
 def set_global_instruction_type(t):
     if t == 'modp' or t == 'gf2n':
@@ -198,17 +195,19 @@ def set_global_instruction_type(t):
         raise CompilerError('Invalid type %s for setting global instruction type')
 
 def reset_global_vector_size():
-    global global_vector_size, global_vector_size_depth
-    if global_vector_size_depth > 0:
-        global_vector_size_depth -= 1
-        if global_vector_size_depth == 0:
-            global_vector_size = 1
+    stack = global_vector_size_stack
+    if global_vector_size_stack:
+        stack.pop()
 
 def reset_global_instruction_type():
     global_instruction_type_stack.pop()
 
 def get_global_vector_size():
-    return global_vector_size
+    stack = global_vector_size_stack
+    if stack:
+        return stack[-1]
+    else:
+        return 1
 
 def get_global_instruction_type():
     return global_instruction_type_stack[-1]
@@ -243,10 +242,17 @@ def vectorize(instruction, global_dict=None):
 
     @functools.wraps(instruction)
     def maybe_vectorized_instruction(*args, **kwargs):
-        if global_vector_size == 1:
+        size = get_global_vector_size()
+        for arg in args:
+            try:
+                size = arg.size
+                break
+            except:
+                pass
+        if size == 1:
             return instruction(*args, **kwargs)
         else:
-            return Vectorized_Instruction(global_vector_size, *args, **kwargs)
+            return Vectorized_Instruction(size, *args, **kwargs)
     maybe_vectorized_instruction.vec_ins = Vectorized_Instruction
     maybe_vectorized_instruction.std_ins = instruction
     
@@ -287,6 +293,8 @@ def gf2n(instruction):
                 else:
                     __format.append(__f[0] + 'g' + __f[1:])
             arg_format[:] = __format
+        elif isinstance(arg_format, property):
+            pass
         else:
             for __f in arg_format.args:
                 reformat(__f)

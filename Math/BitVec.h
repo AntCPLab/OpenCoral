@@ -17,6 +17,8 @@ public:
     static char type_char() { return 'B'; }
     static DataFieldType field_type() { return DATA_GF2; }
 
+    static bool allows(Dtype dtype) { return dtype == DATA_TRIPLE or dtype == DATA_BIT; }
+
     BitVec() {}
     BitVec(long a) : IntBase(a) {}
     BitVec(const IntBase& a) : IntBase(a) {}

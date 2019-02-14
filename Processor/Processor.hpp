@@ -50,7 +50,7 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
 template<class sint, class sgf2n>
 Processor<sint, sgf2n>::~Processor()
 {
-  cerr << "Sent " << sent << " elements in " << rounds << " rounds" << endl;
+  cerr << "Opened " << sent << " elements in " << rounds << " rounds" << endl;
 }
 
 template<class sint, class sgf2n>
@@ -483,6 +483,85 @@ void SubProcessor<T>::POpen(const vector<int>& reg, const Player& P,
   unzip_open(dest, source, reg);
   POpen_Start(source, P, size);
   POpen_Stop(dest, P, size);
+}
+
+template<class T>
+void SubProcessor<T>::muls(const vector<int>& reg, int size)
+{
+    assert(reg.size() % 3 == 0);
+    int n = reg.size() / 3;
+
+    SubProcessor<T>& proc = *this;
+    protocol.init_mul(&proc);
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < size; j++)
+        {
+            auto& x = proc.S[reg[3 * i + 1] + j];
+            auto& y = proc.S[reg[3 * i + 2] + j];
+            protocol.prepare_mul(x, y);
+        }
+    protocol.exchange();
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < size; j++)
+        {
+            proc.S[reg[3 * i] + j] = protocol.finalize_mul();
+        }
+
+    protocol.counter += n * size;
+}
+
+template<class T>
+void SubProcessor<T>::mulrs(const vector<int>& reg)
+{
+    assert(reg.size() % 4 == 0);
+    int n = reg.size() / 4;
+
+    SubProcessor<T>& proc = *this;
+    protocol.init_mul(&proc);
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < reg[4 * i]; j++)
+        {
+            auto& x = proc.S[reg[4 * i + 2] + j];
+            auto& y = proc.S[reg[4 * i + 3]];
+            protocol.prepare_mul(x, y);
+        }
+    protocol.exchange();
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < reg[4 * i]; j++)
+        {
+            proc.S[reg[4 * i + 1] + j] = protocol.finalize_mul();
+        }
+        protocol.counter += reg[4 * i];
+    }
+}
+
+template<class T>
+void SubProcessor<T>::dotprods(const vector<int>& reg)
+{
+    protocol.init_dotprod(this);
+    auto it = reg.begin();
+    while (it != reg.end())
+    {
+        auto next = it + *it;
+        it += 2;
+        while (it != next)
+        {
+            protocol.prepare_dotprod(S[*it], S[*(it + 1)]);
+            it += 2;
+        }
+        protocol.next_dotprod();
+    }
+    protocol.exchange();
+    it = reg.begin();
+    while (it != reg.end())
+    {
+        auto next = it + *it;
+        it++;
+        T& dest = S[*it];
+        dest = protocol.finalize_dotprod((next - it) / 2);
+        it = next;
+   }
 }
 
 template<class sint, class sgf2n>

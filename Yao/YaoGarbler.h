@@ -15,7 +15,8 @@
 #include "GC/Secret.h"
 #include "Networking/Player.h"
 #include "OT/OTExtensionWithMatrix.h"
-#include "sys/sysinfo.h"
+
+#include <thread>
 
 using namespace GC;
 
@@ -66,7 +67,8 @@ public:
 	const Key& get_delta() { return master.delta; }
 	void store_gate(const YaoGate& gate);
 
-	int get_n_worker_threads() { return max(1, get_nprocs() / master.machine.nthreads); }
+	int get_n_worker_threads()
+	{ return max(1u, thread::hardware_concurrency() / master.machine.nthreads); }
 	int get_threshold() { return master.threshold; }
 
 	long get_gate_id() { return gate_id(thread_num); }

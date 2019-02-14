@@ -8,7 +8,7 @@
 
 #include <mutex>
 #include <boost/atomic.hpp>
-#include <sys/sysinfo.h>
+#include <boost/thread.hpp>
 
 #include "Register.h"
 #include "GarbledGate.h"
@@ -31,7 +31,7 @@ class BooleanCircuit;
 #ifndef N_EVAL_THREADS
 // Default Intel desktop processor has 8 half cores.
 // This is beneficial if only one AES available per full core.
-#define N_EVAL_THREADS (get_nprocs())
+#define N_EVAL_THREADS (thread::hardware_concurrency())
 #endif
 
 

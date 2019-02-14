@@ -4,7 +4,7 @@
  */
 
 #include "MaliciousShamirMC.h"
-#include "Processor/ShamirMachine.h"
+#include "Machines/ShamirMachine.h"
 
 template<class T>
 MaliciousShamirMC<T>::MaliciousShamirMC()

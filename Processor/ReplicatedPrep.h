@@ -28,7 +28,7 @@ protected:
     virtual void buffer_inverses(MAC_Check_Base<T>& MC, Player& P);
 
 public:
-    static const int buffer_size = 1000;
+    static const int buffer_size = 10000;
 
     virtual ~BufferPrep() {}
 
@@ -49,6 +49,8 @@ protected:
     typename T::Protocol* protocol;
     SubProcessor<T>* proc;
 
+    int base_player;
+
     void buffer_triples();
     void buffer_squares();
     void buffer_inverses() { throw runtime_error("not inverses in rings"); }
@@ -57,7 +59,7 @@ public:
     ReplicatedRingPrep(SubProcessor<T>* proc);
     virtual ~ReplicatedRingPrep() {}
 
-    void set_protocol(typename T::Protocol& protocol) { this->protocol = &protocol; }
+    void set_protocol(typename T::Protocol& protocol);
 
     virtual void buffer_bits();
 };

@@ -151,6 +151,18 @@ void gfp::reqbl(int n)
     }
 }
 
+bool gfp::allows(Dtype type)
+{
+    switch(type)
+    {
+    case DATA_BITGF2NTRIPLE:
+    case DATA_BITTRIPLE:
+        return false;
+    default:
+        return true;
+    }
+}
+
 void to_signed_bigint(bigint& ans, const gfp& x)
 {
     to_bigint(ans, x);

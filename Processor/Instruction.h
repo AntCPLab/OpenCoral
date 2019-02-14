@@ -92,6 +92,8 @@ enum
     // Open
     OPEN = 0xA5,
     MULS = 0xA6,
+    MULRS = 0xA7,
+    DOTPRODS = 0xA8,
     // Data access
     TRIPLE = 0x50,
     BIT = 0x51,
@@ -214,6 +216,8 @@ enum
     // Open
     GOPEN = 0x1A5,
     GMULS = 0x1A6,
+    GMULRS = 0x1A7,
+    GDOTPRODS = 0x1A8,
     // Data access
     GTRIPLE = 0x150,
     GBIT = 0x151,

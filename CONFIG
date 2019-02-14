@@ -4,6 +4,7 @@ OPTIM= -O3
 #PROF = -pg
 #DEBUG = -DDEBUG
 #MEMPROTECT = -DMEMPROTECT
+GDEBUG = -g
 
 # set this to your preferred local storage directory
 PREP_DIR = '-DPREP_DIR="Player-Data/"'
@@ -16,8 +17,15 @@ USE_NTL = 0
 USE_GF2N_LONG = 1
 
 # set to -march=<architecture> for optimization
-# AVX2 support (Haswell or later) changes the bit matrix transpose
-ARCH = -mtune=native -mavx
+# AES-NI is required for BMR
+# PCLMUL is required for GF(2^128) computation
+# AVX2 support (Haswell or later) is used to optimize OT
+# AVX/AVX2 is required for replicated binary secret sharing
+# BMI2 is used to optimize multiplication modulo a prime
+ARCH = -mtune=native -msse4.1 -maes -mpclmul -mavx -mavx2 -mbmi2
+
+# allow to set compiler in CONFIG.mine
+CXX = g++
 
 #use CONFIG.mine to overwrite DIR settings
 -include CONFIG.mine
@@ -30,7 +38,7 @@ endif
 # Default is 2, which suffices for 128-bit p
 # MOD = -DMAX_MOD_SZ=2
 
-LDLIBS = -lmpirxx -lmpir -lsodium $(MY_LDLIBS) -lm -lpthread 
+LDLIBS = -lmpirxx -lmpir -lsodium $(MY_LDLIBS)
 LDLIBS += -lboost_system -lssl -lcrypto
 
 ifeq ($(USE_NTL),1)
@@ -44,8 +52,6 @@ endif
 
 BOOST = -lboost_system -lboost_thread $(MY_BOOST)
 
-CXX = g++ -no-pie
-#CXX = clang++
-CFLAGS += $(ARCH) $(MY_CFLAGS) -g -Wextra -Wall $(OPTIM) -I$(ROOT) -pthread $(PROF) $(DEBUG) $(MOD) $(MEMPROTECT) $(GF2N_LONG) $(PREP_DIR) -maes -mpclmul -msse4.1 -mavx -mavx2 -mbmi2 --std=c++11 -Werror
+CFLAGS += $(ARCH) $(MY_CFLAGS) $(GDEBUG) -Wextra -Wall $(OPTIM) -I$(ROOT) -pthread $(PROF) $(DEBUG) $(MOD) $(MEMPROTECT) $(GF2N_LONG) $(PREP_DIR) -std=c++11 -Werror
 CPPFLAGS = $(CFLAGS)
 LD = $(CXX)

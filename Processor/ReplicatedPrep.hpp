@@ -16,6 +16,16 @@ ReplicatedRingPrep<T>::ReplicatedRingPrep(SubProcessor<T>* proc) :
 }
 
 template<class T>
+void ReplicatedRingPrep<T>::set_protocol(typename T::Protocol& protocol)
+{
+    this->protocol = &protocol;
+    if (proc)
+        base_player = proc->Proc.thread_num;
+    else
+        base_player = 0;
+}
+
+template<class T>
 void ReplicatedRingPrep<T>::buffer_triples()
 {
     assert(protocol != 0);
@@ -90,7 +100,7 @@ void BufferPrep<T>::buffer_inverses(MAC_Check_Base<T>& MC, Player& P)
     MC.POpen(c_open, c, P);
     for (size_t i = 0; i < c.size(); i++)
         if (c_open[i] != 0)
-            inverses.push_back({triples[i][0], triples[i][1] / c_open[i]});
+            inverses.push_back({{triples[i][0], triples[i][1] / c_open[i]}});
     triples.clear();
     if (inverses.empty())
         throw runtime_error("products were all zero");
@@ -141,25 +151,12 @@ void XOR(vector<T>& res, vector<T>& x, vector<T>& y, int buffer_size,
         res[i] = x[i] + y[i] - prot.finalize_mul() * two;
 }
 
-int get_n_relevant_players(Player& P)
-{
-    int n_relevant_players = P.num_players();
-    try
-    {
-        n_relevant_players = ShamirMachine::s().threshold + 1;
-    }
-    catch (...)
-    {
-    }
-    return n_relevant_players;
-}
-
 template<template<class U> class T>
 void buffer_bits_spec(ReplicatedPrep<T<gfp>>& prep, vector<T<gfp>>& bits,
     typename T<gfp>::Protocol& prot)
 {
     (void) bits, (void) prot;
-    if (get_n_relevant_players(prot.P) > 10)
+    if (prot.get_n_relevant_players() > 10)
     {
         vector<array<T<gfp>, 2>> squares(prep.buffer_size);
         vector<T<gfp>> s;
@@ -189,12 +186,12 @@ void ReplicatedRingPrep<T>::buffer_bits()
     auto buffer_size = this->buffer_size;
     auto& bits = this->bits;
     auto& P = protocol->P;
-    int n_relevant_players = get_n_relevant_players(P);
+    int n_relevant_players = protocol->get_n_relevant_players();
     vector<vector<T>> player_bits(n_relevant_players, vector<T>(buffer_size));
     typename T::Input input(proc, P);
-    for (int i = 0; i < n_relevant_players; i++)
+    for (int i = 0; i < P.num_players(); i++)
         input.reset(i);
-    if (P.my_num() < n_relevant_players)
+    if (positive_modulo(P.my_num() - base_player, P.num_players()) < n_relevant_players)
     {
         SeededPRNG G;
         for (int i = 0; i < buffer_size; i++)
@@ -202,25 +199,28 @@ void ReplicatedRingPrep<T>::buffer_bits()
         input.send_mine();
     }
     for (int i = 0; i < n_relevant_players; i++)
-        if (i == P.my_num())
+    {
+        int input_player = (base_player + i) % P.num_players();
+        if (input_player == P.my_num())
             for (auto& x : player_bits[i])
                 x = input.finalize_mine();
         else
         {
             octetStream os;
-            P.receive_player(i, os, true);
+            P.receive_player(input_player, os, true);
             for (auto& x : player_bits[i])
-                input.finalize_other(i, x, os);
+                input.finalize_other(input_player, x, os);
         }
+    }
     auto& prot = *protocol;
-    vector<T> tmp;
-    XOR(tmp, player_bits[0], player_bits[1], buffer_size, prot, proc);
-    for (int i = 2; i < n_relevant_players - 1; i++)
-    	XOR(tmp, tmp, player_bits[i], buffer_size, prot, proc);
-    XOR(bits, tmp, player_bits[n_relevant_players - 1], buffer_size, prot, proc);
+    XOR(bits, player_bits[0], player_bits[1], buffer_size, prot, proc);
+    for (int i = 2; i < n_relevant_players; i++)
+        XOR(bits, bits, player_bits[i], buffer_size, prot, proc);
+    base_player++;
 }
 
 template<>
+inline
 void ReplicatedRingPrep<Rep3Share<gf2n>>::buffer_bits()
 {
     assert(protocol != 0);

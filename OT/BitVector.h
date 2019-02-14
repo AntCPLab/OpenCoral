@@ -137,7 +137,7 @@ class BitVector
         memcpy(bytes + offset, (octet*)&w, sizeof(word));
     }
 
-    int128 get_int128(int i) const { return _mm_lddqu_si128((__m128i*)bytes + i); }
+    int128 get_int128(int i) const { return _mm_loadu_si128((__m128i*)bytes + i); }
     void set_int128(int i, int128 a) { *((__m128i*)bytes + i) = a.a; }
 
     int  get_bit(int i) const

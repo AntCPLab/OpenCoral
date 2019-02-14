@@ -13,7 +13,7 @@
 #include "GC/ReplicatedSecret.h"
 
 template<class T>
-PrepLessProtocol<T>::PrepLessProtocol() : counter(0)
+ProtocolBase<T>::ProtocolBase() : counter(0)
 {
 }
 
@@ -38,36 +38,42 @@ inline ReplicatedBase::ReplicatedBase(Player& P) : P(P)
 }
 
 template<class T>
-PrepLessProtocol<T>::~PrepLessProtocol()
+ProtocolBase<T>::~ProtocolBase()
 {
     if (counter)
         cerr << "Number of multiplications: " << counter << endl;
 }
 
 template<class T>
-void PrepLessProtocol<T>::muls(const vector<int>& reg,
+void ProtocolBase<T>::muls(const vector<int>& reg,
         SubProcessor<T>& proc, MAC_Check_Base<T>& MC, int size)
 {
     (void)MC;
-    assert(reg.size() % 3 == 0);
-    int n = reg.size() / 3;
+    proc.muls(reg, size);
+}
 
-    init_mul(&proc);
-    for (int i = 0; i < n; i++)
-        for (int j = 0; j < size; j++)
-        {
-            auto& x = proc.S[reg[3 * i + 1] + j];
-            auto& y = proc.S[reg[3 * i + 2] + j];
-            prepare_mul(x, y);
-        }
-    exchange();
-    for (int i = 0; i < n; i++)
-        for (int j = 0; j < size; j++)
-        {
-            proc.S[reg[3 * i] + j] = finalize_mul();
-        }
+template<class T>
+void ProtocolBase<T>::mulrs(const vector<int>& reg,
+        SubProcessor<T>& proc)
+{
+    proc.mulrs(reg);
+}
 
-    counter += n * size;
+template<class T>
+void ProtocolBase<T>::dotprods(const vector<int>& reg,
+        SubProcessor<T>& proc)
+{
+    proc.dotprods(reg);
+}
+
+template<class T>
+T ProtocolBase<T>::finalize_dotprod(int length)
+{
+    counter += length;
+    T res;
+    for (int i = 0; i < length; i++)
+        res += finalize_mul();
+    return res;
 }
 
 template<class T>
@@ -87,34 +93,68 @@ void Replicated<T>::init_mul()
 }
 
 template<class T>
-typename T::clear Replicated<T>::prepare_mul(const T& x,
+inline typename T::clear Replicated<T>::prepare_mul(const T& x,
         const T& y)
 {
-    typename T::value_type add_share = x[0] * y.sum() + x[1] * y[0];
+    typename T::value_type add_share = x.local_mul(y);
+    prepare_reshare(add_share);
+    return add_share;
+}
+
+template<class T>
+inline void Replicated<T>::prepare_reshare(const typename T::clear& share)
+{
+    auto add_share = share;
     typename T::value_type tmp[2];
     for (int i = 0; i < 2; i++)
         tmp[i].randomize(shared_prngs[i]);
     add_share += tmp[0] - tmp[1];
     add_share.pack(os[0]);
     add_shares.push_back(add_share);
-    return add_share;
 }
 
 template<class T>
 void Replicated<T>::exchange()
 {
-    P.send_relative(1, os[0]);
-    P.receive_relative(- 1, os[0]);
+    P.pass_around(os[0], 1);
 }
 
 template<class T>
-T Replicated<T>::finalize_mul()
+inline T Replicated<T>::finalize_mul()
 {
     T result;
     result[0] = add_shares.front();
     add_shares.pop_front();
     result[1].unpack(os[0]);
     return result;
+}
+
+template<class T>
+inline void Replicated<T>::init_dotprod(SubProcessor<T>* proc)
+{
+    init_mul(proc);
+    dotprod_share.assign_zero();
+}
+
+template<class T>
+inline void Replicated<T>::prepare_dotprod(const T& x, const T& y)
+{
+    dotprod_share += x.local_mul(y);
+}
+
+template<class T>
+inline void Replicated<T>::next_dotprod()
+{
+    prepare_reshare(dotprod_share);
+    dotprod_share.assign_zero();
+}
+
+template<class T>
+inline T Replicated<T>::finalize_dotprod(int length)
+{
+    (void) length;
+    this->counter++;
+    return finalize_mul();
 }
 
 template<class T>

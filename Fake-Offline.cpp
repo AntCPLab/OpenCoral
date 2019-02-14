@@ -14,6 +14,7 @@
 #include "Tools/benchmarking.h"
 
 #include "Auth/fake-stuff.hpp"
+#include "Processor/Data_Files.hpp"
 
 #include <sstream>
 #include <fstream>

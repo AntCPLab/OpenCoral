@@ -201,8 +201,7 @@ void octetStream::exchange(T send_socket, T receive_socket, octetStream& receive
       if (sent < len)
         {
           size_t to_send = min(buffer_size, len - sent);
-          send(send_socket, data + sent, to_send);
-          sent += to_send;
+          sent += send_non_blocking(send_socket, data + sent, to_send);
         }
 
       // avoid extra branching, false before length received

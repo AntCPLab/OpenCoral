@@ -5,16 +5,40 @@ protocols such as SPDZ, MASCOT, Overdrive, BMR garbled circuits
 (evaluation only), Yao's garbled circuits, and computation based on
 semi-honest three-party replicated secret sharing (with an honest majority).
 
-#### TL;DR
+#### TL;DR (Binary Distribution on Linux or Souce Distribution on macOS)
 
-This requires `sudo` rights as well as a working toolchain installed
-for the first step, refer to [the requirements](#requirements)
-otherwise. It will execute [the
+This requires either a Linux distribution originally released 2011 or
+later (glibc 2.12) or macOS High Sierra or later as well as Python 2
+and basic command-line utilities.
+
+Download and unpack the distribution, then execute the following from
+the top folder:
+
+```
+Scripts/tldr.sh
+./compile.py tutorial
+echo 1 2 3 > Player-Data/Input-P0-0
+echo 1 2 3 > Player-Data/Input-P1-0
+Scripts/mal-rep-field.sh tutorial
+```
+
+This runs [the tutorial](Programs/Source/tutorial.mpc) with three
+parties, an honest majority, and malicious security.
+
+#### TL;DR (Source Distribution)
+
+On Linux, this requires a working toolchain and [all
+requirements](#requirements). On Ubuntu, the following might suffice:
+```
+apt-get install automake build-essential git libboost-dev libboost-thread-dev libsodium-dev libssl-dev libtool m4 python texinfo yasm
+```
+On MacOS, this requires [brew](https://brew.sh) to be installed,
+which will be used for all dependencies.
+It will execute [the
 tutorial](Programs/Source/tutorial.mpc) with three
 parties, an honest majority, and malicious security.
 
 ```
-make -j 8 mpir
 make -j 8 tldr
 ./compile.py tutorial
 Scripts/setup-replicated.sh
@@ -95,10 +119,10 @@ phase outputs the amount of offline material required, which allows to
 compute the preprocessing time for a particulor computation.
 
 #### Requirements
- - GCC 4.8 or later (tested with 7.3; remove `-no-pie` from `CONFIG` for GCC 4.8) or LLVM (tested with 6.0; remove `-no-pie` from `CONFIG`)
+ - GCC 4.8 or later (tested with 7.3) or LLVM (tested with 6.0)
  - MPIR library, compiled with C++ support (use flag --enable-cxx when running configure)
  - libsodium library, tested against 1.0.16
- - OpenSSL, tested against 1.1.0
+ - OpenSSL, tested against and 1.0.2 and 1.1.0
  - Boost.Asio with SSL support (`libboost-dev` on Ubuntu), tested against 1.65
  - Boost.Thread for BMR (`libboost-thread-dev` on Ubuntu), tested against 1.65
  - CPU supporting AES-NI, PCLMUL, AVX2

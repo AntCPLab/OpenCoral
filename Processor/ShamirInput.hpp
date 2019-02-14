@@ -4,7 +4,7 @@
  */
 
 #include "ShamirInput.h"
-#include "ShamirMachine.h"
+#include "Machines/ShamirMachine.h"
 
 template<class U>
 void ShamirInput<U>::reset(int player)

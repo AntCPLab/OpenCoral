@@ -196,6 +196,7 @@ inline void Zp_Data::Sub(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) c
   }
 }
 
+#ifdef __BMI2__
 template <int T>
 inline void Zp_Data::Mont_Mult_(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const
 {
@@ -219,17 +220,20 @@ inline void Zp_Data::Mont_Mult_(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t*
   else
      { inline_mpn_copyi(z,ans+T,T); }
 }
+#endif
 
 inline void Zp_Data::Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const
 {
   switch (t)
   {
+#ifdef __BMI2__
   case 2:
     Mont_Mult_<2>(z, x, y);
     break;
   case 1:
     Mont_Mult_<1>(z, x, y);
     break;
+#endif
   default:
     Mont_Mult_variable(z, x, y);
     break;
