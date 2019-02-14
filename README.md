@@ -11,7 +11,8 @@ This requires either a Linux distribution originally released 2011 or
 later (glibc 2.12) or macOS High Sierra or later as well as Python 2
 and basic command-line utilities.
 
-Download and unpack the [distribution](releases), then execute the following from
+Download and unpack the [distribution](https://github.com/n1analytics/MP-SPDZ/releases),
+then execute the following from
 the top folder:
 
 ```
