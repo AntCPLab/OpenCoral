@@ -5,13 +5,13 @@ protocols such as SPDZ, MASCOT, Overdrive, BMR garbled circuits
 (evaluation only), Yao's garbled circuits, and computation based on
 semi-honest three-party replicated secret sharing (with an honest majority).
 
-#### TL;DR (Binary Distribution on Linux or Souce Distribution on macOS)
+#### TL;DR (Binary Distribution on Linux or Source Distribution on macOS)
 
 This requires either a Linux distribution originally released 2011 or
 later (glibc 2.12) or macOS High Sierra or later as well as Python 2
 and basic command-line utilities.
 
-Download and unpack the distribution, then execute the following from
+Download and unpack the [distribution](releases), then execute the following from
 the top folder:
 
 ```
