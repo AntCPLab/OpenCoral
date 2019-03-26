@@ -27,14 +27,14 @@ COMMON = $(MATH) $(TOOLS) $(NETWORK) $(AUTH)
 COMPLETE = $(COMMON) $(PROCESSOR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(OT)
 
 LIB = libSPDZ.a
-LIBSIMPLEOT = SimpleOT/libsimpleot.a
+LIBSIMPLEOT = -no-pie SimpleOT/libsimpleot.a
 
 # used for dependency generation
 OBJS = $(COMPLETE)
 DEPS := $(OBJS:.o=.d)
 
 
-all: gen_input online offline externalIO
+all: gen_input online offline externalIO check-passive.x Check-Offline-Z2k.x
 
 ifeq ($(USE_NTL),1)
 all: overdrive she-offline
@@ -62,6 +62,9 @@ Fake-Offline.x: Fake-Offline.cpp $(COMMON) $(PROCESSOR)
 
 Check-Offline.x: Check-Offline.cpp $(COMMON) $(PROCESSOR)
 	$(CXX) $(CFLAGS) Check-Offline.cpp -o Check-Offline.x $(COMMON) $(PROCESSOR) $(LDLIBS)
+
+Check-Offline-Z2k.x: Check-Offline-Z2k.cpp $(COMMON) $(PROCESSOR)
+	$(CXX) $(CFLAGS) Check-Offline-Z2k.cpp -o Check-Offline-Z2k.x $(COMMON) $(PROCESSOR) $(LDLIBS)
 
 Server.x: Server.cpp $(COMMON)
 	$(CXX) $(CFLAGS) Server.cpp -o Server.x $(COMMON) $(LDLIBS)

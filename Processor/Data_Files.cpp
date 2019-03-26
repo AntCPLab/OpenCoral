@@ -6,8 +6,8 @@
 
 #include <iomanip>
 
-const char* Data_Files::field_names[] = { "p", "2", "Z2^64" };
-const char* Data_Files::long_field_names[] = { "gfp", "gf2n", "Z2^64" };
+const char* Data_Files::field_names[] = { "p", "2", "Z2^160" };
+const char* Data_Files::long_field_names[] = { "gfp", "gf2n", "Z2^160" };
 const bool Data_Files::implemented[N_DATA_FIELD_TYPE][N_DTYPE] = {
     { true, true, true, true, false, false },
     { true, true, true, true, true, true },

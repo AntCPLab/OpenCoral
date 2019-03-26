@@ -42,10 +42,10 @@ class octetStream
 
   void resize(size_t l);
   void resize_precise(size_t l);
+  void reserve(size_t l);
   void clear();
 
   void assign(const octetStream& os);
-  void swap(octetStream& os);
 
   octetStream() : len(0), mxlen(0), ptr(0), data(0) {}
   octetStream(size_t maxlen);
@@ -177,6 +177,11 @@ inline void octetStream::resize_precise(size_t l)
   mxlen=l;
 }
 
+inline void octetStream::reserve(size_t l)
+{
+  if (len + l > mxlen)
+    resize_precise(len + l);
+}
 
 inline void octetStream::append(const octet* x, const size_t l)
 {

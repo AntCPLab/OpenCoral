@@ -13,6 +13,7 @@ using namespace std;
 #include "Tools/avx_memcpy.h"
 #include "bigint.h"
 #include "field_types.h"
+#include "mpn_fixed.h"
 
 template <int K>
 class Z2
@@ -28,6 +29,7 @@ class Z2
 
 	mp_limb_t a[N_WORDS];
 
+
 public:
 	static const int N_BITS = K;
 	static const int N_BYTES = (K + 7) / 8;
@@ -40,12 +42,15 @@ public:
 
 	static DataFieldType field_type() { return DATA_Z2K; }
 
+	template <int L, int M>
+	static Z2<K> Mul(const Z2<L>& x, const Z2<M>& y);
+
 	typedef Z2<K> value_type;
 
 	Z2() { assign_zero(); }
 	Z2(uint64_t x) : Z2() { a[0] = x; }
 	Z2(__m128i x) : Z2() { avx_memcpy(a, &x, min(N_BYTES, 16)); }
-	Z2(int x) : Z2(x < 0 ? bigint(x) : uint64_t(x)) {}
+	Z2(int x) : Z2() { if (x < 0) *this = bigint(x); else *this = uint64_t(x); }
 	Z2(const bigint& x);
 	Z2(const void* buffer) : Z2() { assign(buffer); }
 	template <int L>
@@ -61,17 +66,23 @@ public:
 
 	const void* get_ptr() const { return a; }
 
+	void negate() { 
+		throw not_implemented();
+	}
+	
 	Z2<K> operator+(const Z2<K>& other) const;
 	Z2<K> operator-(const Z2<K>& other) const;
 
 	template <int L>
 	Z2<K+L> operator*(const Z2<L>& other) const;
 
-	Z2<K> operator*(bool other) const { return other ? *this : Z2<K>(0); }
+	Z2<K> operator*(bool other) const { return other ? *this : Z2<K>(); }
 
 	Z2<K>& operator+=(const Z2<K>& other);
+	Z2<K>& operator-=(const Z2<K>& other);
 
 	Z2<K> operator<<(int i) const;
+	Z2<K> operator>>(int i) const;
 
 	bool operator==(const Z2<K>& other) const;
 	bool operator!=(const Z2<K>& other) const { return not (*this == other); }
@@ -79,8 +90,8 @@ public:
 	void add(const Z2<K>& a, const Z2<K>& b) { *this = a + b; }
 	void add(const Z2<K>& a) { *this += a; }
 	void sub(const Z2<K>& a, const Z2<K>& b) { *this = a - b; }
-	template <int L>
-	void mul(const Z2<K>& a, const Z2<L>& b) { *this = a * b; }
+	template <int M, int L>
+	void mul(const Z2<M>& a, const Z2<L>& b) { *this = Z2<K>::Mul(a, b); }
 
 	template <int t>
 	void add(octetStream& os) { add(os.consume(size())); }
@@ -100,26 +111,54 @@ public:
 	friend ostream& operator<<(ostream& o, const Z2<J>& x);
 };
 
+template<int K>
+inline Z2<K> Z2<K>::operator+(const Z2<K>& other) const
+{
+    Z2<K> res;
+    mpn_add_fixed_n<N_WORDS>(res.a, a, other.a);
+    res.a[N_WORDS - 1] &= UPPER_MASK;
+    return res;
+}
+
+template<int K>
+Z2<K> Z2<K>::operator-(const Z2<K>& other) const
+{
+	Z2<K> res;
+	mpn_sub_fixed_n<N_WORDS>(res.a, a, other.a);
+	res.a[N_WORDS - 1] &= UPPER_MASK;
+	return res;
+}
+
+template <int K>
+inline Z2<K>& Z2<K>::operator+=(const Z2<K>& other)
+{
+	mpn_add_fixed_n<N_WORDS>(a, other.a, a);
+	a[N_WORDS - 1] &= UPPER_MASK;
+	return *this;
+}
+
+template <int K>
+Z2<K>& Z2<K>::operator-=(const Z2<K>& other)
+{
+	*this = *this - other;
+	return *this;
+}
+
+template <int K>
+template <int L, int M>
+inline Z2<K> Z2<K>::Mul(const Z2<L>& x, const Z2<M>& y)
+{
+	Z2<K> res;
+	mpn_mul_fixed_<N_WORDS, x.N_WORDS, y.N_WORDS>(res.a, x.a, y.a);
+	res.a[N_WORDS - 1] &= UPPER_MASK;
+	return res;
+}
+
 template <int K>
 template <int L>
 inline Z2<K+L> Z2<K>::operator*(const Z2<L>& other) const
 {
-    mp_limb_t product[N_WORDS + other.N_WORDS];
-    if (K < L)
-        mpn_mul(product, other.a, other.N_WORDS, a, N_WORDS);
-    else
-        mpn_mul(product, a, N_WORDS, other.a, other.N_WORDS);
-    Z2<K+L> res;
-    avx_memcpy(res.a, product, res.N_BYTES);
-    return res;
-}
-
-template <int K>
-inline ostream& operator<<(ostream& o, const Z2<K>& x)
-{
-	for (int i = 0; i < x.N_WORDS; i++)
-		o << hex << x.a[i] << " ";
-	return o;
+	return Z2<K+L>::Mul(*this, other);
 }
 
 #endif /* MATH_Z2K_H_ */

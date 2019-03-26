@@ -18,7 +18,6 @@ typedef unsigned char octet;
   typedef unsigned long word;
 #endif
 
-
 inline int CEIL_LOG2(int x)
 {
     int result = 0;

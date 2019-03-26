@@ -6,6 +6,7 @@
 #include "Tools/octetStream.h"
 #include "Tools/sha1.h"
 #include "Tools/aes.h"
+#include "Tools/avx_memcpy.h"
 
 #define USE_AES
 
@@ -19,6 +20,7 @@
   #define RAND_SIZE   (PIPELINES * AES_BLK_SIZE)
 #endif
 
+class Player;
 
 /* This basically defines a randomness expander, if using
  * as a real PRG on an input stream you should first collapse
@@ -62,12 +64,14 @@ class PRNG
    // Set seed from array
    void SetSeed(const unsigned char*);
    void SetSeed(PRNG& G);
+   void SecureSeed(Player& player);
    void InitSeed();
    
    double get_double();
    bool get_bit() { return get_uchar() & 1; }
    unsigned char get_uchar();
    unsigned int get_uint();
+   unsigned int get_uint(int upper);
    void get_bigint(bigint& res, int n_bits, bool positive = true);
    void get(bigint& res, int n_bits, bool positive = true);
    void get(int& res, int n_bits, bool positive = true);
@@ -82,9 +86,34 @@ class PRNG
    __m128i get_doubleword();
    void get_octetStream(octetStream& ans,int len);
    void get_octets(octet* ans, int len);
+   template <int L>
+   void get_octets_(octet* ans);
+
+   template <class T>
+   T get();
 
    const octet* get_seed() const
      { return seed; }
 };
+
+template <class T>
+T PRNG::get()
+{
+   T res;
+   res.randomize(*this);
+   return res;
+}
+
+template<int L>
+inline void PRNG::get_octets_(octet* ans)
+{
+   if (L < RAND_SIZE - cnt)
+   {
+     avx_memcpy(ans, random + cnt, L);
+     cnt += L;
+   }
+   else
+     get_octets(ans, L);
+}
 
 #endif

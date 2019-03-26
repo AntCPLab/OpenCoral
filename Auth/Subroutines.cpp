@@ -252,4 +252,9 @@ template void Create_Random(gf2n_short& ans,const Player& P);
 template void Commit_And_Open(vector<gfp>& data,const Player& P);
 template void Create_Random(gfp& ans,const Player& P);
 
+template void Commit_And_Open(vector<Z2<64> >& data,const Player& P);
+template void Commit_And_Open(vector<Z2<96> >& data,const Player& P);
+template void Commit_And_Open(vector<Z2<128> >& data,const Player& P);
 template void Commit_And_Open(vector<Z2<160> >& data,const Player& P);
+template void Commit_And_Open(vector<Z2<192> >& data,const Player& P);
+template void Commit_And_Open(vector<Z2<256> >& data,const Player& P);

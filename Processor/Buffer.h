@@ -69,13 +69,13 @@ class BufferHelper
 public:
     Buffer< U<gfp>, V<gfp> > bufferp;
     Buffer< U<gf2n>, V<gf2n> > buffer2;
-    Buffer< U<Z2<64> >, V<Z2<64> > > bufferz2k;
+    Buffer< U<Z2<160> >, V<Z2<160> > > bufferz2k;
     ifstream* files[N_DATA_FIELD_TYPE];
 
     BufferHelper() { memset(files, 0, sizeof(files)); }
     void input(V<gfp>& a) { bufferp.input(a); }
     void input(V<gf2n>& a) { buffer2.input(a); }
-    void input(V<Z2<64> >& a) { bufferz2k.input(a); }
+    void input(V<Z2<160> >& a) { bufferz2k.input(a); }
     BufferBase& get_buffer(DataFieldType field_type);
     void setup(DataFieldType field_type, string filename, int tuple_length, const char* data_type = 0);
     void close();

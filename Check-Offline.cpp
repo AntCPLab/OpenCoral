@@ -297,11 +297,11 @@ int main(int argc, const char** argv)
   check_tuples(key2, N, dataF, DATA_INVERSE);
   check_tuples(keyp, N, dataF, DATA_INVERSE);
 
-  Z2<64> keyz2k;
-  for (int i = 0; i < N; i++)
-    keyz2k += read_mac_key<Z2<96> >(PREP_DATA_PREFIX, i);
+  // Z2<160> keyz2k;
+  // for (int i = 0; i < N; i++)
+  //   keyz2k += read_mac_key<Z2<96> >(PREP_DATA_PREFIX, i);
 
-  check_mult_triples(keyz2k, N, dataF, DATA_Z2K);
+  // check_mult_triples(keyz2k, N, dataF, DATA_Z2K);
 
   for (int i = 0; i < N; i++)
     delete dataF[i];

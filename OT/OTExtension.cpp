@@ -299,7 +299,6 @@ void OTExtension::transfer(int nOTs,
         // randomize last 128 + 128 bits that will be discarded
         for (int i = 0; i < 4; i++)
             newReceiverInput.set_word(nOTs/64 - i, G.get_word());
-
         // expand with PRG and create correlation
         if (ot_role & RECEIVER)
         {

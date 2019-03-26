@@ -112,6 +112,7 @@ TripleMachine::TripleMachine(int argc, const char** argv) :
     primeField = opt.get("-P")->isSet;
     bonding = opt.get("-b")->isSet;
     z2k = opt.get("-Z")->isSet;
+    check |= z2k;
 
     bigint p;
     if (output)
@@ -134,7 +135,7 @@ TripleMachine::TripleMachine(int argc, const char** argv) :
     G.ReSeed();
     mac_key2.randomize(G);
     mac_keyp.randomize(G);
-    mac_key296.randomize(G);
+    mac_keyz.randomize(G);
 }
 
 void TripleMachine::run()
@@ -168,8 +169,8 @@ void TripleMachine::run()
         generators[i]->lock();
         if (z2k)
         {
-            pthread_create(&threads[i], 0, run_ngenerator_thread<Z2<64> >,
-                    generators[i]);
+            pthread_create(&threads[i], 0, run_ngenerator_thread<Z2<SPDZ2K_K + SPDZ2K_S> >,
+                                generators[i]);
             continue;
         }
         if (primeField)
@@ -222,8 +223,9 @@ void TripleMachine::run()
 
 void TripleMachine::output_mac_keys()
 {
-    if (z2k)
-        write_mac_key(prep_data_dir, my_num, mac_key296);
+    if (z2k) {
+        write_mac_key(prep_data_dir, my_num, mac_keyz);
+    }
     else
         write_mac_keys(prep_data_dir, my_num, nplayers, mac_keyp, mac_key2);
 }
@@ -240,5 +242,15 @@ template<> gfp TripleMachine::get_mac_key()
 
 template<> Z2<96> TripleMachine::get_mac_key()
 {
-    return mac_key296;
+    return mac_keyz;
+}
+
+template<> Z2<64> TripleMachine::get_mac_key()
+{
+    return mac_keyz;
+}
+
+template<> Z2<32> TripleMachine::get_mac_key()
+{
+    return mac_keyz;
 }

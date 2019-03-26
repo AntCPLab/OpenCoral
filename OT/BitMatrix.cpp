@@ -192,8 +192,7 @@ void square128::transpose()
         } \
     }
 #ifdef __AVX2__
-#define SIXTEENTOSIXTYFOUR Y(16) Y(32) Y(64)
-#define Y(I) { \
+#define Z(I) { \
         const int J = I / 8; \
         for (int i = 0; i < 16 / J; i++) \
         { \
@@ -216,7 +215,7 @@ void square128::transpose()
         base += 16;
         X(8)
         base = k * 16;
-        SIXTEENTOSIXTYFOUR
+        Z(16) Z(32) Z(64)
         for (int i = 0; i < 8; i++)
         {
             int a = base + i;
@@ -335,7 +334,10 @@ void square128::to(gfp& result)
     for (int i = 0; i < 128; i++)
     {
         memcpy(&(tmp[i/64][i/64]), &(rows[i]), sizeof(rows[i]));
-        mpn_lshift(product, tmp[i/64], 4, i % 64);
+        if (i % 64 == 0)
+            memcpy(product, tmp[i/64], sizeof(product));
+        else
+            mpn_lshift(product, tmp[i/64], 4, i % 64);
         mpn_add_n(sum, product, sum, 4);
     }
     mp_limb_t q[4], ans[4];
@@ -567,7 +569,7 @@ Matrix<U>& Matrix<U>::operator=(const Matrix<V>& other)
             avx_memcpy(seed, &source, min(SEED_SIZE, (int)sizeof(source)));
             prng.SetSeed(seed);
             dest = 0;
-            prng.get_octets((octet*)dest.get_ptr(), U::N_ROW_BYTES);
+            prng.get_octets_<U::N_ROW_BYTES>((octet*)dest.get_ptr());
         }
     }
     return *this;
@@ -718,7 +720,7 @@ Slice<U>& Slice<U>::rsub(Slice<U>& other)
     if (bm.squares.size() < other.end)
         throw invalid_length();
     for (size_t i = other.start; i < other.end; i++)
-        bm.squares[i].rsub<T>(other.bm.squares[i]);
+        bm.squares[i].template rsub<T>(other.bm.squares[i]);
     return *this;
 }
 
@@ -727,7 +729,7 @@ template <class T>
 Slice<U>& Slice<U>::sub(BitVector& other, int repeat)
 {
     if (end * U::PartType::N_COLUMNS > other.size() * repeat)
-        throw invalid_length();
+        throw invalid_length(to_string(U::PartType::N_COLUMNS));
     for (size_t i = start; i < end; i++)
     {
         bm.squares[i].template sub<T>(other.get_ptr_to_byte(i / repeat,
@@ -741,7 +743,7 @@ template <class T>
 void Slice<U>::randomize(int row, PRNG& G)
 {
     for (size_t i = start; i < end; i++)
-        bm.squares[i].randomize<T>(row, G);
+        bm.squares[i].template randomize<T>(row, G);
 }
 
 template <class U>
@@ -749,7 +751,7 @@ template <class T>
 void Slice<U>::conditional_add(BitVector& conditions, U& other, bool useOffset)
 {
     for (size_t i = start; i < end; i++)
-        bm.squares[i].conditional_add<T>(conditions, other.squares[i], useOffset * i);
+        bm.squares[i].template conditional_add<T>(conditions, other.squares[i], useOffset * i);
 }
 
 template <>
@@ -774,6 +776,7 @@ void Slice<U>::print()
 template <class U>
 void Slice<U>::pack(octetStream& os) const
 {
+    os.reserve(U::PartType::size() * (end - start));
     for (size_t i = start; i < end; i++)
         bm.squares[i].pack(os);
 }
@@ -801,9 +804,11 @@ template void Slice<Matrix<Rectangle<Z2<N>, Z2<L> > > >::conditional_add< \
         Z2<L> >(BitVector& conditions, \
         Matrix<Rectangle<Z2<N>, Z2<L> > >& other, bool useOffset); \
 
-X(96, 160)
+//X(96, 160)
 
 Y(64, 96)
+Y(64, 64)
+Y(32, 32)
 
 template class Matrix<square128>;
 

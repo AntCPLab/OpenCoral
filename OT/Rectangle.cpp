@@ -102,8 +102,11 @@ void Rectangle<U, V>::unpack(octetStream& o)
 #define X(N,L) \
 		template class Rectangle<Z2<N>, Z2<L> > ; \
 		template void Rectangle<Z2<N>, Z2<L> >::to(Z2<L>& result); \
+		template void Rectangle<Z2<N>, Z2<L> >::to(Z2<N>& result); \
 		template void Rectangle<Z2<N>, Z2<L> >::to(Z2<N + L>& result); \
+		template void Rectangle<Z2<N>, Z2<L> >::to(Z2<L - N>& result); \
 
 
 Y(64, 96)
-X(96, 160)
+Y(64, 64)
+Y(32, 32)

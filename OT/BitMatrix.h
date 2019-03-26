@@ -20,9 +20,13 @@
 using namespace std;
 
 union square128 {
+    typedef int128 RowType;
+
     const static int N_ROWS = 128;
     const static int N_COLUMNS = 128;
     const static int N_ROW_BYTES = 128 / 8;
+
+    static size_t size() { return N_ROWS * sizeof(__m128i); }
 
 #ifdef __AVX2__
     __m256i doublerows[64];

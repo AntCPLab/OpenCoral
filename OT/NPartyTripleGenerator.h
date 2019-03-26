@@ -19,8 +19,11 @@
 
 #define N_AMPLIFY 3
 
+template <class T, class U, int N>
+class ShareTriple_;
+
 template <class T, int N>
-class ShareTriple;
+using ShareTriple = ShareTriple_<T, T, N>;
 
 class NPartyTripleGenerator
 {
@@ -28,7 +31,6 @@ class NPartyTripleGenerator
     Player globalPlayer;
 
     int thread_num;
-    int my_num;
     int nbase;
 
     struct timeval last_lap;
@@ -40,13 +42,24 @@ class NPartyTripleGenerator
     ofstream outputFile;
     PRNG share_prg;
 
+    template <int K, int S>
+    void generateTriplesZ2k(vector< OTMultiplierBase* >& ot_multipliers, ofstream& outputFile);
+
     template <class T>
     void generateTriples(vector< OTMultiplierBase* >& ot_multipliers, ofstream& outputFile);
     template <class T>
     void generateBits(vector< OTMultiplierBase* >& ot_multipliers, ofstream& outputFile);
-    template <class T, int N>
-    void generateBitsFromTriples(vector<ShareTriple<T, N> >& triples,
+    template <class T, class U>
+    void generateBitsFromTriples(vector<ShareTriple_<T, U, 2> >& triples,
             MAC_Check<T>& MC, ofstream& outputFile);
+
+    template <class T, class U>
+	void sacrifice(vector<ShareTriple_<T, U, 2> > uncheckedTriples,
+			MAC_Check<T>& MC, PRNG& G);
+
+    template <class T, class U, class V>
+    void sacrifice(vector<ShareTriple_<T, U, 2> > uncheckedTriples,
+            MAC_Check_Z2k<T, U, V>& MC, PRNG& G);
 
     void start_progress();
     void print_progress(int k);
@@ -65,6 +78,10 @@ public:
     vector< vector< vector<BitVector> > > baseSenderInputs;
     vector< vector<BitVector> > baseReceiverOutputs;
     vector<BitVector> valueBits;
+    BitVector b_padded_bits;
+
+    int my_num;
+
 
     int nTriples;
     int nTriplesPerLoop;

@@ -10,6 +10,7 @@
 using namespace std;
 #include <stdlib.h>
 #include <pmmintrin.h>
+#include <assert.h>
 
 #include "Exceptions/Exceptions.h"
 #include "Networking/data.h"
@@ -161,6 +162,7 @@ class BitVector
 
     bool get_bit(int i) const
       {
+        assert(i < (int)nbits);
         return (bytes[i/8] >> (i % 8)) & 1;
       }
     void set_bit(int i,unsigned int a)
@@ -216,7 +218,7 @@ class BitVector
     void pack(octetStream& o) const;
     void unpack(octetStream& o);
 
-    string str(size_t end = SIZE_MAX)
+    string str(size_t end = SIZE_MAX) const
     {
         stringstream ss;
         ss << hex;

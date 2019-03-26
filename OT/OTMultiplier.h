@@ -12,6 +12,7 @@
 using namespace std;
 
 #include "OT/OTExtensionWithMatrix.h"
+#include "OT/OTVole.h"
 #include "OT/Rectangle.h"
 #include "Tools/random.h"
 
@@ -26,11 +27,22 @@ public:
 
     virtual ~OTMultiplierBase() {}
     virtual void multiply() = 0;
+
+    void signal_generator() { pthread_cond_signal(&ready); }
+    void wait_for_generator() { pthread_cond_wait(&ready, &mutex); }
 };
 
-template <class T, class U, class V, class W, class X>
-class OTMultiplier : public OTMultiplierBase
+template <class V>
+class OTMultiplierMac : public OTMultiplierBase
 {
+public:
+    vector< vector<V> > macs;
+};
+
+template <class T, class U, class V, class X>
+class OTMultiplier : public OTMultiplierMac<V>
+{
+protected:
     BitVector keyBits;
     vector< vector<BitVector> > senderOutput;
     vector<BitVector> receiverOutput;
@@ -39,14 +51,15 @@ class OTMultiplier : public OTMultiplierBase
     void multiplyForBits();
 
     virtual void after_correlation() = 0;
+    virtual void init_authenticator(const BitVector& baseReceiverInput,
+            const vector< vector<BitVector> >& baseSenderInput,
+            const vector<BitVector>& baseReceiverOutput) = 0;
 
 public:
     NPartyTripleGenerator& generator;
     int thread_num;
     OTExtensionWithMatrix rot_ext;
-    OTCorrelator<Matrix<W> > auth_ot_ext;
     OTCorrelator<Matrix<X> > otCorrelator;
-    vector< vector<V> > macs;
 
     OTMultiplier(NPartyTripleGenerator& generator, int thread_num);
     virtual ~OTMultiplier();
@@ -54,9 +67,13 @@ public:
 };
 
 template <class T>
-class MascotMultiplier : public OTMultiplier<T, T, T, square128, square128>
+class MascotMultiplier : public OTMultiplier<T, T, T, square128>
 {
+    OTCorrelator<Matrix<square128> > auth_ot_ext;
     void after_correlation();
+    void init_authenticator(const BitVector& baseReceiverInput,
+            const vector< vector<BitVector> >& baseSenderInput,
+            const vector<BitVector>& baseReceiverOutput);
 
 public:
     vector<T> c_output;
@@ -64,24 +81,25 @@ public:
     MascotMultiplier(NPartyTripleGenerator& generator, int thread_num);
 };
 
+// values, key, mac, mult-rectangle
 template <int K, int S>
-class Spdz2kMultiplier: public OTMultiplier<Z2<K + S>, Z2<S>, Z2<K + S>,
-        Z2kRectangle<K + S, K + S>, Z2kRectangle<TAU(K, S), K + S> >
+class Spdz2kMultiplier: public OTMultiplier<Z2<K + S>, Z2<S>, Z2<K + 2 * S>,
+	Z2kRectangle<TAU(K, S), K + S> >
 {
     void after_correlation();
+    void init_authenticator(const BitVector& baseReceiverInput,
+            const vector< vector<BitVector> >& baseSenderInput,
+            const vector<BitVector>& baseReceiverOutput);
 
 public:
     static const int TAU = TAU(K, S);
-    static const int MAC_BITS = K + S;
+    static const int PASSIVE_MULT_BITS = K + S;
+    static const int MAC_BITS = K + 2 * S;
 
-    vector<Z2kRectangle<TAU, K + S> > c_output;
+    vector<Z2kRectangle<TAU, PASSIVE_MULT_BITS> > c_output;
+    OTVoleBase<Z2<MAC_BITS>, Z2<S>>* mac_vole;
 
-    Spdz2kMultiplier(NPartyTripleGenerator& generator, int thread_num) :
-            OTMultiplier<Z2<MAC_BITS>, Z2<S>, Z2<MAC_BITS>,
-                    Z2kRectangle<MAC_BITS, MAC_BITS>,
-                    Z2kRectangle<TAU, MAC_BITS> >(generator, thread_num)
-    {
-    }
+    Spdz2kMultiplier(NPartyTripleGenerator& generator, int thread_num);
 };
 
 #endif /* OT_OTMULTIPLIER_H_ */

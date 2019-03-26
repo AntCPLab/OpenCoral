@@ -31,7 +31,7 @@ Machine::Machine(int my_number, Names& playerNames,
   prep_dir_prefix = get_prep_dir(N.num_players(), lgp, lg2);
   read_setup(prep_dir_prefix);
 
-  char filename[1024];
+  char filename[2048];
   int nn;
 
   sprintf(filename, (prep_dir_prefix + "Player-MAC-Keys-P%d").c_str(), my_number);

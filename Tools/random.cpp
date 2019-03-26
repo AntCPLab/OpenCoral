@@ -3,6 +3,7 @@
 
 #include "Tools/random.h"
 #include "Math/bigint.h"
+#include "Auth/Subroutines.h"
 #include <stdio.h>
 #include <sodium.h>
 
@@ -36,6 +37,12 @@ void PRNG::SetSeed(PRNG& G)
   octet tmp[SEED_SIZE];
   G.get_octets(tmp, sizeof(tmp));
   SetSeed(tmp);
+}
+
+void PRNG::SecureSeed(Player& player)
+{
+  Create_Random_Seed(seed, player, SEED_SIZE);
+  InitSeed();
 }
 
 void PRNG::InitSeed()
@@ -136,7 +143,25 @@ unsigned int PRNG::get_uint()
   return ans;
 }
 
-
+unsigned int PRNG::get_uint(int upper)
+{
+	// adopting Java 7 implementation of bounded nextInt here
+	if (upper <= 0)
+		throw invalid_argument("Must be positive");
+	// power of 2 case
+	if ((upper & (upper - 1)) == 0) {
+		unsigned int r = (upper < 255) ? get_uchar() : get_uint();
+		// zero out higher order bits
+		return r % upper;
+	}
+	// not power of 2
+	int r, reduced;
+	do {
+		r = (upper < 255) ? get_uchar() : get_uint();
+		reduced = r % upper;
+	} while (r - reduced + (upper - 1) < 0);
+	return reduced;
+}
 
 unsigned char PRNG::get_uchar()
 {
@@ -146,7 +171,6 @@ unsigned char PRNG::get_uchar()
   // print_state(); cout << " UCHA " << (int) ans << endl;
   return ans;
 }
-
 
 __m128i PRNG::get_doubleword()
 {

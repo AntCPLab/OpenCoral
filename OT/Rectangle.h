@@ -11,17 +11,21 @@
 #include "Math/Z2k.h"
 
 #define TAU(K, S) 2 * K + 4 * S
-#define Y(K, S) X(TAU(K, S), K + S) X(K + S, K + S)
+#define Y(K, S) X(TAU(K, S), K + S) X(S, K + 2 * S)
 
 template <class U, class V>
 class Rectangle
 {
 public:
+	typedef V RowType;
+
 	static const int N_ROWS = U::N_BITS;
 	static const int N_COLUMNS = V::N_BITS;
 	static const int N_ROW_BYTES = V::N_BYTES;
 
 	V rows[N_ROWS];
+
+	static size_t size() { return N_ROWS * RowType::size(); }
 
 	bool operator==(const Rectangle<U,V>& other) const;
 	bool operator!=(const Rectangle<U,V>& other) const
@@ -32,6 +36,8 @@ public:
 	Rectangle<U, V>& operator+=(const Rectangle<U, V>& other);
 	Rectangle<U, V> operator-(const Rectangle<U, V> & other);
 
+	template <class T>
+	Rectangle<U, V>& sub(Rectangle<U, V>& other) { return other.rsub_(*this); }
 	template <class T>
 	Rectangle<U, V>& rsub(Rectangle<U, V>& other) { return rsub_(other); }
 	Rectangle<U, V>& rsub_(Rectangle<U, V>& other);

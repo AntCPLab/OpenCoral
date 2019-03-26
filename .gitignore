@@ -11,6 +11,7 @@ keys/*
 ##############################
 CONFIG.mine
 config_mine.py
+HOSTS
 
 # Temporary files #
 ###################

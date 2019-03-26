@@ -44,13 +44,19 @@ MAC_Check<T>::~MAC_Check()
 }
 
 template<class T>
+void MAC_Check<T>::PrepareSending(vector<T>& values, const vector<Share<T> >& S)
+{
+  values.resize(S.size());
+  for (unsigned int i=0; i<S.size(); i++)
+    { values[i]=S[i].get_share(); }
+}
+
+template<class T>
 void MAC_Check<T>::POpen_Begin(vector<T>& values,const vector<Share<T> >& S,const Player& P)
 {
   AddToMacs(S);
 
-  values.resize(S.size());
-  for (unsigned int i=0; i<S.size(); i++)
-    { values[i]=S[i].get_share(); }
+  PrepareSending(values, S);
 
   this->start(values, P);
 
@@ -115,9 +121,9 @@ void MAC_Check<T>::CheckIfNeeded(const Player& P)
 
 
 template <class T>
-void MAC_Check<T>::AddToCheck(const T& mac, const T& value, const Player& P)
+void MAC_Check<T>::AddToCheck(const Share<T>& share, const T& value, const Player& P)
 {
-  macs.push_back(mac);
+  macs.push_back(share.get_mac());
   vals.push_back(value);
   popen_cnt++;
   CheckIfNeeded(P);
@@ -177,6 +183,115 @@ template<class T>
 int mc_base_id(int function_id, int thread_num)
 {
   return (function_id << 28) + ((T::field_type() + 1) << 24) + (thread_num << 16);
+}
+
+template<class T, class U, class V>
+MAC_Check_Z2k<T, U, V>::MAC_Check_Z2k(const T& ai, const Share<T>& dummy_element, int opening_sum, int max_broadcast, int send_player) :
+    MAC_Check<T>(ai, opening_sum, max_broadcast, send_player),
+    dummy_element(dummy_element)
+{
+}
+
+template<class T, class U, class V>
+void MAC_Check_Z2k<T, U, V>::AddToCheck(const Share<T>& share, const T& value, const Player& P)
+{
+  shares.push_back(share.get_share());
+  MAC_Check<T>::AddToCheck(share, value, P);
+}
+
+template<class T, class U, class V>
+void MAC_Check_Z2k<T, U, V>::AddToMacs(const vector<Share<T> >& shares)
+{
+  for (auto& share : shares)
+    this->shares.push_back(share.get_share());
+  MAC_Check<T>::AddToMacs(shares);
+}
+
+template<class T, class U, class V>
+void MAC_Check_Z2k<T, U, V>::PrepareSending(vector<T>& values,
+        const vector<Share<T> >& S)
+{
+  values.clear();
+  values.reserve(S.size());
+  for (auto& share : S)
+    values.push_back(V(share.get_share()));
+}
+
+template<class T, class U, class V>
+Share<T> MAC_Check_Z2k<T, U, V>::get_random_element() {
+  return dummy_element;
+}
+
+template<class T, class U, class V>
+void MAC_Check_Z2k<T, U, V>::set_random_element(const Share<T>& random_element) {
+  this->dummy_element = random_element;
+}
+
+template<class T, class U, class V>
+void MAC_Check_Z2k<T, U, V>::Check(const Player& P)
+{
+  if (this->WaitingForCheck() == 0)
+    return;
+
+  int k = V::N_BITS;
+  octet seed[SEED_SIZE];
+  Create_Random_Seed(seed,P,SEED_SIZE);
+  PRNG G;
+  G.SetSeed(seed);
+
+  T y, mj;
+  y.assign_zero();
+  mj.assign_zero();
+  vector<U> chi;
+  for (int i = 0; i < this->popen_cnt; ++i)
+  {
+    U temp_chi;
+    temp_chi.randomize(G);
+    T xi = this->vals[i];
+    y += xi * temp_chi;
+    T mji = this->macs[i];
+    mj += temp_chi * mji;
+    chi.push_back(temp_chi);
+  }
+
+  Share<T> r = get_random_element();
+  T lj = r.get_mac();
+  U pj;
+  pj.assign_zero();
+  for (int i = 0; i < this->popen_cnt; ++i)
+  {
+    T xji = shares[i];
+    V xbarji = xji;
+    U pji = U((xji - xbarji) >> k);
+    pj += chi[i] * pji;
+  }
+  pj += U(r.get_share());
+
+  U pbar(pj);
+  vector<octetStream> pj_stream(P.num_players());
+  pj.pack(pj_stream[P.my_num()]);
+  P.Broadcast_Receive(pj_stream, true);
+  for (int j=0; j<P.num_players(); j++) {
+    if (j!=P.my_num()) {
+      pbar += pj_stream[j].consume(U::size());
+    }
+  }
+
+  T zj = mj - (this->alphai * y) - (((this->alphai * pbar)) << k) + (lj << k);
+  vector<T> zjs(P.num_players());
+  zjs[P.my_num()] = zj;
+  Commit_And_Open(zjs, P);
+
+  T zj_sum;
+  zj_sum.assign_zero();
+  for (int i = 0; i < P.num_players(); ++i)
+    zj_sum += zjs[i];
+
+  this->vals.erase(this->vals.begin(), this->vals.begin() + this->popen_cnt);
+  this->macs.erase(this->macs.begin(), this->macs.begin() + this->popen_cnt);
+  this->shares.erase(this->shares.begin(), this->shares.begin() + this->popen_cnt);
+  this->popen_cnt=0;
+  if (!zj_sum.is_zero()) { throw mac_fail(); }
 }
 
 template<class T>
@@ -381,4 +496,13 @@ template class Direct_MAC_Check<gf2n_short>;
 template class Parallel_MAC_Check<gf2n_short>;
 #endif
 
+template class MAC_Check_Z2k<Z2<64>, Z2<32>, Z2<32> >;
+template class MAC_Check_Z2k<Z2<128>, Z2<64>, Z2<64> >;
+template class MAC_Check_Z2k<Z2<96>, Z2<32>, Z2<64> >;
+template class MAC_Check_Z2k<Z2<160>, Z2<96>, Z2<64> >;
+template class MAC_Check_Z2k<Z2<192>, Z2<64>, Z2<128> >;
+template class MAC_Check_Z2k<Z2<256>, Z2<96>, Z2<160> >;
+template class MAC_Check<Z2<96> >;
 template class MAC_Check<Z2<160> >;
+template class MAC_Check<Z2<192> >;
+template class MAC_Check<Z2<256> >;

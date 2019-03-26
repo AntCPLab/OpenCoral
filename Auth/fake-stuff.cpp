@@ -55,6 +55,34 @@ void check_share(vector<Share<T> >& Sa,T& value,T& mac,int N,const T& key)
     }
 }
 
+template<class T, class V>
+void check_share(vector<Share<T> >& Sa,
+  V& value,
+  T& mac,
+  int N,
+  const T& key)
+{
+  value.assign(0);
+  mac.assign(0);
+
+  for (int i=0; i<N; i++)
+    {
+      value.add(Sa[i].get_share());
+      mac.add(Sa[i].get_mac());
+    }
+
+  V res;
+  res.mul(value, key);
+  if (res != mac)
+    {
+      cout << "Value:      " << value << endl;
+      cout << "Input MAC:  " << mac << endl;
+      cout << "Actual MAC: " << res << endl;
+      cout << "MAC key:    " << key << endl;
+      throw mac_fail();
+    }
+}
+
 template void make_share(vector<Share<gf2n> >& Sa,const gf2n& a,int N,const gf2n& key,PRNG& G);
 template void make_share(vector<Share<gfp> >& Sa,const gfp& a,int N,const gfp& key,PRNG& G);
 
@@ -66,7 +94,26 @@ template void make_share(vector<Share<gf2n_short> >& Sa,const gf2n_short& a,int 
 template void check_share(vector<Share<gf2n_short> >& Sa,gf2n_short& value,gf2n_short& mac,int N,const gf2n_short& key);
 #endif
 
-template void check_share(vector<Share<Z2<64> > >& Sa,Z2<64>& value,Z2<64>& mac,int N,const Z2<64>& key);
+template void check_share(
+  vector<Share<Z2<160> > >& Sa,
+  Z2<64>& value,
+  Z2<160>& mac,
+  int N,
+  const Z2<160>& key);
+
+template void check_share(
+  vector<Share<Z2<128> > >& Sa,
+  Z2<64>& value,
+  Z2<128>& mac,
+  int N,
+  const Z2<128>& key);
+
+template void check_share(
+  vector<Share<Z2<64> > >& Sa,
+  Z2<32>& value,
+  Z2<64>& mac,
+  int N,
+  const Z2<64>& key);
 
 // Expansion is by x=y^5+1 (as we embed GF(256) into GF(2^40)
 void expand_byte(gf2n_short& a,int b)

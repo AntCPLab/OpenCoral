@@ -17,8 +17,10 @@ class OTCorrelator : public OTExtension
 {
 public:
     vector<U> senderOutputMatrices;
-    U receiverOutputMatrix;
-    U t1, u;
+    vector<U> matrices;
+    U& receiverOutputMatrix;
+    U& t1;
+    U u;
 
     OTCorrelator(int nbaseOTs, int baseLength,
                 int nloops, int nsubloops,
@@ -29,19 +31,20 @@ public:
                 OT_ROLE role=BOTH,
                 bool passive=false)
     : OTExtension(nbaseOTs, baseLength, nloops, nsubloops, player, baseReceiverInput,
-            baseSenderInput, baseReceiverOutput, role, passive) {}
+            baseSenderInput, baseReceiverOutput, role, passive),
+            senderOutputMatrices(2), matrices(2),
+            receiverOutputMatrix(matrices[0]), t1(matrices[1]) {}
 
     void resize(int nOTs);
     template <class T>
     void expand(int start, int slice);
     void setup_for_correlation(BitVector& baseReceiverInput,
-            vector<BitMatrix>& baseSenderOutputs,
-            BitMatrix& baseReceiverOutput);
+            vector<U>& baseSenderOutputs,
+            U& baseReceiverOutput);
     template <class T>
     void correlate(int start, int slice, BitVector& newReceiverInput, bool useConstantBase, int repeat = 1);
     template <class T>
     void reduce_squares(unsigned int nTriples, vector<T>& output);
-
 };
 
 class OTExtensionWithMatrix : public OTCorrelator<BitMatrix>
@@ -52,9 +55,9 @@ public:
     OTExtensionWithMatrix(int nbaseOTs, int baseLength,
                 int nloops, int nsubloops,
                 TwoPartyPlayer* player,
-                BitVector& baseReceiverInput,
-                vector< vector<BitVector> >& baseSenderInput,
-                vector<BitVector>& baseReceiverOutput,
+                const BitVector& baseReceiverInput,
+                const vector< vector<BitVector> >& baseSenderInput,
+                const vector<BitVector>& baseReceiverOutput,
                 OT_ROLE role=BOTH,
                 bool passive=false)
     : OTCorrelator<BitMatrix>(nbaseOTs, baseLength, nloops, nsubloops, player, baseReceiverInput,
@@ -67,9 +70,12 @@ public:
     void transfer(int nOTs, const BitVector& receiverInput);
     template <class T>
     void extend(int nOTs, BitVector& newReceiverInput);
+    void extend_correlated(int nOTs, BitVector& newReceiverInput);
     template <class T>
     void expand_transposed();
     void transpose(int start, int slice);
+    template <class T, class V>
+    void hash_outputs(int nOTs, vector<V>& senderOutput, V& receiverOutput);
 
     void print(BitVector& newReceiverInput, int i = 0);
     template <class T>

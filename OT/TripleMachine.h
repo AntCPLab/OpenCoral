@@ -17,7 +17,7 @@ class TripleMachine : public OfflineMachineBase
 {
     gf2n mac_key2;
     gfp mac_keyp;
-    Z2<96> mac_key296;
+    Z2<SPDZ2K_S> mac_keyz;
 
 public:
     int nloops;

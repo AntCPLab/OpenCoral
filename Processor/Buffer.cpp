@@ -193,10 +193,10 @@ void BufferHelper<U,V>::purge()
 
 template class Buffer< Share<gfp>, Share<gfp> >;
 template class Buffer< Share<gf2n>, Share<gf2n> >;
-template class Buffer< Share<Z2<64> >, Share<Z2<64> > >;
+template class Buffer< Share<Z2<160> >, Share<Z2<160> > >;
 template class Buffer< InputTuple<gfp>, RefInputTuple<gfp> >;
 template class Buffer< InputTuple<gf2n>, RefInputTuple<gf2n> >;
-template class Buffer< InputTuple<Z2<64> >, RefInputTuple<Z2<64> > >;
+template class Buffer< InputTuple<Z2<160> >, RefInputTuple<Z2<160> > >;
 template class Buffer< gfp, gfp >;
 template class Buffer< gf2n, gf2n >;
 

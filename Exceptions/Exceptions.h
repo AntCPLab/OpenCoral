@@ -94,6 +94,10 @@ class mac_fail:  public exception
     { virtual const char* what() const throw()
         { return "MacCheck Failure"; }
     };
+class consistency_check_fail:  public exception
+    { virtual const char* what() const throw()
+        { return "OT consistency check failed"; }
+    };
 class invalid_program:  public exception
     { virtual const char* what() const throw()
         { return "Invalid Program"; }

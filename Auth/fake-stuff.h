@@ -6,6 +6,7 @@
 
 #include "Math/gf2n.h"
 #include "Math/gfp.h"
+#include "Math/Z2k.h"
 #include "Math/Share.h"
 
 #include <fstream>
@@ -16,6 +17,13 @@ void make_share(vector<Share<T> >& Sa,const T& a,int N,const T& key,PRNG& G);
 
 template<class T>
 void check_share(vector<Share<T> >& Sa,T& value,T& mac,int N,const T& key);
+
+template<class T, class V>
+void check_share(vector<Share<T> >& Sa,
+  V& value,
+  T& mac,
+  int N,
+  const T& key);
 
 void expand_byte(gf2n_short& a,int b);
 void collapse_byte(int& b,const gf2n_short& a);

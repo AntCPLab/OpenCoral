@@ -76,7 +76,8 @@ class MAC_Check : public TreeSum<T>
   /* MAC Share */
   T alphai;
 
-  void AddToMacs(const vector< Share<T> >& shares);
+  virtual void AddToMacs(const vector< Share<T> >& shares);
+  virtual void PrepareSending(vector<T>& values,const vector<Share<T> >& S);
   void AddToValues(vector<T>& values);
   void GetValues(vector<T>& values);
   void CheckIfNeeded(const Player& P);
@@ -99,12 +100,31 @@ class MAC_Check : public TreeSum<T>
    */
   virtual void POpen_Begin(vector<T>& values,const vector<Share<T> >& S,const Player& P);
   virtual void POpen_End(vector<T>& values,const vector<Share<T> >& S,const Player& P);
-  void AddToCheck(const T& mac, const T& value, const Player& P);
+  virtual void AddToCheck(const Share<T>& share, const T& value, const Player& P);
   virtual void Check(const Player& P);
 
   int number() const { return values_opened; }
 
   const T& get_alphai() const { return alphai; }
+};
+
+template<class T, class U, class V>
+class MAC_Check_Z2k : public MAC_Check<T>
+{
+protected:
+  vector<T> shares;
+  Share<T> dummy_element;
+  Share<T> get_random_element();
+
+  void AddToMacs(const vector< Share<T> >& shares);
+  void PrepareSending(vector<T>& values,const vector<Share<T> >& S);
+
+public:
+  void AddToCheck(const Share<T>& share, const T& value, const Player& P);
+  MAC_Check_Z2k(const T& ai, const Share<T>& dummy_element = {}, int opening_sum=10, int max_broadcast=10, int send_player=0);
+  virtual void Check(const Player& P);
+  void set_random_element(const Share<T>& random_element);
+  virtual ~MAC_Check_Z2k() {};
 };
 
 template <class T, class U, class V>
