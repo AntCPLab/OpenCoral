@@ -60,7 +60,7 @@ class PRNG
    void ReSeed();
 
    // Set seed from array
-   void SetSeed(unsigned char*);
+   void SetSeed(const unsigned char*);
    void SetSeed(PRNG& G);
    void InitSeed();
    

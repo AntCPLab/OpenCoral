@@ -152,6 +152,8 @@ BufferBase& BufferHelper<U,V>::get_buffer(DataFieldType field_type)
         return bufferp;
     else if (field_type == DATA_GF2N)
         return buffer2;
+    else if (field_type == DATA_Z2K)
+        return bufferz2k;
     else
         throw not_implemented();
 }
@@ -178,21 +180,23 @@ void BufferHelper<U,V>::close()
 template<template<class T> class U, template<class T> class V>
 void BufferHelper<U,V>::prune()
 {
-    buffer2.prune();
-    bufferp.prune();
+    for (int i = 0; i < N_DATA_FIELD_TYPE; i++)
+        get_buffer((DataFieldType)i).prune();
 }
 
 template<template<class T> class U, template<class T> class V>
 void BufferHelper<U,V>::purge()
 {
-    buffer2.purge();
-    bufferp.purge();
+    for (int i = 0; i < N_DATA_FIELD_TYPE; i++)
+        get_buffer((DataFieldType)i).purge();
 }
 
 template class Buffer< Share<gfp>, Share<gfp> >;
 template class Buffer< Share<gf2n>, Share<gf2n> >;
+template class Buffer< Share<Z2<64> >, Share<Z2<64> > >;
 template class Buffer< InputTuple<gfp>, RefInputTuple<gfp> >;
 template class Buffer< InputTuple<gf2n>, RefInputTuple<gf2n> >;
+template class Buffer< InputTuple<Z2<64> >, RefInputTuple<Z2<64> > >;
 template class Buffer< gfp, gfp >;
 template class Buffer< gf2n, gf2n >;
 

@@ -6,11 +6,12 @@
 
 #include <iomanip>
 
-const char* Data_Files::field_names[] = { "p", "2" };
-const char* Data_Files::long_field_names[] = { "gfp", "gf2n" };
+const char* Data_Files::field_names[] = { "p", "2", "Z2^64" };
+const char* Data_Files::long_field_names[] = { "gfp", "gf2n", "Z2^64" };
 const bool Data_Files::implemented[N_DATA_FIELD_TYPE][N_DTYPE] = {
     { true, true, true, true, false, false },
     { true, true, true, true, true, true },
+    { true, false, false, false, false, false },
 };
 const int Data_Files::tuple_size[N_DTYPE] = { 3, 2, 1, 2, 3, 3 };
 
@@ -83,6 +84,8 @@ int Data_Files::share_length(int field_type)
       return 2 * gfp::t() * sizeof(mp_limb_t);
     case DATA_GF2N:
       return Share<gf2n>::size();
+    case DATA_Z2K:
+      return Share<Z2<64> >::size();
     default:
       throw invalid_params();
   }

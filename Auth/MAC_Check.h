@@ -26,6 +26,12 @@ using namespace std;
 #define POPEN_MAX 1000000
 
 
+template <class T>
+void write_mac_key(string& dir, int my_num, const T& key);
+template <class T>
+void read_mac_key(string& dir, int my_num, T& key);
+
+
 template<class T>
 class TreeSum
 {
@@ -100,6 +106,9 @@ class MAC_Check : public TreeSum<T>
 
   const T& get_alphai() const { return alphai; }
 };
+
+template <class T, class U, class V>
+using MAC_Check_ = MAC_Check<T>;
 
 
 template<class T, int t>
@@ -331,6 +340,36 @@ void TreeSum<T>::ReceiveValues(vector<T>& values, const Player& P, int sender)
   for (unsigned int i = 0; i < values.size(); i++)
     values[i].unpack(os);
   AddToValues(values);
+}
+
+template <class T>
+string mac_key_filename(string& dir, int my_num)
+{
+  return dir + "/Player-MAC-Key-" + T::type_string() + "-P" + to_string(my_num);
+}
+
+template <class T>
+void write_mac_key(string& dir, int my_num, const T& key)
+{
+  string filename = mac_key_filename<T>(dir, my_num);
+  cout << "Writing to " << filename << endl;
+  ofstream outf(filename);
+  key.output(outf, false);
+  if (not outf.good())
+    throw IO_Error(filename);
+}
+
+template <class T>
+T read_mac_key(string& dir, int my_num)
+{
+  string filename = mac_key_filename<T>(dir, my_num);
+  cout << "Reading from " << filename << endl;
+  T key;
+  ifstream inpf(filename);
+  key.input(inpf, false);
+  if (not inpf.good())
+    throw IO_Error(filename);
+  return key;
 }
 
 #endif

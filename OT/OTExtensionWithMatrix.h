@@ -12,12 +12,41 @@
 #include "BitMatrix.h"
 #include "Math/gf2n.h"
 
-class OTExtensionWithMatrix : public OTExtension
+template <class U>
+class OTCorrelator : public OTExtension
 {
 public:
-    vector<BitMatrix> senderOutputMatrices;
-    BitMatrix receiverOutputMatrix;
-    BitMatrix t1, u;
+    vector<U> senderOutputMatrices;
+    U receiverOutputMatrix;
+    U t1, u;
+
+    OTCorrelator(int nbaseOTs, int baseLength,
+                int nloops, int nsubloops,
+                TwoPartyPlayer* player,
+                const BitVector& baseReceiverInput,
+                const vector< vector<BitVector> >& baseSenderInput,
+                const vector<BitVector>& baseReceiverOutput,
+                OT_ROLE role=BOTH,
+                bool passive=false)
+    : OTExtension(nbaseOTs, baseLength, nloops, nsubloops, player, baseReceiverInput,
+            baseSenderInput, baseReceiverOutput, role, passive) {}
+
+    void resize(int nOTs);
+    template <class T>
+    void expand(int start, int slice);
+    void setup_for_correlation(BitVector& baseReceiverInput,
+            vector<BitMatrix>& baseSenderOutputs,
+            BitMatrix& baseReceiverOutput);
+    template <class T>
+    void correlate(int start, int slice, BitVector& newReceiverInput, bool useConstantBase, int repeat = 1);
+    template <class T>
+    void reduce_squares(unsigned int nTriples, vector<T>& output);
+
+};
+
+class OTExtensionWithMatrix : public OTCorrelator<BitMatrix>
+{
+public:
     PRNG G;
 
     OTExtensionWithMatrix(int nbaseOTs, int baseLength,
@@ -28,7 +57,7 @@ public:
                 vector<BitVector>& baseReceiverOutput,
                 OT_ROLE role=BOTH,
                 bool passive=false)
-    : OTExtension(nbaseOTs, baseLength, nloops, nsubloops, player, baseReceiverInput,
+    : OTCorrelator<BitMatrix>(nbaseOTs, baseLength, nloops, nsubloops, player, baseReceiverInput,
             baseSenderInput, baseReceiverOutput, role, passive) {
       G.ReSeed();
     }
@@ -36,19 +65,11 @@ public:
     void seed(vector<BitMatrix>& baseSenderInput,
             BitMatrix& baseReceiverOutput);
     void transfer(int nOTs, const BitVector& receiverInput);
-    void resize(int nOTs);
     template <class T>
     void extend(int nOTs, BitVector& newReceiverInput);
     template <class T>
-    void expand(int start, int slice);
-    template <class T>
     void expand_transposed();
-    template <class T>
-    void correlate(int start, int slice, BitVector& newReceiverInput, bool useConstantBase, int repeat = 1);
     void transpose(int start, int slice);
-    void setup_for_correlation(vector<BitMatrix>& baseSenderOutputs, BitMatrix& baseReceiverOutput);
-    template <class T>
-    void reduce_squares(unsigned int nTriples, vector<T>& output);
 
     void print(BitVector& newReceiverInput, int i = 0);
     template <class T>

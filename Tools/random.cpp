@@ -25,7 +25,7 @@ void PRNG::ReSeed()
 }
 
 
-void PRNG::SetSeed(octet* inp)
+void PRNG::SetSeed(const octet* inp)
 {
   memcpy(seed,inp,SEED_SIZE*sizeof(octet));
   InitSeed();

@@ -48,6 +48,8 @@ void Commit_And_Open(vector< vector<T> >& data,const Player& P,int num_runs);
 template<class T>
 void Commit_And_Open(vector<T>& data,const Player& P);
 
+void Commit_And_Open_(vector<octetStream>& datas,const Player& P);
+
 template<class T>
 void Transmit_Data(vector< vector<T> >& data,const Player& P,int num_runs);
 

@@ -20,6 +20,10 @@ using namespace std;
 class PRNG;
 class octetStream;
 
+template <int K>
+class Z2;
+template <class U, class V>
+class Rectangle;
 
 class BitVector
 {
@@ -27,7 +31,6 @@ class BitVector
 
     size_t nbytes;
     size_t nbits;
-    size_t length;
 
     public:
 
@@ -97,16 +100,20 @@ class BitVector
             bytes = new octet[nbytes];*/
         }
     }
+    void resize_zero(size_t new_nbits);
+
     unsigned int size() const { return nbits; }
     unsigned int size_bytes() const { return nbytes; }
     octet* get_ptr() { return bytes; }
+    const octet* get_ptr() const { return bytes; }
+    const void* get_ptr_to_byte(size_t i, size_t block_size) const;
+    const void* get_ptr_to_bit(size_t i, size_t block_size) const;
 
-    BitVector(size_t n=128)
+    BitVector(size_t n=0)
     {
         nbits = n;
         nbytes = DIV_CEIL(nbits, 8);
         bytes = new octet[nbytes];
-        length = n;
         assign_zero();
     }
     BitVector(const BitVector& K)
@@ -115,6 +122,11 @@ class BitVector
         nbytes = K.nbytes;
         nbits = K.nbits;
         assign(K);
+    }
+    BitVector(const void* other, size_t bitsize) : BitVector()
+    {
+        resize(bitsize);
+        avx_memcpy(bytes, other, nbytes);
     }
     ~BitVector() {
         //cout << "Destroy, size = " << nbytes << endl;
@@ -142,7 +154,12 @@ class BitVector
     int128 get_int128(int i) const { return _mm_lddqu_si128((__m128i*)bytes + i); }
     void set_int128(int i, int128 a) { *((__m128i*)bytes + i) = a.a; }
 
-    int  get_bit(int i) const
+    template <class T>
+    void set_portion(int i, const T& a);
+    template <class T>
+    void set(const T& a);
+
+    bool get_bit(int i) const
       {
         return (bytes[i/8] >> (i % 8)) & 1;
       }
@@ -199,14 +216,27 @@ class BitVector
     void pack(octetStream& o) const;
     void unpack(octetStream& o);
 
-    string str()
+    string str(size_t end = SIZE_MAX)
     {
         stringstream ss;
         ss << hex;
-        for(size_t i(0);i < nbytes;++i)
+        for(size_t i(0);i < min(nbytes, end);++i)
             ss << (int)bytes[i] << " ";
         return ss.str();
     }
 };
+
+template <class T>
+void inline BitVector::set_portion(int i, const T& a)
+{
+    memcpy(bytes + a.size() * i, a.get_ptr(), a.size());
+}
+
+template <class T>
+void inline BitVector::set(const T& a)
+{
+    resize(8 * a.size());
+    memcpy(bytes, a.get_ptr(), a.size());
+}
 
 #endif

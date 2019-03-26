@@ -35,20 +35,33 @@ public:
     OTExtension(int nbaseOTs, int baseLength,
                 int nloops, int nsubloops,
                 TwoPartyPlayer* player,
-                BitVector& baseReceiverInput,
-                vector< vector<BitVector> >& baseSenderInput,
-                vector<BitVector>& baseReceiverOutput,
+                const BitVector& baseReceiverInput,
+                const vector< vector<BitVector> >& baseSenderInput,
+                const vector<BitVector>& baseReceiverOutput,
                 OT_ROLE role=BOTH,
                 bool passive=false)
         : baseReceiverInput(baseReceiverInput), passive_only(passive), nbaseOTs(nbaseOTs),
           baseLength(baseLength), nloops(nloops), nsubloops(nsubloops), ot_role(role), player(player)
     {
+        init(baseReceiverInput, baseSenderInput, baseReceiverOutput);
+    }
+
+    void init(const BitVector& baseReceiverInput,
+            const vector< vector<BitVector> >& baseSenderInput,
+            const vector<BitVector>& baseReceiverOutput)
+    {
+        nbaseOTs = baseReceiverInput.size();
+        this->baseReceiverInput = baseReceiverInput;
+        if (baseSenderInput.size() != baseReceiverOutput.size())
+            throw runtime_error("mismatch in number of base OTs");
+        assert(baseReceiverInput.size() == baseSenderInput.size());
         G_sender.resize(nbaseOTs, vector<PRNG>(2));
         G_receiver.resize(nbaseOTs);
 
         // set up PRGs for expanding the seed OTs
         for (int i = 0; i < nbaseOTs; i++)
         {
+            assert(baseSenderInput[i].size() == 2);
             assert(baseSenderInput[i][0].size_bytes() >= AES_BLK_SIZE);
             assert(baseSenderInput[i][1].size_bytes() >= AES_BLK_SIZE);
             assert(baseReceiverOutput[i].size_bytes() >= AES_BLK_SIZE);

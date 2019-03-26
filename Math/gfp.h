@@ -57,6 +57,8 @@ class gfp
 
   modp get() const          { return a; }
 
+  const void* get_ptr() const { return &a.x; }
+
   // Assumes prD behind x is equal to ZpD
   void assign(modp& x) { a=x; }
   
@@ -67,6 +69,7 @@ class gfp
   gfp(const int128& x) { *this=x.a; }
   gfp(const bigint& x) { to_modp(a, x, ZpD); }
   gfp(int x)         { assign(x); }
+  gfp(const void* buffer) { assign((char*)buffer); }
   ~gfp()             { ; }
 
   gfp& operator=(const gfp& g)

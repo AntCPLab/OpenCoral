@@ -6,6 +6,7 @@
 #include "Tools/random.h"
 #include "Exceptions/Exceptions.h"
 #include "Tools/Commit.h"
+#include "Math/Z2k.h"
 
 /* To ease readability as I re-write this program the following conventions
  * will be used.
@@ -181,21 +182,27 @@ void Create_Random_Seed(octet* seed,const Player& P,int len)
 template<class T>
 void Commit_And_Open(vector<T>& data,const Player& P)
 {
+  vector<octetStream> datas(P.num_players());
+  data[P.my_num()].pack(datas[P.my_num()]);
+  Commit_And_Open_(datas, P);
+  for (int i = 0; i < P.num_players(); i++)
+    data[i].unpack(datas[i]);
+}
+
+void Commit_And_Open_(vector<octetStream>& datas,const Player& P)
+{
   vector<octetStream> Comm_data(P.num_players());
   vector<octetStream> Open_data(P.num_players());
 
-  octetStream ee;
-  data[P.my_num()].pack(ee);
-  Commit(Comm_data[P.my_num()],Open_data[P.my_num()],ee,P.my_num());
+  Commit(Comm_data[P.my_num()],Open_data[P.my_num()],datas[P.my_num()],P.my_num());
   P.Broadcast_Receive(Comm_data);
 
   P.Broadcast_Receive(Open_data);
 
   for (int i = 0; i < P.num_players(); i++)
     { if (i != P.my_num())
-        { if (!Open(ee,Comm_data[i],Open_data[i],i))
+        { if (!Open(datas[i],Comm_data[i],Open_data[i],i))
              { throw invalid_commitment(); }
-          data[i].unpack(ee);
         }
     }
 }
@@ -244,3 +251,5 @@ template void Create_Random(gf2n_short& ans,const Player& P);
 
 template void Commit_And_Open(vector<gfp>& data,const Player& P);
 template void Create_Random(gfp& ans,const Player& P);
+
+template void Commit_And_Open(vector<Z2<160> >& data,const Player& P);

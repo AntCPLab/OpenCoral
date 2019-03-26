@@ -9,6 +9,7 @@
 #include "Math/gfp.h"
 #include "Math/Share.h"
 #include "Auth/fake-stuff.h"
+#include "Auth/MAC_Check.h"
 #include "Tools/ezOptionParser.h"
 #include "Exceptions/Exceptions.h"
 
@@ -39,7 +40,7 @@ void check_mult_triples(const T& key,int N,vector<Data_Files*>& dataF,DataFieldT
           check_share(Sc, c, mac, N, key);
 
           res.mul(a, b);
-          if (!res.equal(c))
+          if (res != c)
             {
               cout << n << ": " << c << " != " << a << " * " << b << endl;
               throw bad_value();
@@ -295,6 +296,13 @@ int main(int argc, const char** argv)
   check_tuples(keyp, N, dataF, DATA_SQUARE);
   check_tuples(key2, N, dataF, DATA_INVERSE);
   check_tuples(keyp, N, dataF, DATA_INVERSE);
+
+  Z2<64> keyz2k;
+  for (int i = 0; i < N; i++)
+    keyz2k += read_mac_key<Z2<96> >(PREP_DATA_PREFIX, i);
+
+  check_mult_triples(keyz2k, N, dataF, DATA_Z2K);
+
   for (int i = 0; i < N; i++)
     delete dataF[i];
 }

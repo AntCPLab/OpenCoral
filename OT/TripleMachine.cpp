@@ -13,6 +13,7 @@
 #include "Math/Setup.h"
 #include "Tools/ezOptionParser.h"
 #include "Math/Setup.h"
+#include "Auth/fake-stuff.h"
 
 #include <iostream>
 #include <fstream>
@@ -91,6 +92,15 @@ TripleMachine::TripleMachine(int argc, const char** argv) :
         "-B", // Flag token.
         "--bits" // Flag token.
     );
+    opt.add(
+        "", // Default.
+        0, // Required?
+        0, // Number of args expected.
+        0, // Delimiter if expecting multiple args.
+        "Z_2k triples", // Help description.
+        "-Z", // Flag token.
+        "--Z2k" // Flag token.
+    );
 
     parse_options(argc, argv);
 
@@ -101,6 +111,7 @@ TripleMachine::TripleMachine(int argc, const char** argv) :
     amplify = opt.get("-a")->isSet || generateMACs;
     primeField = opt.get("-P")->isSet;
     bonding = opt.get("-b")->isSet;
+    z2k = opt.get("-Z")->isSet;
 
     bigint p;
     if (output)
@@ -123,6 +134,7 @@ TripleMachine::TripleMachine(int argc, const char** argv) :
     G.ReSeed();
     mac_key2.randomize(G);
     mac_keyp.randomize(G);
+    mac_key296.randomize(G);
 }
 
 void TripleMachine::run()
@@ -154,10 +166,18 @@ void TripleMachine::run()
     {
         // lock before starting thread to avoid race condition
         generators[i]->lock();
+        if (z2k)
+        {
+            pthread_create(&threads[i], 0, run_ngenerator_thread<Z2<64> >,
+                    generators[i]);
+            continue;
+        }
         if (primeField)
-            pthread_create(&threads[i], 0, run_ngenerator_thread<gfp>, generators[i]);
+            pthread_create(&threads[i], 0, run_ngenerator_thread<gfp>,
+                    generators[i]);
         else
-            pthread_create(&threads[i], 0, run_ngenerator_thread<gf2n>, generators[i]);
+            pthread_create(&threads[i], 0, run_ngenerator_thread<gf2n>,
+                    generators[i]);
     }
 
     // wait for initialization, then start clock and computation
@@ -202,12 +222,10 @@ void TripleMachine::run()
 
 void TripleMachine::output_mac_keys()
 {
-    stringstream ss;
-    ss << prep_data_dir << "Player-MAC-Keys-P" << my_num;
-    cout << "Writing MAC key to " << ss.str() << endl;
-    ofstream outputFile(ss.str().c_str());
-    outputFile << nplayers << endl;
-    outputFile << mac_keyp << " " << mac_key2 << endl;
+    if (z2k)
+        write_mac_key(prep_data_dir, my_num, mac_key296);
+    else
+        write_mac_keys(prep_data_dir, my_num, nplayers, mac_keyp, mac_key2);
 }
 
 template<> gf2n TripleMachine::get_mac_key()
@@ -218,4 +236,9 @@ template<> gf2n TripleMachine::get_mac_key()
 template<> gfp TripleMachine::get_mac_key()
 {
     return mac_keyp;
+}
+
+template<> Z2<96> TripleMachine::get_mac_key()
+{
+    return mac_key296;
 }

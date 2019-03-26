@@ -43,7 +43,7 @@ endif
 -include $(DEPS)
 
 %.o: %.cpp
-	$(CXX) $(CFLAGS) -MMD -c -o $@ $<
+	$(CXX) -o $@ $< $(CFLAGS) -MMD -c
 
 online: Fake-Offline.x Server.x Player-Online.x Check-Offline.x
 
@@ -115,5 +115,11 @@ spdz2-offline.x: $(COMMON) $(FHEOFFLINE) spdz2-offline.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 endif
 
+Test/%.x: Test/%.cpp $(COMMON) $(OT)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS) $(LIBSIMPLEOT)
+
 clean:
 	-rm */*.o *.o */*.d *.d *.x core.* *.a gmon.out
+
+dep-clean:
+	-rm */*.d

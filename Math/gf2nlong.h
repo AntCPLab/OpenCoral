@@ -117,6 +117,8 @@ class gf2n_long
   __m128i to_m128i() const { return a.a; }
   word get_word() const { return _mm_cvtsi128_si64(a.a); }
 
+  const void* get_ptr() const { return &a.a; }
+
   void assign(const gf2n_long& g)     { a=g.a; }
 
   void assign_zero()             { a=_mm_setzero_si128(); }
@@ -139,6 +141,7 @@ class gf2n_long
   gf2n_long(const gf2n_long& g) { assign(g); }
   gf2n_long(const int128& g)    { assign(g); }
   gf2n_long(int g)         { assign(g); }
+  gf2n_long(const char* buffer) { assign(buffer); }
   ~gf2n_long()             { ; }
 
   gf2n_long& operator=(const gf2n_long& g)

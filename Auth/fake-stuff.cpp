@@ -3,6 +3,7 @@
 
 #include "Math/gf2n.h"
 #include "Math/gfp.h"
+#include "Math/Z2k.h"
 #include "Math/Share.h"
 #include "Auth/fake-stuff.h"
 #include "Tools/benchmarking.h"
@@ -44,7 +45,7 @@ void check_share(vector<Share<T> >& Sa,T& value,T& mac,int N,const T& key)
 
   T res;
   res.mul(value, key);
-  if (!res.equal(mac))
+  if (res != mac)
     {
       cout << "Value:      " << value << endl;
       cout << "Input MAC:  " << mac << endl;
@@ -64,6 +65,8 @@ template void check_share(vector<Share<gfp> >& Sa,gfp& value,gfp& mac,int N,cons
 template void make_share(vector<Share<gf2n_short> >& Sa,const gf2n_short& a,int N,const gf2n_short& key,PRNG& G);
 template void check_share(vector<Share<gf2n_short> >& Sa,gf2n_short& value,gf2n_short& mac,int N,const gf2n_short& key);
 #endif
+
+template void check_share(vector<Share<Z2<64> > >& Sa,Z2<64>& value,Z2<64>& mac,int N,const Z2<64>& key);
 
 // Expansion is by x=y^5+1 (as we embed GF(256) into GF(2^40)
 void expand_byte(gf2n_short& a,int b)

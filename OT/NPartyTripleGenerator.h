@@ -36,17 +36,26 @@ class NPartyTripleGenerator
     pthread_mutex_t mutex;
     pthread_cond_t ready;
 
+    vector<OTMultiplierBase*> ot_multipliers;
+    ofstream outputFile;
+    PRNG share_prg;
+
     template <class T>
-    void generateTriples(vector< OTMultiplier<T>* >& ot_multipliers, ofstream& outputFile);
+    void generateTriples(vector< OTMultiplierBase* >& ot_multipliers, ofstream& outputFile);
     template <class T>
-    void generateBits(vector< OTMultiplier<T>* >& ot_multipliers, ofstream& outputFile);
+    void generateBits(vector< OTMultiplierBase* >& ot_multipliers, ofstream& outputFile);
     template <class T, int N>
     void generateBitsFromTriples(vector<ShareTriple<T, N> >& triples,
             MAC_Check<T>& MC, ofstream& outputFile);
 
-    template <class T>
-    void start_progress(vector< OTMultiplier<T>* >& ot_multipliers);
+    void start_progress();
     void print_progress(int k);
+
+    void signal_multipliers();
+    void wait_for_multipliers();
+
+    template <class T>
+    OTMultiplierBase* new_multiplier(int i);
 
 public:
     // TwoPartyPlayer's for OTs, n-party Player for sacrificing

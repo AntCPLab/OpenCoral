@@ -2,12 +2,35 @@
 
 
 #include "OT/BitVector.h"
+#include "OT/Rectangle.h"
 #include "Tools/random.h"
 #include "Tools/octetStream.h"
 #include "Math/gf2n.h"
 #include "Math/gfp.h"
+#include "Math/Z2k.h"
 
 #include <fstream>
+#include <assert.h>
+
+void BitVector::resize_zero(size_t new_nbits)
+{
+    size_t old_nbytes = nbytes;
+    resize(new_nbits);
+    avx_memzero(bytes + old_nbytes, nbytes - old_nbytes);
+}
+
+const void* BitVector::get_ptr_to_byte(size_t i, size_t block_size) const
+{
+    assert(i + block_size <= nbytes);
+    return bytes + i * block_size;
+}
+
+const void* BitVector::get_ptr_to_bit(size_t i, size_t block_size) const
+{
+    assert((i * block_size) % 8 == 0);
+    assert((i + 1) * block_size <= nbits);
+    return bytes + block_size * i / 8;
+}
 
 void BitVector::randomize(PRNG& G)
 {
@@ -30,6 +53,12 @@ void BitVector::randomize_blocks<gfp>(PRNG& G)
         for (int j = 0; j < 2; j++)
             ((mp_limb_t*)bytes)[2*i+j] = tmp.get().get_limb(j);
     }
+}
+
+template<>
+void BitVector::randomize_blocks<Z2<160> >(PRNG& G)
+{
+    randomize_blocks<gf2n>(G);
 }
 
 void BitVector::randomize_at(int a, int nb, PRNG& G)
@@ -95,12 +124,13 @@ void BitVector::input(istream& s,bool human)
 
 void BitVector::pack(octetStream& o) const
 {
+    o.store(nbytes);
     o.append((octet*)bytes, nbytes);
 }
 
-
 void BitVector::unpack(octetStream& o)
 {
+    o.get(nbytes);
     o.consume((octet*)bytes, nbytes);
 }
 

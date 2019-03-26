@@ -6,7 +6,9 @@
  */
 
 #include "OTExtensionWithMatrix.h"
+#include "Rectangle.h"
 #include "Math/gfp.h"
+#include "Math/Z2k.h"
 
 void OTExtensionWithMatrix::seed(vector<BitMatrix>& baseSenderInput,
         BitMatrix& baseReceiverOutput)
@@ -63,14 +65,22 @@ void OTExtensionWithMatrix::transfer(int nOTs,
 #endif
 }
 
-void OTExtensionWithMatrix::resize(int nOTs)
+template <class U>
+void OTCorrelator<U>::resize(int nOTs)
 {
-    t1.resize(nOTs);
-    u.resize(nOTs);
+    t1.resize_vertical(nOTs);
+    u.resize_vertical(nOTs);
     senderOutputMatrices.resize(2);
     for (int i = 0; i < 2; i++)
-        senderOutputMatrices[i].resize(nOTs);
-    receiverOutputMatrix.resize(nOTs);
+        senderOutputMatrices[i].resize_vertical(nOTs);
+    receiverOutputMatrix.resize_vertical(nOTs);
+}
+
+template<>
+void OTExtensionWithMatrix::extend<Z2<160> >(int nOTs_requested,
+        BitVector& newReceiverInput)
+{
+    extend<gf2n>(nOTs_requested, newReceiverInput);
 }
 
 // the template is used to denote the field of the hash output
@@ -81,13 +91,16 @@ void OTExtensionWithMatrix::extend(int nOTs_requested, BitVector& newReceiverInp
 //        throw invalid_length(); //"nOTs must be a multiple of nbaseOTs\n");
     if (nOTs_requested == 0)
         return;
+    if ((size_t)nOTs_requested != newReceiverInput.size())
+        throw runtime_error("wrong number of choice bits");
+    int nOTs_requested_rounded = (nOTs_requested + 127) / 128 * 128;
     // add k + s to account for discarding k OTs
-    int nOTs = nOTs_requested + 2 * 128;
+    int nOTs = nOTs_requested_rounded + 2 * 128;
 
     int slice = nOTs / nsubloops / 128;
     nOTs = slice * nsubloops * 128;
     resize(nOTs);
-    newReceiverInput.resize(nOTs);
+    newReceiverInput.resize_zero(nOTs);
 
     // randomize last 128 + 128 bits that will be discarded
     for (int i = 0; i < 4; i++)
@@ -97,7 +110,7 @@ void OTExtensionWithMatrix::extend(int nOTs_requested, BitVector& newReceiverInp
     for (int start = 0; start < nOTs / 128; start += slice)
     {
         expand<gf2n>(start, slice);
-        correlate<gf2n>(start, slice, newReceiverInput, true);
+        this->correlate<gf2n>(start, slice, newReceiverInput, true);
         transpose(start, slice);
     }
 
@@ -122,29 +135,31 @@ void OTExtensionWithMatrix::extend(int nOTs_requested, BitVector& newReceiverInp
 
     hash_outputs<T>(nOTs);
 
-    receiverOutputMatrix.resize(nOTs_requested);
-    senderOutputMatrices[0].resize(nOTs_requested);
-    senderOutputMatrices[1].resize(nOTs_requested);
+    receiverOutputMatrix.resize(nOTs_requested_rounded);
+    senderOutputMatrices[0].resize(nOTs_requested_rounded);
+    senderOutputMatrices[1].resize(nOTs_requested_rounded);
     newReceiverInput.resize(nOTs_requested);
 }
 
+template <class U>
 template <class T>
-void OTExtensionWithMatrix::expand(int start, int slice)
+void OTCorrelator<U>::expand(int start, int slice)
 {
-    BitMatrixSlice receiverOutputSlice(receiverOutputMatrix, start, slice);
-    BitMatrixSlice senderOutputSlices[2] = {
-            BitMatrixSlice(senderOutputMatrices[0], start, slice),
-            BitMatrixSlice(senderOutputMatrices[1], start, slice)
+    (void)start, (void)slice;
+    Slice<U> receiverOutputSlice(receiverOutputMatrix, start, slice);
+    Slice<U> senderOutputSlices[2] = {
+            Slice<U>(senderOutputMatrices[0], start, slice),
+            Slice<U>(senderOutputMatrices[1], start, slice)
     };
-    BitMatrixSlice t1Slice(t1, start, slice);
+    Slice<U> t1Slice(t1, start, slice);
 
     // expand with PRG
     if (ot_role & RECEIVER)
     {
         for (int i = 0; i < nbaseOTs; i++)
         {
-            receiverOutputSlice.randomize<T>(i, G_sender[i][0]);
-            t1Slice.randomize<T>(i, G_sender[i][1]);
+            receiverOutputSlice.template randomize<T>(i, G_sender[i][0]);
+            t1Slice.template randomize<T>(i, G_sender[i][1]);
         }
     }
 
@@ -152,7 +167,7 @@ void OTExtensionWithMatrix::expand(int start, int slice)
     {
         for (int i = 0; i < nbaseOTs; i++)
             // randomize base receiver output
-            senderOutputSlices[0].randomize<T>(i, G_receiver[i]);
+            senderOutputSlices[0].template randomize<T>(i, G_receiver[i]);
     }
 }
 
@@ -173,34 +188,38 @@ void OTExtensionWithMatrix::expand_transposed()
     }
 }
 
-void OTExtensionWithMatrix::setup_for_correlation(vector<BitMatrix>& baseSenderOutputs, BitMatrix& baseReceiverOutput)
+template <class U>
+void OTCorrelator<U>::setup_for_correlation(BitVector& baseReceiverInput,
+        vector<BitMatrix>& baseSenderOutputs,
+        BitMatrix& baseReceiverOutput)
 {
+    this->baseReceiverInput = baseReceiverInput;
     receiverOutputMatrix = baseSenderOutputs[0];
     t1 = baseSenderOutputs[1];
-    u.resize(t1.size());
+    u.squares.resize(t1.squares.size());
     senderOutputMatrices.resize(2);
     senderOutputMatrices[0] = baseReceiverOutput;
 }
 
+template <class U>
 template <class T>
-void OTExtensionWithMatrix::correlate(int start, int slice,
+void OTCorrelator<U>::correlate(int start, int slice,
         BitVector& newReceiverInput, bool useConstantBase, int repeat)
 {
     vector<octetStream> os(2);
 
-    BitMatrixSlice receiverOutputSlice(receiverOutputMatrix, start, slice);
-    BitMatrixSlice senderOutputSlices[2] = {
-            BitMatrixSlice(senderOutputMatrices[0], start, slice),
-            BitMatrixSlice(senderOutputMatrices[1], start, slice)
+    Slice<U> receiverOutputSlice(receiverOutputMatrix, start, slice);
+    Slice<U> senderOutputSlices[] = {
+            Slice<U>(senderOutputMatrices[0], start, slice),
     };
-    BitMatrixSlice t1Slice(t1, start, slice);
-    BitMatrixSlice uSlice(u, start, slice);
+    Slice<U> t1Slice(t1, start, slice);
+    Slice<U> uSlice(u, start, slice);
 
     // create correlation
     if (ot_role & RECEIVER)
     {
-        t1Slice.rsub<T>(receiverOutputSlice);
-        t1Slice.add<T>(newReceiverInput, repeat);
+        t1Slice.template rsub<T>(receiverOutputSlice);
+        t1Slice.template sub<T>(newReceiverInput, repeat);
         t1Slice.pack(os[0]);
 
 //        t1 = receiverOutputMatrix;
@@ -219,7 +238,7 @@ void OTExtensionWithMatrix::correlate(int start, int slice,
     {
         // u = t0 + t1 + x
         uSlice.unpack(os[1]);
-        senderOutputSlices[0].conditional_add<T>(baseReceiverInput, u, !useConstantBase);
+        senderOutputSlices[0].template conditional_add<T>(baseReceiverInput, u, !useConstantBase);
     }
 #ifdef OTEXT_TIMER
     gettimeofday(&commst2, NULL);
@@ -296,8 +315,9 @@ void OTExtensionWithMatrix::hash_outputs(int nOTs)
 #endif
 }
 
+template <class U>
 template <class T>
-void OTExtensionWithMatrix::reduce_squares(unsigned int nTriples, vector<T>& output)
+void OTCorrelator<U>::reduce_squares(unsigned int nTriples, vector<T>& output)
 {
     if (receiverOutputMatrix.squares.size() < nTriples)
         throw invalid_length();
@@ -444,9 +464,12 @@ void OTExtensionWithMatrix::print_pre_expand()
     }
 }
 
-template void OTExtensionWithMatrix::correlate<gf2n>(int start, int slice,
+template class OTCorrelator<BitMatrix>;
+template class OTCorrelator<Matrix<square128> >;
+
+template void OTCorrelator<Matrix<square128> >::correlate<gf2n>(int start, int slice,
         BitVector& newReceiverInput, bool useConstantBase, int repeat);
-template void OTExtensionWithMatrix::correlate<gfp>(int start, int slice,
+template void OTCorrelator<Matrix<square128> >::correlate<gfp>(int start, int slice,
         BitVector& newReceiverInput, bool useConstantBase, int repeat);
 template void OTExtensionWithMatrix::print_post_correlate<gf2n>(
         BitVector& newReceiverInput, int j, int offset, int sender);
@@ -456,11 +479,27 @@ template void OTExtensionWithMatrix::extend<gf2n>(int nOTs_requested,
         BitVector& newReceiverInput);
 template void OTExtensionWithMatrix::extend<gfp>(int nOTs_requested,
         BitVector& newReceiverInput);
-template void OTExtensionWithMatrix::expand<gf2n>(int start, int slice);
-template void OTExtensionWithMatrix::expand<gfp>(int start, int slice);
+template void OTCorrelator<Matrix<square128> >::expand<gf2n>(int start, int slice);
+template void OTCorrelator<Matrix<square128> >::expand<gfp>(int start, int slice);
 template void OTExtensionWithMatrix::expand_transposed<gf2n>();
 template void OTExtensionWithMatrix::expand_transposed<gfp>();
-template void OTExtensionWithMatrix::reduce_squares(unsigned int nTriples,
+template void OTCorrelator<Matrix<square128> >::reduce_squares(unsigned int nTriples,
         vector<gf2n>& output);
-template void OTExtensionWithMatrix::reduce_squares(unsigned int nTriples,
+template void OTCorrelator<Matrix<square128> >::reduce_squares(unsigned int nTriples,
         vector<gfp>& output);
+
+#define X(N,L) \
+template class OTCorrelator<Matrix<Rectangle<Z2<N>, Z2<L> > > >; \
+template void OTCorrelator<Matrix<Rectangle<Z2<N>, Z2<L> > > >::correlate<Z2<L> >(int start, int slice, \
+        BitVector& newReceiverInput, bool useConstantBase, int repeat); \
+template void OTCorrelator<Matrix<Rectangle<Z2<N>, Z2<L> > > >::expand<Z2<L> >(int start, int slice); \
+template void OTCorrelator<Matrix<Rectangle<Z2<N>, Z2<L> > > >::reduce_squares(unsigned int nTriples, \
+        vector<Z2<L> >& output); \
+template void OTCorrelator<Matrix<Rectangle<Z2<N>, Z2<L> > > >::reduce_squares(unsigned int nTriples, \
+        vector<Z2<N + L> >& output); \
+template void OTCorrelator<Matrix<Rectangle<Z2<N>, Z2<L> > > >::reduce_squares(unsigned int nTriples, \
+        vector<Z2kRectangle<N, L> >& output); \
+
+X(96, 160)
+
+Y(64, 96)

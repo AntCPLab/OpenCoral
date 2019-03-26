@@ -11,6 +11,7 @@
 
 #include "Math/gfp.h"
 #include "Math/gf2n.h"
+#include "Math/Z2k.h"
 
 #include <algorithm>
 
@@ -379,3 +380,5 @@ template class MAC_Check<gf2n_short>;
 template class Direct_MAC_Check<gf2n_short>;
 template class Parallel_MAC_Check<gf2n_short>;
 #endif
+
+template class MAC_Check<Z2<160> >;

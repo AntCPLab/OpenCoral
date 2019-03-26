@@ -111,6 +111,9 @@ class Share
    friend bool check_macs<T>(const vector< Share<T> >& S,const T& key);
 };
 
+template <class T, class U, class V>
+using Share_ = Share<T>;
+
 // specialized mul by bit for gf2n
 template <>
 void Share<gf2n>::mul_by_bit(const Share<gf2n>& S,const gf2n& aa);

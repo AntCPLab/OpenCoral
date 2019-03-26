@@ -2,6 +2,7 @@
 
 #include "Math/gf2n.h"
 #include "Math/gfp.h"
+#include "Math/Z2k.h"
 #include "Math/Setup.h"
 
 #include <fstream>
@@ -9,13 +10,18 @@
 #include <numeric>
 
 template <class T>
-void check_triples(int n_players)
+void check_triples(int n_players, string type_char = "")
 {
     ifstream* inputFiles = new ifstream[n_players];
     for (int i = 0; i < n_players; i++)
     {
         stringstream ss;
-        ss << get_prep_dir(n_players, 128, 128) << "Triples-" << T::type_char() << "-P" << i;
+        ss << get_prep_dir(n_players, 128, 128) << "Triples-";
+        if (type_char.size())
+            ss << type_char;
+        else
+            ss << T::type_char();
+        ss << "-P" << i;
         inputFiles[i].open(ss.str().c_str());
         cout << "Opening file " << ss.str() << endl;
     }
@@ -23,7 +29,7 @@ void check_triples(int n_players)
     int j = 0;
     while (inputFiles[0].peek() != EOF)
     {
-        T a,b,c,cc,tmp;
+        T a,b,c,cc,tmp,prod;
         vector<T> as(n_players), bs(n_players), cs(n_players);
         for (int i = 0; i < n_players; i++)
         {
@@ -36,7 +42,8 @@ void check_triples(int n_players)
         b = accumulate(bs.begin(), bs.end(), T());
         c = accumulate(cs.begin(), cs.end(), T());
 
-        if (a * b != c)
+        prod = a * b;
+        if (prod != c)
         {
             cout << T::type_string() << ": Error in " << j << endl;
             cout << "a " << a << " " << as[0] << " " << as[1] << endl;
@@ -50,7 +57,7 @@ void check_triples(int n_players)
                     cout << "a" << i << " * b" << j << " " << tmp << endl;
                 }
             cout << "cc " << cc << endl;
-            cout << "a*b " << a*b << endl;
+            cout << "a*b " << prod << endl;
             cout << "DID YOU INDICATE THE CORRECT NUMBER OF PLAYERS?" << endl;
 
             return;
@@ -72,4 +79,5 @@ int main(int argc, char** argv)
     gfp::init_field(gfp::pr(), false);
     check_triples<gf2n>(n_players);
     check_triples<gfp>(n_players);
+    check_triples<Z2<160> >(n_players, "Z2^64");
 }
