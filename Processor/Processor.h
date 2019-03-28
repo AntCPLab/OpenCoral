@@ -34,7 +34,7 @@ class SubProcessor
 
   // This is the vector of partially opened values and shares we need to store
   // as the Open commands are split in two
-  vector<typename T::clear> PO;
+  vector<typename T::open_type> PO;
   vector<T> Sh_PO;
 
   void resize(int size)       { C.resize(size); S.resize(size); }
@@ -113,12 +113,6 @@ class Processor : public ArithmeticProcessor
   // Data structure used for reading/writing data to/from a socket (i.e. an external party to SPDZ)
   octetStream socket_stream;
 
-  #ifdef DEBUG
-    vector<int> rw2;
-    vector<int> rwp;
-    vector<int> rwi;
-  #endif
-
   template <class T>
   vector< Share<T> >& get_S();
   template <class T>
@@ -170,76 +164,6 @@ class Processor : public ArithmeticProcessor
     {
       return thread_num;
     }
-
-  #ifdef DEBUG  
-    const gf2n& read_C2(int i) const
-      { if (rw2[i]==0)
-	  { throw Processor_Error("Invalid read on clear register"); }
-        return Proc2.C.at(i);
-      }
-    const Share<gf2n> & read_S2(int i) const
-      { if (rw2[i+reg_max2]==0)
-          { throw Processor_Error("Invalid read on shared register"); }
-        return Proc2.S.at(i);
-      }
-    gf2n& get_C2_ref(int i)
-      { rw2[i]=1;
-        return Proc2.C.at(i);
-      }
-    Share<gf2n> & get_S2_ref(int i)
-      { rw2[i+reg_max2]=1;
-        return Proc2.S.at(i);
-      }
-    void write_C2(int i,const gf2n& x)
-      { rw2[i]=1;
-        Proc2.C.at(i)=x;
-      }
-    void write_S2(int i,const Share<gf2n> & x)
-      { rw2[i+reg_max2]=1;
-        Proc2.S.at(i)=x;
-      }
-
-    const sint::clear& read_Cp(int i) const
-      { if (rwp[i]==0)
-	  { throw Processor_Error("Invalid read on clear register"); }
-        return Procp.C.at(i);
-      }
-    const sint & read_Sp(int i) const
-      { if (rwp[i+reg_maxp]==0)
-          { throw Processor_Error("Invalid read on shared register"); }
-        return Procp.S.at(i);
-      }
-    sint::clear& get_Cp_ref(int i)
-      { rwp[i]=1;
-        return Procp.C.at(i);
-      }
-    sint & get_Sp_ref(int i)
-      { rwp[i+reg_maxp]=1;
-        return Procp.S.at(i);
-      }
-    void write_Cp(int i,const sint::clear& x)
-      { rwp[i]=1;
-        Procp.C.at(i)=x;
-      }
-    void write_Sp(int i,const sint & x)
-      { rwp[i+reg_maxp]=1;
-        Procp.S.at(i)=x;
-      }
-
-    const long& read_Ci(int i) const
-      { if (rwi[i]==0)
-          { throw Processor_Error("Invalid read on integer register"); }
-        return Ci.at(i);
-      }
-    long& get_Ci_ref(int i)
-      { rwi[i]=1;
-        return Ci.at(i);
-      }
-    void write_Ci(int i,const long& x)
-      { rwi[i]=1;
-        Ci.at(i)=x;
-      }
- #else
     const gf2n& read_C2(int i) const
       { return Proc2.C[i]; }
     const sgf2n& read_S2(int i) const
@@ -272,7 +196,6 @@ class Processor : public ArithmeticProcessor
       { return Ci[i]; }
     void write_Ci(int i,const long& x)
       { Ci[i]=x; }
-  #endif
 
   // Access to external client sockets for reading clear/shared data
   void read_socket_ints(int client_id, const vector<int>& registers);

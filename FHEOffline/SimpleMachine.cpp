@@ -289,7 +289,6 @@ void MachineBase::run()
             << " kbit per " << item_type().substr(0, item_type().length() - 1) << endl;
     cout << "Produced " << total << " " << item_type() << " in "
             << timer.elapsed() << " seconds" << endl;
-    cout << "Throughput: " << total / timer.elapsed() << tradeoff() << endl;
     cout << "CPU time: " << cpu_timer.elapsed() << endl;
 
     extern unsigned long long sent_amount, sent_counter;
@@ -298,6 +297,8 @@ void MachineBase::run()
     cout << sent_amount / sent_counter / N.num_players() << " bytes per call"
             << endl;
 
+    cout << "Time: " << timer.elapsed() << endl;
+    cout << "Throughput: " << total / timer.elapsed() << endl;
     mult_performance();
 }
 

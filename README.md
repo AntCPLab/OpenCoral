@@ -20,11 +20,11 @@ Scripts/tldr.sh
 ./compile.py tutorial
 echo 1 2 3 > Player-Data/Input-P0-0
 echo 1 2 3 > Player-Data/Input-P1-0
-Scripts/mal-rep-field.sh tutorial
+Scripts/mascot.sh tutorial
 ```
 
-This runs [the tutorial](Programs/Source/tutorial.mpc) with three
-parties, an honest majority, and malicious security.
+This runs [the tutorial](Programs/Source/tutorial.mpc) with two
+parties parties and malicious security.
 
 #### TL;DR (Source Distribution)
 
@@ -36,33 +36,38 @@ apt-get install automake build-essential git libboost-dev libboost-thread-dev li
 On MacOS, this requires [brew](https://brew.sh) to be installed,
 which will be used for all dependencies.
 It will execute [the
-tutorial](Programs/Source/tutorial.mpc) with three
-parties, an honest majority, and malicious security.
+tutorial](Programs/Source/tutorial.mpc) with two parties and malicious
+security.
 
 ```
 make -j 8 tldr
 ./compile.py tutorial
-Scripts/setup-replicated.sh
 echo 1 2 3 > Player-Data/Input-P0-0
 echo 1 2 3 > Player-Data/Input-P1-0
-Scripts/mal-rep-field.sh tutorial
+Scripts/mascot.sh tutorial
 ```
 
 #### Preface
 
-The primary aim of this software is to benchmark the same computation
-in various protocols in order to compare the performance. In order to
-do, it sometimes uses functionality that is not secure. Many MPC protocols
-involve several phases that have to be executed in a secure manner for
-the whole protocol to be sure. However, for benchmarking it does not
-make a difference whether a previous phase was executed securely or
-whether its output were generated insecurely. The focus on this
-software is to benchmark each phases individually rather than running
-the whole sequence of phases at once.
+The primary aim of this software is to run the same computation in
+various protocols in order to compare the performance. All protocols
+in the matrix below are fully implemented. In addition, there are
+further protocols implemented only partially, most notably the
+Overdrive protocols. They are deactivated by default in order to avoid
+confusion over security. See the [section on compilation](#Compilation)
+on how to activate them.
 
-In order to make it clear where insecure functionality is used, it is
-disabled by default but can be activated as explained in the section
-on compilation. Some parts of the software will not work without doing so.
+#### Protocols
+
+The following table lists all protocols that are fully supported. Rep3
+stands for three-party replicated secret sharing.
+
+| Security model | Mod prime / GF(2^n) | Mod 2^k | Binary |
+| --- | --- | --- | --- |
+| Malicious, dishonest majority | [MASCOT](#arithmetic-circuits-mascot--spdz2k) | [SPDZ2k](#arithmetic-circuits-mascot--spdz2k) | N/A |
+| Semi-honest, dishonest majority | N/A | N/A | [Yao's GC](#yaos-garbled-circuits) |
+| [Malicious, honest majority](#honest-majority) | Shamir / Rep3 | N/A | N/A |
+| [Semi-honest, honest majority](#honest-majority) | Shamir / Rep3 | Rep3 | Rep3 |
 
 #### History
 
@@ -80,11 +85,16 @@ following repositories:
 #### Alternatives
 
 There is another fork of SPDZ-2 called
-[SCALE-MAMBA](https://github.com/KULeuven-COSIC/SCALE-MAMBA). It
-focuses on providing an integrated system for computations modulo a
-large prime, using the SPDZ protocol (based on lattic-based
-homomorphic encryption) for a dishonest majority or using secret
-sharing for an honest majority. More information can be found here:
+[SCALE-MAMBA](https://github.com/KULeuven-COSIC/SCALE-MAMBA).
+The main differences at the time of writing are as follows:
+- It provides honest-majority computation for any Q2 structure.
+- For dishonest majority computation, it provides integration of
+SPDZ/Overdrive offline and online phases but without secure key
+generation.
+- It only provides computation modulo a prime.
+- It only provides malicious security.
+
+More information can be found here:
 https://homes.esat.kuleuven.be/~nsmart/SCALE
 
 #### Overview
@@ -101,18 +111,9 @@ arithmetic circuits and one for boolean circuits. The high-level code
 slightly differs between the two variants, but we aim to keep these
 differences a at minimum.
 
-The SPDZ protocol uses preprocessing, that is, in a first (sometimes
-called offline) phase correlated randomness is generated independent
-of the actual inputs of the computation. Only the second ("online")
-phase combines this randomness with the actual inputs in order to
-produce the desired results. The preprocessed data can only be used
-once, thus more computation requires more preprocessing. MASCOT and
-Overdrive are the names for two alternative preprocessing phases to go
-with the SPDZ online phase.
-
-In the section on computation we will explain how to run the SPDZ
-online phase and the various honest-majority three-party comptuation as well
-as BMR and Yao's garbled circuits.
+In the section on computation we will explain how to compile a
+high-level program for the various computation domains and then how to
+run it with different protocols.
 
 The section on offline phases will then explain how to benchmark the
 offline phases required for the SPDZ protocol. Running the online
@@ -120,22 +121,26 @@ phase outputs the amount of offline material required, which allows to
 compute the preprocessing time for a particulor computation.
 
 #### Requirements
- - GCC 4.8 or later (tested with 7.3) or LLVM (tested with 6.0)
+ - GCC 5 or later (tested with 7.3) or LLVM (tested with 6.0)
  - MPIR library, compiled with C++ support (use flag --enable-cxx when running configure)
  - libsodium library, tested against 1.0.16
  - OpenSSL, tested against and 1.0.2 and 1.1.0
  - Boost.Asio with SSL support (`libboost-dev` on Ubuntu), tested against 1.65
  - Boost.Thread for BMR (`libboost-thread-dev` on Ubuntu), tested against 1.65
- - CPU supporting AES-NI, PCLMUL, AVX2
+ - 64-bit CPU
  - Python 2.x
  - NTL library for the SPDZ-2 and Overdrive offline phases (optional; tested with NTL 10.5)
- - If using macOS, Sierra or later (see comment about LLVM)
+ - If using macOS, Sierra or later
 
 #### Compilation
 
 1) Edit `CONFIG` or `CONFIG.mine` to your needs:
 
- - To benchmark malicious SPDZ or BMR, add the following line at the top: `MY_CFLAGS = -DINSECURE`
+ - By default, a CPU supporting AES-NI, PCLMUL, AVX2, BMI2 is
+   required. This includes mainstream processors released 2013 or later.
+   For older models you need to deactivate the respective
+   extensions in the `ARCH` variable.
+ - To benchmark online-only protocols or Overdrive, add the following line at the top: `MY_CFLAGS = -DINSECURE`
  - `PREP_DIR` should point to should be a local, unversioned directory to store preprocessing data (default is `Player-Data` in the current directory).
  - For the SPDZ-2 and Overdrive offline phases, set `USE_NTL = 1` and `MOD = -DMAX_MOD_SZ=6`.
  - To use GF(2^40), in particular for the SPDZ-2 offline phase, set `USE_GF2N_LONG = 0`. This will deactive anything that requires GF(2^128) such as MASCOT.
@@ -145,14 +150,239 @@ compilation multiple threads). See below on how to compile specific
 parts only. Remember to run `make clean` first after changing `CONFIG`
 or `CONFIG.mine`.
 
-# Benchmarking computation
+# Running computation
 
 See `Programs/Source/` for some example MPC programs, in particular
 `tutorial.mpc`.
 
-## Arithmetic circuits
+### Compiling high-level programs
+
+There are three computation domains, and the high-level programs have
+to be compiled accordingly.
+
+#### Arithmetic modulo a prime
+
+```./compile.py [-F <integer bit length>] <program>```
+
+The integer bit length defaults to 64.
+
+Note that in this context integers do not wrap around as expected, so
+it is the responsibility of the user to make sure that they don't grow
+too large. If necessary `sint.Mod2m()` can be used to wrap around
+manually.
+
+The integer bit length together with the computation mandate a minimum
+for the size of the prime, which will be output by the compiler. It is
+also communicated to the virtual machine in the bytecode, which will
+fail if the minimum is not met.
+
+#### Arithmetic modulo 2^k
+
+```./compile.py -R <integer bit length> <program>```
+
+Currently, 64 is the only supported bit length, but it still has to be
+specified for future compatibility.
+
+#### Binary circuits
+
+```./compile.py -B <integer bit length> <program>```
+
+The integer length can be any number up to a maximum depending on the
+protocol. All protocols support at least 64-bit integers.
+
+Fixed-point numbers (`sfix`) always use 16/16-bit precision by default in
+binary circuits. This can be changed with `sfix.set_precision`. See
+[the tutorial](Programs/Source/tutorial.mpc).
+
+If you would like to use integers of various precisions, you can use
+`sbitint.get_type(n)` to get a type for `n`-bit arithmetic.
+
+#### Compiling and running programs from external directories
+
+Programs can also be edited, compiled and run from any directory with the above basic structure. So for a source file in `./Programs/Source/`, all SPDZ scripts must be run from `./`. The `setup-online.sh` script must also be run from `./` to create the relevant data. For example:
+
+```
+spdz$ cd ../
+$ mkdir myprogs
+$ cd myprogs
+$ mkdir -p Programs/Source
+$ vi Programs/Source/test.mpc
+$ ../spdz/compile.py test.mpc
+$ ls Programs/
+Bytecode  Public-Input  Schedules  Source
+$ ../spdz/Scripts/setup-online.sh
+$ ls
+Player-Data Programs
+$ ../spdz/Scripts/run-online.sh test
+```
+
+## Dishonest majority
+
+All current full implementations requires oblivious transfer, which is
+implemented as OT extension based on
+https://github.com/mkskeller/SimpleOT.
+
+### Arithmetic circuits (MASCOT / SPDZ2k)
+
+The two protocols are implemented in `Player-Online.x` and
+`spdz2k-party.x`,
+respectively. [MASCOT](https://eprint.iacr.org/2016/505) works modulo
+a prime, while a [SPDZ2k](https://eprint.iacr.org/2018/482) works
+modulo 2^k. We will use MASCOT to demonstrate the use,
+but SPDZ2k works similarly.
+
+First compile the virtual machine:
+
+`make -j8 Player-Online.x`
+
+and a high-level program, for example the tutorial (use `-R 64` for SPDZ2k):
+
+`./compile.py -F 64 tutorial`
+
+To run the tutorial with two parties on one machine, run:
+
+`./Player-Online.x -N 2 -I -p 0 tutorial`
+
+`./Player-Online.x -N 2 -I -p 1 tutorial` (in a separate terminal)
+
+Using `-I` activates interactive mode, which means that inputs are
+solicitated from standard input, and outputs are given to any
+party. Omitting `-I` leads to inputs being read from
+`Player-Data/Input-P<party number>-0` in text format.
+
+Or, you can use a script to do run two parties in non-interactive mode
+automatically (the script for SPDZ2k is `Scripts/spdz2k.sh`):
+
+`Scripts/mascot.sh tutorial`
+
+To run a program on two different machines, `Player-Online.x`
+needs to be passed the machine where the first party is running,
+e.g. if this machine is name `diffie` on the local network:
+
+`./Player-Online.x -N 2 -h diffie 0 tutorial`
+
+`./Player-Online.x -N 2 -h diffie 1 tutorial`
+
+The software uses TCP ports around 5000 by default, use the `-pn`
+argument to change that.
+
+### Yao's garbled circuits
+
+We use the implementation optimized for AES-NI by [Bellare et al.](https://eprint.iacr.org/2013/426)
+
+Compile the virtual machine:
+
+`make -j 8 yao`
+
+and the high-level program:
+
+`./compile.py -B <integer bit length> <program>`
+
+Then run as follows:
+  - Garbler: ```./yao-player.x [-I] -p 0 <program>```
+  - Evaluator: ```./yao-player.x [-I] -p 1 -h <garbler host> <program>```
+
+When running locally, you can omit the host argument. As above, `-I`
+activates interactive input, otherwise inputs are read from
+`Player-Data/Input-P<playerno>-0`.
+
+By default, the circuit is garbled at once and stored on the evaluator
+side before evaluating. You can activate a more continuous operation
+by adding `-C` to the command line on both sides.
+
+## Honest majority
+
+The following table shows all programs for honest-majority computation:
+
+| Program | Sharing | Domain | Malicious | \# parties | Script |
+| --- | --- | --- | --- | --- | --- |
+| `replicated-ring-party.x` | Replicated | Mod 2^k | N | 3 | `ring.sh` |
+| `replicated-bin-party.x` | Replicated | Binary | N | 3 | `replicated.sh` |
+| `replicated-field-party.x` | Replicated | Mod prime | N | 3 | `rep-field.sh` |
+| `malicious-rep-field-party.x` | Replicated | Mod prime | Y | 3 | `mal-rep-field.sh` |
+| `shamir-party.x` | Shamir | Mod prime | N | 3 or more | `shamir.sh` |
+| `malicious-shamir-party.x` | Shamir | Mod prime | Y | 3 or more | `mal-shamir.sh` |
+
+We use the "generate random triple optimistically/sacrifice/Beaver"
+methodology described by [Lindell and
+Nof](https://eprint.iacr.org/2017/816) to achieve malicious
+security. Otherwise, we use resharing by [Cramer et
+al.](https://eprint.iacr.org/2000/037) for Shamir's secret sharing and
+the optimized approach by [Araki et
+al.](https://eprint.iacr.org/2016/768) for replicated secret sharing.
+
+All protocols in this section require encrypted channels because the
+information received by the honest majority suffices the reconstruct
+all secrets. Therefore, an eavesdropper on the network could learn all
+information.
+
+MP-SPDZ uses OpenSSL for secure channels. You can generate the
+necessary certificates and keys as follows:
+
+`Scripts/setup-ssl.sh [<number of parties>]`
+
+The programs expect the keys and certificates to be in
+`Player-Data/P<i>.key` and `Player-Data/P<i>.pem`, respectively, and
+the certificates to have the common name `P<i>` for player
+`<i>`. Furthermore, the relevant root certificates have to be in
+`Player-Data` such that OpenSSL can find them (run `c_rehash
+Player-Data`). The script above takes care of all this by generating
+self-signed certificates. Therefore, if you are running the programs
+on different hosts you will need to copy the certificate files.
+
+In the following, we will walk through running the tutorial modulo
+2^k with three parties. The other programs work similarly.
+
+First, compile the virtual machine:
+
+`make -j 8 replicated-ring-party.x`
+
+In order to compile a high-level program, use `./compile.py -R 64`:
+
+`./compile.py -R 64 tutorial`
+
+If using another computation domain, use `-F` or `-B` as described in
+[the relevant section above](#compiling-high-level-programs).
+
+Finally, run the three parties as follows:
+
+`./replicated-ring-party.x -I 0 tutorial`
+
+`./replicated-ring-party.x -I 1 tutorial` (in a separate terminal)
+
+`./replicated-ring-party.x -I 2 tutorial` (in a separate terminal)
+
+or
+
+`Scripts/ring.sh tutorial`
+
+The `-I` enable interactive inputs, and in the tutorial party 0 and 1
+will be asked to provide three numbers. Otherwise, and when using the
+script, the inputs are read from `Player-Data/Input-P<playerno>-0`.
+
+When using programs based on Shamir's secret sharing, you can specify
+the number of parties with `-N` and the maximum number of corrupted
+parties with `-T`. The latter can be at most half the number of
+parties.
+
+## Online-only benchmarking
+
+In this section we show how to benchmark purely the data-dependent
+(often called online) phase of some protocols. This requires to
+generate the output of a previous phase insecurely. You will have to
+(re)compile the software after adding `MY_CFLAGS = -DINSECURE` to
+`CONFIG.mine` in order to run this insecure generation.
 
 ### SPDZ
+
+The SPDZ protocol uses preprocessing, that is, in a first (sometimes
+called offline) phase correlated randomness is generated independent
+of the actual inputs of the computation. Only the second ("online")
+phase combines this randomness with the actual inputs in order to
+produce the desired results. The preprocessed data can only be used
+once, thus more computation requires more preprocessing. MASCOT and
+Overdrive are the names for two alternative preprocessing phases to go
+with the SPDZ online phase.
 
 All programs required in this section can be compiled with the target `online`:
 
@@ -205,195 +435,23 @@ e.g. if this machine is name `diffie` on the local network:
 The software uses TCP ports around 5000 by default, use the `-pn`
 argument to change that.
 
-#### Compiling and running programs from external directories
-
-Programs can also be edited, compiled and run from any directory with the above basic structure. So for a source file in `./Programs/Source/`, all SPDZ scripts must be run from `./`. The `setup-online.sh` script must also be run from `./` to create the relevant data. For example:
-
-```
-spdz$ cd ../
-$ mkdir myprogs
-$ cd myprogs
-$ mkdir -p Programs/Source
-$ vi Programs/Source/test.mpc
-$ ../spdz/compile.py test.mpc
-$ ls Programs/
-Bytecode  Public-Input  Schedules  Source
-$ ../spdz/Scripts/setup-online.sh
-$ ls
-Player-Data Programs
-$ ../spdz/Scripts/run-online.sh test
-```
-
-### Honest-majority computation based on Shamir secret sharing
-
-Compile the virtual machines:
-
-`make -j 8 shamir`
-
-Run setup to generate SSL keys and certificates. See the section replicated secret sharing for binary circuits below for details.
-
-`Scripts/setup-ssl.sh <nparties>`
-
-In order to compile a program, use `./compile.py`, for example:
-
-`./compile.py tutorial`
-
-Running the computation is similar to SPDZ but you will need to start
-at least three parties:
-
-`./malicious-shamir-party.x -N 3 -I 0 tutorial`
-
-`./malicious-shamir-party.x -N 3 -I 1 tutorial` (in a separate terminal)
-
-`./malicious-shamir-party.x -N 3 -I 2 tutorial` (in a separate terminal)
-
-The `-I` enable interactive inputs, and in the tutorial party 0 and 1
-will be asked to provide three numbers. Using
-`./shamir-party.x` will provide semi-honest security instead
-of malicious.
-
-You can run all parties at once with
-
-`Scripts/mal-shamir.sh tutorial`
-
-for malicious security or
-
-`Scripts/shamir.sh tutorial`
-
-for semi-honest security. In this case, the inputs are read from
-`Player-Data/Input-P<playerno>-0`.
-
-### Three-party honest-majority computation modulo a prime
-
-Compile the virtual machines:
-
-`make -j 8 rep-field`
-
-Run setup to generate a 128-bit prime. This will also generate SSL keys and certificates. See the section replicated secret sharing for binary circuits below for details.
-
-`Scripts/setup-replicated.sh`
-
-In order to compile a program, use `./compile.py`, for example:
-
-`./compile.py tutorial`
-
-Running the computation is similar to SPDZ but you will need to start
-three parties:
-
-`./malicious-rep-field-party.x -I 0 tutorial`
-
-`./malicious-rep-field-party.x -I 1 tutorial` (in a separate terminal)
-
-`./malicious-rep-field-party.x -I 2 tutorial` (in a separate terminal)
-
-The `-I` enable interactive inputs, and in the tutorial party 0 and 1
-will be asked to provide three numbers. Using
-`./replicated-field-party.x` will provide semi-honest security instead
-of malicious.
-
-You can run all parties at once with
-
-`Scripts/mal-rep-field.sh tutorial`
-
-for malicious security or
-
-`Scripts/rep-field.sh tutorial`
-
-for semi-honest security. In this case, the inputs are read from
-`Player-Data/Input-P<playerno>-0`.
-
-### Semi-honest honest-majority computation modulo 2^64
-
-Compile the necessary programs:
-
-`make -j 8 rep-ring`
-
-Run setup to generate SSL keys and certificates. See the section replicated secret sharing for binary circuits below for details.
-
-`Scripts/setup-ssl.sh`
-
-In order to compile a program, use `./compile.py -R 64`, for example:
-
-`./compile.py -R 64 tutorial`
-
-Then, run the three parties as follows:
-
-`./replicated-ring-party.x -I 0 tutorial`
-
-`./replicated-ring-party.x -I 1 tutorial` (in a separate terminal)
-
-`./replicated-ring-party.x -I 2 tutorial` (in a separate terminal)
-
-or
-
-`Scripts/ring.sh tutorial`
-
-Again, `-I` activates interactive input, otherwise inputs are read
-from `Player-Data/Input-P<playerno>-0`.
-
-## Binary circuits
-
-For binary circuits, you can compile your programs giving the desired
-integer length, for example:
-
-`./compile.py -B 32 tutorial`
-
-for using 32-bit integers with `sint` and 16/16-bit fixed-point
-numbers for `sfix`. The latter is independent of the `-B` option and
-can be changed with `sfix.set_precision`. See [the
-tutorial](Programs/Source/tutorial.mpc).
-
-Alternatively, you can directly use `sbitint.get_type(n)` and
-`sbitfix` instead of `sint`and `sfix`, respectively.
-
-### Honest-majority three-party computation
+### Honest-majority three-party computation of binary circuits with malicious security
 
 Compile the virtual machines:
 
 `make -j 8 rep-bin`
 
-Set up SSL certificate and keys:
-
-`Scripts/setup-ssl.sh`
-
-The programs expect the keys and certificates to be in `Player-Data/P<i>.key` and `Player-Data/P<i>.pem`, respectively, and the certificates to have the common name `P<i>` for player `<i>`. Furthermore, the relevant root certificates have to be in `Player-Data` such that OpenSSL can find them (run `c_rehash Player-Data`). The script above takes care of all this by generating self-signed certificates. Therefore, if you are running the programs on different hosts you will need to copy the certificate files.
-
-After compilating the mpc file, run as follows:
-
-`replicated-bin-party.x [-I] -h <host of party 0> -p <0/1/2> tutorial`
-
-When running locally, you can omit the host argument. As above, `-I`
-activates interactive input, otherwise inputs are read from
-`Player-Data/Input-P<playerno>-0`.
-
-The program above runs a semi-honest computation. For malicious
-security you have to generate some preprocessing data (requires
-compilation with the INSECURE flag):
+Generate preprocessing data:
 
 `Scripts/setup-online.sh 3`
 
-and then use `malicious-rep-bin-party.x` instead of
-`replicated-bin-party.x`.
-
-### Yao's garbled circuits
-
-We use the implementation optimized for AES-NI by [Bellare et al.](https://eprint.iacr.org/2013/426)
-
-Compile the virtual machine:
-
-`make -j 8 yao`
-
 After compilating the mpc file, run as follows:
-  - Garbler: ```./yao-player.x [-I] -p 0 <program>```
-  - Evaluator: ```./yao-player.x [-I] -p 1 -h <garbler host> <program>```
+
+`malicious-rep-bin-party.x [-I] -h <host of party 0> -p <0/1/2> tutorial`
 
 When running locally, you can omit the host argument. As above, `-I`
 activates interactive input, otherwise inputs are read from
 `Player-Data/Input-P<playerno>-0`.
-
-By default, the circuit is garbled at once and stored on the evaluator
-side before evaluating. You can activate a more continuous operation
-by adding `-C` to the command line on both sides.
 
 ### BMR
 
@@ -429,7 +487,7 @@ compiler to remove dead code. This is useful for more complex programs
 such as this one.
 3) Run `gc_oram` in the virtual machines as explained above.
 
-# Benchmarking offline phases
+## Benchmarking offline phases
 
 #### SPDZ-2 offline phase
 
@@ -451,15 +509,19 @@ The number of parties are counted from 0. As seen in the quick example, you can 
 
 The program will generate every kind of randomness required by the online phase until you stop it. You can shut it down gracefully pressing Ctrl-c (or sending the interrupt signal `SIGINT`), but only after an initial phase, the end of which is marked by the output `Starting to produce gf2n`. Note that the initial phase has been reported to take up to an hour. Furthermore, 3 GB of RAM are required per party.
 
-#### Benchmarking the MASCOT offline phase
+#### Benchmarking the MASCOT or SPDZ2k offline phase
 
-The MASCOT implementation is not suitable to generate the preprocessed data for the online phase because it can only generate either multiplication triples or bits. Nevertheless, an online computation only using data of one kind can run from the output of MASCOT offline phase if `Player-Online.x` is run with the options `-lg2 128 -lgp 128`.
+These implementations are not suitable to generate the preprocessed
+data for the online phase because they can only generate either
+multiplication triples or bits.
 
-In order to compile the MASCOT code, the following must be set in CONFIG or CONFIG.mine:
+In order to compile the code, the following must be set in CONFIG or
+CONFIG.mine:
 
 `USE_GF2N_LONG = 1`
 
-If SPDZ has been built before with `USE_GF2N_LONG = 0`, any compiled code needs to be removed:
+If the software has been built before with `USE_GF2N_LONG = 0`, any
+compiled code needs to be removed:
 
 `make clean`
 
@@ -470,6 +532,15 @@ Then, MASCOT can be run as follows:
 `host1:$ ./ot-offline.x -p 0 -c`
 
 `host2:$ ./ot-offline.x -p 1 -c`
+
+For SPDZ2k, use `-Z <k>` to set the computation domain to Z_{2^k}, and
+`-S` to set the security parameter. The latter defaults to k. At the
+time of writing, the following combinations are available: 32/32,
+64/64, 64/48, and 66/48.
+
+Running './ot-offline.x' without parameters give the full menu of
+options such as how many items to generate in how many threads and
+loops.
 
 #### Benchmarking Overdrive offline phases
 

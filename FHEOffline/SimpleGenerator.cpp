@@ -8,6 +8,8 @@
 #include "FHEOffline/Sacrificing.h"
 #include "Auth/MAC_Check.h"
 
+#include "Auth/MAC_Check.hpp"
+
 template <template <class> class T, class FD>
 SimpleGenerator<T,FD>::SimpleGenerator(const Names& N, const PartSetup<FD>& setup,
         const MultiplicativeMachine& machine, int thread_num, Dtype data_type) :

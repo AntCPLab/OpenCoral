@@ -11,8 +11,8 @@ using namespace std;
 
 
 OfflineMachineBase::OfflineMachineBase() :
-        server(0), my_num(0), nplayers(0), nthreads(0), ntriples(0),
-        nTriplesPerThread(0), output(0)
+        server(0), my_num(0), nplayers(0), ntriples(0),
+        nTriplesPerThread(0)
 {
 }
 

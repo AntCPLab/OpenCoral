@@ -20,9 +20,9 @@ template<class T>
 class Beaver : public ProtocolBase<T>
 {
     vector<T> shares;
-    vector<typename T::clear> opened;
+    vector<typename T::open_type> opened;
     vector<array<T, 3>> triples;
-    typename vector<typename T::clear>::iterator it;
+    typename vector<typename T::open_type>::iterator it;
     typename vector<array<T, 3>>::iterator triple;
     SubProcessor<T>* proc;
 

@@ -42,9 +42,14 @@ public:
   }
 };
 
-struct DataPositions
+class DataPositions
 {
-  static const char* dtype_names[N_DTYPE];
+  void process_line(long long items_used, const char* name, ifstream& file,
+      bool print_verbose, double& total_cost, bool& reading_field,
+      string suffix = "") const;
+
+public:
+  static const char* dtype_names[];
   static const char* field_names[N_DATA_FIELD_TYPE];
   static const int tuple_size[N_DTYPE];
 
@@ -53,7 +58,9 @@ struct DataPositions
   map<DataTag, long long> extended[N_DATA_FIELD_TYPE];
 
   DataPositions(int num_players = 0) { set_num_players(num_players); }
+  void reset() { *this = DataPositions(inputs.size()); }
   void set_num_players(int num_players);
+  int num_players() { return inputs.size(); }
   void increase(const DataPositions& delta);
   void print_cost() const;
 };
@@ -65,12 +72,20 @@ template<class sint, class sgf2n> class Machine;
 template<class T>
 class Preprocessing
 {
+  DataPositions& usage;
+
+  void count(Dtype dtype) { usage.files[T::field_type()][dtype]++; }
+  void count(DataTag tag, int n = 1) { usage.extended[T::field_type()][tag] += n; }
+  void count_input(int player) { usage.inputs[player][T::field_type()]++; }
+
 public:
   template<class U, class V>
   static Preprocessing<T>* get_new(Machine<U, V>& machine, DataPositions& usage,
       SubProcessor<T>* proc);
-  static Preprocessing<T>* get_live_prep(SubProcessor<T>* proc);
+  static Preprocessing<T>* get_live_prep(SubProcessor<T>* proc,
+      DataPositions& usage);
 
+  Preprocessing(DataPositions& usage) : usage(usage) {}
   virtual ~Preprocessing() {}
 
   virtual void set_protocol(typename T::Protocol& protocol) = 0;
@@ -79,13 +94,21 @@ public:
   virtual void prune() {}
   virtual void purge() {}
 
-  virtual void get(Dtype dtype, T* a);
-  virtual void get_three(Dtype dtype, T& a, T& b, T& c) = 0;
-  virtual void get_two(Dtype dtype, T& a, T& b) = 0;
-  virtual void get_one(Dtype dtype, T& a) = 0;
-  virtual void get_input(T& a, typename T::clear& x, int i) = 0;
-  virtual void get(vector<T>& S, DataTag tag, const vector<int>& regs,
+  virtual size_t data_sent() { return 0; }
+
+  virtual void get_three_no_count(Dtype dtype, T& a, T& b, T& c) = 0;
+  virtual void get_two_no_count(Dtype dtype, T& a, T& b) = 0;
+  virtual void get_one_no_count(Dtype dtype, T& a) = 0;
+  virtual void get_input_no_count(T& a, typename T::open_type& x, int i) = 0;
+  virtual void get_no_count(vector<T>& S, DataTag tag, const vector<int>& regs,
       int vector_size) = 0;
+
+  void get(Dtype dtype, T* a);
+  void get_three(Dtype dtype, T& a, T& b, T& c);
+  void get_two(Dtype dtype, T& a, T& b);
+  void get_one(Dtype dtype, T& a);
+  void get_input(T& a, typename T::open_type& x, int i);
+  void get(vector<T>& S, DataTag tag, const vector<int>& regs, int vector_size);
 };
 
 template<class T>
@@ -106,8 +129,6 @@ class Sub_Data_Files : public Preprocessing<T>
   int my_num,num_players;
 
   const string prep_data_dir;
-
-  DataPositions& usage;
 
 public:
   static string get_suffix(int thread_num);
@@ -130,32 +151,28 @@ public:
   bool eof(Dtype dtype);
   bool input_eof(int player);
 
-  void get(Dtype dtype, T* a);
+  void get_no_count(Dtype dtype, T* a);
 
-  void get_three(Dtype dtype, T& a, T& b, T& c)
+  void get_three_no_count(Dtype dtype, T& a, T& b, T& c)
   {
-    usage.files[T::field_type()][dtype]++;
     buffers[dtype].input(a);
     buffers[dtype].input(b);
     buffers[dtype].input(c);
   }
 
-  void get_two(Dtype dtype, T& a, T& b)
+  void get_two_no_count(Dtype dtype, T& a, T& b)
   {
-    usage.files[T::field_type()][dtype]++;
     buffers[dtype].input(a);
     buffers[dtype].input(b);
   }
 
-  void get_one(Dtype dtype, T& a)
+  void get_one_no_count(Dtype dtype, T& a)
   {
-    usage.files[T::field_type()][dtype]++;
     buffers[dtype].input(a);
   }
 
-  void get_input(T& a,typename T::clear& x,int i)
+  void get_input_no_count(T& a,typename T::open_type& x,int i)
   {
-    usage.inputs[i][T::field_type()]++;
     RefInputTuple<T> tuple(a, x);
     if (i==my_num)
       my_input_buffers.input(tuple);
@@ -164,7 +181,7 @@ public:
   }
 
   void setup_extended(const DataTag& tag, int tuple_size = 0);
-  void get(vector<T>& S, DataTag tag, const vector<int>& regs, int vector_size);
+  void get_no_count(vector<T>& S, DataTag tag, const vector<int>& regs, int vector_size);
 };
 
 template<class sint, class sgf2n>
@@ -191,6 +208,10 @@ class Data_Files
   {
     return usage;
   }
+
+  void reset_usage() { usage.reset(); }
+
+  size_t data_sent() { return DataFp.data_sent() + DataF2.data_sent(); }
 };
 
 template<class T> inline
@@ -207,9 +228,8 @@ bool Sub_Data_Files<T>::input_eof(int player)
 }
 
 template<class T>
-inline void Sub_Data_Files<T>::get(Dtype dtype, T* a)
+inline void Sub_Data_Files<T>::get_no_count(Dtype dtype, T* a)
 {
-  usage.files[T::field_type()][dtype]++;
   for (int i = 0; i < DataPositions::tuple_size[dtype]; i++)
     buffers[dtype].input(a[i]);
 }
@@ -232,6 +252,49 @@ inline void Preprocessing<T>::get(Dtype dtype, T* a)
   default:
       throw not_implemented();
   }
+}
+
+template<class T>
+inline void Preprocessing<T>::get_three(Dtype dtype, T& a, T& b, T& c)
+{
+  count(dtype);
+  get_three_no_count(dtype, a, b, c);
+}
+
+template<class T>
+inline void Preprocessing<T>::get_two(Dtype dtype, T& a, T& b)
+{
+  count(dtype);
+  get_two_no_count(dtype, a, b);
+}
+
+template<class T>
+inline void Preprocessing<T>::get_one(Dtype dtype, T& a)
+{
+  count(dtype);
+  get_one_no_count(dtype, a);
+}
+
+template<class T>
+inline void Preprocessing<T>::get_input(T& a, typename T::open_type& x, int i)
+{
+  count_input(i);
+  get_input_no_count(a, x, i);
+}
+
+template<class T>
+inline void Preprocessing<T>::get(vector<T>& S, DataTag tag,
+    const vector<int>& regs, int vector_size)
+{
+  count(tag, vector_size);
+  get_no_count(S, tag, regs, vector_size);
+}
+
+template<class sint, class sgf2n>
+inline void Data_Files<sint, sgf2n>::purge()
+{
+  DataFp.purge();
+  DataF2.purge();
 }
 
 #endif

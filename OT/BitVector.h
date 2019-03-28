@@ -8,16 +8,22 @@
 using namespace std;
 #include <stdlib.h>
 #include <pmmintrin.h>
+#include <assert.h>
 
 #include "Exceptions/Exceptions.h"
 #include "Networking/data.h"
 // just for util functions
 #include "Math/bigint.h"
 #include "Math/gf2nlong.h"
+#include "Math/gfp.h"
 
 class PRNG;
 class octetStream;
 
+template <int K>
+class Z2;
+template <class U, class V>
+class Rectangle;
 
 class BitVector
 {
@@ -25,7 +31,6 @@ class BitVector
 
     size_t nbytes;
     size_t nbits;
-    size_t length;
 
     public:
 
@@ -95,16 +100,20 @@ class BitVector
             bytes = new octet[nbytes];*/
         }
     }
+    void resize_zero(size_t new_nbits);
+
     unsigned int size() const { return nbits; }
     unsigned int size_bytes() const { return nbytes; }
     octet* get_ptr() { return bytes; }
+    const octet* get_ptr() const { return bytes; }
+    const void* get_ptr_to_byte(size_t i, size_t block_size) const;
+    const void* get_ptr_to_bit(size_t i, size_t block_size) const;
 
-    BitVector(size_t n=128)
+    BitVector(size_t n=0)
     {
         nbits = n;
         nbytes = DIV_CEIL(nbits, 8);
         bytes = new octet[nbytes];
-        length = n;
         assign_zero();
     }
     BitVector(const BitVector& K)
@@ -113,6 +122,11 @@ class BitVector
         nbytes = K.nbytes;
         nbits = K.nbits;
         assign(K);
+    }
+    BitVector(const void* other, size_t bitsize) : BitVector()
+    {
+        resize(bitsize);
+        avx_memcpy(bytes, other, nbytes);
     }
     ~BitVector() {
         //cout << "Destroy, size = " << nbytes << endl;
@@ -140,8 +154,17 @@ class BitVector
     int128 get_int128(int i) const { return _mm_loadu_si128((__m128i*)bytes + i); }
     void set_int128(int i, int128 a) { *((__m128i*)bytes + i) = a.a; }
 
-    int  get_bit(int i) const
+    template <class T>
+    T get_portion(int i) const;
+    template <class T>
+    void set_portion(int i, const T& a);
+
+    template <class T>
+    void set(const T& a);
+
+    bool get_bit(int i) const
       {
+        assert(i < (int)nbits);
         return (bytes[i/8] >> (i % 8)) & 1;
       }
     void set_bit(int i,unsigned int a)
@@ -197,14 +220,51 @@ class BitVector
     void pack(octetStream& o) const;
     void unpack(octetStream& o);
 
-    string str()
+    string str(size_t end = SIZE_MAX) const
     {
         stringstream ss;
         ss << hex;
-        for(size_t i(0);i < nbytes;++i)
+        for(size_t i(0);i < min(nbytes, end);++i)
             ss << (int)bytes[i] << " ";
         return ss.str();
     }
 };
+
+template <class T>
+T inline BitVector::get_portion(int i) const
+{
+    return (char*)&bytes[T::size() * i];
+}
+
+template <class T>
+void inline BitVector::set_portion(int i, const T& a)
+{
+    memcpy(bytes + a.size() * i, a.get_ptr(), a.size());
+}
+
+template <class T>
+void inline BitVector::set(const T& a)
+{
+    resize(8 * a.size());
+    memcpy(bytes, a.get_ptr(), a.size());
+}
+
+template<>
+inline void BitVector::randomize_blocks<gfp1>(PRNG& G)
+{
+    gfp1 tmp;
+    for (size_t i = 0; i < (nbits / 128); i++)
+    {
+        tmp.randomize(G);
+        for (int j = 0; j < 2; j++)
+            ((mp_limb_t*)bytes)[2*i+j] = tmp.get().get_limb(j);
+    }
+}
+
+template<class T>
+inline void BitVector::randomize_blocks(PRNG& G)
+{
+    randomize(G);
+}
 
 #endif

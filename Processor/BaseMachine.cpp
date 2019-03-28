@@ -6,6 +6,7 @@
 #include "BaseMachine.h"
 
 #include <iostream>
+#include <sodium.h>
 using namespace std;
 
 BaseMachine* BaseMachine::singleton = 0;
@@ -20,6 +21,8 @@ BaseMachine& BaseMachine::s()
 
 BaseMachine::BaseMachine() : nthreads(0)
 {
+  if (sodium_init() == -1)
+    throw runtime_error("couldn't initialize libsodium");
   if (not singleton)
     singleton = this;
 }
@@ -28,7 +31,9 @@ void BaseMachine::load_schedule(string progname)
 {
   this->progname = progname;
   string fname = "Programs/Schedules/" + progname + ".sch";
+#ifdef DEBUG_FILES
   cerr << "Opening file " << fname << endl;
+#endif
   inpf.open(fname);
   if (inpf.fail()) { throw file_error("Missing '" + fname + "'. Did you compile '" + progname + "'?"); }
 
@@ -36,15 +41,19 @@ void BaseMachine::load_schedule(string progname)
   inpf >> nthreads;
   inpf >> nprogs;
 
+#ifdef DEBUG_FILES
   cerr << "Number of threads I will run in parallel = " << nthreads << endl;
   cerr << "Number of program sequences I need to load = " << nprogs << endl;
+#endif
 
   // Load in the programs
   string threadname;
   for (int i=0; i<nprogs; i++)
     { inpf >> threadname;
       string filename = "Programs/Bytecode/" + threadname + ".bc";
+#ifdef DEBUG_FILES
       cerr << "Loading program " << i << " from " << filename << endl;
+#endif
       load_program(threadname, filename);
     }
 }
@@ -55,8 +64,10 @@ void BaseMachine::print_compiler()
   char compiler[1000];
   inpf.get();
   inpf.getline(compiler, 1000);
+#ifdef VERBOSE
   if (compiler[0] != 0)
     cerr << "Compiler: " << compiler << endl;
+#endif
   inpf.close();
 }
 

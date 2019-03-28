@@ -15,12 +15,17 @@ class Rep3Share : public FixedVec<T, 2>
 {
 public:
     typedef T clear;
+    typedef T open_type;
+    typedef T mac_type;
+    typedef T mac_key_type;
 
     typedef Replicated<Rep3Share> Protocol;
     typedef ReplicatedMC<Rep3Share> MAC_Check;
     typedef MAC_Check Direct_MC;
     typedef ReplicatedInput<Rep3Share> Input;
     typedef ReplicatedPrivateOutput<Rep3Share> PrivateOutput;
+
+    const static bool needs_ot = false;
 
     static string type_short()
     {

@@ -7,6 +7,7 @@
 #include "Tools/time-func.h"
 #include "Math/gfp.h"
 #include "Auth/MAC_Check.h"
+#include "Processor/InputTuple.h"
 
 #include "OT/OTTripleSetup.h"
 #include "OT/TripleMachine.h"
@@ -17,45 +18,93 @@
 
 #define N_AMPLIFY 3
 
-template <class T, int N>
-class ShareTriple;
+template <class T, class U, int N>
+class ShareTriple_;
 
-class NPartyTripleGenerator
+template <class T, int N>
+using ShareTriple = ShareTriple_<T, T, N>;
+
+class MascotGenerator
 {
+protected:
+    pthread_mutex_t mutex;
+    pthread_cond_t ready;
+
+public:
+    int nTriples;
+
+    map<string,Timer> timers;
+
+    bool multi_threaded;
+
+    MascotGenerator() : nTriples(0), multi_threaded(true) {}
+    virtual ~MascotGenerator() {};
+    virtual void generate() = 0;
+
+    void lock();
+    void unlock();
+    void signal();
+    void wait();
+};
+
+template<class T>
+class NPartyTripleGenerator : public MascotGenerator
+{
+    typedef typename T::open_type open_type;
+    typedef typename T::mac_key_type mac_key_type;
+    typedef typename T::sacri_type sacri_type;
+
     //OTTripleSetup* setup;
-    PlainPlayer globalPlayer;
+    Player& globalPlayer;
+    Player* parentPlayer;
 
     int thread_num;
-    int my_num;
     int nbase;
 
     struct timeval last_lap;
 
-    pthread_mutex_t mutex;
-    pthread_cond_t ready;
+    ofstream outputFile;
 
-    template <class T>
-    void generateTriples(vector< OTMultiplier<T>* >& ot_multipliers, ofstream& outputFile);
-    template <class T>
-    void generateBits(vector< OTMultiplier<T>* >& ot_multipliers, ofstream& outputFile);
-    template <class T, int N>
-    void generateBitsFromTriples(vector<ShareTriple<T, N> >& triples,
-            MAC_Check<T>& MC, ofstream& outputFile);
+    SeededPRNG share_prg;
 
-    template <class T>
-    void start_progress(vector< OTMultiplier<T>* >& ot_multipliers);
+    template <int K, int S>
+    void generateTriplesZ2k();
+
+    void generateTriples();
+    void generateBits();
+    template<class U, class V, class W, int N>
+    void generateBitsFromTriples(vector<ShareTriple_<U, V, N> >& triples,
+            W& MC, ofstream& outputFile);
+
+    void sacrifice(vector<ShareTriple_<open_type, mac_key_type, 2> >& uncheckedTriples,
+            typename T::MAC_Check& MC, PRNG& G);
+    template<class U>
+    void sacrificeZ2k(vector<ShareTriple_<sacri_type, mac_key_type, 2> >& uncheckedTriples,
+            U& MC, PRNG& G);
+
+    void start_progress();
     void print_progress(int k);
+
+    void signal_multipliers(MultJob job);
+    void wait_for_multipliers();
+
+    typename T::Multiplier* new_multiplier(int i);
 
 public:
     // TwoPartyPlayer's for OTs, n-party Player for sacrificing
     vector<TwoPartyPlayer*> players;
+    vector<OTMultiplierMac<sacri_type, open_type>*> ot_multipliers;
     //vector<OTMachine*> machines;
     BitVector baseReceiverInput; // same for every set of OTs
     vector< vector< vector<BitVector> > > baseSenderInputs;
     vector< vector<BitVector> > baseReceiverOutputs;
     vector<BitVector> valueBits;
+    vector< ShareTriple_<sacri_type, mac_key_type, 2> > uncheckedTriples;
+    vector<T> bits;
+    vector<InputTuple<Share<sacri_type>>> inputs;
+    BitVector b_padded_bits;
 
-    int nTriples;
+    int my_num;
     int nTriplesPerLoop;
     int nloops;
     int field_size;
@@ -64,19 +113,16 @@ public:
     int repeat[3];
     int nparties;
 
-    TripleMachine& machine;
+    MascotParams& machine;
 
-    map<string,Timer> timers;
-
-    NPartyTripleGenerator(OTTripleSetup& setup, const Names& names, int thread_num, int nTriples, int nloops, TripleMachine& machine);
+    NPartyTripleGenerator(OTTripleSetup& setup, const Names& names,
+            int thread_num, int nTriples, int nloops, MascotParams& machine,
+            Player* parentPlayer = 0);
     ~NPartyTripleGenerator();
-    template <class T>
     void generate();
+    void generateInputs(int player);
 
-    void lock();
-    void unlock();
-    void signal();
-    void wait();
+    size_t data_sent();
 };
 
 #endif

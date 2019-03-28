@@ -7,6 +7,8 @@
 #include "FHEOffline/PairwiseMachine.h"
 #include "FHEOffline/Producer.h"
 
+#include "Auth/MAC_Check.hpp"
+
 template <class FD>
 PairwiseGenerator<FD>::PairwiseGenerator(int thread_num,
         PairwiseMachine& machine) :

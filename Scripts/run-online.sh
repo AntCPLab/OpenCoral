@@ -9,4 +9,4 @@ mem=${4:-empty}
 
 . $HERE/run-common.sh
 
-run_player Player-Online.x ${1:-test_all} -lgp ${bits} -lg2 ${g} -m ${mem} || exit 1
+run_player Player-Online.x ${1:-test_all} -F -lgp ${bits} -lg2 ${g} -m ${mem} || exit 1

@@ -7,6 +7,7 @@
 #define PROCESSOR_BASEMACHINE_H_
 
 #include "Tools/time-func.h"
+#include "OT/OTTripleSetup.h"
 
 #include <map>
 #include <fstream>
@@ -28,6 +29,8 @@ protected:
 public:
     string progname;
     int nthreads;
+
+    vector<vector<OTTripleSetup>> ot_setups;
 
     static BaseMachine& s();
 

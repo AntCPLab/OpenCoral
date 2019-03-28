@@ -4,6 +4,7 @@
  */
 
 #include "gf2nlong.h"
+#include "gf2n.h"
 
 #include "Exceptions/Exceptions.h"
 
@@ -99,6 +100,9 @@ void gf2n_long::init_field(int nn)
   mask=_mm_set_epi64x(-1,-1);
   lowermask=_mm_set_epi64x((1LL<<(64-7))-1,-1);
   uppermask=_mm_set_epi64x(((word)-1)<<(64-7),0);
+
+  // for CPUs without PCLMUL
+  gf2n_short::init_tables();
 }
 
 

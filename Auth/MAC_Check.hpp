@@ -6,6 +6,7 @@
 #include "Tools/random.h"
 #include "Tools/time-func.h"
 #include "Tools/int.h"
+#include "Tools/benchmarking.h"
 
 #include "Math/gfp.h"
 #include "Math/gf2n.h"
@@ -14,10 +15,13 @@
 #include "Math/MaliciousRep3Share.h"
 #include "Math/ShamirShare.h"
 #include "Math/MaliciousShamirShare.h"
+#include "Math/Z2k.h"
+#include "Math/Spdz2kShare.h"
 
 #include <algorithm>
 
-const char* mc_timer_names[] = {
+template<class T>
+const char* TreeSum<T>::mc_timer_names[] = {
         "sending",
         "receiving and adding",
         "broadcasting",
@@ -30,8 +34,8 @@ const char* mc_timer_names[] = {
         "waiting for select()"
 };
 
-template<class T>
-MAC_Check<T>::MAC_Check(const T& ai, int opening_sum, int max_broadcast, int send_player) :
+template<class U>
+MAC_Check_<U>::MAC_Check_(const T& ai, int opening_sum, int max_broadcast, int send_player) :
     TreeSum<T>(opening_sum, max_broadcast, send_player)
 {
   popen_cnt=0;
@@ -41,26 +45,32 @@ MAC_Check<T>::MAC_Check(const T& ai, int opening_sum, int max_broadcast, int sen
 }
 
 template<class T>
-MAC_Check<T>::~MAC_Check()
+MAC_Check_<T>::~MAC_Check_()
 {
 }
 
-template<class T>
-void MAC_Check<T>::POpen_Begin(vector<T>& values,const vector<Share<T> >& S,const Player& P)
+template<class U>
+void MAC_Check_<U>::PrepareSending(vector<T>& values, const vector<U>& S)
 {
-  AddToMacs(S);
-
   values.resize(S.size());
   for (unsigned int i=0; i<S.size(); i++)
     { values[i]=S[i].get_share(); }
+}
+
+template<class U>
+void MAC_Check_<U>::POpen_Begin(vector<T>& values,const vector<U>& S,const Player& P)
+{
+  AddToMacs(S);
+
+  PrepareSending(values, S);
 
   this->start(values, P);
 
   this->values_opened += S.size();
 }
 
-template<class T>
-void MAC_Check<T>::POpen_End(vector<T>& values,const vector<Share<T> >& S,const Player& P)
+template<class U>
+void MAC_Check_<U>::POpen_End(vector<T>& values,const vector<U>& S,const Player& P)
 {
   S.size();
 
@@ -77,37 +87,42 @@ void MAC_Check<T>::POpen_End(vector<T>& values,const vector<Share<T> >& S,const 
 }
 
 template<class T>
-void MAC_Check_Base<T>::POpen(vector<typename T::clear>& values,const vector<T>& S,const Player& P)
+void MAC_Check_Base<T>::POpen(vector<typename T::open_type>& values,const vector<T>& S,const Player& P)
 {
   POpen_Begin(values, S, P);
   POpen_End(values, S, P);
 }
 
 template<class T>
-typename T::clear MAC_Check_Base<T>::POpen(const T& secret, const Player& P)
+typename T::open_type MAC_Check_Base<T>::POpen(const T& secret, const Player& P)
 {
-  vector<typename T::clear> opened;
+  vector<typename T::open_type> opened;
   POpen(opened, {secret}, P);
   return opened[0];
 }
 
-template<class T>
-void MAC_Check<T>::AddToMacs(const vector<Share<T> >& shares)
+template<class U>
+void MAC_Check_<U>::AddToMacs(const vector<U>& shares)
 {
   for (unsigned int i = 0; i < shares.size(); i++)
     macs.push_back(shares[i].get_mac());
+#ifdef DEBUG_MAC
+  if (shares.size())
+    cout << "adding macs " << shares.back() << " / " <<
+        shares.back().get_mac() << " / " << macs.back() << endl;
+#endif
 }
 
 
-template<class T>
-void MAC_Check<T>::AddToValues(vector<T>& values)
+template<class U>
+void MAC_Check_<U>::AddToValues(vector<T>& values)
 {
   vals.insert(vals.end(), values.begin(), values.end());
 }
 
 
-template<class T>
-void MAC_Check<T>::GetValues(vector<T>& values)
+template<class U>
+void MAC_Check_<U>::GetValues(vector<T>& values)
 {
   int size = values.size();
   if (popen_cnt + size > int(vals.size()))
@@ -123,17 +138,17 @@ void MAC_Check<T>::GetValues(vector<T>& values)
 
 
 template<class T>
-void MAC_Check<T>::CheckIfNeeded(const Player& P)
+void MAC_Check_<T>::CheckIfNeeded(const Player& P)
 {
   if (WaitingForCheck() >= POPEN_MAX)
     Check(P);
 }
 
 
-template <class T>
-void MAC_Check<T>::AddToCheck(const T& mac, const T& value, const Player& P)
+template <class U>
+void MAC_Check_<U>::AddToCheck(const U& share, const T& value, const Player& P)
 {
-  macs.push_back(mac);
+  macs.push_back(share.get_mac());
   vals.push_back(value);
   popen_cnt++;
   CheckIfNeeded(P);
@@ -141,8 +156,8 @@ void MAC_Check<T>::AddToCheck(const T& mac, const T& value, const Player& P)
 
 
 
-template<class T>
-void MAC_Check<T>::Check(const Player& P)
+template<class U>
+void MAC_Check_<U>::Check(const Player& P)
 {
   if (WaitingForCheck() == 0)
     return;
@@ -155,7 +170,7 @@ void MAC_Check<T>::Check(const Player& P)
   PRNG G;
   G.SetSeed(seed);
 
-  Share<T>  sj;
+  U sj;
   T a,gami,h,temp;
   a.assign_zero();
   gami.assign_zero();
@@ -193,6 +208,149 @@ template<class T>
 int mc_base_id(int function_id, int thread_num)
 {
   return (function_id << 28) + ((T::field_type() + 1) << 24) + (thread_num << 16);
+}
+
+template<class T, class U, class V, class W>
+MAC_Check_Z2k<T, U, V, W>::MAC_Check_Z2k(const T& ai, int opening_sum, int max_broadcast, int send_player) :
+    MAC_Check_<W>(ai, opening_sum, max_broadcast, send_player), prep(0)
+{
+}
+
+template<class T, class U, class V, class W>
+MAC_Check_Z2k<T, U, V, W>::MAC_Check_Z2k(const T& ai, Names& Nms,
+        int thread_num) : MAC_Check_Z2k(ai)
+{
+    (void) Nms, (void) thread_num;
+}
+
+template<class T, class U, class V, class W>
+void MAC_Check_Z2k<T, U, V, W>::AddToCheck(const W& share, const T& value, const Player& P)
+{
+  shares.push_back(share.get_share());
+  MAC_Check_<W>::AddToCheck(share, value, P);
+}
+
+template<class T, class U, class V, class W>
+void MAC_Check_Z2k<T, U, V, W>::AddToMacs(const vector<W >& shares)
+{
+  for (auto& share : shares)
+    this->shares.push_back(share.get_share());
+  MAC_Check_<W>::AddToMacs(shares);
+#ifdef DEBUG_MAC
+  cout << "add share " << shares.back() << " / " << this->shares.back() << endl;
+#endif
+}
+
+template<class T, class U, class V, class W>
+void MAC_Check_Z2k<T, U, V, W>::PrepareSending(vector<T>& values,
+        const vector<W >& S)
+{
+  values.clear();
+  values.reserve(S.size());
+  for (auto& share : S)
+    values.push_back(V(share.get_share()));
+}
+
+template<class T, class U, class V, class W>
+W MAC_Check_Z2k<T, U, V, W>::get_random_element() {
+  if (random_elements.size() > 0)
+    {
+      W res = random_elements.back();
+      random_elements.pop_back();
+      return res;
+    }
+  else
+    {
+      if (prep)
+        return prep->get_random();
+      else
+      {
+        insecure("random dummy");
+        return {};
+      }
+    }
+}
+
+template<class T, class U, class V, class W>
+void MAC_Check_Z2k<T, U, V, W>::set_random_element(const W& random_element) {
+  random_elements.push_back(random_element);
+}
+
+template<class T, class U, class V, class W>
+void MAC_Check_Z2k<T, U, V, W>::set_prep(MascotPrep<W>& prep)
+{
+  this->prep = &prep;
+}
+
+template<class T, class U, class V, class W>
+void MAC_Check_Z2k<T, U, V, W>::Check(const Player& P)
+{
+  if (this->WaitingForCheck() == 0)
+    return;
+
+#ifdef DEBUG_MAC
+  cout << "Checking " << shares[0] << " " << this->vals[0] << " " << this->macs[0] << endl;
+#endif
+
+  int k = V::N_BITS;
+  octet seed[SEED_SIZE];
+  Create_Random_Seed(seed,P,SEED_SIZE);
+  PRNG G;
+  G.SetSeed(seed);
+
+  T y, mj;
+  y.assign_zero();
+  mj.assign_zero();
+  vector<U> chi;
+  for (int i = 0; i < this->popen_cnt; ++i)
+  {
+    U temp_chi;
+    temp_chi.randomize(G);
+    T xi = this->vals[i];
+    y += xi * temp_chi;
+    T mji = this->macs[i];
+    mj += temp_chi * mji;
+    chi.push_back(temp_chi);
+  }
+
+  W r = get_random_element();
+  T lj = r.get_mac();
+  U pj;
+  pj.assign_zero();
+  for (int i = 0; i < this->popen_cnt; ++i)
+  {
+    T xji = shares[i];
+    V xbarji = xji;
+    U pji = U((xji - xbarji) >> k);
+    pj += chi[i] * pji;
+  }
+  pj += U(r.get_share());
+
+  U pbar(pj);
+  vector<octetStream> pj_stream(P.num_players());
+  pj.pack(pj_stream[P.my_num()]);
+  P.Broadcast_Receive(pj_stream, true);
+  for (int j=0; j<P.num_players(); j++) {
+    if (j!=P.my_num()) {
+      pbar += pj_stream[j].consume(U::size());
+    }
+  }
+
+  T zj = mj - (this->alphai * y) - (((this->alphai * pbar)) << k) + (lj << k);
+  vector<T> zjs(P.num_players());
+  zjs[P.my_num()] = zj;
+  Commit_And_Open(zjs, P);
+
+  T zj_sum;
+  zj_sum.assign_zero();
+  for (int i = 0; i < P.num_players(); ++i)
+    zj_sum += zjs[i];
+
+  this->vals.erase(this->vals.begin(), this->vals.begin() + this->popen_cnt);
+  this->macs.erase(this->macs.begin(), this->macs.begin() + this->popen_cnt);
+  this->shares.erase(this->shares.begin(), this->shares.begin() + this->popen_cnt);
+  this->popen_cnt=0;
+  if (!zj_sum.is_zero()) { throw mac_fail(); }
 }
 
 template<class T>
@@ -439,32 +597,3 @@ void Passing_MAC_Check<T>::POpen_End(vector<T>& values,const vector<Share<T> >& 
   this->popen_cnt += values.size();
   this->CheckIfNeeded(P);
 }
-
-template class MAC_Check<gfp>;
-template class Direct_MAC_Check<gfp>;
-template class Parallel_MAC_Check<gfp>;
-template class Passing_MAC_Check<gfp>;
-
-template class MAC_Check<gf2n>;
-template class Direct_MAC_Check<gf2n>;
-template class Parallel_MAC_Check<gf2n>;
-template class Passing_MAC_Check<gf2n>;
-
-#ifdef USE_GF2N_LONG
-template class MAC_Check<gf2n_short>;
-template class Direct_MAC_Check<gf2n_short>;
-template class Parallel_MAC_Check<gf2n_short>;
-template class Passing_MAC_Check<gf2n_short>;
-#endif
-
-template class MAC_Check_Base<Rep3Share<gfp>>;
-template class MAC_Check_Base<Rep3Share<gf2n>>;
-template class MAC_Check_Base<Rep3Share<Integer>>;
-template class MAC_Check_Base<MaliciousRep3Share<gfp>>;
-template class MAC_Check_Base<MaliciousRep3Share<gf2n>>;
-template class MAC_Check_Base<ShamirShare<gfp>>;
-template class MAC_Check_Base<ShamirShare<gf2n>>;
-template class MAC_Check_Base<MaliciousShamirShare<gfp>>;
-template class MAC_Check_Base<MaliciousShamirShare<gf2n>>;
-template class MAC_Check_Base<Share<gfp>>;
-template class MAC_Check_Base<Share<gf2n>>;

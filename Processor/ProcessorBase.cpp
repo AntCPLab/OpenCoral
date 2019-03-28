@@ -10,7 +10,9 @@
 
 void ProcessorBase::open_input_file(const string& name)
 {
+#ifdef DEBUG_FILES
     cerr << "opening " << name << endl;
+#endif
     input_file.open(name);
     input_filename = name;
 }

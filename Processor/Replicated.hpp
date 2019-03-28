@@ -40,13 +40,15 @@ inline ReplicatedBase::ReplicatedBase(Player& P) : P(P)
 template<class T>
 ProtocolBase<T>::~ProtocolBase()
 {
+#ifdef VERBOSE
     if (counter)
         cerr << "Number of multiplications: " << counter << endl;
+#endif
 }
 
 template<class T>
 void ProtocolBase<T>::muls(const vector<int>& reg,
-        SubProcessor<T>& proc, MAC_Check_Base<T>& MC, int size)
+        SubProcessor<T>& proc, typename T::MAC_Check& MC, int size)
 {
     (void)MC;
     proc.muls(reg, size);

@@ -17,6 +17,8 @@ using namespace std;
 #include "Tools/mkpath.h"
 #include "Math/Setup.h"
 
+#include "Auth/MAC_Check.hpp"
+
 class Spdz2
 {
 public:

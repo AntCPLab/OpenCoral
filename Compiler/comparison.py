@@ -29,6 +29,7 @@ use_inv = True
 do_precomp = True
 
 import instructions_base
+import util
 
 def set_variant(options):
     """ Set flags based on the command-line option provided """
@@ -152,6 +153,10 @@ def TruncRoundNearest(a, k, m, kappa, signed=False):
     k: bit length of a
     m: compile-time integer
     """
+    if k == int(program.options.ring):
+        # cannot work with bit length k+1
+        tmp = TruncRing(None, a, k, m - 1, signed)
+        return TruncRing(None, tmp + 1, k - m + 1, 1, signed)
     from types import sint
     res = sint()
     Trunc(res, a + (1 << (m - 1)), k + 1, m, kappa, signed)
@@ -165,6 +170,8 @@ def Mod2m(a_prime, a, k, m, kappa, signed):
     m: compile-time integer
     signed: True/False, describes a
     """
+    if not util.is_constant(m):
+        raise CompilerError('m must be a public constant')
     if m >= k:
         movs(a_prime, a)
         return

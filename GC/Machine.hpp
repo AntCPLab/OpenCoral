@@ -24,9 +24,11 @@ Machine<T>::Machine(Memory<typename T::DynamicType>& dynamic_memory) : MD(dynami
 template<class T>
 Machine<T>::~Machine()
 {
+#ifdef VERBOSE
     for (auto it = timer.begin(); it != timer.end(); it++)
         cerr << T::phase_name() << " timer " << it->first << " at end: "
                 << it->second.elapsed() << " seconds" << endl;
+#endif
 }
 
 template<class T>

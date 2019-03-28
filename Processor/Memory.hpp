@@ -9,17 +9,22 @@
 template<class T>
 void Memory<T>::minimum_size(RegType reg_type, const Program& program, string threadname)
 {
+  (void) threadname;
   const unsigned* sizes = program.direct_mem(reg_type);
   if (sizes[SECRET] > size_s())
     {
+#ifdef DEBUG_MEMORY
       cerr << threadname << " needs more secret " << T::type_string() << " memory, resizing to "
           << sizes[SECRET] << endl;
+#endif
       resize_s(sizes[SECRET]);
     }
   if (sizes[CLEAR] > size_c())
     {
+#ifdef DEBUG_MEMORY
       cerr << threadname << " needs more clear " << T::type_string() << " memory, resizing to "
           << sizes[CLEAR] << endl;
+#endif
       resize_c(sizes[CLEAR]);
     }
 }
@@ -65,7 +70,7 @@ ostream& operator<<(ostream& s,const Memory<T>& M)
   s << M.MS.size() << endl;
   s << M.MC.size() << endl;
 
-#ifdef DEBUG
+#ifdef OUTPUT_HUMAN_READABLE_MEMORY
   for (unsigned int i=0; i<M.MS.size(); i++)
     { M.MS[i].output(s,true); s << endl; }
   s << endl;

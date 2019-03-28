@@ -50,7 +50,10 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
 template<class sint, class sgf2n>
 Processor<sint, sgf2n>::~Processor()
 {
-  cerr << "Opened " << sent << " elements in " << rounds << " rounds" << endl;
+#ifdef VERBOSE
+  if (sent)
+    cerr << "Opened " << sent << " elements in " << rounds << " rounds" << endl;
+#endif
 }
 
 template<class sint, class sgf2n>
@@ -64,7 +67,9 @@ string Processor<sint, sgf2n>::get_filename(const char* prefix, bool use_number)
     filename << P.my_num();
   if (thread_num > 0)
     filename << "-" << thread_num;
+#ifdef DEBUG_FILES
   cerr << "Opening file " << filename.str() << endl;
+#endif
   return filename.str();
 }
 
@@ -79,15 +84,6 @@ void Processor<sint, sgf2n>::reset(const Program& program,int arg)
   Procp.resize(reg_maxp);
   Ci.resize(reg_maxi);
   this->arg = arg;
-
-  #ifdef DEBUG
-    rw2.resize(2*reg_max2);
-    for (int i=0; i<2*reg_max2; i++) { rw2[i]=0; }
-    rwp.resize(2*reg_maxp);
-    for (int i=0; i<2*reg_maxp; i++) { rwp[i]=0; }
-    rwi.resize(2*reg_maxi);
-    for (int i=0; i<2*reg_maxi; i++) { rwi[i]=0; }
-  #endif
 }
 
 #include "Networking/sockets.h"

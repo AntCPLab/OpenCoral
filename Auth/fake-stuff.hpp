@@ -1,6 +1,7 @@
 
 #include "Math/gf2n.h"
 #include "Math/gfp.h"
+#include "Math/Z2k.h"
 #include "Math/Share.h"
 #include "Auth/fake-stuff.h"
 #include "Tools/benchmarking.h"
@@ -8,8 +9,8 @@
 
 #include <fstream>
 
-template<class T>
-void make_share(vector<Share<T> >& Sa,const T& a,int N,const T& key,PRNG& G)
+template<class T, class U, class V>
+void make_share(Share<T>* Sa,const U& a,int N,const V& key,PRNG& G)
 {
   insecure("share generation", false);
   T mac,x,y;
@@ -18,7 +19,6 @@ void make_share(vector<Share<T> >& Sa,const T& a,int N,const T& key,PRNG& G)
   S.set_share(a);
   S.set_mac(mac);
 
-  Sa.resize(N);
   for (int i=0; i<N-1; i++)
     { x.randomize(G);
       y.randomize(G);
@@ -30,21 +30,21 @@ void make_share(vector<Share<T> >& Sa,const T& a,int N,const T& key,PRNG& G)
 }
 
 template<class T>
-void make_share(FixedVec<T, 2>* Sa, const T& a, int N, PRNG& G);
+void make_share(FixedVec<T, 2>* Sa, const T& a, int N, const T& key, PRNG& G);
 
 template<class T>
 inline void make_share(vector<T>& Sa,
-    const typename T::clear& a, int N, const typename T::value_type& key,
+    const typename T::clear& a, int N, const typename T::mac_type& key,
     PRNG& G)
 {
-  (void)key;
   Sa.resize(N);
-  make_share(Sa.data(), a, N, G);
+  make_share(Sa.data(), a, N, key, G);
 }
 
 template<class T>
-void make_share(FixedVec<T, 2>* Sa, const T& a, int N, PRNG& G)
+void make_share(FixedVec<T, 2>* Sa, const T& a, int N, const T& key, PRNG& G)
 {
+  (void) key;
   assert(N == 3);
   insecure("share generation", false);
   FixedVec<T, 3> add_shares;
@@ -59,8 +59,12 @@ void make_share(FixedVec<T, 2>* Sa, const T& a, int N, PRNG& G)
     }
 }
 
-template<class T>
-void check_share(vector<Share<T> >& Sa,T& value,T& mac,int N,const T& key)
+template<class T, class V>
+void check_share(vector<Share<T> >& Sa,
+  V& value,
+  T& mac,
+  int N,
+  const T& key)
 {
   value.assign(0);
   mac.assign(0);
@@ -71,9 +75,9 @@ void check_share(vector<Share<T> >& Sa,T& value,T& mac,int N,const T& key)
       mac.add(Sa[i].get_mac());
     }
 
-  T res;
+  V res;
   res.mul(value, key);
-  if (!res.equal(mac))
+  if (res != mac)
     {
       cout << "Value:      " << value << endl;
       cout << "Input MAC:  " << mac << endl;
@@ -134,8 +138,8 @@ inline string mac_filename(string directory, int playerno)
   return directory + "/Player-MAC-Keys-P" + to_string(playerno);
 }
 
-template <class T>
-void write_mac_keys(const string& directory, int i, int nplayers, gfp macp, T mac2)
+template <class T, class U>
+void write_mac_keys(const string& directory, int i, int nplayers, U macp, T mac2)
 {
   ofstream outf;
   stringstream filename;

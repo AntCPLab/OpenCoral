@@ -29,9 +29,6 @@
 
 #include "Tools/callgrind.h"
 
-// broken
-#undef DEBUG
-
 // Convert modp to signed bigint of a given bit length
 inline
 void to_signed_bigint(bigint& bi, const gfp& x, int len)
@@ -565,7 +562,6 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
   auto& Procp = Proc.Procp;
   auto& Proc2 = Proc.Proc2;
 
-#ifndef DEBUG
   // optimize some instructions
   switch (opcode)
   {
@@ -627,7 +623,6 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Procp.DataF.get_one(DATA_BIT, Proc.get_Sp_ref(r[0] + i));
       return;
   }
-#endif
 
   int r[3] = {this->r[0], this->r[1], this->r[2]};
   int n = this->n;
@@ -763,148 +758,58 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.set_arg(Proc.read_Ci(r[0]));
         break;
       case ADDC:
-	#ifdef DEBUG
-           Proc.temp.ansp.add(Proc.read_Cp(r[1]),Proc.read_Cp(r[2]));
-           Proc.write_Cp(r[0],Proc.temp.ansp);
-	#else
            Proc.get_Cp_ref(r[0]).add(Proc.read_Cp(r[1]),Proc.read_Cp(r[2]));
-	#endif
         break;
       case GADDC:
-	#ifdef DEBUG
-           ans2.add(Proc.read_C2(r[1]),Proc.read_C2(r[2]));
-           Proc.write_C2(r[0],Proc.temp.ans2);
-	#else
            Proc.get_C2_ref(r[0]).add(Proc.read_C2(r[1]),Proc.read_C2(r[2]));
-	#endif
         break;
       case ADDS:
-	#ifdef DEBUG
-           Sansp.add(Proc.read_Sp(r[1]),Proc.read_Sp(r[2]));
-           Proc.write_Sp(r[0],Sansp);
-        #else
            Proc.get_Sp_ref(r[0]).add(Proc.read_Sp(r[1]),Proc.read_Sp(r[2]));
-        #endif
         break;
       case GADDS:
-	#ifdef DEBUG
-           Sans2.add(Proc.read_S2(r[1]),Proc.read_S2(r[2]));
-           Proc.write_S2(r[0],Sans2);
-        #else
            Proc.get_S2_ref(r[0]).add(Proc.read_S2(r[1]),Proc.read_S2(r[2]));
-        #endif
         break;
       case ADDM:
-        #ifdef DEBUG
-           Sansp.add(Proc.read_Sp(r[1]),Proc.read_Cp(r[2]),Proc.P.my_num(),Proc.MCp.get_alphai());
-	   Proc.write_Sp(r[0],Sansp);
-        #else
            Proc.get_Sp_ref(r[0]).add(Proc.read_Sp(r[1]),Proc.read_Cp(r[2]),Proc.P.my_num(),Proc.MCp.get_alphai());
-        #endif
         break;
       case GADDM:
-        #ifdef DEBUG
-           Sans2.add(Proc.read_S2(r[1]),Proc.read_C2(r[2]),Proc.P.my_num(),Proc.MC2.get_alphai());
-	   Proc.write_S2(r[0],Sans2);
-        #else
            Proc.get_S2_ref(r[0]).add(Proc.read_S2(r[1]),Proc.read_C2(r[2]),Proc.P.my_num(),Proc.MC2.get_alphai());
-        #endif
         break;
       case SUBC:
-	#ifdef DEBUG
-          ansp.sub(Proc.read_Cp(r[1]),Proc.read_Cp(r[2]));
-          Proc.write_Cp(r[0],Proc.temp.ansp);
-	#else
           Proc.get_Cp_ref(r[0]).sub(Proc.read_Cp(r[1]),Proc.read_Cp(r[2]));
-	#endif
         break;
       case GSUBC:
-	#ifdef DEBUG
-          Proc.temp.ans2.sub(Proc.read_C2(r[1]),Proc.read_C2(r[2]));
-          Proc.write_C2(r[0],Proc.temp.ans2);
-	#else
           Proc.get_C2_ref(r[0]).sub(Proc.read_C2(r[1]),Proc.read_C2(r[2]));
-	#endif
         break;
       case SUBS:
-	#ifdef DEBUG
-           Sansp.sub(Proc.read_Sp(r[1]),Proc.read_Sp(r[2]));
-	   Proc.write_Sp(r[0],Sansp);
-        #else
            Proc.get_Sp_ref(r[0]).sub(Proc.read_Sp(r[1]),Proc.read_Sp(r[2]));
-	#endif
         break;
       case GSUBS:
-	#ifdef DEBUG
-           Sans2.sub(Proc.read_S2(r[1]),Proc.read_S2(r[2]));
-	   Proc.write_S2(r[0],Sans2);
-        #else
            Proc.get_S2_ref(r[0]).sub(Proc.read_S2(r[1]),Proc.read_S2(r[2]));
-	#endif
         break;
       case SUBML:
-	#ifdef DEBUG
-           Sansp.sub(Proc.read_Sp(r[1]),Proc.read_Cp(r[2]),Proc.P.my_num(),Proc.MCp.get_alphai());
-	   Proc.write_Sp(r[0],Sansp);
-        #else
            Proc.get_Sp_ref(r[0]).sub(Proc.read_Sp(r[1]),Proc.read_Cp(r[2]),Proc.P.my_num(),Proc.MCp.get_alphai());
-        #endif
         break;
       case GSUBML:
-	#ifdef DEBUG
-           Sans2.sub(Proc.read_S2(r[1]),Proc.read_C2(r[2]),Proc.P.my_num(),Proc.MC2.get_alphai());
-	   Proc.write_S2(r[0],Sans2);
-        #else
            Proc.get_S2_ref(r[0]).sub(Proc.read_S2(r[1]),Proc.read_C2(r[2]),Proc.P.my_num(),Proc.MC2.get_alphai());
-        #endif
         break;
       case SUBMR:
-        #ifdef DEBUG
-           Sansp.sub(Proc.read_Cp(r[1]),Proc.read_Sp(r[2]),Proc.P.my_num(),Proc.MCp.get_alphai());
-	   Proc.write_Sp(r[0],Sansp);
-        #else
            Proc.get_Sp_ref(r[0]).sub(Proc.read_Cp(r[1]),Proc.read_Sp(r[2]),Proc.P.my_num(),Proc.MCp.get_alphai());
-	#endif
         break;
       case GSUBMR:
-        #ifdef DEBUG
-           Sans2.sub(Proc.read_C2(r[1]),Proc.read_S2(r[2]),Proc.P.my_num(),Proc.MC2.get_alphai());
-	   Proc.write_S2(r[0],Sans2);
-        #else
            Proc.get_S2_ref(r[0]).sub(Proc.read_C2(r[1]),Proc.read_S2(r[2]),Proc.P.my_num(),Proc.MC2.get_alphai());
-	#endif
         break;
       case MULC:
-	#ifdef DEBUG
-          ansp.mul(Proc.read_Cp(r[1]),Proc.read_Cp(r[2]));
-          Proc.write_Cp(r[0],Proc.temp.ansp);
-	#else
           Proc.get_Cp_ref(r[0]).mul(Proc.read_Cp(r[1]),Proc.read_Cp(r[2]));
-	#endif
         break;
       case GMULC:
-	#ifdef DEBUG
-          Proc.temp.ans2.mul(Proc.read_C2(r[1]),Proc.read_C2(r[2]));
-          Proc.write_C2(r[0],Proc.temp.ans2);
-	#else
           Proc.get_C2_ref(r[0]).mul(Proc.read_C2(r[1]),Proc.read_C2(r[2]));
-	#endif
         break;
       case MULM:
-	#ifdef DEBUG
-           Sansp.mul(Proc.read_Sp(r[1]),Proc.read_Cp(r[2]));
-	   Proc.write_Sp(r[0],Sansp);
-	#else
            Proc.get_Sp_ref(r[0]).mul(Proc.read_Sp(r[1]),Proc.read_Cp(r[2]));
-	#endif
         break;
       case GMULM:
-	#ifdef DEBUG
-           Sans2.mul(Proc.read_S2(r[1]),Proc.read_C2(r[2]));
-	   Proc.write_S2(r[0],Sans2);
-	#else
            Proc.get_S2_ref(r[0]).mul(Proc.read_S2(r[1]),Proc.read_C2(r[2]));
-	#endif
         break;
       case DIVC:
         if (Proc.read_Cp(r[2]).is_zero())
@@ -976,164 +881,74 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.write_Cp(r[0],Proc.temp.ansp);
         break;
       case GMULBITC:
-  #ifdef DEBUG
-          Proc.temp.ans2.mul_by_bit(Proc.read_C2(r[1]),Proc.read_C2(r[2]));
-          Proc.write_C2(r[0],Proc.temp.ans2);
-  #else
           Proc.get_C2_ref(r[0]).mul_by_bit(Proc.read_C2(r[1]),Proc.read_C2(r[2]));
-  #endif
         break;
       case GMULBITM:
-  #ifdef DEBUG
-          Sans2.mul_by_bit(Proc.read_S2(r[1]),Proc.read_C2(r[2]));
-          Proc.write_S2(r[0],Sans2);
-  #else
           Proc.get_S2_ref(r[0]).mul_by_bit(Proc.read_S2(r[1]),Proc.read_C2(r[2]));
-  #endif
         break;
       case ADDCI:
         Proc.temp.assign_ansp(n);
-	#ifdef DEBUG
-           Proc.temp.ansp.add(Proc.temp.ansp,Proc.read_Cp(r[1]));
-           Proc.write_Cp(r[0],Proc.temp.ansp);
-	#else
            Proc.get_Cp_ref(r[0]).add(Proc.temp.ansp,Proc.read_Cp(r[1]));
-	#endif
         break;
       case GADDCI:
         Proc.temp.ans2.assign(n);
-	#ifdef DEBUG
-           Proc.temp.ans2.add(Proc.temp.ans2,Proc.read_C2(r[1]));
-           Proc.write_C2(r[0],Proc.temp.ans2);
-	#else
            Proc.get_C2_ref(r[0]).add(Proc.temp.ans2,Proc.read_C2(r[1]));
-	#endif
         break;
       case ADDSI:
         Proc.temp.assign_ansp(n);
-	#ifdef DEBUG
-           Sansp.add(Proc.read_Sp(r[1]),Proc.temp.ansp,Proc.P.my_num(),Proc.MCp.get_alphai());
-	   Proc.write_Sp(r[0],Sansp);
-        #else
            Proc.get_Sp_ref(r[0]).add(Proc.read_Sp(r[1]),Proc.temp.ansp,Proc.P.my_num(),Proc.MCp.get_alphai());
-	#endif
         break;
       case GADDSI:
         Proc.temp.ans2.assign(n);
-	#ifdef DEBUG
-           Sans2.add(Proc.read_S2(r[1]),Proc.temp.ans2,Proc.P.my_num(),Proc.MC2.get_alphai());
-	   Proc.write_S2(r[0],Sans2);
-        #else
            Proc.get_S2_ref(r[0]).add(Proc.read_S2(r[1]),Proc.temp.ans2,Proc.P.my_num(),Proc.MC2.get_alphai());
-	#endif
         break;
       case SUBCI:
         Proc.temp.assign_ansp(n);
-	#ifdef DEBUG
-           Proc.temp.ansp.sub(Proc.read_Cp(r[1]),Proc.temp.ansp);
-           Proc.write_Cp(r[0],Proc.temp.ansp);
-	#else
            Proc.get_Cp_ref(r[0]).sub(Proc.read_Cp(r[1]),Proc.temp.ansp);
-	#endif
         break;
       case GSUBCI:
         Proc.temp.ans2.assign(n);
-	#ifdef DEBUG
-           Proc.temp.ans2.sub(Proc.read_C2(r[1]),Proc.temp.ans2);
-           Proc.write_C2(r[0],Proc.temp.ans2);
-	#else
            Proc.get_C2_ref(r[0]).sub(Proc.read_C2(r[1]),Proc.temp.ans2);
-	#endif
         break;
       case SUBSI:
         Proc.temp.assign_ansp(n);
-  	#ifdef DEBUG
-           Sansp.sub(Proc.read_Sp(r[1]),Proc.temp.ansp,Proc.P.my_num(),Proc.MCp.get_alphai());
-	   Proc.write_Sp(r[0],Sansp);
-        #else
            Proc.get_Sp_ref(r[0]).sub(Proc.read_Sp(r[1]),Proc.temp.ansp,Proc.P.my_num(),Proc.MCp.get_alphai());
-        #endif
         break;
       case GSUBSI:
         Proc.temp.ans2.assign(n);
-  	#ifdef DEBUG
-           Sans2.sub(Proc.read_S2(r[1]),Proc.temp.ans2,Proc.P.my_num(),Proc.MC2.get_alphai());
-	   Proc.write_S2(r[0],Sans2);
-        #else
            Proc.get_S2_ref(r[0]).sub(Proc.read_S2(r[1]),Proc.temp.ans2,Proc.P.my_num(),Proc.MC2.get_alphai());
-        #endif
         break;
       case SUBCFI:
         Proc.temp.assign_ansp(n);
-	#ifdef DEBUG
-           Proc.temp.ansp.sub(Proc.temp.ansp,Proc.read_Cp(r[1]));
-           Proc.write_Cp(r[0],Proc.temp.ansp);
-	#else
            Proc.get_Cp_ref(r[0]).sub(Proc.temp.ansp,Proc.read_Cp(r[1]));
-	#endif
         break;
       case GSUBCFI:
         Proc.temp.ans2.assign(n);
-	#ifdef DEBUG
-           Proc.temp.ans2.sub(Proc.temp.ans2,Proc.read_C2(r[1]));
-           Proc.write_C2(r[0],Proc.temp.ans2);
-	#else
            Proc.get_C2_ref(r[0]).sub(Proc.temp.ans2,Proc.read_C2(r[1]));
-	#endif
         break;
       case SUBSFI:
         Proc.temp.assign_ansp(n);
- 	#ifdef DEBUG
-           Sansp.sub(Proc.temp.ansp,Proc.read_Sp(r[1]),Proc.P.my_num(),Proc.MCp.get_alphai());
-	   Proc.write_Sp(r[0],Sansp);
-	#else
            Proc.get_Sp_ref(r[0]).sub(Proc.temp.ansp,Proc.read_Sp(r[1]),Proc.P.my_num(),Proc.MCp.get_alphai());
-	#endif
         break;
       case GSUBSFI:
         Proc.temp.ans2.assign(n);
- 	#ifdef DEBUG
-           Sans2.sub(Proc.temp.ans2,Proc.read_S2(r[1]),Proc.P.my_num(),Proc.MC2.get_alphai());
-	   Proc.write_S2(r[0],Sans2);
-	#else
            Proc.get_S2_ref(r[0]).sub(Proc.temp.ans2,Proc.read_S2(r[1]),Proc.P.my_num(),Proc.MC2.get_alphai());
-	#endif
         break;
       case MULCI:
         Proc.temp.assign_ansp(n);
-	#ifdef DEBUG
-           Proc.temp.ansp.mul(Proc.temp.ansp,Proc.read_Cp(r[1]));
-           Proc.write_Cp(r[0],Proc.temp.ansp);
-	#else
            Proc.get_Cp_ref(r[0]).mul(Proc.temp.ansp,Proc.read_Cp(r[1]));
-	#endif
         break;
       case GMULCI:
         Proc.temp.ans2.assign(n);
-	#ifdef DEBUG
-           Proc.temp.ans2.mul(Proc.temp.ans2,Proc.read_C2(r[1]));
-           Proc.write_C2(r[0],Proc.temp.ans2);
-	#else
            Proc.get_C2_ref(r[0]).mul(Proc.temp.ans2,Proc.read_C2(r[1]));
-	#endif
         break;
       case MULSI:
         Proc.temp.assign_ansp(n);
-	#ifdef DEBUG
-           Sansp.mul(Proc.read_Sp(r[1]),Proc.temp.ansp);
-	   Proc.write_Sp(r[0],Sansp);
-	#else
            Proc.get_Sp_ref(r[0]).mul(Proc.read_Sp(r[1]),Proc.temp.ansp);
-	#endif
         break;
       case GMULSI:
         Proc.temp.ans2.assign(n);
-	#ifdef DEBUG
-           Sans2.mul(Proc.read_S2(r[1]),Proc.temp.ans2);
-	   Proc.write_S2(r[0],Sans2);
-	#else
            Proc.get_S2_ref(r[0]).mul(Proc.read_S2(r[1]),Proc.temp.ans2);
-	#endif
         break;
       case TRIPLE:
         Procp.DataF.get_three(DATA_TRIPLE, Proc.get_Sp_ref(r[0]),Proc.get_Sp_ref(r[1]),Proc.get_Sp_ref(r[2]));
@@ -1194,106 +1009,46 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.Proc2.input.stop(n,start);
         break;
       case ANDC:
-	#ifdef DEBUG
-           ansp.AND(Proc.read_Cp(r[1]),Proc.read_Cp(r[2]));
-	   Proc.write_Cp(r[0],Proc.temp.ansp);
-	#else
            Proc.get_Cp_ref(r[0]).AND(Proc.read_Cp(r[1]),Proc.read_Cp(r[2]));
-	#endif
         break;
       case GANDC:
-	#ifdef DEBUG
-           Proc.temp.ans2.AND(Proc.read_C2(r[1]),Proc.read_C2(r[2]));
-	   Proc.write_C2(r[0],Proc.temp.ans2);
-	#else
            Proc.get_C2_ref(r[0]).AND(Proc.read_C2(r[1]),Proc.read_C2(r[2]));
-	#endif
         break;
       case XORC:
-	#ifdef DEBUG
-           Proc.temp.ansp.XOR(Proc.read_Cp(r[1]),Proc.read_Cp(r[2]));
-	   Proc.write_Cp(r[0],Proc.temp.ansp);
-	#else
            Proc.get_Cp_ref(r[0]).XOR(Proc.read_Cp(r[1]),Proc.read_Cp(r[2]));
-	#endif
         break;
       case GXORC:
-	#ifdef DEBUG
-           Proc.temp.ans2.XOR(Proc.read_C2(r[1]),Proc.read_C2(r[2]));
-	   Proc.write_C2(r[0],Proc.temp.ans2);
-	#else
            Proc.get_C2_ref(r[0]).XOR(Proc.read_C2(r[1]),Proc.read_C2(r[2]));
-	#endif
         break;
       case ORC:
-	#ifdef DEBUG
-           Proc.temp.ansp.OR(Proc.read_Cp(r[1]),Proc.read_Cp(r[2]));
-	   Proc.write_Cp(r[0],Proc.temp.ansp);
-	#else
            Proc.get_Cp_ref(r[0]).OR(Proc.read_Cp(r[1]),Proc.read_Cp(r[2]));
-	#endif
         break;
       case GORC:
-	#ifdef DEBUG
-           Proc.temp.ans2.OR(Proc.read_C2(r[1]),Proc.read_C2(r[2]));
-	   Proc.write_C2(r[0],Proc.temp.ans2);
-	#else
            Proc.get_C2_ref(r[0]).OR(Proc.read_C2(r[1]),Proc.read_C2(r[2]));
-	#endif
         break;
       case ANDCI:
         Proc.temp.aa=n;
-	#ifdef DEBUG
-           Proc.temp.ansp.AND(Proc.read_Cp(r[1]),Proc.temp.aa);
-           Proc.write_Cp(r[0],ansp);
-	#else
            Proc.get_Cp_ref(r[0]).AND(Proc.read_Cp(r[1]),Proc.temp.aa);
-	#endif
         break;
       case GANDCI:
         Proc.temp.ans2.assign(n);
-	#ifdef DEBUG
-           Proc.temp.ans2.AND(Proc.temp.ans2,Proc.read_C2(r[1]));
-           Proc.write_C2(r[0],Proc.temp.ans2);
-	#else
            Proc.get_C2_ref(r[0]).AND(Proc.temp.ans2,Proc.read_C2(r[1]));
-	#endif
         break;
       case XORCI:
         Proc.temp.aa=n;
-	#ifdef DEBUG
-           ansp.XOR(Proc.read_Cp(r[1]),Proc.temp.aa);
-           Proc.write_Cp(r[0],Proc.temp.ansp);
-	#else
            Proc.get_Cp_ref(r[0]).XOR(Proc.read_Cp(r[1]),Proc.temp.aa);
-	#endif
         break;
       case GXORCI:
         Proc.temp.ans2.assign(n);
-	#ifdef DEBUG
-           Proc.temp.ans2.XOR(Proc.temp.ans2,Proc.read_C2(r[1]));
-           Proc.write_C2(r[0],Proc.temp.ans2);
-	#else
            Proc.get_C2_ref(r[0]).XOR(Proc.temp.ans2,Proc.read_C2(r[1]));
-	#endif
         break;
       case ORCI:
         Proc.temp.aa=n;
-	#ifdef DEBUG
-           Proc.temp.ansp.OR(Proc.read_Cp(r[1]),Proc.temp.aa);
-           Proc.write_Cp(r[0],Proc.temp.ansp);
-	#else
 	   Proc.get_Cp_ref(r[0]).OR(Proc.read_Cp(r[1]),Proc.temp.aa);
-	#endif
         break;
       case GORCI:
         Proc.temp.ans2.assign(n);
-	#ifdef DEBUG
-           Proc.temp.ans2.OR(Proc.temp.ans2,Proc.read_C2(r[1]));
-           Proc.write_C2(r[0],Proc.temp.ans2);
-	#else
 	   Proc.get_C2_ref(r[0]).OR(Proc.temp.ans2,Proc.read_C2(r[1]));
-	#endif
         break;
       // Note: Fp version has different semantics for NOTC than GNOTC
       case NOTC:
@@ -1306,66 +1061,31 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.write_Cp(r[0],Proc.temp.ansp);
         break;
       case GNOTC:
-	#ifdef DEBUG
-           Proc.temp.ans2.NOT(Proc.read_C2(r[1]));
-	   Proc.write_C2(r[0],Proc.temp.ans2);
-	#else
            Proc.get_C2_ref(r[0]).NOT(Proc.read_C2(r[1]));
-	#endif
         break;
       case SHLC:
         to_bigint(Proc.temp.aa,Proc.read_Cp(r[2]));
         if (Proc.temp.aa > 63)
           throw not_implemented();
-	#ifdef DEBUG
-           Proc.temp.ansp.SHL(Proc.read_Cp(r[1]),Proc.temp.aa);
-	   Proc.write_Cp(r[0],Proc.temp.ansp);
-	#else
            Proc.get_Cp_ref(r[0]).SHL(Proc.read_Cp(r[1]),Proc.temp.aa);
-	#endif
         break;
       case SHRC:
         to_bigint(Proc.temp.aa,Proc.read_Cp(r[2]));
         if (Proc.temp.aa > 63)
           throw not_implemented();
-	#ifdef DEBUG
-           Proc.temp.ansp.SHR(Proc.read_Cp(r[1]),Proc.temp.aa);
-	   Proc.write_Cp(r[0],Proc.temp.ansp);
-	#else
            Proc.get_Cp_ref(r[0]).SHR(Proc.read_Cp(r[1]),Proc.temp.aa);
-	#endif
         break;
       case SHLCI:
-	#ifdef DEBUG
-           Proc.temp.ansp.SHL(Proc.read_Cp(r[1]),Proc.temp.aa);
-	   Proc.write_Cp(r[0],Proc.temp.ansp);
-	#else
            Proc.get_Cp_ref(r[0]).SHL(Proc.read_Cp(r[1]),n);
-	#endif
         break;
       case GSHLCI:
-	#ifdef DEBUG
-           Proc.temp.ans2.SHL(Proc.read_C2(r[1]),n);
-	   Proc.write_C2(r[0],Proc.temp.ans2);
-	#else
            Proc.get_C2_ref(r[0]).SHL(Proc.read_C2(r[1]),n);
-	#endif
         break;
       case SHRCI:
-	#ifdef DEBUG
-           Proc.temp.ansp.SHR(Proc.read_Cp(r[1]),Proc.temp.aa);
-	   Proc.write_Cp(r[0],Proc.temp.ansp);
-	#else
            Proc.get_Cp_ref(r[0]).SHR(Proc.read_Cp(r[1]),n);
-	#endif
         break;
       case GSHRCI:
-	#ifdef DEBUG
-           Proc.temp.ans2.SHR(Proc.read_C2(r[1]),n);
-	   Proc.write_C2(r[0],Proc.temp.ans2);
-	#else
            Proc.get_C2_ref(r[0]).SHR(Proc.read_C2(r[1]),n);
-	#endif
         break;
       case GBITDEC:
         for (int j = 0; j < size; j++)

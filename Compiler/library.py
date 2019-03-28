@@ -1251,29 +1251,42 @@ def sint_cint_division(a, b, k, f, kappa):
         B[i] = temp
     return (sign_a * sign_b) * A[theta - 1]
 
-def FPDiv(a, b, k, f, kappa, simplex_flag=False):
+def IntDiv(a, b, k, kappa=None):
+    return FPDiv(a.extend(2 * k) << k, b.extend(2 * k) << k, 2 * k, k,
+                 kappa, nearest=True)
+
+def FPDiv(a, b, k, f, kappa, simplex_flag=False, nearest=False):
     """
         Goldschmidt method as presented in Catrina10,
     """
+    if 2 * k == int(get_program().options.ring):
+        # not fitting otherwise
+        nearest = True
+    if get_program().options.binary:
+        # no probabilistic truncation in binary circuits
+        nearest = True
+    res_f = f
+    f = max((k - nearest) / 2 + 1, f)
+    assert 2 * f > k - nearest
     theta = int(ceil(log(k/3.5) / log(2)))
     alpha = b.get_type(2 * k).two_power(2*f)
-    w = AppRcr(b, k, f, kappa, simplex_flag).extend(2 * k)
+    w = AppRcr(b, k, f, kappa, simplex_flag, nearest).extend(2 * k)
     x = alpha - b.extend(2 * k) * w
 
     y = a.extend(2 *k) * w
-    y = y.TruncPr(2*k, f, kappa)
+    y = y.round(2*k, f, kappa, nearest, signed=True)
 
     for i in range(theta):
         x = x.extend(2 * k)
         y = y.extend(2 * k) * (alpha + x).extend(2 * k)
         x = x * x
-        y = y.TruncPr(2*k, 2*f, kappa)
-        x = x.TruncPr(2*k, 2*f, kappa)
+        y = y.round(2*k, 2*f, kappa, nearest, signed=True)
+        x = x.round(2*k, 2*f, kappa, nearest, signed=True)
 
     y = y.extend(2 * k) * (alpha + x).extend(2 * k)
-    y = y.TruncPr(k + 2*f, 2*f, kappa)
+    y = y.round(k + 2 * f, 3 * f - res_f, kappa, nearest, signed=True)
     return y
-def AppRcr(b, k, f, kappa, simplex_flag=False):
+def AppRcr(b, k, f, kappa, simplex_flag=False, nearest=False):
     """
         Approximate reciprocal of [b]:
         Given [b], compute [1/b]
@@ -1283,7 +1296,7 @@ def AppRcr(b, k, f, kappa, simplex_flag=False):
     #v should be 2**{k - m} where m is the length of the bitwise repr of [b]
     d = alpha - 2 * c
     w = d * v
-    w = w.TruncPr(2 * k, 2 * (k - f))
+    w = w.round(2 * k, 2 * (k - f), kappa, nearest, signed=True)
     # now w * 2 ^ {-f} should be an initial approximation of 1/b
     return w
 

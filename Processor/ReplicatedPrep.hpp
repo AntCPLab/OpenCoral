@@ -10,24 +10,24 @@
 #include "Auth/ShamirMC.h"
 
 template<class T>
-ReplicatedRingPrep<T>::ReplicatedRingPrep(SubProcessor<T>* proc) :
-        protocol(0), proc(proc)
+RingPrep<T>::RingPrep(SubProcessor<T>* proc, DataPositions& usage) :
+        BufferPrep<T>(usage), protocol(0), proc(proc), base_player(0)
 {
 }
 
 template<class T>
-void ReplicatedRingPrep<T>::set_protocol(typename T::Protocol& protocol)
+void RingPrep<T>::set_protocol(typename T::Protocol& protocol)
 {
     this->protocol = &protocol;
     if (proc)
         base_player = proc->Proc.thread_num;
-    else
-        base_player = 0;
 }
 
 template<class T>
 void ReplicatedRingPrep<T>::buffer_triples()
 {
+    auto protocol = this->protocol;
+    auto proc = this->proc;
     assert(protocol != 0);
     auto& triples = this->triples;
     triples.resize(this->buffer_size);
@@ -45,7 +45,7 @@ void ReplicatedRingPrep<T>::buffer_triples()
 }
 
 template<class T>
-void BufferPrep<T>::get_three(Dtype dtype, T& a, T& b, T& c)
+void BufferPrep<T>::get_three_no_count(Dtype dtype, T& a, T& b, T& c)
 {
     if (dtype != DATA_TRIPLE)
         throw not_implemented();
@@ -60,8 +60,29 @@ void BufferPrep<T>::get_three(Dtype dtype, T& a, T& b, T& c)
 }
 
 template<class T>
+void RingPrep<T>::buffer_squares()
+{
+    auto proc = this->proc;
+    auto buffer_size = this->buffer_size;
+    assert(proc != 0);
+    vector<T> a_plus_b(buffer_size), as(buffer_size), cs(buffer_size);
+    T b;
+    for (int i = 0; i < buffer_size; i++)
+    {
+        this->get_three_no_count(DATA_TRIPLE, as[i], b, cs[i]);
+        a_plus_b[i] = as[i] + b;
+    }
+    vector<typename T::open_type> opened(buffer_size);
+    proc->MC.POpen(opened, a_plus_b, proc->P);
+    for (int i = 0; i < buffer_size; i++)
+        this->squares.push_back({as[i], as[i] * opened[i] - cs[i]});
+}
+
+template<class T>
 void ReplicatedRingPrep<T>::buffer_squares()
 {
+    auto protocol = this->protocol;
+    auto proc = this->proc;
     assert(protocol != 0);
     auto& squares = this->squares;
     squares.resize(this->buffer_size);
@@ -93,10 +114,10 @@ void BufferPrep<T>::buffer_inverses(MAC_Check_Base<T>& MC, Player& P)
     vector<T> c;
     for (int i = 0; i < buffer_size; i++)
     {
-        get_three(DATA_TRIPLE, triples[i][0], triples[i][1], triples[i][2]);
+        get_three_no_count(DATA_TRIPLE, triples[i][0], triples[i][1], triples[i][2]);
         c.push_back(triples[i][2]);
     }
-    vector<typename T::clear> c_open;
+    vector<typename T::open_type> c_open;
     MC.POpen(c_open, c, P);
     for (size_t i = 0; i < c.size(); i++)
         if (c_open[i] != 0)
@@ -108,7 +129,7 @@ void BufferPrep<T>::buffer_inverses(MAC_Check_Base<T>& MC, Player& P)
 }
 
 template<class T>
-void BufferPrep<T>::get_two(Dtype dtype, T& a, T& b)
+void BufferPrep<T>::get_two_no_count(Dtype dtype, T& a, T& b)
 {
     switch (dtype)
     {
@@ -180,7 +201,7 @@ void buffer_bits_spec(ReplicatedPrep<T<gfp>>& prep, vector<T<gfp>>& bits,
 }
 
 template<class T>
-void ReplicatedRingPrep<T>::buffer_bits()
+void RingPrep<T>::buffer_bits()
 {
     assert(protocol != 0);
     auto buffer_size = this->buffer_size;
@@ -191,21 +212,22 @@ void ReplicatedRingPrep<T>::buffer_bits()
     typename T::Input input(proc, P);
     for (int i = 0; i < P.num_players(); i++)
         input.reset(i);
-    if (positive_modulo(P.my_num() - base_player, P.num_players()) < n_relevant_players)
-    {
-        SeededPRNG G;
-        for (int i = 0; i < buffer_size; i++)
-            input.add_mine(G.get_bit());
-        input.send_mine();
-    }
     for (int i = 0; i < n_relevant_players; i++)
     {
         int input_player = (base_player + i) % P.num_players();
         if (input_player == P.my_num())
+        {
+            SeededPRNG G;
+            for (int i = 0; i < buffer_size; i++)
+                input.add_mine(G.get_bit());
+            input.send_mine();
             for (auto& x : player_bits[i])
                 x = input.finalize_mine();
+        }
         else
         {
+            for (int i = 0; i < buffer_size; i++)
+                input.add_other(input_player);
             octetStream os;
             P.receive_player(input_player, os, true);
             for (auto& x : player_bits[i])
@@ -221,7 +243,7 @@ void ReplicatedRingPrep<T>::buffer_bits()
 
 template<>
 inline
-void ReplicatedRingPrep<Rep3Share<gf2n>>::buffer_bits()
+void RingPrep<Rep3Share<gf2n>>::buffer_bits()
 {
     assert(protocol != 0);
     for (int i = 0; i < DIV_CEIL(buffer_size, gf2n::degree()); i++)
@@ -251,7 +273,7 @@ void ReplicatedPrep<T>::buffer_bits()
 }
 
 template<class T>
-void BufferPrep<T>::get_one(Dtype dtype, T& a)
+void BufferPrep<T>::get_one_no_count(Dtype dtype, T& a)
 {
     if (dtype != DATA_BIT)
         throw not_implemented();
@@ -264,14 +286,25 @@ void BufferPrep<T>::get_one(Dtype dtype, T& a)
 }
 
 template<class T>
-void BufferPrep<T>::get_input(T& a, typename T::clear& x, int i)
+void BufferPrep<T>::get_input_no_count(T& a, typename T::open_type& x, int i)
 {
     (void) a, (void) x, (void) i;
+    if (inputs.size() <= (size_t)i or inputs.at(i).empty())
+        buffer_inputs(i);
+    a = inputs[i].back().share;
+    x = inputs[i].back().value;
+    inputs[i].pop_back();
+}
+
+template<class T>
+inline void BufferPrep<T>::buffer_inputs(int player)
+{
+    (void) player;
     throw not_implemented();
 }
 
 template<class T>
-void BufferPrep<T>::get(vector<T>& S, DataTag tag,
+void BufferPrep<T>::get_no_count(vector<T>& S, DataTag tag,
         const vector<int>& regs, int vector_size)
 {
     (void) S, (void) tag, (void) regs, (void) vector_size;

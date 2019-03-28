@@ -67,4 +67,24 @@ public:
     }
 };
 
+class NotImplementedOutput
+{
+public:
+    template<class T>
+    NotImplementedOutput(SubProcessor<T>& proc)
+    {
+        (void) proc;
+    }
+
+    void start(int player, int target, int source)
+    {
+        (void) player, (void) target, (void) source;
+        throw not_implemented();
+    }
+    void stop(int player, int source)
+    {
+        (void) player, (void) source;
+    }
+};
+
 #endif /* PROCESSOR_DUMMYPROTOCOL_H_ */

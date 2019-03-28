@@ -29,7 +29,9 @@ YaoGarbler::~YaoGarbler()
 {
 	for (auto& job : and_jobs)
 		delete job;
-	cout << "Number of AND gates: " << counter << endl;
+#ifdef VERBOSE
+	cerr << "Number of AND gates: " << counter << endl;
+#endif
 #ifdef YAO_TIMINGS
 	cout << "AND time: " << and_timer.elapsed() << endl;
 	cout << "AND process timer: " << and_proc_timer.elapsed() << endl;

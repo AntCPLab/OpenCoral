@@ -77,6 +77,13 @@ public:
         return running;
     }
 
+    T pop()
+    {
+        T res;
+        pop(res);
+        return res;
+    }
+
     bool pop_dont_stop(T& value)
     {
         lock();

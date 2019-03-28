@@ -16,22 +16,32 @@ InputBase<T>::InputBase(ArithmeticProcessor* proc) :
 }
 
 template<class T>
-Input<T>::Input(SubProcessor<Share<T>>& proc, MAC_Check<T>& mc) :
-        InputBase<Share<T>>(&proc.Proc), proc(proc), MC(mc), shares(proc.P.num_players())
+Input<T>::Input(SubProcessor<T>& proc, MAC_Check& mc) :
+        InputBase<T>(&proc.Proc), proc(proc), MC(mc), shares(proc.P.num_players())
 {
+}
+
+template<class T>
+Input<T>::Input(SubProcessor<T>* proc, Player& P) :
+        InputBase<T>(&proc->Proc), proc(*proc), MC(proc->MC), shares(
+                P.num_players())
+{
+    assert (proc != 0);
 }
 
 template<class T>
 InputBase<T>::~InputBase()
 {
+#ifdef VERBOSE
     if (timer.elapsed() > 0)
         cerr << T::type_string() << " inputs: " << timer.elapsed() << endl;
+#endif
 }
 
 template<class T>
-void Input<T>::adjust_mac(Share<T>& share, T& value)
+void Input<T>::adjust_mac(T& share, const open_type& value)
 {
-    T tmp;
+    typename T::mac_type tmp;
     tmp.mul(MC.get_alphai(), value);
     tmp.add(share.get_mac(),tmp);
     share.set_mac(tmp);
@@ -46,15 +56,13 @@ void Input<T>::reset(int player)
 }
 
 template<class T>
-void Input<T>::add_mine(const T& input)
+void Input<T>::add_mine(const clear& input)
 {
     int player = proc.P.my_num();
-    T rr, t = input;
     shares[player].push_back({});
-    Share<T>& share = shares[player].back();
+    T& share = shares[player].back();
     proc.DataF.get_input(share, rr, player);
-    T xi;
-    t.sub(t, rr);
+    t.sub(input, rr);
     t.pack(o);
     xi.add(t, share.get_share());
     share.set_share(xi);
@@ -65,7 +73,7 @@ void Input<T>::add_mine(const T& input)
 template<class T>
 void Input<T>::add_other(int player)
 {
-    T t;
+    open_type t;
     shares[player].push_back({});
     proc.DataF.get_input(shares[player].back(), t, player);
 }
@@ -84,7 +92,7 @@ void Input<T>::start(int player, int n_inputs)
     {
         for (int i = 0; i < n_inputs; i++)
         {
-            T t;
+            clear t;
             try
             {
                 this->buffer.input(t);
@@ -107,23 +115,35 @@ void Input<T>::start(int player, int n_inputs)
 template<class T>
 void Input<T>::stop(int player, const vector<int>& targets)
 {
-    for (unsigned int i = 0; i < targets.size(); i++)
-        proc.get_S_ref(targets[i]) = shares[player][i];
-
-    if (proc.P.my_num() != player)
+    if (proc.P.my_num() == player)
+        for (unsigned int i = 0; i < targets.size(); i++)
+            proc.get_S_ref(targets[i]) = finalize_mine();
+    else
     {
-        T t;
         octetStream o;
         this->timer.start();
         proc.P.receive_player(player, o, true);
         this->timer.stop();
         for (unsigned int i = 0; i < targets.size(); i++)
         {
-            Share<T>& share = proc.get_S_ref(targets[i]);
-            t.unpack(o);
-            adjust_mac(share, t);
+            finalize_other(player, proc.get_S_ref(targets[i]), o);
         }
     }
+}
+
+template<class T>
+T Input<T>::finalize_mine()
+{
+    return shares[proc.P.my_num()].next();
+}
+
+template<class T>
+void Input<T>::finalize_other(int player, T& target,
+        octetStream& o)
+{
+    target = shares[player].next();
+    t.unpack(o);
+    adjust_mac(target, t);
 }
 
 template<class T>

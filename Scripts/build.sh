@@ -7,7 +7,7 @@ function build
     make clean
     rm -R static
     mkdir static
-    make -j 12 static-hm
+    make -j 12 static-release
     mkdir bin
     dest=bin/`uname`-$2
     rm -R $dest

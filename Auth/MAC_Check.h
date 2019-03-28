@@ -24,9 +24,17 @@ using namespace std;
 #define POPEN_MAX 1000000
 
 
+template <class T>
+void write_mac_key(string& dir, int my_num, const T& key);
+template <class T>
+void read_mac_key(string& dir, int my_num, T& key);
+
+
 template<class T>
 class TreeSum
 {
+  static const char* mc_timer_names[];
+
 protected:
   int base_player;
   int opening_sum;
@@ -60,7 +68,7 @@ class MAC_Check_Base
 {
 protected:
   /* MAC Share */
-  typename T::clear alphai;
+  typename T::mac_key_type alphai;
 
 public:
   int values_opened;
@@ -72,26 +80,29 @@ public:
 
   int number() const { return values_opened; }
 
-  const typename T::clear& get_alphai() const { return alphai; }
+  const typename T::mac_key_type& get_alphai() const { return alphai; }
 
-  virtual void POpen_Begin(vector<typename T::clear>& values,const vector<T>& S,const Player& P) = 0;
-  virtual void POpen_End(vector<typename T::clear>& values,const vector<T>& S,const Player& P) = 0;
-  void POpen(vector<typename T::clear>& values,const vector<T>& S,const Player& P);
-  typename T::clear POpen(const T& secret, const Player& P);
+  virtual void POpen_Begin(vector<typename T::open_type>& values,const vector<T>& S,const Player& P) = 0;
+  virtual void POpen_End(vector<typename T::open_type>& values,const vector<T>& S,const Player& P) = 0;
+  void POpen(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
+  typename T::open_type POpen(const T& secret, const Player& P);
 };
 
 
-template<class T>
-class MAC_Check : public TreeSum<T>, public MAC_Check_Base<Share<T>>
+template<class U>
+class MAC_Check_ : public TreeSum<typename U::open_type>, public MAC_Check_Base<U>
 {
+  typedef typename U::open_type T;
+
   protected:
 
   /* POpen Data */
   int popen_cnt;
-  vector<T> macs;
+  vector<typename U::mac_type> macs;
   vector<T> vals;
 
-  void AddToMacs(const vector< Share<T> >& shares);
+  virtual void AddToMacs(const vector<U>& shares);
+  virtual void PrepareSending(vector<T>& values,const vector<U>& S);
   void AddToValues(vector<T>& values);
   void GetValues(vector<T>& values);
   void CheckIfNeeded(const Player& P);
@@ -100,8 +111,8 @@ class MAC_Check : public TreeSum<T>, public MAC_Check_Base<Share<T>>
 
   public:
 
-  MAC_Check(const T& ai, int opening_sum=10, int max_broadcast=10, int send_player=0);
-  virtual ~MAC_Check();
+  MAC_Check_(const T& ai, int opening_sum=10, int max_broadcast=10, int send_player=0);
+  virtual ~MAC_Check_();
 
   /* Run protocols to partially open data and check the MACs are 
    * all OK.
@@ -110,11 +121,45 @@ class MAC_Check : public TreeSum<T>, public MAC_Check_Base<Share<T>>
    * Begin and End expect the same arrays values and S passed to them
    * and they expect values to be of the same size as S.
    */
-  virtual void POpen_Begin(vector<T>& values,const vector<Share<T> >& S,const Player& P);
-  virtual void POpen_End(vector<T>& values,const vector<Share<T> >& S,const Player& P);
+  virtual void POpen_Begin(vector<T>& values,const vector<U>& S,const Player& P);
+  virtual void POpen_End(vector<T>& values,const vector<U>& S,const Player& P);
 
-  void AddToCheck(const T& mac, const T& value, const Player& P);
+  virtual void AddToCheck(const U& share, const T& value, const Player& P);
   virtual void Check(const Player& P);
+
+  // compatibility
+  void set_random_element(const U& random_element) { (void) random_element; }
+};
+
+template<class T>
+using MAC_Check = MAC_Check_<Share<T>>;
+
+template<int K, int S> class Spdz2kShare;
+template<class T> class Spdz2kPrep;
+template<class T> class MascotPrep;
+
+template<class T, class U, class V, class W>
+class MAC_Check_Z2k : public MAC_Check_<W>
+{
+protected:
+  vector<T> shares;
+  MascotPrep<W>* prep;
+
+  W get_random_element();
+
+  void AddToMacs(const vector< W >& shares);
+  void PrepareSending(vector<T>& values,const vector<W >& S);
+
+public:
+  vector<W> random_elements;
+
+  void AddToCheck(const W& share, const T& value, const Player& P);
+  MAC_Check_Z2k(const T& ai, int opening_sum=10, int max_broadcast=10, int send_player=0);
+  MAC_Check_Z2k(const T& ai, Names& Nms, int thread_num);
+  virtual void Check(const Player& P);
+  void set_random_element(const W& random_element);
+  void set_prep(MascotPrep<W>& prep);
+  virtual ~MAC_Check_Z2k() {};
 };
 
 
@@ -357,6 +402,36 @@ void TreeSum<T>::ReceiveValues(vector<T>& values, const Player& P, int sender)
   for (unsigned int i = 0; i < values.size(); i++)
     values[i].unpack(os);
   AddToValues(values);
+}
+
+template <class T>
+string mac_key_filename(string& dir, int my_num)
+{
+  return dir + "/Player-MAC-Key-" + T::type_string() + "-P" + to_string(my_num);
+}
+
+template <class T>
+void write_mac_key(string& dir, int my_num, const T& key)
+{
+  string filename = mac_key_filename<T>(dir, my_num);
+  cout << "Writing to " << filename << endl;
+  ofstream outf(filename);
+  key.output(outf, false);
+  if (not outf.good())
+    throw IO_Error(filename);
+}
+
+template <class T>
+T read_mac_key(string& dir, int my_num)
+{
+  string filename = mac_key_filename<T>(dir, my_num);
+  cout << "Reading from " << filename << endl;
+  T key;
+  ifstream inpf(filename);
+  key.input(inpf, false);
+  if (not inpf.good())
+    throw IO_Error(filename);
+  return key;
 }
 
 #endif

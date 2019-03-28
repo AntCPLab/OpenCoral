@@ -290,10 +290,16 @@ class _register(Tape.Register, _number, _structure):
     def malloc(cls, size):
         return program.malloc(size, cls)
 
+    @set_instruction_type
     def __init__(self, reg_type, val, size):
+        if isinstance(val, (tuple, list)):
+            size = len(val)
         super(_register, self).__init__(reg_type, program.curr_tape, size=size)
         if isinstance(val, (int, long)):
             self.load_int(val)
+        elif isinstance(val, (tuple, list)):
+            for i, x in enumerate(val):
+                self.mov(self[i], type(self)(x, size=1))
         elif val is not None:
             self.load_other(val)
 
@@ -316,6 +322,7 @@ class _register(Tape.Register, _number, _structure):
 
 class _clear(_register):
     __slots__ = []
+    mov = staticmethod(movc)
 
     @vectorized_classmethod
     @set_instruction_type
@@ -673,6 +680,7 @@ class regint(_register, _int):
     __slots__ = []
     reg_type = 'ci'
     instruction_type = 'modp'
+    mov = staticmethod(movint)
 
     @classmethod
     def protect_memory(cls, start, end):
@@ -890,6 +898,7 @@ class regint(_register, _int):
 class _secret(_register):
     __slots__ = []
 
+    mov = staticmethod(movs)
     PreOR = staticmethod(lambda l: floatingpoint.PreORC(l))
     PreOp = staticmethod(lambda op, l: floatingpoint.PreOpL(op, l))
 
@@ -1288,12 +1297,13 @@ class sint(_secret, _int):
         return floatingpoint.TruncPr(self, k, m, kappa)
 
     @vectorize
-    def round(self, k, m, kappa=None, nearest=False):
+    def round(self, k, m, kappa=None, nearest=False, signed=False):
         secret = isinstance(m, sint)
         if nearest:
             if secret:
                 raise NotImplementedError()
-            return comparison.TruncRoundNearest(self, k, m, kappa)
+            return comparison.TruncRoundNearest(self, k, m, kappa,
+                                                signed=signed)
         else:
             if secret:
                 return floatingpoint.Trunc(self, k, m, kappa)
@@ -1301,6 +1311,15 @@ class sint(_secret, _int):
 
     def Norm(self, k, f, kappa=None, simplex_flag=False):
         return library.Norm(self, k, f, kappa, simplex_flag)
+
+    @vectorize
+    def int_div(self, other, bit_length=None, security=None):
+        k = bit_length or program.bit_length
+        kappa = security or program.security
+        tmp = library.IntDiv(self, other, k, kappa)
+        res = type(self)()
+        comparison.Trunc(res, tmp, 2 * k, k, kappa, True)
+        return res
 
     @staticmethod
     def two_power(n):
@@ -1702,7 +1721,7 @@ class _bitint(object):
         return 1 + self.compose(1 ^ b for b in self.bit_decompose())
 
     def __abs__(self):
-        return self.bit_decompose()[-1].if_else(-self, self)
+        return util.if_else(self.bit_decompose()[-1], -self, self)
 
     less_than = lambda self, other, *args, **kwargs: self < other
     greater_than = lambda self, other, *args, **kwargs: self > other
@@ -2353,7 +2372,9 @@ class _fix(_single):
     def __div__(self, other):
         other = self.coerce(other)
         if isinstance(other, _fix):
-            return type(self)(library.FPDiv(self.v, other.v, self.k, self.f, self.kappa))
+            return type(self)(library.FPDiv(self.v, other.v, self.k, self.f,
+                                            self.kappa,
+                                            nearest=self.round_nearest))
         elif isinstance(other, cfix):
             return type(self)(library.sint_cint_division(self.v, other.v, self.k, self.f, self.kappa))
         else:

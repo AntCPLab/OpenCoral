@@ -21,15 +21,21 @@ enum ReportType
   REPORT_TYPE_MAX
 };
 
-class gfp;
+template<int X>
+class gfp_;
+typedef gfp_<0> gfp;
 class gmp_random;
 class Integer;
+template<int K> class Z2;
 
 class bigint : public mpz_class
 {
 public:
   static thread_local bigint tmp;
   static thread_local gmp_random random;
+
+  // workaround for GCC not always initializing thread_local variables
+  static void init_thread() { tmp = 0; }
 
   template<class T>
   static mpf_class get_float(T v, Integer exp, T z, T s);
@@ -38,6 +44,8 @@ public:
   template <class T>
   bigint(const T& x) : mpz_class(x) {}
   bigint(const gfp& x);
+  template <int K>
+  bigint(const Z2<K>& x);
 
   bigint& operator=(int n);
   bigint& operator=(long n);
@@ -83,6 +91,13 @@ public:
   size_t report_size(ReportType type) const;
 };
 
+
+void inline_mpn_zero(mp_limb_t* x, mp_size_t size);
+void inline_mpn_copyi(mp_limb_t* dest, const mp_limb_t* src, mp_size_t size);
+
+#include "Z2k.h"
+
+
 inline bigint& bigint::operator=(int n)
 {
   mpz_class::operator=(n);
@@ -99,6 +114,12 @@ inline bigint& bigint::operator=(word n)
 {
   mpz_class::operator=(n);
   return *this;
+}
+
+template<int K>
+bigint::bigint(const Z2<K>& x)
+{
+  mpz_import(get_mpz_t(), Z2<K>::N_WORDS, -1, sizeof(mp_limb_t), 0, 0, x.get_ptr());
 }
 
 

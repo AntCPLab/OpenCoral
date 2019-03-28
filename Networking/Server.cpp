@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <pthread.h>
+#include <assert.h>
 
 
 /*
@@ -31,7 +32,9 @@ void Server::get_ip(int num)
   memset(names[num], 0, 512);
   strncpy((char*)names[num], ipstr, INET6_ADDRSTRLEN);
 
+#ifdef DEBUG_NETWORKING
   cerr << "Client IP address: " << names[num] << endl;
+#endif
 }
 
 
@@ -39,14 +42,18 @@ void Server::get_name(int num)
 {
   // Now all machines are set up, send GO to start them.
   send(socket_num[num], GO);
+#ifdef DEBUG_NETWORKING
   cerr << "Player " << num << " started." << endl;
+#endif
 
   // Receive name sent by client (legacy) - not used here
   octet my_name[512];
   receive(socket_num[num],my_name,512);
   receive(socket_num[num],(octet*)&ports[num],4);
+#ifdef DEBUG_NETWORKING
   cerr << "Player " << num << " sent (IP for info only) " << my_name << ":"
       << ports[num] << endl;
+#endif
 
   // Get client IP
   get_ip(num);
@@ -108,9 +115,13 @@ void Server::start()
   // set up connections
   for (i=0; i<nmachines; i++)
     {
+#ifdef DEBUG_NETWORKING
       cerr << "Waiting for player " << i << endl;
+#endif
       socket_num[i] = server.get_connection_socket(i);
+#ifdef DEBUG_NETWORKING
       cerr << "Connected to player " << i << endl;
+#endif
     }
 
   // get names
@@ -152,6 +163,11 @@ void* Server::start_in_thread(void* server)
 Server* Server::start_networking(Names& N, int my_num, int nplayers,
         string hostname, int portnum)
 {
+#ifdef DEBUG_NETWORKING
+  cerr << "Starting networking for " << my_num << "/" << nplayers
+      << " with server on " << hostname << ":" << (portnum - 1) << endl;
+#endif
+  assert(my_num >= 0);
   Server* server = 0;
   if (my_num == 0)
     {

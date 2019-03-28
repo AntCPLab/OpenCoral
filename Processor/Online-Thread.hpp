@@ -22,6 +22,8 @@ using namespace std;
 template<class sint, class sgf2n>
 void* Sub_Main_Func(void* ptr)
 {
+  bigint::init_thread();
+
   thread_info<sint, sgf2n> *tinfo=(thread_info<sint, sgf2n> *) ptr;
   Machine<sint, sgf2n>& machine=*(tinfo->machine);
   vector<pthread_mutex_t>& t_mutex      = machine.t_mutex;
@@ -30,16 +32,22 @@ void* Sub_Main_Func(void* ptr)
   vector<Program>& progs                = machine.progs;
 
   int num=tinfo->thread_num;
+#ifdef DEBUG_THREADS
   fprintf(stderr, "\tI am in thread %d\n",num);
+#endif
   Player* player;
   if (machine.use_encryption)
     {
+#ifdef VERBOSE
       cerr << "Using encrypted single-threaded communication" << endl;
+#endif
       player = new CryptoPlayer(*(tinfo->Nms), num << 16);
     }
   else if (!machine.receive_threads or machine.direct or machine.parallel)
     {
+#ifdef VERBOSE
       cerr << "Using single-threaded receiving" << endl;
+#endif
       player = new PlainPlayer(*(tinfo->Nms), num << 16);
     }
   else
@@ -48,7 +56,9 @@ void* Sub_Main_Func(void* ptr)
       player = new ThreadPlayer(*(tinfo->Nms), num << 16);
     }
   Player& P = *player;
+#ifdef DEBUG_THREADS
   fprintf(stderr, "\tSet up player in thread %d\n",num);
+#endif
 
   typename sgf2n::MAC_Check* MC2;
   typename sint::MAC_Check*  MCp;
@@ -69,7 +79,9 @@ void* Sub_Main_Func(void* ptr)
     }
   else
     {
+#ifdef VERBOSE
       cerr << "Using indirect communication." << endl;
+#endif
       MC2 = new typename sgf2n::MAC_Check(*(tinfo->alpha2i), machine.opening_sum, machine.max_broadcast);
       MCp = new typename sint::MAC_Check(*(tinfo->alphapi), machine.opening_sum, machine.max_broadcast);
     }
@@ -83,12 +95,15 @@ void* Sub_Main_Func(void* ptr)
   // int exec=0;
 
   // synchronize
+#ifdef DEBUG_THREADS
   cerr << "Locking for sync of thread " << num << endl;
+#endif
   pthread_mutex_lock(&t_mutex[num]);
   tinfo->ready=true;
   pthread_cond_signal(&client_ready[num]);
   pthread_mutex_unlock(&t_mutex[num]);
 
+  DataPositions actual_usage(P.num_players());
   Timer thread_timer(CLOCK_THREAD_CPUTIME_ID), wait_timer;
   thread_timer.start();
 
@@ -106,7 +121,9 @@ void* Sub_Main_Func(void* ptr)
 
       if (program==-1)
         { flag=false;
+#ifdef DEBUG_THREADS
           fprintf(stderr, "\tThread %d terminating\n",num);
+#endif
         }
       else
         { // RUN PROGRAM
@@ -115,14 +132,18 @@ void* Sub_Main_Func(void* ptr)
 
           // Bits, Triples, Squares, and Inverses skipping
           Proc.DataF.seekg(tinfo->pos);
+          // reset for actual usage
+          Proc.DataF.reset_usage();
              
           //printf("\tExecuting program");
           // Execute the program
           progs[program].execute(Proc);
 
+          actual_usage.increase(Proc.DataF.get_usage());
+
          if (progs[program].usage_unknown())
            { // communicate file positions to main thread
-             tinfo->pos = Proc.DataF.get_usage();
+             tinfo->pos.increase(Proc.DataF.get_usage());
            }
 
           //double elapsed = timeval_diff(&startv, &endv);
@@ -163,14 +184,17 @@ void* Sub_Main_Func(void* ptr)
   pthread_mutex_unlock(&t_mutex[num]);
   wait_timer.stop();
 
+#ifdef VERBOSE
   cerr << num << " : MAC Checking" << endl;
   cerr << "\tMC2.number=" << MC2->number() << endl;
   cerr << "\tMCp.number=" << MCp->number() << endl;
 
   cerr << "Thread " << num << " timer: " << thread_timer.elapsed() << endl;
   cerr << "Thread " << num << " wait timer: " << wait_timer.elapsed() << endl;
+#endif
 
-  machine.data_sent += P.sent;
+  machine.data_sent += P.sent + Proc.DataF.data_sent();
+  tinfo->pos = actual_usage;
 
   delete MC2;
   delete MCp;

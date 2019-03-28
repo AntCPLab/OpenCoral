@@ -27,12 +27,12 @@ endif
 
 COMMON = $(MATH) $(TOOLS) $(NETWORK) $(AUTH)
 COMPLETE = $(COMMON) $(PROCESSOR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(GC) $(OT)
-YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp)) $(OT) $(GC)
+YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp)) $(OT) $(GC) BMR/Key.o
 BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp)) $(COMMON) Processor/BaseMachine.o Processor/ProcessorBase.o
 
 
 LIB = libSPDZ.a
-LIBHM = libhm.a
+LIBRELEASE = librelease.a
 LIBSIMPLEOT = SimpleOT/libsimpleot.a
 
 # used for dependency generation
@@ -40,7 +40,7 @@ OBJS = $(BMR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(YAO) $(COMPLETE) $(patsubst %.cpp
 DEPS := $(OBJS:.o=.d)
 
 
-all: gen_input online offline externalIO yao replicated shamir
+all: gen_input online offline externalIO yao replicated shamir spdz2k
 
 ifeq ($(USE_GF2N_LONG),1)
 ifneq ($(OS), Darwin)
@@ -55,7 +55,7 @@ endif
 -include $(DEPS)
 
 %.o: %.cpp
-	$(CXX) $(CFLAGS) -MMD -c -o $@ $<
+	$(CXX) -o $@ $< $(CFLAGS) -MMD -c
 
 online: Fake-Offline.x Server.x Player-Online.x Check-Offline.x
 
@@ -81,9 +81,11 @@ rep-bin: replicated-bin-party.x malicious-rep-bin-party.x Fake-Offline.x
 
 replicated: rep-field rep-ring rep-bin
 
+spdz2k: spdz2k-party.x ot-offline.x Check-Offline-Z2k.x galois-degree.x Fake-Offline.x
+
 tldr:
 	-echo ARCH = -march=native >> CONFIG.mine
-	$(MAKE) malicious-rep-field-party.x Setup.x
+	$(MAKE) Player-Online.x
 
 ifeq ($(OS), Darwin)
 tldr: mac-setup
@@ -93,27 +95,30 @@ endif
 
 shamir: shamir-party.x malicious-shamir-party.x galois-degree.x
 
-$(LIBHM): Machines/Rep.o Machines/ShamirMachine.o $(PROCESSOR) $(COMMON)
+$(LIBRELEASE): Machines/Rep.o Machines/ShamirMachine.o Machines/SPDZ.o $(YAO) $(PROCESSOR) $(COMMON)
 	$(AR) -csr $@ $^
 
-static/%.x: %.cpp $(LIBHM) $(LIBSIMPLEOT)
+static/%.x: %.cpp $(LIBRELEASE) $(LIBSIMPLEOT)
 	$(CXX) $(CFLAGS) -o $@ $^ -Wl,-Map=$<.map -Wl,-Bstatic -static-libgcc -static-libstdc++ $(BOOST) $(LDLIBS) -Wl,-Bdynamic -ldl
 
 static-dir:
 	@ mkdir static 2> /dev/null; true
 
-static-hm: static-dir $(patsubst %.cpp, static/%.x, $(wildcard *ring*.cpp *field*.cpp *shamir*.cpp ))
+static-release: static-dir $(patsubst %.cpp, static/%.x, $(wildcard *ring*.cpp *field*.cpp *shamir*.cpp yao*.cpp spdz2k*.cpp Player-Online.cpp ))
 
 Fake-Offline.x: Fake-Offline.cpp $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 Check-Offline.x: Check-Offline.cpp $(COMMON) $(PROCESSOR) Auth/fake-stuff.hpp
-	$(CXX) $(CFLAGS) Check-Offline.cpp -o Check-Offline.x $(COMMON) $(LDLIBS)
+	$(CXX) $(CFLAGS) Check-Offline.cpp -o Check-Offline.x $(COMMON) $(PROCESSOR) $(LDLIBS)
+
+Check-Offline-Z2k.x: Check-Offline-Z2k.cpp $(COMMON)
+	$(CXX) $(CFLAGS) -o Check-Offline-Z2k.x $^ $(LDLIBS)
 
 Server.x: Server.cpp $(COMMON)
 	$(CXX) $(CFLAGS) Server.cpp -o Server.x $(COMMON) $(LDLIBS)
 
-Player-Online.x: Player-Online.cpp Machines/SPDZ.o $(COMMON) $(PROCESSOR)
+Player-Online.x: Player-Online.cpp Machines/SPDZ.o $(COMMON) $(PROCESSOR) $(OT) $(LIBSIMPLEOT)
 	$(CXX) $(CFLAGS) -o Player-Online.x $^ $(LDLIBS)
 
 Setup.x: Setup.cpp $(COMMON)
@@ -185,7 +190,7 @@ yao-player.x: $(YAO) $(COMMON) yao-player.cpp $(LIBSIMPLEOT)
 yao-clean:
 	-rm Yao/*.o
 
-galois-degree.x: $(COMMON) galois-degree.cpp
+galois-degree.x: galois-degree.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 replicated-bin-party.x: $(COMMON) $(GC) replicated-bin-party.cpp
@@ -207,6 +212,9 @@ shamir-party.x: shamir-party.cpp Machines/ShamirMachine.o $(PROCESSOR) $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 malicious-shamir-party.x: malicious-shamir-party.cpp Machines/ShamirMachine.o $(PROCESSOR) $(COMMON)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
+
+spdz2k-party.x: spdz2k-party.cpp Machines/SPDZ.o $(PROCESSOR) $(COMMON) $(OT) $(LIBSIMPLEOT)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 $(LIBSIMPLEOT): SimpleOT/Makefile

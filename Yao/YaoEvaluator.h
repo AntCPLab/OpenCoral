@@ -30,7 +30,7 @@ public:
 
 	MMO mmo;
 
-	TwoPartyPlayer player;
+	RealTwoPartyPlayer player;
 	OTExtensionWithMatrix ot_ext;
 
 	static YaoEvaluator& s();

@@ -14,6 +14,7 @@
 #include "Processor/Data_Files.hpp"
 #include "Processor/Instruction.hpp"
 #include "Processor/Machine.hpp"
+#include "Auth/MAC_Check.hpp"
 
 ShamirMachine* ShamirMachine::singleton = 0;
 
@@ -59,6 +60,11 @@ ShamirMachine::ShamirMachine(int argc, const char** argv)
     cerr << "Using threshold " << threshold << " out of " << nparties << endl;
     if (2 * threshold >= nparties)
         throw runtime_error("threshold too high");
+    if (threshold < 1)
+    {
+        cerr << "Threshold has to be positive" << endl;
+        exit(1);
+    }
 }
 
 template<template<class U> class T>
@@ -70,32 +76,32 @@ ShamirMachineSpec<T>::ShamirMachineSpec(int argc, const char** argv) :
 
 template<>
 Preprocessing<ShamirShare<gfp>>* Preprocessing<ShamirShare<gfp>>::get_live_prep(
-   SubProcessor<ShamirShare<gfp>>* proc)
+   SubProcessor<ShamirShare<gfp>>* proc, DataPositions& usage)
 {
- return new ReplicatedPrep<ShamirShare<gfp>>(proc);
+ return new ReplicatedPrep<ShamirShare<gfp>>(proc, usage);
 }
 
 template<>
 Preprocessing<ShamirShare<gf2n>>* Preprocessing<ShamirShare<gf2n>>::get_live_prep(
-   SubProcessor<ShamirShare<gf2n>>* proc)
+   SubProcessor<ShamirShare<gf2n>>* proc, DataPositions& usage)
 {
- return new ReplicatedPrep<ShamirShare<gf2n>>(proc);
+ return new ReplicatedPrep<ShamirShare<gf2n>>(proc, usage);
 }
 
 template<>
 Preprocessing<MaliciousShamirShare<gfp>>* Preprocessing<MaliciousShamirShare<gfp>>::get_live_prep(
-   SubProcessor<MaliciousShamirShare<gfp>>* proc)
+   SubProcessor<MaliciousShamirShare<gfp>>* proc, DataPositions& usage)
 {
  (void) proc;
- return new MaliciousRepPrep<MaliciousShamirShare<gfp>>(proc);
+ return new MaliciousRepPrep<MaliciousShamirShare<gfp>>(proc, usage);
 }
 
 template<>
 Preprocessing<MaliciousShamirShare<gf2n>>* Preprocessing<MaliciousShamirShare<gf2n>>::get_live_prep(
-   SubProcessor<MaliciousShamirShare<gf2n>>* proc)
+   SubProcessor<MaliciousShamirShare<gf2n>>* proc, DataPositions& usage)
 {
  (void) proc;
- return new MaliciousRepPrep<MaliciousShamirShare<gf2n>>(proc);
+ return new MaliciousRepPrep<MaliciousShamirShare<gf2n>>(proc, usage);
 }
 
 template class ShamirMachineSpec<ShamirShare>;

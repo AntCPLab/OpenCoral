@@ -11,11 +11,11 @@ typedef unsigned int  uint;
 
 /************* C Version *************/
 // Key Schedule
-void aes_schedule( int nb, int nr, octet* k, uint* RK );
+void aes_schedule( int nb, int nr, const octet* k, uint* RK );
 
 inline void aes_schedule( uint* RK, octet* K )
 { aes_schedule(4,10,K,RK); }
-inline void aes_128_schedule( uint* RK, octet* K )
+inline void aes_128_schedule( uint* RK, const octet* K )
 { aes_schedule(4,10,K,RK); }
 inline void aes_192_schedule( uint* RK, octet* K )
 { aes_schedule(6,12,K,RK); }
@@ -71,10 +71,10 @@ __attribute__((optimize("unroll-loops")))
 #endif
 inline void ecb_aes_128_encrypt(__m128i* out, __m128i* in, const octet* key)
 {
+#ifdef __AES__
     __m128i tmp[N];
     for (int i = 0; i < N; i++)
         tmp[i] = _mm_xor_si128 (in[i],((__m128i*)key)[0]);
-#ifdef __AES__
     int j;
     for(j=1; j <10; j++)
         for (int i = 0; i < N; i++)
@@ -82,8 +82,8 @@ inline void ecb_aes_128_encrypt(__m128i* out, __m128i* in, const octet* key)
     for (int i = 0; i < N; i++)
         out[i] = _mm_aesenclast_si128 (tmp[i],((__m128i*)key)[j]);
 #else
-    (void) tmp, (void) out;
-    throw runtime_error("need to compile with AES-NI support");
+    for (int i = 0; i < N; i++)
+        aes_128_encrypt((octet*)&out[i], (octet*)&in[i], (uint*)key);
 #endif
 }
 

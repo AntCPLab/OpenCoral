@@ -16,7 +16,7 @@ template<class T>
 inline FileSacriFactory<T>::FileSacriFactory(const char* type, const Player& P,
         int output_thread)
 {
-    typename T::value_type dummy;
+    typename T::clear dummy;
     /* Open file for reading in the initial triples */
     stringstream file1;
     file1 << PREP_DIR "Initial-" << type << "-" << file_completion(dummy)

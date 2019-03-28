@@ -43,7 +43,7 @@ public:
     ProtocolBase();
     virtual ~ProtocolBase();
 
-    void muls(const vector<int>& reg, SubProcessor<T>& proc, MAC_Check_Base<T>& MC,
+    void muls(const vector<int>& reg, SubProcessor<T>& proc, typename T::MAC_Check& MC,
             int size);
     void mulrs(const vector<int>& reg, SubProcessor<T>& proc);
     void dotprods(const vector<int>& reg, SubProcessor<T>& proc);

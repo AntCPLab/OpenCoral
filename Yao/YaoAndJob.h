@@ -35,8 +35,10 @@ public:
 
 	~YaoAndJob()
 	{
+#ifdef VERBOSE
 		for (auto& x : timers)
-			cout << x.first << " time:" << x.second.elapsed() << endl;
+			cerr << x.first << " time:" << x.second.elapsed() << endl;
+#endif
 	}
 
 	void dispatch(GC::Memory<GC::Secret<YaoGarbleWire> >& S, const vector<int>& args,

@@ -11,6 +11,13 @@
 
 inline void avx_memcpy(void* dest, const void* source, size_t length)
 {
+	memcpy(dest, source, length);
+}
+
+template<size_t L>
+inline void avx_memcpy(void* dest, const void* source)
+{
+	size_t length = L;
 	__m256i* d = (__m256i*)dest, *s = (__m256i*)source;
 #ifdef __AVX__
 	while (length >= 32)

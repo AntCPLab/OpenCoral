@@ -18,15 +18,6 @@ ReplicatedParty<T>::ReplicatedParty(int argc, const char** argv) :
         ThreadMaster<T>(online_opts), online_opts(opt, argc, argv)
 {
     opt.add(
-            "", // Default.
-            1, // Required?
-            1, // Number of args expected.
-            0, // Delimiter if expecting multiple args.
-            "This player's number (required)", // Help description.
-            "-p", // Flag token.
-            "--player" // Flag token.
-    );
-    opt.add(
             "localhost", // Default.
             0, // Required?
             1, // Number of args expected.
@@ -62,24 +53,11 @@ ReplicatedParty<T>::ReplicatedParty(int argc, const char** argv) :
             "-c", // Flag token.
             "--communication" // Flag token.
     );
-    opt.parse(argc, argv);
-    opt.syntax = "./replicated-bin-party.x [OPTIONS] <progname>";
-    if (opt.lastArgs.size() == 1)
-    {
-        this->progname = *opt.lastArgs[0];
-    }
-    else
-    {
-        string usage;
-        opt.getUsage(usage);
-        cerr << usage;
-        exit(1);
-    }
-
-    int my_num;
+    online_opts.finalize(opt, argc, argv);
+    this->progname = online_opts.progname;
+    int my_num = online_opts.playerno;
     int pnb;
     string hostname;
-    opt.get("-p")->getInt(my_num);
     opt.get("-pn")->getInt(pnb);
     opt.get("-h")->getString(hostname);
     this->machine.use_encryption = not opt.get("-u")->isSet;

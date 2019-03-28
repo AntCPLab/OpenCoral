@@ -41,7 +41,13 @@ class Program(object):
         self.init_names(args, assemblymode)
         self.P = P_VALUES[param]
         self.param = param
-        self.bit_length = BIT_LENGTHS[param]
+        if (param != -1) + sum(x != 0 for x in(options.ring, options.field,
+                                               options.binary)) > 1:
+            raise CompilerError('can only use one out of -p, -B, -R, -F')
+        self.bit_length = int(options.ring) or int(options.binary) \
+                          or int(options.field)
+        if not self.bit_length:
+            self.bit_length = BIT_LENGTHS[param]
         print 'Default bit length:', self.bit_length
         self.security = 40
         print 'Default security parameter:', self.security
@@ -236,7 +242,6 @@ class Program(object):
             tape.reset_registers()
         self.mem_c = range(USER_MEM + TMP_MEM)
         self.mem_s = range(USER_MEM + TMP_MEM)
-        random.seed(0)
     
     def write_bytes(self, outfile=None):
         """ Write all non-empty threads and schedule to files. """
@@ -399,11 +404,10 @@ class Program(object):
 
 class Tape:
     """ A tape contains a list of basic blocks, onto which instructions are added. """
-    def __init__(self, name, program, param=-1):
+    def __init__(self, name, program):
         """ Set prime p and the initial instructions and registers. """
         self.program = program
         self.init_names(name)
-        self.P = P_VALUES[param]
         self.init_registers()
         self.req_tree = self.ReqNode(name)
         self.req_node = self.req_tree
@@ -422,7 +426,6 @@ class Tape:
     class BasicBlock(object):
         def __init__(self, parent, name, scope, exit_condition=None):
             self.parent = parent
-            self.P = parent.P
             self.instructions = []
             self.name = name
             self.index = len(parent.basicblocks)

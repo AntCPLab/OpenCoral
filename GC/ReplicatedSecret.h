@@ -33,6 +33,9 @@ class ReplicatedSecret : public FixedVec<BitVec, 2>
 
 public:
     typedef BitVec clear;
+    typedef BitVec open_type;
+    typedef BitVec mac_type;
+    typedef BitVec mac_key_type;
 
     typedef void Inp;
     typedef void PO;

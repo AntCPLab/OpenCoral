@@ -13,10 +13,12 @@ using namespace std;
 #include "Tools/random.h"
 #include "bigint.h"
 #include "field_types.h"
+#include "Z2k.h"
+#include "ValueInterface.h"
 
 
 // Functionality shared between integers and bit vectors
-class IntBase
+class IntBase : public ValueInterface
 {
 protected:
   long a;
@@ -64,6 +66,7 @@ public:
   friend ostream& operator<<(ostream& s, const IntBase& x) { x.output(s, true); return s; }
 
   void randomize(PRNG& G);
+  void almost_randomize(PRNG& G) { randomize(G); }
 
   void output(ostream& s,bool human) const;
   void input(istream& s,bool human);
@@ -85,9 +88,13 @@ class Integer : public IntBase
 
   static void reqbl(int n);
 
+  static const bool invertible = false;
+
   Integer()                 { a = 0; }
   Integer(long a) : IntBase(a) {}
   Integer(const bigint& x)  { *this = x.get_si(); }
+  template<int K>
+  Integer(const Z2<K>& x) : Integer(x.get_limb(0)) {}
 
   void convert_destroy(bigint& other) { *this = other.get_si(); }
 
@@ -122,9 +129,6 @@ class Integer : public IntBase
   void SHL(const Integer& x, const Integer& y) { *this = x << y; }
   // unsigned shift for Mod2m
   void SHR(const Integer& x, const Integer& y) { *this = (unsigned long)x.a >> y.a; }
-
-  template <class T, class U>
-  void add(const T&, const U&) { throw not_implemented(); }
 };
 
 inline void IntBase::randomize(PRNG& G)

@@ -54,8 +54,10 @@ ServerSocket::ServerSocket(int Portnum) : portnum(Portnum), thread(0)
         { cerr << "Binding to socket on " << my_name << ":" << Portnum << " failed, trying again in a second ..." << endl;
           sleep(1);
         }
+#ifdef DEBUG_NETWORKING
       else
         { cerr << "ServerSocket is bound on port " << Portnum << endl; }
+#endif
     }
   if (fl<0) { error("set_up_socket:bind");  }
 

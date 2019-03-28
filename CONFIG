@@ -27,7 +27,7 @@ ARCH = -mtune=native -msse4.1 -maes -mpclmul -mavx -mavx2 -mbmi2
 # allow to set compiler in CONFIG.mine
 CXX = g++
 
-#use CONFIG.mine to overwrite DIR settings
+# use CONFIG.mine to overwrite DIR settings
 -include CONFIG.mine
 
 ifeq ($(USE_GF2N_LONG),1)

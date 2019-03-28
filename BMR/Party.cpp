@@ -19,6 +19,8 @@
 #include "BooleanCircuit.h"
 #include "Math/Setup.h"
 
+#include "Auth/MAC_Check.hpp"
+
 #ifdef __PURE_SHE__
 #include "mpirxx.h"
 #endif

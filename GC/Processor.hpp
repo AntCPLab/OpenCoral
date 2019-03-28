@@ -27,7 +27,9 @@ Processor<T>::Processor(Machine<T>& machine) :
 template<class T>
 Processor<T>::~Processor()
 {
+#ifdef VERBOSE
 	cerr << "Finished after " << time << " instructions" << endl;
+#endif
 }
 
 template <class T>

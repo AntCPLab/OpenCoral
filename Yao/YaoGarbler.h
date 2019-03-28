@@ -48,7 +48,7 @@ public:
 
 	map<string, Timer> timers;
 
-	TwoPartyPlayer player;
+	RealTwoPartyPlayer player;
 	OTExtensionWithMatrix ot_ext;
 
 	deque<vector<Key>> receiver_input_keys;

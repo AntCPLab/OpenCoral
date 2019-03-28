@@ -409,7 +409,7 @@ void TrustedProgramParty::garble()
 	second_phase(program, processor, machine);
 
 	vector< Share<gf2n> > tmp;
-	make_share<gf2n>(tmp, 1, get_n_parties(), mac_key, prng);
+	make_share(tmp, 1, get_n_parties(), mac_key, prng);
 	for (int i = 0; i < get_n_parties(); i++)
 		tmp[i].get_mac().pack(spdz_wires[SPDZ_MAC][i]);
 	for (int i = 0; i < get_n_parties(); i++)

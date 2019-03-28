@@ -207,6 +207,19 @@ void mul32(word x,word y,word& ans)
 }
 
 
+void mul64(word x, word y, word& lo, word& hi)
+{
+   word c,d,e,t;
+   word xl=x&0xFFFFFFFF,yl=y&0xFFFFFFFF;
+   word xh=x>>32,yh=y>>32;
+   mul32(xl,yl,c);
+   mul32(xh,yh,d);
+   mul32((xl^xh),(yl^yh),e);
+   t=c^e^d;
+   lo=c^(t<<32);
+   hi=d^(t>>32);
+}
+
 
 void gf2n_short::mul(const gf2n_short& x,const gf2n_short& y)
 {
@@ -214,15 +227,7 @@ void gf2n_short::mul(const gf2n_short& x,const gf2n_short& y)
   
   if (gf2n_short::useC)
     { /* Uses Karatsuba */
-      word c,d,e,t;
-      word xl=x.a&0xFFFFFFFF,yl=y.a&0xFFFFFFFF;
-      word xh=x.a>>32,yh=y.a>>32;
-      mul32(xl,yl,c);
-      mul32(xh,yh,d);
-      mul32((xl^xh),(yl^yh),e);
-      t=c^e^d;
-      lo=c^(t<<32);
-      hi=d^(t>>32);
+      mul64(x.a, y.a, lo, hi);
     }
   else
     { /* Use Intel Instructions */

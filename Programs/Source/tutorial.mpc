@@ -18,8 +18,12 @@ test(a + b, 3)
 test(a * b, 2)
 test(a - b, -1)
 
-# but division doesn't, don't do the following
-# test(b / a, 2)
+# Division can mean different things in different domains
+# and there has be a specified bit length in some,
+# so we use int_div() for integer division.
+# k-bit division requires 4k-bit computation.
+
+test(b.int_div(a, 16), 2)
 
 # comparisons produce 1 for true and 0 for false
 

@@ -69,8 +69,11 @@ inline const T& Memory<T>::operator[] (Integer i) const
 template <class T>
 inline void Memory<T>::resize(size_t size, const char* name)
 {
+    (void) name;
+#ifdef DEBUG_MEMORY
     if (size > 1000)
         cerr << "Resizing " << T::type_string() << " " << name << " to " << size << endl;
+#endif
     vector<T>::resize(size);
 }
 

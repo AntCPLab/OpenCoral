@@ -7,125 +7,35 @@
 #include "Math/operators.h"
 #include "Auth/Subroutines.h"
 #include "Auth/MAC_Check.h"
+#include "Processor/Spdz2kPrep.h"
+
+#include "OT/Triple.hpp"
+#include "OT/Rectangle.hpp"
+#include "Auth/MAC_Check.hpp"
+#include "Processor/MascotPrep.hpp"
 
 #include <sstream>
 #include <fstream>
 #include <math.h>
 
-template <class T, int N>
-class Triple
+template<class T>
+void* run_ot_thread(void* ptr)
 {
-public:
-    T a[N];
-    T b;
-    T c[N];
-
-    int repeat(int l)
-    {
-        switch (l)
-        {
-        case 0:
-        case 2:
-            return N;
-        case 1:
-            return 1;
-        default:
-            throw bad_value();
-        }
-    }
-
-    T& byIndex(int l, int j)
-    {
-        switch (l)
-        {
-        case 0:
-            return a[j];
-        case 1:
-            return b;
-        case 2:
-            return c[j];
-        default:
-            throw bad_value();
-        }
-    }
-
-    template <int M>
-    void amplify(const Triple<T,M>& uncheckedTriple, PRNG& G)
-    {
-        b = uncheckedTriple.b;
-        for (int i = 0; i < N; i++)
-            for (int j = 0; j < M; j++)
-            {
-                typename T::value_type r;
-                r.randomize(G);
-                a[i] += r * uncheckedTriple.a[j];
-                c[i] += r * uncheckedTriple.c[j];
-            }
-    }
-
-    void output(ostream& outputStream, int n = N, bool human = false)
-    {
-        for (int i = 0; i < n; i++)
-        {
-            a[i].output(outputStream, human);
-            b.output(outputStream, human);
-            c[i].output(outputStream, human);
-        }
-    }
-};
-
-template <class T, int N>
-class PlainTriple : public Triple<T,N>
-{
-public:
-    // this assumes that valueBits[1] is still set to the bits of b
-    void to(vector<BitVector>& valueBits, int i)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            valueBits[0].set_int128(i * N + j, this->a[j].to_m128i());
-            valueBits[2].set_int128(i * N + j, this->c[j].to_m128i());
-        }
-    }
-};
-
-template <class T, int N>
-class ShareTriple : public Triple<Share<T>, N>
-{
-public:
-    void from(PlainTriple<T,N>& triple, vector<OTMultiplier<T>*>& ot_multipliers,
-            int iTriple, const NPartyTripleGenerator& generator)
-    {
-        for (int l = 0; l < 3; l++)
-        {
-            int repeat = this->repeat(l);
-            for (int j = 0; j < repeat; j++)
-            {
-                T value = triple.byIndex(l,j);
-                T mac = value * generator.machine.get_mac_key<T>();
-                for (int i = 0; i < generator.nparties-1; i++)
-                    mac += ot_multipliers[i]->macs[l][iTriple * repeat + j];
-                Share<T>& share = this->byIndex(l,j);
-                share.set_share(value);
-                share.set_mac(mac);
-            }
-        }
-    }
-
-    T computeCheckMAC(const T& maskedA)
-    {
-        return this->c[0].get_mac() - maskedA * this->b.get_mac();
-    }
-};
+    ((OTMultiplierBase*)ptr)->multiply();
+    return NULL;
+}
 
 /*
  * Copies the relevant base OTs from setup
  * N.B. setup must not be stored as it will be used by other threads
  */
-NPartyTripleGenerator::NPartyTripleGenerator(OTTripleSetup& setup,
+template<class T>
+NPartyTripleGenerator<T>::NPartyTripleGenerator(OTTripleSetup& setup,
         const Names& names, int thread_num, int _nTriples, int nloops,
-        TripleMachine& machine) :
-        globalPlayer(names, - thread_num * machine.nplayers * machine.nplayers),
+        MascotParams& machine, Player* parentPlayer) :
+        globalPlayer(parentPlayer ? *parentPlayer : *new PlainPlayer(names,
+                - thread_num * names.num_players() * names.num_players())),
+        parentPlayer(parentPlayer),
         thread_num(thread_num),
         my_num(setup.get_my_num()),
         nloops(nloops),
@@ -134,7 +44,7 @@ NPartyTripleGenerator::NPartyTripleGenerator(OTTripleSetup& setup,
 {
     nTriplesPerLoop = DIV_CEIL(_nTriples, nloops);
     nTriples = nTriplesPerLoop * nloops;
-    field_size = 128;
+    field_size = T::open_type::size() * 8;
     nAmplify = machine.amplify ? N_AMPLIFY : 1;
     nPreampTriplesPerLoop = nTriplesPerLoop * nAmplify;
 
@@ -144,16 +54,14 @@ NPartyTripleGenerator::NPartyTripleGenerator(OTTripleSetup& setup,
     //baseReceiverOutputs.resize(n-1);
     nbase = setup.get_nbase();
     baseReceiverInput.resize(nbase);
-    baseReceiverOutputs.resize(n - 1);
-    baseSenderInputs.resize(n - 1);
+    baseReceiverOutputs = setup.baseReceiverOutputs;
+    baseSenderInputs = setup.baseSenderInputs;
     players.resize(n-1);
-
-    gf2n_long::init_field(128);
 
     for (int i = 0; i < n-1; i++)
     {
         // i for indexing, other_player is actual number
-        int other_player, id;
+        int other_player;
         if (i >= my_num)
             other_player = i + 1;
         else
@@ -164,51 +72,62 @@ NPartyTripleGenerator::NPartyTripleGenerator(OTTripleSetup& setup,
         {
             baseReceiverInput.set_bit(j, (unsigned int)setup.get_base_receiver_input(j));
         }
-        baseReceiverOutputs[i] = setup.baseOTs[i]->receiver_outputs;
-        baseSenderInputs[i] = setup.baseOTs[i]->sender_inputs;
 
-        // new TwoPartyPlayer with unique id for each thread + pair of players
-        if (my_num < other_player)
-            id = (thread_num+1)*n*n + my_num*n + other_player;
-        else
-            id = (thread_num+1)*n*n + other_player*n + my_num;
-        players[i] = new TwoPartyPlayer(names, other_player, id);
-        cout << "Set up with player " << other_player << " in thread " << thread_num << " with id " << id << endl;
+        players[i] = new VirtualTwoPartyPlayer(globalPlayer, other_player);
     }
 
     pthread_mutex_init(&mutex, 0);
     pthread_cond_init(&ready, 0);
+
+    ot_multipliers.resize(nparties-1);
+
+    for (int i = 0; i < nparties-1; i++)
+    {
+        ot_multipliers[i] = new_multiplier(i);
+        pthread_create(&(ot_multipliers[i]->thread), 0, run_ot_thread<T>, ot_multipliers[i]);
+    }
+
+    wait_for_multipliers();
 }
 
-NPartyTripleGenerator::~NPartyTripleGenerator()
+template<class T>
+NPartyTripleGenerator<T>::~NPartyTripleGenerator()
 {
+    // wait for threads to finish
+    for (int i = 0; i < nparties-1; i++)
+    {
+        ot_multipliers[i]->inbox.stop();
+        pthread_join(ot_multipliers[i]->thread, NULL);
+#ifdef DEBUG_THREADS
+        cout << "OT thread " << i << " finished\n" << flush;
+#endif
+    }
+
+    for (size_t i = 0; i < ot_multipliers.size(); i++)
+        delete ot_multipliers[i];
+
     for (size_t i = 0; i < players.size(); i++)
         delete players[i];
     //delete nplayer;
     pthread_mutex_destroy(&mutex);
     pthread_cond_destroy(&ready);
+
+    if (parentPlayer != &globalPlayer)
+        delete &globalPlayer;
 }
 
 template<class T>
-void* run_ot_thread(void* ptr)
+typename T::Multiplier* NPartyTripleGenerator<T>::new_multiplier(int i)
 {
-    ((OTMultiplier<T>*)ptr)->multiply();
-    return NULL;
+    return new typename T::Multiplier(*this, i);
 }
 
 template<class T>
-void NPartyTripleGenerator::generate()
+void NPartyTripleGenerator<T>::generate()
 {
-    vector< OTMultiplier<T>* > ot_multipliers(nparties-1);
+    bigint::init_thread();
 
     timers["Generator thread"].start();
-
-    for (int i = 0; i < nparties-1; i++)
-    {
-        ot_multipliers[i] = new OTMultiplier<T>(*this, i);
-        pthread_mutex_lock(&ot_multipliers[i]->mutex);
-        pthread_create(&(ot_multipliers[i]->thread), 0, run_ot_thread<T>, ot_multipliers[i]);
-    }
 
     // add up the shares from each thread and write to file
     stringstream ss;
@@ -217,53 +136,93 @@ void NPartyTripleGenerator::generate()
         ss << "Bits-";
     else
         ss << "Triples-";
-    ss << T::type_char() << "-P" << my_num;
+    ss << T::type_short() << "-P" << my_num;
     if (thread_num != 0)
         ss << "-" << thread_num;
-    ofstream outputFile;
     if (machine.output)
         outputFile.open(ss.str().c_str());
 
     if (machine.generateBits)
-    	generateBits(ot_multipliers, outputFile);
+        generateBits();
     else
-    	generateTriples(ot_multipliers, outputFile);
+        generateTriples();
 
     timers["Generator thread"].stop();
     if (machine.output)
-        cout << "Written " << nTriples << " outputs to " << ss.str() << endl;
+        cout << "Written " << nTriples << " " << T::type_string() << " outputs to " << ss.str() << endl;
+#ifdef VERBOSE
     else
-        cout << "Generated " << nTriples << " outputs" << endl;
+        cout << "Generated " << nTriples << " " << T::type_string() << " outputs" << endl;
+#endif
+}
 
-    // wait for threads to finish
-    for (int i = 0; i < nparties-1; i++)
+template<class W>
+void NPartyTripleGenerator<W>::generateInputs(int player)
+{
+    typedef open_type T;
+
+    // extra value for sacrifice
+    int toCheck = nTriplesPerLoop + 1;
+    signal_multipliers({player, toCheck});
+    bool mine = player == globalPlayer.my_num();
+    valueBits.resize(1);
+
+    if (mine)
     {
-        pthread_mutex_unlock(&ot_multipliers[i]->mutex);
-        pthread_join(ot_multipliers[i]->thread, NULL);
-        cout << "OT thread " << i << " finished\n" << flush;
+        valueBits[0].resize(toCheck * field_size);
+        valueBits[0].template randomize_blocks<T>(share_prg);
+        signal_multipliers({});
     }
-    cout << "OT threads finished\n";
 
-    for (size_t i = 0; i < ot_multipliers.size(); i++)
-        delete ot_multipliers[i];
+    wait_for_multipliers();
+
+    GlobalPRNG G(globalPlayer);
+    Share<T> check_sum;
+    inputs.resize(toCheck);
+    auto mac_key = machine.get_mac_key<mac_key_type>();
+    for (int j = 0; j < toCheck; j++)
+    {
+        T share, mac_sum;
+        if (mine)
+            share = valueBits[0].template get_portion<T>(j);
+        if (mine)
+        {
+            mac_sum = share * mac_key;
+            for (int i = 0; i < nparties-1; i++)
+                mac_sum += (ot_multipliers[i])->input_macs[j];
+        }
+        else
+        {
+            int i_thread = player - (player > globalPlayer.my_num() ? 1 : 0);
+            mac_sum = (ot_multipliers[i_thread])->input_macs[j];
+        }
+        inputs[j] = {{share, mac_sum}, share};
+        check_sum += inputs[j].share * G.get<T>();
+    }
+    inputs.resize(nTriplesPerLoop);
+
+    typename W::MAC_Check MC(mac_key);
+    MC.POpen(check_sum, globalPlayer);
+    // use zero element because all is perfectly randomized
+    MC.set_random_element({});
+    MC.Check(globalPlayer);
 }
 
 template<>
-void NPartyTripleGenerator::generateBits(vector< OTMultiplier<gf2n>* >& ot_multipliers,
-		ofstream& outputFile)
+void NPartyTripleGenerator<Share<gf2n>>::generateBits()
 {
-    PRNG share_prg;
-    share_prg.ReSeed();
+    for (int i = 0; i < nparties-1; i++)
+        ot_multipliers[i]->inbox.push(DATA_BIT);
 
     int nBitsToCheck = nTriplesPerLoop + field_size;
     valueBits.resize(1);
     valueBits[0].resize(ceil(1.0 * nBitsToCheck / field_size) * field_size);
-    MAC_Check<gf2n> MC(machine.get_mac_key<gf2n>());
-    vector< Share<gf2n> > bits(nBitsToCheck);
+    bits.resize(nBitsToCheck);
     vector< Share<gf2n> > to_open(1);
     vector<gf2n> opened(1);
+    MAC_Check<gf2n> MC(machine.get_mac_key<gf2n>());
 
-    start_progress(ot_multipliers);
+    start_progress();
 
     for (int k = 0; k < nloops; k++)
     {
@@ -272,10 +231,10 @@ void NPartyTripleGenerator::generateBits(vector< OTMultiplier<gf2n>* >& ot_multi
     	valueBits[0].randomize_blocks<gf2n>(share_prg);
 
         for (int i = 0; i < nparties-1; i++)
-            pthread_cond_signal(&ot_multipliers[i]->ready);
+            ot_multipliers[i]->inbox.push({});
         timers["Authentication OTs"].start();
         for (int i = 0; i < nparties-1; i++)
-            pthread_cond_wait(&ot_multipliers[i]->ready, &ot_multipliers[i]->mutex);
+            ot_multipliers[i]->outbox.pop();
         timers["Authentication OTs"].stop();
 
         octet seed[SEED_SIZE];
@@ -289,12 +248,13 @@ void NPartyTripleGenerator::generateBits(vector< OTMultiplier<gf2n>* >& ot_multi
         {
             gf2n mac_sum = bool(valueBits[0].get_bit(j)) * machine.get_mac_key<gf2n>();
             for (int i = 0; i < nparties-1; i++)
-                mac_sum += ot_multipliers[i]->macs[0][j];
+                mac_sum += ((MascotMultiplier<gf2n>*)ot_multipliers[i])->macs[0][j];
             bits[j].set_share(valueBits[0].get_bit(j));
             bits[j].set_mac(mac_sum);
             r.randomize(G);
             check_sum += r * bits[j];
         }
+        bits.resize(nTriplesPerLoop);
 
         to_open[0] = check_sum;
         MC.POpen_Begin(opened, to_open, globalPlayer);
@@ -304,25 +264,161 @@ void NPartyTripleGenerator::generateBits(vector< OTMultiplier<gf2n>* >& ot_multi
         if (machine.output)
             for (int j = 0; j < nTriplesPerLoop; j++)
                 bits[j].output(outputFile, false);
-
-        for (int i = 0; i < nparties-1; i++)
-            pthread_cond_signal(&ot_multipliers[i]->ready);
    }
 }
 
 template<>
-void NPartyTripleGenerator::generateBits(vector< OTMultiplier<gfp>* >& ot_multipliers,
-		ofstream& outputFile)
+void NPartyTripleGenerator<Share<gfp1>>::generateBits()
 {
-	generateTriples(ot_multipliers, outputFile);
+	generateTriples();
+}
+
+template <class T>
+void NPartyTripleGenerator<T>::generateBits()
+{
+    (void)ot_multipliers;
+    (void)outputFile;
+    throw not_implemented();
 }
 
 template<class T>
-void NPartyTripleGenerator::generateTriples(vector< OTMultiplier<T>* >& ot_multipliers,
-    ofstream& outputFile)
+template<int K, int S>
+void NPartyTripleGenerator<T>::generateTriplesZ2k()
 {
-	PRNG share_prg;
-	share_prg.ReSeed();
+	(void) outputFile;
+	signal_multipliers(DATA_TRIPLE);
+
+	const int TAU = Spdz2kMultiplier<K, S>::TAU;
+	const int TAU_ROUNDED = (TAU + 7) / 8 * 8;
+	valueBits.resize(3);
+	for (int i = 0; i < 2; i++)
+		valueBits[2*i].resize(max(2 * 8 * Z2<K + 2 * S>::N_BYTES, TAU_ROUNDED) * nTriplesPerLoop);
+	valueBits[1].resize(8 * Z2<K + S>::N_BYTES * (nTriplesPerLoop + 1));
+	b_padded_bits.resize(8 * Z2<K + 2 * S>::N_BYTES * (nTriplesPerLoop + 1));
+	vector< PlainTriple_<Z2<K + 2 * S>, Z2<K + S>, 2> > amplifiedTriples(nTriplesPerLoop);
+	uncheckedTriples.resize(nTriplesPerLoop);
+	MAC_Check_Z2k<Z2<K + 2 * S>, Z2<S>, Z2<K + S>, Share<Z2<K + 2 * S>> > MC(machine.get_mac_key<Z2<S> >());
+
+	start_progress();
+
+	for (int k = 0; k < nloops; k++)
+	{
+		print_progress(k);
+
+		for (int j = 0; j < 2; j++)
+			valueBits[j].template randomize_blocks<gf2n>(share_prg);
+
+		for (int j = 0; j < nTriplesPerLoop + 1; j++)
+		{
+			Z2<K + S> b(valueBits[1].get_ptr_to_byte(j, Z2<K + S>::N_BYTES));
+			b_padded_bits.set_portion(j, Z2<K + 2 * S>(b));
+		}
+
+		timers["OTs"].start();
+		signal_multipliers({});
+		wait_for_multipliers();
+		timers["OTs"].stop();
+
+		octet seed[SEED_SIZE];
+		Create_Random_Seed(seed, globalPlayer, SEED_SIZE);
+		PRNG G;
+		G.SetSeed(seed);
+
+		BitVector aBits = valueBits[0];
+
+		for (int j = 0; j < nTriplesPerLoop; j++)
+		{
+			BitVector a(aBits.get_ptr_to_bit(j, TAU_ROUNDED), TAU);
+			Z2<K + S> b(valueBits[1].get_ptr_to_byte(j, Z2<K + S>::N_BYTES));
+			Z2kRectangle<TAU, K + S> c;
+			c.mul(a, b);
+			timers["Triple computation"].start();
+			for (int i = 0; i < nparties-1; i++)
+			{
+				c += ((Spdz2kMultiplier<K, S>*)ot_multipliers[i])->c_output[j];
+			}
+
+#ifdef DEBUG_SPDZ2K
+			for (int l = 0; l < c.N_ROWS; l++)
+			{
+				Z2<K + S> z = fake.POpen({c.rows[l], {}}, globalPlayer);
+				auto x = fake.POpen({a.get_bit(l), {}}, globalPlayer);
+				auto y = fake.POpen({b, {}}, globalPlayer);
+				Z2<K + S> zz = x * y;
+				if (z != zz)
+				{
+					cout << dec << j << " " << l << " " << hex << z << " " << zz
+							<< " " << y << " " << x << " " << a.get_byte(l / 8) << endl;
+				}
+			}
+#endif
+
+			timers["Triple computation"].stop();
+			amplifiedTriples[j].amplify(a, b, c, G);
+			amplifiedTriples[j].to(valueBits, j);
+		}
+
+		signal_multipliers({});
+		wait_for_multipliers();
+
+		for (int j = 0; j < nTriplesPerLoop; j++)
+		{
+			uncheckedTriples[j].from(amplifiedTriples[j], j, *this);
+		}
+
+		// we can skip the consistency check since we're doing a mac-check next
+		// get piggy-backed random value
+		Z2<K + 2 * S> r_share = b_padded_bits.get_ptr_to_byte(nTriplesPerLoop, Z2<K + 2 * S>::N_BYTES);
+		Z2<K + 2 * S> r_mac;
+		r_mac.mul(r_share, this->machine.template get_mac_key<Z2<S>>());
+		for (int i = 0; i < this->nparties-1; i++)
+			r_mac += (ot_multipliers[i])->macs.at(1).at(nTriplesPerLoop);
+		Share<Z2<K + 2 * S>> r;
+		r.set_share(r_share);
+		r.set_mac(r_mac);
+
+		MC.set_random_element(r);
+		sacrificeZ2k(uncheckedTriples, MC, G);
+	}
+}
+
+template<>
+void NPartyTripleGenerator<Spdz2kShare<32, 32>>::generateTriples()
+{
+    this->generateTriplesZ2k<32, 32>();
+}
+
+template<>
+void NPartyTripleGenerator<Spdz2kShare<64, 64>>::generateTriples()
+{
+    this->generateTriplesZ2k<64, 64>();
+}
+
+template<>
+void NPartyTripleGenerator<Spdz2kShare<64, 48>>::generateTriples()
+{
+    this->generateTriplesZ2k<64, 48>();
+}
+
+template<>
+void NPartyTripleGenerator<Spdz2kShare<66, 64>>::generateTriples()
+{
+    this->generateTriplesZ2k<66, 64>();
+}
+
+template<>
+void NPartyTripleGenerator<Spdz2kShare<66, 48>>::generateTriples()
+{
+    this->generateTriplesZ2k<66, 48>();
+}
+
+template<class U>
+void NPartyTripleGenerator<U>::generateTriples()
+{
+    typedef typename U::open_type T;
+
+	for (int i = 0; i < nparties-1; i++)
+	    ot_multipliers[i]->inbox.push(DATA_TRIPLE);
 
     valueBits.resize(3);
     for (int i = 0; i < 2; i++)
@@ -330,7 +426,6 @@ void NPartyTripleGenerator::generateTriples(vector< OTMultiplier<T>* >& ot_multi
     valueBits[1].resize(field_size * nTriplesPerLoop);
     vector< PlainTriple<T,N_AMPLIFY> > preampTriples;
     vector< PlainTriple<T,2> > amplifiedTriples;
-    vector< ShareTriple<T,2> > uncheckedTriples;
     MAC_Check<T> MC(machine.get_mac_key<T>());
 
     if (machine.amplify)
@@ -341,29 +436,30 @@ void NPartyTripleGenerator::generateTriples(vector< OTMultiplier<T>* >& ot_multi
 	uncheckedTriples.resize(nTriplesPerLoop);
       }
 
-    start_progress(ot_multipliers);
+    start_progress();
 
     for (int k = 0; k < nloops; k++)
     {
         print_progress(k);
 
         for (int j = 0; j < 2; j++)
-            valueBits[j].randomize_blocks<T>(share_prg);
+            valueBits[j].template randomize_blocks<T>(share_prg);
 
         timers["OTs"].start();
         for (int i = 0; i < nparties-1; i++)
-            pthread_cond_wait(&ot_multipliers[i]->ready, &ot_multipliers[i]->mutex);
+            ot_multipliers[i]->inbox.push({});
+        wait_for_multipliers();
         timers["OTs"].stop();
 
         for (int j = 0; j < nPreampTriplesPerLoop; j++)
         {
-            T a(valueBits[0].get_int128(j));
-            T b(valueBits[1].get_int128(j / nAmplify));
+            T a((char*)valueBits[0].get_ptr() + j * T::size());
+            T b((char*)valueBits[1].get_ptr() + j / nAmplify * T::size());
             T c = a * b;
             timers["Triple computation"].start();
             for (int i = 0; i < nparties-1; i++)
             {
-                c += ot_multipliers[i]->c_output[j];
+                c += ((MascotMultiplier<T>*)ot_multipliers[i])->c_output[j];
             }
             timers["Triple computation"].stop();
             if (machine.amplify)
@@ -409,15 +505,14 @@ void NPartyTripleGenerator::generateTriples(vector< OTMultiplier<T>* >& ot_multi
                     amplifiedTriples[iTriple].to(valueBits, iTriple);
 
                 for (int i = 0; i < nparties-1; i++)
-                    pthread_cond_signal(&ot_multipliers[i]->ready);
+                    ot_multipliers[i]->inbox.push({});
                 timers["Authentication OTs"].start();
-                for (int i = 0; i < nparties-1; i++)
-                    pthread_cond_wait(&ot_multipliers[i]->ready, &ot_multipliers[i]->mutex);
+                wait_for_multipliers();
                 timers["Authentication OTs"].stop();
 
                 for (int iTriple = 0; iTriple < nTriplesPerLoop; iTriple++)
                 {
-                    uncheckedTriples[iTriple].from(amplifiedTriples[iTriple], ot_multipliers, iTriple, *this);
+                    uncheckedTriples[iTriple].from(amplifiedTriples[iTriple], iTriple, *this);
 
                     if (!machine.check and machine.output)
                     {
@@ -429,67 +524,126 @@ void NPartyTripleGenerator::generateTriples(vector< OTMultiplier<T>* >& ot_multi
 
                 if (machine.check)
                 {
-                    vector< Share<T> > maskedAs(nTriplesPerLoop);
-                    vector< ShareTriple<T,1> > maskedTriples(nTriplesPerLoop);
-                    for (int j = 0; j < nTriplesPerLoop; j++)
-                    {
-                        maskedTriples[j].amplify(uncheckedTriples[j], G);
-                        maskedAs[j] = maskedTriples[j].a[0];
-                    }
-
-                    vector<T> openedAs(nTriplesPerLoop);
-                    MC.POpen_Begin(openedAs, maskedAs, globalPlayer);
-                    MC.POpen_End(openedAs, maskedAs, globalPlayer);
-
-                    for (int j = 0; j < nTriplesPerLoop; j++)
-                        MC.AddToCheck(maskedTriples[j].computeCheckMAC(openedAs[j]), int128(0), globalPlayer);
-
-                    MC.Check(globalPlayer);
-
-                    if (machine.generateBits)
-                        generateBitsFromTriples(uncheckedTriples, MC, outputFile);
-                    else
-                        if (machine.output)
-                            for (int j = 0; j < nTriplesPerLoop; j++)
-                                uncheckedTriples[j].output(outputFile, 1);
+                    sacrifice(uncheckedTriples, MC, G);
                 }
             }
         }
-
-        for (int i = 0; i < nparties-1; i++)
-            pthread_cond_signal(&ot_multipliers[i]->ready);
     }
 }
 
-template<>
-void NPartyTripleGenerator::generateBitsFromTriples(
-        vector< ShareTriple<gfp,2> >& triples, MAC_Check<gfp>& MC, ofstream& outputFile)
+template<class T>
+void NPartyTripleGenerator<T>::sacrifice(
+		vector<ShareTriple_<open_type, mac_key_type, 2> >& uncheckedTriples, typename T::MAC_Check& MC, PRNG& G)
 {
-    vector< Share<gfp> > a_plus_b(nTriplesPerLoop), a_squared(nTriplesPerLoop);
+    vector<T> maskedAs(nTriplesPerLoop);
+    vector<TripleToSacrifice<open_type> > maskedTriples(nTriplesPerLoop);
+    for (int j = 0; j < nTriplesPerLoop; j++)
+    {
+        maskedTriples[j].prepare_sacrifice(uncheckedTriples[j], G);
+        maskedAs[j] = maskedTriples[j].a[0];
+    }
+
+    vector<open_type> openedAs(nTriplesPerLoop);
+    MC.POpen_Begin(openedAs, maskedAs, globalPlayer);
+    MC.POpen_End(openedAs, maskedAs, globalPlayer);
+
+    for (int j = 0; j < nTriplesPerLoop; j++) {
+        MC.AddToCheck(maskedTriples[j].computeCheckShare(openedAs[j]), 0,
+                globalPlayer);
+    }
+
+    MC.Check(globalPlayer);
+
+    if (machine.generateBits)
+        generateBitsFromTriples(uncheckedTriples, MC, outputFile);
+    else
+        if (machine.output)
+            for (int j = 0; j < nTriplesPerLoop; j++)
+                uncheckedTriples[j].output(outputFile, 1);
+}
+
+template<class W>
+template<class U>
+void NPartyTripleGenerator<W>::sacrificeZ2k(
+        vector<ShareTriple_<sacri_type, mac_key_type, 2> >& uncheckedTriples, U& MC, PRNG& G)
+{
+    typedef sacri_type T;
+    typedef open_type V;
+
+    vector< Share<T> > maskedAs(nTriplesPerLoop);
+    vector<TripleToSacrifice<T> > maskedTriples(nTriplesPerLoop);
+    for (int j = 0; j < nTriplesPerLoop; j++)
+    {
+        // compute [p] = t * [a] - [ahat]
+        // and first part of [sigma], i.e., t * [c] - [chat] 
+        maskedTriples[j].prepare_sacrifice(uncheckedTriples[j], G);
+        maskedAs[j] = maskedTriples[j].a[0];
+    }
+
+    vector<T> openedAs(nTriplesPerLoop);
+    MC.POpen_Begin(openedAs, maskedAs, globalPlayer);
+    MC.POpen_End(openedAs, maskedAs, globalPlayer);
+
+    vector<Share<T>> sigmas;
+    for (int j = 0; j < nTriplesPerLoop; j++) {
+        // compute t * [c] - [chat] - [b] * p
+        sigmas.push_back(maskedTriples[j].computeCheckShare(V(openedAs[j])));
+    }
+    vector<T> open_sigmas;
+    
+    MC.POpen_Begin(open_sigmas, sigmas, globalPlayer);
+    MC.POpen_End(open_sigmas, sigmas, globalPlayer);
+    MC.Check(globalPlayer);
+
+    for (int j = 0; j < nTriplesPerLoop; j++) {
+        if (V(open_sigmas[j]) != 0)
+        {
+            throw runtime_error("sacrifice fail");
+        }
+    }
+    
+    if (machine.generateBits)
+        generateBitsFromTriples(uncheckedTriples, MC, outputFile);
+    else
+        if (machine.output)
+            for (int j = 0; j < nTriplesPerLoop; j++)
+                uncheckedTriples[j].template reduce<V>().output(outputFile, 1);
+}
+
+template<>
+template<class U, class V, class W, int N>
+void NPartyTripleGenerator<Share<gfp1>>::generateBitsFromTriples(
+        vector< ShareTriple_<U, V, N> >& triples, W& MC, ofstream& outputFile)
+{
+    vector< Share<gfp1> > a_plus_b(nTriplesPerLoop), a_squared(nTriplesPerLoop);
     for (int i = 0; i < nTriplesPerLoop; i++)
         a_plus_b[i] = triples[i].a[0] + triples[i].b;
-    vector<gfp> opened(nTriplesPerLoop);
+    vector<gfp1> opened(nTriplesPerLoop);
     MC.POpen_Begin(opened, a_plus_b, globalPlayer);
     MC.POpen_End(opened, a_plus_b, globalPlayer);
     for (int i = 0; i < nTriplesPerLoop; i++)
         a_squared[i] = triples[i].a[0] * opened[i] - triples[i].c[0];
     MC.POpen_Begin(opened, a_squared, globalPlayer);
     MC.POpen_End(opened, a_squared, globalPlayer);
-    Share<gfp> one(gfp(1), globalPlayer.my_num(), MC.get_alphai());
+    Share<gfp1> one(gfp1(1), globalPlayer.my_num(), MC.get_alphai());
+    bits.clear();
     for (int i = 0; i < nTriplesPerLoop; i++)
     {
-        gfp root = opened[i].sqrRoot();
+        gfp1 root = opened[i].sqrRoot();
         if (root.is_zero())
             continue;
-        Share<gfp> bit = (triples[i].a[0] / root + one) / gfp(2);
+        Share<gfp1> bit = (triples[i].a[0] / root + one) / gfp1(2);
         if (machine.output)
             bit.output(outputFile, false);
+        else
+            bits.push_back(bit);
     }
 }
 
-template<>
-void NPartyTripleGenerator::generateBitsFromTriples(
-        vector< ShareTriple<gf2n,2> >& triples, MAC_Check<gf2n>& MC, ofstream& outputFile)
+template<class T>
+template<class U, class V, class W, int N>
+void NPartyTripleGenerator<T>::generateBitsFromTriples(
+        vector< ShareTriple_<U, V, N> >& triples, W& MC, ofstream& outputFile)
 {
     throw how_would_that_work();
     // warning gymnastics
@@ -499,19 +653,17 @@ void NPartyTripleGenerator::generateBitsFromTriples(
 }
 
 template <class T>
-void NPartyTripleGenerator::start_progress(vector< OTMultiplier<T>* >& ot_multipliers)
+void NPartyTripleGenerator<T>::start_progress()
 {
-    for (int i = 0; i < nparties-1; i++)
-        pthread_cond_wait(&ot_multipliers[i]->ready, &ot_multipliers[i]->mutex);
+    wait_for_multipliers();
     lock();
     signal();
     wait();
     gettimeofday(&last_lap, 0);
-    for (int i = 0; i < nparties-1; i++)
-        pthread_cond_signal(&ot_multipliers[i]->ready);
 }
 
-void NPartyTripleGenerator::print_progress(int k)
+template<class T>
+void NPartyTripleGenerator<T>::print_progress(int k)
 {
     if (thread_num == 0 && my_num == 0)
     {
@@ -530,26 +682,56 @@ void NPartyTripleGenerator::print_progress(int k)
     }
 }
 
-void NPartyTripleGenerator::lock()
+void MascotGenerator::lock()
 {
     pthread_mutex_lock(&mutex);
 }
 
-void NPartyTripleGenerator::unlock()
+void MascotGenerator::unlock()
 {
     pthread_mutex_unlock(&mutex);
 }
 
-void NPartyTripleGenerator::signal()
+void MascotGenerator::signal()
 {
     pthread_cond_signal(&ready);
 }
 
-void NPartyTripleGenerator::wait()
+void MascotGenerator::wait()
 {
-    pthread_cond_wait(&ready, &mutex);
+    if (multi_threaded)
+        pthread_cond_wait(&ready, &mutex);
+}
+
+template<class T>
+void NPartyTripleGenerator<T>::signal_multipliers(MultJob job)
+{
+    for (int i = 0; i < nparties-1; i++)
+        ot_multipliers[i]->inbox.push(job);
+}
+
+template<class T>
+void NPartyTripleGenerator<T>::wait_for_multipliers()
+{
+    for (int i = 0; i < nparties-1; i++)
+        ot_multipliers[i]->outbox.pop();
+}
+
+template<class T>
+size_t NPartyTripleGenerator<T>::data_sent()
+{
+    size_t res = globalPlayer.sent;
+    for (auto& player : players)
+        res += player->sent;
+    return res;
 }
 
 
-template void NPartyTripleGenerator::generate<gf2n>();
-template void NPartyTripleGenerator::generate<gfp>();
+template class NPartyTripleGenerator<Share<gf2n>>;
+template class NPartyTripleGenerator<Share<gfp1>>;
+
+template class NPartyTripleGenerator<Spdz2kShare<32, 32>>;
+template class NPartyTripleGenerator<Spdz2kShare<64, 64>>;
+template class NPartyTripleGenerator<Spdz2kShare<64, 48>>;
+template class NPartyTripleGenerator<Spdz2kShare<66, 64>>;
+template class NPartyTripleGenerator<Spdz2kShare<66, 48>>;

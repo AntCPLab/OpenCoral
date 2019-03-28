@@ -15,9 +15,11 @@ using namespace std;
 
 ReceivedMsgStore::~ReceivedMsgStore()
 {
-	cout << "Stored " << (double)total_size / 1e9 << " GB in "
+#ifdef VERBOSE
+	cerr << "Stored " << (double)total_size / 1e9 << " GB in "
 			<< push_timer.elapsed() << " seconds and retrieved them in "
 			<< pop_timer.elapsed() << " seconds " << endl;
+#endif
 }
 
 void ReceivedMsgStore::push(ReceivedMsg& msg)

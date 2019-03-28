@@ -47,6 +47,7 @@ class octetStream
   void resize(size_t l);
   void resize_precise(size_t l);
   void resize_min(size_t l);
+  void reserve(size_t l);
   void clear();
 
   void assign(const octetStream& os);
@@ -162,7 +163,7 @@ class octetStream
   template<class T>
   void exchange(T send_socket, T receive_socket) { exchange(send_socket, receive_socket, *this); }
   template<class T>
-  void exchange(T send_socket, T receive_socket, octetStream& receive_stream);
+  void exchange(T send_socket, T receive_socket, octetStream& receive_stream) const;
 
   friend ostream& operator<<(ostream& s,const octetStream& o);
   friend class PRNG;
@@ -198,6 +199,11 @@ inline void octetStream::resize_min(size_t l)
     resize_precise(l);
 }
 
+inline void octetStream::reserve(size_t l)
+{
+  if (len + l > mxlen)
+    resize_precise(len + l);
+}
 
 inline void octetStream::append(const octet* x, const size_t l)
 {

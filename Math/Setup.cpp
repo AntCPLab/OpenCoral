@@ -22,7 +22,9 @@ bigint SPDZ_Data_Setup_Primes(int lgp)
 
 void SPDZ_Data_Setup_Primes(bigint& p,int lgp,int& idx,int& m)
 {
+#ifdef VERBOSE
   cout << "Setting up parameters" << endl;
+#endif
 
   switch (lgp)
     { case -1:
@@ -53,10 +55,14 @@ void SPDZ_Data_Setup_Primes(bigint& p,int lgp,int& idx,int& m)
       default:
         m=1;
         idx=0;
+#ifdef VERBOSE
         cout << "no precomputed parameters, trying anyway" << endl;
+#endif
         break;
     }
+#ifdef VERBOSE
   cout << "m = " << m << endl;
+#endif
   generate_prime(p, lgp, m);
 }
 
@@ -89,8 +95,10 @@ void generate_prime(bigint& p, int lgp, int m)
       while (!probPrime(p) || numBits(p)<lgp)
         { u=u+m;  p=u+1; }
     }
+#ifdef VERBOSE
   cout << "\t p = " << p << "  u = " << u << "  :   ";
   cout << lgp << " <= " << numBits(p) << endl;
+#endif
 }
 
 
@@ -150,7 +158,9 @@ void read_setup(const string& dir_prefix)
   if (dir_prefix.compare("") == 0)
     filename = string(PREP_DIR "Params-Data");
 
+#ifdef DEBUG_FILES
   cerr << "loading params from: " << filename << endl;
+#endif
   ifstream inpf(filename.c_str());
   if (inpf.fail()) { throw file_error(filename.c_str()); }
   inpf >> p;

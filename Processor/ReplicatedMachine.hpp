@@ -14,6 +14,8 @@ template<class T, class U>
 ReplicatedMachine<T, U>::ReplicatedMachine(int argc, const char** argv,
           string name, ez::ezOptionParser& opt, int nplayers)
 {
+    (void) name;
+
     OnlineOptions online_opts(opt, argc, argv);
     opt.add(
             "localhost", // Default.
@@ -42,48 +44,16 @@ ReplicatedMachine<T, U>::ReplicatedMachine(int argc, const char** argv,
             "-u", // Flag token.
             "--unencrypted" // Flag token.
     );
-    opt.add(
-            "", // Default.
-            0, // Required?
-            0, // Number of args expected.
-            0, // Delimiter if expecting multiple args.
-            "Preprocessing from files", // Help description.
-            "-F", // Flag token.
-            "--file-preprocessing" // Flag token.
-    );
-    opt.syntax = "./" + name + "-party.x [OPTIONS] <playerno> <progname>";
-    opt.resetArgs();
-    opt.parse(argc, argv);
-    vector<string*> allArgs(opt.firstArgs);
-    allArgs.insert(allArgs.end(), opt.lastArgs.begin(), opt.lastArgs.end());
+    online_opts.finalize(opt, argc, argv);
 
-    int playerno;
-    string progname;
-
-    if (allArgs.size() != 3)
-    {
-        cerr << "ERROR: incorrect number of arguments to " << argv[0] << endl;
-        cerr << "Arguments given were:\n";
-        for (unsigned int j = 1; j < allArgs.size(); j++)
-            cout << "'" << *allArgs[j] << "'" << endl;
-        string usage;
-        opt.getUsage(usage);
-        cout << usage;
-        exit(1);
-    }
-    else
-    {
-        playerno = atoi(allArgs[1]->c_str());
-        progname = *allArgs[2];
-
-    }
+    int playerno = online_opts.playerno;
+    string progname = online_opts.progname;
 
     int pnb;
     string hostname;
     opt.get("-pn")->getInt(pnb);
     opt.get("-h")->getString(hostname);
     bool use_encryption = not opt.get("-u")->isSet;
-    bool live_prep = not opt.get("-F")->isSet;
 
     if (not use_encryption)
         insecure("unencrypted communication");
@@ -92,7 +62,7 @@ ReplicatedMachine<T, U>::ReplicatedMachine(int argc, const char** argv,
 
     Machine<T, U>(playerno, N, progname, "empty",
             gf2n::default_degree(), 0, 0, 0, 0, 0, use_encryption,
-            live_prep, online_opts).run();
+            online_opts.live_prep, online_opts).run();
 
     if (server)
         delete server;

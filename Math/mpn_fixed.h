@@ -10,6 +10,8 @@
 #include <string.h>
 #include <assert.h>
 
+#include "bigint.h"
+
 inline void debug_print(const char* name, const mp_limb_t* x, int n)
 {
     (void)name, (void)x, (void)n;
@@ -224,6 +226,16 @@ inline void mpn_addmul_1_fixed_(mp_limb_t* res, const mp_limb_t* y, mp_limb_t x)
 {
     mpn_addmul_1_fixed__<L, M, true>(res, y, x);
 }
+#else
+template <int L, int M>
+inline void mpn_addmul_1_fixed_(mp_limb_t* res, const mp_limb_t* y, mp_limb_t x)
+{
+    mp_limb_t tmp[L];
+    memset(tmp, 0, sizeof(tmp));
+    memcpy(tmp, y, M * sizeof(mp_limb_t));
+    mpn_addmul_1(res, tmp, L, x);
+}
+#endif
 
 template <int M>
 inline void mpn_addmul_1_fixed(mp_limb_t* res, const mp_limb_t* y, mp_limb_t x)
@@ -268,6 +280,5 @@ inline void mpn_mul_fixed(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y
 {
     mpn_mul_fixed_<N + M, N, M>(res, x, y);
 }
-#endif
 
 #endif /* MATH_MPN_FIXED_H_ */

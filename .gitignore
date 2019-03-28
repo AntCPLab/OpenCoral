@@ -63,6 +63,7 @@ Programs/Public-Input/*
 *.static
 *.d
 local/
+*.map
 
 # Packages #
 ############

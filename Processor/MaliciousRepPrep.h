@@ -18,6 +18,7 @@ class MaliciousRepPrep : public BufferPrep<T>
 {
     typedef BufferPrep<T> super;
 
+    DataPositions honest_usage;
     ReplicatedPrep<typename T::Honest> honest_prep;
     typename T::Honest::Protocol* replicated;
     typename T::MAC_Check MC;
@@ -37,7 +38,7 @@ class MaliciousRepPrep : public BufferPrep<T>
     void buffer_bits();
 
 public:
-    MaliciousRepPrep(SubProcessor<T>* proc);
+    MaliciousRepPrep(SubProcessor<T>* proc, DataPositions& usage);
     ~MaliciousRepPrep();
 
     void set_protocol(Beaver<T>& protocol);

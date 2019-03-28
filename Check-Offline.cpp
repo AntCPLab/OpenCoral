@@ -7,6 +7,7 @@
 #include "Math/gfp.h"
 #include "Math/Share.h"
 #include "Auth/fake-stuff.h"
+#include "Auth/MAC_Check.h"
 #include "Tools/ezOptionParser.h"
 #include "Exceptions/Exceptions.h"
 
@@ -24,7 +25,7 @@ using namespace std;
 string PREP_DATA_PREFIX;
 
 template<class T>
-void check_mult_triples(const typename T::value_type& key,int N,vector<Sub_Data_Files<T>*>& dataF)
+void check_mult_triples(const typename T::mac_key_type& key,int N,vector<Sub_Data_Files<T>*>& dataF)
 {
   typename T::clear a,b,c,mac,res;
   vector<T> Sa(N),Sb(N),Sc(N);
@@ -40,7 +41,7 @@ void check_mult_triples(const typename T::value_type& key,int N,vector<Sub_Data_
           check_share(Sc, c, mac, N, key);
 
           res.mul(a, b);
-          if (!res.equal(c))
+          if (res != c)
             {
               cout << n << ": " << c << " != " << a << " * " << b << endl;
               throw bad_value();
@@ -92,7 +93,7 @@ void check_tuple(const T& a, const T& b, int n, Dtype type)
 }
 
 template<class T>
-void check_tuples(const typename T::value_type& key,int N,vector<Sub_Data_Files<T>*>& dataF, Dtype type)
+void check_tuples(const typename T::mac_key_type& key,int N,vector<Sub_Data_Files<T>*>& dataF, Dtype type)
 {
   typename T::clear a,b,c,mac,res;
   vector<T> Sa(N),Sb(N),Sc(N);
@@ -120,7 +121,7 @@ void check_tuples(const typename T::value_type& key,int N,vector<Sub_Data_Files<
 }
 
 template<class T>
-void check_bits(const typename T::value_type& key,int N,vector<Sub_Data_Files<T>*>& dataF)
+void check_bits(const typename T::mac_key_type& key,int N,vector<Sub_Data_Files<T>*>& dataF)
 {
   typename T::clear a,b,c,mac,res;
   vector<T> Sa(N),Sb(N),Sc(N);
@@ -150,7 +151,7 @@ void check_bits(const typename T::value_type& key,int N,vector<Sub_Data_Files<T>
 }
 
 template<class T>
-void check_inputs(const typename T::value_type& key,int N,vector<Sub_Data_Files<T>*>& dataF)
+void check_inputs(const typename T::mac_key_type& key,int N,vector<Sub_Data_Files<T>*>& dataF)
 {
   typename T::clear a, mac, x;
   vector<T> Sa(N);
@@ -188,7 +189,7 @@ vector<Sub_Data_Files<T>*> setup(int N, DataPositions& usage, int thread_num = -
 }
 
 template<class T>
-void check(typename T::value_type key, int N, bool only_bits = false)
+void check(typename T::mac_key_type key, int N, bool only_bits = false)
 {
   DataPositions usage(N);
   auto dataF = setup<T>(N, usage);

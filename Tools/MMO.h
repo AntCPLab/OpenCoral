@@ -12,7 +12,8 @@
 // Matyas-Meyer-Oseas hashing
 class MMO
 {
-    octet IV[176]  __attribute__((aligned (16)));
+    static const int N_KEYS = 2;
+    octet IV[N_KEYS][176]  __attribute__((aligned (16)));
 
     template<int N>
     static void encrypt_and_xor(void* output, const void* input,
@@ -24,9 +25,11 @@ class MMO
 public:
     MMO() { zeroIV(); }
     void zeroIV();
-    void setIV(octet key[AES_BLK_SIZE]);
+    void setIV(int i, octet key[AES_BLK_SIZE]);
     template <class T>
-    void hashOneBlock(octet* output, octet* input);
+    void hashOneBlock(void* output, const void* input) { hashBlocks<T, 1>((T*)output, input); }
+    template <class T, int N>
+    void hashBlocks(void* output, const void* input);
     template <class T, int N>
     void hashBlockWise(octet* output, octet* input);
     template <class T>
@@ -50,14 +53,14 @@ inline void MMO::encrypt_and_xor(void* output, const void* input, const octet* k
 inline Key MMO::hash(const Key& input)
 {
     Key res;
-    encrypt_and_xor<1>(&res.r, &input.r, IV);
+    encrypt_and_xor<1>(&res.r, &input.r, IV[0]);
     return res;
 }
 
 template <int N>
 inline void MMO::hash(Key* output, const Key* input)
 {
-    encrypt_and_xor<N>(output, input, IV);
+    encrypt_and_xor<N>(output, input, IV[0]);
 }
 
 #endif /* TOOLS_MMO_H_ */

@@ -1,8 +1,8 @@
 
 #include "Share.h"
-//#include "Tools/random.h"
 #include "Math/gfp.h"
 #include "Math/gf2n.h"
+#include "Math/Z2k.h"
 #include "Math/operators.h"
 #include "Math/FixedVec.h"
 #include "Math/Integer.h"
@@ -79,3 +79,11 @@ template class Share<gf2n_short>;
 template gf2n_short combine(const vector< Share<gf2n_short> >& S);
 template bool check_macs(const vector< Share<gf2n_short> >& S,const gf2n_short& key);
 #endif
+
+template class Share<Z2<64> >;
+template class Share<Z2<96> >;
+template class Share<Z2<112> >;
+template class Share<Z2<128> >;
+template class Share<Z2<160> >;
+template class Share<Z2<192> >;
+template class Share<Z2<256> >;

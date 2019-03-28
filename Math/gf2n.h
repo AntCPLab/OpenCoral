@@ -29,6 +29,8 @@ void collapse_byte(int& b,const gf2n_short& a);
 
 class gf2n_short
 {
+  friend class gf2n_long;
+
   word a;
 
   static int n,t1,t2,t3,nterms;
@@ -54,11 +56,10 @@ class gf2n_short
 
   typedef gf2n_short value_type;
   typedef word internal_type;
+  typedef gf2n_short next;
 
-  typedef MAC_Check<gf2n_short> MC;
-  typedef Input<gf2n_short> Inp;
   typedef PrivateOutput<gf2n_short> PO;
-  typedef SPDZ<gf2n_short> Protocol;
+  typedef SPDZ<Share<gf2n_short>> Protocol;
 
   static void init_field(int nn);
   static int degree() { return n; }

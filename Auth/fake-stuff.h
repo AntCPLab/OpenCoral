@@ -4,6 +4,7 @@
 
 #include "Math/gf2n.h"
 #include "Math/gfp.h"
+#include "Math/Z2k.h"
 #include "Math/Share.h"
 #include "Math/Rep3Share.h"
 #include "GC/MaliciousRepSecret.h"
@@ -12,19 +13,21 @@
 using namespace std;
 
 template<class T>
-void make_share(vector<Share<T> >& Sa,const T& a,int N,const T& key,PRNG& G);
-
-template<class T>
-void check_share(vector<Share<T> >& Sa,T& value,T& mac,int N,const T& key);
-template<class T>
 void check_share(vector<T>& Sa, typename T::clear& value,
     typename T::value_type& mac, int N, const typename T::value_type& key);
+
+template<class T, class V>
+void check_share(vector<Share<T> >& Sa,
+  V& value,
+  T& mac,
+  int N,
+  const T& key);
 
 // Generate MAC key shares
 void generate_keys(const string& directory, int nplayers);
 
-template <class T>
-void write_mac_keys(const string& directory, int player_num, int nplayers, gfp keyp, T key2);
+template <class T, class U>
+void write_mac_keys(const string& directory, int player_num, int nplayers, U keyp, T key2);
 
 // Read MAC key shares and compute keys
 void read_keys(const string& directory, gfp& keyp, gf2n& key2, int nplayers);
@@ -35,9 +38,9 @@ class Files
 public:
   ofstream* outf;
   int N;
-  typename T::value_type key;
+  typename T::mac_type key;
   PRNG G;
-  Files(int N, const typename T::value_type& key, const string& prefix) : N(N), key(key)
+  Files(int N, const typename T::mac_type& key, const string& prefix) : N(N), key(key)
   {
     outf = new ofstream[N];
     for (int i=0; i<N; i++)

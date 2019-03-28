@@ -14,8 +14,7 @@
 class OTTripleSetup
 {
     vector<int> base_receiver_inputs;
-    vector< vector< vector<BitVector> > > baseSenderInputs;
-    vector< vector<BitVector> > baseReceiverOutputs;
+    vector<BaseOT*> baseOTs;
 
     PRNG G;
     int nparties;
@@ -24,43 +23,40 @@ class OTTripleSetup
 
 public:
     map<string,Timer> timers;
-    vector<BaseOT*> baseOTs;
-    vector<TwoPartyPlayer*> players;
+    vector<OffsetPlayer*> players;
+    vector< vector< vector<BitVector> > > baseSenderInputs;
+    vector< vector<BitVector> > baseReceiverOutputs;
 
     int get_nparties() { return nparties; }
     int get_nbase() { return nbase; }
     int get_my_num() { return my_num; }
     int get_base_receiver_input(int i) { return base_receiver_inputs[i]; }
 
-    OTTripleSetup(Names& N, bool real_OTs)
+    OTTripleSetup(Player& N, bool real_OTs)
         : nparties(N.num_players()), my_num(N.my_num()), nbase(128)
     {
         base_receiver_inputs.resize(nbase);
-        players.resize(nparties - 1);
         baseOTs.resize(nparties - 1);
         baseSenderInputs.resize(nparties - 1);
         baseReceiverOutputs.resize(nparties - 1);
 
+#ifdef VERBOSE
         if (real_OTs)
             cout << "Doing real base OTs\n";
         else
             cout << "Doing fake base OTs\n";
+#endif
 
         for (int i = 0; i < nparties - 1; i++)
         {
-            int other_player, id;
+            int other_player;
             // i for indexing, other_player is actual number
             if (i >= my_num)
                 other_player = i + 1;
             else
                 other_player = i;
-            // unique id per pair of parties (to assign port no.)
-            if (my_num < other_player)
-                id = my_num*nparties + other_player;
-            else
-                id = other_player*nparties + my_num;
 
-            players[i] = new TwoPartyPlayer(N, other_player, id);
+            players.push_back(new OffsetPlayer(N, N.get_offset(other_player)));
 
             // sets up a pair of base OTs, playing both roles
             if (real_OTs)
@@ -72,8 +68,10 @@ public:
                 baseOTs[i] = new FakeOT(nbase, 128, players[i]);
             }
         }
+
+        setup();
+        close_connections();
     }
-    ~OTTripleSetup();
 
     // run the Base OTs
     void setup();

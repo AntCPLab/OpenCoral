@@ -186,7 +186,7 @@ void octetStream::get(bigint& ans)
 
 
 template<class T>
-void octetStream::exchange(T send_socket, T receive_socket, octetStream& receive_stream)
+void octetStream::exchange(T send_socket, T receive_socket, octetStream& receive_stream) const
 {
   send(send_socket, len, LENGTH_SIZE);
   const size_t buffer_size = 100000;

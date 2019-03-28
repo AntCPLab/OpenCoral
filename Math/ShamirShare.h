@@ -16,12 +16,16 @@ class ShamirShare : public T
 {
 public:
     typedef T clear;
+    typedef T open_type;
+    typedef T mac_key_type;
 
     typedef Shamir<T> Protocol;
     typedef ShamirMC<ShamirShare> MAC_Check;
     typedef MAC_Check Direct_MC;
     typedef ShamirInput<ShamirShare> Input;
     typedef ReplicatedPrivateOutput<ShamirShare> PrivateOutput;
+
+    const static bool needs_ot = false;
 
     static string type_short()
     {

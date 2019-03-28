@@ -264,7 +264,7 @@ void FakeOT::exec_base(bool new_receiver_inputs)
     PRNG G;
     G.ReSeed();
     vector<octetStream> os(2);
-    vector<BitVector> bv(2);
+    vector<BitVector> bv(2, 128);
 
     if ((ot_role & RECEIVER) && new_receiver_inputs)
     {

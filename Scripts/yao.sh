@@ -1,5 +1,7 @@
 #!/bin/bash
 
+. Scripts/run-common.sh
+
 for i in 0 1; do
     IFS=""
     log="yao-$*-$i"

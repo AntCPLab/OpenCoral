@@ -16,22 +16,16 @@
 //#include "Processor/Shamir.hpp"
 //#include "Auth/MaliciousShamirMC.hpp"
 
-#include <iomanip>
-#include <numeric>
-
-const char* DataPositions::field_names[] = { "int", "gf2n", "bit" };
-
-const int DataPositions::tuple_size[N_DTYPE] = { 3, 2, 1, 2, 3, 3 };
-
 template<class T>
 Lock Sub_Data_Files<T>::tuple_lengths_lock;
 template<class T>
 map<DataTag, int> Sub_Data_Files<T>::tuple_lengths;
 
 template<class T>
-Preprocessing<T>* Preprocessing<T>::get_live_prep(SubProcessor<T>* proc)
+Preprocessing<T>* Preprocessing<T>::get_live_prep(SubProcessor<T>* proc,
+    DataPositions& usage)
 {
-  (void) proc;
+  (void) proc, (void) usage;
   throw not_implemented();
 }
 
@@ -42,73 +36,9 @@ Preprocessing<T>* Preprocessing<T>::get_new(
     DataPositions& usage, SubProcessor<T>* proc)
 {
   if (machine.live_prep)
-    return get_live_prep(proc);
+    return get_live_prep(proc, usage);
   else
     return new Sub_Data_Files<T>(machine.get_N(), machine.prep_dir_prefix, usage);
-}
-
-void DataPositions::set_num_players(int num_players)
-{
-  files.resize(N_DATA_FIELD_TYPE, vector<long long>(N_DTYPE));
-  inputs.resize(num_players, vector<long long>(N_DATA_FIELD_TYPE));
-}
-
-void DataPositions::increase(const DataPositions& delta)
-{
-  if (inputs.size() != delta.inputs.size())
-    throw invalid_length();
-  for (unsigned int field_type = 0; field_type < N_DATA_FIELD_TYPE; field_type++)
-    {
-      for (unsigned int dtype = 0; dtype < N_DTYPE; dtype++)
-        files[field_type][dtype] += delta.files[field_type][dtype];
-      for (unsigned int j = 0; j < inputs.size(); j++)
-        inputs[j][field_type] += delta.inputs[j][field_type];
-
-      map<DataTag, long long>::const_iterator it;
-      const map<DataTag, long long>& delta_ext = delta.extended[field_type];
-      for (it = delta_ext.begin(); it != delta_ext.end(); it++)
-          extended[field_type][it->first] += it->second;
-    }
-}
-
-void DataPositions::print_cost() const
-{
-  ifstream file("cost");
-  double total_cost = 0;
-  for (int i = 0; i < N_DATA_FIELD_TYPE; i++)
-    {
-      if (accumulate(files[i].begin(), files[i].end(), 0) > 0)
-        cerr << "  Type " << field_names[i] << endl;
-      bool reading_field = true;
-      for (int j = 0; j < N_DTYPE; j++)
-        {
-          double cost_per_item = 0;
-          if (reading_field)
-            file >> cost_per_item;
-          if (cost_per_item < 0)
-            {
-              reading_field = false;
-              cost_per_item = 0;
-            }
-          long long items_used = files[i][j];
-          double cost = items_used * cost_per_item;
-          total_cost += cost;
-          cerr.fill(' ');
-          if (items_used)
-              cerr << "    " << setw(10) << cost << " = " << setw(10) << items_used
-                  << " " << setw(14) << dtype_names[j] << " @ " << setw(11)
-                  << cost_per_item << endl;
-        }
-        for (map<DataTag, long long>::const_iterator it = extended[i].begin();
-                it != extended[i].end(); it++)
-        {
-          cerr.fill(' ');
-          cerr << setw(27) << it->second << " " << setw(14) << it->first.get_string() << endl;
-        }
-    }
-
-  if (total_cost > 0)
-    cerr << "Total cost: " << total_cost << endl;
 }
 
 
@@ -135,10 +65,12 @@ string Sub_Data_Files<T>::get_suffix(int thread_num)
 template<class T>
 Sub_Data_Files<T>::Sub_Data_Files(int my_num, int num_players,
     const string& prep_data_dir, DataPositions& usage, int thread_num) :
-    my_num(my_num), num_players(num_players), prep_data_dir(prep_data_dir),
-    usage(usage)
+    Preprocessing<T>(usage),
+    my_num(my_num), num_players(num_players), prep_data_dir(prep_data_dir)
 {
+#ifdef DEBUG_FILES
   cerr << "Setting up Data_Files in: " << prep_data_dir << endl;
+#endif
   char filename[1024];
   string suffix = get_suffix(thread_num);
   for (int dtype = 0; dtype < N_DTYPE; dtype++)
@@ -165,7 +97,9 @@ Sub_Data_Files<T>::Sub_Data_Files(int my_num, int num_players,
             T::size());
     }
 
+#ifdef DEBUG_FILES
   cerr << "done\n";
+#endif
 }
 
 template<class sint, class sgf2n>
@@ -264,13 +198,6 @@ void Sub_Data_Files<T>::purge()
     it.second.purge();
 }
 
-template<class sint, class sgf2n>
-void Data_Files<sint, sgf2n>::purge()
-{
-  DataFp.purge();
-  DataF2.purge();
-}
-
 template<class T>
 void Sub_Data_Files<T>::setup_extended(const DataTag& tag, int tuple_size)
 {
@@ -302,9 +229,8 @@ void Sub_Data_Files<T>::setup_extended(const DataTag& tag, int tuple_size)
 }
 
 template<class T>
-void Sub_Data_Files<T>::get(vector<T>& S, DataTag tag, const vector<int>& regs, int vector_size)
+void Sub_Data_Files<T>::get_no_count(vector<T>& S, DataTag tag, const vector<int>& regs, int vector_size)
 {
-  usage.extended[T::field_type()][tag] += vector_size;
   setup_extended(tag, regs.size());
   for (int j = 0; j < vector_size; j++)
     for (unsigned int i = 0; i < regs.size(); i++)

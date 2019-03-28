@@ -543,8 +543,8 @@ void OTExtension::hash_outputs(int nOTs, vector<BitVector>& receiverOutput)
 
             if (senderOutput[0][i].size() == 128)
             {
-                mmo.hashOneBlock<gf2n>(senderOutput[0][i].get_ptr(), senderOutput[0][i].get_ptr());
-                mmo.hashOneBlock<gf2n>(senderOutput[1][i].get_ptr(), tmp.get_ptr());
+                mmo.hashOneBlock<gf2n_long>(senderOutput[0][i].get_ptr(), senderOutput[0][i].get_ptr());
+                mmo.hashOneBlock<gf2n_long>(senderOutput[1][i].get_ptr(), tmp.get_ptr());
             }
             else
             {
@@ -566,7 +566,7 @@ void OTExtension::hash_outputs(int nOTs, vector<BitVector>& receiverOutput)
         if (ot_role & RECEIVER)
         {
             if (receiverOutput[i].size() == 128)
-                mmo.hashOneBlock<gf2n>(receiverOutput[i].get_ptr(), receiverOutput[i].get_ptr());
+                mmo.hashOneBlock<gf2n_long>(receiverOutput[i].get_ptr(), receiverOutput[i].get_ptr());
             else
             {
                 os.reset_write_head();
@@ -788,7 +788,7 @@ void OTExtension::check_iteration(__m128i delta, __m128i q, __m128i q2,
             cout << "rec t = " << __m128i_toString<octet>(received_t) << endl;
             cout << "tmp1  = " << __m128i_toString<octet>(tmp1) << endl;
             cout << "q  = " << __m128i_toString<octet>(q) << endl;
-            exit(1);
+            throw runtime_error("correlation check");
         }
     }
 }

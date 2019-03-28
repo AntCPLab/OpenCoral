@@ -32,4 +32,4 @@ if test "$flags"; then
     cp -av bin/`uname`-$cpu/* .
 fi
 
-Scripts/setup-ssl.sh
+mkdir Player-Data 2> /dev/null

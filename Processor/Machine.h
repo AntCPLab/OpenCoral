@@ -35,7 +35,7 @@ class Machine : public BaseMachine
 
   int my_number;
   Names& N;
-  typename sint::value_type alphapi;
+  typename sint::mac_key_type alphapi;
   gf2n alpha2i;
 
   // Keep record of used offline data

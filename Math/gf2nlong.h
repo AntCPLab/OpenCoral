@@ -32,6 +32,7 @@ public:
 
     word get_lower() const                      { return (word)_mm_cvtsi128_si64(a); }
     word get_upper() const     { return _mm_cvtsi128_si64(_mm_unpackhi_epi64(a, a)); }
+    word get_half(bool upper) const { return upper ? get_upper() : get_lower(); }
 
 #ifdef __SSE41__
     bool operator==(const int128& other) const  { return _mm_test_all_zeros(a ^ other.a, a ^ other.a); }
@@ -63,10 +64,10 @@ public:
 };
 
 
-template<class T> class MAC_Check;
 template<class T> class Input;
 template<class T> class PrivateOutput;
 template<class T> class SPDZ;
+template<class T> class Share;
 
 /* This interface compatible with the gfp interface
  * which then allows us to template the Share
@@ -96,10 +97,10 @@ class gf2n_long
   typedef gf2n_long value_type;
   typedef int128 internal_type;
 
-  typedef MAC_Check<gf2n_long> MC;
-  typedef Input<gf2n_long> Inp;
   typedef PrivateOutput<gf2n_long> PO;
-  typedef SPDZ<gf2n_long> Protocol;
+  typedef SPDZ<Share<gf2n_long>> Protocol;
+
+  typedef gf2n_long next;
 
   void reduce(int128 xh,int128 xl)
    {
@@ -135,6 +136,8 @@ class gf2n_long
   __m128i to_m128i() const { return a.a; }
   word get_word() const { return _mm_cvtsi128_si64(a.a); }
 
+  const void* get_ptr() const { return &a.a; }
+
   void assign(const gf2n_long& g)     { a=g.a; }
 
   void assign_zero()             { a=_mm_setzero_si128(); }
@@ -157,6 +160,7 @@ class gf2n_long
   gf2n_long(const gf2n_long& g) { assign(g); }
   gf2n_long(const int128& g)    { assign(g); }
   gf2n_long(int g)         { assign(g); }
+  gf2n_long(const char* buffer) { assign(buffer); }
   ~gf2n_long()             { ; }
 
   gf2n_long& operator=(const gf2n_long& g)
@@ -231,6 +235,9 @@ class gf2n_long
   // compatibility with gfp
   void almost_randomize(PRNG& G)        { randomize(G); }
 
+  template<class T>
+  T convert() const { return *this; }
+
   void output(ostream& s,bool human) const;
   void input(istream& s,bool human);
 
@@ -280,19 +287,28 @@ inline int128 int128::operator>>(const int& other) const
   return res;
 }
 
+void mul64(word x, word y, word& lo, word& hi);
+
+inline __m128i clmul(__m128i a, __m128i b, int choice)
+{
+    word lo, hi;
+    mul64(int128(a).get_half(choice & 1), int128(b).get_half((choice & 0x10) >> 4), lo, hi);
+    return int128(hi, lo).a;
+}
+
+#ifndef __PCLMUL__
+#undef _mm_clmulepi64_si128
+#define _mm_clmulepi64_si128 clmul
+#endif
+
 inline void mul128(__m128i a, __m128i b, __m128i *res1, __m128i *res2)
 {
     __m128i tmp3, tmp4, tmp5, tmp6;
 
-#ifdef __PCLMUL__
     tmp3 = _mm_clmulepi64_si128(a, b, 0x00);
     tmp4 = _mm_clmulepi64_si128(a, b, 0x10);
     tmp5 = _mm_clmulepi64_si128(a, b, 0x01);
     tmp6 = _mm_clmulepi64_si128(a, b, 0x11);
-#else
-    (void) a, (void) b;
-    throw runtime_error("need to compile with PCLMUL support");
-#endif
 
     tmp4 = _mm_xor_si128(tmp4, tmp5);
     tmp5 = _mm_slli_si128(tmp4, 8);

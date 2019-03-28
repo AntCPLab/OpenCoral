@@ -96,8 +96,8 @@ class modp
   void output(ostream& s,const Zp_Data& ZpD,bool human) const;
   void input(istream& s,const Zp_Data& ZpD,bool human);
 
-  friend class gfp;
-
+  template<int X>
+  friend class gfp_;
 };
 
 

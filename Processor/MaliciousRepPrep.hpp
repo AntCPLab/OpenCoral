@@ -8,8 +8,9 @@
 //#include "Auth/MaliciousRepMC.hpp"
 
 template<class T>
-MaliciousRepPrep<T>::MaliciousRepPrep(SubProcessor<T>* proc) :
-        honest_prep(0), replicated(0)
+MaliciousRepPrep<T>::MaliciousRepPrep(SubProcessor<T>* proc, DataPositions& usage) :
+        BufferPrep<T>(usage), honest_usage(usage.num_players()),
+        honest_prep(0, honest_usage), replicated(0)
 {
     (void) proc;
 }
@@ -49,8 +50,8 @@ void MaliciousRepPrep<T>::buffer_triples()
     {
         T a, b, c;
         T f, g, h;
-        honest_prep.get_three(DATA_TRIPLE, a, b, c);
-        honest_prep.get_three(DATA_TRIPLE, f, g, h);
+        honest_prep.get_three_no_count(DATA_TRIPLE, a, b, c);
+        honest_prep.get_three_no_count(DATA_TRIPLE, f, g, h);
         triples.push_back({{a, b, c}});
         check_triples.push_back({{f, g, h}});
     }

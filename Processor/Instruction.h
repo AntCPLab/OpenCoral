@@ -283,12 +283,7 @@ struct TempVars {
   typename sint::clear ansp;
   sint Sansp;
   bigint aa,aa2;
-  // INPUT and LDSI
-  typename sint::value_type rrp,tp,tmpp;
-  typename sint::clear xip;
-  // GINPUT and GLDSI
-  gf2n rr2,t2,tmp2;
-  gf2n xi2;
+  typename sint::open_type rrp, xip;
   // assign without allocation
   void assign_ansp(int n)
   {
@@ -320,7 +315,7 @@ public:
   unsigned get_max_reg(int reg_type) const;
 };
 
-struct DataPositions;
+class DataPositions;
 
 class Instruction : public BaseInstruction
 {

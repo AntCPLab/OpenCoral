@@ -225,7 +225,7 @@ OTMachine::OTMachine(int argc, const char** argv)
         N.push_back(new Names(my_num, portnum_base + 1000 * N.size(), names));
     }
 
-    P = new TwoPartyPlayer(*N[0], 1 - my_num, 500);
+    P = new RealTwoPartyPlayer(*N[0], 1 - my_num, 500);
 
     timeval baseOTstart, baseOTend;
     gettimeofday(&baseOTstart, NULL);
@@ -321,7 +321,7 @@ void OTMachine::run()
         }
         // now setup resources for each thread
         // round robin with the names
-        players[i] = new TwoPartyPlayer(*N[i%N.size()], 1 - my_num, (i+1) * 1000);
+        players[i] = new RealTwoPartyPlayer(*N[i%N.size()], 1 - my_num, (i+1) * 1000);
         tinfos[i].thread_num = i+1;
         tinfos[i].other_player_num = 1 - my_num;
         tinfos[i].nOTs = nOTs;

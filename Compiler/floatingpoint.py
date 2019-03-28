@@ -103,6 +103,7 @@ def PreORC(a, kappa=None, m=None, raw=False):
         max_k = program.Program.prog.galois_length - 1
     else:
         max_k = int(log(program.Program.prog.P) / log(2)) - kappa
+    assert(max_k > 0)
     if k <= max_k:
         p = [None] * m
         if m == k:
@@ -472,25 +473,26 @@ def FLRound(x, mode):
     p = ((p1 + d * a) * (1 - b) + b * away_from_zero * (1 - l)) * (1 - z)
     return v, p, z, s
 
-def TruncPr(a, k, m, kappa=None):
+def TruncPr(a, k, m, kappa=None, signed=True):
     """ Probabilistic truncation [a/2^m + u]
         where Pr[u = 1] = (a % 2^m) / 2^m
     """
     if isinstance(a, types.cint):
         return shift_two(a, m)
     if program.Program.prog.options.ring:
-        return TruncPrRing(a, k, m)
+        return TruncPrRing(a, k, m, signed=signed)
     else:
         return TruncPrField(a, k, m, kappa)
 
-def TruncPrRing(a, k, m):
+def TruncPrRing(a, k, m, signed=True):
     if m == 0:
         return a
     n_ring = int(program.Program.prog.options.ring)
+    assert n_ring >= k, '%d too large' % k
     if k == n_ring:
         for i in range(m):
             a += types.sint.get_random_bit() << i
-        return comparison.TruncLeakyInRing(a, k, m, True)
+        return comparison.TruncLeakyInRing(a, k, m, signed=signed)
     else:
         from types import sint
         # extra bit to mask overflow

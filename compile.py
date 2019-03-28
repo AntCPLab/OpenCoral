@@ -61,6 +61,8 @@ def main():
                       help="bit length of ring (default: 0 for field)")
     parser.add_option("-B", "--binary", dest="binary", default=0,
                       help="bit length of sint in binary circuit (default: 0 for arithmetic)")
+    parser.add_option("-F", "--field", dest="field", default=0,
+                      help="bit length of sint modulo prime (default: 64)")
     options,args = parser.parse_args()
     if len(args) < 1:
         parser.print_help()

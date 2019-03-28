@@ -2,7 +2,7 @@ from Compiler.types import MemValue, read_mem_value, regint, Array
 from Compiler.types import _bitint, _number, _fix, _structure
 from Compiler.program import Tape, Program
 from Compiler.exceptions import *
-from Compiler import util, oram, floatingpoint
+from Compiler import util, oram, floatingpoint, library
 import Compiler.GC.instructions as inst
 import operator
 
@@ -575,7 +575,7 @@ class sbitint(_bitint, _number, sbits):
         t2k = self.get_type(2 * k)
         acc = t2k.bit_compose(z)
         sign = self.bit_decompose()[-1]
-        signed_acc = sign.if_else(-acc, acc)
+        signed_acc = util.if_else(sign, -acc, acc)
         absolute_val_2k = t2k.bit_compose(absolute_val.bit_decompose())
         part_reciprocal = absolute_val_2k * acc
         return part_reciprocal, signed_acc
@@ -588,6 +588,17 @@ class sbitint(_bitint, _number, sbits):
             return other * self
         else:
             return super(sbitint, self).__mul__(other)
+    def cast(self, n):
+        bits = self.bit_decompose()[:n]
+        bits += [bits[-1]] * (n - len(bits))
+        return self.get_type(n).bit_compose(bits)
+    def int_div(self, other, bit_length=None):
+        k = bit_length or max(self.n, other.n)
+        return (library.IntDiv(self.extend(k), other.extend(k), k) >> k).cast(k)
+    def round(self, k, m, kappa=None, nearest=None, signed=None):
+        bits = self.bit_decompose()
+        res_bits = self.bit_adder(bits[m:k], [bits[m-1]])
+        return self.get_type(k - m).compose(res_bits)
 
 class sbitintvec(sbitvec):
     def __add__(self, other):

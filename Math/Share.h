@@ -20,7 +20,11 @@ template<class T> class Share;
 template<class T> T combine(const vector< Share<T> >& S);
 template<class T> bool check_macs(const vector< Share<T> >& S,const T& key);
 
+template<class T> class MAC_Check_;
 template<class T> class Direct_MAC_Check;
+template<class T> class MascotMultiplier;
+
+union square128;
 
 template<class T>
 class Share
@@ -30,29 +34,42 @@ class Share
 
    public:
 
-   typedef T value_type;
+   typedef T mac_key_type;
+   typedef T mac_type;
+   typedef T open_type;
    typedef typename T::value_type clear;
 
-   typedef typename T::MC MAC_Check;
+   typedef Share<typename T::next> prep_type;
+   typedef MascotMultiplier<T> Multiplier;
+   typedef T sacri_type;
+   typedef square128 Rectangle;
+
+   typedef MAC_Check_<Share> MAC_Check;
    typedef Direct_MAC_Check<T> Direct_MC;
-   typedef typename T::Inp Input;
+   typedef ::Input<Share> Input;
    typedef typename T::PO PrivateOutput;
-   typedef typename T::Protocol Protocol;
+   typedef SPDZ<Share> Protocol;
+
+   const static bool needs_ot = true;
 
    static int size()
      { return 2 * T::size(); }
 
    static string type_string()
-     { return T::type_string(); }
+     { return "SPDZ " + T::type_string(); }
 
    static string type_short()
      { return string(1, T::type_char()); }
 
+   static char type_char()
+     { return T::type_char(); }
+
    static DataFieldType field_type()
      { return T::field_type(); }
 
-   void assign(const Share<T>& S)
-     { a=S.a; mac=S.mac; }
+   template<class U>
+   void assign(const Share<U>& S)
+     { a=S.get_share(); mac=S.get_mac(); }
    void assign(const char* buffer)
      { a.assign(buffer); mac.assign(buffer + T::size()); }
    void assign_zero()
@@ -62,8 +79,10 @@ class Share
    void assign(const clear& aa, int my_num, const T& alphai);
 
    Share()                  { assign_zero(); }
-   Share(const Share<T>& S) { assign(S); }
+   template<class U>
+   Share(const Share<U>& S) { assign(S); }
    Share(const clear& aa, int my_num, const T& alphai) { assign(aa, my_num, alphai); }
+   Share(const T& share, const T& mac) : a(share), mac(mac) {}
    ~Share()                 { ; }
    Share& operator=(const Share<T>& S)
      { if (this!=&S) { assign(S); }
@@ -98,6 +117,8 @@ class Share
    template <class U>
    Share<T> operator*(const U& x) const
    { Share<T> res; res.mul(*this, x); return res; }
+   Share<T> operator/(const T& x) const
+   { Share<T> res; res.set_share(a / x); res.set_mac(mac / x); return res; }
 
    Share<T>& operator+=(const Share<T>& x) { add(x); return *this; }
    template <class U>
@@ -134,6 +155,9 @@ class Share
     */
    friend bool check_macs<T>(const vector< Share<T> >& S,const T& key);
 };
+
+template <class T, class U, class V>
+using Share_ = Share<T>;
 
 // specialized mul by bit for gf2n
 template <>
@@ -186,6 +210,9 @@ inline void Share<T>::assign(const clear& aa, int my_num, const T& alphai)
 {
   Protocol::assign(a, aa, my_num);
   mac.mul(aa, alphai);
+#ifdef DEBUG_MAC
+  cout << "load " << hex << mac << " = " << aa << " * " << alphai << endl;
+#endif
 }
 
 #endif

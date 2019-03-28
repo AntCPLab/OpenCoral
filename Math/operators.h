@@ -13,12 +13,12 @@ T operator*(const bool& x, const T& y) { return x ? y : T(); }
 template <class T>
 T& operator*=(const T& y, const bool& x) { y = x ? y : T(); return y; }
 
-template <class T, class U>
-T operator+(const T& x, const U& y) { T res; res.add(x, y); return res; }
-template <class T>
-T operator*(const T& x, const T& y) { T res; res.mul(x, y); return res; }
-template <class T, class U>
-T operator-(const T& x, const U& y) { T res; res.sub(x, y); return res; }
+//template <class T, class U>
+//T operator+(const T& x, const U& y) { T res; res.add(x, y); return res; }
+//template <class T>
+//T operator*(const T& x, const T& y) { T res; res.mul(x, y); return res; }
+//template <class T, class U>
+//T operator-(const T& x, const U& y) { T res; res.sub(x, y); return res; }
 
 template <class T, class U>
 T& operator+=(T& x, const U& y) { x.add(y); return x; }

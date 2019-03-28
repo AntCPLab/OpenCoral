@@ -64,8 +64,10 @@ void set_up_server_socket(sockaddr_in& dest,int& consocket,int& main_socket,int 
         { cerr << "Binding to socket on " << my_name << ":" << Portnum << " failed, trying again in a second ..." << endl;
           sleep(1);
         }
+#ifdef DEBUG_NETWORKING
       else
         { cerr << "Bound on port " << Portnum << endl; }
+#endif
     }
   if (fl<0) { error("set_up_socket:bind");  }
 
@@ -98,10 +100,6 @@ void set_up_client_socket(int& mysocket,const char* hostname,int Portnum)
   fl=setsockopt(mysocket, SOL_SOCKET, SO_REUSEADDR, (char*)&one, sizeof(int));
   if (fl<0) { error("set_up_socket:setsockopt"); }
 
-   struct sockaddr_in dest;
-   dest.sin_family = AF_INET;
-   dest.sin_port = htons(Portnum);      // set destination port number
-
    struct addrinfo hints, *ai=NULL,*rp;
    memset (&hints, 0, sizeof(hints));
    hints.ai_family = AF_INET;
@@ -127,26 +125,45 @@ void set_up_client_socket(int& mysocket,const char* hostname,int Portnum)
    if (erp!=0)
      { error("set_up_socket:getaddrinfo");  }
 
+   bool success = false;
+   socklen_t len = 0;
+   const struct sockaddr* addr = 0;
    for (rp=ai; rp!=NULL; rp=rp->ai_next)
-      { const struct in_addr *addr4 = &((const struct sockaddr_in*)ai->ai_addr)->sin_addr;
+      { addr = ai->ai_addr;
 
         if (ai->ai_family == AF_INET)
-           { memcpy((char *)&dest.sin_addr.s_addr,addr4,sizeof(in_addr));
+           {
+             len = ai->ai_addrlen;
+             success = true;
              continue;
            }
       }
-   freeaddrinfo(ai);
+
+   if (not success)
+     {
+       for (rp = ai; rp != NULL; rp = rp->ai_next)
+         cerr << "Family on offer: " << ai->ai_family << endl;
+       runtime_error(string("No AF_INET for ") + (char*)hostname + " on " + (char*)my_name);
+     }
 
 
    Timer timer;
    timer.start();
+   struct sockaddr_in* addr4 = (sockaddr_in*) addr;
+   addr4->sin_port = htons(Portnum);      // set destination port number
+#ifdef DEBUG_IPV4
+   cout << "connect to ip " << hex << addr4->sin_addr.s_addr << " port " << addr4->sin_port << dec << endl;
+#endif
+
    do
    {  fl=1;
       while (fl==1 || errno==EINPROGRESS)
-       { fl=connect(mysocket, (struct sockaddr *)&dest, sizeof(struct sockaddr)); }
+       { fl=connect(mysocket, addr, len); }
    }
    while (fl==-1 && errno==ECONNREFUSED && timer.elapsed() < 60);
    if (fl<0) { error("set_up_socket:connect:",hostname);  }
+
+   freeaddrinfo(ai);
 }
 
 void close_client_socket(int socket)

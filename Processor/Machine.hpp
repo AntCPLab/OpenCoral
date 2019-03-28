@@ -17,6 +17,7 @@
 #include "Math/MaliciousRep3Share.h"
 #include "Math/ShamirShare.h"
 #include "Math/MaliciousShamirShare.h"
+#include "Tools/mkpath.h"
 
 #include <iostream>
 #include <vector>
@@ -43,7 +44,8 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
 
   // Set up the fields
   prep_dir_prefix = get_prep_dir(N.num_players(), opts.lgp, lg2);
-  char filename[1024];
+  char filename[2048];
+  bool read_mac_keys = false;
 
   try
     {
@@ -68,21 +70,47 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
 
       alphapi.input(inpf,true);
       alpha2i.input(inpf,true);
-      cerr << "MAC Key p = " << alphapi << endl;
-      cerr << "MAC Key 2 = " << alpha2i << endl;
       inpf.close();
+      read_mac_keys = true;
     }
   catch (file_error& e)
     {
+#ifdef VERBOSE
       cerr << "Field or MAC key setup failed, using defaults"
           << endl;
+#endif
       sint::clear::init_default(opts.lgp);
       gf2n::init_field(gf2n::default_degree());
+      // make directory for outputs if necessary
+      mkdir_p(PREP_DIR);
     }
   catch (end_of_file& e)
     {
       cerr << "End of file reading MAC key but maybe we don't need it" << endl;
     }
+
+  if (not read_mac_keys)
+    {
+#ifdef VERBOSE
+      cerr << "Generating fresh MAC keys" << endl;
+#endif
+      SeededPRNG G;
+      alphapi.randomize(G);
+      alpha2i.randomize(G);
+
+#ifdef DEBUG_MAC
+      alpha2i = my_number;
+      alphapi = my_number;
+      alphapi = alphapi << 60;
+#endif
+    }
+
+#ifdef DEBUG_MAC
+  cerr << "MAC Key p = " << alphapi << endl;
+  cerr << "MAC Key 2 = " << alpha2i << endl;
+#endif
+
+  gfp1::init_field(gfp::pr(), false);
 
   // Initialize the global memory
   if (memtype.compare("new")==0)
@@ -111,7 +139,23 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
 
   load_schedule(progname_str);
 
+#ifdef VERBOSE
   progs[0].print_offline_cost();
+#endif
+
+  if (live_prep and (sint::needs_ot or sgf2n::needs_ot))
+  {
+    Player* P;
+    if (use_encryption)
+      P = new CryptoPlayer(playerNames, 0xF000);
+    else
+      P = new PlainPlayer(playerNames, 0xF000);
+    ot_setups.resize(nthreads);
+    for (int i = 0; i < nthreads; i++)
+      for (int j = 0; j < 3; j++)
+        ot_setups.at(i).push_back({ *P, true });
+    delete P;
+  }
 
   /* Set up the threads */
   tinfo.resize(nthreads);
@@ -143,7 +187,9 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
     {
       while (!tinfo[i].ready)
         {
+#ifdef DEBUG_THREADS
           cerr << "Waiting for thread " << i << " to be ready" << endl;
+#endif
           pthread_cond_wait(&client_ready[i],&t_mutex[i]);
         }
       pthread_mutex_unlock(&t_mutex[i]);
@@ -273,7 +319,12 @@ void Machine<sint, sgf2n>::run()
       pthread_mutex_unlock(&t_mutex[i]);
     }
 
+  // reset to sum actual usage
+  pos.reset();
+
+#ifdef DEBUG_THREADS
   cerr << "Waiting for all clients to finish" << endl;
+#endif
   // Wait until all clients have signed out
   for (int i=0; i<nthreads; i++)
     {
@@ -285,16 +336,21 @@ void Machine<sint, sgf2n>::run()
       pthread_mutex_destroy(&t_mutex[i]);
       pthread_cond_destroy(&client_ready[i]);
       pthread_cond_destroy(&server_ready[i]);
+      pos.increase(tinfo[i].pos);
     }
   finish_timer.stop();
   
+#ifdef VERBOSE
   for (unsigned int i = 0; i < join_timer.size(); i++)
     cerr << "Join timer: " << i << " " << join_timer[i].elapsed() << endl;
   cerr << "Finish timer: " << finish_timer.elapsed() << endl;
   cerr << "Process timer: " << proc_timer.elapsed() << endl;
+#endif
+
   print_timers();
   cerr << "Data sent = " << data_sent / 1e6 << " MB" << endl;
 
+#ifdef VERBOSE
   if (opening_sum < N.num_players() && !direct)
     cerr << "Summed at most " << opening_sum << " shares at once with indirect communication" << endl;
   else
@@ -304,6 +360,7 @@ void Machine<sint, sgf2n>::run()
     cerr << "Send to at most " << max_broadcast << " parties at once" << endl;
   else
     cerr << "Full broadcast" << endl;
+#endif
 
   // Reduce memory size to speed up
   unsigned max_size = 1 << 20;
@@ -317,6 +374,7 @@ void Machine<sint, sgf2n>::run()
   outf << M2 << Mp << Mi;
   outf.close();
 
+#ifdef OLD_USAGE
   for (int dtype = 0; dtype < N_DTYPE; dtype++)
     {
       cerr << "Num " << DataPositions::dtype_names[dtype] << "\t=";
@@ -331,9 +389,12 @@ void Machine<sint, sgf2n>::run()
         cerr << " " << pos.inputs[i][field_type];
       cerr << endl;
     }
+#endif
 
-  cerr << "Total cost of program:" << endl;
+#ifdef VERBOSE
+  cerr << "Actual cost of program:" << endl;
   pos.print_cost();
+#endif
 
 #ifndef INSECURE
   Data_Files<sint, sgf2n> df(*this);
@@ -341,7 +402,9 @@ void Machine<sint, sgf2n>::run()
   df.prune();
 #endif
 
+#ifdef VERBOSE
   cerr << "End of prog" << endl;
+#endif
 }
 
 template<class sint, class sgf2n>

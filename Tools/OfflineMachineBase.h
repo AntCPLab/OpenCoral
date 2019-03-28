@@ -10,7 +10,16 @@
 #include "Networking/Server.h"
 #include "Networking/Player.h"
 
-class OfflineMachineBase
+class OfflineParams
+{
+public:
+    bool output;
+    int nthreads;
+
+    OfflineParams() : output(false), nthreads(0) {}
+};
+
+class OfflineMachineBase : virtual public OfflineParams
 {
 protected:
     ez::ezOptionParser opt;
@@ -18,9 +27,8 @@ protected:
 
 public:
     Names N;
-    int my_num, nplayers, nthreads;
+    int my_num, nplayers;
     long long ntriples, nTriplesPerThread;
-    bool output;
 
     OfflineMachineBase();
     ~OfflineMachineBase();
