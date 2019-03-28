@@ -1,5 +1,11 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enchancements are committed between releases and not documented here.
 
+## 0.0.8 (Mar 28, 2019)
+
+- SPDZ2k
+- Integration of MASCOT and SPDZ2k preprocessing
+- Integer division
+
 ## 0.0.7 (Feb 14, 2019)
 
 - Simplified installation on macOS
