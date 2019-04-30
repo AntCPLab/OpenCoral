@@ -3,8 +3,6 @@
 
 #include "Exceptions/Exceptions.h"
 
-bool modp::rewind = false;
-
 /***********************************************************************
  *  The following functions remain the same in Real and Montgomery rep *
  ***********************************************************************/
@@ -136,10 +134,20 @@ void modp::convert_destroy(bigint& xx,
     const Zp_Data& ZpD)
 {
   xx %= ZpD.pr;
-  if (xx<0) { xx+=ZpD.pr; }
   //mpz_mod(xx.get_mpz_t(),x.get_mpz_t(),ZpD.pr.get_mpz_t());
-  inline_mpn_zero(x, ZpD.t);
-  inline_mpn_copyi(x, xx.get_mpz_t()->_mp_d, xx.get_mpz_t()->_mp_size);
+  convert(xx.get_mpz_t()->_mp_d, abs(xx.get_mpz_t()->_mp_size), ZpD, xx < 0);
+}
+
+void modp::convert(const mp_limb_t* source, mp_size_t size, const Zp_Data& ZpD, bool negative)
+{
+  assert(size <= ZpD.t);
+  if (negative)
+    mpn_sub(x, ZpD.prA, ZpD.t, source, size);
+  else
+    {
+      inline_mpn_zero(x + size, ZpD.t - size);
+      inline_mpn_copyi(x, source, size);
+    }
   if (ZpD.montgomery)
     ZpD.Mont_Mult(x, x, ZpD.R2);
 }

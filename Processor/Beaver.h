@@ -35,6 +35,8 @@ public:
     typename T::clear prepare_mul(const T& x, const T& y);
     void exchange();
     T finalize_mul();
+
+    int get_n_relevant_players() { return P.num_players(); }
 };
 
 #endif /* PROCESSOR_BEAVER_H_ */

@@ -18,7 +18,7 @@ run_player() {
     fi
     if [[ $bin = Player-Online.x || $bin =~ 'party.x' ]]; then
 	params="$* -pn $port -h localhost"
-	if [[ ! $bin =~ 'rep' ]]; then
+	if [[ ! ($bin =~ 'rep' || $bin =~ 'brain') ]]; then
 	    params="$params -N $players"
 	fi
     else
@@ -33,7 +33,6 @@ run_player() {
     fi
     rem=$(($players - 2))
     for i in $(seq 0 $rem); do
-      echo "trying with player $i"
       >&2 echo Running $prefix $SPDZROOT/$bin $i $params
       log=$SPDZROOT/logs/$i
       $prefix $SPDZROOT/$bin $i $params 2>&1 |

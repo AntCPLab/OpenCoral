@@ -102,7 +102,8 @@ void Secret<T>::random_bit()
 }
 
 template <class T>
-void Secret<T>::store(Memory<SpdzShare>& mem,
+template <class U>
+void Secret<T>::store(U& mem,
         vector<WriteAccess<Secret<T> > >& accesses)
 {
     T::store(mem, accesses);
@@ -218,7 +219,8 @@ void Secret<T>::load(int n, const Integer& x)
 }
 
 template <class T>
-void Secret<T>::load(vector<ReadAccess < Secret<T> > >& accesses, const Memory<SpdzShare>& mem)
+template <class U>
+void Secret<T>::load(vector<ReadAccess < Secret<T> > >& accesses, const U& mem)
 {
     for (auto&& access : accesses)
     {
@@ -293,12 +295,14 @@ void Secret<T>::trans(Processor<Secret<T> >& processor, int n_outputs,
 
 template <class T>
 template <class U>
-void Secret<T>::reveal(U& x)
+void Secret<T>::reveal(size_t n_bits, U& x)
 {
 #ifdef DEBUG_OUTPUT
     cout << "revealing " << this << " with min(" << 8 * sizeof(U) << ","
             << registers.size() << ") bits" << endl;
 #endif
+    if (n_bits > registers.size())
+        throw out_of_range("not enough wires for revealing");
     x = 0;
     for (unsigned int i = 0; i < min(8 * sizeof(U), registers.size()); i++)
     {

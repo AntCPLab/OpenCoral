@@ -6,11 +6,15 @@
 #include "BMR/CommonParty.h"
 #include "BMR/Register_inline.h"
 
+#include "BMR/Register.hpp"
 #include "GC/Machine.hpp"
 #include "GC/Processor.hpp"
 #include "GC/Secret.hpp"
 #include "GC/Thread.hpp"
 #include "GC/ThreadMaster.hpp"
+#include "GC/Program.hpp"
+#include "GC/Instruction.hpp"
+#include "Processor/Instruction.hpp"
 
 namespace GC
 {
@@ -58,8 +62,8 @@ void Secret<T>::store(Memory<AuthValue>& mem, size_t address)
     mac_mask.random(mac_length, mask_share.mac);
     word masked;
     int128 masked_mac;
-    (*this + mask).reveal(masked);
-    (mac + mac_mask).reveal(masked_mac);
+    (*this + mask).reveal(length, masked);
+    (mac + mac_mask).reveal(mac_length, masked_mac);
 #ifdef DEBUG_DYNAMIC
     word a,b;
     int128 c,d;
@@ -84,7 +88,7 @@ void Secret<T>::load(int n, const Memory<AuthValue>& mem, size_t address)
     mac_key = reconstruct(CommonParty::s().get_mac_key().get(), default_length);
     check_mac = carryless_mult(*this, mac_key);
     int128 result;
-    (mac + check_mac).reveal(result);
+    (mac + check_mac).reveal(2 * default_length, result);
 #ifdef DEBUG_DYNAMIC
     cout << "loading " << hex << x.share << " " << x.mac << endl;
     int128 a;
@@ -95,35 +99,5 @@ void Secret<T>::load(int n, const Memory<AuthValue>& mem, size_t address)
 #endif
     T::check(result, x.share, x.mac);
 }
-
-template class Secret<EvalRegister>;
-template class Secret<PRFRegister>;
-template class Secret<GarbleRegister>;
-template class Secret<RandomRegister>;
-
-template void Secret<EvalRegister>::reveal(Clear& x);
-template void Secret<PRFRegister>::reveal(Clear& x);
-template void Secret<GarbleRegister>::reveal(Clear& x);
-template void Secret<RandomRegister>::reveal(Clear& x);
-
-template class Machine< Secret<PRFRegister> >;
-template class Machine< Secret<EvalRegister> >;
-template class Machine< Secret<GarbleRegister> >;
-template class Machine< Secret<RandomRegister> >;
-
-template class Processor< Secret<PRFRegister> >;
-template class Processor< Secret<EvalRegister> >;
-template class Processor< Secret<GarbleRegister> >;
-template class Processor< Secret<RandomRegister> >;
-
-template class Thread< Secret<PRFRegister> >;
-template class Thread< Secret<EvalRegister> >;
-template class Thread< Secret<GarbleRegister> >;
-template class Thread< Secret<RandomRegister> >;
-
-template class ThreadMaster< Secret<PRFRegister> >;
-template class ThreadMaster< Secret<EvalRegister> >;
-template class ThreadMaster< Secret<GarbleRegister> >;
-template class ThreadMaster< Secret<RandomRegister> >;
 
 }

@@ -4,10 +4,6 @@
 
 #include "Math/gf2n.h"
 #include "Math/gfp.h"
-#include "Math/Z2k.h"
-#include "Math/Share.h"
-#include "Math/Rep3Share.h"
-#include "GC/MaliciousRepSecret.h"
 
 #include <fstream>
 using namespace std;
@@ -28,6 +24,9 @@ void generate_keys(const string& directory, int nplayers);
 
 template <class T, class U>
 void write_mac_keys(const string& directory, int player_num, int nplayers, U keyp, T key2);
+
+template <class T, class U>
+void read_mac_keys(const string& directory, int player_num, int nplayers, U& keyp, T& key2);
 
 // Read MAC key shares and compute keys
 void read_keys(const string& directory, gfp& keyp, gf2n& key2, int nplayers);

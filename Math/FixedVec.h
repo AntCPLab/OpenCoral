@@ -55,6 +55,13 @@ public:
     {
     }
 
+    template<class U>
+    FixedVec<T, L>(const FixedVec<U, L>& other)
+    {
+        for (int i = 0; i < L; i++)
+            v[i] = other[i];
+    }
+
     T& operator[](int i)
     {
         return v[i];
@@ -99,7 +106,7 @@ public:
     void mul(const FixedVec<T, L>& x, const FixedVec<T, L>& y)
     {
         for (int i = 0; i < L; i++)
-            v[i] = x.v[i] * y.v[i];
+            v[i].mul(x.v[i], y.v[i]);
     }
 
     void add(const FixedVec<T, L>& x)
@@ -178,6 +185,12 @@ public:
     FixedVec<T, L>& operator+=(const FixedVec<T, L>& other)
     {
         add(other);
+        return *this;
+    }
+
+    FixedVec<T, L>& operator*=(const FixedVec<T, L>& other)
+    {
+        *this = *this * other;
         return *this;
     }
 
@@ -261,6 +274,12 @@ public:
             s += v[i];
         }
         v[0] = sum - s;
+    }
+
+    void force_to_bit()
+    {
+        for (auto& x : v)
+            x.force_to_bit();
     }
 
     void output(ostream& s, bool human) const

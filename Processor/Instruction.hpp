@@ -5,14 +5,10 @@
 #include "Exceptions/Exceptions.h"
 #include "Tools/time-func.h"
 #include "Tools/parse.h"
-#include "Auth/ReplicatedMC.h"
-#include "Math/MaliciousRep3Share.h"
-#include "Math/ShamirShare.h"
-#include "Auth/ShamirMC.h"
-#include "Math/MaliciousShamirShare.h"
 
 //#include "Processor/Processor.hpp"
 #include "Processor/Binary_File_IO.hpp"
+#include "Processor/PrivateOutput.hpp"
 //#include "Processor/Input.hpp"
 //#include "Processor/Beaver.hpp"
 //#include "Processor/Shamir.hpp"
@@ -1217,6 +1213,9 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         }
         else
         {
+          if (n > 64)
+            throw Processor_Error(to_string(n) + "-bit conversion impossible; "
+                "integer registers only have 64 bits");
           to_signed_bigint(Proc.temp.aa,Proc.read_Cp(r[1]),n);
           Proc.write_Ci(r[0], Proc.temp.aa.get_si());
         }

@@ -17,7 +17,19 @@
 #include "SpdzWire.h"
 #include "Auth/fake-stuff.h"
 
+#include "Register_inline.h"
+
+#include "CommonParty.hpp"
 #include "Auth/fake-stuff.hpp"
+#include "BMR/Register.hpp"
+#include "GC/Machine.hpp"
+#include "GC/Processor.hpp"
+#include "GC/Secret.hpp"
+#include "GC/Thread.hpp"
+#include "GC/ThreadMaster.hpp"
+#include "GC/Program.hpp"
+#include "GC/Instruction.hpp"
+#include "Processor/Instruction.hpp"
 
 TrustedProgramParty* TrustedProgramParty::singleton = 0;
 
@@ -53,8 +65,8 @@ TrustedParty::TrustedParty(const char* netmap_file, // required to init Node
 }
 
 TrustedProgramParty::TrustedProgramParty(int argc, char** argv) :
-		machine(dynamic_memory), processor(machine),
-		random_machine(dynamic_memory), random_processor(random_machine)
+		processor(machine),
+		random_processor(random_machine)
 {
 	if (argc < 2)
 	{
@@ -406,7 +418,8 @@ bool TrustedProgramParty::_fill_keys()
 
 void TrustedProgramParty::garble()
 {
-	second_phase(program, processor, machine);
+	NoMemory dynamic_memory;
+	second_phase(program, processor, machine, dynamic_memory);
 
 	vector< Share<gf2n> > tmp;
 	make_share(tmp, 1, get_n_parties(), mac_key, prng);

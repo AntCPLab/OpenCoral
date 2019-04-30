@@ -6,9 +6,6 @@
 #include "ThreadMaster.h"
 #include "Program.h"
 
-#include "ReplicatedSecret.h"
-#include "Secret.h"
-
 #include "instructions.h"
 
 namespace GC
@@ -28,7 +25,7 @@ ThreadMaster<T>& ThreadMaster<T>::s()
 
 template<class T>
 ThreadMaster<T>::ThreadMaster(OnlineOptions& opts) :
-        P(0), machine(memory), opts(opts)
+        P(0), opts(opts)
 {
     if (singleton)
         throw runtime_error("there can only be one");
@@ -94,6 +91,7 @@ void ThreadMaster<T>::run()
         {
 #define X(NAME, CODE) case NAME: cerr << it.second << " " #NAME << endl; break;
         INSTRUCTIONS
+#undef X
         }
 
     for (auto it = stats.begin(); it != stats.end(); it++)

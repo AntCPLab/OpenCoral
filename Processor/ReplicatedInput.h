@@ -7,6 +7,7 @@
 #define PROCESSOR_REPLICATEDINPUT_H_
 
 #include "Input.h"
+#include "Replicated.h"
 
 template <class T>
 class PrepLessInput : public InputBase<T>
@@ -40,12 +41,12 @@ class ReplicatedInput : public PrepLessInput<T>
     Player& P;
     vector<octetStream> os;
     SeededPRNG secure_prng;
+    ReplicatedBase protocol;
 
 public:
     ReplicatedInput(SubProcessor<T>& proc) :
-            PrepLessInput<T>(&proc), proc(&proc), P(proc.P)
+            ReplicatedInput(&proc, proc.P)
     {
-        assert(T::length == 2);
     }
     ReplicatedInput(SubProcessor<T>& proc, ReplicatedMC<T>& MC) :
             ReplicatedInput(proc)
@@ -53,8 +54,9 @@ public:
         (void) MC;
     }
     ReplicatedInput(SubProcessor<T>* proc, Player& P) :
-            PrepLessInput<T>(proc), proc(proc), P(P)
+            PrepLessInput<T>(proc), proc(proc), P(P), protocol(P)
     {
+        assert(T::length == 2);
     }
 
     void reset(int player);

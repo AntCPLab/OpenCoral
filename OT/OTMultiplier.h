@@ -17,6 +17,8 @@ using namespace std;
 
 template<class T>
 class NPartyTripleGenerator;
+template<class T>
+class OTTripleGenerator;
 
 class MultJob
 {
@@ -66,13 +68,13 @@ protected:
             const vector<BitVector>& baseReceiverOutput) = 0;
 
 public:
-    NPartyTripleGenerator<T>& generator;
+    OTTripleGenerator<T>& generator;
     int thread_num;
     OTExtensionWithMatrix rot_ext;
 
     OTCorrelator<Matrix<typename T::Rectangle> > otCorrelator;
 
-    OTMultiplier(NPartyTripleGenerator<T>& generator, int thread_num);
+    OTMultiplier(OTTripleGenerator<T>& generator, int thread_num);
     virtual ~OTMultiplier();
     void multiply();
 };
@@ -89,7 +91,7 @@ class MascotMultiplier : public OTMultiplier<Share<T>>
 public:
     vector<T> c_output;
 
-    MascotMultiplier(NPartyTripleGenerator<Share<T>>& generator, int thread_num);
+    MascotMultiplier(OTTripleGenerator<Share<T>>& generator, int thread_num);
 
 	void multiplyForInputs(MultJob job);
 };
@@ -115,8 +117,35 @@ public:
     OTVoleBase<Z2<MAC_BITS>, Z2<S>>* mac_vole;
     OTVoleBase<Z2<K + S>, Z2<S>>* input_mac_vole;
 
-    Spdz2kMultiplier(NPartyTripleGenerator<T>& generator, int thread_num);
+    Spdz2kMultiplier(OTTripleGenerator<T>& generator, int thread_num);
     ~Spdz2kMultiplier();
+};
+
+template<class T>
+class SemiMultiplier : public OTMultiplier<T>
+{
+    void multiplyForInputs(MultJob job)
+    {
+        (void) job;
+        throw not_implemented();
+    }
+
+    void after_correlation();
+
+    void init_authenticator(const BitVector& baseReceiverInput,
+            const vector< vector<BitVector> >& baseSenderInput,
+            const vector<BitVector>& baseReceiverOutput)
+    {
+        (void) baseReceiverInput, (void) baseReceiverOutput, (void) baseSenderInput;
+    }
+
+public:
+    vector<typename T::open_type> c_output;
+
+    SemiMultiplier(OTTripleGenerator<T>& generator, int i) :
+            OTMultiplier<T>(generator, i)
+    {
+    }
 };
 
 #endif /* OT_OTMULTIPLIER_H_ */

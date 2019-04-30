@@ -176,6 +176,10 @@ class cbits(bits):
         inst.cond_print_str(self, string)
     def reveal(self):
         return self
+    def to_regint(self, dest):
+        if self.n > 64:
+            raise CompilerError('too many bits')
+        inst.convcbit(dest, self)
 
 class sbits(bits):
     max_length = 128

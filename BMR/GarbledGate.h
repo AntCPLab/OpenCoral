@@ -11,6 +11,13 @@
 
 struct PRFTuple {
     Key outputs[2][2][2][1];
+    // i = 0..3
+    Key for_garbling(int i)
+    {
+       int a = i / 2;
+       int b = i % 2;
+       return outputs[0][a][b][0] ^ outputs[1][b][a][0];
+    }
 };
 
 /*
@@ -27,16 +34,15 @@ struct PRFTuple {
 	 */
 struct PRFOutputs {
 #ifdef MAX_N_PARTIES
-	PRFTuple tuples[MAX_N_PARTIES][MAX_N_PARTIES];
+	PRFTuple tuples[MAX_N_PARTIES];
 	PRFOutputs(int n_parties) { (void)n_parties; }
-	PRFTuple* operator[](int i) { return tuples[i]; }
 #else
-	int n_parties;
 	vector<PRFTuple> tuples;
 
-	PRFOutputs(int n_parties) : n_parties(n_parties), tuples(n_parties * n_parties) {}
-	PRFTuple* operator[](int i) { return &tuples[i*n_parties]; }
+	PRFOutputs(int n_parties) : tuples(n_parties) {}
 #endif
+	PRFTuple& operator[](int i) { return tuples[i]; }
+	void serialize(SendBuffer& buffer, int my_id, int n_parties);
 	void print_prfs(gate_id_t g, wire_id_t* in_wires, party_id_t my_id, int n_parties);
 };
 
@@ -82,6 +88,7 @@ public:
     char* input(int e, party_id_t j) { return (char*)&prf_inputs[e][j-1]; }
 
     void compute_prfs_outputs(const Register** in_wires, int my_id, SendBuffer& buffer, gate_id_t g);
+    void compute_prfs_outputs(const Register** in_wires, int my_id, PRFOutputs& outputs, gate_id_t g);
     void print();
 };
 

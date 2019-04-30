@@ -34,6 +34,8 @@ public:
 
     static BaseMachine& s();
 
+    static string memory_filename(string type_short, int my_number);
+
     BaseMachine();
     virtual ~BaseMachine() {}
 

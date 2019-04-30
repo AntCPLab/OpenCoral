@@ -72,6 +72,8 @@ ReplicatedParty<T>::ReplicatedParty(int argc, const char** argv) :
 
     this->run();
 
+    this->machine.write_memory(this->N.my_num());
+
     if (server)
         delete server;
 }

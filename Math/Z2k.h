@@ -19,6 +19,7 @@ using namespace std;
 template <int K>
 class Z2 : public ValueInterface
 {
+protected:
 	template <int L>
 	friend class Z2;
 	friend class bigint;
@@ -26,8 +27,7 @@ class Z2 : public ValueInterface
 	static const int N_WORDS = ((K + 7) / 8 + sizeof(mp_limb_t) - 1)
 			/ sizeof(mp_limb_t);
 	static const int N_LIMB_BITS = 8 * sizeof(mp_limb_t);
-	static const uint64_t UPPER_MASK =
-			((K % N_LIMB_BITS) == 0) ? -1 : -1 + (1LL << (K % N_LIMB_BITS));
+	static const uint64_t UPPER_MASK = uint64_t(-1LL) >> (N_LIMB_BITS - 1 - (K - 1) % N_LIMB_BITS);
 
 	mp_limb_t a[N_WORDS];
 
@@ -51,9 +51,10 @@ public:
 	static const int N_BYTES = (K + 7) / 8;
 
 	static int size() { return N_BYTES; }
+	static int size_in_limbs() { return N_WORDS; }
 	static int t() { return 0; }
 
-	static char type_char() { return 'Z'; }
+	static char type_char() { return 'R'; }
 	static string type_string() { return "Z2^" + to_string(int(N_BITS)); }
 
 	static DataFieldType field_type() { return DATA_INT; }
@@ -63,7 +64,9 @@ public:
 	template <int L, int M>
 	static Z2<K> Mul(const Z2<L>& x, const Z2<M>& y);
 
-	typedef Z2<K> value_type;
+	static void reqbl(int n);
+	static bool allows(Dtype dtype);
+
 	typedef Z2 next;
 
 	Z2() { assign_zero(); }
@@ -89,6 +92,9 @@ public:
 	bool get_bit(int i) const;
 
 	const void* get_ptr() const { return a; }
+	const mp_limb_t* get() const { return a; }
+
+	void convert_destroy(bigint& a) { *this = a; }
 
 	void negate() { 
 		throw not_implemented();
@@ -122,17 +128,31 @@ public:
 	template <int L>
 	void mul(const Integer& a, const Z2<L>& b) { *this = Z2<K>::Mul(Z2<64>(a), b); }
 
+	void mul(const Z2& a) { *this = Z2::Mul(*this, a); }
+
 	template <int t>
 	void add(octetStream& os) { add(os.consume(size())); }
 
 	Z2& invert();
+	void invert(const Z2& a) { *this = a; invert(); }
 
 	Z2 sqrRoot();
 
-	bool is_zero() { return *this == Z2<K>(); }
+	bool is_zero() const { return *this == Z2<K>(); }
+	bool is_one() const { return *this == 1; }
+	bool is_bit() const { return is_zero() or is_one(); }
+
+	void SHL(const Z2& a, const bigint& i) { *this = a << i.get_ui(); }
+	void SHR(const Z2& a, const bigint& i) { *this = a >> i.get_ui(); }
+
+	void AND(const Z2& a, const Z2& b);
+	void OR(const Z2& a, const Z2& b);
+	void XOR(const Z2& a, const Z2& b);
 
 	void randomize(PRNG& G);
 	void almost_randomize(PRNG& G) { randomize(G); }
+
+	void force_to_bit() { throw runtime_error("impossible"); }
 
 	void pack(octetStream& o) const;
 	void unpack(octetStream& o);
@@ -142,6 +162,53 @@ public:
 
 	template <int J>
 	friend ostream& operator<<(ostream& o, const Z2<J>& x);
+};
+
+template<int K>
+class SignedZ2 : public Z2<K>
+{
+public:
+    SignedZ2()
+    {
+    }
+
+    template <int L>
+    SignedZ2(const SignedZ2<L>& other) : Z2<K>(other)
+    {
+        if (K < L and other.negative())
+        {
+            this->a[Z2<K>::N_WORDS - 1] |= ~Z2<K>::UPPER_MASK;
+            for (int i = Z2<K>::N_WORDS; i < this->N_WORDS; i++)
+                this->a[i] = -1;
+        }
+    }
+
+    SignedZ2(const Integer& other) : SignedZ2(SignedZ2<64>(other))
+    {
+    }
+
+    template<class T>
+    SignedZ2(const T& other) :
+            Z2<K>(other)
+    {
+    }
+
+    bool negative() const
+    {
+        return this->a[this->N_WORDS - 1] & 1ll << ((K - 1) % (8 * sizeof(mp_limb_t)));
+    }
+
+    SignedZ2 operator-() const
+    {
+        return SignedZ2() - *this;
+    }
+
+    SignedZ2 operator-(const SignedZ2& other) const
+    {
+        return Z2<K>::operator-(other);
+    }
+
+    void output(ostream& s, bool human = true) const;
 };
 
 template<int K>
@@ -237,6 +304,47 @@ template<int K>
 void Z2<K>::unpack(octetStream& o)
 {
 	o.consume((octet*)a, N_BYTES);
+}
+
+template<int K>
+void to_gfp(Z2<K>& res, const bigint& a)
+{
+	res = a;
+}
+
+template<int K>
+SignedZ2<K> abs(const SignedZ2<K>& x)
+{
+    if (x.negative())
+        return -x;
+    else
+        return x;
+}
+
+template<int K>
+void SignedZ2<K>::output(ostream& s, bool human) const
+{
+    if (human)
+    {
+        bigint::tmp = *this;
+        s << bigint::tmp;
+    }
+    else
+        Z2<K>::output(s, false);
+}
+
+template<int K>
+ostream& operator<<(ostream& o, const SignedZ2<K>& x)
+{
+    x.output(o, true);
+    return o;
+}
+
+template<int K>
+inline void to_signed_bigint(bigint& res, const SignedZ2<K>& x, int n)
+{
+    bigint tmp = x;
+    to_signed_bigint(res, tmp, n);
 }
 
 #endif /* MATH_Z2K_H_ */

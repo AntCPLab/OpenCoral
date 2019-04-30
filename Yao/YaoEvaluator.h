@@ -14,7 +14,7 @@
 #include "Tools/MMO.h"
 #include "OT/OTExtensionWithMatrix.h"
 
-class YaoEvaluator : public GC::Thread<Secret<YaoEvalWire>>, public YaoCommon
+class YaoEvaluator : public GC::Thread<GC::Secret<YaoEvalWire>>, public YaoCommon
 {
 protected:
 	static thread_local YaoEvaluator* singleton;
@@ -37,7 +37,7 @@ public:
 
 	YaoEvaluator(int thread_num, YaoEvalMaster& master);
 
-	bool continuous() { return master.continuous and thread_num == 0; }
+	bool continuous() { return master.continuous and master.machine.nthreads == 1; }
 
 	void pre_run();
 	void run(GC::Program<GC::Secret<YaoEvalWire>>& program);

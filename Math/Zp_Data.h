@@ -46,6 +46,7 @@ class Zp_Data
   bigint       pr;
   mp_limb_t    mask;
   size_t       pr_byte_length;
+  size_t       pr_bit_length;
 
   void assign(const Zp_Data& Zp);
   void init(const bigint& p,bool mont=true);
@@ -56,18 +57,15 @@ class Zp_Data
   void unpack(octetStream& o);
 
   // This one does nothing, needed so as to make vectors of Zp_Data
-  Zp_Data() : montgomery(0), pi(0), mask(0), pr_byte_length(0) { t=MAX_MOD_SZ; }
+  Zp_Data() :
+      montgomery(0), pi(0), mask(0), pr_byte_length(0), pr_bit_length(0)
+  {
+    t = MAX_MOD_SZ;
+  }
 
   // The main init funciton
   Zp_Data(const bigint& p,bool mont=true)
     { init(p,mont); }
-
-  Zp_Data(const Zp_Data& Zp) { assign(Zp); }
-  Zp_Data& operator=(const Zp_Data& Zp) 
-    { if (this!=&Zp) { assign(Zp); }
-      return *this;
-    }
-  ~Zp_Data()  { ; }
 
   template <int T>
   void Add(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const;
@@ -110,9 +108,9 @@ class Zp_Data
 template<>
 inline void Zp_Data::Add<0>(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const
 {
-  mp_limb_t carry = mpn_add_n(ans,x,y,t);
+  mp_limb_t carry = mpn_add_n_with_carry(ans,x,y,t);
   if (carry!=0 || mpn_cmp(ans,prA,t)>=0)
-    { mpn_sub_n(ans,ans,prA,t); }
+    { mpn_sub_n_borrow(ans,ans,prA,t); }
 }
 
 template<>
@@ -148,10 +146,20 @@ inline void Zp_Data::Add<2>(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y
 #endif
 }
 
+template<int T>
+inline void Zp_Data::Add(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const
+{
+  mp_limb_t carry = mpn_add_fixed_n_with_carry<T>(ans,x,y);
+  if (carry!=0 || mpn_cmp(ans,prA,T)>=0)
+    { mpn_sub_n_borrow(ans,ans,prA,T); }
+}
+
 inline void Zp_Data::Add(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const
 {
   switch (t)
   {
+  case 4:
+    return Add<4>(ans, x, y);
   case 2:
     return Add<2>(ans, x, y);
   case 1:
@@ -175,9 +183,9 @@ inline void Zp_Data::Sub(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) c
 template <>
 inline void Zp_Data::Sub<0>(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const
 {
-  mp_limb_t borrow = mpn_sub_n(ans,x,y,t);
+  mp_limb_t borrow = mpn_sub_n_borrow(ans,x,y,t);
   if (borrow!=0)
-    mpn_add_n(ans,ans,prA,t);
+    mpn_add_n_with_carry(ans,ans,prA,t);
 }
 
 inline void Zp_Data::Sub(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const
@@ -224,15 +232,23 @@ inline void Zp_Data::Mont_Mult_(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t*
 
 inline void Zp_Data::Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const
 {
+  if (not cpu_has_bmi2())
+    return Mont_Mult_variable(z, x, y);
   switch (t)
   {
 #ifdef __BMI2__
-  case 2:
-    Mont_Mult_<2>(z, x, y);
+#define CASE(N) \
+  case N: \
+    Mont_Mult_<N>(z, x, y); \
     break;
-  case 1:
-    Mont_Mult_<1>(z, x, y);
-    break;
+  CASE(1)
+  CASE(2)
+#if MAX_MOD_SZ >= 5
+  CASE(3)
+  CASE(4)
+  CASE(5)
+#endif
+#undef CASE
 #endif
   default:
     Mont_Mult_variable(z, x, y);

@@ -10,6 +10,8 @@
 #include "Processor/Beaver.h"
 #include "Auth/MaliciousShamirMC.h"
 
+template<class T> class MaliciousRepPrep;
+
 template<class T>
 class MaliciousShamirShare : public ShamirShare<T>
 {
@@ -22,6 +24,7 @@ public:
     typedef ShamirInput<MaliciousShamirShare> Input;
     typedef ReplicatedPrivateOutput<MaliciousShamirShare> PrivateOutput;
     typedef ShamirShare<T> Honest;
+    typedef MaliciousRepPrep<MaliciousShamirShare> LivePrep;
 
     static string type_short()
     {
@@ -32,8 +35,9 @@ public:
     {
     }
     template<class U>
-    MaliciousShamirShare(const U& other) : super(other)
+    MaliciousShamirShare(const U& other, int my_num = 0, T alphai = {}) : super(other)
     {
+        (void) my_num, (void) alphai;
     }
 };
 

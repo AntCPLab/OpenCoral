@@ -6,9 +6,6 @@
 #include "Thread.h"
 #include "Program.h"
 
-#include "ReplicatedSecret.h"
-#include "Secret.h"
-
 #include "Networking/CryptoPlayer.h"
 
 namespace GC
@@ -76,7 +73,7 @@ void Thread<T>::run()
 template<class T>
 void Thread<T>::run(Program<T>& program)
 {
-    while (program.execute(processor) != DONE_BREAK)
+    while (program.execute(processor, master.memory) != DONE_BREAK)
         ;
 }
 

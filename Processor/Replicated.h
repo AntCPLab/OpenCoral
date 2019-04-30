@@ -38,6 +38,8 @@ template <class T>
 class ProtocolBase
 {
 public:
+    typedef T share_type;
+
     int counter;
 
     ProtocolBase();

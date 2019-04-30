@@ -8,7 +8,6 @@
 
 #include "Data_Files.h"
 #include "ReplicatedPrep.h"
-#include "Math/MaliciousRep3Share.h"
 #include "Auth/MaliciousRepMC.h"
 
 #include <array>

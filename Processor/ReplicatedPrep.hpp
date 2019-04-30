@@ -5,9 +5,6 @@
 
 #include "ReplicatedPrep.h"
 #include "Math/gfp.h"
-#include "Math/MaliciousRep3Share.h"
-#include "Auth/ReplicatedMC.h"
-#include "Auth/ShamirMC.h"
 
 template<class T>
 RingPrep<T>::RingPrep(SubProcessor<T>* proc, DataPositions& usage) :
@@ -26,12 +23,16 @@ void RingPrep<T>::set_protocol(typename T::Protocol& protocol)
 template<class T>
 void ReplicatedRingPrep<T>::buffer_triples()
 {
-    auto protocol = this->protocol;
-    auto proc = this->proc;
-    assert(protocol != 0);
-    auto& triples = this->triples;
-    triples.resize(this->buffer_size);
-    protocol->init_mul(proc);
+    assert(this->protocol != 0);
+    generate_triples(this->triples, this->buffer_size, this->protocol);
+}
+
+template<class T>
+void generate_triples(vector<array<T, 3>>& triples, int n_triples,
+        typename T::Protocol* protocol)
+{
+    triples.resize(n_triples);
+    protocol->init_mul();
     for (size_t i = 0; i < triples.size(); i++)
     {
         auto& triple = triples[i];
@@ -75,7 +76,7 @@ void RingPrep<T>::buffer_squares()
     vector<typename T::open_type> opened(buffer_size);
     proc->MC.POpen(opened, a_plus_b, proc->P);
     for (int i = 0; i < buffer_size; i++)
-        this->squares.push_back({as[i], as[i] * opened[i] - cs[i]});
+        this->squares.push_back({{as[i], as[i] * opened[i] - cs[i]}});
 }
 
 template<class T>

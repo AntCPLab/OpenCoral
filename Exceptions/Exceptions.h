@@ -202,6 +202,6 @@ public:
     {
     }
 };
-
+class needs_cleaning : public exception {};
 
 #endif

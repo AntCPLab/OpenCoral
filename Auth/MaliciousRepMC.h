@@ -7,8 +7,6 @@
 #define AUTH_MALICIOUSREPMC_H_
 
 #include "ReplicatedMC.h"
-#include "GC/MaliciousRepSecret.h"
-#include "GC/Machine.h"
 
 template<class T>
 class MaliciousRepMC : public ReplicatedMC<T>

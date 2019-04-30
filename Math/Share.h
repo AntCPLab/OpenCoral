@@ -23,6 +23,8 @@ template<class T> bool check_macs(const vector< Share<T> >& S,const T& key);
 template<class T> class MAC_Check_;
 template<class T> class Direct_MAC_Check;
 template<class T> class MascotMultiplier;
+template<class T> class MascotFieldPrep;
+template<class T> class NPartyTripleGenerator;
 
 union square128;
 
@@ -37,18 +39,20 @@ class Share
    typedef T mac_key_type;
    typedef T mac_type;
    typedef T open_type;
-   typedef typename T::value_type clear;
+   typedef T clear;
 
    typedef Share<typename T::next> prep_type;
    typedef MascotMultiplier<T> Multiplier;
+   typedef NPartyTripleGenerator<prep_type> TripleGenerator;
    typedef T sacri_type;
    typedef square128 Rectangle;
 
    typedef MAC_Check_<Share> MAC_Check;
    typedef Direct_MAC_Check<T> Direct_MC;
    typedef ::Input<Share> Input;
-   typedef typename T::PO PrivateOutput;
+   typedef ::PrivateOutput<Share> PrivateOutput;
    typedef SPDZ<Share> Protocol;
+   typedef MascotFieldPrep<Share> LivePrep;
 
    const static bool needs_ot = true;
 
@@ -126,6 +130,8 @@ class Share
 
    Share<T> operator<<(int i) { return this->operator*(T(1) << i); }
    Share<T>& operator<<=(int i) { return *this = *this << i; }
+
+   void force_to_bit() { a.force_to_bit(); }
 
    // Input and output from a stream
    //  - Can do in human or machine only format (later should be faster)

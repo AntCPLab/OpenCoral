@@ -4,6 +4,9 @@
 #include "Math/Share.h"
 #include "Math/Setup.h"
 #include "Math/Spdz2kShare.h"
+#include "Math/BrainShare.h"
+#include "Math/MaliciousRep3Share.h"
+#include "Math/SemiShare.h"
 #include "Auth/fake-stuff.h"
 #include "Exceptions/Exceptions.h"
 #include "GC/MaliciousRepSecret.h"
@@ -307,8 +310,11 @@ void make_basic(const typename T::mac_type& key, int nplayers, int nitems, bool 
     make_bits<T>(key, nplayers, nitems, zero);
     make_square_tuples<T>(key, nplayers, nitems, T::type_short(), zero);
     make_inputs<T>(key, nplayers, nitems, T::type_short(), zero);
-    make_inverse<T>(key, nplayers, nitems, zero);
-    make_PreMulC<T>(key, nplayers, nitems, zero);
+    if (T::clear::invertible)
+    {
+        make_inverse<T>(key, nplayers, nitems, zero);
+        make_PreMulC<T>(key, nplayers, nitems, zero);
+    }
 }
 
 template<class T>
@@ -631,10 +637,15 @@ int generate(ez::ezOptionParser& opt)
     make_bits<Rep3Share<Integer>>({}, nplayers, nbitsp, zero);
     make_basic<Rep3Share<gfp>>({}, nplayers, default_num, zero);
     make_basic<Rep3Share<gf2n>>({}, nplayers, default_num, zero);
+    make_basic<BrainShare<64, 40>>({}, nplayers, default_num, zero);
+    make_basic<MaliciousRep3Share<gf2n>>({}, nplayers, default_num, zero);
 
     make_mult_triples<GC::MaliciousRepSecret>({}, nplayers, ntrip2, zero);
     make_bits<GC::MaliciousRepSecret>({}, nplayers, nbits2, zero);
   }
+
+  make_basic<SemiShare<gfp>>({}, nplayers, default_num, zero);
+  make_basic<SemiShare<gf2n>>({}, nplayers, default_num, zero);
 
   return 0;
 }

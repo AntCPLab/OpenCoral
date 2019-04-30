@@ -4,10 +4,11 @@ function build
 {
     echo ARCH = $1 >> CONFIG.mine
     echo GDEBUG = >> CONFIG.mine
+    echo MOD = -DMAX_MOD_SZ=4 >> CONFIG.mine
     make clean
     rm -R static
     mkdir static
-    make -j 12 static-release
+    make -j 4 static-release
     mkdir bin
     dest=bin/`uname`-$2
     rm -R $dest
@@ -15,6 +16,5 @@ function build
     strip $dest/*
 }
 
-build '' amd64
-build '-msse4.1 -maes -mpclmul' aes
-build '-msse4.1 -maes -mpclmul -mavx -mavx2 -mbmi2' avx2
+build '-maes -mpclmul -DCHECK_AES -DCHECK_PCLMUL -DCHECK_AVX' amd64
+build '-msse4.1 -maes -mpclmul -mavx -mavx2 -mbmi2 -madx -DCHECK_ADX' avx2

@@ -5,6 +5,7 @@
 
 #include "Tools/ezOptionParser.h"
 #include "Tools/benchmarking.h"
+#include "Tools/NetworkOptions.h"
 #include "Networking/Server.h"
 #include "Math/Rep3Share.h"
 #include "Processor/Machine.h"
@@ -17,24 +18,7 @@ ReplicatedMachine<T, U>::ReplicatedMachine(int argc, const char** argv,
     (void) name;
 
     OnlineOptions online_opts(opt, argc, argv);
-    opt.add(
-            "localhost", // Default.
-            0, // Required?
-            1, // Number of args expected.
-            0, // Delimiter if expecting multiple args.
-            "Host where party 0 is running (default: localhost)", // Help description.
-            "-h", // Flag token.
-            "--hostname" // Flag token.
-    );
-    opt.add(
-            "5000", // Default.
-            0, // Required?
-            1, // Number of args expected.
-            0, // Delimiter if expecting multiple args.
-            "Base port number (default: 5000).", // Help description.
-            "-pn", // Flag token.
-            "--portnum" // Flag token.
-    );
+    NetworkOptions network_opts(opt, argc, argv);
     opt.add(
             "", // Default.
             0, // Required?
@@ -49,10 +33,8 @@ ReplicatedMachine<T, U>::ReplicatedMachine(int argc, const char** argv,
     int playerno = online_opts.playerno;
     string progname = online_opts.progname;
 
-    int pnb;
-    string hostname;
-    opt.get("-pn")->getInt(pnb);
-    opt.get("-h")->getString(hostname);
+    int pnb = network_opts.portnum_base;
+    string hostname = network_opts.hostname;
     bool use_encryption = not opt.get("-u")->isSet;
 
     if (not use_encryption)

@@ -61,10 +61,15 @@ public:
     RingPrep(SubProcessor<T>* proc, DataPositions& usage);
     virtual ~RingPrep() {}
 
+    void set_proc(SubProcessor<T>* proc) { this->proc = proc; }
     void set_protocol(typename T::Protocol& protocol);
 
     virtual void buffer_bits();
 };
+
+template<class T>
+void generate_triples(vector<array<T, 3>>& triples, int n_triples,
+        typename T::Protocol* protocol);
 
 template<class T>
 class ReplicatedRingPrep : public RingPrep<T>

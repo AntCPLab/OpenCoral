@@ -27,6 +27,12 @@ typedef gfp_<0> gfp;
 class gmp_random;
 class Integer;
 template<int K> class Z2;
+template<int K> class SignedZ2;
+
+namespace GC
+{
+  class Clear;
+}
 
 class bigint : public mpz_class
 {
@@ -43,19 +49,27 @@ public:
   bigint() : mpz_class() {}
   template <class T>
   bigint(const T& x) : mpz_class(x) {}
-  bigint(const gfp& x);
+  template<int X>
+  bigint(const gfp_<X>& x);
   template <int K>
   bigint(const Z2<K>& x);
+  template <int K>
+  bigint(const SignedZ2<K>& x);
+  bigint(const Integer& x);
+  bigint(const GC::Clear& x);
 
   bigint& operator=(int n);
   bigint& operator=(long n);
   bigint& operator=(word n);
-  bigint& operator=(const gfp& other);
+  template<int X>
+  bigint& operator=(const gfp_<X>& other);
 
   void allocate_slots(const bigint& x) { *this = x; }
   int get_min_alloc() { return get_mpz_t()->_mp_alloc; }
 
   void negate() { mpz_neg(get_mpz_t(), get_mpz_t()); }
+
+  void mul(const bigint& x, const bigint& y) { *this = x * y; }
 
 #ifdef REALLOC_POLICE
   ~bigint() { lottery(); }
@@ -92,6 +106,8 @@ public:
 };
 
 
+void to_signed_bigint(bigint& res, const bigint& x, int n);
+
 void inline_mpn_zero(mp_limb_t* x, mp_size_t size);
 void inline_mpn_copyi(mp_limb_t* dest, const mp_limb_t* src, mp_size_t size);
 
@@ -120,6 +136,31 @@ template<int K>
 bigint::bigint(const Z2<K>& x)
 {
   mpz_import(get_mpz_t(), Z2<K>::N_WORDS, -1, sizeof(mp_limb_t), 0, 0, x.get_ptr());
+}
+
+template<int K>
+bigint::bigint(const SignedZ2<K>& x)
+{
+  mpz_import(get_mpz_t(), Z2<K>::N_WORDS, -1, sizeof(mp_limb_t), 0, 0, x.get_ptr());
+  if (x.negative())
+  {
+    bigint::tmp = 1;
+    bigint::tmp <<= K;
+    *this -= bigint::tmp;
+  }
+}
+
+template<int X>
+bigint::bigint(const gfp_<X>& x)
+{
+  *this = x;
+}
+
+template<int X>
+bigint& bigint::operator=(const gfp_<X>& x)
+{
+  to_bigint(*this, x);
+  return *this;
 }
 
 
@@ -224,16 +265,6 @@ inline int Hwt(int N)
       N&=(N-1);
     }
   return result;
-}
-
-inline void inline_mpn_zero(mp_limb_t* x, mp_size_t size)
-{
-  avx_memzero(x, size * sizeof(mp_limb_t));
-}
-
-inline void inline_mpn_copyi(mp_limb_t* dest, const mp_limb_t* src, mp_size_t size)
-{
-  avx_memcpy(dest, src, size * sizeof(mp_limb_t));
 }
 
 template <class T>

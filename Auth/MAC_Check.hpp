@@ -8,16 +8,6 @@
 #include "Tools/int.h"
 #include "Tools/benchmarking.h"
 
-#include "Math/gfp.h"
-#include "Math/gf2n.h"
-#include "Math/BitVec.h"
-#include "Math/Rep3Share.h"
-#include "Math/MaliciousRep3Share.h"
-#include "Math/ShamirShare.h"
-#include "Math/MaliciousShamirShare.h"
-#include "Math/Z2k.h"
-#include "Math/Spdz2kShare.h"
-
 #include <algorithm>
 
 template<class T>

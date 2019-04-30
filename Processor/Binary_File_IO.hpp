@@ -1,6 +1,4 @@
 #include "Processor/Binary_File_IO.h"
-#include "Math/Rep3Share.h"
-#include "Math/gfp.h"
 
 /* 
  * Provides generalised file read and write methods for arrays of shares.

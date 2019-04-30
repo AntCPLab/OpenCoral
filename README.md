@@ -1,9 +1,10 @@
 # Multi-Protocol SPDZ
 
 Software to benchmark various secure multi-party computation (MPC)
-protocols such as SPDZ, MASCOT, Overdrive, BMR garbled circuits
-(evaluation only), Yao's garbled circuits, and computation based on
-semi-honest three-party replicated secret sharing (with an honest majority).
+protocols such as SPDZ, SPDZ2k, MASCOT, Overdrive, BMR garbled circuits,
+Yao's garbled circuits, and computation based on
+three-party replicated secret sharing as well as Shamir's secret
+sharing (with an honest majority).
 
 #### TL;DR (Binary Distribution on Linux or Source Distribution on macOS)
 
@@ -64,10 +65,10 @@ stands for three-party replicated secret sharing.
 
 | Security model | Mod prime / GF(2^n) | Mod 2^k | Binary |
 | --- | --- | --- | --- |
-| Malicious, dishonest majority | [MASCOT](#arithmetic-circuits-mascot--spdz2k) | [SPDZ2k](#arithmetic-circuits-mascot--spdz2k) | N/A |
-| Semi-honest, dishonest majority | N/A | N/A | [Yao's GC](#yaos-garbled-circuits) |
-| [Malicious, honest majority](#honest-majority) | Shamir / Rep3 | N/A | N/A |
-| [Semi-honest, honest majority](#honest-majority) | Shamir / Rep3 | Rep3 | Rep3 |
+| Malicious, dishonest majority | [MASCOT](#arithmetic-circuits) | [SPDZ2k](#arithmetic-circuits) | [BMR](#bmr) |
+| Semi-honest, dishonest majority | [Semi](#arithmetic-circuits) | [Semi2k](#arithmetic-circuits) | [Yao's GC](#yaos-garbled-circuits) / [BMR](#bmr) |
+| Malicious, honest majority | [Shamir / Rep3](#honest-majority) | [Brain](#honest-majority) | [BMR](#bmr) |
+| Semi-honest, honest majority | [Shamir / Rep3](#honest-majority) | [Rep3](#honest-majority) | [Rep3](#honest-majority) / [BMR](#bmr) |
 
 #### History
 
@@ -121,7 +122,7 @@ phase outputs the amount of offline material required, which allows to
 compute the preprocessing time for a particulor computation.
 
 #### Requirements
- - GCC 5 or later (tested with 7.3) or LLVM (tested with 6.0)
+ - GCC 5 or later (tested with 8.2) or LLVM/clang 5 or later (tested with 7)
  - MPIR library, compiled with C++ support (use flag --enable-cxx when running configure)
  - libsodium library, tested against 1.0.16
  - OpenSSL, tested against and 1.0.2 and 1.1.0
@@ -222,20 +223,31 @@ All current full implementations requires oblivious transfer, which is
 implemented as OT extension based on
 https://github.com/mkskeller/SimpleOT.
 
-### Arithmetic circuits (MASCOT / SPDZ2k)
+### Arithmetic circuits
 
-The two protocols are implemented in `Player-Online.x` and
-`spdz2k-party.x`,
-respectively. [MASCOT](https://eprint.iacr.org/2016/505) works modulo
-a prime, while a [SPDZ2k](https://eprint.iacr.org/2018/482) works
-modulo 2^k. We will use MASCOT to demonstrate the use,
-but SPDZ2k works similarly.
+The following table shows all programs for arithmetic dishonest-majority computation:
+
+| Program | Protocol | Domain | Malicious | Script |
+| --- | --- | --- | --- | --- |
+| `Player-Online.x` | [MASCOT](https://eprint.iacr.org/2016/505) | Mod prime | Y | `mascot.sh` |
+| `spdz2k-party.x` | [SPDZ2k](https://eprint.iacr.org/2018/482) | Mod 2^k | Y | `spdk2k.sh` |
+| `semi-party.x` | OT-based | Mod prime | N | `semi.sh` |
+| `semi2k-party.x` | OT-based | Mod 2^k | N | `semi2k.sh` |
+
+Semi and Semi2k denote the result of stripping MASCOT/SPDZ2k of all
+steps required for malicious security, namely amplifying, sacrificing,
+MAC generation, and OT correlation checks. What remains is the
+generation of additively shared Beaver triples using OT.
+
+We will use MASCOT to demonstrate the use, but the other protocols
+work similarly.
 
 First compile the virtual machine:
 
 `make -j8 Player-Online.x`
 
-and a high-level program, for example the tutorial (use `-R 64` for SPDZ2k):
+and a high-level program, for example the tutorial (use `-R 64` for
+SPDZ2k and Semi2k):
 
 `./compile.py -F 64 tutorial`
 
@@ -251,7 +263,7 @@ party. Omitting `-I` leads to inputs being read from
 `Player-Data/Input-P<party number>-0` in text format.
 
 Or, you can use a script to do run two parties in non-interactive mode
-automatically (the script for SPDZ2k is `Scripts/spdz2k.sh`):
+automatically:
 
 `Scripts/mascot.sh tutorial`
 
@@ -286,9 +298,9 @@ When running locally, you can omit the host argument. As above, `-I`
 activates interactive input, otherwise inputs are read from
 `Player-Data/Input-P<playerno>-0`.
 
-By default, the circuit is garbled at once and stored on the evaluator
-side before evaluating. You can activate a more continuous operation
-by adding `-C` to the command line on both sides.
+By default, the circuit is garbled in chunks that are evaluated
+whenever received.You can activate garbling all at once by adding
+`-O` to the command line on both sides.
 
 ## Honest majority
 
@@ -297,6 +309,7 @@ The following table shows all programs for honest-majority computation:
 | Program | Sharing | Domain | Malicious | \# parties | Script |
 | --- | --- | --- | --- | --- | --- |
 | `replicated-ring-party.x` | Replicated | Mod 2^k | N | 3 | `ring.sh` |
+| `brain-party.x` | Replicated | Mod 2^k | Y | 3 | `brain.sh` |
 | `replicated-bin-party.x` | Replicated | Binary | N | 3 | `replicated.sh` |
 | `replicated-field-party.x` | Replicated | Mod prime | N | 3 | `rep-field.sh` |
 | `malicious-rep-field-party.x` | Replicated | Mod prime | Y | 3 | `mal-rep-field.sh` |
@@ -306,7 +319,10 @@ The following table shows all programs for honest-majority computation:
 We use the "generate random triple optimistically/sacrifice/Beaver"
 methodology described by [Lindell and
 Nof](https://eprint.iacr.org/2017/816) to achieve malicious
-security. Otherwise, we use resharing by [Cramer et
+security. The implementation in `brain-party.x` is inspired by
+[Eerikson et al.](https://eprint.iacr.org/2019/164) but does not use fast Fourier transform for batch
+verification.
+Otherwise, we use resharing by [Cramer et
 al.](https://eprint.iacr.org/2000/037) for Shamir's secret sharing and
 the optimized approach by [Araki et
 al.](https://eprint.iacr.org/2016/768) for replicated secret sharing.
@@ -364,6 +380,51 @@ When using programs based on Shamir's secret sharing, you can specify
 the number of parties with `-N` and the maximum number of corrupted
 parties with `-T`. The latter can be at most half the number of
 parties.
+
+### BMR
+
+BMR (Bellare-Micali-Rogaway) is a method of generating a garbled circuit
+using another secure computation protocol. We have implemented BMR
+based all available implementations using GF(2^128) because the nature
+of this field particularly suits the Free-XOR optimization for garbled
+circuits. Our implementation is based on [SPDZ-BMR-ORAM
+construction](https://eprint.iacr.org/2017/981). The following table
+lists the available schemes.
+
+| Program | Protocol | Dishonest Maj. | Malicious | \# parties | Script |
+| --- | --- | --- | --- | --- | --- |
+| `real-bmr-party.x` | MASCOT | Y | Y | 2 or more | `real-bmr.sh` |
+| `shamir-bmr-party.x` | Shamir | N | N | 3 or more | `shamir-bmr.sh` |
+| `mal-shamir-bmr-party.x` | Shamir | N | Y | 3 or more | `mal-shamir-bmr.sh` |
+| `rep-bmr-party.x` | Replicated | N | N | 3 | `rep-bmr.sh` |
+| `mal-rep-bmr-party.x` | Replicated | N | Y | 3 | `mal-rep-bmr.sh` |
+
+In the following, we will walk through running the tutorial with BMR
+based on MASCOT and two parties. The other programs work similarly.
+
+First, compile the virtual machine. In order to run with more than
+three parties, change the definition of `MAX_N_PARTIES` in
+`BMR/config.h` accordingly.
+
+`make -j 8 real-bmr-party.x`
+
+In order to compile a high-level program, use `./compile.py -B`:
+
+`./compile.py -B 32 tutorial`
+
+Finally, run the two parties as follows:
+
+`./real-bmr-party.x -I 0 tutorial`
+
+`./real-bmr-party.x -I 1 tutorial` (in a separate terminal)
+
+or
+
+`Scripts/real-bmr.sh tutorial`
+
+The `-I` enable interactive inputs, and in the tutorial party 0 and 1
+will be asked to provide three numbers. Otherwise, and when using the
+script, the inputs are read from `Player-Data/Input-P<playerno>-0`.
 
 ## Online-only benchmarking
 

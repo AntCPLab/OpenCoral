@@ -2,7 +2,6 @@
 #include "Processor/Processor.h"
 #include "Networking/STS.h"
 #include "Auth/MAC_Check.h"
-#include "Auth/ReplicatedMC.h"
 #include "Auth/fake-stuff.h"
 
 #include "Processor/ReplicatedInput.hpp"
@@ -16,6 +15,7 @@ SubProcessor<T>::SubProcessor(ArithmeticProcessor& Proc, typename T::MAC_Check& 
     Preprocessing<T>& DataF, Player& P) :
     Proc(Proc), MC(MC), P(P), DataF(DataF), protocol(P), input(*this, MC)
 {
+  DataF.set_proc(this);
   DataF.set_protocol(protocol);
 }
 

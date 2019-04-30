@@ -3,6 +3,7 @@
 #include "Math/gfp.h"
 #include "Math/Z2k.h"
 #include "Math/Share.h"
+#include "Math/SemiShare.h"
 #include "Auth/fake-stuff.h"
 #include "Tools/benchmarking.h"
 #include "Processor/config.h"
@@ -25,6 +26,21 @@ void make_share(Share<T>* Sa,const U& a,int N,const V& key,PRNG& G)
       Sa[i].set_share(x);
       Sa[i].set_mac(y);
       S.sub(S,Sa[i]);
+    }
+  Sa[N-1]=S;
+}
+
+template<class T>
+void make_share(SemiShare<T>* Sa,const T& a,int N,const T& key,PRNG& G)
+{
+  (void) key;
+  insecure("share generation", false);
+  T x, S = a;
+  for (int i=0; i<N-1; i++)
+    {
+      x.randomize(G);
+      Sa[i] = x;
+      S -= x;
     }
   Sa[N-1]=S;
 }
@@ -152,6 +168,31 @@ void write_mac_keys(const string& directory, int i, int nplayers, U macp, T mac2
   mac2.output(outf,true);
   outf << endl;
   outf.close();
+}
+
+template <class T, class U>
+void read_mac_keys(const string& directory, int player_num, int nplayers, U& keyp, T& key2)
+{
+  int nn;
+
+  string filename = directory + "Player-MAC-Keys-P" + to_string(player_num);
+  ifstream inpf;
+  inpf.open(filename);
+  if (inpf.fail())
+    {
+      cerr << "Could not open MAC key file. Perhaps it needs to be generated?\n";
+      throw file_error(filename);
+    }
+  inpf >> nn;
+  if (nn!=nplayers)
+    { cerr << "KeyGen was last run with " << nn << " players." << endl;
+      cerr << "  - You are running Online with " << nplayers << " players." << endl;
+      exit(1);
+    }
+
+  keyp.input(inpf,true);
+  key2.input(inpf,true);
+  inpf.close();
 }
 
 inline void read_keys(const string& directory, gfp& keyp, gf2n& key2, int nplayers)

@@ -5,8 +5,8 @@
 
 #include "BMR/Party.h"
 
-int main(int argc, char** argv)
+int main(int argc, const char** argv)
 {
-	ProgramParty party(argc, argv);
+	FakeProgramParty party(argc, argv);
 	party.Start();
 }

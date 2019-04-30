@@ -24,6 +24,8 @@ protected:
   long a;
 
 public:
+  static const int N_BITS = 8 * sizeof(a);
+
   static int size() { return sizeof(a); }
   static string type_string() { return "integer"; }
 
@@ -92,7 +94,7 @@ class Integer : public IntBase
 
   Integer()                 { a = 0; }
   Integer(long a) : IntBase(a) {}
-  Integer(const bigint& x)  { *this = x.get_si(); }
+  Integer(const bigint& x)  { *this = (x > 0) ? x.get_ui() : -x.get_ui(); }
   template<int K>
   Integer(const Z2<K>& x) : Integer(x.get_limb(0)) {}
 
@@ -145,8 +147,6 @@ inline void to_signed_bigint(bigint& res, const Integer& x)
 {
   res = x.get();
 }
-
-void to_signed_bigint(bigint& res, const Integer& x, int n);
 
 // slight misnomer
 inline void to_gfp(Integer& res, const bigint& x)

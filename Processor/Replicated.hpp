@@ -5,12 +5,7 @@
 
 #include "Replicated.h"
 #include "Processor.h"
-#include "Math/FixedVec.h"
-#include "Math/Integer.h"
-#include "Math/MaliciousRep3Share.h"
-#include "Math/ShamirShare.h"
 #include "Tools/benchmarking.h"
-#include "GC/ReplicatedSecret.h"
 
 template<class T>
 ProtocolBase<T>::ProtocolBase() : counter(0)

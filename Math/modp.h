@@ -24,8 +24,6 @@ void to_bigint(bigint& ans,const modp& x,const Zp_Data& ZpD,bool reduce=true);
 
 class modp 
 { 
-  static bool rewind;
-
   mp_limb_t x[MAX_MOD_SZ];
 
   public: 
@@ -36,15 +34,11 @@ class modp
   // use mem* functions instead of mpn_*, so the compiler can optimize
   modp() 
     { avx_memzero(x, sizeof(x)); }
-  modp(const modp& y)
-    { memcpy(x, y.x, sizeof(x)); }
-  modp& operator=(const modp& y)
-    { if (this!=&y) { memcpy(x, y.x, sizeof(x)); }
-      return *this;
-    }
   
   void assign(const char* buffer, int t) { memcpy(x, buffer, t * sizeof(mp_limb_t)); }
 
+  void convert(const mp_limb_t* source, mp_size_t size, const Zp_Data& ZpD,
+      bool negative = false);
   void convert_destroy(bigint& source, const Zp_Data& ZpD);
   void convert_destroy(int source, const Zp_Data& ZpD) { to_modp(*this, source, ZpD); }
 

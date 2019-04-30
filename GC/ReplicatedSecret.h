@@ -37,8 +37,6 @@ public:
     typedef BitVec mac_type;
     typedef BitVec mac_key_type;
 
-    typedef void Inp;
-    typedef void PO;
     typedef ReplicatedBase Protocol;
 
     static string type_string() { return "replicated secret"; }
@@ -62,6 +60,8 @@ public:
 
     static void trans(Processor<U>& processor, int n_outputs,
             const vector<int>& args);
+
+    static void convcbit(Integer& dest, const Clear& source) { dest = source; }
 
     static BitVec get_mask(int n) { return n >= 64 ? -1 : ((1L << n) - 1); }
 
@@ -87,7 +87,7 @@ public:
             Thread<U>& party, bool repeat);
     void finalize_andrs(vector<octetStream>& os, int n);
 
-    void reveal(Clear& x);
+    void reveal(size_t n_bits, Clear& x);
 
     void random_bit();
 };
@@ -98,7 +98,7 @@ class SemiHonestRepSecret : public ReplicatedSecret<SemiHonestRepSecret>
     typedef ReplicatedSecret<SemiHonestRepSecret> super;
 
 public:
-    typedef SemiHonestRepSecret DynamicType;
+    typedef Memory<SemiHonestRepSecret> DynamicMemory;
 
     typedef ReplicatedMC<SemiHonestRepSecret> MC;
 

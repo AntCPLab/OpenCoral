@@ -51,6 +51,8 @@ public:
 	static void inputb(GC::Processor<GC::Secret<YaoGarbleWire>>& processor,
 			const vector<int>& args);
 
+	static void convcbit(Integer& dest, const GC::Clear& source);
+
 	void randomize(PRNG& prng);
 	void set(Key key, bool mask);
 

@@ -21,17 +21,6 @@ void IntBase::input(istream& s,bool human)
     s.read((char*)&a, sizeof(a));
 }
 
-void to_signed_bigint(bigint& res, const Integer& x, int n)
-{
-  res = abs(x.get());
-  bigint& tmp = bigint::tmp = 1;
-  tmp <<= n;
-  tmp -= 1;
-  res &= tmp;
-  if (x < 0)
-    res.negate();
-}
-
 void Integer::reqbl(int n)
 {
   if ((int)n < 0 && size() * 8 != -(int)n)

@@ -9,16 +9,18 @@
 #include <deque>
 using namespace std;
 
-#include "Math/Share.h"
+template<class T> class SubProcessor;
 
 template<class T>
 class PrivateOutput
 {
-    SubProcessor<Share<T>>& proc;
-    deque<T> masks;
+    typedef typename T::open_type open_type;
+
+    SubProcessor<T>& proc;
+    deque<open_type> masks;
 
 public:
-    PrivateOutput(SubProcessor<Share<T>>& proc) : proc(proc) { };
+    PrivateOutput(SubProcessor<T>& proc) : proc(proc) { };
 
     void start(int player, int target, int source);
     void stop(int player, int source);

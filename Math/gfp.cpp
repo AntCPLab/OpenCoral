@@ -5,9 +5,9 @@
 #include "Exceptions/Exceptions.h"
 
 template <int X>
-void gfp_<X>::init_default(int lgp)
+void gfp_<X>::init_default(int lgp, bool mont)
 {
-  init_field(SPDZ_Data_Setup_Primes(lgp));
+  init_field(SPDZ_Data_Setup_Primes(lgp), mont);
 }
 
 template <int X>
@@ -182,8 +182,9 @@ void to_signed_bigint(bigint& ans, const gfp& x)
     // get sign and abs(x)
     bigint& p_half = bigint::tmp = (gfp::pr()-1)/2;
     if (mpz_cmp(ans.get_mpz_t(), p_half.get_mpz_t()) > 0)
-        ans = gfp::pr() - ans;
+        ans -= gfp::pr();
 }
 
 template class gfp_<0>;
 template class gfp_<1>;
+template class gfp_<2>;

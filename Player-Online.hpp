@@ -11,7 +11,7 @@
 #include <stdio.h>
 using namespace std;
 
-template<class T>
+template<class T, class U>
 int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt)
 {
     OnlineOptions online_opts(opt, argc, argv);
@@ -212,7 +212,7 @@ int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt)
     try
 #endif
     {
-        Machine<T, Share<gf2n>>(playerno, playerNames, online_opts.progname, memtype, lg2,
+        Machine<T, U>(playerno, playerNames, online_opts.progname, memtype, lg2,
                 opt.get("--direct")->isSet, opening_sum, opt.get("--parallel")->isSet,
                 opt.get("--threads")->isSet, max_broadcast,
                 opt.get("--encrypted")->isSet, online_opts.live_prep,
@@ -231,9 +231,9 @@ int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt)
 #ifndef INSECURE
     catch(...)
     {
-        Machine<T, Share<gf2n>> machine(playerNames);
+        Machine<T, U> machine(playerNames);
         machine.live_prep = false;
-        thread_info<T, Share<gf2n>>::purge_preprocessing(machine);
+        thread_info<T, U>::purge_preprocessing(machine);
         throw;
     }
 #endif

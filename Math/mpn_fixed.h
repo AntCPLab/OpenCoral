@@ -9,8 +9,20 @@
 #include <mpir.h>
 #include <string.h>
 #include <assert.h>
+#include <x86intrin.h>
 
-#include "bigint.h"
+#include "Tools/avx_memcpy.h"
+#include "Tools/cpu_support.h"
+
+inline void inline_mpn_zero(mp_limb_t* x, mp_size_t size)
+{
+    avx_memzero(x, size * sizeof(mp_limb_t));
+}
+
+inline void inline_mpn_copyi(mp_limb_t* dest, const mp_limb_t* src, mp_size_t size)
+{
+    avx_memcpy(dest, src, size * sizeof(mp_limb_t));
+}
 
 inline void debug_print(const char* name, const mp_limb_t* x, int n)
 {
@@ -24,9 +36,12 @@ inline void debug_print(const char* name, const mp_limb_t* x, int n)
 }
 
 template <int N>
+mp_limb_t mpn_add_fixed_n_with_carry(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y);
+
+template <int N>
 inline void mpn_add_fixed_n(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y)
 {
-    mpn_add(res, x, N, y, N);
+    mpn_add_fixed_n_with_carry<N>(res, x, y);
 }
 
 template <>
@@ -85,16 +100,51 @@ inline void mpn_add_fixed_n<4>(mp_limb_t* res, const mp_limb_t* x, const mp_limb
     );
 }
 
+inline mp_limb_t mpn_add_n_with_carry(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y, int n)
+{
+#ifdef __ADX__
+    if (cpu_has_adx())
+    {
+        char carry = 0;
+        for (int i = 0; i < n; i++)
+            carry = _addcarryx_u64(carry, x[i], y[i], (unsigned long long*)&res[i]);
+        return carry;
+    }
+    else
+#endif
+        return mpn_add_n(res, x, y, n);
+}
+
+template <int N>
+mp_limb_t mpn_add_fixed_n_with_carry(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y)
+{
+    return mpn_add_n_with_carry(res, x, y, N);
+}
+
+inline mp_limb_t mpn_sub_n_borrow(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y, int n)
+{
+#ifndef __clang__
+#if __GNUC__ < 7
+    // GCC 6 can't handle the code below
+    return mpn_sub_n(res, x, y, n);
+#endif
+#endif
+    char borrow = 0;
+    for (int i = 0; i < n; i++)
+        borrow = _subborrow_u64(borrow, x[i], y[i], (unsigned long long*)&res[i]);
+    return borrow;
+}
+
 template <int N>
 inline void mpn_sub_fixed_n(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y)
 {
-    mpn_sub(res, x, N, y, N);
+    mpn_sub_n_borrow(res, x, y, N);
 }
 
 template <int N>
 inline mp_limb_t mpn_sub_fixed_n_borrow(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y)
 {
-	return mpn_sub(res, x, N, y, N);
+    return mpn_sub_n_borrow(res, x, y, N);
 }
 
 template <>
@@ -188,8 +238,9 @@ inline void mpn_add_n_use_fixed(mp_limb_t* res, const mp_limb_t* x, const mp_lim
 	CASE(2);
 	CASE(3);
 	CASE(4);
+#undef CASE
 	default:
-		mpn_add_n(res, x, y, n);
+		mpn_add_n_with_carry(res, x, y, n);
 		break;
 	}
 }
@@ -235,6 +286,15 @@ inline void mpn_addmul_1_fixed_(mp_limb_t* res, const mp_limb_t* y, mp_limb_t x)
     memcpy(tmp, y, M * sizeof(mp_limb_t));
     mpn_addmul_1(res, tmp, L, x);
 }
+
+template <int L, int M>
+inline void mpn_mul_1_fixed(mp_limb_t* res, const mp_limb_t* y, mp_limb_t x)
+{
+    mp_limb_t tmp[L];
+    memset(tmp, 0, sizeof(tmp));
+    memcpy(tmp, y, M * sizeof(mp_limb_t));
+    mpn_mul_1(res, tmp, L, x);
+}
 #endif
 
 template <int M>
@@ -252,6 +312,20 @@ inline void mpn_mul_fixed_(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* 
     for (int i = 0; i < N; i++)
         mpn_addmul_1_fixed<M>(tmp + i, y, x[i]);
     inline_mpn_copyi(res, tmp, L);
+}
+
+template <>
+inline void mpn_mul_fixed_<1,1,1>(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y)
+{
+    *res = *x * *y;
+}
+
+template <>
+inline void mpn_mul_fixed_<2,2,2>(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y)
+{
+    mp_limb_t* tmp = res;
+    mpn_mul_1_fixed<2,2>(tmp, y, x[0]);
+    mpn_addmul_1_fixed_<1,1>(tmp + 1, y, x[1]);
 }
 
 template <>

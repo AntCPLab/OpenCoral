@@ -103,24 +103,15 @@ for i in range(3):
 weight_total = sum(point[0] for point in data)
 result = sum(point[0] * point[1] for point in data) / weight_total
 
-# the following only works with arithmetic circuits
+# branching is supported also depending on revealed secret data
+# with garbled circuits this triggers a interruption of the garbling
 
-# @if_e((sum(point[0] for point in data) != 0).reveal())
-# def _():
-#     print_ln('weighted average: %s', result.reveal())
-# @else_
-# def _():
-#     print_ln('your inputs made no sense')
-
-# so we output even an invalid result (the weights adding up to zero)
-
-print_ln('weighted average: %s', result.reveal())
-
-# but we warn the user
-# note that the we don't reveal the weight sum, only the comparison
-
-print_ln_if((sum(point[0] for point in data) == 0).reveal(), \
-            'but the inputs were invalid (weights add up to zero)')
+@if_e((sum(point[0] for point in data) != 0).reveal())
+def _():
+    print_ln('weighted average: %s', result.reveal())
+@else_
+def _():
+    print_ln('your inputs made no sense')
 
 # permutation matrix
 

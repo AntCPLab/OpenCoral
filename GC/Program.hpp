@@ -5,15 +5,9 @@
 
 #include <GC/Program.h>
 
-#include "Secret.h"
-#include "ReplicatedSecret.h"
 #include "config.h"
 
 #include "Tools/callgrind.h"
-
-#ifdef MAX_INLINE
-#include "Instruction_inline.h"
-#endif
 
 namespace GC
 {
@@ -98,8 +92,10 @@ void Program<T>::print_offline_cost() const
 }
 
 template <class T>
+template <class U>
 __attribute__((flatten))
-BreakType Program<T>::execute(Processor<T>& Proc, int PC) const
+BreakType Program<T>::execute(Processor<T>& Proc, U& dynamic_memory,
+        int PC) const
 {
     if (PC != -1)
         Proc.PC = PC;
@@ -122,13 +118,13 @@ BreakType Program<T>::execute(Processor<T>& Proc, int PC) const
 #ifdef COUNT_INSTRUCTIONS
         Proc.stats[p[Proc.PC].get_opcode()]++;
 #endif
-        p[Proc.PC++].execute(Proc);
+        p[Proc.PC++].execute(Proc, dynamic_memory);
         time++;
 #ifdef DEBUG_COMPLEXITY
         cout << "complexity at " << time << ": " << Proc.complexity << endl;
 #endif
     }
-    while (Proc.complexity < (1 << 20));
+    while (Proc.complexity < (1 << 19));
     Proc.time = time;
 #ifdef DEBUG_ROUNDS
     cout << "breaking at time " << Proc.time << endl;

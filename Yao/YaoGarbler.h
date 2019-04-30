@@ -18,8 +18,6 @@
 
 #include <thread>
 
-using namespace GC;
-
 class YaoGate;
 
 class YaoGarbler : public GC::Thread<GC::Secret<YaoGarbleWire>>, public YaoCommon
@@ -57,6 +55,9 @@ public:
 
 	YaoGarbler(int thread_num, YaoGarbleMaster& master);
 	~YaoGarbler();
+
+	bool continuous() { return master.continuous and master.machine.nthreads == 1; }
+
 	void run(GC::Program<GC::Secret<YaoGarbleWire>>& program);
 	void run(Player& P, bool continuous);
 	void post_run();

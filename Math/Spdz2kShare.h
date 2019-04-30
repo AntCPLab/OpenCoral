@@ -21,8 +21,8 @@ public:
     typedef Z2<K + S> tmp_type;
     typedef Share<tmp_type> super;
 
-    typedef Integer clear;
-//    typedef Z2<K> clear;
+//    typedef Integer clear;
+    typedef SignedZ2<K> clear;
 
     typedef Z2<S> mac_key_type;
     typedef Z2<K + S> mac_type;
@@ -30,6 +30,7 @@ public:
 
     typedef Spdz2kShare prep_type;
     typedef Spdz2kMultiplier<K, S> Multiplier;
+    typedef NPartyTripleGenerator<Spdz2kShare> TripleGenerator;
     typedef Z2<K + 2 * S> sacri_type;
     typedef Z2kRectangle<TAU(K, S), K + S> Rectangle;
 
@@ -38,6 +39,7 @@ public:
     typedef ::Input<Spdz2kShare> Input;
     typedef NotImplementedOutput PrivateOutput;
     typedef SPDZ<Spdz2kShare> Protocol;
+    typedef Spdz2kPrep<Spdz2kShare> LivePrep;
 
     const static int k = K;
     const static int s = S;
@@ -48,6 +50,10 @@ public:
     Spdz2kShare() {}
     template<class T>
     Spdz2kShare(const Share<T>& x) : super(x) {}
+    Spdz2kShare(const clear& x, int my_num, const mac_key_type& alphai) :
+            super(x, my_num, alphai)
+    {
+    }
 };
 
 

@@ -55,7 +55,8 @@ public:
 
     // Execute this instruction
     bool exe(Processor<T>& processor) const { return code(*this, processor); }
-    bool execute(Processor<T>& processor) const;
+    template<class U>
+    bool execute(Processor<T>& processor, U& dynamic_memory) const;
 };
 
 enum
@@ -86,6 +87,8 @@ enum
     INPUTB = 0x216,
     // don't write
     PRINTREGSIGNED = 0x220,
+    // write to regint
+    CONVCBIT = 0x230,
 };
 
 } /* namespace GC */

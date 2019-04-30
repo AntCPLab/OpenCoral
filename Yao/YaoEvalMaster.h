@@ -10,8 +10,6 @@
 #include "GC/Secret.h"
 #include "YaoEvalWire.h"
 
-using namespace GC;
-
 class YaoEvalMaster : public GC::ThreadMaster<GC::Secret<YaoEvalWire>>
 {
 public:
@@ -19,7 +17,7 @@ public:
 
     YaoEvalMaster(bool continuous, OnlineOptions& opts);
 
-    Thread<Secret<YaoEvalWire>>* new_thread(int i);
+    GC::Thread<GC::Secret<YaoEvalWire>>* new_thread(int i);
 };
 
 #endif /* YAO_YAOEVALMASTER_H_ */

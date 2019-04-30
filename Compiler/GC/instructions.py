@@ -35,6 +35,7 @@ opcodes = dict(
     STMSDCI = 0x215,
     INPUTB = 0x216,
     PRINTREGSIGNED = 0x220,
+    CONVCBIT = 0x230,
 )
 
 class xors(base.Instruction):
@@ -152,6 +153,10 @@ class convsint(base.Instruction):
 class convcint(base.Instruction):
     code = opcodes['CONVCINT']
     arg_format = ['cbw','ci']
+
+class convcbit(base.Instruction):
+    code = opcodes['CONVCBIT']
+    arg_format = ['ciw','cb']
 
 class movs(base.Instruction):
     code = base.opcodes['MOVS']

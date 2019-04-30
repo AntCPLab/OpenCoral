@@ -30,9 +30,9 @@ int main(int argc, const char** argv)
     cerr << "Using SPDZ2k with security parameter " << s << endl;
 #endif
     if (s == 64)
-        return spdz_main<Spdz2kShare<64, 64>>(argc, argv, opt);
+        return spdz_main<Spdz2kShare<64, 64>, Share<gf2n>>(argc, argv, opt);
     else if (s == 48)
-        return spdz_main<Spdz2kShare<64, 48>>(argc, argv, opt);
+        return spdz_main<Spdz2kShare<64, 48>, Share<gf2n>>(argc, argv, opt);
     else
         throw runtime_error("not compiled for s=" + to_string(s));
 }

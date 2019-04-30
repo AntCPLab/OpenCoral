@@ -19,7 +19,20 @@
 #include "BooleanCircuit.h"
 #include "Math/Setup.h"
 
+#include "Register_inline.h"
+
+#include "CommonParty.hpp"
+#include "ProgramParty.hpp"
 #include "Auth/MAC_Check.hpp"
+#include "BMR/Register.hpp"
+#include "GC/Machine.hpp"
+#include "GC/Processor.hpp"
+#include "GC/Secret.hpp"
+#include "GC/Thread.hpp"
+#include "GC/ThreadMaster.hpp"
+#include "GC/Program.hpp"
+#include "GC/Instruction.hpp"
+#include "Processor/Instruction.hpp"
 
 #ifdef __PURE_SHE__
 #include "mpirxx.h"
@@ -28,7 +41,7 @@
 ProgramParty* ProgramParty::singleton = 0;
 
 
-BaseParty::BaseParty(party_id_t id) : _id(id)
+BaseParty::BaseParty()
 {
 #ifdef DEBUG_PRNG_PARTY
 	octet seed[SEED_SIZE];
@@ -48,11 +61,12 @@ Party::Party(const char* netmap_file, // required to init Node
 		   const std::string input,
 		   int numthreads,
 		   int numtries
-		   ) :BaseParty(id),
+		   ) :BaseParty(),
 		   	  _all_input(input),
 			  _NUMTHREADS(numthreads),
 			  _NUMTRIES(numtries)
 {
+	_id = id;
 	_circuit = new BooleanCircuit( circuit_file );
 	_circuit->party = this;
 	_G = _circuit->NumGates();
@@ -715,13 +729,22 @@ void BaseParty::done() {
 	_node->Stop();
 }
 
-ProgramParty::ProgramParty(int argc, char** argv) :
-        		BaseParty(-1), keys_for_prf(0),
+ProgramParty::ProgramParty() :
         		spdz_storage(0), garbled_storage(0), spdz_counters(SPDZ_OP_N),
-				machine(dynamic_memory),
-        		processor(machine), prf_machine(dynamic_memory),
+        		processor(machine),
         		prf_processor(prf_machine),
-				MC(0)
+				P(0)
+{
+	if (singleton)
+		throw runtime_error("there can only be one");
+	singleton = this;
+	threshold = 128;
+	eval_threads = new Worker<AndJob>[N_EVAL_THREADS];
+	and_jobs.resize(N_EVAL_THREADS);
+}
+
+FakeProgramParty::FakeProgramParty(int argc, const char** argv) :
+		keys_for_prf(0)
 {
 	if (argc < 3)
 	{
@@ -729,16 +752,10 @@ ProgramParty::ProgramParty(int argc, char** argv) :
 		exit(1);
 	}
 
+	load(argv[2]);
 	_id = atoi(argv[1]);
-	program.parse(string(argv[2]) + "-0");
-	machine.reset(program);
-	processor.reset(program);
 	processor.open_input_file("user_inputs/user_" + to_string(_id - 1) + "_input.txt");
-	prf_machine.reset(*reinterpret_cast<GC::Program<GC::Secret<PRFRegister> >* >(&program));
-	prf_processor.reset(*reinterpret_cast<GC::Program<GC::Secret<PRFRegister> >* >(&program));
-	if (singleton)
-		throw runtime_error("there can only be one");
-	singleton = this;
+
 	if (argc > 3)
 	{
 		int n_parties = init(argv[3], _id);
@@ -759,9 +776,6 @@ ProgramParty::ProgramParty(int argc, char** argv) :
 		int n_parties = init("LOOPBACK", _id);
 		N.init(_id - 1, 5000, vector<string>(n_parties, "localhost"));
 	}
-	prf_output = (char*)new __m128i[PAD_TO_8(get_n_parties())];
-	mac_key = prng.get_word() & ((1ULL << GC::Secret<EvalRegister>::default_length) - 1);
-	cout << "MAC key: " << hex << mac_key << endl;
 	ifstream schfile((string("Programs/Schedules/") + argv[2] + ".sch").c_str());
 	string curr, prev;
 	while (schfile.good())
@@ -773,30 +787,39 @@ ProgramParty::ProgramParty(int argc, char** argv) :
 	P = new PlainPlayer(N, 0);
 	if (argc > 4)
 		threshold = atoi(argv[4]);
-	else
-		threshold = 128;
 	cout << "Threshold for multi-threaded evaluation: " << threshold << endl;
-	eval_threads = new Worker<AndJob>[N_EVAL_THREADS];
-	and_jobs.resize(N_EVAL_THREADS);
 }
 
 ProgramParty::~ProgramParty()
 {
 	reset();
-	delete[] prf_output;
-	delete P;
-	if (MC)
-		delete MC;
+	if (P)
+	{
+		cerr << "Data sent: " << 1e-6 * P->comm_stats.total_data() << " MB" << endl;
+		delete P;
+	}
 	delete[] eval_threads;
-	cout << "SPDZ loading: " << spdz_counters[SPDZ_LOAD] << endl;
-	cout << "SPDZ storing: " << spdz_counters[SPDZ_STORE] << endl;
-	cout << "SPDZ wire storage: " << 1e-9 * spdz_storage << " GB" << endl;
-	cout << "Dynamic storage: " << 1e-9 * dynamic_memory.capacity() * 
-			sizeof(GC::Secret<EvalRegister>::DynamicType) << " GB" << endl;
-	cout << "Maximum circuit storage: " << 1e-9 * garbled_storage << " GB" << endl;
+#ifdef VERBOSE
+	if (spdz_counters[SPDZ_LOAD])
+	    cerr << "SPDZ loading: " << spdz_counters[SPDZ_LOAD] << endl;
+	if (spdz_counters[SPDZ_STORE])
+	    cerr << "SPDZ storing: " << spdz_counters[SPDZ_STORE] << endl;
+	if (spdz_storage)
+	    cerr << "SPDZ wire storage: " << 1e-9 * spdz_storage << " GB" << endl;
+	cerr << "Maximum circuit storage: " << 1e-9 * garbled_storage << " GB" << endl;
+#endif
 }
 
-void ProgramParty::_compute_prfs_outputs(Key* keys)
+FakeProgramParty::~FakeProgramParty()
+{
+#ifdef VERBOSE
+    if (dynamic_memory.capacity_in_bytes())
+        cerr << "Dynamic storage: " << 1e-9 * dynamic_memory.capacity_in_bytes()
+                << " GB" << endl;
+#endif
+}
+
+void FakeProgramParty::_compute_prfs_outputs(Key* keys)
 {
 	keys_for_prf = keys;
 	first_phase(program, prf_processor, prf_machine);
@@ -835,45 +858,7 @@ void ProgramParty::start_online_round()
 	_check_evaluate();
 }
 
-void ProgramParty::_check_evaluate()
-{
-#ifdef DEBUG_REGS
-	print_round_regs();
-#endif
-	cout << "Online time at evaluation start: " << online_timer.elapsed()
-			<< endl;
-	GC::BreakType next = GC::TIME_BREAK;
-	while (next == GC::TIME_BREAK)
-	{
-		load_garbled_circuit();
-		next = second_phase(program, processor, machine);
-	}
-	cout << "Online time at evaluation stop: " << online_timer.elapsed()
-			<< endl;
-	if (next == GC::TIME_BREAK)
-	{
-#ifdef DEBUG_STEPS
-		cout << "another round of garbling" << endl;
-#endif
-	}
-	if (next != GC::DONE_BREAK)
-	    {
-#ifdef DEBUG_STEPS
-		cout << "another round of evaluation" << endl;
-#endif
-		start_online_round();
-	    }
-	else
-	{
-		Timer timer;
-		timer.start();
-		MC->Check(*P);
-		cout << "Final check took " << timer.elapsed() << endl;
-		done();
-	}
-}
-
-void ProgramParty::receive_keys(Register& reg)
+void FakeProgramParty::receive_keys(Register& reg)
 {
 	reg.init(_N);
 	for (int i = 0; i < 2; i++)
@@ -885,14 +870,21 @@ void ProgramParty::receive_keys(Register& reg)
 #endif
 }
 
-void ProgramParty::receive_all_keys(Register& reg, bool external)
+void FakeProgramParty::receive_all_keys(Register& reg, bool external)
 {
 	reg.init(get_n_parties());
 	for (int i = 0; i < get_n_parties(); i++)
 		reg.keys[external][i] = *(keys_for_prf++);
 }
 
-void ProgramParty::receive_spdz_wires(ReceivedMsg& msg)
+void FakeProgramParty::process_prf_output(PRFOutputs& prf_output,
+		PRFRegister* wire, const PRFRegister* left, const PRFRegister* right)
+{
+	(void) wire, (void) left, (void) right;
+	prf_output.serialize(buffers[TYPE_PRF_OUTPUTS], _id, get_n_parties());
+}
+
+void FakeProgramParty::receive_spdz_wires(ReceivedMsg& msg)
 {
 	int op;
 	msg.unserialize(op);
@@ -915,25 +907,6 @@ void ProgramParty::receive_spdz_wires(ReceivedMsg& msg)
 			mac_key = spdz_mac_key;
 		}
 	}
-}
-
-void ProgramParty::get_spdz_wire(SpdzOp op, SpdzWire& spdz_wire)
-{
-	while (true)
-	{
-		if (spdz_wires[op].empty())
-			throw runtime_error("no SPDZ wires available");
-		if (spdz_wires[op].front().done())
-			spdz_wires[op].pop_front();
-		else
-			break;
-	}
-	spdz_wire.unpack(spdz_wires[op].front(), get_n_parties());
-	spdz_counters[op]++;
-#ifdef DEBUG_SPDZ_WIRE
-	cout << "get SPDZ wire of type " << op << ", " << spdz_wires[op].front().left() << " bytes left" << endl;
-	cout << "mask share for " << get_id() << ": " << spdz_wire.mask << endl;
-#endif
 }
 
 void ProgramParty::store_wire(const Register& reg)

@@ -20,9 +20,15 @@ class ArithmeticProcessor;
 template<class T>
 class InputBase
 {
+    typedef typename T::clear clear;
+
+    Player* P;
+
 protected:
     Buffer<typename T::clear, typename T::clear> buffer;
     Timer timer;
+
+    vector<octetStream> os;
 
 public:
     int values_input;
@@ -30,7 +36,21 @@ public:
     static void input(SubProcessor<T>& Proc, const vector<int>& args);
 
     InputBase(ArithmeticProcessor* proc);
-    ~InputBase();
+    virtual ~InputBase();
+
+    virtual void reset(int player) = 0;
+    void reset_all(Player& P);
+
+    virtual void add_mine(const clear& input) = 0;
+    virtual void add_other(int player) = 0;
+    void add_from_all(const clear& input);
+
+    virtual void send_mine() = 0;
+    void exchange();
+
+    virtual T finalize_mine() = 0;
+    virtual void finalize_other(int player, T& target, octetStream& o) = 0;
+    T finalize(int player);
 };
 
 template<class T>
@@ -43,18 +63,17 @@ class Input : public InputBase<T>
     SubProcessor<T>& proc;
     MAC_Check& MC;
     vector< PointerVector<T> > shares;
-    octetStream o;
     open_type rr, t, xi;
-
-    void adjust_mac(T& share, const open_type& value);
 
 public:
     Input(SubProcessor<T>& proc, MAC_Check& mc);
     Input(SubProcessor<T>* proc, Player& P);
 
     void reset(int player);
+
     void add_mine(const clear& input);
     void add_other(int player);
+
     void send_mine();
 
     T finalize_mine();

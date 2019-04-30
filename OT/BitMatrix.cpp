@@ -791,22 +791,29 @@ void Slice<U>::unpack(octetStream& os)
 }
 
 #define M(N,L) Matrix<Rectangle< Z2<N>, Z2<L> > >
-#undef X
-#define X(N,L) \
+
+#undef XXX
+#define XXX(T,N,L) \
 template class Matrix<Rectangle< Z2<N>, Z2<L> > >; \
-template M(N,L)& M(N,L)::operator=(const Matrix<square128>& other); \
 template class Slice<Matrix<Rectangle< Z2<N>, Z2<L> > > >; \
-template void Slice<Matrix<Rectangle< Z2<N>, Z2<L> > > >::randomize<Z2<L> >(int row, PRNG& G); \
 template Slice<Matrix<Rectangle<Z2<N>, Z2<L> > > >& Slice< \
-        Matrix<Rectangle<Z2<N>, Z2<L> > > >::rsub<Z2<L> >( \
+        Matrix<Rectangle<Z2<N>, Z2<L> > > >::rsub<T>( \
         Slice<Matrix<Rectangle<Z2<N>, Z2<L> > > >& other); \
 template Slice<Matrix<Rectangle<Z2<N>, Z2<L> > > >& Slice< \
-        Matrix<Rectangle<Z2<N>, Z2<L> > > >::sub<Z2<L> >(BitVector& other, int repeat); \
+        Matrix<Rectangle<Z2<N>, Z2<L> > > >::sub<T>(BitVector& other, int repeat); \
 template void Slice<Matrix<Rectangle<Z2<N>, Z2<L> > > >::conditional_add< \
-        Z2<L> >(BitVector& conditions, \
+        T>(BitVector& conditions, \
         Matrix<Rectangle<Z2<N>, Z2<L> > >& other, bool useOffset); \
 
+#undef X
+#define X(N,L) \
+template M(N,L)& M(N,L)::operator=(const Matrix<square128>& other); \
+template void Slice<Matrix<Rectangle< Z2<N>, Z2<L> > > >::randomize<Z2<L> >(int row, PRNG& G); \
+XXX(Z2<L>, N, L)
+
 //X(96, 160)
+XXX(SignedZ2<64>, 64, 64)
+XXX(SignedZ2<72>, 72, 72)
 
 Y(64, 64)
 Y(64, 48)

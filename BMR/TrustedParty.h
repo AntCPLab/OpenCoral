@@ -14,7 +14,7 @@
 #include "Register.h"
 #include "CommonParty.h"
 
-class BaseTrustedParty : virtual public CommonParty {
+class BaseTrustedParty : virtual public CommonFakeParty {
 public:
 	vector<ReceivedMsg> prf_outputs;
 	vector<SendBuffer> msg_input_masks;
@@ -109,7 +109,6 @@ private:
 	static TrustedProgramParty* singleton;
 	static TrustedProgramParty& s();
 
-	GC::Memory< GC::Secret<GarbleRegister>::DynamicType > dynamic_memory;
 	GC::Machine< GC::Secret<GarbleRegister> > machine;
 	GC::Processor< GC::Secret<GarbleRegister> > processor;
 	GC::Program< GC::Secret<GarbleRegister> > program;

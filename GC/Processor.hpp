@@ -10,9 +10,7 @@
 using namespace std;
 
 #include "GC/Program.h"
-#include "Secret.h"
 #include "Access.h"
-#include "ReplicatedSecret.h"
 
 namespace GC
 {
@@ -33,7 +31,8 @@ Processor<T>::~Processor()
 }
 
 template <class T>
-void Processor<T>::reset(const Program<T>& program, int arg)
+template <class U>
+void Processor<T>::reset(const U& program, int arg)
 {
     S.resize(program.num_reg(SBIT), "registers");
     C.resize(program.num_reg(CBIT), "registers");
@@ -43,7 +42,8 @@ void Processor<T>::reset(const Program<T>& program, int arg)
 }
 
 template <class T>
-void Processor<T>::reset(const Program<T>& program)
+template <class U>
+void Processor<T>::reset(const U& program)
 {
     reset(program, 0);
     machine.reset(program);
@@ -89,59 +89,69 @@ void Processor<T>::bitdecint(const vector<int>& regs, const Integer& x)
 }
 
 template<class T>
-void GC::Processor<T>::load_dynamic_direct(const vector<int>& args)
+template<class U>
+void Processor<T>::load_dynamic_direct(const vector<int>& args,
+        U& dynamic_memory)
 {
     vector< ReadAccess<T> > accesses;
     if (args.size() % 3 != 0)
         throw runtime_error("invalid number of arguments");
     for (size_t i = 0; i < args.size(); i += 3)
         accesses.push_back({S[args[i]], args[i+1], args[i+2], complexity});
-    T::load(accesses, machine.MD);
+    T::load(accesses, dynamic_memory);
 }
 
 template<class T>
-void GC::Processor<T>::load_dynamic_indirect(const vector<int>& args)
+template<class U>
+void GC::Processor<T>::load_dynamic_indirect(const vector<int>& args,
+        U& dynamic_memory)
 {
     vector< ReadAccess<T> > accesses;
     if (args.size() % 3 != 0)
         throw runtime_error("invalid number of arguments");
     for (size_t i = 0; i < args.size(); i += 3)
         accesses.push_back({S[args[i]], C[args[i+1]], args[i+2], complexity});
-    T::load(accesses, machine.MD);
+    T::load(accesses, dynamic_memory);
 }
 
 template<class T>
-void GC::Processor<T>::store_dynamic_direct(const vector<int>& args)
+template<class U>
+void GC::Processor<T>::store_dynamic_direct(const vector<int>& args,
+        U& dynamic_memory)
 {
     vector< WriteAccess<T> > accesses;
     if (args.size() % 2 != 0)
         throw runtime_error("invalid number of arguments");
     for (size_t i = 0; i < args.size(); i += 2)
         accesses.push_back({args[i+1], S[args[i]]});
-    T::store(machine.MD, accesses);
+    T::store(dynamic_memory, accesses);
     complexity += accesses.size() / 2 * T::default_length;
 }
 
 template<class T>
-void GC::Processor<T>::store_dynamic_indirect(const vector<int>& args)
+template<class U>
+void GC::Processor<T>::store_dynamic_indirect(const vector<int>& args,
+        U& dynamic_memory)
 {
     vector< WriteAccess<T> > accesses;
     if (args.size() % 2 != 0)
         throw runtime_error("invalid number of arguments");
     for (size_t i = 0; i < args.size(); i += 2)
         accesses.push_back({C[args[i+1]], S[args[i]]});
-    T::store(machine.MD, accesses);
+    T::store(dynamic_memory, accesses);
     complexity += accesses.size() / 2 * T::default_length;
 }
 
 template<class T>
-void GC::Processor<T>::store_clear_in_dynamic(const vector<int>& args)
+template<class U>
+void GC::Processor<T>::store_clear_in_dynamic(const vector<int>& args,
+        U& dynamic_memory)
 {
     vector<ClearWriteAccess> accesses;
 	check_args(args, 2);
     for (size_t i = 0; i < args.size(); i += 2)
     	accesses.push_back({C[args[i+1]], C[args[i]]});
-    T::store_clear_in_dynamic(machine.MD, accesses);
+    T::store_clear_in_dynamic(dynamic_memory, accesses);
 }
 
 template <class T>

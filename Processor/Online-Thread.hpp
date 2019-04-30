@@ -5,13 +5,10 @@
 #include "Processor/Data_Files.h"
 #include "Processor/Machine.h"
 #include "Processor/Processor.h"
-#include "Auth/ReplicatedMC.h"
-#include "Auth/ShamirMC.h"
 #include "Networking/CryptoPlayer.h"
 
 #include "Processor/Processor.hpp"
 #include "Processor/Input.hpp"
-#include "Auth/MaliciousRepMC.hpp"
 
 #include <iostream>
 #include <fstream>

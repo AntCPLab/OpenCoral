@@ -20,6 +20,9 @@ public:
 	virtual void NodeAborted(struct sockaddr_in* from) =0;
 };
 
+namespace BIU
+{
+
 class Server {
 public:
 	Server(int port, int expected_clients, ServerUpdatable* updatable, unsigned int max_message_size);
@@ -48,6 +51,6 @@ private:
 	bool _handle_recv_len(int id, size_t actual_len, size_t expected_len);
 };
 
-
+}
 
 #endif /* NETWORK_INC_SERVER_H_ */

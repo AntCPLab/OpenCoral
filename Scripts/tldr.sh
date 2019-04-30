@@ -23,8 +23,6 @@ fi
 if test "$flags"; then
     if $flags | grep -q avx2; then
 	cpu=avx2
-    elif $flags | grep -q aes; then
-	cpu=aes
     else
 	cpu=amd64
     fi

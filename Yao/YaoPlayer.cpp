@@ -8,6 +8,8 @@
 #include "YaoEvaluator.h"
 #include "Tools/ezOptionParser.h"
 
+#include "GC/Machine.hpp"
+
 YaoPlayer::YaoPlayer(int argc, const char** argv)
 {
 	ez::ezOptionParser opt;
@@ -43,9 +45,9 @@ YaoPlayer::YaoPlayer(int argc, const char** argv)
 			0, // Required?
 			0, // Number of args expected.
 			0, // Delimiter if expecting multiple args.
-			"Evaluate while garbling (default: false).", // Help description.
-			"-C", // Flag token.
-			"--continuous" // Flag token.
+			"Evaluate only after garbling (default only with multi-threading).", // Help description.
+			"-O", // Flag token.
+			"--oneshot" // Flag token.
 	);
 	opt.add(
 			"1024", // Default.
@@ -78,10 +80,10 @@ YaoPlayer::YaoPlayer(int argc, const char** argv)
 	opt.get("-p")->getInt(my_num);
 	opt.get("-pn")->getInt(pnb);
 	opt.get("-h")->getString(hostname);
-	bool continuous = opt.get("-C")->isSet;
+	bool continuous = not opt.get("-O")->isSet;
 	opt.get("-t")->getInt(threshold);
 
-	ThreadMasterBase* master;
+	GC::ThreadMasterBase* master;
 	if (my_num == 0)
 	    master = new YaoGarbleMaster(continuous, online_opts, threshold);
 	else
@@ -89,6 +91,9 @@ YaoPlayer::YaoPlayer(int argc, const char** argv)
 
 	server = Server::start_networking(master->N, my_num, 2, hostname, pnb);
 	master->run(progname);
+
+	if (my_num == 1)
+	    ((YaoEvalMaster*)master)->machine.write_memory(0);
 }
 
 YaoPlayer::~YaoPlayer()

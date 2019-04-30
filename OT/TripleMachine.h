@@ -31,6 +31,8 @@ public:
 
     MascotParams();
 
+    void set_passive();
+
     template <class T>
     T get_mac_key();
     template <class T>

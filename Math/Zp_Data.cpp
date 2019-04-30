@@ -7,6 +7,7 @@ void Zp_Data::init(const bigint& p,bool mont)
 { pr=p;
   mask=(1<<((mpz_sizeinbase(pr.get_mpz_t(),2)-1)%(8*sizeof(mp_limb_t))))-1;
   pr_byte_length = numBytes(pr);
+  pr_bit_length = numBits(pr);
 
   montgomery=mont;
   t=mpz_size(pr.get_mpz_t());
@@ -38,22 +39,6 @@ void Zp_Data::init(const bigint& p,bool mont)
     }
   inline_mpn_zero(prA,MAX_MOD_SZ+1);
   mpn_copyi(prA,pr.get_mpz_t()->_mp_d,t);
-}
-
-
-void Zp_Data::assign(const Zp_Data& Zp)
-{ pr=Zp.pr;
-  mask=Zp.mask;
-  pr_byte_length = Zp.pr_byte_length;
-
-  montgomery=Zp.montgomery;
-  t=Zp.t;
-  mpn_copyi(R,Zp.R,t);
-  mpn_copyi(R2,Zp.R2,t);
-  mpn_copyi(R3,Zp.R3,t);
-  pi=Zp.pi;  
-
-  mpn_copyi(prA,Zp.prA,t+1);
 }
 
 

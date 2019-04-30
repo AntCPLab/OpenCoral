@@ -45,7 +45,7 @@ public:
     Player* P;
 
     Machine<T> machine;
-    Memory<typename T::DynamicType> memory;
+    typename T::DynamicMemory memory;
 
     OnlineOptions& opts;
 

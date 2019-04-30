@@ -1,5 +1,13 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enchancements are committed between releases and not documented here.
 
+## 0.0.9 (Apr 30, 2019)
+
+- Complete BMR for all GF(2^n) protocols
+- [Use your Brain!](https://eprint.iacr.org/2019/164)
+- Semi/Semi2k for semi-honest OT-based computation
+- Branching on revealed values in garbled circuits
+- Fixed security bug: Potentially revealing too much information when opening linear combinations of private inputs in MASCOT and SPDZ2k with more than two parties
+
 ## 0.0.8 (Mar 28, 2019)
 
 - SPDZ2k

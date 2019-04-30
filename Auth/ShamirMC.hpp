@@ -12,17 +12,25 @@ void ShamirMC<T>::POpen_Begin(vector<typename T::clear>& values,
     (void) values;
     os.clear();
     os.resize(P.num_players());
-    if (P.my_num() <= threshold)
+    bool send = P.my_num() <= threshold;
+    if (send)
     {
         for (auto& share : S)
             share.pack(os[P.my_num()]);
-        for (int i = 0; i < P.num_players(); i++)
-            if (i != P.my_num())
-                P.send_to(i, os[P.my_num()], true);
     }
-    for (int i = 0; i <= threshold; i++)
-        if (i != P.my_num())
-            P.receive_player(i, os[i], true);
+    for (int offset = 1; offset < P.num_players(); offset++)
+    {
+        int send_to = P.get_player(offset);
+        int receive_from = P.get_player(-offset);
+        bool receive = receive_from <= threshold;
+        if (send)
+            if (receive)
+                P.pass_around(os[P.my_num()], os[receive_from], offset);
+            else
+                P.send_to(send_to, os[P.my_num()], true);
+        else if (receive)
+            P.receive_player(receive_from, os[receive_from], true);
+    }
 }
 
 template<class T>

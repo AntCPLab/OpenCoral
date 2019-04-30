@@ -7,7 +7,7 @@
 #include "Machines/ShamirMachine.h"
 
 template<class U>
-void ShamirInput<U>::reset(int player)
+void IndividualInput<U>::reset(int player)
 {
     if (player == P.my_num())
     {
@@ -21,6 +21,7 @@ void ShamirInput<U>::reset(int player)
 template<class T>
 void ShamirInput<T>::add_mine(const typename T::clear& input)
 {
+    auto& P = this->P;
     int n = P.num_players();
     int t = ShamirMachine::s().threshold;
     if (vandermonde.empty())
@@ -49,18 +50,18 @@ void ShamirInput<T>::add_mine(const typename T::clear& input)
         if (i == P.my_num())
             this->shares.push_back(x);
         else
-            x.pack(os[i]);
+            x.pack(this->os[i]);
     }
 }
 
 template<class U>
-void ShamirInput<U>::add_other(int player)
+void IndividualInput<U>::add_other(int player)
 {
     (void) player;
 }
 
 template<class U>
-void ShamirInput<U>::send_mine()
+void IndividualInput<U>::send_mine()
 {
     for (int i = 0; i < P.num_players(); i++)
         if (i != P.my_num())
@@ -68,7 +69,7 @@ void ShamirInput<U>::send_mine()
 }
 
 template<class T>
-void ShamirInput<T>::finalize_other(int player, T& target, octetStream& o)
+void IndividualInput<T>::finalize_other(int player, T& target, octetStream& o)
 {
     (void) player;
     target.unpack(o);

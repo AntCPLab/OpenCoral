@@ -8,7 +8,10 @@
 
 #include <stdexcept>
 
-class YaoCommon
+#include "Exceptions/Exceptions.h"
+#include "GC/RuntimeBranching.h"
+
+class YaoCommon : public GC::RuntimeBranching
 {
     int log_n_threads;
 

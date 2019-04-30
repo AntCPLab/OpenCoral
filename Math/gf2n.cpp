@@ -19,7 +19,6 @@ int gf2n_short::l3;
 int gf2n_short::nterms;
 word gf2n_short::mask;
 bool gf2n_short::useC;
-bool gf2n_short::rewind = false;
 
 word gf2n_short_table[256][256];
 
@@ -59,7 +58,9 @@ void gf2n_short::init_field(int nn)
   if (nn == 0)
     {
       nn = default_length();
+#ifdef VERBOSE
       cerr << "Using GF(2^" << nn << ")" << endl;
+#endif
     }
 
   gf2n_short::init_tables();
@@ -92,7 +93,7 @@ void gf2n_short::init_field(int nn)
   mask=(1ULL<<n)-1;
 
 #ifdef __PCLMUL__
-  useC=(Check_CPU_support_AES()==0);
+  useC = not cpu_has_pclmul();
 #else
   useC = true;
 #endif

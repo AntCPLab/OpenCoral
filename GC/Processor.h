@@ -56,8 +56,10 @@ public:
     Processor(Machine<T>& machine);
     ~Processor();
 
-    void reset(const Program<T>& program, int arg);
-    void reset(const Program<T>& program);
+    template<class U>
+    void reset(const U& program, int arg);
+    template<class U>
+    void reset(const U& program);
 
     long long get_input(int n_bits, bool interactive = false);
 
@@ -68,11 +70,16 @@ public:
 
     void random_bit(T &x) { x.random_bit(); }
 
-    void load_dynamic_direct(const vector<int>& args);
-    void store_dynamic_direct(const vector<int>& args);
-    void load_dynamic_indirect(const vector<int>& args);
-    void store_dynamic_indirect(const vector<int>& args);
-    void store_clear_in_dynamic(const vector<int>& args);
+    template<class U>
+    void load_dynamic_direct(const vector<int>& args, U& dynamic_memory);
+    template<class U>
+    void store_dynamic_direct(const vector<int>& args, U& dynamic_memory);
+    template<class U>
+    void load_dynamic_indirect(const vector<int>& args, U& dynamic_memory);
+    template<class U>
+    void store_dynamic_indirect(const vector<int>& args, U& dynamic_memory);
+    template<class U>
+    void store_clear_in_dynamic(const vector<int>& args, U& dynamic_memory);
 
     void xors(const vector<int>& args);
     void and_(const vector<int>& args, bool repeat);

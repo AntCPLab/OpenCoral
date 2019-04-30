@@ -1318,7 +1318,11 @@ class convmodp(base.Instruction):
     code = base.opcodes['CONVMODP']
     arg_format = ['ciw', 'c', 'int']
     def __init__(self, *args, **kwargs):
-        bitlength = kwargs.get('bitlength', program.bit_length)
+        bitlength = kwargs.get('bitlength')
+        bitlength = program.bit_length if bitlength is None else bitlength
+        if bitlength > 64:
+            raise CompilerError('%d-bit conversion requested ' \
+                                'but integer registers only have 64 bits')
         super(convmodp_class, self).__init__(*(args + (bitlength,)))
 
 @base.vectorize

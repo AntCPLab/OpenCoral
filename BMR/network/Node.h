@@ -70,7 +70,7 @@ private:
 
 	endpoint_t* _endpoints;
 	Client* _client;
-	Server* _server;
+	BIU::Server* _server;
 	bool* _ready_nodes;
 	volatile bool _connected_to_servers;
 	std::atomic_int _num_parties_identified;

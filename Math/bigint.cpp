@@ -2,6 +2,7 @@
 #include "bigint.h"
 #include "gfp.h"
 #include "Integer.h"
+#include "Z2k.h"
 #include "GC/Clear.h"
 #include "Exceptions/Exceptions.h"
 
@@ -106,18 +107,6 @@ int powerMod(int x,int e,int p)
 }
 
 
-bigint::bigint(const gfp& x)
-{
-  *this = x;
-}
-
-bigint& bigint::operator=(const gfp& x)
-{
-  to_bigint(*this, x);
-  return *this;
-}
-
-
 size_t bigint::report_size(ReportType type) const
 {
   size_t res = 0;
@@ -145,11 +134,19 @@ int limb_size<int>()
   return 0;
 }
 
+bigint::bigint(const Integer& x) : bigint(SignedZ2<64>(x))
+{
+}
+
+
+bigint::bigint(const GC::Clear& x) : bigint(SignedZ2<64>(x))
+{
+}
+
 template<class T>
 mpf_class bigint::get_float(T v, Integer exp, T z, T s)
 {
-    bigint tmp;
-    to_signed_bigint(tmp, v);
+    bigint tmp = v;
     mpf_class res = tmp;
     if (exp > 0)
         mpf_mul_2exp(res.get_mpf_t(), res.get_mpf_t(), exp.get());
@@ -166,6 +163,17 @@ mpf_class bigint::get_float(T v, Integer exp, T z, T s)
     return res;
 }
 
+void to_signed_bigint(bigint& res, const bigint& x, int n)
+{
+  res = abs(x);
+  bigint& tmp = bigint::tmp = 1;
+  tmp <<= n;
+  tmp -= 1;
+  res &= tmp;
+  if (x < 0)
+    res.negate();
+}
+
 #ifdef REALLOC_POLICE
 void bigint::lottery()
 {
@@ -177,4 +185,8 @@ void bigint::lottery()
 
 template mpf_class bigint::get_float(gfp, Integer, gfp, gfp);
 template mpf_class bigint::get_float(Integer, Integer, Integer, Integer);
+template mpf_class bigint::get_float(Z2<64>, Integer, Z2<64>, Z2<64>);
+template mpf_class bigint::get_float(Z2<72>, Integer, Z2<72>, Z2<72>);
+template mpf_class bigint::get_float(SignedZ2<64>, Integer, SignedZ2<64>, SignedZ2<64>);
+template mpf_class bigint::get_float(SignedZ2<72>, Integer, SignedZ2<72>, SignedZ2<72>);
 template mpf_class bigint::get_float(GC::Clear, Integer, GC::Clear, GC::Clear);

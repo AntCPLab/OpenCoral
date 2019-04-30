@@ -51,7 +51,6 @@ int gf2n_long::nterms;
 int128 gf2n_long::mask;
 int128 gf2n_long::lowermask;
 int128 gf2n_long::uppermask;
-bool gf2n_long::rewind = false;
 
 #define num_2_fields 1
 
@@ -68,7 +67,9 @@ void gf2n_long::init_field(int nn)
   if (nn == 0)
     {
       nn = default_length();
+#ifdef VERBOSE
       cerr << "Using GF(2^" << nn << ")" << endl;
+#endif
     }
 
   if (nn!=128) {
@@ -257,12 +258,7 @@ void gf2n_long::input(istream& s,bool human)
         { cout << "IO problem. Empty file?" << endl;
           throw file_error();
         }
-      //throw end_of_file();
-      s.clear(); // unset EOF flag
-      s.seekg(0);
-      if (!rewind)
-        cout << "REWINDING - ONLY FOR BENCHMARKING" << endl;
-      rewind = true;
+      throw end_of_file("gf2n_long");
     }
 
   if (human)

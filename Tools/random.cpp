@@ -81,7 +81,7 @@ void PRNG::print_state() const
       cout << hex << (int) random[i]; 
     }
   cout << "\t";
-  for (i=0; i<SEED_SIZE; i++)
+  for (i=0; i<RAND_SIZE; i++)
     { if (state[i]<10) { cout << "0"; }
       cout << hex << (int) state[i];
     }
@@ -99,7 +99,7 @@ void PRNG::hash()
     blk_SHA1_Final(random,&ctx);
   #else
     if (useC)
-       { aes_encrypt(random,state,KeyScheduleC); }
+       { software_ecb_aes_128_encrypt<PIPELINES>((__m128i*)random,(__m128i*)state,KeyScheduleC); }
     else
        { ecb_aes_128_encrypt<PIPELINES>((__m128i*)random,(__m128i*)state,KeySchedule); }
   #endif

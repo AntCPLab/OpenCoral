@@ -4,6 +4,9 @@ from Compiler.program import Program
 
 ORAM = OptimalORAM
 
+prog = program.Program.prog
+prog.set_bit_length(min(64, prog.bit_length))
+
 class HeapEntry(object):
     fields = ['empty', 'prio', 'value']
     def __init__(self, int_type, *args):

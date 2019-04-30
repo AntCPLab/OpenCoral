@@ -86,7 +86,6 @@ class gf2n_long
   static int n,t1,t2,t3,nterms;
   static int l0,l1,l2,l3;
   static int128 mask,lowermask,uppermask;
-  static bool rewind;
 
   /* Assign x[0..2*nwords] to a and reduce it...  */
   void reduce_trinomial(int128 xh,int128 xl);
@@ -96,9 +95,6 @@ class gf2n_long
 
   typedef gf2n_long value_type;
   typedef int128 internal_type;
-
-  typedef PrivateOutput<gf2n_long> PO;
-  typedef SPDZ<Share<gf2n_long>> Protocol;
 
   typedef gf2n_long next;
 
@@ -131,6 +127,8 @@ class gf2n_long
   static int default_length() { return 128; }
 
   static bool allows(Dtype type) { (void) type; return true; }
+
+  static const bool invertible = true;
 
   int128 get() const { return a; }
   __m128i to_m128i() const { return a.a; }
@@ -235,6 +233,8 @@ class gf2n_long
   // compatibility with gfp
   void almost_randomize(PRNG& G)        { randomize(G); }
 
+  void force_to_bit() { a &= 1; }
+
   template<class T>
   T convert() const { return *this; }
 
@@ -289,26 +289,35 @@ inline int128 int128::operator>>(const int& other) const
 
 void mul64(word x, word y, word& lo, word& hi);
 
-inline __m128i clmul(__m128i a, __m128i b, int choice)
+inline __m128i software_clmul(__m128i a, __m128i b, int choice)
 {
     word lo, hi;
-    mul64(int128(a).get_half(choice & 1), int128(b).get_half((choice & 0x10) >> 4), lo, hi);
+    mul64(int128(a).get_half(choice & 1),
+            int128(b).get_half((choice & 0x10) >> 4), lo, hi);
     return int128(hi, lo).a;
 }
 
-#ifndef __PCLMUL__
-#undef _mm_clmulepi64_si128
-#define _mm_clmulepi64_si128 clmul
+template<int choice>
+inline __m128i clmul(__m128i a, __m128i b)
+{
+#ifdef __PCLMUL__
+    if (cpu_has_pclmul())
+    {
+        return _mm_clmulepi64_si128(a, b, choice);
+    }
+    else
 #endif
+        return software_clmul(a, b, choice);
+}
 
 inline void mul128(__m128i a, __m128i b, __m128i *res1, __m128i *res2)
 {
     __m128i tmp3, tmp4, tmp5, tmp6;
 
-    tmp3 = _mm_clmulepi64_si128(a, b, 0x00);
-    tmp4 = _mm_clmulepi64_si128(a, b, 0x10);
-    tmp5 = _mm_clmulepi64_si128(a, b, 0x01);
-    tmp6 = _mm_clmulepi64_si128(a, b, 0x11);
+    tmp3 = clmul<0x00>(a, b);
+    tmp4 = clmul<0x10>(a, b);
+    tmp5 = clmul<0x01>(a, b);
+    tmp6 = clmul<0x11>(a, b);
 
     tmp4 = _mm_xor_si128(tmp4, tmp5);
     tmp5 = _mm_slli_si128(tmp4, 8);

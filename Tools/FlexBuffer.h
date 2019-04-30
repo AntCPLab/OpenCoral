@@ -93,6 +93,7 @@ public:
 	ReceivedMsgStore() : start(0), mem_size(0), total_size(0) {}
 	~ReceivedMsgStore();
 	void push(ReceivedMsg& msg);
+	void push_and_clear(LocalBuffer& msg) { push(msg); msg.clear(); }
 	bool pop(ReceivedMsg& msg);
 	bool empty() { return mem_size == 0 and files.empty(); }
 };

@@ -502,6 +502,11 @@ class cint(_clear, _int):
                 elif chunk:
                     sum += sign * chunk
 
+    def to_regint(self, n_bits=None, dest=None):
+        dest = regint() if dest is None else dest
+        convmodp(dest, self, bitlength=n_bits)
+        return dest
+
     def __mod__(self, other):
         return self.clear_op(other, modc, modci)
 
@@ -761,15 +766,13 @@ class regint(_register, _int):
 
     @read_mem_value
     def load_other(self, val):
-        if isinstance(val, cint):
-            convmodp(self, val)
-        elif isinstance(val, cgf2n):
+        if isinstance(val, cgf2n):
             gconvgf2n(self, val)
         elif isinstance(val, regint):
             addint(self, val, regint(0))
         else:
             try:
-                val.to_regint(self)
+                val.to_regint(dest=self)
             except AttributeError:
                 raise CompilerError("Cannot convert '%s' to integer" % \
                                     type(val))
@@ -872,7 +875,7 @@ class regint(_register, _int):
 
     @vectorize
     def bit_decompose(self, bit_length=None):
-        bit_length = bit_length or program.bit_length
+        bit_length = bit_length or min(64, program.bit_length)
         if bit_length > 64:
             raise CompilerError('too many bits demanded')
         res = [regint() for i in range(bit_length)]
@@ -2450,8 +2453,6 @@ class squant(_single):
     """ Quantization as in ArXiv:1712.05877v1 """
     __slots__ = ['params']
     int_type = sint
-    # cheaper probabilistic truncation
-    max_length = 63
     clamp = True
 
     @classmethod
@@ -2581,6 +2582,12 @@ class squant_params(object):
         self.Z = Z
         self.k = k
         self._store = {}
+        if program.options.ring:
+            # cheaper probabilistic truncation
+            self.max_length = int(program.options.ring) - 1
+        else:
+            # safe choice for secret shift
+            self.max_length = 71
 
     def __iter__(self):
         yield self.S
@@ -2594,7 +2601,7 @@ class squant_params(object):
         p = input_params
         M = p[0].S * p[1].S / self.S
         logM = util.log2(M)
-        n_shift = squant.max_length - p[0].k - p[1].k - util.log2(n_summands)
+        n_shift = self.max_length - p[0].k - p[1].k - util.log2(n_summands)
         if util.is_constant_float(M):
             n_shift -= logM
             int_mult = int(round(M * 2 ** (n_shift)))
@@ -2621,10 +2628,10 @@ class squant_params(object):
         n_shift = util.expand(n_shift, size)
         shifted_Z = util.expand(shifted_Z, size)
         tmp = unreduced.v * int_mult + shifted_Z
-        shifted = tmp.round(squant.max_length, n_shift,
+        shifted = tmp.round(self.max_length, n_shift,
                             squant.kappa, squant.round_nearest)
         if squant.clamp:
-            length = max(self.k, squant.max_length - n_shift) + 1
+            length = max(self.k, self.max_length - n_shift) + 1
             top = (1 << self.k) - 1
             over = shifted.greater_than(top, length, squant.kappa)
             under = shifted.less_than(0, length, squant.kappa)
@@ -3122,8 +3129,10 @@ class Array(object):
                 self[i] = j
         return self
 
-    def assign_all(self, value, use_threads=True):
-        mem_value = MemValue(self.value_type.conv(value))
+    def assign_all(self, value, use_threads=True, conv=True):
+        if conv:
+            value = self.value_type.conv(value)
+        mem_value = MemValue(value)
         n_threads = 8 if use_threads and len(self) > 2**20 else 1
         @library.for_range_multithread(n_threads, 1024, len(self))
         def f(i):
@@ -3265,7 +3274,7 @@ class Matrix(MultiArray):
                         @library.for_range(other.sizes[1])
                         def _(j):
                             res_matrix[i][j] = 0
-                            @library.for_range(self.sizes[0])
+                            @library.for_range(self.sizes[1])
                             def _(k):
                                 res_matrix[i][j] += self[i][k] * other[k][j]
             return res_matrix

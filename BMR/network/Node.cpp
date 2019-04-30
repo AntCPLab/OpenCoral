@@ -34,7 +34,7 @@ Node::Node(const char* netmap_file, int my_id, NodeUpdatable* updatable, int num
 		throw_bad_id(_id);
 	_ready_nodes = new bool[_numparties](); //initialized to false
 	_clients_connected = new bool[_numparties]();
-	_server = new Server(_port, _numparties-1, this, max_message_size);
+	_server = new BIU::Server(_port, _numparties-1, this, max_message_size);
 	_client = new Client(_endpoints, _numparties-1, this, max_message_size);
 }
 
@@ -169,7 +169,7 @@ void Node::Broadcast2(SendBuffer& msg) {
 void Node::_identify() {
 	char* msg = id_msg;
 	strncpy(msg, ID_HDR, strlen(ID_HDR));
-	strncpy(msg+strlen(ID_HDR), (const char *)&_id, sizeof(_id));
+	memcpy(msg+strlen(ID_HDR), (const char *)&_id, sizeof(_id));
 	//printf("Node:: identifying myself:\n");
 	SendBuffer buffer;
 	buffer.serialize(msg, strlen(ID_HDR)+4);

@@ -2,21 +2,14 @@
 
 #include "Memory.hpp"
 #include "Online-Thread.hpp"
-#include "ShamirInput.hpp"
-#include "Shamir.hpp"
 #include "Replicated.hpp"
 #include "Beaver.hpp"
-#include "Auth/ShamirMC.hpp"
-#include "Auth/MaliciousShamirMC.hpp"
 
 #include "Exceptions/Exceptions.h"
 
 #include <sys/time.h>
 
 #include "Math/Setup.h"
-#include "Math/MaliciousRep3Share.h"
-#include "Math/ShamirShare.h"
-#include "Math/MaliciousShamirShare.h"
 #include "Tools/mkpath.h"
 
 #include <iostream>
@@ -50,27 +43,7 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   try
     {
       read_setup(prep_dir_prefix);
-
-      int nn;
-
-      sprintf(filename, (prep_dir_prefix + "Player-MAC-Keys-P%d").c_str(), my_number);
-      ifstream inpf;
-      inpf.open(filename);
-      if (inpf.fail())
-        {
-          cerr << "Could not open MAC key file. Perhaps it needs to be generated?\n";
-          throw file_error(filename);
-        }
-      inpf >> nn;
-      if (nn!=N.num_players())
-        { cerr << "KeyGen was last run with " << nn << " players." << endl;
-          cerr << "  - You are running Online with " << N.num_players() << " players." << endl;
-          exit(1);
-        }
-
-      alphapi.input(inpf,true);
-      alpha2i.input(inpf,true);
-      inpf.close();
+      ::read_mac_keys(prep_dir_prefix, my_number, N.num_players(), alphapi, alpha2i);
       read_mac_keys = true;
     }
   catch (file_error& e)
@@ -410,7 +383,7 @@ void Machine<sint, sgf2n>::run()
 template<class sint, class sgf2n>
 string Machine<sint, sgf2n>::memory_filename()
 {
-  return PREP_DIR "Memory-" + sint::type_short() + "-P" + to_string(my_number);
+  return BaseMachine::memory_filename(sint::type_short(), my_number);
 }
 
 template<class sint, class sgf2n>

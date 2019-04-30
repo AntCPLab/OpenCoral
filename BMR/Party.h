@@ -21,6 +21,7 @@
 #include "GC/Program.h"
 #include "GC/Processor.h"
 #include "GC/Secret.h"
+#include "GC/RuntimeBranching.h"
 #include "Tools/Worker.h"
 
 class BooleanCircuit;
@@ -40,9 +41,27 @@ typedef struct {
 	unsigned long long acc=0;
 } exec_props_t;
 
-class BaseParty : virtual public CommonParty {
+class PartyProperties
+{
+protected:
+    party_id_t _id;
+
+	Timer online_timer;
+
+	Key delta;
+
 public:
-    BaseParty(party_id_t id);
+	PartyProperties() : _id(-1) {}
+
+	party_id_t get_id() { return _id; }
+	Key get_delta() { return delta; }
+
+};
+
+class BaseParty : virtual public CommonFakeParty, virtual public PartyProperties
+{
+public:
+    BaseParty();
     virtual ~BaseParty();
 
 	/* From NodeUpdatable class */
@@ -52,18 +71,9 @@ public:
 
 	void Start();
 
-	party_id_t get_id() { return _id; }
-	Key get_delta() { return delta; }
-
 protected:
-	party_id_t _id;
-
 //	int _num_evaluation_threads;
 	struct timeval _start_online_net, _end_online_net;
-
-	Timer online_timer;
-
-	Key delta;
 
 	virtual void _compute_prfs_outputs(Key* keys) = 0;
 	void _send_prfs();
@@ -165,14 +175,14 @@ private:
 	int get_n_inputs();
 };
 
-class ProgramParty : public BaseParty
+class ProgramParty : virtual public CommonParty, virtual public PartyProperties, public GC::RuntimeBranching
 {
+protected:
 	friend class PRFRegister;
 	friend class EvalRegister;
 	friend class Register;
 
-	char* prf_output;
-	Key* keys_for_prf;
+	vector<char> prf_output;
 
 	deque<octetStream> spdz_wires[SPDZ_OP_N];
 	size_t spdz_storage;
@@ -185,13 +195,88 @@ class ProgramParty : public BaseParty
 	ReceivedMsgStore output_masks_store;
 	ReceivedMsgStore input_masks_store;
 
-	GC::Memory< GC::Secret<EvalRegister>::DynamicType > dynamic_memory;
 	GC::Machine< GC::Secret<EvalRegister> > machine;
 	GC::Processor<GC::Secret<EvalRegister> > processor;
 	GC::Program<GC::Secret<EvalRegister> > program;
 
 	GC::Machine< GC::Secret<PRFRegister> > prf_machine;
 	GC::Processor<GC::Secret<PRFRegister> > prf_processor;
+
+	void store_garbled_circuit(ReceivedMsg& msg);
+	void load_garbled_circuit();
+
+	virtual void _check_evaluate() = 0;
+	virtual void done() = 0;
+
+	virtual void receive_keys(Register& reg) = 0;
+	virtual void receive_all_keys(Register& reg, bool external) = 0;
+	virtual void process_prf_output(PRFOutputs& prf_output,
+			PRFRegister* out, const PRFRegister* left, const PRFRegister* right) = 0;
+
+	void start_online_round();
+
+	void mask_output(ReceivedMsg& msg) { output_masks_store.push(msg); }
+	void mask_input(ReceivedMsg& msg) { input_masks_store.push(msg); }
+
+public:
+	static ProgramParty* singleton;
+
+	LocalBuffer garbled_circuit;
+	ReceivedMsgStore garbled_circuits;
+
+	LocalBuffer output_masks;
+	LocalBuffer input_masks;
+
+	Player* P;
+	Names N;
+
+	int threshold;
+
+	Integer convcbit;
+
+	static ProgramParty& s();
+
+	ProgramParty();
+	virtual ~ProgramParty();
+
+	void reset();
+
+	void store_wire(const Register& reg);
+	void load_wire(Register& reg);
+};
+
+template<class T>
+class ProgramPartySpec : public ProgramParty
+{
+	static ProgramPartySpec* singleton;
+
+protected:
+	GC::Memory<T> dynamic_memory;
+
+	void _check_evaluate();
+
+public:
+	typename T::MAC_Check* MC;
+
+	static ProgramPartySpec& s();
+
+	ProgramPartySpec();
+	~ProgramPartySpec();
+
+	void load(string progname);
+
+	void get_spdz_wire(SpdzOp op, DualWire<T>& spdz_wire);
+};
+
+#ifdef SPDZ_AUTH
+typedef ProgramPartySpec<Share<gf2n_long>> FakeProgramPartySuper;
+#else
+typedef ProgramPartySpec<GC::Memory<AuthValue>> FakeProgramPartySuper;
+#endif
+
+class FakeProgramParty : virtual public BaseParty, virtual public FakeProgramPartySuper
+{
+    Key* keys_for_prf;
 
 	void _compute_prfs_outputs(Key* keys);
 
@@ -202,50 +287,39 @@ class ProgramParty : public BaseParty
 	{ (void)keys; (void)from; }
 	void _process_all_input_keys(char* keys) { (void)keys; }
 
-	void store_garbled_circuit(ReceivedMsg& msg);
-	void load_garbled_circuit();
+	void store_garbled_circuit(ReceivedMsg& msg) {  ProgramParty::store_garbled_circuit(msg); }
 
-	void _check_evaluate();
+	void _check_evaluate() { FakeProgramPartySuper::_check_evaluate(); }
 
 	void receive_keys(Register& reg);
 	void receive_all_keys(Register& reg, bool external);
+	void process_prf_output(PRFOutputs& prf_output, PRFRegister* out,
+			const PRFRegister* left, const PRFRegister* right);
 
 	void receive_spdz_wires(ReceivedMsg& msg);
 
-	void start_online_round();
+	void start_online_round() { FakeProgramPartySuper::start_online_round(); }
 
-	void mask_output(ReceivedMsg& msg) { output_masks_store.push(msg); }
-	void mask_input(ReceivedMsg& msg) { input_masks_store.push(msg); }
+	void mask_output(ReceivedMsg& msg) { ProgramParty::mask_output(msg); }
+	void mask_input(ReceivedMsg& msg) { ProgramParty::mask_input(msg); }
+
+	void done() { BaseParty::done(); }
 
 public:
-	static ProgramParty* singleton;
-
-	ReceivedMsg garbled_circuit;
-	ReceivedMsgStore garbled_circuits;
-
-	ReceivedMsg output_masks;
-	ReceivedMsg input_masks;
-
-	MAC_Check<gf2n>* MC;
-	Player* P;
-	Names N;
-
-	int threshold;
-
-	static ProgramParty& s();
-
-	ProgramParty(int argc, char** argv);
-	~ProgramParty();
-
-	void reset();
-
-	void get_spdz_wire(SpdzOp op, SpdzWire& spdz_wire);
-
-	void store_wire(const Register& reg);
-	void load_wire(Register& reg);
+    FakeProgramParty(int argc, const char** argv);
+    ~FakeProgramParty();
 };
 
 inline ProgramParty& ProgramParty::s()
+{
+	if (singleton)
+		return *singleton;
+	else
+		throw runtime_error("no singleton");
+}
+
+template<class T>
+inline ProgramPartySpec<T>& ProgramPartySpec<T>::s()
 {
 	if (singleton)
 		return *singleton;

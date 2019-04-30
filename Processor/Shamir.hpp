@@ -20,6 +20,8 @@ U Shamir<U>::get_rec_factor(int i, int n)
 template<class U>
 Shamir<U>::Shamir(Player& P) : resharing(0), P(P)
 {
+    if (not P.is_encrypted())
+        insecure("unencrypted communication");
     threshold = ShamirMachine::s().threshold;
     n_mul_players = 2 * threshold + 1;
 }
@@ -56,6 +58,12 @@ template<class U>
 void Shamir<U>::init_mul(SubProcessor<T>* proc)
 {
     (void) proc;
+    init_mul();
+}
+
+template<class U>
+void Shamir<U>::init_mul()
+{
     reset();
     if (rec_factor == 0 and P.my_num() < n_mul_players)
         rec_factor = get_rec_factor(P.my_num(), n_mul_players);
@@ -73,11 +81,21 @@ U Shamir<U>::prepare_mul(const T& x, const T& y)
 template<class U>
 void Shamir<U>::exchange()
 {
-    if (P.my_num() < n_mul_players)
-        resharing->send_mine();
-    for (int i = 0; i < n_mul_players; i++)
-        if (i != P.my_num())
-            P.receive_player(i, os[i], true);
+    for (int offset = 1; offset < P.num_players(); offset++)
+    {
+        int receive_from = P.get_player(-offset);
+        int send_to = P.get_player(offset);
+        bool receive = receive_from < n_mul_players;
+        if (P.my_num() < n_mul_players)
+        {
+            if (receive)
+                P.pass_around(resharing->os[send_to], os[receive_from], offset);
+            else
+                P.send_to(send_to, resharing->os[send_to], true);
+        }
+        else if (receive)
+            P.receive_player(receive_from, os[receive_from], true);
+    }
 }
 
 template<class U>

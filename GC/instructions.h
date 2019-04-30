@@ -11,6 +11,7 @@
 #define PROC processor
 #define INST instruction
 #define MACH processor.machine
+#define MD dynamic_memory
 
 #define R0 instruction.get_r(0)
 #define R1 instruction.get_r(1)
@@ -61,17 +62,18 @@
     X(STMSI, MSI = S0) \
     X(LDMC, C0 = MMC) \
     X(STMC, MMC = C0) \
-    X(LDMSD, PROC.load_dynamic_direct(EXTRA)) \
-    X(STMSD, PROC.store_dynamic_direct(EXTRA)) \
-    X(LDMSDI, PROC.load_dynamic_indirect(EXTRA)) \
-    X(STMSDI, PROC.store_dynamic_indirect(EXTRA)) \
-    X(STMSDCI, PROC.store_clear_in_dynamic(EXTRA)) \
+    X(LDMSD, PROC.load_dynamic_direct(EXTRA, MD)) \
+    X(STMSD, PROC.store_dynamic_direct(EXTRA, MD)) \
+    X(LDMSDI, PROC.load_dynamic_indirect(EXTRA, MD)) \
+    X(STMSDI, PROC.store_dynamic_indirect(EXTRA, MD)) \
+    X(STMSDCI, PROC.store_clear_in_dynamic(EXTRA, MD)) \
     X(CONVSINT, S0.load(IMM, I1)) \
     X(CONVCINT, C0 = I1) \
+    X(CONVCBIT, T::convcbit(I0, C1)) \
     X(MOVS, S0 = PS1) \
     X(TRANS, T::trans(PROC, IMM, EXTRA)) \
     X(BIT, PROC.random_bit(S0)) \
-    X(REVEAL, PS1.reveal(C0)) \
+    X(REVEAL, PS1.reveal(IMM, C0)) \
     X(PRINTREG, PROC.print_reg(R0, IMM)) \
     X(PRINTREGPLAIN, PROC.print_reg_plain(C0)) \
     X(PRINTREGSIGNED, PROC.print_reg_signed(IMM, C0)) \

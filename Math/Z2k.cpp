@@ -12,6 +12,28 @@ template<int K>
 const int Z2<K>::N_BYTES;
 
 template<int K>
+void Z2<K>::reqbl(int n)
+{
+	if (n < 0 && N_BITS != -(int)n)
+	{
+		throw Processor_Error(
+				"Program compiled for rings of length " + to_string(-n)
+				+ " but VM supports only "
+				+ to_string(N_BITS));
+	}
+	else if (n > 0)
+	{
+		throw Processor_Error("Program compiled for fields not rings");
+	}
+}
+
+template<int K>
+bool Z2<K>::allows(Dtype dtype)
+{
+	return Integer::allows(dtype);
+}
+
+template<int K>
 Z2<K>::Z2(const bigint& x) : Z2()
 {
 	auto mp = x.get_mpz_t();
@@ -74,6 +96,24 @@ Z2<K> Z2<K>::sqrRoot()
 }
 
 template<int K>
+void Z2<K>::AND(const Z2<K>& x, const Z2<K>& y)
+{
+	mpn_and_n(a, x.a, y.a, N_WORDS);
+}
+
+template<int K>
+void Z2<K>::OR(const Z2<K>& x, const Z2<K>& y)
+{
+	mpn_ior_n(a, x.a, y.a, N_WORDS);
+}
+
+template<int K>
+void Z2<K>::XOR(const Z2<K>& x, const Z2<K>& y)
+{
+	mpn_xor_n(a, x.a, y.a, N_WORDS);
+}
+
+template<int K>
 void Z2<K>::input(istream& s, bool human)
 {
 	if (human)
@@ -113,3 +153,6 @@ X(48) X(112) X(208)
 X(114) X(130) X(162) X(194) X(324) X(388)
 X(66)
 X(210) X(258)
+X(72)
+X(106)
+X(104) X(144) X(253) X(255) X(269) X(271)

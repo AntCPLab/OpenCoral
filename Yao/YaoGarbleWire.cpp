@@ -8,6 +8,10 @@
 #include "YaoGarbler.h"
 #include "GC/ArgTuples.h"
 
+#include "GC/Processor.hpp"
+#include "GC/Secret.hpp"
+#include "GC/Thread.hpp"
+
 void YaoGarbleWire::randomize(PRNG& prng)
 {
 	key = prng.get_doubleword();
@@ -254,6 +258,15 @@ void YaoGarbleWire::XOR(const YaoGarbleWire& left, const YaoGarbleWire& right)
 
 char YaoGarbleWire::get_output()
 {
+	YaoGarbler::s().taint();
 	YaoGarbler::s().output_masks.push_back(mask);
 	return -1;
+}
+
+void YaoGarbleWire::convcbit(Integer& dest, const GC::Clear& source)
+{
+	(void) source;
+	auto& garbler = YaoGarbler::s();
+	garbler.untaint();
+	dest = garbler.P->receive_long(1);
 }

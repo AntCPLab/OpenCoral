@@ -11,6 +11,10 @@
 #include "BMR/common.h"
 #include "GC/ArgTuples.h"
 
+#include "GC/Processor.hpp"
+#include "GC/Secret.hpp"
+#include "GC/Thread.hpp"
+
 ostream& YaoEvalWire::out = cout;
 
 void YaoEvalWire::random()
@@ -165,6 +169,7 @@ void YaoEvalWire::XOR(const YaoEvalWire& left, const YaoEvalWire& right)
 
 bool YaoEvalWire::get_output()
 {
+	YaoEvaluator::s().taint();
 	bool res = external ^ YaoEvaluator::s().output_masks.pop_front();
 #ifdef DEBUG
     cout << "output " << res << " mask " << (external ^ res) << " external "
@@ -183,6 +188,14 @@ void YaoEvalWire::set(Key key, bool external)
 {
 	key.set_signal(external);
 	set(key);
+}
+
+void YaoEvalWire::convcbit(Integer& dest, const GC::Clear& source)
+{
+	auto& evaluator = YaoEvaluator::s();
+	dest = source;
+	evaluator.P->send_long(0, source.get());
+	evaluator.untaint();
 }
 
 template void YaoEvalWire::and_<false>(

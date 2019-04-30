@@ -139,7 +139,10 @@ class Program(object):
         self.name is input file name (minus extension) + any optional arguments.
         Used to generate output filenames
         """
-        self.name = progname
+        if self.options.outfile:
+            self.name = self.options.outfile + '-' + progname
+        else:
+            self.name = progname
         if len(args) > 1:
             self.name += '-' + '-'.join(args[1:])
         self.progname = progname

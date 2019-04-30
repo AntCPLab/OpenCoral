@@ -539,23 +539,27 @@ ZZZZ(gfp1)
 ZZZZ(gf2n_long)
 ZZZ(Z2<160>, MM)
 
-#undef X
-#define X(N,L) \
+#undef XX
+#define XX(T,U,N,L) \
 template class OTCorrelator<Matrix<Rectangle<Z2<N>, Z2<L> > > >; \
-template void OTCorrelator<Matrix<Rectangle<Z2<N>, Z2<L> > > >::correlate<Z2<L> >(int start, int slice, \
+template void OTCorrelator<Matrix<Rectangle<Z2<N>, Z2<L> > > >::correlate<T>(int start, int slice, \
         BitVector& newReceiverInput, bool useConstantBase, int repeat); \
-template void OTCorrelator<Matrix<Rectangle<Z2<N>, Z2<L> > > >::expand<Z2<L> >(int start, int slice); \
 template void OTCorrelator<Matrix<Rectangle<Z2<N>, Z2<L> > > >::reduce_squares(unsigned int nTriples, \
-        vector<Z2<N> >& output); \
-template void OTCorrelator<Matrix<Rectangle<Z2<N>, Z2<L> > > >::reduce_squares(unsigned int nTriples, \
-        vector<Z2<L> >& output); \
-template void OTCorrelator<Matrix<Rectangle<Z2<N>, Z2<L> > > >::reduce_squares(unsigned int nTriples, \
-        vector<Z2kRectangle<N, L> >& output); \
-template void OTExtensionWithMatrix::hash_outputs<Z2<L>, Matrix<Rectangle<Z2<N>, Z2<L> > > >(int, \
+        vector<U>& output); \
+template void OTExtensionWithMatrix::hash_outputs<T, Matrix<Rectangle<Z2<N>, Z2<L> > > >(int, \
         std::vector<Matrix<Rectangle<Z2<N>, Z2<L> > >, std::allocator<Matrix<Rectangle<Z2<N>, Z2<L> > > > >&, \
         Matrix<Rectangle<Z2<N>, Z2<L> > >&);
 
+#undef X
+#define X(N,L) \
+template void OTCorrelator<Matrix<Rectangle<Z2<N>, Z2<L> > > >::expand<Z2<L> >(int start, int slice); \
+template void OTCorrelator<Matrix<Rectangle<Z2<N>, Z2<L> > > >::reduce_squares(unsigned int nTriples, \
+        vector<Z2kRectangle<N, L> >& output); \
+XX(Z2<L>,Z2<N>,N,L)
+
 //X(96, 160)
+XX(SignedZ2<64>, SignedZ2<64>, 64, 64)
+XX(SignedZ2<72>, SignedZ2<72>, 72, 72)
 
 Y(64, 64)
 Y(64, 48)

@@ -1,12 +1,6 @@
 
 #include "Processor/Data_Files.h"
 #include "Processor/Processor.h"
-#include "Processor/ReplicatedPrep.h"
-#include "Processor/MaliciousRepPrep.h"
-#include "GC/MaliciousRepSecret.h"
-#include "Math/MaliciousRep3Share.h"
-#include "Math/ShamirShare.h"
-#include "Math/MaliciousShamirShare.h"
 
 #include "Processor/MaliciousRepPrep.hpp"
 //#include "Processor/Replicated.hpp"
@@ -25,8 +19,7 @@ template<class T>
 Preprocessing<T>* Preprocessing<T>::get_live_prep(SubProcessor<T>* proc,
     DataPositions& usage)
 {
-  (void) proc, (void) usage;
-  throw not_implemented();
+  return new typename T::LivePrep(proc, usage);
 }
 
 template<class T>

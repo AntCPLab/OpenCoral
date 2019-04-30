@@ -236,3 +236,5 @@ template void Create_Random(gf2n_short& ans,const Player& P);
 #endif
 
 template void Create_Random(gfp& ans,const Player& P);
+template void Create_Random(gfp1& ans,const Player& P);
+template void Create_Random(gfp2& ans,const Player& P);

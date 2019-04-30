@@ -60,8 +60,14 @@ inline void avx_memzero(void* dest, size_t length)
 		length -= 32;
 	}
 #endif
-	if (length)
+	switch (length)
+	{
+	case 8:
+		*(int64_t*)d = 0;
+	    return;
+	default:
 		memset((void*)d, 0, length);
+	}
 }
 
 #endif /* TOOLS_AVX_MEMCPY_H_ */

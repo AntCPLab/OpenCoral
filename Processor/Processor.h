@@ -15,6 +15,7 @@
 #include "Data_Files.h"
 #include "Input.h"
 #include "ReplicatedInput.h"
+#include "SemiInput.h"
 #include "PrivateOutput.h"
 #include "ReplicatedPrivateOutput.h"
 #include "Machine.h"

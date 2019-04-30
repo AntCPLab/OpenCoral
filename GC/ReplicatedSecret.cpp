@@ -264,8 +264,9 @@ void ReplicatedSecret<U>::trans(Processor<U>& processor,
 }
 
 template<class U>
-void ReplicatedSecret<U>::reveal(Clear& x)
+void ReplicatedSecret<U>::reveal(size_t n_bits, Clear& x)
 {
+    (void) n_bits;
     ReplicatedSecret share = *this;
     vector<BitVec> opened;
     auto& party = ReplicatedParty<U>::s();

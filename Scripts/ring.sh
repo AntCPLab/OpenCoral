@@ -7,4 +7,4 @@ export PLAYERS=3
 
 . $HERE/run-common.sh
 
-run_player replicated-ring-party.x ${1:-test_all} || exit 1
+run_player replicated-ring-party.x $* || exit 1

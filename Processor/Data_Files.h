@@ -89,6 +89,7 @@ public:
   virtual ~Preprocessing() {}
 
   virtual void set_protocol(typename T::Protocol& protocol) = 0;
+  virtual void set_proc(SubProcessor<T>* proc) { (void) proc; }
 
   virtual void seekg(DataPositions& pos) { (void) pos; }
   virtual void prune() {}

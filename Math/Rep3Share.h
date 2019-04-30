@@ -39,13 +39,15 @@ public:
     Rep3Share()
     {
     }
-    Rep3Share(const FixedVec<T, 2>& other)
+    template<class U>
+    Rep3Share(const FixedVec<U, 2>& other)
     {
         FixedVec<T, 2>::operator=(other);
     }
 
-    Rep3Share(T value, int my_num)
+    Rep3Share(T value, int my_num, const T& alphai = {})
     {
+        (void) alphai;
         Replicated<Rep3Share>::assign(*this, value, my_num);
     }
 
@@ -90,7 +92,10 @@ public:
 
     clear local_mul(const Rep3Share& other) const
     {
-        return (*this)[0] * other.sum() + (*this)[1] * other[0];
+        T a, b;
+        a.mul((*this)[0], other.sum());
+        b.mul((*this)[1], other[0]);
+        return a + b;
     }
 
     void mul_by_bit(const Rep3Share& x, const T& y)

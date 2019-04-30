@@ -6,10 +6,18 @@
 #include "YaoGarbler.h"
 #include "YaoGate.h"
 
+#include "GC/ThreadMaster.hpp"
+#include "GC/Instruction.hpp"
+#include "GC/Processor.hpp"
+#include "GC/Program.hpp"
+#include "GC/Machine.hpp"
+#include "GC/Secret.hpp"
+#include "GC/Thread.hpp"
+
 thread_local YaoGarbler* YaoGarbler::singleton = 0;
 
 YaoGarbler::YaoGarbler(int thread_num, YaoGarbleMaster& master) :
-		Thread<Secret<YaoGarbleWire>>(thread_num, master),
+		GC::Thread<GC::Secret<YaoGarbleWire>>(thread_num, master),
 		master(master),
 		and_proc_timer(CLOCK_PROCESS_CPUTIME_ID),
 		and_main_thread_timer(CLOCK_THREAD_CPUTIME_ID),
@@ -46,28 +54,31 @@ YaoGarbler::~YaoGarbler()
 void YaoGarbler::run(GC::Program<GC::Secret<YaoGarbleWire>>& program)
 {
 	singleton = this;
-	bool continuous = master.continuous;
-	if (continuous and thread_num > 0)
-	{
-		cerr << "continuous running not available for more than one thread" << endl;
-		continuous = false;
-	}
 
 	GC::BreakType b = GC::TIME_BREAK;
 	while(GC::DONE_BREAK != b)
 	{
-		b = program.execute(processor, -1);
+		try
+		{
+			b = program.execute(processor, master.memory, -1);
+		}
+		catch (needs_cleaning& e)
+		{
+			if (not continuous())
+				throw runtime_error("run-time branching impossible with garbling at once");
+			processor.PC--;
+		}
 		send(*P);
 		gates.clear();
 		output_masks.clear();
-		if (continuous)
+		if (continuous())
 			process_receiver_inputs();
 	}
 }
 
 void YaoGarbler::post_run()
 {
-	if (not (master.continuous and thread_num == 0))
+	if (not continuous())
 	{
 		P->send_long(1, YaoCommon::DONE);
 		process_receiver_inputs();

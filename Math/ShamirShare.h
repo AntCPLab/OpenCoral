@@ -11,6 +11,8 @@
 #include "Processor/Shamir.h"
 #include "Processor/ShamirInput.h"
 
+template<class T> class ReplicatedPrep;
+
 template<class T>
 class ShamirShare : public T
 {
@@ -24,6 +26,7 @@ public:
     typedef MAC_Check Direct_MC;
     typedef ShamirInput<ShamirShare> Input;
     typedef ReplicatedPrivateOutput<ShamirShare> PrivateOutput;
+    typedef ReplicatedPrep<ShamirShare> LivePrep;
 
     const static bool needs_ot = false;
 
@@ -45,9 +48,9 @@ public:
         T::operator=(other);
     }
     template<class U>
-    ShamirShare(const U& other, int my_num) : ShamirShare(other)
+    ShamirShare(const U& other, int my_num, T alphai = {}) : ShamirShare(other)
     {
-        (void) my_num;
+        (void) my_num, (void) alphai;
     }
 
     // Share<T> compatibility
@@ -87,6 +90,21 @@ public:
     {
         (void) my_num, (void) alphai;
         *this = aa - S;
+    }
+
+    ShamirShare operator<<(int i)
+    {
+        return *this * (T(1) << i);
+    }
+    ShamirShare& operator<<=(int i)
+    {
+        *this = *this << i;
+        return *this;
+    }
+
+    void force_to_bit()
+    {
+        throw not_implemented();
     }
 
     void pack(octetStream& os, bool full = true) const

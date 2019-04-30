@@ -59,8 +59,6 @@ public:
 class SpdzShare : public Share<gf2n>
 {
 public:
-    void assign(const gf2n& value, const gf2n& mac_key, bool first_player)
-    { Share<gf2n>::assign(value, first_player ? 0 : 1, mac_key); }
 };
 
 template<class T> class Processor;
@@ -73,11 +71,7 @@ class Secret
     T& get_new_reg();
 
 public:
-#ifdef SPDZ_AUTH
-    typedef SpdzShare DynamicType;
-#else
-    typedef AuthValue DynamicType;
-#endif
+    typedef typename T::DynamicMemory DynamicMemory;
 
     // dummy
     typedef DummyMC MC;
@@ -105,8 +99,10 @@ public:
     static Secret<T> carryless_mult(const Secret<T>& x, const Secret<T>& y);
     static void output(T& reg);
 
-    static void load(vector< ReadAccess< Secret<T> > >& accesses, const Memory<SpdzShare>& mem);
-    static void store(Memory<SpdzShare>& mem, vector< WriteAccess< Secret<T> > >& accesses);
+    template<class U>
+    static void load(vector< ReadAccess< Secret<T> > >& accesses, const U& mem);
+    template<class U>
+    static void store(U& mem, vector< WriteAccess< Secret<T> > >& accesses);
 
     static void andrs(Processor< Secret<T> >& processor, const vector<int>& args)
     { T::andrs(processor, args); }
@@ -116,6 +112,8 @@ public:
     { T::inputb(processor, args); }
 
     static void trans(Processor<Secret<T> >& processor, int n_inputs, const vector<int>& args);
+
+    static void convcbit(Integer& dest, const Clear& source) { T::convcbit(dest, source); }
 
     Secret();
     Secret(const Integer& x) { *this = x; }
@@ -143,7 +141,7 @@ public:
     void andrs(int n, const Secret<T>& x, const Secret<T>& y) { and_(n, x, y, true); }
 
     template <class U>
-    void reveal(U& x);
+    void reveal(size_t n_bits, U& x);
 
     int size() const { return registers.size(); }
     CheckVector<T>& get_regs() { return registers; }

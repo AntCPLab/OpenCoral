@@ -53,7 +53,12 @@ private:
 #endif
 };
 #else
-typedef vector<Key> BaseKeyVector;
+class BaseKeyVector : public vector<Key>
+{
+public:
+	BaseKeyVector(int size = 0) : vector<Key>(size, Key(0)) {}
+	void resize(int size) { vector<Key>::resize(size, Key(0)); }
+};
 #endif
 
 class KeyVector : public BaseKeyVector
@@ -195,6 +200,8 @@ inline BlackHole& flush(BlackHole& b) { return b; }
 class Phase
 {
 public:
+    typedef NoMemory DynamicMemory;
+
 	typedef BlackHole out_type;
 	static const BlackHole out;
 
@@ -210,12 +217,12 @@ public:
 	{ (void)dest; (void)mask_share; (void)mac_mask_share; (void)masked; (void)masked_mac; }
 
 	template<class T>
-	static void store(GC::Memory<GC::SpdzShare>& dest,
+	static void store(NoMemory& dest,
 			const vector<GC::WriteAccess<T> >& accesses)
 	{ (void)dest; (void)accesses; throw runtime_error("dynamic memory not implemented"); }
 	template<class T>
 	static void load(vector<GC::ReadAccess<T> >& accesses,
-			const GC::Memory<GC::SpdzShare>& source)
+			const NoMemory& source)
 	{ (void)accesses; (void)source; throw runtime_error("dynamic memory not implemented"); }
 
 	template <class T>
@@ -225,9 +232,11 @@ public:
 	template <class T>
 	static void inputb(T& processor, const vector<int>& args) { processor.input(args); }
 	template <class T>
-
 	static T get_input(int from, GC::Processor<T>& processor, int n_bits)
 	{ return T::input(from, processor.get_input(n_bits), n_bits); }
+
+	static void convcbit(Integer& dest, const GC::Clear& source)
+	{ (void) dest, (void) source; throw not_implemented(); }
 
 	void input(party_id_t from, char value = -1) { (void)from; (void)value; }
 	void public_input(bool value) { (void)value; }
@@ -243,7 +252,7 @@ public:
 	static Register and_reg() { return new_reg(); }
 
 	template<class T>
-	static void store(GC::Memory<GC::SpdzShare>& dest,
+	static void store(NoMemory& dest,
 			const vector<GC::WriteAccess<T> >& accesses) { (void)dest; (void)accesses; }
 	template<class T>
 	static void load(vector<GC::ReadAccess<T> >& accesses,
@@ -266,11 +275,11 @@ public:
 
 	template<class T>
 	static void load(vector<GC::ReadAccess<T> >& accesses,
-			const GC::Memory<GC::SpdzShare>& source);
+			const NoMemory& source);
 
 	PRFRegister(const Register& reg) : ProgramRegister(reg) {}
 
-	void op(const ProgramRegister& left, const ProgramRegister& right, Function func);
+	void op(const PRFRegister& left, const PRFRegister& right, Function func);
 	void XOR(const Register& left, const Register& right);
 	void input(party_id_t from, char input = -1);
 	void public_input(bool value);
@@ -291,12 +300,12 @@ public:
     static void unmask(GC::AuthValue& dest, word mask_share, int128 mac_mask_share,
     		word masked, int128 masked_mac);
 
-    template<class T>
-    static void store(GC::Memory<GC::SpdzShare>& dest,
+    template<class T, class U>
+    static void store(GC::Memory<U>& dest,
     		const vector<GC::WriteAccess<T> >& accesses);
-    template<class T>
+    template<class T, class U>
     static void load(vector<GC::ReadAccess<T> >& accesses,
-    		const GC::Memory<GC::SpdzShare>& source);
+    		const GC::Memory<U>& source);
 
 	template <class T>
 	static void andrs(T& processor, const vector<int>& args);
@@ -309,6 +318,8 @@ public:
 		(void)from, (void)processor, (void)n_bits;
 		throw runtime_error("use EvalRegister::inputb()");
 	}
+
+	static void convcbit(Integer& dest, const GC::Clear& source);
 
 	EvalRegister(const Register& reg) : ProgramRegister(reg) {}
 
@@ -335,7 +346,7 @@ public:
 
 	template<class T>
 	static void load(vector<GC::ReadAccess<T> >& accesses,
-			const GC::Memory<GC::SpdzShare>& source);
+			const NoMemory& source);
 
 	GarbleRegister(const Register& reg) : ProgramRegister(reg) {}
 
@@ -353,11 +364,11 @@ public:
 	static string name() { return "Randomization"; }
 
 	template<class T>
-	static void store(GC::Memory<GC::SpdzShare>& dest,
+	static void store(NoMemory& dest,
 			const vector<GC::WriteAccess<T> >& accesses);
 	template<class T>
 	static void load(vector<GC::ReadAccess<T> >& accesses,
-			const GC::Memory<GC::SpdzShare>& source);
+			const NoMemory& source);
 
 	RandomRegister(const Register& reg) : ProgramRegister(reg) {}
 

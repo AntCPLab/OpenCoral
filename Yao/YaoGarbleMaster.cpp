@@ -6,6 +6,15 @@
 #include "YaoGarbleMaster.h"
 #include "YaoGarbler.h"
 
+#include "GC/Instruction.hpp"
+#include "GC/Machine.hpp"
+#include "GC/Program.hpp"
+#include "GC/Processor.hpp"
+#include "GC/Secret.hpp"
+#include "GC/Thread.hpp"
+#include "GC/ThreadMaster.hpp"
+#include "Processor/Instruction.hpp"
+
 YaoGarbleMaster::YaoGarbleMaster(bool continuous, OnlineOptions& opts, int threshold) :
         super(opts), continuous(continuous), threshold(threshold)
 {
@@ -15,7 +24,7 @@ YaoGarbleMaster::YaoGarbleMaster(bool continuous, OnlineOptions& opts, int thres
     delta.set_signal(1);
 }
 
-Thread<Secret<YaoGarbleWire>>* YaoGarbleMaster::new_thread(int i)
+GC::Thread<GC::Secret<YaoGarbleWire>>* YaoGarbleMaster::new_thread(int i)
 {
     return new YaoGarbler(i, *this);
 }

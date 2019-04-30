@@ -4,11 +4,24 @@
  */
 
 #include "Processor/ReplicatedMachine.hpp"
+#include "Processor/RingOptions.h"
 #include "Math/Integer.h"
 
 int main(int argc, const char** argv)
 {
     ez::ezOptionParser opt;
-    ReplicatedMachine<Rep3Share<Integer>, Rep3Share<gf2n>>(argc, argv,
-            "replicated-ring", opt);
+    RingOptions opts(opt, argc, argv);
+    switch (opts.R)
+    {
+    case 64:
+        ReplicatedMachine<Rep3Share<SignedZ2<64>>, Rep3Share<gf2n>>(argc, argv,
+                "replicated-ring", opt);
+        break;
+    case 72:
+        ReplicatedMachine<Rep3Share<SignedZ2<72>>, Rep3Share<gf2n>>(argc, argv,
+                "replicated-ring", opt);
+        break;
+    default:
+        throw runtime_error(to_string(opts.R) + "-bit computation not implemented");
+    }
 }

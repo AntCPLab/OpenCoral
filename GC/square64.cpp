@@ -4,6 +4,7 @@
  */
 
 #include "square64.h"
+#include "Tools/cpu_support.h"
 #include <stdexcept>
 #include <iostream>
 using namespace std;
@@ -24,18 +25,23 @@ union matrix32x8
     void transpose(square64& output, int x, int y)
     {
 #ifdef __AVX2__
-        for (int j = 0; j < 8; j++)
+        if (cpu_has_avx2())
         {
-            int row = _mm256_movemask_epi8(whole);
-            whole = _mm256_slli_epi64(whole, 1);
+            for (int j = 0; j < 8; j++)
+            {
+                int row = _mm256_movemask_epi8(whole);
+                whole = _mm256_slli_epi64(whole, 1);
 
-            // _mm_movemask_epi8 uses most significant bit, hence +7-j
-            output.halfrows[8*x+7-j][y] = row;
+                // _mm_movemask_epi8 uses most significant bit, hence +7-j
+                output.halfrows[8*x+7-j][y] = row;
+            }
         }
-#else
-        (void) output, (void) x, (void) y;
-        throw runtime_error("need to compile with AVX2 support");
+        else
 #endif
+        {
+            (void) output, (void) x, (void) y;
+            throw runtime_error("need AVX2 support");
+        }
     }
 };
 
@@ -60,24 +66,29 @@ void zip(int chunk_size, __m256i& lows, __m256i& highs,
         const __m256i& a, const __m256i& b)
 {
 #ifdef __AVX2__
-    switch (chunk_size)
+    if (cpu_has_avx2())
     {
-    ZIP_CASE(8, lows, highs, a, b);
-    ZIP_CASE(16, lows, highs, a, b);
-    ZIP_CASE(32, lows, highs, a, b);
-    ZIP_CASE(64, lows, highs, a, b);
-    case 128:
-        lows = a;
-        highs = b;
-        swap(((__m128i*)&lows)[1], ((__m128i*)&highs)[0]);
-        break;
-    default:
-        throw invalid_argument("not supported");
+        switch (chunk_size)
+        {
+        ZIP_CASE(8, lows, highs, a, b);
+        ZIP_CASE(16, lows, highs, a, b);
+        ZIP_CASE(32, lows, highs, a, b);
+        ZIP_CASE(64, lows, highs, a, b);
+        case 128:
+            lows = a;
+            highs = b;
+            swap(((__m128i*)&lows)[1], ((__m128i*)&highs)[0]);
+            break;
+        default:
+            throw invalid_argument("not supported");
+        }
     }
-#else
-    (void) chunk_size, (void) lows, (void) highs, (void) a, (void) b;
-    throw runtime_error("need to compile with AVX2 support");
+    else
 #endif
+    {
+        (void) chunk_size, (void) lows, (void) highs, (void) a, (void) b;
+        throw runtime_error("need AVX2 support");
+    }
 }
 
 void square64::transpose(int n_rows, int n_cols)

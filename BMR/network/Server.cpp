@@ -13,6 +13,9 @@
 
 #include "Server.h"
 
+namespace BIU
+{
+
 /* Opens server socket for listening - not yet accepting */
 Server::Server(int port, int expected_clients, ServerUpdatable* updatable, unsigned int max_message_size)
 	:starter(0),
@@ -141,4 +144,6 @@ bool Server::_handle_recv_len(int id, size_t actual_len, size_t expected_len) {
 		return true;
 	}
 	return true;
+}
+
 }

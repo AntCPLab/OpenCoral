@@ -32,13 +32,12 @@ class gfp_
   public:
 
   typedef gfp_ value_type;
-  typedef PrivateOutput<gfp_> PO;
 
   typedef gfp_<X + 1> next;
 
   static void init_field(const bigint& p,bool mont=true)
     { ZpD.init(p,mont); }
-  static void init_default(int lgp);
+  static void init_default(int lgp, bool mont = true);
 
   static bigint pr()   
     { return ZpD.pr; }
@@ -92,13 +91,8 @@ class gfp_
   gfp_(const void* buffer) { assign((char*)buffer); }
   template<int Y>
   gfp_(const gfp_<Y>& x);
-
-  ~gfp_()             { ; }
-
-  gfp_& operator=(const gfp_& g)
-    { if (&g!=this) { a=g.a; }
-      return *this;
-    }
+  template<int K>
+  gfp_(const SignedZ2<K>& other);
 
   gfp_& operator=(const __m128i other)
     {
@@ -218,6 +212,8 @@ class gfp_
   gfp_ operator<<(int i) { gfp_ res; res.SHL(*this, i); return res; }
   gfp_ operator>>(int i) { gfp_ res; res.SHR(*this, i); return res; }
 
+  void force_to_bit() { throw runtime_error("impossible"); }
+
   // Pack and unpack in native format
   //   i.e. Dont care about conversion to human readable form
   void pack(octetStream& o) const
@@ -236,6 +232,7 @@ class gfp_
 
 typedef gfp_<0> gfp;
 typedef gfp_<1> gfp1;
+typedef gfp_<2> gfp2;
 
 void to_signed_bigint(bigint& ans,const gfp& x);
 
@@ -248,6 +245,16 @@ gfp_<X>::gfp_(const gfp_<Y>& x)
 {
   to_bigint(bigint::tmp, x);
   *this = bigint::tmp;
+}
+
+template<int X>
+template<int K>
+gfp_<X>::gfp_(const SignedZ2<K>& other)
+{
+  if (K >= ZpD.pr_bit_length)
+    *this = bigint::tmp = other;
+  else
+    a.convert(abs(other).get(), other.size_in_limbs(), ZpD, other.negative());
 }
 
 #endif

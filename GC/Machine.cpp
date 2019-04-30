@@ -16,6 +16,7 @@
 
 #include "Processor/Machine.hpp"
 #include "Processor/Instruction.hpp"
+#include "Auth/MaliciousRepMC.hpp"
 
 namespace GC
 {

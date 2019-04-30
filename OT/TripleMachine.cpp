@@ -34,6 +34,11 @@ MascotParams::MascotParams()
     timerclear(&start);
 }
 
+void MascotParams::set_passive()
+{
+    generateMACs = amplify = check = false;
+}
+
 TripleMachine::TripleMachine(int argc, const char** argv) :
         nConnections(1), bonding(0)
 {

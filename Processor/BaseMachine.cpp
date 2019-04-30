@@ -103,3 +103,8 @@ void BaseMachine::print_timers()
   for (map<int,Timer>::iterator it = timer.begin(); it != timer.end(); it++)
     cerr << "Time" << it->first << " = " << it->second.elapsed() << " seconds " << endl;
 }
+
+string BaseMachine::memory_filename(string type_short, int my_number)
+{
+  return PREP_DIR "Memory-" + type_short + "-P" + to_string(my_number);
+}

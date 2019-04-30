@@ -10,25 +10,34 @@
 #include "OT/NPartyTripleGenerator.h"
 
 template<class T>
-class MascotPrep : public RingPrep<T>
+class OTPrep : public RingPrep<T>
 {
 protected:
-    NPartyTripleGenerator<typename T::prep_type>* triple_generator;
+    typename T::TripleGenerator* triple_generator;
 
 public:
     MascotParams params;
 
-    MascotPrep<T>(SubProcessor<T>* proc, DataPositions& usage);
-    ~MascotPrep();
+    OTPrep<T>(SubProcessor<T>* proc, DataPositions& usage);
+    ~OTPrep();
 
     void set_protocol(typename T::Protocol& protocol);
+
+    size_t data_sent();
+};
+
+template<class T>
+class MascotPrep : public OTPrep<T>
+{
+public:
+    MascotPrep(SubProcessor<T>* proc, DataPositions& usage) : OTPrep<T>(proc, usage)
+    {
+    }
 
     void buffer_triples();
     void buffer_inputs(int player);
 
     T get_random();
-
-    size_t data_sent();
 };
 
 template<class T>

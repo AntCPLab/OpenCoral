@@ -70,6 +70,9 @@ void send_if_ot_receiver(TwoPartyPlayer* P, vector<octetStream>& os, OT_ROLE rol
 
 void BaseOT::exec_base(bool new_receiver_inputs)
 {
+    if (not cpu_has_avx())
+        throw runtime_error("SimpleOT needs AVX support");
+
     int i, j, k;
     size_t len;
     PRNG G;

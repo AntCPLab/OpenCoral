@@ -18,6 +18,7 @@ enum BreakType {
     TIME_BREAK,
     DONE_BREAK,
     CAP_BREAK,
+    CLEANING_BREAK,
 };
 
 template <class T> class Processor;
@@ -59,9 +60,8 @@ class Program
     unsigned direct_mem(RegType reg_type) const
       { return max_mem[reg_type]; }
 
-    // Execute this program, updateing the processor and memory
-    // and streams pointing to the triples etc
-    BreakType execute(Processor<T>& Proc, int PC = -1) const;
+    template<class U>
+    BreakType execute(Processor<T>& Proc, U& dynamic_memory, int PC = -1) const;
 
     bool done(Processor<T>& Proc) const { return Proc.PC >= p.size(); }
 

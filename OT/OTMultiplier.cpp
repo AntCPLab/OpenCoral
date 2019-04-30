@@ -9,6 +9,8 @@
 #include "OT/NPartyTripleGenerator.h"
 #include "OT/Rectangle.h"
 #include "Math/Z2k.h"
+#include "Math/SemiShare.h"
+#include "Math/Semi2kShare.h"
 
 #include "OT/OTVole.hpp"
 #include "OT/Row.hpp"
@@ -19,7 +21,7 @@
 //#define OTCORR_TIMER
 
 template<class T>
-OTMultiplier<T>::OTMultiplier(NPartyTripleGenerator<T>& generator,
+OTMultiplier<T>::OTMultiplier(OTTripleGenerator<T>& generator,
         int thread_num) :
         generator(generator), thread_num(thread_num),
         rot_ext(128, 128, 0, 1,
@@ -32,7 +34,7 @@ OTMultiplier<T>::OTMultiplier(NPartyTripleGenerator<T>& generator,
 }
 
 template<class T>
-MascotMultiplier<T>::MascotMultiplier(NPartyTripleGenerator<Share<T>>& generator,
+MascotMultiplier<T>::MascotMultiplier(OTTripleGenerator<Share<T>>& generator,
         int thread_num) :
         OTMultiplier<Share<T>>(generator, thread_num),
 		auth_ot_ext(128, 128, 0, 1, generator.players[thread_num], {}, {}, {}, BOTH, true)
@@ -41,7 +43,7 @@ MascotMultiplier<T>::MascotMultiplier(NPartyTripleGenerator<Share<T>>& generator
 }
 
 template <int K, int S>
-Spdz2kMultiplier<K, S>::Spdz2kMultiplier(NPartyTripleGenerator<Spdz2kShare<K, S>>& generator, int thread_num) :
+Spdz2kMultiplier<K, S>::Spdz2kMultiplier(OTTripleGenerator<Spdz2kShare<K, S>>& generator, int thread_num) :
         OTMultiplier<Spdz2kShare<K, S>>
         (generator, thread_num)
 {
@@ -171,6 +173,15 @@ void Spdz2kMultiplier<K, S>::init_authenticator(const BitVector& keyBits,
 		const vector<BitVector>& receiverOutput) {
 	this->mac_vole->init(keyBits, senderOutput, receiverOutput);
 	input_mac_vole->init(keyBits, senderOutput, receiverOutput);
+}
+
+template<class T>
+void SemiMultiplier<T>::after_correlation()
+{
+    this->otCorrelator.reduce_squares(this->generator.nPreampTriplesPerLoop,
+            this->c_output);
+
+    this->outbox.push({});
 }
 
 template <class T>
@@ -329,6 +340,12 @@ void OTMultiplier<T>::multiplyForBits()
 
 template class OTMultiplier<Share<gf2n>>;
 template class OTMultiplier<Share<gfp1>>;
+template class OTMultiplier<SemiShare<gf2n>>;
+template class OTMultiplier<SemiShare<gfp1>>;
+template class SemiMultiplier<SemiShare<gf2n>>;
+template class SemiMultiplier<SemiShare<gfp1>>;
+template class SemiMultiplier<Semi2kShare<64>>;
+template class SemiMultiplier<Semi2kShare<72>>;
 template class MascotMultiplier<gf2n>;
 template class MascotMultiplier<gfp1>;
 

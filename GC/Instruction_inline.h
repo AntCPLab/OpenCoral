@@ -28,7 +28,9 @@ inline bool fallback_code(const Instruction<T>& instruction, Processor<T>& proce
 }
 
 template <class T>
-MAYBE_INLINE bool Instruction<T>::execute(Processor<T>& processor) const
+template <class U>
+MAYBE_INLINE bool Instruction<T>::execute(Processor<T>& processor,
+        U& dynamic_memory) const
 {
 #ifdef DEBUG_OPS
     cout << typeid(T).name() << " ";

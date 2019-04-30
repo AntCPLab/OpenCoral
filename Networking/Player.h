@@ -111,6 +111,7 @@ class NamedCommStats : public map<string, CommStats>
 {
 public:
   NamedCommStats& operator+=(const NamedCommStats& other);
+  size_t total_data();
 };
 
 class PlayerBase
@@ -174,7 +175,8 @@ public:
   virtual void exchange_no_stats(int other, const octetStream& to_send, octetStream& ot_receive) const = 0;
   void exchange(int other, octetStream& o) const;
   void exchange_relative(int offset, octetStream& o) const;
-  virtual void pass_around(octetStream& o, int offset = 1) const = 0;
+  void pass_around(octetStream& o, int offset = 1) const { pass_around(o, o, offset); }
+  virtual void pass_around(octetStream& to_send, octetStream& to_receive, int offset) const = 0;
 
   /* Broadcast and Receive data to/from all players
    *  - Assumes o[player_no] contains the thing broadcast by me
@@ -233,7 +235,7 @@ public:
   void exchange_no_stats(int other, const octetStream& to_send, octetStream& ot_receive) const;
 
   // send to next and receive from previous player
-  void pass_around(octetStream& o, int offset = 1) const;
+  void pass_around(octetStream& to_send, octetStream& to_receive, int offset) const;
 
   // Receive one from player i
 

@@ -20,7 +20,7 @@ class MaliciousRepSecret : public ReplicatedSecret<MaliciousRepSecret>
     typedef ReplicatedSecret<MaliciousRepSecret> super;
 
 public:
-    typedef MaliciousRepSecret DynamicType;
+    typedef Memory<MaliciousRepSecret> DynamicMemory;
 
     typedef MaliciousRepMC<MaliciousRepSecret> MC;
 

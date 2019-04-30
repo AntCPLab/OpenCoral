@@ -8,24 +8,14 @@
 #include "GC/Instruction.h"
 #include "GC/Processor.h"
 
-#ifdef MAX_INLINE
-#include "GC/Secret_inline.h"
-#endif
 #include "Processor/Instruction.h"
 
-#include "Secret.h"
 #include "Tools/parse.h"
 
 #include "GC/Instruction_inline.h"
-#include "GC/ReplicatedSecret.h"
 
 namespace GC
 {
-
-#define X(NAME, CODE) template<class T> bool NAME##_code(const Instruction<T>& instruction, \
-        Processor<T>& processor) { (void)instruction; (void)processor; CODE; return true; }
-    INSTRUCTIONS
-#undef X
 
 template <class T>
 Instruction<T>::Instruction() :
@@ -66,6 +56,13 @@ int Instruction<T>::get_reg_type() const
             switch (opcode)
             {
             case LDMC:
+            case STMC:
+            case XORC:
+            case ADDC:
+            case ADDCI:
+            case MULCI:
+            case SHRCI:
+            case SHLCI:
                 return CBIT;
             }
             return SBIT;
@@ -99,6 +96,8 @@ unsigned GC::Instruction<T>::get_max_reg(int reg_type) const
         skip = 3;
         offset = 2;
         break;
+    case CONVCBIT:
+        return BaseInstruction::get_max_reg(INT);
     default:
         return BaseInstruction::get_max_reg(reg_type);
     }
@@ -189,6 +188,7 @@ void Instruction<T>::parse(istream& s, int pos)
             get_vector(m, start, s);
             break;
         case CONVCINT:
+        case CONVCBIT:
             get_ints(r, s, 2);
             break;
         case REVEAL:
@@ -227,7 +227,6 @@ void Instruction<T>::parse(istream& s, int pos)
     switch(opcode)
     {
 #define X(NAME, CODE) case NAME: \
-      code = NAME##_code; \
       break;
     INSTRUCTIONS
 #undef X

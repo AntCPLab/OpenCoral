@@ -9,7 +9,7 @@
 
 template<class T>
 InputBase<T>::InputBase(ArithmeticProcessor* proc) :
-        values_input(0)
+        P(0), values_input(0)
 {
     if (proc)
         buffer.setup(&proc->private_input, -1, proc->private_input_filename);
@@ -17,7 +17,8 @@ InputBase<T>::InputBase(ArithmeticProcessor* proc) :
 
 template<class T>
 Input<T>::Input(SubProcessor<T>& proc, MAC_Check& mc) :
-        InputBase<T>(&proc.Proc), proc(proc), MC(mc), shares(proc.P.num_players())
+        InputBase<T>(&proc.Proc), proc(proc), MC(mc),
+        shares(proc.P.num_players())
 {
 }
 
@@ -39,20 +40,26 @@ InputBase<T>::~InputBase()
 }
 
 template<class T>
-void Input<T>::adjust_mac(T& share, const open_type& value)
+void Input<T>::reset(int player)
 {
-    typename T::mac_type tmp;
-    tmp.mul(MC.get_alphai(), value);
-    tmp.add(share.get_mac(),tmp);
-    share.set_mac(tmp);
+    InputBase<T>::reset(player);
+    shares[player].clear();
 }
 
 template<class T>
-void Input<T>::reset(int player)
+void InputBase<T>::reset(int player)
 {
-    shares[player].clear();
-    if (player == proc.P.my_num())
-        o.reset_write_head();
+    os.resize(max(os.size(), player + 1UL));
+    os[player].reset_write_head();
+}
+
+template<class T>
+void InputBase<T>::reset_all(Player& P)
+{
+    this->P = &P;
+    os.resize(P.num_players());
+    for (int i = 0; i < P.num_players(); i++)
+        reset(i);
 }
 
 template<class T>
@@ -63,10 +70,8 @@ void Input<T>::add_mine(const clear& input)
     T& share = shares[player].back();
     proc.DataF.get_input(share, rr, player);
     t.sub(input, rr);
-    t.pack(o);
-    xi.add(t, share.get_share());
-    share.set_share(xi);
-    adjust_mac(share, t);
+    t.pack(this->os[player]);
+    share += T(t, 0, MC.get_alphai());
     this->values_input++;
 }
 
@@ -79,9 +84,29 @@ void Input<T>::add_other(int player)
 }
 
 template<class T>
+void InputBase<T>::add_from_all(const clear& input)
+{
+    for (int i = 0; i < P->num_players(); i++)
+        if (i == P->my_num())
+            add_mine(input);
+        else
+            add_other(i);
+}
+
+template<class T>
 void Input<T>::send_mine()
 {
-    proc.P.send_all(o, true);
+    proc.P.send_all(this->os[proc.P.my_num()], true);
+}
+
+template<class T>
+void InputBase<T>::exchange()
+{
+    for (int i = 0; i < P->num_players(); i++)
+        if (i == P->my_num())
+            send_mine();
+        else
+            P->receive_player(i, os[i], true);
 }
 
 template<class T>
@@ -143,7 +168,20 @@ void Input<T>::finalize_other(int player, T& target,
 {
     target = shares[player].next();
     t.unpack(o);
-    adjust_mac(target, t);
+    target += T(t, 1, MC.get_alphai());
+}
+
+template<class T>
+T InputBase<T>::finalize(int player)
+{
+    if (player == P->my_num())
+        return finalize_mine();
+    else
+    {
+        T res;
+        finalize_other(player, res, os[player]);
+        return res;
+    }
 }
 
 template<class T>

@@ -375,7 +375,7 @@ class RefRAM(object):
         print 'init ram'
         for a,value in zip(self.l, empty_entry.defaults.values()):
             # don't use threads if n_threads explicitly set to 1
-            a.assign_all(value, n_threads != 1)
+            a.assign_all(value, n_threads != 1, conv=False)
     def get_empty_bits(self):
         return self.l[0]
     def get_indices(self):

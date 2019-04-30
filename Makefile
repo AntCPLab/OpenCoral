@@ -28,7 +28,7 @@ endif
 COMMON = $(MATH) $(TOOLS) $(NETWORK) $(AUTH)
 COMPLETE = $(COMMON) $(PROCESSOR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(GC) $(OT)
 YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp)) $(OT) $(GC) BMR/Key.o
-BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp)) $(COMMON) Processor/BaseMachine.o Processor/ProcessorBase.o
+BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp)) $(COMMON) $(PROCESSOR) $(OT)
 
 
 LIB = libSPDZ.a
@@ -40,7 +40,7 @@ OBJS = $(BMR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(YAO) $(COMPLETE) $(patsubst %.cpp
 DEPS := $(OBJS:.o=.d)
 
 
-all: gen_input online offline externalIO yao replicated shamir spdz2k
+all: gen_input online offline externalIO yao replicated shamir spdz2k real-bmr brain-party.x semi-party.x semi2k-party.x
 
 ifeq ($(USE_GF2N_LONG),1)
 ifneq ($(OS), Darwin)
@@ -67,6 +67,8 @@ externalIO: client-setup.x bankers-bonus-client.x bankers-bonus-commsec-client.x
 
 bmr: bmr-program-party.x bmr-program-tparty.x
 
+real-bmr: $(patsubst %.cpp,%.x,$(wildcard *-bmr-party.cpp))
+
 yao: yao-player.x
 
 she-offline: Check-Offline.x spdz2-offline.x
@@ -79,7 +81,7 @@ rep-ring: replicated-ring-party.x Fake-Offline.x
 
 rep-bin: replicated-bin-party.x malicious-rep-bin-party.x Fake-Offline.x
 
-replicated: rep-field rep-ring rep-bin
+replicated: rep-field rep-ring rep-bin brain-party.x
 
 spdz2k: spdz2k-party.x ot-offline.x Check-Offline-Z2k.x galois-degree.x Fake-Offline.x
 
@@ -95,7 +97,7 @@ endif
 
 shamir: shamir-party.x malicious-shamir-party.x galois-degree.x
 
-$(LIBRELEASE): Machines/Rep.o Machines/ShamirMachine.o Machines/SPDZ.o $(YAO) $(PROCESSOR) $(COMMON)
+$(LIBRELEASE): Machines/Rep.o Machines/Semi.o Machines/ShamirMachine.o Machines/SPDZ.o $(YAO) $(PROCESSOR) $(COMMON) $(BMR)
 	$(AR) -csr $@ $^
 
 static/%.x: %.cpp $(LIBRELEASE) $(LIBSIMPLEOT)
@@ -104,7 +106,7 @@ static/%.x: %.cpp $(LIBRELEASE) $(LIBSIMPLEOT)
 static-dir:
 	@ mkdir static 2> /dev/null; true
 
-static-release: static-dir $(patsubst %.cpp, static/%.x, $(wildcard *ring*.cpp *field*.cpp *shamir*.cpp yao*.cpp spdz2k*.cpp Player-Online.cpp ))
+static-release: static-dir $(patsubst %.cpp, static/%.x, $(wildcard *ring*.cpp *field*.cpp *shamir*.cpp yao*.cpp spdz2k*.cpp Player-Online.cpp *-bmr-*.cpp brain-party.cpp semi*.cpp replicated-bin-party.cpp ))
 
 Fake-Offline.x: Fake-Offline.cpp $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
@@ -151,11 +153,14 @@ gc-emulate.x: $(GC) $(COMMON) $(PROCESSOR) gc-emulate.cpp $(GC)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 ifeq ($(USE_GF2N_LONG),1)
-bmr-program-party.x: $(BMR) bmr-program-party.cpp
+bmr-program-party.x: $(BMR) bmr-program-party.cpp $(LIBSIMPLEOT)
 	$(CXX) $(CFLAGS) -o $@ $^ $(BOOST) $(LDLIBS)
 
-bmr-program-tparty.x: $(BMR) bmr-program-tparty.cpp
+bmr-program-tparty.x: $(BMR) bmr-program-tparty.cpp $(LIBSIMPLEOT)
 	$(CXX) $(CFLAGS) -o $@ $^ $(BOOST) $(LDLIBS)
+
+%-bmr-party.x: %-bmr-party.cpp $(wildcard BMR/*) $(BMR) $(LIBSIMPLEOT)
+	$(CXX) $(CFLAGS) -o $@ $< $(BMR) $(LIBSIMPLEOT) $(BOOST) $(LDLIBS)
 endif
 
 bmr-clean:
@@ -208,6 +213,9 @@ replicated-field-party.x: replicated-field-party.cpp Machines/Rep.o $(PROCESSOR)
 malicious-rep-field-party.x: malicious-rep-field-party.cpp Machines/Rep.o $(PROCESSOR) $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
+brain-party.x: brain-party.cpp Machines/Rep.o $(PROCESSOR) $(COMMON)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
+
 shamir-party.x: shamir-party.cpp Machines/ShamirMachine.o $(PROCESSOR) $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
@@ -215,6 +223,12 @@ malicious-shamir-party.x: malicious-shamir-party.cpp Machines/ShamirMachine.o $(
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 spdz2k-party.x: spdz2k-party.cpp Machines/SPDZ.o $(PROCESSOR) $(COMMON) $(OT) $(LIBSIMPLEOT)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
+
+semi-party.x: semi-party.cpp Machines/Semi.o $(PROCESSOR) $(COMMON) $(OT) $(LIBSIMPLEOT)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
+
+semi2k-party.x: semi2k-party.cpp Machines/Semi.o $(PROCESSOR) $(COMMON) $(OT) $(LIBSIMPLEOT)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 $(LIBSIMPLEOT): SimpleOT/Makefile

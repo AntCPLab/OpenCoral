@@ -10,6 +10,7 @@
 #include "Auth/MAC_Check.h"
 #include "Tools/ezOptionParser.h"
 #include "Exceptions/Exceptions.h"
+#include "GC/MaliciousRepSecret.h"
 
 #include "Math/Setup.h"
 #include "Processor/Data_Files.h"

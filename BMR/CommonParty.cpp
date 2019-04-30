@@ -9,11 +9,16 @@
 
 CommonParty* CommonParty::singleton = 0;
 
-CommonParty::CommonParty() :
-		_node(0), gate_counter(0), gate_counter2(0), garbled_tbl_size(0),
-		cpu_timer(CLOCK_PROCESS_CPUTIME_ID), buffers(TYPE_MAX)
+CommonFakeParty::CommonFakeParty() :
+        _node(0), buffers(TYPE_MAX)
 {
 	insecure("MPC emulation");
+}
+
+CommonParty::CommonParty() :
+		gate_counter(0), gate_counter2(0), garbled_tbl_size(0),
+		cpu_timer(CLOCK_PROCESS_CPUTIME_ID)
+{
 	if (singleton != 0)
 		throw runtime_error("there can only be one");
 	singleton = this;
@@ -29,20 +34,27 @@ CommonParty::CommonParty() :
 	mac_key.randomize(prng);
 }
 
-CommonParty::~CommonParty()
+CommonFakeParty::~CommonFakeParty()
 {
-	if (_node)
-		delete _node;
-	cout << "Wire storage: " << 1e-9 * wires.capacity() << " GB" << endl;
-	cout << "CPU time: " << cpu_timer.elapsed() << endl;
-	cout << "Total time: " << timer.elapsed() << endl;
-	cout << "First phase time: " << timers[0].elapsed() << endl;
-	cout << "Second phase time: " << timers[1].elapsed() << endl;
-	cout << "Number of gates: " << gate_counter << endl;
+    if (_node)
+        delete _node;
 }
 
-void CommonParty::init(const char* netmap_file, int id, int n_parties)
+CommonParty::~CommonParty()
 {
+	cerr << "Total time: " << timer.elapsed() << endl;
+#ifdef VERBOSE
+	cerr << "Wire storage: " << 1e-9 * wires.capacity() << " GB" << endl;
+	cerr << "CPU time: " << cpu_timer.elapsed() << endl;
+	cerr << "First phase time: " << timers[0].elapsed() << endl;
+	cerr << "Second phase time: " << timers[1].elapsed() << endl;
+	cerr << "Number of gates: " << gate_counter << endl;
+#endif
+}
+
+void CommonParty::check(int n_parties)
+{
+	(void) n_parties;
 #ifdef N_PARTIES
 	if (n_parties != N_PARTIES)
 	    throw runtime_error("wrong number of parties");
@@ -53,6 +65,11 @@ void CommonParty::init(const char* netmap_file, int id, int n_parties)
 #endif
 	_N = n_parties;
 #endif // N_PARTIES
+}
+
+void CommonFakeParty::init(const char* netmap_file, int id, int n_parties)
+{
+	check(n_parties);
 	printf("netmap_file: %s\n", netmap_file);
 	if (0 == strcmp(netmap_file, LOOPBACK_STR)) {
 		_node = new Node( NULL, id, this, _N + 1);
@@ -61,7 +78,7 @@ void CommonParty::init(const char* netmap_file, int id, int n_parties)
 	}
 }
 
-int CommonParty::init(const char* netmap_file, int id)
+int CommonFakeParty::init(const char* netmap_file, int id)
 {
 	int n_parties;
 	if (string(netmap_file) != string(LOOPBACK_STR))
@@ -93,7 +110,7 @@ void CommonParty::next_gate(GarbledGate& gate)
     gate.init_inputs(gate_counter2, _N);
 }
 
-SendBuffer& CommonParty::get_buffer(MSG_TYPE type)
+SendBuffer& CommonFakeParty::get_buffer(MSG_TYPE type)
 {
 	SendBuffer& buffer = buffers[type];
 	buffer.clear();
@@ -122,52 +139,6 @@ void CommonCircuitParty::print_outputs(const vector<int>& indices)
 }
 
 
-template <class T, class U>
-GC::BreakType CommonParty::first_phase(GC::Program<U>& program,
-		GC::Processor<T>& processor, GC::Machine<T>& machine)
-{
-	(void)machine;
-	timers[0].start();
-	reset();
-	wires.clear();
-	GC::BreakType next = (reinterpret_cast<GC::Program<T>*>(&program))->execute(processor);
-#ifdef DEBUG_ROUNDS
-	cout << "finished first phase at pc " << processor.PC
-			<< " reason " << next << endl;
-#endif
-	timers[0].stop();
-	cout << "First round time: " << timers[0].elapsed() << " / "
-			<< timer.elapsed() << endl;
-#ifdef DEBUG_WIRES
-	cout << "Storing wires with " << 1e-9 * wires.size() << " GB on disk" << endl;
-#endif
-	wire_storage.push(wires);
-	return next;
-}
-
-template<class T>
-GC::BreakType CommonParty::second_phase(GC::Program<T>& program,
-		GC::Processor<T>& processor, GC::Machine<T>& machine)
-{
-    (void)machine;
-    wire_storage.pop(wires);
-    wires.reset_head();
-	timers[1].start();
-	GC::BreakType next = GC::TIME_BREAK;
-	next = program.execute(processor);
-#ifdef DEBUG_ROUNDS
-	cout << "finished second phase at " << processor.PC
-			<< " reason " << next << endl;
-#endif
-	timers[1].stop();
-//	cout << "Second round time: " << timers[1].elapsed() << ", ";
-//	cout << "total time: " << timer.elapsed() << endl;
-	if (false)
-		return GC::CAP_BREAK;
-	else
-		return next;
-}
-
 void CommonCircuitParty::prepare_input_regs(party_id_t from)
 {
     party_t sender = _circuit->_parties[from];
@@ -188,23 +159,3 @@ void CommonCircuitParty::prepare_output_regs()
     for (size_t i = 0; i < _OW; i++)
         output_regs.push_back(_circuit->OutWiresStart()+i);
 }
-
-template GC::BreakType CommonParty::first_phase(
-		GC::Program<GC::Secret<GarbleRegister> >& program,
-		GC::Processor<GC::Secret<RandomRegister> >& processor,
-		GC::Machine<GC::Secret<RandomRegister> >& machine);
-
-template GC::BreakType CommonParty::first_phase(
-		GC::Program<GC::Secret<EvalRegister> >& program,
-		GC::Processor<GC::Secret<PRFRegister> >& processor,
-		GC::Machine<GC::Secret<PRFRegister> >& machine);
-
-template GC::BreakType CommonParty::second_phase(
-		GC::Program<GC::Secret<GarbleRegister> >& program,
-		GC::Processor<GC::Secret<GarbleRegister> >& processor,
-		GC::Machine<GC::Secret<GarbleRegister> >& machine);
-
-template GC::BreakType CommonParty::second_phase(
-		GC::Program<GC::Secret<EvalRegister> >& program,
-		GC::Processor<GC::Secret<EvalRegister> >& processor,
-		GC::Machine<GC::Secret<EvalRegister> >& machine);

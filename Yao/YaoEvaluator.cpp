@@ -5,6 +5,14 @@
 
 #include "YaoEvaluator.h"
 
+#include "GC/Instruction.hpp"
+#include "GC/Machine.hpp"
+#include "GC/Program.hpp"
+#include "GC/Processor.hpp"
+#include "GC/Secret.hpp"
+#include "GC/Thread.hpp"
+#include "GC/ThreadMaster.hpp"
+
 thread_local YaoEvaluator* YaoEvaluator::singleton = 0;
 
 YaoEvaluator::YaoEvaluator(int thread_num, YaoEvalMaster& master) :
@@ -36,9 +44,19 @@ void YaoEvaluator::run(GC::Program<GC::Secret<YaoEvalWire>>& program)
 
 void YaoEvaluator::run(GC::Program<GC::Secret<YaoEvalWire>>& program, Player& P)
 {
+	auto next = GC::TIME_BREAK;
 	do
+	{
 		receive(P);
-	while(GC::DONE_BREAK != program.execute(processor, -1));
+		try
+		{
+			next = program.execute(processor, master.memory, -1);
+		}
+		catch (needs_cleaning& e)
+		{
+		}
+	}
+	while(GC::DONE_BREAK != next);
 }
 
 void YaoEvaluator::run_from_store(GC::Program<GC::Secret<YaoEvalWire>>& program)
@@ -49,7 +67,7 @@ void YaoEvaluator::run_from_store(GC::Program<GC::Secret<YaoEvalWire>>& program)
 		gates_store.pop(gates);
 		output_masks_store.pop(output_masks);
 	}
-	while(GC::DONE_BREAK != program.execute(processor, -1));
+	while(GC::DONE_BREAK != program.execute(processor, master.memory, -1));
 }
 
 bool YaoEvaluator::receive(Player& P)

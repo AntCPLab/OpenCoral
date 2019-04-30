@@ -37,7 +37,6 @@ class gf2n_short
   static int l0,l1,l2,l3;
   static word mask;
   static bool useC;
-  static bool rewind;
 
   /* Assign x[0..2*nwords] to a and reduce it...  */
   void reduce_trinomial(word xh,word xl);
@@ -57,9 +56,6 @@ class gf2n_short
   typedef gf2n_short value_type;
   typedef word internal_type;
   typedef gf2n_short next;
-
-  typedef PrivateOutput<gf2n_short> PO;
-  typedef SPDZ<Share<gf2n_short>> Protocol;
 
   static void init_field(int nn);
   static int degree() { return n; }
@@ -82,6 +78,8 @@ class gf2n_short
   static int default_length() { return 40; }
 
   static bool allows(Dtype type) { (void) type; return true; }
+
+  static const bool invertible = true;
 
   word get() const { return a; }
   word get_word() const { return a; }
@@ -183,6 +181,8 @@ class gf2n_short
   void randomize(PRNG& G);
   // compatibility with gfp
   void almost_randomize(PRNG& G)        { randomize(G); }
+
+  void force_to_bit() { a &= 1; }
 
   void output(ostream& s,bool human) const;
   void input(istream& s,bool human);

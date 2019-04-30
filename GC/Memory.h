@@ -16,6 +16,10 @@ using namespace std;
 #include "Clear.h"
 #include "config.h"
 
+class NoMemory
+{
+};
+
 namespace GC
 {
 
@@ -28,6 +32,7 @@ public:
     void check_index(Integer index) const;
     T& operator[] (Integer i);
     const T& operator[] (Integer i) const;
+    size_t capacity_in_bytes() const { return this->capacity() * sizeof(T); }
 
     template <class U>
     Memory<U>& cast() { return *reinterpret_cast< Memory<U>* >(this); }
@@ -82,6 +87,14 @@ inline void Memory<T>::resize_min(size_t size, const char* name)
 {
     if (this->size() < size)
         resize(size, name);
+}
+
+template <class T>
+inline ostream& operator<<(ostream& s, const Memory<T>& memory)
+{
+    for (auto& x : memory)
+        x.output(s, false);
+    return s;
 }
 
 } /* namespace GC */

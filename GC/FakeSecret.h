@@ -29,6 +29,7 @@ class FakeSecret
 
 public:
     typedef FakeSecret DynamicType;
+    typedef Memory<FakeSecret> DynamicMemory;
 
     // dummy
     typedef DummyMC MC;
@@ -59,6 +60,8 @@ public:
     static void trans(Processor<FakeSecret>& processor, int n_inputs,
             const vector<int>& args);
 
+    static void convcbit(Integer& dest, const Clear& source) { dest = source; }
+
     static FakeSecret input(int from, GC::Processor<FakeSecret>& processor, int n_bits);
     static FakeSecret input(int from, const int128& input, int n_bits);
 
@@ -88,7 +91,7 @@ public:
 
     void random_bit() { a = random() % 2; }
 
-    void reveal(Clear& x) { x = a; }
+    void reveal(int n_bits, Clear& x) { (void) n_bits; x = a; }
 
     int size() { return -1; }
 };

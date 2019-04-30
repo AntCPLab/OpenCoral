@@ -394,10 +394,10 @@ void Player::exchange_relative(int offset, octetStream& o) const
 
 
 template<class T>
-void MultiPlayer<T>::pass_around(octetStream& o, int offset) const
+void MultiPlayer<T>::pass_around(octetStream& o, octetStream& to_receive, int offset) const
 {
   TimeScope ts(comm_stats["Passing around"].add(o));
-  o.exchange(sockets.at(get_player(offset)), sockets.at(get_player(-offset)));
+  o.exchange(sockets.at(get_player(offset)), sockets.at(get_player(-offset)), to_receive);
   sent += o.get_length();
 }
 
@@ -740,6 +740,14 @@ NamedCommStats& NamedCommStats::operator +=(const NamedCommStats& other)
   for (auto it = other.begin(); it != other.end(); it++)
     (*this)[it->first] += it->second;
   return *this;
+}
+
+size_t NamedCommStats::total_data()
+{
+  size_t res = 0;
+  for (auto& x : *this)
+    res += x.second.data;
+  return res;
 }
 
 template class MultiPlayer<int>;

@@ -22,7 +22,8 @@ USE_GF2N_LONG = 1
 # AVX2 support (Haswell or later) is used to optimize OT
 # AVX/AVX2 is required for replicated binary secret sharing
 # BMI2 is used to optimize multiplication modulo a prime
-ARCH = -mtune=native -msse4.1 -maes -mpclmul -mavx -mavx2 -mbmi2
+# ADX is used to optimize big integer additions
+ARCH = -mtune=native -msse4.1 -maes -mpclmul -mavx -mavx2 -mbmi2 -madx
 
 # allow to set compiler in CONFIG.mine
 CXX = g++
@@ -50,7 +51,11 @@ ifeq ($(OS), Linux)
 LDLIBS += -lrt
 endif
 
-BOOST = -lboost_system -lboost_thread $(MY_BOOST)
+ifeq ($(OS), Darwin)
+BOOST = -lboost_thread-mt $(MY_BOOST)
+else
+BOOST = -lboost_thread $(MY_BOOST)
+endif
 
 CFLAGS += $(ARCH) $(MY_CFLAGS) $(GDEBUG) -Wextra -Wall $(OPTIM) -I$(ROOT) -pthread $(PROF) $(DEBUG) $(MOD) $(MEMPROTECT) $(GF2N_LONG) $(PREP_DIR) -std=c++11 -Werror
 CPPFLAGS = $(CFLAGS)

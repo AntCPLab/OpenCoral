@@ -98,7 +98,10 @@ inline void receive(int socket,octet *msg,size_t len)
   int fail = 0;
   while (len-i>0)
     { int j=recv(socket,msg+i,len-i,0);
-      if (j<0)
+      // success first
+      if (j > 0)
+        i = i + j;
+      else if (j < 0)
         {
           if (errno == EAGAIN or errno == EINTR)
             {
@@ -114,7 +117,7 @@ inline void receive(int socket,octet *msg,size_t len)
             { error("Receiving error - 1"); }
         }
       else
-        i=i+j;
+        throw runtime_error("connection closed down");
     }
 }
 

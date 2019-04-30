@@ -50,7 +50,7 @@ namespace GC
 template<class T> class Machine;
 }
 
-class CommonParty : public NodeUpdatable
+class CommonParty
 {
 protected:
     friend class Register;
@@ -60,8 +60,6 @@ protected:
 #else
     party_id_t _N;
 #endif
-    Node* _node;
-
     int gate_counter, gate_counter2;
     int garbled_tbl_size;
 
@@ -71,23 +69,19 @@ protected:
 
     gf2n mac_key;
 
-    mutex global_lock;
-
     LocalBuffer wires;
     ReceivedMsgStore wire_storage;
 
     template<class T, class U>
     GC::BreakType first_phase(GC::Program<U>& program, GC::Processor<T>& processor,
             GC::Machine<T>& machine);
-    template<class T>
+    template<class T, class U>
     GC::BreakType second_phase(GC::Program<T>& program, GC::Processor<T>& processor,
-            GC::Machine<T>& machine);
+            GC::Machine<T>& machine, U& dynamic_memory);
 
 public:
     static CommonParty* singleton;
     static CommonParty& s();
-
-    vector<SendBuffer> buffers;
 
     PRNG prng;
 
@@ -100,25 +94,40 @@ public:
     static int get_n_parties() { return s()._N; }
 #endif
 
-    void init(const char* netmap_file, int id, int n_parties);
-    int init(const char* netmap_file, int id);
-    virtual void reset();
+    void check(int n_parties);
 
-    virtual party_id_t get_id() { return -1; }
+    virtual void reset();
 
     gate_id_t new_gate();
     void next_gate(GarbledGate& gate);
     gate_id_t next_gate(int skip) { return gate_counter2 += skip; }
     size_t get_garbled_tbl_size() { return garbled_tbl_size; }
 
-    SendBuffer& get_buffer(MSG_TYPE type);
-
     gf2n get_mac_key() { return mac_key; }
+};
+
+class CommonFakeParty : virtual public CommonParty, public NodeUpdatable
+{
+protected:
+    Node* _node;
+
+    mutex global_lock;
+
+public:
+    CommonFakeParty();
+    virtual ~CommonFakeParty();
+
+    vector<SendBuffer> buffers;
+
+    void init(const char* netmap_file, int id, int n_parties);
+    int init(const char* netmap_file, int id);
+
+    SendBuffer& get_buffer(MSG_TYPE type);
 };
 
 class BooleanCircuit;
 
-class CommonCircuitParty : virtual public CommonParty
+class CommonCircuitParty : virtual public CommonFakeParty
 {
 protected:
     BooleanCircuit* _circuit;

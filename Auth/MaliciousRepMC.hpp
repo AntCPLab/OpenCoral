@@ -5,6 +5,7 @@
 
 #include "MaliciousRepMC.h"
 #include "GC/Machine.h"
+#include "Math/BitVec.h"
 
 #include "ReplicatedMC.hpp"
 

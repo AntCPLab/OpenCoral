@@ -9,15 +9,32 @@
 #include "Math/Share.h"
 #include "Key.h"
 
-class SpdzWire
+template<class T>
+class DualWire
 {
 public:
-	Share<gf2n> mask;
+	T mask;
 	Key my_keys[2];
 
-	SpdzWire();
-	void pack(octetStream& os) const;
-	void unpack(octetStream& os, size_t wanted_size);
+	DualWire()
+	{
+		my_keys[0] = 0;
+		my_keys[1] = 0;
+	}
+
+	void pack(octetStream& os) const
+	{
+		mask.pack(os);
+		os.serialize(my_keys);
+	}
+	void unpack(octetStream& os, size_t wanted_size)
+	{
+		(void)wanted_size;
+		mask.unpack(os);
+		os.unserialize(my_keys);
+	}
 };
+
+typedef DualWire<Share<gf2n_long>> SpdzWire;
 
 #endif /* BMR_SPDZWIRE_H_ */

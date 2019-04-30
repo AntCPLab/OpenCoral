@@ -49,6 +49,7 @@ public:
 
     void reset();
 
+    void init_mul();
     void init_mul(SubProcessor<T>* proc);
     U prepare_mul(const T& x, const T& y);
     void exchange();

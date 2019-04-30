@@ -26,12 +26,9 @@ inline void ReplicatedInput<T>::add_mine(const typename T::clear& input)
     auto& shares = this->shares;
     shares.push_back({});
     T& my_share = shares.back();
-    my_share[0].randomize(secure_prng);
+    my_share[0].randomize(protocol.shared_prngs[0]);
     my_share[1] = input - my_share[0];
-    for (int j = 0; j < 2; j++)
-    {
-        my_share[j].pack(os[j]);
-    }
+    my_share[1].pack(os[1]);
     this->values_input++;
 }
 
@@ -58,7 +55,7 @@ void PrepLessInput<T>::start(int player, int n_inputs)
     {
         for (int i = 0; i < n_inputs; i++)
         {
-            typename T::value_type t;
+            typename T::open_type t;
             this->buffer.input(t);
             add_mine(t);
         }
@@ -92,13 +89,18 @@ template<class T>
 inline void ReplicatedInput<T>::finalize_other(int player, T& target,
         octetStream& o)
 {
-    typename T::value_type t;
-    t.unpack(o);
-    int j = P.get_offset(player) == 2;
-    T share;
-    share[j] = t;
-    share[1 - j] = 0;
-    target = share;
+    if (P.get_offset(player) == 1)
+    {
+        typename T::value_type t;
+        t.unpack(o);
+        target[0] = t;
+        target[1] = 0;
+    }
+    else
+    {
+        target[0] = 0;
+        target[1].randomize(protocol.shared_prngs[1]);
+    }
 }
 
 template<class T>

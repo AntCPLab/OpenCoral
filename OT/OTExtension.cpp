@@ -690,12 +690,6 @@ void OTExtension::check_correlation(int nOTs,
     delete[] seed;
     vector<octetStream> os(2);
 
-    if (!Check_CPU_support_AES())
-    {
-        cerr << "Not implemented GF(2^128) multiplication in C\n";
-        throw not_implemented();
-    }
-
     __m128i Delta, x128i;
     Delta = _mm_load_si128((__m128i*)&(baseReceiverInput.get_ptr()[0]));
 
