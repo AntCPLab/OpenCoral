@@ -324,7 +324,10 @@ void OTExtensionWithMatrix::hash_outputs(int nOTs, vector<V>& senderOutput, V& r
     receiverOutput.resize_vertical(n);
 
     if (V::PartType::N_ROW_BYTES != T::size())
-        throw runtime_error("length mismatch for MMO hash");
+        throw runtime_error(
+                "length mismatch for MMO hash: "
+                        + to_string(V::PartType::N_ROW_BYTES) + " != "
+                        + to_string(T::size()));
     if (nOTs % 8 != 0)
         throw runtime_error("number of OTs must be divisible by 8");
 
@@ -518,6 +521,10 @@ template void OTCorrelator<BM>::correlate<GF>(int start, int slice, \
 template void OTCorrelator<BM>::expand<GF>(int start, int slice); \
 template void OTCorrelator<BM>::reduce_squares<GF>(unsigned int nTriples, \
         vector<GF>& output);
+
+template class OTCorrelator<Matrix<gf2n_short_square>>;
+Z(Matrix<gf2n_short_square>, gf2n_short)
+
 #define ZZ(BM) Z(BM, gfp1) Z(BM, gf2n_long)
 
 ZZ(BitMatrix)
@@ -538,6 +545,7 @@ template void OTExtensionWithMatrix::hash_outputs<GF, M >(int, vector<M >&, M&);
 ZZZZ(gfp1)
 ZZZZ(gf2n_long)
 ZZZ(Z2<160>, MM)
+ZZZ(gf2n_short, Matrix<gf2n_short_square>)
 
 #undef XX
 #define XX(T,U,N,L) \

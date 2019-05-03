@@ -13,6 +13,7 @@ using namespace std;
 #include "Math/field_types.h"
 
 class gf2n_short;
+class gf2n_short_square;
 
 void expand_byte(gf2n_short& a,int b);
 void collapse_byte(int& b,const gf2n_short& a);
@@ -56,6 +57,7 @@ class gf2n_short
   typedef gf2n_short value_type;
   typedef word internal_type;
   typedef gf2n_short next;
+  typedef gf2n_short_square Square;
 
   static void init_field(int nn);
   static int degree() { return n; }
@@ -81,8 +83,12 @@ class gf2n_short
 
   static const bool invertible = true;
 
+  static gf2n_short cut(int128 x) { return x.get_lower(); }
+
   word get() const { return a; }
   word get_word() const { return a; }
+
+  const void* get_ptr() const { return &a; }
 
   void assign(const gf2n_short& g)     { a=g.a; }
 
@@ -92,7 +98,8 @@ class gf2n_short
   void assign(word aa)           { a=aa&mask; }
   void assign(long aa)           { assign(word(aa)); }
   void assign(int aa)            { a=static_cast<unsigned int>(aa)&mask; }
-  void assign(const char* buffer) { a = *(word*)buffer; }
+
+  void normalize()               { assign(a); }
 
   int get_bit(int i) const
     { return (a>>i)&1; }
@@ -107,7 +114,8 @@ class gf2n_short
   gf2n_short(word a)		{ assign(a); }
   gf2n_short(long a)		{ assign(a); }
   gf2n_short(int a)			{ assign(a); }
-  gf2n_short(const char* a) { assign(a); }
+  gf2n_short(const char* a) { assign(*(word*)a); }
+  gf2n_short(const int128& a) { reduce(a.get_upper(), a.get_lower()); }
   ~gf2n_short()             { ; }
 
   gf2n_short& operator=(const gf2n_short& g)

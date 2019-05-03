@@ -34,6 +34,7 @@ class gfp_
   typedef gfp_ value_type;
 
   typedef gfp_<X + 1> next;
+  typedef square128 Square;
 
   static void init_field(const bigint& p,bool mont=true)
     { ZpD.init(p,mont); }

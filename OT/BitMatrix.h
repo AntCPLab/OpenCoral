@@ -14,6 +14,7 @@
 #include "Tools/random.h"
 #include "Tools/MMO.h"
 #include "Math/gf2nlong.h"
+#include "Math/gf2nshortsquare.h"
 
 using namespace std;
 

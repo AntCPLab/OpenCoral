@@ -833,10 +833,13 @@ XX(BM, gfp1) XX(BM, gf2n_long)
 template void Slice<BM >::conditional_add<GF>(BitVector& conditions, BM& other, bool useOffset); \
 template Slice<BM >& Slice<BM >::rsub<GF>(Slice<BM >& other); \
 template Slice<BM >& Slice<BM >::sub<GF>(BitVector& other, int repeat); \
-template void Slice<BM >::print<GF>(); \
 template void Slice<BM >::randomize<GF>(int row, PRNG& G); \
+//template void Slice<BM >::print<GF>();
 
 BMS
+
+template class Slice<Matrix<gf2n_short_square>>;
+XX(Matrix<gf2n_short_square>, gf2n_short)
 
 template void square128::hash_row_wise<gf2n>(MMO& mmo, square128& input);
 template void square128::hash_row_wise<gfp1>(MMO& mmo, square128& input);

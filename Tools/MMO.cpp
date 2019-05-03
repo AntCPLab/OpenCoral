@@ -59,6 +59,8 @@ void MMO::hashBlocks(void* output, const void* input)
             memcpy((char*)output + j * sizeof(T) + i * block_size, &tmp[j],
                     min(T::size() - i * block_size, block_size));
     }
+    for (int j = 0; j < N; j++)
+        ((T*)output + j)->normalize();
 }
 
 template <>
@@ -148,3 +150,4 @@ void MMO::hashBlockWise<gfp1,128>(octet* output, octet* input)
 Z(gf2n_long) Z(Z2<64>) Z(Z2<112>) Z(Z2<128>) Z(Z2<160>) Z(Z2<114>) Z(Z2<130>)
 Z(Z2<72>)
 Z(SignedZ2<64>) Z(SignedZ2<72>)
+Z(gf2n_short)

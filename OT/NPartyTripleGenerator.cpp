@@ -256,7 +256,7 @@ void NPartyTripleGenerator<Share<gf2n>>::generateBits()
 
     int nBitsToCheck = nTriplesPerLoop + field_size;
     valueBits.resize(1);
-    valueBits[0].resize(ceil(1.0 * nBitsToCheck / field_size) * field_size);
+    valueBits[0].resize(ceil(1.0 * nBitsToCheck / 128) * 128);
     bits.resize(nBitsToCheck);
     vector< Share<gf2n> > to_open(1);
     vector<gf2n> opened(1);

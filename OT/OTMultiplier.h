@@ -82,7 +82,7 @@ public:
 template <class T>
 class MascotMultiplier : public OTMultiplier<Share<T>>
 {
-    OTExtensionWithMatrix auth_ot_ext;
+    OTCorrelator<Matrix<typename T::Square> > auth_ot_ext;
     void after_correlation();
     void init_authenticator(const BitVector& baseReceiverInput,
             const vector< vector<BitVector> >& baseSenderInput,

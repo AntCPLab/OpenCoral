@@ -68,6 +68,7 @@ template<class T> class Input;
 template<class T> class PrivateOutput;
 template<class T> class SPDZ;
 template<class T> class Share;
+union square128;
 
 /* This interface compatible with the gfp interface
  * which then allows us to template the Share
@@ -97,6 +98,7 @@ class gf2n_long
   typedef int128 internal_type;
 
   typedef gf2n_long next;
+  typedef square128 Square;
 
   void reduce(int128 xh,int128 xl)
    {
@@ -130,6 +132,8 @@ class gf2n_long
 
   static const bool invertible = true;
 
+  static gf2n_long cut(int128 x) { return x; }
+
   int128 get() const { return a; }
   __m128i to_m128i() const { return a.a; }
   word get_word() const { return _mm_cvtsi128_si64(a.a); }
@@ -144,6 +148,8 @@ class gf2n_long
   void assign(int128 aa)           { a=aa&mask; }
   void assign(int aa)            { a=int128(static_cast<unsigned int>(aa))&mask; }
   void assign(const char* buffer) { a = _mm_loadu_si128((__m128i*)buffer); }
+
+  void normalize() {}
 
   int get_bit(int i) const
     { return ((a>>i)&1).get_lower(); }

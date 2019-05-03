@@ -20,8 +20,8 @@ GC = $(patsubst %.cpp,%.o,$(wildcard GC/*.cpp)) $(PROCESSOR)
 # OT needed by Yao
 OT = OT/BaseOT.o OT/BitMatrix.o OT/BitVector.o OT/OTExtension.o OT/OTExtensionWithMatrix.o OT/Tools.o
 # OT stuff needs GF2N_LONG, so only compile if this is enabled
-ifeq ($(USE_GF2N_LONG),1)
 OT = $(patsubst %.cpp,%.o,$(filter-out OT/OText_main.cpp,$(wildcard OT/*.cpp)))
+ifeq ($(USE_GF2N_LONG),1)
 OT_EXE = ot.x ot-offline.x
 endif
 
@@ -40,12 +40,13 @@ OBJS = $(BMR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(YAO) $(COMPLETE) $(patsubst %.cpp
 DEPS := $(OBJS:.o=.d)
 
 
-all: gen_input online offline externalIO yao replicated shamir spdz2k real-bmr brain-party.x semi-party.x semi2k-party.x
+all: gen_input online offline externalIO yao replicated shamir spdz2k-party.x brain-party.x semi-party.x semi2k-party.x
 
 ifeq ($(USE_GF2N_LONG),1)
 ifneq ($(OS), Darwin)
 all: bmr
 endif
+all: real-bmr
 endif
 
 ifeq ($(USE_NTL),1)

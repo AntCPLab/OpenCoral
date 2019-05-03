@@ -45,7 +45,7 @@ class Share
    typedef MascotMultiplier<T> Multiplier;
    typedef NPartyTripleGenerator<prep_type> TripleGenerator;
    typedef T sacri_type;
-   typedef square128 Rectangle;
+   typedef typename T::Square Rectangle;
 
    typedef MAC_Check_<Share> MAC_Check;
    typedef Direct_MAC_Check<T> Direct_MC;

@@ -44,7 +44,7 @@ public:
     typedef SemiMultiplier<SemiShare> Multiplier;
     typedef OTTripleGenerator<prep_type> TripleGenerator;
     typedef T sacri_type;
-    typedef square128 Rectangle;
+    typedef typename T::Square Rectangle;
 
     const static bool needs_ot = true;
 

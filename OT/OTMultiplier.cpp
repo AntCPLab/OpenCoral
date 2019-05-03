@@ -72,7 +72,7 @@ template<class T>
 void OTMultiplier<T>::multiply()
 {
     keyBits.set(generator.machine.template get_mac_key<typename T::mac_key_type>());
-    rot_ext.extend<gf2n>(keyBits.size(), keyBits);
+    rot_ext.extend<gf2n_long>(keyBits.size(), keyBits);
     this->outbox.push({});
     senderOutput.resize(keyBits.size());
     for (size_t j = 0; j < keyBits.size(); j++)
@@ -262,12 +262,26 @@ template<>
 void OTMultiplier<Share<gf2n>>::multiplyForBits()
 {
     int nBits = generator.nTriplesPerLoop + generator.field_size;
-    int nBlocks = ceil(1.0 * nBits / generator.field_size);
+    int nBlocks = ceil(1.0 * nBits / 128);
+    BitVector extKeyBits = keyBits;
+    extKeyBits.resize_zero(128);
+    auto extSenderOutput = senderOutput;
+    extSenderOutput.resize(128, {2, BitVector(128)});
+    SeededPRNG G;
+    for (auto& x : extSenderOutput)
+        for (auto& y : x)
+            if (y.size() < 128)
+            {
+                y.resize(128);
+                y.randomize(G);
+            }
+    auto extReceiverOutput = receiverOutput;
+    extReceiverOutput.resize(128, 128);
     OTExtensionWithMatrix auth_ot_ext(128, 128, 0, 1,
-            generator.players[thread_num], keyBits, senderOutput,
-            receiverOutput, BOTH, true);
+            generator.players[thread_num], extKeyBits, extSenderOutput,
+            extReceiverOutput, BOTH, true);
     auth_ot_ext.set_role(BOTH);
-    auth_ot_ext.resize(nBlocks * generator.field_size);
+    auth_ot_ext.resize(nBlocks * 128);
     macs.resize(1);
     macs[0].resize(nBits);
 
@@ -276,16 +290,16 @@ void OTMultiplier<Share<gf2n>>::multiplyForBits()
 
     for (int i = 0; i < generator.nloops; i++)
     {
-        auth_ot_ext.expand<gf2n>(0, nBlocks);
+        auth_ot_ext.expand<gf2n_long>(0, nBlocks);
         inbox.pop(job);
-        auth_ot_ext.correlate<gf2n>(0, nBlocks, generator.valueBits[0], true);
+        auth_ot_ext.correlate<gf2n_long>(0, nBlocks, generator.valueBits[0], true);
         auth_ot_ext.transpose(0, nBlocks);
 
         for (int j = 0; j < nBits; j++)
         {
             int128 r = auth_ot_ext.receiverOutputMatrix.squares[j/128].rows[j%128];
             int128 s = auth_ot_ext.senderOutputMatrices[0].squares[j/128].rows[j%128];
-            macs[0][j] = r ^ s;
+            macs[0][j] = gf2n::cut(r ^ s);
         }
 
         outbox.push(job);
@@ -301,11 +315,10 @@ void MascotMultiplier<T>::multiplyForInputs(MultJob job)
     auth_ot_ext.set_role(mine ? RECEIVER : SENDER);
     int nOTs = job.n_inputs * generator.field_size;
     auth_ot_ext.resize(nOTs);
-    auth_ot_ext.expand<T>(0, job.n_inputs);
+    auth_ot_ext.template expand<T>(0, job.n_inputs);
     if (mine)
         this->inbox.pop();
-    auth_ot_ext.correlate<T>(0, job.n_inputs, generator.valueBits[0], true);
-    auth_ot_ext.transpose(0, job.n_inputs);
+    auth_ot_ext.template correlate<T>(0, job.n_inputs, generator.valueBits[0], true);
     auto& input_macs = this->input_macs;
     input_macs.resize(job.n_inputs);
     if (mine)

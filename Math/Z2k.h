@@ -35,6 +35,7 @@ protected:
 public:
 	typedef void Inp;
 	typedef void PO;
+	typedef void Square;
 
 	class DummyZ2kProtocol
 	{
