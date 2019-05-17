@@ -67,10 +67,10 @@ public:
         // set up PRGs for expanding the seed OTs
         for (int i = 0; i < nbaseOTs; i++)
         {
-            assert(baseSenderInput[i].size() == 2);
-            assert(baseSenderInput[i][0].size_bytes() >= AES_BLK_SIZE);
-            assert(baseSenderInput[i][1].size_bytes() >= AES_BLK_SIZE);
-            assert(baseReceiverOutput[i].size_bytes() >= AES_BLK_SIZE);
+            assert(baseSenderInput.at(i).size() == 2);
+            assert(baseSenderInput.at(i)[0].size_bytes() >= AES_BLK_SIZE);
+            assert(baseSenderInput.at(i)[1].size_bytes() >= AES_BLK_SIZE);
+            assert(baseReceiverOutput.at(i).size_bytes() >= AES_BLK_SIZE);
 
             if (ot_role & RECEIVER)
             {
