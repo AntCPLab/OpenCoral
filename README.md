@@ -6,6 +6,12 @@ Yao's garbled circuits, and computation based on
 three-party replicated secret sharing as well as Shamir's secret
 sharing (with an honest majority).
 
+#### Contact
+
+[Filing an issue on GitHub](../../issues) is the preferred way of contacting
+us, but you can also write an email to mp-spdz@googlegroups.com
+([archive](https://groups.google.com/forum/#!forum/mp-spdz)).
+
 #### TL;DR (Binary Distribution on Linux or Source Distribution on macOS)
 
 This requires either a Linux distribution originally released 2011 or
