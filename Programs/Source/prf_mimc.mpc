@@ -26,10 +26,9 @@ class KDPreprocessing(object):
             for r in range(rounds):
                 next_block = cur_block + r
                 ta1, ta2 = sint.get_random_square()
-                for k in range(3):
-                    rint[next_block] = ta1
-                    rsquare[next_block] = ta2
-                    rcube[next_block] = ta1 * ta2
+                rint[next_block] = ta1
+                rsquare[next_block] = ta2
+                rcube[next_block] = ta1 * ta2
 
         # [r], [r^2], [r^3]
         self.rint = rint
@@ -59,7 +58,8 @@ class MiMC(object):
         # Random constants for each round
         self.constants = self.get_rounds_constants()
         self.key = _key
-        self.kd_pre = KDPreprocessing(num_calls, self.rounds)
+        if use_cubes:
+            self.kd_pre = KDPreprocessing(num_calls, self.rounds)
 
     def get_rounds_constants(self):
         return [sint.get_random_triple()[0].reveal() for i in range(self.rounds)] 
@@ -82,7 +82,8 @@ class MiMC(object):
                 x = x + key + self.constants[r]
 
         x = x + key
-        self.kd_pre.gen_next_pre()
+        if use_cubes:
+            self.kd_pre.gen_next_pre()
         return x
 
     def encrypt_clear_to_ss(self, m):
