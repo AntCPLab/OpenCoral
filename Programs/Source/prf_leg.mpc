@@ -27,7 +27,7 @@ class KDPreprocessing(object):
             for i in range(bit_len):
                 s, ssq = sint.get_random_square()
                 b = sint.get_random_bit()
-                t = b*(ssq - nonsq) + nonsq * sq
+                t = ssq * (b + nonsq * (1 - b))
 
                 next_row = cur_row + i
                 pre_squares[next_row] = t
