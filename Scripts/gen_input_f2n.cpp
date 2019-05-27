@@ -13,7 +13,7 @@ int main() {
 
 	int n; cin >> n;
 	for (int i = 0; i < n; ++i) {
-		gf2n_short x; cin >> x;
+		gf2n x; cin >> x;
 		cerr << "value is: " << x << "\n";
 		x.output(cout,false);
 	}
