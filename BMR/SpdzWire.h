@@ -6,7 +6,7 @@
 #ifndef BMR_SPDZWIRE_H_
 #define BMR_SPDZWIRE_H_
 
-#include "Math/Share.h"
+#include "Protocols/Share.h"
 #include "Key.h"
 
 template<class T>

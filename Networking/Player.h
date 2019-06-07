@@ -23,23 +23,6 @@ using namespace std;
 #include "Networking/Receiver.h"
 #include "Networking/Sender.h"
 
-typedef vector<octet> public_signing_key;
-typedef vector<octet> secret_signing_key;
-typedef vector<octet> chachakey;
-typedef pair< chachakey, uint64_t > keyinfo;
-
-class CommsecKeysPackage {
-public:
-    vector<public_signing_key> player_public_keys;
-    secret_signing_key my_secret_key;
-    public_signing_key my_public_key;
-
-    CommsecKeysPackage(vector<public_signing_key> playerpubs,
-                       secret_signing_key mypriv,
-                       public_signing_key mypub);
-    ~CommsecKeysPackage();
-};
-
 template<class T> class MultiPlayer;
 
 /* Class to get the names off the server */
@@ -50,8 +33,6 @@ class Names
   int nplayers;
   int portnum_base;
   int player_no;
-
-  CommsecKeysPackage *keys;
 
   int default_port(int playerno) { return portnum_base + playerno; }
   void setup_ports();
@@ -80,9 +61,8 @@ class Names
   void init(int player, int pnb, const string& hostsfile, int players = 0);
   Names(int player, int pnb, const string& hostsfile)
     { init(player, pnb, hostsfile); }
-  void set_keys( CommsecKeysPackage *keys );
 
-  Names() : nplayers(-1), portnum_base(-1), player_no(-1), keys(0), server(0) { ; }
+  Names() : nplayers(-1), portnum_base(-1), player_no(-1), server(0) { ; }
   Names(const Names& other);
   ~Names();
 
@@ -112,6 +92,14 @@ class NamedCommStats : public map<string, CommStats>
 public:
   NamedCommStats& operator+=(const NamedCommStats& other);
   size_t total_data();
+#ifdef VERBOSE_COMM
+  CommStats& operator[](const string& name)
+  {
+    auto& res = map<string, CommStats>::operator[](name);
+    cout << name << " after " << res.data << endl;
+    return res;
+  }
+#endif
 };
 
 class PlayerBase
@@ -176,7 +164,8 @@ public:
   void exchange(int other, octetStream& o) const;
   void exchange_relative(int offset, octetStream& o) const;
   void pass_around(octetStream& o, int offset = 1) const { pass_around(o, o, offset); }
-  virtual void pass_around(octetStream& to_send, octetStream& to_receive, int offset) const = 0;
+  void pass_around(octetStream& to_send, octetStream& to_receive, int offset) const;
+  virtual void pass_around_no_stats(octetStream& to_send, octetStream& to_receive, int offset) const = 0;
 
   /* Broadcast and Receive data to/from all players
    *  - Assumes o[player_no] contains the thing broadcast by me
@@ -235,7 +224,7 @@ public:
   void exchange_no_stats(int other, const octetStream& to_send, octetStream& ot_receive) const;
 
   // send to next and receive from previous player
-  void pass_around(octetStream& to_send, octetStream& to_receive, int offset) const;
+  virtual void pass_around_no_stats(octetStream& to_send, octetStream& to_receive, int offset) const;
 
   // Receive one from player i
 
@@ -255,7 +244,7 @@ class ThreadPlayer : public MultiPlayer<int>
 {
 public:
   mutable vector<Receiver*> receivers;
-  mutable vector<Sender*>   senders;
+  mutable vector<Sender<int>*>   senders;
 
   ThreadPlayer(const Names& Nms,int id_base=0);
   virtual ~ThreadPlayer();
@@ -291,12 +280,6 @@ private:
   int socket;
   bool is_server;
   int other_player;
-  bool p2pcommsec;
-
-  secret_signing_key my_secret_key;
-  map<int,public_signing_key> player_public_keys;
-  keyinfo player_send_key;
-  keyinfo player_recv_key;
 
 public:
   RealTwoPartyPlayer(const Names& Nms, int other_player, int pn_offset=0);
@@ -356,8 +339,10 @@ public:
   int num_players() const { return 2; }
   int get_offset() const { return offset; }
 
-  void send(octetStream& o) { P.send_to(P.get_player(offset), o); }
+  void send(octetStream& o) { P.send_to(P.get_player(offset), o, true); }
+  void reverse_send(octetStream& o) { P.send_to(P.get_player(-offset), o, true); }
   void receive(octetStream& o) { P.receive_player(P.get_player(offset), o, true); }
+  void reverse_receive(octetStream& o) { P.receive_player(P.get_player(-offset), o, true); }
   void send_receive_player(vector<octetStream>& o);
 
   void reverse_exchange(octetStream& o) const { P.pass_around(o, P.num_players() - offset); }

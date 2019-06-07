@@ -5,7 +5,7 @@
 
 #include "RealGarbleWire.h"
 #include "RealProgramParty.h"
-#include "Processor/MascotPrep.h"
+#include "Protocols/MascotPrep.h"
 
 template<class T>
 void RealGarbleWire<T>::garble(PRFOutputs& prf_output,

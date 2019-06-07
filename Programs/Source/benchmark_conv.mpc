@@ -559,6 +559,9 @@ layers = globals()[network]
 # c5.9xlarge has 36 cores
 n_threads = 36
 
+if len(program.args) > 2:
+   n_threads = int(program.args[2])
+
 # S, Z, bit length
 # using sfloat for secret floats and sint for secret int
 p1 = squant_params(sfloat(.001), sint(1), 8)
@@ -577,17 +580,26 @@ class squant2(squant):
 zero1 = squant1(0)
 zero2 = squant2(0)
 
+def f(l, n):
+    # only for optimization
+    aa = [a.get_vector()] * l
+    bb = [b.get_vector()] * l
+    # store in memory to prevent dead code elimination
+    squant.dot_product(aa, bb, res_params=p3).store_in_mem(regint(0))
+
+tapes = {}
+
+import math
+
 for l, n, _ in layers:
-    a = Array(l, squant1)
-    b = Array(l, squant2)
+    nn = int(math.ceil(1. * n / n_threads))
+    a = Array(nn, squant1)
+    b = Array(nn, squant2)
     a.assign_all(zero1)
     b.assign_all(zero2)
 
-    # parallelization for optimization
-    @for_range_multithread(n_threads, 100, n)
-    def _(i):
-        # only for optimization
-        aa = a.get_vector()
-        bb = b.get_vector()
-        # store in memory to prevent dead code elimination
-        squant.dot_product(aa, bb, res_params=p3).store_in_mem(regint(0))
+    if (l, nn) not in tapes:
+        tapes[l, nn] = program.new_tape(f, [l, nn])
+    tn = [program.run_tape(tapes[l, nn], 0) for i in range(n_threads)]
+    for t in tn:
+        program.join_tape(t)

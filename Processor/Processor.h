@@ -6,26 +6,20 @@
  *   Consisting of 256 clear and 256 shared registers
  */
 
-#include "Math/Share.h"
-#include "Math/gf2n.h"
-#include "Math/gfp.h"
 #include "Math/Integer.h"
 #include "Exceptions/Exceptions.h"
 #include "Networking/Player.h"
 #include "Data_Files.h"
 #include "Input.h"
-#include "ReplicatedInput.h"
-#include "SemiInput.h"
 #include "PrivateOutput.h"
-#include "ReplicatedPrivateOutput.h"
-#include "Machine.h"
 #include "ExternalClients.h"
 #include "Binary_File_IO.h"
 #include "Instruction.h"
-#include "SPDZ.h"
-#include "Replicated.h"
 #include "ProcessorBase.h"
+#include "OnlineOptions.h"
 #include "Tools/SwitchableOutput.h"
+
+class Program;
 
 template <class T>
 class SubProcessor
@@ -64,7 +58,7 @@ public:
 
   void muls(const vector<int>& reg, int size);
   void mulrs(const vector<int>& reg);
-  void dotprods(const vector<int>& reg);
+  void dotprods(const vector<int>& reg, int size);
 
   vector<T>& get_S()
   {
@@ -114,16 +108,6 @@ class Processor : public ArithmeticProcessor
   // Data structure used for reading/writing data to/from a socket (i.e. an external party to SPDZ)
   octetStream socket_stream;
 
-  template <class T>
-  vector< Share<T> >& get_S();
-  template <class T>
-  vector<T>& get_C();
-
-  template <class T>
-  vector<T>& get_Sh_PO();
-  template <class T>
-  vector<typename T::clear>& get_PO();
-
   public:
   Data_Files<sint, sgf2n> DataF;
   Player& P;
@@ -165,15 +149,15 @@ class Processor : public ArithmeticProcessor
     {
       return thread_num;
     }
-    const gf2n& read_C2(int i) const
+    const typename sgf2n::clear& read_C2(int i) const
       { return Proc2.C[i]; }
     const sgf2n& read_S2(int i) const
       { return Proc2.S[i]; }
-    gf2n& get_C2_ref(int i)
+    typename sgf2n::clear& get_C2_ref(int i)
       { return Proc2.C[i]; }
     sgf2n& get_S2_ref(int i)
       { return Proc2.S[i]; }
-    void write_C2(int i,const gf2n& x)
+    void write_C2(int i,const typename sgf2n::clear& x)
       { Proc2.C[i]=x; }
     void write_S2(int i,const sgf2n& x)
       { Proc2.S[i]=x; }

@@ -5,6 +5,8 @@
 
 #include "Tools/Buffer.h"
 
+#include <unistd.h>
+
 bool BufferBase::rewind = false;
 
 

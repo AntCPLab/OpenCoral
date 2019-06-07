@@ -11,7 +11,7 @@
 #include "FHEOffline/EncCommit.h"
 #include "FHEOffline/DistDecrypt.h"
 #include "FHEOffline/Sacrificing.h"
-#include "Math/Share.h"
+#include "Protocols/Share.h"
 #include "Math/Setup.h"
 
 template <class T>

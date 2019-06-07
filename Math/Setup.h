@@ -36,5 +36,6 @@ string get_prep_dir(int nparties, int lg2p, int gf2ndegree);
 void read_setup(const string& dir_prefix);
 void read_setup(int nparties, int lg2p, int gf2ndegree);
 
+void init_gf2n(int gf2ndegree);
 
 #endif /* MATH_SETUP_H_ */

@@ -5,7 +5,6 @@
 
 #include "Input.h"
 #include "Processor.h"
-#include "Auth/MAC_Check.h"
 
 template<class T>
 InputBase<T>::InputBase(ArithmeticProcessor* proc) :
@@ -63,7 +62,7 @@ void InputBase<T>::reset_all(Player& P)
 }
 
 template<class T>
-void Input<T>::add_mine(const clear& input)
+void Input<T>::add_mine(const open_type& input)
 {
     int player = proc.P.my_num();
     shares[player].push_back({});
@@ -71,7 +70,7 @@ void Input<T>::add_mine(const clear& input)
     proc.DataF.get_input(share, rr, player);
     t.sub(input, rr);
     t.pack(this->os[player]);
-    share += T(t, 0, MC.get_alphai());
+    share += T::constant(t, 0, MC.get_alphai());
     this->values_input++;
 }
 
@@ -168,7 +167,7 @@ void Input<T>::finalize_other(int player, T& target,
 {
     target = shares[player].next();
     t.unpack(o);
-    target += T(t, 1, MC.get_alphai());
+    target += T::constant(t, 1, MC.get_alphai());
 }
 
 template<class T>
@@ -200,7 +199,7 @@ void InputBase<T>::input(SubProcessor<T>& Proc,
         for (size_t i = 1; i < args.size(); i += 2)
             n_from_me += (args[i] == Proc.P.my_num());
         if (n_from_me > 0)
-            cout << "Please input " << n_from_me << " numbers:" << endl;
+            cout << "Please input " << n_from_me << " number(s):" << endl;
     }
 
     for (size_t i = 0; i < args.size(); i += 2)

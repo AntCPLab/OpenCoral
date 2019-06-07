@@ -2,13 +2,7 @@
 #include "Processor/Data_Files.h"
 #include "Processor/Processor.h"
 
-#include "Processor/MaliciousRepPrep.hpp"
-//#include "Processor/Replicated.hpp"
-#include "Processor/ReplicatedPrep.hpp"
-//#include "Processor/Input.hpp"
-//#include "Processor/ReplicatedInput.hpp"
-//#include "Processor/Shamir.hpp"
-//#include "Auth/MaliciousShamirMC.hpp"
+#include "Protocols/ReplicatedPrep.hpp"
 
 template<class T>
 Lock Sub_Data_Files<T>::tuple_lengths_lock;

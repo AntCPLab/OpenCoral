@@ -1,5 +1,12 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enchancements are committed between releases and not documented here.
 
+## 0.1.0
+
+- CowGear protocol (LowGear with covert security)
+- Protocols that sacrifice after than before
+- More protocols for replicated secret sharing over rings
+- Fixed security bug: Some protocols with supposed malicious security wouldn't check players' inputs when generating random bits.
+
 ## 0.0.9 (Apr 30, 2019)
 
 - Complete BMR for all GF(2^n) protocols

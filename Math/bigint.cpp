@@ -3,8 +3,11 @@
 #include "gfp.h"
 #include "Integer.h"
 #include "Z2k.h"
+#include "Z2k.hpp"
 #include "GC/Clear.h"
 #include "Exceptions/Exceptions.h"
+
+#include "bigint.hpp"
 
 class gmp_random
 {
@@ -143,26 +146,6 @@ bigint::bigint(const GC::Clear& x) : bigint(SignedZ2<64>(x))
 {
 }
 
-template<class T>
-mpf_class bigint::get_float(T v, Integer exp, T z, T s)
-{
-    bigint tmp = v;
-    mpf_class res = tmp;
-    if (exp > 0)
-        mpf_mul_2exp(res.get_mpf_t(), res.get_mpf_t(), exp.get());
-    else
-        mpf_div_2exp(res.get_mpf_t(), res.get_mpf_t(), -exp.get());
-    if (z.is_one())
-        res = 0;
-    if (s.is_one())
-    {
-        res *= -1;
-    }
-    if (not z.is_bit() or not s.is_bit())
-        throw Processor_Error("invalid floating point number");
-    return res;
-}
-
 void to_signed_bigint(bigint& res, const bigint& x, int n)
 {
   res = abs(x);
@@ -183,7 +166,6 @@ void bigint::lottery()
 }
 #endif
 
-template mpf_class bigint::get_float(gfp, Integer, gfp, gfp);
 template mpf_class bigint::get_float(Integer, Integer, Integer, Integer);
 template mpf_class bigint::get_float(Z2<64>, Integer, Z2<64>, Z2<64>);
 template mpf_class bigint::get_float(Z2<72>, Integer, Z2<72>, Z2<72>);

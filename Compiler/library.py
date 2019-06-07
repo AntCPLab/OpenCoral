@@ -273,7 +273,7 @@ class Function:
         self.function = function
         self.name = name
         if name is None:
-            self.name = self.function.__name__ + '-' + str(id(function))
+            self.name = self.function.__name__
         self.compile_args = compile_args
     def __call__(self, *args):
         args = tuple(arg.read() if isinstance(arg, MemValue) else arg for arg in args)
@@ -286,10 +286,10 @@ class Function:
             def wrapped_function(*compile_args):
                 base = get_arg()
                 bases = dict((t, regint.load_mem(base + i)) \
-                                 for i,t in enumerate(type_args))
+                                 for i,t in enumerate(sorted(type_args)))
                 runtime_args = [None] * len(args)
-                for t,i_args in type_args.iteritems():
-                    for i,i_arg in enumerate(i_args):
+                for t in sorted(type_args):
+                    for i,i_arg in enumerate(type_args[t]):
                         runtime_args[i_arg] = t.load_mem(bases[t] + i)
                 return self.function(*(list(compile_args) + runtime_args))
             self.on_first_call(wrapped_function)
@@ -298,7 +298,7 @@ class Function:
         base = instructions.program.malloc(len(type_args), 'ci')
         bases = dict((t, get_program().malloc(len(type_args[t]), t)) \
                          for t in type_args)
-        for i,reg_type in enumerate(type_args):
+        for i,reg_type in enumerate(sorted(type_args)):
             store_in_mem(bases[reg_type], base + i)
             for j,i_arg in enumerate(type_args[reg_type]):
                 if get_reg_type(args[i_arg]) != reg_type:
@@ -393,8 +393,7 @@ def method_block(function):
         if self in compiled_functions:
             return compiled_functions[self](*args)
         else:
-            name = '%s-%s-%d' % (type(self).__name__, function.__name__, \
-                                      id(self))
+            name = '%s-%s' % (type(self).__name__, function.__name__)
             block = FunctionBlock(function, name=name, compile_args=(self,))
             compiled_functions[self] = block
             return block(*args)
@@ -475,7 +474,7 @@ def chunky_odd_even_merge_sort(a):
                                 a[m], a[m+step] = cond_swap(a[m], a[m+step])
                 for i in range(len(a)):
                     a[i].store_in_mem(i * a[i].sizeof())
-            chunk = MPCThread(round, 'sort-%d-%d-%03x' % (l,k,random.randrange(256**3)))
+            chunk = MPCThread(round, 'sort-%d-%d' % (l,k))
             chunk.start()
             chunk.join()
             #round()
@@ -511,8 +510,7 @@ def chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=7, use
                                      load_secret_mem(base + 1))
                     store_in_mem(x, base)
                     store_in_mem(y, base + 1)
-            chunks[size] = FunctionTape(swap_list, 'sort-%d-%03x' %
-                                        (size, random.randrange(256**3)))
+            chunks[size] = FunctionTape(swap_list, 'sort-%d' % size)
         return chunks[size](base)
 
     def run_round(size):
@@ -563,9 +561,9 @@ def chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=7, use
             postproc_chunks.append((mem_op, (a_addr, step, tmp_addr)))
         else:
             if k not in wrap_chunks:
-                pre_chunk = FunctionTape(mem_op, 'pre-%d-%03x' % (k,random.randrange(256**3)),
+                pre_chunk = FunctionTape(mem_op, 'pre-%d' % k,
                                          compile_args=[True])
-                post_chunk = FunctionTape(mem_op, 'post-%d-%03x' % (k,random.randrange(256**3)),
+                post_chunk = FunctionTape(mem_op, 'post-%d' % k,
                                           compile_args=[False])
                 wrap_chunks[k] = (pre_chunk, post_chunk)
             pre_chunk, post_chunk = wrap_chunks[k]
@@ -649,8 +647,7 @@ def loopy_chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=
                                      load_secret_mem(base + 1))
                     store_in_mem(x, base)
                     store_in_mem(y, base + 1)
-            chunks[size] = FunctionTape(swap_list, 'sort-%d-%03x' %
-                                        (size, random.randrange(256**3)))
+            chunks[size] = FunctionTape(swap_list, 'sort-%d' % size)
         return chunks[size](base)
 
     def run_round(size):

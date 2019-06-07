@@ -1,7 +1,7 @@
 
 #include "Tools/random.h"
 #include "Math/bigint.h"
-#include "Auth/Subroutines.h"
+#include "Tools/Subroutines.h"
 #include <stdio.h>
 #include <sodium.h>
 
@@ -16,6 +16,11 @@ PRNG::PRNG() : cnt(0)
     useC=(Check_CPU_support_AES()==0);
   #endif
 #endif
+}
+
+PRNG::PRNG(octetStream& seed) : PRNG()
+{
+  SetSeed(seed.consume(SEED_SIZE));
 }
 
 void PRNG::ReSeed()
@@ -160,11 +165,11 @@ unsigned int PRNG::get_uint(int upper)
 		return r % upper;
 	}
 	// not power of 2
-	int r, reduced;
+	unsigned int r, reduced;
 	do {
 		r = (upper < 255) ? get_uchar() : get_uint();
 		reduced = r % upper;
-	} while (r - reduced + (upper - 1) < 0);
+	} while (int(r - reduced + (upper - 1)) < 0);
 	return reduced;
 }
 

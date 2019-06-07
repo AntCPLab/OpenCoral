@@ -1,6 +1,8 @@
 
 #include "FHE/Plaintext.h"
 #include "FHE/Ring_Element.h"
+#include "FHE/PPData.h"
+#include "FHE/P2Data.h"
 
 
 template<>
@@ -211,6 +213,22 @@ void Plaintext<gf2n_short,P2Data,int>::set_poly_mod(const vector<bigint>& vv,con
 }
 
 
+template<>
+void Plaintext<gf2n_short,P2Data,int>::set_poly_mod(const Generator<bigint>& generator,const bigint& mod)
+{
+  allocate(Polynomial);
+  bigint half_mod = mod / 2;
+  bigint te;
+  for (unsigned int i=0; i<b.size(); i++)
+    {
+      generator.get(te);
+      if (te > half_mod)
+        te -= mod;
+      b[i]=isOdd(te);
+    }
+}
+
+
 void rand_poly(vector<bigint>& b,PRNG& G,const bigint& pr,bool positive=true)
 {
   for (unsigned int i=0; i<b.size(); i++)
@@ -386,6 +404,15 @@ void Plaintext<T,FD,S>::assign_one(PT_Type t)
     }
 }
 
+template<class T,class FD,class S>
+void Plaintext<T,FD,S>::assign_constant(T constant, PT_Type t)
+{
+  allocate(Evaluation);
+  for (auto& x : a)
+      x = constant;
+  if (t != Evaluation)
+      to_poly();
+}
 
 template<class T,class FD,class S>
 Plaintext<T,FD,S>& Plaintext<T,FD,S>::operator+=(
@@ -399,10 +426,7 @@ Plaintext<T,FD,S>& Plaintext<T,FD,S>::operator+=(
   if (b.size() != y.b.size())
     throw length_error("size mismatch");
 
-  for (unsigned int i = 0; i < b.size(); i++)
-    b[i] += y.b[i];
-
-  type = Polynomial;
+  add(*this, *this, y);
   return *this;
 }
 
@@ -487,9 +511,8 @@ void add(Plaintext<gf2n_short,P2Data,int>& z,const Plaintext<gf2n_short,P2Data,i
     }
   if (z.type!=Evaluation)
     { for (unsigned int i=0; i<z.b.size(); i++)
-        { z.b[i]=x.b[i]+y.b[i];
-          if (z.b[i]==2)
-            { z.b[i]=0; }
+        {
+          z.b[i]=x.b[i] ^ y.b[i];
         }
     }
 }
@@ -580,9 +603,8 @@ void sub(Plaintext<gf2n_short,P2Data,int>& z,const Plaintext<gf2n_short,P2Data,i
     }
   if (z.type!=Evaluation)
     { for (unsigned int i=0; i<z.b.size(); i++)
-        { z.b[i]=x.b[i]-y.b[i];
-          if (z.b[i]<0)
-            { z.b[i]=1; }
+        {
+          z.b[i]=x.b[i] ^ y.b[i];
         }
     }
 }

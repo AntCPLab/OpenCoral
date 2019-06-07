@@ -47,7 +47,7 @@ public:
     void compute_enc();
     void sum_enc(const vector<Ciphertext>& enc);
     void finalize(FHE_PK& pk, FHE_SK& sk);
-    void check_equality(const DistKeyGen other);
+    void check_equality(const DistKeyGen& other);
 };
 
 #endif /* FHEOFFLINE_DISTKEYGEN_H_ */

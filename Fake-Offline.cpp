@@ -1,13 +1,13 @@
 
 #include "Math/gf2n.h"
 #include "Math/gfp.h"
-#include "Math/Share.h"
+#include "Protocols/Share.h"
 #include "Math/Setup.h"
-#include "Math/Spdz2kShare.h"
-#include "Math/BrainShare.h"
-#include "Math/MaliciousRep3Share.h"
-#include "Math/SemiShare.h"
-#include "Auth/fake-stuff.h"
+#include "Protocols/Spdz2kShare.h"
+#include "Protocols/BrainShare.h"
+#include "Protocols/MaliciousRep3Share.h"
+#include "Protocols/SemiShare.h"
+#include "Protocols/fake-stuff.h"
 #include "Exceptions/Exceptions.h"
 #include "GC/MaliciousRepSecret.h"
 
@@ -17,8 +17,9 @@
 #include "Tools/ezOptionParser.h"
 #include "Tools/benchmarking.h"
 
-#include "Auth/fake-stuff.hpp"
+#include "Protocols/fake-stuff.hpp"
 #include "Processor/Data_Files.hpp"
+#include "Math/Z2k.hpp"
 
 #include <sstream>
 #include <fstream>
@@ -466,7 +467,7 @@ int main(int argc, const char** argv)
         throw runtime_error("not compiled for k=" + to_string(k) + " and s=" + to_string(s));
     }
   else
-    return generate<sgfp>(opt);
+    return generate<Share<gfp>>(opt);
 }
 
 template<class T>

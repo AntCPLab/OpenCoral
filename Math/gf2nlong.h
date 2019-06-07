@@ -25,7 +25,6 @@ public:
     __m128i a;
 
     int128() : a(_mm_setzero_si128()) { }
-    int128(const int128& a) : a(a.a) { }
     int128(const __m128i& a) : a(a) { }
     int128(const word& a) : a(_mm_cvtsi64_si128(a)) { }
     int128(const word& upper, const word& lower) : a(_mm_set_epi64x(upper, lower)) { }

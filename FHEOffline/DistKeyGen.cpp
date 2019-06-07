@@ -4,7 +4,7 @@
  */
 
 #include <FHEOffline/DistKeyGen.h>
-#include "Auth/Subroutines.h"
+#include "Tools/Subroutines.h"
 
 /*
  * This creates the "pseudo-encryption" of the R_q element mess,
@@ -189,7 +189,7 @@ void DistKeyGen::finalize(FHE_PK& pk, FHE_SK& sk)
     sk.assign(secret);
 }
 
-void DistKeyGen::check_equality(const DistKeyGen other)
+void DistKeyGen::check_equality(const DistKeyGen& other)
 {
     if (a != other.a)
         throw runtime_error("no match at a");

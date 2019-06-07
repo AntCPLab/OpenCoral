@@ -168,6 +168,14 @@ istream& operator>>(istream& s,FFT_Data& FFTD)
 }
 
 
+void FFT_Data::hash(octetStream& o) const
+{
+  octetStream tmp;
+  pack(tmp);
+  o.concat(tmp.hash());
+}
+
+
 void FFT_Data::pack(octetStream& o) const
 {
   R.pack(o);

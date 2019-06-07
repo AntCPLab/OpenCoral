@@ -12,6 +12,12 @@ def test(actual, expected):
     actual = actual.reveal()
     print_ln('expected %s, got %s', expected, actual)
 
+# private inputs are read from Player-Data/Input-P<i>-0
+# or from standard input if using command-line option -I
+
+for i in 0, 1:
+    print_ln('got %s from player %s', sint.get_input_from(i).reveal(), i)
+
 # some arithmetic works as expected
 
 test(a + b, 3)

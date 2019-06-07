@@ -6,7 +6,6 @@
 #include "OT/OTMachine.h"
 #include "Tools/random.h"
 #include "Tools/time-func.h"
-#include "Math/gfp.h"
 
 /*
  * Class for creating and storing base OTs between every pair of parties.

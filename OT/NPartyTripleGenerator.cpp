@@ -3,22 +3,24 @@
 #include "OT/OTExtensionWithMatrix.h"
 #include "OT/OTMultiplier.h"
 #include "Math/gfp.h"
-#include "Math/Share.h"
-#include "Math/SemiShare.h"
-#include "Math/Semi2kShare.h"
+#include "Protocols/Share.h"
+#include "Protocols/SemiShare.h"
+#include "Protocols/Semi2kShare.h"
+#include "Protocols/Spdz2kShare.h"
 #include "Math/operators.h"
-#include "Auth/Subroutines.h"
-#include "Auth/MAC_Check.h"
-#include "Processor/Spdz2kPrep.h"
+#include "Tools/Subroutines.h"
+#include "Protocols/MAC_Check.h"
+#include "Protocols/Spdz2kPrep.h"
 
 #include "OT/Triple.hpp"
 #include "OT/Rectangle.hpp"
-#include "Auth/MAC_Check.hpp"
-#include "Auth/SemiMC.h"
-#include "Processor/MascotPrep.hpp"
-#include "Processor/ReplicatedInput.hpp"
-#include "Processor/SemiInput.hpp"
+#include "Protocols/MAC_Check.hpp"
+#include "Protocols/SemiMC.h"
+#include "Protocols/MascotPrep.hpp"
+#include "Protocols/ReplicatedInput.hpp"
+#include "Protocols/SemiInput.hpp"
 #include "Processor/Input.hpp"
+#include "Math/Z2k.hpp"
 
 #include <sstream>
 #include <fstream>
@@ -820,7 +822,8 @@ void OTTripleGenerator<T>::wait_for_multipliers()
 }
 
 
-template class NPartyTripleGenerator<Share<gf2n>>;
+template class NPartyTripleGenerator<Share<gf2n_long>>;
+template class NPartyTripleGenerator<Share<gf2n_short>>;
 template class NPartyTripleGenerator<Share<gfp1>>;
 
 template class OTTripleGenerator<SemiShare<gf2n>>;

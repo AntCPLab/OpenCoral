@@ -956,8 +956,11 @@ class _secret(_register):
     @classmethod
     @set_instruction_type
     def dot_product(cls, x, y):
+        x = list(x)
+        set_global_vector_size(x[0].size)
         res = cls()
         dotprods(res, x, y)
+        reset_global_vector_size()
         return res
 
     @classmethod
@@ -2183,7 +2186,8 @@ class _single(_number, _structure):
 
     @classmethod
     def dot_product(cls, x, y, res_params=None):
-        dp = cls.int_type.dot_product([xx.v for xx in x], [yy.v for yy in y])
+        dp = cls.int_type.dot_product([xx.pre_mul() for xx in x],
+                                      [yy.pre_mul() for yy in y])
         return x[0].unreduced(dp, y[0], res_params, len(x)).reduce_after_mul()
 
     @classmethod
@@ -2336,6 +2340,9 @@ class _fix(_single):
     @vectorize
     def load_int(self, v):
         self.v = self.int_type(v) << self.f
+
+    def __getitem__(self, index):
+        return self._new(self.v[index])
 
     @vectorize 
     def add(self, other):
@@ -2579,7 +2586,7 @@ class squant_params(object):
             self.S = float(S)
         except:
             self.S = S
-        self.Z = Z
+        self.Z = MemValue.if_necessary(Z)
         self.k = k
         self._store = {}
         if program.options.ring:
@@ -2627,6 +2634,7 @@ class squant_params(object):
         size = unreduced.v.size
         n_shift = util.expand(n_shift, size)
         shifted_Z = util.expand(shifted_Z, size)
+        int_mult = util.expand(int_mult, size)
         tmp = unreduced.v * int_mult + shifted_Z
         shifted = tmp.round(self.max_length, n_shift,
                             squant.kappa, squant.round_nearest)

@@ -12,7 +12,6 @@
 #include "Processor/OnlineOptions.h"
 
 #include "Processor/Online-Thread.h"
-#include "Math/gfp.h"
 
 #include "Tools/time-func.h"
 
@@ -36,7 +35,7 @@ class Machine : public BaseMachine
   int my_number;
   Names& N;
   typename sint::mac_key_type alphapi;
-  gf2n alpha2i;
+  typename sgf2n::mac_key_type alpha2i;
 
   // Keep record of used offline data
   DataPositions pos;

@@ -1,6 +1,8 @@
 #ifndef _SHA1
 #define _SHA1
 
+#include <sodium.h>
+
 /*
  * SHA1 routine optimized to do word accesses rather than byte accesses,
  * and to avoid unnecessary copies into the context array.
@@ -23,19 +25,28 @@ void blk_SHA1_Final(unsigned char hashout[20], blk_SHA_CTX *ctx);
 
 class octetStream;
 
-class SHA1 : public blk_SHA_CTX
+class Hash
 {
-public:
-    static const int hash_length = 20;
+	static const int hash_length = crypto_generichash_BYTES;
 
-	SHA1()
-	{ blk_SHA1_Init(this); }
+	crypto_generichash_state state;
+
+public:
+	Hash()
+	{
+		crypto_generichash_init(&state, 0, 0, crypto_generichash_BYTES);
+	}
 	void update(const void *dataIn, unsigned long len)
-	{ blk_SHA1_Update(this, dataIn, len); }
+	{
+		crypto_generichash_update(&state, (unsigned char*)dataIn, len);
+	}
 	void update(const octetStream& os);
 	void final(unsigned char hashout[hash_length])
-	{ blk_SHA1_Final(hashout, this); }
+	{
+		crypto_generichash_final(&state, hashout, crypto_generichash_BYTES);
+	}
 	void final(octetStream& os);
+	octetStream final();
 };
 
 #define git_SHA_CTX	blk_SHA_CTX

@@ -30,6 +30,29 @@ const void* BitVector::get_ptr_to_bit(size_t i, size_t block_size) const
     return bytes + block_size * i / 8;
 }
 
+BitVector BitVector::operator &(const BitVector& other) const
+{
+    assert(size() == other.size());
+    BitVector res(size());
+    for (size_t i = 0; i < size_bytes(); i++)
+        res.bytes[i] = bytes[i] & other.bytes[i];
+    return res;
+}
+
+bool BitVector::parity() const
+{
+#if defined(__SSE4_2__) or not defined(__clang__)
+    bool res = 0;
+    for (size_t i = 0; i < size_bytes() / 8; i++)
+        res ^= _popcnt64(((word*)bytes)[i]) & 1;
+    for (size_t i = size_bytes() / 8 * 8; i < size_bytes(); i++)
+        res ^= _popcnt32(bytes[i]) & 1;
+    return res;
+#else
+    throw runtime_error("need to compile with SSE4.2 support or GCC");
+#endif
+}
+
 void BitVector::randomize(PRNG& G)
 {
     G.get_octets(bytes, nbytes);
@@ -107,5 +130,3 @@ void BitVector::unpack(octetStream& o)
     o.get(nbytes);
     o.consume((octet*)bytes, nbytes);
 }
-
-

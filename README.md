@@ -25,8 +25,8 @@ the top folder:
 ```
 Scripts/tldr.sh
 ./compile.py tutorial
-echo 1 2 3 > Player-Data/Input-P0-0
-echo 1 2 3 > Player-Data/Input-P1-0
+echo 1 2 3 4 > Player-Data/Input-P0-0
+echo 1 2 3 4 > Player-Data/Input-P1-0
 Scripts/mascot.sh tutorial
 ```
 
@@ -49,8 +49,8 @@ security.
 ```
 make -j 8 tldr
 ./compile.py tutorial
-echo 1 2 3 > Player-Data/Input-P0-0
-echo 1 2 3 > Player-Data/Input-P1-0
+echo 1 2 3 4 > Player-Data/Input-P0-0
+echo 1 2 3 4 > Player-Data/Input-P1-0
 Scripts/mascot.sh tutorial
 ```
 
@@ -72,8 +72,9 @@ stands for three-party replicated secret sharing.
 | Security model | Mod prime / GF(2^n) | Mod 2^k | Binary |
 | --- | --- | --- | --- |
 | Malicious, dishonest majority | [MASCOT](#arithmetic-circuits) | [SPDZ2k](#arithmetic-circuits) | [BMR](#bmr) |
+| Covert, dishonest majority | [CowGear](#arithmetic-circuits) | N/A | N/A |
 | Semi-honest, dishonest majority | [Semi](#arithmetic-circuits) | [Semi2k](#arithmetic-circuits) | [Yao's GC](#yaos-garbled-circuits) / [BMR](#bmr) |
-| Malicious, honest majority | [Shamir / Rep3](#honest-majority) | [Brain](#honest-majority) | [BMR](#bmr) |
+| Malicious, honest majority | [Shamir / Rep3 / PS](#honest-majority) | [Brain](#honest-majority) | [BMR](#bmr) |
 | Semi-honest, honest majority | [Shamir / Rep3](#honest-majority) | [Rep3](#honest-majority) | [Rep3](#honest-majority) / [BMR](#bmr) |
 
 #### History
@@ -136,21 +137,20 @@ compute the preprocessing time for a particulor computation.
  - Boost.Thread for BMR (`libboost-thread-dev` on Ubuntu), tested against 1.65
  - 64-bit CPU
  - Python 2.x
- - NTL library for the SPDZ-2 and Overdrive offline phases (optional; tested with NTL 10.5)
+ - NTL library for CowGear and the SPDZ-2 and Overdrive offline phases (optional; tested with NTL 10.5)
  - If using macOS, Sierra or later
 
 #### Compilation
 
 1) Edit `CONFIG` or `CONFIG.mine` to your needs:
 
- - By default, a CPU supporting AES-NI, PCLMUL, AVX2, BMI2 is
-   required. This includes mainstream processors released 2013 or later.
+ - By default, a CPU supporting AES-NI, PCLMUL, AVX2, BMI2, ADX is
+   required. This includes mainstream processors released 2014 or later.
    For older models you need to deactivate the respective
    extensions in the `ARCH` variable.
  - To benchmark online-only protocols or Overdrive, add the following line at the top: `MY_CFLAGS = -DINSECURE`
  - `PREP_DIR` should point to should be a local, unversioned directory to store preprocessing data (default is `Player-Data` in the current directory).
- - For the SPDZ-2 and Overdrive offline phases, set `USE_NTL = 1` and `MOD = -DMAX_MOD_SZ=6`.
- - To use GF(2^40), in particular for the SPDZ-2 offline phase, set `USE_GF2N_LONG = 0`. This will deactive anything that requires GF(2^128) such as MASCOT.
+ - For CowGear and the SPDZ-2 and Overdrive offline phases, set `USE_NTL = 1`.
 
 2) Run make to compile all the software (use the flag -j for faster
 compilation multiple threads). See below on how to compile specific
@@ -225,7 +225,7 @@ $ ../spdz/Scripts/run-online.sh test
 
 ## Dishonest majority
 
-All current full implementations requires oblivious transfer, which is
+Some full implementations requires oblivious transfer, which is
 implemented as OT extension based on
 https://github.com/mkskeller/SimpleOT.
 
@@ -233,24 +233,30 @@ https://github.com/mkskeller/SimpleOT.
 
 The following table shows all programs for arithmetic dishonest-majority computation:
 
-| Program | Protocol | Domain | Malicious | Script |
+| Program | Protocol | Domain | Security | Script |
 | --- | --- | --- | --- | --- |
-| `Player-Online.x` | [MASCOT](https://eprint.iacr.org/2016/505) | Mod prime | Y | `mascot.sh` |
-| `spdz2k-party.x` | [SPDZ2k](https://eprint.iacr.org/2018/482) | Mod 2^k | Y | `spdk2k.sh` |
-| `semi-party.x` | OT-based | Mod prime | N | `semi.sh` |
-| `semi2k-party.x` | OT-based | Mod 2^k | N | `semi2k.sh` |
+| `mascot-party.x` | [MASCOT](https://eprint.iacr.org/2016/505) | Mod prime | Malicious | `mascot.sh` |
+| `spdz2k-party.x` | [SPDZ2k](https://eprint.iacr.org/2018/482) | Mod 2^k | Malicious | `spdk2k.sh` |
+| `semi-party.x` | OT-based | Mod prime | Semi-honest | `semi.sh` |
+| `semi2k-party.x` | OT-based | Mod 2^k | Semi-honest | `semi2k.sh` |
+| `cowgear-party.x` | Adapted [LowGear](https://eprint.iacr.org/2017/1230) | Mod prime | Covert | `cowgear.sh` |
 
 Semi and Semi2k denote the result of stripping MASCOT/SPDZ2k of all
 steps required for malicious security, namely amplifying, sacrificing,
 MAC generation, and OT correlation checks. What remains is the
 generation of additively shared Beaver triples using OT.
 
+CowGear denotes a covertly secure version of LowGear. The reason for
+this is the key generation that only achieves covert security. It is
+possible however to run full LowGear for triple generation by using
+`-s` with the desired security parameter.
+
 We will use MASCOT to demonstrate the use, but the other protocols
 work similarly.
 
 First compile the virtual machine:
 
-`make -j8 Player-Online.x`
+`make -j8 mascot-party.x`
 
 and a high-level program, for example the tutorial (use `-R 64` for
 SPDZ2k and Semi2k):
@@ -259,9 +265,9 @@ SPDZ2k and Semi2k):
 
 To run the tutorial with two parties on one machine, run:
 
-`./Player-Online.x -N 2 -I -p 0 tutorial`
+`./mascot-party.x -N 2 -I -p 0 tutorial`
 
-`./Player-Online.x -N 2 -I -p 1 tutorial` (in a separate terminal)
+`./mascot-party.x -N 2 -I -p 1 tutorial` (in a separate terminal)
 
 Using `-I` activates interactive mode, which means that inputs are
 solicitated from standard input, and outputs are given to any
@@ -273,13 +279,13 @@ automatically:
 
 `Scripts/mascot.sh tutorial`
 
-To run a program on two different machines, `Player-Online.x`
+To run a program on two different machines, `mascot-party.x`
 needs to be passed the machine where the first party is running,
 e.g. if this machine is name `diffie` on the local network:
 
-`./Player-Online.x -N 2 -h diffie 0 tutorial`
+`./mascot-party.x -N 2 -h diffie 0 tutorial`
 
-`./Player-Online.x -N 2 -h diffie 1 tutorial`
+`./mascot-party.x -N 2 -h diffie 1 tutorial`
 
 The software uses TCP ports around 5000 by default, use the `-pn`
 argument to change that.
@@ -297,8 +303,8 @@ and the high-level program:
 `./compile.py -B <integer bit length> <program>`
 
 Then run as follows:
-  - Garbler: ```./yao-player.x [-I] -p 0 <program>```
-  - Evaluator: ```./yao-player.x [-I] -p 1 -h <garbler host> <program>```
+  - Garbler: ```./yao-party.x [-I] -p 0 <program>```
+  - Evaluator: ```./yao-party.x [-I] -p 1 -h <garbler host> <program>```
 
 When running locally, you can omit the host argument. As above, `-I`
 activates interactive input, otherwise inputs are read from
@@ -316,8 +322,11 @@ The following table shows all programs for honest-majority computation:
 | --- | --- | --- | --- | --- | --- |
 | `replicated-ring-party.x` | Replicated | Mod 2^k | N | 3 | `ring.sh` |
 | `brain-party.x` | Replicated | Mod 2^k | Y | 3 | `brain.sh` |
+| `ps-rep-ring-party.x` | Replicated | Mod 2^k | Y | 3 | `ps-rep-ring.sh` |
+| `malicious-rep-ring-party.x` | Replicated | Mod 2^k | Y | 3 | `mal-rep-ring.sh` |
 | `replicated-bin-party.x` | Replicated | Binary | N | 3 | `replicated.sh` |
 | `replicated-field-party.x` | Replicated | Mod prime | N | 3 | `rep-field.sh` |
+| `ps-rep-field-party.x` | Replicated | Mod prime | Y | 3 | `ps-rep-field.sh` |
 | `malicious-rep-field-party.x` | Replicated | Mod prime | Y | 3 | `mal-rep-field.sh` |
 | `shamir-party.x` | Shamir | Mod prime | N | 3 or more | `shamir.sh` |
 | `malicious-shamir-party.x` | Shamir | Mod prime | Y | 3 or more | `mal-shamir.sh` |
@@ -325,7 +334,10 @@ The following table shows all programs for honest-majority computation:
 We use the "generate random triple optimistically/sacrifice/Beaver"
 methodology described by [Lindell and
 Nof](https://eprint.iacr.org/2017/816) to achieve malicious
-security. The implementation in `brain-party.x` is inspired by
+security, except for the "PS" (post-sacrifice) protocols where the
+actual multiplication is execute optimistally and checked later as
+also described by Lindell and Nof.
+The implementation in `brain-party.x` is inspired by
 [Eerikson et al.](https://eprint.iacr.org/2019/164) but does not use fast Fourier transform for batch
 verification.
 Otherwise, we use resharing by [Cramer et
@@ -560,8 +572,6 @@ such as this one.
 
 This implementation is suitable to generate the preprocessed data used in the online phase.
 
-It requires compilation with `USE_GF2N_LONG = 0` in `CONFIG` or `CONFIG.mine`. Remember to run `make clean` before recompiling.
-
 For quick run on one machine, you can call the following:
 
 `./spdz2-offline.x -p 0 & ./spdz2-offline.x -p 1`
@@ -581,16 +591,6 @@ The program will generate every kind of randomness required by the online phase 
 These implementations are not suitable to generate the preprocessed
 data for the online phase because they can only generate either
 multiplication triples or bits.
-
-In order to compile the code, the following must be set in CONFIG or
-CONFIG.mine:
-
-`USE_GF2N_LONG = 1`
-
-If the software has been built before with `USE_GF2N_LONG = 0`, any
-compiled code needs to be removed:
-
-`make clean`
 
 HOSTS must contain the hostnames or IPs of the players, see HOSTS.example for an example.
 

@@ -289,7 +289,7 @@ class FakeProgramParty : virtual public BaseParty, virtual public FakeProgramPar
 
 	void store_garbled_circuit(ReceivedMsg& msg) {  ProgramParty::store_garbled_circuit(msg); }
 
-	void _check_evaluate() { FakeProgramPartySuper::_check_evaluate(); }
+	void _check_evaluate();
 
 	void receive_keys(Register& reg);
 	void receive_all_keys(Register& reg, bool external);

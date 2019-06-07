@@ -11,14 +11,18 @@
 class OnlineOptions
 {
 public:
+    static OnlineOptions singleton;
+
     bool interactive;
     int lgp;
     bool live_prep;
     int playerno;
     std::string progname;
+    int batch_size;
 
     OnlineOptions();
-    OnlineOptions(ez::ezOptionParser& opt, int argc, const char** argv);
+    OnlineOptions(ez::ezOptionParser& opt, int argc, const char** argv,
+            int default_batch_size = 10000, bool default_live_prep = true);
     void finalize(ez::ezOptionParser& opt, int argc, const char** argv);
 };
 

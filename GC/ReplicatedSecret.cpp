@@ -6,14 +6,14 @@
 #include "ReplicatedSecret.h"
 #include "ReplicatedParty.h"
 #include "MaliciousRepSecret.h"
-#include "Auth/MaliciousRepMC.h"
+#include "Protocols/MaliciousRepMC.h"
 #include "MaliciousRepThread.h"
 #include "Thread.h"
 #include "square64.h"
 
-#include "Math/Share.h"
+#include "Protocols/Share.h"
 
-#include "Auth/ReplicatedMC.hpp"
+#include "Protocols/ReplicatedMC.hpp"
 
 namespace GC
 {

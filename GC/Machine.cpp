@@ -4,8 +4,8 @@
  */
 
 #include "MaliciousRepSecret.h"
-#include "Auth/ReplicatedMC.h"
-#include "Auth/MaliciousRepMC.h"
+#include "Protocols/ReplicatedMC.h"
+#include "Protocols/MaliciousRepMC.h"
 
 #include "Instruction.hpp"
 #include "Machine.hpp"
@@ -16,7 +16,9 @@
 
 #include "Processor/Machine.hpp"
 #include "Processor/Instruction.hpp"
-#include "Auth/MaliciousRepMC.hpp"
+#include "Protocols/MaliciousRepMC.hpp"
+#include "Protocols/MAC_Check_Base.hpp"
+#include "Protocols/Replicated.hpp"
 
 namespace GC
 {

@@ -2,7 +2,6 @@
 #define _FILE_IO_HEADER
 
 #include "Exceptions/Exceptions.h"
-#include "Math/Share.h"
 
 #include <string>
 #include <sstream>

@@ -3,11 +3,11 @@
  *
  */
 
-#include "Auth/MaliciousRepMC.h"
+#include "Protocols/MaliciousRepMC.h"
 #include "MaliciousRepThread.h"
 #include "Math/Setup.h"
 
-#include "Auth/MaliciousRepMC.hpp"
+#include "Protocols/MaliciousRepMC.hpp"
 #include "Processor/Data_Files.hpp"
 
 namespace GC

@@ -75,7 +75,7 @@ class StraightlineAllocator:
                     # unused register
                     self.alloc_reg(j, alloc_pool)
                     unused_regs.append(j)
-            if unused_regs and len(unused_regs) == len(i.get_def()):
+            if unused_regs and len(unused_regs) == len(list(i.get_def())):
                 # only report if all assigned registers are unused
                 print "Register(s) %s never used, assigned by '%s' in %s" % \
                     (unused_regs,i,format_trace(i.caller))
@@ -252,7 +252,7 @@ class Merger:
             if len(merge) >= self.max_parallel_open:
                 do_merge(merge)
                 merge[:] = []
-        for merge in merges.itervalues():
+        for merge in reversed(sorted(merges.itervalues())):
             if merge:
                 do_merge(merge)
         self.input_nodes = remaining_input_nodes
@@ -481,7 +481,7 @@ class Merger:
                 # find first depth that has the right type and isn't full
                 skipped_depths = set()
                 while (depth in round_type and \
-                      round_type[depth] != type(instr)) or \
+                       round_type[depth] != instr.merge_id()) or \
                       (int(options.max_parallel_open) > 0 and \
                       parallel_open[depth] >= int(options.max_parallel_open)):
                     skipped_depths.add(depth)
@@ -490,7 +490,7 @@ class Merger:
                 for d in skipped_depths:
                     next_available_depth[type(instr), d] = depth
 
-                round_type[depth] = type(instr)
+                round_type[depth] = instr.merge_id()
                 parallel_open[depth] += len(instr.args) * instr.get_size()
                 depths[n] = depth
 
@@ -567,7 +567,7 @@ class Merger:
         open_count = 0
         for i,inst in zip(xrange(len(instructions) - 1, -1, -1), reversed(instructions)):
             # remove if instruction has result that isn't used
-            unused_result = not G.degree(i) and len(inst.get_def()) \
+            unused_result = not G.degree(i) and len(list(inst.get_def())) \
                 and reduce(operator.and_, (reg.can_eliminate for reg in inst.get_def())) \
                 and not isinstance(inst, (DoNotEliminateInstruction))
             stop_node = G.get_attr(i, 'stop')

@@ -6,20 +6,25 @@
 #include "FHEOffline/PairwiseGenerator.h"
 #include "FHEOffline/PairwiseMachine.h"
 #include "FHEOffline/Producer.h"
+#include "Protocols/SemiShare.h"
 
-#include "Auth/MAC_Check.hpp"
+#include "Protocols/MAC_Check.hpp"
+#include "Protocols/SemiInput.hpp"
+#include "Protocols/ReplicatedInput.hpp"
+#include "Processor/Input.hpp"
 
 template <class FD>
 PairwiseGenerator<FD>::PairwiseGenerator(int thread_num,
-        PairwiseMachine& machine) :
-    GeneratorBase(thread_num, machine.N),
-    producer(machine.setup<FD>().FieldD, machine.N.my_num(),
+        PairwiseMachine& machine, Player* player) :
+    GeneratorBase(thread_num, machine.N, player),
+    producer(machine.setup<FD>().FieldD, P.my_num(),
             thread_num, machine.output),
     EC(P, machine.other_pks, machine.setup<FD>().FieldD, timers, machine, *this),
+    MC(machine.setup<FD>().alphai),
     C(machine.sec, machine.setup<FD>().params), volatile_memory(0),
-    machine(machine), global_player(machine.N, (1LL << 28) + (thread_num << 16))
+    machine(machine)
 {
-    for (int i = 1; i < machine.N.num_players(); i++)
+    for (int i = 1; i < P.num_players(); i++)
         multipliers.push_back(new Multiplier<FD>(i, *this));
     const FD& FieldD = machine.setup<FD>().FieldD;
     a.resize(machine.sec, FieldD);
@@ -45,7 +50,6 @@ void PairwiseGenerator<FD>::run()
 {
     PRNG G;
     G.ReSeed();
-    MAC_Check<typename FD::T> MC(machine.setup<FD>().alphai);
 
     while (total < machine.nTriplesPerThread)
     {
@@ -100,10 +104,51 @@ void PairwiseGenerator<FD>::run()
         timers["Checking"].stop();
     }
 
-    cout << "Could save " << 1e-9 * a.report_size(CAPACITY) << " GB" << endl;
+#ifdef FHE_MEMORY
+    cerr << "Could save " << 1e-9 * a.report_size(CAPACITY) << " GB" << endl;
+#endif
     timers.insert(EC.timers.begin(), EC.timers.end());
     timers.insert(producer.timers.begin(), producer.timers.end());
     timers["Networking"] = P.timer;
+}
+
+template <class FD>
+void PairwiseGenerator<FD>::generate_inputs(int player)
+{
+    bool mine = player == P.my_num();
+    if (mine)
+    {
+        SeededPRNG G;
+        b[0].randomize(G);
+        b_mod_q.at(0).from_vec(b.at(0).get_poly());
+        producer.macs[0].mul(machine.setup<FD>().alpha, b[0]);
+    }
+    else
+        producer.macs[0].assign_zero();
+
+    for (auto m : multipliers)
+        if (mine or P.get_player(m->get_offset()) == player)
+            m->multiply_alpha_and_add(producer.macs[0], b_mod_q[0], mine ? SENDER : RECEIVER);
+
+    inputs.clear();
+    Share<T> check_value;
+    GlobalPRNG G(P);
+    SemiInput<SemiShare<T>> input(0, P);
+    input.reset_all(P);
+    for (size_t i = 0; i < b[0].num_slots(); i++)
+    {
+        input.add_mine(b[0].element(i));
+    }
+    input.exchange();
+    for (size_t i = 0; i < b[0].num_slots(); i++)
+    {
+        Share<T> share(input.finalize(player), producer.macs[0].element(i));
+        inputs.push_back({share, b[0].element(i)});
+        check_value += G.get<T>() * share;
+    }
+    inputs.pop_back();
+    MC.POpen(check_value, P);
+    MC.Check(P);
 }
 
 template <class FD>
@@ -124,7 +169,7 @@ size_t PairwiseGenerator<FD>::report_size(ReportType type)
 template <class FD>
 size_t PairwiseGenerator<FD>::report_sent()
 {
-    return P.sent + global_player.sent;
+    return P.sent;
 }
 
 template <class FD>

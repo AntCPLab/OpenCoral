@@ -20,7 +20,7 @@ void ident(matrix& U,int n)
 
 void ident(imatrix& U,int n)
 {
-  U.resize(n, vector<int>(n) );
+  U.resize(n, imatrix::value_type(n));
   for (int i=0; i<n; i++)
     { for (int j=0; j<n; j++)
         { U[i][j]=0; }
@@ -299,20 +299,17 @@ void pinv(imatrix& Ai,const imatrix& B)
       while (A[k][c]==0) { k++; }
       // Swap rows if needed
       if (k!=r)
-        { for (int i=0; i<nc; i++)
-	    { int t=A[r][i];  A[r][i]=A[k][i]; A[k][i]=t; }
-          for (int i=0; i<nr; i++)
-            { int t=Ai[r][i]; Ai[r][i]=Ai[k][i]; Ai[k][i]=t; }
-	}
+        {
+          A[r].swap(A[k]);
+          Ai[r].swap(Ai[k]);
+        }
       // Kill off all rows above and below with a one in this position
       for (k=0; k<nr; k++)
         { if (k!=r && A[k][c]==1)
 	    { // Only have to go from c onwards as rest are done
-              for (int i=c; i<nc; i++)
-	        { A[k][i]^=A[r][i]; }
+            A[k].add(A[r]);
               // Need to do all cols here
-	      for (int i=0; i<nr; i++)
-	        { Ai[k][i]^=Ai[r][i]; }
+            Ai[k].add(Ai[r]);
 	    }
         }
       r++; c++;
@@ -336,11 +333,22 @@ bool imatrix::operator!=(const imatrix& other) const
   return false;
 }
 
+void imatrix::hash(octetStream& o) const
+{
+  Hash hash;
+  for (auto& row : *this)
+      hash.update(row.get_ptr(), row.size_bytes());
+  o.concat(hash.final());
+}
+
 void imatrix::pack(octetStream& o) const
 {
   o.store(size());
   for (auto& x : *this)
-    o.store(x);
+    {
+      assert(x.size() == size());
+      x.pack(o);
+    }
 }
 
 void imatrix::unpack(octetStream& o)
@@ -349,7 +357,10 @@ void imatrix::unpack(octetStream& o)
   o.get(size);
   resize(size);
   for (auto& x : *this)
-    o.get(x);
+    {
+      x.resize(size);
+      x.unpack(o);
+    }
 }
 
 ostream& operator<<(ostream& s,const imatrix& A)
@@ -367,10 +378,14 @@ istream& operator>>(istream& s,imatrix& A)
 {
   int r,c;
   s >> r >> c;
-  A.resize(r, vector<int>(c) );
+  A.resize(r, imatrix::value_type(c) );
   for (int i=0; i<r; i++)
     { for (int j=0; j<c; j++)
-        { s >> A[i][j]; }
+        {
+          bool b;
+          s >> b;
+          A[i][j] = b;
+        }
     }
   return s;
 }

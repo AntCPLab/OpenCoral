@@ -3,6 +3,8 @@
  *
  */
 
+#include "FHE/P2Data.h"
+#include "FHE/FFT_Data.h"
 #include "Producer.h"
 #include "Sacrificing.h"
 #include "Reshare.h"

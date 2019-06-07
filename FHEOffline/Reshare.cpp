@@ -1,6 +1,7 @@
 
 #include "FHEOffline/Reshare.h"
 #include "FHEOffline/DistDecrypt.h"
+#include "FHE/P2Data.h"
 #include "Tools/random.h"
 
 template<class T,class FD,class S>

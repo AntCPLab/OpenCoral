@@ -4,29 +4,45 @@
  */
 
 #include "Sender.h"
+#include "ssl_sockets.h"
 
-void* run_sender_thread(void* sender)
+template<class T>
+void* Sender<T>::run_thread(void* sender)
 {
-    ((Sender*)sender)->run();
+    ((Sender<T>*)sender)->run();
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    OPENSSL_thread_stop();
+#endif
     return 0;
 }
 
-Sender::Sender(int socket) : socket(socket), thread(0)
+template<class T>
+Sender<T>::Sender(T socket) : socket(socket), thread(0)
 {
+    start();
 }
 
-void Sender::start()
+template<class T>
+Sender<T>::~Sender()
 {
-    pthread_create(&thread, 0, run_sender_thread, this);
+    stop();
 }
 
-void Sender::stop()
+template<class T>
+void Sender<T>::start()
+{
+    pthread_create(&thread, 0, run_thread, this);
+}
+
+template<class T>
+void Sender<T>::stop()
 {
     in.stop();
     pthread_join(thread, 0);
 }
 
-void Sender::run()
+template<class T>
+void Sender<T>::run()
 {
     const octetStream* os = 0;
     while (in.pop(os))
@@ -38,15 +54,20 @@ void Sender::run()
     }
 }
 
-void Sender::request(const octetStream& os)
+template<class T>
+void Sender<T>::request(const octetStream& os)
 {
     in.push(&os);
 }
 
-void Sender::wait(const octetStream& os)
+template<class T>
+void Sender<T>::wait(const octetStream& os)
 {
     const octetStream* queued = 0;
     out.pop(queued);
     if (queued != &os)
       throw not_implemented();
 }
+
+template class Sender<int>;
+template class Sender<ssl_socket*>;

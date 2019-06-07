@@ -9,11 +9,13 @@
 #include "OT/OTTripleSetup.h"
 #include "Math/gf2n.h"
 #include "Math/Setup.h"
+#include "Protocols/Spdz2kShare.h"
 #include "Tools/ezOptionParser.h"
 #include "Math/Setup.h"
-#include "Auth/fake-stuff.h"
+#include "Protocols/fake-stuff.h"
 
-#include "Auth/fake-stuff.hpp"
+#include "Protocols/fake-stuff.hpp"
+#include "Math/Z2k.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -154,11 +156,12 @@ TripleMachine::TripleMachine(int argc, const char** argv) :
 
     // doesn't work with Montgomery multiplication
     gfp1::init_field(p, false);
-    gf2n::init_field(128);
+    gf2n_long::init_field(128);
     
     PRNG G;
     G.ReSeed();
-    mac_key2.randomize(G);
+    mac_key2l.randomize(G);
+    mac_key2s.randomize(G);
     mac_keyp.randomize(G);
     mac_keyz.randomize(G);
 }
@@ -260,15 +263,22 @@ void TripleMachine::run()
 void TripleMachine::output_mac_keys()
 {
     if (z2k) {
-        write_mac_keys(prep_data_dir, my_num, nplayers, mac_keyz, mac_key2);
+        write_mac_keys(prep_data_dir, my_num, nplayers, mac_keyz, mac_key2l);
     }
+    else if (gf2n::degree() > 64)
+        write_mac_keys(prep_data_dir, my_num, nplayers, mac_keyp, mac_key2l);
     else
-        write_mac_keys(prep_data_dir, my_num, nplayers, mac_keyp, mac_key2);
+        write_mac_keys(prep_data_dir, my_num, nplayers, mac_keyp, mac_key2s);
 }
 
-template<> gf2n MascotParams::get_mac_key()
+template<> gf2n_long MascotParams::get_mac_key()
 {
-    return mac_key2;
+    return mac_key2l;
+}
+
+template<> gf2n_short MascotParams::get_mac_key()
+{
+    return mac_key2s;
 }
 
 template<> gfp1 MascotParams::get_mac_key()
@@ -291,9 +301,14 @@ template<> Z2<32> MascotParams::get_mac_key()
     return mac_keyz;
 }
 
-template<> void MascotParams::set_mac_key(gf2n key)
+template<> void MascotParams::set_mac_key(gf2n_long key)
 {
-    mac_key2 = key;
+    mac_key2l = key;
+}
+
+template<> void MascotParams::set_mac_key(gf2n_short key)
+{
+    mac_key2s = key;
 }
 
 template<> void MascotParams::set_mac_key(gfp1 key)

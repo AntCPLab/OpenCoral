@@ -1,9 +1,10 @@
 
-#include "Auth/Subroutines.h"
+#include "Tools/Subroutines.h"
 #include "Exceptions/Exceptions.h"
 #include "Tools/random.h"
 
 #include "EncCommit.h"
+#include "FHE/P2Data.h"
 
 #include <math.h>
 
@@ -73,7 +74,14 @@ void EncCommit<T,FD,S>::init(const Player& PP,const FHE_PK& fhepk,condition cc,c
 template<class T,class FD,class S>
 void EncCommit<T,FD,S>::next_covert(Plaintext<T,FD,S>& mess, vector<Ciphertext>& C) const
 {
-  const FHE_Params& params=(*pk).get_params();
+  covert_generation(mess, C, {size_t(P->num_players()), pk}, P, num_runs, cond);
+}
+
+template <class FD>
+void covert_generation(Plaintext_<FD>& mess, vector<Ciphertext>& C,
+    const vector<const FHE_PK*>& pks, const Player* P, int num_runs, condition cond)
+{
+  const FHE_Params& params=(*pks[0]).get_params();
 
   /* Commit to the seeds */
   vector< vector<octetStream> > seeds(num_runs, vector<octetStream>((*P).num_players()));
@@ -84,13 +92,13 @@ void EncCommit<T,FD,S>::next_covert(Plaintext<T,FD,S>& mess, vector<Ciphertext>&
   Commit_To_Seeds(G,seeds,Comm_seeds,Open_seeds,*P,num_runs);
 
   // Generate the messages and ciphertexts
-  vector< Plaintext<T,FD,S> > m(num_runs,mess.get_field());
+  vector< Plaintext_<FD> > m(num_runs,mess.get_field());
   vector<Ciphertext>   c(num_runs,params);
   Random_Coins rc(params);
   for (int i=0; i<num_runs; i++)
     { m[i].randomize(G[i],cond);
       rc.generate(G[i]);
-      (*pk).encrypt(c[i],m[i],rc);
+      (*pks[P->my_num()]).encrypt(c[i],m[i],rc);
       //cout << "xxxxxxxxxxxxxxxxxxxxx" << endl;
       //cout << i << "\t" << (*P).socket(P.my_num()) << endl;
       //cout << i << "\t" << m[i] << endl;
@@ -118,7 +126,7 @@ void EncCommit<T,FD,S>::next_covert(Plaintext<T,FD,S>& mess, vector<Ciphertext>&
   Open(seeds,Comm_seeds,Open_seeds,*P,num_runs,challenge);
 
   // Now check all the prior executions
-  Plaintext<T,FD,S> mm(mess.get_field());
+  Plaintext_<FD> mm(mess.get_field());
   Ciphertext cc(params);
   octetStream occ;
   for (int i=0; i<num_runs; i++)
@@ -130,7 +138,7 @@ void EncCommit<T,FD,S>::next_covert(Plaintext<T,FD,S>& mess, vector<Ciphertext>&
 	          //cout << "GOT SEED : " << i << " " << j << " " << P.socket(j) << seeds[i][j] << endl;
                   mm.randomize(G,cond);
                   rc.generate(G);
-                  (*pk).encrypt(cc,mm,rc);
+                  (*pks[j]).encrypt(cc,mm,rc);
                   occ.reset_write_head();
                   cc.pack(occ);
                   if (!occ.equals(ctx[i][j]))

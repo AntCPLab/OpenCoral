@@ -35,7 +35,7 @@ void Commitment::commit(const octetStream& message)
 
 void Commitment::commit(const octetStream& message, const octetStream& open)
 {
-    SHA1 hash;
+    Hash hash;
     hash.update(&send_player, sizeof(send_player));
     hash.update(message);
     hash.update(open);
@@ -52,12 +52,32 @@ void Commitment::check(const octetStream& message, const octetStream& comm,
 
 void AllCommitments::commit_and_open(const octetStream& message)
 {
+    commit(message);
+    open();
+}
+
+void AllCommitments::commit(const octetStream& message)
+{
     Commitment mine(P.my_num());
     mine.commit(message);
     comms[P.my_num()] = mine.comm;
     opens[P.my_num()] = mine.open;
     P.Broadcast_Receive(comms);
+}
+
+void AllCommitments::open()
+{
     P.Broadcast_Receive(opens);
+}
+
+void AllCommitments::open(const octetStream& message)
+{
+    messages.resize(P.num_players());
+    messages[P.my_num()] = message;
+    P.Broadcast_Receive(messages);
+    open();
+    for (int i = 0; i != P.my_num(); i++)
+        check(i, messages[i]);
 }
 
 void AllCommitments::check(int player, const octetStream& message)

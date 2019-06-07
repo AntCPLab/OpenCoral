@@ -20,11 +20,10 @@
 #include "Math/bigint.h"
 #include "Math/Zp_Data.h"
 
-void to_bigint(bigint& ans,const modp& x,const Zp_Data& ZpD,bool reduce=true);
-
-class modp 
+template<int L>
+class modp_
 { 
-  mp_limb_t x[MAX_MOD_SZ];
+  mp_limb_t x[L];
 
   public: 
 
@@ -32,9 +31,19 @@ class modp
   mp_limb_t get_limb(int i) const { return x[i]; }
 
   // use mem* functions instead of mpn_*, so the compiler can optimize
-  modp() 
+  modp_()
     { avx_memzero(x, sizeof(x)); }
   
+  template<int M>
+  modp_(const modp_<M>& other)
+    {
+      inline_mpn_copyi(x, other.get(), min(L, M));
+      if (L > M)
+        inline_mpn_zero(x + M, L - M);
+    }
+
+  const mp_limb_t* get() const { return x; }
+
   void assign(const char* buffer, int t) { memcpy(x, buffer, t * sizeof(mp_limb_t)); }
 
   void convert(const mp_limb_t* source, mp_size_t size, const Zp_Data& ZpD,
@@ -50,8 +59,8 @@ class modp
   void pack(octetStream& o,const Zp_Data& ZpD) const;
   void unpack(octetStream& o,const Zp_Data& ZpD);
 
-  bool operator==(const modp& other) const { return 0 == mpn_cmp(x, other.x, MAX_MOD_SZ); }
-  bool operator!=(const modp& other) const { return not (*this == other); }
+  bool operator==(const modp_& other) const { return 0 == mpn_cmp(x, other.x, L); }
+  bool operator!=(const modp_& other) const { return not (*this == other); }
 
 
    /**********************************
@@ -59,29 +68,30 @@ class modp
     **********************************/
 
   // Convert representation to and from a modp number
-  friend void to_bigint(bigint& ans,const modp& x,const Zp_Data& ZpD,bool reduce);
+  void to_bigint(bigint& ans,const Zp_Data& ZpD,bool reduce=true) const;
 
-  friend void to_modp(modp& ans,int x,const Zp_Data& ZpD);
-  friend void to_modp(modp& ans,const bigint& x,const Zp_Data& ZpD);
+  template<int T>
+  void mul(const modp_& x, const modp_& y, const Zp_Data& ZpD);
 
-  template <int T>
-  friend void Add(modp& ans,const modp& x,const modp& y,const Zp_Data& ZpD);
-  friend void Add(modp& ans,const modp& x,const modp& y,const Zp_Data& ZpD)
+  template<int M> friend void to_modp(modp_<M>& ans,int x,const Zp_Data& ZpD);
+  template<int M> friend void to_modp(modp_<M>& ans,const bigint& x,const Zp_Data& ZpD);
+
+  friend void Add(modp_& ans,const modp_& x,const modp_& y,const Zp_Data& ZpD)
     { ZpD.Add(ans.x, x.x, y.x); }
-  friend void Sub(modp& ans,const modp& x,const modp& y,const Zp_Data& ZpD);
-  friend void Mul(modp& ans,const modp& x,const modp& y,const Zp_Data& ZpD);
-  friend void Sqr(modp& ans,const modp& x,const Zp_Data& ZpD);
-  friend void Negate(modp& ans,const modp& x,const Zp_Data& ZpD);
-  friend void Inv(modp& ans,const modp& x,const Zp_Data& ZpD);
+  template<int M> friend void Sub(modp_<M>& ans,const modp_<M>& x,const modp_<M>& y,const Zp_Data& ZpD);
+  template<int M> friend void Mul(modp_<M>& ans,const modp_<M>& x,const modp_<M>& y,const Zp_Data& ZpD);
+  template<int M> friend void Sqr(modp_<M>& ans,const modp_<M>& x,const Zp_Data& ZpD);
+  template<int M> friend void Negate(modp_<M>& ans,const modp_<M>& x,const Zp_Data& ZpD);
+  template<int M> friend void Inv(modp_<M>& ans,const modp_<M>& x,const Zp_Data& ZpD);
    
-  friend void Power(modp& ans,const modp& x,int exp,const Zp_Data& ZpD);
-  friend void Power(modp& ans,const modp& x,const bigint& exp,const Zp_Data& ZpD);
+  template<int M> friend void Power(modp_<M>& ans,const modp_<M>& x,int exp,const Zp_Data& ZpD);
+  template<int M> friend void Power(modp_<M>& ans,const modp_<M>& x,const bigint& exp,const Zp_Data& ZpD);
    
-  friend void assignOne(modp& x,const Zp_Data& ZpD);
-  friend void assignZero(modp& x,const Zp_Data& ZpD);
-  friend bool isZero(const modp& x,const Zp_Data& ZpD);
-  friend bool isOne(const modp& x,const Zp_Data& ZpD);
-  friend bool areEqual(const modp& x,const modp& y,const Zp_Data& ZpD);
+  template<int M> friend void assignOne(modp_<M>& x,const Zp_Data& ZpD);
+  template<int M> friend void assignZero(modp_<M>& x,const Zp_Data& ZpD);
+  template<int M> friend bool isZero(const modp_<M>& x,const Zp_Data& ZpD);
+  template<int M> friend bool isOne(const modp_<M>& x,const Zp_Data& ZpD);
+  template<int M> friend bool areEqual(const modp_<M>& x,const modp_<M>& y,const Zp_Data& ZpD);
 
   // Input and output from a stream
   //  - Can do in human or machine only format (later should be faster)
@@ -90,49 +100,63 @@ class modp
   void output(ostream& s,const Zp_Data& ZpD,bool human) const;
   void input(istream& s,const Zp_Data& ZpD,bool human);
 
-  template<int X>
+  template<int X, int K>
   friend class gfp_;
 };
 
+typedef modp_<MAX_MOD_SZ> modp;
 
-inline void modp::pack(octetStream& o,const Zp_Data& ZpD) const
+template<int L>
+inline void modp_<L>::pack(octetStream& o,const Zp_Data& ZpD) const
 {
   o.append((octet*) x,ZpD.t*sizeof(mp_limb_t));
 }
 
-inline void assignZero(modp& x,const Zp_Data& ZpD)
+template<int L>
+void assignZero(modp_<L>& x,const Zp_Data& ZpD)
 {
   if (sizeof(x.x) <= 3 * 16)
     // use memset to allow the compiler to optimize
     // if x.x is at most 3*128 bits
     avx_memzero(x.x, sizeof(x.x));
   else
-    inline_mpn_zero(x.x, ZpD.t);
+    inline_mpn_zero(x.x, ZpD.get_t());
 }
 
-template <int T>
-inline void Add(modp& ans,const modp& x,const modp& y,const Zp_Data& ZpD)
-{
-  ZpD.Add<T>(ans.x, x.x, y.x);
-}
-
-inline void Sub(modp& ans,const modp& x,const modp& y,const Zp_Data& ZpD)
+template<int L>
+inline void Sub(modp_<L>& ans,const modp_<L>& x,const modp_<L>& y,const Zp_Data& ZpD)
 {
   ZpD.Sub(ans.x, x.x, y.x);
 }
 
-inline void Mul(modp& ans,const modp& x,const modp& y,const Zp_Data& ZpD)
+template<int L>
+inline void Mul(modp_<L>& ans,const modp_<L>& x,const modp_<L>& y,const Zp_Data& ZpD)
 {
   if (ZpD.montgomery)
     { ZpD.Mont_Mult(ans.x,x.x,y.x); }
   else
     { //ans.x=(x.x*y.x)%ZpD.pr;
-      mp_limb_t aa[2*MAX_MOD_SZ],q[2*MAX_MOD_SZ];
+      mp_limb_t aa[2*L],q[2*L];
       mpn_mul_n(aa,x.x,y.x,ZpD.t);
       mpn_tdiv_qr(q,ans.x,0,aa,2*ZpD.t,ZpD.prA,ZpD.t);
     }
 }
 
+template<int L>
+template<int T>
+inline void modp_<L>::mul(const modp_<L>& x, const modp_<L>& y, const Zp_Data& ZpD)
+{
+  if (ZpD.montgomery)
+    ZpD.Mont_Mult_<T>(this->x, x.x, y.x);
+  else
+    Mul<L>(*this, x, y, ZpD);
+}
+
+template<int L>
+void to_bigint(bigint& ans,const modp_<L>& x,const Zp_Data& ZpD,bool reduce=true)
+{
+  x.to_bigint(ans, ZpD, reduce);
+}
 
 #endif
 

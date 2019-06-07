@@ -1,3 +1,5 @@
+# coding=latin1
+
 """
   Solve Bankers bonus, aka Millionaires problem.
   to deduce the maximum value from a range of integer input.
@@ -22,6 +24,10 @@ from Compiler.util import if_else
 
 PORTNUM = 14000
 MAX_NUM_CLIENTS = 8
+n_rounds = 0
+
+if len(program.args) > 1:
+    n_rounds = int(program.args[1])
 
 def accept_client_input():
     """
@@ -81,8 +87,7 @@ def main():
     listen(PORTNUM)
     print_ln('Listening for client connections on base port %s', PORTNUM)
 
-    @do_while
-    def game_loop():
+    def game_loop(_=None):
         print_ln('Starting a new round of the game.')
 
         # Clients socket id (integer).
@@ -111,5 +116,12 @@ def main():
         write_winner_to_clients(client_sockets, number_clients, winning_client_id)
 
         return True
+
+    if n_rounds > 0:
+        print 'run %d rounds' % n_rounds
+        for_range(n_rounds)(game_loop)
+    else:
+        print 'run forever'
+        do_while(game_loop)
 
 main()

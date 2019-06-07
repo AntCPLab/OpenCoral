@@ -130,6 +130,9 @@ class EncCommit : public EncCommitBase<T,FD,S>
 template <class FD>
 using EncCommit_ = EncCommit<typename FD::T, FD, typename FD::S>;
 
+template <class FD>
+void covert_generation(Plaintext_<FD>& mess, vector<Ciphertext>& C,
+    const vector<const FHE_PK*>& pks, const Player* P, int num_runs, condition cond);
 
 template <class FD>
 void generate_mac_key(typename FD::T& key_share, Ciphertext& key, const FD& FieldD,

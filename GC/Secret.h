@@ -14,7 +14,7 @@
 #include "GC/Memory.h"
 #include "GC/Access.h"
 
-#include "Math/Share.h"
+#include "Math/gf2nlong.h"
 
 #include "Processor/DummyProtocol.h"
 
@@ -54,11 +54,6 @@ public:
     word share;
     int128 mac;
     Mask() : share(0) {}
-};
-
-class SpdzShare : public Share<gf2n>
-{
-public:
 };
 
 template<class T> class Processor;

@@ -6,37 +6,20 @@
 void reduce_step(vector<modp>& aa,int i,const FFT_Data& FFTD)
 { modp temp=aa[i];
   for (int j=0; j<FFTD.phi_m(); j++)
-    { switch (FFTD.Phi()[j])
-        { case 0:
-             break;
-          case 1:
-             Sub(aa[i-FFTD.phi_m()+j],aa[i-FFTD.phi_m()+j],temp,FFTD.get_prD());
-             break;
-          case -1:
-             Add(aa[i-FFTD.phi_m()+j],aa[i-FFTD.phi_m()+j],temp,FFTD.get_prD());
-             break;
-          case 2:
-             Sub(aa[i-FFTD.phi_m()+j],aa[i-FFTD.phi_m()+j],temp,FFTD.get_prD());
-             Sub(aa[i-FFTD.phi_m()+j],aa[i-FFTD.phi_m()+j],temp,FFTD.get_prD());
-             break;
-          case -2:
-             Add(aa[i-FFTD.phi_m()+j],aa[i-FFTD.phi_m()+j],temp,FFTD.get_prD());
-             Add(aa[i-FFTD.phi_m()+j],aa[i-FFTD.phi_m()+j],temp,FFTD.get_prD());
-             break;
-          case 3:
-             Sub(aa[i-FFTD.phi_m()+j],aa[i-FFTD.phi_m()+j],temp,FFTD.get_prD());
-             Sub(aa[i-FFTD.phi_m()+j],aa[i-FFTD.phi_m()+j],temp,FFTD.get_prD());
-             Sub(aa[i-FFTD.phi_m()+j],aa[i-FFTD.phi_m()+j],temp,FFTD.get_prD());
-             break;
-          case -3:
-             Add(aa[i-FFTD.phi_m()+j],aa[i-FFTD.phi_m()+j],temp,FFTD.get_prD());
-             Add(aa[i-FFTD.phi_m()+j],aa[i-FFTD.phi_m()+j],temp,FFTD.get_prD());
-             Add(aa[i-FFTD.phi_m()+j],aa[i-FFTD.phi_m()+j],temp,FFTD.get_prD());
-             break;
-          default:
-             throw not_implemented();
-        }
+    {
+      if (FFTD.Phi()[j] > 0)
+        for (int k = 0; k < FFTD.Phi()[j]; k++)
+          Sub(aa[i-FFTD.phi_m()+j],aa[i-FFTD.phi_m()+j],temp,FFTD.get_prD());
+      else
+        for (int k = 0; k < abs(FFTD.Phi()[j]); k++)
+          Add(aa[i-FFTD.phi_m()+j],aa[i-FFTD.phi_m()+j],temp,FFTD.get_prD());
     }
+}
+
+void reduce(vector<modp>& aa, int top, int bottom, const FFT_Data& FFTD)
+{
+  for (int i = top - 1; i >= bottom; i--)
+    reduce_step(aa, i, FFTD);
 }
 
 
@@ -129,10 +112,7 @@ void mul(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b)
             }
         }
       // Now apply reduction, assumes Ring.poly is monic
-      for (int i=2*(*a.FFTD).phi_m()-1; i>=(*a.FFTD).phi_m(); i--)
-        { reduce_step(aa,i,*a.FFTD);
-          assignZero(aa[i],(*a.FFTD).get_prD()); 
-        }
+      reduce(aa, 2*(*a.FFTD).phi_m(), (*a.FFTD).phi_m(), *a.FFTD);
      // Now stick into answer
      for (int i=0; i<(*ans.FFTD).phi_m(); i++)
        { ans.element[i]=aa[i]; }
@@ -296,8 +276,7 @@ void Ring_Element::change_rep(RepType r)
 	    { fft[(*FFTD).p(i)]=element[i]; }
           BFFT(fft,fft,*FFTD,false);
           // Need to reduce fft mod Phi_m
-          for (int i=(*FFTD).m()-1; i>=(*FFTD).phi_m(); i--)
-            { reduce_step(fft,i,*FFTD); }
+          reduce(fft, (*FFTD).m(), (*FFTD).phi_m(), *FFTD);
           for (int i=0; i<(*FFTD).phi_m(); i++) 
 	    { element[i]=fft[i]; }
 	}

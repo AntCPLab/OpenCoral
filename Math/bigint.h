@@ -21,9 +21,8 @@ enum ReportType
   REPORT_TYPE_MAX
 };
 
-template<int X>
+template<int X, int L>
 class gfp_;
-typedef gfp_<0> gfp;
 class gmp_random;
 class Integer;
 template<int K> class Z2;
@@ -49,8 +48,8 @@ public:
   bigint() : mpz_class() {}
   template <class T>
   bigint(const T& x) : mpz_class(x) {}
-  template<int X>
-  bigint(const gfp_<X>& x);
+  template<int X, int L>
+  bigint(const gfp_<X, L>& x);
   template <int K>
   bigint(const Z2<K>& x);
   template <int K>
@@ -61,8 +60,8 @@ public:
   bigint& operator=(int n);
   bigint& operator=(long n);
   bigint& operator=(word n);
-  template<int X>
-  bigint& operator=(const gfp_<X>& other);
+  template<int X, int L>
+  bigint& operator=(const gfp_<X, L>& other);
 
   void allocate_slots(const bigint& x) { *this = x; }
   int get_min_alloc() { return get_mpz_t()->_mp_alloc; }
@@ -150,14 +149,14 @@ bigint::bigint(const SignedZ2<K>& x)
   }
 }
 
-template<int X>
-bigint::bigint(const gfp_<X>& x)
+template<int X, int L>
+bigint::bigint(const gfp_<X, L>& x)
 {
   *this = x;
 }
 
-template<int X>
-bigint& bigint::operator=(const gfp_<X>& x)
+template<int X, int L>
+bigint& bigint::operator=(const gfp_<X, L>& x)
 {
   to_bigint(*this, x);
   return *this;

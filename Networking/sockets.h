@@ -59,10 +59,10 @@ extern unsigned long long sent_amount, sent_counter;
 
 inline size_t send_non_blocking(int socket, octet* msg, size_t len)
 {
-  int j = send(socket,msg,len,0);
+  int j = send(socket,msg,len,MSG_DONTWAIT);
   if (j < 0)
     {
-      if (errno != EINTR)
+      if (errno != EINTR and errno != EAGAIN and errno != EWOULDBLOCK)
         { error("Send error - 1 ");  }
       else
         return 0;
@@ -105,11 +105,10 @@ inline void receive(int socket,octet *msg,size_t len)
         {
           if (errno == EAGAIN or errno == EINTR)
             {
-              if (++fail > 100)
+              if (++fail > 10000)
                 error("Unavailable too many times");
               else
                 {
-                  cout << "Unavailable, trying again in 1 ms" << endl;
                   usleep(1000);
                 }
             }

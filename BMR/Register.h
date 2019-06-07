@@ -65,6 +65,7 @@ class KeyVector : public BaseKeyVector
 {
 public:
 	KeyVector(int size = 0) : BaseKeyVector(size) {}
+	KeyVector(const KeyVector& other) : BaseKeyVector() { *this = other; }
 	size_t byte_size() const { return size() * sizeof(Key); }
 	void operator=(const KeyVector& source);
     KeyVector operator^(const KeyVector& other) const;
@@ -388,6 +389,12 @@ inline Register::Register(int n_parties) :
 		garbled_entry(n_parties), external(NO_SIGNAL),
 		mask(NO_SIGNAL), keys(n_parties)
 {
+}
+
+inline void KeyVector::operator=(const KeyVector& other)
+{
+	resize(other.size());
+	avx_memcpy(data(), other.data(), byte_size());
 }
 
 inline void KeyVector::unserialize(ReceivedMsg& source, int n_parties)

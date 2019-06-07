@@ -40,7 +40,7 @@
 #include "Networking/STS.h"
 #include "Tools/int.h"
 #include "Math/Setup.h"
-#include "Auth/fake-stuff.h"
+#include "Protocols/fake-stuff.h"
 
 #include <sodium.h>
 #include <iostream>

@@ -38,12 +38,14 @@ CryptoPlayer::CryptoPlayer(const Names& Nms, int id_base) :
     ctx.add_verify_path("Player-Data");
 
     sockets.resize(num_players());
+    senders.resize(num_players());
 
     for (int i = 0; i < (int)sockets.size(); i++)
     {
         if (i == my_num())
         {
             sockets[i] = 0;
+            senders[i] = 0;
             continue;
         }
 
@@ -71,6 +73,8 @@ CryptoPlayer::CryptoPlayer(const Names& Nms, int id_base) :
                 ssl_error("Server", "they", i, my_num());
                 throw;
             }
+
+        senders[i] = new Sender<ssl_socket*>(sockets[i]);
     }
 }
 
@@ -79,7 +83,33 @@ CryptoPlayer::~CryptoPlayer()
     close_client_socket(plaintext_player.socket(my_num()));
     plaintext_player.sockets.clear();
     for (int i = 0; i < num_players(); i++)
+    {
         delete sockets[i];
+        delete senders[i];
+    }
+}
+
+void CryptoPlayer::pass_around_no_stats(octetStream& to_send,
+        octetStream& to_receive, int offset) const
+{
+    if (&to_send == &to_receive or (get_player(offset) == get_player(-offset)))
+    {
+        MultiPlayer<ssl_socket*>::pass_around_no_stats(to_send, to_receive, offset);
+    }
+    else
+    {
+#ifdef TIME_ROUNDS
+        Timer recv_timer;
+        TimeScope ts(recv_timer);
+#endif
+        senders[get_player(offset)]->request(to_send);
+        to_receive.Receive(sockets[get_player(-offset)]);
+        senders[get_player(offset)]->wait(to_send);
+#ifdef TIME_ROUNDS
+        cout << "Exchange time: " << recv_timer.elapsed() << " seconds to receive "
+            << 1e-3 * to_receive.get_length() << " KB" << endl;
+#endif
+    }
 }
 
 template<>

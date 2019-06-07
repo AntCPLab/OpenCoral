@@ -1,11 +1,10 @@
 
 #include "Processor/Processor.h"
 #include "Networking/STS.h"
-#include "Auth/MAC_Check.h"
-#include "Auth/fake-stuff.h"
+#include "Protocols/fake-stuff.h"
 
-#include "Processor/ReplicatedInput.hpp"
-#include "Processor/ReplicatedPrivateOutput.hpp"
+#include "Protocols/ReplicatedInput.hpp"
+#include "Protocols/ReplicatedPrivateOutput.hpp"
 
 #include <sodium.h>
 #include <string>
@@ -533,31 +532,36 @@ void SubProcessor<T>::mulrs(const vector<int>& reg)
 }
 
 template<class T>
-void SubProcessor<T>::dotprods(const vector<int>& reg)
+void SubProcessor<T>::dotprods(const vector<int>& reg, int size)
 {
     protocol.init_dotprod(this);
-    auto it = reg.begin();
-    while (it != reg.end())
+    for (int i = 0; i < size; i++)
     {
-        auto next = it + *it;
-        it += 2;
-        while (it != next)
+        auto it = reg.begin();
+        while (it != reg.end())
         {
-            protocol.prepare_dotprod(S[*it], S[*(it + 1)]);
+            auto next = it + *it;
             it += 2;
+            while (it != next)
+            {
+                protocol.prepare_dotprod(S[*it + i], S[*(it + 1) + i]);
+                it += 2;
+            }
+            protocol.next_dotprod();
         }
-        protocol.next_dotprod();
     }
     protocol.exchange();
-    it = reg.begin();
-    while (it != reg.end())
+    for (int i = 0; i < size; i++)
     {
-        auto next = it + *it;
-        it++;
-        T& dest = S[*it];
-        dest = protocol.finalize_dotprod((next - it) / 2);
-        it = next;
-   }
+        auto it = reg.begin();
+        while (it != reg.end())
+        {
+            auto next = it + *it;
+            it++;
+            S[*it + i] = protocol.finalize_dotprod((next - it) / 2);
+            it = next;
+        }
+    }
 }
 
 template<class sint, class sgf2n>

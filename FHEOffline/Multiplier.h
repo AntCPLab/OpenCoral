@@ -9,6 +9,7 @@
 #include "FHEOffline/SimpleEncCommit.h"
 #include "FHE/AddableVector.h"
 #include "Tools/MemoryUsage.h"
+#include "OT/BaseOT.h"
 
 template <class FD>
 using PlaintextVector = AddableVector< Plaintext_<FD> >;
@@ -41,8 +42,9 @@ public:
     void multiply_and_add(Plaintext_<FD>& res, const Ciphertext& C,
             const Plaintext_<FD>& b);
     void multiply_and_add(Plaintext_<FD>& res, const Ciphertext& C,
-            const Rq_Element& b);
-    void multiply_alpha_and_add(Plaintext_<FD>& res, const Rq_Element& b);
+            const Rq_Element& b, OT_ROLE role = BOTH);
+    void multiply_alpha_and_add(Plaintext_<FD>& res, const Rq_Element& b,
+            OT_ROLE role = BOTH);
     int get_offset() { return P.get_offset(); }
     size_t report_size(ReportType type);
     void report_size(ReportType type, MemoryUsage& res);

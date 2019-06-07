@@ -138,6 +138,31 @@ class BitVector
         return *this;
     }
 
+    void swap(BitVector& other)
+    {
+        std::swap(nbits, other.nbits);
+        std::swap(nbytes, other.nbytes);
+        std::swap(bytes, other.bytes);
+    }
+
+    class Access
+    {
+        BitVector& v;
+        int i;
+
+    public:
+        Access(BitVector& v, int i) : v(v), i(i) {}
+        bool get() const { return v.get_bit(i); }
+        void operator=(bool b) { v.set_bit(i, b); }
+        void operator=(const Access& other) { *this = other.get(); }
+        void operator^=(const Access& other) { *this = get() ^ other.get(); }
+        bool operator==(const Access& other) const { return get() == other.get(); }
+        bool operator==(bool b) const { return get() == b; }
+    };
+
+    bool operator[](int i) const { return get_bit(i); }
+    Access operator[](int i) { return {*this, i}; }
+
     octet get_byte(int i) const { return bytes[i]; }
 
     void set_byte(int i, octet b) { bytes[i] = b; }
@@ -169,6 +194,8 @@ class BitVector
       }
     void set_bit(int i,unsigned int a)
     {
+        if ((size_t)i >= nbits)
+            throw overflow_error("BitVector " + to_string(i) + "/" + to_string(nbits));
         int j = i/8, k = i&7;
         if (a==1)
           { bytes[j] |= (octet)(1UL<<k); }
@@ -191,12 +218,18 @@ class BitVector
     {
         if (nbits != A.nbits)
           { throw invalid_length(); }
-        for (unsigned int i = 0; i < nbytes; i++)
+        int nwords = nbytes / 8;
+        for (int i = 0; i < nwords; i++)
+            ((word*)bytes)[i] ^= ((word*)A.bytes)[i];
+        for (unsigned int i = nwords * 8; i < nbytes; i++)
   	    {
             bytes[i] ^= A.bytes[i];
         }
     }
     
+    BitVector operator&(const BitVector& other) const;
+    bool parity() const;
+
     bool equals(const BitVector& K) const
     {
         if (nbits != K.nbits)

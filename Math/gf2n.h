@@ -14,6 +14,7 @@ using namespace std;
 
 class gf2n_short;
 class gf2n_short_square;
+class P2Data;
 
 void expand_byte(gf2n_short& a,int b);
 void collapse_byte(int& b,const gf2n_short& a);
@@ -58,6 +59,7 @@ class gf2n_short
   typedef word internal_type;
   typedef gf2n_short next;
   typedef gf2n_short_square Square;
+  typedef P2Data FD;
 
   static void init_field(int nn);
   static int degree() { return n; }
@@ -78,6 +80,7 @@ class gf2n_short
   static int t()    { return 0; }
 
   static int default_length() { return 40; }
+  static int length()         { return n == 0 ? default_length() : n; }
 
   static bool allows(Dtype type) { (void) type; return true; }
 
@@ -117,11 +120,6 @@ class gf2n_short
   gf2n_short(const char* a) { assign(*(word*)a); }
   gf2n_short(const int128& a) { reduce(a.get_upper(), a.get_lower()); }
   ~gf2n_short()             { ; }
-
-  gf2n_short& operator=(const gf2n_short& g)
-    { assign(g);
-      return *this;
-    }
 
   int is_zero() const            { return (a==0); }
   int is_one()  const            { return (a==1); }

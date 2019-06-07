@@ -71,6 +71,11 @@ class Ciphertext
   template<class FD>
   void mul(const Ciphertext& c, const Plaintext_<FD>& a) { ::mul(*this, c, a); }
 
+  template<class FD>
+  Ciphertext operator+(const Plaintext_<FD>& other) { Ciphertext res = *this; res += other; return res; }
+  template<class FD>
+  Ciphertext& operator+=(const Plaintext_<FD>& other) { cc0 += other.get_poly(); return *this; }
+
   bool operator==(const Ciphertext& c) { return pk_id == c.pk_id && cc0.equals(c.cc0) && cc1.equals(c.cc1); }
   bool operator!=(const Ciphertext& c) { return !(*this == c); }
 

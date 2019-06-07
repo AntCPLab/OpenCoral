@@ -9,12 +9,14 @@
 #include "OT/NPartyTripleGenerator.h"
 #include "OT/Rectangle.h"
 #include "Math/Z2k.h"
-#include "Math/SemiShare.h"
-#include "Math/Semi2kShare.h"
+#include "Protocols/SemiShare.h"
+#include "Protocols/Semi2kShare.h"
+#include "Protocols/Spdz2kShare.h"
 
 #include "OT/OTVole.hpp"
 #include "OT/Row.hpp"
 #include "OT/Rectangle.hpp"
+#include "Math/Z2k.hpp"
 
 #include <math.h>
 
@@ -359,7 +361,8 @@ template class SemiMultiplier<SemiShare<gf2n>>;
 template class SemiMultiplier<SemiShare<gfp1>>;
 template class SemiMultiplier<Semi2kShare<64>>;
 template class SemiMultiplier<Semi2kShare<72>>;
-template class MascotMultiplier<gf2n>;
+template class MascotMultiplier<gf2n_long>;
+template class MascotMultiplier<gf2n_short>;
 template class MascotMultiplier<gfp1>;
 
 #define X(K, S) \

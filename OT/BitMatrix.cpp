@@ -14,6 +14,7 @@
 #include "Math/Z2k.h"
 
 #include "OT/Rectangle.hpp"
+#include "Math/Z2k.hpp"
 
 union matrix16x8
 {

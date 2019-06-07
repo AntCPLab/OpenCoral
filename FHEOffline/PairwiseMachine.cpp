@@ -5,19 +5,31 @@
 
 #include "FHEOffline/PairwiseMachine.h"
 #include "Tools/benchmarking.h"
-#include "Auth/fake-stuff.h"
+#include "Protocols/fake-stuff.h"
 
-#include "Auth/fake-stuff.hpp"
+#include "Protocols/fake-stuff.hpp"
+
+PairwiseMachine::PairwiseMachine(Player& P) :
+    P(P),
+    other_pks(P.num_players(), {setup_p.params, 0}),
+    pk(other_pks[P.my_num()]), sk(pk)
+{
+}
 
 PairwiseMachine::PairwiseMachine(int argc, const char** argv) :
-    MachineBase(argc, argv), P(N, 0xffff << 16),
+    MachineBase(argc, argv), P(*new PlainPlayer(N, 0xffff << 16)),
     other_pks(N.num_players(), {setup_p.params, 0}),
     pk(other_pks[N.my_num()]), sk(pk)
+{
+    init();
+}
+
+void PairwiseMachine::init()
 {
     if (use_gf2n)
     {
         field_size = 40;
-        gf2n::init_field(field_size);
+        gf2n_short::init_field(field_size);
         setup_keys<P2Data>();
     }
     else
@@ -52,8 +64,9 @@ PairwiseSetup<P2Data>& PairwiseMachine::setup()
 template <class FD>
 void PairwiseMachine::setup_keys()
 {
+    auto& N = P;
     PairwiseSetup<FD>& s = setup<FD>();
-    s.init(P, sec, field_size, extra_slack);
+    s.init(P, drown_sec, field_size, extra_slack);
     if (output)
         write_mac_keys(PREP_DIR, P.my_num(), P.num_players(), setup_p.alphai,
                 setup_2.alphai);
@@ -70,9 +83,21 @@ void PairwiseMachine::setup_keys()
     for (int i = 0; i < N.num_players(); i++)
         if (i != N.my_num())
             other_pks[i].unpack(os[i]);
+    set_mac_key(s.alphai);
+}
 
+template <class T>
+void PairwiseMachine::set_mac_key(T alphai)
+{
+    typedef typename T::FD FD;
+    auto& N = P;
+    PairwiseSetup<FD>& s = setup<FD>();
+    s.alphai = alphai;
+    for (size_t i = 0; i < s.alpha.num_slots(); i++)
+        s.alpha.set_element(i, alphai);
     insecure("MAC key generation");
     Ciphertext enc_alpha = pk.encrypt(s.alpha);
+    vector<octetStream> os;
     os.clear();
     os.resize(N.num_players());
     enc_alphas.resize(N.num_players(), pk);

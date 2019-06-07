@@ -3,6 +3,7 @@
 
 
 #include "Math/Zp_Data.h"
+#include "Math/modp.h"
 
 void Subs(modp& ans,const vector<int>& poly,const modp& x,const Zp_Data& ZpD);
 

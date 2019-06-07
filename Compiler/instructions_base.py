@@ -176,6 +176,7 @@ opcodes = dict(
 
 def int_to_bytes(x):
     """ 32 bit int to big-endian 4 byte conversion. """
+    assert(x < 2**32 and x >= -2**32)
     return [(x >> 8*i) % 256 for i in (3,2,1,0)]
 
 
@@ -545,12 +546,12 @@ class Instruction(object):
     
     def get_used(self):
         """ Return the set of registers that are read in this instruction. """
-        return set(arg for arg,w in zip(self.args, self.arg_format) if \
+        return (arg for arg,w in zip(self.args, self.arg_format) if \
             format_str_is_reg(w) and not format_str_is_writeable(w))
     
     def get_def(self):
         """ Return the set of registers that are written to in this instruction. """
-        return set(arg for arg,w in zip(self.args, self.arg_format) if \
+        return (arg for arg,w in zip(self.args, self.arg_format) if \
             format_str_is_writeable(w))
     
     def get_pre_arg(self):
@@ -574,6 +575,9 @@ class Instruction(object):
 
     def add_usage(self, req_node):
         pass
+
+    def merge_id(self):
+        return type(self), self.get_size()
 
     # String version of instruction attempting to replicate encoded version
     def __str__(self):

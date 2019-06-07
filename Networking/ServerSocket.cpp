@@ -9,6 +9,7 @@
 
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
+#include <fcntl.h>
 
 #include <iostream>
 #include <sstream>
@@ -97,6 +98,13 @@ void ServerSocket::accept_clients()
       clients[client_id] = consocket;
       data_signal.broadcast();
       data_signal.unlock();
+
+#ifdef __APPLE__
+      int flags = fcntl(consocket, F_GETFL, 0);
+      int fl = fcntl(consocket, F_SETFL, O_NONBLOCK |  flags);
+      if (fl < 0)
+          error("set non-blocking");
+#endif
     }
 }
 

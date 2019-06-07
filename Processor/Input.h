@@ -9,11 +9,9 @@
 #include <vector>
 using namespace std;
 
-#include "Math/Share.h"
 #include "Tools/Buffer.h"
 #include "Tools/time-func.h"
 #include "Tools/PointerVector.h"
-#include "Auth/MAC_Check.h"
 
 class ArithmeticProcessor;
 
@@ -41,12 +39,12 @@ public:
     virtual void reset(int player) = 0;
     void reset_all(Player& P);
 
-    virtual void add_mine(const clear& input) = 0;
+    virtual void add_mine(const typename T::open_type& input) = 0;
     virtual void add_other(int player) = 0;
     void add_from_all(const clear& input);
 
     virtual void send_mine() = 0;
-    void exchange();
+    virtual void exchange();
 
     virtual T finalize_mine() = 0;
     virtual void finalize_other(int player, T& target, octetStream& o) = 0;
@@ -71,7 +69,7 @@ public:
 
     void reset(int player);
 
-    void add_mine(const clear& input);
+    void add_mine(const open_type& input);
     void add_other(int player);
 
     void send_mine();

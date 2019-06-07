@@ -5,8 +5,6 @@
 #include "OT/BaseOT.h"
 #include "Tools/random.h"
 #include "Tools/time-func.h"
-#include "Math/gfp.h"
-#include "Auth/MAC_Check.h"
 #include "Processor/InputTuple.h"
 
 #include "OT/OTTripleSetup.h"

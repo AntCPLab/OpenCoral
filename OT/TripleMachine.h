@@ -17,7 +17,8 @@ template<class T> class NPartyTripleGenerator;
 class MascotParams : virtual public OfflineParams
 {
 protected:
-    gf2n mac_key2;
+    gf2n_short mac_key2s;
+    gf2n_long mac_key2l;
     gfp1 mac_keyp;
     Z2<128> mac_keyz;
 

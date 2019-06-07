@@ -11,4 +11,4 @@ fi
 
 . $HERE/run-common.sh
 
-run_player shamir-party.x ${1:-test_all} $t || exit 1
+run_player shamir-party.x $* $t || exit 1

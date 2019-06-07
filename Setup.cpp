@@ -1,5 +1,5 @@
 #include "Math/Setup.h"
-#include "Auth/fake-stuff.hpp"
+#include "Protocols/fake-stuff.hpp"
 #include <stdlib.h>
 #include <fstream>
 using namespace std;

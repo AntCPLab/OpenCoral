@@ -1357,6 +1357,10 @@ class muls(base.VarArgsInstruction, base.DataInstruction):
     def get_repeat(self):
         return len(self.args) / 3
 
+    def merge_id(self):
+        # can merge different sizes
+        return type(self)
+
     # def expand(self):
     #     s = [program.curr_block.new_reg('s') for i in range(9)]
     #     c = [program.curr_block.new_reg('c') for i in range(3)]
@@ -1397,6 +1401,7 @@ class mulrs(base.VarArgsInstruction, base.DataInstruction):
                     for arg in self.args[2::4] + self.args[3::4]), [])
 
 @base.gf2n
+@base.vectorize
 class dotprods(base.VarArgsInstruction, base.DataInstruction):
     """ Secret dot product. """
     __slots__ = []
@@ -1429,7 +1434,7 @@ class dotprods(base.VarArgsInstruction, base.DataInstruction):
             i += self.args[i]
 
     def get_repeat(self):
-        return sum(self.args[i] / 2 for i in self.bases())
+        return sum(self.args[i] / 2 for i in self.bases()) * self.get_size()
 
     def get_def(self):
         return [self.args[i + 1] for i in self.bases()]

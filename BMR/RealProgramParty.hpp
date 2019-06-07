@@ -21,6 +21,7 @@
 #include "GC/Secret.hpp"
 #include "GC/Thread.hpp"
 #include "GC/ThreadMaster.hpp"
+#include "Math/Z2k.hpp"
 
 template<class T>
 RealProgramParty<T>* RealProgramParty<T>::singleton = 0;
@@ -34,7 +35,7 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 
 	ez::ezOptionParser opt;
 	opt.add(
-			T::needs_ot ? "2" : "3", // Default.
+			T::dishonest_majority ? "2" : "3", // Default.
 			0, // Required?
 			1, // Number of args expected.
 			0, // Delimiter if expecting multiple args.
@@ -48,7 +49,11 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	this->check(nparties);
 
 	NetworkOptions network_opts(opt, argc, argv);
-	OnlineOptions online_opts(opt, argc, argv);
+	OnlineOptions& online_opts = OnlineOptions::singleton;
+	if (T::needs_ot)
+	    online_opts = {opt, argc, argv, 1000};
+	else
+	    online_opts = {opt, argc, argv};
 	assert(not online_opts.interactive);
 
 	online_opts.finalize(opt, argc, argv);
@@ -66,7 +71,7 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	this->_id = online_opts.playerno + 1;
 	Server* server = Server::start_networking(N, online_opts.playerno, nparties,
 			network_opts.hostname, network_opts.portnum_base);
-	if (T::needs_ot)
+	if (T::dishonest_majority)
 	    P = new PlainPlayer(N, 0);
 	else
 	    P = new CryptoPlayer(N, 0);
@@ -232,5 +237,5 @@ void RealProgramParty<T>::push_spdz_wire(SpdzOp op, const RealGarbleWire<T>& wir
 	for (int i = 0; i < 2; i++)
 		spdz_wire.my_keys[i] = wire.keys[i][this->N.my_num()];
 	spdz_wire.pack(this->spdz_wires[op].back());
-	this->spdz_storage += sizeof(SpdzWire);
+	this->spdz_storage += sizeof(spdz_wire);
 }

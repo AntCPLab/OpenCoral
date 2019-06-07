@@ -63,7 +63,7 @@ void EvalRegister::store(GC::Memory<U>& mem,
 	check_for_doubles(accesses, "storing");
 	auto& party = ProgramPartySpec<U>::s();
 	vector<U> S, S2, S3, S4, S5, SS;
-	vector<gf2n> exts;
+	vector<gf2n_long> exts;
 	int n_registers = 0;
 	for (auto access : accesses)
 		n_registers += access.source.get_regs().size();
@@ -78,11 +78,11 @@ void EvalRegister::store(GC::Memory<U>& mem,
 			party.get_spdz_wire(SPDZ_STORE, spdz_wire);
 			const EvalRegister& reg = sources[i];
 			U tmp;
-			gf2n ext = (int)reg.get_external();
+			gf2n_long ext = (int)reg.get_external();
 			//cout << "ext:" << ext << "/" << (int)reg.get_external() << " " << endl;
 			tmp.add(spdz_wire.mask, ext, (int)party.get_id() - 1, party.get_mac_key());
 			S.push_back(tmp);
-			tmp *= gf2n(1) << i;
+			tmp *= gf2n_long(1) << i;
 			dest += tmp;
 			const Key& key = reg.external_key(party.get_id());
 			Key& expected_key = spdz_wire.my_keys[(int)reg.get_external()];
@@ -193,7 +193,7 @@ void EvalRegister::load(vector<GC::ReadAccess<T> >& accesses,
 	party.MC->Check(*party.P);
 #endif
 
-	vector<gf2n> masked;
+	vector<gf2n_long> masked;
 	party.MC->POpen_Begin(masked, shares, *party.P);
 	party.MC->POpen_End(masked, shares, *party.P);
 	vector<octetStream> keys(party.get_n_parties());

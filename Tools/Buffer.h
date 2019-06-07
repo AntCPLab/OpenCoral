@@ -7,12 +7,11 @@
 #define TOOLS_BUFFER_H_
 
 #include <fstream>
+#include <iostream>
 using namespace std;
 
-#include "Math/Share.h"
 #include "Math/field_types.h"
 #include "Tools/time-func.h"
-#include "Processor/config.h"
 
 #ifndef BUFFER_SIZE
 #define BUFFER_SIZE 101

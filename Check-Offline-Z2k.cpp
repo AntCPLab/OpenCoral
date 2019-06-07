@@ -1,11 +1,12 @@
 
 #include "Math/Z2k.h"
-#include "Math/Share.h"
+#include "Protocols/Share.h"
 #include "Math/Setup.h"
-#include "Math/Spdz2kShare.h"
-#include "Auth/fake-stuff.h"
+#include "Protocols/Spdz2kShare.h"
+#include "Protocols/fake-stuff.h"
 
-#include "Auth/fake-stuff.hpp"
+#include "Protocols/fake-stuff.hpp"
+#include "Math/Z2k.hpp"
 
 #include <fstream>
 #include <vector>

@@ -283,14 +283,21 @@ void blk_SHA1_Final(unsigned char hashout[20], blk_SHA_CTX *ctx)
 		put_be32(hashout + i*4, ctx->H[i]);
 }
 
-void SHA1::update(const octetStream& os)
+void Hash::update(const octetStream& os)
 {
     update(os.get_data(), os.get_length());
 }
 
-void SHA1::final(octetStream& os)
+void Hash::final(octetStream& os)
 {
     os.resize_precise(hash_length);
     os.reset_write_head();
     final(os.get_data());
+}
+
+octetStream Hash::final()
+{
+    octetStream res;
+    final(res);
+    return res;
 }

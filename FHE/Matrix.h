@@ -7,15 +7,17 @@ using namespace std;
 
 #include "Math/bigint.h"
 #include "Math/modp.h"
+#include "OT/BitVector.h"
 
 typedef vector< vector<bigint> > matrix;
 typedef vector< vector<modp> > modp_matrix;
 
-class imatrix : public vector< vector<int> >
+class imatrix : public vector< BitVector >
 {
 public:
     bool operator!=(const imatrix& other) const;
 
+    void hash(octetStream& o) const;
     void pack(octetStream& o) const;
     void unpack(octetStream& o);
 };

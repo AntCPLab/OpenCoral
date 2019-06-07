@@ -13,7 +13,6 @@ using namespace std;
 #include "OT/OTVole.h"
 #include "OT/Rectangle.h"
 #include "Tools/random.h"
-#include "Math/Spdz2kShare.h"
 
 template<class T>
 class NPartyTripleGenerator;
@@ -95,6 +94,8 @@ public:
 
 	void multiplyForInputs(MultJob job);
 };
+
+template <int K, int S> class Spdz2kShare;
 
 template <int K, int S>
 class Spdz2kMultiplier: public OTMultiplier<Spdz2kShare<K, S>>

@@ -4,7 +4,6 @@ function build
 {
     echo ARCH = $1 >> CONFIG.mine
     echo GDEBUG = >> CONFIG.mine
-    echo MOD = -DMAX_MOD_SZ=4 >> CONFIG.mine
     make clean
     rm -R static
     mkdir static

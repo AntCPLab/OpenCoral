@@ -4,22 +4,24 @@
  */
 
 #include <Machines/ShamirMachine.h>
-#include "Math/ShamirShare.h"
-#include "Math/MaliciousShamirShare.h"
+#include "Protocols/ShamirShare.h"
+#include "Protocols/MaliciousShamirShare.h"
 #include "Math/gfp.h"
 #include "Math/gf2n.h"
 
-#include "Processor/ReplicatedMachine.hpp"
+#include "Protocols/ReplicatedMachine.hpp"
 
 #include "Processor/Data_Files.hpp"
 #include "Processor/Instruction.hpp"
 #include "Processor/Machine.hpp"
-#include "Processor/ShamirInput.hpp"
-#include "Processor/Shamir.hpp"
-#include "Auth/ShamirMC.hpp"
-#include "Auth/MaliciousShamirMC.hpp"
-#include "Auth/MAC_Check.hpp"
-#include "Auth/fake-stuff.hpp"
+#include "Protocols/ShamirInput.hpp"
+#include "Protocols/Shamir.hpp"
+#include "Protocols/MaliciousRepPrep.hpp"
+#include "Protocols/ShamirMC.hpp"
+#include "Protocols/MaliciousShamirMC.hpp"
+#include "Protocols/MAC_Check_Base.hpp"
+#include "Protocols/fake-stuff.hpp"
+#include "Protocols/Beaver.hpp"
 
 ShamirMachine* ShamirMachine::singleton = 0;
 

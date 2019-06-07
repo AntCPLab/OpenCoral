@@ -41,6 +41,7 @@ class FFT_Data
 
   void init_field() const { gfp::init_field(prData.pr); }
 
+  void hash(octetStream& o) const;
   void pack(octetStream& o) const;
   void unpack(octetStream& o);
 

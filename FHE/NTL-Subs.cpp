@@ -112,7 +112,7 @@ int generate_semi_setup(int plaintext_length, int sec,
 {
   if (params.n_mults() > 0)
     throw runtime_error("only implemented for 0-level BGV");
-  gf2n::init_field(plaintext_length);
+  gf2n_short::init_field(plaintext_length);
   int m;
   char_2_dimension(m, plaintext_length);
   SemiHomomorphicNoiseBounds nb(2, phi_N(m), 1, sec,
@@ -417,10 +417,10 @@ GF2X Subs_PowX_Mod(const GF2X& a,int pow,int m,const GF2X& c)
 void init(P2Data& P2D,const Ring& Rg)
 {
   GF2X G,F;
-  SetCoeff(G,gf2n::degree(),1);
+  SetCoeff(G,gf2n_short::degree(),1);
   SetCoeff(G,0,1);
-  for (int i=0; i<gf2n::get_nterms(); i++)
-    { SetCoeff(G,gf2n::get_t(i),1); }
+  for (int i=0; i<gf2n_short::get_nterms(); i++)
+    { SetCoeff(G,gf2n_short::get_t(i),1); }
   //cout << "G = " << G << endl;
 
   for (int i=0; i<=Rg.phi_m(); i++)
@@ -451,8 +451,8 @@ void init(P2Data& P2D,const Ring& Rg)
       if (Gord!=e) { cout << "Group order wrong, need to repeat the Haf-Mc algorithm" << endl; seed++; }
     }
   //cout << " l = " << Gord << " , d = " << d << endl;
-  if ((Gord*gf2n::degree())!=Rg.phi_m())
-    { cout << "Plaintext type requires Gord*gf2n::degree ==  phi_m" << endl;
+  if ((Gord*gf2n_short::degree())!=Rg.phi_m())
+    { cout << "Plaintext type requires Gord*gf2n_short::degree ==  phi_m" << endl;
       throw not_implemented();
     }
 
@@ -514,9 +514,11 @@ void init(P2Data& P2D,const Ring& Rg)
   //   This is a deg(F) x (deg(G)*Gord)  matrix which maps elements
   //   vectors in the SIMD representation into plaintext vectors
   
-  P2D.A.resize(Rg.phi_m(), vector<int>(Gord*gf2n::degree()));
+  imatrix A;
+  A.resize(Rg.phi_m(), imatrix::value_type(Gord*gf2n_short::degree()));
+  P2D.A.resize(A[0].size(), imatrix::value_type(A.size()));
   for (int slot=0; slot<Gord; slot++)
-    { for (int co=0; co<gf2n::degree(); co++)
+    { for (int co=0; co<gf2n_short::degree(); co++)
         { // Work out how x^co in given slot maps to plaintext vector
           GF2X av;
           SetCoeff(av,co,1);
@@ -526,18 +528,21 @@ void init(P2Data& P2D,const Ring& Rg)
           av=MulMod(av,u[slot],F);
           //cout << slot << " " << co << " : " << av << endl;
           for (int k=0; k<Rg.phi_m(); k++)
-	    { if (IsOne(coeff(av,k)))
-                { P2D.A[k][slot*gf2n::degree()+co]=1; }
+	    {
+              int i = slot*gf2n_short::degree()+co;
+              if (IsOne(coeff(av,k)))
+                { A[k][i]=1; }
               else
-                { P2D.A[k][slot*gf2n::degree()+co]=0; }
+                { A[k][i]=0; }
+	      P2D.A[i][k] = A[k][i];
 	    }
        }
     }
   //cout << "Forward Matrix : " << endl; print(P2D.A);
 
   // Find pseudo inverse modulo 2
-  pinv(P2D.Ai,P2D.A);
-  P2D.Ai.resize(Gord*gf2n::degree());
+  pinv(P2D.Ai, A);
+  P2D.Ai.resize(Gord*gf2n_short::degree());
 
   //cout << "Inverse Matrix : " << endl; print(P2D.Ai);
 
@@ -624,7 +629,7 @@ void SPDZ_Data_Setup_Char_2(Ring& R, P2Data& P2D, bigint& pr0, bigint& pr1,
   cout << "\t\tpr1 mod m = " << pr1%m << endl;
   cout << "\t\tpr1 mod 2^lg2m = " << pr1%(1<<lg2m) << endl;
 
-  gf2n::init_field(lg2);
+  gf2n_short::init_field(lg2);
   load_or_generate(P2D, R);
 }
 

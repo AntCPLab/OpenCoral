@@ -54,7 +54,7 @@ class Program(object):
         self.galois_length = int(options.galois)
         print 'Galois length:', self.galois_length
         self.schedule = [('start', [])]
-        self.main_ctr = 0
+        self.tape_counter = 0
         self.tapes = []
         self._curr_tape = None
         self.EMULATE = True # defaults
@@ -77,7 +77,7 @@ class Program(object):
                          Compiler.instructions.mulrs_class, \
                          Compiler.instructions.gmulrs, \
                          Compiler.instructions.dotprods_class, \
-                         Compiler.instructions.gdotprods, \
+                         Compiler.instructions.gdotprods_class, \
                          Compiler.instructions.asm_input_class, \
                          Compiler.instructions.gasm_input_class]
         import Compiler.GC.instructions as gc
@@ -131,7 +131,9 @@ class Program(object):
         if progname.endswith('.mpc'):
             progname = progname[:-4]
         
-        if assemblymode:
+        if os.path.exists(args[0]):
+            self.infile = args[0]
+        elif assemblymode:
             self.infile = self.programs_dir + '/Source/' + progname + '.asm'
         else:
             self.infile = self.programs_dir + '/Source/' + progname + '.mpc'
@@ -154,7 +156,6 @@ class Program(object):
         # make sure there is a current tape
         self.curr_tape
         tape_index = len(self.tapes)
-        name += "-%d" % tape_index
         self.tape_stack.append(self.curr_tape)
         self.curr_tape = Tape(name, self)
         self.curr_tape.prevent_direct_memory_write = True
@@ -323,10 +324,8 @@ class Program(object):
             # wait for main thread to finish
             self.schedule_wait(self._curr_tape)
             self.main_thread_running = False
-        name = '%s-%d' % (self.name, self.main_ctr)
-        self._curr_tape = Tape(name, self)
+        self._curr_tape = Tape(self.name, self)
         self.tapes.append(self._curr_tape)
-        self.main_ctr += 1
         # add to schedule
         self.schedule_start(self._curr_tape)
         self.main_thread_running = True
@@ -405,11 +404,17 @@ class Program(object):
     def optimize_for_gc(self):
         pass
 
+    def get_tape_counter(self):
+        res = self.tape_counter
+        self.tape_counter += 1
+        return res
+
 class Tape:
     """ A tape contains a list of basic blocks, onto which instructions are added. """
     def __init__(self, name, program):
         """ Set prime p and the initial instructions and registers. """
         self.program = program
+        name += '-%d' % program.get_tape_counter()
         self.init_names(name)
         self.init_registers()
         self.req_tree = self.ReqNode(name)
@@ -627,7 +632,8 @@ class Tape:
             print 'Re-allocating...'
             allocator = al.StraightlineAllocator(REG_MAX)
             def alloc_loop(block):
-                for reg in block.used_from_scope:
+                for reg in sorted(block.used_from_scope, 
+                                  key=lambda x: (x.reg_type, x.i)):
                     allocator.alloc_reg(reg, block.alloc_pool)
                 for child in block.children:
                     if child.instructions:
@@ -647,7 +653,7 @@ class Tape:
         print 'Compile offline data requirements...'
         self.req_num = self.req_tree.aggregate()
         print 'Tape requires', self.req_num
-        for req,num in self.req_num.items():
+        for req,num in sorted(self.req_num.items()):
             if num == float('inf'):
                 num = -1
             if req[1] in data_types:

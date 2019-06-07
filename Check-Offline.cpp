@@ -5,9 +5,9 @@
 
 #include "Math/gf2n.h"
 #include "Math/gfp.h"
-#include "Math/Share.h"
-#include "Auth/fake-stuff.h"
-#include "Auth/MAC_Check.h"
+#include "Protocols/Share.h"
+#include "Protocols/fake-stuff.h"
+#include "Protocols/MAC_Check.h"
 #include "Tools/ezOptionParser.h"
 #include "Exceptions/Exceptions.h"
 #include "GC/MaliciousRepSecret.h"
@@ -15,8 +15,9 @@
 #include "Math/Setup.h"
 #include "Processor/Data_Files.h"
 
-#include "Auth/fake-stuff.hpp"
+#include "Protocols/fake-stuff.hpp"
 #include "Processor/Data_Files.hpp"
+#include "Math/Z2k.hpp"
 
 #include <sstream>
 #include <fstream>
@@ -309,7 +310,7 @@ int main(int argc, const char** argv)
   cout << "--------------\n";
   cout << "Final Keys :\t p: " << keyp << "\n\t\t 2: " << key2 << endl;
 
-  check<sgfp>(keyp, N);
+  check<Share<gfp>>(keyp, N);
   check<Share<gf2n>>(key2, N);
 
   if (N == 3)

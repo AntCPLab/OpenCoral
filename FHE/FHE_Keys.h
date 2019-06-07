@@ -48,9 +48,8 @@ class FHE_SK
   // Assumes Ring and prime of mess have already been set correctly
   // Ciphertext c must be at level 0 or an error occurs
   //            c must have same params as SK
-  void decrypt(Plaintext<gfp,FFT_Data,bigint>& mess,const Ciphertext& c) const;
-  void decrypt(Plaintext<gfp,PPData,bigint>& mess,const Ciphertext& c) const;
-  void decrypt(Plaintext<gf2n_short,P2Data,int>& mess,const Ciphertext& c) const;
+  template<class T, class FD, class S>
+  void decrypt(Plaintext<T, FD, S>& mess,const Ciphertext& c) const;
 
   template <class FD>
   Plaintext<typename FD::T, FD, typename FD::S> decrypt(const Ciphertext& c, const FD& FieldD);
@@ -121,9 +120,8 @@ class FHE_PK
 
   
   // c must have same params as PK and rc
-  void encrypt(Ciphertext& c, const Plaintext<gfp,FFT_Data,bigint>& mess, const Random_Coins& rc) const;
-  void encrypt(Ciphertext& c, const Plaintext<gfp,PPData,bigint>& mess, const Random_Coins& rc) const;
-  void encrypt(Ciphertext& c, const Plaintext<gf2n_short,P2Data,int>& mess, const Random_Coins& rc) const;
+  template <class T, class FD, class S>
+  void encrypt(Ciphertext& c, const Plaintext<T, FD, S>& mess, const Random_Coins& rc) const;
 
   template <class S>
   void encrypt(Ciphertext& c, const vector<S>& mess, const Random_Coins& rc) const;
@@ -163,5 +161,23 @@ class FHE_PK
 
 // PK and SK must have the same params, otherwise an error
 void KeyGen(FHE_PK& PK,FHE_SK& SK,PRNG& G);
+
+
+class FHE_KeyPair
+{
+public:
+  FHE_PK pk;
+  FHE_SK sk;
+
+  FHE_KeyPair(const FHE_Params& params, const bigint& pr = 0) :
+      pk(params, pr), sk(params, pr)
+  {
+  }
+
+  void generate(PRNG& G)
+  {
+    KeyGen(pk, sk, G);
+  }
+};
 
 #endif

@@ -14,6 +14,8 @@
 
 class MachineBase : public OfflineMachineBase
 {
+    template<class T> friend class CowGearPrep;
+
 protected:
     vector<GeneratorBase*> generators;
     string hostname;
@@ -24,6 +26,7 @@ protected:
 
 public:
     int sec;
+    int drown_sec;
     int field_size;
     int extra_slack;
     bool produce_inputs;

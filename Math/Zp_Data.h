@@ -22,11 +22,11 @@ using namespace std;
    #ifdef LargeM
      #define MAX_MOD_SZ 20
    #else
-     #define MAX_MOD_SZ 2
+     #define MAX_MOD_SZ 10
   #endif
 #endif
 
-class modp;
+template<int L> class modp_;
 
 class Zp_Data
 {
@@ -39,7 +39,9 @@ class Zp_Data
   template <int T>
   void Mont_Mult_(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const;
   void Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const;
-  void Mont_Mult_variable(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const;
+  void Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y, int t) const;
+  void Mont_Mult_variable(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const
+  { Mont_Mult(z, x, y, t); }
 
   public:
 
@@ -78,28 +80,26 @@ class Zp_Data
 
   bool operator!=(const Zp_Data& other) const;
 
-   friend void to_bigint(bigint& ans,const modp& x,const Zp_Data& ZpD,bool reduce);
+   template<int L> friend void to_modp(modp_<L>& ans,int x,const Zp_Data& ZpD);
+   template<int L> friend void to_modp(modp_<L>& ans,const bigint& x,const Zp_Data& ZpD);
 
-   friend void to_modp(modp& ans,int x,const Zp_Data& ZpD);
-   friend void to_modp(modp& ans,const bigint& x,const Zp_Data& ZpD);
+   template<int L> friend void Add(modp_<L>& ans,const modp_<L>& x,const modp_<L>& y,const Zp_Data& ZpD);
+   template<int L> friend void Sub(modp_<L>& ans,const modp_<L>& x,const modp_<L>& y,const Zp_Data& ZpD);
+   template<int L> friend void Mul(modp_<L>& ans,const modp_<L>& x,const modp_<L>& y,const Zp_Data& ZpD);
+   template<int L> friend void Sqr(modp_<L>& ans,const modp_<L>& x,const Zp_Data& ZpD);
+   template<int L> friend void Negate(modp_<L>& ans,const modp_<L>& x,const Zp_Data& ZpD);
+   template<int L> friend void Inv(modp_<L>& ans,const modp_<L>& x,const Zp_Data& ZpD);
 
-   friend void Add(modp& ans,const modp& x,const modp& y,const Zp_Data& ZpD);
-   friend void Sub(modp& ans,const modp& x,const modp& y,const Zp_Data& ZpD);
-   friend void Mul(modp& ans,const modp& x,const modp& y,const Zp_Data& ZpD);
-   friend void Sqr(modp& ans,const modp& x,const Zp_Data& ZpD);
-   friend void Negate(modp& ans,const modp& x,const Zp_Data& ZpD);
-   friend void Inv(modp& ans,const modp& x,const Zp_Data& ZpD);
+   template<int L> friend void Power(modp_<L>& ans,const modp_<L>& x,int exp,const Zp_Data& ZpD);
+   template<int L> friend void Power(modp_<L>& ans,const modp_<L>& x,const bigint& exp,const Zp_Data& ZpD);
 
-   friend void Power(modp& ans,const modp& x,int exp,const Zp_Data& ZpD);
-   friend void Power(modp& ans,const modp& x,const bigint& exp,const Zp_Data& ZpD);
+   template<int L> friend void assignOne(modp_<L>& x,const Zp_Data& ZpD);
+   template<int L> friend void assignZero(modp_<L>& x,const Zp_Data& ZpD);
+   template<int L> friend bool isZero(const modp_<L>& x,const Zp_Data& ZpD);
+   template<int L> friend bool isOne(const modp_<L>& x,const Zp_Data& ZpD);
+   template<int L> friend bool areEqual(const modp_<L>& x,const modp_<L>& y,const Zp_Data& ZpD);
 
-   friend void assignOne(modp& x,const Zp_Data& ZpD);
-   friend void assignZero(modp& x,const Zp_Data& ZpD);
-   friend bool isZero(const modp& x,const Zp_Data& ZpD);
-   friend bool isOne(const modp& x,const Zp_Data& ZpD);
-   friend bool areEqual(const modp& x,const modp& y,const Zp_Data& ZpD);
-
-   friend class modp;
+   template<int L> friend class modp_;
 
    friend ostream& operator<<(ostream& s,const Zp_Data& ZpD);
    friend istream& operator>>(istream& s,Zp_Data& ZpD);
@@ -192,22 +192,24 @@ inline void Zp_Data::Sub(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) c
 {
   switch (t)
   {
+  /*
   case 2:
     Sub<2>(ans, x, y);
     break;
   case 1:
     Sub<1>(ans, x, y);
     break;
+   */
   default:
     Sub<0>(ans, x, y);
     break;
   }
 }
 
-#ifdef __BMI2__
 template <int T>
 inline void Zp_Data::Mont_Mult_(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const
 {
+#ifdef __BMI2__
   mp_limb_t ans[2*MAX_MOD_SZ+1],u;
   inline_mpn_zero(ans + T + 1, T);
   // First loop
@@ -227,8 +229,10 @@ inline void Zp_Data::Mont_Mult_(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t*
      { mpn_sub_fixed_n<T>(z,ans+T,prA); }
   else
      { inline_mpn_copyi(z,ans+T,T); }
-}
+#else
+  Mont_Mult(z, x, y, t);
 #endif
+}
 
 inline void Zp_Data::Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const
 {

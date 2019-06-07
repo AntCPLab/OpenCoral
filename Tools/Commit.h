@@ -36,9 +36,16 @@ class AllCommitments
     vector<octetStream> comms, opens;
 
 public:
+    vector<octetStream> messages;
+
     AllCommitments(const Player& P) : P(P), comms(P.num_players()), opens(P.num_players()) {}
     // no checks yet
     void commit_and_open(const octetStream& message);
+    void commit(const octetStream& message);
+    // only open randomness
+    void open();
+    // open and check everything
+    void open(const octetStream& message);
     void check(int player, const octetStream& message);
     void check_relative(int diff, const octetStream& message);
 };

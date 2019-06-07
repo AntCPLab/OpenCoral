@@ -69,12 +69,6 @@ protected:
   ~Rq_Element()
      { ; }
 
-  // Copy Assignment
-  Rq_Element& operator=(const Rq_Element& e)
-    { if (this!=&e) { assign(e); }
-      return *this;
-    }
-
   const Ring_Element& get(int i) const { return a[i]; }
 
   /* Functional Operators */
@@ -83,6 +77,9 @@ protected:
   friend void sub(Rq_Element& ans,const Rq_Element& a,const Rq_Element& b);
   friend void mul(Rq_Element& ans,const Rq_Element& a,const Rq_Element& b);
   friend void mul(Rq_Element& ans,const Rq_Element& a,const bigint& b);
+
+  template<class S>
+  Rq_Element& operator+=(const vector<S>& other);
 
   Rq_Element& operator+=(const Rq_Element& other) { add(*this, *this, other); return *this; }
 
@@ -155,5 +152,13 @@ template<int L>
 inline void mul(Rq_Element& ans,const bigint& a,const Rq_Element& b)
 { mul(ans,b,a); }
 
-#endif
+template<class S>
+Rq_Element& Rq_Element::operator+=(const vector<S>& other)
+{
+  Rq_Element tmp = *this;
+  tmp.from_vec(other, lev);
+  add(*this, *this, tmp);
+  return *this;
+}
 
+#endif

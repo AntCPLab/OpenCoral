@@ -134,6 +134,9 @@ def random_perm(n):
 
     WARNING: randomness fixed at compile-time, this is NOT secure
     """
+    if not Program.prog.options.insecure:
+        raise CompilerError('no secure implementation of Waksman permution, '
+                            'use --insecure to activate')
     a = range(n)
     for i in range(n-1, 0, -1):
         j = randint(0, i)

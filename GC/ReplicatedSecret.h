@@ -15,7 +15,7 @@ using namespace std;
 #include "Math/FixedVec.h"
 #include "Math/BitVec.h"
 #include "Tools/SwitchableOutput.h"
-#include "Processor/Replicated.h"
+#include "Protocols/Replicated.h"
 
 namespace GC
 {

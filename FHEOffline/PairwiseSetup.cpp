@@ -8,12 +8,14 @@
 #include "FHE/NTL-Subs.h"
 #include "Math/Setup.h"
 #include "FHEOffline/Proof.h"
+#include "FHEOffline/PairwiseMachine.h"
+#include "Tools/Commit.h"
+#include "Tools/Bundle.h"
 
 template <class FD>
 void PairwiseSetup<FD>::init(const Player& P, int sec, int plaintext_length,
     int& extra_slack)
 {
-    sec = max(sec, 40);
     cout << "Finding parameters for security " << sec << " and field size ~2^"
             << plaintext_length << endl;
     PRNG G;
@@ -42,6 +44,119 @@ void PairwiseSetup<FD>::init(const Player& P, int sec, int plaintext_length,
     alpha = FieldD;
     alpha.randomize(G, Diagonal);
     alphai = alpha.element(0);
+}
+
+template <class FD>
+void PairwiseSetup<FD>::secure_init(Player& P, PairwiseMachine& machine, int plaintext_length, int sec)
+{
+    machine.sec = sec;
+    sec = max(sec, 40);
+    machine.drown_sec = sec;
+    string filename = PREP_DIR "Params-" + FD::T::type_string() + "-"
+            + to_string(plaintext_length) + "-" + to_string(sec) + "-P"
+            + to_string(P.my_num());
+    try
+    {
+        ifstream file(filename);
+        octetStream os;
+        os.input(file);
+        os.get(machine.extra_slack);
+        params.unpack(os);
+        FieldD.unpack(os);
+        FieldD.init_field();
+        check(P, machine);
+    }
+    catch (...)
+    {
+        cout << "Finding parameters for security " << sec << " and field size ~2^"
+                << plaintext_length << endl;
+        machine.extra_slack = generate_semi_setup(plaintext_length, sec, params, FieldD, true);
+        check(P, machine);
+        octetStream os;
+        os.store(machine.extra_slack);
+        params.pack(os);
+        FieldD.pack(os);
+        ofstream file(filename);
+        os.output(file);
+    }
+    alpha = FieldD;
+}
+
+template <class FD>
+void PairwiseSetup<FD>::check(Player& P, PairwiseMachine& machine)
+{
+    Bundle<octetStream> bundle(P);
+    bundle.mine.store(machine.extra_slack);
+    params.pack(bundle.mine);
+    FieldD.hash(bundle.mine);
+    P.Broadcast_Receive(bundle, true);
+    for (auto& os : bundle)
+        if (os != bundle.mine)
+            throw runtime_error("mismatch of parameters among parties");
+}
+
+template <class FD>
+void PairwiseSetup<FD>::covert_key_generation(Player& P,
+        PairwiseMachine& machine, int num_runs)
+{
+    vector<SeededPRNG> G(num_runs);
+    vector<AllCommitments> commits(num_runs, P);
+    vector<FHE_KeyPair> my_keys(num_runs, {params, FieldD.get_prime()});
+    Bundle<octetStream> pks(P);
+
+    for (int i = 0; i < num_runs; i++)
+    {
+        my_keys[i].generate(G[i]);
+        my_keys[i].pk.pack(pks.mine);
+        commits[i].commit({SEED_SIZE, G[i].get_seed()});
+    }
+
+    P.Broadcast_Receive(pks);
+    int challenge = GlobalPRNG(P).get_uint(num_runs);
+    machine.sk = my_keys[challenge].sk;
+    machine.pk = my_keys[challenge].pk;
+
+    for (int i = 0; i < num_runs; i++)
+        if (i != challenge)
+            commits[i].open({SEED_SIZE, G[i].get_seed()});
+
+    for (int i = 0; i < num_runs; i++)
+    {
+         for (int j = 0; j < P.num_players(); j++)
+            if (j != P.my_num())
+            {
+                FHE_PK pk(params);
+                pk.unpack(pks[j]);
+                if (i == challenge)
+                    machine.other_pks[j] = pk;
+                else
+                {
+                    FHE_KeyPair pair(params, FieldD.get_prime());
+                    PRNG prng(commits[i].messages[j]);
+                    pair.generate(prng);
+                    if (pair.pk != pk)
+                        throw bad_keygen("covert pairwise key generation");
+                }
+            }
+    }
+}
+
+template <class FD>
+void PairwiseSetup<FD>::covert_mac_generation(Player& P,
+        PairwiseMachine& machine, int num_runs)
+{
+    vector<const FHE_PK*> pks;
+    for (auto& pk : machine.other_pks)
+        pks.push_back(&pk);
+    covert_generation(alpha, machine.enc_alphas, pks, &P, num_runs, Diagonal);
+    alphai = alpha.element(0);
+}
+
+template <class FD>
+void PairwiseSetup<FD>::set_alphai(T alphai)
+{
+    this->alphai = alphai;
+    alpha.assign_constant(alphai);
 }
 
 template class PairwiseSetup<FFT_Data>;

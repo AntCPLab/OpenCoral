@@ -2,8 +2,6 @@
 
 #include "Memory.hpp"
 #include "Online-Thread.hpp"
-#include "Replicated.hpp"
-#include "Beaver.hpp"
 
 #include "Exceptions/Exceptions.h"
 
@@ -40,9 +38,11 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   char filename[2048];
   bool read_mac_keys = false;
 
+  sgf2n::clear::init_field(lg2);
+
   try
     {
-      read_setup(prep_dir_prefix);
+      sint::clear::read_setup(N.num_players(), opts.lgp, lg2);
       ::read_mac_keys(prep_dir_prefix, my_number, N.num_players(), alphapi, alpha2i);
       read_mac_keys = true;
     }
@@ -53,7 +53,6 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
           << endl;
 #endif
       sint::clear::init_default(opts.lgp);
-      gf2n::init_field(gf2n::default_degree());
       // make directory for outputs if necessary
       mkdir_p(PREP_DIR);
     }
@@ -83,7 +82,8 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   cerr << "MAC Key 2 = " << alpha2i << endl;
 #endif
 
-  gfp1::init_field(gfp::pr(), false);
+  // for OT-based preprocessing
+  sint::clear::next::template init<typename sint::clear>(false);
 
   // Initialize the global memory
   if (memtype.compare("new")==0)
@@ -374,6 +374,9 @@ void Machine<sint, sgf2n>::run()
   df.seekg(pos);
   df.prune();
 #endif
+
+  sint::LivePrep::teardown();
+  sgf2n::LivePrep::teardown();
 
 #ifdef VERBOSE
   cerr << "End of prog" << endl;

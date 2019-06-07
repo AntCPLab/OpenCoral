@@ -11,11 +11,11 @@
 #include "Processor/PrivateOutput.hpp"
 //#include "Processor/Input.hpp"
 //#include "Processor/Beaver.hpp"
-//#include "Processor/Shamir.hpp"
-//#include "Processor/ShamirInput.hpp"
-//#include "Processor/Replicated.hpp"
-//#include "Auth/MaliciousRepMC.hpp"
-//#include "Auth/ShamirMC.hpp"
+//#include "Protocols/Shamir.hpp"
+//#include "Protocols/ShamirInput.hpp"
+//#include "Protocols/Replicated.hpp"
+//#include "Protocols/MaliciousRepMC.hpp"
+//#include "Protocols/ShamirMC.hpp"
 
 #include <stdlib.h>
 #include <algorithm>
@@ -1134,10 +1134,10 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.Proc2.protocol.mulrs(start, Proc.Proc2);
         return;
       case DOTPRODS:
-        Proc.Procp.protocol.dotprods(start, Proc.Procp);
+        Proc.Procp.dotprods(start, size);
         return;
       case GDOTPRODS:
-        Proc.Proc2.protocol.dotprods(start, Proc.Proc2);
+        Proc.Proc2.dotprods(start, size);
         return;
       case JMP:
         Proc.PC += (signed int) n;

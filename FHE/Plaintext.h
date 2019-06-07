@@ -17,12 +17,6 @@
  * deal with
  */
 
-#include "Math/bigint.h"
-#include "FHE/FFT_Data.h"
-#include "FHE/P2Data.h"
-#include "FHE/PPData.h"
-#include "Math/gfp.h"
-#include "Math/gf2n.h"
 #include "FHE/Generator.h"
 
 #include <vector>
@@ -148,6 +142,7 @@ class Plaintext
 
   void assign_zero(PT_Type t = Evaluation);
   void assign_one(PT_Type t = Evaluation);
+  void assign_constant(T constant, PT_Type t = Evaluation);
 
   friend void add<>(Plaintext<T,FD,S>& z,const Plaintext<T,FD,S>& x,const Plaintext<T,FD,S>& y);
   friend void sub<>(Plaintext<T,FD,S>& z,const Plaintext<T,FD,S>& x,const Plaintext<T,FD,S>& y);

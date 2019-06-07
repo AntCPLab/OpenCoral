@@ -5,7 +5,7 @@
 
 #include <FHEOffline/DataSetup.h>
 #include "FHEOffline/DistKeyGen.h"
-#include "Auth/fake-stuff.h"
+#include "Protocols/fake-stuff.h"
 #include "FHE/NTL-Subs.h"
 #include "Tools/benchmarking.h"
 
@@ -69,7 +69,7 @@ void PartSetup<FD>::generate_setup(int n_parties, int plaintext_length, int sec,
 void DataSetup::write_setup(string dir, bool skip_2)
 {
   ofstream outf;
-  write_online_setup(outf, dir, FTD.get_prime(), gf2n::degree());
+  write_online_setup(outf, dir, FTD.get_prime(), gf2n_short::degree());
   setup_p.output_setup(outf);
   if (not skip_2)
     setup_2.output_setup(outf);
@@ -83,7 +83,7 @@ void DataSetup::write_setup(bool skip_2)
 string DataSetup::get_prep_dir(int n_parties) const
 {
   return ::get_prep_dir(n_parties, FTD.get_prime().numBits(),
-      gf2n::degree());
+      gf2n_short::degree());
 }
 
 void DataSetup::write_setup(const Names& N, bool skip_2)

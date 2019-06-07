@@ -11,21 +11,11 @@
 
 using namespace std;
 
-CommsecKeysPackage::CommsecKeysPackage(vector<public_signing_key> playerpubs,
-                                             secret_signing_key mypriv,
-                                             public_signing_key mypub)
-{
-    player_public_keys = playerpubs;
-    my_secret_key = mypriv;
-    my_public_key = mypub;
-}
-
 void Names::init(int player,int pnb,int my_port,const char* servername)
 {
   player_no=player;
   portnum_base=pnb;
   setup_names(servername, my_port);
-  keys = NULL;
   setup_server();
 }
 
@@ -47,7 +37,6 @@ void Names::init(int player,int pnb,vector<octet*> Nms)
   for (int i=0; i<nplayers; i++) {
       names[i]=(char*)Nms[i];
   }
-  keys = NULL;
   setup_server();
 }
 
@@ -64,7 +53,6 @@ void Names::init(int player, int pnb, const string& filename, int nplayers_wante
   player_no = player;
   nplayers = 0;
   portnum_base = pnb;
-  keys = NULL;
   string line;
   while (getline(hostsfile, line))
   {
@@ -91,11 +79,6 @@ void Names::setup_ports()
   ports.resize(nplayers);
   for (int i = 0; i < nplayers; i++)
     ports[i] = default_port(i);
-}
-
-void Names::set_keys( CommsecKeysPackage *keys )
-{
-    this->keys = keys;
 }
 
 void Names::setup_names(const char *servername, int my_port)
@@ -167,7 +150,6 @@ Names::Names(const Names& other)
   portnum_base = other.portnum_base;
   names = other.names;
   ports = other.ports;
-  keys = NULL;
   server = 0;
 }
 
@@ -292,6 +274,9 @@ long MultiPlayer<T>::receive_long(int i) const
 
 void Player::send_to(int player,const octetStream& o,bool donthash) const
 {
+#ifdef VERBOSE_COMM
+  cerr << "sending to " << player << endl;
+#endif
   TimeScope ts(comm_stats["Sending directly"].add(o));
   send_to_no_stats(player, o);
   if (!donthash)
@@ -323,6 +308,9 @@ void MultiPlayer<T>::send_all(const octetStream& o,bool donthash) const
 
 void Player::receive_player(int i,octetStream& o,bool donthash) const
 {
+#ifdef VERBOSE_COMM
+  cerr << "receiving from " << i << endl;
+#endif
   TimeScope ts(timer);
   receive_player_no_stats(i, o);
   if (!donthash)
@@ -394,10 +382,15 @@ void Player::exchange_relative(int offset, octetStream& o) const
 
 
 template<class T>
-void MultiPlayer<T>::pass_around(octetStream& o, octetStream& to_receive, int offset) const
+void MultiPlayer<T>::pass_around_no_stats(octetStream& o, octetStream& to_receive, int offset) const
+{
+  o.exchange(sockets.at(get_player(offset)), sockets.at(get_player(-offset)), to_receive);
+}
+
+void Player::pass_around(octetStream& o, octetStream& to_receive, int offset) const
 {
   TimeScope ts(comm_stats["Passing around"].add(o));
-  o.exchange(sockets.at(get_player(offset)), sockets.at(get_player(-offset)), to_receive);
+  pass_around_no_stats(o, to_receive, offset);
   sent += o.get_length();
 }
 
@@ -488,8 +481,7 @@ ThreadPlayer::ThreadPlayer(const Names& Nms, int id_base) : PlainPlayer(Nms, id_
       receivers.push_back(new Receiver(sockets[i]));
       receivers[i]->start();
 
-      senders.push_back(new Sender(socket_to_send(i)));
-      senders[i]->start();
+      senders.push_back(new Sender<int>(socket_to_send(i)));
     }
 }
 
@@ -505,7 +497,6 @@ ThreadPlayer::~ThreadPlayer()
 
   for (unsigned int i = 0; i < senders.size(); i++)
     {
-      senders[i]->stop();
       if (senders[i]->timer.elapsed() > 0)
         cerr << "Waiting for sending to " << i << ": " << senders[i]->timer.elapsed() << endl;
       delete senders[i];
@@ -554,68 +545,7 @@ RealTwoPartyPlayer::RealTwoPartyPlayer(const Names& Nms, int other_player, int i
 
 RealTwoPartyPlayer::~RealTwoPartyPlayer()
 {
-  for(size_t i=0; i < my_secret_key.size(); i++) {
-      my_secret_key[i] = 0;
-  }
   close_client_socket(socket);
-}
-
-static pair<keyinfo,keyinfo> sts_initiator(int socket, CommsecKeysPackage *keys, int other_player)
-{
-  sts_msg1_t m1;
-  sts_msg2_t m2;
-  sts_msg3_t m3;
-  octetStream socket_stream;
-
-  // Start Station to Station Protocol
-  STS ke(&keys->player_public_keys[other_player][0], &keys->my_public_key[0], &keys->my_secret_key[0]);
-  m1 = ke.send_msg1();
-  socket_stream.reset_write_head();
-  socket_stream.append(m1.bytes, sizeof m1.bytes);
-  socket_stream.Send(socket);
-  socket_stream.Receive(socket);
-  socket_stream.consume(m2.pubkey, sizeof m2.pubkey);
-  socket_stream.consume(m2.sig, sizeof m2.sig);
-  m3 = ke.recv_msg2(m2);
-  socket_stream.reset_write_head();
-  socket_stream.append(m3.bytes, sizeof m3.bytes);
-  socket_stream.Send(socket);
-
-  // Use results of STS to generate send and receive keys.
-  vector<unsigned char> sendKey = ke.derive_secret(crypto_secretbox_KEYBYTES);
-  vector<unsigned char> recvKey = ke.derive_secret(crypto_secretbox_KEYBYTES);
-  keyinfo sendkeyinfo = make_pair(sendKey,0);
-  keyinfo recvkeyinfo = make_pair(recvKey,0);
-  return make_pair(sendkeyinfo,recvkeyinfo);
-}
-
-static pair<keyinfo,keyinfo> sts_responder(int socket, CommsecKeysPackage *keys, int other_player)
-    // secret_signing_key mykey, public_signing_key mypubkey, public_signing_key theirkey)
-{
-  sts_msg1_t m1;
-  sts_msg2_t m2;
-  sts_msg3_t m3;
-  octetStream socket_stream;
-
-  // Start Station to Station Protocol for the responder
-  STS ke(&keys->player_public_keys[other_player][0], &keys->my_public_key[0], &keys->my_secret_key[0]);
-  socket_stream.Receive(socket);
-  socket_stream.consume(m1.bytes, sizeof m1.bytes);
-  m2 = ke.recv_msg1(m1);
-  socket_stream.reset_write_head();
-  socket_stream.append(m2.pubkey, sizeof m2.pubkey);
-  socket_stream.append(m2.sig, sizeof m2.sig);
-  socket_stream.Send(socket);
-  socket_stream.Receive(socket);
-  socket_stream.consume(m3.bytes, sizeof m3.bytes);
-  ke.recv_msg3(m3);
-
-  // Use results of STS to generate send and receive keys.
-  vector<unsigned char> recvKey = ke.derive_secret(crypto_secretbox_KEYBYTES);
-  vector<unsigned char> sendKey = ke.derive_secret(crypto_secretbox_KEYBYTES);
-  keyinfo sendkeyinfo = make_pair(sendKey,0);
-  keyinfo recvkeyinfo = make_pair(recvKey,0);
-  return make_pair(sendkeyinfo,recvkeyinfo);
 }
 
 void RealTwoPartyPlayer::setup_sockets(int other_player, const Names &nms, int portNum, int id)
@@ -628,11 +558,6 @@ void RealTwoPartyPlayer::setup_sockets(int other_player, const Names &nms, int p
         fprintf(stderr, "Setting up server with id %d\n",id);
 #endif
         socket = server->get_connection_socket(id);
-        if(NULL != nms.keys) {
-            pair<keyinfo,keyinfo> send_recv_pair = sts_responder(socket, nms.keys, other_player);
-            player_send_key = send_recv_pair.first;
-            player_recv_key = send_recv_pair.second;
-        }
     }
     else {
 #ifdef DEBUG_NETWORKING
@@ -640,13 +565,7 @@ void RealTwoPartyPlayer::setup_sockets(int other_player, const Names &nms, int p
 #endif
         set_up_client_socket(socket, hostname, portNum);
         ::send(socket, (unsigned char*)&id, sizeof(id));
-        if(NULL != nms.keys) {
-            pair<keyinfo,keyinfo> send_recv_pair = sts_initiator(socket, nms.keys, other_player);
-            player_send_key = send_recv_pair.first;
-            player_recv_key = send_recv_pair.second;
-        }
     }
-    p2pcommsec = (0 != nms.keys);
 }
 
 int RealTwoPartyPlayer::other_player_num() const
@@ -656,10 +575,6 @@ int RealTwoPartyPlayer::other_player_num() const
 
 void RealTwoPartyPlayer::send(octetStream& o)
 {
-  if(p2pcommsec) {
-    o.encrypt_sequence(&player_send_key.first[0], player_send_key.second);
-    player_send_key.second++;
-  }
   TimeScope ts(comm_stats["Sending one-to-one"].add(o));
   o.Send(socket);
   sent += o.get_length();
@@ -677,10 +592,6 @@ void RealTwoPartyPlayer::receive(octetStream& o)
   TimeScope ts(timer);
   o.reset_write_head();
   o.Receive(socket);
-  if(p2pcommsec) {
-    o.decrypt_sequence(&player_recv_key.first[0], player_recv_key.second);
-    player_recv_key.second++;
-  }
 }
 
 void VirtualTwoPartyPlayer::receive(octetStream& o)

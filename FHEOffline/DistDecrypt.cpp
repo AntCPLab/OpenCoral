@@ -1,5 +1,6 @@
 
 #include "DistDecrypt.h"
+#include "FHE/P2Data.h"
 
 template<class FD>
 DistDecrypt<FD>::DistDecrypt(const Player& P, const FHE_SK& share,

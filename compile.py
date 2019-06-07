@@ -63,6 +63,8 @@ def main():
                       help="bit length of sint in binary circuit (default: 0 for arithmetic)")
     parser.add_option("-F", "--field", dest="field", default=0,
                       help="bit length of sint modulo prime (default: 64)")
+    parser.add_option("-I", "--insecure", action="store_true", dest="insecure",
+                      help="activate insecure functionality for benchmarking")
     options,args = parser.parse_args()
     if len(args) < 1:
         parser.print_help()

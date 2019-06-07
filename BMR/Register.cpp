@@ -914,12 +914,6 @@ void GarbleRegister::load(vector<GC::ReadAccess< GC::Secret<GarbleRegister> > >&
 			TrustedProgramParty::s().load_wire(reg);
 }
 
-void KeyVector::operator=(const KeyVector& other)
-{
-	resize(other.size());
-	avx_memcpy(data(), other.data(), byte_size());
-}
-
 KeyVector KeyVector::operator^(const KeyVector& other) const
 {
 	if (size() != other.size())

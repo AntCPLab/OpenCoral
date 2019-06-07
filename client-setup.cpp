@@ -11,9 +11,9 @@
 
 #include "Math/gf2n.h"
 #include "Math/gfp.h"
-#include "Math/Share.h"
+#include "Protocols/Share.h"
 #include "Math/Setup.h"
-#include "Auth/fake-stuff.h"
+#include "Protocols/fake-stuff.h"
 #include "Exceptions/Exceptions.h"
 
 #include "Math/Setup.h"

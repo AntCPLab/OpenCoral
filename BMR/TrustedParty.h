@@ -121,7 +121,7 @@ private:
 #endif
 
 	vector<octetStream> spdz_wires[SPDZ_OP_N];
-	vector< Share<gf2n> > mask_shares;
+	vector< Share<gf2n_long> > mask_shares;
 
 	Timer random_timer;
 

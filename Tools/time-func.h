@@ -22,6 +22,7 @@ class Timer
   void reset();
 
   double elapsed();
+  double elapsed_then_reset();
   double idle();
 
   private:

@@ -48,6 +48,13 @@ double Timer::elapsed()
   return convert_ns_to_seconds(res);
 }
 
+double Timer::elapsed_then_reset()
+{
+  double res = elapsed();
+  reset();
+  return res;
+}
+
 double Timer::idle()
 {
   if (running)

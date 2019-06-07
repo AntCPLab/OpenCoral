@@ -1,6 +1,7 @@
 
 #include "Zp_Data.h"
 #include "mpn_fixed.h"
+#include "gf2nlong.h"
 
 
 void Zp_Data::init(const bigint& p,bool mont)
@@ -44,10 +45,11 @@ void Zp_Data::init(const bigint& p,bool mont)
 
 __m128i Zp_Data::get_random128(PRNG& G)
 {
+  assert(t == 2);
   while (true)
     {
       __m128i res = G.get_doubleword();
-      if (mpn_cmp((mp_limb_t*)&res, prA, t) < 0)
+      if (__uint128_t(res) < __uint128_t(int128(prA[1], prA[0]).a))
         return res;
     }
 }
@@ -55,7 +57,7 @@ __m128i Zp_Data::get_random128(PRNG& G)
 
 #include <stdlib.h>
 
-void Zp_Data::Mont_Mult_variable(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const
+void Zp_Data::Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y,int t) const
 {
   mp_limb_t ans[2*MAX_MOD_SZ+1],u;
   // First loop

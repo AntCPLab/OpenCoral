@@ -17,13 +17,14 @@ USE_NTL = 0
 USE_GF2N_LONG = 1
 
 # set to -march=<architecture> for optimization
+# SSE4.2 is required homomorphic encryption in GF(2^n) when compiling with clang
 # AES-NI is required for BMR
 # PCLMUL is required for GF(2^128) computation
 # AVX2 support (Haswell or later) is used to optimize OT
 # AVX/AVX2 is required for replicated binary secret sharing
 # BMI2 is used to optimize multiplication modulo a prime
 # ADX is used to optimize big integer additions
-ARCH = -mtune=native -msse4.1 -maes -mpclmul -mavx -mavx2 -mbmi2 -madx
+ARCH = -mtune=native -msse4.1 -msse4.2 -maes -mpclmul -mavx -mavx2 -mbmi2 -madx
 
 # allow to set compiler in CONFIG.mine
 CXX = g++
@@ -35,9 +36,11 @@ ifeq ($(USE_GF2N_LONG),1)
 GF2N_LONG = -DUSE_GF2N_LONG
 endif
 
-# MAX_MOD_SZ must be at least ceil(len(p)/len(word))
-# Default is 2, which suffices for 128-bit p
-# MOD = -DMAX_MOD_SZ=2
+# MAX_MOD_SZ (for FHE) must be least and GFP_MOD_SZ (for computation)
+# must be exactly ceil(len(p)/len(word)) for the relevant prime p
+# Default for GFP_MOD_SZ is 2, which is good for 128-bit p
+# Default for MAX_MOD_SZ is 10, which suffices for all Overdrive protocols
+# MOD = -DMAX_MOD_SZ=10 -DGFP_MOD_SZ=2
 
 LDLIBS = -lmpirxx -lmpir -lsodium $(MY_LDLIBS)
 LDLIBS += -lboost_system -lssl -lcrypto

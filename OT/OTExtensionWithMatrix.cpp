@@ -9,6 +9,7 @@
 #include "Math/Z2k.h"
 
 #include "OT/Rectangle.hpp"
+#include "Math/Z2k.hpp"
 
 OTExtensionWithMatrix OTExtensionWithMatrix::setup(TwoPartyPlayer& player,
         int128 delta, OT_ROLE role, bool passive)

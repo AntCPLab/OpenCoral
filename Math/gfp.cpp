@@ -4,21 +4,38 @@
 
 #include "Exceptions/Exceptions.h"
 
-template <int X>
-void gfp_<X>::init_default(int lgp, bool mont)
+#include "Math/bigint.hpp"
+
+template<int X, int L>
+void gfp_<X, L>::init_field(const bigint& p, bool mont)
+{
+  ZpD.init(p, mont);
+  string name = "gfp<" + to_string(X) + ", " + to_string(L) + ">";
+  if (ZpD.get_t() > L)
+    {
+      cout << "modulus is " << p << endl;
+      throw runtime_error(name + " too small for modulus. "
+              "Maybe change GFP_MOD_SZ to " + to_string(ZpD.get_t()));
+    }
+  if (ZpD.get_t() < L)
+    cerr << name << " larger than necessary for modulus " << p << endl;
+}
+
+template <int X, int L>
+void gfp_<X, L>::init_default(int lgp, bool mont)
 {
   init_field(SPDZ_Data_Setup_Primes(lgp), mont);
 }
 
-template <int X>
-void gfp_<X>::almost_randomize(PRNG& G)
+template <int X, int L>
+void gfp_<X, L>::almost_randomize(PRNG& G)
 {
   G.get_octets((octet*)a.x,t()*sizeof(mp_limb_t));
   a.x[t()-1]&=ZpD.mask;
 }
 
-template <int X>
-void gfp_<X>::AND(const gfp_& x,const gfp_& y)
+template <int X, int L>
+void gfp_<X, L>::AND(const gfp_& x,const gfp_& y)
 {
   bigint bi1,bi2;
   to_bigint(bi1,x);
@@ -27,8 +44,8 @@ void gfp_<X>::AND(const gfp_& x,const gfp_& y)
   convert_destroy(bi1);
 }
 
-template <int X>
-void gfp_<X>::OR(const gfp_& x,const gfp_& y)
+template <int X, int L>
+void gfp_<X, L>::OR(const gfp_& x,const gfp_& y)
 {
   bigint bi1,bi2;
   to_bigint(bi1,x);
@@ -37,8 +54,8 @@ void gfp_<X>::OR(const gfp_& x,const gfp_& y)
   convert_destroy(bi1);
 }
 
-template <int X>
-void gfp_<X>::XOR(const gfp_& x,const gfp_& y)
+template <int X, int L>
+void gfp_<X, L>::XOR(const gfp_& x,const gfp_& y)
 {
   bigint bi1,bi2;
   to_bigint(bi1,x);
@@ -47,8 +64,8 @@ void gfp_<X>::XOR(const gfp_& x,const gfp_& y)
   convert_destroy(bi1);
 }
 
-template <int X>
-void gfp_<X>::AND(const gfp_& x,const bigint& y)
+template <int X, int L>
+void gfp_<X, L>::AND(const gfp_& x,const bigint& y)
 {
   bigint bi;
   to_bigint(bi,x);
@@ -56,8 +73,8 @@ void gfp_<X>::AND(const gfp_& x,const bigint& y)
   convert_destroy(bi);
 }
 
-template <int X>
-void gfp_<X>::OR(const gfp_& x,const bigint& y)
+template <int X, int L>
+void gfp_<X, L>::OR(const gfp_& x,const bigint& y)
 {
   bigint bi;
   to_bigint(bi,x);
@@ -65,8 +82,8 @@ void gfp_<X>::OR(const gfp_& x,const bigint& y)
   convert_destroy(bi);
 }
 
-template <int X>
-void gfp_<X>::XOR(const gfp_& x,const bigint& y)
+template <int X, int L>
+void gfp_<X, L>::XOR(const gfp_& x,const bigint& y)
 {
   bigint bi;
   to_bigint(bi,x);
@@ -77,8 +94,8 @@ void gfp_<X>::XOR(const gfp_& x,const bigint& y)
 
 
 
-template <int X>
-void gfp_<X>::SHL(const gfp_& x,int n)
+template <int X, int L>
+void gfp_<X, L>::SHL(const gfp_& x,int n)
 {
   if (!x.is_zero())
     {
@@ -99,8 +116,8 @@ void gfp_<X>::SHL(const gfp_& x,int n)
 }
 
 
-template <int X>
-void gfp_<X>::SHR(const gfp_& x,int n)
+template <int X, int L>
+void gfp_<X, L>::SHR(const gfp_& x,int n)
 {
   if (!x.is_zero())
     {
@@ -121,22 +138,22 @@ void gfp_<X>::SHR(const gfp_& x,int n)
 }
 
 
-template <int X>
-void gfp_<X>::SHL(const gfp_& x,const bigint& n)
+template <int X, int L>
+void gfp_<X, L>::SHL(const gfp_& x,const bigint& n)
 {
   SHL(x,mpz_get_si(n.get_mpz_t()));
 }
 
 
-template <int X>
-void gfp_<X>::SHR(const gfp_& x,const bigint& n)
+template <int X, int L>
+void gfp_<X, L>::SHR(const gfp_& x,const bigint& n)
 {
   SHR(x,mpz_get_si(n.get_mpz_t()));
 }
 
 
-template<int X>
-gfp_<X> gfp_<X>::sqrRoot()
+template<int X, int L>
+gfp_<X, L> gfp_<X, L>::sqrRoot()
 {
     // Temp move to bigint so as to call sqrRootMod
     bigint ti;
@@ -144,13 +161,13 @@ gfp_<X> gfp_<X>::sqrRoot()
     ti = sqrRootMod(ti, ZpD.pr);
     if (!isOdd(ti))
         ti = ZpD.pr - ti;
-    gfp_<X> temp;
+    gfp_<X, L> temp;
     to_gfp(temp, ti);
     return temp;
 }
 
-template <int X>
-void gfp_<X>::reqbl(int n)
+template <int X, int L>
+void gfp_<X, L>::reqbl(int n)
 {
   if ((int)n > 0 && gfp::pr() < bigint(1) << (n-1))
     {
@@ -163,8 +180,8 @@ void gfp_<X>::reqbl(int n)
     }
 }
 
-template<int X>
-bool gfp_<X>::allows(Dtype type)
+template<int X, int L>
+bool gfp_<X, L>::allows(Dtype type)
 {
     switch(type)
     {
@@ -185,6 +202,8 @@ void to_signed_bigint(bigint& ans, const gfp& x)
         ans -= gfp::pr();
 }
 
-template class gfp_<0>;
-template class gfp_<1>;
-template class gfp_<2>;
+template class gfp_<0, GFP_MOD_SZ>;
+template class gfp_<1, GFP_MOD_SZ>;
+template class gfp_<2, 4>;
+
+template mpf_class bigint::get_float(gfp, Integer, gfp, gfp);

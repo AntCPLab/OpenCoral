@@ -3,7 +3,6 @@
 
 #include "Networking/Player.h"
 #include "Math/gf2n.h"
-#include "Math/gfp.h"
 #include "Math/Integer.h"
 #include "Processor/Data_Files.h"
 
@@ -20,7 +19,7 @@ class thread_info
   int thread_num;
   int covert;
   Names*  Nms;
-  gf2n *alpha2i;
+  typename sgf2n::mac_key_type *alpha2i;
   typename sint::mac_key_type *alphapi;
   int prognum;
   bool finished;

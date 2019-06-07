@@ -4,8 +4,8 @@
  */
 
 #include "Proof.h"
+#include "FHE/P2Data.h"
 #include "FHEOffline/EncCommit.h"
-
 
 double Proof::dist = 0;
 

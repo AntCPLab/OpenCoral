@@ -7,13 +7,16 @@
 #define FHEOFFLINE_CHECKING_H_
 
 #include "Networking/Player.h"
-#include "Auth/MAC_Check.h"
+#include "Protocols/MAC_Check.h"
 #include "Math/Setup.h"
+#include "Math/gfp.h"
 
 template <class T>
 class TripleSacriFactory
 {
 public:
+    vector<array<T, 3>> triples;
+
     virtual ~TripleSacriFactory() {}
     virtual void get(T& a, T& b, T& c) = 0;
 };

@@ -4,6 +4,7 @@
 #include "Tools/time-func.h"
 
 #include <iostream>
+#include <fcntl.h>
 using namespace std;
 
 void error(const char *str)
@@ -164,6 +165,13 @@ void set_up_client_socket(int& mysocket,const char* hostname,int Portnum)
    if (fl<0) { error("set_up_socket:connect:",hostname);  }
 
    freeaddrinfo(ai);
+
+#ifdef __APPLE__
+  int flags = fcntl(mysocket, F_GETFL, 0);
+  fl = fcntl(mysocket, F_SETFL, O_NONBLOCK |  flags);
+  if (fl < 0)
+    error("set non-blocking");
+#endif
 }
 
 void close_client_socket(int socket)
@@ -194,9 +202,13 @@ void receive(int socket,int& a)
 {
   unsigned char msg[1];
   int i=0;
-  while (i==0)
+  while (i < 1)
     { i=recv(socket,msg,1,0);
+#ifdef __APPLE__
+      check_non_blocking_result(i);
+#else
       if (i<0) { error("Receiving error - 2"); }
+#endif
     }
   a=msg[0];
 }

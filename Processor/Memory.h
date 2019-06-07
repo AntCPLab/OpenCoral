@@ -13,7 +13,7 @@ template<class T> ostream& operator<<(ostream& s,const Memory<T>& M);
 template<class T> istream& operator>>(istream& s,Memory<T>& M);
 
 #include "Processor/Program.h"
-#include "Math/Share.h"
+
 template<class T> 
 class Memory
 {

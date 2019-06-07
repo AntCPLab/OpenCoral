@@ -6,8 +6,8 @@
 #ifndef GC_REPLICATEDPARTY_H_
 #define GC_REPLICATEDPARTY_H_
 
-#include "Auth/ReplicatedMC.h"
-#include "Auth/MaliciousRepMC.h"
+#include "Protocols/ReplicatedMC.h"
+#include "Protocols/MaliciousRepMC.h"
 #include "ReplicatedSecret.h"
 #include "Processor.h"
 #include "Program.h"

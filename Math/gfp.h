@@ -8,7 +8,10 @@ using namespace std;
 #include "Math/modp.h"
 #include "Math/Zp_Data.h"
 #include "Math/field_types.h"
+#include "Math/Setup.h"
 #include "Tools/random.h"
+
+#include "Math/modp.hpp"
 
 /* This is a wrapper class for the modp data type
  * It is used to be interface compatible with the gfp
@@ -22,23 +25,40 @@ using namespace std;
 
 template<class T> class Input;
 template<class T> class SPDZ;
+class FFT_Data;
 
-template<int X>
+#ifndef GFP_MOD_SZ
+#define GFP_MOD_SZ 2
+#endif
+
+#if GFP_MOD_SZ > MAX_MOD_SZ
+#error GFP_MOD_SZ must be at most MAX_MOD_SZ
+#endif
+
+template<int X, int L>
 class gfp_
 {
-  modp a;
+  typedef modp_<L> modp_type;
+
+  modp_type a;
   static Zp_Data ZpD;
 
   public:
 
   typedef gfp_ value_type;
 
-  typedef gfp_<X + 1> next;
+  typedef gfp_<X + 1, L> next;
   typedef square128 Square;
 
-  static void init_field(const bigint& p,bool mont=true)
-    { ZpD.init(p,mont); }
+  typedef FFT_Data FD;
+
+  template<class T>
+  static void init(bool mont = true)
+    { init_field(T::pr(), mont); }
+  static void init_field(const bigint& p,bool mont=true);
   static void init_default(int lgp, bool mont = true);
+  static void read_setup(int nparties, int lg2p, int gf2ndegree)
+    { ::read_setup(nparties, lg2p, gf2ndegree); }
 
   static bigint pr()   
     { return ZpD.pr; }
@@ -52,6 +72,7 @@ class gfp_
   static string type_string() { return "gfp"; }
 
   static int size() { return t() * sizeof(mp_limb_t); }
+  static int length() { return ZpD.pr_bit_length; }
 
   static void reqbl(int n);
 
@@ -73,25 +94,25 @@ class gfp_
   void assign(int aa)       { assign(long(aa)); }
   void assign(const char* buffer) { a.assign(buffer, ZpD.get_t()); }
 
-  modp get() const          { return a; }
+  modp_type get() const           { return a; }
 
   unsigned long debug() const { return a.get_limb(0); }
 
   const void* get_ptr() const { return &a.x; }
 
   // Assumes prD behind x is equal to ZpD
-  void assign(modp& x) { a=x; }
+  void assign(modp_<L>& x) { a=x; }
   
   gfp_()              { assignZero(a,ZpD); }
-  gfp_(const gfp_& g)  { a=g.a; }
-  gfp_(const modp& g) { a=g; }
+  template<int LL>
+  gfp_(const modp_<LL>& g) { a=g; }
   gfp_(const __m128i& x) { *this=x; }
   gfp_(const int128& x) { *this=x.a; }
   gfp_(const bigint& x) { to_modp(a, x, ZpD); }
   gfp_(int x)         { assign(x); }
   gfp_(const void* buffer) { assign((char*)buffer); }
   template<int Y>
-  gfp_(const gfp_<Y>& x);
+  gfp_(const gfp_<Y, L>& x);
   template<int K>
   gfp_(const SignedZ2<K>& other);
 
@@ -121,32 +142,26 @@ class gfp_
 
   // x+y
   template <int T>
-  void add(const gfp_& x,const gfp_& y)
-    { Add<T>(a,x.a,y.a,ZpD); }  
-  template <int T>
-  void add(const gfp_& x)
-    { Add<T>(a,a,x.a,ZpD); }
-  template <int T>
   void add(void* x)
     { ZpD.Add<T>(a.x,a.x,(mp_limb_t*)x); }
   template <int T>
   void add(octetStream& os)
     { add<T>(os.consume(size())); }
   void add(const gfp_& x,const gfp_& y)
-    { Add(a,x.a,y.a,ZpD); }  
+    { ZpD.Add<L>(a.x,x.a.x,y.a.x); }
   void add(const gfp_& x)
-    { Add(a,a,x.a,ZpD); }
+    { ZpD.Add<L>(a.x,a.x,x.a.x); }
   void add(void* x)
-    { ZpD.Add(a.x,a.x,(mp_limb_t*)x); }
+    { ZpD.Add<L>(a.x,a.x,(mp_limb_t*)x); }
   void sub(const gfp_& x,const gfp_& y)
     { Sub(a,x.a,y.a,ZpD); }
   void sub(const gfp_& x)
     { Sub(a,a,x.a,ZpD); }
   // = x * y
   void mul(const gfp_& x,const gfp_& y)
-    { Mul(a,x.a,y.a,ZpD); }
+    { a.template mul<L>(x.a,y.a,ZpD); }
   void mul(const gfp_& x)
-    { Mul(a,a,x.a,ZpD); }
+    { a.template mul<L>(a,x.a,ZpD); }
 
   gfp_ operator+(const gfp_& x) const { gfp_ res; res.add(*this, x); return res; }
   gfp_ operator-(const gfp_& x) const { gfp_ res; res.sub(*this, x); return res; }
@@ -231,26 +246,27 @@ class gfp_
     { to_modp(ans.a,x,ans.ZpD); }
 };
 
-typedef gfp_<0> gfp;
-typedef gfp_<1> gfp1;
-typedef gfp_<2> gfp2;
+typedef gfp_<0, GFP_MOD_SZ> gfp;
+typedef gfp_<1, GFP_MOD_SZ> gfp1;
+// enough for Brain protocol with 64-bit computation and 40-bit security
+typedef gfp_<2, 4> gfp2;
 
 void to_signed_bigint(bigint& ans,const gfp& x);
 
-template<int X>
-Zp_Data gfp_<X>::ZpD;
+template<int X, int L>
+Zp_Data gfp_<X, L>::ZpD;
 
-template<int X>
+template<int X, int L>
 template<int Y>
-gfp_<X>::gfp_(const gfp_<Y>& x)
+gfp_<X, L>::gfp_(const gfp_<Y, L>& x)
 {
   to_bigint(bigint::tmp, x);
   *this = bigint::tmp;
 }
 
-template<int X>
+template<int X, int L>
 template<int K>
-gfp_<X>::gfp_(const SignedZ2<K>& other)
+gfp_<X, L>::gfp_(const SignedZ2<K>& other)
 {
   if (K >= ZpD.pr_bit_length)
     *this = bigint::tmp = other;

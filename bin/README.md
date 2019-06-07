@@ -6,6 +6,7 @@ are thus provided in separate files:
 - libsodium
 - MPIR
 - OpenSSl
+- NTL
 
 The binaries also include code from libstdc++ and libgcc. They have
 been produced using `Scripts/build.sh` and standard GCC from

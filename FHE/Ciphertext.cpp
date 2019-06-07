@@ -1,4 +1,5 @@
 #include "Ciphertext.h"
+#include "PPData.h"
 #include "Exceptions/Exceptions.h"
 
 Ciphertext::Ciphertext(const FHE_PK& pk) : Ciphertext(pk.get_params())

@@ -9,9 +9,7 @@
 #include <vector>
 using namespace std;
 
-#include "Networking/Player.h"
-#include "Math/Integer.h"
-#include "Math/Share.h"
+#include "Math/bigint.h"
 
 template<class sint, class sgf2n> class Machine;
 template<class sint, class sgf2n> class Processor;
@@ -279,7 +277,7 @@ enum SecrecyType {
 
 template<class sint, class sgf2n>
 struct TempVars {
-  gf2n ans2; Share<gf2n> Sans2;
+  typename sgf2n::clear ans2;
   typename sint::clear ansp;
   sint Sansp;
   bigint aa,aa2;

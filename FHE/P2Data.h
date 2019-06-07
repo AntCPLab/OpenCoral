@@ -12,7 +12,7 @@
 class P2Data
 {
   int slots;
-  // Data for the forward mapping  (phi_m by (slots*gf2n:deg))
+  // Data for the forward mapping  ((slots*gf2n:deg) by phi_m)
   imatrix A;
   // Data for the backward mapping (phi_m by phi_m)
   imatrix Ai;
@@ -22,8 +22,8 @@ class P2Data
   typedef int S;
 
   int num_slots() const { return slots; }
-  int degree() const { return A.size() ? A[0].size() : 0; }
-  int phi_m() const { return A.size(); }
+  int degree() const { return A.size() ? A.size() : 0; }
+  int phi_m() const { return A[0].size(); }
 
   void check_dimensions() const;
 
@@ -39,6 +39,7 @@ class P2Data
   // no op because we require field to be initalized first
   void init_field() const {}
 
+  void hash(octetStream& o) const;
   void pack(octetStream& o) const;
   void unpack(octetStream& o);
 

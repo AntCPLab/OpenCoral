@@ -3,10 +3,12 @@
  *
  */
 
+#include "FHE/P2Data.h"
+
 #include "Sacrificing.h"
 #include "Producer.h"
 
-#include "Auth/Subroutines.h"
+#include "Tools/Subroutines.h"
 
 // The number of sacrifices to amortize at one time
 #define amortize 512
@@ -126,6 +128,8 @@ void Triple_Checking(const Player& P, MAC_Check<T>& MC, int nm,
               b1[i].output(outf,false);
               c1[i].output(outf,false);
             }
+          else
+              factory.triples.push_back({{a1[i], b1[i], c1[i]}});
         }
 
       left_todo-=this_loop;

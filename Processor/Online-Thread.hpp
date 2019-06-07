@@ -84,8 +84,8 @@ void* Sub_Main_Func(void* ptr)
     }
 
   // Allocate memory for first program before starting the clock
-  Processor<sint, sgf2n> Proc(tinfo->thread_num,P,*MC2,*MCp,machine,progs[0]);
-  Share<gf2n> a,b,c;
+  auto processor = new Processor<sint, sgf2n>(tinfo->thread_num,P,*MC2,*MCp,machine,progs[0]);
+  auto& Proc = *processor;
 
   bool flag=true;
   int program=-3; 
@@ -166,6 +166,9 @@ void* Sub_Main_Func(void* ptr)
        }  
     }
 
+  // destruct protocol before last MAC check and data statistics
+  delete processor;
+
   // MACCheck
   MC2->Check(P);
   MCp->Check(P);
@@ -190,7 +193,7 @@ void* Sub_Main_Func(void* ptr)
   cerr << "Thread " << num << " wait timer: " << wait_timer.elapsed() << endl;
 #endif
 
-  machine.data_sent += P.sent + Proc.DataF.data_sent();
+  machine.data_sent += P.sent;
   tinfo->pos = actual_usage;
 
   delete MC2;

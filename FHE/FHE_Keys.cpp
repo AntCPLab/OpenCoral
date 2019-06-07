@@ -1,6 +1,9 @@
 
 #include "FHE_Keys.h"
 #include "Ciphertext.h"
+#include "P2Data.h"
+#include "PPData.h"
+#include "FFT_Data.h"
 #include "FHEOffline/FullSetup.h"
 
 
@@ -52,8 +55,10 @@ void FHE_PK::KeyGen(Rq_Element& sk, PRNG& G, int noise_boost)
   mul(e0,e0,PK.pr);
   add(PK.b0,PK.b0,e0);
 
+#ifdef CHECK_NOISE
   // strict check not working for GF(2^n)
   PK.check_noise(PK.b0 - PK.a0 * sk, false);
+#endif
 
   if (params->n_mults() > 0)
     {
@@ -88,7 +93,7 @@ void FHE_PK::check_noise(const FHE_SK& SK)
 
 void FHE_PK::check_noise(const Rq_Element& x, bool check_modulo)
 {
-
+  assert(pr != 0);
   vector<bigint> noise = x.to_vec_bigint();
   bigint m = 0;
   if (check_modulo)
@@ -104,10 +109,11 @@ void FHE_PK::check_noise(const Rq_Element& x, bool check_modulo)
       noise[i] /= pr;
       m = m > noise[i] ? m : noise[i];
     }
-  cout << "max noise: " << m << endl;
+  cerr << "max noise: " << m << endl;
 }
 
 
+template<>
 void FHE_PK::encrypt(Ciphertext& c,
                      const Plaintext<gfp,FFT_Data,bigint>& mess,const Random_Coins& rc) const
 {
@@ -123,6 +129,7 @@ void FHE_PK::encrypt(Ciphertext& c,
 
 
 
+template<>
 void FHE_PK::encrypt(Ciphertext& c,
                      const Plaintext<gfp,PPData,bigint>& mess,const Random_Coins& rc) const
 {
@@ -137,6 +144,7 @@ void FHE_PK::encrypt(Ciphertext& c,
 
 
 
+template<>
 void FHE_PK::encrypt(Ciphertext& c,
                      const Plaintext<gf2n_short,P2Data,int>& mess,const Random_Coins& rc) const
 {
@@ -205,6 +213,7 @@ Ciphertext FHE_PK::encrypt(
 }
 
 
+template<>
 void FHE_SK::decrypt(Plaintext<gfp,FFT_Data,bigint>& mess,const Ciphertext& c) const
 {
   if (&c.get_params()!=params)  { throw params_mismatch(); }
@@ -220,6 +229,7 @@ void FHE_SK::decrypt(Plaintext<gfp,FFT_Data,bigint>& mess,const Ciphertext& c) c
 
 
 
+template<>
 void FHE_SK::decrypt(Plaintext<gfp,PPData,bigint>& mess,const Ciphertext& c) const
 {
   if (&c.get_params()!=params)  { throw params_mismatch(); }
@@ -234,6 +244,7 @@ void FHE_SK::decrypt(Plaintext<gfp,PPData,bigint>& mess,const Ciphertext& c) con
 
 
 
+template<>
 void FHE_SK::decrypt(Plaintext<gf2n_short,P2Data,int>& mess,const Ciphertext& c) const
 {
   if (&c.get_params()!=params)  { throw params_mismatch(); }
@@ -243,7 +254,8 @@ void FHE_SK::decrypt(Plaintext<gf2n_short,P2Data,int>& mess,const Ciphertext& c)
 
   mul(ans,c.c1(),sk);
   sub(ans,c.c0(),ans);
-  mess.set_poly_mod(ans.to_vec_bigint(),ans.get_modulus());
+  ans.change_rep(polynomial);
+  mess.set_poly_mod(ans.get_iterator(), ans.get_modulus());
 }
 
 

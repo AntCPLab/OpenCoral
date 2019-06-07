@@ -305,8 +305,8 @@ public:
     }
 };
 
-template <class T, int L>
-FixedVec<T, L> operator*(const T& a, const FixedVec<T, L>& b)
+template <class U, class T, int L>
+FixedVec<T, L> operator*(const U& a, const FixedVec<T, L>& b)
 {
     return b * a;
 }

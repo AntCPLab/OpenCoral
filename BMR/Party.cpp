@@ -23,7 +23,7 @@
 
 #include "CommonParty.hpp"
 #include "ProgramParty.hpp"
-#include "Auth/MAC_Check.hpp"
+#include "Protocols/MAC_Check.hpp"
 #include "BMR/Register.hpp"
 #include "GC/Machine.hpp"
 #include "GC/Processor.hpp"
@@ -33,6 +33,7 @@
 #include "GC/Program.hpp"
 #include "GC/Instruction.hpp"
 #include "Processor/Instruction.hpp"
+#include "Protocols/Share.hpp"
 
 #ifdef __PURE_SHE__
 #include "mpirxx.h"
@@ -825,6 +826,11 @@ void FakeProgramParty::_compute_prfs_outputs(Key* keys)
 	first_phase(program, prf_processor, prf_machine);
 }
 
+void FakeProgramParty::_check_evaluate()
+{
+	FakeProgramPartySuper::_check_evaluate();
+}
+
 void ProgramParty::reset()
 {
 	CommonParty::reset();
@@ -898,11 +904,11 @@ void FakeProgramParty::receive_spdz_wires(ReceivedMsg& msg)
 #endif
 	if (op == SPDZ_MAC)
 	{
-		gf2n spdz_mac_key;
+		gf2n_long spdz_mac_key;
 		spdz_mac_key.unpack(spdz_wires[op].back());
 		if (!MC)
 		{
-			MC = new Passing_MAC_Check<gf2n>(spdz_mac_key, N, 0);
+			MC = new Passing_MAC_Check<gf2n_long>(spdz_mac_key, N, 0);
 			cout << "MAC key: " << hex << spdz_mac_key << endl;
 			mac_key = spdz_mac_key;
 		}

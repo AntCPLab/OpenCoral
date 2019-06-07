@@ -15,12 +15,12 @@
 #include "proto_utils.h"
 #include "msg_types.h"
 #include "SpdzWire.h"
-#include "Auth/fake-stuff.h"
+#include "Protocols/fake-stuff.h"
 
 #include "Register_inline.h"
 
 #include "CommonParty.hpp"
-#include "Auth/fake-stuff.hpp"
+#include "Protocols/fake-stuff.hpp"
 #include "BMR/Register.hpp"
 #include "GC/Machine.hpp"
 #include "GC/Processor.hpp"
@@ -30,6 +30,7 @@
 #include "GC/Program.hpp"
 #include "GC/Instruction.hpp"
 #include "Processor/Instruction.hpp"
+#include "Protocols/Share.hpp"
 
 TrustedProgramParty* TrustedProgramParty::singleton = 0;
 
@@ -421,7 +422,7 @@ void TrustedProgramParty::garble()
 	NoMemory dynamic_memory;
 	second_phase(program, processor, machine, dynamic_memory);
 
-	vector< Share<gf2n> > tmp;
+	vector< Share<gf2n_long> > tmp;
 	make_share(tmp, 1, get_n_parties(), mac_key, prng);
 	for (int i = 0; i < get_n_parties(); i++)
 		tmp[i].get_mac().pack(spdz_wires[SPDZ_MAC][i]);
@@ -444,7 +445,8 @@ void TrustedProgramParty::garble()
 
 void TrustedProgramParty::store_spdz_wire(SpdzOp op, const Register& reg)
 {
-	make_share(mask_shares, gf2n(reg.get_mask()), get_n_parties(), gf2n(get_mac_key()), prng);
+    make_share(mask_shares, gf2n_long(reg.get_mask()), get_n_parties(),
+            gf2n_long(get_mac_key()), prng);
 	for (int i = 0; i < get_n_parties(); i++)
 	{
 		SpdzWire wire;

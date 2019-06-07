@@ -54,6 +54,7 @@ class octetStream
 
   octetStream() : len(0), mxlen(0), ptr(0), data(0) {}
   octetStream(size_t maxlen);
+  octetStream(size_t len, const octet* source);
   octetStream(FlexBuffer& buffer);
   octetStream(const octetStream& os);
   octetStream& operator=(const octetStream& os)
@@ -99,7 +100,7 @@ class octetStream
   // Read l octets, with no padding for decoding
   void consume(octet* x,const size_t l);
   // Return pointer to next l octets and advance pointer
-  octet* consume(size_t l) { octet* res = data+ptr; ptr += l; return res; }
+  octet* consume(size_t l);
 
   /* Now store and restore different types of data (with padding for decoding) */
 
@@ -219,10 +220,18 @@ inline void octetStream::append_no_resize(const octet* x, const size_t l)
   len+=l;
 }
 
+inline octet* octetStream::consume(size_t l)
+{
+  if(ptr + l > len)
+    throw runtime_error("insufficient data");
+  octet* res = data + ptr;
+  ptr += l;
+  return res;
+}
+
 inline void octetStream::consume(octet* x,const size_t l)
 {
-  avx_memcpy(x,data+ptr,l*sizeof(octet));
-  ptr+=l;
+  avx_memcpy(x, consume(l), l * sizeof(octet));
 }
 
 inline void octetStream::store_int(size_t l, int n_bytes)
@@ -234,9 +243,7 @@ inline void octetStream::store_int(size_t l, int n_bytes)
 
 inline size_t octetStream::get_int(int n_bytes)
 {
-  size_t res=decode_length(data+ptr,n_bytes);
-  ptr+=n_bytes;
-  return res;
+  return decode_length(consume(n_bytes), n_bytes);
 }
 
 
@@ -258,6 +265,7 @@ inline void octetStream::Receive(T& socket_num)
   len=nlen;
 
   receive(socket_num,data,len);
+  reset_read_head();
 }
 
 inline void octetStream::ReceiveExpected(int socket_num, size_t expected)

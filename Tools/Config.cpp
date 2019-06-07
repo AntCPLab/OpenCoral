@@ -35,43 +35,9 @@
 #include <iomanip>
 
 namespace Config {
-    class ConfigError : public std::exception
-    {
-        std::string s;
-
-        public:
-        ConfigError(std::string ss) : s(ss) {}
-        ~ConfigError() throw () {}
-        const char* what() const throw() { return s.c_str(); }
-    };
-
     static void output(const vector<octet> &vec, ofstream &of)
     {
         copy(vec.begin(), vec.end(), ostreambuf_iterator<char>(of));
-    }
-    void print_vector(const vector<octet> &vec)
-    {
-        cerr << hex;
-        for(size_t i = 0; i < vec.size(); i ++ ) {
-            cerr << setfill('0') << setw(2) << (int)vec[i];
-        }
-        cerr << dec << endl;
-    }
-
-    uint64_t getW64le(ifstream &infile)
-    {
-        uint8_t buf[8];
-        uint64_t res=0;
-        infile.read((char*)buf,sizeof buf);
-
-        if (!infile.good())
-            throw ConfigError("getW64le: could not read from config file");
-
-        for(size_t i = 0; i < sizeof buf ; i ++ ) {
-            res |= ((uint64_t)buf[i]) << i*8;
-        }
-
-        return res;
     }
 
     void putW64le(ofstream &outf, uint64_t nr)
@@ -84,48 +50,6 @@ namespace Config {
         outf.write(buf,sizeof buf);
     }
 
-    const string default_player_config_file_prefix = "Player-SPDZ-Keys-P";
-    string player_config_file(int player_number)
-    {
-        stringstream filename;
-        filename << default_player_config_file_prefix << player_number;
-        return filename.str();
-    }
-
-    void read_player_config(string cfgdir,int my_number,vector<public_signing_key> pubkeys,secret_signing_key mykey, public_signing_key mypubkey)
-    {
-        string filename;
-        filename = cfgdir + player_config_file(my_number);
-        ifstream infile(filename.c_str(), ios::in | ios::binary);
-
-        infile.seekg(crypto_box_PUBLICKEYBYTES + crypto_box_SECRETKEYBYTES);
-        mypubkey.resize(crypto_sign_PUBLICKEYBYTES);
-        infile.read((char*)&mypubkey[0], crypto_sign_PUBLICKEYBYTES);
-        mykey.resize(crypto_sign_SECRETKEYBYTES);
-        infile.read((char*)&mykey[0], crypto_sign_SECRETKEYBYTES);
-
-        // If we've failed by this point, abort. After this point we'll
-        // just try to read optional content.
-        if (!infile.good()) {
-            throw ConfigError("Could not parse player config file.");
-        }
-
-        // Deal gracefully with absence of additional key material
-        try {
-            uint64_t nrClients = getW64le(infile);
-            infile.ignore(nrClients * (crypto_sign_PUBLICKEYBYTES + crypto_box_PUBLICKEYBYTES));
-            uint64_t nrPlayers = getW64le(infile);
-            pubkeys.resize(nrPlayers);
-            for(size_t i=0; i<nrPlayers; i++) {
-                pubkeys[i].resize(crypto_sign_PUBLICKEYBYTES);
-                infile.read((char*)&pubkeys[i][0],pubkeys[i].size());
-            }
-        } catch (ConfigError& e) {
-            pubkeys.resize(0);
-        }
-
-        infile.close();
-    }
     void write_player_config_file(string config_dir
                            ,int player_number, public_key my_pub, secret_key my_priv
                                              , public_signing_key my_signing_pub, secret_signing_key my_signing_priv

@@ -40,7 +40,7 @@ void get_setup(FHE_Params& params_p,FFT_Data& FTD,
   if (!skip_2)
     {
       // initialize before reading P2D for consistency check
-      gf2n::init_field(lg2);
+      gf2n_short::init_field(lg2);
       inpf >> R2;
       inpf >> P2D;
       if (R2.phi_m() != P2D.phi_m())

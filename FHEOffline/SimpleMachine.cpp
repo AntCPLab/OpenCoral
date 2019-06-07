@@ -10,8 +10,8 @@
 #include "FHE/FHE_Keys.h"
 #include "Tools/time-func.h"
 #include "Tools/ezOptionParser.h"
-#include "Auth/MAC_Check.h"
-#include "Auth/fake-stuff.h"
+#include "Protocols/MAC_Check.h"
+#include "Protocols/fake-stuff.h"
 
 void* run_generator(void* generator)
 {
@@ -22,7 +22,9 @@ void* run_generator(void* generator)
 MachineBase::MachineBase() :
         throughput_loop_thread(0),portnum_base(0),
         data_type(DATA_TRIPLE),
-        sec(0), field_size(0), extra_slack(0), produce_inputs(false)
+        sec(0), drown_sec(0), field_size(0), extra_slack(0),
+        produce_inputs(false),
+        use_gf2n(false)
 {
 }
 
@@ -84,6 +86,7 @@ void MachineBase::parse_options(int argc, const char** argv)
     opt.get("-h")->getString(hostname);
     opt.get("-pn")->getInt(portnum_base);
     opt.get("-s")->getInt(sec);
+    drown_sec = max(40, sec);
     opt.get("-f")->getInt(field_size);
     use_gf2n = opt.isSet("-2");
     if (use_gf2n)
@@ -196,7 +199,7 @@ void MultiplicativeMachine::generate_setup(int slack)
 {
     if (use_gf2n)
     {
-        gf2n::init_field(field_size);
+        gf2n_short::init_field(field_size);
         fake_keys<P2Data>(slack);
     }
     else
@@ -213,12 +216,12 @@ void MultiplicativeMachine::fake_keys(int slack)
     PartSetup<FD>& part_setup = setup.part<FD>();
     if (P.my_num() == 0)
     {
-        part_setup.generate_setup(N.num_players(), field_size, sec, slack, true);
+        part_setup.generate_setup(N.num_players(), field_size, drown_sec, slack, true);
         if (output)
         {
             ofstream outf;
             bigint p = setup.FTD.get_prime();
-            write_online_setup(outf, PREP_DIR, p != 0 ? p : 1, gf2n::degree());
+            write_online_setup(outf, PREP_DIR, p != 0 ? p : 1, gf2n_short::degree());
         }
 
         vector<PartSetup<FD> > setups;
@@ -237,7 +240,7 @@ void MultiplicativeMachine::fake_keys(int slack)
         P.receive_player(0, os);
     }
     part_setup.unpack(os);
-    part_setup.check(sec);
+    part_setup.check(drown_sec);
 
     if (output)
         write_mac_keys(PREP_DIR, N.my_num(), N.num_players(), setup.alphapi, setup.alpha2i);

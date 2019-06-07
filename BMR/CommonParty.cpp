@@ -30,7 +30,7 @@ CommonParty::CommonParty() :
 #endif
 	cpu_timer.start();
 	timer.start();
-	gf2n::init_field(128);
+	gf2n_long::init_field(128);
 	mac_key.randomize(prng);
 }
 

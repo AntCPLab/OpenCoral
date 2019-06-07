@@ -5,9 +5,6 @@
  * so the streams are easy to pass around and access
  */
 
-#include "Math/gfp.h"
-#include "Math/gf2n.h"
-#include "Math/Share.h"
 #include "Math/field_types.h"
 #include "Tools/Buffer.h"
 #include "Processor/InputTuple.h"
@@ -68,6 +65,7 @@ public:
 template<class sint, class sgf2n> class Processor;
 template<class sint, class sgf2n> class Data_Files;
 template<class sint, class sgf2n> class Machine;
+template<class T> class SubProcessor;
 
 template<class T>
 class Preprocessing

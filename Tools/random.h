@@ -63,6 +63,7 @@ class PRNG
    public:
 
    PRNG();
+   PRNG(octetStream& seed);
 
    // For debugging
    void print_state() const;

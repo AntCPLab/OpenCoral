@@ -102,17 +102,30 @@ inline void mpn_add_fixed_n<4>(mp_limb_t* res, const mp_limb_t* x, const mp_limb
 
 inline mp_limb_t mpn_add_n_with_carry(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y, int n)
 {
-#ifdef __ADX__
+    // This is complicated because we want to use adc(x) whenever possible.
+    // clang always offers this but GCC only with ADX enabled.
+#if defined(__ADX__) || defined(__clang__)
     if (cpu_has_adx())
     {
         char carry = 0;
         for (int i = 0; i < n; i++)
+#if defined(__clang__)
+#if __clang_major__ < 8 || defined(__APPLE__)
+            carry = __builtin_ia32_addcarry_u64(carry, x[i], y[i], (unsigned long long*)&res[i]);
+#else
+            carry = __builtin_ia32_addcarryx_u64(carry, x[i], y[i], (unsigned long long*)&res[i]);
+#endif
+#else
             carry = _addcarryx_u64(carry, x[i], y[i], (unsigned long long*)&res[i]);
+#endif
         return carry;
     }
     else
 #endif
-        return mpn_add_n(res, x, y, n);
+        if (n > 0)
+            return mpn_add_n(res, x, y, n);
+        else
+            return 0;
 }
 
 template <int N>

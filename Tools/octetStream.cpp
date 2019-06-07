@@ -49,6 +49,11 @@ octetStream::octetStream(size_t maxlen)
   data=new octet[mxlen];
 }
 
+octetStream::octetStream(size_t len, const octet* source) :
+    octetStream(len)
+{
+  append(source, len);
+}
 
 octetStream::octetStream(const octetStream& os)
 {
@@ -131,9 +136,8 @@ void octetStream::store_bytes(octet* x, const size_t l)
 
 void octetStream::get_bytes(octet* ans, size_t& length)
 {
-  length=decode_length(data+ptr,4); ptr+=4;
-  memcpy(ans,data+ptr,length*sizeof(octet));
-  ptr+=length;
+  length = get_int(4);
+  memcpy(ans, consume(length), length * sizeof(octet));
 }
 
 void octetStream::store(int l)
@@ -146,8 +150,7 @@ void octetStream::store(int l)
 
 void octetStream::get(int& l)
 {
-  l=decode_length(data+ptr,4);
-  ptr+=4;
+  l = get_int(4);
 }
 
 
@@ -168,15 +171,14 @@ void octetStream::store(const bigint& x)
 
 void octetStream::get(bigint& ans)
 {
-  int sign=(data+ptr)[0];
+  int sign = *consume(1);
   if (sign!=0 && sign!=1) { throw bad_value(); }
-  ptr++;
 
-  long length=decode_length(data+ptr,4); ptr+=4;
+  long length = get_int(4);
 
   if (length!=0)
-    { bigintFromBytes(ans, data+ptr, length);
-      ptr+=length;
+    {
+      bigintFromBytes(ans, consume(length), length);
       if (sign)
         mpz_neg(ans.get_mpz_t(), ans.get_mpz_t());
     }
@@ -189,29 +191,30 @@ template<class T>
 void octetStream::exchange(T send_socket, T receive_socket, octetStream& receive_stream) const
 {
   send(send_socket, len, LENGTH_SIZE);
-  const size_t buffer_size = 100000;
   size_t sent = 0, received = 0;
   bool length_received = false;
   size_t new_len = 0;
 #ifdef TIME_ROUNDS
   Timer recv_timer;
 #endif
+  size_t n_iter = 0;
   while (received < new_len or sent < len or not length_received)
     {
+      n_iter++;
       if (sent < len)
         {
-          size_t to_send = min(buffer_size, len - sent);
+          size_t to_send = len - sent;
           sent += send_non_blocking(send_socket, data + sent, to_send);
         }
 
       // avoid extra branching, false before length received
       if (received < new_len)
         {
-          // same buffer for sending and receiving
+          // if same buffer for sending and receiving
           // only receive up to already sent data
           // or when all is sent
           size_t to_receive = 0;
-          if (sent == len)
+          if (sent == len or this != &receive_stream)
             to_receive = new_len - received;
           else if (sent > received)
             to_receive = sent - received;
@@ -240,7 +243,8 @@ void octetStream::exchange(T send_socket, T receive_socket, octetStream& receive
     }
 
 #ifdef TIME_ROUNDS
-  cout << "Exchange time: " << recv_timer.elapsed() << " seconds to receive "
+  cout << "Exchange time: " << recv_timer.elapsed() << " seconds and " << n_iter <<
+          " iterations to receive "
       << 1e-3 * new_len << " KB" << endl;
 #endif
   receive_stream.len = new_len;
@@ -354,6 +358,9 @@ void octetStream::input(istream& s)
   s.read((char*)&size, sizeof(size));
   resize_min(size);
   s.read((char*)data, size);
+  len = size;
+  if (not s.good())
+    throw IO_Error("not enough data");
 }
 
 void octetStream::output(ostream& s)

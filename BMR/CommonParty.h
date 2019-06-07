@@ -15,7 +15,6 @@ using namespace std;
 #include "proto_utils.h"
 #include "network/Node.h"
 #include "Tools/random.h"
-#include "Auth/MAC_Check.h"
 #include "Tools/time-func.h"
 #include "GC/Program.h"
 #include "Tools/FlexBuffer.h"
@@ -67,7 +66,7 @@ protected:
     Timer timers[2];
     Timer timer;
 
-    gf2n mac_key;
+    gf2n_long mac_key;
 
     LocalBuffer wires;
     ReceivedMsgStore wire_storage;
@@ -103,7 +102,7 @@ public:
     gate_id_t next_gate(int skip) { return gate_counter2 += skip; }
     size_t get_garbled_tbl_size() { return garbled_tbl_size; }
 
-    gf2n get_mac_key() { return mac_key; }
+    gf2n_long get_mac_key() { return mac_key; }
 };
 
 class CommonFakeParty : virtual public CommonParty, public NodeUpdatable

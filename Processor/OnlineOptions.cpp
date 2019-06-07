@@ -7,15 +7,19 @@
 
 using namespace std;
 
+OnlineOptions OnlineOptions::singleton;
+
 OnlineOptions::OnlineOptions() : playerno(-1)
 {
     interactive = false;
     lgp = 128;
     live_prep = true;
+    batch_size = 10000;
 }
 
 OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
-        const char** argv) : OnlineOptions()
+        const char** argv, int default_batch_size, bool default_live_prep) :
+        OnlineOptions()
 {
     opt.syntax = std::string(argv[0]) + " [OPTIONS] [<playerno>] <progname>";
 
@@ -37,15 +41,26 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
           "-lgp", // Flag token.
           "--lgp" // Flag token.
     );
-    opt.add(
-            "", // Default.
-            0, // Required?
-            0, // Number of args expected.
-            0, // Delimiter if expecting multiple args.
-            "Preprocessing from files", // Help description.
-            "-F", // Flag token.
-            "--file-preprocessing" // Flag token.
-    );
+    if (default_live_prep)
+        opt.add(
+                "", // Default.
+                0, // Required?
+                0, // Number of args expected.
+                0, // Delimiter if expecting multiple args.
+                "Preprocessing from files", // Help description.
+                "-F", // Flag token.
+                "--file-preprocessing" // Flag token.
+        );
+    else
+        opt.add(
+                "", // Default.
+                0, // Required?
+                0, // Number of args expected.
+                0, // Delimiter if expecting multiple args.
+                "Live preprocessing", // Help description.
+                "-L", // Flag token.
+                "--live-preprocessing" // Flag token.
+        );
     opt.add(
             "", // Default.
             0, // Required?
@@ -56,11 +71,25 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
             "--player" // Flag token.
     );
 
+    opt.add(
+            to_string(default_batch_size).c_str(), // Default.
+            0, // Required?
+            1, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            ("Size of preprocessing batches (default: " + to_string(default_batch_size) + ")").c_str(), // Help description.
+            "-b", // Flag token.
+            "--batch-size" // Flag token.
+    );
+
     opt.parse(argc, argv);
 
     interactive = opt.isSet("-I");
     opt.get("--lgp")->getInt(lgp);
-    live_prep = not opt.get("-F")->isSet;
+    if (default_live_prep)
+        live_prep = not opt.get("-F")->isSet;
+    else
+        live_prep = opt.get("-L")->isSet;
+    opt.get("-b")->getInt(batch_size);
 
     opt.resetArgs();
 }

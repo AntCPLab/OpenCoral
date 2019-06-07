@@ -134,16 +134,17 @@ void write_online_setup(ofstream& outf, string dirname, const bigint& p, int lg2
   outf << abs(lg2) << endl;
 
   gfp::init_field(p, true);
-  gf2n::init_field(lg2);
+  init_gf2n(lg2);
 }
 
-string get_prep_dir(int nparties, int lg2p, int gf2ndegree)
+void init_gf2n(int lg2)
 {
-  if (gf2ndegree == 0)
-    gf2ndegree = gf2n::default_length();
-  stringstream ss;
-  ss << PREP_DIR << nparties << "-" << lg2p << "-" << gf2ndegree << "/";
-  return ss.str();
+  if (lg2 > 64)
+    gf2n_long::init_field(lg2);
+  else if (lg2 == 0)
+    gf2n::init_field(lg2);
+  else
+    gf2n_short::init_field(lg2);
 }
 
 // Only read enough to initialize the fields (i.e. for OT offline or online phase only)
@@ -169,7 +170,7 @@ void read_setup(const string& dir_prefix)
   inpf.close();
 
   gfp::init_field(p);
-  gf2n::init_field(lg2);
+  init_gf2n(lg2);
 }
 
 void read_setup(int nparties, int lg2p, int gf2ndegree)

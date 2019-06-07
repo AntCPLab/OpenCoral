@@ -1,6 +1,7 @@
 
 #include "Prover.h"
 
+#include "FHE/P2Data.h"
 #include "Tools/random.h"
 
 

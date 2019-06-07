@@ -7,8 +7,8 @@
 #include "FHEOffline/SimpleMachine.h"
 #include "FHEOffline/Multiplier.h"
 #include "FHEOffline/PairwiseGenerator.h"
-#include "Auth/Subroutines.h"
-#include "Auth/MAC_Check.h"
+#include "Tools/Subroutines.h"
+#include "Protocols/MAC_Check.h"
 
 template<class T, class FD, class S>
 SimpleEncCommitBase<T, FD, S>::SimpleEncCommitBase(const MachineBase& machine) :
@@ -151,8 +151,10 @@ size_t NonInteractiveProofSimpleEncCommit<FD>::create_more(octetStream& cipherte
     others_ciphertexts.resize(this->sec, pk.get_params());
     for (int i = 1; i < P.num_players(); i++)
     {
-        cout << "Sending proof with " << 1e-9 * ciphertexts.get_length() << "+"
+#ifdef VERBOSE
+        cerr << "Sending proof with " << 1e-9 * ciphertexts.get_length() << "+"
                 << 1e-9 * cleartexts.get_length() << " GB" << endl;
+#endif
         timers["Sending"].start();
         P.pass_around(ciphertexts);
         P.pass_around(cleartexts);
@@ -160,7 +162,9 @@ size_t NonInteractiveProofSimpleEncCommit<FD>::create_more(octetStream& cipherte
 #ifndef LESS_ALLOC_MORE_MEM
         Verifier<FD,S> verifier(proof);
 #endif
-        cout << "Checking proof of player " << i << endl;
+#ifdef VERBOSE
+        cerr << "Checking proof of player " << i << endl;
+#endif
         timers["Verifying"].start();
         verifier.NIZKPoK(others_ciphertexts, ciphertexts,
                 cleartexts, get_pk_for_verification(i), false, false);

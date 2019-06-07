@@ -6,9 +6,9 @@
 #include <FHEOffline/SimpleGenerator.h>
 #include "FHEOffline/SimpleMachine.h"
 #include "FHEOffline/Sacrificing.h"
-#include "Auth/MAC_Check.h"
+#include "Protocols/MAC_Check.h"
 
-#include "Auth/MAC_Check.hpp"
+#include "Protocols/MAC_Check.hpp"
 
 template <template <class> class T, class FD>
 SimpleGenerator<T,FD>::SimpleGenerator(const Names& N, const PartSetup<FD>& setup,

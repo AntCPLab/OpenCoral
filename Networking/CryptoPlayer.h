@@ -18,11 +18,15 @@ class CryptoPlayer : public MultiPlayer<ssl_socket*>
     boost::asio::ssl::context ctx;
     boost::asio::io_service io_service;
 
+    vector<Sender<ssl_socket*>*> senders;
+
 public:
     CryptoPlayer(const Names& Nms, int id_base=0);
     ~CryptoPlayer();
 
     bool is_encrypted() { return true; }
+
+    void pass_around_no_stats(octetStream& to_send, octetStream& to_receive, int offset) const;
 };
 
 #endif /* NETWORKING_CRYPTOPLAYER_H_ */

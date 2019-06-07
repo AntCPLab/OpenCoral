@@ -7,6 +7,8 @@
 #include <vector>
 #include <numeric>
 
+#include "Math/Z2k.hpp"
+
 template <class T>
 void check_triples(int n_players, string type_char = "")
 {

@@ -18,19 +18,29 @@ class MultiplicativeMachine;
 
 class GeneratorBase
 {
+    Player* player;
+
 protected:
     int thread_num;
 
 public:
-    PlainPlayer P;
+    Player& P;
     pthread_t thread;
     long long total;
 
     map<string, Timer> timers;
 
-    GeneratorBase(int thread_num, const Names& N) :
-        thread_num(thread_num), P(N, thread_num << 16), thread(0), total(0) {}
-    virtual ~GeneratorBase() {}
+    GeneratorBase(int thread_num, const Names& N, Player* player = 0) :
+            player(player ? 0 : new PlainPlayer(N, thread_num << 16)),
+            thread_num(thread_num),
+            P(player ? *player : *this->player), thread(0), total(0)
+    {
+    }
+    virtual ~GeneratorBase()
+    {
+        if (player)
+            delete player;
+    }
     virtual void run() = 0;
     virtual size_t report_size(ReportType type) = 0;
     virtual void report_size(ReportType type, MemoryUsage& res) = 0;
