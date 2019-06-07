@@ -1,6 +1,6 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enchancements are committed between releases and not documented here.
 
-## 0.1.0
+## 0.1.0 (Jun 7, 2019)
 
 - CowGear protocol (LowGear with covert security)
 - Protocols that sacrifice after than before
