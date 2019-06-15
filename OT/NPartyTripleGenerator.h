@@ -152,7 +152,9 @@ public:
 template<class T>
 size_t OTTripleGenerator<T>::data_sent()
 {
-    size_t res = globalPlayer.sent;
+    size_t res = 0;
+    if (parentPlayer != &globalPlayer)
+        res = globalPlayer.sent;
     for (auto& player : players)
         res += player->sent;
     return res;

@@ -167,6 +167,7 @@ void* Sub_Main_Func(void* ptr)
     }
 
   // destruct protocol before last MAC check and data statistics
+  size_t prep_sent = Proc.DataF.data_sent();
   delete processor;
 
   // MACCheck
@@ -193,7 +194,7 @@ void* Sub_Main_Func(void* ptr)
   cerr << "Thread " << num << " wait timer: " << wait_timer.elapsed() << endl;
 #endif
 
-  machine.data_sent += P.sent;
+  machine.data_sent += P.sent + prep_sent;
   tinfo->pos = actual_usage;
 
   delete MC2;
