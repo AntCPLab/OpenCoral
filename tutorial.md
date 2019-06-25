@@ -27,13 +27,13 @@ The command will output to stderr the number of registers, rounds and other para
 To run the program, you first need to set up the parameters of the different players. This can be done with the following command.
 
 ```
-sh Scripts/setup-online.sh
+Scripts/setup-online.sh
 ```
 
 To simply run the program between 2 parties simulated locally, type in terminal:
 
 ```
-sh Scripts/run-online.sh addition
+Scripts/run-online.sh addition
 
 ```
 
