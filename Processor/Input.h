@@ -31,6 +31,7 @@ protected:
 public:
     int values_input;
 
+    template<class U>
     static void input(SubProcessor<T>& Proc, const vector<int>& args);
 
     InputBase(ArithmeticProcessor* proc);

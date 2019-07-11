@@ -27,7 +27,7 @@ public:
     ArgIter<T> operator++()
     {
         auto res = it;
-        it += 3;
+        it += T::n;
         return res;
     }
 
@@ -64,16 +64,19 @@ public:
 class InputArgs
 {
 public:
-    static const int n = 3;
+    static const int n = 4;
 
     int from;
-    int n_bits;
+    int& n_bits;
+    int& n_shift;
+    int params[2];
     int dest;
 
-    InputArgs(vector<int>::const_iterator it)
+    InputArgs(vector<int>::const_iterator it) : n_bits(params[0]), n_shift(params[1])
     {
         from = *it++;
         n_bits = *it++;
+        n_shift = *it++;
         dest = *it++;
     }
 };

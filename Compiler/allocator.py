@@ -386,6 +386,7 @@ class Merger:
         last_print_str = None
         last = defaultdict(lambda: defaultdict(lambda: None))
         last_open = deque()
+        last_text_input = None
 
         depths = [0] * len(block.instructions)
         self.depths = depths
@@ -470,6 +471,13 @@ class Merger:
                         write(i, n)
                 else:
                     write(reg, n)
+
+            # will be merged
+            if isinstance(instr, TextInputInstruction):
+                if last_text_input is not None and \
+                   type(block.instructions[last_text_input]) is not type(instr):
+                    add_edge(last_text_input, n)
+                last_text_input = n
 
             if isinstance(instr, merge_classes):
                 open_nodes.add(n)

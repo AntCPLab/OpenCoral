@@ -4,6 +4,9 @@
  */
 
 #include "ProcessorBase.h"
+#include "IntInput.h"
+#include "FixInput.h"
+#include "FloatInput.h"
 #include "Exceptions/Exceptions.h"
 
 #include <iostream>
@@ -23,21 +26,27 @@ void ProcessorBase::open_input_file(int my_num, int thread_num)
     open_input_file(input_file);
 }
 
-long long ProcessorBase::get_input(bool interactive)
+template<class T>
+T ProcessorBase::get_input(bool interactive, const int* params)
 {
     if (interactive)
-        return get_input(cin, "standard input");
+        return get_input<T>(cin, "standard input", params);
     else
-        return get_input(input_file, input_filename);
+        return get_input<T>(input_file, input_filename, params);
 }
 
-long long ProcessorBase::get_input(istream& input_file, const string& input_filename)
+template<class T>
+T ProcessorBase::get_input(istream& input_file, const string& input_filename, const int* params)
 {
-    long long res;
-    input_file >> res;
+    T res;
+    res.read(input_file, params);
     if (input_file.eof())
         throw IO_Error("not enough inputs in " + input_filename);
     if (input_file.fail())
         throw IO_Error("cannot read from " + input_filename);
     return res;
 }
+
+template IntInput ProcessorBase::get_input(bool, const int*);
+template FixInput ProcessorBase::get_input(bool, const int*);
+template FloatInput ProcessorBase::get_input(bool, const int*);

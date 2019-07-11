@@ -100,6 +100,8 @@ opcodes = dict(
     PREP = 0x57,
     # Input
     INPUT = 0x60,
+    INPUTFIX = 0xF0,
+    INPUTFLOAT = 0xF1,
     STARTINPUT = 0x61,
     STOPINPUT = 0x62,  
     READSOCKETC = 0x63,
@@ -592,6 +594,10 @@ class Instruction(object):
     def __repr__(self):
         return self.__class__.__name__ + '(' + self.get_pre_arg() + ','.join(str(a) for a in self.args) + ')'
 
+class VarArgsInstruction(Instruction):
+    def has_var_args(self):
+        return True
+
 ###
 ### Basic arithmetic
 ###
@@ -692,6 +698,10 @@ class PublicFileIOInstruction(DoNotEliminateInstruction):
     """ Instruction to reads/writes public information from/to files. """
     __slots__ = []
 
+class TextInputInstruction(VarArgsInstruction, DoNotEliminateInstruction):
+    """ Input from text file or stdin """
+    __slots__ = []
+
 ###
 ### Data access instructions
 ###
@@ -782,11 +792,6 @@ class JumpInstruction(Instruction):
 
     def get_relative_jump(self):
         return self.args[self.jump_arg]
-
-
-class VarArgsInstruction(Instruction):
-    def has_var_args(self):
-        return True
 
 
 class CISC(Instruction):

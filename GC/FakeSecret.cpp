@@ -75,9 +75,9 @@ void FakeSecret::trans(Processor<FakeSecret>& processor, int n_outputs,
 		processor.S[args[i]] = square.rows[i];
 }
 
-FakeSecret FakeSecret::input(int from, GC::Processor<FakeSecret>& processor, int n_bits)
+FakeSecret FakeSecret::input(GC::Processor<FakeSecret>& processor, const InputArgs& args)
 {
-	return input(from, processor.get_input(n_bits), n_bits);
+	return input(args.from, processor.get_input(args.params), args.n_bits);
 }
 
 FakeSecret FakeSecret::input(int from, const int128& input, int n_bits)

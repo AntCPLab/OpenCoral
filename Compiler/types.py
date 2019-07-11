@@ -2409,6 +2409,12 @@ class sfix(_fix):
     clear_type = cfix
 
     @classmethod
+    def get_input_from(cls, player):
+        v = cls.int_type()
+        inputfix(v, cls.f, player)
+        return cls._new(v)
+
+    @classmethod
     def coerce(cls, other):
         return parse_type(other)
 
@@ -2727,6 +2733,15 @@ class sfloat(_number, _structure):
                 raise CompilerError('Cannot convert %s to float ' \
                                         'with %d exponent bits' % (vv, plen))
         return v, p, z, s
+
+    @classmethod
+    def get_input_from(cls, player):
+        v = sint()
+        p = sint()
+        z = sint()
+        s = sint()
+        inputfloat(v, p, z, s, cls.vlen, player)
+        return cls(v, p, z, s)
 
     @vectorize_init
     @read_mem_value

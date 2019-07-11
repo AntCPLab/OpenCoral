@@ -212,7 +212,7 @@ class sbits(bits):
         if n_bits is None:
             n_bits = cls.n
         res = cls()
-        inst.inputb(player, n_bits, res)
+        inst.inputb(player, n_bits, 0, res)
         return res
     # compatiblity to sint
     get_raw_input_from = get_input_from
@@ -648,6 +648,11 @@ class sbitfix(_fix):
             return sbitfixvec._new(sbitintvec(v))
         else:
             return super(sbitfix, cls).load_mem(address)
+    @classmethod
+    def get_input_from(cls, player):
+        v = cls.int_type()
+        inst.inputb(player, cls.k, cls.f, v)
+        return cls._new(v)
     def __xor__(self, other):
         return type(self)(self.v ^ other.v)
     def __mul__(self, other):

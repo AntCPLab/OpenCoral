@@ -109,7 +109,8 @@ class gfp_
   gfp_(const __m128i& x) { *this=x; }
   gfp_(const int128& x) { *this=x.a; }
   gfp_(const bigint& x) { to_modp(a, x, ZpD); }
-  gfp_(int x)         { assign(x); }
+  gfp_(int x)           { assign(x); }
+  gfp_(long x)          { assign(x); }
   gfp_(const void* buffer) { assign((char*)buffer); }
   template<int Y>
   gfp_(const gfp_<Y, L>& x);

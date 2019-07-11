@@ -79,19 +79,16 @@ void ReplicatedSecret<U>::inputb(Processor<U>& processor,
     party.os.resize(2);
     for (auto& o : party.os)
         o.reset_write_head();
-    processor.check_args(args, 3);
 
     InputArgList a(args);
     bool interactive = party.n_interactive_inputs_from_me(a) > 0;
 
-    for (size_t i = 0; i < args.size(); i += 3)
+    for (auto x : a)
     {
-        int from = args[i];
-        int n_bits = args[i + 1];
-        if (from == party.P->my_num())
+        if (x.from == party.P->my_num())
         {
-            auto& res = processor.S[args[i + 2]];
-            res.prepare_input(party.os, processor.get_input(n_bits, interactive), n_bits, party.secure_prng);
+            auto& res = processor.S[x.dest];
+            res.prepare_input(party.os, processor.get_input(x.params, interactive), x.n_bits, party.secure_prng);
         }
     }
 
@@ -101,23 +98,23 @@ void ReplicatedSecret<U>::inputb(Processor<U>& processor,
     for (int i = 0; i < 2; i++)
         party.P->pass_around(party.os[i], i + 1);
 
-    for (size_t i = 0; i < args.size(); i += 3)
+    for (auto x : a)
     {
-        int from = args[i];
-        int n_bits = args[i + 1];
+        int from = x.from;
+        int n_bits = x.n_bits;
         if (from != party.P->my_num())
         {
-            auto& res = processor.S[args[i + 2]];
+            auto& res = processor.S[x.dest];
             res.finalize_input(party, party.os[party.P->get_offset(from) == 1], from, n_bits);
         }
     }
 }
 
 template<class U>
-U ReplicatedSecret<U>::input(int from, Processor<U>& processor, int n_bits)
+U ReplicatedSecret<U>::input(Processor<U>& processor, const InputArgs& args)
 {
-    // BMR stuff counts from 1
-    from--;
+    int from = args.from;
+    int n_bits = args.n_bits;
     auto& party = ReplicatedParty<U>::s();
     U res;
     party.os.resize(2);
@@ -125,7 +122,7 @@ U ReplicatedSecret<U>::input(int from, Processor<U>& processor, int n_bits)
         o.reset_write_head();
     if (from == party.P->my_num())
     {
-        res.prepare_input(party.os, processor.get_input(n_bits), n_bits, party.secure_prng);
+        res.prepare_input(party.os, processor.get_input(args.params), n_bits, party.secure_prng);
         party.P->send_relative(party.os);
     }
     else

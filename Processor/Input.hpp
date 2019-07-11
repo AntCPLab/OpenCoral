@@ -184,35 +184,39 @@ T InputBase<T>::finalize(int player)
 }
 
 template<class T>
+template<class U>
 void InputBase<T>::input(SubProcessor<T>& Proc,
         const vector<int>& args)
 {
     auto& input = Proc.input;
     for (int i = 0; i < Proc.P.num_players(); i++)
         input.reset(i);
-    assert(args.size() % 2 == 0);
+    int n_arg_tuple = U::N_DEST + U::N_PARAM + 1;
+    assert(args.size() % n_arg_tuple == 0);
 
     int n_from_me = 0;
 
     if (Proc.Proc.opts.interactive and Proc.Proc.thread_num == 0)
     {
-        for (size_t i = 1; i < args.size(); i += 2)
+        for (size_t i = n_arg_tuple - 1; i < args.size(); i += n_arg_tuple)
             n_from_me += (args[i] == Proc.P.my_num());
         if (n_from_me > 0)
-            cout << "Please input " << n_from_me << " number(s):" << endl;
+            cout << "Please input " << n_from_me << " " << U::NAME << "(s):" << endl;
     }
 
-    for (size_t i = 0; i < args.size(); i += 2)
+    for (size_t i = U::N_DEST; i < args.size(); i += n_arg_tuple)
     {
-        int n = args[i + 1];
+        int n = args[i + U::N_PARAM];
         if (n == Proc.P.my_num())
         {
-            long x = Proc.Proc.get_input(n_from_me > 0);
-            input.add_mine(x);
+            U tuple = Proc.Proc.template get_input<U>(n_from_me > 0, &args[i]);
+            for (auto x : tuple.items)
+                input.add_mine(x);
         }
         else
         {
-            input.add_other(n);
+            for (int j = 0; j < U::N_DEST; j++)
+                input.add_other(n);
         }
     }
 
@@ -222,9 +226,10 @@ void InputBase<T>::input(SubProcessor<T>& Proc,
     input.send_mine();
 
     vector<vector<int>> regs(Proc.P.num_players());
-    for (size_t i = 0; i < args.size(); i += 2)
+    for (size_t i = 0; i < args.size(); i += n_arg_tuple)
     {
-        regs[args[i + 1]].push_back(args[i]);
+        for (int j = 0; j < U::N_DEST; j++)
+            regs[args[i + n_arg_tuple - 1]].push_back(args[i + j]);
     }
     for (int i = 0; i < Proc.P.num_players(); i++)
         input.stop(i, regs[i]);

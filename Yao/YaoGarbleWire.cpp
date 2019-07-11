@@ -204,7 +204,7 @@ void YaoGarbleWire::inputb(GC::Processor<GC::Secret<YaoGarbleWire>>& processor,
 		dest.resize_regs(x.n_bits);
 		if (x.from == 0)
 		{
-			long long input = processor.get_input(x.n_bits, interactive);
+			long long input = processor.get_input(x.params, interactive);
 			for (auto& reg : dest.get_regs())
 			{
 				reg.public_input(input & 1);

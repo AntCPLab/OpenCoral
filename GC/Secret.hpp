@@ -10,9 +10,9 @@ namespace GC
 {
 
 template<class T>
-Secret<T> Secret<T>::input(party_id_t from, Processor<Secret<T>>& processor, int n_bits)
+Secret<T> Secret<T>::input(Processor<Secret<T>>& processor, const InputArgs& args)
 {
-    return T::get_input(from, processor, n_bits);
+    return T::get_input(processor, args);
 }
 
 template<class T>

@@ -11,6 +11,7 @@ using namespace std;
 
 #include "GC/Program.h"
 #include "Access.h"
+#include "Processor/FixInput.h"
 
 namespace GC
 {
@@ -50,27 +51,29 @@ void Processor<T>::reset(const U& program)
 }
 
 template<class T>
-inline long long GC::Processor<T>::get_input(int n_bits, bool interactive)
+inline long long GC::Processor<T>::get_input(const int* params, bool interactive)
 {
-    long long res = ProcessorBase::get_input(interactive);
+    bigint res = ProcessorBase::get_input<FixInput>(interactive, &params[1]).items[0];
+    int n_bits = *params;
     check_input(res, n_bits);
-    return res;
+    assert(n_bits <= 64);
+    return res.get_si();
 }
 
 template<class T>
-void GC::Processor<T>::check_input(long long in, int n_bits)
+void GC::Processor<T>::check_input(bigint in, int n_bits)
 {
 	auto test = in >> (n_bits - 1);
 	if (n_bits == 1)
 	{
 		if (not (in == 0 or in == 1))
-			throw runtime_error("input not a bit: " + to_string(in));
+			throw runtime_error("input not a bit: " + in.get_str());
 	}
 	else if (not (test == 0 or test == -1))
 	{
 		throw runtime_error(
 				"input too large for a " + std::to_string(n_bits)
-						+ "-bit signed integer: " + to_string(in));
+						+ "-bit signed integer: " + in.get_str());
 	}
 }
 
@@ -182,11 +185,10 @@ void Processor<T>::and_(const vector<int>& args, bool repeat)
 template <class T>
 void Processor<T>::input(const vector<int>& args)
 {
-    check_args(args, 3);
-    for (size_t i = 0; i < args.size(); i += 3)
+    InputArgList a(args);
+    for (auto x : a)
     {
-        int n_bits = args[i + 1];
-        S[args[i+2]] = T::input(args[i] + 1, *this, n_bits);
+        S[x.dest] = T::input(*this, x);
 #ifdef DEBUG_INPUT
         cout << "input to " << args[i+2] << "/" << &S[args[i+2]] << endl;
 #endif

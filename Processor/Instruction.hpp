@@ -2,6 +2,9 @@
 #include "Processor/Instruction.h"
 #include "Processor/Machine.h"
 #include "Processor/Processor.h"
+#include "Processor/IntInput.h"
+#include "Processor/FixInput.h"
+#include "Processor/FloatInput.h"
 #include "Exceptions/Exceptions.h"
 #include "Tools/time-func.h"
 #include "Tools/parse.h"
@@ -288,6 +291,8 @@ void BaseInstruction::parse_operands(istream& s, int pos)
       case GDOTPRODS:
       case INPUT:
       case GINPUT:
+      case INPUTFIX:
+      case INPUTFLOAT:
         num_var_args = get_int(s);
         get_vector(num_var_args, start, s);
         break;
@@ -987,10 +992,16 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
           Proc.temp.ans2.output(Proc.private_output, false);
         break;
       case INPUT:
-        sint::Input::input(Proc.Procp, start);
+        sint::Input::template input<IntInput>(Proc.Procp, start);
         break;
       case GINPUT:
-        sgf2n::Input::input(Proc.Proc2, start);
+        sgf2n::Input::template input<IntInput>(Proc.Proc2, start);
+        break;
+      case INPUTFIX:
+        sint::Input::template input<FixInput>(Proc.Procp, start);
+        break;
+      case INPUTFLOAT:
+        sint::Input::template input<FloatInput>(Proc.Procp, start);
         break;
       case STARTINPUT:
         Proc.Procp.input.start(r[0],n);

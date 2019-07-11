@@ -180,7 +180,7 @@ class reveal(base.Instruction):
 class inputb(base.DoNotEliminateInstruction, base.VarArgsInstruction):
     __slots__ = []
     code = opcodes['INPUTB']
-    arg_format = tools.cycle(['p','int','sbw'])
+    arg_format = tools.cycle(['p','int','int','sbw'])
 
 class print_reg(base.IOInstruction):
     code = base.opcodes['PRINTREG']

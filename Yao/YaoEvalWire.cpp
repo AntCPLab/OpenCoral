@@ -119,7 +119,7 @@ void YaoEvalWire::inputb(GC::Processor<GC::Secret<YaoEvalWire> >& processor,
 		}
 		else
 		{
-			long long input = processor.get_input(x.n_bits, interactive);
+			long long input = processor.get_input(x.params, interactive);
 			size_t start = inputs.size();
 			inputs.resize(start + x.n_bits);
 			for (int i = 0; i < x.n_bits; i++)

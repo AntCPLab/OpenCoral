@@ -101,6 +101,8 @@ enum
     PREP = 0x57,
     // Input
     INPUT = 0x60,
+    INPUTFIX = 0xF0,
+    INPUTFLOAT = 0xF1,
     STARTINPUT = 0x61,
     STOPINPUT = 0x62,
     READSOCKETC = 0x63,

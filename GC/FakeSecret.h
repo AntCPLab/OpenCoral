@@ -9,6 +9,7 @@
 #include "GC/Clear.h"
 #include "GC/Memory.h"
 #include "GC/Access.h"
+#include "GC/ArgTuples.h"
 
 #include "Math/gf2nlong.h"
 
@@ -62,7 +63,7 @@ public:
 
     static void convcbit(Integer& dest, const Clear& source) { dest = source; }
 
-    static FakeSecret input(int from, GC::Processor<FakeSecret>& processor, int n_bits);
+    static FakeSecret input(GC::Processor<FakeSecret>& processor, const InputArgs& args);
     static FakeSecret input(int from, const int128& input, int n_bits);
 
     FakeSecret() : a(0) {}

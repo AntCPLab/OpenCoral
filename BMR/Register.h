@@ -17,6 +17,7 @@ using namespace std;
 #include "GC/Clear.h"
 #include "GC/Memory.h"
 #include "GC/Access.h"
+#include "GC/ArgTuples.h"
 #include "Math/gf2n.h"
 #include "Tools/FlexBuffer.h"
 
@@ -261,8 +262,8 @@ public:
 
 	// most BMR phases don't need actual input
 	template<class T>
-	static T get_input(int from, GC::Processor<T>& processor, int n_bits)
-	{ (void)processor; return T::input(from, 0, n_bits); }
+	static T get_input(GC::Processor<T>& processor, const InputArgs& args)
+	{ (void)processor; return T::input(args.from + 1, 0, args.n_bits); }
 
 	char get_output() { return 0; }
 
@@ -314,9 +315,9 @@ public:
 	static void inputb(T& processor, const vector<int>& args);
 
 	template <class T>
-	static T get_input(int from, GC::Processor<T>& processor, int n_bits)
+	static T get_input(GC::Processor<T>& processor, const InputArgs& args)
 	{
-		(void)from, (void)processor, (void)n_bits;
+		(void)processor, (void)args;
 		throw runtime_error("use EvalRegister::inputb()");
 	}
 

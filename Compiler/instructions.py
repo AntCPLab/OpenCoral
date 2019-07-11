@@ -856,7 +856,7 @@ class prep(base.Instruction):
 
 @base.gf2n
 @base.vectorize
-class asm_input(base.VarArgsInstruction):
+class asm_input(base.TextInputInstruction):
     r""" Receive input from player $p$ and put in register $s_i$. """
     __slots__ = []
     code = base.opcodes['INPUT']
@@ -869,6 +869,28 @@ class asm_input(base.VarArgsInstruction):
                                self.get_size())
     def execute(self):
         self.args[0].value = _python_input("Enter player %d's input:" % self.args[1]) % program.P
+
+class inputfix(base.TextInputInstruction):
+    __slots__ = []
+    code = base.opcodes['INPUTFIX']
+    arg_format = tools.cycle(['sw', 'int', 'p'])
+    field_type = 'modp'
+
+    def add_usage(self, req_node):
+        for player in self.args[2::3]:
+            req_node.increment((self.field_type, 'input', player), \
+                               self.get_size())
+
+class inputfloat(base.TextInputInstruction):
+    __slots__ = []
+    code = base.opcodes['INPUTFLOAT']
+    arg_format = tools.cycle(['sw', 'sw', 'sw', 'sw', 'int', 'p'])
+    field_type = 'modp'
+
+    def add_usage(self, req_node):
+        for player in self.args[5::6]:
+            req_node.increment((self.field_type, 'input', player), \
+                               4 * self.get_size())
 
 @base.gf2n
 class startinput(base.RawInputInstruction):

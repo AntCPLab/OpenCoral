@@ -79,7 +79,9 @@ class Program(object):
                          Compiler.instructions.dotprods_class, \
                          Compiler.instructions.gdotprods_class, \
                          Compiler.instructions.asm_input_class, \
-                         Compiler.instructions.gasm_input_class]
+                         Compiler.instructions.gasm_input_class,
+                         Compiler.instructions.inputfix,
+                         Compiler.instructions.inputfloat]
         import Compiler.GC.instructions as gc
         self.to_merge += [gc.ldmsdi, gc.stmsdi, gc.ldmsd, gc.stmsd, \
                           gc.stmsdci, gc.xors, gc.andrs, gc.ands, gc.inputb]

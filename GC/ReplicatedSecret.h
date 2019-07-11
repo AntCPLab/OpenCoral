@@ -12,6 +12,7 @@ using namespace std;
 #include "GC/Memory.h"
 #include "GC/Clear.h"
 #include "GC/Access.h"
+#include "GC/ArgTuples.h"
 #include "Math/FixedVec.h"
 #include "Math/BitVec.h"
 #include "Tools/SwitchableOutput.h"
@@ -65,7 +66,7 @@ public:
 
     static BitVec get_mask(int n) { return n >= 64 ? -1 : ((1L << n) - 1); }
 
-    static U input(int from, Processor<U>& processor, int n_bits);
+    static U input(Processor<U>& processor, const InputArgs& args);
     void prepare_input(vector<octetStream>& os, long input, int n_bits, PRNG& secure_prng);
     void finalize_input(Thread<U>& party, octetStream& o, int from, int n_bits);
 

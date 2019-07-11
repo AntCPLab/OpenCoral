@@ -532,14 +532,16 @@ class InputAccess
 	GC::Secret<EvalRegister>& dest;
 	GC::Processor<GC::Secret<EvalRegister> >& processor;
 	ProgramParty& party;
+	InputArgs args;
 
 public:
-	InputAccess(int from, int n_bits, GC::Secret<EvalRegister>& dest,
+	InputAccess(const InputArgs& args,
 			GC::Processor<GC::Secret<EvalRegister> >& processor) :
-			from(from), n_bits(n_bits), dest(dest), processor(processor), party(
-					ProgramParty::s())
+            from(args.from + 1), n_bits(args.n_bits), dest(
+                    processor.S[args.dest]), processor(processor), party(
+                    ProgramParty::s()), args(args)
 	{
-		if (from > party.get_n_parties() or n_bits > 100)
+		if (from > unsigned(party.get_n_parties()) or n_bits > 100)
 			throw runtime_error("invalid input parameters");
 	}
 
@@ -550,7 +552,7 @@ public:
 			party.load_wire(reg);
 		if (from == party.get_id())
 		{
-			long long in = processor.get_input(n_bits);
+			long long in = processor.get_input(args.params);
 			for (size_t i = 0; i < n_bits; i++)
 			{
 				auto& reg = dest.get_reg(i);
@@ -599,10 +601,10 @@ void EvalRegister::inputb(GC::Processor<GC::Secret<EvalRegister> >& processor,
 	vector<octetStream> oss(party.get_n_parties());
 	octetStream& my_os = oss[party.get_id() - 1];
 	vector<InputAccess> accesses;
-	for (size_t j = 0; j < args.size(); j += 3)
+	InputArgList a(args);
+	for (auto x : a)
 	{
-		accesses.push_back(
-		{ args[j] + 1, args[j + 1], processor.S[args[j + 2]], processor });
+		accesses.push_back({x , processor});
 	}
 	for (auto& access : accesses)
 		access.prepare_masks(my_os);

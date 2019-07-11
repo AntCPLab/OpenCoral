@@ -37,7 +37,7 @@ class Processor : public ::ProcessorBase
 public:
     static int check_args(const vector<int>& args, int n);
 
-    static void check_input(long long in, int n_bits);
+    static void check_input(bigint in, int n_bits);
 
     Machine<T>& machine;
 
@@ -61,7 +61,7 @@ public:
     template<class U>
     void reset(const U& program);
 
-    long long get_input(int n_bits, bool interactive = false);
+    long long get_input(const int* params, bool interactive = false);
 
     void bitcoms(T& x, const vector<int>& regs) { x.bitcom(S, regs); }
     void bitdecs(const vector<int>& regs, const T& x) { x.bitdec(S, regs); }

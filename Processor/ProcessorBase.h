@@ -40,8 +40,10 @@ public:
   void open_input_file(const string& name);
   void open_input_file(int my_num, int thread_num);
 
-  long long get_input(bool interactive);
-  long long get_input(istream& is, const string& input_filename);
+  template<class T>
+  T get_input(bool interactive, const int* params);
+  template<class T>
+  T get_input(istream& is, const string& input_filename, const int* params);
 };
 
 #endif /* PROCESSOR_PROCESSORBASE_H_ */

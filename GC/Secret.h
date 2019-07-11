@@ -13,6 +13,7 @@
 #include "GC/Clear.h"
 #include "GC/Memory.h"
 #include "GC/Access.h"
+#include "GC/ArgTuples.h"
 
 #include "Math/gf2nlong.h"
 
@@ -83,7 +84,7 @@ public:
     static const T& cast(const T& reg) { return *reinterpret_cast<const T*>(&reg); }
 
     static Secret<T> input(party_id_t from, const int128& input, int n_bits = -1);
-    static Secret<T> input(party_id_t from, Processor<Secret<T>>& processor, int n_bits = -1);
+    static Secret<T> input(Processor<Secret<T>>& processor, const InputArgs& args);
     void random(int n_bits, int128 share);
     void random_bit();
     static Secret<T> reconstruct(const int128& x, int length);
