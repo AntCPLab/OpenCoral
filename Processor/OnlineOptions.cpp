@@ -4,6 +4,7 @@
  */
 
 #include "OnlineOptions.h"
+#include "Math/gfp.h"
 
 using namespace std;
 
@@ -12,7 +13,7 @@ OnlineOptions OnlineOptions::singleton;
 OnlineOptions::OnlineOptions() : playerno(-1)
 {
     interactive = false;
-    lgp = 128;
+    lgp = gfp::MAX_N_BITS;
     live_prep = true;
     batch_size = 10000;
 }
@@ -32,12 +33,13 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
           "-I", // Flag token.
           "--interactive" // Flag token.
     );
+    string default_lgp = to_string(lgp);
     opt.add(
-          "128", // Default.
+          default_lgp.c_str(), // Default.
           0, // Required?
           1, // Number of args expected.
           0, // Delimiter if expecting multiple args.
-          "Bit length of GF(p) field (default: 128)", // Help description.
+          ("Bit length of GF(p) field (default: " + default_lgp + ")").c_str(), // Help description.
           "-lgp", // Flag token.
           "--lgp" // Flag token.
     );

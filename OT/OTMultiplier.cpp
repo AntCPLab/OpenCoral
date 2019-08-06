@@ -17,6 +17,7 @@
 #include "OT/Row.hpp"
 #include "OT/Rectangle.hpp"
 #include "Math/Z2k.hpp"
+#include "Math/Square.hpp"
 
 #include <math.h>
 
@@ -86,7 +87,8 @@ void OTMultiplier<T>::multiply()
             senderOutput[j][i].set_int128(0, rot_ext.senderOutputMatrices[i].squares[0].rows[j]);
         }
     }
-    rot_ext.receiverOutputMatrix.to(receiverOutput);
+    rot_ext.receiverOutputMatrix.vertical_to(receiverOutput);
+    assert(receiverOutput.size() >= keyBits.size());
     receiverOutput.resize(keyBits.size());
     init_authenticator(keyBits, senderOutput, receiverOutput);
 
@@ -189,7 +191,8 @@ void SemiMultiplier<T>::after_correlation()
 template <class T>
 void MascotMultiplier<T>::after_correlation()
 {
-	this->auth_ot_ext.resize(this->generator.nPreampTriplesPerLoop * square128::N_COLUMNS);
+	this->auth_ot_ext.resize(
+			this->generator.nPreampTriplesPerLoop * T::Square::N_COLUMNS);
 	this->auth_ot_ext.set_role(BOTH);
 
     this->otCorrelator.reduce_squares(this->generator.nPreampTriplesPerLoop,

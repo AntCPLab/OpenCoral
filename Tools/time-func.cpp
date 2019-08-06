@@ -2,6 +2,7 @@
 #include "Tools/time-func.h"
 #include "Exceptions/Exceptions.h"
 
+#include <assert.h>
 
 long long timeval_diff(struct timeval *start_time, struct timeval *end_time)
 { struct timeval temp_diff;
@@ -61,4 +62,13 @@ double Timer::idle()
     throw Processor_Error("Timer running.");
   else
     return convert_ns_to_seconds(elapsed_since_last_start());
+}
+
+Timer& Timer::operator -=(const Timer& other)
+{
+  assert(clock_id == other.clock_id);
+  assert(not running);
+  assert(not other.running);
+  elapsed_time -= other.elapsed_time;
+  return *this;
 }

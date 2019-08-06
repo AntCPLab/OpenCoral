@@ -43,7 +43,7 @@ void ShamirMC<T>::POpen_End(vector<typename T::clear>& values,
     {
         reconstruction.resize(n_relevant_players, 1);
         for (int i = 0; i < n_relevant_players; i++)
-            reconstruction[i] = Shamir<typename T::clear>::get_rec_factor(i,
+            reconstruction[i] = Shamir<typename T::clear::Scalar>::get_rec_factor(i,
                     n_relevant_players);
     }
 

@@ -44,6 +44,15 @@ public:
         return T::field_type();
     }
 
+    template<class U, class V>
+    static FixedVec Mul(const FixedVec<U, L>& a, const V& b)
+    {
+        FixedVec res;
+        for (int i = 0; i < L; i++)
+            res[i] = T::Mul(a[i], b);
+        return res;
+    }
+
     FixedVec<T, L>(const T& other = 0)
     {
         for (auto& x : v)

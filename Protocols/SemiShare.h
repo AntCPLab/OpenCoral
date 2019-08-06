@@ -15,6 +15,7 @@ using namespace std;
 
 template<class T> class Input;
 template<class T> class SemiMC;
+template<class T> class DirectSemiMC;
 template<class T> class SPDZ;
 template<class T> class SemiPrep;
 template<class T> class SemiInput;
@@ -34,7 +35,7 @@ public:
     typedef T clear;
 
     typedef SemiMC<SemiShare> MAC_Check;
-    typedef MAC_Check Direct_MC;
+    typedef DirectSemiMC<SemiShare> Direct_MC;
     typedef SemiInput<SemiShare> Input;
     typedef ::PrivateOutput<SemiShare> PrivateOutput;
     typedef SPDZ<SemiShare> Protocol;
@@ -50,6 +51,11 @@ public:
     const static bool dishonest_majority = true;
 
     static string type_short() { return "D" + string(1, T::type_char()); }
+
+    static SemiShare constant(const clear& other, int my_num, const T& alphai)
+    {
+        return SemiShare(other, my_num, alphai);
+    }
 
     SemiShare()
     {

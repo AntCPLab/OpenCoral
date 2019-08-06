@@ -70,6 +70,7 @@ class Program(object):
         self.free_threads = set()
         self.public_input_file = open(self.programs_dir + '/Public-Input/%s' % self.name, 'w')
         self.types = {}
+        self.budget = int(self.options.budget)
         self.to_merge = [Compiler.instructions.asm_open_class, \
                          Compiler.instructions.gasm_open_class, \
                          Compiler.instructions.muls_class, \
@@ -80,8 +81,8 @@ class Program(object):
                          Compiler.instructions.gdotprods_class, \
                          Compiler.instructions.asm_input_class, \
                          Compiler.instructions.gasm_input_class,
-                         Compiler.instructions.inputfix,
-                         Compiler.instructions.inputfloat]
+                         Compiler.instructions.inputfix_class,
+                         Compiler.instructions.inputfloat_class]
         import Compiler.GC.instructions as gc
         self.to_merge += [gc.ldmsdi, gc.stmsdi, gc.ldmsd, gc.stmsd, \
                           gc.stmsdci, gc.xors, gc.andrs, gc.ands, gc.inputb]
@@ -423,6 +424,7 @@ class Tape:
         self.req_node = self.req_tree
         self.basicblocks = []
         self.purged = False
+        self.block_counter = 0
         self.active_basicblock = None
         self.start_new_basicblock()
         self._is_empty = False
@@ -438,7 +440,6 @@ class Tape:
             self.parent = parent
             self.instructions = []
             self.name = name
-            self.index = len(parent.basicblocks)
             self.open_queue = []
             self.exit_condition = exit_condition
             self.exit_block = None
@@ -451,6 +452,9 @@ class Tape:
             else:
                 self.alloc_pool = defaultdict(set)
             self.purged = False
+
+        def __len__(self):
+            return len(self.instructions)
 
         def new_reg(self, reg_type, size=None):
             return self.parent.new_reg(reg_type, size=size)
@@ -520,7 +524,8 @@ class Tape:
         # use False because None means no scope
         if scope is False:
             scope = self.active_basicblock
-        suffix = '%s-%d' % (name, len(self.basicblocks))
+        suffix = '%s-%d' % (name, self.block_counter)
+        self.block_counter += 1
         sub = self.BasicBlock(self, self.name + '-' + suffix, scope)
         self.basicblocks.append(sub)
         self.active_basicblock = sub

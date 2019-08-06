@@ -84,22 +84,23 @@ void Replicated<T>::init_mul()
 
 template<class T>
 inline typename T::clear Replicated<T>::prepare_mul(const T& x,
-        const T& y)
+        const T& y, int n)
 {
     typename T::value_type add_share = x.local_mul(y);
-    prepare_reshare(add_share);
+    prepare_reshare(add_share, n);
     return add_share;
 }
 
 template<class T>
-inline void Replicated<T>::prepare_reshare(const typename T::clear& share)
+inline void Replicated<T>::prepare_reshare(const typename T::clear& share,
+        int n)
 {
     auto add_share = share;
     typename T::value_type tmp[2];
     for (int i = 0; i < 2; i++)
-        tmp[i].randomize(shared_prngs[i]);
+        tmp[i].randomize(shared_prngs[i], n);
     add_share += tmp[0] - tmp[1];
-    add_share.pack(os[0]);
+    add_share.pack(os[0], n);
     add_shares.push_back(add_share);
 }
 
@@ -110,12 +111,12 @@ void Replicated<T>::exchange()
 }
 
 template<class T>
-inline T Replicated<T>::finalize_mul()
+inline T Replicated<T>::finalize_mul(int n)
 {
     T result;
     result[0] = add_shares.front();
     add_shares.pop_front();
-    result[1].unpack(os[1]);
+    result[1].unpack(os[1], n);
     return result;
 }
 

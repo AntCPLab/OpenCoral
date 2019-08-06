@@ -18,13 +18,25 @@ void gfp_<X, L>::init_field(const bigint& p, bool mont)
               "Maybe change GFP_MOD_SZ to " + to_string(ZpD.get_t()));
     }
   if (ZpD.get_t() < L)
-    cerr << name << " larger than necessary for modulus " << p << endl;
+    {
+      if (mont)
+        throw runtime_error(name + " too large for modulus. "
+            "Maybe change GFP_MOD_SZ to " + to_string(ZpD.get_t()));
+      else
+        cerr << name << " larger than necessary for modulus " << p << endl;
+    }
 }
 
 template <int X, int L>
 void gfp_<X, L>::init_default(int lgp, bool mont)
 {
   init_field(SPDZ_Data_Setup_Primes(lgp), mont);
+}
+
+template <int X, int L>
+void gfp_<X, L>::check()
+{
+  assert(mpn_cmp(a.x, ZpD.get_prA(), t()) < 0);
 }
 
 template <int X, int L>
@@ -205,5 +217,6 @@ void to_signed_bigint(bigint& ans, const gfp& x)
 template class gfp_<0, GFP_MOD_SZ>;
 template class gfp_<1, GFP_MOD_SZ>;
 template class gfp_<2, 4>;
+template class gfp_<3, 4>;
 
 template mpf_class bigint::get_float(gfp, Integer, gfp, gfp);

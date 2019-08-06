@@ -13,7 +13,7 @@
 template<class T>
 class ShamirMC : public MAC_Check_Base<T>
 {
-    vector<typename T::clear> reconstruction;
+    vector<typename T::clear::Scalar> reconstruction;
 
 protected:
     vector<octetStream> os;
@@ -23,11 +23,11 @@ public:
     ShamirMC() : threshold(ShamirMachine::s().threshold) {}
 
     // emulate MAC_Check
-    ShamirMC(const typename T::value_type& _, int __ = 0, int ___ = 0) : ShamirMC()
+    ShamirMC(const typename T::mac_key_type& _, int __ = 0, int ___ = 0) : ShamirMC()
     { (void)_; (void)__; (void)___; }
 
     // emulate Direct_MAC_Check
-    ShamirMC(const typename T::value_type& _, Names& ____, int __ = 0, int ___ = 0) :
+    ShamirMC(const typename T::mac_key_type& _, Names& ____, int __ = 0, int ___ = 0) :
         ShamirMC()
     { (void)_; (void)__; (void)___; (void)____; }
 

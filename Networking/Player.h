@@ -22,8 +22,10 @@ using namespace std;
 #include "Tools/int.h"
 #include "Networking/Receiver.h"
 #include "Networking/Sender.h"
+#include "Tools/ezOptionParser.h"
 
 template<class T> class MultiPlayer;
+class Server;
 
 /* Class to get the names off the server */
 class Names
@@ -33,6 +35,7 @@ class Names
   int nplayers;
   int portnum_base;
   int player_no;
+  Server* global_server;
 
   int default_port(int playerno) { return portnum_base + playerno; }
   void setup_ports();
@@ -62,7 +65,11 @@ class Names
   Names(int player, int pnb, const string& hostsfile)
     { init(player, pnb, hostsfile); }
 
-  Names() : nplayers(-1), portnum_base(-1), player_no(-1), server(0) { ; }
+  // initialize from command-line options
+  Names(ez::ezOptionParser& opt, int argc, const char** argv,
+      int default_nplayers = 2);
+
+  Names() : nplayers(-1), portnum_base(-1), player_no(-1), global_server(0), server(0) { ; }
   Names(const Names& other);
   ~Names();
 
@@ -85,13 +92,16 @@ struct CommStats
   CommStats() : data(0), rounds(0) {}
   Timer& add(const octetStream& os) { data += os.get_length(); rounds++; return timer; }
   CommStats& operator+=(const CommStats& other);
+  CommStats& operator-=(const CommStats& other);
 };
 
 class NamedCommStats : public map<string, CommStats>
 {
 public:
   NamedCommStats& operator+=(const NamedCommStats& other);
+  NamedCommStats operator-(const NamedCommStats& other) const;
   size_t total_data();
+  void print();
 #ifdef VERBOSE_COMM
   CommStats& operator[](const string& name)
   {

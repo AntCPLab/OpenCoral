@@ -90,6 +90,8 @@ class PRNG
    void get(int& res, int n_bits, bool positive = true);
    void randomBnd(bigint& res, const bigint& B, bool positive=true);
    bigint randomBnd(const bigint& B, bool positive=true);
+   template<int N_BYTES>
+   void randomBnd(mp_limb_t* res, const mp_limb_t* B, mp_limb_t mask = -1);
    void randomBnd(mp_limb_t* res, const mp_limb_t* B, size_t n_bytes, mp_limb_t mask = -1);
    word get_word()
      {

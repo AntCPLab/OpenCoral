@@ -1,19 +1,10 @@
 #!/bin/bash
 
-port=$[RANDOM+1024]
+HERE=$(cd `dirname $0`; pwd)
+SPDZROOT=$HERE/..
 
-for i in 0 1 2; do
-    IFS=""
-    log="mal-rep-bin-$*-$i"
-    IFS=" "
-    $prefix ./malicious-rep-bin-party.x -p $i -pn $port $* 2>&1 |
-	{
-	    if test $i = 0; then
-		tee -a logs/$log
-	    else
-		cat >> logs/$log
-	    fi
-	} & true
-done
+export PLAYERS=3
 
-wait || exit 1
+. $HERE/run-common.sh
+
+run_player malicious-rep-bin-party.x $* || exit 1

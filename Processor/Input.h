@@ -32,7 +32,7 @@ public:
     int values_input;
 
     template<class U>
-    static void input(SubProcessor<T>& Proc, const vector<int>& args);
+    static void input(SubProcessor<T>& Proc, const vector<int>& args, int size);
 
     InputBase(ArithmeticProcessor* proc);
     virtual ~InputBase();

@@ -13,18 +13,27 @@
 template<class T>
 void Beaver<T>::init_mul(SubProcessor<T>* proc)
 {
-    this->proc = proc;
+    assert(proc != 0);
+    init_mul(proc->DataF, proc->MC);
+}
+
+template<class T>
+void Beaver<T>::init_mul(Preprocessing<T>& prep, typename T::MAC_Check& MC)
+{
+    this->prep = &prep;
+    this->MC = &MC;
     shares.clear();
     opened.clear();
     triples.clear();
 }
 
 template<class T>
-typename T::clear Beaver<T>::prepare_mul(const T& x, const T& y)
+typename T::clear Beaver<T>::prepare_mul(const T& x, const T& y, int n)
 {
+    (void) n;
     triples.push_back({{}});
     auto& triple = triples.back();
-    proc->DataF.get(DATA_TRIPLE, triple.data());
+    prep->get(DATA_TRIPLE, triple.data());
     shares.push_back(x - triple[0]);
     shares.push_back(y - triple[1]);
     return 0;
@@ -33,14 +42,15 @@ typename T::clear Beaver<T>::prepare_mul(const T& x, const T& y)
 template<class T>
 void Beaver<T>::exchange()
 {
-    proc->MC.POpen(opened, shares, P);
+    MC->POpen(opened, shares, P);
     it = opened.begin();
     triple = triples.begin();
 }
 
 template<class T>
-T Beaver<T>::finalize_mul()
+T Beaver<T>::finalize_mul(int n)
 {
+    (void) n;
     typename T::clear masked[2];
     T& tmp = (*triple)[2];
     for (int k = 0; k < 2; k++)
@@ -48,7 +58,7 @@ T Beaver<T>::finalize_mul()
         masked[k] = *it++;
         tmp += (masked[k] * (*triple)[1 - k]);
     }
-    tmp.add(tmp, masked[0] * masked[1], P.my_num(), proc->MC.get_alphai());
+    tmp += T::constant(masked[0] * masked[1], P.my_num(), MC->get_alphai());
     triple++;
     return tmp;
 }

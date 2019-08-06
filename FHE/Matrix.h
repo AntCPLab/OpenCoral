@@ -7,7 +7,7 @@ using namespace std;
 
 #include "Math/bigint.h"
 #include "Math/modp.h"
-#include "OT/BitVector.h"
+#include "Tools/BitVector.h"
 
 typedef vector< vector<bigint> > matrix;
 typedef vector< vector<modp> > modp_matrix;

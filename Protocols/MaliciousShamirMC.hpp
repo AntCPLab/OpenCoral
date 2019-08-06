@@ -25,7 +25,8 @@ void MaliciousShamirMC<T>::POpen_End(vector<typename T::clear>& values,
         {
             reconstructions[i].resize(i);
             for (int j = 0; j < i; j++)
-                reconstructions[i][j] = Shamir<T>::get_rec_factor(j, i);
+                reconstructions[i][j] =
+                        Shamir<typename T::Scalar>::get_rec_factor(j, i);
         }
     }
 

@@ -236,8 +236,9 @@ void gf2n_long::invert()
 }
 
 
-void gf2n_long::randomize(PRNG& G)
+void gf2n_long::randomize(PRNG& G, int n)
 {
+  (void) n;
   a=G.get_doubleword();
   a&=mask;
 }

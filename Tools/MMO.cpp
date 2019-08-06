@@ -44,21 +44,28 @@ void MMO::encrypt_and_xor(void* output, const void* input, const octet* key,
         _mm_storeu_si128(((__m128i*)output) + indices[i], out[i]);
 }
 
-template <class T, int N>
-void MMO::hashBlocks(void* output, const void* input)
+template <int N>
+void MMO::hashBlocks(void* output, const void* input, size_t alloc_size,
+        size_t used_size)
 {
-    int n_blocks = DIV_CEIL(T::size(), 16);
+    int n_blocks = DIV_CEIL(used_size, 16);
     if (n_blocks > N_KEYS)
         throw runtime_error("not enough MMO keys");
     __m128i tmp[N];
-    int block_size = sizeof(tmp[0]);
+    size_t block_size = sizeof(tmp[0]);
     for (int i = 0; i < n_blocks; i++)
     {
         encrypt_and_xor<N>(tmp, input, IV[i]);
         for (int j = 0; j < N; j++)
-            memcpy((char*)output + j * sizeof(T) + i * block_size, &tmp[j],
-                    min(T::size() - i * block_size, block_size));
+            memcpy((char*)output + j * alloc_size + i * block_size, &tmp[j],
+                    min(used_size - i * block_size, block_size));
     }
+}
+
+template <class T, int N>
+void MMO::hashBlocks(void* output, const void* input)
+{
+    hashBlocks<N>(output, input, sizeof(T), T::size());
     for (int j = 0; j < N; j++)
         ((T*)output + j)->normalize();
 }
@@ -83,53 +90,37 @@ void MMO::hashBlockWise<gf2n,128>(octet* output, octet* input)
 template <>
 void MMO::hashBlocks<gfp1, 8>(void* output, const void* input)
 {
-    if (gfp1::get_ZpD().get_t() != 2)
+    if (gfp1::get_ZpD().get_t() < 2)
         throw not_implemented();
-    __m128i* in = (__m128i*)input;
-    __m128i* out = (__m128i*)output;
-    encrypt_and_xor<8>(out, in, IV[0]);
+    gfp1* out = (gfp1*)output;
+    hashBlocks<8>(output, input, sizeof(gfp1), gfp1::size());
+    for (int i = 0; i < 8; i++)
+        out[i].zero_overhang();
     int left = 8;
     int indices[8] = {0, 1, 2, 3, 4, 5, 6, 7};
     while (left)
     {
         int now_left = 0;
         for (int j = 0; j < left; j++)
-            if (mpn_cmp((mp_limb_t*)&out[indices[j]], gfp1::get_ZpD().get_prA(), gfp1::t()) >= 0)
+            if (mpn_cmp((mp_limb_t*) out[indices[j]].get_ptr(),
+                    gfp1::get_ZpD().get_prA(), gfp1::t()) >= 0)
             {
                 indices[now_left] = indices[j];
                 now_left++;
             }
         left = now_left;
 
-        // and now my favorite hack
-        switch (left) {
-        case 8:
-            ecb_aes_128_encrypt<8>(out, out, IV[0], indices);
-            break;
-        case 7:
-            ecb_aes_128_encrypt<7>(out, out, IV[0], indices);
-            break;
-        case 6:
-            ecb_aes_128_encrypt<6>(out, out, IV[0], indices);
-            break;
-        case 5:
-            ecb_aes_128_encrypt<5>(out, out, IV[0], indices);
-            break;
-        case 4:
-            ecb_aes_128_encrypt<4>(out, out, IV[0], indices);
-            break;
-        case 3:
-            ecb_aes_128_encrypt<3>(out, out, IV[0], indices);
-            break;
-        case 2:
-            ecb_aes_128_encrypt<2>(out, out, IV[0], indices);
-            break;
-        case 1:
-            ecb_aes_128_encrypt<1>(out, out, IV[0], indices);
-            break;
-        default:
-            break;
-        }
+        int block_size = sizeof(__m128i);
+        int n_blocks = DIV_CEIL(gfp1::size(), block_size);
+        for (int i = 0; i < n_blocks; i++)
+            for (int j = 0; j < left; j++)
+            {
+                __m128i* addr = (__m128i*) out[indices[j]].get_ptr() + i;
+                __m128i* in = (__m128i*) out[indices[j]].get_ptr();
+                auto tmp = aes_128_encrypt(_mm_loadu_si128(in), IV[i]);
+                memcpy(addr, &tmp, min(block_size, gfp1::size() - i * block_size));
+                out[indices[j]].zero_overhang();
+            }
     }
 }
 

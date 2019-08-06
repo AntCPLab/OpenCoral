@@ -18,7 +18,7 @@
 #include "Processor/Instruction.hpp"
 #include "Protocols/MaliciousRepMC.hpp"
 #include "Protocols/MAC_Check_Base.hpp"
-#include "Protocols/Replicated.hpp"
+#include "Protocols/Beaver.hpp"
 
 namespace GC
 {

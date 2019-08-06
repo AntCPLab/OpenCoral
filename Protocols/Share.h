@@ -68,7 +68,7 @@ class Share
    static DataFieldType field_type()
      { return T::field_type(); }
 
-   static Share constant(const clear& aa, int my_num, const T& alphai)
+   static Share constant(const clear& aa, int my_num, const typename T::Scalar& alphai)
      { return Share(aa, my_num, alphai); }
 
    template<class U>
@@ -80,12 +80,13 @@ class Share
      { a.assign_zero(); 
        mac.assign_zero(); 
      }
-   void assign(const clear& aa, int my_num, const T& alphai);
+   void assign(const clear& aa, int my_num, const typename T::Scalar& alphai);
 
    Share()                  { assign_zero(); }
    template<class U>
    Share(const Share<U>& S) { assign(S); }
-   Share(const clear& aa, int my_num, const T& alphai) { assign(aa, my_num, alphai); }
+   Share(const clear& aa, int my_num, const typename T::Scalar& alphai)
+     { assign(aa, my_num, alphai); }
    Share(const T& share, const T& mac) : a(share), mac(mac) {}
    ~Share()                 { ; }
 
@@ -210,7 +211,8 @@ inline void Share<T>::sub(const clear& aa,const Share<T>& S,int my_num,const T& 
 }
 
 template<class T>
-inline void Share<T>::assign(const clear& aa, int my_num, const T& alphai)
+inline void Share<T>::assign(const clear& aa, int my_num,
+    const typename T::Scalar& alphai)
 {
   Protocol::assign(a, aa, my_num);
   mac.mul(aa, alphai);

@@ -25,6 +25,7 @@ using namespace std;
 
 template<class T> class Input;
 template<class T> class SPDZ;
+template<class T> class Square;
 class FFT_Data;
 
 #ifndef GFP_MOD_SZ
@@ -46,11 +47,15 @@ class gfp_
   public:
 
   typedef gfp_ value_type;
+  typedef gfp_ Scalar;
 
   typedef gfp_<X + 1, L> next;
-  typedef square128 Square;
+  typedef ::Square<gfp_> Square;
 
   typedef FFT_Data FD;
+
+  static const int N_LIMBS = L;
+  static const int MAX_N_BITS = 64 * L;
 
   template<class T>
   static void init(bool mont = true)
@@ -63,7 +68,7 @@ class gfp_
   static bigint pr()   
     { return ZpD.pr; }
   static int t()
-    { return ZpD.get_t();  }
+    { return L;  }
   static Zp_Data& get_ZpD()
     { return ZpD; }
 
@@ -79,6 +84,8 @@ class gfp_
   static bool allows(Dtype type);
 
   static const bool invertible = true;
+
+  static gfp_ Mul(gfp_ a, gfp_ b) { return a * b; }
 
   void assign(const gfp_& g) { a=g.a; }
   void assign_zero()        { assignZero(a,ZpD); }
@@ -99,6 +106,7 @@ class gfp_
   unsigned long debug() const { return a.get_limb(0); }
 
   const void* get_ptr() const { return &a.x; }
+  void* get_ptr()             { return &a.x; }
 
   // Assumes prD behind x is equal to ZpD
   void assign(modp_<L>& x) { a=x; }
@@ -133,6 +141,8 @@ class gfp_
       return _mm_loadu_si128((__m128i*)a.x);
     }
 
+  void zero_overhang();
+  void check();
 
   bool is_zero() const            { return isZero(a,ZpD); }
   bool is_one()  const            { return isOne(a,ZpD); }
@@ -190,8 +200,8 @@ class gfp_
   // deterministic square root
   gfp_ sqrRoot();
 
-  void randomize(PRNG& G)
-    { a.randomize(G,ZpD); }
+  void randomize(PRNG& G, int n = -1)
+    { (void) n; a.randomize(G,ZpD); }
   // faster randomization, see implementation for explanation
   void almost_randomize(PRNG& G);
 
@@ -233,10 +243,10 @@ class gfp_
 
   // Pack and unpack in native format
   //   i.e. Dont care about conversion to human readable form
-  void pack(octetStream& o) const
-    { a.pack(o,ZpD); }
-  void unpack(octetStream& o)
-    { a.unpack(o,ZpD); }
+  void pack(octetStream& o, int n = -1) const
+    { (void) n; a.pack(o,ZpD); }
+  void unpack(octetStream& o, int n = -1)
+    { (void) n; a.unpack(o,ZpD); }
 
   void convert_destroy(bigint& x) { a.convert_destroy(x, ZpD); }
 
@@ -273,6 +283,12 @@ gfp_<X, L>::gfp_(const SignedZ2<K>& other)
     *this = bigint::tmp = other;
   else
     a.convert(abs(other).get(), other.size_in_limbs(), ZpD, other.negative());
+}
+
+template <int X, int L>
+inline void gfp_<X, L>::zero_overhang()
+{
+  a.x[t() - 1] &= ZpD.overhang_mask();
 }
 
 #endif

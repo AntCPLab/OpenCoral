@@ -67,7 +67,7 @@ template<class T> class Input;
 template<class T> class PrivateOutput;
 template<class T> class SPDZ;
 template<class T> class Share;
-union square128;
+template<class T> class Square;
 
 /* This interface compatible with the gfp interface
  * which then allows us to template the Share
@@ -97,7 +97,11 @@ class gf2n_long
   typedef int128 internal_type;
 
   typedef gf2n_long next;
-  typedef square128 Square;
+  typedef ::Square<gf2n_long> Square;
+
+  const static int MAX_N_BITS = 128;
+
+  typedef gf2n_long Scalar;
 
   void reduce(int128 xh,int128 xl)
    {
@@ -109,6 +113,7 @@ class gf2n_long
 
   static void init_field(int nn);
   static int degree() { return n; }
+  static int length() { return n; }
   static int default_degree() { return 128; }
   static int get_nterms() { return nterms; }
   static int get_t(int i)
@@ -133,6 +138,8 @@ class gf2n_long
 
   static gf2n_long cut(int128 x) { return x; }
 
+  static gf2n_long Mul(gf2n_long a, gf2n_long b) { return a * b; }
+
   int128 get() const { return a; }
   __m128i to_m128i() const { return a.a; }
   word get_word() const { return _mm_cvtsi128_si64(a.a); }
@@ -146,7 +153,7 @@ class gf2n_long
   void assign_x()                { a=int128(0,2); }
   void assign(int128 aa)           { a=aa&mask; }
   void assign(int aa)            { a=int128(static_cast<unsigned int>(aa))&mask; }
-  void assign(const char* buffer) { a = _mm_loadu_si128((__m128i*)buffer); }
+  void assign(const void* buffer) { a = _mm_loadu_si128((__m128i*)buffer); }
 
   void normalize() {}
 
@@ -234,7 +241,7 @@ class gf2n_long
   gf2n_long& operator>>=(int i) { SHR(*this, i); return *this; }
 
   /* Crap RNG */
-  void randomize(PRNG& G);
+  void randomize(PRNG& G, int n = -1);
   // compatibility with gfp
   void almost_randomize(PRNG& G)        { randomize(G); }
 
@@ -261,10 +268,10 @@ class gf2n_long
 
   // Pack and unpack in native format
   //   i.e. Dont care about conversion to human readable form
-  void pack(octetStream& o) const
-    { o.append((octet*) &a,sizeof(__m128i)); }
-  void unpack(octetStream& o)
-    { o.consume((octet*) &a,sizeof(__m128i)); }
+  void pack(octetStream& o, int n = -1) const
+    { (void) n; o.append((octet*) &a,sizeof(__m128i)); }
+  void unpack(octetStream& o, int n = -1)
+    { (void) n; o.consume((octet*) &a,sizeof(__m128i)); }
 };
 
 

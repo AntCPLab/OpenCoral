@@ -186,11 +186,10 @@ T InputBase<T>::finalize(int player)
 template<class T>
 template<class U>
 void InputBase<T>::input(SubProcessor<T>& Proc,
-        const vector<int>& args)
+        const vector<int>& args, int size)
 {
     auto& input = Proc.input;
-    for (int i = 0; i < Proc.P.num_players(); i++)
-        input.reset(i);
+    input.reset_all(Proc.P);
     int n_arg_tuple = U::N_DEST + U::N_PARAM + 1;
     assert(args.size() % n_arg_tuple == 0);
 
@@ -199,7 +198,7 @@ void InputBase<T>::input(SubProcessor<T>& Proc,
     if (Proc.Proc.opts.interactive and Proc.Proc.thread_num == 0)
     {
         for (size_t i = n_arg_tuple - 1; i < args.size(); i += n_arg_tuple)
-            n_from_me += (args[i] == Proc.P.my_num());
+            n_from_me += (args[i] == Proc.P.my_num()) * size;
         if (n_from_me > 0)
             cout << "Please input " << n_from_me << " " << U::NAME << "(s):" << endl;
     }
@@ -209,13 +208,17 @@ void InputBase<T>::input(SubProcessor<T>& Proc,
         int n = args[i + U::N_PARAM];
         if (n == Proc.P.my_num())
         {
-            U tuple = Proc.Proc.template get_input<U>(n_from_me > 0, &args[i]);
-            for (auto x : tuple.items)
-                input.add_mine(x);
+            for (int j = 0; j < size; j++)
+            {
+                U tuple = Proc.Proc.template get_input<U>(n_from_me > 0,
+                        &args[i]);
+                for (auto x : tuple.items)
+                    input.add_mine(x);
+            }
         }
         else
         {
-            for (int j = 0; j < U::N_DEST; j++)
+            for (int j = 0; j < U::N_DEST * size; j++)
                 input.add_other(n);
         }
     }
@@ -223,14 +226,13 @@ void InputBase<T>::input(SubProcessor<T>& Proc,
     if (n_from_me > 0)
         cout << "Thank you" << endl;
 
-    input.send_mine();
+    input.exchange();
 
-    vector<vector<int>> regs(Proc.P.num_players());
     for (size_t i = 0; i < args.size(); i += n_arg_tuple)
     {
-        for (int j = 0; j < U::N_DEST; j++)
-            regs[args[i + n_arg_tuple - 1]].push_back(args[i + j]);
+        int player = args[i + n_arg_tuple - 1];
+        for (int k = 0; k < size; k++)
+            for (int j = 0; j < U::N_DEST; j++)
+                Proc.get_S_ref(args[i + j] + k) = input.finalize(player);
     }
-    for (int i = 0; i < Proc.P.num_players(); i++)
-        input.stop(i, regs[i]);
 }

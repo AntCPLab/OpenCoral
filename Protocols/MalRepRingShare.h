@@ -28,6 +28,7 @@ public:
     typedef ReplicatedPrivateOutput<MalRepRingShare> PrivateOutput;
     typedef MalRepRingPrepWithBits<MalRepRingShare> LivePrep;
     typedef MaliciousRep3Share<Z2<K + S>> prep_type;
+    typedef Z2<S> random_type;
 
     static string type_short()
     {

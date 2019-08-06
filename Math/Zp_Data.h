@@ -35,6 +35,7 @@ class Zp_Data
   // extra limb needed for Montgomery multiplication
   mp_limb_t   prA[MAX_MOD_SZ+1];
   int         t;           // More Montgomery data
+  mp_limb_t   overhang;
 
   template <int T>
   void Mont_Mult_(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const;
@@ -54,6 +55,8 @@ class Zp_Data
   void init(const bigint& p,bool mont=true);
   int get_t() const { return t; }
   const mp_limb_t* get_prA() const { return prA; }
+  bool get_mont() const { return montgomery; }
+  mp_limb_t overhang_mask() const;
 
   void pack(octetStream& o) const;
   void unpack(octetStream& o);
@@ -63,6 +66,7 @@ class Zp_Data
       montgomery(0), pi(0), mask(0), pr_byte_length(0), pr_bit_length(0)
   {
     t = MAX_MOD_SZ;
+    overhang = 0;
   }
 
   // The main init funciton
@@ -104,6 +108,12 @@ class Zp_Data
    friend ostream& operator<<(ostream& s,const Zp_Data& ZpD);
    friend istream& operator>>(istream& s,Zp_Data& ZpD);
 };
+
+
+inline mp_limb_t Zp_Data::overhang_mask() const
+{
+  return overhang;
+}
 
 template<>
 inline void Zp_Data::Add<0>(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const

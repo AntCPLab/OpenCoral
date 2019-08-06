@@ -1,4 +1,13 @@
-The changelog explains changes pulled through from the private development repository. Bug fixes and small enchancements are committed between releases and not documented here.
+The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
+
+## 0.1.1 (Aug 6, 2019)
+
+- ECDSA
+- Loop unrolling with budget as in [HyCC](https://thomaschneider.de/papers/BDKKS18.pdf)
+- Malicious replicated secret sharing for binary circuits
+- New variants of malicious replicated secret over rings in [Use your Brain!](https://eprint.iacr.org/2019/164)
+- MASCOT for any prime larger than 2^64
+- Private fixed- and floating-point inputs
 
 ## 0.1.0 (Jun 7, 2019)
 

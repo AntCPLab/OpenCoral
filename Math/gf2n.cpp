@@ -330,8 +330,9 @@ void gf2n_short::power(long i)
 }
 
 
-void gf2n_short::randomize(PRNG& G)
+void gf2n_short::randomize(PRNG& G, int n)
 {
+  (void) n;
   a=G.get_uint();
   a=(a<<32)^G.get_uint();
   a&=mask;

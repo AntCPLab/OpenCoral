@@ -183,13 +183,29 @@ void PRNG::get_octetStream(octetStream& ans,int len)
 }
 
 
+template<int N_BYTES>
+void PRNG::randomBnd(mp_limb_t* res, const mp_limb_t* B, mp_limb_t mask)
+{
+  size_t n_limbs = (N_BYTES + sizeof(mp_limb_t) - 1) / sizeof(mp_limb_t);
+  do
+    {
+      get_octets<N_BYTES>((octet*) res);
+      res[n_limbs - 1] &= mask;
+    }
+  while (mpn_cmp(res, B, n_limbs) >= 0);
+}
+
 void PRNG::randomBnd(mp_limb_t* res, const mp_limb_t* B, size_t n_bytes, mp_limb_t mask)
 {
-  if (n_bytes == 16)
-    do
-      get_octets<16>((octet*) res);
-    while (mpn_cmp(res, B, 2) >= 0);
-  else
+  switch (n_bytes)
+  {
+  case 16:
+    randomBnd<16>(res, B, mask);
+    return;
+  case 32:
+    randomBnd<32>(res, B, mask);
+    return;
+  default:
     {
       size_t n_limbs = (n_bytes + sizeof(mp_limb_t) - 1) / sizeof(mp_limb_t);
       do
@@ -199,6 +215,7 @@ void PRNG::randomBnd(mp_limb_t* res, const mp_limb_t* B, size_t n_bytes, mp_limb
       }
       while (mpn_cmp(res, B, n_limbs) >= 0);
     }
+  }
 }
 
 bigint PRNG::randomBnd(const bigint& B, bool positive)
@@ -233,6 +250,7 @@ void PRNG::randomBnd(bigint& x, const bigint& B, bool positive)
 
 void PRNG::get_bigint(bigint& res, int n_bits, bool positive)
 {
+  assert(n_bits > 0);
   int n_bytes = (n_bits + 7) / 8;
   if (n_bytes > 1000)
     throw not_implemented();

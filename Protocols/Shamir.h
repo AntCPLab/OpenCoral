@@ -51,9 +51,9 @@ public:
 
     void init_mul();
     void init_mul(SubProcessor<T>* proc);
-    U prepare_mul(const T& x, const T& y);
+    U prepare_mul(const T& x, const T& y, int n = -1);
     void exchange();
-    T finalize_mul();
+    T finalize_mul(int n = -1);
 
     T finalize(int n_input_players);
 

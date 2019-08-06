@@ -10,7 +10,7 @@
 
 #include "Networking/Player.h"
 #include "Tools/random.h"
-#include "OT/BitVector.h"
+#include "Tools/BitVector.h"
 
 // currently always assumes BOTH, i.e. do 2 sets of OT symmetrically,
 // use bitwise & to check for role

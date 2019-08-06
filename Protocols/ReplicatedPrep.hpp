@@ -37,15 +37,27 @@ void RingPrep<T>::set_protocol(typename T::Protocol& protocol)
 }
 
 template<class T>
+void BufferPrep<T>::clear()
+{
+    triples.clear();
+    inverses.clear();
+    bits.clear();
+    squares.clear();
+    inputs.clear();
+}
+
+template<class T>
 void ReplicatedRingPrep<T>::buffer_triples()
 {
     assert(this->protocol != 0);
-    generate_triples(this->triples, OnlineOptions::singleton.batch_size, this->protocol);
+    typename T::Protocol protocol(this->protocol->P);
+    generate_triples(this->triples, OnlineOptions::singleton.batch_size,
+            &protocol);
 }
 
 template<class T, class U>
 void generate_triples(vector<array<T, 3>>& triples, int n_triples,
-        U* protocol)
+        U* protocol, int n_bits = -1)
 {
     triples.resize(n_triples);
     protocol->init_mul();
@@ -54,11 +66,11 @@ void generate_triples(vector<array<T, 3>>& triples, int n_triples,
         auto& triple = triples[i];
         triple[0] = protocol->get_random();
         triple[1] = protocol->get_random();
-        protocol->prepare_mul(triple[0], triple[1]);
+        protocol->prepare_mul(triple[0], triple[1], n_bits);
     }
     protocol->exchange();
     for (size_t i = 0; i < triples.size(); i++)
-        triples[i][2] = protocol->finalize_mul();
+        triples[i][2] = protocol->finalize_mul(n_bits);
 }
 
 template<class T>

@@ -23,23 +23,20 @@
 #include "Protocols/fake-stuff.hpp"
 #include "Protocols/Beaver.hpp"
 
-ShamirMachine* ShamirMachine::singleton = 0;
+ShamirOptions ShamirOptions::singleton;
 
-ShamirMachine& ShamirMachine::s()
+ShamirOptions& ShamirOptions::s()
 {
-    if (singleton)
-        return *singleton;
-    else
-        throw runtime_error("no singleton");
+    return singleton;
 }
 
-ShamirMachine::ShamirMachine(int argc, const char** argv)
+ShamirOptions::ShamirOptions() :
+        nparties(3), threshold(1)
 {
-    if (singleton)
-        throw runtime_error("there can only be one");
-    else
-        singleton = this;
+}
 
+ShamirOptions::ShamirOptions(ez::ezOptionParser& opt, int argc, const char** argv)
+{
     opt.add(
             "3", // Default.
             0, // Required?
@@ -74,13 +71,16 @@ ShamirMachine::ShamirMachine(int argc, const char** argv)
         cerr << "Threshold has to be positive" << endl;
         exit(1);
     }
+    opt.resetArgs();
 }
 
 template<template<class U> class T>
-ShamirMachineSpec<T>::ShamirMachineSpec(int argc, const char** argv) :
-        ShamirMachine(argc, argv)
+ShamirMachineSpec<T>::ShamirMachineSpec(int argc, const char** argv)
 {
-    ReplicatedMachine<T<gfp>, T<gf2n>>(argc, argv, "shamir", opt, nparties);
+    auto& opts = ShamirOptions::singleton;
+    ez::ezOptionParser opt;
+    opts = {opt, argc, argv};
+    ReplicatedMachine<T<gfp>, T<gf2n>>(argc, argv, "shamir", opt, opts.nparties);
 }
 
 template class ShamirMachineSpec<ShamirShare>;

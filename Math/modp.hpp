@@ -10,7 +10,7 @@
 template<int L>
 void modp_<L>::randomize(PRNG& G, const Zp_Data& ZpD)
 {
-  G.randomBnd(x, ZpD.get_prA(), ZpD.pr_byte_length);
+  G.randomBnd(x, ZpD.get_prA(), ZpD.pr_byte_length, ZpD.overhang_mask());
 }
 
 template<int L>

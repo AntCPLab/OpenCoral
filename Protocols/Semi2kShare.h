@@ -18,7 +18,7 @@ public:
     typedef Z2<64> mac_key_type;
 
     typedef SemiMC<Semi2kShare> MAC_Check;
-    typedef MAC_Check Direct_MC;
+    typedef DirectSemiMC<Semi2kShare> Direct_MC;
     typedef SemiInput<Semi2kShare> Input;
     typedef ::PrivateOutput<Semi2kShare> PrivateOutput;
     typedef SPDZ<Semi2kShare> Protocol;

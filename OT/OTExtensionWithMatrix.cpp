@@ -7,9 +7,11 @@
 #include "Rectangle.h"
 #include "Math/gfp.h"
 #include "Math/Z2k.h"
+#include "Math/gf2nlong.h"
 
 #include "OT/Rectangle.hpp"
 #include "Math/Z2k.hpp"
+#include "Math/Square.hpp"
 
 OTExtensionWithMatrix OTExtensionWithMatrix::setup(TwoPartyPlayer& player,
         int128 delta, OT_ROLE role, bool passive)
@@ -514,7 +516,8 @@ void OTExtensionWithMatrix::print_pre_expand()
 }
 
 template class OTCorrelator<BitMatrix>;
-template class OTCorrelator<Matrix<square128> >;
+template void OTCorrelator<BitMatrix>::correlate<gf2n_long>(int start, int slice,
+        BitVector& newReceiverInput, bool useConstantBase, int repeat);
 
 #define Z(BM,GF) \
 template void OTCorrelator<BM>::correlate<GF>(int start, int slice, \
@@ -526,18 +529,17 @@ template void OTCorrelator<BM>::reduce_squares<GF>(unsigned int nTriples, \
 template class OTCorrelator<Matrix<gf2n_short_square>>;
 Z(Matrix<gf2n_short_square>, gf2n_short)
 
-#define ZZ(BM) Z(BM, gfp1) Z(BM, gf2n_long)
+template class OTCorrelator<Matrix<Square<gf2n_long>>>;
+Z(Matrix<Square<gf2n_long>>, gf2n_long)
 
-ZZ(BitMatrix)
-ZZ(Matrix<square128> )
+template class OTCorrelator<Matrix<Square<gfp1>>>;
+Z(Matrix<Square<gfp1>>, gfp1)
 
 #define ZZZZ(GF) \
-ZZZ(GF, Matrix<square128>) \
 template void OTExtensionWithMatrix::print_post_correlate<GF>( \
         BitVector& newReceiverInput, int j, int offset, int sender); \
 template void OTExtensionWithMatrix::extend<GF>(int nOTs_requested, \
         BitVector& newReceiverInput); \
-template void OTExtensionWithMatrix::expand_transposed<GF>();
 
 #define ZZZ(GF, M) \
 template void OTExtensionWithMatrix::hash_outputs<GF, M >(int, vector<M >&, M&);
@@ -547,6 +549,8 @@ ZZZZ(gfp1)
 ZZZZ(gf2n_long)
 ZZZ(Z2<160>, MM)
 ZZZ(gf2n_short, Matrix<gf2n_short_square>)
+ZZZ(gf2n_long, Matrix<Square<gf2n_long>>)
+ZZZ(gfp1, Matrix<Square<gfp1>>)
 
 #undef XX
 #define XX(T,U,N,L) \

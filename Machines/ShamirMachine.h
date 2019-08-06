@@ -8,24 +8,25 @@
 
 #include "Tools/ezOptionParser.h"
 
-class ShamirMachine
+class ShamirOptions
 {
-    static ShamirMachine* singleton;
-
-protected:
-    ez::ezOptionParser opt;
-    int nparties;
-
 public:
+    static ShamirOptions singleton;
+    static ShamirOptions& s();
+
+    int nparties;
     int threshold;
 
-    static ShamirMachine& s();
+    ShamirOptions();
+    ShamirOptions(ez::ezOptionParser& opt, int argc, const char** argv);
+};
 
-    ShamirMachine(int argc, const char** argv);
+class ShamirMachine : public ShamirOptions
+{
 };
 
 template<template<class U> class T>
-class ShamirMachineSpec : ShamirMachine
+class ShamirMachineSpec
 {
 public:
     ShamirMachineSpec(int argc, const char** argv);

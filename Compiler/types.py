@@ -707,6 +707,7 @@ class regint(_register, _int):
 
     @vectorized_classmethod
     def get_random(cls, bit_length):
+        """ Public insecure randomness """
         if isinstance(bit_length, int):
             bit_length = regint(bit_length)
         res = cls()
@@ -914,6 +915,7 @@ class _secret(_register):
     @vectorized_classmethod
     @set_instruction_type
     def get_input_from(cls, player):
+        """ Secret input """
         res = cls()
         asm_input(res, player)
         return res
@@ -921,6 +923,7 @@ class _secret(_register):
     @vectorized_classmethod
     @set_instruction_type
     def get_random_triple(cls):
+        """ Secret random triple according to security model """
         res = (cls(), cls(), cls())
         triple(*res)
         return res
@@ -928,6 +931,7 @@ class _secret(_register):
     @vectorized_classmethod
     @set_instruction_type
     def get_random_bit(cls):
+        """ Secret random bit according to security model """
         res = cls()
         bit(res)
         return res
@@ -935,6 +939,7 @@ class _secret(_register):
     @vectorized_classmethod
     @set_instruction_type
     def get_random_square(cls):
+        """ Secret random square according to security model """
         res = (cls(), cls())
         square(*res)
         return res
@@ -942,6 +947,7 @@ class _secret(_register):
     @vectorized_classmethod
     @set_instruction_type
     def get_random_inverse(cls):
+        """ Secret random inverse according to security model """
         res = (cls(), cls())
         inverse(*res)
         return res
@@ -1110,6 +1116,7 @@ class sint(_secret, _int):
 
     @vectorized_classmethod
     def get_random_int(cls, bits):
+        """ Secret random n-bit number according to security model """
         res = sint()
         comparison.PRandInt(res, bits)
         return res
@@ -2408,7 +2415,7 @@ class sfix(_fix):
     int_type = sint
     clear_type = cfix
 
-    @classmethod
+    @vectorized_classmethod
     def get_input_from(cls, player):
         v = cls.int_type()
         inputfix(v, cls.f, player)
@@ -2734,7 +2741,7 @@ class sfloat(_number, _structure):
                                         'with %d exponent bits' % (vv, plen))
         return v, p, z, s
 
-    @classmethod
+    @vectorized_classmethod
     def get_input_from(cls, player):
         v = sint()
         p = sint()

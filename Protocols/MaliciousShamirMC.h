@@ -11,18 +11,18 @@
 template<class T>
 class MaliciousShamirMC : public ShamirMC<T>
 {
-    vector<vector<typename T::clear>> reconstructions;
+    vector<vector<typename T::clear::Scalar>> reconstructions;
 
 public:
     MaliciousShamirMC();
 
     // emulate MAC_Check
-    MaliciousShamirMC(const typename T::value_type& _, int __ = 0, int ___ = 0) :
+    MaliciousShamirMC(const typename T::mac_key_type& _, int __ = 0, int ___ = 0) :
             MaliciousShamirMC()
     { (void)_; (void)__; (void)___; }
 
     // emulate Direct_MAC_Check
-    MaliciousShamirMC(const typename T::value_type& _, Names& ____, int __ = 0,
+    MaliciousShamirMC(const typename T::mac_key_type& _, Names& ____, int __ = 0,
             int ___ = 0) :
             MaliciousShamirMC()
     { (void)_; (void)__; (void)___; (void)____; }

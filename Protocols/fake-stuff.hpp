@@ -1,5 +1,6 @@
 
 #include "Protocols/fake-stuff.h"
+#include "Processor/Data_Files.h"
 #include "Tools/benchmarking.h"
 #include "Math/gfp.h"
 #include "Math/gf2n.h"
@@ -171,6 +172,12 @@ void write_mac_keys(const string& directory, int i, int nplayers, U macp, T mac2
 }
 
 template <class T, class U>
+void read_mac_keys(const string& directory, const Names& N, U& keyp, T& key2)
+{
+  read_mac_keys(directory, N.my_num(), N.num_players(), keyp, key2);
+}
+
+template <class T, class U>
 void read_mac_keys(const string& directory, int player_num, int nplayers, U& keyp, T& key2)
 {
   int nn;
@@ -195,4 +202,137 @@ void read_mac_keys(const string& directory, int player_num, int nplayers, U& key
   keyp.input(inpf,true);
   key2.input(inpf,true);
   inpf.close();
+}
+
+template<class T>
+void generate_mac_keys(typename T::mac_key_type::Scalar& keyp, gf2n& key2,
+    int nplayers, string prep_data_prefix)
+{
+  keyp.assign_zero();
+  gf2n p2;
+  key2.assign_zero();
+  int tmpN = 0;
+  ifstream inpf;
+  SeededPRNG G;
+  for (int i = 0; i < nplayers; i++)
+    {
+      stringstream filename;
+      filename << prep_data_prefix << "Player-MAC-Keys-P" << i;
+      inpf.open(filename.str().c_str());
+      typename T::mac_key_type::Scalar pp;
+      gf2n p2;
+      if (inpf.fail())
+        {
+          inpf.close();
+          cout << "No MAC key share for player " << i << ", generating a fresh one\n";
+          pp.randomize(G);
+          p2.randomize(G);
+          ofstream outf(filename.str().c_str());
+          if (outf.fail())
+            throw file_error(filename.str().c_str());
+          outf << nplayers << " " << pp << " " << p2;
+          outf.close();
+          cout << "Written new MAC key share to " << filename.str() << endl;
+        }
+      else
+        {
+          inpf >> tmpN; // not needed here
+          pp.input(inpf,true);
+          p2.input(inpf,true);
+          inpf.close();
+        }
+      cout << " Key " << i << "\t p: " << pp << "\n\t 2: " << p2 << endl;
+      keyp.add(pp);
+      key2.add(p2);
+    }
+  cout << "--------------\n";
+  cout << "Final Keys :\t p: " << keyp << "\n\t\t 2: " << key2 << endl;
+}
+
+/* N      = Number players
+ * ntrip  = Number triples needed
+ * str    = "2" or "p"
+ */
+template<class T>
+void make_mult_triples(const typename T::mac_type& key, int N, int ntrip,
+    bool zero, string prep_data_prefix, int thread_num = -1)
+{
+  PRNG G;
+  G.ReSeed();
+
+  ofstream* outf=new ofstream[N];
+  typename T::clear a,b,c;
+  vector<T> Sa(N),Sb(N),Sc(N);
+  /* Generate Triples */
+  for (int i=0; i<N; i++)
+    { stringstream filename;
+      filename << prep_data_prefix << "Triples-" << T::type_short() << "-P" << i
+          << Sub_Data_Files<T>::get_suffix(thread_num);
+      cout << "Opening " << filename.str() << endl;
+      outf[i].open(filename.str().c_str(),ios::out | ios::binary);
+      if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
+    }
+  for (int i=0; i<ntrip; i++)
+    {
+      if (!zero)
+        a.randomize(G);
+      make_share(Sa,a,N,key,G);
+      if (!zero)
+        b.randomize(G);
+      make_share(Sb,b,N,key,G);
+      c.mul(a,b);
+      make_share(Sc,c,N,key,G);
+      for (int j=0; j<N; j++)
+        { Sa[j].output(outf[j],false);
+          Sb[j].output(outf[j],false);
+          Sc[j].output(outf[j],false);
+        }
+    }
+  for (int i=0; i<N; i++)
+    { outf[i].close(); }
+  delete[] outf;
+}
+
+/* N      = Number players
+ * ntrip  = Number inverses needed
+ * str    = "2" or "p"
+ */
+template<class T>
+void make_inverse(const typename T::mac_type& key, int N, int ntrip, bool zero,
+    string prep_data_prefix)
+{
+  PRNG G;
+  G.ReSeed();
+
+  ofstream* outf=new ofstream[N];
+  typename T::clear a,b;
+  vector<T> Sa(N),Sb(N);
+  /* Generate Triples */
+  for (int i=0; i<N; i++)
+    { stringstream filename;
+      filename << prep_data_prefix << "Inverses-" << T::type_short() << "-P" << i;
+      cout << "Opening " << filename.str() << endl;
+      outf[i].open(filename.str().c_str(),ios::out | ios::binary);
+      if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
+    }
+  for (int i=0; i<ntrip; i++)
+    {
+      if (zero)
+        // ironic?
+        a.assign_one();
+      else
+        do
+          a.randomize(G);
+        while (a.is_zero());
+      make_share(Sa,a,N,key,G);
+      b=a; b.invert();
+      make_share(Sb,b,N,key,G);
+      for (int j=0; j<N; j++)
+        { Sa[j].output(outf[j],false);
+          Sb[j].output(outf[j],false);
+        }
+    }
+  for (int i=0; i<N; i++)
+    { outf[i].close(); }
+  delete[] outf;
 }

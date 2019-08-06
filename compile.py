@@ -65,6 +65,9 @@ def main():
                       help="bit length of sint modulo prime (default: 64)")
     parser.add_option("-I", "--insecure", action="store_true", dest="insecure",
                       help="activate insecure functionality for benchmarking")
+    parser.add_option("-b", "--budget", dest="budget", default=100000,
+                      help="set budget for optimized loop unrolling "
+                      "(default: 100000)")
     options,args = parser.parse_args()
     if len(args) < 1:
         parser.print_help()

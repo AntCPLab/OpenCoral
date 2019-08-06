@@ -12,9 +12,9 @@ template<class T> class MalRepRingPrepWithBits;
 template<class T> class PostSacrifice;
 
 template<int K, int S>
-class PostSacriRepRingShare : public MaliciousRep3Share<Z2<K + S>>
+class PostSacriRepRingShare : public MaliciousRep3Share<Z2<K>>
 {
-    typedef MaliciousRep3Share<Z2<K + S>> super;
+    typedef MaliciousRep3Share<Z2<K>> super;
 
 public:
     static const int BIT_LENGTH = K;
@@ -22,6 +22,7 @@ public:
 
     typedef SignedZ2<K> clear;
     typedef MaliciousRep3Share<Z2<K + S>> prep_type;
+    typedef Z2<S> random_type;
 
     typedef PostSacrifice<PostSacriRepRingShare> Protocol;
     typedef HashMaliciousRepMC<PostSacriRepRingShare> MAC_Check;
@@ -45,11 +46,6 @@ public:
     template<class U>
     PostSacriRepRingShare(const U& other) : super(other)
     {
-    }
-
-    void mul(const PostSacriRepRingShare& x, const clear& y)
-    {
-        super::mul(x, Z2<K + S>(y));
     }
 };
 

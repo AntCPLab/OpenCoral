@@ -12,6 +12,8 @@
 class BitVec : public IntBase
 {
 public:
+    typedef BitVec Scalar;
+
     static const int n_bits = sizeof(a) * 8;
 
     static char type_char() { return 'B'; }
@@ -27,12 +29,16 @@ public:
     BitVec operator-(const BitVec& other) const { return a ^ other.a; }
     BitVec operator*(const BitVec& other) const { return a & other.a; }
 
+    BitVec operator/(const BitVec& other) const { (void) other; throw not_implemented(); }
+
     BitVec& operator+=(const BitVec& other) { *this ^= other; return *this; }
 
     BitVec extend_bit() const { return -(a & 1); }
     BitVec mask(int n) const { return n < n_bits ? *this & ((1L << n) - 1) : *this; }
 
     void mul(const BitVec& a, const BitVec& b) { *this = a * b; }
+
+    void randomize(PRNG& G, int n = n_bits) { IntBase::randomize(G); *this = mask(n); }
 
     void pack(octetStream& os, int n = n_bits) const { os.store_int(a, DIV_CEIL(n, 8)); }
     void unpack(octetStream& os, int n = n_bits) { a = os.get_int(DIV_CEIL(n, 8)); }

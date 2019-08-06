@@ -27,6 +27,7 @@ public:
     typedef ReplicatedInput<Rep3Share> Input;
     typedef ReplicatedPrivateOutput<Rep3Share> PrivateOutput;
     typedef ReplicatedRingPrep<Rep3Share> LivePrep;
+    typedef Rep3Share Honest;
 
     const static bool needs_ot = false;
     const static bool dishonest_majority = false;

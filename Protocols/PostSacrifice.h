@@ -11,10 +11,13 @@
 template<class T>
 class PostSacrifice : public ProtocolBase<T>
 {
-    typename T::Honest::Protocol internal;
+    typedef typename T::prep_type prep_type;
 
-    vector<array<T, 2>> operands;
-    vector<T> results;
+    typename prep_type::Honest::Protocol internal;
+    typename T::Honest::Protocol randomizer;
+
+    vector<array<prep_type, 2>> operands;
+    vector<prep_type> results;
 
     void check();
 
@@ -25,9 +28,9 @@ public:
     ~PostSacrifice();
 
     void init_mul(SubProcessor<T>* proc);
-    typename T::clear prepare_mul(const T& x, const T& y);
+    typename T::clear prepare_mul(const T& x, const T& y, int n = -1);
     void exchange() { internal.exchange(); }
-    T finalize_mul();
+    T finalize_mul(int n = -1);
 
     int get_n_relevant_players() { return internal.get_n_relevant_players(); }
 };

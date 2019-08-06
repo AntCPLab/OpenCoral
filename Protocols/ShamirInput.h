@@ -41,7 +41,7 @@ class ShamirInput : public IndividualInput<T>
     vector<vector<typename T::clear>> vandermonde;
     SeededPRNG secure_prng;
 
-    vector<T> randomness;
+    vector<typename T::Scalar> randomness;
 
 public:
     ShamirInput(SubProcessor<T>& proc, ShamirMC<T>& MC) :

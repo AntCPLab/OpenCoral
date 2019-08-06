@@ -96,6 +96,7 @@ class octetStream
 
   // Append with no padding for decoding
   void append(const octet* x,const size_t l);
+  octet* append(const size_t l);
   void append_no_resize(const octet* x,const size_t l);
   // Read l octets, with no padding for decoding
   void consume(octet* x,const size_t l);
@@ -206,12 +207,18 @@ inline void octetStream::reserve(size_t l)
     resize_precise(len + l);
 }
 
-inline void octetStream::append(const octet* x, const size_t l)
+inline octet* octetStream::append(const size_t l)
 {
   if (len+l>mxlen)
     resize(len+l);
-  avx_memcpy(data+len,x,l*sizeof(octet));
+  octet* res = data + len;
   len+=l;
+  return res;
+}
+
+inline void octetStream::append(const octet* x, const size_t l)
+{
+  avx_memcpy(append(l), x, l*sizeof(octet));
 }
 
 inline void octetStream::append_no_resize(const octet* x, const size_t l)

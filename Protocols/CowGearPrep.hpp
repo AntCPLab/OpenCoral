@@ -27,7 +27,7 @@ void CowGearPrep<T>::teardown()
 }
 
 template<class T>
-void CowGearPrep<T>::setup(Player& P, mac_key_type alphai)
+void CowGearPrep<T>::basic_setup(Player& P)
 {
     Timer timer;
     timer.start();
@@ -42,6 +42,27 @@ void CowGearPrep<T>::setup(Player& P, mac_key_type alphai)
     cerr << "LowGear security parameter: " << options.lowgear_security << endl;
 #endif
     setup.secure_init(P, machine, T::clear::length(), options.lowgear_security);
+#ifdef VERBOSE
+    cerr << T::type_string() << " parameter setup took " << timer.elapsed()
+            << " seconds" << endl;
+#endif
+}
+
+template<class T>
+void CowGearPrep<T>::setup(Player& P, mac_key_type alphai)
+{
+    basic_setup(P);
+    key_setup(P, alphai);
+}
+
+template<class T>
+void CowGearPrep<T>::key_setup(Player& P, mac_key_type alphai)
+{
+    Timer timer;
+    timer.start();
+    auto& machine = *pairwise_machine;
+    auto& setup = machine.setup<FD>();
+    auto& options = CowGearOptions::singleton;
     setup.covert_key_generation(P, machine, options.covert_security);
     setup.covert_mac_generation(P, machine, options.covert_security);
 
@@ -61,7 +82,8 @@ void CowGearPrep<T>::setup(Player& P, mac_key_type alphai)
     // generate minimal number of items
     machine.nTriplesPerThread = 1;
 #ifdef VERBOSE
-    cerr << T::type_string() << " setup took " << timer.elapsed() << " seconds" << endl;
+    cerr << T::type_string() << " key setup took " << timer.elapsed()
+            << " seconds" << endl;
 #endif
 }
 
@@ -71,10 +93,13 @@ PairwiseGenerator<typename T::clear::FD>& CowGearPrep<T>::get_generator()
     auto& proc = this->proc;
     assert(proc != 0);
     lock.lock();
-    if (pairwise_machine == 0)
+    if (pairwise_machine == 0 or pairwise_machine->enc_alphas.empty())
     {
         PlainPlayer P(proc->P.N, T::clear::type_char());
-        setup(P, proc->MC.get_alphai());
+        if (pairwise_machine == 0)
+            setup(P, proc->MC.get_alphai());
+        else
+            key_setup(P, proc->MC.get_alphai());
     }
     lock.unlock();
     if (pairwise_generator == 0)

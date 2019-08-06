@@ -10,6 +10,8 @@
 #include "Tools/Subroutines.h"
 #include "Protocols/MAC_Check.h"
 
+#include "Protocols/MAC_Check.hpp"
+
 template<class T, class FD, class S>
 SimpleEncCommitBase<T, FD, S>::SimpleEncCommitBase(const MachineBase& machine) :
         sec(machine.sec), extra_slack(machine.extra_slack), n_rounds(0)

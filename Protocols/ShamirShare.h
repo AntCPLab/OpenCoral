@@ -25,6 +25,7 @@ public:
     typedef ShamirInput<ShamirShare> Input;
     typedef ReplicatedPrivateOutput<ShamirShare> PrivateOutput;
     typedef ReplicatedPrep<ShamirShare> LivePrep;
+    typedef ShamirShare Honest;
 
     const static bool needs_ot = false;
     const static bool dishonest_majority = false;

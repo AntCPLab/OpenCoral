@@ -992,17 +992,17 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
           Proc.temp.ans2.output(Proc.private_output, false);
         break;
       case INPUT:
-        sint::Input::template input<IntInput>(Proc.Procp, start);
-        break;
+        sint::Input::template input<IntInput>(Proc.Procp, start, size);
+        return;
       case GINPUT:
-        sgf2n::Input::template input<IntInput>(Proc.Proc2, start);
-        break;
+        sgf2n::Input::template input<IntInput>(Proc.Proc2, start, size);
+        return;
       case INPUTFIX:
-        sint::Input::template input<FixInput>(Proc.Procp, start);
-        break;
+        sint::Input::template input<FixInput>(Proc.Procp, start, size);
+        return;
       case INPUTFLOAT:
-        sint::Input::template input<FloatInput>(Proc.Procp, start);
-        break;
+        sint::Input::template input<FloatInput>(Proc.Procp, start, size);
+        return;
       case STARTINPUT:
         Proc.Procp.input.start(r[0],n);
         break;
@@ -1133,13 +1133,13 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.Proc2.POpen(start, Proc.P, size);
         return;
       case MULS:
-        Proc.Procp.protocol.muls(start, Proc.Procp, Proc.MCp, size);
+        Proc.Procp.muls(start, size);
         return;
       case GMULS:
         Proc.Proc2.protocol.muls(start, Proc.Proc2, Proc.MC2, size);
         return;
       case MULRS:
-        Proc.Procp.protocol.mulrs(start, Proc.Procp);
+        Proc.Procp.mulrs(start);
         return;
       case GMULRS:
         Proc.Proc2.protocol.mulrs(start, Proc.Proc2);

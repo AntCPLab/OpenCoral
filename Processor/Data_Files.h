@@ -108,6 +108,8 @@ public:
   void get_one(Dtype dtype, T& a);
   void get_input(T& a, typename T::open_type& x, int i);
   void get(vector<T>& S, DataTag tag, const vector<int>& regs, int vector_size);
+
+  virtual void buffer_triples() {}
 };
 
 template<class T>

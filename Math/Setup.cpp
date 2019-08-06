@@ -109,7 +109,7 @@ void generate_online_setup(ofstream& outf, string dirname, bigint& p, int lgp, i
   write_online_setup(outf, dirname, p, lg2);
 }
 
-void write_online_setup(ofstream& outf, string dirname, const bigint& p, int lg2)
+void write_online_setup(ofstream& outf, string dirname, const bigint& p, int lg2, bool mont)
 {
   if (p == 0)
     throw runtime_error("prime cannot be 0");
@@ -133,7 +133,7 @@ void write_online_setup(ofstream& outf, string dirname, const bigint& p, int lg2
   // LWE parameters
   outf << abs(lg2) << endl;
 
-  gfp::init_field(p, true);
+  gfp::init_field(p, mont);
   init_gf2n(lg2);
 }
 

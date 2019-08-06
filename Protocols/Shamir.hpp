@@ -6,6 +6,7 @@
 #include "Shamir.h"
 #include "ShamirInput.h"
 #include "Machines/ShamirMachine.h"
+#include "Tools/benchmarking.h"
 
 template<class U>
 U Shamir<U>::get_rec_factor(int i, int n)
@@ -70,8 +71,9 @@ void Shamir<U>::init_mul()
 }
 
 template<class U>
-U Shamir<U>::prepare_mul(const T& x, const T& y)
+U Shamir<U>::prepare_mul(const T& x, const T& y, int n)
 {
+    (void) n;
     auto add_share = x * y * rec_factor;
     if (P.my_num() < n_mul_players)
         resharing->add_mine(add_share);
@@ -99,8 +101,9 @@ void Shamir<U>::exchange()
 }
 
 template<class U>
-ShamirShare<U> Shamir<U>::finalize_mul()
+ShamirShare<U> Shamir<U>::finalize_mul(int n)
 {
+    (void) n;
     return finalize(n_mul_players);
 }
 

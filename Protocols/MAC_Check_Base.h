@@ -16,7 +16,7 @@ class MAC_Check_Base
 {
 protected:
     /* MAC Share */
-    typename T::mac_key_type alphai;
+    typename T::mac_key_type::Scalar alphai;
 
 public:
     int values_opened;
@@ -28,7 +28,7 @@ public:
 
     int number() const { return values_opened; }
 
-    const typename T::mac_key_type& get_alphai() const { return alphai; }
+    const typename T::mac_key_type::Scalar& get_alphai() const { return alphai; }
 
     virtual void POpen_Begin(vector<typename T::open_type>& values,const vector<T>& S,const Player& P) = 0;
     virtual void POpen_End(vector<typename T::open_type>& values,const vector<T>& S,const Player& P) = 0;
@@ -36,6 +36,8 @@ public:
     typename T::open_type POpen(const T& secret, const Player& P);
 
     virtual void CheckFor(const typename T::open_type& value, const vector<T>& shares, const Player& P);
+
+    virtual const Player& get_check_player(const Player& P) const { return P; }
 };
 
 #endif /* PROTOCOLS_MAC_CHECK_BASE_H_ */

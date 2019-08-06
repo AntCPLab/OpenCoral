@@ -16,7 +16,7 @@ template<class T> class MalRepRingPrep;
 template<int K, int S> class MalRepRingShare;
 template<int K, int S> class PostSacriRepRingShare;
 
-template<class T>
+template<class T, class U>
 void sacrifice(const vector<T>& check_triples, Player& P);
 
 template<class T>

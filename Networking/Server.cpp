@@ -168,6 +168,7 @@ Server* Server::start_networking(Names& N, int my_num, int nplayers,
       << " with server on " << hostname << ":" << (portnum - 1) << endl;
 #endif
   assert(my_num >= 0);
+  assert(my_num < nplayers);
   Server* server = 0;
   if (my_num == 0)
     {

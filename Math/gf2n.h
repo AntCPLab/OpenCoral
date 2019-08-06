@@ -13,8 +13,9 @@ using namespace std;
 #include "Math/field_types.h"
 
 class gf2n_short;
-class gf2n_short_square;
 class P2Data;
+template<class T> class Square;
+typedef Square<gf2n_short> gf2n_short_square;
 
 void expand_byte(gf2n_short& a,int b);
 void collapse_byte(int& b,const gf2n_short& a);
@@ -58,8 +59,11 @@ class gf2n_short
   typedef gf2n_short value_type;
   typedef word internal_type;
   typedef gf2n_short next;
-  typedef gf2n_short_square Square;
+  typedef ::Square<gf2n_short> Square;
   typedef P2Data FD;
+  typedef gf2n_short Scalar;
+
+  static const int MAX_N_BITS = 64;
 
   static void init_field(int nn);
   static int degree() { return n; }
@@ -88,6 +92,8 @@ class gf2n_short
 
   static gf2n_short cut(int128 x) { return x.get_lower(); }
 
+  static gf2n_short Mul(gf2n_short a, gf2n_short b) { return a * b; }
+
   word get() const { return a; }
   word get_word() const { return a; }
 
@@ -101,6 +107,7 @@ class gf2n_short
   void assign(word aa)           { a=aa&mask; }
   void assign(long aa)           { assign(word(aa)); }
   void assign(int aa)            { a=static_cast<unsigned int>(aa)&mask; }
+  void assign(const void* aa)    { a = *(word*) aa & mask; }
 
   void normalize()               { assign(a); }
 
@@ -117,7 +124,7 @@ class gf2n_short
   gf2n_short(word a)		{ assign(a); }
   gf2n_short(long a)		{ assign(a); }
   gf2n_short(int a)			{ assign(a); }
-  gf2n_short(const char* a) { assign(*(word*)a); }
+  gf2n_short(const char* a) { assign(a); }
   gf2n_short(const int128& a) { reduce(a.get_upper(), a.get_lower()); }
   ~gf2n_short()             { ; }
 
@@ -184,7 +191,7 @@ class gf2n_short
   gf2n_short& operator>>=(int i) { SHR(*this, i); return *this; }
 
   /* Crap RNG */
-  void randomize(PRNG& G);
+  void randomize(PRNG& G, int n = -1);
   // compatibility with gfp
   void almost_randomize(PRNG& G)        { randomize(G); }
 
@@ -205,10 +212,10 @@ class gf2n_short
 
   // Pack and unpack in native format
   //   i.e. Dont care about conversion to human readable form
-  void pack(octetStream& o) const
-    { o.append((octet*) &a,sizeof(word)); }
-  void unpack(octetStream& o)
-    { o.consume((octet*) &a,sizeof(word)); }
+  void pack(octetStream& o, int n = -1) const
+    { (void) n; o.append((octet*) &a,sizeof(word)); }
+  void unpack(octetStream& o, int n = -1)
+    { (void) n; o.consume((octet*) &a,sizeof(word)); }
 };
 
 #ifdef USE_GF2N_LONG

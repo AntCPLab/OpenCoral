@@ -10,11 +10,11 @@
 #include <emmintrin.h>
 #include <immintrin.h>
 
-#include "BitVector.h"
+#include "Tools/BitVector.h"
 #include "Tools/random.h"
 #include "Tools/MMO.h"
 #include "Math/gf2nlong.h"
-#include "Math/gf2nshortsquare.h"
+#include "Math/Square.h"
 
 using namespace std;
 
@@ -131,9 +131,6 @@ public:
 
     void resize_vertical(int length) { squares.resize(DIV_CEIL(length, U::N_ROWS)); }
 
-    template <class V>
-    Matrix<U>& operator=(const Matrix<V>& other);
-
     bool operator==(Matrix<U>& other);
     bool operator!=(Matrix<U>& other);
 
@@ -146,8 +143,6 @@ public:
     //   i.e. Dont care about conversion to human readable form
     void pack(octetStream& o) const;
     void unpack(octetStream& o);
-
-    void to(vector<BitVector>& output);
 };
 
 class BitMatrix : public Matrix<square128>
@@ -163,6 +158,8 @@ public:
 
     void transpose();
     void check_transpose(BitMatrix& dual);
+
+    void vertical_to(vector<BitVector>& output);
 };
 
 template <class U>

@@ -870,6 +870,7 @@ class asm_input(base.TextInputInstruction):
     def execute(self):
         self.args[0].value = _python_input("Enter player %d's input:" % self.args[1]) % program.P
 
+@base.vectorize
 class inputfix(base.TextInputInstruction):
     __slots__ = []
     code = base.opcodes['INPUTFIX']
@@ -881,6 +882,7 @@ class inputfix(base.TextInputInstruction):
             req_node.increment((self.field_type, 'input', player), \
                                self.get_size())
 
+@base.vectorize
 class inputfloat(base.TextInputInstruction):
     __slots__ = []
     code = base.opcodes['INPUTFLOAT']

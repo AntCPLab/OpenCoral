@@ -25,6 +25,8 @@ class Timer
   double elapsed_then_reset();
   double idle();
 
+  Timer& operator-=(const Timer& other);
+
   private:
   timespec startv;
   bool running;

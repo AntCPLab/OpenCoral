@@ -17,6 +17,7 @@
 #include "Protocols/SemiPrep.hpp"
 #include "Protocols/SemiInput.hpp"
 #include "Protocols/MAC_Check_Base.hpp"
+#include "Protocols/MAC_Check.hpp"
 #include "Protocols/fake-stuff.hpp"
 #include "Protocols/SemiMC.hpp"
 #include "Protocols/Beaver.hpp"

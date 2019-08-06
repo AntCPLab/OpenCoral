@@ -1,5 +1,6 @@
 
 #include "Processor/Processor.h"
+#include "Processor/Program.h"
 #include "Networking/STS.h"
 #include "Protocols/fake-stuff.h"
 

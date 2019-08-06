@@ -15,6 +15,7 @@
 
 #include "OT/Rectangle.hpp"
 #include "Math/Z2k.hpp"
+#include "Math/Square.hpp"
 
 union matrix16x8
 {
@@ -273,27 +274,6 @@ void square128::randomize<gf2n_long>(int row, PRNG& G)
     rows[row] = G.get_doubleword();
 }
 
-template <>
-void square128::randomize<gfp1>(int row, PRNG& G)
-{
-    rows[row] = gfp1::get_ZpD().get_random128(G);
-}
-
-
-void gfp_iadd(__m128i& a, __m128i& b)
-{
-    gfp1::get_ZpD().Add((mp_limb_t*)&a, (mp_limb_t*)&a, (mp_limb_t*)&b);
-}
-
-void gfp_isub(__m128i& a, __m128i& b)
-{
-    gfp1::get_ZpD().Sub((mp_limb_t*)&a, (mp_limb_t*)&a, (mp_limb_t*)&b);
-}
-
-void gfp_irsub(__m128i& a, __m128i& b)
-{
-    gfp1::get_ZpD().Sub((mp_limb_t*)&a, (mp_limb_t*)&b, (mp_limb_t*)&a);
-}
 
 template<>
 void square128::conditional_add<gf2n_long>(BitVector& conditions, square128& other, int offset)
@@ -303,14 +283,6 @@ void square128::conditional_add<gf2n_long>(BitVector& conditions, square128& oth
             rows[i] ^= other.rows[i];
 }
 
-template<>
-void square128::conditional_add<gfp1>(BitVector& conditions, square128& other, int offset)
-{
-    for (int i = 0; i < 128; i++)
-        if (conditions.get_bit(128 * offset + i))
-            gfp_iadd(rows[i], other.rows[i]);
-}
-
 template <class T>
 void square128::hash_row_wise(MMO& mmo, square128& input)
 {
@@ -318,35 +290,15 @@ void square128::hash_row_wise(MMO& mmo, square128& input)
 }
 
 template <>
-void square128::to(gf2n_long& result)
+void Square<gf2n_long>::to(gf2n_long& result)
 {
     int128 high, low;
     for (int i = 0; i < 128; i++)
     {
-        low ^= int128(rows[i]) << i;
-        high ^= int128(rows[i]) >> (128 - i);
+        low ^= rows[i].get() << i;
+        high ^= rows[i].get() >> (128 - i);
     }
     result.reduce(high, low);
-}
-
-template <>
-void square128::to(gfp1& result)
-{
-    mp_limb_t product[4], sum[4], tmp[2][4];
-    memset(tmp, 0, sizeof(tmp));
-    memset(sum, 0, sizeof(sum));
-    for (int i = 0; i < 128; i++)
-    {
-        memcpy(&(tmp[i/64][i/64]), &(rows[i]), sizeof(rows[i]));
-        if (i % 64 == 0)
-            memcpy(product, tmp[i/64], sizeof(product));
-        else
-            mpn_lshift(product, tmp[i/64], 4, i % 64);
-        mpn_add_fixed_n<4>(sum, product, sum);
-    }
-    mp_limb_t q[4], ans[4];
-    mpn_tdiv_qr(q, ans, 0, sum, 4, gfp1::get_ZpD().get_prA(), 2);
-    result = *(__m128i*)ans;
 }
 
 void square128::check_transpose(square128& dual, int i, int k)
@@ -450,39 +402,15 @@ square128& square128::add<gf2n_long>(square128& other)
 }
 
 template<>
-square128& square128::add<gfp1>(square128& other)
-{
-    for (int i = 0; i < 128; i++)
-        gfp_iadd(rows[i], other.rows[i]);
-    return *this;
-}
-
-template<>
 square128& square128::sub<gf2n_long>(square128& other)
 {
     return *this ^= other;
 }
 
 template<>
-square128& square128::sub<gfp1>(square128& other)
-{
-    for (int i = 0; i < 128; i++)
-        gfp_isub(rows[i], other.rows[i]);
-    return *this;
-}
-
-template<>
 square128& square128::rsub<gf2n_long>(square128& other)
 {
     return *this ^= other;
-}
-
-template<>
-square128& square128::rsub<gfp1>(square128& other)
-{
-    for (int i = 0; i < 128; i++)
-        gfp_irsub(rows[i], other.rows[i]);
-    return *this;
 }
 
 square128& square128::operator^=(const __m128i* other)
@@ -497,15 +425,6 @@ template <>
 square128& square128::sub<gf2n_long>(const __m128i* other)
 {
     return *this ^= other;
-}
-
-template <>
-square128& square128::sub<gfp1>(const __m128i* other)
-{
-    __m128i value = _mm_loadu_si128(other);
-   for (int i = 0; i < 128; i++)
-       gfp_isub(rows[i], value);
-   return *this;
 }
 
 square128& square128::operator^=(BitVector& other)
@@ -551,31 +470,6 @@ void BitMatrix::resize(int length)
 int BitMatrix::size()
 {
     return squares.size() * 128;
-}
-
-template <class U>
-template <class V>
-Matrix<U>& Matrix<U>::operator=(const Matrix<V>& other)
-{
-    int n = other.squares.size() * V::N_ROWS;
-    squares.resize(DIV_CEIL(n, U::N_ROWS));
-    for (int i = 0; i < n; i++)
-    {
-        auto& dest = squares[i / U::N_ROWS].rows[i % U::N_ROWS];
-        auto& source = other.squares[i / V::N_ROWS].rows[i % V::N_ROWS];
-        if (U::N_COLUMNS < V::N_COLUMNS)
-            dest = source;
-        else
-        {
-            PRNG prng;
-            octet seed[SEED_SIZE];
-            avx_memcpy(seed, &source, min(SEED_SIZE, (int)sizeof(source)));
-            prng.SetSeed(seed);
-            dest = 0;
-            prng.get_octets<U::N_ROW_BYTES>((octet*)dest.get_ptr());
-        }
-    }
-    return *this;
 }
 
 template <class U>
@@ -678,28 +572,14 @@ void Matrix<U>::unpack(octetStream& os)
         squares[i].unpack(os);
 }
 
-template <>
-void Matrix<square128>::to(vector<BitVector>& output)
+void BitMatrix::vertical_to(vector<BitVector>& output)
 {
-    output.resize(128);
-    for (int i = 0; i < 128; i++)
-    {
-        output[i].resize(128 * squares.size());
-        for (size_t j = 0; j < squares.size(); j++)
-            output[i].set_int128(j, squares[j].rows[i]);
-    }
-}
-
-template <class U>
-void Matrix<U>::to(vector<BitVector>& output)
-{
-    int n = U::N_ROWS;
+    int n = 128 * squares.size();
     output.resize(n);
     for (int i = 0; i < n; i++)
     {
-        output[i].resize(U::N_COLUMNS * squares.size());
-        for (size_t j = 0; j < squares.size(); j++)
-            output[i].set_portion(j, squares[j].rows[i]);
+        output[i].resize(128);
+        output[i].set_int128(0, squares[i / 128].rows[i % 128]);
     }
 }
 
@@ -808,7 +688,6 @@ template void Slice<Matrix<Rectangle<Z2<N>, Z2<L> > > >::conditional_add< \
 
 #undef X
 #define X(N,L) \
-template M(N,L)& M(N,L)::operator=(const Matrix<square128>& other); \
 template void Slice<Matrix<Rectangle< Z2<N>, Z2<L> > > >::randomize<Z2<L> >(int row, PRNG& G); \
 XXX(Z2<L>, N, L)
 
@@ -824,11 +703,11 @@ Y(32, 32)
 
 template class Matrix<square128>;
 
-#define BMS X(BitMatrix) X(Matrix<square128>)
+#define BMS X(BitMatrix)
 #undef X
 #define X(BM) \
 template class Slice<BM>; \
-XX(BM, gfp1) XX(BM, gf2n_long)
+XX(BM, gf2n_long)
 
 #define XX(BM, GF) \
 template void Slice<BM >::conditional_add<GF>(BitVector& conditions, BM& other, bool useOffset); \
@@ -842,5 +721,8 @@ BMS
 template class Slice<Matrix<gf2n_short_square>>;
 XX(Matrix<gf2n_short_square>, gf2n_short)
 
-template void square128::hash_row_wise<gf2n>(MMO& mmo, square128& input);
-template void square128::hash_row_wise<gfp1>(MMO& mmo, square128& input);
+template class Slice<Matrix<Square<gf2n_long>>>;
+XX(Matrix<Square<gf2n_long>>, gf2n_long)
+
+template class Slice<Matrix<Square<gfp1>>>;
+XX(Matrix<Square<gfp1>>, gfp1)

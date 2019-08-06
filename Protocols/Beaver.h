@@ -11,6 +11,7 @@
 using namespace std;
 
 #include "Replicated.h"
+#include "Processor/Data_Files.h"
 
 template<class T> class SubProcessor;
 template<class T> class MAC_Check_Base;
@@ -24,17 +25,19 @@ class Beaver : public ProtocolBase<T>
     vector<array<T, 3>> triples;
     typename vector<typename T::open_type>::iterator it;
     typename vector<array<T, 3>>::iterator triple;
-    SubProcessor<T>* proc;
+    Preprocessing<T>* prep;
+    typename T::MAC_Check* MC;
 
 public:
     Player& P;
 
-    Beaver(Player& P) : proc(0), P(P) {}
+    Beaver(Player& P) : prep(0), MC(0), P(P) {}
 
     void init_mul(SubProcessor<T>* proc);
-    typename T::clear prepare_mul(const T& x, const T& y);
+    void init_mul(Preprocessing<T>& prep, typename T::MAC_Check& MC);
+    typename T::clear prepare_mul(const T& x, const T& y, int n = -1);
     void exchange();
-    T finalize_mul();
+    T finalize_mul(int n = -1);
 
     int get_n_relevant_players() { return P.num_players(); }
 };

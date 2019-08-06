@@ -86,7 +86,8 @@ class MAC_Check_ : public TreeSum<typename U::open_type>, public MAC_Check_Base<
 
   public:
 
-  MAC_Check_(const T& ai, int opening_sum=10, int max_broadcast=10, int send_player=0);
+  MAC_Check_(const typename T::Scalar& ai, int opening_sum = 10,
+      int max_broadcast = 10, int send_player = 0);
   virtual ~MAC_Check_();
 
   /* Run protocols to partially open data and check the MACs are 
@@ -155,6 +156,8 @@ protected:
 
 public:
   virtual void Check(const Player& P);
+
+  const Player& get_check_player(const Player& P) const { (void) P; return check_player; }
 };
 
 

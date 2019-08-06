@@ -69,6 +69,7 @@ public:
 	static bool allows(Dtype dtype);
 
 	typedef Z2 next;
+	typedef Z2 Scalar;
 
 	Z2() { assign_zero(); }
 	Z2(uint64_t x) : Z2() { a[0] = x; }
@@ -150,13 +151,13 @@ public:
 	void OR(const Z2& a, const Z2& b);
 	void XOR(const Z2& a, const Z2& b);
 
-	void randomize(PRNG& G);
+	void randomize(PRNG& G, int n = -1);
 	void almost_randomize(PRNG& G) { randomize(G); }
 
 	void force_to_bit() { throw runtime_error("impossible"); }
 
-	void pack(octetStream& o) const;
-	void unpack(octetStream& o);
+	void pack(octetStream& o, int = -1) const;
+	void unpack(octetStream& o, int n = -1);
 
 	void input(istream& s, bool human=true);
 	void output(ostream& s, bool human=true) const;
@@ -289,21 +290,24 @@ Z2<K> Z2<K>::operator>>(int i) const
 }
 
 template<int K>
-void Z2<K>::randomize(PRNG& G)
+void Z2<K>::randomize(PRNG& G, int n)
 {
+	(void) n;
 	G.get_octets<N_BYTES>((octet*)a);
 	normalize();
 }
 
 template<int K>
-void Z2<K>::pack(octetStream& o) const
+void Z2<K>::pack(octetStream& o, int n) const
 {
+	(void) n;
 	o.append((octet*)a, N_BYTES);
 }
 
 template<int K>
-void Z2<K>::unpack(octetStream& o)
+void Z2<K>::unpack(octetStream& o, int n)
 {
+	(void) n;
 	o.consume((octet*)a, N_BYTES);
 }
 

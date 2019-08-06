@@ -25,6 +25,7 @@ public:
     typedef ReplicatedPrivateOutput<MaliciousShamirShare> PrivateOutput;
     typedef ShamirShare<T> Honest;
     typedef MaliciousRepPrep<MaliciousShamirShare> LivePrep;
+    typedef T random_type;
 
     static string type_short()
     {

@@ -30,8 +30,9 @@ public:
     {
     }
 
-    void randomize(PRNG& G)
+    void randomize(PRNG& G, int n = -1)
     {
+        (void) n;
         *this = G.get<Z2<L>>();
     }
 };

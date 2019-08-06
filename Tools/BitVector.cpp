@@ -1,6 +1,5 @@
 
-#include "OT/BitVector.h"
-#include "OT/Rectangle.h"
+#include "BitVector.h"
 #include "Tools/random.h"
 #include "Tools/octetStream.h"
 #include "Math/gf2n.h"

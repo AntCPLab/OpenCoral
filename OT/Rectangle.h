@@ -7,7 +7,7 @@
 #define OT_RECTANGLE_H_
 
 #include "Tools/random.h"
-#include "OT/BitVector.h"
+#include "Tools/BitVector.h"
 #include "Math/Z2k.h"
 
 #define TAU(K, S) 2 * K + 4 * S

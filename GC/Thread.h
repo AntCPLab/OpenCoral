@@ -51,7 +51,7 @@ public:
     Thread(int thread_num, ThreadMaster<T>& master);
     virtual ~Thread();
 
-    virtual typename T::MC* new_mc() { return new typename T::MC; }
+    virtual typename T::MC* new_mc() { return T::new_mc(machine); }
 
     void run();
     virtual void pre_run() {}

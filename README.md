@@ -74,7 +74,7 @@ stands for three-party replicated secret sharing.
 | Malicious, dishonest majority | [MASCOT](#arithmetic-circuits) | [SPDZ2k](#arithmetic-circuits) | [BMR](#bmr) |
 | Covert, dishonest majority | [CowGear](#arithmetic-circuits) | N/A | N/A |
 | Semi-honest, dishonest majority | [Semi](#arithmetic-circuits) | [Semi2k](#arithmetic-circuits) | [Yao's GC](#yaos-garbled-circuits) / [BMR](#bmr) |
-| Malicious, honest majority | [Shamir / Rep3 / PS](#honest-majority) | [Brain](#honest-majority) | [BMR](#bmr) |
+| Malicious, honest majority | [Shamir / Rep3 / PS](#honest-majority) | [Brain / Rep3 / PS](#honest-majority) | [Rep3](#honest-majority) / [BMR](#bmr) |
 | Semi-honest, honest majority | [Shamir / Rep3](#honest-majority) | [Rep3](#honest-majority) | [Rep3](#honest-majority) / [BMR](#bmr) |
 
 #### History
@@ -225,7 +225,7 @@ $ ../spdz/Scripts/run-online.sh test
 
 ## Dishonest majority
 
-Some full implementations requires oblivious transfer, which is
+Some full implementations require oblivious transfer, which is
 implemented as OT extension based on
 https://github.com/mkskeller/SimpleOT.
 
@@ -325,6 +325,7 @@ The following table shows all programs for honest-majority computation:
 | `ps-rep-ring-party.x` | Replicated | Mod 2^k | Y | 3 | `ps-rep-ring.sh` |
 | `malicious-rep-ring-party.x` | Replicated | Mod 2^k | Y | 3 | `mal-rep-ring.sh` |
 | `replicated-bin-party.x` | Replicated | Binary | N | 3 | `replicated.sh` |
+| `malicious-rep-bin-party.x` | Replicated | Binary | Y | 3 | `mal-rep-bin.sh` |
 | `replicated-field-party.x` | Replicated | Mod prime | N | 3 | `rep-field.sh` |
 | `ps-rep-field-party.x` | Replicated | Mod prime | Y | 3 | `ps-rep-field.sh` |
 | `malicious-rep-field-party.x` | Replicated | Mod prime | Y | 3 | `mal-rep-field.sh` |
@@ -335,11 +336,14 @@ We use the "generate random triple optimistically/sacrifice/Beaver"
 methodology described by [Lindell and
 Nof](https://eprint.iacr.org/2017/816) to achieve malicious
 security, except for the "PS" (post-sacrifice) protocols where the
-actual multiplication is execute optimistally and checked later as
+actual multiplication is executed optimistally and checked later as
 also described by Lindell and Nof.
-The implementation in `brain-party.x` is inspired by
-[Eerikson et al.](https://eprint.iacr.org/2019/164) but does not use fast Fourier transform for batch
-verification.
+The implementations used by `brain-party.x`,
+`malicious-rep-ring-party.x -S`, `malicious-rep-ring-party.x`,
+and `ps-rep-ring-party.x` correspond to the protocols called DOS18
+preprocessing (single), ABF+17 preprocessing, CDE+18 preprocessing,
+and postprocessing, respectively,
+by [Eerikson et al.](https://eprint.iacr.org/2019/164)
 Otherwise, we use resharing by [Cramer et
 al.](https://eprint.iacr.org/2000/037) for Shamir's secret sharing and
 the optimized approach by [Araki et
@@ -403,9 +407,9 @@ parties.
 
 BMR (Bellare-Micali-Rogaway) is a method of generating a garbled circuit
 using another secure computation protocol. We have implemented BMR
-based all available implementations using GF(2^128) because the nature
+based on all available implementations using GF(2^128) because the nature
 of this field particularly suits the Free-XOR optimization for garbled
-circuits. Our implementation is based on [SPDZ-BMR-ORAM
+circuits. Our implementation is based on the [SPDZ-BMR-ORAM
 construction](https://eprint.iacr.org/2017/981). The following table
 lists the available schemes.
 
@@ -605,7 +609,7 @@ For SPDZ2k, use `-Z <k>` to set the computation domain to Z_{2^k}, and
 time of writing, the following combinations are available: 32/32,
 64/64, 64/48, and 66/48.
 
-Running './ot-offline.x' without parameters give the full menu of
+Running `./ot-offline.x` without parameters give the full menu of
 options such as how many items to generate in how many threads and
 loops.
 

@@ -5,7 +5,7 @@
 
 #include "MaliciousRepPrep.h"
 #include "Tools/Subroutines.h"
-//#include "Protocols/MaliciousRepMC.hpp"
+#include "Processor/OnlineOptions.h"
 
 template<class T>
 MaliciousRepPrep<T>::MaliciousRepPrep(SubProcessor<T>* proc, DataPositions& usage) :
@@ -75,25 +75,25 @@ void MaliciousRepPrep<T>::buffer_triples()
     for (int i = 0; i < buffer_size; i++)
         for (int j = 3; j < 5; j++)
             check_triples[i][j] = honest_prot.finalize_mul();
-    sacrifice(check_triples, P);
+    sacrifice<T, typename T::random_type>(check_triples, P);
     for (auto& tuple : check_triples)
         triples.push_back({{tuple[0], tuple[2], tuple[3]}});
 }
 
-template<class T>
+template<class T, class U>
 void sacrifice(const vector<array<T, 5>>& check_triples, Player& P)
 {
     vector<T> masked, checks;
     vector <typename T::open_type> opened;
     typename T::MAC_Check MC;
     int buffer_size = check_triples.size();
-    auto t = Create_Random<typename T::open_type>(P);
+    auto t = Create_Random<U>(P);
     masked.reserve(buffer_size);
     for (int i = 0; i < buffer_size; i++)
     {
         const T& a = check_triples[i][0];
         const T& a_prime = check_triples[i][1];
-        masked.push_back(a * t - a_prime);
+        masked.push_back(T::Mul(a, t) - a_prime);
     }
     MC.POpen(opened, masked, P);
     checks.reserve(buffer_size);
@@ -103,7 +103,7 @@ void sacrifice(const vector<array<T, 5>>& check_triples, Player& P)
         const T& c = check_triples[i][3];
         const T& c_prime = check_triples[i][4];
         typename T::open_type& rho = opened[i];
-        checks.push_back(t * c - c_prime - rho * b);
+        checks.push_back(T::Mul(c, t) - c_prime - rho * b);
     }
     MC.CheckFor(0, checks, P);
     MC.Check(P);

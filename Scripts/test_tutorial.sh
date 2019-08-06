@@ -26,6 +26,6 @@ done
 
 ./compile.py -B 16 tutorial
 
-for i in replicated yao rep-bmr mal-rep-bmr shamir-bmr mal-shamir-bmr; do
+for i in replicated mal-rep-bin yao rep-bmr mal-rep-bmr shamir-bmr mal-shamir-bmr; do
     test $i
 done

@@ -61,6 +61,10 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
       cerr << "End of file reading MAC key but maybe we don't need it" << endl;
     }
 
+  auto P = new PlainPlayer(N, 0xF00);
+  sint::LivePrep::basic_setup(*P);
+  delete P;
+
   if (not read_mac_keys)
     {
 #ifdef VERBOSE

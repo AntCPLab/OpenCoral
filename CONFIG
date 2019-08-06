@@ -18,8 +18,8 @@ USE_GF2N_LONG = 1
 
 # set to -march=<architecture> for optimization
 # SSE4.2 is required homomorphic encryption in GF(2^n) when compiling with clang
-# AES-NI is required for BMR
-# PCLMUL is required for GF(2^128) computation
+# AES-NI and PCLMUL are not required
+# AVX is required for oblivious transfer (OT)
 # AVX2 support (Haswell or later) is used to optimize OT
 # AVX/AVX2 is required for replicated binary secret sharing
 # BMI2 is used to optimize multiplication modulo a prime
@@ -63,3 +63,11 @@ endif
 CFLAGS += $(ARCH) $(MY_CFLAGS) $(GDEBUG) -Wextra -Wall $(OPTIM) -I$(ROOT) -pthread $(PROF) $(DEBUG) $(MOD) $(MEMPROTECT) $(GF2N_LONG) $(PREP_DIR) -std=c++11 -Werror
 CPPFLAGS = $(CFLAGS)
 LD = $(CXX)
+
+ECLIB = -lcryptopp
+
+ifeq ($(OS), Darwin)
+ifeq ($(USE_NTL),1)
+CFLAGS += -Wno-error=unused-parameter
+endif
+endif

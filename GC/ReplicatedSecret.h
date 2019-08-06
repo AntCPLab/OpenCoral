@@ -17,6 +17,7 @@ using namespace std;
 #include "Math/BitVec.h"
 #include "Tools/SwitchableOutput.h"
 #include "Protocols/Replicated.h"
+#include "Protocols/ReplicatedMC.h"
 
 namespace GC
 {
@@ -26,6 +27,9 @@ class Processor;
 
 template <class T>
 class Thread;
+
+template <class T>
+class Machine;
 
 template<class U>
 class ReplicatedSecret : public FixedVec<BitVec, 2>
@@ -83,10 +87,8 @@ public:
     { *this = x ^ y; (void)n; }
     void and_(int n, const ReplicatedSecret& x, const ReplicatedSecret& y, bool repeat);
     void andrs(int n, const ReplicatedSecret& x, const ReplicatedSecret& y);
-    void prepare_and(vector<octetStream>& os, int n,
-            const ReplicatedSecret& x, const ReplicatedSecret& y,
-            Thread<U>& party, bool repeat);
-    void finalize_andrs(vector<octetStream>& os, int n);
+
+    BitVec local_mul(const ReplicatedSecret& other) const;
 
     void reveal(size_t n_bits, Clear& x);
 
@@ -102,6 +104,10 @@ public:
     typedef Memory<SemiHonestRepSecret> DynamicMemory;
 
     typedef ReplicatedMC<SemiHonestRepSecret> MC;
+    typedef Replicated<SemiHonestRepSecret> Protocol;
+    typedef MC MAC_Check;
+
+    static MC* new_mc(Machine<SemiHonestRepSecret>& _) { (void) _; return new MC; }
 
     SemiHonestRepSecret() {}
     template<class T>

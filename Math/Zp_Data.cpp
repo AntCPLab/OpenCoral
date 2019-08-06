@@ -5,10 +5,23 @@
 
 
 void Zp_Data::init(const bigint& p,bool mont)
-{ pr=p;
-  mask=(1<<((mpz_sizeinbase(pr.get_mpz_t(),2)-1)%(8*sizeof(mp_limb_t))))-1;
+{
+#ifdef VERBOSE
+  if (pr != 0)
+    {
+      if (pr != p)
+        cerr << "Changing prime from " << p << " to " << pr << endl;
+      if (mont != montgomery)
+        cerr << "Changing Montgomery" << endl;
+    }
+#endif
+
+  pr=p;
+  mask=(1LL<<((mpz_sizeinbase(pr.get_mpz_t(),2)-1)%(8*sizeof(mp_limb_t))))-1;
   pr_byte_length = numBytes(pr);
   pr_bit_length = numBits(pr);
+  int k = pr_bit_length;
+  overhang = (uint64_t(-1LL) >> (63 - (k - 1) % 64));
 
   montgomery=mont;
   t=mpz_size(pr.get_mpz_t());

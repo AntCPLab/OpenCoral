@@ -25,6 +25,8 @@ public:
     typedef ReplicatedPrivateOutput<MaliciousRep3Share<T>> PrivateOutput;
     typedef Rep3Share<T> Honest;
     typedef MaliciousRepPrep<MaliciousRep3Share> LivePrep;
+    typedef MaliciousRep3Share prep_type;
+    typedef T random_type;
 
     static string type_short()
     {

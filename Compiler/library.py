@@ -804,14 +804,17 @@ def for_range(start, stop=None, step=None):
     return decorator
 
 def for_range_parallel(n_parallel, n_loops):
-    return map_reduce_single(n_parallel, n_loops, \
-                                 lambda *x: [], lambda *x: [])
+    return map_reduce_single(n_parallel, n_loops)
 
-def map_reduce_single(n_parallel, n_loops, initializer, reducer, mem_state=None):
-    if not isinstance(n_parallel, int):
+def for_range_opt(n_loops):
+    return map_reduce_single(None, n_loops)
+
+def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
+                      reducer=lambda *x: [], mem_state=None):
+    if not (isinstance(n_parallel, int) or n_parallel is None):
         raise CompilerException('Number of parallel executions' \
                                     'must be constant')
-    n_parallel = n_parallel or 1
+    n_parallel = 1 if n_parallel is 0 else n_parallel
     if mem_state is None:
         # default to list of MemValues to allow varying types
         mem_state = [MemValue(x) for x in initializer()]
@@ -820,11 +823,13 @@ def map_reduce_single(n_parallel, n_loops, initializer, reducer, mem_state=None)
         # use Arrays for multithread version
         use_array = True
     def decorator(loop_body):
-        if isinstance(n_loops, int):
-            loop_rounds = n_loops / n_parallel \
-                if n_parallel < n_loops else 0
-        else:
-            loop_rounds = n_loops / n_parallel
+        my_n_parallel = n_parallel
+        if isinstance(n_parallel, int):
+            if isinstance(n_loops, int):
+                loop_rounds = n_loops / n_parallel \
+                              if n_parallel < n_loops else 0
+            else:
+                loop_rounds = n_loops / n_parallel
         def write_state_to_memory(r):
             if use_array:
                 mem_state.assign(r)
@@ -832,21 +837,69 @@ def map_reduce_single(n_parallel, n_loops, initializer, reducer, mem_state=None)
                 # cannot do mem_state = [...] due to scope issue
                 for j,x in enumerate(r):
                     mem_state[j].write(x)
-        # will be optimized out if n_loops <= n_parallel
-        @for_range(loop_rounds)
-        def f(i):
-            state = tuplify(initializer())
-            for k in range(n_parallel):
-                j = i * n_parallel + k
-                state = reducer(tuplify(loop_body(j)), state)
-            r = reducer(mem_state, state)
-            write_state_to_memory(r)
+        if n_parallel is not None:
+            # will be optimized out if n_loops <= n_parallel
+            @for_range(loop_rounds)
+            def f(i):
+                state = tuplify(initializer())
+                for k in range(n_parallel):
+                    j = i * n_parallel + k
+                    state = reducer(tuplify(loop_body(j)), state)
+                r = reducer(mem_state, state)
+                write_state_to_memory(r)
+        else:
+            n_parallel_reg = MemValue(regint(0))
+            parent_block = get_block()
+            @while_do(lambda x: x + n_parallel_reg <= n_loops, regint(0))
+            def _(i):
+                state = tuplify(initializer())
+                k = 0
+                block = get_block()
+                while k < n_loops and (len(get_block()) < get_program().budget \
+                                       or k == 0) \
+                      and block is get_block():
+                    j = i + k
+                    state = reducer(tuplify(loop_body(j)), state)
+                    k += 1
+                r = reducer(mem_state, state)
+                write_state_to_memory(r)
+                global n_opt_loops
+                n_opt_loops = k
+                n_parallel_reg.write(k)
+                return i + k
+            my_n_parallel = n_opt_loops
+            loop_rounds = n_loops / my_n_parallel
+            blocks = get_tape().basicblocks
+            n_to_merge = 5
+            if loop_rounds == 1 and parent_block is blocks[-n_to_merge]:
+                # merge blocks started by if and do_while
+                def exit_elimination(block):
+                    if block.exit_condition is not None:
+                        for reg in block.exit_condition.get_used():
+                            reg.can_eliminate = True
+                exit_elimination(parent_block)
+                merged = parent_block
+                merged.exit_condition = blocks[-1].exit_condition
+                merged.exit_block = blocks[-1].exit_block
+                assert parent_block is blocks[-n_to_merge]
+                assert blocks[-n_to_merge + 1] is \
+                    get_tape().req_node.children[-1].nodes[0].blocks[0]
+                for block in blocks[-n_to_merge + 1:]:
+                    merged.instructions += block.instructions
+                    exit_elimination(block)
+                del blocks[-n_to_merge + 1:]
+                del get_tape().req_node.children[-1]
+                merged.children = []
+                get_tape().active_basicblock = merged
+            else:
+                req_node = get_tape().req_node.children[-1].nodes[0]
+                req_node.children[0].aggregator = lambda x: loop_rounds * x[0]
         if isinstance(n_loops, int):
             state = mem_state
-            for j in range(loop_rounds * n_parallel, n_loops):
+            for j in range(loop_rounds * my_n_parallel, n_loops):
                 state = reducer(tuplify(loop_body(j)), state)
         else:
-            @for_range(loop_rounds * n_parallel, n_loops)
+            @for_range(loop_rounds * my_n_parallel, n_loops)
             def f(j):
                 r = reducer(tuplify(loop_body(j)), mem_state)
                 write_state_to_memory(r)

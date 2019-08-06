@@ -14,6 +14,7 @@
 #include "Protocols/Share.h"
 
 #include "Protocols/ReplicatedMC.hpp"
+#include "Protocols/Replicated.hpp"
 
 namespace GC
 {
@@ -150,66 +151,16 @@ void ReplicatedSecret<U>::finalize_input(Thread<U>& party, octetStream& o, int f
     (*this)[1 - j] = 0;
 }
 
-template<>
-inline void ReplicatedSecret<SemiHonestRepSecret>::prepare_and(vector<octetStream>& os, int n,
-        const ReplicatedSecret<SemiHonestRepSecret>& x, const ReplicatedSecret<SemiHonestRepSecret>& y,
-        Thread<SemiHonestRepSecret>& party, bool repeat)
+template<class U>
+BitVec ReplicatedSecret<U>::local_mul(const ReplicatedSecret& other) const
 {
-    ReplicatedSecret y_ext;
-    if (repeat)
-        y_ext = y.extend_bit();
-    else
-        y_ext = y;
-    auto add_share = x[0] * y_ext.sum() + x[1] * y_ext[0];
-    BitVec tmp[2];
-    for (int i = 0; i < 2; i++)
-        tmp[i].randomize(party.protocol->shared_prngs[i]);
-    add_share += tmp[0] - tmp[1];
-    (*this)[0] = add_share;
-    BitVec mask = get_mask(n);
-    *this &= mask;
-    BitVec(mask & (*this)[0]).pack(os[0], n);
+    return (*this)[0] * other.sum() + (*this)[1] * other[0];
 }
 
-template<>
-inline void ReplicatedSecret<SemiHonestRepSecret>::finalize_andrs(
-        vector<octetStream>& os, int n)
-{
-    (*this)[1].unpack(os[1], n);
-}
-
-template<>
-void ReplicatedSecret<SemiHonestRepSecret>::andrs(int n,
-        const ReplicatedSecret<SemiHonestRepSecret>& x,
-        const ReplicatedSecret<SemiHonestRepSecret>& y)
-{
-    auto& party = Thread<SemiHonestRepSecret>::s();
-    assert(party.P->num_players() == 3);
-    vector<octetStream>& os = party.os;
-    os.resize(2);
-    for (auto& o : os)
-        o.reset_write_head();
-    prepare_and(os, n, x, y, party, true);
-    party.P->send_relative(os);
-    party.P->receive_relative(os);
-    finalize_andrs(os, n);
-}
-
-template<>
-void ReplicatedSecret<SemiHonestRepSecret>::and_(int n,
-        const ReplicatedSecret<SemiHonestRepSecret>& x,
-        const ReplicatedSecret<SemiHonestRepSecret>& y, bool repeat)
-{
-    if (repeat)
-        andrs(n, x, y);
-    else
-        throw runtime_error("call static ReplicatedSecret::ands()");
-}
-
-template<>
-void ReplicatedSecret<MaliciousRepSecret>::and_(int n,
-        const ReplicatedSecret<MaliciousRepSecret>& x,
-        const ReplicatedSecret<MaliciousRepSecret>& y, bool repeat)
+template<class U>
+void ReplicatedSecret<U>::and_(int n,
+        const ReplicatedSecret<U>& x,
+        const ReplicatedSecret<U>& y, bool repeat)
 {
     (void)n, (void)x, (void)y, (void)repeat;
     throw runtime_error("use static method");
@@ -221,19 +172,25 @@ void ReplicatedSecret<SemiHonestRepSecret>::and_(Processor<SemiHonestRepSecret>&
 {
     auto& party = Thread<SemiHonestRepSecret>::s();
     assert(party.P->num_players() == 3);
-    vector<octetStream>& os = party.os;
-    os.resize(2);
-    for (auto& o : os)
-        o.reset_write_head();
     processor.check_args(args, 4);
+    assert(party.protocol != 0);
+    auto& protocol = *party.protocol;
+    protocol.init_mul();
     for (size_t i = 0; i < args.size(); i += 4)
-        processor.S[args[i + 1]].prepare_and(os, args[i],
-                processor.S[args[i + 2]], processor.S[args[i + 3]],
-                party, repeat);
-    party.P->send_relative(os);
-    party.P->receive_relative(os);
+    {
+        int n_bits = args[i];
+        int left = args[i + 2];
+        int right = args[i + 3];
+        MaliciousRepSecret y_ext;
+        if (repeat)
+            y_ext = processor.S[right].extend_bit();
+        else
+            y_ext = processor.S[right];
+        protocol.prepare_mul(processor.S[left].mask(n_bits), y_ext.mask(n_bits), n_bits);
+    }
+    protocol.exchange();
     for (size_t i = 0; i < args.size(); i += 4)
-        processor.S[args[i + 1]].finalize_andrs(os, args[i]);
+        processor.S[args[i + 1]] = protocol.finalize_mul(args[i]);
 }
 
 template<>

@@ -86,7 +86,7 @@ int generate_semi_setup(int plaintext_length, int sec,
         {
           p0 *= 2;
         }
-      if (phi_N(m) < nb.min_phi_m(numBits(p0 * (params.n_mults() > 0 ? p1 : 1))))
+      if (phi_N(m) < nb.min_phi_m(2 + numBits(p0 * (params.n_mults() > 0 ? p1 : 1))))
         {
           m *= 2;
           generate_prime(p, lgp, m);

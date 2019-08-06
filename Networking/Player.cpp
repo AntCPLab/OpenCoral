@@ -4,6 +4,8 @@
 #include "Exceptions/Exceptions.h"
 #include "Networking/STS.h"
 #include "Tools/int.h"
+#include "Tools/NetworkOptions.h"
+#include "Networking/Server.h"
 
 #include <sys/select.h>
 #include <utility>
@@ -72,6 +74,36 @@ void Names::init(int player, int pnb, const string& filename, int nplayers_wante
     cerr << "    " << names[i] << endl;
 #endif
   setup_server();
+}
+
+Names::Names(ez::ezOptionParser& opt, int argc, const char** argv,
+    int default_nplayers) :
+    Names()
+{
+  NetworkOptions network_opts(opt, argc, argv);
+  opt.add(
+          to_string(default_nplayers).c_str(), // Default.
+          0, // Required?
+          1, // Number of args expected.
+          0, // Delimiter if expecting multiple args.
+          "Number of players", // Help description.
+          "-N", // Flag token.
+          "--nparties" // Flag token.
+  );
+  opt.add(
+          "", // Default.
+          1, // Required?
+          1, // Number of args expected.
+          0, // Delimiter if expecting multiple args.
+          "This player's number", // Help description.
+          "-p", // Flag token.
+          "--player" // Flag token.
+  );
+  opt.parse(argc, argv);
+  opt.get("-p")->getInt(player_no);
+  opt.get("-N")->getInt(nplayers);
+  global_server = Server::start_networking(*this, player_no, nplayers,
+      network_opts.hostname, network_opts.portnum_base);
 }
 
 void Names::setup_ports()
@@ -151,6 +183,7 @@ Names::Names(const Names& other)
   names = other.names;
   ports = other.ports;
   server = 0;
+  global_server = 0;
 }
 
 
@@ -158,6 +191,8 @@ Names::~Names()
 {
   if (server != 0)
     delete server;
+  if (global_server != 0)
+    delete global_server;
 }
 
 
@@ -199,10 +234,7 @@ Player::~Player()
 PlayerBase::~PlayerBase()
 {
 #ifdef VERBOSE
-  for (auto it = comm_stats.begin(); it != comm_stats.end(); it++)
-    cerr << it->first << " " << 1e-6 * it->second.data << " MB in "
-        << it->second.rounds << " rounds, taking " << it->second.timer.elapsed()
-        << " seconds" << endl;
+  comm_stats.print();
   if (timer.elapsed() > 0)
     cerr << "Receiving took " << timer.elapsed() << " seconds" << endl;
 #endif
@@ -653,12 +685,37 @@ NamedCommStats& NamedCommStats::operator +=(const NamedCommStats& other)
   return *this;
 }
 
+CommStats& CommStats::operator -=(const CommStats& other)
+{
+  data -= other.data;
+  rounds -= other.rounds;
+  timer -= other.timer;
+  return *this;
+}
+
+NamedCommStats NamedCommStats::operator -(const NamedCommStats& other) const
+{
+  NamedCommStats res = *this;
+  for (auto it = other.begin(); it != other.end(); it++)
+    res[it->first] -= it->second;
+  return res;
+}
+
 size_t NamedCommStats::total_data()
 {
   size_t res = 0;
   for (auto& x : *this)
     res += x.second.data;
   return res;
+}
+
+void NamedCommStats::print()
+{
+  for (auto it = begin(); it != end(); it++)
+    if (it->second.data)
+      cerr << it->first << " " << 1e-6 * it->second.data << " MB in "
+      << it->second.rounds << " rounds, taking " << it->second.timer.elapsed()
+      << " seconds" << endl;
 }
 
 template class MultiPlayer<int>;

@@ -28,50 +28,6 @@ using namespace std;
 
 string prep_data_prefix;
 
-/* N      = Number players
- * ntrip  = Number triples needed
- * str    = "2" or "p"
- */
-template<class T>
-void make_mult_triples(const typename T::mac_type& key, int N, int ntrip,
-    bool zero, int thread_num = -1)
-{
-  PRNG G;
-  G.ReSeed();
-
-  ofstream* outf=new ofstream[N];
-  typename T::clear a,b,c;
-  vector<T> Sa(N),Sb(N),Sc(N);
-  /* Generate Triples */
-  for (int i=0; i<N; i++)
-    { stringstream filename;
-      filename << prep_data_prefix << "Triples-" << T::type_short() << "-P" << i
-          << Sub_Data_Files<T>::get_suffix(thread_num);
-      cout << "Opening " << filename.str() << endl;
-      outf[i].open(filename.str().c_str(),ios::out | ios::binary);
-      if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
-    }
-  for (int i=0; i<ntrip; i++)
-    {
-      if (!zero)
-        a.randomize(G);
-      make_share(Sa,a,N,key,G);
-      if (!zero)
-        b.randomize(G);
-      make_share(Sb,b,N,key,G);
-      c.mul(a,b);
-      make_share(Sc,c,N,key,G);
-      for (int j=0; j<N; j++)
-        { Sa[j].output(outf[j],false);
-          Sb[j].output(outf[j],false);
-          Sc[j].output(outf[j],false);
-        }
-    }
-  for (int i=0; i<N; i++)
-    { outf[i].close(); }
-  delete[] outf;
-}
-
 void make_bit_triples(const gf2n& key,int N,int ntrip,Dtype dtype,bool zero)
 {
   PRNG G;
@@ -232,50 +188,6 @@ void make_inputs(const typename T::mac_type& key,int N,int ntrip,const string& s
 }
 
 
-/* N      = Number players
- * ntrip  = Number inverses needed
- * str    = "2" or "p"
- */
-template<class T>
-void make_inverse(const typename T::mac_type& key,int N,int ntrip,bool zero)
-{
-  PRNG G;
-  G.ReSeed();
-
-  ofstream* outf=new ofstream[N];
-  typename T::clear a,b;
-  vector<T> Sa(N),Sb(N);
-  /* Generate Triples */
-  for (int i=0; i<N; i++)
-    { stringstream filename;
-      filename << prep_data_prefix << "Inverses-" << T::type_short() << "-P" << i;
-      cout << "Opening " << filename.str() << endl;
-      outf[i].open(filename.str().c_str(),ios::out | ios::binary);
-      if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
-    }
-  for (int i=0; i<ntrip; i++)
-    {
-      if (zero)
-        // ironic?
-        a.assign_one();
-      else
-        do
-          a.randomize(G);
-        while (a.is_zero());
-      make_share(Sa,a,N,key,G);
-      b=a; b.invert();
-      make_share(Sb,b,N,key,G);
-      for (int j=0; j<N; j++)
-        { Sa[j].output(outf[j],false); 
-          Sb[j].output(outf[j],false); 
-        }
-    }
-  for (int i=0; i<N; i++)
-    { outf[i].close(); }
-  delete[] outf;
-}
-
-
 template<class T>
 void make_PreMulC(const typename T::mac_type& key, int N, int ntrip, bool zero)
 {
@@ -307,13 +219,13 @@ void make_PreMulC(const typename T::mac_type& key, int N, int ntrip, bool zero)
 template<class T>
 void make_basic(const typename T::mac_type& key, int nplayers, int nitems, bool zero)
 {
-    make_mult_triples<T>(key, nplayers, nitems, zero);
+    make_mult_triples<T>(key, nplayers, nitems, zero, prep_data_prefix);
     make_bits<T>(key, nplayers, nitems, zero);
     make_square_tuples<T>(key, nplayers, nitems, T::type_short(), zero);
     make_inputs<T>(key, nplayers, nitems, T::type_short(), zero);
     if (T::clear::invertible)
     {
-        make_inverse<T>(key, nplayers, nitems, zero);
+        make_inverse<T>(key, nplayers, nitems, zero, prep_data_prefix);
         make_PreMulC<T>(key, nplayers, nitems, zero);
     }
 }
@@ -567,12 +479,8 @@ int generate(ez::ezOptionParser& opt)
   generate_online_setup(outf, prep_data_prefix, p, lgp, lg2);
 
   /* Find number players and MAC keys etc*/
-  typename T::mac_type keyp;
-  typename T::mac_key_type pp;
-  keyp.assign_zero();
-  gf2n key2,p2; key2.assign_zero();
-  int tmpN = 0;
-  ifstream inpf;
+  typename T::mac_key_type::Scalar keyp;
+  gf2n key2;
 
   // create PREP_DIR if not there
   if (mkdir_p(PREP_DIR) == -1)
@@ -581,51 +489,21 @@ int generate(ez::ezOptionParser& opt)
     throw file_error();
   }
 
-  for (i = 0; i < (unsigned int)nplayers; i++)
-  {
-      stringstream filename;
-      filename << prep_data_prefix << "Player-MAC-Keys-P" << i;
-      inpf.open(filename.str().c_str());
-      if (inpf.fail())
-      {
-          inpf.close();
-          cout << "No MAC key share for player " << i << ", generating a fresh one\n";
-          pp.randomize(G);
-          p2.randomize(G);
-          ofstream outf(filename.str().c_str());
-          if (outf.fail())
-            throw file_error(filename.str().c_str());
-          outf << nplayers << " " << pp << " " << p2;
-          outf.close();
-          cout << "Written new MAC key share to " << filename.str() << endl;
-      }
-      else
-      {
-        inpf >> tmpN; // not needed here
-        pp.input(inpf,true);
-        p2.input(inpf,true);
-        inpf.close();
-      }
-      cout << " Key " << i << "\t p: " << pp << "\n\t 2: " << p2 << endl;
-      keyp.add(pp);
-      key2.add(p2);
-    }
-  cout << "--------------\n";
-  cout << "Final Keys :\t p: " << keyp << "\n\t\t 2: " << key2 << endl;
+  generate_mac_keys<T>(keyp, key2, nplayers, prep_data_prefix);
 
   typedef Share<gf2n> sgf2n;
 
-  make_mult_triples<sgf2n>(key2,nplayers,ntrip2,zero);
-  make_mult_triples<T>(keyp,nplayers,ntripp,zero);
+  make_mult_triples<sgf2n>(key2,nplayers,ntrip2,zero,prep_data_prefix);
+  make_mult_triples<T>(keyp,nplayers,ntripp,zero,prep_data_prefix);
   make_bits<Share<gf2n>>(key2,nplayers,nbits2,zero);
   make_bits<T>(keyp,nplayers,nbitsp,zero);
   make_square_tuples<sgf2n>(key2,nplayers,nsqr2,"2",zero);
   make_square_tuples<T>(keyp,nplayers,nsqrp,"p",zero);
   make_inputs<sgf2n>(key2,nplayers,ninp2,"2",zero);
   make_inputs<T>(keyp,nplayers,ninpp,"p",zero);
-  make_inverse<sgf2n>(key2,nplayers,ninv,zero);
+  make_inverse<sgf2n>(key2,nplayers,ninv,zero,prep_data_prefix);
   if (T::clear::invertible)
-    make_inverse<T>(keyp,nplayers,ninv,zero);
+    make_inverse<T>(keyp,nplayers,ninv,zero,prep_data_prefix);
   make_bit_triples(key2,nplayers,nbittrip,DATA_BITTRIPLE,zero);
   make_bit_triples(key2,nplayers,nbitgf2ntrip,DATA_BITGF2NTRIPLE,zero);
   make_PreMulC<sgf2n>(key2,nplayers,ninv,zero);
@@ -641,7 +519,7 @@ int generate(ez::ezOptionParser& opt)
     make_basic<BrainShare<64, 40>>({}, nplayers, default_num, zero);
     make_basic<MaliciousRep3Share<gf2n>>({}, nplayers, default_num, zero);
 
-    make_mult_triples<GC::MaliciousRepSecret>({}, nplayers, ntrip2, zero);
+    make_mult_triples<GC::MaliciousRepSecret>({}, nplayers, ntrip2, zero, prep_data_prefix);
     make_bits<GC::MaliciousRepSecret>({}, nplayers, nbits2, zero);
   }
 

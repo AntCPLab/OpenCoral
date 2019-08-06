@@ -573,6 +573,7 @@ class Merger:
         merge_nodes = self.open_nodes
         count = 0
         open_count = 0
+        stats = defaultdict(lambda: 0)
         for i,inst in zip(xrange(len(instructions) - 1, -1, -1), reversed(instructions)):
             # remove if instruction has result that isn't used
             unused_result = not G.degree(i) and len(list(inst.get_def())) \
@@ -580,15 +581,31 @@ class Merger:
                 and not isinstance(inst, (DoNotEliminateInstruction))
             stop_node = G.get_attr(i, 'stop')
             unused_startopen = stop_node != -1 and instructions[stop_node] is None
-            if unused_result or unused_startopen:
+            def eliminate(i):
                 G.remove_node(i)
                 merge_nodes.discard(i)
+                stats[type(instructions[i]).__name__] += 1
                 instructions[i] = None
+            if unused_result or unused_startopen:
+                eliminate(i)
                 count += 1
                 if unused_startopen:
                     open_count += len(inst.args)
+            # remove unnecessary stack instructions
+            # left by optimization with budget
+            if isinstance(inst, popint_class) and \
+               (not G.degree(i) or (G.degree(i) == 1 and
+                isinstance(instructions[list(G[i])[0]], StackInstruction))) \
+                and \
+               inst.args[0].can_eliminate and \
+               len(G.pred[i]) == 1 and \
+               isinstance(instructions[list(G.pred[i])[0]], pushint_class):
+                eliminate(list(G.pred[i])[0])
+                eliminate(i)
+                count += 2
         if count > 0:
-            print 'Eliminated %d dead instructions, among which %d opens' % (count, open_count)
+            print 'Eliminated %d dead instructions, among which %d opens: %s' \
+                % (count, open_count, dict(stats))
 
     def print_graph(self, filename):
         f = open(filename, 'w')

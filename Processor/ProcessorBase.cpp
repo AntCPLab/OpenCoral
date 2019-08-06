@@ -43,7 +43,7 @@ T ProcessorBase::get_input(istream& input_file, const string& input_filename, co
     if (input_file.eof())
         throw IO_Error("not enough inputs in " + input_filename);
     if (input_file.fail())
-        throw IO_Error("cannot read from " + input_filename);
+        throw IO_Error(string() + "cannot read " + T::NAME + " from " + input_filename);
     return res;
 }
 

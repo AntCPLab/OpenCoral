@@ -23,6 +23,8 @@ namespace GC
 
 template <class T>
 class Processor;
+template <class T>
+class Machine;
 
 class FakeSecret
 {
@@ -35,6 +37,8 @@ public:
     // dummy
     typedef DummyMC MC;
     typedef DummyProtocol Protocol;
+
+    static MC* new_mc(Machine<FakeSecret>& _) { (void) _; return new MC; }
 
     static string type_string() { return "fake secret"; }
     static string phase_name() { return "Faking"; }

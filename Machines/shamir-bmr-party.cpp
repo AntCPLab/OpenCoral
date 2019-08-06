@@ -10,6 +10,7 @@
 
 int main(int argc, const char** argv)
 {
-	ShamirMachine machine(argc, argv);
+	ez::ezOptionParser opt;
+	ShamirOptions::singleton = {opt, argc, argv};
 	RealProgramParty<ShamirShare<gf2n_long>>(argc, argv);
 }

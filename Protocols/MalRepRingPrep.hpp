@@ -6,6 +6,7 @@
 #include "MalRepRingPrep.h"
 #include "MaliciousRepPrep.h"
 #include "MalRepRingOptions.h"
+#include "Processor/OnlineOptions.h"
 
 template<class T>
 MalRepRingPrep<T>::MalRepRingPrep(SubProcessor<T>* proc,
@@ -58,17 +59,24 @@ template<class T>
 void MalRepRingPrep<T>::shuffle_buffer_triples()
 {
     assert(T::SECURITY <= 40);
+    assert(this->proc != 0);
+    typename T::MAC_Check MC;
+    shuffle_triple_generation(this->triples, this->proc->P, MC);
+}
+
+template<class T>
+void shuffle_triple_generation(vector<array<T, 3>>& triples, Player& P,
+        typename T::MAC_Check& MC, int n_bits = -1)
+{
     int N = max(1 << 20, OnlineOptions::singleton.batch_size);
     int B = 3;
     int C = 3;
     int buffer_size = B * N + C;
     vector<array<T, 3>> check_triples;
-    assert(this->proc != 0);
-    Player& P = this->proc->P;
 
     // optimistic triple generation
     Replicated<T> protocol(P);
-    generate_triples(check_triples, buffer_size, &protocol);
+    generate_triples(check_triples, buffer_size, &protocol, n_bits);
 
     // shuffle
     GlobalPRNG G(P);
@@ -88,7 +96,6 @@ void MalRepRingPrep<T>::shuffle_buffer_triples()
         check_triples.pop_back();
     }
     vector<typename T::open_type> opened;
-    typename T::MAC_Check MC;
     MC.POpen(opened, shares, P);
     for (int i = 0; i < C; i++)
         if (typename T::open_type(opened[3 * i] * opened[3 * i + 1]) != opened[3 * i + 2])
@@ -128,7 +135,7 @@ void MalRepRingPrep<T>::shuffle_buffer_triples()
     }
     MC.CheckFor(0, checks, P);
     check_triples.resize(N);
-    this->triples = check_triples;
+    triples = check_triples;
 }
 
 template<class T>

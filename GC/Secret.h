@@ -58,6 +58,7 @@ public:
 };
 
 template<class T> class Processor;
+template<class T> class Machine;
 
 template <class T>
 class Secret
@@ -72,6 +73,8 @@ public:
     // dummy
     typedef DummyMC MC;
     typedef DummyProtocol Protocol;
+
+    static MC* new_mc(Machine<Secret>& _) { (void) _; return new MC; }
 
     static string type_string() { return "evaluation secret"; }
     static string phase_name() { return T::name(); }

@@ -38,11 +38,14 @@ public:
 
     int buffer_size;
 
+    static void basic_setup(Player& P) { (void) P; }
     static void setup(Player& P, typename T::mac_key_type alphai) { (void) P, (void) alphai; }
     static void teardown() {}
 
     BufferPrep(DataPositions& usage);
     virtual ~BufferPrep();
+
+    void clear();
 
     void get_three_no_count(Dtype dtype, T& a, T& b, T& c);
     void get_two_no_count(Dtype dtype, T& a, T& b);
@@ -100,10 +103,6 @@ public:
 
     virtual void buffer_bits();
 };
-
-template<class T, class U>
-void generate_triples(vector<array<T, 3>>& triples, int n_triples,
-        U* protocol);
 
 template<class T>
 class ReplicatedRingPrep : public SemiHonestRingPrep<T>

@@ -286,11 +286,10 @@ template<>
 inline void BitVector::randomize_blocks<gfp1>(PRNG& G)
 {
     gfp1 tmp;
-    for (size_t i = 0; i < (nbits / 128); i++)
+    for (size_t i = 0; i < (nbytes / gfp1::size()); i++)
     {
         tmp.randomize(G);
-        for (int j = 0; j < 2; j++)
-            ((mp_limb_t*)bytes)[2*i+j] = tmp.get().get_limb(j);
+        memcpy(bytes + i * gfp1::size(), tmp.get_ptr(), gfp1::size());
     }
 }
 

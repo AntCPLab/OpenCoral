@@ -146,7 +146,7 @@ void check_bits(const typename T::mac_key_type& key,int N,vector<Sub_Data_Files<
 
       cout << n << " bits of type " << T::type_string() << endl;
   }
-  catch (bad_value& e)
+  catch (exception& e)
   {
       cout << "Error after " << n << " bits of type " << T::type_string() << endl;
   }

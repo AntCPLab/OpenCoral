@@ -98,9 +98,11 @@ print_ln('Party 1: please input any three numbers')
 
 data = Matrix(3, 2, sfix)
 
-# use Python loops for compile-time optimization
+# use @for_range_opt for balanced optimization
+# but use Python loops if compile-time numbers are need (e.g., for players)
 
-for i in range(3):
+@for_range_opt(3)
+def _(i):
     for j in range(2):
         data[i][j] = sfix.get_input_from(j)
 

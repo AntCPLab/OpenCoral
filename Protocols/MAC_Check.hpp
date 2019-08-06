@@ -1,3 +1,5 @@
+#ifndef PROTOCOLS_MAC_CHECK_HPP_
+#define PROTOCOLS_MAC_CHECK_HPP_
 
 #include "Protocols/MAC_Check.h"
 #include "Tools/Subroutines.h"
@@ -7,6 +9,7 @@
 #include "Tools/time-func.h"
 #include "Tools/int.h"
 #include "Tools/benchmarking.h"
+#include "Tools/Bundle.h"
 
 #include <algorithm>
 
@@ -27,7 +30,8 @@ const char* TreeSum<T>::mc_timer_names[] = {
 };
 
 template<class U>
-MAC_Check_<U>::MAC_Check_(const T& ai, int opening_sum, int max_broadcast, int send_player) :
+MAC_Check_<U>::MAC_Check_(const typename T::Scalar& ai, int opening_sum,
+    int max_broadcast, int send_player) :
     TreeSum<T>(opening_sum, max_broadcast, send_player)
 {
   popen_cnt=0;
@@ -140,43 +144,72 @@ void MAC_Check_<U>::Check(const Player& P)
     return;
 
   //cerr << "In MAC Check : " << popen_cnt << endl;
-  octet seed[SEED_SIZE];
-  this->timers[SEED].start();
-  Create_Random_Seed(seed,P,SEED_SIZE);
-  this->timers[SEED].stop();
-  PRNG G;
-  G.SetSeed(seed);
 
-  U sj;
-  T a,gami,h,temp;
-  a.assign_zero();
-  gami.assign_zero();
-  vector<T> tau(P.num_players());
-  for (int i=0; i<popen_cnt; i++)
-    { h.almost_randomize(G);
-      temp.mul(h,vals[i]);
-      a.add(a,temp);
-      
-      temp.mul(h,macs[i]);
-      gami.add(gami,temp);
+  if (popen_cnt < 10)
+    {
+      vector<T> deltas;
+      Bundle<octetStream> bundle(P);
+      for (int i = 0; i < popen_cnt; i++)
+        {
+          deltas.push_back(vals[i] * this->alphai - macs[i]);
+          deltas.back().pack(bundle.mine);
+        }
+      this->timers[COMMIT].start();
+      Commit_And_Open_(bundle, P);
+      this->timers[COMMIT].stop();
+      for (auto& delta : deltas)
+        {
+          for (auto& os : bundle)
+            if (&os != &bundle.mine)
+              delta += os.get<T>();
+          if (not delta.is_zero())
+            throw mac_fail();
+        }
     }
+  else
+    {
+      octet seed[SEED_SIZE];
+      this->timers[SEED].start();
+      Create_Random_Seed(seed,P,SEED_SIZE);
+      this->timers[SEED].stop();
+      PRNG G;
+      G.SetSeed(seed);
+
+      U sj;
+      T a,gami,temp;
+      typename T::Scalar h;
+      vector<T> tau(P.num_players());
+      a.assign_zero();
+      gami.assign_zero();
+      for (int i=0; i<popen_cnt; i++)
+        {
+          h.almost_randomize(G);
+          temp.mul(h,vals[i]);
+          a.add(a,temp);
+
+          temp.mul(h,macs[i]);
+          gami.add(gami,temp);
+        }
+
+      temp.mul(this->alphai,a);
+      tau[P.my_num()].sub(gami,temp);
+
+      //cerr << "\tCommit and Open" << endl;
+      this->timers[COMMIT].start();
+      Commit_And_Open(tau,P);
+      this->timers[COMMIT].stop();
+
+      //cerr << "\tFinal Check" << endl;
+
+      T t;
+      t.assign_zero();
+      for (int i=0; i<P.num_players(); i++)
+        { t.add(t,tau[i]); }
+      if (!t.is_zero()) { throw mac_fail(); }
+    }
+
   vals.erase(vals.begin(), vals.begin() + popen_cnt);
   macs.erase(macs.begin(), macs.begin() + popen_cnt);
-  temp.mul(this->alphai,a);
-  tau[P.my_num()].sub(gami,temp);
-
-  //cerr << "\tCommit and Open" << endl;
-  this->timers[COMMIT].start();
-  Commit_And_Open(tau,P);
-  this->timers[COMMIT].stop();
-
-  //cerr << "\tFinal Check" << endl;
-
-  T t;
-  t.assign_zero();
-  for (int i=0; i<P.num_players(); i++)
-    { t.add(t,tau[i]); }
-  if (!t.is_zero()) { throw mac_fail(); }
 
   popen_cnt=0;
 }
@@ -487,7 +520,7 @@ void direct_add_openings(vector<T>& values, const Player& P, vector<octetStream>
   for (unsigned int i=0; i<values.size(); i++)
     for (int j=0; j<P.num_players(); j++)
       if (j!=P.my_num())
-	values[i].template add<t>(os[j].consume(T::size()));
+	values[i].template add<t>(os[j]);
 }
 
 template<class T>
@@ -574,3 +607,5 @@ void Passing_MAC_Check<T>::POpen_End(vector<T>& values,const vector<Share<T> >& 
   this->popen_cnt += values.size();
   this->CheckIfNeeded(P);
 }
+
+#endif

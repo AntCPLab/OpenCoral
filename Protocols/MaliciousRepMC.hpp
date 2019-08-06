@@ -8,6 +8,7 @@
 #include "Math/BitVec.h"
 
 #include "ReplicatedMC.hpp"
+#include "MAC_Check_Base.hpp"
 
 #include <stdlib.h>
 
