@@ -252,16 +252,15 @@ def iter_waksman(a, config, reverse=False):
     #config_array = Array(n, a[0].reg_type)
     #reverse = (int(reverse))
 
-    def create_round_fn(n, reg_type):
+    def create_round_fn(n, reg_type, inwards):
         if (n, reg_type, inwards) in WAKSMAN_FUNCTIONS:
             return WAKSMAN_FUNCTIONS[(n, reg_type, inwards)]
         
-        def do_round(size, config_address, a_address, a2_address, inwards):
+        def do_round(size, config_address, a_address, a2_address):
             A = Array(n, reg_type, a_address)
             A2 = Array(n, reg_type, a2_address)
             C = Array(n, reg_type, config_address)
-            inwards = MemValue(inwards)
-            outwards = MemValue(1 - inwards)
+            outwards = 1 - inwards
             
             sizeval = size
             #for k in range(n/2):
@@ -290,7 +289,8 @@ def iter_waksman(a, config, reverse=False):
         WAKSMAN_FUNCTIONS[(n, reg_type, inwards)] = fn
         return fn
     
-    do_round = create_round_fn(n, a[0].reg_type)
+    do_round = lambda size, ca, aa, aa2, inwards: \
+               create_round_fn(n, a[0].reg_type, inwards)(size, ca, aa, aa2)
 
     logn = int(math.log(n,2))
 
@@ -299,7 +299,7 @@ def iter_waksman(a, config, reverse=False):
     def f(i):
         size.write(n/(2*nblocks))
         conf_address = MemValue(config.address + depth.read()*n)
-        do_round(size, conf_address, a.address, a2.address, cint(1))
+        do_round(size, conf_address, a.address, a2.address, 1)
 
         for i in range(n):
             a[i] = a2[i]
@@ -315,7 +315,7 @@ def iter_waksman(a, config, reverse=False):
     def f(i):
         size.write(n/(2*nblocks))
         conf_address = MemValue(config.address + depth.read()*n)
-        do_round(size, conf_address, a.address, a2.address, cint(0))
+        do_round(size, conf_address, a.address, a2.address, 0)
 
         for i in range(n):
             a[i] = a2[i]
@@ -391,12 +391,14 @@ def shuffle(x, config=None, value_type=sgf2n, reverse=False):
     Returns the network switching config so it may be re-used later.  """
     n = len(x)
     m = 2**int(math.ceil(math.log(n, 2)))
+    assert n == m, 'only working for powers of two'
     if config is None:
         config = config_shuffle(n, value_type)
 
     if isinstance(x, list):
         if isinstance(x[0], list):
             length = len(x[0])
+            assert len(x) == length
             for i in range(length):
                 xi = Array(m, value_type.reg_type)
                 for j in range(n):
@@ -405,6 +407,8 @@ def shuffle(x, config=None, value_type=sgf2n, reverse=False):
                     xi[j] = value_type(0)
                 iter_waksman(xi, config, reverse=reverse)
                 iter_waksman(xi, config, reverse=reverse)
+                for j, y in enumerate(xi):
+                    x[j][i] = y
         else:
             xa = Array(m, value_type.reg_type)
             for i in range(n):
@@ -413,6 +417,7 @@ def shuffle(x, config=None, value_type=sgf2n, reverse=False):
                 xa[i] = value_type(0)
             iter_waksman(xa, config, reverse=reverse)
             iter_waksman(xa, config, reverse=reverse)
+            x[:] = xa
     elif isinstance(x, Array):
         if len(x) != m and config is None:
             raise CompilerError('Non-power of 2 Array input not yet supported')
