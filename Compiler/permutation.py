@@ -253,8 +253,8 @@ def iter_waksman(a, config, reverse=False):
     #reverse = (int(reverse))
 
     def create_round_fn(n, reg_type, inwards):
-        if (n, reg_type, inwards) in WAKSMAN_FUNCTIONS:
-            return WAKSMAN_FUNCTIONS[(n, reg_type, inwards)]
+        if (n, reg_type, inwards, reverse) in WAKSMAN_FUNCTIONS:
+            return WAKSMAN_FUNCTIONS[(n, reg_type, inwards, reverse)]
         
         def do_round(size, config_address, a_address, a2_address):
             A = Array(n, reg_type, a_address)
@@ -286,7 +286,7 @@ def iter_waksman(a, config, reverse=False):
                 A2[out1], A2[out2] = cond_swap_bit(A[in1], A[in2], c)
 
         fn = function_block(do_round)
-        WAKSMAN_FUNCTIONS[(n, reg_type, inwards)] = fn
+        WAKSMAN_FUNCTIONS[(n, reg_type, inwards, reverse)] = fn
         return fn
     
     do_round = lambda size, ca, aa, aa2, inwards: \
