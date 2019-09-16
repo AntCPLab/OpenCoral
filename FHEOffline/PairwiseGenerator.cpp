@@ -50,6 +50,8 @@ void PairwiseGenerator<FD>::run()
 {
     PRNG G;
     G.ReSeed();
+    total = 0;
+    producer.triples.clear();
 
     while (total < machine.nTriplesPerThread)
     {
