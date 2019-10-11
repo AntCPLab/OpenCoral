@@ -12,7 +12,7 @@
 #include "Tools/OfflineMachineBase.h"
 #include "OT/OTTripleSetup.h"
 
-template<class T> class NPartyTripleGenerator;
+class GeneratorThread;
 
 class MascotParams : virtual public OfflineParams
 {
@@ -54,7 +54,7 @@ public:
     TripleMachine(int argc, const char** argv);
 
     template<class T>
-    NPartyTripleGenerator<T>* new_generator(OTTripleSetup& setup, int i);
+    GeneratorThread* new_generator(OTTripleSetup& setup, int i);
 
     void run();
 

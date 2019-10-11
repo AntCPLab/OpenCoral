@@ -3,7 +3,6 @@
 
 #include "Networking/Player.h"
 #include "OT/BaseOT.h"
-#include "OT/OTMachine.h"
 #include "Tools/random.h"
 #include "Tools/time-func.h"
 

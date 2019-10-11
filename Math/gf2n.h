@@ -64,6 +64,7 @@ class gf2n_short
   typedef gf2n_short Scalar;
 
   static const int MAX_N_BITS = 64;
+  static const int N_BYTES = sizeof(a);
 
   static void init_field(int nn);
   static int degree() { return n; }

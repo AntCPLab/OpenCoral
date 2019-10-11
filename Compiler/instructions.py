@@ -894,6 +894,55 @@ class inputfloat(base.TextInputInstruction):
             req_node.increment((self.field_type, 'input', player), \
                                4 * self.get_size())
 
+@base.vectorize
+class inputmixed(base.TextInputInstruction):
+    __slots__ = []
+    code = base.opcodes['INPUTMIXED']
+    field_type = 'modp'
+    # the following has to match TYPE: (N_DEST, N_PARAM)
+    types = {
+        0: (1, 0),
+        1: (1, 1),
+        2: (4, 1)
+    }
+    type_ids = {
+        'int': 0,
+        'fix': 1,
+        'float': 2
+    }
+
+    def __init__(self, name, *args):
+        try:
+            type_id = self.type_ids[name]
+        except:
+            pass
+        super(inputmixed_class, self).__init__(type_id, *args)
+
+    @property
+    def arg_format(self):
+        for i in self.bases():
+            t = self.args[i]
+            yield 'int'
+            for j in range(self.types[t][0]):
+                yield 'sw'
+            for j in range(self.types[t][1]):
+                yield 'int'
+            yield 'p'
+
+    def bases(self):
+        i = 0
+        while i < len(self.args):
+            yield i
+            i += sum(self.types[self.args[i]]) + 2
+
+    def add_usage(self, req_node):
+        for i in self.bases():
+            t = self.args[i]
+            player = self.args[i + sum(self.types[t]) + 1]
+            n_dest = self.types[t][0]
+            req_node.increment((self.field_type, 'input', player), \
+                               n_dest * self.get_size())
+
 @base.gf2n
 class startinput(base.RawInputInstruction):
     r""" Receive inputs from player $p$. """
@@ -956,6 +1005,11 @@ class print_reg_plain(base.IOInstruction):
     __slots__ = []
     code = base.opcodes['PRINTREGPLAIN']
     arg_format = ['c']
+
+class cond_print_plain(base.IOInstruction):
+    r""" Conditionally print the value of a register. """
+    code = base.opcodes['CONDPRINTPLAIN']
+    arg_format = ['c', 'c']
 
 class print_int(base.IOInstruction):
     r""" Print only the value of register \verb|ci| to stdout. """
@@ -1383,6 +1437,9 @@ class muls(base.VarArgsInstruction, base.DataInstruction):
 
     def merge_id(self):
         # can merge different sizes
+        # but not if large
+        if self.get_size() > 100:
+            return type(self), self.get_size()
         return type(self)
 
     # def expand(self):
@@ -1467,6 +1524,14 @@ class dotprods(base.VarArgsInstruction, base.DataInstruction):
         for i in self.bases():
             for reg in self.args[i + 2:i + self.args[i]]:
                 yield reg
+
+@base.vectorize
+class trunc_pr(base.VarArgsInstruction):
+    """ Probalistic truncation for semi-honest computation """
+    """ with honest majority """
+    __slots__ = []
+    code = base.opcodes['TRUNC_PR']
+    arg_format = tools.cycle(['sw','s','int','int'])
 
 ###
 ### CISC-style instructions

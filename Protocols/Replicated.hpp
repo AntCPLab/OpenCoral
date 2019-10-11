@@ -3,9 +3,20 @@
  *
  */
 
+#ifndef PROTOCOLS_REPLICATED_HPP_
+#define PROTOCOLS_REPLICATED_HPP_
+
 #include "Replicated.h"
 #include "Processor/Processor.h"
 #include "Tools/benchmarking.h"
+
+#include "SemiShare.h"
+#include "SemiMC.h"
+#include "ReplicatedInput.h"
+#include "Rep3Share.h"
+
+#include "SemiMC.hpp"
+#include "Math/Z2k.hpp"
 
 template<class T>
 ProtocolBase<T>::ProtocolBase() : counter(0)
@@ -70,6 +81,13 @@ template<class T>
 void Replicated<T>::init_mul(SubProcessor<T>* proc)
 {
     (void) proc;
+    init_mul();
+}
+
+template<class T>
+void Replicated<T>::init_mul(Preprocessing<T>& prep, typename T::MAC_Check& MC)
+{
+    (void) prep, (void) MC;
     init_mul();
 }
 
@@ -156,3 +174,125 @@ T Replicated<T>::get_random()
         res[i].randomize(shared_prngs[i]);
     return res;
 }
+
+template<int K>
+void trunc_pr(const vector<int>& regs, int size,
+        SubProcessor<Rep3Share<SignedZ2<K>>>& proc)
+{
+    assert(regs.size() % 4 == 0);
+    assert(proc.P.num_players() == 3);
+    typedef SignedZ2<K> value_type;
+    typedef Rep3Share<value_type> T;
+    bool generate = proc.P.my_num() == 2;
+    if (generate)
+    {
+        octetStream os[2];
+        for (size_t i = 0; i < regs.size(); i += 4)
+        {
+            int k = regs[i + 2];
+            int m = regs[i + 3];
+            int n_shift = value_type::N_BITS - 1 - k;
+            assert(m < k);
+            assert(0 < k);
+            assert(m < value_type::N_BITS);
+            for (int l = 0; l < size; l++)
+            {
+                auto& res = proc.get_S_ref(regs[i] + l);
+                auto& G = proc.Proc.secure_prng;
+                auto mask = G.template get<value_type>();
+                auto unmask = (mask << (n_shift + 1)) >> (n_shift + m + 1);
+                T shares[4];
+                shares[0].randomize_to_sum(mask, G);
+                shares[1].randomize_to_sum(unmask, G);
+                shares[2].randomize_to_sum(
+                        (mask << (n_shift)) >> (value_type::N_BITS - 1), G);
+                res.randomize(G);
+                shares[3] = res;
+                for (int i = 0; i < 2; i++)
+                {
+                    for (int j = 0; j < 4; j++)
+                        shares[j][i].pack(os[i]);
+                }
+            }
+        }
+        for (int i = 0; i < 2; i++)
+            proc.P.send_to(i, os[i], true);
+    }
+    else
+    {
+        octetStream os;
+        proc.P.receive_player(2, os, true);
+        OffsetPlayer player(proc.P, 1 - 2 * proc.P.my_num());
+        typedef SemiShare<value_type> semi_type;
+        vector<SemiShare<value_type>> to_open;
+        PointerVector<SemiShare<value_type>> mask_shares[3];
+        for (size_t i = 0; i < regs.size(); i += 4)
+            for (int l = 0; l < size; l++)
+            {
+                SemiShare<value_type> share;
+                auto& x = proc.get_S_ref(regs[i + 1] + l);
+                if (proc.P.my_num() == 0)
+                    share = x.sum();
+                else
+                    share = x[0];
+                for (auto& mask_share : mask_shares)
+                    mask_share.push_back(os.get<semi_type>());
+                to_open.push_back(share + mask_shares[0].next());
+                auto& res = proc.get_S_ref(regs[i] + l);
+                auto& a = res[1 - proc.P.my_num()];
+                a.unpack(os);
+            }
+        PointerVector<value_type> opened;
+        DirectSemiMC<SemiShare<value_type>> MC;
+        MC.POpen_(opened, to_open, player);
+        os.reset_write_head();
+        for (size_t i = 0; i < regs.size(); i += 4)
+        {
+            int k = regs[i + 2];
+            int m = regs[i + 3];
+            int n_shift = value_type::N_BITS - 1 - k;
+            assert(m < k);
+            assert(0 < k);
+            assert(m < value_type::N_BITS);
+            for (int l = 0; l < size; l++)
+            {
+                auto& res = proc.get_S_ref(regs[i] + l);
+                auto masked = opened.next() << n_shift;
+                auto shifted = (masked << 1) >> (n_shift + m + 1);
+                auto diff = SemiShare<value_type>::constant(shifted,
+                        player.my_num()) - mask_shares[1].next();
+                auto msb = masked >> (value_type::N_BITS - 1);
+                auto bit_mask = mask_shares[2].next();
+                auto overflow = (bit_mask
+                        + SemiShare<value_type>::constant(msb, player.my_num())
+                        - bit_mask * msb * 2);
+                auto res_share = diff + (overflow << (k - m));
+                auto& a = res[1 - proc.P.my_num()];
+                auto& b = res[proc.P.my_num()];
+                b = res_share - a;
+                b.pack(os);
+            }
+        }
+        player.exchange(os);
+        for (size_t i = 0; i < regs.size(); i += 4)
+            for (int l = 0; l < size; l++)
+                proc.get_S_ref(regs[i] + l)[proc.P.my_num()] +=
+                        os.get<value_type>();
+    }
+}
+
+template<class T>
+void trunc_pr(const vector<int>& regs, int size, SubProcessor<T>& proc)
+{
+    (void) regs, (void) size, (void) proc;
+    throw not_implemented();
+}
+
+template<class T>
+void Replicated<T>::trunc_pr(const vector<int>& regs, int size,
+        SubProcessor<T>& proc)
+{
+    ::trunc_pr(regs, size, proc);
+}
+
+#endif

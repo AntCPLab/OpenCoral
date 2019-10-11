@@ -7,6 +7,7 @@
 #define PROTOCOLS_SPDZ2KPREP_H_
 
 #include "MascotPrep.h"
+#include "Spdz2kShare.h"
 
 template<class T, class U>
 void bits_from_square_in_ring(vector<T>& bits, int buffer_size, U* bit_prep);

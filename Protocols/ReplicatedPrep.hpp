@@ -3,8 +3,12 @@
  *
  */
 
+#ifndef PROTOCOlS_REPLICATEDPREP_HPP_
+#define PROTOCOlS_REPLICATEDPREP_HPP_
+
 #include "ReplicatedPrep.h"
 #include "Math/gfp.h"
+#include "Processor/OnlineOptions.h"
 
 template<class T>
 BufferPrep<T>::BufferPrep(DataPositions& usage) :
@@ -136,17 +140,20 @@ void ReplicatedPrep<T>::buffer_inverses()
 	auto protocol = this->protocol;
     assert(protocol != 0);
     typename T::MAC_Check MC;
-    BufferPrep<T>::buffer_inverses(MC, protocol->P);
+    ::buffer_inverses(this->inverses, *this, MC, protocol->P);
 }
 
 template<class T>
-void BufferPrep<T>::buffer_inverses(MAC_Check_Base<T>& MC, Player& P)
+void buffer_inverses(vector<array<T, 2>>& inverses, Preprocessing<T>& prep,
+        MAC_Check_Base<T>& MC, Player& P)
 {
+    int buffer_size = OnlineOptions::singleton.batch_size;
     vector<array<T, 3>> triples(buffer_size);
     vector<T> c;
     for (int i = 0; i < buffer_size; i++)
     {
-        get_three_no_count(DATA_TRIPLE, triples[i][0], triples[i][1], triples[i][2]);
+        prep.get_three_no_count(DATA_TRIPLE, triples[i][0], triples[i][1],
+                triples[i][2]);
         c.push_back(triples[i][2]);
     }
     vector<typename T::open_type> c_open;
@@ -370,9 +377,44 @@ inline void BufferPrep<T>::buffer_inputs(int player)
 }
 
 template<class T>
+void BufferPrep<T>::buffer_inputs_as_usual(int player, SubProcessor<T>* proc)
+{
+    assert(proc != 0);
+    auto& P = proc->P;
+    this->inputs.resize(P.num_players());
+    typename T::Input input(proc, P);
+    input.reset(player);
+    auto buffer_size = OnlineOptions::singleton.batch_size;
+    if (P.my_num() == player)
+    {
+        for (int i = 0; i < buffer_size; i++)
+        {
+            typename T::clear r;
+            r.randomize(proc->Proc.secure_prng);
+            input.add_mine(r);
+            this->inputs[player].push_back({input.finalize_mine(), r});
+        }
+        input.send_mine();
+    }
+    else
+    {
+        octetStream os;
+        P.receive_player(player, os, true);
+        T share;
+        for (int i = 0; i < buffer_size; i++)
+        {
+            input.finalize_other(player, share, os);
+            this->inputs[player].push_back({share, 0});
+        }
+    }
+}
+
+template<class T>
 void BufferPrep<T>::get_no_count(vector<T>& S, DataTag tag,
         const vector<int>& regs, int vector_size)
 {
     (void) S, (void) tag, (void) regs, (void) vector_size;
     throw not_implemented();
 }
+
+#endif

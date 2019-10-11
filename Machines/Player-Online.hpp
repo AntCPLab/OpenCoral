@@ -66,18 +66,6 @@ int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt, bool live_pr
       "--ip-file-name" // Flag token.
     );
     opt.add(
-          "empty", // Default.
-          0, // Required?
-          1, // Number of args expected.
-          0, // Delimiter if expecting multiple args.
-          "Where to obtain memory, new|old|empty (default: empty)\n\t"
-            "new: copy from Player-Memory-P<i> file\n\t"
-            "old: reuse previous memory in Memory-P<i>\n\t"
-            "empty: create new empty memory", // Help description.
-          "-m", // Flag token.
-          "--memory" // Flag token.
-    );
-    opt.add(
           "", // Default.
           0, // Required?
           0, // Number of args expected.
@@ -143,14 +131,13 @@ int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt, bool live_pr
           "--encrypted" // Flag token.
     );
 
-    string memtype, hostname, ipFileName;
+    string hostname, ipFileName;
     int lg2, pnbase, opening_sum, max_broadcast;
     int my_port;
 
     online_opts.finalize(opt, argc, argv);
     opt.get("--portnumbase")->getInt(pnbase);
     opt.get("--lg2")->getInt(lg2);
-    opt.get("--memory")->getString(memtype);
     opt.get("--hostname")->getString(hostname);
     opt.get("--ip-file-name")->getString(ipFileName);
     opt.get("--opening-sum")->getInt(opening_sum);
@@ -192,7 +179,7 @@ int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt, bool live_pr
     try
 #endif
     {
-        Machine<T, U>(playerno, playerNames, online_opts.progname, memtype, lg2,
+        Machine<T, U>(playerno, playerNames, online_opts.progname, online_opts.memtype, lg2,
                 opt.get("--direct")->isSet, opening_sum, opt.get("--parallel")->isSet,
                 opt.get("--threads")->isSet, max_broadcast,
                 opt.get("--encrypted")->isSet, online_opts.live_prep,

@@ -8,11 +8,17 @@
 
 #include "Integer.h"
 #include "field_types.h"
+#include "Square.h"
+
+class BitDiagonal;
 
 class BitVec : public IntBase
 {
 public:
     typedef BitVec Scalar;
+
+    typedef BitVec next;
+    typedef BitDiagonal Square;
 
     static const int n_bits = sizeof(a) * 8;
 
@@ -32,9 +38,13 @@ public:
     BitVec operator/(const BitVec& other) const { (void) other; throw not_implemented(); }
 
     BitVec& operator+=(const BitVec& other) { *this ^= other; return *this; }
+    BitVec& operator-=(const BitVec& other) { *this ^= other; return *this; }
 
     BitVec extend_bit() const { return -(a & 1); }
     BitVec mask(int n) const { return n < n_bits ? *this & ((1L << n) - 1) : *this; }
+
+    template<int t>
+    void add(octetStream& os) { *this += os.get<BitVec>(); }
 
     void mul(const BitVec& a, const BitVec& b) { *this = a * b; }
 

@@ -96,6 +96,11 @@ public:
 
   ArithmeticProcessor(OnlineOptions opts, int thread_num) : thread_num(thread_num),
           sent(0), rounds(0), opts(opts) {}
+
+  bool use_stdin()
+  {
+    return thread_num == 0 and opts.interactive;
+  }
 };
 
 template<class sint, class sgf2n>

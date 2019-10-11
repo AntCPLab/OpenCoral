@@ -167,6 +167,12 @@ class _number(object):
     def pow2(self, bit_length=None, security=None):
         return 2**self
 
+    def min(self, other):
+        return (self < other).if_else(self, other)
+
+    def max(self, other):
+        return (self < other).if_else(other, self)
+
 class _int(object):
     def if_else(self, a, b):
         if hasattr(a, 'for_mux'):
@@ -706,6 +712,10 @@ class regint(_register, _int):
         return res
 
     @vectorized_classmethod
+    def push(cls, value):
+        pushint(cls.conv(value))
+
+    @vectorized_classmethod
     def get_random(cls, bit_length):
         """ Public insecure randomness """
         if isinstance(bit_length, int):
@@ -781,10 +791,10 @@ class regint(_register, _int):
     @vectorize
     @read_mem_value
     def int_op(self, other, inst, reverse=False):
-        if isinstance(other, _secret):
+        try:
+            other = self.conv(other)
+        except:
             return NotImplemented
-        elif not isinstance(other, type(self)):
-            other = type(self)(other)
         res = regint()
         if reverse:
             inst(res, other, self)
@@ -898,6 +908,8 @@ class regint(_register, _int):
     def print_reg_plain(self):
         print_int(self)
 
+    def print_if(self, string):
+        cint(self).print_if(string)
 
 class _secret(_register):
     __slots__ = []
@@ -1121,6 +1133,13 @@ class sint(_secret, _int):
         comparison.PRandInt(res, bits)
         return res
 
+    @vectorized_classmethod
+    def get_input_from(cls, player):
+        """ Secret input """
+        res = cls()
+        inputmixed('int', res, player)
+        return res
+
     @classmethod
     def get_raw_input_from(cls, player):
         res = cls()
@@ -1196,8 +1215,8 @@ class sint(_secret, _int):
     @vectorize
     def __lt__(self, other, bit_length=None, security=None):
         res = sint()
-        comparison.LTZ(res, self - other, bit_length or program.bit_length +
-                       (not (int(program.options.ring) == program.bit_length)),
+        comparison.LTZ(res, self - other,
+                       (bit_length or program.bit_length) + 1,
                        security or program.security)
         return res
 
@@ -1205,8 +1224,8 @@ class sint(_secret, _int):
     @vectorize
     def __gt__(self, other, bit_length=None, security=None):
         res = sint()
-        comparison.LTZ(res, other - self, bit_length or program.bit_length +
-                       (not (int(program.options.ring) == program.bit_length)),
+        comparison.LTZ(res, other - self,
+                       (bit_length or program.bit_length) + 1,
                        security or program.security)
         return res
 
@@ -1304,13 +1323,14 @@ class sint(_secret, _int):
         return floatingpoint.BitDec(self, bit_length, bit_length, security)
 
     def TruncMul(self, other, k, m, kappa=None, nearest=False):
-        return (self * other).round(k, m, kappa, nearest)
+        return (self * other).round(k, m, kappa, nearest, signed=True)
 
-    def TruncPr(self, k, m, kappa=None):
-        return floatingpoint.TruncPr(self, k, m, kappa)
+    def TruncPr(self, k, m, kappa=None, signed=True):
+        return floatingpoint.TruncPr(self, k, m, kappa, signed=signed)
 
     @vectorize
     def round(self, k, m, kappa=None, nearest=False, signed=False):
+        kappa = kappa or program.security
         secret = isinstance(m, sint)
         if nearest:
             if secret:
@@ -1320,7 +1340,7 @@ class sint(_secret, _int):
         else:
             if secret:
                 return floatingpoint.Trunc(self, k, m, kappa)
-            return self.TruncPr(k, m, kappa)
+            return self.TruncPr(k, m, kappa, signed=signed)
 
     def Norm(self, k, f, kappa=None, simplex_flag=False):
         return library.Norm(self, k, f, kappa, simplex_flag)
@@ -1461,23 +1481,25 @@ class _bitint(object):
     linear_rounds = False
 
     @classmethod
-    def bit_adder(cls, a, b):
+    def bit_adder(cls, a, b, carry_in=0, get_carry=False):
         a, b = list(a), list(b)
         a += [0] * (len(b) - len(a))
         b += [0] * (len(a) - len(b))
-        return cls.bit_adder_selection(a, b)
+        return cls.bit_adder_selection(a, b, carry_in=carry_in,
+                                       get_carry=get_carry)
 
     @classmethod
-    def bit_adder_selection(cls, a, b):
+    def bit_adder_selection(cls, a, b, carry_in=0, get_carry=False):
         if cls.log_rounds:
-            return cls.carry_lookahead_adder(a, b)
+            return cls.carry_lookahead_adder(a, b, carry_in=carry_in)
         elif cls.linear_rounds:
-            return cls.ripple_carry_adder(a, b)
+            return cls.ripple_carry_adder(a, b, carry_in=carry_in)
         else:
-            return cls.carry_select_adder(a, b)
+            return cls.carry_select_adder(a, b, carry_in=carry_in)
 
     @classmethod
-    def carry_lookahead_adder(cls, a, b, fewer_inv=False):
+    def carry_lookahead_adder(cls, a, b, fewer_inv=False, carry_in=0,
+                              get_carry=False):
         lower = []
         for (ai,bi) in zip(a,b):
             if ai is 0 or bi is 0:
@@ -1493,10 +1515,13 @@ class _bitint(object):
         else:
             pre_op = floatingpoint.PreOpL
         if d:
-            carries = (0,) + zip(*pre_op(carry, d))[1]
+            carries = zip(*pre_op(carry, [(0, carry_in)] + d))[1]
         else:
             carries = []
-        return lower + cls.sum_from_carries(a, b, carries)
+        res = lower + cls.sum_from_carries(a, b, carries)
+        if get_carry:
+            res += [carries[-1]]
+        return res
 
     @staticmethod
     def sum_from_carries(a, b, carries):
@@ -1504,7 +1529,7 @@ class _bitint(object):
                 for (ai, bi, carry) in zip(a, b, carries)]
 
     @classmethod
-    def carry_select_adder(cls, a, b, get_carry=False):
+    def carry_select_adder(cls, a, b, get_carry=False, carry_in=0):
         a += [0] * (len(b) - len(a))
         b += [0] * (len(a) - len(b))
         n = len(a)
@@ -1524,7 +1549,7 @@ class _bitint(object):
             raise Exception('blocks not summing up: %s != %s' % \
                             (sum(blocks), n))
         res = []
-        carry = 0
+        carry = carry_in
         cin_one = util.long_one(a + b)
         for m in blocks:
             aa = a[:m]
@@ -1540,7 +1565,8 @@ class _bitint(object):
         return res
 
     @classmethod
-    def ripple_carry_adder(cls, a, b, carry=0):
+    def ripple_carry_adder(cls, a, b, carry_in=0):
+        carry = carry_in
         res = []
         for aa, bb in zip(a, b):
             cc, carry = cls.full_adder(aa, bb, carry)
@@ -1760,14 +1786,15 @@ class intbitint(_bitint, sint):
                 for i in range(len(a))]
 
     @classmethod
-    def bit_adder_selection(cls, a, b):
+    def bit_adder_selection(cls, a, b, carry_in=0, get_carry=False):
         if cls.linear_rounds:
-            return cls.ripple_carry_adder(a, b)
+            return cls.ripple_carry_adder(a, b, carry_in=carry_in)
         # experimental cut-off with dead code elimination
         elif len(a) < 122 or cls.log_rounds:
-            return cls.carry_lookahead_adder(a, b)
+            return cls.carry_lookahead_adder(a, b, carry_in=carry_in,
+                                             get_carry=get_carry)
         else:
-            return cls.carry_select_adder(a, b)
+            return cls.carry_select_adder(a, b, carry_in=carry_in)
 
 class sgf2nint(_bitint, sgf2n):
     bin_type = sgf2n
@@ -1904,10 +1931,10 @@ class sgf2nfloat(sgf2n):
 
 sgf2nfloat.set_precision(24, 8)
 
-def parse_type(other):
+def parse_type(other, k=None, f=None):
     # converts type to cfix/sfix depending on the case
     if isinstance(other, cfix.scalars):
-        return cfix(other)
+        return cfix(other, k=k, f=f)
     elif isinstance(other, cint):
         tmp = cfix()
         tmp.load_int(other)
@@ -1975,9 +2002,11 @@ class cfix(_number, _structure):
         return 1
 
     @vectorize_init
-    def __init__(self, v=None, size=None):
-        f = self.f
-        k = self.k
+    def __init__(self, v=None, k=None, f=None, size=None):
+        f = f or self.f
+        k = k or self.k
+        self.f = f
+        self.k = k
         self.size = get_global_vector_size()
         if isinstance(v, cint):
             self.v = cint(v,size=self.size)
@@ -2025,22 +2054,20 @@ class cfix(_number, _structure):
         other = parse_type(other)
         if isinstance(other, cfix):
             return cfix(self.v + other.v)
-        elif isinstance(other, sfix):
-            return sfix(self.v + other.v)
         else:
-            raise CompilerError('Invalid type %s for cfix.__add__' % type(other))
+            return NotImplemented
 
     @vectorize 
     def mul(self, other):
         other = parse_type(other)
         if isinstance(other, cfix):
+            assert self.f == other.f
             sgn = cint(1 - 2 * (self.v * other.v < 0))
             absolute = self.v * other.v * sgn
             val = sgn * (absolute >> self.f)
             return cfix(val)
         elif isinstance(other, sfix):
-            res = sfix((self.v * other.v) >> self.f)
-            return res
+            return NotImplemented
         else:
             raise CompilerError('Invalid type %s for cfix.__mul__' % type(other))
     
@@ -2130,7 +2157,8 @@ class cfix(_number, _structure):
         if isinstance(other, cfix):
             return cfix(library.cint_cint_division(self.v, other.v, self.k, self.f))
         elif isinstance(other, sfix):
-            return sfix(library.FPDiv(self.v, other.v, self.k, self.f, other.kappa))
+            return sfix(library.FPDiv(self.v, other.v, self.k, self.f,
+                                      other.kappa, nearest=sfix.round_nearest))
         else:
             raise TypeError('Incompatible fixed point types in division')
 
@@ -2169,6 +2197,7 @@ class _single(_number, _structure):
         return cls._new(cls.int_type.load_mem(address))
 
     @classmethod
+    @read_mem_value
     def conv(cls, other):
         if isinstance(other, cls):
             return other
@@ -2193,9 +2222,13 @@ class _single(_number, _structure):
 
     @classmethod
     def dot_product(cls, x, y, res_params=None):
+        return cls.unreduced_dot_product(x, y, res_params).reduce_after_mul()
+
+    @classmethod
+    def unreduced_dot_product(cls, x, y, res_params=None):
         dp = cls.int_type.dot_product([xx.pre_mul() for xx in x],
                                       [yy.pre_mul() for yy in y])
-        return x[0].unreduced(dp, y[0], res_params, len(x)).reduce_after_mul()
+        return x[0].unreduced(dp, y[0], res_params, len(x))
 
     @classmethod
     def row_matrix_mul(cls, row, matrix, res_params=None):
@@ -2300,20 +2333,25 @@ class _fix(_single):
 
     @classmethod
     def coerce(cls, other):
-        if isinstance(other, _fix):
+        if isinstance(other, (_fix, cfix)):
             return other
         else:
             return cls.conv(other)
 
     @classmethod
-    def from_sint(cls, other):
+    def from_sint(cls, other, k=None, f=None):
         res = cls()
+        res.f = f or cls.f
+        res.k = k or cls.k
         res.load_int(cls.int_type.conv(other))
         return res
 
     @classmethod
-    def _new(cls, other):
-        return cls(other)
+    def _new(cls, other, k=None, f=None):
+        res = cls(other)
+        res.k = k or cls.k
+        res.f = f or cls.f
+        return res
 
     @vectorize_init
     def __init__(self, _v=None, size=None):
@@ -2331,7 +2369,7 @@ class _fix(_single):
             self.v = self.int_type(int(round(_v * (2 ** f))), size=self.size)
         elif isinstance(_v, self.float_type):
             p = (f + _v.p)
-            b = (p >= 0)
+            b = (p.greater_equal(0, _v.vlen))
             a = b*(_v.v << (p)) + (1-b)*(_v.v >> (-p))
             self.v = (1-2*_v.s)*a
         elif isinstance(_v, type(self)):
@@ -2355,31 +2393,45 @@ class _fix(_single):
     def add(self, other):
         other = self.coerce(other)
         if isinstance(other, (_fix, cfix)):
-            return type(self)(self.v + other.v)
+            return self._new(self.v + other.v, k=self.k, f=self.f)
         elif isinstance(other, cfix.scalars):
-            tmp = cfix(other)
+            tmp = cfix(other, k=self.k, f=self.f)
             return self + tmp
         else:
-            raise CompilerError('Invalid type %s for _fix.__add__' % type(other))
+            return NotImplemented
 
     @vectorize 
     def mul(self, other):
+        if isinstance(other, (sint, cint, regint, int, long)):
+            return self._new(self.v * other, k=self.k, f=self.f)
+        elif isinstance(other, float):
+            if int(other) == other:
+                return self.mul(int(other))
+            v = int(round(other * 2 ** self.f))
+            if v == 0:
+                return 0
+            f = self.f
+            while v % 2 == 0:
+                f -= 1
+                v /= 2
+            k = len(bin(abs(v))) - 1
+            other = cfix(cint(v))
+            other.f = f
+            other.k = k
         other = self.coerce(other)
-        if isinstance(other, _fix):
-            val = self.v.TruncMul(other.v, self.k * 2, self.f, self.kappa,
+        if isinstance(other, (_fix, cfix)):
+            val = self.v.TruncMul(other.v, self.k + other.k, other.f,
+                                  self.kappa,
                                   self.round_nearest)
             if self.size >= other.size:
-                return self._new(val)
+                return self._new(val, k=self.k, f=self.f)
             else:
-                return self.vec._new(val)
-        elif isinstance(other, cfix):
-            res = type(self)((self.v * other.v) >> self.f)
-            return res
+                return self.vec._new(val, k=self.k, f=self.f)
         elif isinstance(other, cfix.scalars):
             scalar_fix = cfix(other)
             return self * scalar_fix
         else:
-            raise CompilerError('Invalid type %s for _fix.__mul__' % type(other))
+            return NotImplemented
 
     @vectorize
     def __neg__(self):
@@ -2397,6 +2449,7 @@ class _fix(_single):
         else:
             raise TypeError('Incompatible fixed point types in division')
 
+    @vectorize
     def __rdiv__(self, other):
         return self.coerce(other) / self
 
@@ -2418,14 +2471,24 @@ class sfix(_fix):
     @vectorized_classmethod
     def get_input_from(cls, player):
         v = cls.int_type()
-        inputfix(v, cls.f, player)
+        inputmixed('fix', v, cls.f, player)
         return cls._new(v)
 
-    @classmethod
-    def coerce(cls, other):
-        return parse_type(other)
+    @vectorized_classmethod
+    def get_random(cls, lower, upper):
+        """ Uniform random number around centre of bounds """
+        """ Range can be smaller """
+        log_range = int(math.log(upper - lower, 2))
+        n_bits = log_range + cls.f
+        average = lower + 0.5 * (upper - lower)
+        lower = average - 0.5 * 2 ** log_range
+        return cls._new(cls.int_type.get_random_int(n_bits)) + lower
+
+    def coerce(self, other):
+        return parse_type(other, k=self.k, f=self.f)
 
     def mul_no_reduce(self, other, res_params=None):
+        assert self.f == other.f
         return self.unreduced(self.v * other.v)
 
     def pre_mul(self):
@@ -2434,16 +2497,21 @@ class sfix(_fix):
     def unreduced(self, v, other=None, res_params=None, n_summands=1):
         return unreduced_sfix(v, self.k * 2, self.f, self.kappa)
 
-class unreduced_sfix(object):
+class unreduced_sfix(_single):
+    int_type = sint
+
+    @classmethod
+    def _new(cls, v):
+        return cls(v, 2 * sfix.k, sfix.f, sfix.kappa)
+
     def __init__(self, v, k, m, kappa):
         self.v = v
         self.k = k
         self.m = m
         self.kappa = kappa
-        self.size = self.v.size
 
     def __add__(self, other):
-        if other in (0, 0L):
+        if other is 0 or other is 0L:
             return self
         assert self.k == other.k
         assert self.m == other.m
@@ -2455,7 +2523,10 @@ class unreduced_sfix(object):
     @vectorize
     def reduce_after_mul(self):
         return sfix(sfix.int_type.round(self.v, self.k, self.m, self.kappa,
-                                        nearest=sfix.round_nearest))
+                                        nearest=sfix.round_nearest,
+                                        signed=True))
+
+sfix.unreduced_type = unreduced_sfix
 
 # this is for 20 bit decimal precision
 # with 40 bitlength of entire number
@@ -2503,7 +2574,7 @@ class squant(_single):
                 raise CompilerError('%f not quantizable' % value)
             self.v = self.int_type(q)
             reset_global_vector_size()
-        elif isinstance(value, type(self)):
+        elif isinstance(value, squant) and value.params == self.params:
             self.v = value.v
         else:
             raise CompilerError('cannot convert %s to squant' % value)
@@ -2538,7 +2609,7 @@ class squant(_single):
         return self.mul_no_reduce(other, res_params).reduce_after_mul()
 
     def mul_no_reduce(self, other, res_params=None):
-        if isinstance(other, sint):
+        if isinstance(other, (sint, cint, regint)):
             return self._new(other * (self.v - self.Z) + self.Z,
                              params=self.get_params())
         other = self.coerce(other)
@@ -2572,7 +2643,7 @@ class _unreduced_squant(object):
         self.res_params = res_params or params[0]
 
     def __add__(self, other):
-        if other in (0, 0L):
+        if other is 0 or other is 0L:
             return self
         assert self.params == other.params
         assert self.res_params == other.res_params
@@ -2650,7 +2721,8 @@ class squant_params(object):
         int_mult = util.expand(int_mult, size)
         tmp = unreduced.v * int_mult + shifted_Z
         shifted = tmp.round(self.max_length, n_shift,
-                            squant.kappa, squant.round_nearest)
+                            kappa=squant.kappa, nearest=squant.round_nearest,
+                            signed=True)
         if squant.clamp:
             length = max(self.k, self.max_length - n_shift) + 1
             top = (1 << self.k) - 1
@@ -2715,6 +2787,10 @@ class sfloat(_number, _structure):
         else:
             return cls(other)
 
+    @classmethod
+    def coerce(cls, other):
+        return cls.conv(other)
+
     @staticmethod
     def convert_float(v, vlen, plen):
         if v < 0:
@@ -2747,7 +2823,7 @@ class sfloat(_number, _structure):
         p = sint()
         z = sint()
         s = sint()
-        inputfloat(v, p, z, s, cls.vlen, player)
+        inputmixed('float', v, p, z, s, cls.vlen, player)
         return cls(v, p, z, s)
 
     @vectorize_init
@@ -2935,7 +3011,7 @@ class sfloat(_number, _structure):
         return self + -other
     
     def __rsub__(self, other):
-        raise NotImplementedError()
+        return -self + other
 
     def __div__(self, other):
         other = self.conv(other)
@@ -3144,17 +3220,18 @@ class Array(object):
         for i in range(self.length):
             yield self[i]
 
-    def assign(self, other):
-        if isinstance(other, Array):
-            def loop(i):
-                self[i] = other[i]
-            library.range_loop(loop, len(self))
-        elif isinstance(other, Tape.Register):
-            if len(other) == self.length:
-                self[0] = other
-            else:
-                raise CompilerError('Length mismatch between array and vector')
-        else:
+    def same_shape(self):
+        return Array(self.length, self.value_type)
+
+    def assign(self, other, base=0):
+        try:
+            other = other.get_vector()
+        except:
+            pass
+        try:
+            other.store_in_mem(self.get_address(base))
+            assert len(self) >= other.size + base
+        except AttributeError:
             for i,j in enumerate(other):
                 self[i] = j
         return self
@@ -3169,22 +3246,42 @@ class Array(object):
             self[i] = mem_value
         return self
 
-    def get_vector(self):
-        return self.value_type.load_mem(self.address, size=self.length)
+    def get_vector(self, base=0, size=None):
+        size = size or self.length
+        return self.value_type.load_mem(self.get_address(base), size=size)
 
     def get_mem_value(self, index):
         return MemValue(self[index], self.get_address(index))
 
+    def input_from(self, player, budget=None):
+        self.assign(self.value_type.get_input_from(player, size=len(self)))
+
     def __add__(self, other):
+        if other is 0:
+            return self
         assert len(self) == len(other)
-        return Array.create_from(x + y for x, y in zip(self, other))
+        return self.get_vector() + other
 
     def __sub__(self, other):
         assert len(self) == len(other)
-        return Array.create_from(x - y for x, y in zip(self, other))
+        return self.get_vector() - other
 
     def __mul__(self, value):
-        return Array.create_from(x * value for x in self)
+        return self.get_vector() * value
+
+    def __pow__(self, value):
+        return self.get_vector() ** value
+
+    __radd__ = __add__
+    __rmul__ = __mul__
+
+    def shuffle(self):
+        @library.for_range(len(self))
+        def _(i):
+            j = regint.get_random(64) % (len(self) - i)
+            tmp = self[i]
+            self[i] = self[i + j]
+            self[i + j] = tmp
 
     def reveal(self):
         return Array.create_from(x.reveal() for x in self)
@@ -3223,6 +3320,9 @@ class SubMultiArray(object):
                                       self.address, index, debug=self.debug)
         return self.sub_cache[key]
 
+    def __setitem__(self, index, other):
+        self[index].assign(other)
+
     def __len__(self):
         return self.sizes[0]
 
@@ -3235,35 +3335,60 @@ class SubMultiArray(object):
     def total_size(self):
         return reduce(operator.mul, self.sizes) * self.value_type.n_elements()
 
-    def get_vector(self):
-        return self.value_type.load_mem(self.address, size=self.total_size())
+    def get_vector(self, base=0, size=None):
+        assert self.value_type.n_elements() == 1
+        size = size or self.total_size()
+        return self.value_type.load_mem(self.address + base, size=size)
 
-    def assign_vector(self, vector):
-        assert vector.size == self.total_size()
-        vector.store_in_mem(self.address)
+    def assign_vector(self, vector, base=0):
+        assert self.value_type.n_elements() == 1
+        assert vector.size <= self.total_size()
+        vector.store_in_mem(self.address + base)
 
-class MultiArray(SubMultiArray):
-    def __init__(self, sizes, value_type, debug=None, address=None):
-        self.array = Array(reduce(operator.mul, sizes), \
-                                 value_type, address=address)
-        SubMultiArray.__init__(self, sizes, value_type, self.array.address, 0, \
-                               debug=debug)
-        if len(sizes) < 2:
-            raise CompilerError('Use Array')
+    def assign(self, other):
+        if self.value_type.n_elements() > 1:
+            assert self.sizes == other.sizes
+        self.assign_vector(other.get_vector())
 
-class Matrix(MultiArray):
-    def __init__(self, rows, columns, value_type, debug=None, address=None):
-        MultiArray.__init__(self, [rows, columns], value_type, debug=debug, \
-                            address=address)
+    def same_shape(self):
+        return MultiArray(self.sizes, self.value_type)
 
-    def __setitem__(self, index, other):
-        assert other.size == self.sizes[1]
-        other.store_in_mem(self[index].address)
+    def input_from(self, player, budget=None):
+        @library.for_range_opt(self.sizes[0], budget=budget)
+        def _(i):
+            self[i].input_from(player, budget=budget)
+
+    def schur(self, other):
+        assert self.sizes == other.sizes
+        if len(self.sizes) == 2:
+            res = Matrix(self.sizes[0], self.sizes[1], self.value_type)
+        else:
+            res = MultiArray(self.sizes, self.value_type)
+        res.assign_vector(self.get_vector() * other.get_vector())
+        return res
+
+    def __add__(self, other):
+        if other is 0:
+            return self
+        assert self.sizes == other.sizes
+        if len(self.sizes) == 2:
+            res = Matrix(self.sizes[0], self.sizes[1], self.value_type)
+        else:
+            res = MultiArray(self.sizes, self.value_type)
+        res.assign_vector(self.get_vector() + other.get_vector())
+        return res
+
+    __radd__ = __add__
+
+    def iadd(self, other):
+        assert self.sizes == other.sizes
+        self.assign_vector(self.get_vector() + other.get_vector())
 
     def __mul__(self, other):
         return self.mul(other)
 
     def mul(self, other, res_params=None):
+        assert len(self.sizes) == 2
         if isinstance(other, Array):
             assert len(other) == self.sizes[1]
             if self.value_type.n_elements() == 1:
@@ -3277,7 +3402,8 @@ class Matrix(MultiArray):
                     matrix[i][0] = x
                 res = self * matrix
                 return Array.create_from(x[0] for x in res)
-        elif isinstance(other, Matrix):
+        elif isinstance(other, SubMultiArray):
+            assert len(other.sizes) == 2
             assert other.sizes[0] == self.sizes[1]
             if res_params is not None:
                 class t(self.value_type):
@@ -3287,14 +3413,16 @@ class Matrix(MultiArray):
                 t = self.value_type
             res_matrix = Matrix(self.sizes[0], other.sizes[1], t)
             try:
+                if max(res_matrix.sizes) > 1000:
+                    raise AttributeError()
                 A = self.get_vector()
                 B = other.get_vector()
                 res_matrix.assign_vector(
                     self.value_type.matrix_mul(A, B, self.sizes[1],
                                                res_params))
-            except AttributeError:
+            except (AttributeError, AssertionError):
                 # fallback for sfloat etc.
-                @library.for_range(self.sizes[0])
+                @library.for_range_opt(self.sizes[0])
                 def _(i):
                     try:
                         res_matrix[i] = self.value_type.row_matrix_mul(
@@ -3310,6 +3438,78 @@ class Matrix(MultiArray):
             return res_matrix
         else:
             raise NotImplementedError
+
+    def budget_mul(self, other, n_rows, row, n_columns, column, reduce=True,
+                   res=None):
+        assert len(self.sizes) == 2
+        assert len(other.sizes) == 2
+        if res is None:
+            if reduce:
+                res_matrix = Matrix(n_rows, n_columns, self.value_type)
+            else:
+                res_matrix = Matrix(n_rows, n_columns, \
+                                    self.value_type.unreduced_type)
+        else:
+            res_matrix = res
+        @library.for_range_opt(n_rows)
+        def _(i):
+            @library.for_range_opt(n_columns)
+            def _(j):
+                col = column(other, j)
+                r = row(self, i)
+                if reduce:
+                    res_matrix[i][j] = self.value_type.dot_product(r, col)
+                else:
+                    entry = self.value_type.unreduced_dot_product(r, col)
+                    res_matrix[i][j] = entry
+        return res_matrix
+
+    def plain_mul(self, other, res=None):
+        assert other.sizes[0] == self.sizes[1]
+        return self.budget_mul(other, self.sizes[0], lambda x, i: x[i], \
+                               other.sizes[1], \
+                               lambda x, j: [x[k][j] for k in range(len(x))],
+                               res=res)
+
+    def mul_trans(self, other):
+        assert other.sizes[1] == self.sizes[1]
+        return self.budget_mul(other, self.sizes[0], lambda x, i: x[i], \
+                               other.sizes[0], lambda x, j: x[j])
+
+    def trans_mul(self, other, reduce=True, res=None):
+        assert other.sizes[0] == self.sizes[0]
+        return self.budget_mul(other, self.sizes[1], \
+                               lambda x, j: [x[k][j] for k in range(len(x))], \
+                               other.sizes[1], \
+                               lambda x, j: [x[k][j] for k in range(len(x))],
+                               reduce=reduce, res=res)
+
+    def transpose(self):
+        assert len(self.sizes) == 2
+        res = Matrix(self.sizes[1], self.sizes[0], self.value_type)
+        @library.for_range_opt(self.sizes[1])
+        def _(i):
+            @library.for_range_opt(self.sizes[0])
+            def _(j):
+                res[i][j] = self[j][i]
+        return res
+
+class MultiArray(SubMultiArray):
+    def __init__(self, sizes, value_type, debug=None, address=None):
+        if isinstance(address, Array):
+            self.array = address
+        else:
+            self.array = Array(reduce(operator.mul, sizes), \
+                               value_type, address=address)
+        SubMultiArray.__init__(self, sizes, value_type, self.array.address, 0, \
+                               debug=debug)
+        if len(sizes) < 2:
+            raise CompilerError('Use Array')
+
+class Matrix(MultiArray):
+    def __init__(self, rows, columns, value_type, debug=None, address=None):
+        MultiArray.__init__(self, [rows, columns], value_type, debug=debug, \
+                            address=address)
 
 class VectorArray(object):
     def __init__(self, length, value_type, vector_size, address=None):

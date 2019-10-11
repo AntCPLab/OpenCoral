@@ -30,7 +30,7 @@ public:
     void reset(int player);
     void add_other(int player);
     void send_mine();
-    void finalize_other(int player, T& target, octetStream& o);
+    void finalize_other(int player, T& target, octetStream& o, int n_bits = -1);
 };
 
 template<class T>
@@ -55,7 +55,7 @@ public:
     {
     }
 
-    void add_mine(const typename T::clear& input);
+    void add_mine(const typename T::clear& input, int n_bits = -1);
 };
 
 #endif /* PROTOCOLS_SHAMIRINPUT_H_ */

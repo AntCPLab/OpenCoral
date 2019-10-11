@@ -150,3 +150,9 @@ void BrainPrep<T>::buffer_triples()
     for (auto& x : triples)
         this->triples.push_back({{x[0], x[1], x[2]}});
 }
+
+template<class T>
+void BrainPrep<T>::buffer_inputs(int player)
+{
+    this->buffer_inputs_as_usual(player, this->proc);
+}

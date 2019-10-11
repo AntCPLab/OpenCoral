@@ -28,7 +28,7 @@ public:
     typedef HashMaliciousRepMC<PostSacriRepRingShare> MAC_Check;
     typedef MAC_Check Direct_MC;
     typedef ReplicatedInput<PostSacriRepRingShare> Input;
-    typedef ReplicatedPrivateOutput<PostSacriRepRingShare> PrivateOutput;
+    typedef ::PrivateOutput<PostSacriRepRingShare> PrivateOutput;
     typedef MalRepRingPrepWithBits<PostSacriRepRingShare> LivePrep;
 
     static string type_short()

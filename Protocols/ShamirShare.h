@@ -23,7 +23,7 @@ public:
     typedef ShamirMC<ShamirShare> MAC_Check;
     typedef MAC_Check Direct_MC;
     typedef ShamirInput<ShamirShare> Input;
-    typedef ReplicatedPrivateOutput<ShamirShare> PrivateOutput;
+    typedef ::PrivateOutput<ShamirShare> PrivateOutput;
     typedef ReplicatedPrep<ShamirShare> LivePrep;
     typedef ShamirShare Honest;
 

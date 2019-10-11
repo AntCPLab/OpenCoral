@@ -22,7 +22,7 @@ public:
     typedef MaliciousShamirMC<MaliciousShamirShare> MAC_Check;
     typedef MAC_Check Direct_MC;
     typedef ShamirInput<MaliciousShamirShare> Input;
-    typedef ReplicatedPrivateOutput<MaliciousShamirShare> PrivateOutput;
+    typedef ::PrivateOutput<MaliciousShamirShare> PrivateOutput;
     typedef ShamirShare<T> Honest;
     typedef MaliciousRepPrep<MaliciousShamirShare> LivePrep;
     typedef T random_type;

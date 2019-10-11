@@ -16,12 +16,16 @@ OnlineOptions::OnlineOptions() : playerno(-1)
     lgp = gfp::MAX_N_BITS;
     live_prep = true;
     batch_size = 10000;
+    memtype = "empty";
 }
 
 OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
         const char** argv, int default_batch_size, bool default_live_prep) :
         OnlineOptions()
 {
+    if (default_batch_size <= 0)
+        default_batch_size = batch_size;
+
     opt.syntax = std::string(argv[0]) + " [OPTIONS] [<playerno>] <progname>";
 
     opt.add(
@@ -82,6 +86,18 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
             "-b", // Flag token.
             "--batch-size" // Flag token.
     );
+    opt.add(
+            memtype.c_str(), // Default.
+            0, // Required?
+            1, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Where to obtain memory, new|old|empty (default: empty)\n\t"
+            "new: copy from Player-Memory-P<i> file\n\t"
+            "old: reuse previous memory in Memory-P<i>\n\t"
+            "empty: create new empty memory", // Help description.
+            "-m", // Flag token.
+            "--memory" // Flag token.
+    );
 
     opt.parse(argc, argv);
 
@@ -92,6 +108,7 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
     else
         live_prep = opt.get("-L")->isSet;
     opt.get("-b")->getInt(batch_size);
+    opt.get("--memory")->getString(memtype);
 
     opt.resetArgs();
 }

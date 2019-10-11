@@ -9,6 +9,7 @@
 #include "OT/NPartyTripleGenerator.h"
 #include "OT/Rectangle.h"
 #include "Math/Z2k.h"
+#include "Math/BitVec.h"
 #include "Protocols/SemiShare.h"
 #include "Protocols/Semi2kShare.h"
 #include "Protocols/Spdz2kShare.h"
@@ -37,10 +38,24 @@ OTMultiplier<T>::OTMultiplier(OTTripleGenerator<T>& generator,
 }
 
 template<class T>
-MascotMultiplier<T>::MascotMultiplier(OTTripleGenerator<Share<T>>& generator,
+MascotMultiplier<T>::MascotMultiplier(OTTripleGenerator<T>& generator,
         int thread_num) :
-        OTMultiplier<Share<T>>(generator, thread_num),
+        OTMultiplier<T>(generator, thread_num),
 		auth_ot_ext(128, 128, 0, 1, generator.players[thread_num], {}, {}, {}, BOTH, true)
+{
+    c_output.resize(generator.nTriplesPerLoop);
+}
+
+template<class T>
+TinyMultiplier<T>::TinyMultiplier(OTTripleGenerator<T>& generator,
+        int thread_num) :
+        OTMultiplier<T>(generator, thread_num),
+        mac_vole(
+                128, 128, 0, 1,
+                generator.players[thread_num],
+                { },
+                { },
+                { }, BOTH, false)
 {
     c_output.resize(generator.nTriplesPerLoop);
 }
@@ -75,7 +90,7 @@ template<class T>
 void OTMultiplier<T>::multiply()
 {
     keyBits.set(generator.machine.template get_mac_key<typename T::mac_key_type>());
-    rot_ext.extend<gf2n_long>(keyBits.size(), keyBits);
+    rot_ext.extend(keyBits.size(), keyBits);
     this->outbox.push({});
     senderOutput.resize(keyBits.size());
     for (size_t j = 0; j < keyBits.size(); j++)
@@ -123,7 +138,6 @@ void OTMultiplier<T>::multiply()
 template<class W>
 void OTMultiplier<W>::multiplyForTriples()
 {
-    typedef typename W::open_type T;
     typedef typename W::Rectangle X;
 
     // dummy input for OT correlator
@@ -148,13 +162,13 @@ void OTMultiplier<W>::multiplyForTriples()
         BitVector aBits = generator.valueBits[0];
         //timers["Extension"].start();
         rot_ext.extend_correlated(aBits);
-        rot_ext.hash_outputs<T>(aBits.size(), baseSenderOutputs, baseReceiverOutput);
+        rot_ext.hash_outputs(aBits.size(), baseSenderOutputs, baseReceiverOutput);
         //timers["Extension"].stop();
 
         //timers["Correlation"].start();
         otCorrelator.setup_for_correlation(aBits, baseSenderOutputs,
                 baseReceiverOutput);
-        otCorrelator.template correlate<T>(0, generator.nPreampTriplesPerLoop,
+        otCorrelator.correlate(0, generator.nPreampTriplesPerLoop,
                 generator.valueBits[1], false, generator.nAmplify);
         //timers["Correlation"].stop();
 
@@ -169,6 +183,14 @@ void MascotMultiplier<T>::init_authenticator(const BitVector& keyBits,
 		const vector< vector<BitVector> >& senderOutput,
 		const vector<BitVector>& receiverOutput) {
 	this->auth_ot_ext.init(keyBits, senderOutput, receiverOutput);
+}
+
+template<class T>
+void TinyMultiplier<T>::init_authenticator(const BitVector& keyBits,
+        const vector<vector<BitVector> >& senderOutput,
+        const vector<BitVector>& receiverOutput)
+{
+    mac_vole.init(keyBits, senderOutput, receiverOutput);
 }
 
 template <int K, int S>
@@ -188,9 +210,11 @@ void SemiMultiplier<T>::after_correlation()
     this->outbox.push({});
 }
 
-template <class T>
-void MascotMultiplier<T>::after_correlation()
+template <class U>
+void MascotMultiplier<U>::after_correlation()
 {
+	typedef typename U::open_type T;
+
 	this->auth_ot_ext.resize(
 			this->generator.nPreampTriplesPerLoop * T::Square::N_COLUMNS);
 	this->auth_ot_ext.set_role(BOTH);
@@ -210,13 +234,36 @@ void MascotMultiplier<T>::after_correlation()
             int nValues = this->generator.nTriplesPerLoop;
             if (this->generator.machine.check && (j % 2 == 0))
                 nValues *= 2;
-            this->auth_ot_ext.template expand<T>(0, nValues);
-            this->auth_ot_ext.template correlate<T>(0, nValues,
+            this->auth_ot_ext.expand(0, nValues);
+            this->auth_ot_ext.correlate(0, nValues,
                     this->generator.valueBits[j], true);
             this->auth_ot_ext.reduce_squares(nValues, this->macs[j]);
         }
         this->outbox.push(job);
     }
+}
+
+template <class T>
+void TinyMultiplier<T>::after_correlation()
+{
+    this->otCorrelator.reduce_squares(this->generator.nTriplesPerLoop,
+            this->c_output);
+
+    this->outbox.push({});
+
+    this->macs.resize(3);
+    MultJob job;
+    this->inbox.pop(job);
+    for (int j = 0; j < 3; j++)
+    {
+        int nValues = this->generator.nTriplesPerLoop * T::default_length;
+        auto& bits = this->generator.valueBits[j];
+        vector<typename T::part_type::sacri_type> values(nValues);
+        for (int i = 0; i < nValues; i++)
+            values[i] = bits.get_bit(i);
+        mac_vole.evaluate(this->macs[j], values);
+    }
+    this->outbox.push(job);
 }
 
 template <int K, int S>
@@ -295,9 +342,9 @@ void OTMultiplier<Share<gf2n>>::multiplyForBits()
 
     for (int i = 0; i < generator.nloops; i++)
     {
-        auth_ot_ext.expand<gf2n_long>(0, nBlocks);
+        auth_ot_ext.expand(0, nBlocks);
         inbox.pop(job);
-        auth_ot_ext.correlate<gf2n_long>(0, nBlocks, generator.valueBits[0], true);
+        auth_ot_ext.correlate(0, nBlocks, generator.valueBits[0], true);
         auth_ot_ext.transpose(0, nBlocks);
 
         for (int j = 0; j < nBits; j++)
@@ -311,8 +358,8 @@ void OTMultiplier<Share<gf2n>>::multiplyForBits()
     }
 }
 
-template<class T>
-void MascotMultiplier<T>::multiplyForInputs(MultJob job)
+template<class U>
+void MascotMultiplier<U>::multiplyForInputs(MultJob job)
 {
     assert(job.input);
     auto& generator = this->generator;
@@ -320,10 +367,10 @@ void MascotMultiplier<T>::multiplyForInputs(MultJob job)
     auth_ot_ext.set_role(mine ? RECEIVER : SENDER);
     int nOTs = job.n_inputs * generator.field_size;
     auth_ot_ext.resize(nOTs);
-    auth_ot_ext.template expand<T>(0, job.n_inputs);
+    auth_ot_ext.expand(0, job.n_inputs);
     if (mine)
         this->inbox.pop();
-    auth_ot_ext.template correlate<T>(0, job.n_inputs, generator.valueBits[0], true);
+    auth_ot_ext.correlate(0, job.n_inputs, generator.valueBits[0], true);
     auto& input_macs = this->input_macs;
     input_macs.resize(job.n_inputs);
     if (mine)
@@ -355,24 +402,3 @@ void OTMultiplier<T>::multiplyForBits()
 {
     throw runtime_error("bit generation not implemented in this case");
 }
-
-template class OTMultiplier<Share<gf2n>>;
-template class OTMultiplier<Share<gfp1>>;
-template class OTMultiplier<SemiShare<gf2n>>;
-template class OTMultiplier<SemiShare<gfp1>>;
-template class SemiMultiplier<SemiShare<gf2n>>;
-template class SemiMultiplier<SemiShare<gfp1>>;
-template class SemiMultiplier<Semi2kShare<64>>;
-template class SemiMultiplier<Semi2kShare<72>>;
-template class MascotMultiplier<gf2n_long>;
-template class MascotMultiplier<gf2n_short>;
-template class MascotMultiplier<gfp1>;
-
-#define X(K, S) \
-        template class Spdz2kMultiplier<K, S>; \
-        template class OTMultiplier<Spdz2kShare<K, S>>;
-X(64, 64)
-X(64, 48)
-X(66, 64)
-X(66, 48)
-X(32, 32)

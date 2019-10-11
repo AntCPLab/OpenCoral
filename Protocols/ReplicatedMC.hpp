@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef PROTOCOLS_REPLICATEDMC_HPP_
+#define PROTOCOLS_REPLICATEDMC_HPP_
+
 #include "ReplicatedMC.h"
 
 template<class T>
@@ -31,3 +34,5 @@ void ReplicatedMC<T>::POpen_End(vector<typename T::open_type>& values,
         values[i] = S[i].sum() + tmp;
     }
 }
+
+#endif

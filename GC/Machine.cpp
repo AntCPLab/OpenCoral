@@ -23,9 +23,6 @@
 namespace GC
 {
 
-extern template class ReplicatedSecret<SemiHonestRepSecret>;
-extern template class ReplicatedSecret<MaliciousRepSecret>;
-
 #define GC_MACHINE(T) \
     template class Instruction<T>; \
     template class Machine<T>; \
@@ -33,9 +30,5 @@ extern template class ReplicatedSecret<MaliciousRepSecret>;
     template class Program<T>; \
     template class Thread<T>; \
     template class ThreadMaster<T>; \
-
-GC_MACHINE(FakeSecret);
-GC_MACHINE(SemiHonestRepSecret);
-GC_MACHINE(MaliciousRepSecret)
 
 } /* namespace GC */

@@ -16,6 +16,7 @@ public:
     BrainPrep(SubProcessor<T>* proc, DataPositions& usage) :
         MaliciousRingPrep<T>(proc, usage) {}
     void buffer_triples();
+    void buffer_inputs(int player);
 };
 
 #endif /* PROTOCOLS_BRAINPREP_H_ */

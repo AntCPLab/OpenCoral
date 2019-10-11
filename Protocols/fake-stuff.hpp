@@ -11,6 +11,11 @@ template<class T> class Share;
 template<class T> class SemiShare;
 template<class T, int L> class FixedVec;
 
+namespace GC
+{
+template<int S> class TinySecret;
+}
+
 template<class T, class U, class V>
 void make_share(Share<T>* Sa,const U& a,int N,const V& key,PRNG& G)
 {
@@ -29,6 +34,21 @@ void make_share(Share<T>* Sa,const U& a,int N,const V& key,PRNG& G)
       S.sub(S,Sa[i]);
     }
   Sa[N-1]=S;
+}
+
+template<int S, class U, class V>
+void make_share(GC::TinySecret<S>* Sa,const U& a,int N,const V& key,PRNG& G)
+{
+  int length = Sa[0].default_length;
+  for (int i = 0; i < N; i++)
+    Sa[i].resize_regs(length);
+  for (int j = 0; j < length; j++)
+    {
+      typename GC::TinySecret<S>::part_type shares[N];
+      make_share(shares, a.get_bit(j), N, key, G);
+      for (int i = 0; i < N; i++)
+        Sa[i].get_reg(j) = shares[i];
+    }
 }
 
 template<class T>
@@ -51,7 +71,7 @@ void make_share(FixedVec<T, 2>* Sa, const T& a, int N, const T& key, PRNG& G);
 
 template<class T>
 inline void make_share(vector<T>& Sa,
-    const typename T::clear& a, int N, const typename T::mac_type& key,
+    const typename T::clear& a, int N, const typename T::mac_key_type& key,
     PRNG& G)
 {
   Sa.resize(N);
@@ -148,11 +168,13 @@ inline void generate_keys(const string& directory, int nplayers)
   }
 }
 
+template<class T>
 inline string mac_filename(string directory, int playerno)
 {
   if (directory.empty())
     directory = ".";
-  return directory + "/Player-MAC-Keys-P" + to_string(playerno);
+  return directory + "/Player-MAC-Keys-" + string(1, T::type_char()) + "-P"
+      + to_string(playerno);
 }
 
 template <class T, class U>
@@ -160,7 +182,7 @@ void write_mac_keys(const string& directory, int i, int nplayers, U macp, T mac2
 {
   ofstream outf;
   stringstream filename;
-  filename << mac_filename(directory, i);
+  filename << mac_filename<U>(directory, i);
   cout << "Writing to " << filename.str().c_str() << endl;
   outf.open(filename.str().c_str());
   outf << nplayers << endl;
@@ -182,8 +204,11 @@ void read_mac_keys(const string& directory, int player_num, int nplayers, U& key
 {
   int nn;
 
-  string filename = directory + "Player-MAC-Keys-P" + to_string(player_num);
+  string filename = mac_filename<U>(directory, player_num);
   ifstream inpf;
+#ifdef VERBOSE
+  cerr << "Reading MAC keys from " << filename << endl;
+#endif
   inpf.open(filename);
   if (inpf.fail())
     {
@@ -217,7 +242,9 @@ void generate_mac_keys(typename T::mac_key_type::Scalar& keyp, gf2n& key2,
   for (int i = 0; i < nplayers; i++)
     {
       stringstream filename;
-      filename << prep_data_prefix << "Player-MAC-Keys-P" << i;
+      filename
+          << mac_filename<typename T::mac_key_type::Scalar>(prep_data_prefix,
+              i);
       inpf.open(filename.str().c_str());
       typename T::mac_key_type::Scalar pp;
       gf2n p2;
@@ -254,7 +281,7 @@ void generate_mac_keys(typename T::mac_key_type::Scalar& keyp, gf2n& key2,
  * str    = "2" or "p"
  */
 template<class T>
-void make_mult_triples(const typename T::mac_type& key, int N, int ntrip,
+void make_mult_triples(const typename T::mac_key_type& key, int N, int ntrip,
     bool zero, string prep_data_prefix, int thread_num = -1)
 {
   PRNG G;

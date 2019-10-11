@@ -106,6 +106,8 @@ void BaseOT::exec_base(bool new_receiver_inputs)
         receiver_maketable(&receiver);
     }
 
+    os[0].reset_write_head();
+
     for (i = 0; i < nOT; i += 4)
     {
         if (ot_role & RECEIVER)
@@ -117,12 +119,24 @@ void BaseOT::exec_base(bool new_receiver_inputs)
                 cs[j] = receiver_inputs[i + j];
             }
             receiver_rsgen(&receiver, Rs_pack[0], cs);
-            os[0].reset_write_head();
             os[0].store_bytes(Rs_pack[0], sizeof(Rs_pack[0]));
             receiver_keygen(&receiver, receiver_keys);
+
+            // Copy keys to receiver_outputs
+            for (j = 0; j < 4; j++)
+            {
+                for (k = 0; k < AES_BLK_SIZE; k++)
+                {
+                    receiver_outputs[i + j].set_byte(k, receiver_keys[j][k]);
+                }
+            }
         }
-        send_if_ot_receiver(P, os, ot_role);
+    }
+
+    send_if_ot_receiver(P, os, ot_role);
         
+    for (i = 0; i < nOT; i += 4)
+    {
         if (ot_role & SENDER)
         {
             os[1].get_bytes((octet*) Rs_pack[1], len);
@@ -140,18 +154,6 @@ void BaseOT::exec_base(bool new_receiver_inputs)
                 {
                     sender_inputs[i + j][0].set_byte(k, sender_keys[0][j][k]);
                     sender_inputs[i + j][1].set_byte(k, sender_keys[1][j][k]);
-                }
-            }
-        }
-        
-        if (ot_role & RECEIVER)
-        {
-            // Copy keys to receiver_outputs
-            for (j = 0; j < 4; j++)
-            {
-                for (k = 0; k < AES_BLK_SIZE; k++)
-                {
-                    receiver_outputs[i + j].set_byte(k, receiver_keys[j][k]);
                 }
             }
         }

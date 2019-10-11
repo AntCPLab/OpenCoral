@@ -20,7 +20,7 @@ void ReplicatedPrivateOutput<T>::start(int player, int target,
         int source)
 {
     (void)player, (void)target, (void)source;
-    throw not_implemented();
+    throw runtime_error("not implemented, use PrivateOutput");
 }
 
 template<class T>

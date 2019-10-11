@@ -30,6 +30,7 @@ class MaliciousRepPrep : public BufferPrep<T>
     ReplicatedPrep<typename T::Honest> honest_prep;
     typename T::Honest::Protocol* replicated;
     typename T::MAC_Check MC;
+    SubProcessor<T>* proc;
 
     vector<T> masked;
     vector<T> checks;
@@ -44,6 +45,7 @@ class MaliciousRepPrep : public BufferPrep<T>
     void buffer_squares();
     void buffer_inverses();
     void buffer_bits();
+    void buffer_inputs(int player);
 
 public:
     MaliciousRepPrep(SubProcessor<T>* proc, DataPositions& usage);

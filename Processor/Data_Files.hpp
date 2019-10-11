@@ -1,3 +1,5 @@
+#ifndef PROCESSOR_DATA_FILES_HPP_
+#define PROCESSOR_DATA_FILES_HPP_
 
 #include "Processor/Data_Files.h"
 #include "Processor/Processor.h"
@@ -223,3 +225,5 @@ void Sub_Data_Files<T>::get_no_count(vector<T>& S, DataTag tag, const vector<int
     for (unsigned int i = 0; i < regs.size(); i++)
       extended[tag].input(S[regs[i] + j]);
 }
+
+#endif

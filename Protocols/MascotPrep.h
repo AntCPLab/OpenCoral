@@ -7,7 +7,8 @@
 #define PROTOCOLS_MASCOTPREP_H_
 
 #include "ReplicatedPrep.h"
-#include "OT/NPartyTripleGenerator.h"
+#include "RandomPrep.h"
+#include "OT/TripleMachine.h"
 
 template<class T>
 class OTPrep : public virtual RingPrep<T>
@@ -27,7 +28,7 @@ public:
 };
 
 template<class T>
-class MascotPrep : public OTPrep<T>
+class MascotPrep : public OTPrep<T>, public RandomPrep<T>
 {
 public:
     MascotPrep(SubProcessor<T>* proc, DataPositions& usage) :

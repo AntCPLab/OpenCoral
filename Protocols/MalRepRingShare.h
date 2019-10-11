@@ -25,7 +25,7 @@ public:
     typedef HashMaliciousRepMC<MalRepRingShare> MAC_Check;
     typedef MAC_Check Direct_MC;
     typedef ReplicatedInput<MalRepRingShare> Input;
-    typedef ReplicatedPrivateOutput<MalRepRingShare> PrivateOutput;
+    typedef ::PrivateOutput<MalRepRingShare> PrivateOutput;
     typedef MalRepRingPrepWithBits<MalRepRingShare> LivePrep;
     typedef MaliciousRep3Share<Z2<K + S>> prep_type;
     typedef Z2<S> random_type;

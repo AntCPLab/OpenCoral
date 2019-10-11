@@ -287,7 +287,7 @@ void MAC_Check_Z2k<T, U, V, W>::set_random_element(const W& random_element) {
 }
 
 template<class T, class U, class V, class W>
-void MAC_Check_Z2k<T, U, V, W>::set_prep(MascotPrep<W>& prep)
+void MAC_Check_Z2k<T, U, V, W>::set_prep(RandomPrep<W>& prep)
 {
   this->prep = &prep;
 }
@@ -515,12 +515,12 @@ void Direct_MAC_Check<T>::POpen_Begin(vector<open_type>& values,const vector<T>&
 }
 
 template<class T, int t>
-void direct_add_openings(vector<T>& values, const Player& P, vector<octetStream>& os)
+void direct_add_openings(vector<T>& values, const PlayerBase& P, vector<octetStream>& os)
 {
   for (unsigned int i=0; i<values.size(); i++)
     for (int j=0; j<P.num_players(); j++)
       if (j!=P.my_num())
-	values[i].template add<t>(os[j]);
+	values[i].template add<t>(os.at(j));
 }
 
 template<class T>

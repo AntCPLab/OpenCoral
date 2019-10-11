@@ -92,6 +92,7 @@ enum
     MULS = 0xA6,
     MULRS = 0xA7,
     DOTPRODS = 0xA8,
+    TRUNC_PR = 0xA9,
     // Data access
     TRIPLE = 0x50,
     BIT = 0x51,
@@ -103,6 +104,7 @@ enum
     INPUT = 0x60,
     INPUTFIX = 0xF0,
     INPUTFLOAT = 0xF1,
+    INPUTMIXED = 0xF2,
     STARTINPUT = 0x61,
     STOPINPUT = 0x62,
     READSOCKETC = 0x63,
@@ -169,6 +171,7 @@ enum
     READFILESHARE = 0xBE,
     CONDPRINTSTR = 0xBF,
     PRINTFLOATPREC = 0xE0,
+    CONDPRINTPLAIN = 0xE1,
 
     // GF(2^n) versions
     

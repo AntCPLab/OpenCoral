@@ -6,6 +6,8 @@
 #ifndef OT_TRIPLE_HPP_
 #define OT_TRIPLE_HPP_
 
+template<class T> class NPartyTripleGenerator;
+
 template <class T, int N>
 class Triple
 {

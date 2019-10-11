@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef PROTOCOLS_SEMIMC_HPP_
+#define PROTOCOLS_SEMIMC_HPP_
+
 #include "SemiMC.h"
 
 #include "MAC_Check.hpp"
@@ -26,8 +29,8 @@ void SemiMC<T>::POpen_End(vector<typename T::open_type>& values,
 }
 
 template<class T>
-void DirectSemiMC<T>::POpen_Begin(vector<typename T::open_type>& values,
-        const vector<T>& S, const Player& P)
+void DirectSemiMC<T>::POpen_(vector<typename T::open_type>& values,
+        const vector<T>& S, const PlayerBase& P)
 {
     values.clear();
     values.insert(values.begin(), S.begin(), S.end());
@@ -44,3 +47,5 @@ void DirectSemiMC<T>::POpen_End(vector<typename T::open_type>& values,
 {
     (void) values, (void) S, (void) P;
 }
+
+#endif

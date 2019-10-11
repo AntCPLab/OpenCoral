@@ -6,7 +6,7 @@ done
 
 function test
 {
-    if ! Scripts/$1.sh tutorial | grep 'expected -0.2, got -0.2'; then
+    if ! Scripts/$1.sh tutorial | grep 'weighted average: 2.333'; then
        Scripts/$1.sh tutorial
        exit 1
     fi
@@ -26,6 +26,6 @@ done
 
 ./compile.py -B 16 tutorial
 
-for i in replicated mal-rep-bin yao rep-bmr mal-rep-bmr shamir-bmr mal-shamir-bmr; do
+for i in replicated mal-rep-bin semi-bin yao tiny rep-bmr mal-rep-bmr shamir-bmr mal-shamir-bmr; do
     test $i
 done

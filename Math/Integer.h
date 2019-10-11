@@ -24,9 +24,12 @@ protected:
   long a;
 
 public:
+  static const int N_BYTES = sizeof(a);
   static const int N_BITS = 8 * sizeof(a);
+  static const int MAX_N_BITS = N_BITS;
 
   static int size() { return sizeof(a); }
+  static int length() { return N_BITS; }
   static string type_string() { return "integer"; }
 
   static void init_default(int lgp) { (void)lgp; }
@@ -39,10 +42,12 @@ public:
   long get() const          { return a; }
   bool get_bit(int i) const { return (a >> i) & 1; }
 
+  char* get_ptr() const     { return (char*)&a; }
+
   unsigned long debug() const { return a; }
 
   void assign(long x)       { *this = x; }
-  void assign(const char* buffer) { avx_memcpy(&a, buffer, sizeof(a)); }
+  void assign(const void* buffer) { avx_memcpy(&a, buffer, sizeof(a)); }
   void assign_zero()        { a = 0; }
   void assign_one()         { a = 1; }
 
@@ -50,8 +55,20 @@ public:
   bool is_one() const       { return a == 1; }
   bool is_bit() const       { return is_zero() or is_one(); }
 
-  long operator>>(const IntBase& other) const { return a >> other.a; }
-  long operator<<(const IntBase& other) const { return a << other.a; }
+  long operator>>(const IntBase& other) const
+  {
+    if (other.a < N_BITS)
+      return (unsigned long) a >> other.a;
+    else
+      return 0;
+  }
+  long operator<<(const IntBase& other) const
+  {
+    if (other.a < N_BITS)
+      return a << other.a;
+    else
+      return 0;
+  }
 
   long operator^(const IntBase& other) const { return a ^ other.a; }
   long operator&(const IntBase& other) const { return a & other.a; }

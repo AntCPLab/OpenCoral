@@ -121,7 +121,7 @@ void write_online_setup(ofstream& outf, string dirname, const bigint& p, int lg2
   if (mkdir_p(ss.str().c_str()) == -1)
   {
     cerr << "mkdir_p(" << ss.str() << ") failed\n";
-    throw file_error();
+    throw file_error(ss.str());
   }
 
   // Output the data

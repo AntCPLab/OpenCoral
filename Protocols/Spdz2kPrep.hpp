@@ -94,7 +94,7 @@ void bits_from_square_in_ring(vector<T>& bits, int buffer_size, U* bit_prep)
         BitShare a, a2;
         bit_prep->get_two(DATA_SQUARE, a, a2);
         squares.push_back((a2 + a) * 4 + one);
-        random_shares.push_back(2 * a + one);
+        random_shares.push_back(a * 2 + one);
     }
     vector<typename BitShare::open_type> opened;
     bit_MC->POpen(opened, squares, bit_proc->P);

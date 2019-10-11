@@ -83,6 +83,8 @@ public:
 
     static typename T::out_type out;
 
+    static const bool needs_ot = false;
+
     static T& cast(T& reg) { return *reinterpret_cast<T*>(&reg); }
     static const T& cast(const T& reg) { return *reinterpret_cast<const T*>(&reg); }
 
@@ -98,34 +100,40 @@ public:
     static Secret<T> carryless_mult(const Secret<T>& x, const Secret<T>& y);
     static void output(T& reg);
 
-    template<class U>
-    static void load(vector< ReadAccess< Secret<T> > >& accesses, const U& mem);
-    template<class U>
-    static void store(U& mem, vector< WriteAccess< Secret<T> > >& accesses);
+    template<class U, class V>
+    static void load(vector< ReadAccess<V> >& accesses, const U& mem);
+    template<class U, class V>
+    static void store(U& mem, vector< WriteAccess<V> >& accesses);
 
-    static void andrs(Processor< Secret<T> >& processor, const vector<int>& args)
+    template<class U>
+    static void andrs(Processor<U>& processor, const vector<int>& args)
     { T::andrs(processor, args); }
-    static void ands(Processor< Secret<T> >& processor, const vector<int>& args)
+    template<class U>
+    static void ands(Processor<U>& processor, const vector<int>& args)
     { T::ands(processor, args); }
-    static void inputb(Processor< Secret<T> >& processor, const vector<int>& args)
+    template<class U>
+    static void inputb(Processor<U>& processor, const vector<int>& args)
     { T::inputb(processor, args); }
 
-    static void trans(Processor<Secret<T> >& processor, int n_inputs, const vector<int>& args);
+    template<class U>
+    static void trans(Processor<U>& processor, int n_inputs, const vector<int>& args);
 
     static void convcbit(Integer& dest, const Clear& source) { T::convcbit(dest, source); }
 
     Secret();
     Secret(const Integer& x) { *this = x; }
 
-    void load(int n, const Integer& x);
-    void operator=(const Integer& x) { load(default_length, x); }
+    void load_clear(int n, const Integer& x);
+    void operator=(const Integer& x) { load_clear(default_length, x); }
     void load(int n, const Memory<AuthValue>& mem, size_t address);
 
     Secret<T> operator<<(int i);
     Secret<T> operator>>(int i);
 
-    void bitcom(Memory< Secret<T> >& S, const vector<int>& regs);
-    void bitdec(Memory< Secret<T> >& S, const vector<int>& regs) const;
+    template<class U>
+    void bitcom(Memory<U>& S, const vector<int>& regs);
+    template<class U>
+    void bitdec(Memory<U>& S, const vector<int>& regs) const;
 
     Secret<T> operator+(const Secret<T> x) const;
     Secret<T>& operator+=(const Secret<T> x) { *this = *this + x; return *this; }

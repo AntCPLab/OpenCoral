@@ -28,9 +28,8 @@ public:
     void setIV(int i, octet key[AES_BLK_SIZE]);
     template <class T>
     void hashOneBlock(void* output, const void* input) { hashBlocks<T, 1>((T*)output, input); }
-    template <int N>
-    void hashBlocks(void* output, const void* input, size_t alloc_size,
-            size_t used_size);
+    template <int N, int N_BYTES>
+    void hashBlocks(void* output, const void* input, size_t alloc_size);
     template <class T, int N>
     void hashBlocks(void* output, const void* input);
     template <class T, int N>

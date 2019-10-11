@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef PROTOCOLS_BEAVER_HPP_
+#define PROTOCOLS_BEAVER_HPP_
+
 #include "Beaver.h"
 
 #include "Replicated.hpp"
@@ -33,7 +36,7 @@ typename T::clear Beaver<T>::prepare_mul(const T& x, const T& y, int n)
     (void) n;
     triples.push_back({{}});
     auto& triple = triples.back();
-    prep->get(DATA_TRIPLE, triple.data());
+    triple = prep->get_triple(n);
     shares.push_back(x - triple[0]);
     shares.push_back(y - triple[1]);
     return 0;
@@ -62,3 +65,5 @@ T Beaver<T>::finalize_mul(int n)
     triple++;
     return tmp;
 }
+
+#endif

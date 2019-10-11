@@ -56,6 +56,7 @@ class gfp_
 
   static const int N_LIMBS = L;
   static const int MAX_N_BITS = 64 * L;
+  static const int N_BYTES = sizeof(a);
 
   template<class T>
   static void init(bool mont = true)

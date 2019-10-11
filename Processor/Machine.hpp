@@ -102,7 +102,7 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   else if (memtype.compare("old")==0)
      {
        inpf.open(memory_filename(), ios::in | ios::binary);
-       if (inpf.fail()) { throw file_error(); }
+       if (inpf.fail()) { throw file_error(memory_filename()); }
        inpf >> M2 >> Mp >> Mi;
        inpf.close();
      }

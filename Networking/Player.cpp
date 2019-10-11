@@ -56,10 +56,23 @@ void Names::init(int player, int pnb, const string& filename, int nplayers_wante
   nplayers = 0;
   portnum_base = pnb;
   string line;
+  ports.clear();
   while (getline(hostsfile, line))
   {
     if (line.length() > 0 && line.at(0) != '#') {
-      names.push_back(line);
+      auto pos = line.find(':');
+      if (pos == string::npos)
+      {
+        names.push_back(line);
+        ports.push_back(default_port(nplayers));
+      }
+      else
+      {
+        names.push_back(line.substr(0, pos));
+        int port;
+        stringstream(line.substr(pos + 1)) >> port;
+        ports.push_back(port);
+      }
       nplayers++;
       if (nplayers_wanted > 0 and nplayers_wanted == nplayers)
         break;
@@ -67,29 +80,18 @@ void Names::init(int player, int pnb, const string& filename, int nplayers_wante
   }
   if (nplayers_wanted > 0 and nplayers_wanted != nplayers)
     throw runtime_error("not enought hosts in HOSTS");
-  setup_ports();
 #ifdef DEBUG_NETWORKING
   cerr << "Got list of " << nplayers << " players from file: " << endl;
   for (unsigned int i = 0; i < names.size(); i++)
-    cerr << "    " << names[i] << endl;
+    cerr << "    " << names[i] << ":" << ports[i] << endl;
 #endif
   setup_server();
 }
 
 Names::Names(ez::ezOptionParser& opt, int argc, const char** argv,
-    int default_nplayers) :
-    Names()
+    int default_nplayers) : Names()
 {
-  NetworkOptions network_opts(opt, argc, argv);
-  opt.add(
-          to_string(default_nplayers).c_str(), // Default.
-          0, // Required?
-          1, // Number of args expected.
-          0, // Delimiter if expecting multiple args.
-          "Number of players", // Help description.
-          "-N", // Flag token.
-          "--nparties" // Flag token.
-  );
+  NetworkOptionsWithNumber network_opts(opt, argc, argv, default_nplayers, true);
   opt.add(
           "", // Default.
           1, // Required?
@@ -101,9 +103,7 @@ Names::Names(ez::ezOptionParser& opt, int argc, const char** argv,
   );
   opt.parse(argc, argv);
   opt.get("-p")->getInt(player_no);
-  opt.get("-N")->getInt(nplayers);
-  global_server = Server::start_networking(*this, player_no, nplayers,
-      network_opts.hostname, network_opts.portnum_base);
+  global_server = network_opts.start_networking(*this, player_no);
 }
 
 void Names::setup_ports()
@@ -396,6 +396,9 @@ void MultiPlayer<T>::exchange_no_stats(int other, const octetStream& o, octetStr
 
 void Player::exchange(int other, const octetStream& o, octetStream& to_receive) const
 {
+#ifdef VERBOSE_COMM
+  cerr << "Exchanging with " << other << endl;
+#endif
   TimeScope ts(comm_stats["Exchanging"].add(o));
   exchange_no_stats(other, o, to_receive);
   sent += o.get_length();
@@ -605,34 +608,34 @@ int RealTwoPartyPlayer::other_player_num() const
   return other_player;
 }
 
-void RealTwoPartyPlayer::send(octetStream& o)
+void RealTwoPartyPlayer::send(octetStream& o) const
 {
   TimeScope ts(comm_stats["Sending one-to-one"].add(o));
   o.Send(socket);
   sent += o.get_length();
 }
 
-void VirtualTwoPartyPlayer::send(octetStream& o)
+void VirtualTwoPartyPlayer::send(octetStream& o) const
 {
   TimeScope ts(comm_stats["Sending one-to-one"].add(o));
   P.send_to_no_stats(other_player, o);
   sent += o.get_length();
 }
 
-void RealTwoPartyPlayer::receive(octetStream& o)
+void RealTwoPartyPlayer::receive(octetStream& o) const
 {
   TimeScope ts(timer);
   o.reset_write_head();
   o.Receive(socket);
 }
 
-void VirtualTwoPartyPlayer::receive(octetStream& o)
+void VirtualTwoPartyPlayer::receive(octetStream& o) const
 {
   TimeScope ts(timer);
   P.receive_player_no_stats(other_player, o);
 }
 
-void RealTwoPartyPlayer::send_receive_player(vector<octetStream>& o)
+void RealTwoPartyPlayer::send_receive_player(vector<octetStream>& o) const
 {
   {
     if (is_server)
@@ -655,7 +658,7 @@ void RealTwoPartyPlayer::exchange(octetStream& o) const
   o.exchange(socket, socket);
 }
 
-void VirtualTwoPartyPlayer::send_receive_player(vector<octetStream>& o)
+void VirtualTwoPartyPlayer::send_receive_player(vector<octetStream>& o) const
 {
   TimeScope ts(comm_stats["Exchanging one-to-one"].add(o[0]));
   sent += o[0].get_length();
@@ -667,9 +670,19 @@ VirtualTwoPartyPlayer::VirtualTwoPartyPlayer(Player& P, int other_player) :
 {
 }
 
-void OffsetPlayer::send_receive_player(vector<octetStream>& o)
+void OffsetPlayer::send_receive_player(vector<octetStream>& o) const
 {
   P.exchange(P.get_player(offset), o[0], o[1]);
+}
+
+void TwoPartyPlayer::Broadcast_Receive(vector<octetStream>& o,
+        bool donthash) const
+{
+  (void) donthash;
+  vector<octetStream> os(2);
+  os[0] = o[my_num()];
+  send_receive_player(os);
+  o[1 - my_num()] = os[1];
 }
 
 CommStats& CommStats::operator +=(const CommStats& other)

@@ -109,6 +109,7 @@ public:
 	Z2<K+L> operator*(const Z2<L>& other) const;
 
 	Z2<K> operator*(bool other) const { return other ? *this : Z2<K>(); }
+	Z2<K> operator*(int other) const { return *this * Z2<K>(other); }
 
 	Z2<K> operator/(const Z2& other) const { (void) other; throw not_implemented(); }
 

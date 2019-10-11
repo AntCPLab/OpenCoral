@@ -29,5 +29,5 @@ template<class T>
 void SemiPrep<T>::buffer_inverses()
 {
     assert(this->proc != 0);
-    BufferPrep<T>::buffer_inverses(this->proc->MC, this->proc->P);
+    ::buffer_inverses(this->inverses, *this, this->proc->MC, this->proc->P);
 }

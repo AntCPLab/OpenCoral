@@ -21,6 +21,11 @@ public:
         (void) proc;
         throw not_implemented();
     }
+    template<class U>
+    NoLivePrep(DataPositions& usage, U& _) : NoLivePrep(0, usage)
+    {
+        (void) _;
+    }
 };
 
 #endif /* PROCESSOR_NOLIVEPREP_H_ */

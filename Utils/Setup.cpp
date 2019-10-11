@@ -1,4 +1,5 @@
 #include "Math/Setup.h"
+#include "Protocols/Share.h"
 #include "Protocols/fake-stuff.hpp"
 #include <stdlib.h>
 #include <fstream>
@@ -27,7 +28,7 @@ int main(int argc, char** argv)
   bool need_mac = false;
   for (int i = 0; i < n; i++)
     {
-      string filename = mac_filename(dir, i);
+      string filename = mac_filename<Share<gfp>>(dir, i);
       ifstream in(filename);
       need_mac |= not in.good();
     }

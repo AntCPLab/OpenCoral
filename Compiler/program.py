@@ -44,8 +44,10 @@ class Program(object):
         if (param != -1) + sum(x != 0 for x in(options.ring, options.field,
                                                options.binary)) > 1:
             raise CompilerError('can only use one out of -p, -B, -R, -F')
-        self.bit_length = int(options.ring) or int(options.binary) \
-                          or int(options.field)
+        if options.ring:
+            self.bit_length = int(options.ring) - 1
+        else:
+            self.bit_length = int(options.binary) or int(options.field)
         if not self.bit_length:
             self.bit_length = BIT_LENGTHS[param]
         print 'Default bit length:', self.bit_length
@@ -71,6 +73,7 @@ class Program(object):
         self.public_input_file = open(self.programs_dir + '/Public-Input/%s' % self.name, 'w')
         self.types = {}
         self.budget = int(self.options.budget)
+        self.verbose = False
         self.to_merge = [Compiler.instructions.asm_open_class, \
                          Compiler.instructions.gasm_open_class, \
                          Compiler.instructions.muls_class, \
@@ -82,10 +85,13 @@ class Program(object):
                          Compiler.instructions.asm_input_class, \
                          Compiler.instructions.gasm_input_class,
                          Compiler.instructions.inputfix_class,
-                         Compiler.instructions.inputfloat_class]
+                         Compiler.instructions.inputfloat_class,
+                         Compiler.instructions.inputmixed_class,
+                         Compiler.instructions.trunc_pr_class]
         import Compiler.GC.instructions as gc
         self.to_merge += [gc.ldmsdi, gc.stmsdi, gc.ldmsd, gc.stmsd, \
                           gc.stmsdci, gc.xors, gc.andrs, gc.ands, gc.inputb]
+        self.use_trunc_pr = False
         Program.prog = self
         
         self.reset_values()
@@ -452,6 +458,8 @@ class Tape:
             else:
                 self.alloc_pool = defaultdict(set)
             self.purged = False
+            self.n_rounds = 0
+            self.n_to_merge = 0
 
         def __len__(self):
             return len(self.instructions)
@@ -506,6 +514,8 @@ class Tape:
                 instructions = self.instructions
             for inst in instructions:
                 inst.add_usage(req_node)
+            req_node.num['all', 'round'] = self.n_rounds
+            req_node.num['all', 'inv'] = self.n_to_merge
 
         def __str__(self):
             return self.name
@@ -530,7 +540,7 @@ class Tape:
         self.basicblocks.append(sub)
         self.active_basicblock = sub
         self.req_node.add_block(sub)
-        print 'Compiling basic block', sub.name
+        #print 'Compiling basic block', sub.name
 
     def init_registers(self):
         self.reset_registers()
@@ -601,6 +611,8 @@ class Tape:
                     if len(block.instructions) > 10000:
                         print 'Merging instructions...'
                     numrounds = merger.longest_paths_merge()
+                    block.n_rounds = numrounds
+                    block.n_to_merge = len(merger.open_nodes)
                     if numrounds > 0:
                         print 'Program requires %d rounds of communication' % numrounds
                     if merger.counter:
@@ -633,10 +645,11 @@ class Tape:
         # allocate registers
         reg_counts = self.count_regs()
         if not options.noreallocate:
-            print 'Tape register usage:', dict(reg_counts)
-            print 'modp: %d clear, %d secret' % (reg_counts[RegType.ClearModp], reg_counts[RegType.SecretModp])
-            print 'GF2N: %d clear, %d secret' % (reg_counts[RegType.ClearGF2N], reg_counts[RegType.SecretGF2N])
-            print 'Re-allocating...'
+            if self.program.verbose:
+                print 'Tape register usage:', dict(reg_counts)
+                print 'modp: %d clear, %d secret' % (reg_counts[RegType.ClearModp], reg_counts[RegType.SecretModp])
+                print 'GF2N: %d clear, %d secret' % (reg_counts[RegType.ClearGF2N], reg_counts[RegType.SecretGF2N])
+                print 'Re-allocating...'
             allocator = al.StraightlineAllocator(REG_MAX)
             def alloc_loop(block):
                 for reg in sorted(block.used_from_scope, 
@@ -661,7 +674,7 @@ class Tape:
         self.req_num = self.req_tree.aggregate()
         print 'Tape requires', self.req_num
         for req,num in sorted(self.req_num.items()):
-            if num == float('inf'):
+            if num == float('inf') or num >= 2 ** 32:
                 num = -1
             if req[1] in data_types:
                 self.basicblocks[-1].instructions.append(
@@ -692,8 +705,9 @@ class Tape:
                     self.basicblocks[-1].instructions.append(
                         Compiler.instructions.reqbl(bl,
                                                     add_to_prog=False))
-            print 'Tape requires prime bit length', self.req_bit_length['p']
-            print 'Tape requires galois bit length', self.req_bit_length['2']
+            if self.program.verbose:
+                print 'Tape requires prime bit length', self.req_bit_length['p']
+                print 'Tape requires galois bit length', self.req_bit_length['2']
 
     @unpurged
     def _get_instructions(self):
@@ -783,6 +797,8 @@ class Tape:
             return res
         __rmul__ = __mul__
         def set_all(self, value):
+            if value == float('inf') and self['all', 'inv'] > 0:
+                print 'Going to unknown from %s' % self
             res = Tape.ReqNum()
             for i in self:
                 res[i] = value
@@ -832,6 +848,15 @@ class Tape:
             self.parent = parent
         def aggregate(self, name):
             res = self.aggregator([node.aggregate() for node in self.nodes])
+            try:
+                n_reps = self.aggregator([1])
+                n_rounds = res['all', 'round']
+                n_invs = res['all', 'inv']
+                if (n_invs / n_rounds) * 1000 < n_reps:
+                    print self.nodes[0].blocks[0].name, 'blowing up rounds: ', \
+                        '(%d / %d) ** 3 < %d' % (n_rounds, n_reps, n_invs)
+            except:
+                pass
             return res
         def add_node(self, tape, name):
             new_node = Tape.ReqNode(name)

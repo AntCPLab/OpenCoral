@@ -32,15 +32,18 @@ run_player() {
 	$SPDZROOT/Server.x $players $port &
     fi
     rem=$(($players - 2))
+    if test "$1"; then
+	log_prefix=$1-
+    fi
     for i in $(seq 0 $rem); do
       >&2 echo Running $prefix $SPDZROOT/$bin $i $params
-      log=$SPDZROOT/logs/$i
+      log=$SPDZROOT/logs/$log_prefix$i
       $prefix $SPDZROOT/$bin $i $params 2>&1 |
 	  { if test $i = 0; then tee $log; else cat > $log; fi; } &
     done
     last_player=$(($players - 1))
     >&2 echo Running $prefix $SPDZROOT/$bin $last_player $params
-    $prefix $SPDZROOT/$bin $last_player $params > $SPDZROOT/logs/$last_player 2>&1 || return 1
+    $prefix $SPDZROOT/$bin $last_player $params > $SPDZROOT/logs/$log_prefix$last_player 2>&1 || return 1
 }
 
 sleep 0.5

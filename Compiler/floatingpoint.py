@@ -325,7 +325,11 @@ def BitDecField(a, k, m, kappa, bits_to_compute=None):
 def Pow2(a, l, kappa):
     m = int(ceil(log(l, 2)))
     t = BitDec(a, m, m, kappa)
-    x = [types.sint() for i in range(m)]
+    return Pow2_from_bits(t)
+
+def Pow2_from_bits(bits):
+    m = len(bits)
+    t = list(bits)
     pow2k = [types.cint() for i in range(m)]
     for i in range(m):
         pow2k[i] = two_power(2**i)
@@ -353,13 +357,20 @@ def B2U_from_Pow2(pow2a, l, kappa):
     #print ' '.join(str(b.value) for b in y)
     return [1 - y[i] for i in range(l)]
 
-def Trunc(a, l, m, kappa, compute_modulo=False):
+def Trunc(a, l, m, kappa, compute_modulo=False, signed=False):
     """ Oblivious truncation by secret m """
+    if util.is_constant(m) and not compute_modulo:
+        # cheaper
+        res = type(a)(size=a.size)
+        comparison.Trunc(res, a, l, m, kappa, signed=signed)
+        return res
     if l == 1:
         if compute_modulo:
             return a * m, 1 + m
         else:
             return a * (1 - m)
+    if program.Program.prog.options.ring and not compute_modulo:
+        return TruncInRing(a, l, Pow2(m, l, kappa))
     r = [types.sint() for i in range(l)]
     r_dprime = types.sint(0)
     r_prime = types.sint(0)
@@ -370,8 +381,6 @@ def Trunc(a, l, m, kappa, compute_modulo=False):
     x, pow2m = B2U(m, l, kappa)
     #assert(pow2m.value == 2**m.value)
     #assert(sum(b.value for b in x) == m.value)
-    if program.Program.prog.options.ring and not compute_modulo:
-        return TruncInRing(a, l, pow2m)
     for i in range(l):
         bit(r[i])
         t1 = two_power(i) * r[i]
@@ -495,17 +504,28 @@ def TruncPrRing(a, k, m, signed=True):
         return comparison.TruncLeakyInRing(a, k, m, signed=signed)
     else:
         from types import sint
-        # extra bit to mask overflow
-        r_bits = [sint.get_random_bit() for i in range(k + 1)]
-        n_shift = n_ring - len(r_bits)
-        tmp = a + sint.bit_compose(r_bits)
-        masked = (tmp << n_shift).reveal()
-        shifted = (masked << 1 >> (n_shift + m + 1))
-        overflow = r_bits[-1].bit_xor(masked >> (n_ring - 1))
-        res = shifted - sint.bit_compose(r_bits[m:k]) + (overflow << (k - m))
+        if signed:
+            a += (1 << (k - 1))
+        if program.Program.prog.use_trunc_pr:
+            res = sint()
+            trunc_pr(res, a, k, m)
+        else:
+            # extra bit to mask overflow
+            r_bits = [sint.get_random_bit() for i in range(k + 1)]
+            n_shift = n_ring - len(r_bits)
+            tmp = a + sint.bit_compose(r_bits)
+            masked = (tmp << n_shift).reveal()
+            shifted = (masked << 1 >> (n_shift + m + 1))
+            overflow = r_bits[-1].bit_xor(masked >> (n_ring - 1))
+            res = shifted - sint.bit_compose(r_bits[m:k]) + \
+                  (overflow << (k - m))
+        if signed:
+            res -= (1 << (k - m - 1))
         return res
 
 def TruncPrField(a, k, m, kappa=None):
+    if m == 0:
+        return a
     if kappa is None:
        kappa = 40 
 
@@ -527,19 +547,24 @@ def SDiv(a, b, l, kappa, round_nearest=False):
     w = types.cint(int(2.9142 * two_power(l))) - 2 * b
     x = alpha - b * w
     y = a * w
-    y = y.round(2 * l + 1, l, kappa, round_nearest)
+    y = y.round(2 * l + 1, l, kappa, round_nearest, signed=False)
     x2 = types.sint()
     comparison.Mod2m(x2, x, 2 * l + 1, l, kappa, False)
     x1 = comparison.TruncZeroes(x - x2, 2 * l + 1, l, True)
     for i in range(theta-1):
-        y = y * (x1 + two_power(l)) + (y * x2).round(2 * l, l, kappa, round_nearest)
-        y = y.round(2 * l + 1, l + 1, kappa, round_nearest)
-        x = x1 * x2 + (x2**2).round(2 * l + 1, l + 1, kappa, round_nearest)
-        x = x1 * x1 + x.round(2 * l + 1, l - 1, kappa, round_nearest)
+        y = y * (x1 + two_power(l)) + (y * x2).round(2 * l, l, kappa,
+                                                     round_nearest,
+                                                     signed=False)
+        y = y.round(2 * l + 1, l + 1, kappa, round_nearest, signed=False)
+        x = x1 * x2 + (x2**2).round(2 * l + 1, l + 1, kappa, round_nearest,
+                                    signed=False)
+        x = x1 * x1 + x.round(2 * l + 1, l - 1, kappa, round_nearest,
+                              signed=False)
         x2 = types.sint()
         comparison.Mod2m(x2, x, 2 * l, l, kappa, False)
         x1 = comparison.TruncZeroes(x - x2, 2 * l + 1, l, True)
-    y = y * (x1 + two_power(l)) + (y * x2).round(2 * l, l, kappa, round_nearest)
+    y = y * (x1 + two_power(l)) + (y * x2).round(2 * l, l, kappa,
+                                                 round_nearest, signed=False)
     y = y.round(2 * l + 1, l - 1, kappa, round_nearest)
     return y
 

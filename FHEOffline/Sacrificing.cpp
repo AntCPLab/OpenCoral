@@ -26,7 +26,7 @@ inline FileSacriFactory<T>::FileSacriFactory(const char* type, const Player& P,
     if (output_thread)
         file1 << "-" << output_thread;
     this->inpf.open(file1.str().c_str(),ios::in | ios::binary);
-    if (this->inpf.fail()) { throw file_error(); }
+    if (this->inpf.fail()) { throw file_error(file1.str()); }
 }
 
 template<class T>
@@ -221,12 +221,12 @@ void Triple_Checking(const Player& P,MAC_Check<gf2n_short>& MC,int nm)
   /* Open file for reading in the initial triples */
   stringstream file1; file1 << PREP_DIR "Initial-Triples-" << file_completion(dummy) << "-P" << P.my_num();
   ifstream inpf(file1.str().c_str(),ios::in | ios::binary);
-  if (inpf.fail()) { throw file_error(); }
+  if (inpf.fail()) { throw file_error(file1.str()); }
 
   /* Open file for writing out the final triples */
   stringstream file3; file3 << PREP_DIR "Triples-" << file_completion(dummy) << "-P" << P.my_num();
   ofstream outf(file3.str().c_str(),ios::out | ios::binary);
-  if (outf.fail()) { throw file_error(); }
+  if (outf.fail()) { throw file_error(file3.str()); }
 
   gf2n_short te,t;
   Create_Random(t,P);
@@ -444,12 +444,12 @@ void Square_Checking(const Player& P,MAC_Check<gf2n_short>& MC,int ns)
   /* Open files for reading in the initial data */
   stringstream file1; file1 << PREP_DIR "Initial-Squares-" << file_completion(dummy) << "-P" << P.my_num();
   ifstream inpf_s(file1.str().c_str(),ios::in | ios::binary);
-  if (inpf_s.fail()) { throw file_error(); }
+  if (inpf_s.fail()) { throw file_error(file1.str()); }
 
   /* Open files for writing out the final data */
   stringstream file3; file3 << PREP_DIR "Squares-" << file_completion(dummy) << "-P" << P.my_num();
   ofstream outf_s(file3.str().c_str(),ios::out | ios::binary);
-  if (outf_s.fail()) { throw file_error(); }
+  if (outf_s.fail()) { throw file_error(file3.str()); }
 
   gf2n_short te,t,t2;
   Create_Random(t,P);

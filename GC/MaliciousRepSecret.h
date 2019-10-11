@@ -6,7 +6,7 @@
 #ifndef GC_MALICIOUSREPSECRET_H_
 #define GC_MALICIOUSREPSECRET_H_
 
-#include "ReplicatedSecret.h"
+#include "ShareSecret.h"
 #include "Machine.h"
 #include "Protocols/Beaver.h"
 #include "Protocols/MaliciousRepMC.h"
@@ -17,7 +17,8 @@ template<class T> class MaliciousRepMC;
 namespace GC
 {
 
-class MaliciousRepThread;
+template<class T> class ShareThread;
+template<class T> class RepPrep;
 
 class MaliciousRepSecret : public ReplicatedSecret<MaliciousRepSecret>
 {
@@ -30,7 +31,8 @@ public:
     typedef MC MAC_Check;
 
     typedef Beaver<MaliciousRepSecret> Protocol;
-    typedef NotImplementedInput Input;
+    typedef ReplicatedInput<MaliciousRepSecret> Input;
+    typedef RepPrep<MaliciousRepSecret> LivePrep;
 
     static MC* new_mc(Machine<MaliciousRepSecret>& machine)
     {

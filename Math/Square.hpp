@@ -6,7 +6,6 @@
 #include "Math/Square.h"
 
 template<class U>
-template<class T>
 Square<U>& Square<U>::sub(const Square<U>& other)
 {
     for (int i = 0; i < U::length(); i++)
@@ -15,7 +14,6 @@ Square<U>& Square<U>::sub(const Square<U>& other)
 }
 
 template<class U>
-template<class T>
 Square<U>& Square<U>::rsub(const Square<U>& other)
 {
     for (int i = 0; i < U::length(); i++)
@@ -24,7 +22,6 @@ Square<U>& Square<U>::rsub(const Square<U>& other)
 }
 
 template<class U>
-template<class T>
 Square<U>& Square<U>::sub(const void* other)
 {
     U value;
@@ -35,7 +32,6 @@ Square<U>& Square<U>::sub(const void* other)
 }
 
 template<class U>
-template<class T>
 void Square<U>::conditional_add(BitVector& conditions,
         Square<U>& other, int offset)
 {

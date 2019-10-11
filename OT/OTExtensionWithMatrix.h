@@ -39,12 +39,10 @@ public:
             receiverOutputMatrix(matrices[0]), t1(matrices[1]) {}
 
     void resize(int nOTs);
-    template <class T>
     void expand(int start, int slice);
     void setup_for_correlation(BitVector& baseReceiverInput,
             vector<U>& baseSenderOutputs,
             U& baseReceiverOutput);
-    template <class T>
     void correlate(int start, int slice, BitVector& newReceiverInput, bool useConstantBase, int repeat = 1);
     template <class T>
     void reduce_squares(unsigned int nTriples, vector<T>& output);
@@ -76,14 +74,12 @@ public:
     void seed(vector<BitMatrix>& baseSenderInput,
             BitMatrix& baseReceiverOutput);
     void transfer(int nOTs, const BitVector& receiverInput);
-    template <class T>
     void extend(int nOTs, BitVector& newReceiverInput);
-    void extend_correlated(BitVector& newReceiverInput);
-    void extend_correlated(int nOTs, BitVector& newReceiverInput);
+    void extend_correlated(const BitVector& newReceiverInput);
+    void extend_correlated(int nOTs, const BitVector& newReceiverInput);
     void transpose(int start, int slice);
-    template <class T>
     void expand_transposed();
-    template <class T, class V>
+    template <class V>
     void hash_outputs(int nOTs, vector<V>& senderOutput, V& receiverOutput);
 
     void print(BitVector& newReceiverInput, int i = 0);
@@ -100,7 +96,6 @@ public:
     octet* get_sender_output(int choice, int i);
 
 protected:
-    template <class T>
     void hash_outputs(int nOTs);
 };
 

@@ -11,6 +11,7 @@
 #include "Protocols/Replicated.h"
 
 template<class T> class ReplicatedRingPrep;
+template<class T> class PrivateOutput;
 
 template<class T>
 class Rep3Share : public FixedVec<T, 2>
@@ -25,7 +26,7 @@ public:
     typedef ReplicatedMC<Rep3Share> MAC_Check;
     typedef MAC_Check Direct_MC;
     typedef ReplicatedInput<Rep3Share> Input;
-    typedef ReplicatedPrivateOutput<Rep3Share> PrivateOutput;
+    typedef ::PrivateOutput<Rep3Share> PrivateOutput;
     typedef ReplicatedRingPrep<Rep3Share> LivePrep;
     typedef Rep3Share Honest;
 

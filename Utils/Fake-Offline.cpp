@@ -10,6 +10,8 @@
 #include "Protocols/fake-stuff.h"
 #include "Exceptions/Exceptions.h"
 #include "GC/MaliciousRepSecret.h"
+#include "GC/SemiSecret.h"
+#include "GC/TinySecret.h"
 
 #include "Math/Setup.h"
 #include "Processor/Data_Files.h"
@@ -20,6 +22,7 @@
 #include "Protocols/fake-stuff.hpp"
 #include "Processor/Data_Files.hpp"
 #include "Math/Z2k.hpp"
+#include "GC/Secret.hpp"
 
 #include <sstream>
 #include <fstream>
@@ -114,7 +117,7 @@ void make_square_tuples(const typename T::mac_type& key,int N,int ntrip,const st
  * ntrip  = Number bits needed
  */
 template<class T>
-void make_bits(const typename T::mac_type& key, int N, int ntrip, bool zero,
+void make_bits(const typename T::mac_key_type& key, int N, int ntrip, bool zero,
     int thread_num = -1)
 {
   PRNG G;
@@ -470,6 +473,9 @@ int generate(ez::ezOptionParser& opt)
   if (zero)
       cout << "Set all values to zero" << endl;
 
+  // check compatibility
+  gf2n::init_field(lg2);
+
   PRNG G;
   G.ReSeed();
   prep_data_prefix = get_prep_dir(nplayers, lgp, lg2);
@@ -486,7 +492,7 @@ int generate(ez::ezOptionParser& opt)
   if (mkdir_p(PREP_DIR) == -1)
   {
     cerr << "mkdir_p(" PREP_DIR ") failed\n";
-    throw file_error();
+    throw file_error(PREP_DIR);
   }
 
   generate_mac_keys<T>(keyp, key2, nplayers, prep_data_prefix);
@@ -525,6 +531,16 @@ int generate(ez::ezOptionParser& opt)
 
   make_basic<SemiShare<gfp>>({}, nplayers, default_num, zero);
   make_basic<SemiShare<gf2n>>({}, nplayers, default_num, zero);
+
+  make_mult_triples<GC::SemiSecret>({}, nplayers, default_num, zero, prep_data_prefix);
+  make_bits<GC::SemiSecret>({}, nplayers, default_num, zero);
+
+  gf2n _;
+  Z2<40> keyt;
+  generate_mac_keys<GC::TinySecret<40>>(keyt, _, nplayers, prep_data_prefix);
+
+  make_mult_triples<GC::TinySecret<40>>(keyt, nplayers, default_num, zero, prep_data_prefix);
+  make_bits<GC::TinySecret<40>>(keyt, nplayers, default_num, zero);
 
   return 0;
 }

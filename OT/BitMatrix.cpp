@@ -9,9 +9,12 @@
 
 #include "BitMatrix.h"
 #include "Rectangle.h"
+#include "BitDiagonal.h"
 #include "Math/gf2n.h"
 #include "Math/gfp.h"
 #include "Math/Z2k.h"
+#include "Math/BitVec.h"
+#include "GC/TinySecret.h"
 
 #include "OT/Rectangle.hpp"
 #include "Math/Z2k.hpp"
@@ -268,25 +271,22 @@ void square128::randomize(PRNG& G)
     G.get_octets((octet*)&rows, sizeof(rows));
 }
 
-template <>
-void square128::randomize<gf2n_long>(int row, PRNG& G)
+void square128::randomize(int row, PRNG& G)
 {
     rows[row] = G.get_doubleword();
 }
 
 
-template<>
-void square128::conditional_add<gf2n_long>(BitVector& conditions, square128& other, int offset)
+void square128::conditional_add(BitVector& conditions, square128& other, int offset)
 {
     for (int i = 0; i < 128; i++)
         if (conditions.get_bit(128 * offset + i))
             rows[i] ^= other.rows[i];
 }
 
-template <class T>
 void square128::hash_row_wise(MMO& mmo, square128& input)
 {
-    mmo.hashBlockWise<T,128>((octet*)rows, (octet*)input.rows);
+    mmo.hashBlockWise<gf2n_long,128>((octet*)rows, (octet*)input.rows);
 }
 
 template <>
@@ -395,20 +395,17 @@ square128& square128::operator^=(square128& other)
     return *this;
 }
 
-template<>
-square128& square128::add<gf2n_long>(square128& other)
+square128& square128::add(square128& other)
 {
     return *this ^= other;
 }
 
-template<>
-square128& square128::sub<gf2n_long>(square128& other)
+square128& square128::sub(square128& other)
 {
     return *this ^= other;
 }
 
-template<>
-square128& square128::rsub<gf2n_long>(square128& other)
+square128& square128::rsub(square128& other)
 {
     return *this ^= other;
 }
@@ -421,8 +418,7 @@ square128& square128::operator^=(const __m128i* other)
     return *this;
 }
 
-template <>
-square128& square128::sub<gf2n_long>(const __m128i* other)
+square128& square128::sub(const __m128i* other)
 {
     return *this ^= other;
 }
@@ -500,7 +496,7 @@ template <class U>
 void Matrix<U>::randomize(int row, PRNG& G)
 {
     for (size_t i = 0; i < squares.size(); i++)
-        squares[i].template randomize<gf2n_long>(row, G);
+        squares[i].randomize(row, G);
 }
 
 void BitMatrix::transpose()
@@ -597,44 +593,40 @@ Slice<U>::Slice(U& bm, size_t start, size_t size) :
 }
 
 template <class U>
-template <class T>
 Slice<U>& Slice<U>::rsub(Slice<U>& other)
 {
     if (bm.squares.size() < other.end)
         throw invalid_length();
     for (size_t i = other.start; i < other.end; i++)
-        bm.squares[i].template rsub<T>(other.bm.squares[i]);
+        bm.squares[i].rsub(other.bm.squares[i]);
     return *this;
 }
 
 template <class U>
-template <class T>
 Slice<U>& Slice<U>::sub(BitVector& other, int repeat)
 {
     if (end * U::PartType::N_COLUMNS > other.size() * repeat)
         throw invalid_length(to_string(U::PartType::N_COLUMNS));
     for (size_t i = start; i < end; i++)
     {
-        bm.squares[i].template sub<T>(other.get_ptr_to_byte(i / repeat,
+        bm.squares[i].sub(other.get_ptr_to_byte(i / repeat,
                 U::PartType::N_ROW_BYTES));
     }
     return *this;
 }
 
 template <class U>
-template <class T>
 void Slice<U>::randomize(int row, PRNG& G)
 {
     for (size_t i = start; i < end; i++)
-        bm.squares[i].template randomize<T>(row, G);
+        bm.squares[i].randomize(row, G);
 }
 
 template <class U>
-template <class T>
 void Slice<U>::conditional_add(BitVector& conditions, U& other, bool useOffset)
 {
     for (size_t i = start; i < end; i++)
-        bm.squares[i].template conditional_add<T>(conditions, other.squares[i], useOffset * i);
+        bm.squares[i].conditional_add(conditions, other.squares[i], useOffset * i);
 }
 
 template <>
@@ -651,7 +643,7 @@ void Slice<U>::print()
     cout << "hex / value" << endl;
     for (int i = 0; i < 16; i++)
     {
-        cout << int128(bm.squares[0].rows[i]) << " " << T(bm.squares[0].rows[i]) << endl;
+        cout << T(bm.squares[0].rows[i]) << endl;
     }
     cout << endl;
 }
@@ -671,24 +663,13 @@ void Slice<U>::unpack(octetStream& os)
         bm.squares[i].unpack(os);
 }
 
-#define M(N,L) Matrix<Rectangle< Z2<N>, Z2<L> > >
-
 #undef XXX
 #define XXX(T,N,L) \
 template class Matrix<Rectangle< Z2<N>, Z2<L> > >; \
 template class Slice<Matrix<Rectangle< Z2<N>, Z2<L> > > >; \
-template Slice<Matrix<Rectangle<Z2<N>, Z2<L> > > >& Slice< \
-        Matrix<Rectangle<Z2<N>, Z2<L> > > >::rsub<T>( \
-        Slice<Matrix<Rectangle<Z2<N>, Z2<L> > > >& other); \
-template Slice<Matrix<Rectangle<Z2<N>, Z2<L> > > >& Slice< \
-        Matrix<Rectangle<Z2<N>, Z2<L> > > >::sub<T>(BitVector& other, int repeat); \
-template void Slice<Matrix<Rectangle<Z2<N>, Z2<L> > > >::conditional_add< \
-        T>(BitVector& conditions, \
-        Matrix<Rectangle<Z2<N>, Z2<L> > >& other, bool useOffset); \
 
 #undef X
 #define X(N,L) \
-template void Slice<Matrix<Rectangle< Z2<N>, Z2<L> > > >::randomize<Z2<L> >(int row, PRNG& G); \
 XXX(Z2<L>, N, L)
 
 //X(96, 160)
@@ -700,6 +681,11 @@ Y(64, 48)
 Y(66, 64)
 Y(66, 48)
 Y(32, 32)
+Y(1, 40)
+Y(72, 48)
+Y(74, 48)
+Y(72, 64)
+Y(74, 64)
 
 template class Matrix<square128>;
 
@@ -710,19 +696,15 @@ template class Slice<BM>; \
 XX(BM, gf2n_long)
 
 #define XX(BM, GF) \
-template void Slice<BM >::conditional_add<GF>(BitVector& conditions, BM& other, bool useOffset); \
-template Slice<BM >& Slice<BM >::rsub<GF>(Slice<BM >& other); \
-template Slice<BM >& Slice<BM >::sub<GF>(BitVector& other, int repeat); \
-template void Slice<BM >::randomize<GF>(int row, PRNG& G); \
 //template void Slice<BM >::print<GF>();
 
 BMS
 
-template class Slice<Matrix<gf2n_short_square>>;
-XX(Matrix<gf2n_short_square>, gf2n_short)
+#define XXXX(BM, GF) \
+        template class Slice<BM>; \
+        XX(BM, GF)
 
-template class Slice<Matrix<Square<gf2n_long>>>;
-XX(Matrix<Square<gf2n_long>>, gf2n_long)
-
-template class Slice<Matrix<Square<gfp1>>>;
-XX(Matrix<Square<gfp1>>, gfp1)
+XXXX(Matrix<gf2n_short_square>, gf2n_short)
+XXXX(Matrix<Square<gf2n_long>>, gf2n_long)
+XXXX(Matrix<Square<gfp1>>, gfp1)
+XXXX(Matrix<BitDiagonal>, BitVec)

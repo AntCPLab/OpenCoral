@@ -19,6 +19,8 @@ public:
     void shuffle_buffer_triples();
 
     void buffer_squares();
+
+    void buffer_inputs(int player);
 };
 
 // extra class to avoid recursion

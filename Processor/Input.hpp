@@ -3,8 +3,15 @@
  *
  */
 
+#ifndef PROCESSOR_INPUT_HPP_
+#define PROCESSOR_INPUT_HPP_
+
 #include "Input.h"
 #include "Processor.h"
+
+#include "IntInput.h"
+#include "FixInput.h"
+#include "FloatInput.h"
 
 template<class T>
 InputBase<T>::InputBase(ArithmeticProcessor* proc) :
@@ -16,17 +23,23 @@ InputBase<T>::InputBase(ArithmeticProcessor* proc) :
 
 template<class T>
 Input<T>::Input(SubProcessor<T>& proc, MAC_Check& mc) :
-        InputBase<T>(&proc.Proc), proc(proc), MC(mc),
+        InputBase<T>(&proc.Proc), proc(&proc), MC(mc), prep(proc.DataF), P(proc.P),
         shares(proc.P.num_players())
 {
 }
 
 template<class T>
 Input<T>::Input(SubProcessor<T>* proc, Player& P) :
-        InputBase<T>(&proc->Proc), proc(*proc), MC(proc->MC), shares(
-                P.num_players())
+        InputBase<T>(&proc->Proc), proc(proc), MC(proc->MC), prep(proc->DataF), P(
+                proc->P), shares(P.num_players())
 {
     assert (proc != 0);
+}
+
+template<class T>
+Input<T>::Input(MAC_Check& MC, Preprocessing<T>& prep, Player& P) :
+        proc(0), MC(MC), prep(prep), P(P), shares(P.num_players())
+{
 }
 
 template<class T>
@@ -62,13 +75,14 @@ void InputBase<T>::reset_all(Player& P)
 }
 
 template<class T>
-void Input<T>::add_mine(const open_type& input)
+void Input<T>::add_mine(const open_type& input, int n_bits)
 {
-    int player = proc.P.my_num();
+    (void) n_bits;
+    int player = P.my_num();
     shares[player].push_back({});
     T& share = shares[player].back();
-    proc.DataF.get_input(share, rr, player);
-    t.sub(input, rr);
+    prep.get_input(share, rr, player);
+    t = input - rr;
     t.pack(this->os[player]);
     share += T::constant(t, 0, MC.get_alphai());
     this->values_input++;
@@ -79,7 +93,7 @@ void Input<T>::add_other(int player)
 {
     open_type t;
     shares[player].push_back({});
-    proc.DataF.get_input(shares[player].back(), t, player);
+    prep.get_input(shares[player].back(), t, player);
 }
 
 template<class T>
@@ -95,7 +109,7 @@ void InputBase<T>::add_from_all(const clear& input)
 template<class T>
 void Input<T>::send_mine()
 {
-    proc.P.send_all(this->os[proc.P.my_num()], true);
+    P.send_all(this->os[P.my_num()], true);
 }
 
 template<class T>
@@ -112,7 +126,7 @@ template<class T>
 void Input<T>::start(int player, int n_inputs)
 {
     reset(player);
-    if (player == proc.P.my_num())
+    if (player == P.my_num())
     {
         for (int i = 0; i < n_inputs; i++)
         {
@@ -139,18 +153,19 @@ void Input<T>::start(int player, int n_inputs)
 template<class T>
 void Input<T>::stop(int player, const vector<int>& targets)
 {
-    if (proc.P.my_num() == player)
+    assert(proc != 0);
+    if (P.my_num() == player)
         for (unsigned int i = 0; i < targets.size(); i++)
-            proc.get_S_ref(targets[i]) = finalize_mine();
+            proc->get_S_ref(targets[i]) = finalize_mine();
     else
     {
         octetStream o;
         this->timer.start();
-        proc.P.receive_player(player, o, true);
+        P.receive_player(player, o, true);
         this->timer.stop();
         for (unsigned int i = 0; i < targets.size(); i++)
         {
-            finalize_other(player, proc.get_S_ref(targets[i]), o);
+            finalize_other(player, proc->get_S_ref(targets[i]), o);
         }
     }
 }
@@ -158,29 +173,64 @@ void Input<T>::stop(int player, const vector<int>& targets)
 template<class T>
 T Input<T>::finalize_mine()
 {
-    return shares[proc.P.my_num()].next();
+    return shares[P.my_num()].next();
 }
 
 template<class T>
 void Input<T>::finalize_other(int player, T& target,
-        octetStream& o)
+        octetStream& o, int n_bits)
 {
+    (void) n_bits;
     target = shares[player].next();
     t.unpack(o);
     target += T::constant(t, 1, MC.get_alphai());
 }
 
 template<class T>
-T InputBase<T>::finalize(int player)
+T InputBase<T>::finalize(int player, int n_bits)
 {
     if (player == P->my_num())
         return finalize_mine();
     else
     {
         T res;
-        finalize_other(player, res, os[player]);
+        finalize_other(player, res, os[player], n_bits);
         return res;
     }
+}
+
+template<class T>
+template<class U>
+void InputBase<T>::prepare(SubProcessor<T>& Proc, int player, const int* params,
+        int size)
+{
+    auto& input = Proc.input;
+    if (player == Proc.P.my_num())
+    {
+        for (int j = 0; j < size; j++)
+        {
+            U tuple = Proc.Proc.template get_input<U>(Proc.Proc.use_stdin(),
+                    params);
+            for (auto x : tuple.items)
+                input.add_mine(x);
+        }
+    }
+    else
+    {
+        for (int j = 0; j < U::N_DEST * size; j++)
+            input.add_other(player);
+    }
+}
+
+template<class T>
+template<class U>
+void InputBase<T>::finalize(SubProcessor<T>& Proc, int player, const int* dest,
+        int size)
+{
+    auto& input = Proc.input;
+    for (int k = 0; k < size; k++)
+        for (int j = 0; j < U::N_DEST; j++)
+            Proc.get_S_ref(dest[j] + k) = input.finalize(player);
 }
 
 template<class T>
@@ -195,7 +245,7 @@ void InputBase<T>::input(SubProcessor<T>& Proc,
 
     int n_from_me = 0;
 
-    if (Proc.Proc.opts.interactive and Proc.Proc.thread_num == 0)
+    if (Proc.Proc.use_stdin())
     {
         for (size_t i = n_arg_tuple - 1; i < args.size(); i += n_arg_tuple)
             n_from_me += (args[i] == Proc.P.my_num()) * size;
@@ -206,21 +256,7 @@ void InputBase<T>::input(SubProcessor<T>& Proc,
     for (size_t i = U::N_DEST; i < args.size(); i += n_arg_tuple)
     {
         int n = args[i + U::N_PARAM];
-        if (n == Proc.P.my_num())
-        {
-            for (int j = 0; j < size; j++)
-            {
-                U tuple = Proc.Proc.template get_input<U>(n_from_me > 0,
-                        &args[i]);
-                for (auto x : tuple.items)
-                    input.add_mine(x);
-            }
-        }
-        else
-        {
-            for (int j = 0; j < U::N_DEST * size; j++)
-                input.add_other(n);
-        }
+        InputBase<T>::prepare<U>(Proc, n, &args[i], size);
     }
 
     if (n_from_me > 0)
@@ -231,8 +267,63 @@ void InputBase<T>::input(SubProcessor<T>& Proc,
     for (size_t i = 0; i < args.size(); i += n_arg_tuple)
     {
         int player = args[i + n_arg_tuple - 1];
-        for (int k = 0; k < size; k++)
-            for (int j = 0; j < U::N_DEST; j++)
-                Proc.get_S_ref(args[i + j] + k) = input.finalize(player);
+        finalize<U>(Proc, player, &args[i], size);
     }
 }
+
+template<class T>
+void InputBase<T>::input_mixed(SubProcessor<T>& Proc, const vector<int>& args,
+    int size)
+{
+    auto& input = Proc.input;
+    input.reset_all(Proc.P);
+    int last_type = -1;
+
+    for (size_t i = 0; i < args.size();)
+    {
+        int n_arg_tuple;
+        int type = args[i];
+        int player;
+        switch (type)
+        {
+#undef X
+#define X(U) \
+        case U::TYPE: \
+            n_arg_tuple = U::N_DEST + U::N_PARAM + 2; \
+            player = args[i + n_arg_tuple - 1]; \
+            if (type != last_type and Proc.Proc.use_stdin()) \
+                cout << "Please input " << U::NAME << "s:" << endl; \
+            prepare<U>(Proc, player, &args[i + U::N_DEST + 1], size); \
+            break;
+        X(IntInput) X(FixInput) X(FloatInput)
+#undef X
+        default:
+            throw runtime_error("unknown input type: " + to_string(type));
+        }
+        i += n_arg_tuple;
+        last_type = type;
+    }
+
+    input.exchange();
+
+    for (size_t i = 0; i < args.size();)
+    {
+        int n_arg_tuple;
+        int type = args[i];
+        switch (type)
+        {
+#define X(U) \
+        case U::TYPE: \
+            n_arg_tuple = U::N_DEST + U::N_PARAM + 2; \
+            finalize<U>(Proc, args[i + n_arg_tuple - 1], &args[i + 1], size); \
+            break;
+        X(IntInput) X(FixInput) X(FloatInput)
+#undef X
+        default:
+            throw runtime_error("unknown input type: " + to_string(type));
+        }
+        i += n_arg_tuple;
+    }
+}
+
+#endif

@@ -20,13 +20,12 @@ void DataPositions::set_num_players(int num_players)
 
 void DataPositions::increase(const DataPositions& delta)
 {
-  if (inputs.size() != delta.inputs.size())
-    throw invalid_length();
+  inputs.resize(max(inputs.size(), delta.inputs.size()), vector<long long>(N_DATA_FIELD_TYPE));
   for (unsigned int field_type = 0; field_type < N_DATA_FIELD_TYPE; field_type++)
     {
       for (unsigned int dtype = 0; dtype < N_DTYPE; dtype++)
         files[field_type][dtype] += delta.files[field_type][dtype];
-      for (unsigned int j = 0; j < inputs.size(); j++)
+      for (unsigned int j = 0; j < delta.inputs.size(); j++)
         inputs[j][field_type] += delta.inputs[j][field_type];
 
       map<DataTag, long long>::const_iterator it;

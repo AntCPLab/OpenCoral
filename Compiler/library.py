@@ -5,6 +5,7 @@ from Compiler import instructions,instructions_base,comparison,program,util
 import inspect,math
 import random
 import collections
+import operator
 
 def get_program():
     return instructions.program
@@ -93,16 +94,25 @@ def print_ln(s='', *args):
     print_str(s, *args)
     print_char('\n')
 
-def print_ln_if(cond, s):
+def print_ln_if(cond, ss, *args):
     if util.is_constant(cond):
         if cond:
-            print_ln(s)
+            print_ln(ss, *args)
     else:
-        s += ' ' * ((len(s) + 3) % 4)
-        s += '\n'
-        while s:
-            cond.print_if(s[:4])
-            s = s[4:]
+        subs = ss.split('%s')
+        assert len(subs) == len(args) + 1
+        cond = cint.conv(cond)
+        for i, s in enumerate(subs):
+            if i != 0:
+                cond_print_plain(cond, cint.conv(args[i - 1]))
+            if i < len(args):
+                s += ' ' * ((-len(s)) % 4)
+            else:
+                s += ' ' * ((-len(s) + 3) % 4)
+                s += '\n'
+            while s:
+                cond.print_if(s[:4])
+                s = s[4:]
 
 def print_float_precision(n):
     print_float_prec(n)
@@ -798,19 +808,23 @@ def range_loop(loop_body, start, stop=None, step=None):
                 lambda x: ((stop - start) / step) * x[0]
 
 def for_range(start, stop=None, step=None):
+    """ Execute loop bodies consecutively """
     def decorator(loop_body):
         range_loop(loop_body, start, stop, step)
         return loop_body
     return decorator
 
 def for_range_parallel(n_parallel, n_loops):
+    """ Execute up to n_parallel loop bodies in parallel """
     return map_reduce_single(n_parallel, n_loops)
 
-def for_range_opt(n_loops):
-    return map_reduce_single(None, n_loops)
+def for_range_opt(n_loops, budget=None):
+    """ Execute loop bodies in parallel up to an optimization budget """
+    return map_reduce_single(None, n_loops, budget=budget)
 
 def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
-                      reducer=lambda *x: [], mem_state=None):
+                      reducer=lambda *x: [], mem_state=None, budget=None):
+    budget = budget or get_program().budget
     if not (isinstance(n_parallel, int) or n_parallel is None):
         raise CompilerException('Number of parallel executions' \
                                     'must be constant')
@@ -848,14 +862,16 @@ def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
                 r = reducer(mem_state, state)
                 write_state_to_memory(r)
         else:
-            n_parallel_reg = MemValue(regint(0))
+            if n_loops == 0:
+                return
+            regint.push(0)
             parent_block = get_block()
-            @while_do(lambda x: x + n_parallel_reg <= n_loops, regint(0))
+            @while_do(lambda x: x + regint.pop() <= n_loops, regint(0))
             def _(i):
                 state = tuplify(initializer())
                 k = 0
                 block = get_block()
-                while k < n_loops and (len(get_block()) < get_program().budget \
+                while k < n_loops and (len(get_block()) < budget \
                                        or k == 0) \
                       and block is get_block():
                     j = i + k
@@ -865,7 +881,7 @@ def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
                 write_state_to_memory(r)
                 global n_opt_loops
                 n_opt_loops = k
-                n_parallel_reg.write(k)
+                regint.push(k)
                 return i + k
             my_n_parallel = n_opt_loops
             loop_rounds = n_loops / my_n_parallel
@@ -915,12 +931,46 @@ def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
     return decorator
 
 def for_range_multithread(n_threads, n_parallel, n_loops, thread_mem_req={}):
+    """
+    Execute loop bodies in up to n_threads threads,
+    up to n_parallel in parallel per thread
+    """
     return map_reduce(n_threads, n_parallel, n_loops, \
                           lambda *x: [], lambda *x: [], thread_mem_req)
 
+def for_range_opt_multithread(n_threads, n_loops):
+    """
+    Execute loop bodies in up to n_threads threads,
+    in parallel up to an optimization budget per thread
+    """
+    return for_range_multithread(n_threads, None, n_loops)
+
+def multithread(n_threads, n_items):
+    """
+    Distribute the computation of n_items to n_threads threads,
+    but leave the in-thread repetition up to the user
+    """
+    if n_threads == 1 or n_items == 1:
+        return lambda loop_body: loop_body(0, n_items)
+    return map_reduce(n_threads, None, n_items, initializer=lambda: [],
+                      reducer=None, looping=False)
+
 def map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, \
-                   thread_mem_req={}):
+                   thread_mem_req={}, looping=True):
     n_threads = n_threads or 1
+    if isinstance(n_loops, list):
+        split = n_loops
+        n_loops = reduce(operator.mul, n_loops)
+        def decorator(loop_body):
+            def new_body(i):
+                indices = []
+                for n in reversed(split):
+                    indices.insert(0, i % n)
+                    i /= n
+                return loop_body(*indices)
+            return new_body
+        new_dec = map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, thread_mem_req)
+        return lambda loop_body: new_dec(decorator(loop_body))
     if n_threads == 1 or n_loops == 1:
         dec = map_reduce_single(n_parallel, n_loops, initializer, reducer)
         if thread_mem_req:
@@ -937,12 +987,14 @@ def map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, \
         args = Matrix(n_threads, 2 + thread_mem_req.get(regint, 0), 'ci')
         state = tuple(initializer())
         def f(inc):
+            base = args[get_arg()][0]
+            if not looping:
+                return loop_body(base, thread_rounds + inc)
             if thread_mem_req:
                 thread_mem = Array(thread_mem_req[regint], regint, \
                                        args[get_arg()].address + 2)
             mem_state = Array(len(state), type(state[0]) \
                                   if state else cint, args[get_arg()][1])
-            base = args[get_arg()][0]
             @map_reduce_single(n_parallel, thread_rounds + inc, \
                                    initializer, reducer, mem_state)
             def f(i):
@@ -1014,8 +1066,9 @@ def while_loop(loop_body, condition, arg):
         pushint(arg if isinstance(arg,regint) else regint(arg))
         def loop_fn():
             result = loop_body(regint.pop())
+            cont = condition(result)
             pushint(result)
-            return condition(result)
+            return cont
         if_statement(pre_condition, lambda: do_while(loop_fn))
         regint.pop()
 
@@ -1278,7 +1331,7 @@ def sint_cint_division(a, b, k, f, kappa):
     theta = int(ceil(log(k/3.5) / log(2)))
     two = cint(2) * two_power(f)
     sign_b = cint(1) - 2 * cint(b < 0)
-    sign_a = sint(1) - 2 * sint(a < 0)
+    sign_a = sint(1) - 2 * comparison.LessThanZero(a, k, kappa)
     absolute_b = b * sign_b
     absolute_a = a * sign_a
     w0 = approximate_reciprocal(absolute_b, k, f, theta)
@@ -1326,7 +1379,7 @@ def FPDiv(a, b, k, f, kappa, simplex_flag=False, nearest=False):
     y = a.extend(2 *k) * w
     y = y.round(2*k, f, kappa, nearest, signed=True)
 
-    for i in range(theta):
+    for i in range(theta - 1):
         x = x.extend(2 * k)
         y = y.extend(2 * k) * (alpha + x).extend(2 * k)
         x = x * x
@@ -1358,7 +1411,7 @@ def Norm(b, k, f, kappa, simplex_flag=False):
     # For simplex, we can get rid of computing abs(b)
     temp = None
     if simplex_flag == False:
-        temp = b.less_than(0, 2 * k)
+        temp = comparison.LessThanZero(b, 2 * k, kappa)
     elif simplex_flag == True:
         temp = cint(0)
 

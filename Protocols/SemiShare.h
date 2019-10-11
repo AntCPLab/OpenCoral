@@ -52,7 +52,7 @@ public:
 
     static string type_short() { return "D" + string(1, T::type_char()); }
 
-    static SemiShare constant(const clear& other, int my_num, const T& alphai)
+    static SemiShare constant(const clear& other, int my_num, const T& alphai = {})
     {
         return SemiShare(other, my_num, alphai);
     }
@@ -114,6 +114,15 @@ public:
     {
         (void)full;
         super::unpack(os);
+    }
+
+    void pack(octetStream& os, int n_bits) const
+    {
+        super::pack(os, n_bits);
+    }
+    void unpack(octetStream& os, int n_bits)
+    {
+        super::unpack(os, n_bits);
     }
 };
 

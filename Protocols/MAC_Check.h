@@ -12,6 +12,7 @@ using namespace std;
 #include "Networking/ServerSocket.h"
 #include "Protocols/Summer.h"
 #include "Protocols/MAC_Check_Base.h"
+#include "Protocols/RandomPrep.h"
 #include "Tools/time-func.h"
 
 
@@ -119,7 +120,7 @@ class MAC_Check_Z2k : public MAC_Check_<W>
 {
 protected:
   vector<T> shares;
-  MascotPrep<W>* prep;
+  RandomPrep<W>* prep;
 
   W get_random_element();
 
@@ -134,7 +135,7 @@ public:
   MAC_Check_Z2k(const T& ai, Names& Nms, int thread_num);
   virtual void Check(const Player& P);
   void set_random_element(const W& random_element);
-  void set_prep(MascotPrep<W>& prep);
+  void set_prep(RandomPrep<W>& prep);
   virtual ~MAC_Check_Z2k() {};
 };
 

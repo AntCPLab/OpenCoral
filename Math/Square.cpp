@@ -4,6 +4,7 @@
  */
 
 #include "Square.h"
+#include "BitVec.h"
 
 template<>
 void Square<gf2n_short>::to(gf2n_short& result)
@@ -33,4 +34,12 @@ void Square<gfp1>::to(gfp1& result)
     mp_limb_t q[2 * L], ans[2 * L];
     mpn_tdiv_qr(q, ans, 0, sum, 2 * L, gfp1::get_ZpD().get_prA(), L);
     result.assign((void*) ans);
+}
+
+template<>
+void Square<BitVec>::to(BitVec& result)
+{
+    result = 0;
+    for (int i = 0; i < N_ROWS; i++)
+        result ^= ((rows[i] >> i) & 1) << i;
 }

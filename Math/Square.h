@@ -12,6 +12,8 @@ template<class U>
 class Square
 {
 public:
+    typedef U RowType;
+
     static const int N_ROWS = U::MAX_N_BITS;
     static const int N_ROWS_ALLOCATED = N_ROWS;
     static const int N_COLUMNS = N_ROWS;
@@ -21,16 +23,11 @@ public:
 
     U rows[N_ROWS];
 
-    template<class T>
     Square& sub(const Square& other);
-    template<class T>
     Square& rsub(const Square& other);
-    template<class T>
     Square& sub(const void* other);
 
-    template <class T>
     void randomize(int row, PRNG& G) { rows[row].randomize(G); }
-    template <class T>
     void conditional_add(BitVector& conditions, Square& other,
             int offset);
     void to(U& result);

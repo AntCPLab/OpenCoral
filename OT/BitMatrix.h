@@ -19,7 +19,7 @@
 using namespace std;
 
 union square128 {
-    typedef int128 RowType;
+    typedef gf2n_long RowType;
 
     const static int N_ROWS = 128;
     const static int N_ROWS_ALLOCATED = 128;
@@ -46,24 +46,16 @@ union square128 {
     square128& operator^=(BitVector& other);
     bool operator==(square128& other);
 
-    template <class T>
     square128& add(square128& other);
-    template <class T>
     square128& sub(square128& other);
-    template <class T>
     square128& rsub(square128& other);
-    template <class T>
     square128& sub(const __m128i* other);
-    template <class T>
-    square128& sub(const void* other) { return sub<T>((__m128i*)other); }
+    square128& sub(const void* other) { return sub((__m128i*)other); }
 
     void randomize(PRNG& G);
-    template <class T>
     void randomize(int row, PRNG& G);
-    template <class T>
     void conditional_add(BitVector& conditions, square128& other, int offset);
     void transpose();
-    template <class T>
     void hash_row_wise(MMO& mmo, square128& input);
     template <class T>
     void to(T& result);
@@ -173,14 +165,10 @@ class Slice
 public:
     Slice(U& bm, size_t start, size_t size);
 
-    template <class T>
     Slice<U>& rsub(Slice<U>& other);
-    template <class T>
     Slice<U>& sub(BitVector& other, int repeat = 1);
 
-    template <class T>
     void randomize(int row, PRNG& G);
-    template <class T>
     void conditional_add(BitVector& conditions, U& other, bool useOffset = false);
     void transpose();
 

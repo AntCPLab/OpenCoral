@@ -7,6 +7,7 @@
 #define MATH_FIXEDVEC_H_
 
 #include <string>
+#include <array>
 using namespace std;
 
 #include "Tools/octetStream.h"
@@ -21,7 +22,7 @@ template<class T> class Replicated;
 template <class T, int L>
 class FixedVec
 {
-    T v[L];
+    array<T, L> v;
 
 public:
     typedef T value_type;
@@ -69,6 +70,16 @@ public:
     {
         for (int i = 0; i < L; i++)
             v[i] = other[i];
+    }
+
+    FixedVec<T, L>(const array<T, L>& other)
+    {
+        v = other;
+    }
+
+    const array<T, L>& get() const
+    {
+        return v;
     }
 
     T& operator[](int i)

@@ -19,7 +19,7 @@ ReplicatedMachine<T, U>::ReplicatedMachine(int argc, const char** argv,
 
     OnlineOptions online_opts(opt, argc, argv);
     OnlineOptions::singleton = online_opts;
-    NetworkOptions network_opts(opt, argc, argv);
+    NetworkOptionsWithNumber network_opts(opt, argc, argv, nplayers, false);
     opt.add(
             "", // Default.
             0, // Required?
@@ -34,16 +34,14 @@ ReplicatedMachine<T, U>::ReplicatedMachine(int argc, const char** argv,
     int playerno = online_opts.playerno;
     string progname = online_opts.progname;
 
-    int pnb = network_opts.portnum_base;
-    string hostname = network_opts.hostname;
     bool use_encryption = not opt.get("-u")->isSet;
 
     if (not use_encryption)
         insecure("unencrypted communication");
     Names N;
-    Server* server = Server::start_networking(N, playerno, nplayers, hostname, pnb);
+    Server* server = network_opts.start_networking(N, playerno);
 
-    Machine<T, U>(playerno, N, progname, "empty",
+    Machine<T, U>(playerno, N, progname, online_opts.memtype,
             gf2n::default_degree(), 0, 0, 0, 0, 0, use_encryption,
             online_opts.live_prep, online_opts).run();
 

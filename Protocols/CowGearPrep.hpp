@@ -123,7 +123,7 @@ void CowGearPrep<T>::buffer_triples()
     assert(not producer.triples.empty());
     for (auto& triple : producer.triples)
         this->triples.push_back({{triple[0], triple[1], triple[2]}});
-#ifdef VERBOSE
+#ifdef VERBOSE_HE
     cerr << "generated " << producer.triples.size() << " triples, now got "
             << this->triples.size() << endl;
 #endif
@@ -133,7 +133,7 @@ template<class T>
 void CowGearPrep<T>::buffer_inverses()
 {
     assert(this->proc != 0);
-    BufferPrep<T>::buffer_inverses(this->proc->MC, this->proc->P);
+    ::buffer_inverses(this->inverses, *this, this->proc->MC, this->proc->P);
 }
 
 template<class T>
@@ -145,7 +145,7 @@ void CowGearPrep<T>::buffer_inputs(int player)
     this->inputs.resize(this->proc->P.num_players());
     for (auto& input : generator.inputs)
         this->inputs[player].push_back(input);
-#ifdef VERBOSE
+#ifdef VERBOSE_HE
     cerr << "generated " << generator.inputs.size() << " inputs, now got "
             << this->inputs[player].size() << endl;
 #endif

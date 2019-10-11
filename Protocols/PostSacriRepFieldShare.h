@@ -23,7 +23,7 @@ public:
     typedef HashMaliciousRepMC<PostSacriRepFieldShare> MAC_Check;
     typedef MAC_Check Direct_MC;
     typedef ReplicatedInput<PostSacriRepFieldShare> Input;
-    typedef ReplicatedPrivateOutput<PostSacriRepFieldShare> PrivateOutput;
+    typedef ::PrivateOutput<PostSacriRepFieldShare> PrivateOutput;
     typedef MaliciousRepPrep<PostSacriRepFieldShare> LivePrep;
 
     PostSacriRepFieldShare()

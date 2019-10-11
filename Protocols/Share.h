@@ -20,7 +20,8 @@ template<class T> class MAC_Check_;
 template<class T> class Direct_MAC_Check;
 template<class T> class MascotMultiplier;
 template<class T> class MascotFieldPrep;
-template<class T> class NPartyTripleGenerator;
+template<class T> class MascotTripleGenerator;
+template<class T> class MascotPrep;
 
 union square128;
 
@@ -38,10 +39,11 @@ class Share
    typedef T clear;
 
    typedef Share<typename T::next> prep_type;
-   typedef MascotMultiplier<T> Multiplier;
-   typedef NPartyTripleGenerator<prep_type> TripleGenerator;
+   typedef MascotMultiplier<Share> Multiplier;
+   typedef MascotTripleGenerator<prep_type> TripleGenerator;
    typedef T sacri_type;
    typedef typename T::Square Rectangle;
+   typedef Rectangle Square;
 
    typedef MAC_Check_<Share> MAC_Check;
    typedef Direct_MAC_Check<Share> Direct_MC;
@@ -49,6 +51,7 @@ class Share
    typedef ::PrivateOutput<Share> PrivateOutput;
    typedef SPDZ<Share> Protocol;
    typedef MascotFieldPrep<Share> LivePrep;
+   typedef MascotPrep<Share> RandomPrep;
 
    const static bool needs_ot = true;
    const static bool dishonest_majority = true;

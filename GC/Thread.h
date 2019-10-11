@@ -39,7 +39,6 @@ public:
     Names& N;
     Player* P;
     PRNG secure_prng;
-    vector<octetStream> os;
 
     int thread_num;
     WaitQueue<ScheduleItem> tape_schedule;

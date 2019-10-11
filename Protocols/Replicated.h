@@ -21,6 +21,7 @@ template<class T> class ReplicatedPrivateOutput;
 template<class T> class Share;
 template<class T> class Rep3Share;
 template<class T> class MAC_Check_Base;
+template<class T> class Preprocessing;
 
 class ReplicatedBase
 {
@@ -58,6 +59,9 @@ public:
     void prepare_dotprod(const T& x, const T& y) { prepare_mul(x, y); }
     void next_dotprod() {}
     T finalize_dotprod(int length);
+
+    virtual void trunc_pr(const vector<int>& regs, int size, SubProcessor<T>& proc)
+    { (void) regs, (void) size; (void) proc; throw not_implemented(); }
 };
 
 template <class T>
@@ -70,7 +74,6 @@ class Replicated : public ReplicatedBase, public ProtocolBase<T>
 public:
     typedef ReplicatedMC<T> MAC_Check;
     typedef ReplicatedInput<T> Input;
-    typedef ReplicatedPrivateOutput<T> PrivateOutput;
 
     Replicated(Player& P);
 
@@ -83,6 +86,8 @@ public:
     }
 
     void init_mul(SubProcessor<T>* proc);
+    void init_mul(Preprocessing<T>& prep, typename T::MAC_Check& MC);
+
     void init_mul();
     typename T::clear prepare_mul(const T& x, const T& y, int n = -1);
     void exchange();
@@ -94,6 +99,8 @@ public:
     void prepare_dotprod(const T& x, const T& y);
     void next_dotprod();
     T finalize_dotprod(int length);
+
+    void trunc_pr(const vector<int>& regs, int size, SubProcessor<T>& proc);
 
     T get_random();
 };

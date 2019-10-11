@@ -39,21 +39,16 @@ public:
 	Rectangle<U, V>& operator+=(const Rectangle<U, V>& other);
 	Rectangle<U, V> operator-(const Rectangle<U, V> & other);
 
-	template <class T>
 	Rectangle<U, V>& sub(Rectangle<U, V>& other) { return other.rsub_(*this); }
-	template <class T>
 	Rectangle<U, V>& rsub(Rectangle<U, V>& other) { return rsub_(other); }
 	Rectangle<U, V>& rsub_(Rectangle<U, V>& other);
-	template <class T>
 	Rectangle<U, V>& sub(const void* other) { return sub_(other); }
 	Rectangle<U, V>& sub_(const void* other);
 
 	void mul(const BitVector& a, const V& b);
 
 	void randomize(PRNG& G);
-	template <class T>
 	void randomize(int row, PRNG& G) { rows[row].randomize(G); }
-	template <class T>
 	void conditional_add(BitVector& conditions, Rectangle<U, V>& other,
 			int offset) { conditional_add_(conditions, other, offset); }
 	void conditional_add_(BitVector& conditions, Rectangle<U, V>& other,

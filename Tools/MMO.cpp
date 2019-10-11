@@ -9,6 +9,7 @@
 #include "Math/gfp.h"
 #include "Math/bigint.h"
 #include "Math/Z2k.h"
+#include "Math/BitVec.h"
 #include <unistd.h>
 
 
@@ -44,10 +45,10 @@ void MMO::encrypt_and_xor(void* output, const void* input, const octet* key,
         _mm_storeu_si128(((__m128i*)output) + indices[i], out[i]);
 }
 
-template <int N>
-void MMO::hashBlocks(void* output, const void* input, size_t alloc_size,
-        size_t used_size)
+template <int N, int N_BYTES>
+void MMO::hashBlocks(void* output, const void* input, size_t alloc_size)
 {
+    size_t used_size = N_BYTES;
     int n_blocks = DIV_CEIL(used_size, 16);
     if (n_blocks > N_KEYS)
         throw runtime_error("not enough MMO keys");
@@ -65,7 +66,7 @@ void MMO::hashBlocks(void* output, const void* input, size_t alloc_size,
 template <class T, int N>
 void MMO::hashBlocks(void* output, const void* input)
 {
-    hashBlocks<N>(output, input, sizeof(T), T::size());
+    hashBlocks<N, T::N_BYTES>(output, input, sizeof(T));
     for (int j = 0; j < N; j++)
         ((T*)output + j)->normalize();
 }
@@ -93,7 +94,7 @@ void MMO::hashBlocks<gfp1, 8>(void* output, const void* input)
     if (gfp1::get_ZpD().get_t() < 2)
         throw not_implemented();
     gfp1* out = (gfp1*)output;
-    hashBlocks<8>(output, input, sizeof(gfp1), gfp1::size());
+    hashBlocks<8, gfp1::N_BYTES>(output, input, sizeof(gfp1));
     for (int i = 0; i < 8; i++)
         out[i].zero_overhang();
     int left = 8;
@@ -142,3 +143,6 @@ Z(gf2n_long) Z(Z2<64>) Z(Z2<112>) Z(Z2<128>) Z(Z2<160>) Z(Z2<114>) Z(Z2<130>)
 Z(Z2<72>)
 Z(SignedZ2<64>) Z(SignedZ2<72>)
 Z(gf2n_short)
+Z(BitVec)
+Z(Z2<41>)
+Z(Z2<120>) Z(Z2<122>) Z(Z2<136>) Z(Z2<138>)

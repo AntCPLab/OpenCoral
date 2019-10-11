@@ -79,7 +79,7 @@ public:
 };
 
 template <class T>
-class MascotMultiplier : public OTMultiplier<Share<T>>
+class MascotMultiplier : public OTMultiplier<T>
 {
     OTCorrelator<Matrix<typename T::Square> > auth_ot_ext;
     void after_correlation();
@@ -88,11 +88,30 @@ class MascotMultiplier : public OTMultiplier<Share<T>>
             const vector<BitVector>& baseReceiverOutput);
 
 public:
-    vector<T> c_output;
+    vector<typename T::open_type> c_output;
 
-    MascotMultiplier(OTTripleGenerator<Share<T>>& generator, int thread_num);
+    MascotMultiplier(OTTripleGenerator<T>& generator, int thread_num);
 
 	void multiplyForInputs(MultJob job);
+};
+
+template <class T>
+class TinyMultiplier : public OTMultiplier<T>
+{
+    OTVole<typename T::part_type::sacri_type,
+            typename T::part_type::mac_key_type> mac_vole;
+
+    void after_correlation();
+    void init_authenticator(const BitVector& baseReceiverInput,
+            const vector< vector<BitVector> >& baseSenderInput,
+            const vector<BitVector>& baseReceiverOutput);
+
+public:
+    vector<typename T::open_type> c_output;
+
+    TinyMultiplier(OTTripleGenerator<T>& generator, int thread_num);
+
+    void multiplyForInputs(MultJob job) { (void) job; throw not_implemented(); }
 };
 
 template <int K, int S> class Spdz2kShare;

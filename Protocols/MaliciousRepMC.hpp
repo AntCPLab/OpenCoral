@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef PROTOCOLS_MALICIOUSREPMC_HPP_
+#define PROTOCOLS_MALICIOUSREPMC_HPP_
+
 #include "MaliciousRepMC.h"
 #include "GC/Machine.h"
 #include "Math/BitVec.h"
@@ -148,3 +151,5 @@ void CommMaliciousRepMC<T>::Check(const Player& P)
 {
     (void)P;
 }
+
+#endif

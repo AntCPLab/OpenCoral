@@ -27,10 +27,12 @@ public:
     void stop(int player, vector<int> targets);
 
     virtual void reset(int player) = 0;
-    virtual void add_mine(const typename T::open_type& input) = 0;
+    virtual void add_mine(const typename T::open_type& input,
+            int n_bits = -1) = 0;
     virtual void add_other(int player) = 0;
     virtual void send_mine() = 0;
-    virtual void finalize_other(int player, T& target, octetStream& o) = 0;
+    virtual void finalize_other(int player, T& target, octetStream& o,
+            int n_bits = -1) = 0;
 
     T finalize_mine();
 };
@@ -54,6 +56,15 @@ public:
     {
         (void) MC;
     }
+    ReplicatedInput(typename T::MAC_Check& MC, Preprocessing<T>& prep, Player& P) :
+            ReplicatedInput(P)
+    {
+        (void) MC, (void) prep;
+    }
+    ReplicatedInput(Player& P) :
+            ReplicatedInput(0, P)
+    {
+    }
     ReplicatedInput(SubProcessor<T>* proc, Player& P) :
             PrepLessInput<T>(proc), proc(proc), P(P), protocol(P)
     {
@@ -61,11 +72,11 @@ public:
     }
 
     void reset(int player);
-    void add_mine(const typename T::open_type& input);
+    void add_mine(const typename T::open_type& input, int n_bits = -1);
     void add_other(int player);
     void send_mine();
     void exchange();
-    void finalize_other(int player, T& target, octetStream& o);
+    void finalize_other(int player, T& target, octetStream& o, int n_bits = -1);
 };
 
 #endif /* PROTOCOLS_REPLICATEDINPUT_H_ */

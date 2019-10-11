@@ -109,6 +109,8 @@ public:
   void get_input(T& a, typename T::open_type& x, int i);
   void get(vector<T>& S, DataTag tag, const vector<int>& regs, int vector_size);
 
+  virtual array<T, 3> get_triple(int n_bits);
+
   virtual void buffer_triples() {}
 };
 
@@ -289,6 +291,15 @@ inline void Preprocessing<T>::get(vector<T>& S, DataTag tag,
 {
   count(tag, vector_size);
   get_no_count(S, tag, regs, vector_size);
+}
+
+template<class T>
+array<T, 3> Preprocessing<T>::get_triple(int n_bits)
+{
+  (void) n_bits;
+  array<T, 3> res;
+  get(DATA_TRIPLE, res.data());
+  return res;
 }
 
 template<class sint, class sgf2n>

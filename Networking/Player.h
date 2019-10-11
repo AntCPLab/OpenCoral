@@ -126,9 +126,11 @@ public:
   virtual ~PlayerBase();
 
   int my_real_num() const { return player_no; }
+  virtual int my_num() const = 0;
   virtual int num_players() const = 0;
 
   virtual void pass_around(octetStream& o, int offset = 1) const = 0;
+  virtual void Broadcast_Receive(vector<octetStream>& o,bool donthash=false) const = 0;
 };
 
 class Player : public PlayerBase
@@ -276,9 +278,10 @@ public:
   virtual int my_num() const = 0;
   virtual int other_player_num() const = 0;
 
-  virtual void send(octetStream& o) = 0;
-  virtual void receive(octetStream& o) = 0;
-  virtual void send_receive_player(vector<octetStream>& o) = 0;
+  virtual void send(octetStream& o) const = 0;
+  virtual void receive(octetStream& o) const = 0;
+  virtual void send_receive_player(vector<octetStream>& o) const = 0;
+  void Broadcast_Receive(vector<octetStream>& o, bool donthash=false) const;
 };
 
 class RealTwoPartyPlayer : public TwoPartyPlayer
@@ -295,8 +298,8 @@ public:
   RealTwoPartyPlayer(const Names& Nms, int other_player, int pn_offset=0);
   ~RealTwoPartyPlayer();
 
-  void send(octetStream& o);
-  void receive(octetStream& o);
+  void send(octetStream& o) const;
+  void receive(octetStream& o) const;
 
   int other_player_num() const;
   int my_num() const { return is_server; }
@@ -305,7 +308,7 @@ public:
   /* Send and receive to/from the other player
    *  - o[0] contains my data, received data put in o[1]
    */
-  void send_receive_player(vector<octetStream>& o);
+  void send_receive_player(vector<octetStream>& o) const;
 
   void exchange(octetStream& o) const;
   void exchange(int other, octetStream& o) const { (void)other; exchange(o); }
@@ -326,9 +329,9 @@ public:
   int other_player_num() const { return other_player; }
   int num_players() const { return 2; }
 
-  void send(octetStream& o);
-  void receive(octetStream& o);
-  void send_receive_player(vector<octetStream>& o);
+  void send(octetStream& o) const;
+  void receive(octetStream& o) const;
+  void send_receive_player(vector<octetStream>& o) const;
 
   void pass_around(octetStream& o, int _ = 1) const { (void)_, (void) o; throw not_implemented(); }
 };
@@ -349,16 +352,15 @@ public:
   int num_players() const { return 2; }
   int get_offset() const { return offset; }
 
-  void send(octetStream& o) { P.send_to(P.get_player(offset), o, true); }
-  void reverse_send(octetStream& o) { P.send_to(P.get_player(-offset), o, true); }
-  void receive(octetStream& o) { P.receive_player(P.get_player(offset), o, true); }
+  void send(octetStream& o) const { P.send_to(P.get_player(offset), o, true); }
+  void reverse_send(octetStream& o) const { P.send_to(P.get_player(-offset), o, true); }
+  void receive(octetStream& o) const { P.receive_player(P.get_player(offset), o, true); }
   void reverse_receive(octetStream& o) { P.receive_player(P.get_player(-offset), o, true); }
-  void send_receive_player(vector<octetStream>& o);
+  void send_receive_player(vector<octetStream>& o) const;
 
   void reverse_exchange(octetStream& o) const { P.pass_around(o, P.num_players() - offset); }
-  void exchange(int other, octetStream& o) const { (void)other; P.pass_around(o, offset); }
+  void exchange(octetStream& o) const { P.exchange(P.get_player(offset), o); }
   void pass_around(octetStream& o, int _ = 1) const { (void)_; P.pass_around(o, offset); }
-  void Broadcast_Receive(vector<octetStream>& o,bool donthash=false) const;
 };
 
 #endif

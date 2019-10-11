@@ -55,7 +55,7 @@
     X(BITDECINT, PROC.bitdecint(EXTRA, I0)) \
     X(SHRCI, C0 = C1 >> IMM) \
     X(SHLCI, C0 = C1 << IMM) \
-    X(LDBITS, S0.load(R1, IMM)) \
+    X(LDBITS, S0.load_clear(R1, IMM)) \
     X(LDMS, S0 = MSD) \
     X(STMS, MSD = S0) \
     X(LDMSI, S0 = MSI) \
@@ -67,7 +67,7 @@
     X(LDMSDI, PROC.load_dynamic_indirect(EXTRA, MD)) \
     X(STMSDI, PROC.store_dynamic_indirect(EXTRA, MD)) \
     X(STMSDCI, PROC.store_clear_in_dynamic(EXTRA, MD)) \
-    X(CONVSINT, S0.load(IMM, I1)) \
+    X(CONVSINT, S0.load_clear(IMM, I1)) \
     X(CONVCINT, C0 = I1) \
     X(CONVCBIT, T::convcbit(I0, C1)) \
     X(MOVS, S0 = PS1) \

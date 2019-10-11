@@ -66,16 +66,15 @@ on how to activate them.
 
 #### Protocols
 
-The following table lists all protocols that are fully supported. Rep3
-stands for three-party replicated secret sharing.
+The following table lists all protocols that are fully supported.
 
-| Security model | Mod prime / GF(2^n) | Mod 2^k | Binary |
-| --- | --- | --- | --- |
-| Malicious, dishonest majority | [MASCOT](#arithmetic-circuits) | [SPDZ2k](#arithmetic-circuits) | [BMR](#bmr) |
-| Covert, dishonest majority | [CowGear](#arithmetic-circuits) | N/A | N/A |
-| Semi-honest, dishonest majority | [Semi](#arithmetic-circuits) | [Semi2k](#arithmetic-circuits) | [Yao's GC](#yaos-garbled-circuits) / [BMR](#bmr) |
-| Malicious, honest majority | [Shamir / Rep3 / PS](#honest-majority) | [Brain / Rep3 / PS](#honest-majority) | [Rep3](#honest-majority) / [BMR](#bmr) |
-| Semi-honest, honest majority | [Shamir / Rep3](#honest-majority) | [Rep3](#honest-majority) | [Rep3](#honest-majority) / [BMR](#bmr) |
+| Security model | Mod prime / GF(2^n) | Mod 2^k | Bin. SS | Garbling |
+| --- | --- | --- | --- | --- |
+| Malicious, dishonest majority | [MASCOT](#secret-sharing) | [SPDZ2k](#secret-sharing) | [Tiny](#secret-sharing) | [BMR](#bmr) |
+| Covert, dishonest majority | [CowGear](#secret-sharing) | N/A | N/A | N/A |
+| Semi-honest, dishonest majority | [Semi](#secret-sharing) | [Semi2k](#secret-sharing) | [SemiBin](#secret-sharing) | [Yao's GC](#yaos-garbled-circuits) / [BMR](#bmr) |
+| Malicious, honest majority | [Shamir / Rep3 / PS](#honest-majority) | [Brain / Rep3 / PS](#honest-majority) | [Rep3](#honest-majority) | [BMR](#bmr) |
+| Semi-honest, honest majority | [Shamir / Rep3](#honest-majority) | [Rep3](#honest-majority) | [Rep3](#honest-majority) | [BMR](#bmr) |
 
 #### History
 
@@ -126,7 +125,7 @@ run it with different protocols.
 The section on offline phases will then explain how to benchmark the
 offline phases required for the SPDZ protocol. Running the online
 phase outputs the amount of offline material required, which allows to
-compute the preprocessing time for a particulor computation.
+compute the preprocessing time for a particular computation.
 
 #### Requirements
  - GCC 5 or later (tested with 8.2) or LLVM/clang 5 or later (tested with 7)
@@ -229,9 +228,9 @@ Some full implementations require oblivious transfer, which is
 implemented as OT extension based on
 https://github.com/mkskeller/SimpleOT.
 
-### Arithmetic circuits
+### Secret sharing
 
-The following table shows all programs for arithmetic dishonest-majority computation:
+The following table shows all programs for dishonest-majority computation using secret sharing:
 
 | Program | Protocol | Domain | Security | Script |
 | --- | --- | --- | --- | --- |
@@ -240,11 +239,22 @@ The following table shows all programs for arithmetic dishonest-majority computa
 | `semi-party.x` | OT-based | Mod prime | Semi-honest | `semi.sh` |
 | `semi2k-party.x` | OT-based | Mod 2^k | Semi-honest | `semi2k.sh` |
 | `cowgear-party.x` | Adapted [LowGear](https://eprint.iacr.org/2017/1230) | Mod prime | Covert | `cowgear.sh` |
+| `semi-bin-party.x` | OT-based | Binary | Semi-honest | `semi-bin.sh` |
+| `tiny-party.x` | Adapted SPDZ2k | Binary | Malicious | `tiny.sh` |
 
 Semi and Semi2k denote the result of stripping MASCOT/SPDZ2k of all
 steps required for malicious security, namely amplifying, sacrificing,
 MAC generation, and OT correlation checks. What remains is the
 generation of additively shared Beaver triples using OT.
+
+Similarly, SemiBin denotes a protocol that generates bit-wise
+multiplication triples using OT without any element of malicious
+security.
+
+Tiny denotes the adaption of SPDZ2k to the binary setting. In
+particular, the SPDZ2k sacrifice does not work for bits, so we replace
+it by cut-and-choose according to [Furukawa et
+al.](https://eprint.iacr.org/2016/944.pdf).
 
 CowGear denotes a covertly secure version of LowGear. The reason for
 this is the key generation that only achieves covert security. It is
@@ -259,7 +269,7 @@ First compile the virtual machine:
 `make -j8 mascot-party.x`
 
 and a high-level program, for example the tutorial (use `-R 64` for
-SPDZ2k and Semi2k):
+SPDZ2k and Semi2k and `-B <precision>` for SemiBin):
 
 `./compile.py -F 64 tutorial`
 

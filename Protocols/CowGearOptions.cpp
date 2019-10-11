@@ -59,7 +59,7 @@ CowGearOptions::CowGearOptions(ez::ezOptionParser& opt, int argc,
             exit(1);
         }
         if (covert_security > (1 << lowgear_security))
-            insecure("LowGear security less than key generation security");
+            insecure(", LowGear security less than key generation security");
     }
     else
         lowgear_from_covert();

@@ -56,6 +56,11 @@ void ThreadMaster<T>::run()
     P = new PlainPlayer(N, 0xff << 24);
 
     machine.load_schedule(progname);
+
+    if (T::needs_ot)
+        for (int i = 0; i < machine.nthreads; i++)
+            machine.ot_setups.push_back({{*P, true}, {*P, true}});
+
     for (int i = 0; i < machine.nthreads; i++)
         threads.push_back(new_thread(i));
     for (auto thread : threads)

@@ -16,6 +16,8 @@ public:
     static void init_default(int l) { (void) l; }
 
     static void read_setup(int nparties, int lg2p, int gf2ndegree);
+
+    void normalize() {}
 };
 
 #endif /* MATH_VALUEINTERFACE_H_ */

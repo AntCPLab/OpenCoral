@@ -42,6 +42,7 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
   open_input_file(P.my_num(), thread_num);
 
   secure_prng.ReSeed();
+  shared_prng.SeedGlobally(P);
 
   out.activate(P.my_num() == 0 or machine.opts.interactive);
 }

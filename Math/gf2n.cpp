@@ -352,7 +352,7 @@ void gf2n_short::input(istream& s,bool human)
   if (s.peek() == EOF)
     { if (s.tellg() == 0)
         { cout << "IO problem. Empty file?" << endl;
-          throw file_error();
+          throw file_error("gf2n_short input");
         }
       throw end_of_file("gf2n_short");
     }

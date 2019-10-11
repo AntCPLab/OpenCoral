@@ -36,7 +36,8 @@ bigint SemiHomomorphicNoiseBounds::min_p0()
 
 double SemiHomomorphicNoiseBounds::min_phi_m(int log_q)
 {
-    return 33.1 * (log_q - log2(3.2));
+    // the constant was updated using Martin Albrecht's LWE estimator in Sep 2019
+    return 37.8 * (log_q - log2(3.2));
 }
 
 

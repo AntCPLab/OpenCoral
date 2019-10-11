@@ -5,7 +5,6 @@
 
 #include <OT/TripleMachine.h>
 #include "OT/NPartyTripleGenerator.h"
-#include "OT/OTMachine.h"
 #include "OT/OTTripleSetup.h"
 #include "Math/gf2n.h"
 #include "Math/Setup.h"
@@ -13,9 +12,11 @@
 #include "Tools/ezOptionParser.h"
 #include "Math/Setup.h"
 #include "Protocols/fake-stuff.h"
+#include "Math/BitVec.h"
 
 #include "Protocols/fake-stuff.hpp"
 #include "Math/Z2k.hpp"
+#include "OT/NPartyTripleGenerator.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -23,22 +24,8 @@ using namespace std;
 
 void* run_ngenerator_thread(void* ptr)
 {
-    ((MascotGenerator*)ptr)->generate();
+    ((GeneratorThread*)ptr)->generate();
     return 0;
-}
-
-MascotParams::MascotParams()
-{
-    generateMACs = true;
-    amplify = true;
-    check = true;
-    generateBits = false;
-    timerclear(&start);
-}
-
-void MascotParams::set_passive()
-{
-    generateMACs = amplify = check = false;
 }
 
 TripleMachine::TripleMachine(int argc, const char** argv) :
@@ -167,9 +154,10 @@ TripleMachine::TripleMachine(int argc, const char** argv) :
 }
 
 template<class T>
-NPartyTripleGenerator<T>* TripleMachine::new_generator(OTTripleSetup& setup, int i)
+GeneratorThread* TripleMachine::new_generator(OTTripleSetup& setup, int i)
 {
-    return new NPartyTripleGenerator<T>(setup, N[i%nConnections], i, nTriplesPerThread, nloops, *this);
+    return new typename T::TripleGenerator(setup, N[i % nConnections], i,
+            nTriplesPerThread, nloops, *this);
 }
 
 void TripleMachine::run()
@@ -186,13 +174,13 @@ void TripleMachine::run()
     PlainPlayer P(N[0], 0xF000);
     OTTripleSetup setup(P, true);
 
-    vector<MascotGenerator*> generators(nthreads);
+    vector<GeneratorThread*> generators(nthreads);
     vector<pthread_t> threads(nthreads);
 
     for (int i = 0; i < nthreads; i++)
     {
         if (primeField)
-            generators[i] = new_generator<Share<gfp1>>(setup, i);
+            generators[i] = new_generator<Share<gfp>>(setup, i);
         else if (z2k)
         {
             if (z2k == 32 and z2s == 32)
@@ -269,59 +257,4 @@ void TripleMachine::output_mac_keys()
         write_mac_keys(prep_data_dir, my_num, nplayers, mac_keyp, mac_key2l);
     else
         write_mac_keys(prep_data_dir, my_num, nplayers, mac_keyp, mac_key2s);
-}
-
-template<> gf2n_long MascotParams::get_mac_key()
-{
-    return mac_key2l;
-}
-
-template<> gf2n_short MascotParams::get_mac_key()
-{
-    return mac_key2s;
-}
-
-template<> gfp1 MascotParams::get_mac_key()
-{
-    return mac_keyp;
-}
-
-template<> Z2<48> MascotParams::get_mac_key()
-{
-    return mac_keyz;
-}
-
-template<> Z2<64> MascotParams::get_mac_key()
-{
-    return mac_keyz;
-}
-
-template<> Z2<32> MascotParams::get_mac_key()
-{
-    return mac_keyz;
-}
-
-template<> void MascotParams::set_mac_key(gf2n_long key)
-{
-    mac_key2l = key;
-}
-
-template<> void MascotParams::set_mac_key(gf2n_short key)
-{
-    mac_key2s = key;
-}
-
-template<> void MascotParams::set_mac_key(gfp1 key)
-{
-    mac_keyp = key;
-}
-
-template<> void MascotParams::set_mac_key(Z2<64> key)
-{
-    mac_keyz = key;
-}
-
-template<> void MascotParams::set_mac_key(Z2<48> key)
-{
-    mac_keyz = key;
 }

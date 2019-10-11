@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef PROTOCOLS_REPLICATEDINPUT_HPP_
+#define PROTOCOLS_REPLICATEDINPUT_HPP_
+
 #include "ReplicatedInput.h"
 #include "Processor/Processor.h"
 
@@ -21,14 +24,14 @@ void ReplicatedInput<T>::reset(int player)
 }
 
 template<class T>
-inline void ReplicatedInput<T>::add_mine(const typename T::open_type& input)
+inline void ReplicatedInput<T>::add_mine(const typename T::open_type& input, int n_bits)
 {
     auto& shares = this->shares;
     shares.push_back({});
     T& my_share = shares.back();
-    my_share[0].randomize(protocol.shared_prngs[0]);
+    my_share[0].randomize(protocol.shared_prngs[0], n_bits);
     my_share[1] = input - my_share[0];
-    my_share[1].pack(os[1]);
+    my_share[1].pack(os[1], n_bits);
     this->values_input++;
 }
 
@@ -96,19 +99,19 @@ void PrepLessInput<T>::stop(int player, vector<int> targets)
 
 template<class T>
 inline void ReplicatedInput<T>::finalize_other(int player, T& target,
-        octetStream& o)
+        octetStream& o, int n_bits)
 {
     if (P.get_offset(player) == 1)
     {
         typename T::value_type t;
-        t.unpack(o);
+        t.unpack(o, n_bits);
         target[0] = t;
         target[1] = 0;
     }
     else
     {
         target[0] = 0;
-        target[1].randomize(protocol.shared_prngs[1]);
+        target[1].randomize(protocol.shared_prngs[1], n_bits);
     }
 }
 
@@ -117,3 +120,5 @@ T PrepLessInput<T>::finalize_mine()
 {
     return this->shares[this->i_share++];
 }
+
+#endif

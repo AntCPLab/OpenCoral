@@ -89,6 +89,7 @@ opcodes = dict(
     MULS = 0xA6,
     MULRS = 0xA7,
     DOTPRODS = 0xA8,
+    TRUNC_PR = 0xA9,
     # Data access
     TRIPLE = 0x50,
     BIT = 0x51,
@@ -102,6 +103,7 @@ opcodes = dict(
     INPUT = 0x60,
     INPUTFIX = 0xF0,
     INPUTFLOAT = 0xF1,
+    INPUTMIXED = 0xF2,
     STARTINPUT = 0x61,
     STOPINPUT = 0x62,  
     READSOCKETC = 0x63,
@@ -168,6 +170,7 @@ opcodes = dict(
     READFILESHARE = 0xBE,
     CONDPRINTSTR = 0xBF,
     PRINTFLOATPREC = 0xE0,
+    CONDPRINTPLAIN = 0xE1,
     GBITDEC = 0x184,
     GBITCOM = 0x185,
     # Secure socket
@@ -766,21 +769,6 @@ class ClearShiftInstruction(ClearImmediate):
 ###
 ### Jumps etc
 ###
-
-class dummywrite(Instruction):
-    """ Dummy instruction to create source node in the dependency graph,
-        preventing read-before-write warnings. """
-    __slots__ = []
-    
-    def __init__(self, *args, **kwargs):
-        self.arg_format = [arg.reg_type + 'w' for arg in args]
-        super(dummywrite, self).__init__(*args, **kwargs)
-    
-    def execute(self):
-        pass
-    
-    def get_encoding(self):
-        return []
 
 class JumpInstruction(Instruction):
     __slots__ = ['jump_arg']

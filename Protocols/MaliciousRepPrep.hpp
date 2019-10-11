@@ -11,13 +11,13 @@ template<class T>
 MaliciousRepPrep<T>::MaliciousRepPrep(SubProcessor<T>* proc, DataPositions& usage) :
         MaliciousRepPrep<T>(usage)
 {
-    (void) proc;
+    this->proc = proc;
 }
 
 template<class T>
 MaliciousRepPrep<T>::MaliciousRepPrep(DataPositions& usage) :
         BufferPrep<T>(usage), honest_usage(usage.num_players()),
-        honest_prep(0, honest_usage), replicated(0)
+        honest_prep(0, honest_usage), replicated(0), proc(0)
 {
 }
 
@@ -150,7 +150,7 @@ void MaliciousRepPrep<T>::buffer_squares()
 template<class T>
 void MaliciousRepPrep<T>::buffer_inverses()
 {
-    BufferPrep<T>::buffer_inverses(MC, honest_prep.protocol->P);
+    ::buffer_inverses(this->inverses, *this, MC, honest_prep.protocol->P);
 }
 
 template<class T>
@@ -187,4 +187,10 @@ void MaliciousRepPrep<T>::buffer_bits()
         masked.push_back(t2 * a - h - rho * (t * a + f));
     }
     MC.CheckFor(0, checks, P);
+}
+
+template<class T>
+void MaliciousRepPrep<T>::buffer_inputs(int player)
+{
+    this->buffer_inputs_as_usual(player, proc);
 }

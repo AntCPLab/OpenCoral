@@ -30,7 +30,7 @@ void MAC_Check_Base<T>::CheckFor(const typename T::open_type& value,
     vector<typename T::open_type> opened;
     POpen(opened, shares, P);
     for (auto& check : opened)
-        if (check != value)
+        if (typename T::clear(check) != value)
         {
             cout << check << " != " << value << endl;
             throw Offline_Check_Error("CheckFor");

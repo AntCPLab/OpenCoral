@@ -6,8 +6,8 @@
 #ifndef MATH_OPERATORS_H_
 #define MATH_OPERATORS_H_
 
-template <class T>
-T operator*(const bool& x, const T& y) { return x ? y : T(); }
+//template <class T>
+//T operator*(const bool& x, const T& y) { return x ? y : T(); }
 //template <class T>
 //T operator*(const T& y, const bool& x) { return x ? y : T(); }
 template <class T>

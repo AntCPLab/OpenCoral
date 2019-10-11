@@ -100,6 +100,7 @@ class gf2n_long
   typedef ::Square<gf2n_long> Square;
 
   const static int MAX_N_BITS = 128;
+  const static int N_BYTES = sizeof(a);
 
   typedef gf2n_long Scalar;
 

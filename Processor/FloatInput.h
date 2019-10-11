@@ -17,6 +17,8 @@ public:
     const static int N_PARAM = 1;
     const static char* NAME;
 
+    const static int TYPE = 2;
+
     long items[N_DEST];
 
     void read(std::istream& in, const int* params);

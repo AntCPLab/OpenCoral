@@ -34,13 +34,19 @@ public:
     template<class U>
     static void input(SubProcessor<T>& Proc, const vector<int>& args, int size);
 
-    InputBase(ArithmeticProcessor* proc);
+    static void input_mixed(SubProcessor<T>& Proc, const vector<int>& args, int size);
+    template<class U>
+    static void prepare(SubProcessor<T>& Proc, int player, const int* params, int size);
+    template<class U>
+    static void finalize(SubProcessor<T>& Proc, int player, const int* params, int size);
+
+    InputBase(ArithmeticProcessor* proc = 0);
     virtual ~InputBase();
 
     virtual void reset(int player) = 0;
     void reset_all(Player& P);
 
-    virtual void add_mine(const typename T::open_type& input) = 0;
+    virtual void add_mine(const typename T::open_type& input, int n_bits = -1) = 0;
     virtual void add_other(int player) = 0;
     void add_from_all(const clear& input);
 
@@ -48,8 +54,8 @@ public:
     virtual void exchange();
 
     virtual T finalize_mine() = 0;
-    virtual void finalize_other(int player, T& target, octetStream& o) = 0;
-    T finalize(int player);
+    virtual void finalize_other(int player, T& target, octetStream& o, int n_bits = -1) = 0;
+    T finalize(int player, int n_bits = -1);
 };
 
 template<class T>
@@ -59,24 +65,27 @@ class Input : public InputBase<T>
     typedef typename T::clear clear;
     typedef typename T::MAC_Check MAC_Check;
 
-    SubProcessor<T>& proc;
+    SubProcessor<T>* proc;
     MAC_Check& MC;
+    Preprocessing<T>& prep;
+    Player& P;
     vector< PointerVector<T> > shares;
     open_type rr, t, xi;
 
 public:
     Input(SubProcessor<T>& proc, MAC_Check& mc);
     Input(SubProcessor<T>* proc, Player& P);
+    Input(MAC_Check& MC, Preprocessing<T>& prep, Player& P);
 
     void reset(int player);
 
-    void add_mine(const open_type& input);
+    void add_mine(const open_type& input, int n_bits = -1);
     void add_other(int player);
 
     void send_mine();
 
     T finalize_mine();
-    void finalize_other(int player, T& target, octetStream& o);
+    void finalize_other(int player, T& target, octetStream& o, int n_bits = -1);
 
     void start(int player, int n_inputs);
     void stop(int player, const vector<int>& targets);

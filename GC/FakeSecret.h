@@ -79,7 +79,7 @@ public:
 
     __uint128_t operator^=(const FakeSecret& other) { return a ^= other.a; }
 
-    void load(int n, const Integer& x);
+    void load_clear(int n, const Integer& x);
     template <class T>
     void load(int n, const Memory<T>& mem, size_t address) { load(n, mem[address]); }
     template <class T>

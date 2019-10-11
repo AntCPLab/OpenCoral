@@ -104,7 +104,7 @@ class invalid_program:  public exception
 class file_error:  public exception
     { string filename, ans;
       public:
-      file_error(string m="") : filename(m)
+      file_error(string m) : filename(m)
         {
           ans="File Error : ";
           ans+=filename;

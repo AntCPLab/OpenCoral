@@ -18,7 +18,7 @@ OT_EXE = ot.x ot-offline.x
 
 COMMON = $(MATH) $(TOOLS) $(NETWORK)
 COMPLETE = $(COMMON) $(PROCESSOR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(GC) $(OT)
-YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp)) $(OT) $(GC) BMR/Key.o
+YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp)) $(OT) BMR/Key.o
 BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp)) $(COMMON) $(PROCESSOR) $(OT)
 VM = $(PROCESSOR) $(COMMON)
 
@@ -35,7 +35,7 @@ DEPS := $(wildcard */*.d)
 .SECONDARY: $(OBJS)
 
 
-all: gen_input online offline externalIO bmr yao replicated shamir real-bmr spdz2k-party.x brain-party.x semi-party.x semi2k-party.x mascot-party.x
+all: gen_input online offline externalIO bmr yao replicated shamir real-bmr spdz2k-party.x brain-party.x semi-party.x semi2k-party.x semi-bin-party.x mascot-party.x tiny-party.x
 
 ifeq ($(USE_NTL),1)
 all: overdrive she-offline cowgear-party.x
@@ -77,7 +77,7 @@ spdz2k: spdz2k-party.x ot-offline.x Check-Offline-Z2k.x galois-degree.x Fake-Off
 
 tldr:
 	-echo ARCH = -march=native >> CONFIG.mine
-	$(MAKE) Player-Online.x
+	$(MAKE) mascot-party.x
 
 ifeq ($(OS), Darwin)
 tldr: mac-setup
@@ -90,7 +90,7 @@ shamir: shamir-party.x malicious-shamir-party.x galois-degree.x
 ecdsa: $(patsubst ECDSA/%.cpp,%.x,$(wildcard ECDSA/*-ecdsa-party.cpp))
 ecdsa-static: static-dir $(patsubst ECDSA/%.cpp,static/%.x,$(wildcard ECDSA/*-ecdsa-party.cpp))
 
-$(LIBRELEASE): $(patsubst %.cpp,%.o,$(wildcard Machines/S*.cpp)) $(patsubst %.cpp,%.o,$(wildcard Protocols/*.cpp)) $(YAO) $(PROCESSOR) $(COMMON) $(BMR) $(FHEOFFLINE)
+$(LIBRELEASE): $(patsubst %.cpp,%.o,$(wildcard Machines/S*.cpp)) $(patsubst %.cpp,%.o,$(wildcard Protocols/*.cpp)) $(YAO) $(PROCESSOR) $(COMMON) $(BMR) $(FHEOFFLINE) $(GC)
 	$(AR) -csr $@ $^
 
 static/%.x: Machines/%.o $(LIBRELEASE) $(LIBSIMPLEOT)
@@ -104,47 +104,17 @@ static-dir:
 
 static-release: static-dir $(patsubst Machines/%.cpp, static/%.x, $(wildcard Machines/*-party.cpp))
 
-Fake-Offline.x: Fake-Offline.cpp $(COMMON)
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
-
 Fake-ECDSA.x: ECDSA/Fake-ECDSA.cpp ECDSA/P256Element.o $(COMMON)
 	$(CXX) -o $@ $^ $(CFLAGS) $(LDLIBS) $(ECLIB)
 
-Check-Offline.x: Check-Offline.o $(COMMON) $(PROCESSOR)
-	$(CXX) $(CFLAGS) -o Check-Offline.x $^ $(LDLIBS)
+Check-Offline.x: $(PROCESSOR)
 
-Check-Offline-Z2k.x: Check-Offline-Z2k.cpp $(COMMON)
-	$(CXX) $(CFLAGS) -o Check-Offline-Z2k.x $^ $(LDLIBS)
-
-Server.x: Server.cpp $(COMMON)
-	$(CXX) $(CFLAGS) Server.cpp -o Server.x $(COMMON) $(LDLIBS)
-
-Setup.x: Setup.cpp $(COMMON)
-	$(CXX) $(CFLAGS) Setup.cpp -o Setup.x $(COMMON) $(LDLIBS)
-
-ot.x: $(OT) $(COMMON) OT/OText_main.cpp $(LIBSIMPLEOT)
+ot.x: $(OT) $(COMMON) Machines/OText_main.o Machines/OTMachine.o $(LIBSIMPLEOT)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
-ot-check.x: $(OT) $(COMMON)
-	$(CXX) $(CFLAGS) -o ot-check.x OT/OutputCheck.cpp $(COMMON) $(LDLIBS)
+ot-offline.x: $(OT) $(LIBSIMPLEOT) Machines/TripleMachine.o
 
-ot-bitmatrix.x: $(OT) $(COMMON) OT/BitMatrixTest.cpp
-	$(CXX) $(CFLAGS) -o ot-bitmatrix.x OT/BitMatrixTest.cpp OT/BitMatrix.o $(COMMON) $(LDLIBS)
-
-ot-offline.x: $(OT) $(COMMON) ot-offline.cpp $(LIBSIMPLEOT)
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
-
-check-passive.x: $(COMMON) check-passive.cpp
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
-
-gen_input_f2n.x: Scripts/gen_input_f2n.cpp $(COMMON)
-	$(CXX) $(CFLAGS) Scripts/gen_input_f2n.cpp	-o gen_input_f2n.x $(COMMON) $(LDLIBS)
-
-gen_input_fp.x: Scripts/gen_input_fp.cpp $(COMMON)
-	$(CXX) $(CFLAGS) Scripts/gen_input_fp.cpp	-o gen_input_fp.x $(COMMON) $(LDLIBS)
-
-gc-emulate.x: $(GC) $(COMMON) $(PROCESSOR) gc-emulate.cpp $(GC)
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
+gc-emulate.x: $(PROCESSOR) GC/FakeSecret.o GC/square64.o
 
 bmr-%.x: $(BMR) Machines/bmr-%.cpp $(LIBSIMPLEOT)
 	$(CXX) $(CFLAGS) -o $@ $^ $(BOOST) $(LDLIBS)
@@ -155,39 +125,30 @@ bmr-%.x: $(BMR) Machines/bmr-%.cpp $(LIBSIMPLEOT)
 bmr-clean:
 	-rm BMR/*.o BMR/*/*.o GC/*.o
 
-client-setup.x: client-setup.cpp $(COMMON)
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
-
 bankers-bonus-client.x: ExternalIO/bankers-bonus-client.cpp $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 bankers-bonus-commsec-client.x: ExternalIO/bankers-bonus-commsec-client.cpp $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
-ifeq ($(USE_NTL),1)
-simple-offline.x: $(COMMON) $(FHEOFFLINE) simple-offline.cpp
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
-
-pairwise-offline.x: $(COMMON) $(FHEOFFLINE) pairwise-offline.cpp
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
-
-cnc-offline.x: $(COMMON) $(FHEOFFLINE) cnc-offline.cpp
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
-
-spdz2-offline.x: $(COMMON) $(FHEOFFLINE) spdz2-offline.cpp
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
-endif
+simple-offline.x: $(FHEOFFLINE)
+pairwise-offline.x: $(FHEOFFLINE)
+cnc-offline.x: $(FHEOFFLINE)
+spdz2-offline.x: $(FHEOFFLINE)
 
 yao-party.x: $(YAO)
 
 yao-clean:
 	-rm Yao/*.o
 
-galois-degree.x: galois-degree.cpp
+galois-degree.x: Utils/galois-degree.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
-default-prime-length.x: default-prime-length.cpp
+default-prime-length.x: Utils/default-prime-length.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
+
+%.x: Utils/%.o $(COMMON)
+	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
 
 %.x: Machines/%.o $(VM) OT/OTTripleSetup.o OT/BaseOT.o $(LIBSIMPLEOT)
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
@@ -195,8 +156,10 @@ default-prime-length.x: default-prime-length.cpp
 %-ecdsa-party.x: ECDSA/%-ecdsa-party.o ECDSA/P256Element.o $(VM)
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS) $(ECLIB)
 
-replicated-bin-party.x: $(GC)
-malicious-rep-bin-party.x: $(GC)
+replicated-bin-party.x: GC/square64.o
+malicious-rep-bin-party.x: GC/square64.o
+semi-bin-party.x: $(VM) $(OT) GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
+tiny-party.x: $(OT)
 shamir-party.x: Machines/ShamirMachine.o
 malicious-shamir-party.x: Machines/ShamirMachine.o
 spdz2k-party.x: $(OT)

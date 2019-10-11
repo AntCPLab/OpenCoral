@@ -3,8 +3,8 @@
  *
  */
 
-#include "MaliciousRepPrep.h"
-#include "MaliciousRepThread.h"
+#include "RepPrep.h"
+#include "ShareThread.h"
 #include "Processor/OnlineOptions.h"
 
 #include "Protocols/MalRepRingPrep.hpp"
@@ -15,33 +15,40 @@
 namespace GC
 {
 
-MaliciousRepPrep::MaliciousRepPrep(DataPositions& usage) :
-        BufferPrep<MaliciousRepSecret>(usage), protocol(0)
+template<class T>
+RepPrep<T>::RepPrep(DataPositions& usage, Thread<T>& thread) :
+        BufferPrep<T>(usage), protocol(0)
 {
+    (void) thread;
 }
 
-MaliciousRepPrep::~MaliciousRepPrep()
+template<class T>
+RepPrep<T>::~RepPrep()
 {
     if (protocol)
         delete protocol;
 }
 
-void MaliciousRepPrep::set_protocol(MaliciousRepSecret::Protocol& protocol)
+template<class T>
+void RepPrep<T>::set_protocol(typename T::Protocol& protocol)
 {
     this->protocol = new ReplicatedBase(protocol.P);
 }
 
-void MaliciousRepPrep::buffer_triples()
+template<class T>
+void RepPrep<T>::buffer_triples()
 {
     assert(protocol != 0);
-    auto MC = MaliciousRepThread::s().new_mc();
-    shuffle_triple_generation(triples, protocol->P, *MC, 64);
+    auto MC = ShareThread<T>::s().new_mc();
+    shuffle_triple_generation(this->triples, protocol->P, *MC, 64);
     delete MC;
 }
 
-void MaliciousRepPrep::buffer_bits()
+template<class T>
+void RepPrep<T>::buffer_bits()
 {
     assert(this->protocol != 0);
+    assert(this->protocol->P.num_players() == 3);
     for (int i = 0; i < OnlineOptions::singleton.batch_size; i++)
     {
         this->bits.push_back({});

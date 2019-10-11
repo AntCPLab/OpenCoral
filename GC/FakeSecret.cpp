@@ -7,6 +7,8 @@
 #include "GC/Processor.h"
 #include "GC/square64.h"
 
+#include "GC/Processor.hpp"
+
 namespace GC
 {
 
@@ -14,7 +16,7 @@ int FakeSecret::default_length = 128;
 
 ostream& FakeSecret::out = cout;
 
-void FakeSecret::load(int n, const Integer& x)
+void FakeSecret::load_clear(int n, const Integer& x)
 {
 	if ((size_t)n < 8 * sizeof(x) and abs(x.get()) >= (1LL << n))
 		throw out_of_range("public value too long");

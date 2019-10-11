@@ -101,12 +101,12 @@ def determine_scope(block, options):
     used_from_scope = set()
 
     def find_in_scope(reg, scope):
-        if scope is None:
-            return False
-        elif reg in scope.defined_registers:
-            return True
-        else:
-            return find_in_scope(reg, scope.scope)
+        while True:
+            if scope is None:
+                return False
+            elif reg in scope.defined_registers:
+                return True
+            scope = scope.scope
 
     def read(reg, n):
         if last_def[reg] == -1:
@@ -386,7 +386,7 @@ class Merger:
         last_print_str = None
         last = defaultdict(lambda: defaultdict(lambda: None))
         last_open = deque()
-        last_text_input = None
+        last_text_input = [None, None]
 
         depths = [0] * len(block.instructions)
         self.depths = depths
@@ -474,10 +474,14 @@ class Merger:
 
             # will be merged
             if isinstance(instr, TextInputInstruction):
-                if last_text_input is not None and \
-                   type(block.instructions[last_text_input]) is not type(instr):
-                    add_edge(last_text_input, n)
-                last_text_input = n
+                if last_text_input[0] is not None:
+                    if instr.merge_id() != \
+                       block.instructions[last_text_input[0]].merge_id():
+                        add_edge(last_text_input[0], n)
+                        last_text_input[1] = last_text_input[0]
+                    elif last_text_input[1] is not None:
+                        add_edge(last_text_input[1], n)
+                last_text_input[0] = n
 
             if isinstance(instr, merge_classes):
                 open_nodes.add(n)

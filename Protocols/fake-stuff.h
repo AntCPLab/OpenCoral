@@ -5,6 +5,8 @@
 #include <fstream>
 using namespace std;
 
+#include "Networking/Player.h"
+
 template<class T>
 void check_share(vector<T>& Sa, typename T::clear& value,
     typename T::value_type& mac, int N, const typename T::value_type& key);
@@ -26,6 +28,8 @@ void write_mac_keys(const string& directory, int player_num, int nplayers, U key
 
 template <class T, class U>
 void read_mac_keys(const string& directory, int player_num, int nplayers, U& keyp, T& key2);
+template <class T, class U>
+void read_mac_keys(const string& directory, const Names& N, U& keyp, T& key2);
 
 template <class T>
 class Files

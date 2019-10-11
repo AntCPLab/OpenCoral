@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef PROTOCOLS_SHAMIRINPUT_HPP_
+#define PROTOCOLS_SHAMIRINPUT_HPP_
+
 #include "ShamirInput.h"
 #include "Machines/ShamirMachine.h"
 
@@ -19,8 +22,9 @@ void IndividualInput<U>::reset(int player)
 }
 
 template<class T>
-void ShamirInput<T>::add_mine(const typename T::clear& input)
+void ShamirInput<T>::add_mine(const typename T::clear& input, int n_bits)
 {
+    (void) n_bits;
     auto& P = this->P;
     int n = P.num_players();
     int t = ShamirMachine::s().threshold;
@@ -69,8 +73,11 @@ void IndividualInput<U>::send_mine()
 }
 
 template<class T>
-void IndividualInput<T>::finalize_other(int player, T& target, octetStream& o)
+void IndividualInput<T>::finalize_other(int player, T& target, octetStream& o,
+        int n_bits)
 {
     (void) player;
-    target.unpack(o);
+    target.unpack(o, n_bits);
 }
+
+#endif

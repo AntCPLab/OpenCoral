@@ -153,7 +153,7 @@ size_t NonInteractiveProofSimpleEncCommit<FD>::create_more(octetStream& cipherte
     others_ciphertexts.resize(this->sec, pk.get_params());
     for (int i = 1; i < P.num_players(); i++)
     {
-#ifdef VERBOSE
+#ifdef VERBOSE_HE
         cerr << "Sending proof with " << 1e-9 * ciphertexts.get_length() << "+"
                 << 1e-9 * cleartexts.get_length() << " GB" << endl;
 #endif
@@ -164,7 +164,7 @@ size_t NonInteractiveProofSimpleEncCommit<FD>::create_more(octetStream& cipherte
 #ifndef LESS_ALLOC_MORE_MEM
         Verifier<FD,S> verifier(proof);
 #endif
-#ifdef VERBOSE
+#ifdef VERBOSE_HE
         cerr << "Checking proof of player " << i << endl;
 #endif
         timers["Verifying"].start();

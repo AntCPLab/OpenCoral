@@ -3,11 +3,15 @@
  *
  */
 
+#ifndef PROTOCOLS_MASCOTPREP_HPP_
+#define PROTOCOLS_MASCOTPREP_HPP_
+
 #include "MascotPrep.h"
 #include "Processor/Processor.h"
 #include "Processor/BaseMachine.h"
 #include "OT/OTTripleSetup.h"
 #include "OT/Triple.hpp"
+#include "OT/NPartyTripleGenerator.hpp"
 
 template<class T>
 OTPrep<T>::OTPrep(SubProcessor<T>* proc, DataPositions& usage) :
@@ -58,7 +62,7 @@ template<class T>
 void MascotFieldPrep<T>::buffer_inverses()
 {
     assert(this->proc != 0);
-    BufferPrep<T>::buffer_inverses(this->proc->MC, this->proc->P);
+    ::buffer_inverses(this->inverses, *this, this->proc->MC, this->proc->P);
 }
 
 template<class T>
@@ -89,12 +93,18 @@ template<class T>
 T MascotPrep<T>::get_random()
 {
     assert(this->proc);
+    return BufferPrep<T>::get_random_from_inputs(this->proc->P.num_players());
+}
+
+template<class T>
+T BufferPrep<T>::get_random_from_inputs(int nplayers)
+{
     T res;
-    for (int j = 0; j < this->proc->P.num_players(); j++)
+    for (int j = 0; j < nplayers; j++)
     {
         T tmp;
         typename T::open_type _;
-        this->get_input(tmp, _, j);
+        this->get_input_no_count(tmp, _, j);
         res += tmp;
     }
     return res;
@@ -108,3 +118,5 @@ size_t OTPrep<T>::data_sent()
     else
         return 0;
 }
+
+#endif

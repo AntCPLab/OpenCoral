@@ -14,6 +14,10 @@
 #include <array>
 
 template<class T>
+void buffer_inverses(vector<array<T, 2>>& inverses, Preprocessing<T>& prep,
+        MAC_Check_Base<T>& MC, Player& P);
+
+template<class T>
 class BufferPrep : public Preprocessing<T>
 {
 protected:
@@ -31,7 +35,8 @@ protected:
     virtual void buffer_bits() = 0;
     virtual void buffer_inputs(int player);
 
-    virtual void buffer_inverses(MAC_Check_Base<T>& MC, Player& P);
+    // don't call this if T::Input requires input tuples
+    void buffer_inputs_as_usual(int player, SubProcessor<T>* proc);
 
 public:
     typedef T share_type;
@@ -53,6 +58,8 @@ public:
     void get_input_no_count(T& a, typename T::open_type& x, int i);
     void get_no_count(vector<T>& S, DataTag tag, const vector<int>& regs,
             int vector_size);
+
+    T get_random_from_inputs(int nplayers);
 };
 
 template<class T>
@@ -91,6 +98,8 @@ public:
     virtual ~SemiHonestRingPrep() {}
 
     virtual void buffer_bits() { this->buffer_bits_without_check(); }
+    virtual void buffer_inputs(int player)
+    { this->buffer_inputs_as_usual(player, this->proc); }
 };
 
 template<class T>

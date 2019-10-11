@@ -80,6 +80,12 @@ def LTZ(s, a, k, kappa):
     Trunc(t, a, k, k - 1, kappa, True)
     subsfi(s, t, 0)
 
+def LessThanZero(a, k, kappa):
+    import types
+    res = types.sint()
+    LTZ(res, a, k, kappa)
+    return res
+
 def Trunc(d, a, k, m, kappa, signed):
     """
     d = a >> m
@@ -153,6 +159,8 @@ def TruncRoundNearest(a, k, m, kappa, signed=False):
     k: bit length of a
     m: compile-time integer
     """
+    if m == 0:
+        return a
     if k == int(program.options.ring):
         # cannot work with bit length k+1
         tmp = TruncRing(None, a, k, m - 1, signed)
@@ -359,7 +367,7 @@ def CarryOutAux(d, a, kappa):
         movs(d, a[0][1])
 
 # carry out with carry-in bit c
-def CarryOut(res, a, b, c, kappa):
+def CarryOut(res, a, b, c=0, kappa=None):
     """
     res = last carry bit in addition of a and b
 
@@ -368,8 +376,9 @@ def CarryOut(res, a, b, c, kappa):
     c: initial carry-in bit
     """
     k = len(a)
+    import types
     d = [program.curr_block.new_reg('s') for i in range(k)]
-    t = [[program.curr_block.new_reg('s') for i in range(k)] for i in range(4)]
+    t = [[types.sint() for i in range(k)] for i in range(4)]
     s = [program.curr_block.new_reg('s') for i in range(3)]
     for i in range(k):
         mulm(t[0][i], b[i], a[i])
@@ -377,11 +386,18 @@ def CarryOut(res, a, b, c, kappa):
         addm(t[2][i], b[i], a[i])
         subs(t[3][i], t[2][i], t[1][i])
         d[i] = [t[3][i], t[0][i]]
-    mulsi(s[0], d[-1][0], c)
-    adds(s[1], d[-1][1], s[0])
+    s[0] = d[-1][0] * c
+    s[1] = d[-1][1] + s[0]
     d[-1][1] = s[1]
     
     CarryOutAux(res, d[::-1], kappa)
+
+def CarryOutLE(a, b, c=0):
+    """ Little-endian version """
+    import types
+    res = types.sint()
+    CarryOut(res, a[::-1], b[::-1], c)
+    return res
 
 def BitLTL(res, a, b, kappa):
     """

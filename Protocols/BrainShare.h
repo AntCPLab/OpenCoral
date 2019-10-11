@@ -25,7 +25,7 @@ public:
     typedef HashMaliciousRepMC<BrainShare> MAC_Check;
     typedef MAC_Check Direct_MC;
     typedef ReplicatedInput<BrainShare> Input;
-    typedef ReplicatedPrivateOutput<BrainShare> PrivateOutput;
+    typedef ::PrivateOutput<BrainShare> PrivateOutput;
     typedef BrainPrep<BrainShare> LivePrep;
 
     const static int N_MASK_BITS = clear::N_BITS + S;

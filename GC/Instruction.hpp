@@ -93,8 +93,8 @@ unsigned GC::Instruction<T>::get_max_reg(int reg_type) const
         offset = 1;
         break;
     case INPUTB:
-        skip = 3;
-        offset = 2;
+        skip = 4;
+        offset = 3;
         break;
     case CONVCBIT:
         return BaseInstruction::get_max_reg(INT);

@@ -9,6 +9,8 @@
 #include <vector>
 using namespace std;
 
+#include "Math/BitVec.h"
+
 class Player;
 
 template<class T> class SubProcessor;
@@ -31,6 +33,7 @@ public:
     }
 };
 
+template<class V>
 class NotImplementedInput
 {
 public:
@@ -38,6 +41,10 @@ public:
     NotImplementedInput(T& proc, U& MC)
     {
         (void) proc, (void) MC;
+    }
+    NotImplementedInput(Player& P)
+    {
+        (void) P;
     }
     void start(int n, vector<int> regs)
     {
@@ -63,6 +70,25 @@ public:
     static void input(SubProcessor<T>& proc, vector<int> regs)
     {
         (void) proc, (void) regs;
+        throw not_implemented();
+    }
+    void reset_all(Player& P)
+    {
+        (void) P;
+        throw not_implemented();
+    }
+    void add_mine(int a, int b)
+    {
+        (void) a, (void) b;
+        throw not_implemented();
+    }
+    void exchange()
+    {
+        throw not_implemented();
+    }
+    V finalize(int a, int b)
+    {
+        (void) a, (void) b;
         throw not_implemented();
     }
 };

@@ -153,6 +153,7 @@ void BaseInstruction::parse_operands(istream& s, int pos)
       case GPROTECTMEMS:
       case GPROTECTMEMC:
       case PROTECTMEMINT:
+      case CONDPRINTPLAIN:
         r[0]=get_int(s);
         r[1]=get_int(s);
         break;
@@ -293,6 +294,8 @@ void BaseInstruction::parse_operands(istream& s, int pos)
       case GINPUT:
       case INPUTFIX:
       case INPUTFLOAT:
+      case INPUTMIXED:
+      case TRUNC_PR:
         num_var_args = get_int(s);
         get_vector(num_var_args, start, s);
         break;
@@ -594,6 +597,11 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       for (int i = 0; i < size; i++)
          Proc.get_S2_ref(r[0] + i).mul(Proc.read_S2(r[1] + i),Proc.read_C2(r[2] + i));
       return;
+    case LDI:
+      Proc.temp.assign_ansp(n);
+      for (int i = 0; i < size; i++)
+        Proc.write_Cp(r[0] + i,Proc.temp.ansp);
+      return;
     case ADDC:
       for (int i = 0; i < size; i++)
         Proc.get_Cp_ref(r[0] + i).add(Proc.read_Cp(r[1] + i),Proc.read_Cp(r[2] + i));
@@ -602,9 +610,23 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       for (int i = 0; i < size; i++)
         Proc.get_Sp_ref(r[0] + i).add(Proc.read_Sp(r[1] + i),Proc.read_Sp(r[2] + i));
       return;
+    case ADDM:
+      for (int i = 0; i < size; i++)
+        Proc.get_Sp_ref(r[0] + i).add(Proc.read_Sp(r[1] + i),Proc.read_Cp(r[2] + i),Proc.P.my_num(),Proc.MCp.get_alphai());
+      return;
+    case ADDCI:
+      Proc.temp.assign_ansp(n);
+      for (int i = 0; i < size; i++)
+         Proc.get_Cp_ref(r[0] + i).add(Proc.temp.ansp,Proc.read_Cp(r[1] + i));
+      return;
     case SUBS:
       for (int i = 0; i < size; i++)
         Proc.get_Sp_ref(r[0] + i).sub(Proc.read_Sp(r[1] + i),Proc.read_Sp(r[2] + i));
+      return;
+    case SUBSFI:
+      Proc.temp.assign_ansp(n);
+      for (int i = 0; i < size; i++)
+        Proc.get_Sp_ref(r[0] + i).sub(Proc.temp.ansp,Proc.read_Sp(r[1] + i),Proc.P.my_num(),Proc.MCp.get_alphai());
       return;
     case MULM:
       for (int i = 0; i < size; i++)
@@ -614,6 +636,11 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       for (int i = 0; i < size; i++)
         Proc.get_Cp_ref(r[0] + i).mul(Proc.read_Cp(r[1] + i),Proc.read_Cp(r[2] + i));
       return;
+    case MULCI:
+      Proc.temp.assign_ansp(n);
+      for (int i = 0; i < size; i++)
+        Proc.get_Cp_ref(r[0] + i).mul(Proc.temp.ansp,Proc.read_Cp(r[1] + i));
+      return;
     case TRIPLE:
       for (int i = 0; i < size; i++)
         Procp.DataF.get_three(DATA_TRIPLE, Proc.get_Sp_ref(r[0] + i),
@@ -622,6 +649,33 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
     case BIT:
       for (int i = 0; i < size; i++)
         Procp.DataF.get_one(DATA_BIT, Proc.get_Sp_ref(r[0] + i));
+      return;
+    case LDINT:
+      for (int i = 0; i < size; i++)
+        Proc.write_Ci(r[0] + i, int(n));
+      return;
+    case ADDINT:
+      for (int i = 0; i < size; i++)
+        Proc.get_Ci_ref(r[0] + i) = Proc.read_Ci(r[1] + i) + Proc.read_Ci(r[2] + i);
+      return;
+    case SUBINT:
+      for (int i = 0; i < size; i++)
+        Proc.get_Ci_ref(r[0] + i) = Proc.read_Ci(r[1] + i) - Proc.read_Ci(r[2] + i);
+      return;
+    case MULINT:
+      for (int i = 0; i < size; i++)
+        Proc.get_Ci_ref(r[0] + i) = Proc.read_Ci(r[1] + i) * Proc.read_Ci(r[2] + i);
+      return;
+    case DIVINT:
+      for (int i = 0; i < size; i++)
+        Proc.get_Ci_ref(r[0] + i) = Proc.read_Ci(r[1] + i) / Proc.read_Ci(r[2] + i);
+      return;
+    case CONVINT:
+      for (int i = 0; i < size; i++)
+      {
+        Proc.temp.assign_ansp(Proc.read_Ci(r[1] + i));
+        Proc.get_Cp_ref(r[0] + i) = Proc.temp.ansp;
+      }
       return;
   }
 
@@ -1003,6 +1057,9 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       case INPUTFLOAT:
         sint::Input::template input<FloatInput>(Proc.Procp, start, size);
         return;
+      case INPUTMIXED:
+        sint::Input::input_mixed(Proc.Procp, start, size);
+        return;
       case STARTINPUT:
         Proc.Procp.input.start(r[0],n);
         break;
@@ -1150,6 +1207,9 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       case GDOTPRODS:
         Proc.Proc2.dotprods(start, size);
         return;
+      case TRUNC_PR:
+        Proc.Procp.protocol.trunc_pr(start, size, Proc.Procp);
+        return;
       case JMP:
         Proc.PC += (signed int) n;
         break;
@@ -1256,6 +1316,10 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
            {
              Proc.out << Proc.read_Cp(r[0]) << flush;
            }
+        break;
+      case CONDPRINTPLAIN:
+        if (not Proc.read_Cp(r[0]).is_zero())
+          Proc.out << Proc.read_Cp(r[1]) << flush;
         break;
       case GPRINTREGPLAIN:
            {
@@ -1462,9 +1526,6 @@ void Program::execute(Processor<sint, sgf2n>& Proc) const
 {
   unsigned int size = p.size();
   Proc.PC=0;
-  octet seed[SEED_SIZE];
-  memset(seed, 0, SEED_SIZE);
-  Proc.shared_prng.SetSeed(seed);
   while (Proc.PC<size)
     { p[Proc.PC].execute(Proc); }
 }

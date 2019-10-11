@@ -27,7 +27,18 @@ public:
     {
     }
 
-    void add_mine(const typename T::clear& input);
+    SemiInput(typename T::MAC_Check& MC, Preprocessing<T>& prep, Player& P) :
+            SemiInput(P)
+    {
+        (void) MC, (void) prep;
+    }
+
+    SemiInput(Player& P) :
+            IndividualInput<T>(0, P)
+    {
+    }
+
+    void add_mine(const typename T::clear& input, int n_bits = -1);
 };
 
 #endif /* PROTOCOLS_SEMIINPUT_H_ */

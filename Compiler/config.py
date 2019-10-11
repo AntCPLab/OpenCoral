@@ -47,7 +47,10 @@ COST = { 'modp': defaultdict(lambda: 0,
            'bittriple': 0.00004828818388140422,
            'bitgf2ntriple': 0.00020716801325875284,
            'PreMulC': 2 * 0.00020716801325875284,
-         })
+         }),
+         'all': { 'round': 0,
+                  'inv': 0,
+         }
 }
 
 

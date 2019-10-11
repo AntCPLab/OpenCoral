@@ -6,6 +6,7 @@
 #include "MalRepRingPrep.h"
 #include "MaliciousRepPrep.h"
 #include "MalRepRingOptions.h"
+#include "ShuffleSacrifice.h"
 #include "Processor/OnlineOptions.h"
 
 template<class T>
@@ -68,15 +69,25 @@ template<class T>
 void shuffle_triple_generation(vector<array<T, 3>>& triples, Player& P,
         typename T::MAC_Check& MC, int n_bits = -1)
 {
-    int N = max(1 << 20, OnlineOptions::singleton.batch_size);
-    int B = 3;
-    int C = 3;
-    int buffer_size = B * N + C;
+    ShuffleSacrifice<T> sacrifice;
     vector<array<T, 3>> check_triples;
+    int buffer_size = sacrifice.minimum_n_inputs(OnlineOptions::singleton.batch_size);
 
     // optimistic triple generation
     Replicated<T> protocol(P);
     generate_triples(check_triples, buffer_size, &protocol, n_bits);
+
+    sacrifice.triple_sacrifice(triples, check_triples, P, MC);
+}
+
+template<class T>
+void ShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
+        vector<array<T, 3>>& check_triples, Player& P,
+        typename T::MAC_Check& MC)
+{
+    int buffer_size = check_triples.size();
+    assert(buffer_size >= minimum_n_inputs());
+    int N = (buffer_size - C) / B;
 
     // shuffle
     GlobalPRNG G(P);
@@ -98,7 +109,7 @@ void shuffle_triple_generation(vector<array<T, 3>>& triples, Player& P,
     vector<typename T::open_type> opened;
     MC.POpen(opened, shares, P);
     for (int i = 0; i < C; i++)
-        if (typename T::open_type(opened[3 * i] * opened[3 * i + 1]) != opened[3 * i + 2])
+        if (typename T::clear(opened[3 * i] * opened[3 * i + 1]) != opened[3 * i + 2])
             throw Offline_Check_Error("shuffle opening");
 
     // sacrifice buckets
@@ -130,7 +141,7 @@ void shuffle_triple_generation(vector<array<T, 3>>& triples, Player& P,
             T& h = check_triples[i + N * j][2];
             typename T::open_type& rho = *(it++);
             typename T::open_type& sigma = *(it++);
-            checks.push_back(c - h - rho * b - sigma * f);
+            checks.push_back(c - h - b * rho - f * sigma);
         }
     }
     MC.CheckFor(0, checks, P);
@@ -150,4 +161,10 @@ void MalRepRingPrepWithBits<T>::buffer_bits()
     SubProcessor<BitShare> bit_proc(proc->Proc, MC, prep, proc->P);
     prep.set_proc(&bit_proc);
     bits_from_square_in_ring(this->bits, OnlineOptions::singleton.batch_size, &prep);
+}
+
+template<class T>
+void MalRepRingPrep<T>::buffer_inputs(int player)
+{
+    this->buffer_inputs_as_usual(player, this->proc);
 }

@@ -15,7 +15,7 @@ class Bundle : public vector<T>
 public:
     T& mine;
 
-    Bundle(const Player& P) :
+    Bundle(const PlayerBase& P) :
             vector<T>(P.num_players()), mine(this->at(P.my_num()))
     {
     }

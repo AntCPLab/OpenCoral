@@ -102,9 +102,9 @@ void Secret<T>::random_bit()
 }
 
 template <class T>
-template <class U>
+template <class U, class V>
 void Secret<T>::store(U& mem,
-        vector<WriteAccess<Secret<T> > >& accesses)
+        vector<WriteAccess<V> >& accesses)
 {
     T::store(mem, accesses);
 }
@@ -194,7 +194,7 @@ T& GC::Secret<T>::get_new_reg()
 }
 
 template <class T>
-void Secret<T>::load(int n, const Integer& x)
+void Secret<T>::load_clear(int n, const Integer& x)
 {
     if ((unsigned)n < 8 * sizeof(x) and abs(x.get()) > (1LL << n))
         throw out_of_range("public value too long");
@@ -219,8 +219,8 @@ void Secret<T>::load(int n, const Integer& x)
 }
 
 template <class T>
-template <class U>
-void Secret<T>::load(vector<ReadAccess < Secret<T> > >& accesses, const U& mem)
+template <class U, class V>
+void Secret<T>::load(vector<ReadAccess <V> >& accesses, const U& mem)
 {
     for (auto&& access : accesses)
     {
@@ -252,7 +252,8 @@ Secret<T> Secret<T>::operator>>(int i)
 }
 
 template <class T>
-void Secret<T>::bitcom(Memory<Secret>& S, const vector<int>& regs)
+template <class U>
+void Secret<T>::bitcom(Memory<U>& S, const vector<int>& regs)
 {
     registers.clear();
     for (unsigned int i = 0; i < regs.size(); i++)
@@ -264,7 +265,8 @@ void Secret<T>::bitcom(Memory<Secret>& S, const vector<int>& regs)
 }
 
 template <class T>
-void Secret<T>::bitdec(Memory<Secret>& S, const vector<int>& regs) const
+template <class U>
+void Secret<T>::bitdec(Memory<U>& S, const vector<int>& regs) const
 {
     if (regs.size() > registers.size())
         throw out_of_range(
@@ -280,7 +282,8 @@ void Secret<T>::bitdec(Memory<Secret>& S, const vector<int>& regs) const
 }
 
 template<class T>
-void Secret<T>::trans(Processor<Secret<T> >& processor, int n_outputs,
+template<class U>
+void Secret<T>::trans(Processor<U>& processor, int n_outputs,
         const vector<int>& args)
 {
     int n_inputs = args.size() - n_outputs;
