@@ -204,4 +204,12 @@ public:
 };
 class needs_cleaning : public exception {};
 
+class closed_connection
+{
+    const char* what() const
+    {
+        return "connection closed down";
+    }
+};
+
 #endif

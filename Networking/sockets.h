@@ -116,7 +116,7 @@ inline void receive(int socket,octet *msg,size_t len)
             { error("Receiving error - 1"); }
         }
       else
-        throw runtime_error("connection closed down");
+        throw closed_connection();
     }
 }
 

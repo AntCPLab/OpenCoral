@@ -92,7 +92,19 @@ void ServerSocket::accept_clients()
       if (consocket<0) { error("set_up_socket:accept"); }
 
       int client_id;
-      receive(consocket, (unsigned char*)&client_id, sizeof(client_id));
+      try
+      {
+          receive(consocket, (unsigned char*)&client_id, sizeof(client_id));
+      }
+      catch (closed_connection&)
+      {
+#ifdef DEBUG_NETWORKING
+          auto& conn = *(sockaddr_in*)&dest;
+          cerr << "client on " << inet_ntoa(conn.sin_addr) << ":"
+                  << ntohs(conn.sin_port) << " left without identification"
+                  << endl;
+#endif
+      }
 
       data_signal.lock();
       clients[client_id] = consocket;
