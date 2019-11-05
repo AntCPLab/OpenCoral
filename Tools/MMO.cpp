@@ -82,13 +82,6 @@ void MMO::hashBlocks<gfp1, 1>(void* output, const void* input)
 }
 
 template <>
-void MMO::hashBlockWise<gf2n,128>(octet* output, octet* input)
-{
-    for (int i = 0; i < 16; i++)
-        encrypt_and_xor<8>(&((__m128i*)output)[i*8], &((__m128i*)input)[i*8], IV[0]);
-}
-
-template <>
 void MMO::hashBlocks<gfp1, 8>(void* output, const void* input)
 {
     if (gfp1::get_ZpD().get_t() < 2)
@@ -122,17 +115,6 @@ void MMO::hashBlocks<gfp1, 8>(void* output, const void* input)
                 memcpy(addr, &tmp, min(block_size, gfp1::size() - i * block_size));
                 out[indices[j]].zero_overhang();
             }
-    }
-}
-
-template <>
-void MMO::hashBlockWise<gfp1,128>(octet* output, octet* input)
-{
-    for (int i = 0; i < 16; i++)
-    {
-        __m128i* in = &((__m128i*)input)[i*8];
-        __m128i* out = &((__m128i*)output)[i*8];
-        hashBlocks<gfp1,8>(out, in);
     }
 }
 

@@ -311,8 +311,23 @@ void OTMultiplier<Share<gfp1>>::multiplyForBits()
 }
 
 template<>
-void OTMultiplier<Share<gf2n>>::multiplyForBits()
+void OTMultiplier<Share<gf2n_long>>::multiplyForBits()
 {
+    multiplyForGf2nBits();
+}
+
+template<>
+void OTMultiplier<Share<gf2n_short>>::multiplyForBits()
+{
+    multiplyForGf2nBits();
+}
+
+template<class T>
+void OTMultiplier<T>::multiplyForGf2nBits()
+{
+    auto& macs = this->macs;
+    auto& outbox = this->outbox;
+
     int nBits = generator.nTriplesPerLoop + generator.field_size;
     int nBlocks = ceil(1.0 * nBits / 128);
     BitVector extKeyBits = keyBits;
@@ -343,7 +358,7 @@ void OTMultiplier<Share<gf2n>>::multiplyForBits()
     for (int i = 0; i < generator.nloops; i++)
     {
         auth_ot_ext.expand(0, nBlocks);
-        inbox.pop(job);
+        this->inbox.pop(job);
         auth_ot_ext.correlate(0, nBlocks, generator.valueBits[0], true);
         auth_ot_ext.transpose(0, nBlocks);
 
@@ -351,7 +366,7 @@ void OTMultiplier<Share<gf2n>>::multiplyForBits()
         {
             int128 r = auth_ot_ext.receiverOutputMatrix.squares[j/128].rows[j%128];
             int128 s = auth_ot_ext.senderOutputMatrices[0].squares[j/128].rows[j%128];
-            macs[0][j] = gf2n::cut(r ^ s);
+            macs[0][j] = T::clear::cut(r ^ s);
         }
 
         outbox.push(job);

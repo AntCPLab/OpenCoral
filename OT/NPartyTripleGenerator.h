@@ -148,6 +148,7 @@ class MascotTripleGenerator : public NPartyTripleGenerator<T>
 
     void generateTriples();
     void generateBits();
+    void generateBitsGf2n();
     template<class U, class V, class W, int N>
     void generateBitsFromTriples(vector<ShareTriple_<U, V, N> >& triples,
             W& MC, ofstream& outputFile);

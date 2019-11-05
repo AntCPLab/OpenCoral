@@ -56,7 +56,6 @@ union square128 {
     void randomize(int row, PRNG& G);
     void conditional_add(BitVector& conditions, square128& other, int offset);
     void transpose();
-    void hash_row_wise(MMO& mmo, square128& input);
     template <class T>
     void to(T& result);
 

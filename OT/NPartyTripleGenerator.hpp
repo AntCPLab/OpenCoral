@@ -273,75 +273,83 @@ void NPartyTripleGenerator<W>::generateInputs(int player)
     MC.Check(globalPlayer);
 }
 
-template<>
-void MascotTripleGenerator<Share<gf2n>>::generateBits()
+template<class T>
+void MascotTripleGenerator<T>::generateBitsGf2n()
 {
-    for (int i = 0; i < nparties-1; i++)
-        ot_multipliers[i]->inbox.push(DATA_BIT);
+    auto& bits = this->bits;
+    auto& globalPlayer = this->globalPlayer;
+    auto& nTriplesPerLoop = this->nTriplesPerLoop;
+    auto& valueBits = this->valueBits;
 
-    int nBitsToCheck = nTriplesPerLoop + field_size;
+    this->signal_multipliers(DATA_BIT);
+
+    int nBitsToCheck = this->nTriplesPerLoop + this->field_size;
     valueBits.resize(1);
     valueBits[0].resize(ceil(1.0 * nBitsToCheck / 128) * 128);
     bits.resize(nBitsToCheck);
-    vector< Share<gf2n> > to_open(1);
-    vector<gf2n> opened(1);
-    MAC_Check<gf2n> MC(machine.get_mac_key<gf2n>());
+    vector<T> to_open(1);
+    vector<typename T::clear> opened(1);
+    MAC_Check_<T> MC(this->machine.template get_mac_key<typename T::clear>());
 
-    start_progress();
+    this->start_progress();
 
-    for (int k = 0; k < nloops; k++)
+    for (int k = 0; k < this->nloops; k++)
     {
-        print_progress(k);
+        this->print_progress(k);
 
-    	valueBits[0].randomize_blocks<gf2n>(share_prg);
+        valueBits[0].randomize(this->share_prg);
 
-        for (int i = 0; i < nparties-1; i++)
-            ot_multipliers[i]->inbox.push({});
-        timers["Authentication OTs"].start();
-        for (int i = 0; i < nparties-1; i++)
-            ot_multipliers[i]->outbox.pop();
-        timers["Authentication OTs"].stop();
+        this->signal_multipliers({});
+        this->timers["Authentication OTs"].start();
+        this->wait_for_multipliers();
+        this->timers["Authentication OTs"].stop();
 
         octet seed[SEED_SIZE];
-        Create_Random_Seed(seed, globalPlayer, SEED_SIZE);
+        Create_Random_Seed(seed, this->globalPlayer, SEED_SIZE);
         PRNG G;
         G.SetSeed(seed);
 
-        Share<gf2n> check_sum;
-        gf2n r;
+        T check_sum;
+        typename T::clear r;
         for (int j = 0; j < nBitsToCheck; j++)
         {
-            gf2n mac_sum = valueBits[0].get_bit(j) ? machine.get_mac_key<gf2n>() : 0;
-            for (int i = 0; i < nparties-1; i++)
-                mac_sum += ot_multipliers[i]->macs[0][j];
+            auto mac_sum = valueBits[0].get_bit(j) ? MC.get_alphai() : 0;
+            for (int i = 0; i < this->nparties-1; i++)
+                mac_sum += this->ot_multipliers[i]->macs[0][j];
             bits[j].set_share(valueBits[0].get_bit(j));
             bits[j].set_mac(mac_sum);
             r.randomize(G);
             check_sum += r * bits[j];
         }
-        bits.resize(nTriplesPerLoop);
+        bits.resize(this->nTriplesPerLoop);
 
         to_open[0] = check_sum;
         MC.POpen_Begin(opened, to_open, globalPlayer);
         MC.POpen_End(opened, to_open, globalPlayer);
         MC.Check(globalPlayer);
 
-        if (machine.output)
+        if (this->machine.output)
             for (int j = 0; j < nTriplesPerLoop; j++)
-                bits[j].output(outputFile, false);
+                bits[j].output(this->outputFile, false);
    }
+}
+
+template<>
+void MascotTripleGenerator<Share<gf2n_long>>::generateBits()
+{
+    generateBitsGf2n();
+}
+
+template<>
+void MascotTripleGenerator<Share<gf2n_short>>::generateBits()
+{
+    generateBitsGf2n();
 }
 
 template<>
 void MascotTripleGenerator<Share<gfp1>>::generateBits()
 {
 	generateTriples();
-}
-
-template <class T>
-void NPartyTripleGenerator<T>::generateBits()
-{
-    throw not_implemented();
 }
 
 template<class T>

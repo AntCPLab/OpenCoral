@@ -59,6 +59,7 @@ protected:
 
     void multiplyForTriples();
     void multiplyForBits();
+    void multiplyForGf2nBits();
 	virtual void multiplyForInputs(MultJob job) = 0;
 
     virtual void after_correlation() = 0;

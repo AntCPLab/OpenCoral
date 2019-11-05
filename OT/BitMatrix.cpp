@@ -284,11 +284,6 @@ void square128::conditional_add(BitVector& conditions, square128& other, int off
             rows[i] ^= other.rows[i];
 }
 
-void square128::hash_row_wise(MMO& mmo, square128& input)
-{
-    mmo.hashBlockWise<gf2n_long,128>((octet*)rows, (octet*)input.rows);
-}
-
 template <>
 void Square<gf2n_long>::to(gf2n_long& result)
 {
