@@ -8,6 +8,7 @@
 
 #include "Protocols/Shamir.h"
 #include "Protocols/ShamirInput.h"
+#include "Machines/ShamirMachine.h"
 
 template<class T> class ReplicatedPrep;
 

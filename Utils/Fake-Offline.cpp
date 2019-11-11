@@ -7,6 +7,7 @@
 #include "Protocols/BrainShare.h"
 #include "Protocols/MaliciousRep3Share.h"
 #include "Protocols/SemiShare.h"
+#include "Protocols/MaliciousShamirShare.h"
 #include "Protocols/fake-stuff.h"
 #include "Exceptions/Exceptions.h"
 #include "GC/MaliciousRepSecret.h"
@@ -78,7 +79,7 @@ void make_bit_triples(const gf2n& key,int N,int ntrip,Dtype dtype,bool zero)
  * str    = "2" or "p"
  */
 template<class T>
-void make_square_tuples(const typename T::mac_type& key,int N,int ntrip,const string& str,bool zero)
+void make_square_tuples(const typename T::mac_key_type& key,int N,int ntrip,const string& str,bool zero)
 {
   (void) str;
 
@@ -154,7 +155,7 @@ void make_bits(const typename T::mac_key_type& key, int N, int ntrip, bool zero,
  *
  */
 template<class T>
-void make_inputs(const typename T::mac_type& key,int N,int ntrip,const string& str,bool zero)
+void make_inputs(const typename T::mac_key_type& key,int N,int ntrip,const string& str,bool zero)
 {
   (void) str;
 
@@ -192,7 +193,7 @@ void make_inputs(const typename T::mac_type& key,int N,int ntrip,const string& s
 
 
 template<class T>
-void make_PreMulC(const typename T::mac_type& key, int N, int ntrip, bool zero)
+void make_PreMulC(const typename T::mac_key_type& key, int N, int ntrip, bool zero)
 {
   stringstream ss;
   ss << prep_data_prefix << "PreMulC-" << T::type_short();
@@ -220,7 +221,7 @@ void make_PreMulC(const typename T::mac_type& key, int N, int ntrip, bool zero)
 }
 
 template<class T>
-void make_basic(const typename T::mac_type& key, int nplayers, int nitems, bool zero)
+void make_basic(const typename T::mac_key_type& key, int nplayers, int nitems, bool zero)
 {
     make_mult_triples<T>(key, nplayers, nitems, zero, prep_data_prefix);
     make_bits<T>(key, nplayers, nitems, zero);
@@ -541,6 +542,12 @@ int generate(ez::ezOptionParser& opt)
 
   make_mult_triples<GC::TinySecret<40>>(keyt, nplayers, default_num, zero, prep_data_prefix);
   make_bits<GC::TinySecret<40>>(keyt, nplayers, default_num, zero);
+
+  make_basic<ShamirShare<gfp>>({}, nplayers, default_num, zero);
+  make_basic<ShamirShare<gf2n>>({}, nplayers, default_num, zero);
+
+  make_basic<MaliciousShamirShare<gfp>>({}, nplayers, default_num, zero);
+  make_basic<MaliciousShamirShare<gf2n>>({}, nplayers, default_num, zero);
 
   return 0;
 }

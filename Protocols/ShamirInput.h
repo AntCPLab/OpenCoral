@@ -38,12 +38,16 @@ class ShamirInput : public IndividualInput<T>
 {
     friend class Shamir<typename T::clear>;
 
-    vector<vector<typename T::clear>> vandermonde;
+    static vector<vector<typename T::clear>> vandermonde;
+
     SeededPRNG secure_prng;
 
     vector<typename T::Scalar> randomness;
 
 public:
+    static const vector<vector<typename T::clear>>& get_vandermonde(size_t t,
+            size_t n);
+
     ShamirInput(SubProcessor<T>& proc, ShamirMC<T>& MC) :
             IndividualInput<T>(proc)
     {

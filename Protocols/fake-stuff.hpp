@@ -5,10 +5,13 @@
 #include "Math/gfp.h"
 #include "Math/gf2n.h"
 
+#include "Protocols/ShamirInput.hpp"
+
 #include <fstream>
 
 template<class T> class Share;
 template<class T> class SemiShare;
+template<class T> class ShamirShare;
 template<class T, int L> class FixedVec;
 
 namespace GC
@@ -94,6 +97,23 @@ void make_share(FixedVec<T, 2>* Sa, const T& a, int N, const T& key, PRNG& G)
       share[1] = add_shares[i];
       Sa[i] = share;
     }
+}
+
+template<class T>
+void make_share(ShamirShare<T>* Sa, const T& a, int N, const T&, PRNG& G)
+{
+  insecure("share generation", false);
+  const auto& vandermonde = ShamirInput<ShamirShare<T>>::get_vandermonde(N / 2, N);
+  vector<T> randomness(N / 2);
+  for (auto& x : randomness)
+      x.randomize(G);
+  for (int i = 0; i < N; i++)
+  {
+      auto& share = Sa[i];
+      share = a;
+      for (int j = 0; j < N / 2; j++)
+          share += vandermonde[i][j] * randomness[j];
+  }
 }
 
 template<class T, class V>
@@ -325,7 +345,7 @@ void make_mult_triples(const typename T::mac_key_type& key, int N, int ntrip,
  * str    = "2" or "p"
  */
 template<class T>
-void make_inverse(const typename T::mac_type& key, int N, int ntrip, bool zero,
+void make_inverse(const typename T::mac_key_type& key, int N, int ntrip, bool zero,
     string prep_data_prefix)
 {
   PRNG G;

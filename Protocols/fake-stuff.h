@@ -37,9 +37,9 @@ class Files
 public:
   ofstream* outf;
   int N;
-  typename T::mac_type key;
+  typename T::mac_key_type key;
   PRNG G;
-  Files(int N, const typename T::mac_type& key, const string& prefix) : N(N), key(key)
+  Files(int N, const typename T::mac_key_type& key, const string& prefix) : N(N), key(key)
   {
     outf = new ofstream[N];
     for (int i=0; i<N; i++)

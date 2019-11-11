@@ -9,6 +9,9 @@
 #include "ShamirInput.h"
 #include "Machines/ShamirMachine.h"
 
+template<class T>
+vector<vector<typename T::clear>> ShamirInput<T>::vandermonde;
+
 template<class U>
 void IndividualInput<U>::reset(int player)
 {
@@ -22,25 +25,35 @@ void IndividualInput<U>::reset(int player)
 }
 
 template<class T>
+const vector<vector<typename T::clear>>& ShamirInput<T>::get_vandermonde(
+        size_t t, size_t n)
+{
+    if (vandermonde.size() < n)
+        vandermonde.resize(n, vector<typename T::clear>(t));
+
+    for (int i = 0; i < int(n); i++)
+        if (vandermonde[n].size() < t)
+        {
+            vandermonde[n].resize(t);
+            typename T::clear x = 1;
+            for (size_t j = 0; j < t; j++)
+            {
+                x *= (i + 1);
+                vandermonde[i][j] = x;
+            }
+        }
+
+    return vandermonde;
+}
+
+template<class T>
 void ShamirInput<T>::add_mine(const typename T::clear& input, int n_bits)
 {
     (void) n_bits;
     auto& P = this->P;
     int n = P.num_players();
     int t = ShamirMachine::s().threshold;
-    if (vandermonde.empty())
-    {
-        vandermonde.resize(n, vector<typename T::clear>(t));
-        for (int i = 0; i < n; i++)
-        {
-            typename T::clear x = 1;
-            for (int j = 0; j < t; j++)
-            {
-                x *= (i + 1);
-                vandermonde[i][j] = x;
-            }
-        }
-    }
+    const auto& vandermonde = get_vandermonde(t, n);
 
     randomness.resize(t);
     for (auto& x : randomness)
