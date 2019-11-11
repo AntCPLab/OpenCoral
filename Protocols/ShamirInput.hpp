@@ -29,12 +29,12 @@ const vector<vector<typename T::clear>>& ShamirInput<T>::get_vandermonde(
         size_t t, size_t n)
 {
     if (vandermonde.size() < n)
-        vandermonde.resize(n, vector<typename T::clear>(t));
+        vandermonde.resize(n);
 
     for (int i = 0; i < int(n); i++)
-        if (vandermonde[n].size() < t)
+        if (vandermonde[i].size() < t)
         {
-            vandermonde[n].resize(t);
+            vandermonde[i].resize(t);
             typename T::clear x = 1;
             for (size_t j = 0; j < t; j++)
             {
