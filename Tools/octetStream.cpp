@@ -197,12 +197,13 @@ void octetStream::exchange(T send_socket, T receive_socket, octetStream& receive
 #ifdef TIME_ROUNDS
   Timer recv_timer;
 #endif
-  size_t n_iter = 0;
+  size_t n_iter = 0, n_send = 0;
   while (received < new_len or sent < len or not length_received)
     {
       n_iter++;
       if (sent < len)
         {
+          n_send++;
           size_t to_send = len - sent;
           sent += send_non_blocking(send_socket, data + sent, to_send);
         }
@@ -223,8 +224,15 @@ void octetStream::exchange(T send_socket, T receive_socket, octetStream& receive
 #ifdef TIME_ROUNDS
               TimeScope ts(recv_timer);
 #endif
-              received += receive_non_blocking(receive_socket,
-                  receive_stream.data + received, to_receive);
+              if (sent < len)
+                received += receive_non_blocking(receive_socket,
+                    receive_stream.data + received, to_receive);
+              else
+                {
+                  receive(receive_socket,
+                      receive_stream.data + received, to_receive);
+                  received += to_receive;
+                }
             }
         }
       else if (not length_received)
@@ -233,7 +241,12 @@ void octetStream::exchange(T send_socket, T receive_socket, octetStream& receive
           TimeScope ts(recv_timer);
 #endif
           octet blen[LENGTH_SIZE];
-          if (receive_all_or_nothing(receive_socket,blen,LENGTH_SIZE) == LENGTH_SIZE)
+          size_t tmp = LENGTH_SIZE;
+          if (sent < len)
+            tmp = receive_all_or_nothing(receive_socket, blen, LENGTH_SIZE);
+          else
+            receive(receive_socket, blen, LENGTH_SIZE);
+          if (tmp == LENGTH_SIZE)
             {
               new_len=decode_length(blen,sizeof(blen));
               receive_stream.resize(max(new_len, len));
@@ -245,7 +258,8 @@ void octetStream::exchange(T send_socket, T receive_socket, octetStream& receive
 #ifdef TIME_ROUNDS
   cout << "Exchange time: " << recv_timer.elapsed() << " seconds and " << n_iter <<
           " iterations to receive "
-      << 1e-3 * new_len << " KB" << endl;
+      << 1e-3 * new_len << " KB, " << n_send
+      << " iterations to send " << 1e-3 * len << " KB" << endl;
 #endif
   receive_stream.len = new_len;
   receive_stream.reset_read_head();
