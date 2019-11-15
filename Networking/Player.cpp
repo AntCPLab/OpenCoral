@@ -123,7 +123,7 @@ void Names::setup_names(const char *servername, int my_port)
   set_up_client_socket(socket_num, servername, pn);
   send(socket_num, (octet*)&player_no, sizeof(player_no));
 #ifdef DEBUG_NETWORKING
-  cerr << "Sent " << player_no << " to " << servername << ":" << pn << endl;
+  fprintf(stderr, "Sent %d to %s:%d\n", player_no, servername, pn);
 #endif
 
   int inst=-1; // wait until instruction to start.
