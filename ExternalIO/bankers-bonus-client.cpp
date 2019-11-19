@@ -165,6 +165,7 @@ int main(int argc, char** argv)
     // init static gfp
     string prep_data_prefix = get_prep_dir(nparties, 128, gf2n::default_degree());
     initialise_fields(prep_data_prefix);
+    bigint::init_thread();
 
     // Setup connections from this client to each party socket
     vector<int> sockets(nparties);
