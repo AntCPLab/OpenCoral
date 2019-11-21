@@ -42,6 +42,11 @@ public:
         return "replicated " + T::type_string();
     }
 
+    static int threshold(int)
+    {
+        return 1;
+    }
+
     static Rep3Share constant(T value, int my_num, const T& alphai = {})
     {
         return Rep3Share(value, my_num, alphai);

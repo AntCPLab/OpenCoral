@@ -29,15 +29,7 @@ void run(int argc, const char** argv)
 {
     bigint::init_thread();
     ez::ezOptionParser opt;
-    opt.add(
-            "", // Default.
-            0, // Required?
-            0, // Number of args expected.
-            0, // Delimiter if expecting multiple args.
-            "Delay multiplication until signing", // Help description.
-            "-D", // Flag token.
-            "--delay-multiplication" // Flag token.
-    );
+    EcdsaOptions opts(opt, argc, argv);
     Names N(opt, argc, argv, 3);
     int n_tuples = 1000;
     if (not opt.lastArgs.empty())
@@ -51,10 +43,12 @@ void run(int argc, const char** argv)
     P.Broadcast_Receive(bundle, false);
     Timer timer;
     timer.start();
+    auto stats = P.comm_stats;
     pShare sk = typename T<P256Element::Scalar>::Honest::Protocol(P).get_random();
     cout << "Secret key generation took " << timer.elapsed() * 1e3 << " ms" << endl;
+    (P.comm_stats - stats).print(true);
 
-    OnlineOptions::singleton.batch_size = n_tuples;
+    OnlineOptions::singleton.batch_size = (1 + pShare::Protocol::uses_triples) * n_tuples;
     DataPositions usage;
     auto& prep = *Preprocessing<pShare>::get_live_prep(0, usage);
     typename pShare::MAC_Check MCp;
@@ -63,9 +57,9 @@ void run(int argc, const char** argv)
 
     bool prep_mul = not opt.isSet("-D");
     vector<EcTuple<T>> tuples;
-    preprocessing(tuples, n_tuples, sk, proc, prep_mul);
+    preprocessing(tuples, n_tuples, sk, proc, opts);
 //    check(tuples, sk, {}, P);
-    sign_benchmark(tuples, sk, MCp, P, prep_mul ? 0 : &proc);
+    sign_benchmark(tuples, sk, MCp, P, opts, prep_mul ? 0 : &proc);
 
     delete &prep;
 }

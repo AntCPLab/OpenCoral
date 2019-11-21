@@ -23,7 +23,7 @@ double timeval_diff_in_seconds(struct timeval *start_time, struct timeval *end_t
 }
 
 
-long long timespec_diff(struct timespec *start_time, struct timespec *end_time)
+long long timespec_diff(const struct timespec *start_time, const struct timespec *end_time)
 {
   long long sec =end_time->tv_sec -start_time->tv_sec ;
   long long nsec=end_time->tv_nsec-start_time->tv_nsec;
@@ -70,5 +70,21 @@ Timer& Timer::operator -=(const Timer& other)
   assert(not running);
   assert(not other.running);
   elapsed_time -= other.elapsed_time;
+  return *this;
+}
+
+Timer& Timer::operator +=(const Timer& other)
+{
+  assert(clock_id == other.clock_id);
+  assert(not running);
+  elapsed_time += other.elapsed_time + other.elapsed_since_last_start();
+  return *this;
+}
+
+Timer& Timer::operator +=(const TimeScope& other)
+{
+  assert(clock_id == other.timer.clock_id);
+  assert(not running);
+  elapsed_time += other.timer.elapsed_since_last_start();
   return *this;
 }

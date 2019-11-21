@@ -71,12 +71,12 @@ EcSignature sign(const unsigned char* message, size_t length,
         prod = protocol.finalize_mul();
     }
     auto rx = tuple.R.x();
-    signature.s = MC.POpen(
+    signature.s = MC.open(
             tuple.a * hash_to_scalar(message, length) + prod * rx, P);
     cout << "Minimal signing took " << timer.elapsed() * 1e3 << " ms and sending "
             << (P.sent - start) << " bytes" << endl;
     auto diff = (P.comm_stats - stats);
-    diff.print();
+    diff.print(true);
     return signature;
 }
 
@@ -112,26 +112,30 @@ void check(EcSignature signature, const unsigned char* message, size_t length,
 template<template<class U> class T>
 void sign_benchmark(vector<EcTuple<T>>& tuples, T<P256Element::Scalar> sk,
         typename T<P256Element::Scalar>::MAC_Check& MCp, Player& P,
+        EcdsaOptions& opts,
         SubProcessor<T<P256Element::Scalar>>* proc = 0)
 {
     unsigned char message[1024];
     GlobalPRNG(P).get_octets(message, 1024);
-    typename T<P256Element>::MAC_Check MCc(MCp.get_alphai());
+    typename T<P256Element>::Direct_MC MCc(MCp.get_alphai());
 
     // synchronize
     Bundle<octetStream> bundle(P);
     P.Broadcast_Receive(bundle, true);
     Timer timer;
     timer.start();
-    P256Element pk = MCc.POpen(sk, P);
+    auto stats = P.comm_stats;
+    P256Element pk = MCc.open(sk, P);
     MCc.Check(P);
     cout << "Public key generation took " << timer.elapsed() * 1e3 << " ms" << endl;
-    P.comm_stats.print();
+    (P.comm_stats - stats).print(true);
 
     for (size_t i = 0; i < min(10lu, tuples.size()); i++)
     {
         check(sign(message, 1 << i, tuples[i], MCp, P, pk, sk, proc), message,
                 1 << i, pk);
+        if (not opts.check_open)
+            continue;
         Timer timer;
         timer.start();
         auto& check_player = MCp.get_check_player(P);

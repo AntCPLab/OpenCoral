@@ -21,7 +21,6 @@ class PairwiseMachine;
 template <class FD>
 class Multiplier
 {
-    PairwiseGenerator<FD>& generator;
     PairwiseMachine& machine;
     OffsetPlayer P;
     int num_players, my_num;
@@ -39,6 +38,9 @@ class Multiplier
 
 public:
     Multiplier(int offset, PairwiseGenerator<FD>& generator);
+    Multiplier(int offset, PairwiseMachine& machine, Player& P,
+            map<string, Timer>& timers);
+
     void multiply_and_add(Plaintext_<FD>& res, const Ciphertext& C,
             const Plaintext_<FD>& b);
     void multiply_and_add(Plaintext_<FD>& res, const Ciphertext& C,

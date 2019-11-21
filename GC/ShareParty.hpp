@@ -95,7 +95,7 @@ ShareParty<T>::ShareParty(int argc, const char** argv, int default_batch_size) :
             else
                 P = new PlainPlayer(this->N, 0xFFFF);
             for (int i = 0; i < this->machine.nthreads; i++)
-                this->machine.ot_setups.push_back({{{*P, true}}});
+                this->machine.ot_setups.push_back({*P, true});
             delete P;
         }
 

@@ -51,6 +51,20 @@ void Beaver<T>::exchange()
 }
 
 template<class T>
+void Beaver<T>::start_exchange()
+{
+    MC->POpen_Begin(opened, shares, P);
+}
+
+template<class T>
+void Beaver<T>::stop_exchange()
+{
+    MC->POpen_End(opened, shares, P);
+    it = opened.begin();
+    triple = triples.begin();
+}
+
+template<class T>
 T Beaver<T>::finalize_mul(int n)
 {
     (void) n;

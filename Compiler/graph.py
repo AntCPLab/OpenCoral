@@ -19,10 +19,10 @@ class SparseDiGraph(object):
         if default_attributes is None:
             default_attributes = { 'merges': None, 'stop': -1, 'start': -1 }
         self.default_attributes = default_attributes
-        self.attribute_pos = dict(zip(default_attributes.keys(), range(len(default_attributes))))
+        self.attribute_pos = dict(list(zip(list(default_attributes.keys()), list(range(len(default_attributes))))))
         self.n = max_nodes
         # each node contains list of default attributes, followed by outoing edges
-        self.nodes = [self.default_attributes.values() for i in range(self.n)]
+        self.nodes = [list(self.default_attributes.values()) for i in range(self.n)]
         self.succ = [set() for i in range(self.n)]
         self.pred = [set() for i in range(self.n)]
         self.weights = {}
@@ -45,7 +45,7 @@ class SparseDiGraph(object):
             raise CompilerError('Cannot add node %d to graph of size %d' % (i, self.n))
         node = self.nodes[i]
 
-        for a,value in attr.items():
+        for a,value in list(attr.items()):
             if a in self.default_attributes:
                 node[self.attribute_pos[a]] = value
             else:
@@ -72,7 +72,7 @@ class SparseDiGraph(object):
             #del self.weights[(v,i)]
             #self.nodes[v].remove(i)
         self.pred[i] = []
-        self.nodes[i] = self.default_attributes.values()
+        self.nodes[i] = list(self.default_attributes.values())
 
     def add_edge(self, i, j, weight=1):
         if j not in self[i]:
@@ -111,7 +111,7 @@ def topological_sort(G, nbunch=None, pref=None):
             return G[node]
     else:
         def get_children(node):
-            if pref.has_key(node):
+            if node in pref:
                 pref_set = set(pref[node])
                 for i in G[node]:
                     if i not in pref_set:
@@ -123,7 +123,7 @@ def topological_sort(G, nbunch=None, pref=None):
                     yield i
 
     if nbunch is None:
-        nbunch = reversed(range(len(G)))
+        nbunch = reversed(list(range(len(G))))
     for v in nbunch:     # process all vertices in G
         if v in explored: 
             continue
@@ -170,8 +170,8 @@ def reverse_dag_shortest_paths(G, source):
     dist[source] = 0
     for u in top_order:
         if u ==68273:
-            print 'dist[68273]', dist[u]
-            print 'pred[u]', G.pred[u]
+            print('dist[68273]', dist[u])
+            print('pred[u]', G.pred[u])
         if dist[u] is None:
             continue
         for v in G.pred[u]:
@@ -207,7 +207,7 @@ def longest_paths(G, sources=None):
         G.weights[edge] = -G.weights[edge]
     dist = {}
     for source in sources:
-        print ('%s, ' % source),
+        print(('%s, ' % source), end=' ')
         dist[source] = dag_shortest_paths(G, source)
     #dist = johnson(G, sources)
     # reset weights

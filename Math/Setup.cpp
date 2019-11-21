@@ -111,6 +111,13 @@ void generate_online_setup(ofstream& outf, string dirname, bigint& p, int lgp, i
 
 void write_online_setup(ofstream& outf, string dirname, const bigint& p, int lg2, bool mont)
 {
+  write_online_setup_without_init(outf, dirname, p, lg2);
+  gfp::init_field(p, mont);
+  init_gf2n(lg2);
+}
+
+void write_online_setup_without_init(ofstream& outf, string dirname, const bigint& p, int lg2)
+{
   if (p == 0)
     throw runtime_error("prime cannot be 0");
 
@@ -132,9 +139,6 @@ void write_online_setup(ofstream& outf, string dirname, const bigint& p, int lg2
   // Fix as a negative lg2 is a ``signal'' to choose slightly weaker
   // LWE parameters
   outf << abs(lg2) << endl;
-
-  gfp::init_field(p, mont);
-  init_gf2n(lg2);
 }
 
 void init_gf2n(int lg2)

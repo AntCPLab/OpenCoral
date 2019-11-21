@@ -13,6 +13,8 @@
 #include "FixInput.h"
 #include "FloatInput.h"
 
+#include "IntInput.hpp"
+
 template<class T>
 InputBase<T>::InputBase(ArithmeticProcessor* proc) :
         P(0), values_input(0)
@@ -295,7 +297,7 @@ void InputBase<T>::input_mixed(SubProcessor<T>& Proc, const vector<int>& args,
                 cout << "Please input " << U::NAME << "s:" << endl; \
             prepare<U>(Proc, player, &args[i + U::N_DEST + 1], size); \
             break;
-        X(IntInput) X(FixInput) X(FloatInput)
+        X(IntInput<typename T::clear>) X(FixInput) X(FloatInput)
 #undef X
         default:
             throw runtime_error("unknown input type: " + to_string(type));
@@ -317,7 +319,7 @@ void InputBase<T>::input_mixed(SubProcessor<T>& Proc, const vector<int>& args,
             n_arg_tuple = U::N_DEST + U::N_PARAM + 2; \
             finalize<U>(Proc, args[i + n_arg_tuple - 1], &args[i + 1], size); \
             break;
-        X(IntInput) X(FixInput) X(FloatInput)
+        X(IntInput<typename T::clear>) X(FixInput) X(FloatInput)
 #undef X
         default:
             throw runtime_error("unknown input type: " + to_string(type));

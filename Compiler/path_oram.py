@@ -1,9 +1,10 @@
 if '_Array' not in dir():
-    from oram import *
-    import permutation
+    from Compiler.oram import *
+    from Compiler import permutation
     _Array = Array
 
-import oram
+from Compiler import oram
+from functools import reduce
 
 #import pdb
 
@@ -140,7 +141,7 @@ class PathORAM(TreeORAM):
                      bucket_size=2, init_rounds=-1):
         #if size <= k:
         #    raise CompilerError('ORAM size too small')
-        print 'create oram of size', size
+        print('create oram of size', size)
         self.bucket_oram = bucket_oram
         self.bucket_size = bucket_size
         self.D = log2(size)
@@ -240,7 +241,7 @@ class PathORAM(TreeORAM):
 
             self.state.write(self.value_type(leaf))
 
-            print 'eviction leaf =', leaf
+            print('eviction leaf =', leaf)
 
             # load the path
             for i, ram_indices in enumerate(self.bucket_indices_on_path_to(leaf)):
@@ -325,7 +326,7 @@ class PathORAM(TreeORAM):
 
             # at most one 1 in found
             empty = 1 - sum(found)
-            prod_entries = map(operator.mul, found, entries)
+            prod_entries = list(map(operator.mul, found, entries))
             read_value = sum((entry.x.skip(skip) for entry in prod_entries), \
                                  empty * empty_entry.x.skip(skip))
             for i,(j, entry, prod_entry) in enumerate(zip(ram_indices, entries, prod_entries)):
@@ -528,7 +529,7 @@ class PathORAM(TreeORAM):
         values = (ValueTuple(x) for x in zip(*self.read_value))
         not_empty = [1 - x for x in self.read_empty]
         read_empty = 1 - sum(not_empty)
-        read_value = sum(map(operator.mul, not_empty, values), \
+        read_value = sum(list(map(operator.mul, not_empty, values)), \
                              ValueTuple(0 for i in range(self.value_length)))
         self.check(u)
         Program.prog.curr_tape.\
@@ -545,7 +546,7 @@ class PathORAM(TreeORAM):
             yield bucket
     def bucket_indices_on_path_to(self, leaf):
         leaf = regint(leaf)
-        yield range(self.bucket_size)
+        yield list(range(self.bucket_size))
         index = 0
         for i in range(self.D):
             index = 2*index + 1 + regint(cint(leaf) & 1)
@@ -742,7 +743,7 @@ class PathORAM(TreeORAM):
         try:
             self.stash.add(e)
         except Exception:
-            print self
+            print(self)
             raise
         if evict:
             self.evict()

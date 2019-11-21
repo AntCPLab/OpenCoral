@@ -5,27 +5,14 @@
 
 #include "OT/OTExtensionWithMatrix.h"
 #include "OT/OTMultiplier.h"
-#include "Math/gfp.h"
-#include "Protocols/Share.h"
-#include "Protocols/SemiShare.h"
-#include "Protocols/Semi2kShare.h"
-#include "Protocols/Spdz2kShare.h"
 #include "Math/operators.h"
 #include "Tools/Subroutines.h"
 #include "Protocols/MAC_Check.h"
-#include "Protocols/Spdz2kPrep.h"
-#include "GC/SemiSecret.h"
 
 #include "OT/Triple.hpp"
-#include "OT/Rectangle.hpp"
 #include "OT/OTMultiplier.hpp"
 #include "Protocols/MAC_Check.hpp"
-#include "Protocols/SemiMC.h"
-#include "Protocols/MascotPrep.hpp"
-#include "Protocols/ReplicatedInput.hpp"
 #include "Protocols/SemiInput.hpp"
-#include "Processor/Input.hpp"
-#include "Math/Z2k.hpp"
 
 #include <sstream>
 #include <fstream>
@@ -43,44 +30,46 @@ void* run_ot_thread(void* ptr)
  * N.B. setup must not be stored as it will be used by other threads
  */
 template<class T>
-NPartyTripleGenerator<T>::NPartyTripleGenerator(OTTripleSetup& setup,
+NPartyTripleGenerator<T>::NPartyTripleGenerator(const OTTripleSetup& setup,
         const Names& names, int thread_num, int _nTriples, int nloops,
-        MascotParams& machine, Player* parentPlayer) :
+        MascotParams& machine, mac_key_type mac_key, Player* parentPlayer) :
         OTTripleGenerator<T>(setup, names, thread_num, _nTriples, nloops,
-                machine, parentPlayer)
+                machine, mac_key, parentPlayer)
 {
 }
 
 template<class T>
-MascotTripleGenerator<T>::MascotTripleGenerator(OTTripleSetup& setup,
+MascotTripleGenerator<T>::MascotTripleGenerator(const OTTripleSetup& setup,
         const Names& names, int thread_num, int _nTriples, int nloops,
-        MascotParams& machine, Player* parentPlayer) :
+        MascotParams& machine, mac_key_type mac_key, Player* parentPlayer) :
         NPartyTripleGenerator<T>(setup, names, thread_num, _nTriples, nloops,
-                machine, parentPlayer)
+                machine, mac_key, parentPlayer)
 {
 }
 
 template<class T>
-Spdz2kTripleGenerator<T>::Spdz2kTripleGenerator(OTTripleSetup& setup,
+Spdz2kTripleGenerator<T>::Spdz2kTripleGenerator(const OTTripleSetup& setup,
         const Names& names, int thread_num, int _nTriples, int nloops,
-        MascotParams& machine, Player* parentPlayer) :
+        MascotParams& machine, mac_key_type mac_key, Player* parentPlayer) :
         NPartyTripleGenerator<T>(setup, names, thread_num, _nTriples, nloops,
-                machine, parentPlayer)
+                machine, mac_key, parentPlayer)
 {
 }
 
 template<class T>
-OTTripleGenerator<T>::OTTripleGenerator(OTTripleSetup& setup,
+OTTripleGenerator<T>::OTTripleGenerator(const OTTripleSetup& setup,
         const Names& names, int thread_num, int _nTriples, int nloops,
-        MascotParams& machine, Player* parentPlayer) :
+        MascotParams& machine, mac_key_type mac_key, Player* parentPlayer) :
         globalPlayer(parentPlayer ? *parentPlayer : *new PlainPlayer(names,
                 - thread_num * names.num_players() * names.num_players())),
         parentPlayer(parentPlayer),
         thread_num(thread_num),
+        mac_key(mac_key),
         my_num(setup.get_my_num()),
         nloops(nloops),
         nparties(setup.get_nparties()),
-        machine(machine)
+        machine(machine),
+        MC(0)
 {
     nTriplesPerLoop = DIV_CEIL(_nTriples, nloops);
     nTriples = nTriplesPerLoop * nloops;
@@ -208,7 +197,6 @@ void NPartyTripleGenerator<W>::generateInputs(int player)
 {
     typedef open_type T;
 
-    auto& machine = this->machine;
     auto& nTriplesPerLoop = this->nTriplesPerLoop;
     auto& valueBits = this->valueBits;
     auto& share_prg = this->share_prg;
@@ -235,7 +223,7 @@ void NPartyTripleGenerator<W>::generateInputs(int player)
     GlobalPRNG G(globalPlayer);
     Share<T> check_sum;
     inputs.resize(toCheck);
-    auto mac_key = machine.template get_mac_key<mac_key_type>();
+    auto mac_key = this->get_mac_key();
     SemiInput<SemiShare<T>> input(0, globalPlayer);
     input.reset_all(globalPlayer);
     vector<T> secrets(toCheck);
@@ -289,7 +277,7 @@ void MascotTripleGenerator<T>::generateBitsGf2n()
     bits.resize(nBitsToCheck);
     vector<T> to_open(1);
     vector<typename T::clear> opened(1);
-    MAC_Check_<T> MC(this->machine.template get_mac_key<typename T::clear>());
+    MAC_Check_<T> MC(this->get_mac_key());
 
     this->start_progress();
 
@@ -313,7 +301,7 @@ void MascotTripleGenerator<T>::generateBitsGf2n()
         typename T::clear r;
         for (int j = 0; j < nBitsToCheck; j++)
         {
-            auto mac_sum = valueBits[0].get_bit(j) ? MC.get_alphai() : 0;
+            auto mac_sum = valueBits[0].get_bit(j) ? this->get_mac_key() : 0;
             for (int i = 0; i < this->nparties-1; i++)
                 mac_sum += this->ot_multipliers[i]->macs[0][j];
             bits[j].set_share(valueBits[0].get_bit(j));
@@ -352,6 +340,13 @@ void MascotTripleGenerator<Share<gfp1>>::generateBits()
 	generateTriples();
 }
 
+template<>
+inline
+void MascotTripleGenerator<Share<gfp3>>::generateBits()
+{
+    generateTriples();
+}
+
 template<class T>
 void Spdz2kTripleGenerator<T>::generateTriples()
 {
@@ -360,7 +355,6 @@ void Spdz2kTripleGenerator<T>::generateTriples()
 	auto& uncheckedTriples = this->uncheckedTriples;
 
 	auto& timers = this->timers;
-	auto& machine = this->machine;
 	auto& nTriplesPerLoop = this->nTriplesPerLoop;
 	auto& valueBits = this->valueBits;
 	auto& share_prg = this->share_prg;
@@ -382,7 +376,7 @@ void Spdz2kTripleGenerator<T>::generateTriples()
 	vector< PlainTriple_<Z2<K + 2 * S>, Z2<K + S>, 2> > amplifiedTriples(nTriplesPerLoop);
 	uncheckedTriples.resize(nTriplesPerLoop);
 	MAC_Check_Z2k<Z2<K + 2 * S>, Z2<S>, Z2<K + S>, Share<Z2<K + 2 * S>> > MC(
-			machine.template get_mac_key<Z2<S> >());
+			this->get_mac_key());
 
 	this->start_progress();
 
@@ -455,7 +449,7 @@ void Spdz2kTripleGenerator<T>::generateTriples()
 		// get piggy-backed random value
 		Z2<K + 2 * S> r_share = b_padded_bits.get_ptr_to_byte(nTriplesPerLoop, Z2<K + 2 * S>::N_BYTES);
 		Z2<K + 2 * S> r_mac;
-		r_mac.mul(r_share, this->machine.template get_mac_key<Z2<S>>());
+		r_mac.mul(r_share, this->get_mac_key());
 		for (int i = 0; i < this->nparties-1; i++)
 			r_mac += (ot_multipliers[i])->macs.at(1).at(nTriplesPerLoop);
 		Share<Z2<K + 2 * S>> r;
@@ -563,15 +557,16 @@ void MascotTripleGenerator<U>::generateTriples()
         valueBits[2*i].resize(field_size * nPreampTriplesPerLoop);
     valueBits[1].resize(field_size * nTriplesPerLoop);
     vector< PlainTriple<T,2> > amplifiedTriples;
-    MAC_Check<T> MC(machine.template get_mac_key<T>());
+    MAC_Check<T> MC(this->get_mac_key());
 
     if (machine.amplify)
         preampTriples.resize(nTriplesPerLoop);
     if (machine.generateMACs)
       {
 	amplifiedTriples.resize(nTriplesPerLoop);
-	uncheckedTriples.resize(nTriplesPerLoop);
       }
+
+    uncheckedTriples.resize(nTriplesPerLoop);
 
     this->start_progress();
 
@@ -581,10 +576,15 @@ void MascotTripleGenerator<U>::generateTriples()
 
         if (machine.amplify)
         {
-            octet seed[SEED_SIZE];
-            Create_Random_Seed(seed, globalPlayer, SEED_SIZE);
             PRNG G;
-            G.SetSeed(seed);
+            if (machine.fiat_shamir and nparties == 2)
+                ot_multipliers[0]->otCorrelator.common_seed(G);
+            else
+            {
+                octet seed[SEED_SIZE];
+                Create_Random_Seed(seed, globalPlayer, SEED_SIZE);
+                G.SetSeed(seed);
+            }
             for (int iTriple = 0; iTriple < nTriplesPerLoop; iTriple++)
             {
                 PlainTriple<T,2> triple;
@@ -598,12 +598,16 @@ void MascotTripleGenerator<U>::generateTriples()
                     triple.output(outputFile);
                     timers["Writing"].stop();
                 }
+                else
+                    for (int i = 0; i < 3; i++)
+                        uncheckedTriples[iTriple].byIndex(i, 0).set_share(triple.byIndex(i, 0));
             }
 
             if (machine.generateMACs)
             {
                 for (int iTriple = 0; iTriple < nTriplesPerLoop; iTriple++)
-                    amplifiedTriples[iTriple].to(valueBits, iTriple);
+                    amplifiedTriples[iTriple].to(valueBits, iTriple,
+                            machine.check ? 2 : 1);
 
                 for (int i = 0; i < nparties-1; i++)
                     ot_multipliers[i]->inbox.push({});
@@ -625,7 +629,7 @@ void MascotTripleGenerator<U>::generateTriples()
 
                 if (machine.check)
                 {
-                    sacrifice(uncheckedTriples, MC, G);
+                    sacrifice(uncheckedTriples, this->MC ? *this->MC : MC, G);
                 }
             }
         }

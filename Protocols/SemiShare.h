@@ -52,6 +52,11 @@ public:
 
     static string type_short() { return "D" + string(1, T::type_char()); }
 
+    static int threshold(int nplayers)
+    {
+        return nplayers - 1;
+    }
+
     static SemiShare constant(const clear& other, int my_num, const T& alphai = {})
     {
         return SemiShare(other, my_num, alphai);

@@ -474,7 +474,7 @@ def norm_simplified_SQ(b, k):
             m_odd = m_odd + z[i]
 
     # construct w,
-    k_over_2 = k / 2 + 1
+    k_over_2 = k // 2 + 1
     w_array = [0] * (k_over_2)
     w_array[0] = z[0]
     for i in range(1, k_over_2):
@@ -510,7 +510,7 @@ def sqrt_simplified_fx(x):
         m_odd =  (1 - 2 * m_odd) + m_odd
         w = (w * 2 - w) * (1-m_odd) + w
     # map number to use sfix format and instantiate the number
-    w = types.sfix(w * 2 ** ((x.f - (x.f % 2)) / 2))
+    w = types.sfix(w * 2 ** ((x.f - (x.f % 2)) // 2))
     # obtains correct 2 ** (m/2)
     w = (w * (types.cfix(2 ** (1/2.0))) - w) * m_odd + w
     # produce x/ 2^(m/2)

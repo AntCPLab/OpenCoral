@@ -45,7 +45,9 @@ public:
             U& baseReceiverOutput);
     void correlate(int start, int slice, BitVector& newReceiverInput, bool useConstantBase, int repeat = 1);
     template <class T>
-    void reduce_squares(unsigned int nTriples, vector<T>& output);
+    void reduce_squares(unsigned int nTriples, vector<T>& output,
+            int start = 0);
+    void common_seed(PRNG& G);
 };
 
 class OTExtensionWithMatrix : public OTCorrelator<BitMatrix>
@@ -80,7 +82,8 @@ public:
     void transpose(int start, int slice);
     void expand_transposed();
     template <class V>
-    void hash_outputs(int nOTs, vector<V>& senderOutput, V& receiverOutput);
+    void hash_outputs(int nOTs, vector<V>& senderOutput, V& receiverOutput,
+            bool correlated = true);
 
     void print(BitVector& newReceiverInput, int i = 0);
     template <class T>

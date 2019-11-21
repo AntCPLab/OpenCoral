@@ -31,6 +31,8 @@ public:
     void conditional_add(BitVector& conditions, Square& other,
             int offset);
     void to(U& result);
+    template<int X, int L>
+    void to(gfp_<X, L>& result);
 
     void pack(octetStream& os) const;
     void unpack(octetStream& os);

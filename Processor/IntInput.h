@@ -8,6 +8,7 @@
 
 #include <iostream>
 
+template<class T>
 class IntInput
 {
 public:
@@ -17,7 +18,7 @@ public:
 
     const static int TYPE = 0;
 
-    long items[N_DEST];
+    T items[N_DEST];
 
     void read(std::istream& in, const int* params);
 };

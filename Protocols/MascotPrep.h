@@ -13,10 +13,9 @@
 template<class T>
 class OTPrep : public virtual RingPrep<T>
 {
-protected:
+public:
     typename T::TripleGenerator* triple_generator;
 
-public:
     MascotParams params;
 
     OTPrep<T>(SubProcessor<T>* proc, DataPositions& usage);
@@ -25,6 +24,7 @@ public:
     void set_protocol(typename T::Protocol& protocol);
 
     size_t data_sent();
+    NamedCommStats comm_stats();
 };
 
 template<class T>

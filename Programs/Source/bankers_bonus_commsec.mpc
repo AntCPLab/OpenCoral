@@ -118,10 +118,10 @@ def main():
         return True
 
     if n_rounds > 0:
-        print 'run %d rounds' % n_rounds
+        print('run %d rounds' % n_rounds)
         for_range(n_rounds)(game_loop)
     else:
-        print 'run forever'
+        print('run forever')
         do_while(game_loop)
 
 main()

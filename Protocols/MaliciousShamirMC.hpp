@@ -13,10 +13,26 @@ MaliciousShamirMC<T>::MaliciousShamirMC()
 }
 
 template<class T>
+void MaliciousShamirMC<T>::POpen(vector<typename T::clear>& values,
+        const vector<T>& S, const Player& P)
+{
+    this->prepare(S, P);
+    this->exchange(P);
+    finalize(values, S, P);
+}
+
+template<class T>
 void MaliciousShamirMC<T>::POpen_End(vector<typename T::clear>& values,
         const vector<T>& S, const Player& P)
 {
-    (void) P;
+    P.receive_all(this->os);
+    finalize(values, S, P);
+}
+
+template<class T>
+void MaliciousShamirMC<T>::finalize(vector<typename T::clear>& values,
+        const vector<T>& S, const Player& P)
+{
     int threshold = ShamirMachine::s().threshold;
     if (reconstructions.empty())
     {
@@ -36,7 +52,10 @@ void MaliciousShamirMC<T>::POpen_End(vector<typename T::clear>& values,
     for (size_t i = 0; i < values.size(); i++)
     {
         for (size_t j = 0; j < shares.size(); j++)
-            shares[j].unpack(this->os[j]);
+            if (int(j) == P.my_num())
+                shares[j] = S[i];
+            else
+                shares[j].unpack(this->os[j]);
         T value = 0;
         for (int j = 0; j < threshold + 1; j++)
             value += shares[j] * reconstructions[threshold + 1][j];

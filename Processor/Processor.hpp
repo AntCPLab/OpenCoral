@@ -6,6 +6,7 @@
 
 #include "Protocols/ReplicatedInput.hpp"
 #include "Protocols/ReplicatedPrivateOutput.hpp"
+#include "Processor/ProcessorBase.hpp"
 
 #include <sodium.h>
 #include <string>
@@ -406,15 +407,16 @@ void Processor<sint, sgf2n>::write_shares_to_file(const vector<int>& data_regist
 }
 
 template <class T>
-void SubProcessor<T>::POpen_Start(const vector<int>& reg,const Player& P,int size)
+void SubProcessor<T>::POpen(const vector<int>& reg,const Player& P,int size)
 {
-  int sz=reg.size();
+  assert(reg.size() % 2 == 0);
+  int sz=reg.size() / 2;
   Sh_PO.clear();
   Sh_PO.reserve(sz*size);
   if (size>1)
     {
-      for (typename vector<int>::const_iterator reg_it=reg.begin();
-          reg_it!=reg.end(); reg_it++)
+      for (typename vector<int>::const_iterator reg_it=reg.begin() + 1;
+          reg_it < reg.end(); reg_it += 2)
         {
           auto begin=S.begin()+*reg_it;
           Sh_PO.insert(Sh_PO.end(),begin,begin+size);
@@ -423,24 +425,15 @@ void SubProcessor<T>::POpen_Start(const vector<int>& reg,const Player& P,int siz
   else
     {
       for (int i=0; i<sz; i++)
-        { Sh_PO.push_back(S[reg[i]]); }
+        { Sh_PO.push_back(S[reg[2 * i + 1]]); }
     }
   PO.resize(sz*size);
-  MC.POpen_Begin(PO,Sh_PO,P);
-}
-
-
-template <class T>
-void SubProcessor<T>::POpen_Stop(const vector<int>& reg,const Player& P,int size)
-{
-  int sz=reg.size();
-  PO.resize(sz*size);
-  MC.POpen_End(PO,Sh_PO,P);
+  MC.POpen(PO,Sh_PO,P);
   if (size>1)
     {
       auto PO_it=PO.begin();
       for (typename vector<int>::const_iterator reg_it=reg.begin();
-          reg_it!=reg.end(); reg_it++)
+          reg_it!=reg.end(); reg_it += 2)
         {
           for (auto C_it=C.begin()+*reg_it;
               C_it!=C.begin()+*reg_it+size; C_it++)
@@ -452,34 +445,14 @@ void SubProcessor<T>::POpen_Stop(const vector<int>& reg,const Player& P,int size
     }
   else
     {
-      for (unsigned int i=0; i<reg.size(); i++)
-        { C[reg[i]] = PO[i]; }
+      for (unsigned int i = 0; i < reg.size() / 2; i++)
+        {
+          C[reg[2 * i]] = PO[i];
+        }
     }
 
   Proc.sent += reg.size() * size;
   Proc.rounds++;
-}
-
-inline void unzip_open(vector<int>& dest, vector<int>& source, const vector<int>& reg)
-{
-  int n = reg.size() / 2;
-  source.resize(n);
-  dest.resize(n);
-  for (int i = 0; i < n; i++)
-  {
-    source[i] = reg[2 * i + 1];
-    dest[i] = reg[2 * i];
-  }
-}
-
-template<class T>
-void SubProcessor<T>::POpen(const vector<int>& reg, const Player& P,
-    int size)
-{
-  vector<int> source, dest;
-  unzip_open(dest, source, reg);
-  POpen_Start(source, P, size);
-  POpen_Stop(dest, P, size);
 }
 
 template<class T>

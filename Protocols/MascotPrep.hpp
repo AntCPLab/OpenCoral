@@ -17,7 +17,6 @@ template<class T>
 OTPrep<T>::OTPrep(SubProcessor<T>* proc, DataPositions& usage) :
         RingPrep<T>(proc, usage), triple_generator(0)
 {
-    this->buffer_size = OnlineOptions::singleton.batch_size;
 }
 
 template<class T>
@@ -34,13 +33,11 @@ void OTPrep<T>::set_protocol(typename T::Protocol& protocol)
     SubProcessor<T>* proc = this->proc;
     assert(proc != 0);
     auto& ot_setups = BaseMachine::s().ot_setups.at(proc->Proc.thread_num);
-    assert(not ot_setups.empty());
-    OTTripleSetup setup = ot_setups.back();
-    ot_setups.pop_back();
-    params.set_mac_key(typename T::mac_key_type::next(proc->MC.get_alphai()));
+    OTTripleSetup setup = ot_setups.get_fresh();
     triple_generator = new typename T::TripleGenerator(setup,
-            proc->P.N, proc->Proc.thread_num, this->buffer_size, 1,
-            params, &proc->P);
+            proc->P.N, proc->Proc.thread_num,
+            OnlineOptions::singleton.batch_size, 1,
+            params, proc->MC.get_alphai(), &proc->P);
     triple_generator->multi_threaded = false;
 }
 
@@ -117,6 +114,15 @@ size_t OTPrep<T>::data_sent()
         return triple_generator->data_sent();
     else
         return 0;
+}
+
+template<class T>
+NamedCommStats OTPrep<T>::comm_stats()
+{
+    if (triple_generator)
+        return triple_generator->comm_stats();
+    else
+        return {};
 }
 
 #endif

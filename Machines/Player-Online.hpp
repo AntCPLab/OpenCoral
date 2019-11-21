@@ -107,7 +107,7 @@ int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt, bool live_pr
           1, // Number of args expected.
           0, // Delimiter if expecting multiple args.
           "Maximum number of parties to send to at once", // Help description.
-          "-b", // Flag token.
+          "-B", // Flag token.
           "--max-broadcast" // Flag token.
     );
     opt.add(

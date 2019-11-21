@@ -52,8 +52,6 @@ public:
       Preprocessing<T>& DataF, Player& P);
 
   // Access to PO (via calls to POpen start/stop)
-  void POpen_Start(const vector<int>& reg,const Player& P,int size);
-  void POpen_Stop(const vector<int>& reg,const Player& P,int size);
   void POpen(const vector<int>& reg,const Player& P,int size);
 
   void muls(const vector<int>& reg, int size);

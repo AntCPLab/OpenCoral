@@ -39,6 +39,8 @@ class Ciphertext
 
   // Rely on default copy assignment/constructor
   
+  word get_pk_id() { return pk_id; }
+
   void set(const Rq_Element& a0, const Rq_Element& a1, word pk_id)
     { cc0=a0; cc1=a1; this->pk_id = pk_id; }
   void set(const Rq_Element& a0, const Rq_Element& a1, const FHE_PK& pk);

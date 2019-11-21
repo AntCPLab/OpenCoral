@@ -702,4 +702,5 @@ BMS
 XXXX(Matrix<gf2n_short_square>, gf2n_short)
 XXXX(Matrix<Square<gf2n_long>>, gf2n_long)
 XXXX(Matrix<Square<gfp1>>, gfp1)
+XXXX(Matrix<Square<gfp3>>, gfp3)
 XXXX(Matrix<BitDiagonal>, BitVec)

@@ -11,7 +11,7 @@ documentation
 """
 
 import itertools
-import tools
+from . import tools
 from random import randint
 from Compiler.config import *
 from Compiler.exceptions import *
@@ -51,7 +51,7 @@ class ldsi(base.Instruction):
 @base.vectorize
 class ldmc(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
     r""" Assigns register $c_i$ the value in memory \verb+C[n]+. """
-    __slots__ = ["code"]
+    __slots__ = []
     code = base.opcodes['LDMC']
     arg_format = ['cw','int']
 
@@ -62,7 +62,7 @@ class ldmc(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
 @base.vectorize
 class ldms(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
     r""" Assigns register $s_i$ the value in memory \verb+S[n]+. """
-    __slots__ = ["code"]
+    __slots__ = []
     code = base.opcodes['LDMS']
     arg_format = ['sw','int']
 
@@ -73,7 +73,7 @@ class ldms(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
 @base.vectorize
 class stmc(base.DirectMemoryWriteInstruction):
     r""" Sets \verb+C[n]+ to be the value $c_i$. """
-    __slots__ = ["code"]
+    __slots__ = []
     code = base.opcodes['STMC']
     arg_format = ['c','int']
 
@@ -84,7 +84,7 @@ class stmc(base.DirectMemoryWriteInstruction):
 @base.vectorize
 class stms(base.DirectMemoryWriteInstruction):
     r""" Sets \verb+S[n]+ to be the value $s_i$. """
-    __slots__ = ["code"]
+    __slots__ = []
     code = base.opcodes['STMS']
     arg_format = ['s','int']
 
@@ -94,7 +94,7 @@ class stms(base.DirectMemoryWriteInstruction):
 @base.vectorize
 class ldmint(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
     r""" Assigns register $ci_i$ the value in memory \verb+Ci[n]+. """
-    __slots__ = ["code"]
+    __slots__ = []
     code = base.opcodes['LDMINT']
     arg_format = ['ciw','int']
 
@@ -104,7 +104,7 @@ class ldmint(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
 @base.vectorize
 class stmint(base.DirectMemoryWriteInstruction):
     r""" Sets \verb+Ci[n]+ to be the value $ci_i$. """
-    __slots__ = ["code"]
+    __slots__ = []
     code = base.opcodes['STMINT']
     arg_format = ['ci','int']
 
@@ -227,7 +227,7 @@ class protectmemint(base.Instruction):
 @base.vectorize
 class movc(base.Instruction):
     r""" Assigns register $c_i$ the value in the register $c_j$. """
-    __slots__ = ["code"]
+    __slots__ = []
     code = base.opcodes['MOVC']
     arg_format = ['cw','c']
 
@@ -238,7 +238,7 @@ class movc(base.Instruction):
 @base.vectorize
 class movs(base.Instruction):
     r""" Assigns register $s_i$ the value in the register $s_j$. """
-    __slots__ = ["code"]
+    __slots__ = []
     code = base.opcodes['MOVS']
     arg_format = ['sw','s']
 
@@ -248,7 +248,7 @@ class movs(base.Instruction):
 @base.vectorize
 class movint(base.Instruction):
     r""" Assigns register $ci_i$ the value in the register $ci_j$. """
-    __slots__ = ["code"]
+    __slots__ = []
     code = base.opcodes['MOVINT']
     arg_format = ['ciw','ci']
 
@@ -346,6 +346,21 @@ class use_prep(base.Instruction):
     r""" Input usage. """
     code = base.opcodes['USE_PREP']
     arg_format = ['str','int']
+
+class nplayers(base.Instruction):
+    r""" Number of players """
+    code = base.opcodes['NPLAYERS']
+    arg_format = ['ciw']
+
+class threshold(base.Instruction):
+    r""" Maximal number of corrupt players """
+    code = base.opcodes['THRESHOLD']
+    arg_format = ['ciw']
+
+class playerid(base.Instruction):
+    r""" My player number """
+    code = base.opcodes['PLAYERID']
+    arg_format = ['ciw']
 
 ###
 ### Basic arithmetic
@@ -738,7 +753,7 @@ class shrci(base.ClearShiftInstruction):
 class triple(base.DataInstruction):
     r""" Load secret variables $s_i$, $s_j$ and $s_k$
     with the next multiplication triple. """
-    __slots__ = ['data_type']
+    __slots__ = []
     code = base.opcodes['TRIPLE']
     arg_format = ['sw','sw','sw']
     data_type = 'triple'
@@ -752,7 +767,7 @@ class triple(base.DataInstruction):
 class gbittriple(base.DataInstruction):
     r""" Load secret variables $s_i$, $s_j$ and $s_k$
     with the next GF(2) multiplication triple. """
-    __slots__ = ['data_type']
+    __slots__ = []
     code = base.opcodes['GBITTRIPLE']
     arg_format = ['sgw','sgw','sgw']
     data_type = 'bittriple'
@@ -1400,7 +1415,8 @@ class convmodp(base.Instruction):
         bitlength = program.bit_length if bitlength is None else bitlength
         if bitlength > 64:
             raise CompilerError('%d-bit conversion requested ' \
-                                'but integer registers only have 64 bits')
+                                'but integer registers only have 64 bits' % \
+                                bitlength)
         super(convmodp_class, self).__init__(*(args + (bitlength,)))
 
 @base.vectorize
@@ -1433,7 +1449,7 @@ class muls(base.VarArgsInstruction, base.DataInstruction):
     data_type = 'triple'
 
     def get_repeat(self):
-        return len(self.args) / 3
+        return len(self.args) // 3
 
     def merge_id(self):
         # can merge different sizes
@@ -1508,6 +1524,8 @@ class dotprods(base.VarArgsInstruction, base.DataInstruction):
             for j in range(self.args[i] - 2):
                 yield 's' + field
 
+    gf2n_arg_format = arg_format
+
     def bases(self):
         i = 0
         while i < len(self.args):
@@ -1515,7 +1533,7 @@ class dotprods(base.VarArgsInstruction, base.DataInstruction):
             i += self.args[i]
 
     def get_repeat(self):
-        return sum(self.args[i] / 2 for i in self.bases()) * self.get_size()
+        return sum(self.args[i] // 2 for i in self.bases()) * self.get_size()
 
     def get_def(self):
         return [self.args[i + 1] for i in self.bases()]
@@ -1567,7 +1585,7 @@ class lts(base.CISC):
     arg_format = ['sw', 's', 's', 'int', 'int']
 
     def expand(self):
-        from types import sint
+        from .types import sint
         a = sint()
         subs(a, self.args[1], self.args[2])
         comparison.LTZ(self.args[0], a, self.args[3], self.args[4])

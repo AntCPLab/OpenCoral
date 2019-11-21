@@ -38,12 +38,16 @@ class Shamir : public ProtocolBase<ShamirShare<U>>
     int n_mul_players;
 
 public:
+    static const bool uses_triples = false;
+
     Player& P;
 
     static U get_rec_factor(int i, int n);
 
     Shamir(Player& P);
     ~Shamir();
+
+    Shamir branch();
 
     int get_n_relevant_players();
 
@@ -52,7 +56,11 @@ public:
     void init_mul();
     void init_mul(SubProcessor<T>* proc);
     U prepare_mul(const T& x, const T& y, int n = -1);
+
     void exchange();
+    void start_exchange();
+    void stop_exchange();
+
     T finalize_mul(int n = -1);
 
     T finalize(int n_input_players);

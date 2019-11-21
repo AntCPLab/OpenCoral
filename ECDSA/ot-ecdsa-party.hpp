@@ -25,27 +25,72 @@ template<template<class U> class T>
 void run(int argc, const char** argv)
 {
     ez::ezOptionParser opt;
+    EcdsaOptions opts(opt, argc, argv);
     opt.add(
             "", // Default.
             0, // Required?
             0, // Number of args expected.
             0, // Delimiter if expecting multiple args.
-            "Delay multiplication until signing", // Help description.
-            "-D", // Flag token.
-            "--delay-multiplication" // Flag token.
+            "Use SimpleOT instead of OT extension", // Help description.
+            "-S", // Flag token.
+            "--simple-ot" // Flag token.
     );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Don't check correlation in OT extension (only relevant with MASCOT)", // Help description.
+            "-U", // Flag token.
+            "--unchecked-correlation" // Flag token.
+    );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Fewer rounds for authentication (only relevant with MASCOT)", // Help description.
+            "-A", // Flag token.
+            "--auth-fewer-rounds" // Flag token.
+    );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Use Fiat-Shamir for amplification (only relevant with MASCOT)", // Help description.
+            "-H", // Flag token.
+            "--fiat-shamir" // Flag token.
+    );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Skip sacrifice (only relevant with MASCOT)", // Help description.
+            "-E", // Flag token.
+            "--embrace-life" // Flag token.
+    );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "No MACs (only relevant with MASCOT; implies skipping MAC checks)", // Help description.
+            "-M", // Flag token.
+            "--no-macs" // Flag token.
+    );
+
     Names N(opt, argc, argv, 2);
     int n_tuples = 1000;
     if (not opt.lastArgs.empty())
         n_tuples = atoi(opt.lastArgs[0]->c_str());
     PlainPlayer P(N);
     P256Element::init();
-    gfp1::init_field(P256Element::Scalar::pr(), false);
+    P256Element::Scalar::next::init_field(P256Element::Scalar::pr(), false);
 
     BaseMachine machine;
-    machine.ot_setups.resize(1);
-    for (int i = 0; i < 2; i++)
-        machine.ot_setups[0].push_back({P, true});
+    machine.ot_setups.push_back({P, true});
 
     P256Element::Scalar keyp;
     SeededPRNG G;
@@ -65,16 +110,28 @@ void run(int argc, const char** argv)
     P.Broadcast_Receive(bundle, false);
     Timer timer;
     timer.start();
+    auto stats = P.comm_stats;
     sk_prep.get_two(DATA_INVERSE, sk, __);
     cout << "Secret key generation took " << timer.elapsed() * 1e3 << " ms" << endl;
+    (P.comm_stats - stats).print(true);
 
-    OnlineOptions::singleton.batch_size = n_tuples;
+    OnlineOptions::singleton.batch_size = (1 + pShare::Protocol::uses_triples) * n_tuples;
     typename pShare::LivePrep prep(0, usage);
+    prep.params.correlation_check &= not opt.isSet("-U");
+    prep.params.fewer_rounds = opt.isSet("-A");
+    prep.params.fiat_shamir = opt.isSet("-H");
+    prep.params.check = not opt.isSet("-E");
+    prep.params.generateMACs = not opt.isSet("-M");
+    opts.check_beaver_open &= prep.params.generateMACs;
+    opts.check_open &= prep.params.generateMACs;
     SubProcessor<pShare> proc(_, MCp, prep, P);
+    typename pShare::prep_type::Direct_MC MCpp(keyp);
+    prep.triple_generator->MC = &MCpp;
 
     bool prep_mul = not opt.isSet("-D");
+    prep.params.use_extension = not opt.isSet("-S");
     vector<EcTuple<T>> tuples;
-    preprocessing(tuples, n_tuples, sk, proc, prep_mul);
+    preprocessing(tuples, n_tuples, sk, proc, opts);
     //check(tuples, sk, keyp, P);
-    sign_benchmark(tuples, sk, MCp, P, prep_mul ? 0 : &proc);
+    sign_benchmark(tuples, sk, MCp, P, opts, prep_mul ? 0 : &proc);
 }

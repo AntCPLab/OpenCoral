@@ -1,8 +1,8 @@
 from Compiler.program import Program
 from Compiler.config import *
 from Compiler.exceptions import *
-import instructions, instructions_base, types, comparison, library
-import GC.types
+from . import instructions, instructions_base, types, comparison, library
+from .GC import types as GC_types
 
 import random
 import time
@@ -25,36 +25,36 @@ def run(args, options, param=-1, merge_opens=True, emulate=True, \
     prog.DEBUG = debug
     VARS['program'] = prog
     if options.binary:
-        VARS['sint'] = GC.types.sbitint.get_type(int(options.binary))
-        VARS['sfix'] = GC.types.sbitfix
+        VARS['sint'] = GC_types.sbitint.get_type(int(options.binary))
+        VARS['sfix'] = GC_types.sbitfix
     comparison.set_variant(options)
     
-    print 'Compiling file', prog.infile
+    print('Compiling file', prog.infile)
     
     # no longer needed, but may want to support assembly in future (?)
     if assemblymode:
         prog.restart_main_thread()
-        for i in xrange(INIT_REG_MAX):
+        for i in range(INIT_REG_MAX):
             VARS['c%d'%i] = prog.curr_block.new_reg('c')
             VARS['s%d'%i] = prog.curr_block.new_reg('s')
             VARS['cg%d'%i] = prog.curr_block.new_reg('cg')
             VARS['sg%d'%i] = prog.curr_block.new_reg('sg')
             if i % 10000000 == 0 and i > 0:
-                print "Initialized %d register variables at" % i, time.asctime()
+                print("Initialized %d register variables at" % i, time.asctime())
         
         # first pass determines how many assembler registers are used
         prog.FIRST_PASS = True
-        execfile(prog.infile, VARS)
+        exec(compile(open(prog.infile).read(), prog.infile, 'exec'), VARS)
     
     if instructions_base.Instruction.count != 0:
-        print 'instructions count', instructions_base.Instruction.count
+        print('instructions count', instructions_base.Instruction.count)
         instructions_base.Instruction.count = 0
     prog.FIRST_PASS = False
     prog.reset_values()
     # make compiler modules directly accessible
     sys.path.insert(0, 'Compiler')
     # create the tapes
-    execfile(prog.infile, VARS)
+    exec(compile(open(prog.infile).read(), prog.infile, 'exec'), VARS)
     
     # optimize the tapes
     for tape in prog.tapes:
@@ -66,14 +66,14 @@ def run(args, options, param=-1, merge_opens=True, emulate=True, \
         sharedmem = list(prog.mem_s)
         prog.emulate()
         if prog.mem_c != clearmem or prog.mem_s != sharedmem:
-            print 'Warning: emulated memory values changed after compiler optimization'
+            print('Warning: emulated memory values changed after compiler optimization')
         #    raise CompilerError('Compiler optimization caused incorrect memory write.')
     
     if prog.main_thread_running:
         prog.update_req(prog.curr_tape)
-    print 'Program requires:', repr(prog.req_num)
-    print 'Cost:', 0 if prog.req_num is None else prog.req_num.cost()
-    print 'Memory size:', dict(prog.allocated_mem)
+    print('Program requires:', repr(prog.req_num))
+    print('Cost:', 0 if prog.req_num is None else prog.req_num.cost())
+    print('Memory size:', dict(prog.allocated_mem))
 
     # finalize the memory
     prog.finalize_memory()

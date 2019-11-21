@@ -7,18 +7,11 @@
 
 #include "OT/OTMultiplier.h"
 #include "OT/NPartyTripleGenerator.h"
-#include "OT/Rectangle.h"
-#include "Math/Z2k.h"
-#include "Math/BitVec.h"
-#include "Protocols/SemiShare.h"
-#include "Protocols/Semi2kShare.h"
-#include "Protocols/Spdz2kShare.h"
+#include "OT/BaseOT.h"
 
 #include "OT/OTVole.hpp"
 #include "OT/Row.hpp"
 #include "OT/Rectangle.hpp"
-#include "Math/Z2k.hpp"
-#include "Math/Square.hpp"
 
 #include <math.h>
 
@@ -31,7 +24,8 @@ OTMultiplier<T>::OTMultiplier(OTTripleGenerator<T>& generator,
         rot_ext(128, 128, 0, 1,
                 generator.players[thread_num], generator.baseReceiverInput,
                 generator.baseSenderInputs[thread_num],
-                generator.baseReceiverOutputs[thread_num], BOTH, !generator.machine.check),
+                generator.baseReceiverOutputs[thread_num], BOTH,
+                !generator.machine.correlation_check),
         otCorrelator(0, 0, 0, 0, generator.players[thread_num], {}, {}, {}, BOTH, true)
 {
     this->thread = 0;
@@ -89,7 +83,7 @@ OTMultiplier<T>::~OTMultiplier()
 template<class T>
 void OTMultiplier<T>::multiply()
 {
-    keyBits.set(generator.machine.template get_mac_key<typename T::mac_key_type>());
+    keyBits.set(generator.get_mac_key());
     rot_ext.extend(keyBits.size(), keyBits);
     this->outbox.push({});
     senderOutput.resize(keyBits.size());
@@ -140,11 +134,6 @@ void OTMultiplier<W>::multiplyForTriples()
 {
     typedef typename W::Rectangle X;
 
-    // dummy input for OT correlator
-    vector<BitVector> _;
-    vector< vector<BitVector> > __;
-    BitVector ___;
-
     otCorrelator.resize(X::N_COLUMNS * generator.nPreampTriplesPerLoop);
 
     rot_ext.resize(X::N_ROWS * generator.nPreampTriplesPerLoop + 2 * 128);
@@ -161,8 +150,26 @@ void OTMultiplier<W>::multiplyForTriples()
         this->inbox.pop(job);
         BitVector aBits = generator.valueBits[0];
         //timers["Extension"].start();
-        rot_ext.extend_correlated(aBits);
-        rot_ext.hash_outputs(aBits.size(), baseSenderOutputs, baseReceiverOutput);
+        if (generator.machine.use_extension)
+        {
+            rot_ext.extend_correlated(aBits);
+        }
+        else
+        {
+            BaseOT bot(aBits.size(), -1, generator.players[thread_num]);
+            bot.set_receiver_inputs(aBits);
+            bot.exec_base(false);
+            for (size_t i = 0; i < aBits.size(); i++)
+            {
+                rot_ext.receiverOutputMatrix[i] =
+                        bot.receiver_outputs[i].get_int128(0).a;
+                for (int j = 0; j < 2; j++)
+                    rot_ext.senderOutputMatrices[j][i] =
+                            bot.sender_inputs[i][j].get_int128(0).a;
+            }
+        }
+        rot_ext.hash_outputs(aBits.size(), baseSenderOutputs,
+                baseReceiverOutput, generator.machine.use_extension);
         //timers["Extension"].stop();
 
         //timers["Correlation"].start();
@@ -215,8 +222,6 @@ void MascotMultiplier<U>::after_correlation()
 {
 	typedef typename U::open_type T;
 
-	this->auth_ot_ext.resize(
-			this->generator.nPreampTriplesPerLoop * T::Square::N_COLUMNS);
 	this->auth_ot_ext.set_role(BOTH);
 
     this->otCorrelator.reduce_squares(this->generator.nPreampTriplesPerLoop,
@@ -229,15 +234,45 @@ void MascotMultiplier<U>::after_correlation()
         this->macs.resize(3);
         MultJob job;
         this->inbox.pop(job);
+        auto& generator = this->generator;
+        array<int, 3> n_vals;
         for (int j = 0; j < 3; j++)
         {
-            int nValues = this->generator.nTriplesPerLoop;
+            n_vals[j] = generator.nTriplesPerLoop;
             if (this->generator.machine.check && (j % 2 == 0))
-                nValues *= 2;
-            this->auth_ot_ext.expand(0, nValues);
-            this->auth_ot_ext.correlate(0, nValues,
-                    this->generator.valueBits[j], true);
-            this->auth_ot_ext.reduce_squares(nValues, this->macs[j]);
+                n_vals[j] *= 2;
+        }
+        if (generator.machine.fewer_rounds)
+        {
+            BitVector bits;
+            int total = 0;
+            for (int j = 0; j < 3; j++)
+            {
+                bits.append(generator.valueBits[j],
+                        n_vals[j] * T::Square::N_COLUMNS);
+                total += n_vals[j];
+            }
+            this->auth_ot_ext.resize(bits.size());
+            this->auth_ot_ext.expand(0, total);
+            this->auth_ot_ext.correlate(0, total, bits, true);
+            total = 0;
+            for (int j = 0; j < 3; j++)
+            {
+                this->auth_ot_ext.reduce_squares(n_vals[j], this->macs[j], total);
+                total += n_vals[j];
+            }
+        }
+        else
+        {
+            this->auth_ot_ext.resize(n_vals[0] * T::Square::N_COLUMNS);
+            for (int j = 0; j < 3; j++)
+            {
+                int nValues = n_vals[j];
+                this->auth_ot_ext.expand(0, nValues);
+                this->auth_ot_ext.correlate(0, nValues,
+                        this->generator.valueBits[j], true);
+                this->auth_ot_ext.reduce_squares(nValues, this->macs[j]);
+            }
         }
         this->outbox.push(job);
     }

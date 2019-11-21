@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef PROCESSOR_PROCESSORBASE_HPP_
+#define PROCESSOR_PROCESSORBASE_HPP_
+
 #include "ProcessorBase.h"
 #include "IntInput.h"
 #include "FixInput.h"
@@ -11,6 +14,7 @@
 
 #include <iostream>
 
+inline
 void ProcessorBase::open_input_file(const string& name)
 {
 #ifdef DEBUG_FILES
@@ -20,6 +24,7 @@ void ProcessorBase::open_input_file(const string& name)
     input_filename = name;
 }
 
+inline
 void ProcessorBase::open_input_file(int my_num, int thread_num)
 {
     string input_file = "Player-Data/Input-P" + to_string(my_num) + "-" + to_string(thread_num);
@@ -54,6 +59,4 @@ T ProcessorBase::get_input(istream& input_file, const string& input_filename, co
     return res;
 }
 
-template IntInput ProcessorBase::get_input(bool, const int*);
-template FixInput ProcessorBase::get_input(bool, const int*);
-template FloatInput ProcessorBase::get_input(bool, const int*);
+#endif

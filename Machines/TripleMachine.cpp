@@ -118,6 +118,7 @@ TripleMachine::TripleMachine(int argc, const char** argv) :
     opt.get("-l")->getInt(nloops);
     generateBits = opt.get("-B")->isSet;
     check = opt.get("-c")->isSet || generateBits;
+    correlation_check = opt.get("-c")->isSet;
     generateMACs = opt.get("-m")->isSet || check;
     amplify = opt.get("-a")->isSet || generateMACs;
     primeField = opt.get("-P")->isSet;
@@ -143,21 +144,22 @@ TripleMachine::TripleMachine(int argc, const char** argv) :
 
     // doesn't work with Montgomery multiplication
     gfp1::init_field(p, false);
+    gfp::init_field(p, true);
     gf2n_long::init_field(128);
     
     PRNG G;
     G.ReSeed();
-    mac_key2l.randomize(G);
-    mac_key2s.randomize(G);
+    mac_key2.randomize(G);
     mac_keyp.randomize(G);
     mac_keyz.randomize(G);
 }
 
 template<class T>
-GeneratorThread* TripleMachine::new_generator(OTTripleSetup& setup, int i)
+GeneratorThread* TripleMachine::new_generator(OTTripleSetup& setup, int i,
+        typename T::mac_key_type mac_key)
 {
     return new typename T::TripleGenerator(setup, N[i % nConnections], i,
-            nTriplesPerThread, nloops, *this);
+            nTriplesPerThread, nloops, *this, mac_key);
 }
 
 void TripleMachine::run()
@@ -180,24 +182,24 @@ void TripleMachine::run()
     for (int i = 0; i < nthreads; i++)
     {
         if (primeField)
-            generators[i] = new_generator<Share<gfp>>(setup, i);
+            generators[i] = new_generator<Share<gfp>>(setup, i, mac_keyp);
         else if (z2k)
         {
             if (z2k == 32 and z2s == 32)
-                generators[i] = new_generator<Spdz2kShare<32, 32>>(setup, i);
+                generators[i] = new_generator<Spdz2kShare<32, 32>>(setup, i, mac_keyz);
             else if (z2k == 64 and z2s == 64)
-                generators[i] = new_generator<Spdz2kShare<64, 64>>(setup, i);
+                generators[i] = new_generator<Spdz2kShare<64, 64>>(setup, i, mac_keyz);
             else if (z2k == 64 and z2s == 48)
-                generators[i] = new_generator<Spdz2kShare<64, 48>>(setup, i);
+                generators[i] = new_generator<Spdz2kShare<64, 48>>(setup, i, mac_keyz);
             else if (z2k == 66 and z2s == 64)
-                generators[i] = new_generator<Spdz2kShare<66, 64>>(setup, i);
+                generators[i] = new_generator<Spdz2kShare<66, 64>>(setup, i, mac_keyz);
             else if (z2k == 66 and z2s == 48)
-                generators[i] = new_generator<Spdz2kShare<66, 48>>(setup, i);
+                generators[i] = new_generator<Spdz2kShare<66, 48>>(setup, i, mac_keyz);
             else
                 throw runtime_error("not compiled for k=" + to_string(z2k) + " and s=" + to_string(z2s));
         }
         else
-            generators[i] = new_generator<Share<gf2n>>(setup, i);
+            generators[i] = new_generator<Share<gf2n>>(setup, i, mac_key2);
     }
     ntriples = generators[0]->nTriples * nthreads;
     cout <<"Setup generators\n";
@@ -251,10 +253,8 @@ void TripleMachine::run()
 void TripleMachine::output_mac_keys()
 {
     if (z2k) {
-        write_mac_keys(prep_data_dir, my_num, nplayers, mac_keyz, mac_key2l);
+        write_mac_keys(prep_data_dir, my_num, nplayers, mac_keyz, mac_key2);
     }
-    else if (gf2n::degree() > 64)
-        write_mac_keys(prep_data_dir, my_num, nplayers, mac_keyp, mac_key2l);
     else
-        write_mac_keys(prep_data_dir, my_num, nplayers, mac_keyp, mac_key2s);
+        write_mac_keys(prep_data_dir, my_num, nplayers, mac_keyp, mac_key2);
 }

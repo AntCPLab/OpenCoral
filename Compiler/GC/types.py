@@ -5,6 +5,7 @@ from Compiler.exceptions import *
 from Compiler import util, oram, floatingpoint, library
 import Compiler.GC.instructions as inst
 import operator
+from functools import reduce
 
 class bits(Tape.Register, _structure):
     n = 40
@@ -82,7 +83,7 @@ class bits(Tape.Register, _structure):
             cls.load_inst[util.is_constant(address)](res, address)
             return res
     def store_in_mem(self, address):
-        self.store_inst[isinstance(address, (int, long))](self, address)
+        self.store_inst[isinstance(address, int)](self, address)
     def __init__(self, value=None, n=None, size=None):
         if size != 1 and size is not None:
             raise Exception('invalid size for bit type: %s' % size)
@@ -92,11 +93,11 @@ class bits(Tape.Register, _structure):
             self.load_other(value)
     def set_length(self, n):
         if n > self.max_length:
-            print self.max_length
+            print(self.max_length)
             raise Exception('too long: %d' % n)
         self.n = n
     def load_other(self, other):
-        if isinstance(other, (int, long)):
+        if isinstance(other, int):
             self.set_length(self.n or util.int_len(other))
             self.load_int(other)
         elif isinstance(other, regint):
@@ -115,6 +116,7 @@ class bits(Tape.Register, _structure):
     def __repr__(self):
         return '%s(%d/%d)' % \
             (super(bits, self).__repr__(), self.n, type(self).n)
+    __str__ = __repr__
 
 class cbits(bits):
     max_length = 64
@@ -219,13 +221,13 @@ class sbits(bits):
     @classmethod
     def load_dynamic_mem(cls, address):
         res = cls()
-        if isinstance(address, (long, int)):
+        if isinstance(address, int):
             inst.ldmsd(res, address, cls.n)
         else:
             inst.ldmsdi(res, address, cls.n)
         return res
     def store_in_dynamic_mem(self, address):
-        if isinstance(address, (long, int)):
+        if isinstance(address, int):
             inst.stmsd(self, address)
         else:
             inst.stmsdi(self, cbits.conv(address))
@@ -322,7 +324,7 @@ class sbits(bits):
             mul_bits = [self if b else zero for b in bits]
             return self.bit_compose(mul_bits)
         else:
-            print self.n, other
+            print(self.n, other)
             return NotImplemented
     def __lshift__(self, i):
         return self.bit_compose([sbit(0)] * i + self.bit_decompose()[:self.max_length-i])
@@ -478,7 +480,7 @@ class bitsBlock(oram.Block):
         self.start_demux = oram.demux_list(self.start_bits)
         self.entries = [sbits.bit_compose(self.value_bits[i*length:][:length]) \
                         for i in range(entries_per_block)]
-        self.mul_entries = map(operator.mul, self.start_demux, self.entries)
+        self.mul_entries = list(map(operator.mul, self.start_demux, self.entries))
         self.bits = sum(self.mul_entries).bit_decompose()
         self.mul_value = sbits.compose(self.mul_entries, sum(self.lengths))
         self.anti_value = self.mul_value + self.value
@@ -662,6 +664,12 @@ class sbitfix(_fix):
             return super(sbitfix, self).__mul__(other)
     __rxor__ = __xor__
     __rmul__ = __mul__
+    @staticmethod
+    def multipliable(other, k, f):
+        class cls(_fix):
+            int_type = sbitint.get_type(k)
+        cls.set_precision(f, k)
+        return cls._new(cls.int_type(other), k, f)
 
 sbitfix.set_precision(20, 41)
 

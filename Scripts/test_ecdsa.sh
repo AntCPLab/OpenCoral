@@ -1,8 +1,5 @@
 #!/bin/bash
 
-echo 'MOD = -DGFP_MOD_SZ=4' >> CONFIG.mine
-
-make clean
 make -j4 ecdsa Fake-ECDSA.x
 
 run()

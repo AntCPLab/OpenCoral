@@ -262,6 +262,8 @@ typedef gfp_<0, GFP_MOD_SZ> gfp;
 typedef gfp_<1, GFP_MOD_SZ> gfp1;
 // enough for Brain protocol with 64-bit computation and 40-bit security
 typedef gfp_<2, 4> gfp2;
+// for OT-based ECDSA
+typedef gfp_<3, 4> gfp3;
 
 void to_signed_bigint(bigint& ans,const gfp& x);
 

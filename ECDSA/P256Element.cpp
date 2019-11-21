@@ -77,6 +77,14 @@ P256Element& P256Element::operator +=(const P256Element& other)
     return *this;
 }
 
+P256Element& P256Element::operator /=(const Scalar& other)
+{
+    auto tmp = other;
+    tmp.invert();
+    *this = *this * tmp;
+    return *this;
+}
+
 bool P256Element::operator ==(const P256Element& other) const
 {
     return point == other.point;

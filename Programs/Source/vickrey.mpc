@@ -55,12 +55,12 @@ def f(_):
 
     def thread():
         i = get_arg()
-        n_per_thread = n_inputs / n_threads
+        n_per_thread = n_inputs // n_threads
         if n_per_thread % 2 != 0:
             raise Exception('Number of inputs must be divisible by 2')
         start = i * n_per_thread
         tuples = [bid_sort(bids[start+2*j], bids[start+2*j+1]) \
-                  for j in range(n_per_thread / 2)]
+                  for j in range(n_per_thread // 2)]
         first, second = util.tree_reduce(first_and_second, tuples)
         results[2*i], results[2*i+1] = first, second
 

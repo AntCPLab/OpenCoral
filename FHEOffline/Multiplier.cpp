@@ -9,13 +9,20 @@
 
 template <class FD>
 Multiplier<FD>::Multiplier(int offset, PairwiseGenerator<FD>& generator) :
-    generator(generator), machine(generator.machine),
-    P(generator.P, offset),
-    num_players(generator.P.num_players()),
-    my_num(generator.P.my_num()),
+        Multiplier(offset, generator.machine, generator.P, generator.timers)
+{
+}
+
+template <class FD>
+Multiplier<FD>::Multiplier(int offset, PairwiseMachine& machine, Player& P,
+        map<string, Timer>& timers) :
+    machine(machine),
+    P(P, offset),
+    num_players(P.num_players()),
+    my_num(P.my_num()),
     other_pk(machine.other_pks[(my_num + num_players - offset) % num_players]),
     other_enc_alpha(machine.enc_alphas[(my_num + num_players - offset) % num_players]),
-    timers(generator.timers),
+    timers(timers),
     C(machine.pk), mask(machine.pk),
     product_share(machine.setup<FD>().FieldD), rc(machine.pk),
     volatile_capacity(0)

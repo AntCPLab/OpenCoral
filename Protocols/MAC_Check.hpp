@@ -487,7 +487,16 @@ void Parallel_MAC_Check<T>::POpen_End(vector<T>& values,
 
 
 template<class T>
-Direct_MAC_Check<T>::Direct_MAC_Check(const typename T::mac_key_type& ai, Names& Nms, int num) : Separate_MAC_Check<T>(ai, Nms, num) {
+Direct_MAC_Check<T>::Direct_MAC_Check(const typename T::mac_key_type::Scalar& ai,
+    Names&, int) :
+    Direct_MAC_Check<T>(ai)
+{
+}
+
+template<class T>
+Direct_MAC_Check<T>::Direct_MAC_Check(const typename T::mac_key_type::Scalar& ai) :
+    MAC_Check_<T>(ai)
+{
   open_counter = 0;
 }
 
@@ -532,9 +541,7 @@ void Direct_MAC_Check<T>::POpen_End(vector<open_type>& values,const vector<T>& S
 
   this->timers[RECV].start();
 
-  for (int j=0; j<P.num_players(); j++)
-    if (j!=P.my_num())
-      P.receive_player(j,oss[j],true);
+  P.receive_all(oss);
 
   this->timers[RECV].stop();
   open_counter++;

@@ -16,13 +16,16 @@ public:
     T b;
     T c[N];
 
-    int repeat(int l)
+    int repeat(int l, bool check)
     {
         switch (l)
         {
         case 0:
         case 2:
-            return N;
+            if (check)
+                return N;
+            else
+                return 1;
         case 1:
             return 1;
         default:
@@ -75,12 +78,12 @@ class PlainTriple : public Triple<T,N>
 {
 public:
     // this assumes that valueBits[1] is still set to the bits of b
-    void to(vector<BitVector>& valueBits, int i)
+    void to(vector<BitVector>& valueBits, int i, int repeat = N)
     {
         for (int j = 0; j < N; j++)
         {
-            valueBits[0].set_portion(i * N + j, this->a[j]);
-            valueBits[2].set_portion(i * N + j, this->c[j]);
+            valueBits[0].set_portion(i * repeat + j, this->a[j]);
+            valueBits[2].set_portion(i * repeat + j, this->c[j]);
         }
     }
 };
@@ -123,12 +126,12 @@ public:
     {
         for (int l = 0; l < 3; l++)
         {
-            int repeat = this->repeat(l);
+            int repeat = this->repeat(l, generator.machine.check);
             for (int j = 0; j < repeat; j++)
             {
                 T value = triple.byIndex(l,j);
                 T mac;
-                mac.mul(value, generator.machine.template get_mac_key<U>());
+                mac.mul(value, generator.get_mac_key());
                 for (int i = 0; i < generator.nparties-1; i++)
                     mac += generator.ot_multipliers[i]->macs.at(l).at(iTriple * repeat + j);
                 Share<T>& share = this->byIndex(l,j);

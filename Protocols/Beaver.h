@@ -29,6 +29,8 @@ class Beaver : public ProtocolBase<T>
     typename T::MAC_Check* MC;
 
 public:
+    static const bool uses_triples = true;
+
     Player& P;
 
     Beaver(Player& P) : prep(0), MC(0), P(P) {}
@@ -38,6 +40,9 @@ public:
     typename T::clear prepare_mul(const T& x, const T& y, int n = -1);
     void exchange();
     T finalize_mul(int n = -1);
+
+    void start_exchange();
+    void stop_exchange();
 
     int get_n_relevant_players() { return P.num_players(); }
 };

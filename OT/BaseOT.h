@@ -30,7 +30,7 @@ void send_if_ot_receiver(TwoPartyPlayer* P, vector<octetStream>& os, OT_ROLE rol
 class BaseOT
 {
 public:
-	vector<int> receiver_inputs;
+	BitVector receiver_inputs;
 	vector< vector<BitVector> > sender_inputs;
 	vector<BitVector> receiver_outputs;
 	TwoPartyPlayer* P;
@@ -63,7 +63,7 @@ public:
 
 	int length() { return ot_length; }
 
-	void set_receiver_inputs(const vector<int>& new_inputs)
+	void set_receiver_inputs(const BitVector& new_inputs)
 	{
 		if ((int)new_inputs.size() != nOT)
 			throw invalid_length();
@@ -72,7 +72,7 @@ public:
 
 	void set_receiver_inputs(int128 inputs)
 	{
-		vector<int> new_inputs(128);
+		BitVector new_inputs(128);
 		for (int i = 0; i < 128; i++)
 			new_inputs[i] = (inputs >> i).get_lower() & 1;
 		set_receiver_inputs(new_inputs);
@@ -81,6 +81,7 @@ public:
 	// do the OTs -- generate fresh random choice bits by default
 	virtual void exec_base(bool new_receiver_inputs=true);
 	// use PRG to get the next ot_length bits
+	void set_seeds();
 	void extend_length();
 	void check();
 
@@ -90,8 +91,6 @@ protected:
 
 	bool is_sender() { return (bool) (ot_role & SENDER); }
 	bool is_receiver() { return (bool) (ot_role & RECEIVER); }
-
-	void set_seeds();
 };
 
 class FakeOT : public BaseOT

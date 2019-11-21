@@ -59,7 +59,7 @@ void ThreadMaster<T>::run()
 
     if (T::needs_ot)
         for (int i = 0; i < machine.nthreads; i++)
-            machine.ot_setups.push_back({{*P, true}, {*P, true}});
+            machine.ot_setups.push_back({*P, true});
 
     for (int i = 0; i < machine.nthreads; i++)
         threads.push_back(new_thread(i));

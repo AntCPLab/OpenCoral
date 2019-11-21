@@ -10,16 +10,17 @@ import Compiler.program
 import heapq, itertools
 import operator
 import sys
+from functools import reduce
 
 
 class StraightlineAllocator:
     """Allocate variables in a straightline program using n registers.
     It is based on the precondition that every register is only defined once."""
     def __init__(self, n):
-        self.alloc = {}
+        self.alloc = dict_by_id()
         self.usage = Compiler.program.RegType.create_dict(lambda: 0)
-        self.defined = {}
-        self.dealloc = set()
+        self.defined = dict_by_id()
+        self.dealloc = set_by_id()
         self.n = n
 
     def alloc_reg(self, reg, free):
@@ -77,8 +78,8 @@ class StraightlineAllocator:
                     unused_regs.append(j)
             if unused_regs and len(unused_regs) == len(list(i.get_def())):
                 # only report if all assigned registers are unused
-                print "Register(s) %s never used, assigned by '%s' in %s" % \
-                    (unused_regs,i,format_trace(i.caller))
+                print("Register(s) %s never used, assigned by '%s' in %s" % \
+                    (unused_regs,i,format_trace(i.caller)))
 
             for j in i.get_used():
                 self.alloc_reg(j, alloc_pool)
@@ -86,7 +87,7 @@ class StraightlineAllocator:
                 self.dealloc_reg(j, i, alloc_pool)
 
             if k % 1000000 == 0 and k > 0:
-                print "Allocated registers for %d instructions at" % k, time.asctime()
+                print("Allocated registers for %d instructions at" % k, time.asctime())
 
         # print "Successfully allocated registers"
         # print "modp usage: %d clear, %d secret" % \
@@ -97,8 +98,8 @@ class StraightlineAllocator:
 
 
 def determine_scope(block, options):
-    last_def = defaultdict(lambda: -1)
-    used_from_scope = set()
+    last_def = defaultdict_by_id(lambda: -1)
+    used_from_scope = set_by_id()
 
     def find_in_scope(reg, scope):
         while True:
@@ -114,18 +115,18 @@ def determine_scope(block, options):
                 used_from_scope.add(reg)
                 reg.can_eliminate = False
             else:
-                print 'Warning: read before write at register', reg
-                print '\tline %d: %s' % (n, instr)
-                print '\tinstruction trace: %s' % format_trace(instr.caller, '\t\t')
-                print '\tregister trace: %s' % format_trace(reg.caller, '\t\t')
+                print('Warning: read before write at register', reg)
+                print('\tline %d: %s' % (n, instr))
+                print('\tinstruction trace: %s' % format_trace(instr.caller, '\t\t'))
+                print('\tregister trace: %s' % format_trace(reg.caller, '\t\t'))
                 if options.stop:
                     sys.exit(1)
 
     def write(reg, n):
         if last_def[reg] != -1:
-            print 'Warning: double write at register', reg
-            print '\tline %d: %s' % (n, instr)
-            print '\ttrace: %s' % format_trace(instr.caller, '\t\t')
+            print('Warning: double write at register', reg)
+            print('\tline %d: %s' % (n, instr))
+            print('\ttrace: %s' % format_trace(instr.caller, '\t\t'))
             if options.stop:
                 sys.exit(1)
         last_def[reg] = n
@@ -146,7 +147,7 @@ def determine_scope(block, options):
                 write(reg, n)
 
     block.used_from_scope = used_from_scope
-    block.defined_registers = set(last_def.iterkeys())
+    block.defined_registers = set_by_id(last_def.keys())
 
 class Merger:
     def __init__(self, block, options, merge_classes):
@@ -178,7 +179,7 @@ class Merger:
             if inst.is_vec():
                 for arg in inst.args:
                     arg.create_vector_elements()
-                res = sum(zip(*inst.args), ())
+                res = sum(list(zip(*inst.args)), ())
                 return list(res)
             else:
                 return inst.args
@@ -241,7 +242,7 @@ class Merger:
         remaining_input_nodes = []
         def do_merge(nodes):
             if len(nodes) > 1000:
-                print 'Merging %d inputs...' % len(nodes)
+                print('Merging %d inputs...' % len(nodes))
             self.do_merge(iter(nodes))
         for n in self.input_nodes:
             inst = self.instructions[n]
@@ -252,7 +253,7 @@ class Merger:
             if len(merge) >= self.max_parallel_open:
                 do_merge(merge)
                 merge[:] = []
-        for merge in reversed(sorted(merges.itervalues())):
+        for merge in reversed(sorted(merges.values())):
             if merge:
                 do_merge(merge)
         self.input_nodes = remaining_input_nodes
@@ -266,7 +267,7 @@ class Merger:
         instructions = self.instructions
         flex_nodes = defaultdict(dict)
         starters = []
-        for n in xrange(len(G)):
+        for n in range(len(G)):
             if n not in merge_nodes_set and \
                 depth_of[n] != rev_depth_of[n] and G[n] and G.get_attr(n,'start') == -1 and not isinstance(instructions[n], AsymmetricCommunicationInstruction):
                     #print n, depth_of[n], rev_depth_of[n]
@@ -275,19 +276,19 @@ class Merger:
                     not isinstance(self.instructions[n], RawInputInstruction):
                 starters.append(n)
             if n % 10000000 == 0 and n > 0:
-                print "Processed %d nodes at" % n, time.asctime()
+                print("Processed %d nodes at" % n, time.asctime())
 
         inputs = defaultdict(list)
         for node in self.input_nodes:
             player = self.instructions[node].args[0]
             inputs[player].append(node)
-        first_inputs = [l[0] for l in inputs.itervalues()]
+        first_inputs = [l[0] for l in inputs.values()]
         other_inputs = []
         i = 0
         while True:
             i += 1
             found = False
-            for l in inputs.itervalues():
+            for l in inputs.values():
                 if i < len(l):
                     other_inputs.append(l[i])
                     found = True
@@ -299,20 +300,20 @@ class Merger:
         # magical preorder for topological search
         max_depth = max(merges)
         if max_depth > 10000:
-            print "Computing pre-ordering ..."
-        for i in xrange(max_depth, 0, -1):
+            print("Computing pre-ordering ...")
+        for i in range(max_depth, 0, -1):
             preorder.append(G.get_attr(merges[i], 'stop'))
-            for j in flex_nodes[i-1].itervalues():
+            for j in flex_nodes[i-1].values():
                 preorder.extend(j)
             preorder.extend(flex_nodes[0].get(i, []))
             preorder.append(merges[i])
             if i % 100000 == 0 and i > 0:
-                print "Done level %d at" % i, time.asctime()
+                print("Done level %d at" % i, time.asctime())
         preorder.extend(other_inputs)
         preorder.extend(starters)
         preorder.extend(first_inputs)
         if max_depth > 10000:
-            print "Done at", time.asctime()
+            print("Done at", time.asctime())
         return preorder
 
     def longest_paths_merge(self):
@@ -343,8 +344,8 @@ class Merger:
             t = type(self.instructions[merge[0]])
             self.counter[t] += len(merge)
             if len(merge) > 1000:
-                print 'Merging %d %s in round %d/%d' % \
-                    (len(merge), t.__name__, i, len(merges))
+                print('Merging %d %s in round %d/%d' % \
+                    (len(merge), t.__name__, i, len(merges)))
             self.do_merge(merge)
 
         self.merge_inputs()
@@ -352,11 +353,11 @@ class Merger:
         preorder = None
 
         if len(instructions) > 100000:
-            print "Topological sort ..."
+            print("Topological sort ...")
         order = Compiler.graph.topological_sort(G, preorder)
         instructions[:] = [instructions[i] for i in order if instructions[i] is not None]
         if len(instructions) > 100000:
-            print "Done at", time.asctime()
+            print("Done at", time.asctime())
 
         return len(merges)
 
@@ -377,7 +378,7 @@ class Merger:
         self.G = G
 
         reg_nodes = {}
-        last_def = defaultdict(lambda: -1)
+        last_def = defaultdict_by_id(lambda: -1)
         last_mem_write = []
         last_mem_read = []
         warned_about_mem = []
@@ -411,8 +412,8 @@ class Merger:
 
         def handle_mem_access(addr, reg_type, last_access_this_kind,
                               last_access_other_kind):
-            this = last_access_this_kind[addr,reg_type]
-            other = last_access_other_kind[addr,reg_type]
+            this = last_access_this_kind[str(addr),reg_type]
+            other = last_access_other_kind[str(addr),reg_type]
             if this and other:
                 if this[-1] < other[0]:
                     del this[:]
@@ -429,15 +430,15 @@ class Merger:
                     handle_mem_access(addr_i, reg_type, last_access_this_kind,
                                       last_access_other_kind)
                 if not warned_about_mem and (instr.get_size() > 100):
-                    print 'WARNING: Order of memory instructions ' \
-                        'not preserved due to long vector, errors possible'
+                    print('WARNING: Order of memory instructions ' \
+                        'not preserved due to long vector, errors possible')
                     warned_about_mem.append(True)
             else:
                 handle_mem_access(addr, reg_type, last_access_this_kind,
                                   last_access_other_kind)
             if not warned_about_mem and not isinstance(instr, DirectMemoryInstruction):
-                print 'WARNING: Order of memory instructions ' \
-                    'not preserved, errors possible'
+                print('WARNING: Order of memory instructions ' \
+                    'not preserved, errors possible')
                 # hack
                 warned_about_mem.append(True)
 
@@ -553,11 +554,11 @@ class Merger:
                 self.sources.append(n)
 
             if n % 100000 == 0 and n > 0:
-                print "Processed dependency of %d/%d instructions at" % \
-                    (n, len(block.instructions)), time.asctime()
+                print("Processed dependency of %d/%d instructions at" % \
+                    (n, len(block.instructions)), time.asctime())
 
         if len(open_nodes) > 1000:
-            print "Program has %d %s instructions" % (len(open_nodes), merge_classes)
+            print("Program has %d %s instructions" % (len(open_nodes), merge_classes))
 
     def merge_nodes(self, i, j):
         """ Merge node j into i, removing node j """
@@ -566,8 +567,8 @@ class Merger:
             G.remove_edge(i, j)
         if i in G[j]:
             G.remove_edge(j, i)
-        G.add_edges_from(zip(itertools.cycle([i]), G[j], [G.weights[(j,k)] for k in G[j]]))
-        G.add_edges_from(zip(G.pred[j], itertools.cycle([i]), [G.weights[(k,j)] for k in G.pred[j]]))
+        G.add_edges_from(list(zip(itertools.cycle([i]), G[j], [G.weights[(j,k)] for k in G[j]])))
+        G.add_edges_from(list(zip(G.pred[j], itertools.cycle([i]), [G.weights[(k,j)] for k in G.pred[j]])))
         G.get_attr(i, 'merges').append(j)
         G.remove_node(j)
 
@@ -578,7 +579,7 @@ class Merger:
         count = 0
         open_count = 0
         stats = defaultdict(lambda: 0)
-        for i,inst in zip(xrange(len(instructions) - 1, -1, -1), reversed(instructions)):
+        for i,inst in zip(range(len(instructions) - 1, -1, -1), reversed(instructions)):
             # remove if instruction has result that isn't used
             unused_result = not G.degree(i) and len(list(inst.get_def())) \
                 and reduce(operator.and_, (reg.can_eliminate for reg in inst.get_def())) \
@@ -608,21 +609,21 @@ class Merger:
                 eliminate(i)
                 count += 2
         if count > 0:
-            print 'Eliminated %d dead instructions, among which %d opens: %s' \
-                % (count, open_count, dict(stats))
+            print('Eliminated %d dead instructions, among which %d opens: %s' \
+                % (count, open_count, dict(stats)))
 
     def print_graph(self, filename):
         f = open(filename, 'w')
-        print >>f, 'digraph G {'
+        print('digraph G {', file=f)
         for i in range(self.G.n):
             for j in self.G[i]:
-                print >>f, '"%d: %s" -> "%d: %s";' % \
-                    (i, self.instructions[i], j, self.instructions[j])
-        print >>f, '}'
+                print('"%d: %s" -> "%d: %s";' % \
+                    (i, self.instructions[i], j, self.instructions[j]), file=f)
+        print('}', file=f)
         f.close()
 
     def print_depth(self, filename):
         f = open(filename, 'w')
         for i in range(self.G.n):
-            print >>f, '%d: %s' % (self.depths[i], self.instructions[i])
+            print('%d: %s' % (self.depths[i], self.instructions[i]), file=f)
         f.close()

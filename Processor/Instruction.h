@@ -61,6 +61,9 @@ enum
     USE_PREP = 0x1C,
     STARTGRIND = 0x1D,
     STOPGRIND = 0x1E,
+    NPLAYERS = 0xE2,
+    THRESHOLD = 0xE3,
+    PLAYERID = 0xE4,
     // Addition
     ADDC = 0x20,
     ADDS = 0x21,

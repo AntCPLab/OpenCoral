@@ -6,8 +6,8 @@ sbitfix.set_precision(16, 32)
 def test(a, b, value_type=None):
     try:
         b = int(round((b * (1 << a.f))))
-	if b < 0:
-	   b += 2 ** sbitfix.k
+        if b < 0:
+            b += 2 ** sbitfix.k
         a = a.v.reveal()
     except AttributeError:
         pass

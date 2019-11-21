@@ -8,6 +8,7 @@
 
 #include <assert.h>
 #include <vector>
+#include <array>
 using namespace std;
 
 #include "Tools/octetStream.h"
@@ -26,11 +27,14 @@ template<class T> class Preprocessing;
 class ReplicatedBase
 {
 public:
-    PRNG shared_prngs[2];
+    array<PRNG, 2> shared_prngs;
 
     Player& P;
 
     ReplicatedBase(Player& P);
+    ReplicatedBase(Player& P, array<PRNG, 2>& prngs);
+
+    ReplicatedBase branch();
 
     int get_n_relevant_players() { return P.num_players() - 1; }
 };
@@ -62,6 +66,9 @@ public:
 
     virtual void trunc_pr(const vector<int>& regs, int size, SubProcessor<T>& proc)
     { (void) regs, (void) size; (void) proc; throw not_implemented(); }
+
+    virtual void start_exchange() { exchange(); }
+    virtual void stop_exchange() {}
 };
 
 template <class T>
@@ -75,7 +82,10 @@ public:
     typedef ReplicatedMC<T> MAC_Check;
     typedef ReplicatedInput<T> Input;
 
+    static const bool uses_triples = false;
+
     Replicated(Player& P);
+    Replicated(const ReplicatedBase& other);
 
     static void assign(T& share, const typename T::clear& value, int my_num)
     {
@@ -103,6 +113,9 @@ public:
     void trunc_pr(const vector<int>& regs, int size, SubProcessor<T>& proc);
 
     T get_random();
+
+    void start_exchange();
+    void stop_exchange();
 };
 
 #endif /* PROTOCOLS_REPLICATED_H_ */

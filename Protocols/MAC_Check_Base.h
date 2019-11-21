@@ -32,8 +32,10 @@ public:
 
     virtual void POpen_Begin(vector<typename T::open_type>& values,const vector<T>& S,const Player& P) = 0;
     virtual void POpen_End(vector<typename T::open_type>& values,const vector<T>& S,const Player& P) = 0;
-    void POpen(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
+    virtual void POpen(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
     typename T::open_type POpen(const T& secret, const Player& P);
+    // alternative name to avoid conflict
+    typename T::open_type open(const T& secret, const Player& P) { return POpen(secret, P); }
 
     virtual void CheckFor(const typename T::open_type& value, const vector<T>& shares, const Player& P);
 

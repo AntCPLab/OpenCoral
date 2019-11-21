@@ -10,14 +10,10 @@
 
 #include "Math/gfp.h"
 
-#if GFP_MOD_SZ != 4
-#error GFP_MOD_SZ must be 4
-#endif
-
 class P256Element : public ValueInterface
 {
 public:
-    typedef gfp Scalar;
+    typedef gfp_<2, 4> Scalar;
 
 private:
     static CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> params;
@@ -52,6 +48,7 @@ public:
     P256Element operator*(const Scalar& other) const;
 
     P256Element& operator+=(const P256Element& other);
+    P256Element& operator/=(const Scalar& other);
 
     bool operator==(const P256Element& other) const;
     bool operator!=(const P256Element& other) const;

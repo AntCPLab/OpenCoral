@@ -283,7 +283,8 @@ Z2<K> Z2<K>::operator>>(int i) const
 {
 	Z2<K> res;
 	int n_byte_shift = i / 8;
-	memcpy(res.a, (char*)a + n_byte_shift, N_BYTES - n_byte_shift);
+	if (N_BYTES - n_byte_shift > 0)
+		memcpy(res.a, (char*)a + n_byte_shift, N_BYTES - n_byte_shift);
 	int n_inside_shift = i % 8;
 	if (n_inside_shift > 0)
 		mpn_rshift(res.a, res.a, N_WORDS, n_inside_shift);

@@ -1,5 +1,11 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.1.3 (Nov 21, 2019)
+
+- Python 3
+- Semi-honest computation based on semi-homomorphic encryption
+- Access to player information in high-level language
+
 ## 0.1.2 (Oct 11, 2019)
 
 - Machine learning capabilities used for [MobileNets inference](https://eprint.iacr.org/2019/131) and the iDASH submission

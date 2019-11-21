@@ -13,6 +13,9 @@ class MaliciousShamirMC : public ShamirMC<T>
 {
     vector<vector<typename T::clear::Scalar>> reconstructions;
 
+    void finalize(vector<typename T::clear>& values, const vector<T>& S,
+            const Player& P);
+
 public:
     MaliciousShamirMC();
 
@@ -28,6 +31,8 @@ public:
     { (void)_; (void)__; (void)___; (void)____; }
 
 
+    void POpen(vector<typename T::clear>& values, const vector<T>& S,
+            const Player& P);
     void POpen_End(vector<typename T::clear>& values, const vector<T>& S,
             const Player& P);
 };

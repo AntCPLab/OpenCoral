@@ -8,7 +8,7 @@ ml.set_n_threads(8)
 debug = False
 
 if 'halfprec' in program.args:
-   print '8-bit precision after point'
+   print('8-bit precision after point')
    sfix.set_precision(8, 31)
    cfix.set_precision(8, 31)
 else:
@@ -26,7 +26,7 @@ n_features = 12634
 
 if len(program.args) > 2:
    if 'bc' in program.args:
-      print 'Compiling for BC-TCGA'
+      print('Compiling for BC-TCGA')
       n_examples = 472
       n_normal = 49
       n_features = 17814
@@ -41,7 +41,7 @@ try:
 except:
    pass
 
-print 'Using %d threads' % ml.Layer.n_threads
+print('Using %d threads' % ml.Layer.n_threads)
 
 n_fold = 5
 test_share = 1. / n_fold
@@ -63,8 +63,8 @@ else:
 n_test = sum(n_tests)
 
 indices = [regint.Array(n) for n in n_ex]
-indices[0].assign(range(n_pos, n_pos + n_normal))
-indices[1].assign(range(n_pos))
+indices[0].assign(list(range(n_pos, n_pos + n_normal)))
+indices[1].assign(list(range(n_pos)))
 
 test = regint.Array(n_test)
 
@@ -97,7 +97,7 @@ for arg in program.args:
    m = re.match('tol=(.*)', arg)
    if m:
       sgd.tol = float(m.group(1))
-      print 'Stop with tolerance', sgd.tol
+      print('Stop with tolerance', sgd.tol)
 
 sum_acc = cfix.MemValue(0)
 

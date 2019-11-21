@@ -10,7 +10,9 @@
 
 long long timeval_diff(struct timeval *start_time, struct timeval *end_time);
 double timeval_diff_in_seconds(struct timeval *start_time, struct timeval *end_time);
-long long timespec_diff(struct timespec *start_time, struct timespec *end_time);
+long long timespec_diff(const struct timespec *start_time, const struct timespec *end_time);
+
+class TimeScope;
 
 class Timer
 {
@@ -26,6 +28,8 @@ class Timer
   double idle();
 
   Timer& operator-=(const Timer& other);
+  Timer& operator+=(const Timer& other);
+  Timer& operator+=(const TimeScope& other);
 
   private:
   timespec startv;
@@ -33,11 +37,12 @@ class Timer
   long long elapsed_time;
   clockid_t clock_id;
 
-  long long elapsed_since_last_start();
+  long long elapsed_since_last_start() const;
 };
 
 class TimeScope
 {
+  friend class Timer;
   Timer& timer;
 
 public:
@@ -83,7 +88,7 @@ inline void Timer::reset()
   clock_gettime(clock_id, &startv);
 }
 
-inline long long Timer::elapsed_since_last_start()
+inline long long Timer::elapsed_since_last_start() const
 {
   timespec endv;
   clock_gettime(clock_id, &endv);

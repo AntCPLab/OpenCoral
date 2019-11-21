@@ -90,7 +90,7 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	{
 		mac_key.randomize(prng);
 		if (T::needs_ot)
-			BaseMachine::s().ot_setups.push_back({{{*P, true}}});
+			BaseMachine::s().ot_setups.push_back({*P, true});
 		prep = Preprocessing<T>::get_live_prep(0, usage);
 	}
 	else

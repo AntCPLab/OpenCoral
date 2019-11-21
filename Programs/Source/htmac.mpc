@@ -50,9 +50,9 @@ test_decryption = True
 instructions_base.set_global_vector_size(n_parallel)
 
 if use_mimc_prf:
-    execfile('./Programs/Source/prf_mimc.mpc')
+    exec(compile(__builtins__['open']('./Programs/Source/prf_mimc.mpc').read(), './Programs/Source/prf_mimc.mpc', 'exec'))
 elif use_leg_prf:
-    execfile('./Programs/Source/prf_leg.mpc')
+    exec(compile(__builtins__['open']('./Programs/Source/prf_leg.mpc').read(), './Programs/Source/prf_leg.mpc', 'exec'))
 
 class HMAC(object):
     def __init__(self, _enc):
@@ -97,7 +97,7 @@ class NonceEncryptMAC(object):
     def get_long_random(self, nbits):
         """ Returns random cint() % 2^{nbits} """
         result = cint(0)
-        for i in range(nbits / 30):
+        for i in range(nbits // 30):
             result += cint(regint.get_random(30))
             result <<= 30
 
@@ -178,7 +178,7 @@ def time_private_mac(n_total, n_parallel, nmessages):
 
     # Benchmark n_total HtMAC's while executing in parallel n_parallel
     start_timer(1)
-    @for_range(n_total / n_parallel)
+    @for_range(n_total // n_parallel)
     def block(index):
         # Re-use off-line data after n_parallel runs for benchmarking purposes.
         # If real system-use need to initialize num_calls with a larger constant.

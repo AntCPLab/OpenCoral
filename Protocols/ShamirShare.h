@@ -40,6 +40,11 @@ public:
         return "Shamir " + T::type_string();
     }
 
+    static int threshold(int)
+    {
+        return ShamirMachine::s().threshold;
+    }
+
     static ShamirShare constant(T value, int my_num, const T& alphai = {})
     {
         return ShamirShare(value, my_num, alphai);

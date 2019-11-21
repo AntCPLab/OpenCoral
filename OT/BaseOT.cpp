@@ -116,7 +116,7 @@ void BaseOT::exec_base(bool new_receiver_inputs)
             {
                 if (new_receiver_inputs)
                     receiver_inputs[i + j] = G.get_uchar()&1;
-                cs[j] = receiver_inputs[i + j];
+                cs[j] = receiver_inputs[i + j].get();
             }
             receiver_rsgen(&receiver, Rs_pack[0], cs);
             os[0].store_bytes(Rs_pack[0], sizeof(Rs_pack[0]));
@@ -293,7 +293,7 @@ void FakeOT::exec_base(bool new_receiver_inputs)
         {
             for (int j = 0; j < 2; j++)
                 bv[j].unpack(os[1]);
-            receiver_outputs[i] = bv[receiver_inputs[i]];
+            receiver_outputs[i] = bv[receiver_inputs[i].get()];
         }
 
     set_seeds();

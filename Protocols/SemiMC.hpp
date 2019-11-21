@@ -42,10 +42,24 @@ void DirectSemiMC<T>::POpen_(vector<typename T::open_type>& values,
 }
 
 template<class T>
-void DirectSemiMC<T>::POpen_End(vector<typename T::open_type>& values,
+void DirectSemiMC<T>::POpen_Begin(vector<typename T::open_type>& values,
         const vector<T>& S, const Player& P)
 {
-    (void) values, (void) S, (void) P;
+    values.clear();
+    values.insert(values.begin(), S.begin(), S.end());
+    octetStream os;
+    for (auto& x : values)
+        x.pack(os);
+    P.send_all(os, true);
+}
+
+template<class T>
+void DirectSemiMC<T>::POpen_End(vector<typename T::open_type>& values,
+        const vector<T>&, const Player& P)
+{
+    Bundle<octetStream> oss(P);
+    P.receive_all(oss);
+    direct_add_openings<typename T::open_type, 0>(values, P, oss);
 }
 
 #endif

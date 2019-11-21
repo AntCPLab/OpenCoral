@@ -127,10 +127,8 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
       P = new CryptoPlayer(playerNames, 0xF000);
     else
       P = new PlainPlayer(playerNames, 0xF000);
-    ot_setups.resize(nthreads);
     for (int i = 0; i < nthreads; i++)
-      for (int j = 0; j < 3; j++)
-        ot_setups.at(i).push_back({ *P, true });
+      ot_setups.push_back({ *P, true });
     delete P;
   }
 

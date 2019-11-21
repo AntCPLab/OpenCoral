@@ -1,15 +1,15 @@
-import compilerLib, program, instructions, types, library, floatingpoint
-import GC.types
+from . import compilerLib, program, instructions, types, library, floatingpoint
+from .GC import types as GC_types
 import inspect
-from config import *
-from compilerLib import run
+from .config import *
+from .compilerLib import run
 
 
 # add all instructions to the program VARS dictionary
 compilerLib.VARS = {}
 instr_classes = [t[1] for t in inspect.getmembers(instructions, inspect.isclass)]
 
-for mod in (types, GC.types):
+for mod in (types, GC_types):
     instr_classes += [t[1] for t in inspect.getmembers(mod, inspect.isclass)\
                       if t[1].__module__ == mod.__name__]
 

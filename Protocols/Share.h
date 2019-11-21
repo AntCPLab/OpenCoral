@@ -71,6 +71,9 @@ class Share
    static DataFieldType field_type()
      { return T::field_type(); }
 
+   static int threshold(int nplayers)
+     { return nplayers - 1; }
+
    static Share constant(const clear& aa, int my_num, const typename T::Scalar& alphai)
      { return Share(aa, my_num, alphai); }
 

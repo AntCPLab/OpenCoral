@@ -22,6 +22,7 @@ using namespace std;
 // Create setup file for gfp and gf2n
 void generate_online_setup(ofstream& outf, string dirname, bigint& p, int lgp, int lg2);
 void write_online_setup(ofstream& outf, string dirname, const bigint& p, int lg2, bool mont = true);
+void write_online_setup_without_init(ofstream& outf, string dirname, const bigint& p, int lg2);
 
 // Setup primes only
 // Chooses a p of at least lgp bits

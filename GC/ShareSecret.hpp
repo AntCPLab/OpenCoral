@@ -152,8 +152,7 @@ void ReplicatedSecret<U>::reveal(size_t n_bits, Clear& x)
     auto& share = *this;
     vector<BitVec> opened;
     auto& party = ShareThread<U>::s();
-    party.MC->POpen_Begin(opened, {share}, *party.P);
-    party.MC->POpen_End(opened, {share}, *party.P);
+    party.MC->POpen(opened, {share}, *party.P);
     x = IntBase(opened[0]);
 }
 

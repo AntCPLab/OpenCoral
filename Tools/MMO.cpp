@@ -81,13 +81,13 @@ void MMO::hashBlocks<gfp1, 1>(void* output, const void* input)
         encrypt_and_xor<1>(output, output, IV[0]);
 }
 
-template <>
-void MMO::hashBlocks<gfp1, 8>(void* output, const void* input)
+template <int X, int L>
+void MMO::hashEightGfp(void* output, const void* input)
 {
-    if (gfp1::get_ZpD().get_t() < 2)
+    if (gfp_<X, L>::get_ZpD().get_t() < 2)
         throw not_implemented();
-    gfp1* out = (gfp1*)output;
-    hashBlocks<8, gfp1::N_BYTES>(output, input, sizeof(gfp1));
+    gfp_<X, L>* out = (gfp_<X, L>*)output;
+    hashBlocks<8, gfp_<X, L>::N_BYTES>(output, input, sizeof(gfp_<X, L>));
     for (int i = 0; i < 8; i++)
         out[i].zero_overhang();
     int left = 8;
@@ -97,7 +97,7 @@ void MMO::hashBlocks<gfp1, 8>(void* output, const void* input)
         int now_left = 0;
         for (int j = 0; j < left; j++)
             if (mpn_cmp((mp_limb_t*) out[indices[j]].get_ptr(),
-                    gfp1::get_ZpD().get_prA(), gfp1::t()) >= 0)
+                    gfp_<X, L>::get_ZpD().get_prA(), gfp_<X, L>::t()) >= 0)
             {
                 indices[now_left] = indices[j];
                 now_left++;
@@ -105,17 +105,29 @@ void MMO::hashBlocks<gfp1, 8>(void* output, const void* input)
         left = now_left;
 
         int block_size = sizeof(__m128i);
-        int n_blocks = DIV_CEIL(gfp1::size(), block_size);
+        int n_blocks = DIV_CEIL(gfp_<X, L>::size(), block_size);
         for (int i = 0; i < n_blocks; i++)
             for (int j = 0; j < left; j++)
             {
                 __m128i* addr = (__m128i*) out[indices[j]].get_ptr() + i;
                 __m128i* in = (__m128i*) out[indices[j]].get_ptr();
                 auto tmp = aes_128_encrypt(_mm_loadu_si128(in), IV[i]);
-                memcpy(addr, &tmp, min(block_size, gfp1::size() - i * block_size));
+                memcpy(addr, &tmp, min(block_size, gfp_<X, L>::size() - i * block_size));
                 out[indices[j]].zero_overhang();
             }
     }
+}
+
+template <>
+void MMO::hashBlocks<gfp1, 8>(void* output, const void* input)
+{
+    hashEightGfp<1, GFP_MOD_SZ>(output, input);
+}
+
+template <>
+void MMO::hashBlocks<gfp3, 8>(void* output, const void* input)
+{
+    hashEightGfp<3, 4>(output, input);
 }
 
 #define ZZ(F,N) \

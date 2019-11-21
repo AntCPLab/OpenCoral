@@ -177,6 +177,9 @@ void BaseInstruction::parse_operands(istream& s, int pos)
       case PRINTCHRINT:
       case PRINTSTRINT:
       case PRINTINT:
+      case NPLAYERS:
+      case THRESHOLD:
+      case PLAYERID:
         r[0]=get_int(s);
         break;
       // instructions with 3 registers + 1 integer operand
@@ -442,6 +445,9 @@ int BaseInstruction::get_reg_type() const
     case CONVMODP:
     case GCONVGF2N:
     case RAND:
+    case NPLAYERS:
+    case THRESHOLD:
+    case PLAYERID:
       return INT;
     case PREP:
     case USE_PREP:
@@ -1046,10 +1052,10 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
           Proc.temp.ans2.output(Proc.private_output, false);
         break;
       case INPUT:
-        sint::Input::template input<IntInput>(Proc.Procp, start, size);
+        sint::Input::template input<IntInput<typename sint::clear>>(Proc.Procp, start, size);
         return;
       case GINPUT:
-        sgf2n::Input::template input<IntInput>(Proc.Proc2, start, size);
+        sgf2n::Input::template input<IntInput<typename sgf2n::clear>>(Proc.Proc2, start, size);
         return;
       case INPUTFIX:
         sint::Input::template input<FixInput>(Proc.Procp, start, size);
@@ -1403,6 +1409,15 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         break;
       case STOPGRIND:
         CALLGRIND_STOP_INSTRUMENTATION;
+        break;
+      case NPLAYERS:
+        Proc.write_Ci(r[0], Proc.P.num_players());
+        break;
+      case THRESHOLD:
+        Proc.write_Ci(r[0], sint::threshold(Proc.P.num_players()));
+        break;
+      case PLAYERID:
+        Proc.write_Ci(r[0], Proc.P.my_num());
         break;
       // ***
       // TODO: read/write shared GF(2^n) data instructions

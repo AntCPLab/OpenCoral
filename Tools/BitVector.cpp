@@ -52,6 +52,16 @@ bool BitVector::parity() const
 #endif
 }
 
+void BitVector::append(const BitVector& other, size_t length)
+{
+    assert(nbits % 8 == 0);
+    assert(length % 8 == 0);
+    assert(length <= other.nbits);
+    auto old_nbytes = nbytes;
+    resize(nbits + length);
+    memcpy(bytes + old_nbytes, other.bytes, length / 8);
+}
+
 void BitVector::randomize(PRNG& G)
 {
     G.get_octets(bytes, nbytes);

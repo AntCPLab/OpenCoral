@@ -15,6 +15,8 @@ protected:
     typedef ReplicatedMC<T> super;
 
 public:
+    virtual void POpen(vector<typename T::open_type>& values,
+            const vector<T>& S, const Player& P);
     virtual void POpen_Begin(vector<typename T::open_type>& values,
             const vector<T>& S, const Player& P);
     virtual void POpen_End(vector<typename T::open_type>& values,
@@ -35,6 +37,8 @@ class HashMaliciousRepMC : public MaliciousRepMC<T>
     void reset();
     void update();
 
+    void finalize(const vector<typename T::open_type>& values);
+
 public:
     // emulate MAC_Check
     HashMaliciousRepMC(const typename T::value_type& _, int __ = 0, int ___ = 0) : HashMaliciousRepMC()
@@ -47,6 +51,7 @@ public:
     HashMaliciousRepMC();
     ~HashMaliciousRepMC();
 
+    void POpen(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
     void POpen_End(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
 
     void CheckFor(const typename T::open_type& value, const vector<T>& shares, const Player& P);
@@ -60,6 +65,8 @@ class CommMaliciousRepMC : public MaliciousRepMC<T>
     vector<octetStream> os;
 
 public:
+    void POpen(vector<typename T::clear>& values, const vector<T>& S,
+            const Player& P);
     void POpen_Begin(vector<typename T::clear>& values, const vector<T>& S,
             const Player& P);
     void POpen_End(vector<typename T::clear>& values, const vector<T>& S,

@@ -94,6 +94,7 @@ public:
   virtual void purge() {}
 
   virtual size_t data_sent() { return 0; }
+  virtual NamedCommStats comm_stats() { return {}; }
 
   virtual void get_three_no_count(Dtype dtype, T& a, T& b, T& c) = 0;
   virtual void get_two_no_count(Dtype dtype, T& a, T& b) = 0;
@@ -112,6 +113,7 @@ public:
   virtual array<T, 3> get_triple(int n_bits);
 
   virtual void buffer_triples() {}
+  virtual void buffer_inverses() {}
 };
 
 template<class T>

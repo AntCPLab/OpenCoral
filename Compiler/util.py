@@ -1,5 +1,6 @@
 import math
 import operator
+from functools import reduce
 
 def format_trace(trace, prefix='  '):
     if trace is None:
@@ -46,7 +47,7 @@ def right_shift(a, b, bits):
         return a.right_shift(b, bits)
 
 def bit_decompose(a, bits):
-    if isinstance(a, (int,long)):
+    if isinstance(a, int):
         return [int((a >> i) & 1) for i in range(bits)]
     else:
         return a.bit_decompose(bits)
@@ -82,7 +83,7 @@ def if_else(cond, a, b):
         else:
             return cond.if_else(a, b)
     except:
-        print cond, a, b
+        print(cond, a, b)
         raise
 
 def cond_swap(cond, a, b):
@@ -112,8 +113,8 @@ def tree_reduce(function, sequence):
     if n == 1:
         return sequence[0]
     else:
-        reduced = [function(sequence[2*i], sequence[2*i+1]) for i in range(n/2)]
-        return tree_reduce(function, reduced + sequence[n/2*2:])
+        reduced = [function(sequence[2*i], sequence[2*i+1]) for i in range(n//2)]
+        return tree_reduce(function, reduced + sequence[n//2*2:])
 
 def or_op(a, b):
     return a + b - a * b
@@ -144,7 +145,7 @@ def reveal(x):
     return x
 
 def is_constant(x):
-    return isinstance(x, (int, long, bool))
+    return isinstance(x, (int, bool))
 
 def is_constant_float(x):
     return isinstance(x, float) or is_constant(x)
@@ -180,3 +181,44 @@ def expand(x, size):
         return x.expand_to_vector(size)
     except AttributeError:
         return x
+
+class set_by_id(object):
+    def __init__(self, init=[]):
+        self.content = {}
+        for x in init:
+            self.add(x)
+
+    def __contains__(self, value):
+        return id(value) in self.content
+
+    def __iter__(self):
+        return iter(self.content.values())
+
+    def add(self, value):
+        self.content[id(value)] = value
+
+class dict_by_id(object):
+    def __init__(self):
+        self.content = {}
+
+    def __contains__(self, key):
+        return id(key) in self.content
+
+    def __getitem__(self, key):
+        return self.content[id(key)][1]
+
+    def __setitem__(self, key, value):
+        self.content[id(key)] = (key, value)
+
+    def keys(self):
+        return (x[0] for x in self.content.values())
+
+class defaultdict_by_id(dict_by_id):
+    def __init__(self, default):
+        dict_by_id.__init__(self)
+        self.default = default
+
+    def __getitem__(self, key):
+        if key not in self:
+            self[key] = self.default()
+        return dict_by_id.__getitem__(self, key)

@@ -38,7 +38,7 @@ DEPS := $(wildcard */*.d)
 all: gen_input online offline externalIO bmr yao replicated shamir real-bmr spdz2k-party.x brain-party.x semi-party.x semi2k-party.x semi-bin-party.x mascot-party.x tiny-party.x
 
 ifeq ($(USE_NTL),1)
-all: overdrive she-offline cowgear-party.x
+all: overdrive she-offline cowgear-party.x hemi-party.x
 endif
 
 -include $(DEPS)
@@ -165,6 +165,7 @@ malicious-shamir-party.x: Machines/ShamirMachine.o
 spdz2k-party.x: $(OT)
 semi-party.x: $(OT)
 semi2k-party.x: $(OT)
+hemi-party.x: $(FHEOFFLINE)
 cowgear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o
 mascot-party.x: Machines/SPDZ.o $(OT)
 Player-Online.x: Machines/SPDZ.o $(OT)

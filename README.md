@@ -15,7 +15,7 @@ us, but you can also write an email to mp-spdz@googlegroups.com
 #### TL;DR (Binary Distribution on Linux or Source Distribution on macOS)
 
 This requires either a Linux distribution originally released 2011 or
-later (glibc 2.12) or macOS High Sierra or later as well as Python 2
+later (glibc 2.12) or macOS High Sierra or later as well as Python 3
 and basic command-line utilities.
 
 Download and unpack the [distribution](https://github.com/n1analytics/MP-SPDZ/releases),
@@ -72,7 +72,7 @@ The following table lists all protocols that are fully supported.
 | --- | --- | --- | --- | --- |
 | Malicious, dishonest majority | [MASCOT](#secret-sharing) | [SPDZ2k](#secret-sharing) | [Tiny](#secret-sharing) | [BMR](#bmr) |
 | Covert, dishonest majority | [CowGear](#secret-sharing) | N/A | N/A | N/A |
-| Semi-honest, dishonest majority | [Semi](#secret-sharing) | [Semi2k](#secret-sharing) | [SemiBin](#secret-sharing) | [Yao's GC](#yaos-garbled-circuits) / [BMR](#bmr) |
+| Semi-honest, dishonest majority | [Semi / Hemi](#secret-sharing) | [Semi2k](#secret-sharing) | [SemiBin](#secret-sharing) | [Yao's GC](#yaos-garbled-circuits) / [BMR](#bmr) |
 | Malicious, honest majority | [Shamir / Rep3 / PS](#honest-majority) | [Brain / Rep3 / PS](#honest-majority) | [Rep3](#honest-majority) | [BMR](#bmr) |
 | Semi-honest, honest majority | [Shamir / Rep3](#honest-majority) | [Rep3](#honest-majority) | [Rep3](#honest-majority) | [BMR](#bmr) |
 
@@ -128,14 +128,14 @@ phase outputs the amount of offline material required, which allows to
 compute the preprocessing time for a particular computation.
 
 #### Requirements
- - GCC 5 or later (tested with 8.2) or LLVM/clang 5 or later (tested with 7)
+ - GCC 5 or later (tested with 8.2) or LLVM/clang 5 or later (tested with 7). We recommend clang because it performs better.
  - MPIR library, compiled with C++ support (use flag --enable-cxx when running configure)
  - libsodium library, tested against 1.0.16
  - OpenSSL, tested against and 1.0.2 and 1.1.0
  - Boost.Asio with SSL support (`libboost-dev` on Ubuntu), tested against 1.65
  - Boost.Thread for BMR (`libboost-thread-dev` on Ubuntu), tested against 1.65
  - 64-bit CPU
- - Python 2.x
+ - Python 3.5 or later
  - NTL library for CowGear and the SPDZ-2 and Overdrive offline phases (optional; tested with NTL 10.5)
  - If using macOS, Sierra or later
 
@@ -239,6 +239,7 @@ The following table shows all programs for dishonest-majority computation using 
 | `semi-party.x` | OT-based | Mod prime | Semi-honest | `semi.sh` |
 | `semi2k-party.x` | OT-based | Mod 2^k | Semi-honest | `semi2k.sh` |
 | `cowgear-party.x` | Adapted [LowGear](https://eprint.iacr.org/2017/1230) | Mod prime | Covert | `cowgear.sh` |
+| `hemi-party.x` | Semi-homomorphic encryption | Mod prime | Semi-honest | `hemi.sh` |
 | `semi-bin-party.x` | OT-based | Binary | Semi-honest | `semi-bin.sh` |
 | `tiny-party.x` | Adapted SPDZ2k | Binary | Malicious | `tiny.sh` |
 
@@ -254,12 +255,16 @@ security.
 Tiny denotes the adaption of SPDZ2k to the binary setting. In
 particular, the SPDZ2k sacrifice does not work for bits, so we replace
 it by cut-and-choose according to [Furukawa et
-al.](https://eprint.iacr.org/2016/944.pdf).
+al.](https://eprint.iacr.org/2016/944)
 
 CowGear denotes a covertly secure version of LowGear. The reason for
 this is the key generation that only achieves covert security. It is
 possible however to run full LowGear for triple generation by using
 `-s` with the desired security parameter.
+
+Hemi denotes the stripped version version of LowGear for semi-honest
+security similar to Semi, that is, generating additively shared Beaver
+triples using semi-homomorphic encryption.
 
 We will use MASCOT to demonstrate the use, but the other protocols
 work similarly.

@@ -11,7 +11,7 @@
  */
 class OTTripleSetup
 {
-    vector<int> base_receiver_inputs;
+    BitVector base_receiver_inputs;
     vector<BaseOT*> baseOTs;
 
     PRNG G;
@@ -25,10 +25,10 @@ public:
     vector< vector< vector<BitVector> > > baseSenderInputs;
     vector< vector<BitVector> > baseReceiverOutputs;
 
-    int get_nparties() { return nparties; }
-    int get_nbase() { return nbase; }
-    int get_my_num() { return my_num; }
-    int get_base_receiver_input(int i) { return base_receiver_inputs[i]; }
+    int get_nparties() const { return nparties; }
+    int get_nbase() const { return nbase; }
+    int get_my_num() const { return my_num; }
+    int get_base_receiver_input(int i) const { return base_receiver_inputs[i]; }
 
     OTTripleSetup(Player& N, bool real_OTs)
         : nparties(N.num_players()), my_num(N.my_num()), nbase(128)
@@ -78,6 +78,8 @@ public:
 
     //template <class T>
     //T get_mac_key();
+
+    OTTripleSetup get_fresh();
 };
 
 

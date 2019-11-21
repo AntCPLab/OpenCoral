@@ -13,7 +13,7 @@ if len(program.args) > 2:
     m = int(program.args[2])
 
 pack = min(n, 50)
-n = (n + pack - 1) / pack
+n = (n + pack - 1) // pack
 
 a = sbit(1)
 b = sbit(1, n=pack)

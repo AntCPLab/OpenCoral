@@ -28,8 +28,8 @@ use_inv = True
 # (r[i], r[i]^-1, r[i] * r[i-1]^-1)
 do_precomp = True
 
-import instructions_base
-import util
+from . import instructions_base
+from . import util
 
 def set_variant(options):
     """ Set flags based on the command-line option provided """
@@ -55,7 +55,7 @@ def ld2i(c, n):
     """ Load immediate 2^n into clear GF(p) register c """
     t1 = program.curr_block.new_reg('c')
     ldi(t1, 2 ** (n % 30))
-    for i in range(n / 30):
+    for i in range(n // 30):
         t2 = program.curr_block.new_reg('c')
         mulci(t2, t1, 2 ** 30)
         t1 = t2
@@ -75,13 +75,13 @@ def LTZ(s, a, k, kappa):
 
     k: bit length of a
     """
-    from types import sint
+    from .types import sint
     t = sint()
     Trunc(t, a, k, k - 1, kappa, True)
     subsfi(s, t, 0)
 
 def LessThanZero(a, k, kappa):
-    import types
+    from . import types
     res = types.sint()
     LTZ(res, a, k, kappa)
     return res
@@ -124,7 +124,7 @@ def TruncZeroes(a, k, m, signed):
     if program.options.ring:
         return TruncLeakyInRing(a, k, m, signed)
     else:
-        import types
+        from . import types
         tmp = types.cint()
         inv2m(tmp, m)
         return a * tmp
@@ -136,7 +136,7 @@ def TruncLeakyInRing(a, k, m, signed):
     """
     assert k > m
     assert int(program.options.ring) >= k
-    from types import sint, intbitint, cint, cgf2n
+    from .types import sint, intbitint, cint, cgf2n
     n_bits = k - m
     n_shift = int(program.options.ring) - n_bits
     r_bits = [sint.get_random_bit() for i in range(n_bits)]
@@ -165,7 +165,7 @@ def TruncRoundNearest(a, k, m, kappa, signed=False):
         # cannot work with bit length k+1
         tmp = TruncRing(None, a, k, m - 1, signed)
         return TruncRing(None, tmp + 1, k - m + 1, 1, signed)
-    from types import sint
+    from .types import sint
     res = sint()
     Trunc(res, a + (1 << (m - 1)), k + 1, m, kappa, signed)
     return res
@@ -277,7 +277,7 @@ def BitLTC1(u, a, b, kappa):
     """
     k = len(b)
     p = [program.curr_block.new_reg('s') for i in range(k)]
-    import floatingpoint
+    from . import floatingpoint
     a_bits = floatingpoint.bits(a, k)
     if instructions_base.get_global_vector_size() == 1:
         a_ = a_bits
@@ -357,12 +357,12 @@ def CarryOutAux(d, a, kappa):
     if k > 1 and k % 2 == 1:
         a.append(None)
         k += 1
-    u = [None]*(k/2)
+    u = [None]*(k//2)
     a = a[::-1]
     if k > 1:
-        for i in range(k/2):
-            u[i] = carry(a[2*i+1], a[2*i], i != k/2-1)
-        CarryOutAux(d, u[:k/2][::-1], kappa)
+        for i in range(k//2):
+            u[i] = carry(a[2*i+1], a[2*i], i != k//2-1)
+        CarryOutAux(d, u[:k//2][::-1], kappa)
     else:
         movs(d, a[0][1])
 
@@ -376,7 +376,7 @@ def CarryOut(res, a, b, c=0, kappa=None):
     c: initial carry-in bit
     """
     k = len(a)
-    import types
+    from . import types
     d = [program.curr_block.new_reg('s') for i in range(k)]
     t = [[types.sint() for i in range(k)] for i in range(4)]
     s = [program.curr_block.new_reg('s') for i in range(3)]
@@ -394,7 +394,7 @@ def CarryOut(res, a, b, c=0, kappa=None):
 
 def CarryOutLE(a, b, c=0):
     """ Little-endian version """
-    import types
+    from . import types
     res = types.sint()
     CarryOut(res, a[::-1], b[::-1], c)
     return res
@@ -407,7 +407,7 @@ def BitLTL(res, a, b, kappa):
     b: array of secret bits (same length as a)
     """
     k = len(b)
-    import floatingpoint
+    from . import floatingpoint
     a_bits = floatingpoint.bits(a, k)
     s = [[program.curr_block.new_reg('s') for i in range(k)] for j in range(2)]
     t = [program.curr_block.new_reg('s') for i in range(1)]
@@ -547,7 +547,7 @@ def KMulC(a):
     """
     Return just the product of all items in a
     """
-    from types import sint, cint
+    from .types import sint, cint
     p = sint()
     if use_inv:
         PreMulC_with_inverses(p, a)
@@ -582,7 +582,7 @@ def Mod2(a_0, a, k, kappa, signed):
     adds(t[2], t[0], t[1])
     adds(t[3], t[2], r_prime)
     asm_open(c, t[3])
-    import floatingpoint
+    from . import floatingpoint
     c_0 = floatingpoint.bits(c, 1)[0]
     mulci(tc, c_0, 2)
     mulm(t[4], r_0, tc)
@@ -591,4 +591,4 @@ def Mod2(a_0, a, k, kappa, signed):
 
 
 # hack for circular dependency
-from instructions import *
+from .instructions import *

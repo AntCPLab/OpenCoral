@@ -259,7 +259,7 @@ void naive_transpose64(vector<BitVector>& output, const vector<BitVector>& input
 }
 
 
-OTExtension::OTExtension(BaseOT& baseOT, TwoPartyPlayer* player,
+OTExtension::OTExtension(const BaseOT& baseOT, TwoPartyPlayer* player,
         bool passive) : player(player)
 {
     nbaseOTs = baseOT.nOT;

@@ -239,6 +239,8 @@ class BitVector
         return true;
     }
 
+    void append(const BitVector& other, size_t length);
+
     void randomize(PRNG& G);
     template <class T>
     void randomize_blocks(PRNG& G);

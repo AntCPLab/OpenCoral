@@ -264,11 +264,8 @@ OTMachine::OTMachine(int argc, const char** argv)
 
     // convert baseOT selection bits to BitVector
     // (not already BitVector due to legacy PVW code)
+    baseReceiverInput = bot.receiver_inputs;
     baseReceiverInput.resize(nbase);
-    for (int i = 0; i < nbase; i++)
-    {
-        baseReceiverInput.set_bit(i, bot.receiver_inputs[i]);
-    }
 }
 
 OTMachine::~OTMachine()

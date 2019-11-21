@@ -5,8 +5,8 @@ from Compiler import types
 
 from Compiler.util import *
 
-from oram import OptimalORAM,LinearORAM,RecursiveORAM,TrivialORAM,Entry
-from library import for_range,do_while,time,start_timer,stop_timer,if_,print_ln,crash,print_str
+from .oram import OptimalORAM,LinearORAM,RecursiveORAM,TrivialORAM,Entry
+from .library import for_range,do_while,time,start_timer,stop_timer,if_,print_ln,crash,print_str
 
 class OMatrixRow(object):
     def __init__(self, oram, base, add_type):
@@ -27,7 +27,7 @@ class OMatrixRow(object):
 
 class OMatrix:
     def __init__(self, N, M=None, oram_type=OptimalORAM, int_type=types.sint):
-        print 'matrix', oram_type
+        print('matrix', oram_type)
         self.N = N
         self.M = M or N
         self.oram = oram_type(N * self.M, entry_size=log2(N), init_rounds=0, \
@@ -73,7 +73,7 @@ class OReverseMatrix(OMatrix):
 
 class OStack:
     def __init__(self, N, oram_type=OptimalORAM, int_type=types.sint):
-        print 'stack', oram_type
+        print('stack', oram_type)
         self.oram = oram_type(N, entry_size=log2(N), init_rounds=0, \
                                   value_type=int_type.basic_type)
         self.size = types.MemValue(int_type(0))
@@ -247,4 +247,4 @@ class Matchmaker:
         self.reverse = reverse
         self.int_type = int_type
         self.basic_type = int_type.basic_type
-        print 'match', self.oram_type
+        print('match', self.oram_type)

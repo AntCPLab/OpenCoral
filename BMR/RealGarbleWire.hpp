@@ -133,7 +133,7 @@ void RealGarbleWire<T>::input(party_id_t from, char input)
 		protocol.init_mul(party.shared_proc);
 		protocol.prepare_mul(mask, T(1, party.P->my_num(), party.mac_key) - mask);
 		protocol.exchange();
-		if (party.MC->POpen(protocol.finalize_mul(), *party.P) != 0)
+		if (party.MC->open(protocol.finalize_mul(), *party.P) != 0)
 			throw runtime_error("input mask not a bit");
 	}
 #ifdef DEBUG_MASK
@@ -168,7 +168,7 @@ void RealGarbleWire<T>::output()
 	auto& party = RealProgramParty<T>::s();
 	assert(party.MC != 0);
 	assert(party.P != 0);
-	auto m = party.MC->POpen(mask, *party.P);
+	auto m = party.MC->open(mask, *party.P);
 	party.output_masks.push_back(m.get_bit(0));
 	party.taint();
 #ifdef DEBUG_MASK

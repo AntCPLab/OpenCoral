@@ -16,34 +16,31 @@ class GeneratorThread;
 
 class MascotParams : virtual public OfflineParams
 {
-protected:
-    gf2n_short mac_key2s;
-    gf2n_long mac_key2l;
-    gfp1 mac_keyp;
-    Z2<128> mac_keyz;
-
 public:
     string prep_data_dir;
     bool generateMACs;
     bool amplify;
     bool check;
+    bool correlation_check;
     bool generateBits;
+    bool use_extension;
+    bool fewer_rounds;
+    bool fiat_shamir;
     struct timeval start, stop;
 
     MascotParams();
 
     void set_passive();
-
-    template <class T>
-    T get_mac_key();
-    template <class T>
-    void set_mac_key(T key);
 };
 
 class TripleMachine : public OfflineMachineBase, public MascotParams
 {
     Names N[2];
     int nConnections;
+
+    gf2n mac_key2;
+    gfp1 mac_keyp;
+    Z2<128> mac_keyz;
 
 public:
     int nloops;
@@ -54,7 +51,8 @@ public:
     TripleMachine(int argc, const char** argv);
 
     template<class T>
-    GeneratorThread* new_generator(OTTripleSetup& setup, int i);
+    GeneratorThread* new_generator(OTTripleSetup& setup, int i,
+            typename T::mac_key_type mac_key);
 
     void run();
 

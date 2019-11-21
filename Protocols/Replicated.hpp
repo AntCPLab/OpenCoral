@@ -29,6 +29,12 @@ Replicated<T>::Replicated(Player& P) : ReplicatedBase(P)
     assert(T::length == 2);
 }
 
+template<class T>
+Replicated<T>::Replicated(const ReplicatedBase& other) :
+        ReplicatedBase(other)
+{
+}
+
 inline ReplicatedBase::ReplicatedBase(Player& P) : P(P)
 {
     assert(P.num_players() == 3);
@@ -41,6 +47,18 @@ inline ReplicatedBase::ReplicatedBase(Player& P) : P(P)
 	P.send_relative(1, os);
 	P.receive_relative(-1, os);
 	shared_prngs[1].SetSeed(os.get_data());
+}
+
+inline ReplicatedBase::ReplicatedBase(Player& P, array<PRNG, 2>& prngs) :
+        P(P)
+{
+    for (int i = 0; i < 2; i++)
+        shared_prngs[i].SetSeed(prngs[i]);
+}
+
+inline ReplicatedBase ReplicatedBase::branch()
+{
+    return {P, shared_prngs};
 }
 
 template<class T>
@@ -126,6 +144,18 @@ template<class T>
 void Replicated<T>::exchange()
 {
     P.pass_around(os[0], os[1], 1);
+}
+
+template<class T>
+void Replicated<T>::start_exchange()
+{
+    P.send_relative(1, os[0]);
+}
+
+template<class T>
+void Replicated<T>::stop_exchange()
+{
+    P.receive_relative(-1, os[1]);
 }
 
 template<class T>

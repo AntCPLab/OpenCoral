@@ -30,7 +30,7 @@ public:
     string progname;
     int nthreads;
 
-    vector<vector<OTTripleSetup>> ot_setups;
+    vector<OTTripleSetup> ot_setups;
 
     static BaseMachine& s();
 

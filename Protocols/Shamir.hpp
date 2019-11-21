@@ -35,6 +35,12 @@ Shamir<U>::~Shamir()
 }
 
 template<class U>
+Shamir<U> Shamir<U>::branch()
+{
+    return P;
+}
+
+template<class U>
 int Shamir<U>::get_n_relevant_players()
 {
     return ShamirMachine::s().threshold + 1;
@@ -96,6 +102,25 @@ void Shamir<U>::exchange()
                 P.send_to(send_to, resharing->os[send_to], true);
         }
         else if (receive)
+            P.receive_player(receive_from, os[receive_from], true);
+    }
+}
+
+template<class U>
+void Shamir<U>::start_exchange()
+{
+    if (P.my_num() < n_mul_players)
+        for (int offset = 1; offset < P.num_players(); offset++)
+            P.send_relative(offset, resharing->os[P.get_player(offset)]);
+}
+
+template<class U>
+void Shamir<U>::stop_exchange()
+{
+    for (int offset = 1; offset < P.num_players(); offset++)
+    {
+        int receive_from = P.get_player(-offset);
+        if (receive_from < n_mul_players)
             P.receive_player(receive_from, os[receive_from], true);
     }
 }

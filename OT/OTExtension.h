@@ -30,7 +30,7 @@ public:
     vector<BitVector> receiverOutput;
     map<string,long long> times;
 
-    OTExtension(BaseOT& baseOT, TwoPartyPlayer* player, bool passive);
+    OTExtension(const BaseOT& baseOT, TwoPartyPlayer* player, bool passive);
 
     OTExtension(int nbaseOTs, int baseLength,
                 int nloops, int nsubloops,

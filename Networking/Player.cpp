@@ -97,12 +97,20 @@ Names::Names(ez::ezOptionParser& opt, int argc, const char** argv,
           1, // Required?
           1, // Number of args expected.
           0, // Delimiter if expecting multiple args.
-          "This player's number", // Help description.
+          "This player's number (required)", // Help description.
           "-p", // Flag token.
           "--player" // Flag token.
   );
   opt.parse(argc, argv);
   opt.get("-p")->getInt(player_no);
+  vector<string> missing;
+  if (not opt.gotRequired(missing))
+  {
+      string usage;
+      opt.getUsage(usage);
+      cerr << usage;
+      exit(1);
+  }
   global_server = network_opts.start_networking(*this, player_no);
 }
 
@@ -123,7 +131,7 @@ void Names::setup_names(const char *servername, int my_port)
   set_up_client_socket(socket_num, servername, pn);
   send(socket_num, (octet*)&player_no, sizeof(player_no));
 #ifdef DEBUG_NETWORKING
-  fprintf(stderr, "Sent %d to %s:%d\n", player_no, servername, pn);
+  cerr << "Sent " << player_no << " to " << servername << ":" << pn << endl;
 #endif
 
   int inst=-1; // wait until instruction to start.
@@ -338,6 +346,14 @@ void MultiPlayer<T>::send_all(const octetStream& o,bool donthash) const
 }
 
 
+void Player::receive_all(vector<octetStream>& os) const
+{
+  for (int j = 0; j < num_players(); j++)
+    if (j != my_num())
+      receive_player(j, os[j], true);
+}
+
+
 void Player::receive_player(int i,octetStream& o,bool donthash) const
 {
 #ifdef VERBOSE_COMM
@@ -345,6 +361,7 @@ void Player::receive_player(int i,octetStream& o,bool donthash) const
 #endif
   TimeScope ts(timer);
   receive_player_no_stats(i, o);
+  comm_stats["Receiving directly"].add(o, ts);
   if (!donthash)
     { blk_SHA1_Update(&ctx,o.get_data(),o.get_length()); }
 }
@@ -627,12 +644,14 @@ void RealTwoPartyPlayer::receive(octetStream& o) const
   TimeScope ts(timer);
   o.reset_write_head();
   o.Receive(socket);
+  comm_stats["Receiving one-to-one"].add(o, ts);
 }
 
 void VirtualTwoPartyPlayer::receive(octetStream& o) const
 {
   TimeScope ts(timer);
   P.receive_player_no_stats(other_player, o);
+  comm_stats["Receiving one-to-one"].add(o, ts);
 }
 
 void RealTwoPartyPlayer::send_receive_player(vector<octetStream>& o) const
@@ -688,6 +707,8 @@ void TwoPartyPlayer::Broadcast_Receive(vector<octetStream>& o,
 CommStats& CommStats::operator +=(const CommStats& other)
 {
   data += other.data;
+  rounds += other.rounds;
+  timer += other.timer;
   return *this;
 }
 
@@ -696,6 +717,13 @@ NamedCommStats& NamedCommStats::operator +=(const NamedCommStats& other)
   for (auto it = other.begin(); it != other.end(); it++)
     (*this)[it->first] += it->second;
   return *this;
+}
+
+NamedCommStats NamedCommStats::operator +(const NamedCommStats& other) const
+{
+  auto res = *this;
+  res += other;
+  return res;
 }
 
 CommStats& CommStats::operator -=(const CommStats& other)
@@ -722,13 +750,15 @@ size_t NamedCommStats::total_data()
   return res;
 }
 
-void NamedCommStats::print()
+void NamedCommStats::print(bool newline)
 {
   for (auto it = begin(); it != end(); it++)
     if (it->second.data)
       cerr << it->first << " " << 1e-6 * it->second.data << " MB in "
       << it->second.rounds << " rounds, taking " << it->second.timer.elapsed()
       << " seconds" << endl;
+  if (size() and newline)
+    cerr << endl;
 }
 
 template class MultiPlayer<int>;

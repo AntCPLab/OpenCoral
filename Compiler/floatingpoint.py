@@ -1,9 +1,9 @@
 from math import log, floor, ceil
 from Compiler.instructions import *
-import types
-import comparison
-import program
-import util
+from . import types
+from . import comparison
+from . import program
+from . import util
 
 ##
 ## Helper functions for floating point arithmetic
@@ -16,7 +16,7 @@ def two_power(n):
     else:
         max = types.cint(1) << 31
         res = 2**(n%31)
-        for i in range(n / 31):
+        for i in range(n // 31):
             res *= max
         return res
 
@@ -25,7 +25,7 @@ def shift_two(n, pos):
         return n >> pos
     else:
         res = (n >> (pos%63))
-        for i in range(pos / 63):
+        for i in range(pos // 63):
             res >>= 63
         return res
 
@@ -139,7 +139,7 @@ def PreOpL(op, items):
     kmax = 2**logk
     output = list(items)
     for i in range(logk):
-        for j in range(kmax/(2**(i+1))):
+        for j in range(kmax//(2**(i+1))):
             y = two_power(i) + j*two_power(i+1) - 1
             for z in range(1, 2**i+1):
                 if y+z < k:
@@ -153,7 +153,7 @@ def PreOpL2(op, items):
     op must be a binary function that outputs a new register
     """
     k = len(items)
-    half = k / 2
+    half = k // 2
     output = list(items)
     if k == 0:
         return []
@@ -161,7 +161,7 @@ def PreOpL2(op, items):
     v = PreOpL2(op, u)
     for i in range(half):
         output[2 * i + 1] = v[i]
-    for i in range(1,  (k + 1) / 2):
+    for i in range(1,  (k + 1) // 2):
         output[2 * i] = op(v[i - 1], items[2 * i])
     return output
 
@@ -185,8 +185,8 @@ def KOpL(op, a):
     if k == 1:
         return a[0]
     else:
-        t1 = KOpL(op, a[:k/2])
-        t2 = KOpL(op, a[k/2:])
+        t1 = KOpL(op, a[:k//2])
+        t2 = KOpL(op, a[k//2:])
         return op(t1, t2)
 
 def KORL(a, kappa):
@@ -195,8 +195,8 @@ def KORL(a, kappa):
     if k == 1:
         return a[0]
     else:
-        t1 = KORL(a[:k/2], kappa)
-        t2 = KORL(a[k/2:], kappa)
+        t1 = KORL(a[:k//2], kappa)
+        t2 = KORL(a[k//2:], kappa)
         return t1 + t2 - t1*t2
 
 def KORC(a, kappa):
@@ -234,7 +234,7 @@ def BitAdd(a, b, bits_to_compute=None):
         bits s[0], ... , s[k] """
     k = len(a)
     if not bits_to_compute:
-        bits_to_compute = range(k)
+        bits_to_compute = list(range(k))
     d = [None] * k
     for i in range(1,k):
         #assert(a[i].value == 0 or a[i].value == 1)
@@ -248,25 +248,25 @@ def BitAdd(a, b, bits_to_compute=None):
     
     # (for testing)
     def print_state():
-        print 'a: ',
+        print('a: ', end=' ')
         for i in range(k):
-            print '%d ' % a[i].value,
-        print '\nb: ',
+            print('%d ' % a[i].value, end=' ')
+        print('\nb: ', end=' ')
         for i in range(k):
-            print '%d ' % b[i].value,
-        print '\nd: ',
+            print('%d ' % b[i].value, end=' ')
+        print('\nd: ', end=' ')
         for i in range(k):
-            print '%d ' % d[i][0].value,
-        print '\n   ',
+            print('%d ' % d[i][0].value, end=' ')
+        print('\n   ', end=' ')
         for i in range(k):
-            print '%d ' % d[i][1].value,
-        print '\n\npg:',
+            print('%d ' % d[i][1].value, end=' ')
+        print('\n\npg:', end=' ')
         for i in range(k):
-            print '%d ' % pg[i][0].value,
-        print '\n    ',
+            print('%d ' % pg[i][0].value, end=' ')
+        print('\n    ', end=' ')
         for i in range(k):
-            print '%d ' % pg[i][1].value,
-        print ''
+            print('%d ' % pg[i][1].value, end=' ')
+        print('')
     
     for bit in c:
         pass#assert(bit.value == 0 or bit.value == 1)
@@ -281,7 +281,7 @@ def BitAdd(a, b, bits_to_compute=None):
         try:
             pass#assert(s[i].value == 0 or s[i].value == 1)
         except AssertionError:
-            print '#assertion failed in BitAdd for s[%d]' % i
+            print('#assertion failed in BitAdd for s[%d]' % i)
             print_state()
     s[k] = c[k-1]
     #print_state()
@@ -316,9 +316,9 @@ def BitDecField(a, k, m, kappa, bits_to_compute=None):
     try:
         pass#assert(c.value == (2**(k + kappa) + 2**k + (a.value%2**k) - rval) % comparison.program.P)
     except AssertionError:
-        print 'BitDec assertion failed'
-        print 'a =', a.value
-        print 'a mod 2^%d =' % k, (a.value % 2**k)
+        print('BitDec assertion failed')
+        print('a =', a.value)
+        print('a mod 2^%d =' % k, (a.value % 2**k))
     return types.intbitint.bit_adder(list(bits(c,m)), r)
 
 
@@ -503,7 +503,7 @@ def TruncPrRing(a, k, m, signed=True):
             a += types.sint.get_random_bit() << i
         return comparison.TruncLeakyInRing(a, k, m, signed=signed)
     else:
-        from types import sint
+        from .types import sint
         if signed:
             a += (1 << (k - 1))
         if program.Program.prog.use_trunc_pr:

@@ -13,6 +13,8 @@ using namespace std;
 #include "Access.h"
 #include "Processor/FixInput.h"
 
+#include "Processor/ProcessorBase.hpp"
+
 namespace GC
 {
 

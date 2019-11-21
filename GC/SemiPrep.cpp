@@ -25,9 +25,9 @@ void SemiPrep::set_protocol(Beaver<SemiSecret>& protocol)
     (void) protocol;
     params.set_passive();
     triple_generator = new SemiSecret::TripleGenerator(
-            thread.processor.machine.ot_setups.at(thread.thread_num).at(0),
+            thread.processor.machine.ot_setups.at(thread.thread_num).get_fresh(),
             thread.master.N, thread.thread_num, thread.master.opts.batch_size,
-            1, params, thread.P);
+            1, params, {}, thread.P);
     triple_generator->multi_threaded = false;
 }
 

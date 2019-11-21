@@ -15,9 +15,16 @@ class ShamirMC : public MAC_Check_Base<T>
 {
     vector<typename T::clear::Scalar> reconstruction;
 
+    bool send;
+
+    void finalize(vector<typename T::clear>& values, const vector<T>& S);
+
 protected:
     vector<octetStream> os;
     int threshold;
+
+    void prepare(const vector<T>& S, const Player& P);
+    void exchange(const Player& P);
 
 public:
     ShamirMC() : threshold(ShamirMachine::s().threshold) {}
@@ -31,6 +38,7 @@ public:
         ShamirMC()
     { (void)_; (void)__; (void)___; (void)____; }
 
+    void POpen(vector<typename T::clear>& values,const vector<T>& S,const Player& P);
     void POpen_Begin(vector<typename T::clear>& values,const vector<T>& S,const Player& P);
     void POpen_End(vector<typename T::clear>& values,const vector<T>& S,const Player& P);
 

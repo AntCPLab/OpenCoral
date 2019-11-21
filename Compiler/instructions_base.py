@@ -56,6 +56,9 @@ opcodes = dict(
     USE_PREP = 0x1C,
     STARTGRIND = 0x1D,
     STOPGRIND = 0x1E,
+    NPLAYERS = 0xE2,
+    THRESHOLD = 0xE3,
+    PLAYERID = 0xE4,
     # Addition
     ADDC = 0x20,
     ADDS = 0x21,
@@ -277,7 +280,7 @@ def gf2n(instruction):
         vectorized GF_2^n instruction if a modp version exists. """
     global_dict = inspect.getmodule(instruction).__dict__
 
-    if global_dict.has_key('v' + instruction.__name__):
+    if 'v' + instruction.__name__ in global_dict:
         vectorized = True
     else:
         vectorized = False
@@ -316,7 +319,7 @@ def gf2n(instruction):
         if 'gf2n_arg_format' in instruction_cls.__dict__:
             arg_format = instruction_cls.gf2n_arg_format
         elif isinstance(instruction_cls.arg_format, itertools.repeat):
-            __f = instruction_cls.arg_format.next()
+            __f = next(instruction_cls.arg_format)
             if __f != 'int' and __f != 'p':
                 arg_format = itertools.repeat(__f[0] + 'g' + __f[1:])
         else:
@@ -420,7 +423,7 @@ class ClearIntAF(RegisterArgFormat):
 class IntArgFormat(ArgFormat):
     @classmethod
     def check(cls, arg):
-        if not isinstance(arg, (int, long)):
+        if not isinstance(arg, int):
             raise ArgumentError(arg, 'Expected an integer-valued argument')
 
     @classmethod
@@ -512,7 +515,7 @@ class Instruction(object):
         
         Instruction.count += 1
         if Instruction.count % 100000 == 0:
-            print "Compiled %d lines at" % self.__class__.count, time.asctime()
+            print("Compiled %d lines at" % self.__class__.count, time.asctime())
 
     def get_code(self):
         return self.code
@@ -535,7 +538,7 @@ class Instruction(object):
     
     def check_args(self):
         """ Check the args match up with that specified in arg_format """
-        for n,(arg,f) in enumerate(itertools.izip_longest(self.args, self.arg_format)):
+        for n,(arg,f) in enumerate(itertools.zip_longest(self.args, self.arg_format)):
             if arg is None:
                 if not isinstance(self.arg_format, (list, tuple)):
                     break # end of optional arguments
@@ -758,8 +761,6 @@ class ClearShiftInstruction(ClearImmediate):
             else:
                 # assume 64-bit machine
                 bits = 63
-        elif program.options.ring:
-            bits = int(program.options.ring) - 1
         if self.args[2] > bits:
             raise CompilerError('Shifting by more than %d bits '
                                 'not implemented' % bits)

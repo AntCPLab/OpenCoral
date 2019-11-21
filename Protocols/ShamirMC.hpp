@@ -10,14 +10,35 @@ void ShamirMC<T>::POpen_Begin(vector<typename T::clear>& values,
         const vector<T>& S, const Player& P)
 {
     (void) values;
+    prepare(S, P);
+    P.send_all(os[P.my_num()], true);
+}
+
+template<class T>
+void ShamirMC<T>::prepare(const vector<T>& S, const Player& P)
+{
     os.clear();
     os.resize(P.num_players());
-    bool send = P.my_num() <= threshold;
+    send = P.my_num() <= threshold;
     if (send)
     {
         for (auto& share : S)
             share.pack(os[P.my_num()]);
     }
+}
+
+template<class T>
+void ShamirMC<T>::POpen(vector<typename T::clear>& values, const vector<T>& S,
+        const Player& P)
+{
+    prepare(S, P);
+    exchange(P);
+    finalize(values, S);
+}
+
+template<class T>
+void ShamirMC<T>::exchange(const Player& P)
+{
     for (int offset = 1; offset < P.num_players(); offset++)
     {
         int send_to = P.get_player(offset);
@@ -37,7 +58,14 @@ template<class T>
 void ShamirMC<T>::POpen_End(vector<typename T::clear>& values,
         const vector<T>& S, const Player& P)
 {
-    (void) P;
+    P.receive_all(os);
+    finalize(values, S);
+}
+
+template<class T>
+void ShamirMC<T>::finalize(vector<typename T::clear>& values,
+        const vector<T>& S)
+{
     int n_relevant_players = ShamirMachine::s().threshold + 1;
     if (reconstruction.empty())
     {

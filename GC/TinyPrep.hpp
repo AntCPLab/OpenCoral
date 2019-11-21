@@ -31,18 +31,17 @@ void TinyPrep<T>::set_protocol(Beaver<T>& protocol)
     params.generateMACs = true;
     params.amplify = false;
     params.check = false;
-    params.set_mac_key(thread.MC->get_alphai());
     triple_generator = new typename T::TripleGenerator(
-            thread.processor.machine.ot_setups.at(thread.thread_num).at(0),
+            thread.processor.machine.ot_setups.at(thread.thread_num).get_fresh(),
             thread.master.N, thread.thread_num,
             thread.master.opts.batch_size,
-            1, params, thread.P);
+            1, params, thread.MC->get_alphai(), thread.P);
     triple_generator->multi_threaded = false;
     input_generator = new typename T::part_type::TripleGenerator(
-            thread.processor.machine.ot_setups.at(thread.thread_num).at(1),
+            thread.processor.machine.ot_setups.at(thread.thread_num).get_fresh(),
             thread.master.N, thread.thread_num,
             thread.master.opts.batch_size,
-            1, params, thread.P);
+            1, params, thread.MC->get_alphai(), thread.P);
     input_generator->multi_threaded = false;
     thread.MC->get_part_MC().set_prep(*this);
 }

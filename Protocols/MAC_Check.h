@@ -188,7 +188,7 @@ public:
 
 
 template<class T>
-class Direct_MAC_Check: public Separate_MAC_Check<T>
+class Direct_MAC_Check: public MAC_Check_<T>
 {
   typedef typename T::open_type open_type;
 
@@ -196,7 +196,9 @@ class Direct_MAC_Check: public Separate_MAC_Check<T>
   vector<octetStream> oss;
 
 public:
-  Direct_MAC_Check(const typename T::mac_key_type& ai, Names& Nms, int thread_num);
+  // legacy interface
+  Direct_MAC_Check(const typename T::mac_key_type::Scalar& ai, Names& Nms, int thread_num);
+  Direct_MAC_Check(const typename T::mac_key_type::Scalar& ai);
   ~Direct_MAC_Check();
 
   void POpen_Begin(vector<open_type>& values,const vector<T>& S,const Player& P);

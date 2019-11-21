@@ -83,84 +83,40 @@ ServerSocket::~ServerSocket()
 
 void ServerSocket::accept_clients()
 {
-  map<int, sockaddr> unassigned_sockets;
-
   while (true)
     {
-      fd_set readfds;
-      FD_ZERO(&readfds);
-      int nfds = main_socket;
-      FD_SET(main_socket, &readfds);
-      for (auto &socket : unassigned_sockets)
-        {
-          FD_SET(socket.first, &readfds);
-          nfds = max(socket.first, nfds);
-        }
+      struct sockaddr dest;
+      memset(&dest, 0, sizeof(dest));    /* zero the struct before filling the fields */
+      int socksize = sizeof(dest);
+      int consocket = accept(main_socket, (struct sockaddr *)&dest, (socklen_t*) &socksize);
+      if (consocket<0) { error("set_up_socket:accept"); }
 
-      select(nfds + 1, &readfds, 0, 0, 0);
-
-      if (FD_ISSET(main_socket, &readfds))
-        {
-          struct sockaddr dest;
-          memset(&dest, 0, sizeof(dest)); /* zero the struct before filling the fields */
-          int socksize = sizeof(dest);
-          int consocket = accept(main_socket, (struct sockaddr*) &dest,
-              (socklen_t*) &socksize);
-          if (consocket < 0)
-            error("set_up_socket:accept");
-          unassigned_sockets[consocket] = dest;
+      int client_id;
+      try
+      {
+          receive(consocket, (unsigned char*)&client_id, sizeof(client_id));
+      }
+      catch (closed_connection&)
+      {
 #ifdef DEBUG_NETWORKING
-          auto &conn = *(sockaddr_in*) &dest;
-          fprintf(stderr, "new client on %s:%d\n", inet_ntoa(conn.sin_addr),
-              ntohs(conn.sin_port));
+          auto& conn = *(sockaddr_in*)&dest;
+          cerr << "client on " << inet_ntoa(conn.sin_addr) << ":"
+                  << ntohs(conn.sin_port) << " left without identification"
+                  << endl;
 #endif
-        }
+      }
 
-      vector<int> processed_sockets;
-      for (auto &socket : unassigned_sockets)
-        {
-          int consocket = socket.first;
-          if (FD_ISSET(consocket, &readfds))
-            {
-              try
-                {
-                  int client_id;
-                  receive(consocket, (unsigned char*) &client_id,
-                      sizeof(client_id));
-
-                  data_signal.lock();
-                  clients[client_id] = consocket;
-                  data_signal.broadcast();
-                  data_signal.unlock();
-
-#ifdef DEBUG_NETWORKING
-                  auto &conn = *(sockaddr_in*) &socket.second;
-                  fprintf(stderr, "client id %d on %s:%d\n", client_id,
-                      inet_ntoa(conn.sin_addr), ntohs(conn.sin_port));
-#endif
+      data_signal.lock();
+      clients[client_id] = consocket;
+      data_signal.broadcast();
+      data_signal.unlock();
 
 #ifdef __APPLE__
-                  int flags = fcntl(consocket, F_GETFL, 0);
-                  int fl = fcntl(consocket, F_SETFL, O_NONBLOCK |  flags);
-                  if (fl < 0)
-                    error("set non-blocking");
+      int flags = fcntl(consocket, F_GETFL, 0);
+      int fl = fcntl(consocket, F_SETFL, O_NONBLOCK |  flags);
+      if (fl < 0)
+          error("set non-blocking");
 #endif
-                }
-              catch (closed_connection&)
-                {
-#ifdef DEBUG_NETWORKING
-                  auto &conn = *(sockaddr_in*) &socket.second;
-                  cerr << "client on " << inet_ntoa(conn.sin_addr) << ":"
-                      << ntohs(conn.sin_port) << " left without identification"
-                      << endl;
-#endif
-                  close_client_socket(consocket);
-                }
-              processed_sockets.push_back(consocket);
-            }
-        }
-      for (int socket : processed_sockets)
-        unassigned_sockets.erase(socket);
     }
 }
 

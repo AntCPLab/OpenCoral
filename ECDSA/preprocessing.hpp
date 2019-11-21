@@ -7,6 +7,7 @@
 #define ECDSA_PREPROCESSING_HPP_
 
 #include "P256Element.h"
+#include "EcdsaOptions.h"
 #include "Processor/Data_Files.h"
 #include "Protocols/ReplicatedPrep.h"
 #include "Protocols/MaliciousShamirShare.h"
@@ -23,40 +24,66 @@ public:
 template<template<class U> class T>
 void preprocessing(vector<EcTuple<T>>& tuples, int buffer_size,
         T<P256Element::Scalar>& sk,
-        SubProcessor<T<P256Element::Scalar>>& proc, bool prep_mul = true)
+        SubProcessor<T<P256Element::Scalar>>& proc,
+        EcdsaOptions opts)
 {
+    bool prep_mul = opts.prep_mul;
     Timer timer;
     timer.start();
     Player& P = proc.P;
     auto& prep = proc.DataF;
     size_t start = P.sent + prep.data_sent();
+    auto stats = P.comm_stats + prep.comm_stats();
+    auto& extra_player = P;
+
     auto& protocol = proc.protocol;
     auto& MCp = proc.MC;
     typedef T<typename P256Element::Scalar> pShare;
     typedef T<P256Element> cShare;
     vector<pShare> inv_ks;
     vector<cShare> secret_Rs;
+    prep.buffer_triples();
+    vector<pShare> bs, cs;
     for (int i = 0; i < buffer_size; i++)
     {
-        pShare a, a_inv;
-        prep.get_two(DATA_INVERSE, a, a_inv);
-        inv_ks.push_back(a_inv);
-        secret_Rs.push_back(a);
+        pShare a, b, c;
+        prep.get_three(DATA_TRIPLE, a, b, c);
+        inv_ks.push_back(a);
+        bs.push_back(b);
+        cs.push_back(c);
     }
+    vector<P256Element::Scalar> cs_opened;
+    MCp.POpen_Begin(cs_opened, cs, extra_player);
+    if (opts.fewer_rounds)
+        secret_Rs.insert(secret_Rs.begin(), bs.begin(), bs.end());
+    else
+    {
+        MCp.POpen_End(cs_opened, cs, extra_player);
+        for (int i = 0; i < buffer_size; i++)
+            secret_Rs.push_back(bs[i] / cs_opened[i]);
+    }
+    vector<P256Element> opened_Rs;
+    typename cShare::Direct_MC MCc(MCp.get_alphai());
+    MCc.POpen_Begin(opened_Rs, secret_Rs, extra_player);
     if (prep_mul)
     {
         protocol.init_mul(&proc);
         for (int i = 0; i < buffer_size; i++)
             protocol.prepare_mul(inv_ks[i], sk);
-        protocol.exchange();
+        protocol.start_exchange();
     }
-    else
-        prep.buffer_triples();
-    vector<P256Element> opened_Rs;
-    typename cShare::MAC_Check MCc(MCp.get_alphai());
-    MCc.POpen(opened_Rs, secret_Rs, P);
-    MCc.Check(P);
-    MCp.Check(P);
+    if (opts.fewer_rounds)
+        MCp.POpen_End(cs_opened, cs, extra_player);
+    MCc.POpen_End(opened_Rs, secret_Rs, extra_player);
+    if (opts.fewer_rounds)
+        for (int i = 0; i < buffer_size; i++)
+            opened_Rs[i] /= cs_opened[i];
+    if (prep_mul)
+        protocol.stop_exchange();
+    if (opts.check_open)
+        MCc.Check(extra_player);
+    if (opts.check_open or opts.check_beaver_open)
+        MCp.Check(extra_player);
     for (int i = 0; i < buffer_size; i++)
     {
         tuples.push_back(
@@ -68,6 +95,7 @@ void preprocessing(vector<EcTuple<T>>& tuples, int buffer_size,
             << " seconds, throughput " << buffer_size / timer.elapsed() << ", "
             << 1e-3 * (P.sent + prep.data_sent() - start) / buffer_size
             << " kbytes per tuple" << endl;
+    (P.comm_stats + prep.comm_stats() - stats).print(true);
 }
 
 template<template<class U> class T>

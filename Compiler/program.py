@@ -3,15 +3,17 @@ from Compiler.exceptions import *
 from Compiler.instructions_base import RegType
 import Compiler.instructions
 import Compiler.instructions_base
-import compilerLib
-import allocator as al
+from . import compilerLib
+from . import allocator as al
+from . import util
 import random
 import time
 import sys, os, errno
 import inspect
-from collections import defaultdict
+from collections import defaultdict, deque
 import itertools
 import math
+from functools import reduce
 
 
 data_types = dict(
@@ -50,11 +52,11 @@ class Program(object):
             self.bit_length = int(options.binary) or int(options.field)
         if not self.bit_length:
             self.bit_length = BIT_LENGTHS[param]
-        print 'Default bit length:', self.bit_length
+        print('Default bit length:', self.bit_length)
         self.security = 40
-        print 'Default security parameter:', self.security
+        print('Default security parameter:', self.security)
         self.galois_length = int(options.galois)
-        print 'Galois length:', self.galois_length
+        print('Galois length:', self.galois_length)
         self.schedule = [('start', [])]
         self.tape_counter = 0
         self.tapes = []
@@ -118,7 +120,7 @@ class Program(object):
                     running[tape] -= 1
             else:
                 raise CompilerError('Invalid schedule action')
-            res = max(res, sum(running.itervalues()))
+            res = max(res, sum(running.values()))
         return res
     
     def init_names(self, args, assemblymode):
@@ -129,7 +131,7 @@ class Program(object):
         else:
             # assume source is in main SPDZ directory
             self.programs_dir = sys.path[0] + '/Programs'
-        print 'Compiling program in', self.programs_dir
+        print('Compiling program in', self.programs_dir)
         
         # create extra directories if needed
         for dirname in ['Public-Input', 'Bytecode', 'Schedules']:
@@ -225,7 +227,7 @@ class Program(object):
     def read_memory(self, filename):
         """ Read the clear and shared memory from a file """
         f = open(filename)
-        n = int(f.next())
+        n = int(next(f))
         self.mem_c = [0]*n
         self.mem_s = [0]*n
         mem = self.mem_c
@@ -253,8 +255,8 @@ class Program(object):
         """ Reset register and memory values. """
         for tape in self.tapes:
             tape.reset_registers()
-        self.mem_c = range(USER_MEM + TMP_MEM)
-        self.mem_s = range(USER_MEM + TMP_MEM)
+        self.mem_c = list(range(USER_MEM + TMP_MEM))
+        self.mem_s = list(range(USER_MEM + TMP_MEM))
     
     def write_bytes(self, outfile=None):
         """ Write all non-empty threads and schedule to files. """
@@ -265,7 +267,7 @@ class Program(object):
 
         sch_filename = self.programs_dir + '/Schedules/%s.sch' % self.name
         sch_file = open(sch_filename, 'w')
-        print 'Writing to', sch_filename
+        print('Writing to', sch_filename)
         sch_file.write(str(self.max_par_tapes()) + '\n')
         sch_file.write(str(len(nonempty_tapes)) + '\n')
         sch_file.write(' '.join(tape.name for tape in nonempty_tapes) + '\n')
@@ -276,7 +278,7 @@ class Program(object):
         
         for sch in self.schedule:
             # schedule may still contain empty tapes: ignore these
-            tapes = filter(lambda x: not x[0].is_empty(), sch[1])
+            tapes = [x for x in sch[1] if not x[0].is_empty()]
             # no empty line
             if not tapes:
                 continue
@@ -358,7 +360,7 @@ class Program(object):
     
     def malloc(self, size, mem_type, reg_type=None):
         """ Allocate memory from the top """
-        if not isinstance(size, (int, long)):
+        if not isinstance(size, int):
             raise CompilerError('size must be known at compile time')
         if size == 0:
             return
@@ -374,7 +376,7 @@ class Program(object):
             addr = self.allocated_mem[mem_type]
             self.allocated_mem[mem_type] += size
             if len(str(addr)) != len(str(addr + size)):
-                print "Memory of type '%s' now of size %d" % (mem_type, addr + size)
+                print("Memory of type '%s' now of size %d" % (mem_type, addr + size))
         self.allocated_mem_blocks[addr,mem_type] = size
         return addr
 
@@ -387,11 +389,11 @@ class Program(object):
         self.free_mem_blocks[size,mem_type].add(addr)
 
     def finalize_memory(self):
-        import library
+        from . import library
         self.curr_tape.start_new_basicblock(None, 'memory-usage')
         # reset register counter to 0
         self.curr_tape.init_registers()
-        for mem_type,size in self.allocated_mem.items():
+        for mem_type,size in list(self.allocated_mem.items()):
             if size:
                 #print "Memory of type '%s' of size %d" % (mem_type, size)
                 if mem_type in self.types:
@@ -404,11 +406,11 @@ class Program(object):
 
     def set_bit_length(self, bit_length):
         self.bit_length = bit_length
-        print 'Changed bit length for comparisons etc. to', bit_length
+        print('Changed bit length for comparisons etc. to', bit_length)
 
     def set_security(self, security):
         self.security = security
-        print 'Changed statistical security for comparison etc. to', security
+        print('Changed statistical security for comparison etc. to', security)
 
     def optimize_for_gc(self):
         pass
@@ -500,9 +502,9 @@ class Tape:
             #print 'Basic block %d jumps to %d (%d)' % (next_block_index, jump_index, offset)
 
         def purge(self):
-            relevant = lambda inst: inst.add_usage.__func__ is not \
-                       Compiler.instructions_base.Instruction.add_usage.__func__
-            self.usage_instructions = filter(relevant, self.instructions)
+            relevant = lambda inst: inst.add_usage is not \
+                       Compiler.instructions_base.Instruction.add_usage
+            self.usage_instructions = list(filter(relevant, self.instructions))
             del self.instructions
             del self.defined_registers
             self.purged = True
@@ -568,8 +570,8 @@ class Tape:
     def unpurged(function):
         def wrapper(self, *args, **kwargs):
             if self.purged:
-                print '%s called on purged block %s, ignoring' % \
-                    (function.__name__, self.name)
+                print('%s called on purged block %s, ignoring' % \
+                    (function.__name__, self.name))
                 return
             return function(self, *args, **kwargs)
         return wrapper
@@ -577,13 +579,13 @@ class Tape:
     @unpurged
     def optimize(self, options):
         if len(self.basicblocks) == 0:
-            print 'Tape %s is empty' % self.name
+            print('Tape %s is empty' % self.name)
             return
 
         if self.if_states:
             raise CompilerError('Unclosed if/else blocks')
 
-        print 'Processing tape', self.name, 'with %d blocks' % len(self.basicblocks)
+        print('Processing tape', self.name, 'with %d blocks' % len(self.basicblocks))
 
         for block in self.basicblocks:
             al.determine_scope(block, options)
@@ -593,38 +595,38 @@ class Tape:
         if (options.merge_opens and self.merge_opens) or options.dead_code_elimination:
             for i,block in enumerate(self.basicblocks):
                 if len(block.instructions) > 0:
-                    print 'Processing basic block %s, %d/%d, %d instructions' % \
+                    print('Processing basic block %s, %d/%d, %d instructions' % \
                         (block.name, i, len(self.basicblocks), \
-                         len(block.instructions))
+                         len(block.instructions)))
                 # the next call is necessary for allocation later even without merging
                 merger = al.Merger(block, options, \
                                    tuple(self.program.to_merge))
                 if options.dead_code_elimination:
                     if len(block.instructions) > 10000:
-                        print 'Eliminate dead code...'
+                        print('Eliminate dead code...')
                     merger.eliminate_dead_code()
                 if options.merge_opens and self.merge_opens:
                     if len(block.instructions) == 0:
-                        block.used_from_scope = set()
-                        block.defined_registers = set()
+                        block.used_from_scope = util.set_by_id()
+                        block.defined_registers = util.set_by_id()
                         continue
                     if len(block.instructions) > 10000:
-                        print 'Merging instructions...'
+                        print('Merging instructions...')
                     numrounds = merger.longest_paths_merge()
                     block.n_rounds = numrounds
                     block.n_to_merge = len(merger.open_nodes)
                     if numrounds > 0:
-                        print 'Program requires %d rounds of communication' % numrounds
+                        print('Program requires %d rounds of communication' % numrounds)
                     if merger.counter:
-                        print 'Block requires', \
+                        print('Block requires', \
                             ', '.join('%d %s' % (y, x.__name__) \
-                                     for x, y in merger.counter.items())
+                                     for x, y in list(merger.counter.items())))
                 # free memory
                 merger = None
                 if options.dead_code_elimination:
-                    block.instructions = filter(lambda x: x is not None, block.instructions)
+                    block.instructions = [x for x in block.instructions if x is not None]
         if not (options.merge_opens and self.merge_opens):
-            print 'Not merging instructions in tape %s' % self.name
+            print('Not merging instructions in tape %s' % self.name)
 
         # add jumps
         offset = 0
@@ -640,39 +642,44 @@ class Tape:
                 block.adjust_return()
 
         # now remove any empty blocks (must be done after setting jumps)
-        self.basicblocks = filter(lambda x: len(x.instructions) != 0, self.basicblocks)
+        self.basicblocks = [x for x in self.basicblocks if len(x.instructions) != 0]
 
         # allocate registers
         reg_counts = self.count_regs()
         if not options.noreallocate:
             if self.program.verbose:
-                print 'Tape register usage:', dict(reg_counts)
-                print 'modp: %d clear, %d secret' % (reg_counts[RegType.ClearModp], reg_counts[RegType.SecretModp])
-                print 'GF2N: %d clear, %d secret' % (reg_counts[RegType.ClearGF2N], reg_counts[RegType.SecretGF2N])
-                print 'Re-allocating...'
+                print('Tape register usage:', dict(reg_counts))
+                print('modp: %d clear, %d secret' % (reg_counts[RegType.ClearModp], reg_counts[RegType.SecretModp]))
+                print('GF2N: %d clear, %d secret' % (reg_counts[RegType.ClearGF2N], reg_counts[RegType.SecretGF2N]))
+                print('Re-allocating...')
             allocator = al.StraightlineAllocator(REG_MAX)
-            def alloc_loop(block):
+            def alloc(block):
                 for reg in sorted(block.used_from_scope, 
                                   key=lambda x: (x.reg_type, x.i)):
                     allocator.alloc_reg(reg, block.alloc_pool)
-                for child in block.children:
-                    if child.instructions:
-                        alloc_loop(child)
+            def alloc_loop(block):
+                left = deque([block])
+                while left:
+                    block = left.popleft()
+                    alloc(block)
+                    for child in block.children:
+                        if child.instructions:
+                            left.append(child)
             for i,block in enumerate(reversed(self.basicblocks)):
                 if len(block.instructions) > 10000:
-                    print 'Allocating %s, %d/%d' % \
-                        (block.name, i, len(self.basicblocks))
+                    print('Allocating %s, %d/%d' % \
+                        (block.name, i, len(self.basicblocks)))
                 if block.exit_condition is not None:
                     jump = block.exit_condition.get_relative_jump()
-                    if isinstance(jump, (int,long)) and jump < 0 and \
+                    if isinstance(jump, int) and jump < 0 and \
                             block.exit_block.scope is not None:
                         alloc_loop(block.exit_block.scope)
                 allocator.process(block.instructions, block.alloc_pool)
 
         # offline data requirements
-        print 'Compile offline data requirements...'
+        print('Compile offline data requirements...')
         self.req_num = self.req_tree.aggregate()
-        print 'Tape requires', self.req_num
+        print('Tape requires', self.req_num)
         for req,num in sorted(self.req_num.items()):
             if num == float('inf') or num >= 2 ** 32:
                 num = -1
@@ -706,8 +713,8 @@ class Tape:
                         Compiler.instructions.reqbl(bl,
                                                     add_to_prog=False))
             if self.program.verbose:
-                print 'Tape requires prime bit length', self.req_bit_length['p']
-                print 'Tape requires galois bit length', self.req_bit_length['2']
+                print('Tape requires prime bit length', self.req_bit_length['p'])
+                print('Tape requires galois bit length', self.req_bit_length['2'])
 
     @unpurged
     def _get_instructions(self):
@@ -722,12 +729,12 @@ class Tape:
     @unpurged
     def get_bytes(self):
         """ Get the byte encoding of the program as an actual string of bytes. """
-        return "".join(str(i.get_bytes()) for i in self._get_instructions() if i is not None)
+        return b"".join(i.get_bytes() for i in self._get_instructions() if i is not None)
     
     @unpurged
     def write_encoding(self, filename):
         """ Write the readable encoding to a file. """
-        print 'Writing to', filename
+        print('Writing to', filename)
         f = open(filename, 'w')
         for line in self.get_encoding():
             f.write(str(line) + '\n')
@@ -736,7 +743,7 @@ class Tape:
     @unpurged
     def write_str(self, filename):
         """ Write the sequence of instructions to a file. """
-        print 'Writing to', filename
+        print('Writing to', filename)
         f = open(filename, 'w')
         n = 0
         for block in self.basicblocks:
@@ -756,8 +763,8 @@ class Tape:
             filename += '.bc'
         if not 'Bytecode' in filename:
             filename = self.program.programs_dir + '/Bytecode/' + filename
-        print 'Writing to', filename
-        f = open(filename, 'w')
+        print('Writing to', filename)
+        f = open(filename, 'wb')
         f.write(self.get_bytes())
         f.close()
     
@@ -785,9 +792,9 @@ class Tape:
             super(Tape.ReqNum, self).__init__(lambda: 0, init)
         def __add__(self, other):
             res = Tape.ReqNum()
-            for i,count in self.items():
+            for i,count in list(self.items()):
                 res[i] += count            
-            for i,count in other.items():
+            for i,count in list(other.items()):
                 res[i] += count
             return res
         def __mul__(self, other):
@@ -798,7 +805,7 @@ class Tape:
         __rmul__ = __mul__
         def set_all(self, value):
             if value == float('inf') and self['all', 'inv'] > 0:
-                print 'Going to unknown from %s' % self
+                print('Going to unknown from %s' % self)
             res = Tape.ReqNum()
             for i in self:
                 res[i] = value
@@ -811,14 +818,14 @@ class Tape:
                 res[i] = max(self[i], other[i])
             return res
         def cost(self):
-            return sum(num * COST[req[0]][req[1]] for req,num in self.items() \
+            return sum(num * COST[req[0]][req[1]] for req,num in list(self.items()) \
                        if req[1] != 'input')
         def __str__(self):
             return ", ".join('%s inputs in %s from player %d' \
                                 % (num, req[0], req[2]) \
                                 if req[1] == 'input' \
                                 else '%s %ss in %s' % (num, req[1], req[0]) \
-                                for req,num in self.items())
+                                for req,num in list(self.items()))
         def __repr__(self):
             return repr(dict(self))
 
@@ -853,8 +860,8 @@ class Tape:
                 n_rounds = res['all', 'round']
                 n_invs = res['all', 'inv']
                 if (n_invs / n_rounds) * 1000 < n_reps:
-                    print self.nodes[0].blocks[0].name, 'blowing up rounds: ', \
-                        '(%d / %d) ** 3 < %d' % (n_rounds, n_reps, n_invs)
+                    print(self.nodes[0].blocks[0].name, 'blowing up rounds: ', \
+                        '(%d / %d) ** 3 < %d' % (n_rounds, n_reps, n_invs))
             except:
                 pass
             return res
@@ -892,7 +899,7 @@ class Tape:
         
         The 'value' property is for emulation.
         """
-        __slots__ = ["reg_type", "program", "i", "value", "_is_active", \
+        __slots__ = ["reg_type", "program", "i", "_is_active", \
                          "size", "vector", "vectorbase", "caller", \
                          "can_eliminate"]
 
@@ -925,7 +932,7 @@ class Tape:
             else:
                 self.caller = None
             if self.i % 1000000 == 0 and self.i > 0:
-                print "Initialized %d registers at" % self.i, time.asctime()
+                print("Initialized %d registers at" % self.i, time.asctime())
 
         def set_size(self, size):
             if self.size == size:

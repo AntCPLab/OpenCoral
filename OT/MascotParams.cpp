@@ -26,81 +26,15 @@ MascotParams::MascotParams()
     generateMACs = true;
     amplify = true;
     check = true;
+    correlation_check = true;
     generateBits = false;
+    use_extension = true;
+    fewer_rounds = false;
+    fiat_shamir = false;
     timerclear(&start);
 }
 
 void MascotParams::set_passive()
 {
-    generateMACs = amplify = check = false;
-}
-
-template<> gf2n_long MascotParams::get_mac_key()
-{
-    return mac_key2l;
-}
-
-template<> gf2n_short MascotParams::get_mac_key()
-{
-    return mac_key2s;
-}
-
-template<> gfp1 MascotParams::get_mac_key()
-{
-    return mac_keyp;
-}
-
-template<> Z2<48> MascotParams::get_mac_key()
-{
-    return mac_keyz;
-}
-
-template<> Z2<64> MascotParams::get_mac_key()
-{
-    return mac_keyz;
-}
-
-template<> Z2<40> MascotParams::get_mac_key()
-{
-    return mac_keyz;
-}
-
-template<> Z2<32> MascotParams::get_mac_key()
-{
-    return mac_keyz;
-}
-
-template<> BitVec MascotParams::get_mac_key()
-{
-    return 0;
-}
-
-template<> void MascotParams::set_mac_key(gf2n_long key)
-{
-    mac_key2l = key;
-}
-
-template<> void MascotParams::set_mac_key(gf2n_short key)
-{
-    mac_key2s = key;
-}
-
-template<> void MascotParams::set_mac_key(gfp1 key)
-{
-    mac_keyp = key;
-}
-
-template<> void MascotParams::set_mac_key(Z2<64> key)
-{
-    mac_keyz = key;
-}
-
-template<> void MascotParams::set_mac_key(Z2<48> key)
-{
-    mac_keyz = key;
-}
-
-template<> void MascotParams::set_mac_key(Z2<40> key)
-{
-    mac_keyz = key;
+    generateMACs = amplify = check = correlation_check = false;
 }

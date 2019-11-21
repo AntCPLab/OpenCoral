@@ -142,7 +142,7 @@ public:
     BitMatrix() {}
     BitMatrix(int length);
 
-    __m128i operator[](int i) { return squares[i / 128].rows[i % 128]; }
+    __m128i& operator[](int i) { return squares[i / 128].rows[i % 128]; }
 
     void resize(int length);
     int size();

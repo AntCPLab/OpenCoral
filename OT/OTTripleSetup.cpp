@@ -41,3 +41,22 @@ void OTTripleSetup::close_connections()
         delete players[i];
     }
 }
+
+OTTripleSetup OTTripleSetup::get_fresh()
+{
+    OTTripleSetup res = *this;
+    for (int i = 0; i < nparties - 1; i++)
+    {
+        BaseOT bot(nbase, 128, 0);
+        bot.sender_inputs = baseSenderInputs[i];
+        bot.receiver_outputs = baseReceiverOutputs[i];
+        bot.set_seeds();
+        bot.extend_length();
+        baseSenderInputs[i] = bot.sender_inputs;
+        baseReceiverOutputs[i] = bot.receiver_outputs;
+        bot.extend_length();
+        res.baseSenderInputs[i] = bot.sender_inputs;
+        res.baseReceiverOutputs[i] = bot.receiver_outputs;
+    }
+    return res;
+}

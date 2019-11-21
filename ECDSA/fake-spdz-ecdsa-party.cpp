@@ -23,6 +23,7 @@
 int main(int argc, const char** argv)
 {
     ez::ezOptionParser opt;
+    EcdsaOptions opts(opt, argc, argv);
     Names N(opt, argc, argv, 2);
     int n_tuples = 1000;
     if (not opt.lastArgs.empty())
@@ -38,7 +39,7 @@ int main(int argc, const char** argv)
     typedef Share<P256Element::Scalar> pShare;
     DataPositions usage;
     Sub_Data_Files<pShare> prep(N, prefix, usage);
-    typename pShare::MAC_Check MCp(keyp);
+    typename pShare::Direct_MC MCp(keyp);
     ArithmeticProcessor _({}, 0);
     SubProcessor<pShare> proc(_, MCp, prep, P);
 
@@ -46,7 +47,7 @@ int main(int argc, const char** argv)
     proc.DataF.get_two(DATA_INVERSE, sk, __);
 
     vector<EcTuple<Share>> tuples;
-    preprocessing(tuples, n_tuples, sk, proc);
+    preprocessing(tuples, n_tuples, sk, proc, opts);
     check(tuples, sk, keyp, P);
-    sign_benchmark(tuples, sk, MCp, P);
+    sign_benchmark(tuples, sk, MCp, P, opts);
 }

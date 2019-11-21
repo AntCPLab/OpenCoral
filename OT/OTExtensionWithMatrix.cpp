@@ -308,7 +308,8 @@ void OTExtensionWithMatrix::hash_outputs(int nOTs)
 }
 
 template <class V>
-void OTExtensionWithMatrix::hash_outputs(int nOTs, vector<V>& senderOutput, V& receiverOutput)
+void OTExtensionWithMatrix::hash_outputs(int nOTs, vector<V>& senderOutput,
+        V& receiverOutput, bool correlated)
 {
     //cout << "Hashing... " << flush;
     octetStream os, h_os(HASH_SIZE);
@@ -341,7 +342,11 @@ void OTExtensionWithMatrix::hash_outputs(int nOTs, vector<V>& senderOutput, V& r
             for (int j = 0; j < 8; j++)
             {
                 tmp[0][j] = senderOutputMatrices[0].squares[i_outer_input].rows[i_inner_input + j];
-                tmp[1][j] = tmp[0][j] ^ baseReceiverInput.get_int128(0);
+                if (correlated)
+                    tmp[1][j] = tmp[0][j] ^ baseReceiverInput.get_int128(0);
+                else
+                    tmp[1][j] =
+                            senderOutputMatrices[1].squares[i_outer_input].rows[i_inner_input + j];
             }
             for (int j = 0; j < 2; j++)
                 mmo.hashBlocks<T, 8>(
@@ -366,15 +371,37 @@ void OTExtensionWithMatrix::hash_outputs(int nOTs, vector<V>& senderOutput, V& r
 
 template <class U>
 template <class T>
-void OTCorrelator<U>::reduce_squares(unsigned int nTriples, vector<T>& output)
+void OTCorrelator<U>::reduce_squares(unsigned int nTriples, vector<T>& output, int start)
 {
-    if (receiverOutputMatrix.squares.size() < nTriples)
+    if (receiverOutputMatrix.squares.size() < nTriples + start)
         throw invalid_length();
     output.resize(nTriples);
     for (unsigned int j = 0; j < nTriples; j++)
     {
-        receiverOutputMatrix.squares[j].sub(senderOutputMatrices[0].squares[j]).to(output[j]);
+        receiverOutputMatrix.squares[j + start].sub(
+                senderOutputMatrices[0].squares[j + start]).to(output[j]);
     }
+}
+
+template <class U>
+void OTCorrelator<U>::common_seed(PRNG& G)
+{
+    Slice<U> t1Slice(t1, 0, t1.squares.size());
+    Slice<U> uSlice(u, 0, u.squares.size());
+
+    octetStream os;
+    if (player->my_num())
+    {
+        t1Slice.pack(os);
+        uSlice.pack(os);
+    }
+    else
+    {
+        uSlice.pack(os);
+        t1Slice.pack(os);
+    }
+    auto hash = os.hash();
+    G = PRNG(hash);
 }
 
 octet* OTExtensionWithMatrix::get_receiver_output(int i)
@@ -515,34 +542,35 @@ template class OTCorrelator<BitMatrix>;
 #define Z(BM,GF) \
 template class OTCorrelator<BM>; \
 template void OTCorrelator<BM>::reduce_squares<GF>(unsigned int nTriples, \
-        vector<GF>& output);
+        vector<GF>& output, int);
 
 #define ZZZZ(GF) \
 template void OTExtensionWithMatrix::print_post_correlate<GF>( \
         BitVector& newReceiverInput, int j, int offset, int sender); \
 
 #define ZZZ(GF, M) Z(M, GF) \
-template void OTExtensionWithMatrix::hash_outputs(int, vector<M >&, M&);
+template void OTExtensionWithMatrix::hash_outputs(int, vector<M >&, M&, bool);
 
 ZZZZ(gf2n_long)
 ZZZ(gf2n_short, Matrix<gf2n_short_square>)
 ZZZ(gf2n_long, Matrix<Square<gf2n_long>>)
 ZZZ(gfp1, Matrix<Square<gfp1>>)
+ZZZ(gfp3, Matrix<Square<gfp3>>)
 ZZZ(BitVec, Matrix<BitDiagonal>)
 
 #undef XX
 #define XX(T,U,N,L) \
 template class OTCorrelator<Matrix<Rectangle<Z2<N>, Z2<L> > > >; \
 template void OTCorrelator<Matrix<Rectangle<Z2<N>, Z2<L> > > >::reduce_squares(unsigned int nTriples, \
-        vector<U>& output); \
+        vector<U>& output, int); \
 template void OTExtensionWithMatrix::hash_outputs(int, \
         std::vector<Matrix<Rectangle<Z2<N>, Z2<L> > >, std::allocator<Matrix<Rectangle<Z2<N>, Z2<L> > > > >&, \
-        Matrix<Rectangle<Z2<N>, Z2<L> > >&);
+        Matrix<Rectangle<Z2<N>, Z2<L> > >&, bool);
 
 #undef X
 #define X(N,L) \
 template void OTCorrelator<Matrix<Rectangle<Z2<N>, Z2<L> > > >::reduce_squares(unsigned int nTriples, \
-        vector<Z2kRectangle<N, L> >& output); \
+        vector<Z2kRectangle<N, L> >& output, int); \
 XX(Z2<L>,Z2<N>,N,L)
 
 //X(96, 160)

@@ -147,4 +147,17 @@ ostream& operator<<(ostream& o, const Z2<K>& x)
 	return o;
 }
 
+template<int K>
+istream& operator>>(istream& i, SignedZ2<K>& x)
+{
+    auto& tmp = bigint::tmp;
+    i >> tmp;
+    if (tmp.numBits() > K + 1)
+        throw runtime_error(
+                tmp.get_str() + " out of range for signed " + to_string(K)
+                        + "-bit numbers");
+    x = tmp;
+    return i;
+}
+
 #endif

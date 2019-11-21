@@ -129,7 +129,7 @@ def expandAESKey(cipherKey, Nr = 10, Nb = 4, Nk = 4):
             temp[2] = box.apply_sbox(temp[2])
             temp[3] = box.apply_sbox(temp[3])
 
-            temp[0] = temp[0] + ApplyEmbedding(rcon[int(i/Nk)])
+            temp[0] = temp[0] + ApplyEmbedding(rcon[int(i//Nk)])
 
         for j in range(4):
             round_key[4 * i + j] = round_key[4 * (i - Nk) + j] + temp[j]
@@ -233,7 +233,7 @@ def inverseMod(val):
 
     for idx in range(40):
         if idx % 5 == 0:
-            bd_val[idx] = raw_bit_dec[idx / 5]
+            bd_val[idx] = raw_bit_dec[idx // 5]
 
     bd_squared = bd_val
     squared_index = 2

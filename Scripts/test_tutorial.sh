@@ -12,15 +12,15 @@ function test
     fi
 }
 
-./compile.py tutorial
-
-for i in rep-field mal-rep-field ps-rep-field shamir mal-shamir cowgear semi mascot; do
-    test $i
-done
-
 ./compile.py -R 64 tutorial
 
 for i in ring brain mal-rep-ring ps-rep-ring semi2k spdz2k; do
+    test $i
+done
+
+./compile.py tutorial
+
+for i in rep-field mal-rep-field ps-rep-field shamir mal-shamir hemi cowgear semi mascot; do
     test $i
 done
 

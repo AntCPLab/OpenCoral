@@ -54,7 +54,8 @@ template<class T>
 void ReplicatedRingPrep<T>::buffer_triples()
 {
     assert(this->protocol != 0);
-    typename T::Protocol protocol(this->protocol->P);
+    // independent instance to avoid conflicts
+    typename T::Protocol protocol(this->protocol->branch());
     generate_triples(this->triples, OnlineOptions::singleton.batch_size,
             &protocol);
 }
@@ -264,8 +265,7 @@ void RingPrep<T>::buffer_bits_without_check()
     int n_relevant_players = protocol->get_n_relevant_players();
     vector<vector<T>> player_bits(n_relevant_players, vector<T>(buffer_size));
     typename T::Input input(proc, P);
-    for (int i = 0; i < P.num_players(); i++)
-        input.reset(i);
+    input.reset_all(P);
     for (int i = 0; i < n_relevant_players; i++)
     {
         int input_player = (base_player + i) % P.num_players();
@@ -274,20 +274,15 @@ void RingPrep<T>::buffer_bits_without_check()
             SeededPRNG G;
             for (int i = 0; i < buffer_size; i++)
                 input.add_mine(G.get_bit());
-            input.send_mine();
-            for (auto& x : player_bits[i])
-                x = input.finalize_mine();
         }
         else
-        {
             for (int i = 0; i < buffer_size; i++)
                 input.add_other(input_player);
-            octetStream os;
-            P.receive_player(input_player, os, true);
-            for (auto& x : player_bits[i])
-                input.finalize_other(input_player, x, os);
-        }
     }
+    input.exchange();
+    for (int i = 0; i < n_relevant_players; i++)
+        for (auto& x : player_bits[i])
+            x = input.finalize((base_player + i) % P.num_players());
     auto& prot = *protocol;
     XOR(bits, player_bits[0], player_bits[1], buffer_size, prot, proc);
     for (int i = 2; i < n_relevant_players; i++)

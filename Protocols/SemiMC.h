@@ -29,12 +29,12 @@ class DirectSemiMC : public SemiMC<T>
 public:
     DirectSemiMC() {}
     // emulate Direct_MAC_Check
-    DirectSemiMC(const typename T::mac_key_type& _, Names& ____, int __ = 0, int ___ = 0)
-    { (void)_; (void)__; (void)___; (void)____; }
+    DirectSemiMC(const typename T::mac_key_type&, const Names& = {}, int = 0, int = 0) {}
 
     void POpen_(vector<typename T::open_type>& values,const vector<T>& S,const PlayerBase& P);
-    void POpen_Begin(vector<typename T::open_type>& values,const vector<T>& S,const Player& P)
+    void POpen(vector<typename T::open_type>& values,const vector<T>& S,const Player& P)
     { POpen_(values, S, P); }
+    void POpen_Begin(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
     void POpen_End(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
 
     void Check(const Player& P) { (void)P; }

@@ -14,6 +14,9 @@ class ReplicatedMC : public MAC_Check_Base<T>
     octetStream o;
     octetStream to_send;
 
+    void prepare(const vector<T>& S);
+    void finalize(vector<typename T::open_type>& values, const vector<T>& S);
+
 public:
     // emulate MAC_Check
     ReplicatedMC(const typename T::value_type& _ = {}, int __ = 0, int ___ = 0)
@@ -23,6 +26,7 @@ public:
     ReplicatedMC(const typename T::value_type& _, Names& ____, int __ = 0, int ___ = 0)
     { (void)_; (void)__; (void)___; (void)____; }
 
+    void POpen(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
     void POpen_Begin(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
     void POpen_End(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
 

@@ -3,6 +3,7 @@ import mpc_math, math
 from Compiler.types import *
 from Compiler.types import _unreduced_squant
 from Compiler.library import *
+from functools import reduce
 
 def log_e(x):
     return mpc_math.log_fx(x, math.e)
@@ -129,7 +130,7 @@ class DenseBase(Layer):
             tmp[j][k] = sfix.unreduced_dot_product(a, b)
 
         if self.d_in * self.d_out < 100000:
-            print 'reduce at once'
+            print('reduce at once')
             @multithread(self.n_threads, self.d_in * self.d_out)
             def _(base, size):
                 self.nabla_W.assign_vector(
@@ -386,7 +387,7 @@ class QuantConvBase(QuantBase):
             s.set_params(sfloat.get_input_from(player), sint.get_input_from(player))
         self.weights.input_from(player, budget=100000)
         self.bias.input_from(player)
-        print 'WARNING: assuming that bias quantization parameters are correct'
+        print('WARNING: assuming that bias quantization parameters are correct')
 
         self.output_squant.params.precompute(self.input_squant.params, self.weight_squant.params)
 
@@ -404,7 +405,7 @@ class QuantConvBase(QuantBase):
         start_timer(2)
         n_outputs = reduce(operator.mul, self.output_shape)
         if n_outputs % self.n_threads == 0:
-            n_per_thread = n_outputs / self.n_threads
+            n_per_thread = n_outputs // self.n_threads
             @for_range_opt_multithread(self.n_threads, self.n_threads)
             def _(i):
                 res = _unreduced_squant(
@@ -556,7 +557,7 @@ class QuantAveragePool2d(QuantBase):
         self.filter_size = filter_size
 
     def input_from(self, player):
-        print 'WARNING: assuming that input and output quantization parameters are the same'
+        print('WARNING: assuming that input and output quantization parameters are the same')
         for s in self.input_squant, self.output_squant:
             s.set_params(sfloat.get_input_from(player), sint.get_input_from(player))
 
@@ -567,7 +568,7 @@ class QuantAveragePool2d(QuantBase):
         _, output_h, output_w, n_channels_out = self.output_shape
 
         n = input_h * input_w
-        print 'divisor: ', n
+        print('divisor: ', n)
 
         assert output_h == output_w == 1
         assert n_channels_in == n_channels_out
@@ -599,7 +600,7 @@ class QuantAveragePool2d(QuantBase):
                             acc += self.X[0][in_y][in_x][c].v
                             #fc += 1
                     logn = int(math.log(n, 2))
-                    acc = (acc + n / 2)
+                    acc = (acc + n // 2)
                     if 2 ** logn == n:
                         acc = acc.round(self.output_squant.params.k + logn,
                                         logn, nearest=True)
@@ -614,7 +615,7 @@ class QuantReshape(QuantBase):
         super(QuantReshape, self).__init__(input_shape, output_shape)
 
     def input_from(self, player):
-        print 'WARNING: assuming that input and output quantization parameters are the same'
+        print('WARNING: assuming that input and output quantization parameters are the same')
         _ = self.new_squant()
         for s in self.input_squant, _, self.output_squant:
             s.set_params(sfloat.get_input_from(player), sint.get_input_from(player))
@@ -628,7 +629,7 @@ class QuantReshape(QuantBase):
 
 class QuantSoftmax(QuantBase):
     def input_from(self, player):
-        print 'WARNING: assuming that input and output quantization parameters are the same'
+        print('WARNING: assuming that input and output quantization parameters are the same')
         for s in self.input_squant, self.output_squant:
             s.set_params(sfloat.get_input_from(player), sint.get_input_from(player))
 
@@ -666,14 +667,14 @@ class Optimizer:
                 N = self.layers[0].N
                 assert self.layers[-1].N == N
                 assert N % 2 == 0
-                n = N / 2
+                n = N // 2
                 @for_range(n)
                 def _(i):
                     self.layers[-1].Y[i] = 0
                     self.layers[-1].Y[i + n] = 1
                 n_per_epoch = int(math.ceil(1. * max(len(X) for X in
                                                      self.X_by_label) / n))
-                print '%d runs per epoch' % n_per_epoch
+                print('%d runs per epoch' % n_per_epoch)
                 indices_by_label = []
                 for label, X in enumerate(self.X_by_label):
                     indices = regint.Array(n * n_per_epoch)
@@ -794,8 +795,8 @@ class SGD(Optimizer):
                         x = x.reveal()
                         print_ln_if((x > 1000) + (x < -1000),
                                     name + ': %s %s %s %s',
-                                    *[y.v.reveal() for y in old, red_old, \
-                                      new, diff])
+                                    *[y.v.reveal() for y in (old, red_old, \
+                                      new, diff)])
             if self.debug:
                 d = delta_theta.get_vector().reveal()
                 a = cfix.Array(len(d.v))

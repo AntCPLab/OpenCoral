@@ -91,6 +91,7 @@ struct CommStats
   Timer timer;
   CommStats() : data(0), rounds(0) {}
   Timer& add(const octetStream& os) { data += os.get_length(); rounds++; return timer; }
+  void add(const octetStream& os, const TimeScope& scope) { add(os) += scope; }
   CommStats& operator+=(const CommStats& other);
   CommStats& operator-=(const CommStats& other);
 };
@@ -99,9 +100,10 @@ class NamedCommStats : public map<string, CommStats>
 {
 public:
   NamedCommStats& operator+=(const NamedCommStats& other);
+  NamedCommStats operator+(const NamedCommStats& other) const;
   NamedCommStats operator-(const NamedCommStats& other) const;
   size_t total_data();
-  void print();
+  void print(bool newline = false);
 #ifdef VERBOSE_COMM
   CommStats& operator[](const string& name)
   {
@@ -160,6 +162,7 @@ public:
   virtual void send_all(const octetStream& o,bool donthash=false) const = 0;
   void send_to(int player,const octetStream& o,bool donthash=false) const;
   virtual void send_to_no_stats(int player,const octetStream& o) const = 0;
+  void receive_all(vector<octetStream>& os) const;
   void receive_player(int i,octetStream& o,bool donthash=false) const;
   virtual void receive_player_no_stats(int i,octetStream& o) const = 0;
   virtual void receive_player(int i,FlexBuffer& buffer) const;

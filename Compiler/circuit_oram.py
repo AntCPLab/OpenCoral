@@ -26,7 +26,7 @@ def find_deeper(a, b, path, start, length, compute_level=True):
     any_empty = OR(a.empty, b.empty)
     a_diff = [XOR(a_bits[i], path_bits[i]) for i in range(start, length)]
     b_diff = [XOR(b_bits[i], path_bits[i]) for i in range(start, length)]
-    diff = [XOR(ab, bb) for ab,bb in zip(a_bits, b_bits)[start:length]]
+    diff = [XOR(ab, bb) for ab,bb in list(zip(a_bits, b_bits))[start:length]]
     diff_preor = type(a.value).PreOR([any_empty] + diff)
     diff_first = [x - y for x,y in zip(diff_preor, diff_preor[1:])]
     winner = sum((ad * df for ad,df in zip(a_diff, diff_first)), a.empty)
@@ -38,7 +38,7 @@ def find_deeper(a, b, path, start, length, compute_level=True):
 def find_deepest(paths, search_path, start, length, compute_level=True):
     if len(paths) == 1:
         return None, paths[0], 1
-    l = len(paths) / 2
+    l = len(paths) // 2
     _, a, a_index = find_deepest(paths[:l], search_path, start, length, False)
     _, b, b_index = find_deepest(paths[l:], search_path, start, length, False)
     level, winner = find_deeper(a, b, search_path, start, length, compute_level)
@@ -57,7 +57,7 @@ def greater_unary(a, b):
     if len(a) == 1:
         return a[0], b[0]
     else:
-        l = len(a) / 2
+        l = len(a) // 2
         return gu_step(greater_unary(a[l:], b[l:]), greater_unary(a[:l], b[:l]))
 
 def comp_step(high, low):
@@ -75,7 +75,7 @@ def comp_binary(a, b):
     if len(a) == 1:
         return a[0], b[0]
     else:
-        l = len(a) / 2
+        l = len(a) // 2
         return comp_step(comp_binary(a[l:], b[l:]), comp_binary(a[:l], b[:l]))
 
 def unary_to_binary(l):
@@ -89,8 +89,8 @@ class CircuitORAM(PathORAM):
         self.D = log2(size)
         self.logD = log2(self.D)
         self.L = self.D + 1
-        print 'create oram of size %d with depth %d and %d buckets' \
-            % (size, self.D, self.n_buckets())
+        print('create oram of size %d with depth %d and %d buckets' \
+            % (size, self.D, self.n_buckets()))
         self.value_type = value_type
         self.index_type = value_type.get_type(self.D)
         if entry_size is not None:
@@ -245,7 +245,7 @@ class CircuitORAM(PathORAM):
         for i,_ in enumerate(self.recursive_evict_rounds()):
             Program.prog.curr_tape.start_new_basicblock(name='circuit-recursive-evict-round-%d-%d' % (i, self.size))
     def recursive_evict_rounds(self):
-        for _ in itertools.izip(self.evict_rounds(), self.index.l.recursive_evict_rounds()):
+        for _ in zip(self.evict_rounds(), self.index.l.recursive_evict_rounds()):
             yield
     def bucket_indices_on_path_to(self, leaf):
         # root is at 1, different to PathORAM
@@ -272,10 +272,10 @@ threshold = 2**10
 
 def OptimalCircuitORAM(size, value_type, *args, **kwargs):
     if size <= threshold:
-        print size, 'below threshold', threshold
+        print(size, 'below threshold', threshold)
         return LinearORAM(size, value_type, *args, **kwargs)
     else:
-        print size, 'above threshold', threshold
+        print(size, 'above threshold', threshold)
         return RecursiveCircuitORAM(size, value_type, *args, **kwargs)
 
 class RecursiveCircuitIndexStructure(PackedIndexStructure):

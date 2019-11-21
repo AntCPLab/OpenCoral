@@ -68,6 +68,8 @@ protected:
 
     SeededPRNG share_prg;
 
+    mac_key_type mac_key;
+
     void start_progress();
     void print_progress(int k);
 
@@ -101,8 +103,11 @@ public:
     vector<PlainTriple<open_type, N_AMPLIFY>> preampTriples;
     vector<array<open_type, 3>> plainTriples;
 
-    OTTripleGenerator(OTTripleSetup& setup, const Names& names,
+    typename T::MAC_Check* MC;
+
+    OTTripleGenerator(const OTTripleSetup& setup, const Names& names,
             int thread_num, int nTriples, int nloops, MascotParams& machine,
+            mac_key_type mac_key,
             Player* parentPlayer = 0);
     ~OTTripleGenerator();
 
@@ -113,7 +118,10 @@ public:
 
     void run_multipliers(MultJob job);
 
+    mac_key_type get_mac_key() const { return mac_key; }
+
     size_t data_sent();
+    NamedCommStats comm_stats();
 };
 
 template<class T>
@@ -130,8 +138,9 @@ public:
     vector< ShareTriple_<sacri_type, mac_key_type, 2> > uncheckedTriples;
     vector<InputTuple<Share<sacri_type>>> inputs;
 
-    NPartyTripleGenerator(OTTripleSetup& setup, const Names& names,
+    NPartyTripleGenerator(const OTTripleSetup& setup, const Names& names,
             int thread_num, int nTriples, int nloops, MascotParams& machine,
+            mac_key_type mac_key,
             Player* parentPlayer = 0);
     virtual ~NPartyTripleGenerator() {}
 
@@ -159,8 +168,9 @@ class MascotTripleGenerator : public NPartyTripleGenerator<T>
 public:
     vector<T> bits;
 
-    MascotTripleGenerator(OTTripleSetup& setup, const Names& names,
+    MascotTripleGenerator(const OTTripleSetup& setup, const Names& names,
             int thread_num, int nTriples, int nloops, MascotParams& machine,
+            mac_key_type mac_key,
             Player* parentPlayer = 0);
 };
 
@@ -181,8 +191,9 @@ class Spdz2kTripleGenerator : public NPartyTripleGenerator<T>
             U& MC, PRNG& G);
 
 public:
-    Spdz2kTripleGenerator(OTTripleSetup& setup, const Names& names,
+    Spdz2kTripleGenerator(const OTTripleSetup& setup, const Names& names,
             int thread_num, int nTriples, int nloops, MascotParams& machine,
+            mac_key_type mac_key,
             Player* parentPlayer = 0);
 
     void generateTriples();
@@ -196,6 +207,17 @@ size_t OTTripleGenerator<T>::data_sent()
         res = globalPlayer.sent;
     for (auto& player : players)
         res += player->sent;
+    return res;
+}
+
+template<class T>
+NamedCommStats OTTripleGenerator<T>::comm_stats()
+{
+    NamedCommStats res;
+    if (parentPlayer != &globalPlayer)
+        res = globalPlayer.comm_stats;
+    for (auto& player : players)
+        res += player->comm_stats;
     return res;
 }
 
