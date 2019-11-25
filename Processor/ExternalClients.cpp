@@ -62,7 +62,7 @@ int ExternalClients::get_client_connection(int portnum_base)
   int client_id, socket;
   socket = client_connection_servers[portnum_base]->get_connection_socket(client_id);
   external_client_sockets[client_id] = socket;
-  if (symmetric_client_keys[client_id] != 0)
+  if (symmetric_client_keys.find(client_id) != symmetric_client_keys.end())
     delete symmetric_client_keys[client_id];
   symmetric_client_commsec_send_keys.erase(client_id);
   symmetric_client_commsec_recv_keys.erase(client_id);
