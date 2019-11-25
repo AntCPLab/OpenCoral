@@ -9,10 +9,10 @@
  * the bankers_bonus.mpc program.
  *
  * Each connecting client:
- * - runs crypto setup to demonstrate both DH Auth Encryption and STS protocol for comms security.
- * - sends a unique id to identify the client
- * - sends an integer input (bonus value to compare)
+ * - sends an increasing id to identify the client, starting with 0
  * - sends an integer (0 meaining more players will join this round or 1 meaning stop the round and calc the result).
+ * - runs crypto setup to demonstrate both DH Auth Encryption and STS protocol for comms security.
+ * - sends an integer input (bonus value to compare)
  *
  * The result is returned authenticated with a share of a random value:
  * - share of winning unique id [y]
@@ -24,7 +24,7 @@
  *   ./Scripts/setup-online.sh to create triple shares for each party (spdz engine).
  *   ./client-setup.x 2 -nc 3 to create the crypto key material for both parties and clients.
  *   ./compile.py bankers_bonus_commsec
- *   ./Scripts/run-online bankers_bonus_commsec to run the engines.
+ *   ./Scripts/run-online.sh bankers_bonus_commsec to run the engines.
  *
  *   ./bankers-bonus-commsec-client.x 0 2 100 0
  *   ./bankers-bonus-commsec-client.x 1 2 200 0
@@ -139,7 +139,7 @@ pair< vector<octet>, vector<octet> > sts_initiator_role(sign_key_container_t key
 // Send the private inputs masked with a random value.
 // Receive shares of a preprocessed triple from each SPDZ engine, combine and check the triples are valid.
 // Add the private input value to triple[0] and send to each spdz engine.
-void send_private_inputs(vector<gfp>& values, vector<int>& sockets, int nparties, 
+void send_private_inputs(const vector<gfp>& values, vector<int>& sockets, int nparties,
   commsec_t commsec, vector<octet*>& keys)
 {
     int num_inputs = values.size();
@@ -380,20 +380,19 @@ int main(int argc, char** argv)
     for (int i = 0; i < nparties; i++)
     {
         set_up_client_socket(sockets[i], host_name.c_str(), port_base + i);
+        send(sockets[i], (octet*) &my_client_id, sizeof(int));
+        octetStream os;
+        os.store(finish);
+        os.Send(sockets[i]);
+
         send_public_key(sts_key.client_publickey_ints, sockets[i]);
         send_public_key(client_public_key_ints, sockets[i]);
-        commseckey[i] = sts_initiator_role(sts_key, sockets, i);        
+        commseckey[i] = sts_initiator_role(sts_key, sockets, i);
     }
     cout << "Finish setup socket connections to SPDZ engines." << endl;
 
-    // Map inputs into gfp 
-    vector<gfp> input_values_gfp(3);
-    input_values_gfp[0].assign(my_client_id);
-    input_values_gfp[1].assign(salary_value);
-    input_values_gfp[2].assign(finish);    
-
     // Send the inputs to the SPDZ Engines
-    send_private_inputs(input_values_gfp, sockets, nparties, commseckey, session_keys);
+    send_private_inputs({salary_value}, sockets, nparties, commseckey, session_keys);
     cout << "Sent private inputs to each SPDZ engine, waiting for result..." << endl;
 
     // Get the result back

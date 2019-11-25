@@ -107,6 +107,7 @@ void ServerSocket::accept_clients()
       }
 
       data_signal.lock();
+      process_client(client_id);
       clients[client_id] = consocket;
       data_signal.broadcast();
       data_signal.unlock();
@@ -157,8 +158,6 @@ void* anonymous_accept_thread(void* server_socket)
   return 0;
 }
 
-int AnonymousServerSocket::global_client_socket_count = 0;
-
 void AnonymousServerSocket::init()
 {
   pthread_create(&thread, 0, anonymous_accept_thread, this);
@@ -169,22 +168,12 @@ int AnonymousServerSocket::get_connection_count()
   return num_accepted_clients;
 }
 
-void AnonymousServerSocket::accept_clients()
+void AnonymousServerSocket::process_client(int client_id)
 {
-  while (true)
-  {
-    struct sockaddr dest;
-    memset(&dest, 0, sizeof(dest));    /* zero the struct before filling the fields */
-    int socksize = sizeof(dest);
-    int consocket = accept(main_socket, (struct sockaddr *)&dest, (socklen_t*) &socksize);
-    if (consocket<0) { error("set_up_socket:accept"); }
-
-    data_signal.lock();
-    client_connection_queue.push(consocket);
-    num_accepted_clients++;
-    data_signal.broadcast();
-    data_signal.unlock();
-  }
+  if (clients.find(client_id) != clients.end())
+    close_client_socket(clients[client_id]);
+  num_accepted_clients++;
+  client_connection_queue.push(client_id);
 }
 
 int AnonymousServerSocket::get_connection_socket(int& client_id)
@@ -195,10 +184,9 @@ int AnonymousServerSocket::get_connection_socket(int& client_id)
   while (client_connection_queue.empty())
       data_signal.wait();
 
-  client_id = global_client_socket_count;
-  global_client_socket_count++;
-  int client_socket = client_connection_queue.front();
+  client_id = client_connection_queue.front();
   client_connection_queue.pop();
+  int client_socket = clients[client_id];
   data_signal.unlock();
   return client_socket;
 }

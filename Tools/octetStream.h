@@ -141,9 +141,9 @@ class octetStream
     }
 
   template<class T>
-  void Send(T& socket_num) const;
+  void Send(T socket_num) const;
   template<class T>
-  void Receive(T& socket_num);
+  void Receive(T socket_num);
   void ReceiveExpected(int socket_num, size_t expected);
 
   // In-place authenticated encryption using sodium; key of length crypto_generichash_BYTES
@@ -255,7 +255,7 @@ inline size_t octetStream::get_int(int n_bytes)
 
 
 template<class T>
-inline void octetStream::Send(T& socket_num) const
+inline void octetStream::Send(T socket_num) const
 {
   send(socket_num,len,LENGTH_SIZE);
   send(socket_num,data,len);
@@ -263,7 +263,7 @@ inline void octetStream::Send(T& socket_num) const
 
 
 template<class T>
-inline void octetStream::Receive(T& socket_num)
+inline void octetStream::Receive(T socket_num)
 {
   size_t nlen=0;
   receive(socket_num,nlen,LENGTH_SIZE);

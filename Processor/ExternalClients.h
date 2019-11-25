@@ -28,13 +28,14 @@ class ExternalClients
   bool server_keys_loaded = false;
   bool ed25519_keys_loaded = false;
 
+  // Maps holding per client values (indexed by unique 32-bit id)
+  std::map<int,int> external_client_sockets;
+
   public:
 
   unsigned char server_publickey_ed25519[crypto_sign_ed25519_PUBLICKEYBYTES];
   unsigned char server_secretkey_ed25519[crypto_sign_ed25519_SECRETKEYBYTES];
 
-  // Maps holding per client values (indexed by unique 32-bit id)
-  std::map<int,int> external_client_sockets;
   std::map<int,octet*> symmetric_client_keys;
   std::map<int,pair<vector<octet>,uint64_t>> symmetric_client_commsec_send_keys;
   std::map<int,pair<vector<octet>,uint64_t>> symmetric_client_commsec_recv_keys;

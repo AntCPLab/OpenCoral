@@ -100,11 +100,6 @@ template<class sint, class sgf2n>
 void Processor<sint, sgf2n>::write_socket(const RegType reg_type, const SecrecyType secrecy_type, const bool send_macs,
                              int socket_id, int message_type, const vector<int>& registers)
 {
-  if (socket_id >= (int)external_clients.external_client_sockets.size())
-  {
-    cerr << "No socket connection exists for client id " << socket_id << endl;
-    return;  
-  }
   int m = registers.size();
   socket_stream.reset_write_head();
 
@@ -144,7 +139,7 @@ void Processor<sint, sgf2n>::write_socket(const RegType reg_type, const SecrecyT
   // Apply STS commsec encryption if session keys have been created.
   try {
     maybe_encrypt_sequence(socket_id);
-    socket_stream.Send(external_clients.external_client_sockets[socket_id]);
+    socket_stream.Send(external_clients.get_socket(socket_id));
   }
     catch (bad_value& e) {
     cerr << "Send error thrown when writing " << m << " values of type " << reg_type << " to socket id " 
@@ -157,15 +152,9 @@ void Processor<sint, sgf2n>::write_socket(const RegType reg_type, const SecrecyT
 template<class sint, class sgf2n>
 void Processor<sint, sgf2n>::read_socket_ints(int client_id, const vector<int>& registers)
 {
-  if (client_id >= (int)external_clients.external_client_sockets.size())
-  {
-    cerr << "No socket connection exists for client id " << client_id << endl; 
-    return; 
-  }
-
   int m = registers.size();
   socket_stream.reset_write_head();
-  socket_stream.Receive(external_clients.external_client_sockets[client_id]);
+  socket_stream.Receive(external_clients.get_socket(client_id));
   maybe_decrypt_sequence(client_id);
   for (int i = 0; i < m; i++)
   {
@@ -179,15 +168,9 @@ void Processor<sint, sgf2n>::read_socket_ints(int client_id, const vector<int>& 
 template<class sint, class sgf2n>
 void Processor<sint, sgf2n>::read_socket_vector(int client_id, const vector<int>& registers)
 {
-  if (client_id >= (int)external_clients.external_client_sockets.size())
-  {
-    cerr << "No socket connection exists for client id " << client_id << endl;
-    return;  
-  }
-
   int m = registers.size();
   socket_stream.reset_write_head();
-  socket_stream.Receive(external_clients.external_client_sockets[client_id]);
+  socket_stream.Receive(external_clients.get_socket(client_id));
   maybe_decrypt_sequence(client_id);
   for (int i = 0; i < m; i++)
   {
@@ -199,14 +182,9 @@ void Processor<sint, sgf2n>::read_socket_vector(int client_id, const vector<int>
 template<class sint, class sgf2n>
 void Processor<sint, sgf2n>::read_socket_private(int client_id, const vector<int>& registers, bool read_macs)
 {
-  if (client_id >= (int)external_clients.external_client_sockets.size())
-  {
-    cerr << "No socket connection exists for client id " << client_id << endl;
-    return;  
-  }
   int m = registers.size();
   socket_stream.reset_write_head();
-  socket_stream.Receive(external_clients.external_client_sockets[client_id]);
+  socket_stream.Receive(external_clients.get_socket(client_id));
   maybe_decrypt_sequence(client_id);
 
   map<int,octet*>::iterator it = external_clients.symmetric_client_keys.find(client_id);
@@ -251,11 +229,6 @@ void Processor<sint, sgf2n>::init_secure_socket_internal(int client_id, const ve
   if(registers.size() != 8) {
       throw "Invalid call to init_secure_socket.";
   }
-  if (client_id >= (int)external_clients.external_client_sockets.size())
-  {
-    cerr << "No socket connection exists for client id " << client_id << endl;
-    throw "No socket connection exists for client";
-  }
 
   // Extract client long term public key into bytes
   vector<int> client_public_key (registers.size(), 0);
@@ -269,15 +242,15 @@ void Processor<sint, sgf2n>::init_secure_socket_internal(int client_id, const ve
   m1 = ke.send_msg1();
   socket_stream.reset_write_head();
   socket_stream.append(m1.bytes, sizeof m1.bytes);
-  socket_stream.Send(external_clients.external_client_sockets[client_id]);
-  socket_stream.ReceiveExpected(external_clients.external_client_sockets[client_id],
+  socket_stream.Send(external_clients.get_socket(client_id));
+  socket_stream.ReceiveExpected(external_clients.get_socket(client_id),
                                 96);
   socket_stream.consume(m2.pubkey, sizeof m2.pubkey);
   socket_stream.consume(m2.sig, sizeof m2.sig);
   m3 = ke.recv_msg2(m2);
   socket_stream.reset_write_head();
   socket_stream.append(m3.bytes, sizeof m3.bytes);
-  socket_stream.Send(external_clients.external_client_sockets[client_id]);
+  socket_stream.Send(external_clients.get_socket(client_id));
 
   // Use results of STS to generate send and receive keys.
   vector<unsigned char> sendKey = ke.derive_secret(crypto_secretbox_KEYBYTES);
@@ -323,11 +296,6 @@ void Processor<sint, sgf2n>::resp_secure_socket_internal(int client_id, const ve
   if(registers.size() != 8) {
       throw "Invalid call to init_secure_socket.";
   }
-  if (client_id >= (int)external_clients.external_client_sockets.size())
-  {
-    cerr << "No socket connection exists for client id " << client_id << endl;
-    throw "No socket connection exists for client";
-  }
   vector<int> client_public_key (registers.size(), 0);
   for(unsigned int i = 0; i < registers.size(); i++) {
     client_public_key[i] = (int&)get_Ci_ref(registers[i]);
@@ -337,16 +305,16 @@ void Processor<sint, sgf2n>::resp_secure_socket_internal(int client_id, const ve
   // Start Station to Station Protocol for the responder
   STS ke(client_public_bytes, external_clients.server_publickey_ed25519, external_clients.server_secretkey_ed25519);
   socket_stream.reset_read_head();
-  socket_stream.ReceiveExpected(external_clients.external_client_sockets[client_id],
+  socket_stream.ReceiveExpected(external_clients.get_socket(client_id),
                                 32);
   socket_stream.consume(m1.bytes, sizeof m1.bytes);
   m2 = ke.recv_msg1(m1);
   socket_stream.reset_write_head();
   socket_stream.append(m2.pubkey, sizeof m2.pubkey);
   socket_stream.append(m2.sig, sizeof m2.sig);
-  socket_stream.Send(external_clients.external_client_sockets[client_id]);
+  socket_stream.Send(external_clients.get_socket(client_id));
 
-  socket_stream.ReceiveExpected(external_clients.external_client_sockets[client_id],
+  socket_stream.ReceiveExpected(external_clients.get_socket(client_id),
                                 64);
   socket_stream.consume(m3.bytes, sizeof m3.bytes);
   ke.recv_msg3(m3);

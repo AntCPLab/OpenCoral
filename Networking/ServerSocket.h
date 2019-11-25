@@ -28,8 +28,7 @@ protected:
     // disable copying
     ServerSocket(const ServerSocket& other);
 
-    // receive id from client
-    int assign_client_id(int consocket);
+    virtual void process_client(int) {}
 
 public:
     ServerSocket(int Portnum);
@@ -55,23 +54,20 @@ public:
 class AnonymousServerSocket : public ServerSocket
 {
 private:
-    // Global no. of client sockets that have been returned - used to create identifiers
-    static int global_client_socket_count;
     // No. of accepted connections in this instance
     int num_accepted_clients;
     queue<int> client_connection_queue;
 
+    void process_client(int client_id);
+
 public:
     AnonymousServerSocket(int Portnum) :
         ServerSocket(Portnum), num_accepted_clients(0) { };
-    // override so clients do not send id
-    void accept_clients();
     void init();
 
     virtual int get_connection_count();
 
-    // Get socket for the last client who connected
-    // Writes a unique client identifier (i.e. a counter) to client_id
+    // Get socket and id for the last client who connected
     int get_connection_socket(int& client_id);
 };
 

@@ -62,6 +62,10 @@ int ExternalClients::get_client_connection(int portnum_base)
   int client_id, socket;
   socket = client_connection_servers[portnum_base]->get_connection_socket(client_id);
   external_client_sockets[client_id] = socket;
+  if (symmetric_client_keys[client_id] != 0)
+    delete symmetric_client_keys[client_id];
+  symmetric_client_commsec_send_keys.erase(client_id);
+  symmetric_client_commsec_recv_keys.erase(client_id);
   cerr << "Party " << get_party_num() << " received external client connection from client id: " << dec << client_id << endl;
   return client_id;
 }
@@ -175,3 +179,9 @@ int ExternalClients::get_party_num()
   return party_num;
 }
 
+int ExternalClients::get_socket(int id)
+{
+  if (external_client_sockets.find(id) == external_client_sockets.end())
+    throw runtime_error("external connection not found for id " + to_string(id));
+  return external_client_sockets[id];
+}

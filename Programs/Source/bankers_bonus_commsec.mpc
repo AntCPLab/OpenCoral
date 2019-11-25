@@ -29,23 +29,26 @@ n_rounds = 0
 if len(program.args) > 1:
     n_rounds = int(program.args[1])
 
-def accept_client_input():
-    """
-    Wait for socket connection and read for client public key.
-    send share of random value, receive input and deduce share.
-    Expect 3 inputs: unique id, bonus value and flag to indicate end of this round.
-    """
+def accept_client():
     client_socket_id = regint()
     acceptclientconnection(client_socket_id, PORTNUM)
+    last = regint.read_from_socket(client_socket_id)
 
     # Crypto setup
     public_signing_key = regint.read_from_socket(client_socket_id, 8)
     public_key = regint.read_client_public_key(client_socket_id)
     regint.resp_secure_socket(client_socket_id,*public_signing_key)
 
-    client_inputs = sint.receive_from_client(3, client_socket_id)
+    return client_socket_id, last
 
-    return client_socket_id, client_inputs[0], client_inputs[1], client_inputs[2]
+def client_input(client_socket_id):
+    """
+    Send share of random value, receive input and deduce share.
+    """
+
+    client_inputs = sint.receive_from_client(1, client_socket_id)
+
+    return client_inputs[0]
 
 
 def determine_winner(number_clients, client_values, client_ids):
@@ -98,16 +101,30 @@ def main():
         client_values = Array(MAX_NUM_CLIENTS, sint)
         # Client ids to identity client
         client_ids = Array(MAX_NUM_CLIENTS, sint)
+        # Keep track of received inputs
+        seen = Array(MAX_NUM_CLIENTS, regint)
+        seen.assign_all(0)
 
         # Loop round waiting for each client to connect
         @do_while
         def client_connections():
-            
-            client_sockets[number_clients], client_ids[number_clients], client_values[number_clients], finish = accept_client_input()
-            number_clients.write(number_clients+1)
+            client_id, last = accept_client()
+            @if_(client_id >= MAX_NUM_CLIENTS)
+            def _():
+                print_ln('client id too high')
+                crash()
+            client_sockets[client_id] = client_id
+            client_ids[client_id] = client_id
+            seen[client_id] = 1
+            @if_(last == 1)
+            def _():
+                number_clients.write(client_id + 1)
 
-            # continue while both expressions are false
-            return (number_clients >= MAX_NUM_CLIENTS) + finish.reveal() == 0 
+            return (sum(seen) < number_clients) + (number_clients == 0)
+
+        @for_range(number_clients)
+        def _(client_id):
+            client_values[client_id] = client_input(client_id)
 
         winning_client_id = determine_winner(number_clients, client_values, client_ids)
 
