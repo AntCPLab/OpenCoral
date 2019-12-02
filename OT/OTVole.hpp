@@ -94,29 +94,22 @@ void OTVoleBase<T, U>::hash_row(octetStream& os, const Row<T>& row, const __m128
 
 template <class T, class U>
 void OTVoleBase<T, U>::hash_row(octet* hash, const Row<T>& row, const __m128i* coefficients) {
-	const __m128i* blocks = (const __m128i*) row.get_ptr();
+	int num_blocks = DIV_CEIL(row.size() * T::size(), 16);
 
-	int num_blocks = (row.size() * T::size()) / 16;
+	octetStream os;
+	for(auto& x : row.rows)
+	    x.pack(os);
+	os.serialize(int128());
+
 	__m128i prods[2];
 	avx_memzero(prods, sizeof(prods));
 	__m128i res[2];
 	avx_memzero(res, sizeof(res));
 
 	for (int i = 0; i < num_blocks; ++i) {
-		mul128(blocks[i], coefficients[i], &prods[0], &prods[1]);
-		res[0] ^= prods[0];
-		res[1] ^= prods[1];
-	}
-
-	int total_bytes = row.size() * T::size();
-	if (total_bytes % 16 != 0) {
-		// need to handle "tail" bytes that did not evenly fit into block
-		int overflow_size = total_bytes % 16;
-		const octet* overflow_bytes = ((octet*) row.get_ptr()) + total_bytes - overflow_size;
-		octet bytes[16] = {0};
-		memcpy(bytes, overflow_bytes, overflow_size);
-		const __m128i* extra = (const __m128i*) bytes;
-		mul128(*extra, coefficients[num_blocks], &prods[0], &prods[1]);
+		__m128i block;
+		os.unserialize(block);
+		mul128(block, coefficients[i], &prods[0], &prods[1]);
 		res[0] ^= prods[0];
 		res[1] ^= prods[1];
 	}
