@@ -17,7 +17,7 @@ void Zp_Data::init(const bigint& p,bool mont)
 #endif
 
   pr=p;
-  mask=static_cast<mp_limb_t>((uint64_t(1)<<((mpz_sizeinbase(pr.get_mpz_t(),2)-1)%(8*sizeof(mp_limb_t))))-1);	
+  mask=static_cast<mp_limb_t>(1ULL<<((mpz_sizeinbase(pr.get_mpz_t(),2)-1)%(8*sizeof(mp_limb_t))))-1);	
   pr_byte_length = numBytes(pr);
   pr_bit_length = numBits(pr);
   int k = pr_bit_length;
