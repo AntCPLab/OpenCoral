@@ -8,6 +8,8 @@
 #include "Exceptions/Exceptions.h"
 #include "Tools/time-func.h"
 #include "Tools/parse.h"
+#include "GC/Instruction.h"
+#include "GC/instructions.h"
 
 //#include "Processor/Processor.hpp"
 #include "Processor/Binary_File_IO.hpp"
@@ -28,53 +30,32 @@
 
 #include "Tools/callgrind.h"
 
-// Convert modp to signed bigint of a given bit length
 inline
-void to_signed_bigint(bigint& bi, const gfp& x, int len)
-{
-  to_bigint(bi, x);
-  int neg;
-  // get sign and abs(x)
-  bigint& p_half = bigint::tmp = (gfp::pr()-1)/2;
-  if (mpz_cmp(bi.get_mpz_t(), p_half.get_mpz_t()) < 0)
-    neg = 0;
-  else
-  {
-    bi = gfp::pr() - bi;
-    neg = 1;
-  }
-  // reduce to range -2^(len-1), ..., 2^(len-1)
-  bigint& one = bigint::tmp = 1;
-  bi &= (one << len) - 1;
-  if (neg)
-    bi = -bi;
-}
-
-inline
-void Instruction::parse(istream& s)
+void Instruction::parse(istream& s, int inst_pos)
 {
   n=0; start.resize(0);
   r[0]=0; r[1]=0; r[2]=0; r[3]=0;
 
   int pos=s.tellg();
   opcode=get_int(s);
-  size=opcode>>9;
-  opcode&=0x1FF;
+  size=opcode>>10;
+  opcode&=0x3FF;
   
   if (size==0)
     size=1;
 
-  parse_operands(s, pos);
+  parse_operands(s, inst_pos, pos);
 }
 
 inline
-void BaseInstruction::parse_operands(istream& s, int pos)
+void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
 {
   int num_var_args = 0;
   switch (opcode)
   {
       // instructions with 3 register operands
       case ADDC:
+      case ADDCB:
       case ADDS:
       case ADDM:
       case SUBC:
@@ -88,6 +69,7 @@ void BaseInstruction::parse_operands(istream& s, int pos)
       case TRIPLE:
       case ANDC:
       case XORC:
+      case XORCB:
       case ORC:
       case SHLC:
       case SHRC:
@@ -125,8 +107,11 @@ void BaseInstruction::parse_operands(istream& s, int pos)
       case LDMSI:
       case STMCI:
       case STMSI:
+      case LDMSBI:
+      case STMSBI:
       case MOVC:
       case MOVS:
+      case MOVSB:
       case MOVINT:
       case LDMINTI:
       case STMINTI:
@@ -154,13 +139,16 @@ void BaseInstruction::parse_operands(istream& s, int pos)
       case GPROTECTMEMC:
       case PROTECTMEMINT:
       case CONDPRINTPLAIN:
+      case DABIT:
         r[0]=get_int(s);
         r[1]=get_int(s);
         break;
       // instructions with 1 register operand
       case BIT:
+      case BITB:
       case PRINTMEM:
       case PRINTREGPLAIN:
+      case PRINTREGPLAINB:
       case LDTN:
       case LDARG:
       case STARG:
@@ -190,20 +178,25 @@ void BaseInstruction::parse_operands(istream& s, int pos)
         break;
       // instructions with 2 registers + 1 integer operand
       case ADDCI:
+      case ADDCBI:
       case ADDSI:
       case SUBCI:
       case SUBSI:
       case SUBCFI:
       case SUBSFI:
       case MULCI:
+      case MULCBI:
       case MULSI:
       case DIVCI:
       case MODCI:
       case ANDCI:
       case XORCI:
+      case XORCBI:
       case ORCI:
       case SHLCI:
       case SHRCI:
+      case SHLCBI:
+      case SHRCBI:
       case NOTC:
       case CONVMODP:
       case GADDCI:
@@ -238,6 +231,10 @@ void BaseInstruction::parse_operands(istream& s, int pos)
       case LDMS:
       case STMC:
       case STMS:
+      case LDMSB:
+      case STMSB:
+      case LDMCB:
+      case STMCB:
       case LDMINT:
       case STMINT:
       case JMPNZ:
@@ -249,6 +246,7 @@ void BaseInstruction::parse_operands(istream& s, int pos)
       case GSTMC:
       case GSTMS:
       case PRINTREG:
+      case PRINTREGB:
       case GPRINTREG:
       case LDINT:
       case STARTINPUT:
@@ -260,6 +258,7 @@ void BaseInstruction::parse_operands(istream& s, int pos)
       case ACCEPTCLIENTCONNECTION:
       case INV2M:
       case CONDPRINTSTR:
+      case CONDPRINTSTRB:
         r[0]=get_int(s);
         n = get_int(s);
         break;
@@ -281,6 +280,7 @@ void BaseInstruction::parse_operands(istream& s, int pos)
         break;
       // instructions with 4 register operands
       case PRINTFLOATPLAIN:
+      case PRINTFLOATPLAINB:
         get_vector(4, start, s);
         break;
       // open instructions + read/write instructions with variable length args
@@ -385,11 +385,55 @@ void BaseInstruction::parse_operands(istream& s, int pos)
             throw Processor_Error(ss.str());
           }
         break;
+      case XORM:
+      case ANDM:
+        n = get_int(s);
+        get_ints(r, s, 3);
+        break;
+      case LDBITS:
+        get_ints(r, s, 2);
+        n = get_int(s);
+        break;
+      case BITDECS:
+      case BITCOMS:
+      case BITDECC:
+        num_var_args = get_int(s) - 1;
+        get_ints(r, s, 1);
+        get_vector(num_var_args, start, s);
+        break;
+      case CONVCINT:
+      case CONVCBIT:
+        get_ints(r, s, 2);
+        break;
+      case REVEAL:
+      case CONVSINT:
+        n = get_int(s);
+        get_ints(r, s, 2);
+        break;
+      case LDMSDI:
+      case STMSDI:
+      case LDMSD:
+      case STMSD:
+      case STMSDCI:
+      case XORS:
+      case ANDRS:
+      case ANDS:
+      case INPUTB:
+        get_vector(get_int(s), start, s);
+        break;
+      case PRINTREGSIGNED:
+        n = get_int(s);
+        get_ints(r, s, 1);
+        break;
+      case TRANS:
+        num_var_args = get_int(s) - 1;
+        n = get_int(s);
+        get_vector(num_var_args, start, s);
+        break;
       default:
         ostringstream os;
-        os << "Invalid instruction " << hex << showbase << opcode << " at " << dec << pos << endl;
-        os << "This virtual machine executes arithmetic circuits only." << endl;
-        os << "Try compiling without '-B' and don't use sbit* types." << endl;
+        os << "Invalid instruction " << showbase << hex << opcode << " at " << dec
+            << pos << "/" << hex << file_pos << dec << endl;
         throw Invalid_Instruction(os.str());
   }
 }
@@ -427,6 +471,14 @@ bool Instruction::get_offline_data_usage(DataPositions& usage)
 inline
 int BaseInstruction::get_reg_type() const
 {
+  switch (opcode & 0x2B0)
+  {
+    case SECRET_WRITE:
+      return SBIT;
+    case CLEAR_WRITE:
+      return CBIT;
+  }
+
   switch (opcode) {
     case LDMINT:
     case STMINT:
@@ -467,7 +519,18 @@ int BaseInstruction::get_reg_type() const
 inline
 unsigned BaseInstruction::get_max_reg(int reg_type) const
 {
+  if (opcode == DABIT)
+  {
+      if (reg_type == SBIT)
+          return r[1] + size;
+      else if (reg_type == MODP)
+          return r[0] + size;
+  }
+
   if (get_reg_type() != reg_type) { return 0; }
+
+  int skip = 0;
+  int offset = 0;
 
   switch (opcode)
   {
@@ -483,28 +546,44 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
       }
       return res;
   }
+  case LDMSD:
+  case LDMSDI:
+      skip = 3;
+      break;
+  case STMSD:
+  case STMSDI:
+      skip = 2;
+      break;
+  case ANDRS:
+  case XORS:
+  case ANDS:
+      skip = 4;
+      offset = 1;
+      break;
+  case INPUTB:
+      skip = 4;
+      offset = 3;
+      break;
   }
 
-  const int *begin, *end;
-  if (start.size())
-    {
-      begin = start.data();
-      end = start.data() + start.size();
-    }
-  else
-    {
-      begin = r;
-      end = r + 3;
-    }
+  if (skip > 0)
+  {
+      unsigned m = 0;
+      for (size_t i = offset; i < start.size(); i += skip)
+          m = max(m, (unsigned)start[i] + 1);
+      return m;
+  }
 
   unsigned res = 0;
-  for (auto it = begin; it != end; it++)
-    res = max(res, (unsigned)*it);
+  for (auto x : start)
+    res = max(res, (unsigned)x);
+  for (auto x : r)
+	res = max(res, (unsigned)x);
   return res + size;
 }
 
 inline
-unsigned Instruction::get_mem(RegType reg_type, SecrecyType sec_type) const
+unsigned BaseInstruction::get_mem(RegType reg_type, SecrecyType sec_type) const
 {
   if (get_reg_type() == reg_type and is_direct_memory_access(sec_type))
     return n + size;
@@ -515,33 +594,27 @@ unsigned Instruction::get_mem(RegType reg_type, SecrecyType sec_type) const
 inline
 bool BaseInstruction::is_direct_memory_access(SecrecyType sec_type) const
 {
-  if (sec_type == SECRET)
+  switch (opcode)
   {
-    switch (opcode)
-    {
-      case LDMS:
-      case STMS:
-      case GLDMS:
-      case GSTMS:
-        return true;
-      default:
-        return false;
-    }
-  }
-  else
-  {
-    switch (opcode)
-    {
-      case LDMC:
-      case STMC:
-      case GLDMC:
-      case GSTMC:
-      case LDMINT:
-      case STMINT:
-        return true;
-      default:
-        return false;
-    }
+  case LDMS:
+  case STMS:
+  case GLDMS:
+  case GSTMS:
+    return sec_type == SECRET;
+  case LDMC:
+  case STMC:
+  case GLDMC:
+  case GSTMC:
+    return sec_type == CLEAR;
+  case LDMINT:
+  case STMINT:
+  case LDMSB:
+  case STMSB:
+  case LDMCB:
+  case STMCB:
+    return true;
+  default:
+    return false;
   }
 }
 
@@ -571,6 +644,11 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
   Proc.PC+=1;
   auto& Procp = Proc.Procp;
   auto& Proc2 = Proc.Proc2;
+
+  // binary instructions
+  typedef typename sint::bit_type T;
+  auto& processor = Proc.Procb;
+  auto& instruction = *this;
 
   // optimize some instructions
   switch (opcode)
@@ -683,6 +761,9 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.get_Cp_ref(r[0] + i) = Proc.temp.ansp;
       }
       return;
+#define X(NAME, CODE) case NAME: CODE; return;
+      COMBI_INSTRUCTIONS
+#undef X
   }
 
   int r[3] = {this->r[0], this->r[1], this->r[2]};
@@ -1293,8 +1374,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
           if (n > 64)
             throw Processor_Error(to_string(n) + "-bit conversion impossible; "
                 "integer registers only have 64 bits");
-          to_signed_bigint(Proc.temp.aa,Proc.read_Cp(r[1]),n);
-          Proc.write_Ci(r[0], Proc.temp.aa.get_si());
+          Proc.write_Ci(r[0], Integer(Proc.read_Cp(r[1]), n).get());
         }
         break;
       case GCONVGF2N:
@@ -1344,8 +1424,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
             typename sint::clear z = Proc.read_Cp(start[2]);
             typename sint::clear s = Proc.read_Cp(start[3]);
             // MPIR can't handle more precision in exponent
-            to_signed_bigint(Proc.temp.aa2, p, 31);
-            long exp = Proc.temp.aa2.get_si();
+            long exp = Integer(p, 31).get();
             Proc.out << bigint::get_float(v, exp, z, s) << flush;
           }
       break;
@@ -1525,9 +1604,12 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc2.DataF.get(Proc.Proc2.get_S(), r, start, size);
         return;
       default:
-        printf("Case of opcode=%d not implemented yet\n",opcode);
+        printf("Case of opcode=0x%x not implemented yet\n",opcode);
         throw not_implemented();
         break;
+#define X(NAME, CODE) case NAME: throw runtime_error("wrong case statement"); return;
+        COMBI_INSTRUCTIONS
+#undef X
     }
   if (size > 1)
     {

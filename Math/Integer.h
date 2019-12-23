@@ -18,10 +18,11 @@ using namespace std;
 
 
 // Functionality shared between integers and bit vectors
+template<class T>
 class IntBase : public ValueInterface
 {
 protected:
-  long a;
+  T a;
 
 public:
   static const int N_BYTES = sizeof(a);
@@ -37,9 +38,9 @@ public:
   static bool allows(Dtype type) { return type <= DATA_BIT; }
 
   IntBase()                 { a = 0; }
-  IntBase(long a) : a(a)    {}
+  IntBase(T a) : a(a)    {}
 
-  long get() const          { return a; }
+  T get() const          { return a; }
   bool get_bit(int i) const { return (a >> i) & 1; }
 
   char* get_ptr() const     { return (char*)&a; }
@@ -55,17 +56,17 @@ public:
   bool is_one() const       { return a == 1; }
   bool is_bit() const       { return is_zero() or is_one(); }
 
-  long operator>>(const IntBase& other) const
+  long operator>>(const IntBase<long>& other) const
   {
-    if (other.a < N_BITS)
-      return (unsigned long) a >> other.a;
+    if (other.get() < N_BITS)
+      return (unsigned long) a >> other.get();
     else
       return 0;
   }
-  long operator<<(const IntBase& other) const
+  long operator<<(const IntBase<long>& other) const
   {
-    if (other.a < N_BITS)
-      return a << other.a;
+    if (other.get() < N_BITS)
+      return a << other.get();
     else
       return 0;
   }
@@ -79,8 +80,8 @@ public:
 
   bool equal(const IntBase& other) const { return *this == other; }
 
-  long operator^=(const IntBase& other) { return a ^= other.a; }
-  long operator&=(const IntBase& other) { return a &= other.a; }
+  T& operator^=(const IntBase& other) { return a ^= other.a; }
+  T& operator&=(const IntBase& other) { return a &= other.a; }
 
   friend ostream& operator<<(ostream& s, const IntBase& x) { x.output(s, true); return s; }
 
@@ -95,7 +96,7 @@ public:
 };
 
 // Wrapper class for integer
-class Integer : public IntBase
+class Integer : public IntBase<long>
 {
   public:
 
@@ -114,6 +115,10 @@ class Integer : public IntBase
   Integer(const bigint& x)  { *this = (x > 0) ? x.get_ui() : -x.get_ui(); }
   template<int K>
   Integer(const Z2<K>& x) : Integer(x.get_limb(0)) {}
+  template<int X, int L>
+  Integer(const gfp_<X, L>& x);
+
+  Integer(const Integer& x, int n_bits);
 
   void convert_destroy(bigint& other) { *this = other.get_si(); }
 
@@ -150,19 +155,23 @@ class Integer : public IntBase
   void SHR(const Integer& x, const Integer& y) { *this = (unsigned long)x.a >> y.a; }
 };
 
-inline void IntBase::randomize(PRNG& G)
+template<>
+inline void IntBase<long>::randomize(PRNG& G)
 {
   a = G.get_word();
 }
 
-inline void to_bigint(bigint& res, const Integer& x)
+template<>
+inline void IntBase<bool>::randomize(PRNG& G)
 {
-  res = (unsigned long)x.get();
+  a = G.get_bit();
 }
 
-inline void to_signed_bigint(bigint& res, const Integer& x)
+template<int X, int L>
+Integer::Integer(const gfp_<X, L>& x)
 {
-  res = x.get();
+  to_signed_bigint(bigint::tmp, x);
+  *this = bigint::tmp;
 }
 
 // slight misnomer

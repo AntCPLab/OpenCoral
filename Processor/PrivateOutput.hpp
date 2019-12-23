@@ -20,11 +20,11 @@ void PrivateOutput<T>::start(int player, int target, int source)
 template<class T>
 void PrivateOutput<T>::stop(int player, int source)
 {
-    if (player == proc.P.my_num())
+    if (player == proc.P.my_num() and proc.Proc)
     {
         open_type value;
         value.sub(proc.get_C_ref(source), masks.front());
-        value.output(proc.Proc.private_output, false);
+        value.output(proc.Proc->private_output, false);
         masks.pop_front();
     }
 }

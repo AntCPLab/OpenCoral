@@ -41,16 +41,16 @@ class StraightlineAllocator:
                 raise RegisterOverflowError()
         self.alloc[base] = res
 
-        if base.vector:
-            for i,r in enumerate(base.vector):
-                r.i = self.alloc[base] + i
         base.i = self.alloc[base]
 
     def dealloc_reg(self, reg, inst, free):
-        self.dealloc.add(reg)
+        if reg.vector:
+            self.dealloc |= reg.vector
+        else:
+            self.dealloc.add(reg)
         base = reg.vectorbase
 
-        if base.vector and not inst.is_vec():
+        if base.vector:
             for i in base.vector:
                 if i not in self.dealloc:
                     # not all vector elements ready for deallocation

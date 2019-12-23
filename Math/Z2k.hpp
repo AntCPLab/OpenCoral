@@ -59,6 +59,14 @@ bool Z2<K>::get_bit(int i) const
 }
 
 template<int K>
+Z2<K> Z2<K>::operator&(const Z2<K>& other) const
+{
+    Z2<K> res;
+    res.AND(*this, other);
+    return res;
+}
+
+template<int K>
 bool Z2<K>::operator==(const Z2<K>& other) const
 {
 #ifdef DEBUG_MPN

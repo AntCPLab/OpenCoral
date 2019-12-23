@@ -7,6 +7,7 @@
 #define GC_PROGRAM_H_
 
 #include "GC/Instruction.h"
+#include "Processor/Program.h"
 
 #include <vector>
 using namespace std;
@@ -26,7 +27,7 @@ template <class T> class Processor;
 template <class T>
 class Program
 {
-    vector< Instruction<T> > p;
+    vector<Instruction> p;
     int offline_data_used;
 
     // Maximal register used
@@ -57,8 +58,8 @@ class Program
     unsigned num_reg(RegType reg_type) const
       { return max_reg[reg_type]; }
 
-    unsigned direct_mem(RegType reg_type) const
-      { return max_mem[reg_type]; }
+    const unsigned* direct_mem(RegType reg_type) const
+      { return &max_mem[reg_type]; }
 
     template<class U>
     BreakType execute(Processor<T>& Proc, U& dynamic_memory, int PC = -1) const;

@@ -13,6 +13,7 @@ using namespace std;
 #include "GC/Clear.h"
 #include "GC/Access.h"
 #include "GC/ArgTuples.h"
+#include "GC/NoShare.h"
 #include "Math/FixedVec.h"
 #include "Math/BitVec.h"
 #include "Tools/SwitchableOutput.h"
@@ -73,6 +74,8 @@ public:
 
     typedef ReplicatedBase Protocol;
 
+    typedef NoShare bit_type;
+
     static const int N_BITS = clear::N_BITS;
 
     static const bool dishonest_majority = false;
@@ -83,8 +86,18 @@ public:
 
     static int default_length;
 
+    static int threshold(int)
+    {
+        return 1;
+    }
+
     static void trans(Processor<U>& processor, int n_outputs,
             const vector<int>& args);
+
+    template<class T>
+    static void generate_mac_key(mac_key_type, T)
+    {
+    }
 
     ReplicatedSecret() {}
     template <class T>
@@ -101,6 +114,9 @@ public:
     { *this = x ^ y; (void)n; }
 
     void reveal(size_t n_bits, Clear& x);
+
+    ReplicatedSecret operator&(const Clear& other)
+    { return super::operator&(BitVec(other)); }
 };
 
 class SemiHonestRepPrep;
@@ -118,7 +134,9 @@ public:
     typedef SemiHonestRepPrep LivePrep;
     typedef ReplicatedInput<SemiHonestRepSecret> Input;
 
-    static MC* new_mc(Machine<SemiHonestRepSecret>& _) { (void) _; return new MC; }
+    typedef SemiHonestRepSecret part_type;
+
+    static MC* new_mc(mac_key_type) { return new MC; }
 
     SemiHonestRepSecret() {}
     template<class T>

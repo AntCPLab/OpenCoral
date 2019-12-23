@@ -14,9 +14,9 @@ namespace GC
 template<class T>
 class TinyMC : public MAC_Check_Base<T>
 {
-    typename T::part_type::MAC_Check part_MC;
+    typename T::check_type::MAC_Check part_MC;
     vector<typename T::part_type::open_type> part_values;
-    vector<typename T::part_type::super> part_shares;
+    vector<typename T::check_type> part_shares;
 
 public:
     TinyMC(typename T::mac_key_type mac_key) :

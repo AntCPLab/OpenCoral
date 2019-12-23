@@ -21,11 +21,22 @@ namespace GC
 template <class T> class Program;
 
 template <class T>
-class Machine : public ::BaseMachine
+class Memories
 {
 public:
     Memory<T> MS;
     Memory<Clear> MC;
+
+    template<class U>
+    void reset(const U& program);
+
+    void write_memory(int my_num);
+};
+
+template <class T>
+class Machine : public ::BaseMachine, public Memories<T>
+{
+public:
     Memory<Integer> MI;
 
     vector<Program<T> > progs;
@@ -50,8 +61,6 @@ public:
 
     void run_tape(int thread_number, int tape_number, int arg);
     void join_tape(int thread_numer);
-
-    void write_memory(int my_num);
 };
 
 } /* namespace GC */

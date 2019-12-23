@@ -27,6 +27,8 @@ protected:
     virtual void load_program(string threadname, string filename);
 
 public:
+    static thread_local int thread_num;
+
     string progname;
     int nthreads;
 
@@ -47,6 +49,13 @@ public:
     void stop(int n);
 
     virtual void reqbl(int n) { (void)n; throw runtime_error("not defined"); }
+
+    OTTripleSetup fresh_ot_setup();
 };
+
+inline OTTripleSetup BaseMachine::fresh_ot_setup()
+{
+    return ot_setups.at(thread_num).get_fresh();
+}
 
 #endif /* PROCESSOR_BASEMACHINE_H_ */

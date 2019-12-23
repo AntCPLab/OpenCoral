@@ -131,12 +131,12 @@ class NPartyTripleGenerator : public OTTripleGenerator<T>
     typedef typename T::mac_key_type mac_key_type;
     typedef typename T::sacri_type sacri_type;
 
-    virtual void generateTriples() = 0;
-    virtual void generateBits() = 0;
+    virtual void generateTriples() { throw not_implemented(); }
+    virtual void generateBits() { throw not_implemented(); }
 
 public:
     vector< ShareTriple_<sacri_type, mac_key_type, 2> > uncheckedTriples;
-    vector<InputTuple<Share<sacri_type>>> inputs;
+    vector<InputTuple<typename T::input_type>> inputs;
 
     NPartyTripleGenerator(const OTTripleSetup& setup, const Names& names,
             int thread_num, int nTriples, int nloops, MascotParams& machine,

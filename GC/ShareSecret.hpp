@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef GC_SHARESECRET_HPP
+#define GC_SHARESECRET_HPP
+
 #include "ShareSecret.h"
 
 #include "MaliciousRepSecret.h"
@@ -17,6 +20,7 @@
 #include "Protocols/Beaver.hpp"
 #include "ShareParty.h"
 #include "ShareThread.hpp"
+#include "Thread.hpp"
 
 namespace GC
 {
@@ -30,8 +34,11 @@ SwitchableOutput ShareSecret<U>::out;
 template<class U>
 void ShareSecret<U>::check_length(int n, const Integer& x)
 {
-    if ((size_t)n < 8 * sizeof(x) and abs(x.get()) >= (1LL << n))
-        throw out_of_range("public value too long");
+	if ((size_t) n < 8 * sizeof(x)
+			and (unsigned long long) abs(x.get()) >= (1ULL << n))
+		throw out_of_range(
+				"public value too long for " + to_string(n) + " bits: "
+						+ to_string(x.get()) + "/" + to_string(1ULL << n));
 }
 
 template<class U>
@@ -89,7 +96,7 @@ void ShareSecret<U>::inputb(Processor<U>& processor,
     input.reset_all(*party.P);
 
     InputArgList a(args);
-    bool interactive = party.n_interactive_inputs_from_me(a) > 0;
+    bool interactive = Thread<U>::s().n_interactive_inputs_from_me(a) > 0;
 
     for (auto x : a)
     {
@@ -153,7 +160,7 @@ void ReplicatedSecret<U>::reveal(size_t n_bits, Clear& x)
     vector<BitVec> opened;
     auto& party = ShareThread<U>::s();
     party.MC->POpen(opened, {share}, *party.P);
-    x = IntBase(opened[0]);
+    x = BitVec::super(opened[0]);
 }
 
 template<class U>
@@ -165,3 +172,5 @@ void ShareSecret<U>::random_bit()
 }
 
 }
+
+#endif

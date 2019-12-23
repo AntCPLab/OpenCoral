@@ -58,7 +58,7 @@ void GarbleJob<T>::middle_round(RealProgramParty<T>& party, Protocol& second_pro
 			{
 				second_protocol.prepare_mul(party.shared_delta(j),
 						lambda_uv + lambda_v * alpha + lambda_u * beta
-								+ T(alpha * beta, me, party.MC->get_alphai())
+								+ T::constant(alpha * beta, me, party.MC->get_alphai())
 								+ lambda_w);
 			}
 }
@@ -131,7 +131,7 @@ void RealGarbleWire<T>::input(party_id_t from, char input)
 		assert(party.MC != 0);
 		auto& protocol = party.shared_proc->protocol;
 		protocol.init_mul(party.shared_proc);
-		protocol.prepare_mul(mask, T(1, party.P->my_num(), party.mac_key) - mask);
+		protocol.prepare_mul(mask, T::constant(1, party.P->my_num(), party.mac_key) - mask);
 		protocol.exchange();
 		if (party.MC->open(protocol.finalize_mul(), *party.P) != 0)
 			throw runtime_error("input mask not a bit");

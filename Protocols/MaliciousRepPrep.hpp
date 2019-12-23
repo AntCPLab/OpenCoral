@@ -12,33 +12,32 @@ MaliciousRepPrep<T>::MaliciousRepPrep(SubProcessor<T>* proc, DataPositions& usag
         MaliciousRepPrep<T>(usage)
 {
     this->proc = proc;
+    MaliciousRingPrep<T>::proc = proc;
 }
 
 template<class T>
 MaliciousRepPrep<T>::MaliciousRepPrep(DataPositions& usage) :
-        BufferPrep<T>(usage), honest_usage(usage.num_players()),
-        honest_prep(0, honest_usage), replicated(0), proc(0)
+        MaliciousRingPrep<T>(0, usage), honest_usage(usage.num_players()),
+        honest_prep(0, honest_usage), honest_proc(0), proc(0)
 {
 }
 
 template<class U>
 MaliciousRepPrep<U>::~MaliciousRepPrep()
 {
-    if (replicated)
-        delete replicated;
 }
 
 template<class T>
 void MaliciousRepPrep<T>::set_protocol(typename T::Protocol& protocol)
 {
+    RingPrep<T>::set_protocol(protocol);
     init_honest(protocol.P);
 }
 
 template<class T>
 void MaliciousRepPrep<T>::init_honest(Player& P)
 {
-    replicated = new typename T::Honest::Protocol(P);
-    honest_prep.set_protocol(*replicated);
+    honest_proc = new SubProcessor<typename T::Honest>(honest_mc, honest_prep, P);
 }
 
 template<class U>

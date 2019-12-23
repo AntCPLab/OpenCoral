@@ -70,11 +70,7 @@ class Secret
 public:
     typedef typename T::DynamicMemory DynamicMemory;
 
-    // dummy
-    typedef DummyMC MC;
-    typedef DummyProtocol Protocol;
-
-    static MC* new_mc(Machine<Secret>& _) { (void) _; return new MC; }
+    typedef NoShare bit_type;
 
     static string type_string() { return "evaluation secret"; }
     static string phase_name() { return T::name(); }

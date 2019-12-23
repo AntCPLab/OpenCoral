@@ -11,6 +11,10 @@
 #include "FHE/FFT_Data.h"
 #include "FHE/NTL-Subs.h"
 
+#include "GC/TinierSecret.h"
+#include "GC/TinierPrep.h"
+#include "GC/TinyMC.h"
+
 #include "Processor/Data_Files.hpp"
 #include "Processor/Instruction.hpp"
 #include "Processor/Machine.hpp"
@@ -18,6 +22,11 @@
 #include "Protocols/fake-stuff.hpp"
 #include "Protocols/Beaver.hpp"
 #include "Protocols/Share.hpp"
+#include "GC/ShareSecret.hpp"
+#include "GC/TinyPrep.hpp"
+#include "GC/Secret.hpp"
+#include "GC/TinierSharePrep.hpp"
+#include "OT/NPartyTripleGenerator.hpp"
 
 #include "Player-Online.hpp"
 

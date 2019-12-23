@@ -7,6 +7,7 @@
 #define GC_SHARETHREAD_HPP_
 
 #include <GC/ShareThread.h>
+#include "GC/ShareParty.h"
 #include "Protocols/MaliciousRepMC.h"
 #include "Math/Setup.h"
 
@@ -16,15 +17,19 @@ namespace GC
 {
 
 template<class T>
-ShareThread<T>::ShareThread(int i,
-        ThreadMaster<T>& master) :
-        Thread<T>(i, master), usage(master.N.num_players()), DataF(
-                master.opts.live_prep ?
-                        *(Preprocessing<T>*) new typename T::LivePrep(usage,
-                                *this) :
-                        *(Preprocessing<T>*) new Sub_Data_Files<T>(master.N,
-                                get_prep_dir(master.N.num_players(), 128, 128),
-                                usage))
+StandaloneShareThread<T>::StandaloneShareThread(int i, ThreadMaster<T>& master) :
+        ShareThread<T>(master.N, master.opts), Thread<T>(i, master)
+{
+}
+
+template<class T>
+ShareThread<T>::ShareThread(const Names& N, OnlineOptions& opts) :
+        P(0), MC(0), protocol(0), usage(N.num_players()), DataF(
+                opts.live_prep ?
+                        *static_cast<Preprocessing<T>*>(new typename T::LivePrep(
+                                usage, *this)) :
+                        *static_cast<Preprocessing<T>*>(new Sub_Data_Files<T>(N,
+                                get_prep_dir(N.num_players(), 128, 128), usage)))
 {
 }
 
@@ -32,21 +37,34 @@ template<class T>
 ShareThread<T>::~ShareThread()
 {
     delete &DataF;
+    if (MC)
+        delete MC;
+    if (protocol)
+        delete protocol;
 }
 
 template<class T>
-void ShareThread<T>::pre_run()
+void ShareThread<T>::pre_run(Player& P, typename T::mac_key_type mac_key)
 {
+    this->P = &P;
     if (singleton)
         throw runtime_error("there can only be one");
     singleton = this;
-    assert(this->protocol != 0);
+    protocol = new typename T::Protocol(*this->P);
+    MC = this->new_mc(mac_key);
     DataF.set_protocol(*this->protocol);
+}
+
+template<class T>
+void StandaloneShareThread<T>::pre_run()
+{
+    ShareThread<T>::pre_run(*Thread<T>::P, ShareParty<T>::s().mac_key);
 }
 
 template<class T>
 void ShareThread<T>::post_run()
 {
+    MC->Check(*this->P);
 #ifndef INSECURE
     cerr << "Removing used pre-processed data" << endl;
     DataF.prune();

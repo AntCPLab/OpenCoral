@@ -189,7 +189,8 @@ class BitVector
 
     bool get_bit(int i) const
       {
-        assert(i < (int)nbits);
+        if (i >= (int)nbits)
+          throw out_of_range("BitVector access: " + to_string(i) + "/" + to_string(nbits));
         return (bytes[i/8] >> (i % 8)) & 1;
       }
     void set_bit(int i,unsigned int a)
@@ -268,7 +269,10 @@ class BitVector
 template <class T>
 T inline BitVector::get_portion(int i) const
 {
-    return (char*)&bytes[T::size() * i];
+    if (T::size_in_bits() == 1)
+        return get_bit(i);
+    else
+        return (char*)&bytes[T::size() * i];
 }
 
 template <class T>

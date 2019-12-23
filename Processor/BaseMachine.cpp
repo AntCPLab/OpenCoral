@@ -10,6 +10,7 @@
 using namespace std;
 
 BaseMachine* BaseMachine::singleton = 0;
+thread_local int BaseMachine::thread_num;
 
 BaseMachine& BaseMachine::s()
 {

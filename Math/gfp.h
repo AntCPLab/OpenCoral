@@ -78,6 +78,7 @@ class gfp_
   static string type_string() { return "gfp"; }
 
   static int size() { return t() * sizeof(mp_limb_t); }
+  static int size_in_bits() { return 8 * size(); }
   static int length() { return ZpD.pr_bit_length; }
 
   static void reqbl(int n);

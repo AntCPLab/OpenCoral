@@ -44,7 +44,7 @@ public:
     void start_exchange();
     void stop_exchange();
 
-    int get_n_relevant_players() { return P.num_players(); }
+    int get_n_relevant_players() { return 1 + T::threshold(P.num_players()); }
 };
 
 #endif /* PROTOCOLS_BEAVER_H_ */

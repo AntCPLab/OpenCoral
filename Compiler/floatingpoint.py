@@ -32,8 +32,12 @@ def shift_two(n, pos):
 
 def maskRing(a, k):
     shift = int(program.Program.prog.options.ring) - k
-    r = [types.sint.get_random_bit() for i in range(k)]
-    r_prime = types.sint.bit_compose(r)
+    if program.Program.prog.use_dabit:
+        rr, r = zip(*(types.sint.get_dabit() for i in range(k)))
+        r_prime = types.sint.bit_compose(rr)
+    else:
+        r = [types.sint.get_random_bit() for i in range(k)]
+        r_prime = types.sint.bit_compose(r)
     c = ((a + r_prime) << shift).reveal() >> shift
     return c, r
 
@@ -53,8 +57,8 @@ def EQZ(a, k, kappa):
         c, r = maskField(a, k, kappa)
     d = [None]*k
     for i,b in enumerate(bits(c, k)):
-        d[i] = b + r[i] - 2*b*r[i]
-    return 1 - KOR(d, kappa)
+        d[i] = r[i].bit_xor(b)
+    return 1 - types.sint.conv(KOR(d, kappa))
 
 def bits(a,m):
     """ Get the bits of an int """
@@ -82,10 +86,10 @@ def carry(b, a, compute_p=True):
         (p,g) = (p_2, g_2)o(p_1, g_1) -> (p_1 & p_2, g_2 | (p_2 & g_1))
     """
     if compute_p:
-        t1 = a[0]*b[0]
+        t1 = a[0].bit_and(b[0])
     else:
         t1 = None
-    t2 = a[1] + a[0]*b[1]
+    t2 = a[1] + a[0].bit_and(b[1])
     return (t1, t2)
 
 def or_op(a, b, void=None):
@@ -197,7 +201,7 @@ def KORL(a, kappa):
     else:
         t1 = KORL(a[:k//2], kappa)
         t2 = KORL(a[k//2:], kappa)
-        return t1 + t2 - t1*t2
+        return t1 + t2 - t1.bit_and(t2)
 
 def KORC(a, kappa):
     return PreORC(a, kappa, 1)[0]
@@ -295,11 +299,16 @@ def BitDec(a, k, m, kappa, bits_to_compute=None):
 
 def BitDecRing(a, k, m):
     n_shift = int(program.Program.prog.options.ring) - m
-    r_bits = [types.sint.get_random_bit() for i in range(m)]
-    r = types.sint.bit_compose(r_bits)
+    if program.Program.prog.use_dabit:
+        r, r_bits = zip(*(types.sint.get_dabit() for i in range(m)))
+        r = types.sint.bit_compose(r)
+    else:
+        r_bits = [types.sint.get_random_bit() for i in range(m)]
+        r = types.sint.bit_compose(r_bits)
     shifted = ((a - r) << n_shift).reveal()
     masked = shifted >> n_shift
-    return types.intbitint.bit_adder(r_bits, masked.bit_decompose(m))
+    bits = r_bits[0].bit_adder(r_bits, masked.bit_decompose(m))
+    return [types.sint.conv(bit) for bit in bits]
 
 def BitDecField(a, k, m, kappa, bits_to_compute=None):
     r_dprime = types.sint()
@@ -319,7 +328,8 @@ def BitDecField(a, k, m, kappa, bits_to_compute=None):
         print('BitDec assertion failed')
         print('a =', a.value)
         print('a mod 2^%d =' % k, (a.value % 2**k))
-    return types.intbitint.bit_adder(list(bits(c,m)), r)
+    res = r[0].bit_adder(r, list(bits(c,m)))
+    return [types.sint.conv(bit) for bit in res]
 
 
 def Pow2(a, l, kappa):
@@ -345,17 +355,21 @@ def B2U_from_Pow2(pow2a, l, kappa):
     r = [types.sint() for i in range(l)]
     t = types.sint()
     c = types.cint()
-    for i in range(l):
-        bit(r[i])
+    if program.Program.prog.use_dabit:
+        r, r_bits = zip(*(types.sint.get_dabit() for i in range(l)))
+    else: 
+        for i in range(l):
+            bit(r[i])
+        r_bits = r
     comparison.PRandInt(t, kappa)
     asm_open(c, pow2a + two_power(l) * t + sum(two_power(i)*r[i] for i in range(l)))
     comparison.program.curr_tape.require_bit_length(l + kappa)
     c = list(bits(c, l))
-    x = [c[i] + r[i] - 2*c[i]*r[i] for i in range(l)]
+    x = [r_bits[i].bit_xor(c[i]) for i in range(l)]
     #print ' '.join(str(b.value) for b in x)
     y = PreOR(x, kappa)
     #print ' '.join(str(b.value) for b in y)
-    return [1 - y[i] for i in range(l)]
+    return [types.sint.conv(1 - y[i]) for i in range(l)]
 
 def Trunc(a, l, m, kappa, compute_modulo=False, signed=False):
     """ Oblivious truncation by secret m """
@@ -532,7 +546,7 @@ def TruncPrField(a, k, m, kappa=None):
     b = two_power(k-1) + a
     r_prime, r_dprime = types.sint(), types.sint()
     comparison.PRandM(r_dprime, r_prime, [types.sint() for i in range(m)],
-                      k, m, kappa)
+                      k, m, kappa, use_dabit=False)
     two_to_m = two_power(m)
     r = two_to_m * r_dprime + r_prime
     c = (b + r).reveal()

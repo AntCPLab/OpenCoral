@@ -14,8 +14,6 @@
 class YaoEvalWire : public Phase
 {
 public:
-	typedef DummyMC MC;
-
 	static string name() { return "YaoEvalWire"; }
 
 	typedef ostream& out_type;

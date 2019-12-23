@@ -23,6 +23,11 @@ template<class T> class PrivateOutput;
 template<class T> class SemiMultiplier;
 template<class T> class OTTripleGenerator;
 
+namespace GC
+{
+class SemiSecret;
+}
+
 template<class T>
 class SemiShare : public T
 {
@@ -46,6 +51,8 @@ public:
     typedef OTTripleGenerator<prep_type> TripleGenerator;
     typedef T sacri_type;
     typedef typename T::Square Rectangle;
+
+    typedef GC::SemiSecret bit_type;
 
     const static bool needs_ot = true;
     const static bool dishonest_majority = true;

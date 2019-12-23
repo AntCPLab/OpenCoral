@@ -270,8 +270,24 @@ void OTCorrelator<U>::correlate(int start, int slice,
 #endif
 }
 
+template<class U>
+void OTCorrelator<U>::expand_correlate_unchecked(const BitVector& delta, int n_bits)
+{
+    if (n_bits < 0)
+        n_bits = delta.size();
+    resize(n_bits);
+    int slice = receiverOutputMatrix.squares.size();
+    expand(0, slice);
+    BitVector tmp = delta;
+    tmp.resize_zero(receiverOutputMatrix.vertical_size());
+    correlate(0, slice, tmp, true);
+}
+
 void OTExtensionWithMatrix::transpose(int start, int slice)
 {
+    if (slice < 0)
+        slice = receiverOutputMatrix.squares.size();
+
     BitMatrixSlice receiverOutputSlice(receiverOutputMatrix, start, slice);
     BitMatrixSlice senderOutputSlices[2] = {
             BitMatrixSlice(senderOutputMatrices[0], start, slice),
@@ -587,3 +603,5 @@ Y(72, 48)
 Y(74, 48)
 Y(72, 64)
 Y(74, 64)
+Y(1, 48)
+Y(1, 64)

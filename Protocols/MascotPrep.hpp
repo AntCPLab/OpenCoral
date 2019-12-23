@@ -12,6 +12,7 @@
 #include "OT/OTTripleSetup.h"
 #include "OT/Triple.hpp"
 #include "OT/NPartyTripleGenerator.hpp"
+#include "Protocols/ShuffleSacrifice.hpp"
 
 template<class T>
 OTPrep<T>::OTPrep(SubProcessor<T>* proc, DataPositions& usage) :
@@ -32,10 +33,9 @@ void OTPrep<T>::set_protocol(typename T::Protocol& protocol)
     RingPrep<T>::set_protocol(protocol);
     SubProcessor<T>* proc = this->proc;
     assert(proc != 0);
-    auto& ot_setups = BaseMachine::s().ot_setups.at(proc->Proc.thread_num);
-    OTTripleSetup setup = ot_setups.get_fresh();
-    triple_generator = new typename T::TripleGenerator(setup,
-            proc->P.N, proc->Proc.thread_num,
+    triple_generator = new typename T::TripleGenerator(
+            BaseMachine::s().fresh_ot_setup(),
+            proc->P.N, -1,
             OnlineOptions::singleton.batch_size, 1,
             params, proc->MC.get_alphai(), &proc->P);
     triple_generator->multi_threaded = false;
@@ -75,6 +75,17 @@ void MascotFieldPrep<T>::buffer_bits()
 }
 
 template<class T>
+void MascotFieldPrep<T>::buffer_dabits()
+{
+    assert(this->proc != 0);
+    vector<dabit<T>> check_dabits;
+    ShuffleSacrifice<T> shuffle_sacrifice;
+    this->buffer_dabits_without_check(check_dabits,
+            shuffle_sacrifice.minimum_n_inputs());
+    shuffle_sacrifice.dabit_sacrifice(this->dabits, check_dabits, *this->proc);
+}
+
+template<class T>
 void MascotPrep<T>::buffer_inputs(int player)
 {
     auto& triple_generator = this->triple_generator;
@@ -110,10 +121,10 @@ T BufferPrep<T>::get_random_from_inputs(int nplayers)
 template<class T>
 size_t OTPrep<T>::data_sent()
 {
+    size_t res = RingPrep<T>::data_sent();
     if (triple_generator)
-        return triple_generator->data_sent();
-    else
-        return 0;
+        res += triple_generator->data_sent();
+    return res;
 }
 
 template<class T>

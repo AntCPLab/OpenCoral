@@ -5,13 +5,21 @@
 
 #include "TinyPrep.h"
 
+#include "Protocols/MascotPrep.hpp"
+
 namespace GC
 {
 
 template<class T>
-TinyPrep<T>::TinyPrep(DataPositions& usage, Thread<T>& thread) :
-        BufferPrep<T>(usage), thread(thread), triple_generator(0),
-        input_generator(0)
+TinyPrep<T>::TinyPrep(DataPositions& usage, ShareThread<T>& thread) :
+        BufferPrep<T>(usage), thread(thread), triple_generator(0)
+{
+
+}
+
+template<class T>
+TinyOnlyPrep<T>::TinyOnlyPrep(DataPositions& usage, ShareThread<T>& thread) :
+        TinyPrep<T>(usage, thread), input_generator(0)
 {
 }
 
@@ -20,6 +28,11 @@ TinyPrep<T>::~TinyPrep()
 {
     if (triple_generator)
         delete triple_generator;
+}
+
+template<class T>
+TinyOnlyPrep<T>::~TinyOnlyPrep()
+{
     if (input_generator)
         delete input_generator;
 }
@@ -31,19 +44,24 @@ void TinyPrep<T>::set_protocol(Beaver<T>& protocol)
     params.generateMACs = true;
     params.amplify = false;
     params.check = false;
+    auto& thread = ShareThread<T>::s();
     triple_generator = new typename T::TripleGenerator(
-            thread.processor.machine.ot_setups.at(thread.thread_num).get_fresh(),
-            thread.master.N, thread.thread_num,
-            thread.master.opts.batch_size,
-            1, params, thread.MC->get_alphai(), thread.P);
+            BaseMachine::s().fresh_ot_setup(), protocol.P.N, -1,
+            OnlineOptions::singleton.batch_size, 1, params,
+            thread.MC->get_alphai(), &protocol.P);
     triple_generator->multi_threaded = false;
+}
+
+template<class T>
+void TinyOnlyPrep<T>::set_protocol(Beaver<T>& protocol)
+{
+    TinyPrep<T>::set_protocol(protocol);
     input_generator = new typename T::part_type::TripleGenerator(
-            thread.processor.machine.ot_setups.at(thread.thread_num).get_fresh(),
-            thread.master.N, thread.thread_num,
-            thread.master.opts.batch_size,
-            1, params, thread.MC->get_alphai(), thread.P);
+            BaseMachine::s().fresh_ot_setup(), protocol.P.N, -1,
+            OnlineOptions::singleton.batch_size, 1, this->params,
+            this->thread.MC->get_alphai(), &protocol.P);
     input_generator->multi_threaded = false;
-    thread.MC->get_part_MC().set_prep(*this);
+    this->thread.MC->get_part_MC().set_prep(*this);
 }
 
 template<class T>
@@ -51,9 +69,9 @@ void TinyPrep<T>::buffer_triples()
 {
     auto& triple_generator = this->triple_generator;
     params.generateBits = false;
-    vector<array<typename T::part_type::super, 3>> triples;
-    ShuffleSacrifice<typename T::part_type::super> sacrifice;
-    while (int(triples.size()) < sacrifice.minimum_n_inputs())
+    vector<array<typename T::check_type, 3>> triples;
+    ShuffleSacrifice<typename T::check_type> sacrifice;
+    while (int(triples.size()) < sacrifice.minimum_n_inputs_with_combining())
     {
         triple_generator->generatePlainTriples();
         triple_generator->unlock();
@@ -84,6 +102,8 @@ void TinyPrep<T>::buffer_triples()
     }
     sacrifice.triple_sacrifice(triples, triples,
             *thread.P, thread.MC->get_part_MC());
+    sacrifice.triple_combine(triples, triples, *thread.P,
+            thread.MC->get_part_MC());
     for (size_t i = 0; i < triples.size() / T::default_length; i++)
     {
         this->triples.push_back({});
@@ -112,21 +132,22 @@ void TinyPrep<T>::buffer_bits()
 }
 
 template<class T>
-void TinyPrep<T>::buffer_inputs(int player)
+void TinyPrep<T>::buffer_inputs_(int player, typename T::InputGenerator* input_generator)
 {
     auto& inputs = this->inputs;
-    inputs.resize(thread.P->num_players());
-    assert(this->input_generator);
-    this->input_generator->generateInputs(player);
-    for (size_t i = 0; i < this->input_generator->inputs.size() / T::default_length; i++)
+    inputs.resize(this->thread.P->num_players());
+    assert(input_generator);
+    input_generator->generateInputs(player);
+    assert(input_generator->inputs.size() >= T::default_length);
+    for (size_t i = 0; i < input_generator->inputs.size() / T::default_length; i++)
     {
         inputs[player].push_back({});
         inputs[player].back().share.resize_regs(T::default_length);
         for (int j = 0; j < T::default_length; j++)
         {
-            auto& source_input = this->input_generator->inputs[j
+            auto& source_input = input_generator->inputs[j
                     + i * T::default_length];
-            inputs[player].back().share.get_reg(j) = res_type(source_input.share);
+            inputs[player].back().share.get_reg(j) = source_input.share;
             inputs[player].back().value ^= typename T::open_type(
                     source_input.value.get_bit(0)) << j;
         }
@@ -167,6 +188,24 @@ array<T, 3> TinyPrep<T>::get_triple(int n_bits)
         triple_buffer.pop_back();
     }
 
+    return res;
+}
+
+template<class T>
+size_t TinyPrep<T>::data_sent()
+{
+    size_t res = 0;
+    if (triple_generator)
+        res += triple_generator->data_sent();
+    return res;
+}
+
+template<class T>
+size_t TinyOnlyPrep<T>::data_sent()
+{
+    auto res = TinyPrep<T>::data_sent();
+    if (input_generator)
+        res += input_generator->data_sent();
     return res;
 }
 

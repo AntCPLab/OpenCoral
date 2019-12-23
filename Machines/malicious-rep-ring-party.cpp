@@ -7,7 +7,7 @@
 #include "Protocols/MalRepRingOptions.h"
 #include "Protocols/ReplicatedMachine.hpp"
 #include "Processor/RingOptions.h"
-#include "Machines/Rep.hpp"
+#include "Machines/RepRing.hpp"
 
 int main(int argc, const char** argv)
 {

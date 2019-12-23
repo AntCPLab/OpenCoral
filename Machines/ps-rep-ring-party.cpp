@@ -7,7 +7,7 @@
 #include "Protocols/PostSacriRepFieldShare.h"
 #include "Protocols/ReplicatedMachine.hpp"
 #include "Processor/RingOptions.h"
-#include "Machines/Rep.hpp"
+#include "Machines/RepRing.hpp"
 #include "Protocols/PostSacrifice.hpp"
 
 int main(int argc, const char** argv)

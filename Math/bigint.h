@@ -105,8 +105,6 @@ public:
 };
 
 
-void to_signed_bigint(bigint& res, const bigint& x, int n);
-
 void inline_mpn_zero(mp_limb_t* x, mp_size_t size);
 void inline_mpn_copyi(mp_limb_t* dest, const mp_limb_t* src, mp_size_t size);
 

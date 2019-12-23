@@ -7,6 +7,8 @@
 #include "FHEOffline/PairwiseMachine.h"
 #include "Tools/Bundle.h"
 
+#include "Protocols/ReplicatedPrep.hpp"
+
 template<class T>
 PairwiseMachine* CowGearPrep<T>::pairwise_machine = 0;
 template<class T>

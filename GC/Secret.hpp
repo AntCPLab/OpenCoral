@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef GC_SECRET_HPP_
+#define GC_SECRET_HPP_
+
 #include "Secret.h"
 #include "Secret_inline.h"
 
@@ -336,3 +339,5 @@ void Secret<T>::reveal(size_t n_bits, U& x)
 }
 
 } /* namespace GC */
+
+#endif

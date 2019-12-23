@@ -99,8 +99,7 @@ public:
 template <class T>
 class TinyMultiplier : public OTMultiplier<T>
 {
-    OTVole<typename T::part_type::sacri_type,
-            typename T::part_type::mac_key_type> mac_vole;
+    OTVole<typename T::part_type::sacri_type> mac_vole;
 
     void after_correlation();
     void init_authenticator(const BitVector& baseReceiverInput,
@@ -113,6 +112,24 @@ public:
     TinyMultiplier(OTTripleGenerator<T>& generator, int thread_num);
 
     void multiplyForInputs(MultJob job) { (void) job; throw not_implemented(); }
+};
+
+template <class T>
+class TinierMultiplier : public OTMultiplier<T>
+{
+    OTExtensionWithMatrix auth_ot_ext;
+
+    void after_correlation();
+    void init_authenticator(const BitVector& baseReceiverInput,
+            const vector< vector<BitVector> >& baseSenderInput,
+            const vector<BitVector>& baseReceiverOutput);
+
+public:
+    vector<typename T::open_type> c_output;
+
+    TinierMultiplier(OTTripleGenerator<T>& generator, int thread_num);
+
+    void multiplyForInputs(MultJob job);
 };
 
 template <int K, int S> class Spdz2kShare;
@@ -135,8 +152,8 @@ public:
     static const int MAC_BITS = K + 2 * S;
 
     vector<Z2kRectangle<TAU, PASSIVE_MULT_BITS> > c_output;
-    OTVoleBase<Z2<MAC_BITS>, Z2<S>>* mac_vole;
-    OTVoleBase<Z2<K + S>, Z2<S>>* input_mac_vole;
+    OTVoleBase<Z2<MAC_BITS>>* mac_vole;
+    OTVoleBase<Z2<K + S>>* input_mac_vole;
 
     Spdz2kMultiplier(OTTripleGenerator<T>& generator, int thread_num);
     ~Spdz2kMultiplier();

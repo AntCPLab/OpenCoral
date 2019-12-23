@@ -5,7 +5,8 @@
 
 #include "Integer.h"
 
-void IntBase::output(ostream& s,bool human) const
+template<class T>
+void IntBase<T>::output(ostream& s,bool human) const
 {
   if (human)
     s << a;
@@ -13,7 +14,8 @@ void IntBase::output(ostream& s,bool human) const
     s.write((char*)&a, sizeof(a));
 }
 
-void IntBase::input(istream& s,bool human)
+template<class T>
+void IntBase<T>::input(istream& s,bool human)
 {
   if (human)
     s >> a;
@@ -35,3 +37,14 @@ void Integer::reqbl(int n)
       throw Processor_Error("Program compiled for fields not rings");
     }
 }
+
+Integer::Integer(const Integer& x, int n_bits)
+{
+  a = abs(x.get());
+  a &= ~(uint64_t(-1) << (n_bits - 1) << 1);
+  if (x < 0)
+    a = -a;
+}
+
+template class IntBase<long>;
+template class IntBase<bool>;

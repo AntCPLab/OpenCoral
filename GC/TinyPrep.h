@@ -18,18 +18,16 @@ namespace GC
 template<class T>
 class TinyPrep : public BufferPrep<T>, public RandomPrep<typename T::part_type::super>
 {
-    typedef Share<Z2<1 + T::part_type::s>> res_type;
-
-    Thread<T>& thread;
+protected:
+    ShareThread<T>& thread;
 
     typename T::TripleGenerator* triple_generator;
-    typename T::part_type::TripleGenerator* input_generator;
     MascotParams params;
 
     vector<array<typename T::part_type, 3>> triple_buffer;
 
 public:
-    TinyPrep(DataPositions& usage, Thread<T>& thread);
+    TinyPrep(DataPositions& usage, ShareThread<T>& thread);
     ~TinyPrep();
 
     void set_protocol(Beaver<T>& protocol);
@@ -37,14 +35,35 @@ public:
     void buffer_triples();
     void buffer_bits();
 
-    void buffer_inputs(int player);
-
     void buffer_squares() { throw not_implemented(); }
     void buffer_inverses() { throw not_implemented(); }
+
+    void buffer_inputs_(int player, typename T::InputGenerator* input_generator);
 
     typename T::part_type::super get_random();
 
     array<T, 3> get_triple(int n_bits);
+
+    size_t data_sent();
+};
+
+template<class T>
+class TinyOnlyPrep : public TinyPrep<T>
+{
+    typename T::part_type::TripleGenerator* input_generator;
+
+public:
+    TinyOnlyPrep(DataPositions& usage, ShareThread<T>& thread);
+    ~TinyOnlyPrep();
+
+    void set_protocol(Beaver<T>& protocol);
+
+    void buffer_inputs(int player)
+    {
+        this->buffer_inputs_(player, input_generator);
+    }
+
+    size_t data_sent();
 };
 
 } /* namespace GC */

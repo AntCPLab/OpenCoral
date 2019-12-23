@@ -15,49 +15,28 @@ using namespace std;
 namespace GC
 {
 
-// Register types
-enum RegType {
-    SBIT,
-    CBIT,
-    INT,
-    DYN_SBIT,
-    MAX_REG_TYPE,
-    NONE
-};
-
 template<class T> class Processor;
 
-template <class T>
 class Instruction : public ::BaseInstruction
 {
-    bool (*code)(const Instruction<T>& instruction, Processor<T>& processor);
 public:
     Instruction();
     
-    int get_r(int i) const { return r[i]; }
-    unsigned int get_n() const { return n; }
-    const vector<int>& get_start() const { return start; }
-    int get_opcode() const { return opcode; }
-
     // Reads a single instruction from the istream
     void parse(istream& s, int pos);
 
     // Return whether usage is known
     bool get_offline_data_usage(int& usage);
 
-    int get_reg_type() const;
-
-    // Returns the maximal register used
-    unsigned get_max_reg(int reg_type) const;
-
     // Returns the memory size used if applicable and known
     unsigned get_mem(RegType reg_type) const;
 
     // Execute this instruction
-    bool exe(Processor<T>& processor) const { return code(*this, processor); }
-    template<class U>
+    template<class T, class U>
     bool execute(Processor<T>& processor, U& dynamic_memory) const;
 };
+
+} /* namespace GC */
 
 enum
 {
@@ -77,20 +56,37 @@ enum
     LDBITS = 0x20a,
     ANDS = 0x20b,
     TRANS = 0x20c,
+    BITB = 0x20d,
+    ANDM = 0x20e,
+    LDMSB = 0x240,
+    STMSB = 0x241,
+    LDMSBI = 0x242,
+    STMSBI = 0x243,
+    MOVSB = 0x244,
+    INPUTB = 0x246,
     // write to clear
     CLEAR_WRITE = 0x210,
-    XORCI = 0x210,
+    XORCBI = 0x210,
     BITDECC = 0x211,
     CONVCINT = 0x213,
     REVEAL = 0x214,
     STMSDCI = 0x215,
-    INPUTB = 0x216,
+    LDMCB = 0x217,
+    STMCB = 0x218,
+    XORCB = 0x219,
+    ADDCB = 0x21a,
+    ADDCBI = 0x21b,
+    MULCBI = 0x21c,
+    SHRCBI = 0x21d,
+    SHLCBI = 0x21e,
     // don't write
     PRINTREGSIGNED = 0x220,
+    PRINTREGB = 0x221,
+    PRINTREGPLAINB = 0x222,
+    PRINTFLOATPLAINB = 0x223,
+    CONDPRINTSTRB = 0x224,
     // write to regint
     CONVCBIT = 0x230,
 };
-
-} /* namespace GC */
 
 #endif /* PROCESSOR_GC_INSTRUCTION_H_ */

@@ -30,7 +30,7 @@ const char* TreeSum<T>::mc_timer_names[] = {
 };
 
 template<class U>
-MAC_Check_<U>::MAC_Check_(const typename T::Scalar& ai, int opening_sum,
+MAC_Check_<U>::MAC_Check_(const typename U::mac_key_type::Scalar& ai, int opening_sum,
     int max_broadcast, int send_player) :
     TreeSum<T>(opening_sum, max_broadcast, send_player)
 {
@@ -147,7 +147,7 @@ void MAC_Check_<U>::Check(const Player& P)
 
   if (popen_cnt < 10)
     {
-      vector<T> deltas;
+      vector<typename U::mac_type> deltas;
       Bundle<octetStream> bundle(P);
       for (int i = 0; i < popen_cnt; i++)
         {
@@ -161,7 +161,7 @@ void MAC_Check_<U>::Check(const Player& P)
         {
           for (auto& os : bundle)
             if (&os != &bundle.mine)
-              delta += os.get<T>();
+              delta += os.get<typename U::mac_type>();
           if (not delta.is_zero())
             throw mac_fail();
         }
@@ -176,15 +176,15 @@ void MAC_Check_<U>::Check(const Player& P)
       G.SetSeed(seed);
 
       U sj;
-      T a,gami,temp;
-      typename T::Scalar h;
-      vector<T> tau(P.num_players());
+      typename U::mac_type a,gami,temp;
+      typename U::mac_type::Scalar h;
+      vector<typename U::mac_type> tau(P.num_players());
       a.assign_zero();
       gami.assign_zero();
       for (int i=0; i<popen_cnt; i++)
         {
           h.almost_randomize(G);
-          temp.mul(h,vals[i]);
+          temp = vals[i] * h;
           a.add(a,temp);
 
           temp.mul(h,macs[i]);
@@ -201,7 +201,7 @@ void MAC_Check_<U>::Check(const Player& P)
 
       //cerr << "\tFinal Check" << endl;
 
-      T t;
+      typename U::mac_type t;
       t.assign_zero();
       for (int i=0; i<P.num_players(); i++)
         { t.add(t,tau[i]); }

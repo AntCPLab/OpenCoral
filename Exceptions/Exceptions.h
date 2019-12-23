@@ -212,4 +212,13 @@ class closed_connection
     }
 };
 
+class no_singleton : runtime_error
+{
+public:
+    no_singleton(string msg) :
+            runtime_error(msg)
+    {
+    }
+};
+
 #endif

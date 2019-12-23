@@ -29,6 +29,8 @@ void* Sub_Main_Func(void* ptr)
   vector<Program>& progs                = machine.progs;
 
   int num=tinfo->thread_num;
+  BaseMachine::s().thread_num = num;
+
 #ifdef DEBUG_THREADS
   fprintf(stderr, "\tI am in thread %d\n",num);
 #endif
@@ -168,6 +170,7 @@ void* Sub_Main_Func(void* ptr)
 
   // destruct protocol before last MAC check and data statistics
   size_t prep_sent = Proc.DataF.data_sent();
+  prep_sent += Proc.share_thread.DataF.data_sent();
   delete processor;
 
   // MACCheck

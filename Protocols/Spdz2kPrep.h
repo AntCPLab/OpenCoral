@@ -8,6 +8,7 @@
 
 #include "MascotPrep.h"
 #include "Spdz2kShare.h"
+#include "GC/TinySecret.h"
 
 template<class T, class U>
 void bits_from_square_in_ring(vector<T>& bits, int buffer_size, U* bit_prep);
@@ -31,6 +32,8 @@ public:
 
     void buffer_inverses() { throw division_by_zero(); }
     void buffer_bits();
+
+    void get_dabit(T& a, GC::TinySecret<T::s>& b);
 
     size_t data_sent();
 };

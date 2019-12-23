@@ -7,9 +7,9 @@
 #include "Math/Integer.h"
 
 
-template<class T>
+template<class T, class V>
 inline
-void Share<T>::mul_by_bit(const Share<T>& S,const T& aa)
+void Share_<T, V>::mul_by_bit(const Share_<T, V>& S,const clear& aa)
 {
   a.mul(S.a,aa);
   mac.mul(S.mac,aa);
@@ -17,7 +17,8 @@ void Share<T>::mul_by_bit(const Share<T>& S,const T& aa)
 
 template<>
 inline
-void Share<gf2n>::mul_by_bit(const Share<gf2n>& S, const gf2n& aa)
+void Share_<SemiShare<gf2n>, SemiShare<gf2n>>::mul_by_bit(
+    const Share_<SemiShare<gf2n>, SemiShare<gf2n>>& S, const gf2n& aa)
 {
   a.mul_by_bit(S.a,aa);
   mac.mul_by_bit(S.mac,aa);
@@ -26,7 +27,7 @@ void Share<gf2n>::mul_by_bit(const Share<gf2n>& S, const gf2n& aa)
 
 
 
-template<class T>
+template<class T, class V>
 T combine(const vector< Share<T> >& S)
 {
   T ans=S[0].a;
@@ -38,16 +39,16 @@ T combine(const vector< Share<T> >& S)
 
 
 
-template<class T>
-inline void Share<T>::pack(octetStream& os, bool full) const
+template<class T, class V>
+inline void Share_<T, V>::pack(octetStream& os, bool full) const
 {
   a.pack(os);
   if (full)
     mac.pack(os);
 }
 
-template<class T>
-inline void Share<T>::unpack(octetStream& os, bool full)
+template<class T, class V>
+inline void Share_<T, V>::unpack(octetStream& os, bool full)
 {
   a.unpack(os);
   if (full)
@@ -55,7 +56,7 @@ inline void Share<T>::unpack(octetStream& os, bool full)
 }
 
 
-template<class T>
+template<class T, class V>
 bool check_macs(const vector< Share<T> >& S,const T& key)
 {
   T val=combine(S);

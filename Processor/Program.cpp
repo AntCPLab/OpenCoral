@@ -26,6 +26,8 @@ void Program::compute_constants()
                 p[i].get_mem(RegType(reg_type), SecrecyType(sec_type)));
         }
     }
+
+  max_mem[INT][SECRET] = 0;
 }
 
 void Program::parse(istream& s)
@@ -34,7 +36,7 @@ void Program::parse(istream& s)
   Instruction instr;
   s.peek();
   while (!s.eof())
-    { instr.parse(s);
+    { instr.parse(s, p.size());
       p.push_back(instr);
       //cerr << "\t" << instr << endl;
       s.peek();

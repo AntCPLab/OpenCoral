@@ -458,9 +458,10 @@ void BitMatrix::resize(int length)
     squares.resize(length / 128);
 }
 
-int BitMatrix::size()
+template <class U>
+size_t Matrix<U>::vertical_size()
 {
-    return squares.size() * 128;
+    return squares.size() * U::N_ROWS;
 }
 
 template <class U>
@@ -681,6 +682,8 @@ Y(72, 48)
 Y(74, 48)
 Y(72, 64)
 Y(74, 64)
+Y(1, 48)
+Y(1, 64)
 
 template class Matrix<square128>;
 
@@ -697,6 +700,7 @@ BMS
 
 #define XXXX(BM, GF) \
         template class Slice<BM>; \
+        template size_t BM::vertical_size(); \
         XX(BM, GF)
 
 XXXX(Matrix<gf2n_short_square>, gf2n_short)

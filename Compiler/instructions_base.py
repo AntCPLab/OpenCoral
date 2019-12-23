@@ -102,6 +102,7 @@ opcodes = dict(
     GBITGF2NTRIPLE = 0x155,
     INPUTMASK = 0x56,
     PREP = 0x57,
+    DABIT = 0x58,
     # Input
     INPUT = 0x60,
     INPUTFIX = 0xF0,
@@ -237,11 +238,11 @@ def vectorize(instruction, global_dict=None):
                 if issubclass(ArgFormats[f], RegisterArgFormat):
                     arg.set_size(size)
         def get_code(self):
-            return (self.size << 9) + self.code
+            return (self.size << 10) + self.code
         def get_pre_arg(self):
             return "%d, " % self.size
         def is_vec(self):
-            return self.size > 1
+            return True
         def get_size(self):
             return self.size
         def expand(self):
@@ -547,8 +548,8 @@ class Instruction(object):
             try:
                 ArgFormats[f].check(arg)
             except ArgumentError as e:
-                raise CompilerError('Invalid argument "%s" to instruction: %s'
-                    % (e.arg, self) + '\n' + e.msg)
+                raise CompilerError('Invalid argument %d "%s" to instruction: %s'
+                    % (n, e.arg, self) + '\n' + e.msg)
             except KeyError as e:
                 raise CompilerError('Unknown argument %s for instruction %s' % (f, self))
     

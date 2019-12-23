@@ -19,23 +19,40 @@ namespace GC
 {
 
 template<class T>
-class ShareThread : public Thread<T>
+class ShareThread
 {
     static thread_local ShareThread<T>* singleton;
 
 public:
     static ShareThread& s();
 
+    Player* P;
+    typename T::MC* MC;
+    typename T::Protocol* protocol;
+
     DataPositions usage;
     Preprocessing<T>& DataF;
 
-    ShareThread(int i, ThreadMaster<T>& master);
+    ShareThread(const Names& N, OnlineOptions& opts);
     virtual ~ShareThread();
 
-    void pre_run();
+    virtual typename T::MC* new_mc(typename T::mac_key_type mac_key)
+    { return T::new_mc(mac_key); }
+
+    void pre_run(Player& P, typename T::mac_key_type mac_key);
     void post_run();
 
     void and_(Processor<T>& processor, const vector<int>& args, bool repeat);
+};
+
+template<class T>
+class StandaloneShareThread : public ShareThread<T>, public Thread<T>
+{
+public:
+    StandaloneShareThread(int i, ThreadMaster<T>& master);
+
+    void pre_run();
+    void post_run() { ShareThread<T>::post_run(); }
 };
 
 template<class T>

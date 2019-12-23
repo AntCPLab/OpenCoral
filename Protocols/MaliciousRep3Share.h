@@ -12,6 +12,11 @@ template<class T> class HashMaliciousRepMC;
 template<class T> class Beaver;
 template<class T> class MaliciousRepPrep;
 
+namespace GC
+{
+class MaliciousRepSecret;
+}
+
 template<class T>
 class MaliciousRep3Share : public Rep3Share<T>
 {
@@ -27,6 +32,8 @@ public:
     typedef MaliciousRepPrep<MaliciousRep3Share> LivePrep;
     typedef MaliciousRep3Share prep_type;
     typedef T random_type;
+
+    typedef GC::MaliciousRepSecret bit_type;
 
     static string type_short()
     {

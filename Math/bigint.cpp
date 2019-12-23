@@ -146,17 +146,6 @@ bigint::bigint(const GC::Clear& x) : bigint(SignedZ2<64>(x))
 {
 }
 
-void to_signed_bigint(bigint& res, const bigint& x, int n)
-{
-  res = abs(x);
-  bigint& tmp = bigint::tmp = 1;
-  tmp <<= n;
-  tmp -= 1;
-  res &= tmp;
-  if (x < 0)
-    res.negate();
-}
-
 #ifdef REALLOC_POLICE
 void bigint::lottery()
 {

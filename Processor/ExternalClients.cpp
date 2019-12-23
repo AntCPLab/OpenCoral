@@ -1,4 +1,5 @@
 #include "Processor/ExternalClients.h"
+#include "Networking/ServerSocket.h"
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <thread>

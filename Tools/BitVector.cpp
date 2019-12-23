@@ -13,7 +13,8 @@ void BitVector::resize_zero(size_t new_nbits)
 {
     size_t old_nbytes = nbytes;
     resize(new_nbits);
-    avx_memzero(bytes + old_nbytes, nbytes - old_nbytes);
+    if (old_nbytes < nbytes)
+        avx_memzero(bytes + old_nbytes, nbytes - old_nbytes);
 }
 
 const void* BitVector::get_ptr_to_byte(size_t i, size_t block_size) const

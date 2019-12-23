@@ -14,6 +14,7 @@ using namespace std;
 
 class gf2n_short;
 class P2Data;
+class Bit;
 template<class T> class Square;
 typedef Square<gf2n_short> gf2n_short_square;
 
@@ -82,6 +83,7 @@ class gf2n_short
   static string type_string() { return "gf2n"; }
 
   static int size() { return sizeof(a); }
+  static int size_in_bits() { return sizeof(a) * 8; }
   static int t()    { return 0; }
 
   static int default_length() { return 40; }
@@ -165,6 +167,8 @@ class gf2n_short
   gf2n_short operator-(const gf2n_short& x) const { gf2n_short res; res.add(*this, x); return res; }
   gf2n_short& operator-=(const gf2n_short& x) { sub(x); return *this; }
   gf2n_short operator/(const gf2n_short& x) const { gf2n_short tmp; tmp.invert(x); return *this * tmp; }
+
+  gf2n_short operator*(const Bit& x) const;
 
   void square(); 
   void square(const gf2n_short& aa);

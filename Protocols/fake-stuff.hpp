@@ -1,3 +1,5 @@
+#ifndef PROTOCOLS_FAKE_STUFF_HPP_
+#define PROTOCOLS_FAKE_STUFF_HPP_
 
 #include "Protocols/fake-stuff.h"
 #include "Processor/Data_Files.h"
@@ -13,19 +15,22 @@ template<class T> class Share;
 template<class T> class SemiShare;
 template<class T> class ShamirShare;
 template<class T, int L> class FixedVec;
+template<class T, class V> class Share_;
 
 namespace GC
 {
 template<int S> class TinySecret;
+template<class T> class TinierSecret;
 }
 
-template<class T, class U, class V>
-void make_share(Share<T>* Sa,const U& a,int N,const V& key,PRNG& G)
+template<class T, class U, class V, class W>
+void make_share(Share_<T, W>* Sa,const U& a,int N,const V& key,PRNG& G)
 {
   insecure("share generation", false);
-  T mac,x,y;
-  mac.mul(a,key);
-  Share<T> S;
+  T x;
+  W mac, y;
+  mac = a * key;
+  Share_<T, W> S;
   S.set_share(a);
   S.set_mac(mac);
 
@@ -39,19 +44,31 @@ void make_share(Share<T>* Sa,const U& a,int N,const V& key,PRNG& G)
   Sa[N-1]=S;
 }
 
-template<int S, class U, class V>
-void make_share(GC::TinySecret<S>* Sa,const U& a,int N,const V& key,PRNG& G)
+template<class T, class U, class V>
+void make_vector_share(T* Sa,const U& a,int N,const V& key,PRNG& G)
 {
   int length = Sa[0].default_length;
   for (int i = 0; i < N; i++)
     Sa[i].resize_regs(length);
   for (int j = 0; j < length; j++)
     {
-      typename GC::TinySecret<S>::part_type shares[N];
-      make_share(shares, a.get_bit(j), N, key, G);
+      typename T::part_type shares[N];
+      make_share(shares, typename T::part_type::clear(a.get_bit(j)), N, key, G);
       for (int i = 0; i < N; i++)
         Sa[i].get_reg(j) = shares[i];
     }
+}
+
+template<int S, class U, class V>
+void make_share(GC::TinySecret<S>* Sa, const U& a, int N, const V& key, PRNG& G)
+{
+  make_vector_share(Sa, a, N, key, G);
+}
+
+template<class T, class U, class V>
+void make_share(GC::TinierSecret<T>* Sa, const U& a, int N, const V& key, PRNG& G)
+{
+  make_vector_share(Sa, a, N, key, G);
 }
 
 template<class T>
@@ -383,3 +400,5 @@ void make_inverse(const typename T::mac_key_type& key, int N, int ntrip, bool ze
     { outf[i].close(); }
   delete[] outf;
 }
+
+#endif

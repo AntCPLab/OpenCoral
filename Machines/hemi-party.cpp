@@ -8,6 +8,8 @@
 #include "Math/gf2n.h"
 #include "FHE/P2Data.h"
 #include "Tools/ezOptionParser.h"
+#include "GC/SemiSecret.h"
+#include "GC/SemiPrep.h"
 
 #include "Player-Online.hpp"
 #include "Protocols/HemiPrep.hpp"
@@ -21,6 +23,8 @@
 #include "Protocols/fake-stuff.hpp"
 #include "Protocols/SemiMC.hpp"
 #include "Protocols/Beaver.hpp"
+#include "GC/ShareSecret.hpp"
+#include "GC/SemiHonestRepPrep.h"
 
 int main(int argc, const char** argv)
 {

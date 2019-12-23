@@ -39,7 +39,8 @@ public:
 
     static void check_input(bigint in, int n_bits);
 
-    Machine<T>& machine;
+    Machine<T>* machine;
+    Memories<T>& memories;
 
     unsigned int PC;
     unsigned int time;
@@ -54,6 +55,7 @@ public:
     ExecutionStats stats;
 
     Processor(Machine<T>& machine);
+    Processor(Memories<T>& memories, Machine<T>* machine = 0);
     ~Processor();
 
     template<class U>

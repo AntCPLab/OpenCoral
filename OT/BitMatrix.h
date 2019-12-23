@@ -120,6 +120,8 @@ public:
 
     vector< U, aligned_allocator<U, 32> > squares;
 
+    size_t vertical_size();
+
     void resize_vertical(int length) { squares.resize(DIV_CEIL(length, U::N_ROWS)); }
 
     bool operator==(Matrix<U>& other);
@@ -145,7 +147,6 @@ public:
     __m128i& operator[](int i) { return squares[i / 128].rows[i % 128]; }
 
     void resize(int length);
-    int size();
 
     void transpose();
     void check_transpose(BitMatrix& dual);

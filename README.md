@@ -70,7 +70,7 @@ The following table lists all protocols that are fully supported.
 
 | Security model | Mod prime / GF(2^n) | Mod 2^k | Bin. SS | Garbling |
 | --- | --- | --- | --- | --- |
-| Malicious, dishonest majority | [MASCOT](#secret-sharing) | [SPDZ2k](#secret-sharing) | [Tiny](#secret-sharing) | [BMR](#bmr) |
+| Malicious, dishonest majority | [MASCOT](#secret-sharing) | [SPDZ2k](#secret-sharing) | [Tiny / Tinier](#secret-sharing) | [BMR](#bmr) |
 | Covert, dishonest majority | [CowGear](#secret-sharing) | N/A | N/A | N/A |
 | Semi-honest, dishonest majority | [Semi / Hemi](#secret-sharing) | [Semi2k](#secret-sharing) | [SemiBin](#secret-sharing) | [Yao's GC](#yaos-garbled-circuits) / [BMR](#bmr) |
 | Malicious, honest majority | [Shamir / Rep3 / PS](#honest-majority) | [Brain / Rep3 / PS](#honest-majority) | [Rep3](#honest-majority) | [BMR](#bmr) |
@@ -128,7 +128,7 @@ phase outputs the amount of offline material required, which allows to
 compute the preprocessing time for a particular computation.
 
 #### Requirements
- - GCC 5 or later (tested with 8.2) or LLVM/clang 5 or later (tested with 7). We recommend clang because it performs better.
+ - GCC 5 or later (tested with up to 9) or LLVM/clang 5 or later (tested with up to 9). We recommend clang because it performs better.
  - MPIR library, compiled with C++ support (use flag --enable-cxx when running configure)
  - libsodium library, tested against 1.0.16
  - OpenSSL, tested against and 1.0.2 and 1.1.0
@@ -186,8 +186,7 @@ fail if the minimum is not met.
 
 ```./compile.py -R <integer bit length> <program>```
 
-Currently, 64 is the only supported bit length, but it still has to be
-specified for future compatibility.
+Currently, most machines support bit lengths 64 and 72.
 
 #### Binary circuits
 
@@ -202,6 +201,28 @@ binary circuits. This can be changed with `sfix.set_precision`. See
 
 If you would like to use integers of various precisions, you can use
 `sbitint.get_type(n)` to get a type for `n`-bit arithmetic.
+
+#### Mixed circuits
+
+MP-SPDZ allows to mix computation between arithmetic and binary
+secret sharing in the same security model. In the compiler, this is
+used to switch from arithmetic to binary computation for certain
+non-linear functions. At the time of writing, these include
+comparison, bit decomposition, truncation, and modulo power of two.
+You activate all this by adding `-X` when compiling arithmetic
+circuits, that is
+```./compile.py [-F <integer bit length>] <program>```
+for computation modulo a prime and
+```./compile.py -R <integer bit length> <program>```
+for computation modulo 2^k.
+
+Internally, this uses daBits described by [Rotaru and
+Wood](https://eprint.iacr.org/2019/207), that is secret random bits
+shared in different domains. Some security models allow direct
+conversion of random bits from arithmetic to binary while others
+require inputs from several parties followed by computing XOR and
+checking for malicious security as described by Rotaru and Wood in
+Section 4.1.
 
 #### Compiling and running programs from external directories
 
@@ -242,6 +263,7 @@ The following table shows all programs for dishonest-majority computation using 
 | `hemi-party.x` | Semi-homomorphic encryption | Mod prime | Semi-honest | `hemi.sh` |
 | `semi-bin-party.x` | OT-based | Binary | Semi-honest | `semi-bin.sh` |
 | `tiny-party.x` | Adapted SPDZ2k | Binary | Malicious | `tiny.sh` |
+| `tinier-party.x` | [FKOS15](https://eprint.iacr.org/2015/901) | Binary | Malicious | `tinier.sh` |
 
 Semi and Semi2k denote the result of stripping MASCOT/SPDZ2k of all
 steps required for malicious security, namely amplifying, sacrificing,
@@ -409,7 +431,7 @@ or
 
 `Scripts/ring.sh tutorial`
 
-The `-I` enable interactive inputs, and in the tutorial party 0 and 1
+The `-I` argument enables interactive inputs, and in the tutorial party 0 and 1
 will be asked to provide three numbers. Otherwise, and when using the
 script, the inputs are read from `Player-Data/Input-P<playerno>-0`.
 

@@ -13,6 +13,8 @@
 
 #include "Processor/Online-Thread.h"
 
+#include "GC/Machine.h"
+
 #include "Tools/time-func.h"
 
 #include <vector>
@@ -36,6 +38,7 @@ class Machine : public BaseMachine
   Names& N;
   typename sint::mac_key_type alphapi;
   typename sgf2n::mac_key_type alpha2i;
+  typename sint::bit_type::mac_key_type alphabi;
 
   // Keep record of used offline data
   DataPositions pos;
@@ -55,6 +58,7 @@ class Machine : public BaseMachine
   Memory<sgf2n> M2;
   Memory<sint> Mp;
   Memory<Integer> Mi;
+  GC::Memories<typename sint::bit_type> bit_memories;
 
   vector<Timer> join_timer;
   Timer finish_timer;
@@ -90,6 +94,8 @@ class Machine : public BaseMachine
   Machine(Names& N = *(new Names())): N(N) {}
 
   void reqbl(int n);
+
+  typename sint::bit_type::mac_key_type get_bit_mac_key() { return alphabi; }
 };
 
 #endif /* MACHINE_H_ */

@@ -29,12 +29,19 @@ public:
     typedef SemiPrep LivePrep;
     typedef SemiInput<SemiSecret> Input;
 
+    typedef SemiSecret part_type;
+
     static const int default_length = sizeof(BitVec) * 8;
 
     static string type_string() { return "binary secret"; }
     static string phase_name() { return "Binary computation"; }
 
-    static MC* new_mc(Machine<SemiSecret>& _) { (void) _; return new MC; }
+    static MC* new_mc(mac_key_type) { return new MC; }
+
+    template<class T>
+    static void generate_mac_key(mac_key_type, T)
+    {
+    }
 
     static void trans(Processor<SemiSecret>& processor, int n_outputs,
             const vector<int>& args);
@@ -47,6 +54,11 @@ public:
     {
     }
     SemiSecret(const IntBase& other) :
+            SemiShare<BitVec>(other)
+    {
+    }
+    template<int K>
+    SemiSecret(const Z2<K>& other) :
             SemiShare<BitVec>(other)
     {
     }

@@ -50,7 +50,11 @@ public:
     TinyShare()
     {
     }
-    TinyShare(const typename super::super& other) :
+    TinyShare(const typename super::super::super& other) :
+            super(other)
+    {
+    }
+    TinyShare(const super& other) :
             super(other)
     {
     }
@@ -64,7 +68,7 @@ public:
     {
         auto& party = get_party();
         *this = super::constant(input, party.P->my_num(),
-                ShareParty < TinySecret < S >> ::s().mac_key);
+                party.MC->get_alphai());
     }
 
     void random()

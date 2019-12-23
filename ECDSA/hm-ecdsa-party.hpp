@@ -21,6 +21,9 @@
 #include "Processor/Input.hpp"
 #include "Processor/Processor.hpp"
 #include "Processor/Data_Files.hpp"
+#include "GC/ShareSecret.hpp"
+#include "GC/RepPrep.hpp"
+#include "GC/ThreadMaster.hpp"
 
 #include <assert.h>
 

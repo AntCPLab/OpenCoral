@@ -6,8 +6,8 @@
 
 //#define OTVOLE_TIMER
 
-template <class T, class U>
-void OTVoleBase<T, U>::evaluate(vector<T>& output, const vector<T>& newReceiverInput) {
+template <class T>
+void OTVoleBase<T>::evaluate(vector<T>& output, const vector<T>& newReceiverInput) {
     const int N1 = newReceiverInput.size() + 1;
     output.resize(newReceiverInput.size());
     vector<octetStream> os(2);
@@ -65,8 +65,8 @@ void OTVoleBase<T, U>::evaluate(vector<T>& output, const vector<T>& newReceiverI
         output[i] = res.rows[i];
 }
 
-template <class T, class U>
-void OTVoleBase<T, U>::evaluate(vector<T>& output, int nValues, const BitVector& newReceiverInput) {
+template <class T>
+void OTVoleBase<T>::evaluate(vector<T>& output, int nValues, const BitVector& newReceiverInput) {
     vector<T> values(nValues);
     if (ot_role & SENDER)
     {
@@ -78,22 +78,20 @@ void OTVoleBase<T, U>::evaluate(vector<T>& output, int nValues, const BitVector&
     evaluate(output, values);
 }
 
-template <class T, class U>
-void OTVoleBase<T, U>::set_coeffs(__m128i* coefficients, PRNG& G, int num_blocks) const {
-	avx_memzero(coefficients, num_blocks);
-	for (int i = 0; i < num_blocks; ++i)
-		coefficients[i] = G.get_doubleword();
+template <class T>
+void OTVoleBase<T>::set_coeffs(__m128i* coefficients, PRNG& G, int num_blocks) const {
+    G.get_octets((octet*) coefficients, num_blocks * sizeof(__m128i));
 }
 
-template <class T, class U>
-void OTVoleBase<T, U>::hash_row(octetStream& os, const Row<T>& row, const __m128i* coefficients) {
+template <class T>
+void OTVoleBase<T>::hash_row(octetStream& os, const Row<T>& row, const __m128i* coefficients) {
 	octet hash[VOLE_HASH_SIZE] = {0};
 	this->hash_row(hash, row, coefficients);
 	os.append(hash, VOLE_HASH_SIZE);
 }
 
-template <class T, class U>
-void OTVoleBase<T, U>::hash_row(octet* hash, const Row<T>& row, const __m128i* coefficients) {
+template <class T>
+void OTVoleBase<T>::hash_row(octet* hash, const Row<T>& row, const __m128i* coefficients) {
 	int num_blocks = DIV_CEIL(row.size() * T::size(), 16);
 
 	octetStream os;
@@ -118,8 +116,8 @@ void OTVoleBase<T, U>::hash_row(octet* hash, const Row<T>& row, const __m128i* c
 			(octet*) res, crypto_generichash_BYTES, NULL, 0);
 }
 
-template <class T, class U>
-void OTVoleBase<T, U>::consistency_check(vector<octetStream>& os) {
+template <class T>
+void OTVoleBase<T>::consistency_check(vector<octetStream>& os) {
 	PRNG coef_prng_sender;
 	PRNG coef_prng_receiver;
 
@@ -149,8 +147,10 @@ void OTVoleBase<T, U>::consistency_check(vector<octetStream>& os) {
         Row<T> t00(t0.size()), t01(t0.size()), t10(t0.size()), t11(t0.size());
         for (int alpha = 0; alpha < S; ++alpha)
         {
-            for (int beta = 0; beta < S; ++beta)
+            for (int i = 0; i < n_challenges(); i++)
             {
+                int beta = get_challenge(coef_prng_sender, i);
+
                 t00 = t0[alpha] - t0[beta];
                 t01 = t0[alpha] - t1[beta];
                 t10 = t1[alpha] - t0[beta];
@@ -190,8 +190,10 @@ void OTVoleBase<T, U>::consistency_check(vector<octetStream>& os) {
 
         for (int alpha = 0; alpha < S; ++alpha)
         {
-            for (int beta = 0; beta < S; ++beta)
+            for (int i = 0; i < n_challenges(); i++)
             {
+                int beta = get_challenge(coef_prng_receiver, i);
+
                 os[1].consume(hashes[0][0], VOLE_HASH_SIZE);
                 os[1].consume(hashes[0][1], VOLE_HASH_SIZE);
                 os[1].consume(hashes[1][0], VOLE_HASH_SIZE);
@@ -219,123 +221,6 @@ void OTVoleBase<T, U>::consistency_check(vector<octetStream>& os) {
                     throw consistency_check_fail();
                 }
                 if (alpha != beta && u[alpha] == u[beta]) {
-                    throw consistency_check_fail();
-                }
-            }
-        }
-#ifdef OTVOLE_TIMER
-        gettimeofday(&totalendv, NULL);
-        double elapsed = timeval_diff(&totalstartv, &totalendv);
-        cout << "\t\tCheck receiver: " << elapsed/1000000 << endl << flush;
-#endif
-    }
-}
-
-template <class T, class U>
-void OTVole<T, U>::consistency_check(vector<octetStream>& os) {
-	PRNG sender_prg;
-	PRNG receiver_prg;
-
-    if (this->ot_role & RECEIVER) {
-    	receiver_prg.ReSeed();
-    	os[0].append(receiver_prg.get_seed(), SEED_SIZE);
-    }
-    send_if_ot_receiver(this->player, os, this->ot_role);
-    if (this->ot_role & SENDER) {
-        octet seed[SEED_SIZE];
-        os[1].consume(seed, SEED_SIZE);
-        sender_prg.SetSeed(seed);
-    }
-    os[0].reset_write_head();
-    os[1].reset_write_head();
-
-    if (this->ot_role & SENDER) {
-#ifdef OTVOLE_TIMER
-        timeval totalstartv, totalendv;
-        gettimeofday(&totalstartv, NULL);
-#endif
-        int total_bytes = this->t0[0].size() * T::size();
-        int num_blocks = (total_bytes) / 16 + ((total_bytes % 16) != 0);
-        __m128i coefficients[num_blocks];
-        this->set_coeffs(coefficients, sender_prg, num_blocks);
-
-        Row<T> t00(this->t0.size()), t01(this->t0.size()), t10(this->t0.size()), t11(this->t0.size());
-        for (int alpha = 0; alpha < U::N_BITS; ++alpha)
-        {
-            for (int i = 0; i < NUM_VOLE_CHALLENGES; ++i)
-            {
-            	int beta = sender_prg.get_uint(U::N_BITS);
-
-                t00 = this->t0[alpha] - this->t0[beta];
-                t01 = this->t0[alpha] - this->t1[beta];
-                t10 = this->t1[alpha] - this->t0[beta];
-                t11 = this->t1[alpha] - this->t1[beta];
-
-                this->hash_row(os[0], t00, coefficients);
-                this->hash_row(os[0], t01, coefficients);
-                this->hash_row(os[0], t10, coefficients);
-                this->hash_row(os[0], t11, coefficients);
-            }
-        }
-#ifdef OTVOLE_TIMER
-        gettimeofday(&totalendv, NULL);
-        double elapsed = timeval_diff(&totalstartv, &totalendv);
-        cout << "\t\tCheck time sender: " << elapsed/1000000 << endl << flush;
-#endif
-    }
-
-    send_if_ot_sender(this->player, os, this->ot_role);
-    if (this->ot_role & RECEIVER) {
-#ifdef OTVOLE_TIMER
-        timeval totalstartv, totalendv;
-        gettimeofday(&totalstartv, NULL);
-#endif
-        int total_bytes = this->t[0].size() * T::size();
-        int num_blocks = (total_bytes) / 16 + ((total_bytes % 16) != 0);
-        __m128i coefficients[num_blocks];
-        this->set_coeffs(coefficients, receiver_prg, num_blocks);
-
-        octet h00[VOLE_HASH_SIZE] = {0};
-        octet h01[VOLE_HASH_SIZE] = {0};
-        octet h10[VOLE_HASH_SIZE] = {0};
-        octet h11[VOLE_HASH_SIZE] = {0};
-        vector<vector<octet*>> hashes(2);
-        hashes[0] = {h00, h01};
-        hashes[1] = {h10, h11};
-
-        for (int alpha = 0; alpha < U::N_BITS; ++alpha)
-        {
-            for (int i = 0; i < NUM_VOLE_CHALLENGES; ++i)
-            {
-            	int beta = receiver_prg.get_uint(U::N_BITS);
-
-                os[1].consume(hashes[0][0], VOLE_HASH_SIZE);
-                os[1].consume(hashes[0][1], VOLE_HASH_SIZE);
-                os[1].consume(hashes[1][0], VOLE_HASH_SIZE);
-                os[1].consume(hashes[1][1], VOLE_HASH_SIZE);
-
-                int choice_alpha = this->baseReceiverInput.get_bit(alpha);
-                int choice_beta = this->baseReceiverInput.get_bit(beta);
-
-                tmp = this->t[alpha] - this->t[beta];
-                octet* choice_hash = hashes[choice_alpha][choice_beta];
-                octet diff_t[VOLE_HASH_SIZE] = {0};
-                this->hash_row(diff_t, tmp, coefficients);
-
-                octet* not_choice_hash = hashes[1 - choice_alpha][1 - choice_beta];
-                octet other_diff[VOLE_HASH_SIZE] = {0};
-                tmp = this->u[alpha] - this->u[beta];
-                tmp -= this->t[alpha];
-                tmp += this->t[beta];
-                this->hash_row(other_diff, tmp, coefficients);
-
-                if (!OCTETS_EQUAL(choice_hash, diff_t, VOLE_HASH_SIZE)) {
-                    throw consistency_check_fail();
-                }
-                if (!OCTETS_EQUAL(not_choice_hash, other_diff, VOLE_HASH_SIZE)) {
-                    throw consistency_check_fail();
-                }
-                if (alpha != beta && this->u[alpha] == this->u[beta]) {
                     throw consistency_check_fail();
                 }
             }

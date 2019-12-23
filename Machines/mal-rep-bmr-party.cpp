@@ -3,6 +3,8 @@
  *
  */
 
+#include "Protocols/MaliciousRep3Share.h"
+
 #include "Machines/Rep.hpp"
 
 #include "BMR/RealProgramParty.hpp"

@@ -3,11 +3,16 @@
  *
  */
 
+#ifndef PROTOCOlS_MALREPRINGPREP_HPP_
+#define PROTOCOlS_MALREPRINGPREP_HPP_
+
 #include "MalRepRingPrep.h"
 #include "MaliciousRepPrep.h"
 #include "MalRepRingOptions.h"
 #include "ShuffleSacrifice.h"
 #include "Processor/OnlineOptions.h"
+
+#include "ShuffleSacrifice.hpp"
 
 template<class T>
 MalRepRingPrep<T>::MalRepRingPrep(SubProcessor<T>* proc,
@@ -81,13 +86,11 @@ void shuffle_triple_generation(vector<array<T, 3>>& triples, Player& P,
 }
 
 template<class T>
-void ShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
-        vector<array<T, 3>>& check_triples, Player& P,
-        typename T::MAC_Check& MC)
+template<class U>
+void ShuffleSacrifice<T>::shuffle(vector<U>& check_triples, Player& P)
 {
     int buffer_size = check_triples.size();
     assert(buffer_size >= minimum_n_inputs());
-    int N = (buffer_size - C) / B;
 
     // shuffle
     GlobalPRNG G(P);
@@ -97,6 +100,17 @@ void ShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
         int pos = G.get_uint(remaining);
         swap(check_triples[i], check_triples[i + pos]);
     }
+}
+
+template<class T>
+void ShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
+        vector<array<T, 3>>& check_triples, Player& P,
+        typename T::MAC_Check& MC)
+{
+    int buffer_size = check_triples.size();
+    int N = (buffer_size - C) / B;
+
+    shuffle(check_triples, P);
 
     // opening C triples
     vector<T> shares;
@@ -119,7 +133,7 @@ void ShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
     {
         T& a = check_triples[i][0];
         T& b = check_triples[i][1];
-        for (int j = 1; j < C; j++)
+        for (int j = 1; j < B; j++)
         {
             T& f = check_triples[i + N * j][0];
             T& g = check_triples[i + N * j][1];
@@ -135,7 +149,7 @@ void ShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
     {
         T& b = check_triples[i][1];
         T& c = check_triples[i][2];
-        for (int j = 1; j < C; j++)
+        for (int j = 1; j < B; j++)
         {
             T& f = check_triples[i + N * j][0];
             T& h = check_triples[i + N * j][2];
@@ -158,7 +172,7 @@ void MalRepRingPrepWithBits<T>::buffer_bits()
     typename BitShare::MAC_Check MC;
     DataPositions usage;
     MalRepRingPrep<BitShare> prep(0, usage);
-    SubProcessor<BitShare> bit_proc(proc->Proc, MC, prep, proc->P);
+    SubProcessor<BitShare> bit_proc(MC, prep, proc->P);
     prep.set_proc(&bit_proc);
     bits_from_square_in_ring(this->bits, OnlineOptions::singleton.batch_size, &prep);
 }
@@ -168,3 +182,5 @@ void MalRepRingPrep<T>::buffer_inputs(int player)
 {
     this->buffer_inputs_as_usual(player, this->proc);
 }
+
+#endif

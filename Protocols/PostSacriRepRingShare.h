@@ -7,6 +7,7 @@
 #define PROTOCOLS_POSTSACRIREPRINGSHARE_H_
 
 #include "Protocols/MaliciousRep3Share.h"
+#include "Protocols/MalRepRingShare.h"
 
 template<class T> class MalRepRingPrepWithBits;
 template<class T> class PostSacrifice;

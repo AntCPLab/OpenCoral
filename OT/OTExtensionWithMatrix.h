@@ -44,6 +44,7 @@ public:
             vector<U>& baseSenderOutputs,
             U& baseReceiverOutput);
     void correlate(int start, int slice, BitVector& newReceiverInput, bool useConstantBase, int repeat = 1);
+    void expand_correlate_unchecked(const BitVector& delta, int n_bits = -1);
     template <class T>
     void reduce_squares(unsigned int nTriples, vector<T>& output,
             int start = 0);
@@ -79,7 +80,7 @@ public:
     void extend(int nOTs, BitVector& newReceiverInput);
     void extend_correlated(const BitVector& newReceiverInput);
     void extend_correlated(int nOTs, const BitVector& newReceiverInput);
-    void transpose(int start, int slice);
+    void transpose(int start = 0, int slice = -1);
     void expand_transposed();
     template <class V>
     void hash_outputs(int nOTs, vector<V>& senderOutput, V& receiverOutput,

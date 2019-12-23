@@ -48,6 +48,7 @@ class MascotFieldPrep : public MascotPrep<T>
 {
     void buffer_inverses();
     void buffer_bits();
+    void buffer_dabits();
 
 public:
     MascotFieldPrep<T>(SubProcessor<T>* proc, DataPositions& usage) :

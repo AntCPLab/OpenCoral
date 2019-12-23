@@ -9,6 +9,7 @@
 #include "Protocols/Shamir.h"
 #include "Protocols/ShamirInput.h"
 #include "Machines/ShamirMachine.h"
+#include "GC/NoShare.h"
 
 template<class T> class ReplicatedPrep;
 
@@ -27,6 +28,8 @@ public:
     typedef ::PrivateOutput<ShamirShare> PrivateOutput;
     typedef ReplicatedPrep<ShamirShare> LivePrep;
     typedef ShamirShare Honest;
+
+    typedef GC::NoShare bit_type;
 
     const static bool needs_ot = false;
     const static bool dishonest_majority = false;

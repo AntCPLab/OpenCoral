@@ -209,8 +209,7 @@ void to_signed_bigint(bigint& ans, const gfp& x)
 {
     to_bigint(ans, x);
     // get sign and abs(x)
-    bigint& p_half = bigint::tmp = (gfp::pr()-1)/2;
-    if (mpz_cmp(ans.get_mpz_t(), p_half.get_mpz_t()) > 0)
+    if (mpz_cmp(ans.get_mpz_t(), gfp::get_ZpD().pr_half.get_mpz_t()) > 0)
         ans -= gfp::pr();
 }
 

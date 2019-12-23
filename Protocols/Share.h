@@ -10,6 +10,7 @@ using namespace std;
 
 #include "Math/gf2n.h"
 #include "Protocols/SPDZ.h"
+#include "Protocols/SemiShare.h"
 
 // Forward declaration as apparently this is needed for friends in templates
 template<class T> class Share;
@@ -25,42 +26,33 @@ template<class T> class MascotPrep;
 
 union square128;
 
-template<class T>
-class Share
+namespace GC
+{
+template<class T> class TinierSecret;
+}
+
+// abstracting SPDZ and SPDZ-wise
+template<class T, class V>
+class Share_
 {
    T a;        // The share
-   T mac;      // Shares of the mac
+   V mac;      // Shares of the mac
 
    public:
 
-   typedef T mac_key_type;
-   typedef T mac_type;
-   typedef T open_type;
-   typedef T clear;
+   typedef V mac_key_type;
+   typedef V mac_type;
+   typedef T share_type;
+   typedef typename T::open_type open_type;
+   typedef typename T::clear clear;
 
-   typedef Share<typename T::next> prep_type;
-   typedef MascotMultiplier<Share> Multiplier;
-   typedef MascotTripleGenerator<prep_type> TripleGenerator;
-   typedef T sacri_type;
-   typedef typename T::Square Rectangle;
-   typedef Rectangle Square;
+   typedef GC::TinierSecret<gf2n_short> bit_type;
 
-   typedef MAC_Check_<Share> MAC_Check;
-   typedef Direct_MAC_Check<Share> Direct_MC;
-   typedef ::Input<Share> Input;
-   typedef ::PrivateOutput<Share> PrivateOutput;
-   typedef SPDZ<Share> Protocol;
-   typedef MascotFieldPrep<Share> LivePrep;
-   typedef MascotPrep<Share> RandomPrep;
-
-   const static bool needs_ot = true;
-   const static bool dishonest_majority = true;
+   const static bool needs_ot = T::needs_ot;
+   const static bool dishonest_majority = T::dishonest_majority;
 
    static int size()
-     { return 2 * T::size(); }
-
-   static string type_string()
-     { return "SPDZ " + T::type_string(); }
+     { return T::size() + V::size(); }
 
    static string type_short()
      { return string(1, T::type_char()); }
@@ -72,13 +64,13 @@ class Share
      { return T::field_type(); }
 
    static int threshold(int nplayers)
-     { return nplayers - 1; }
+     { return T::threshold(nplayers); }
 
-   static Share constant(const clear& aa, int my_num, const typename T::Scalar& alphai)
-     { return Share(aa, my_num, alphai); }
+   static Share_ constant(const clear& aa, int my_num, const typename V::Scalar& alphai)
+     { return Share_(aa, my_num, alphai); }
 
-   template<class U>
-   void assign(const Share<U>& S)
+   template<class U, class W>
+   void assign(const Share_<U, W>& S)
      { a=S.get_share(); mac=S.get_mac(); }
    void assign(const char* buffer)
      { a.assign(buffer); mac.assign(buffer + T::size()); }
@@ -86,55 +78,54 @@ class Share
      { a.assign_zero(); 
        mac.assign_zero(); 
      }
-   void assign(const clear& aa, int my_num, const typename T::Scalar& alphai);
+   void assign(const clear& aa, int my_num, const typename V::Scalar& alphai);
 
-   Share()                  { assign_zero(); }
-   template<class U>
-   Share(const Share<U>& S) { assign(S); }
-   Share(const clear& aa, int my_num, const typename T::Scalar& alphai)
+   Share_()                   { assign_zero(); }
+   template<class U, class W>
+   Share_(const Share_<U, W>& S) { assign(S); }
+   Share_(const clear& aa, int my_num, const typename V::Scalar& alphai)
      { assign(aa, my_num, alphai); }
-   Share(const T& share, const T& mac) : a(share), mac(mac) {}
-   ~Share()                 { ; }
+   Share_(const T& share, const V& mac) : a(share), mac(mac) {}
 
    const T& get_share() const          { return a; }
-   const T& get_mac() const            { return mac; }
+   const V& get_mac() const            { return mac; }
    void set_share(const T& aa)  { a=aa; }
-   void set_mac(const T& aa)    { mac=aa; }
+   void set_mac(const V& aa)    { mac=aa; }
 
    /* Arithmetic Routines */
-   void mul(const Share<T>& S,const T& aa);
-   void mul_by_bit(const Share<T>& S,const T& aa);
-   void add(const Share<T>& S,const clear& aa,int my_num,const T& alphai);
+   void mul(const Share_<T, V>& S,const clear& aa);
+   void mul_by_bit(const Share_<T, V>& S,const clear& aa);
+   void add(const Share_<T, V>& S,const clear& aa,int my_num,const T& alphai);
    void negate() { a.negate(); mac.negate(); }
-   void sub(const Share<T>& S,const clear& aa,int my_num,const T& alphai);
-   void sub(const clear& aa,const Share<T>& S,int my_num,const T& alphai);
-   void add(const Share<T>& S1,const Share<T>& S2);
-   void sub(const Share<T>& S1,const Share<T>& S2);
-   void add(const Share<T>& S1) { add(*this,S1); }
+   void sub(const Share_<T, V>& S,const clear& aa,int my_num,const T& alphai);
+   void sub(const clear& aa,const Share_<T, V>& S,int my_num,const T& alphai);
+   void add(const Share_<T, V>& S1,const Share_<T, V>& S2);
+   void sub(const Share_<T, V>& S1,const Share_<T, V>& S2);
+   void add(const Share_<T, V>& S1) { add(*this,S1); }
 
    // obsolete interface
-   void add(const Share<T>& S,const clear& aa,bool playerone,const T& alphai);
-   void sub(const Share<T>& S,const clear& aa,bool playerone,const T& alphai);
-   void sub(const clear& aa,const Share<T>& S,bool playerone,const T& alphai);
+   void add(const Share_<T, V>& S,const clear& aa,bool playerone,const T& alphai);
+   void sub(const Share_<T, V>& S,const clear& aa,bool playerone,const T& alphai);
+   void sub(const clear& aa,const Share_<T, V>& S,bool playerone,const T& alphai);
 
-   Share<T> operator+(const Share<T>& x) const
-   { Share<T> res; res.add(*this, x); return res; }
-   Share<T> operator-(const Share<T>& x) const
-   { Share<T> res; res.sub(*this, x); return res; }
+   Share_<T, V> operator+(const Share_<T, V>& x) const
+   { Share_<T, V> res; res.add(*this, x); return res; }
+   Share_<T, V> operator-(const Share_<T, V>& x) const
+   { Share_<T, V> res; res.sub(*this, x); return res; }
    template <class U>
-   Share<T> operator*(const U& x) const
-   { Share<T> res; res.mul(*this, x); return res; }
-   Share<T> operator/(const T& x) const
-   { Share<T> res; res.set_share(a / x); res.set_mac(mac / x); return res; }
+   Share_<T, V> operator*(const U& x) const
+   { Share_<T, V> res; res.mul(*this, x); return res; }
+   Share_<T, V> operator/(const T& x) const
+   { Share_<T, V> res; res.set_share(a / x); res.set_mac(mac / x); return res; }
 
-   Share<T>& operator+=(const Share<T>& x) { add(x); return *this; }
+   Share_<T, V>& operator+=(const Share_<T, V>& x) { add(x); return *this; }
    template <class U>
-   Share<T>& operator*=(const U& x) { mul(*this, x); return *this; }
+   Share_<T, V>& operator*=(const U& x) { mul(*this, x); return *this; }
 
-   Share<T> operator<<(int i) { return this->operator*(T(1) << i); }
-   Share<T>& operator<<=(int i) { return *this = *this << i; }
+   Share_<T, V> operator<<(int i) { return this->operator*(T(1) << i); }
+   Share_<T, V>& operator<<=(int i) { return *this = *this << i; }
 
-   Share<T> operator>>(int i) { return {a >> i, mac >> i}; }
+   Share_<T, V> operator>>(int i) { return {a >> i, mac >> i}; }
 
    void force_to_bit() { a.force_to_bit(); }
 
@@ -149,7 +140,7 @@ class Share
        mac.input(s,human);
      }
 
-   friend ostream& operator<<(ostream& s, const Share<T>& x) { x.output(s, true); return s; }
+   friend ostream& operator<<(ostream& s, const Share_<T, V>& x) { x.output(s, true); return s; }
 
    void pack(octetStream& os, bool full = true) const;
    void unpack(octetStream& os, bool full = true);
@@ -167,61 +158,94 @@ class Share
    friend bool check_macs<T>(const vector< Share<T> >& S,const T& key);
 };
 
-template <class T, class U, class V>
-using Share_ = Share<T>;
+// SPDZ(2k) only
+template<class T>
+class Share : public Share_<SemiShare<T>, SemiShare<T>>
+{
+public:
+    typedef Share_<SemiShare<T>, SemiShare<T>> super;
+
+    typedef T mac_key_type;
+
+    typedef Share<typename T::next> prep_type;
+    typedef Share input_check_type;
+    typedef Share input_type;
+    typedef MascotMultiplier<Share> Multiplier;
+    typedef MascotTripleGenerator<prep_type> TripleGenerator;
+    typedef T sacri_type;
+    typedef typename T::Square Rectangle;
+    typedef Rectangle Square;
+
+    typedef MAC_Check_<Share> MAC_Check;
+    typedef Direct_MAC_Check<Share> Direct_MC;
+    typedef ::Input<Share> Input;
+    typedef ::PrivateOutput<Share> PrivateOutput;
+    typedef SPDZ<Share> Protocol;
+    typedef MascotFieldPrep<Share> LivePrep;
+    typedef MascotPrep<Share> RandomPrep;
+
+    static string type_string()
+      { return "SPDZ " + T::type_string(); }
+
+    Share() {}
+    template<class U>
+    Share(const U& other) : super(other) {}
+    Share(const SemiShare<T>& share, const SemiShare<T>& mac) :
+            super(share, mac) {}
+};
 
 // specialized mul by bit for gf2n
 template <>
-void Share<gf2n>::mul_by_bit(const Share<gf2n>& S,const gf2n& aa);
+void Share_<SemiShare<gf2n>, SemiShare<gf2n>>::mul_by_bit(const Share_<SemiShare<gf2n>, SemiShare<gf2n>>& S,const gf2n& aa);
 
-template <class T>
-Share<T> operator*(const T& y, const Share<T>& x) { Share<T> res; res.mul(x, y); return res; }
+template <class T, class V>
+Share_<T, V> operator*(const typename T::clear& y, const Share_<T, V>& x) { Share_<T, V> res; res.mul(x, y); return res; }
 
-template<class T>
-inline void Share<T>::add(const Share<T>& S1,const Share<T>& S2)
+template<class T, class V>
+inline void Share_<T, V>::add(const Share_<T, V>& S1,const Share_<T, V>& S2)
 {
   a.add(S1.a,S2.a);
   mac.add(S1.mac,S2.mac);
 }
 
-template<class T>
-void Share<T>::sub(const Share<T>& S1,const Share<T>& S2)
+template<class T, class V>
+void Share_<T, V>::sub(const Share_<T, V>& S1,const Share_<T, V>& S2)
 {
   a.sub(S1.a,S2.a);
   mac.sub(S1.mac,S2.mac);
 }
 
-template<class T>
-inline void Share<T>::mul(const Share<T>& S,const T& aa)
+template<class T, class V>
+inline void Share_<T, V>::mul(const Share_<T, V>& S,const clear& aa)
 {
   a.mul(S.a,aa);
-  mac.mul(S.mac,aa);
+  mac = aa * S.mac;
 }
 
-template<class T>
-inline void Share<T>::add(const Share<T>& S,const clear& aa,int my_num,const T& alphai)
+template<class T, class V>
+inline void Share_<T, V>::add(const Share_<T, V>& S,const clear& aa,int my_num,const T& alphai)
 {
-  *this = S + Share<T>(aa, my_num, alphai);
+  *this = S + Share_<T, V>(aa, my_num, alphai);
 }
 
-template<class T>
-inline void Share<T>::sub(const Share<T>& S,const clear& aa,int my_num,const T& alphai)
+template<class T, class V>
+inline void Share_<T, V>::sub(const Share_<T, V>& S,const clear& aa,int my_num,const T& alphai)
 {
-  *this = S - Share<T>(aa, my_num, alphai);
+  *this = S - Share_<T, V>(aa, my_num, alphai);
 }
 
-template<class T>
-inline void Share<T>::sub(const clear& aa,const Share<T>& S,int my_num,const T& alphai)
+template<class T, class V>
+inline void Share_<T, V>::sub(const clear& aa,const Share_<T, V>& S,int my_num,const T& alphai)
 {
-  *this = Share<T>(aa, my_num, alphai) - S;
+  *this = Share_<T, V>(aa, my_num, alphai) - S;
 }
 
-template<class T>
-inline void Share<T>::assign(const clear& aa, int my_num,
-    const typename T::Scalar& alphai)
+template<class T, class V>
+inline void Share_<T, V>::assign(const clear& aa, int my_num,
+    const typename V::Scalar& alphai)
 {
-  Protocol::assign(a, aa, my_num);
-  mac.mul(aa, alphai);
+  a = T::constant(aa, my_num);
+  mac = aa * alphai;
 #ifdef DEBUG_MAC
   cout << "load " << hex << mac << " = " << aa << " * " << alphai << endl;
 #endif

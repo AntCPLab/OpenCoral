@@ -175,6 +175,10 @@ class _number(object):
         return (self < other).if_else(other, self)
 
 class _int(object):
+    @staticmethod
+    def bit_adder(*args, **kwargs):
+        return intbitint.bit_adder(*args, **kwargs)
+
     def if_else(self, a, b):
         if hasattr(a, 'for_mux'):
             f, a, b = a.for_mux(b)
@@ -189,7 +193,24 @@ class _int(object):
     def bit_xor(self, other):
         return self + other - 2 * self * other
 
-class _gf2n(object):
+    def bit_and(self, other):
+        return self * other
+
+    def half_adder(self, other):
+        carry = self * other
+        return self + other - 2 * carry, carry
+
+class _bit(object):
+    def bit_xor(self, other):
+        return self ^ other
+
+    def bit_and(self, other):
+        return self & other
+
+    def half_adder(self, other):
+        return self ^ other, self & other
+
+class _gf2n(_bit):
     def if_else(self, a, b):
         return b ^ self * self.hard_conv(a ^ b)
 
@@ -309,6 +330,12 @@ class _register(Tape.Register, _number, _structure):
                 self.mov(self[i], type(self)(x, size=1))
         elif val is not None:
             self.load_other(val)
+
+    def _new_by_number(self, i, size=1):
+        res = type(self)(size=size)
+        res.i = i
+        res.program = self.program
+        return res
 
     def sizeof(self):
         return self.size
@@ -509,6 +536,7 @@ class cint(_clear, _int):
                 elif chunk:
                     sum += sign * chunk
 
+    @vectorize
     def to_regint(self, n_bits=None, dest=None):
         dest = regint() if dest is None else dest
         convmodp(dest, self, bitlength=n_bits)
@@ -599,6 +627,7 @@ class cint(_clear, _int):
     def greater_than(self, other, bit_length=None):
         return self > other
 
+    @vectorize
     def bit_decompose(self, bit_length=None):
         if bit_length == 0:
             return []
@@ -1065,18 +1094,19 @@ class _secret(_register):
     @read_mem_value
     @vectorize
     def load_other(self, val):
+        from Compiler.GC.types import sbits
         if isinstance(val, self.clear_type):
             self.load_clear(val)
         elif isinstance(val, type(self)):
             movs(self, val)
+        elif isinstance(val, sbits):
+            assert(val.n == self.size)
+            r = self.get_dabit()
+            v = regint()
+            bitdecint_class(regint((r[1] ^ val).reveal()), *v)
+            movs(self, r[0].bit_xor(v))
         else:
             self.load_clear(self.clear_type(val))
-
-    def _new_by_number(self, i):
-        res = type(self)(size=1)
-        res.i = i
-        res.program = self.program
-        return res
 
     @set_instruction_type
     @read_mem_value
@@ -1178,6 +1208,18 @@ class sint(_secret, _int):
         res = cls()
         inputmixed('int', res, player)
         return res
+
+    @vectorized_classmethod
+    def get_dabit(cls):
+        """ Bit in arithmetic and binary circuit according to security model """
+        from Compiler.GC.types import sbits
+        res = cls(), sbits.get_type(get_global_vector_size())()
+        dabit(*res)
+        return res
+
+    @staticmethod
+    def long_one():
+        return 1
 
     @classmethod
     def get_raw_input_from(cls, player):
@@ -1354,6 +1396,7 @@ class sint(_secret, _int):
     def __rrshift__(self, other):
         return floatingpoint.Trunc(other, program.bit_length, self, program.security)
 
+    @vectorize
     def bit_decompose(self, bit_length=None, security=None):
         if bit_length == 0:
             return []
@@ -1519,6 +1562,10 @@ class _bitint(object):
     log_rounds = False
     linear_rounds = False
 
+    @staticmethod
+    def half_adder(a, b):
+        return a.half_adder(b)
+
     @classmethod
     def bit_adder(cls, a, b, carry_in=0, get_carry=False):
         a, b = list(a), list(b)
@@ -1617,10 +1664,6 @@ class _bitint(object):
     def full_adder(a, b, carry):
         s = a + b
         return s + carry, util.if_else(s, carry, a)
-
-    @staticmethod
-    def half_adder(a, b):
-        return a + b, a & b
 
     @staticmethod
     def bit_comparator(a, b):
@@ -1813,11 +1856,6 @@ class intbitint(_bitint, sint):
     def full_adder(a, b, carry):
         s = a.bit_xor(b)
         return s.bit_xor(carry), util.if_else(s, carry, a)
-
-    @staticmethod
-    def half_adder(a, b):
-        carry = a * b
-        return a + b - 2 * carry, carry
 
     @staticmethod
     def sum_from_carries(a, b, carries):
@@ -3284,6 +3322,7 @@ class Array(object):
         if conv:
             value = self.value_type.conv(value)
         mem_value = MemValue(value)
+        self.address = MemValue(self.address)
         n_threads = 8 if use_threads and len(self) > 2**20 else 1
         @library.for_range_multithread(n_threads, 1024, len(self))
         def f(i):

@@ -1,5 +1,5 @@
-from Compiler.types import MemValue, read_mem_value, regint, Array
-from Compiler.types import _bitint, _number, _fix, _structure
+from Compiler.types import MemValue, read_mem_value, regint, Array, cint
+from Compiler.types import _bitint, _number, _fix, _structure, _bit
 from Compiler.program import Tape, Program
 from Compiler.exceptions import *
 from Compiler import util, oram, floatingpoint, library
@@ -7,7 +7,7 @@ import Compiler.GC.instructions as inst
 import operator
 from functools import reduce
 
-class bits(Tape.Register, _structure):
+class bits(Tape.Register, _structure, _bit):
     n = 40
     size = 1
     PreOp = staticmethod(floatingpoint.PreOpN)
@@ -97,10 +97,15 @@ class bits(Tape.Register, _structure):
             raise Exception('too long: %d' % n)
         self.n = n
     def load_other(self, other):
+        if isinstance(other, cint):
+            size = other.size
+            other = sum(x << i for i, x in enumerate(other))
+            other = other.to_regint(size)
         if isinstance(other, int):
             self.set_length(self.n or util.int_len(other))
             self.load_int(other)
         elif isinstance(other, regint):
+            assert(other.size == 1)
             self.conv_regint(self.n, self, other)
         elif isinstance(self, type(other)) or isinstance(other, type(self)):
             self.mov(self, other)
@@ -122,8 +127,8 @@ class cbits(bits):
     max_length = 64
     reg_type = 'cb'
     is_clear = True
-    load_inst = (None, inst.ldmc)
-    store_inst = (None, inst.stmc)
+    load_inst = (None, inst.ldmcb)
+    store_inst = (None, inst.stmcb)
     bitdec = inst.bitdecc
     conv_regint = staticmethod(lambda n, x, y: inst.convcint(x, y))
     types = {}
@@ -146,9 +151,9 @@ class cbits(bits):
             else:
                 return op(self, cbits(other))
     __add__ = lambda self, other: \
-              self.clear_op(other, inst.addc, inst.addci, operator.add)
+              self.clear_op(other, inst.addcb, inst.addcbi, operator.add)
     __xor__ = lambda self, other: \
-              self.clear_op(other, inst.xorc, inst.xorci, operator.xor)
+              self.clear_op(other, inst.xorcb, inst.xorcbi, operator.xor)
     __radd__ = __add__
     __rxor__ = __xor__
     def __mul__(self, other):
@@ -157,25 +162,25 @@ class cbits(bits):
         else:
             try:
                 res = cbits(n=min(self.max_length, self.n+util.int_len(other)))
-                inst.mulci(res, self, other)
+                inst.mulcbi(res, self, other)
                 return res
             except TypeError:
                 return NotImplemented
     def __rshift__(self, other):
         res = cbits(n=self.n-other)
-        inst.shrci(res, self, other)
+        inst.shrcbi(res, self, other)
         return res
     def __lshift__(self, other):
         res = cbits(n=self.n+other)
-        inst.shlci(res, self, other)
+        inst.shlcbi(res, self, other)
         return res
     def print_reg(self, desc=''):
-        inst.print_reg(self, desc)
+        inst.print_regb(self, desc)
     def print_reg_plain(self):
         inst.print_reg_signed(self.n, self)
     output = print_reg_plain
     def print_if(self, string):
-        inst.cond_print_str(self, string)
+        inst.cond_print_strb(self, string)
     def reveal(self):
         return self
     def to_regint(self, dest):
@@ -189,12 +194,12 @@ class sbits(bits):
     is_clear = False
     clear_type = cbits
     default_type = cbits
-    load_inst = (inst.ldmsi, inst.ldms)
-    store_inst = (inst.stmsi, inst.stms)
+    load_inst = (inst.ldmsbi, inst.ldmsb)
+    store_inst = (inst.stmsbi, inst.stmsb)
     bitdec = inst.bitdecs
     bitcom = inst.bitcoms
     conv_regint = inst.convsint
-    mov = inst.movs
+    mov = inst.movsb
     types = {}
     def __init__(self, *args, **kwargs):
         bits.__init__(self, *args, **kwargs)
@@ -207,7 +212,7 @@ class sbits(bits):
     @staticmethod
     def get_random_bit():
         res = sbit()
-        inst.bit(res)
+        inst.bitb(res)
         return res
     @classmethod
     def get_input_from(cls, player, n_bits=None):
@@ -238,7 +243,7 @@ class sbits(bits):
         if self.n <= 32:
             inst.ldbits(self, self.n, value)
         elif self.n <= 64:
-            self.load_other(regint(value))
+            self.load_other(regint(value, size=1))
         elif self.n <= 128:
             lower = sbits.get_type(64)(value % 2**64)
             upper = sbits.get_type(self.n - 64)(value >> 64)
@@ -251,7 +256,7 @@ class sbits(bits):
             return self.xor_int(other)
         else:
             if not isinstance(other, sbits):
-                other = sbits(other)
+                other = self.conv(other)
             n = min(self.n, other.n)
             res = self.new(n=n)
             inst.xors(n, res, self, other)
@@ -300,13 +305,20 @@ class sbits(bits):
             return 0
         elif util.is_all_ones(other, self.n):
             return self
-        assert(self.n == other.n)
         res = self.new(n=self.n)
+        if not isinstance(other, sbits):
+            other = cbits.get_type(self.n).conv(other)
+            inst.andm(self.n, res, self, other)
+            return res
+        other = self.conv(other)
+        assert(self.n == other.n)
         inst.ands(self.n, res, self, other)
         return res
     def xor_int(self, other):
         if other == 0:
             return self
+        elif other == self.long_one():
+            return ~self
         self_bits = self.bit_decompose()
         other_bits = util.bit_decompose(other, max(self.n, util.int_len(other)))
         extra_bits = [self.new(b, n=1) for b in other_bits[self.n:]]
@@ -332,9 +344,8 @@ class sbits(bits):
         # res = type(self)(n=self.n)
         # inst.nots(res, self)
         # return res
-        one = self.new(value=1, n=1)
-        bits = [one + bit for bit in self.bit_decompose()]
-        return self.bit_compose(bits)
+        one = self.new(value=self.long_one(), n=self.n)
+        return self + one
     def __neg__(self):
         return self
     def reveal(self):
@@ -381,6 +392,9 @@ class sbits(bits):
     def if_else(self, x, y):
         # vectorized if/else
         return result_conv(x, y)(self & (x ^ y) ^ y)
+    @staticmethod
+    def bit_adder(*args, **kwargs):
+        return sbitint.bit_adder(*args, **kwargs)
 
 class sbitvec(object):
     @classmethod
@@ -634,7 +648,7 @@ class cbitfix(object):
         bits = self.v.bit_decompose(self.k)
         sign = bits[-1]
         v = self.v + (sign << (self.k)) * -1
-        inst.print_float_plain(v, cbits(-self.f, n=32), cbits(0), cbits(0))
+        inst.print_float_plainb(v, cbits(-self.f, n=32), cbits(0), cbits(0))
 
 class sbitfix(_fix):
     float_type = type(None)

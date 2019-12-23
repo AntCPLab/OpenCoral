@@ -8,6 +8,7 @@
 
 #include "ShareSecret.h"
 #include "Machine.h"
+#include "ThreadMaster.h"
 #include "Protocols/Beaver.h"
 #include "Protocols/MaliciousRepMC.h"
 #include "Processor/DummyProtocol.h"
@@ -34,12 +35,19 @@ public:
     typedef ReplicatedInput<MaliciousRepSecret> Input;
     typedef RepPrep<MaliciousRepSecret> LivePrep;
 
-    static MC* new_mc(Machine<MaliciousRepSecret>& machine)
+    typedef MaliciousRepSecret part_type;
+
+    static MC* new_mc(mac_key_type)
     {
-        if (machine.more_comm_less_comp)
-            return new CommMaliciousRepMC<MaliciousRepSecret>;
-        else
-            return new HashMaliciousRepMC<MaliciousRepSecret>;
+        try
+        {
+            if (ThreadMaster<MaliciousRepSecret>::s().machine.more_comm_less_comp)
+                return new CommMaliciousRepMC<MaliciousRepSecret>;
+        }
+        catch(no_singleton& e)
+        {
+        }
+        return new HashMaliciousRepMC<MaliciousRepSecret>;
     }
 
     static MaliciousRepSecret constant(const BitVec& other, int my_num, const BitVec& alphai)

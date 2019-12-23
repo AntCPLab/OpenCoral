@@ -1,5 +1,12 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.1.4 (Dec 23, 2019)
+
+- Mixed circuit computation with secret sharing
+- Binary computation for dishonest majority using secret sharing as in [FKOS15](https://eprint.iacr.org/2015/901)
+- Fixed security bug: insufficient OT correlation check in SPDZ2k
+- This version breaks bytecode compatibilty.
+
 ## 0.1.3 (Nov 21, 2019)
 
 - Python 3

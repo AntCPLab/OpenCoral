@@ -26,6 +26,9 @@ public:
     {
         (void) _;
     }
+    NoLivePrep(DataPositions& usage) : NoLivePrep(0, usage)
+    {
+    }
 };
 
 #endif /* PROCESSOR_NOLIVEPREP_H_ */

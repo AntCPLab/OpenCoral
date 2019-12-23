@@ -86,6 +86,12 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   cerr << "MAC Key 2 = " << alpha2i << endl;
 #endif
 
+  // MAC key for bits might depend on sint MAC key
+  sint::bit_type::generate_mac_key(alphabi, alphapi);
+
+  // deactivate output if necessary
+  sint::bit_type::out.activate(my_number == 0 or opts.interactive);
+
   // for OT-based preprocessing
   sint::clear::next::template init<typename sint::clear>(false);
 
@@ -120,7 +126,8 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   progs[0].print_offline_cost();
 #endif
 
-  if (live_prep and (sint::needs_ot or sgf2n::needs_ot))
+  if (live_prep
+      and (sint::needs_ot or sgf2n::needs_ot or sint::bit_type::needs_ot))
   {
     Player* P;
     if (use_encryption)
@@ -348,6 +355,8 @@ void Machine<sint, sgf2n>::run()
   ofstream outf(memory_filename(), ios::out | ios::binary);
   outf << M2 << Mp << Mi;
   outf.close();
+
+  bit_memories.write_memory(N.my_num());
 
 #ifdef OLD_USAGE
   for (int dtype = 0; dtype < N_DTYPE; dtype++)

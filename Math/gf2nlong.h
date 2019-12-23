@@ -129,6 +129,7 @@ class gf2n_long
   static string type_string() { return "gf2n_long"; }
 
   static int size() { return sizeof(a); }
+  static int size_in_bits() { return sizeof(a) * 8; }
   static int t()    { return 0; }
 
   static int default_length() { return 128; }

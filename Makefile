@@ -12,6 +12,7 @@ PROCESSOR = $(patsubst %.cpp,%.o,$(wildcard Processor/*.cpp))
 FHEOFFLINE = $(patsubst %.cpp,%.o,$(wildcard FHEOffline/*.cpp FHE/*.cpp))
 
 GC = $(patsubst %.cpp,%.o,$(wildcard GC/*.cpp)) $(PROCESSOR)
+GC_SEMI = GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
 
 OT = $(patsubst %.cpp,%.o,$(filter-out OT/OText_main.cpp,$(wildcard OT/*.cpp)))
 OT_EXE = ot.x ot-offline.x
@@ -20,7 +21,7 @@ COMMON = $(MATH) $(TOOLS) $(NETWORK)
 COMPLETE = $(COMMON) $(PROCESSOR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(GC) $(OT)
 YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp)) $(OT) BMR/Key.o
 BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp)) $(COMMON) $(PROCESSOR) $(OT)
-VM = $(PROCESSOR) $(COMMON)
+VM = $(PROCESSOR) $(COMMON) GC/square64.o
 
 
 LIB = libSPDZ.a
@@ -35,10 +36,14 @@ DEPS := $(wildcard */*.d)
 .SECONDARY: $(OBJS)
 
 
-all: gen_input online offline externalIO bmr yao replicated shamir real-bmr spdz2k-party.x brain-party.x semi-party.x semi2k-party.x semi-bin-party.x mascot-party.x tiny-party.x
+all: arithmetic binary gen_input online offline externalIO bmr
+
+arithmetic: rep-ring rep-field shamir semi2k-party.x semi-party.x spdz2k-party.x mascot-party.x
+binary: rep-bin yao semi-bin-party.x tinier-party.x tiny-party.x real-bmr
 
 ifeq ($(USE_NTL),1)
-all: overdrive she-offline cowgear-party.x hemi-party.x
+all: overdrive she-offline
+arithmetic: hemi-party.x cowgear-party.x
 endif
 
 -include $(DEPS)
@@ -157,23 +162,27 @@ default-prime-length.x: Utils/default-prime-length.cpp
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS) $(ECLIB)
 
 replicated-bin-party.x: GC/square64.o
+replicated-ring-party.x: GC/square64.o
+replicated-field-party.x: GC/square64.o
+brain-party.x: GC/square64.o
 malicious-rep-bin-party.x: GC/square64.o
 semi-bin-party.x: $(VM) $(OT) GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
 tiny-party.x: $(OT)
+tinier-party.x: $(OT)
 shamir-party.x: Machines/ShamirMachine.o
 malicious-shamir-party.x: Machines/ShamirMachine.o
 spdz2k-party.x: $(OT)
-semi-party.x: $(OT)
-semi2k-party.x: $(OT)
-hemi-party.x: $(FHEOFFLINE)
-cowgear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o
+semi-party.x: $(OT) GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
+semi2k-party.x: $(OT) GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
+hemi-party.x: $(FHEOFFLINE) $(GC_SEMI) $(OT)
+cowgear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o $(OT)
 mascot-party.x: Machines/SPDZ.o $(OT)
 Player-Online.x: Machines/SPDZ.o $(OT)
 ps-rep-ring-party.x: Protocols/MalRepRingOptions.o
 malicious-rep-ring-party.x: Protocols/MalRepRingOptions.o
 mal-shamir-ecdsa-party.x: Machines/ShamirMachine.o
 shamir-ecdsa-party.x: Machines/ShamirMachine.o
-semi-ecdsa-party.x: $(OT) $(LIBSIMPLEOT)
+semi-ecdsa-party.x: $(OT) $(LIBSIMPLEOT) GC/SemiPrep.o
 mascot-ecdsa-party.x: $(OT) $(LIBSIMPLEOT)
 
 $(LIBSIMPLEOT): SimpleOT/Makefile

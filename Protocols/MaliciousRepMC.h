@@ -23,6 +23,11 @@ public:
             const vector<T>& S, const Player& P);
 
     virtual void Check(const Player& P);
+
+    MaliciousRepMC& get_part_MC()
+    {
+        return *this;
+    }
 };
 
 template<class T>

@@ -18,7 +18,8 @@ int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt, bool live_pr
     OnlineOptions& online_opts = OnlineOptions::singleton;
     online_opts = {opt, argc, argv, 1000, live_prep_default};
 
-    opt.example = "./Player-Online.x -lgp 64 -lg2 128 -m new 0 sample-prog\n./Player-Online.x -pn 13000 -h localhost 1 sample-prog\n";
+    opt.example = string() + argv[0] + " -p 0 -N 2 sample-prog\n" + argv[0]
+            + " -h localhost -p 1 -N 2 sample-prog\n";
 
     opt.add(
           to_string(U::clear::default_degree()).c_str(), // Default.

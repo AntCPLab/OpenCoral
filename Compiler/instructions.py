@@ -801,6 +801,15 @@ class bit(base.DataInstruction):
     def execute(self):
         self.args[0].value = randint(0,1)
 
+@base.vectorize
+class dabit(base.DataInstruction):
+    """ daBit """
+    __slots__ = []
+    code = base.opcodes['DABIT']
+    arg_format = ['sw', 'sbw']
+    field_type = 'modp'
+    data_type = 'bit'
+
 @base.gf2n
 @base.vectorize
 class square(base.DataInstruction):

@@ -8,7 +8,7 @@
 #include "Processor/RingOptions.h"
 
 #include "Protocols/ReplicatedMachine.hpp"
-#include "Machines/Rep.hpp"
+#include "Machines/RepRing.hpp"
 
 int main(int argc, const char** argv)
 {

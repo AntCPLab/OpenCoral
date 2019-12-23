@@ -103,6 +103,7 @@ enum
     INV = 0x53,
     INPUTMASK = 0x56,
     PREP = 0x57,
+    DABIT = 0x58,
     // Input
     INPUT = 0x60,
     INPUTFIX = 0xF0,
@@ -273,6 +274,9 @@ enum RegType {
   MODP,
   GF2N,
   INT,
+  SBIT,
+  CBIT,
+  DYN_SBIT,
   MAX_REG_TYPE,
   NONE
 };
@@ -310,12 +314,21 @@ protected:
 public:
   virtual ~BaseInstruction() {};
 
-  void parse_operands(istream& s, int pos);
+  int get_r(int i) const { return r[i]; }
+  unsigned int get_n() const { return n; }
+  const vector<int>& get_start() const { return start; }
+  int get_opcode() const { return opcode; }
+  int get_size() const { return size; }
+
+  void parse_operands(istream& s, int pos, int file_pos);
 
   bool is_gf2n_instruction() const { return ((opcode&0x100)!=0); }
   virtual int get_reg_type() const;
 
   bool is_direct_memory_access(SecrecyType sec_type) const;
+
+  // Returns the memory size used if applicable and known
+  unsigned get_mem(RegType reg_type, SecrecyType sec_type) const;
 
   // Returns the maximal register used
   unsigned get_max_reg(int reg_type) const;
@@ -327,13 +340,10 @@ class Instruction : public BaseInstruction
 {
 public:
   // Reads a single instruction from the istream
-  void parse(istream& s);
+  void parse(istream& s, int inst_pos);
 
   // Return whether usage is known
   bool get_offline_data_usage(DataPositions& usage);
-
-  // Returns the memory size used if applicable and known
-  unsigned get_mem(RegType reg_type, SecrecyType sec_type) const;
 
   friend ostream& operator<<(ostream& s,const Instruction& instr);
 

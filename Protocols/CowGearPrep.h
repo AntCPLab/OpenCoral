@@ -12,7 +12,7 @@ class PairwiseMachine;
 template<class FD> class PairwiseGenerator;
 
 template<class T>
-class CowGearPrep : public RingPrep<T>
+class CowGearPrep : public MaliciousRingPrep<T>
 {
     typedef typename T::mac_key_type mac_key_type;
     typedef typename T::clear::FD FD;
@@ -31,7 +31,7 @@ public:
     static void teardown();
 
     CowGearPrep(SubProcessor<T>* proc, DataPositions& usage) :
-            RingPrep<T>(proc, usage), pairwise_generator(0)
+            MaliciousRingPrep<T>(proc, usage), pairwise_generator(0)
     {
     }
     ~CowGearPrep();

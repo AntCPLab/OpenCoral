@@ -195,6 +195,7 @@ public:
 	template <typename T>
 	BlackHole& operator<<(T) { return *this; }
 	BlackHole& operator<<(BlackHole& (*__pf)(BlackHole&)) { (void)__pf; return *this; }
+	void activate(bool) {}
 };
 inline BlackHole& endl(BlackHole& b) { return b; }
 inline BlackHole& flush(BlackHole& b) { return b; }
@@ -205,7 +206,7 @@ public:
     typedef NoMemory DynamicMemory;
 
 	typedef BlackHole out_type;
-	static const BlackHole out;
+	static BlackHole out;
 
 	static void check(const int128& value, word share, int128 mac)
 	{ (void)value; (void)share; (void)mac; }

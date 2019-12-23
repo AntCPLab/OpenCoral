@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef GC_MACHINE_HPP_
+#define GC_MACHINE_HPP_
+
 #include <GC/Machine.h>
 
 #include "GC/Program.h"
@@ -54,11 +57,18 @@ void Machine<T>::load_schedule(string progname)
 
 template <class T>
 template <class U>
+void Memories<T>::reset(const U& program)
+{
+    MS.resize_min(*program.direct_mem(SBIT), "memory");
+    MC.resize_min(*program.direct_mem(CBIT), "memory");
+}
+
+template <class T>
+template <class U>
 void Machine<T>::reset(const U& program)
 {
-    MS.resize_min(program.direct_mem(SBIT), "memory");
-    MC.resize_min(program.direct_mem(CBIT), "memory");
-    MI.resize_min(program.direct_mem(INT), "memory");
+    Memories<T>::reset(program);
+    MI.resize_min(*program.direct_mem(INT), "memory");
 }
 
 template <class T>
@@ -66,7 +76,7 @@ template <class U, class V>
 void Machine<T>::reset(const U& program, V& MD)
 {
     reset(program);
-    MD.resize_min(program.direct_mem(DYN_SBIT), "dynamic memory");
+    MD.resize_min(*program.direct_mem(DYN_SBIT), "dynamic memory");
 #ifdef DEBUG_MEMORY
     cerr << "reset dynamic mem to " << program.direct_mem(DYN_SBIT) << endl;
 #endif
@@ -85,12 +95,14 @@ void Machine<T>::join_tape(int thread_number)
 }
 
 template<class T>
-void GC::Machine<T>::write_memory(int my_num)
+void Memories<T>::write_memory(int my_num)
 {
-    ofstream outf(memory_filename("B", my_num));
+    ofstream outf(BaseMachine::memory_filename("B", my_num));
     outf << 0 << endl;
     outf << MC.size() << endl << MC;
     outf << 0 << endl << 0 << endl << 0 << endl << 0 << endl;
 }
 
 } /* namespace GC */
+
+#endif

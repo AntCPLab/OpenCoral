@@ -17,7 +17,6 @@ using namespace std;
 #include "Tools/octetStream.h"
 #include "Tools/FlexBuffer.h"
 #include "Networking/sockets.h"
-#include "Networking/ServerSocket.h"
 #include "Tools/sha1.h"
 #include "Tools/int.h"
 #include "Networking/Receiver.h"
@@ -26,6 +25,7 @@ using namespace std;
 
 template<class T> class MultiPlayer;
 class Server;
+class ServerSocket;
 
 /* Class to get the names off the server */
 class Names

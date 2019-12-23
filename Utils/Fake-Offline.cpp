@@ -13,6 +13,7 @@
 #include "GC/MaliciousRepSecret.h"
 #include "GC/SemiSecret.h"
 #include "GC/TinySecret.h"
+#include "GC/TinierSecret.h"
 
 #include "Math/Setup.h"
 #include "Processor/Data_Files.h"
@@ -542,6 +543,11 @@ int generate(ez::ezOptionParser& opt)
 
   make_mult_triples<GC::TinySecret<40>>(keyt, nplayers, default_num, zero, prep_data_prefix);
   make_bits<GC::TinySecret<40>>(keyt, nplayers, default_num, zero);
+
+  gf2n_short keytt;
+  generate_mac_keys<GC::TinierSecret<gf2n_short>>(keytt, _, nplayers, prep_data_prefix);
+  make_mult_triples<GC::TinierSecret<gf2n_short>>(keytt, nplayers, default_num, zero, prep_data_prefix);
+  make_bits<GC::TinierSecret<gf2n_short>>(keytt, nplayers, default_num, zero);
 
   make_basic<ShamirShare<gfp>>({}, nplayers, default_num, zero);
   make_basic<ShamirShare<gf2n>>({}, nplayers, default_num, zero);

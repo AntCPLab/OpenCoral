@@ -15,6 +15,11 @@
 template<int K, int S> class Spdz2kMultiplier;
 template<class T> class Spdz2kTripleGenerator;
 
+namespace GC
+{
+template<int S> class TinySecret;
+}
+
 template<int K, int S>
 class Spdz2kShare : public Share<Z2<K + S>>
 {
@@ -42,6 +47,8 @@ public:
     typedef SPDZ<Spdz2kShare> Protocol;
     typedef Spdz2kPrep<Spdz2kShare> LivePrep;
 
+    typedef GC::TinySecret<S> bit_type;
+
     const static int k = K;
     const static int s = S;
 
@@ -49,12 +56,10 @@ public:
     static string type_short() { return "Z" + to_string(K) + "," + to_string(S); }
 
     Spdz2kShare() {}
-    template<class T>
-    Spdz2kShare(const Share<T>& x) : super(x) {}
-    Spdz2kShare(const clear& x, int my_num, const mac_key_type& alphai) :
-            super(x, my_num, alphai)
-    {
-    }
+    template<class T, class V>
+    Spdz2kShare(const Share_<T, V>& x) : super(x) {}
+    template<class T, class V>
+    Spdz2kShare(const T& share, const V& mac) : super(share, mac) {}
 };
 
 

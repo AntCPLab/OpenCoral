@@ -21,6 +21,8 @@ public:
     void POpen_End(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
 
     void Check(const Player& P) { (void)P; }
+
+    SemiMC& get_part_MC() { return *this; }
 };
 
 template<class T>

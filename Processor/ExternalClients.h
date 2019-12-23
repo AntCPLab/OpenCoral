@@ -1,7 +1,6 @@
 #ifndef _ExternalClients
 #define _ExternalClients
 
-#include "Networking/ServerSocket.h"
 #include "Networking/sockets.h"
 #include "Exceptions/Exceptions.h"
 #include <vector>
@@ -10,6 +9,8 @@
 #include <fstream>
 #include <sodium.h>
 #include <assert.h>
+
+class AnonymousServerSocket;
 
 /*
  * Manage the reading and writing of data from/to external clients via Sockets.

@@ -69,6 +69,7 @@ ShareParty<T>::ShareParty(int argc, const char** argv, int default_batch_size) :
             "--communication" // Flag token.
     );
     online_opts.finalize(opt, argc, argv);
+    OnlineOptions::singleton = online_opts;
     this->progname = online_opts.progname;
     int my_num = online_opts.playerno;
 
@@ -122,7 +123,7 @@ ShareParty<T>::ShareParty(int argc, const char** argv, int default_batch_size) :
 template<class T>
 Thread<T>* ShareParty<T>::new_thread(int i)
 {
-    return new ShareThread<T>(i, *this);
+    return new StandaloneShareThread<T>(i, *this);
 }
 
 template<class T>
@@ -130,7 +131,7 @@ void ShareParty<T>::post_run()
 {
     DataPositions usage;
     for (auto thread : this->threads)
-        usage.increase(dynamic_cast<ShareThread<T>*>(thread)->usage);
+        usage.increase(dynamic_cast<StandaloneShareThread<T>*>(thread)->usage);
     usage.print_cost();
 }
 

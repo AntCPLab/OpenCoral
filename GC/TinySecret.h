@@ -19,16 +19,16 @@ template<class T> class TinyMultiplier;
 namespace GC
 {
 
-template<class T> class TinyPrep;
+template<class T> class TinyOnlyPrep;
 template<class T> class TinyMC;
 
-template<int S>
-class TinySecret : public Secret<TinyShare<S>>
+template<class T>
+class VectorSecret : public Secret<T>
 {
-    typedef TinySecret This;
+    typedef VectorSecret This;
 
 public:
-    typedef TinyShare<S> part_type;
+    typedef T part_type;
     typedef Secret<part_type> super;
 
     typedef typename part_type::mac_key_type mac_key_type;
@@ -36,28 +36,16 @@ public:
     typedef BitVec open_type;
     typedef BitVec clear;
 
-    typedef TinyMC<This> MC;
-    typedef MC MAC_Check;
-    typedef Beaver<This> Protocol;
-    typedef ::Input<This> Input;
-    typedef TinyPrep<This> LivePrep;
-    typedef Memory<This> DynamicMemory;
-
-    typedef OTTripleGenerator<This> TripleGenerator;
-    typedef TinyMultiplier<This> Multiplier;
     typedef typename part_type::sacri_type sacri_type;
     typedef typename part_type::mac_type mac_type;
     typedef BitDiagonal Rectangle;
+
+    typedef typename T::super check_type;
 
     static const bool dishonest_majority = true;
     static const bool needs_ot = true;
 
     static const int default_length = 64;
-
-    static string type_short()
-    {
-        return "T";
-    }
 
     static DataFieldType field_type()
     {
@@ -69,19 +57,9 @@ public:
         return part_type::size() * default_length;
     }
 
-    static MC* new_mc(Machine<This>& machine)
+    static void generate_mac_key(mac_key_type& dest, const mac_key_type& source)
     {
-        (void) machine;
-        return new MC(ShareParty<This>::s().mac_key);
-    }
-
-    static void store_clear_in_dynamic(Memory<This>& mem,
-            const vector<ClearWriteAccess>& accesses)
-    {
-        auto& party = ShareThread<This>::s();
-        for (auto access : accesses)
-            mem[access.address] = constant(access.value, party.P->my_num(),
-                    {});
+        dest = source;
     }
 
     static This constant(BitVec other, int my_num, mac_key_type alphai)
@@ -93,12 +71,16 @@ public:
         return res;
     }
 
-    TinySecret()
+    VectorSecret()
     {
     }
-    TinySecret(const super& other) :
+    VectorSecret(const super& other) :
             super(other)
     {
+    }
+    VectorSecret(const part_type& other)
+    {
+        this->get_regs().push_back(other);
     }
 
     void assign(const char* buffer)
@@ -113,6 +95,11 @@ public:
         return *this + other;
     }
 
+    This& operator^=(const This& other)
+    {
+        return *this = *this + other;
+    }
+
     This operator*(const BitVec& other) const
     {
         This res = *this;
@@ -120,6 +107,11 @@ public:
             if (not other.get_bit(i))
                 res.get_reg(i) = {};
         return res;
+    }
+
+    This operator&(const BitVec::super& other) const
+    {
+        return *this * BitVec(other);
     }
 
     This extend_bit() const
@@ -136,14 +128,6 @@ public:
         return res;
     }
 
-    void reveal(size_t n_bits, Clear& x)
-    {
-        auto& to_open = *this;
-        to_open.resize_regs(n_bits);
-        auto& party = ShareThread<This>::s();
-        x = party.MC->POpen(to_open, *party.P);
-    }
-
     void output(ostream& s, bool human = true) const
     {
         assert(this->get_regs().size() == default_length);
@@ -153,7 +137,66 @@ public:
 };
 
 template<int S>
-inline TinySecret<S> operator*(const BitVec& clear, const TinySecret<S>& share)
+class TinySecret : public VectorSecret<TinyShare<S>>
+{
+    typedef VectorSecret<TinyShare<S>> super;
+    typedef TinySecret This;
+
+public:
+    typedef TinyMC<This> MC;
+    typedef MC MAC_Check;
+    typedef Beaver<This> Protocol;
+    typedef ::Input<This> Input;
+    typedef TinyOnlyPrep<This> LivePrep;
+    typedef Memory<This> DynamicMemory;
+
+    typedef OTTripleGenerator<This> TripleGenerator;
+    typedef typename super::part_type::TripleGenerator InputGenerator;
+
+    typedef TinyMultiplier<This> Multiplier;
+
+    static string type_short()
+    {
+        return "T";
+    }
+
+    static MC* new_mc(typename super::mac_key_type mac_key)
+    {
+        return new MC(mac_key);
+    }
+
+    static void store_clear_in_dynamic(Memory<This>& mem,
+            const vector<ClearWriteAccess>& accesses)
+    {
+        auto& party = ShareThread<This>::s();
+        for (auto access : accesses)
+            mem[access.address] = super::constant(access.value,
+                    party.P->my_num(), {});
+    }
+
+    TinySecret()
+    {
+    }
+    TinySecret(const super& other) :
+            super(other)
+    {
+    }
+    TinySecret(const typename super::part_type& other) :
+            super(other)
+    {
+    }
+
+    void reveal(size_t n_bits, Clear& x)
+    {
+        auto& to_open = *this;
+        to_open.resize_regs(n_bits);
+        auto& party = ShareThread<This>::s();
+        x = party.MC->POpen(to_open, *party.P);
+    }
+};
+
+template<class T>
+inline VectorSecret<T> operator*(const BitVec& clear, const VectorSecret<T>& share)
 {
     return share * clear;
 }

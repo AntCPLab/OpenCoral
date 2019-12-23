@@ -909,6 +909,7 @@ def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
                 for block in blocks[-n_to_merge + 1:]:
                     merged.instructions += block.instructions
                     exit_elimination(block)
+                    block.purge()
                 del blocks[-n_to_merge + 1:]
                 del get_tape().req_node.children[-1]
                 merged.children = []
@@ -956,8 +957,6 @@ def multithread(n_threads, n_items):
     Distribute the computation of n_items to n_threads threads,
     but leave the in-thread repetition up to the user
     """
-    if n_threads == 1 or n_items == 1:
-        return lambda loop_body: loop_body(0, n_items)
     return map_reduce(n_threads, None, n_items, initializer=lambda: [],
                       reducer=None, looping=False)
 
@@ -977,13 +976,6 @@ def map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, \
             return new_body
         new_dec = map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, thread_mem_req)
         return lambda loop_body: new_dec(decorator(loop_body))
-    if n_threads == 1 or n_loops == 1:
-        dec = map_reduce_single(n_parallel, n_loops, initializer, reducer)
-        if thread_mem_req:
-            thread_mem = Array(thread_mem_req[regint], regint)
-            return lambda loop_body: dec(lambda i: loop_body(i, thread_mem))
-        else:
-            return dec
     def decorator(loop_body):
         thread_rounds = n_loops // n_threads
         remainder = n_loops % n_threads

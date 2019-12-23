@@ -6,6 +6,7 @@
 #include "Tools/int.h"
 #include "Tools/NetworkOptions.h"
 #include "Networking/Server.h"
+#include "Networking/ServerSocket.h"
 
 #include <sys/select.h>
 #include <utility>

@@ -72,6 +72,7 @@ class Preprocessing
 {
   DataPositions& usage;
 
+protected:
   void count(Dtype dtype) { usage.files[T::field_type()][dtype]++; }
   void count(DataTag tag, int n = 1) { usage.extended[T::field_type()][tag] += n; }
   void count_input(int player) { usage.inputs[player][T::field_type()]++; }
@@ -111,6 +112,7 @@ public:
   void get(vector<T>& S, DataTag tag, const vector<int>& regs, int vector_size);
 
   virtual array<T, 3> get_triple(int n_bits);
+  virtual void get_dabit(T&, typename T::bit_type&) { throw runtime_error("no daBit"); }
 
   virtual void buffer_triples() {}
   virtual void buffer_inverses() {}

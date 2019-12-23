@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef GC_PROCESSOR_HPP_
+#define GC_PROCESSOR_HPP_
+
 #include <GC/Processor.h>
 
 #include <iostream>
@@ -13,6 +16,7 @@ using namespace std;
 #include "Access.h"
 #include "Processor/FixInput.h"
 
+#include "GC/Machine.hpp"
 #include "Processor/ProcessorBase.hpp"
 
 namespace GC
@@ -20,7 +24,13 @@ namespace GC
 
 template <class T>
 Processor<T>::Processor(Machine<T>& machine) :
-		machine(machine), PC(0), time(0),
+		Processor<T>(machine, &machine)
+{
+}
+
+template <class T>
+Processor<T>::Processor(Memories<T>& memories, Machine<T>* machine) :
+		machine(machine), memories(memories), PC(0), time(0),
 		complexity(0)
 {
 }
@@ -49,7 +59,9 @@ template <class U>
 void Processor<T>::reset(const U& program)
 {
     reset(program, 0);
-    machine.reset(program);
+    if (machine)
+        machine->reset(program);
+    memories.reset(program);
 }
 
 template<class T>
@@ -248,3 +260,5 @@ void Processor<T>::print_float_prec(int n)
 }
 
 } /* namespace GC */
+
+#endif

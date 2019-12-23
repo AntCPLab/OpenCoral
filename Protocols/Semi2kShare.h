@@ -8,6 +8,9 @@
 
 #include "SemiShare.h"
 #include "OT/Rectangle.h"
+#include "GC/SemiSecret.h"
+
+template<class T> class SemiPrep2k;
 
 template <int K>
 class Semi2kShare : public SemiShare<SignedZ2<K>>
@@ -22,12 +25,14 @@ public:
     typedef SemiInput<Semi2kShare> Input;
     typedef ::PrivateOutput<Semi2kShare> PrivateOutput;
     typedef SPDZ<Semi2kShare> Protocol;
-    typedef SemiPrep<Semi2kShare> LivePrep;
+    typedef SemiPrep2k<Semi2kShare> LivePrep;
 
     typedef Semi2kShare prep_type;
     typedef SemiMultiplier<Semi2kShare> Multiplier;
     typedef OTTripleGenerator<prep_type> TripleGenerator;
     typedef Z2kSquare<K> Rectangle;
+
+    typedef GC::SemiSecret bit_type;
 
     Semi2kShare()
     {

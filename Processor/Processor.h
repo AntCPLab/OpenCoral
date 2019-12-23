@@ -18,6 +18,8 @@
 #include "ProcessorBase.h"
 #include "OnlineOptions.h"
 #include "Tools/SwitchableOutput.h"
+#include "GC/Processor.h"
+#include "GC/ShareThread.h"
 
 class Program;
 
@@ -40,7 +42,7 @@ class SubProcessor
   template<class U> friend class Beaver;
 
 public:
-  ArithmeticProcessor& Proc;
+  ArithmeticProcessor* Proc;
   typename T::MAC_Check& MC;
   Player& P;
   Preprocessing<T>& DataF;
@@ -50,6 +52,8 @@ public:
 
   SubProcessor(ArithmeticProcessor& Proc, typename T::MAC_Check& MC,
       Preprocessing<T>& DataF, Player& P);
+  SubProcessor(typename T::MAC_Check& MC, Preprocessing<T>& DataF, Player& P,
+      ArithmeticProcessor* Proc = 0);
 
   // Access to PO (via calls to POpen start/stop)
   void POpen(const vector<int>& reg,const Player& P,int size);
@@ -120,6 +124,8 @@ class Processor : public ArithmeticProcessor
 
   SubProcessor<sgf2n> Proc2;
   SubProcessor<sint>  Procp;
+  GC::Processor<typename sint::bit_type> Procb;
+  GC::ShareThread<typename sint::bit_type> share_thread;
 
   typename sgf2n::PrivateOutput privateOutput2;
   typename sint::PrivateOutput privateOutputp;
@@ -184,6 +190,8 @@ class Processor : public ArithmeticProcessor
       { return Ci[i]; }
     void write_Ci(int i,const long& x)
       { Ci[i]=x; }
+
+  void dabit(const Instruction& instruction);
 
   // Access to external client sockets for reading clear/shared data
   void read_socket_ints(int client_id, const vector<int>& registers);

@@ -1404,7 +1404,7 @@ class PackedIndexStructure(object):
         self.value_type = value_type
         for demux_bits in range(max_demux_bits + 1):
             self.log_entries_per_element = min(log2(size), \
-                int(math.floor(math.log(float(get_value_size(value_type)) // \
+                int(math.floor(math.log(float(get_value_size(value_type)) / \
                     sum(self.entry_size), 2))))
             self.log_elements_per_block = \
                 max(0, min(demux_bits, log2(size) - \

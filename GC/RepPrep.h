@@ -13,13 +13,16 @@
 namespace GC
 {
 
+template<class T> class ShareThread;
+
 template<class T>
 class RepPrep : public BufferPrep<T>, ShiftableTripleBuffer<T>
 {
     ReplicatedBase* protocol;
 
 public:
-    RepPrep(DataPositions& usage, Thread<T>& thread);
+    RepPrep(DataPositions& usage, ShareThread<T>& thread);
+    RepPrep(DataPositions& usage);
     ~RepPrep();
 
     void set_protocol(typename T::Protocol& protocol);

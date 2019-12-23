@@ -20,7 +20,7 @@ protected:
 
 public:
     PrepLessInput(SubProcessor<T>* proc) :
-            InputBase<T>(proc ? &proc->Proc : 0), processor(proc), i_share(0) {}
+            InputBase<T>(proc ? proc->Proc : 0), processor(proc), i_share(0) {}
     virtual ~PrepLessInput() {}
 
     void start(int player, int n_inputs);

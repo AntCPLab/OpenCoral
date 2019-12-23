@@ -10,6 +10,10 @@
 #include "Math/gfp.h"
 #include "Processor/OnlineOptions.h"
 
+#include "MaliciousRingPrep.hpp"
+#include "ShuffleSacrifice.hpp"
+#include "GC/ShareThread.hpp"
+
 template<class T>
 BufferPrep<T>::BufferPrep(DataPositions& usage) :
         Preprocessing<T>(usage), n_bit_rounds(0),
@@ -28,7 +32,7 @@ BufferPrep<T>::~BufferPrep()
 
 template<class T>
 RingPrep<T>::RingPrep(SubProcessor<T>* proc, DataPositions& usage) :
-        BufferPrep<T>(usage), protocol(0), proc(proc), base_player(0)
+        BufferPrep<T>(usage), protocol(0), proc(proc), base_player(0), sent(0)
 {
 }
 
@@ -36,8 +40,8 @@ template<class T>
 void RingPrep<T>::set_protocol(typename T::Protocol& protocol)
 {
     this->protocol = &protocol;
-    if (proc)
-        base_player = proc->Proc.thread_num;
+    if (proc and proc->Proc)
+        base_player = proc->Proc->thread_num;
 }
 
 template<class T>
@@ -199,9 +203,11 @@ void BufferPrep<T>::get_two_no_count(Dtype dtype, T& a, T& b)
 }
 
 template<class T>
-void XOR(vector<T>& res, vector<T>& x, vector<T>& y, int buffer_size,
+void XOR(vector<T>& res, vector<T>& x, vector<T>& y,
 		typename T::Protocol& prot, SubProcessor<T>* proc)
 {
+    assert(x.size() == y.size());
+    int buffer_size = x.size();
     res.resize(buffer_size);
 
     if (T::clear::field_type() == DATA_GF2N)
@@ -258,22 +264,29 @@ void buffer_bits_spec(ReplicatedPrep<T<gfp>>& prep, vector<T<gfp>>& bits,
 template<class T>
 void RingPrep<T>::buffer_bits_without_check()
 {
-    assert(protocol != 0);
-    auto buffer_size = OnlineOptions::singleton.batch_size;
-    auto& bits = this->bits;
-    auto& P = protocol->P;
-    int n_relevant_players = protocol->get_n_relevant_players();
-    vector<vector<T>> player_bits(n_relevant_players, vector<T>(buffer_size));
-    typename T::Input input(proc, P);
+    SeededPRNG G;
+    buffer_ring_bits_without_check(this->bits, G,
+            OnlineOptions::singleton.batch_size);
+}
+
+template<class T>
+void buffer_bits_from_players(vector<vector<T>>& player_bits, PRNG& G,
+        SubProcessor<T>& proc, int base_player, int buffer_size,
+        int n_bits = -1)
+{
+    auto& protocol = proc.protocol;
+    auto& P = protocol.P;
+    int n_relevant_players = protocol.get_n_relevant_players();
+    player_bits.resize(n_relevant_players, vector<T>(buffer_size));
+    typename T::Input input(proc, proc.MC);
     input.reset_all(P);
     for (int i = 0; i < n_relevant_players; i++)
     {
         int input_player = (base_player + i) % P.num_players();
         if (input_player == P.my_num())
         {
-            SeededPRNG G;
             for (int i = 0; i < buffer_size; i++)
-                input.add_mine(G.get_bit());
+                input.add_mine(G.get_bit(), n_bits);
         }
         else
             for (int i = 0; i < buffer_size; i++)
@@ -282,12 +295,58 @@ void RingPrep<T>::buffer_bits_without_check()
     input.exchange();
     for (int i = 0; i < n_relevant_players; i++)
         for (auto& x : player_bits[i])
-            x = input.finalize((base_player + i) % P.num_players());
+            x = input.finalize((base_player + i) % P.num_players(), n_bits);
+}
+
+template<class T>
+void RingPrep<T>::buffer_ring_bits_without_check(vector<T>& bits, PRNG& G,
+        int buffer_size)
+{
+    assert(protocol != 0);
+    assert(proc != 0);
+    int n_relevant_players = protocol->get_n_relevant_players();
+    vector<vector<T>> player_bits;
+    buffer_bits_from_players(player_bits, G, *proc, base_player,
+            buffer_size);
     auto& prot = *protocol;
-    XOR(bits, player_bits[0], player_bits[1], buffer_size, prot, proc);
+    XOR(bits, player_bits[0], player_bits[1], prot, proc);
     for (int i = 2; i < n_relevant_players; i++)
-        XOR(bits, bits, player_bits[i], buffer_size, prot, proc);
+        XOR(bits, bits, player_bits[i], prot, proc);
     base_player++;
+}
+
+template<class T>
+void RingPrep<T>::buffer_dabits_without_check(vector<dabit<T>>& dabits,
+        int buffer_size)
+{
+    if (buffer_size < 0)
+        buffer_size = OnlineOptions::singleton.batch_size;
+    assert(protocol != 0);
+    assert(proc != 0);
+    SeededPRNG G;
+    PRNG G2 = G;
+    typedef typename T::bit_type::part_type bit_type;
+    vector<vector<bit_type>> player_bits;
+    auto& party = GC::ShareThread<typename T::bit_type>::s();
+    DataPositions usage(proc->P.num_players());
+    typename bit_type::LivePrep bit_prep(usage);
+    SubProcessor<bit_type> bit_proc(party.MC->get_part_MC(),
+            bit_prep, proc->P);
+    typename T::bit_type::Protocol bit_protocol(protocol->P);
+    buffer_bits_from_players(player_bits, G, bit_proc, base_player,
+            buffer_size, 1);
+    vector<T> int_bits;
+    buffer_ring_bits_without_check(int_bits, G2, buffer_size);
+    for (auto& pb : player_bits)
+        assert(pb.size() == int_bits.size());
+    for (size_t i = 0; i < int_bits.size(); i++)
+    {
+        bit_type bit = player_bits[0][i];
+        for (int j = 1; j < protocol->get_n_relevant_players(); j++)
+            bit ^= player_bits[j][i];
+        dabits.push_back({int_bits[i], bit});
+    }
+    sent += bit_prep.data_sent();
 }
 
 template<>
@@ -365,6 +424,17 @@ void BufferPrep<T>::get_input_no_count(T& a, typename T::open_type& x, int i)
 }
 
 template<class T>
+void BufferPrep<T>::get_dabit(T& a, typename T::bit_type& b)
+{
+    if (dabits.empty())
+        buffer_dabits();
+    a = dabits.back().first;
+    b = dabits.back().second;
+    dabits.pop_back();
+    this->count(DATA_DABIT);
+}
+
+template<class T>
 inline void BufferPrep<T>::buffer_inputs(int player)
 {
     (void) player;
@@ -382,10 +452,11 @@ void BufferPrep<T>::buffer_inputs_as_usual(int player, SubProcessor<T>* proc)
     auto buffer_size = OnlineOptions::singleton.batch_size;
     if (P.my_num() == player)
     {
+        SeededPRNG G;
         for (int i = 0; i < buffer_size; i++)
         {
             typename T::clear r;
-            r.randomize(proc->Proc.secure_prng);
+            r.randomize(G);
             input.add_mine(r);
             this->inputs[player].push_back({input.finalize_mine(), r});
         }

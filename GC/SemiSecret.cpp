@@ -26,7 +26,7 @@ void SemiSecret::trans(Processor<SemiSecret>& processor, int n_outputs,
 void SemiSecret::load_clear(int n, const Integer& x)
 {
     check_length(n, x);
-    *this = constant(x, Thread<SemiSecret>::s().P->my_num());
+    *this = constant(x, ShareThread<SemiSecret>::s().P->my_num());
 }
 
 void SemiSecret::bitcom(Memory<SemiSecret>& S, const vector<int>& regs)
@@ -45,7 +45,7 @@ void SemiSecret::bitdec(Memory<SemiSecret>& S,
 
 void SemiSecret::reveal(size_t n_bits, Clear& x)
 {
-    auto& thread = Thread<SemiSecret>::s();
+    auto& thread = ShareThread<SemiSecret>::s();
     x = thread.MC->POpen(*this, *thread.P).mask(n_bits);
 }
 

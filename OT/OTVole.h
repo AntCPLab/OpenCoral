@@ -5,16 +5,17 @@
 #include "Math/Z2k.h"
 #include "OTExtension.h"
 #include "Row.h"
+#include "config.h"
 
 using namespace std;
 
-template <class T, class U>
+template <class T>
 class OTVoleBase : public OTExtension
 {
 public:
-	static const int S = U::N_BITS;
+	const int S;
 
-	OTVoleBase(int nbaseOTs, int baseLength,
+	OTVoleBase(int S, int nbaseOTs, int baseLength,
 	                int nloops, int nsubloops,
 	                TwoPartyPlayer* player,
 	                const BitVector& baseReceiverInput,
@@ -24,12 +25,13 @@ public:
 	                bool passive=false)
 	    : OTExtension(nbaseOTs, baseLength, nloops, nsubloops, player, baseReceiverInput,
 	            baseSenderInput, baseReceiverOutput, INV_ROLE(role), passive),
+	        S(S),
 	        corr_prime(),
-	        t0(U::N_BITS),
-	        t1(U::N_BITS),
-	        u(U::N_BITS),
-	        t(U::N_BITS),
-	        a(U::N_BITS) {
+	        t0(S),
+	        t1(S),
+	        u(S),
+	        t(S),
+	        a(S) {
 	            // need to flip roles for OT extension init, reset to original role here
 	            this->ot_role = role;
 	            local_prng.ReSeed();
@@ -38,6 +40,9 @@ public:
 	    void evaluate(vector<T>& output, const vector<T>& newReceiverInput);
 
 	    void evaluate(vector<T>& output, int nValues, const BitVector& newReceiverInput);
+
+	    virtual int n_challenges() { return S; }
+	    virtual int get_challenge(PRNG&, int i) { return i; }
 
 	protected:
 
@@ -61,12 +66,12 @@ public:
 
 };
 
-template <class T, class U>
-class OTVole : public OTVoleBase<T, U>
+template <class T>
+class OTVole : public OTVoleBase<T>
 {
 
 public:
-    OTVole(int nbaseOTs, int baseLength,
+    OTVole(int S, int nbaseOTs, int baseLength,
                 int nloops, int nsubloops,
                 TwoPartyPlayer* player,
                 const BitVector& baseReceiverInput,
@@ -74,16 +79,12 @@ public:
                 const vector<BitVector>& baseReceiverOutput,
                 OT_ROLE role=BOTH,
                 bool passive=false)
-    : OTVoleBase<T, U>(nbaseOTs, baseLength, nloops, nsubloops, player, baseReceiverInput,
+    : OTVoleBase<T>(S, nbaseOTs, baseLength, nloops, nsubloops, player, baseReceiverInput,
             baseSenderInput, baseReceiverOutput, INV_ROLE(role), passive) {
     }
 
-protected:
-
-    Row<T> tmp;
-
-    void consistency_check(vector<octetStream>& os);
-
+    int n_challenges() { return NUM_VOLE_CHALLENGES; }
+    int get_challenge(PRNG& G, int) { return G.get_uint(this->S); }
 };
 
 #endif

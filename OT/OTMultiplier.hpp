@@ -44,12 +44,21 @@ template<class T>
 TinyMultiplier<T>::TinyMultiplier(OTTripleGenerator<T>& generator,
         int thread_num) :
         OTMultiplier<T>(generator, thread_num),
-        mac_vole(
+        mac_vole(T::part_type::mac_key_type::N_BITS,
                 128, 128, 0, 1,
                 generator.players[thread_num],
                 { },
                 { },
                 { }, BOTH, false)
+{
+    c_output.resize(generator.nTriplesPerLoop);
+}
+
+template<class T>
+TinierMultiplier<T>::TinierMultiplier(OTTripleGenerator<T>& generator,
+        int thread_num) :
+        OTMultiplier<T>(generator, thread_num),
+        auth_ot_ext(128, 128, 0, 1, generator.players[thread_num], {}, {}, {}, BOTH, true)
 {
     c_output.resize(generator.nTriplesPerLoop);
 }
@@ -60,11 +69,11 @@ Spdz2kMultiplier<K, S>::Spdz2kMultiplier(OTTripleGenerator<Spdz2kShare<K, S>>& g
         (generator, thread_num)
 {
 #ifdef USE_OPT_VOLE
-		mac_vole = new OTVole<Z2<MAC_BITS>, Z2<S>>(128, 128, 0, 1, generator.players[thread_num], {}, {}, {}, BOTH, false);
-		input_mac_vole = new OTVole<Z2<K + S>, Z2<S>>(128, 128, 0, 1, generator.players[thread_num], {}, {}, {}, BOTH, false);
+		mac_vole = new OTVole<Z2<MAC_BITS>>(S, 128, 128, 0, 1, generator.players[thread_num], {}, {}, {}, BOTH, false);
+		input_mac_vole = new OTVole<Z2<K + S>>(S, 128, 128, 0, 1, generator.players[thread_num], {}, {}, {}, BOTH, false);
 #else
-		mac_vole = new OTVoleBase<Z2<MAC_BITS>, Z2<S>>(128, 128, 0, 1, generator.players[thread_num], {}, {}, {}, BOTH, false);
-		input_mac_vole = new OTVoleBase<Z2<K + S>, Z2<S>>(128, 128, 0, 1, generator.players[thread_num], {}, {}, {}, BOTH, false);
+		mac_vole = new OTVoleBase<Z2<MAC_BITS>>(S, 128, 128, 0, 1, generator.players[thread_num], {}, {}, {}, BOTH, false);
+		input_mac_vole = new OTVoleBase<Z2<K + S>>(S, 128, 128, 0, 1, generator.players[thread_num], {}, {}, {}, BOTH, false);
 #endif
 }
 
@@ -200,6 +209,33 @@ void TinyMultiplier<T>::init_authenticator(const BitVector& keyBits,
     mac_vole.init(keyBits, senderOutput, receiverOutput);
 }
 
+template <class T>
+void TinierMultiplier<T>::init_authenticator(const BitVector& keyBits,
+        const vector< vector<BitVector> >& senderOutput,
+        const vector<BitVector>& receiverOutput)
+{
+    auto tmpBits = keyBits;
+    tmpBits.resize_zero(128);
+    auto tmpSenderOutput = senderOutput;
+    tmpSenderOutput.resize(128);
+    SeededPRNG G;
+    for (auto& x : tmpSenderOutput)
+    {
+        x.resize(2);
+        for (auto& y : x)
+            if (y.size() == 0)
+            {
+                y.resize(128);
+                y.randomize(G);
+            }
+    }
+    auto tmpReceiverOutput = receiverOutput;
+    tmpReceiverOutput.resize(128);
+    for (auto& y : tmpReceiverOutput)
+        y.resize_zero(128);
+    auth_ot_ext.init(tmpBits, tmpSenderOutput, tmpReceiverOutput);
+}
+
 template <int K, int S>
 void Spdz2kMultiplier<K, S>::init_authenticator(const BitVector& keyBits,
 		const vector< vector<BitVector> >& senderOutput,
@@ -301,6 +337,33 @@ void TinyMultiplier<T>::after_correlation()
     this->outbox.push(job);
 }
 
+template <class T>
+void TinierMultiplier<T>::after_correlation()
+{
+    this->auth_ot_ext.set_role(BOTH);
+
+    this->otCorrelator.reduce_squares(this->generator.nTriplesPerLoop,
+            this->c_output);
+
+    this->outbox.push({});
+
+    this->macs.resize(3);
+    MultJob job;
+    this->inbox.pop(job);
+    for (int j = 0; j < 3; j++)
+    {
+        auth_ot_ext.expand_correlate_unchecked(this->generator.valueBits[j]);
+        auth_ot_ext.transpose();
+        this->macs[j].clear();
+        for (size_t i = 0; i < this->generator.valueBits[j].size(); i++)
+            this->macs[j].push_back(
+                    int128(
+                            auth_ot_ext.receiverOutputMatrix[i]
+                                    ^ auth_ot_ext.senderOutputMatrices[0][i]).get_lower());
+    }
+    this->outbox.push(job);
+}
+
 template <int K, int S>
 void Spdz2kMultiplier<K, S>::after_correlation()
 {
@@ -340,18 +403,21 @@ void Spdz2kMultiplier<K, S>::after_correlation()
 }
 
 template<>
+inline
 void OTMultiplier<Share<gfp1>>::multiplyForBits()
 {
     multiplyForTriples();
 }
 
 template<>
+inline
 void OTMultiplier<Share<gf2n_long>>::multiplyForBits()
 {
     multiplyForGf2nBits();
 }
 
 template<>
+inline
 void OTMultiplier<Share<gf2n_short>>::multiplyForBits()
 {
     multiplyForGf2nBits();
@@ -444,6 +510,29 @@ void Spdz2kMultiplier<K, S>::multiplyForInputs(MultJob job)
     if (mine)
         this->inbox.pop();
     input_mac_vole->evaluate(this->input_macs, job.n_inputs, this->generator.valueBits[0]);
+    this->outbox.push(job);
+}
+
+template<class U>
+void TinierMultiplier<U>::multiplyForInputs(MultJob job)
+{
+    assert(job.input);
+    auto& generator = this->generator;
+    bool mine = job.player == generator.my_num;
+    auth_ot_ext.set_role(mine ? RECEIVER : SENDER);
+    if (mine)
+        this->inbox.pop();
+    assert(not mine or job.n_inputs <= (int)generator.valueBits[0].size());
+    auth_ot_ext.expand_correlate_unchecked(generator.valueBits[0], job.n_inputs);
+    auth_ot_ext.transpose();
+    auto& input_macs = this->input_macs;
+    input_macs.resize(job.n_inputs);
+    if (mine)
+        for (int j = 0; j < job.n_inputs; j++)
+            input_macs[j] = int128(auth_ot_ext.receiverOutputMatrix[j]).get_lower();
+    else
+        for (int j = 0; j < job.n_inputs; j++)
+            input_macs[j] = int128(auth_ot_ext.senderOutputMatrices[0][j]).get_lower();
     this->outbox.push(job);
 }
 

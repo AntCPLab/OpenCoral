@@ -15,6 +15,7 @@ using namespace std;
 #include "FHE/NTL-Subs.h"
 #include "Tools/ezOptionParser.h"
 #include "Tools/mkpath.h"
+#include "Tools/Signal.h"
 #include "Math/Setup.h"
 
 #include "Protocols/MAC_Check.hpp"

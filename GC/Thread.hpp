@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef GC_THREAD_HPP_
+#define GC_THREAD_HPP_
+
 #include "Thread.h"
 #include "Program.h"
 
@@ -24,7 +27,7 @@ void* Thread<T>::run_thread(void* thread)
 template<class T>
 Thread<T>::Thread(int thread_num, ThreadMaster<T>& master) :
         master(master), machine(master.machine), processor(machine),
-        protocol(0), N(master.N), P(0),
+        N(master.N), P(0),
         thread_num(thread_num)
 {
     pthread_create(&thread, 0, run_thread, this);
@@ -33,12 +36,8 @@ Thread<T>::Thread(int thread_num, ThreadMaster<T>& master) :
 template<class T>
 Thread<T>::~Thread()
 {
-    if (MC)
-        delete MC;
     if (P)
         delete P;
-    if (protocol)
-        delete protocol;
 }
 
 template<class T>
@@ -47,13 +46,12 @@ void Thread<T>::run()
     if (singleton)
          throw runtime_error("there can only be one");
     singleton = this;
+    BaseMachine::s().thread_num = thread_num;
     secure_prng.ReSeed();
     if (machine.use_encryption)
         P = new CryptoPlayer(N, thread_num << 16);
     else
         P = new PlainPlayer(N, thread_num << 16);
-    protocol = new typename T::Protocol(*P);
-    MC = this->new_mc();
     processor.open_input_file(N.my_num(), thread_num);
     done.push(0);
     pre_run();
@@ -67,7 +65,6 @@ void Thread<T>::run()
     }
 
     post_run();
-    MC->Check(*P);
 }
 
 template<class T>
@@ -104,3 +101,5 @@ int GC::Thread<T>::n_interactive_inputs_from_me(InputArgList& args)
 }
 
 } /* namespace GC */
+
+#endif

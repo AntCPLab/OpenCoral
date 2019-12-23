@@ -19,7 +19,7 @@ namespace GC {
 #include "instructions.h"
 
 template <class T>
-inline bool fallback_code(const Instruction<T>& instruction, Processor<T>& processor)
+inline bool fallback_code(const Instruction& instruction, Processor<T>& processor)
 {
     (void)processor;
     cout << "Undefined instruction " << showbase << hex
@@ -27,9 +27,8 @@ inline bool fallback_code(const Instruction<T>& instruction, Processor<T>& proce
     return true;
 }
 
-template <class T>
-template <class U>
-MAYBE_INLINE bool Instruction<T>::execute(Processor<T>& processor,
+template <class T, class U>
+MAYBE_INLINE bool Instruction::execute(Processor<T>& processor,
         U& dynamic_memory) const
 {
 #ifdef DEBUG_OPS

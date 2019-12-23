@@ -197,6 +197,11 @@ class set_by_id(object):
     def add(self, value):
         self.content[id(value)] = value
 
+    def __ior__(self, values):
+        for value in values:
+            self.add(value)
+        return self
+
 class dict_by_id(object):
     def __init__(self):
         self.content = {}

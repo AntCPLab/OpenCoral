@@ -16,15 +16,16 @@ template<class T> class Beaver;
 namespace GC
 {
 
+template<class T> class ShareThread;
+
 class SemiPrep : public BufferPrep<SemiSecret>, ShiftableTripleBuffer<SemiSecret>
 {
-    Thread<SemiSecret>& thread;
-
     SemiSecret::TripleGenerator* triple_generator;
     MascotParams params;
 
 public:
-    SemiPrep(DataPositions& usage, Thread<SemiSecret>& thread);
+    SemiPrep(DataPositions& usage, ShareThread<SemiSecret>& thread);
+    SemiPrep(DataPositions& usage);
     ~SemiPrep();
 
     void set_protocol(Beaver<SemiSecret>& protocol);

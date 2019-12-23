@@ -47,6 +47,7 @@ class Zp_Data
   public:
 
   bigint       pr;
+  bigint       pr_half;
   mp_limb_t    mask;
   size_t       pr_byte_length;
   size_t       pr_bit_length;

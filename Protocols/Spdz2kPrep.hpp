@@ -40,7 +40,7 @@ void Spdz2kPrep<T>::set_protocol(typename T::Protocol& protocol)
     // just dummies
     bit_pos = DataPositions(proc->P.num_players());
     bit_DataF = new Sub_Data_Files<BitShare>(0, 0, "", bit_pos, 0);
-    bit_proc = new SubProcessor<BitShare>(proc->Proc, *bit_MC, *bit_DataF, proc->P);
+    bit_proc = new SubProcessor<BitShare>(*bit_MC, *bit_DataF, proc->P);
     bit_prep = new MascotPrep<BitShare>(bit_proc, bit_pos);
     bit_prep->params.amplify = false;
     bit_protocol = new typename BitShare::Protocol(proc->P);
@@ -88,7 +88,7 @@ void bits_from_square_in_ring(vector<T>& bits, int buffer_size, U* bit_prep)
     assert(bit_proc != 0);
     auto bit_MC = &bit_proc->MC;
     vector<BitShare> squares, random_shares;
-    BitShare one(1, bit_proc->P.my_num(), bit_MC->get_alphai());
+    auto one = BitShare::constant(1, bit_proc->P.my_num(), bit_MC->get_alphai());
     for (int i = 0; i < buffer_size; i++)
     {
         BitShare a, a2;
@@ -107,6 +107,14 @@ void bits_from_square_in_ring(vector<T>& bits, int buffer_size, U* bit_prep)
         bits.push_back(tmp >> 1);
     }
     bit_MC->Check(bit_proc->P);
+}
+
+template<class T>
+void Spdz2kPrep<T>::get_dabit(T& a, GC::TinySecret<T::s>& b)
+{
+    this->get_one(DATA_BIT, a);
+    b.resize_regs(1);
+    b.get_reg(0) = Spdz2kShare<1, T::s>(a);
 }
 
 template<class T>

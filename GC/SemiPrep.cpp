@@ -15,8 +15,13 @@
 namespace GC
 {
 
-SemiPrep::SemiPrep(DataPositions& usage, Thread<SemiSecret>& thread) :
-        BufferPrep<SemiSecret>(usage), thread(thread), triple_generator(0)
+SemiPrep::SemiPrep(DataPositions& usage, ShareThread<SemiSecret>&) :
+        SemiPrep(usage)
+{
+}
+
+SemiPrep::SemiPrep(DataPositions& usage) :
+        BufferPrep<SemiSecret>(usage), triple_generator(0)
 {
 }
 
@@ -25,9 +30,9 @@ void SemiPrep::set_protocol(Beaver<SemiSecret>& protocol)
     (void) protocol;
     params.set_passive();
     triple_generator = new SemiSecret::TripleGenerator(
-            thread.processor.machine.ot_setups.at(thread.thread_num).get_fresh(),
-            thread.master.N, thread.thread_num, thread.master.opts.batch_size,
-            1, params, {}, thread.P);
+            BaseMachine::s().fresh_ot_setup(),
+            protocol.P.N, -1, OnlineOptions::singleton.batch_size,
+            1, params, {}, &protocol.P);
     triple_generator->multi_threaded = false;
 }
 
@@ -50,6 +55,7 @@ SemiPrep::~SemiPrep()
 
 void SemiPrep::buffer_bits()
 {
+    auto& thread = Thread<SemiSecret>::s();
     word r = thread.secure_prng.get_word();
     for (size_t i = 0; i < sizeof(word) * 8; i++)
         this->bits.push_back((r >> i) & 1);

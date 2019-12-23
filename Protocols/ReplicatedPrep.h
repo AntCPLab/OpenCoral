@@ -9,6 +9,7 @@
 #include "Networking/Player.h"
 #include "Processor/Data_Files.h"
 #include "Protocols/Rep3Share.h"
+#include "Protocols/ShuffleSacrifice.h"
 #include "Math/gfp.h"
 
 #include <array>
@@ -27,6 +28,8 @@ protected:
     vector<T> bits;
     vector<vector<InputTuple<T>>> inputs;
 
+    vector<dabit<T>> dabits;
+
     int n_bit_rounds;
 
     virtual void buffer_triples() = 0;
@@ -37,6 +40,8 @@ protected:
 
     // don't call this if T::Input requires input tuples
     void buffer_inputs_as_usual(int player, SubProcessor<T>* proc);
+
+    virtual void buffer_dabits() { throw runtime_error("no daBits"); }
 
 public:
     typedef T share_type;
@@ -60,11 +65,16 @@ public:
             int vector_size);
 
     T get_random_from_inputs(int nplayers);
+
+    virtual void get_dabit(T& a, typename T::bit_type& b);
 };
 
 template<class T>
 class RingPrep : public BufferPrep<T>
 {
+    void buffer_ring_bits_without_check(vector<T>& bits, PRNG& G,
+            int buffer_size);
+
 protected:
     template<class U> friend class MaliciousRepPrep;
 
@@ -73,10 +83,14 @@ protected:
 
     int base_player;
 
+    size_t sent;
+
     void buffer_squares();
     void buffer_inverses() { throw runtime_error("not inverses in rings"); }
 
     void buffer_bits_without_check();
+    void buffer_dabits_without_check(vector<dabit<T>>& dabits,
+            int buffer_size = -1);
 
 public:
     RingPrep(SubProcessor<T>* proc, DataPositions& usage);
@@ -87,6 +101,8 @@ public:
     vector<T>& get_bits() { return this->bits; }
 
     void set_protocol(typename T::Protocol& protocol);
+
+    virtual size_t data_sent() { return sent; }
 };
 
 template<class T>
@@ -100,6 +116,9 @@ public:
     virtual void buffer_bits() { this->buffer_bits_without_check(); }
     virtual void buffer_inputs(int player)
     { this->buffer_inputs_as_usual(player, this->proc); }
+
+    virtual void buffer_dabits()
+    { this->buffer_dabits_without_check(this->dabits); }
 };
 
 template<class T>
@@ -111,6 +130,7 @@ public:
     virtual ~MaliciousRingPrep() {}
 
     virtual void buffer_bits();
+    virtual void buffer_dabits();
 };
 
 template<class T>

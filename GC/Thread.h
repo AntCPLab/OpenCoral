@@ -34,8 +34,6 @@ public:
     ThreadMaster<T>& master;
     Machine<T>& machine;
     Processor<T> processor;
-    typename T::MC* MC;
-    typename T::Protocol* protocol;
     Names& N;
     Player* P;
     PRNG secure_prng;
@@ -49,8 +47,6 @@ public:
 
     Thread(int thread_num, ThreadMaster<T>& master);
     virtual ~Thread();
-
-    virtual typename T::MC* new_mc() { return T::new_mc(machine); }
 
     void run();
     virtual void pre_run() {}
@@ -72,7 +68,8 @@ Thread<T>& Thread<T>::s()
     if (singleton)
         return *singleton;
     else
-        throw runtime_error("no singleton");
+        throw runtime_error(
+                "no singleton / not implemented with arithmetic VMs");
 }
 
 } /* namespace GC */

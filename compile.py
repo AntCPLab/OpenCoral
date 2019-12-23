@@ -68,6 +68,8 @@ def main():
     parser.add_option("-b", "--budget", dest="budget", default=100000,
                       help="set budget for optimized loop unrolling "
                       "(default: 100000)")
+    parser.add_option("-X", "--mixed", action="store_true", dest="mixed",
+                      help="mixing arithmetic and binary computation")
     options,args = parser.parse_args()
     if len(args) < 1:
         parser.print_help()

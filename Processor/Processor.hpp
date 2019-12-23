@@ -7,6 +7,8 @@
 #include "Protocols/ReplicatedInput.hpp"
 #include "Protocols/ReplicatedPrivateOutput.hpp"
 #include "Processor/ProcessorBase.hpp"
+#include "GC/Processor.hpp"
+#include "GC/ShareThread.hpp"
 
 #include <sodium.h>
 #include <string>
@@ -14,6 +16,13 @@
 template <class T>
 SubProcessor<T>::SubProcessor(ArithmeticProcessor& Proc, typename T::MAC_Check& MC,
     Preprocessing<T>& DataF, Player& P) :
+    SubProcessor<T>(MC, DataF, P, &Proc)
+{
+}
+
+template <class T>
+SubProcessor<T>::SubProcessor(typename T::MAC_Check& MC,
+    Preprocessing<T>& DataF, Player& P, ArithmeticProcessor* Proc) :
     Proc(Proc), MC(MC), P(P), DataF(DataF), protocol(P), input(*this, MC)
 {
   DataF.set_proc(this);
@@ -28,6 +37,7 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
 : ArithmeticProcessor(machine.opts, thread_num),DataF(machine, &Procp, &Proc2),P(P),
   MC2(MC2),MCp(MCp),machine(machine),
   Proc2(*this,MC2,DataF.DataF2,P),Procp(*this,MCp,DataF.DataFp,P),
+  Procb(machine.bit_memories), share_thread(machine.get_N(), machine.opts),
   privateOutput2(Proc2),privateOutputp(Procp),
   external_clients(ExternalClients(P.my_num(), machine.prep_dir_prefix)),
   binary_file_io(Binary_File_IO())
@@ -46,6 +56,8 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
   shared_prng.SeedGlobally(P);
 
   out.activate(P.my_num() == 0 or machine.opts.interactive);
+
+  share_thread.pre_run(P, machine.get_bit_mac_key());
 }
 
 
@@ -86,6 +98,22 @@ void Processor<sint, sgf2n>::reset(const Program& program,int arg)
   Procp.resize(reg_maxp);
   Ci.resize(reg_maxi);
   this->arg = arg;
+  Procb.reset(program);
+}
+
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::dabit(const Instruction& instruction)
+{
+  int size = instruction.get_size();
+  assert(size <= sint::bit_type::clear::n_bits);
+  auto& bin = Procb.S[instruction.get_r(1)];
+  bin = {};
+  for (int i = 0; i < size; i++)
+  {
+    typename sint::bit_type tmp;
+    Procp.DataF.get_dabit(Procp.get_S_ref(instruction.get_r(0) + i), tmp);
+    bin ^= tmp << i;
+  }
 }
 
 #include "Networking/sockets.h"
@@ -419,8 +447,11 @@ void SubProcessor<T>::POpen(const vector<int>& reg,const Player& P,int size)
         }
     }
 
-  Proc.sent += reg.size() * size;
-  Proc.rounds++;
+  if (Proc != 0)
+    {
+      Proc->sent += reg.size() * size;
+      Proc->rounds++;
+    }
 }
 
 template<class T>

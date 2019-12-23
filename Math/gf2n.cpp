@@ -1,5 +1,6 @@
 
 #include "Math/gf2n.h"
+#include "Math/Bit.h"
 
 #include "Exceptions/Exceptions.h"
 
@@ -247,6 +248,11 @@ void gf2n_short::mul(const gf2n_short& x,const gf2n_short& y)
     }
 
   reduce(hi,lo);
+}
+
+gf2n_short gf2n_short::operator*(const Bit& x) const
+{
+  return x.get() * a;
 }
 
 

@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef GC_THREADMASTER_HPP_
+#define GC_THREADMASTER_HPP_
+
 #include "ThreadMaster.h"
 #include "Program.h"
 
@@ -20,7 +23,7 @@ ThreadMaster<T>& ThreadMaster<T>::s()
     if (singleton)
         return *singleton;
     else
-        throw runtime_error("no singleton, maybe threads not supported");
+        throw no_singleton("no singleton, maybe threads not supported");
 }
 
 template<class T>
@@ -107,3 +110,5 @@ void ThreadMaster<T>::run()
 }
 
 } /* namespace GC */
+
+#endif

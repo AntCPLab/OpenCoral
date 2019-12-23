@@ -16,10 +16,16 @@ namespace GC
 {
 
 template<class T>
-RepPrep<T>::RepPrep(DataPositions& usage, Thread<T>& thread) :
-        BufferPrep<T>(usage), protocol(0)
+RepPrep<T>::RepPrep(DataPositions& usage, ShareThread<T>& thread) :
+        RepPrep<T>(usage)
 {
     (void) thread;
+}
+
+template<class T>
+RepPrep<T>::RepPrep(DataPositions& usage) :
+        BufferPrep<T>(usage), protocol(0)
+{
 }
 
 template<class T>
@@ -39,7 +45,7 @@ template<class T>
 void RepPrep<T>::buffer_triples()
 {
     assert(protocol != 0);
-    auto MC = ShareThread<T>::s().new_mc();
+    auto MC = ShareThread<T>::s().new_mc({});
     shuffle_triple_generation(this->triples, protocol->P, *MC, 64);
     delete MC;
 }

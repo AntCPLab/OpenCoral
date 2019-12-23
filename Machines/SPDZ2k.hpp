@@ -4,6 +4,7 @@
  */
 
 #include "Protocols/Spdz2kShare.h"
+#include "Protocols/Spdz2kPrep.h"
 
 #include "Processor/Data_Files.hpp"
 #include "Processor/Instruction.hpp"

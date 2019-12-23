@@ -22,8 +22,8 @@ T& operator*=(const T& y, const bool& x) { y = x ? y : T(); return y; }
 
 //template <class T, class U>
 //T& operator+=(T& x, const U& y) { x.add(y); return x; }
-template <class T>
-T& operator*=(T& x, const T& y) { x.mul(y); return x; }
+//template <class T>
+//T& operator*=(T& x, const T& y) { x.mul(y); return x; }
 //template <class T, class U>
 //T& operator-=(T& x, const U& y) { x.sub(y); return x; }
 

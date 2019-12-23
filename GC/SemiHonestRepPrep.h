@@ -15,8 +15,12 @@ namespace GC
 class SemiHonestRepPrep : public RepPrep<SemiHonestRepSecret>
 {
 public:
-    SemiHonestRepPrep(DataPositions& usage, Thread<SemiHonestRepSecret>& thread) :
-            RepPrep<SemiHonestRepSecret>(usage, thread)
+    SemiHonestRepPrep(DataPositions& usage, ShareThread<SemiHonestRepSecret>&) :
+            RepPrep<SemiHonestRepSecret>(usage)
+    {
+    }
+    SemiHonestRepPrep(DataPositions& usage) :
+            RepPrep<SemiHonestRepSecret>(usage)
     {
     }
 

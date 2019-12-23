@@ -5,6 +5,7 @@
 
 #include "Processor/config.h"
 #include "Protocols/Share.h"
+#include "GC/TinierSecret.h"
 
 #include "Player-Online.hpp"
 

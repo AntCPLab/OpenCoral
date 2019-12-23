@@ -9,6 +9,7 @@
 #include "Math/FixedVec.h"
 #include "Math/Integer.h"
 #include "Protocols/Replicated.h"
+#include "GC/ShareSecret.h"
 
 template<class T> class ReplicatedRingPrep;
 template<class T> class PrivateOutput;
@@ -29,6 +30,8 @@ public:
     typedef ::PrivateOutput<Rep3Share> PrivateOutput;
     typedef ReplicatedRingPrep<Rep3Share> LivePrep;
     typedef Rep3Share Honest;
+
+    typedef GC::SemiHonestRepSecret bit_type;
 
     const static bool needs_ot = false;
     const static bool dishonest_majority = false;

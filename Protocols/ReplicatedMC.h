@@ -31,6 +31,11 @@ public:
     void POpen_End(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
 
     void Check(const Player& P) { (void)P; }
+
+    ReplicatedMC& get_part_MC()
+    {
+        return *this;
+    }
 };
 
 #endif /* PROTOCOLS_REPLICATEDMC_H_ */

@@ -94,6 +94,7 @@ class Program(object):
         self.to_merge += [gc.ldmsdi, gc.stmsdi, gc.ldmsd, gc.stmsd, \
                           gc.stmsdci, gc.xors, gc.andrs, gc.ands, gc.inputb]
         self.use_trunc_pr = False
+        self.use_dabit = options.mixed
         Program.prog = self
         
         self.reset_values()
@@ -462,6 +463,7 @@ class Tape:
             self.purged = False
             self.n_rounds = 0
             self.n_to_merge = 0
+            self.defined_registers = None
 
         def __len__(self):
             return len(self.instructions)
@@ -502,9 +504,14 @@ class Tape:
             #print 'Basic block %d jumps to %d (%d)' % (next_block_index, jump_index, offset)
 
         def purge(self):
-            relevant = lambda inst: inst.add_usage is not \
-                       Compiler.instructions_base.Instruction.add_usage
+            def relevant(inst):
+                req_node = Tape.ReqNode('')
+                req_node.num = Tape.ReqNum()
+                inst.add_usage(req_node)
+                return req_node.num != {}
             self.usage_instructions = list(filter(relevant, self.instructions))
+            if len(self.usage_instructions) > 1000:
+                print('Retaining %d instructions' % len(self.usage_instructions))
             del self.instructions
             del self.defined_registers
             self.purged = True
@@ -899,7 +906,7 @@ class Tape:
         
         The 'value' property is for emulation.
         """
-        __slots__ = ["reg_type", "program", "i", "_is_active", \
+        __slots__ = ["reg_type", "program", "absolute_i", "relative_i", \
                          "size", "vector", "vectorbase", "caller", \
                          "can_eliminate"]
 
@@ -916,16 +923,16 @@ class Tape:
             if size is None:
                 size = Compiler.instructions_base.get_global_vector_size()
             self.size = size
+            self.vectorbase = self
+            self.relative_i = 0
             if i is not None:
                 self.i = i
             else:
                 self.i = program.reg_counter[reg_type]
                 program.reg_counter[reg_type] += size
             self.vector = []
-            self.vectorbase = self
             if value is not None:
                 self.value = value
-            self._is_active = False
             self.can_eliminate = True
             if Program.prog.DEBUG:
                 self.caller = [frame[1:] for frame in inspect.stack()[1:]]
@@ -934,9 +941,19 @@ class Tape:
             if self.i % 1000000 == 0 and self.i > 0:
                 print("Initialized %d registers at" % self.i, time.asctime())
 
+        @property
+        def i(self):
+            return self.vectorbase.absolute_i + self.relative_i
+
+        @i.setter
+        def i(self, value):
+            self.vectorbase.absolute_i = value - self.relative_i
+
         def set_size(self, size):
             if self.size == size:
                 return
+            elif not self.program.options.assemblymode:
+                raise CompilerError('Mismatch of instruction and register size')
             elif self.size == 1 and self.vectorbase is self:
                 if '%s%d' % (self.reg_type, self.i) in compilerLib.VARS:
                     # create vector register in assembly mode
@@ -955,10 +972,18 @@ class Tape:
             if self.vectorbase is not self:
                 raise CompilerError('Cannot assign one register' \
                                         'to several vectors')
+            self.relative_i = self.i - vectorbase.i
             self.vectorbase = vectorbase
 
-        def _new_by_number(self, i):
-            return Tape.Register(self.reg_type, self.program, size=1, i=i)
+        def _new_by_number(self, i, size=1):
+            return Tape.Register(self.reg_type, self.program, size=size, i=i)
+
+        def get_vector(self, base, size):
+            res = self._new_by_number(self.i + base, size=size)
+            res.set_vectorbase(self)
+            self.create_vector_elements()
+            res.vector = self.vector[base:base+size]
+            return res
 
         def create_vector_elements(self):
             if self.vector:
@@ -983,14 +1008,6 @@ class Tape:
         def __len__(self):
             return self.size
         
-        def activate(self):
-            """ Activating a register signals that it will at some point be used
-            in the program.
-            
-            Inactive registers are reserved for temporaries for CISC instructions. """
-            if not self._is_active:
-                self._is_active = True
-        
         @property
         def value(self):
             return self.program.reg_values[self.reg_type][self.i]
@@ -1000,10 +1017,6 @@ class Tape:
             while (len(self.program.reg_values[self.reg_type]) <= self.i):
                 self.program.reg_values[self.reg_type] += [0] * INIT_REG_MAX
             self.program.reg_values[self.reg_type][self.i] = val
-        
-        @property
-        def is_active(self):
-            return self._is_active
 
         @property
         def is_gf2n(self):

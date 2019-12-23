@@ -195,25 +195,25 @@ void NPartyTripleGenerator<T>::generate()
 template<class W>
 void NPartyTripleGenerator<W>::generateInputs(int player)
 {
-    typedef open_type T;
+    typedef typename W::input_type::share_type::open_type T;
 
     auto& nTriplesPerLoop = this->nTriplesPerLoop;
     auto& valueBits = this->valueBits;
     auto& share_prg = this->share_prg;
-    auto& field_size = this->field_size;
     auto& ot_multipliers = this->ot_multipliers;
     auto& nparties = this->nparties;
     auto& globalPlayer = this->globalPlayer;
 
     // extra value for sacrifice
-    int toCheck = nTriplesPerLoop + 1;
+    int toCheck = nTriplesPerLoop
+            + DIV_CEIL(W::mac_key_type::size_in_bits(), T::size_in_bits());
     this->signal_multipliers({player, toCheck});
     bool mine = player == globalPlayer.my_num();
     valueBits.resize(1);
 
     if (mine)
     {
-        valueBits[0].resize(toCheck * field_size);
+        valueBits[0].resize(toCheck * T::size_in_bits());
         valueBits[0].template randomize_blocks<T>(share_prg);
         this->signal_multipliers({});
     }
@@ -221,7 +221,7 @@ void NPartyTripleGenerator<W>::generateInputs(int player)
     this->wait_for_multipliers();
 
     GlobalPRNG G(globalPlayer);
-    Share<T> check_sum;
+    typename W::input_check_type check_sum;
     inputs.resize(toCheck);
     auto mac_key = this->get_mac_key();
     SemiInput<SemiShare<T>> input(0, globalPlayer);
@@ -236,7 +236,8 @@ void NPartyTripleGenerator<W>::generateInputs(int player)
     input.exchange();
     for (int j = 0; j < toCheck; j++)
     {
-        T share, mac_sum;
+        T share;
+        typename W::mac_type mac_sum;
         share = input.finalize(player);
         if (mine)
         {
@@ -250,11 +251,12 @@ void NPartyTripleGenerator<W>::generateInputs(int player)
             mac_sum = (ot_multipliers[i_thread])->input_macs[j];
         }
         inputs[j] = {{share, mac_sum}, secrets[j]};
-        check_sum += inputs[j].share * G.get<T>();
+        auto r = G.get<typename W::mac_key_type>();
+        check_sum += typename W::input_check_type(r * share, r * mac_sum);
     }
     inputs.resize(nTriplesPerLoop);
 
-    typename W::MAC_Check MC(mac_key);
+    typename W::input_check_type::MAC_Check MC(mac_key);
     MC.POpen(check_sum, globalPlayer);
     // use zero element because all is perfectly randomized
     MC.set_random_element({});
@@ -323,18 +325,21 @@ void MascotTripleGenerator<T>::generateBitsGf2n()
 }
 
 template<>
+inline
 void MascotTripleGenerator<Share<gf2n_long>>::generateBits()
 {
     generateBitsGf2n();
 }
 
 template<>
+inline
 void MascotTripleGenerator<Share<gf2n_short>>::generateBits()
 {
     generateBitsGf2n();
 }
 
 template<>
+inline
 void MascotTripleGenerator<Share<gfp1>>::generateBits()
 {
 	generateTriples();
@@ -740,7 +745,7 @@ void MascotTripleGenerator<Share<gfp1>>::generateBitsFromTriples(
         a_squared[i] = triples[i].a[0] * opened[i] - triples[i].c[0];
     MC.POpen_Begin(opened, a_squared, globalPlayer);
     MC.POpen_End(opened, a_squared, globalPlayer);
-    Share<gfp1> one(gfp1(1), globalPlayer.my_num(), MC.get_alphai());
+    auto one = Share<gfp1>::constant(1, globalPlayer.my_num(), MC.get_alphai());
     bits.clear();
     for (int i = 0; i < nTriplesPerLoop; i++)
     {
@@ -797,21 +802,25 @@ void OTTripleGenerator<T>::print_progress(int k)
     }
 }
 
+inline
 void GeneratorThread::lock()
 {
     pthread_mutex_lock(&mutex);
 }
 
+inline
 void GeneratorThread::unlock()
 {
     pthread_mutex_unlock(&mutex);
 }
 
+inline
 void GeneratorThread::signal()
 {
     pthread_cond_signal(&ready);
 }
 
+inline
 void GeneratorThread::wait()
 {
     if (multi_threaded)

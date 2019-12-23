@@ -9,7 +9,6 @@ using namespace std;
 
 #include "Protocols/Share.h"
 #include "Networking/Player.h"
-#include "Networking/ServerSocket.h"
 #include "Protocols/Summer.h"
 #include "Protocols/MAC_Check_Base.h"
 #include "Protocols/RandomPrep.h"
@@ -87,7 +86,7 @@ class MAC_Check_ : public TreeSum<typename U::open_type>, public MAC_Check_Base<
 
   public:
 
-  MAC_Check_(const typename T::Scalar& ai, int opening_sum = 10,
+  MAC_Check_(const typename U::mac_key_type::Scalar& ai, int opening_sum = 10,
       int max_broadcast = 10, int send_player = 0);
   virtual ~MAC_Check_();
 

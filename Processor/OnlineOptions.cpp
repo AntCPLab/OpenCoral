@@ -127,7 +127,7 @@ void OnlineOptions::finalize(ez::ezOptionParser& opt, int argc,
 
     if (allArgs.size() != 3u - opt.isSet("-p"))
     {
-        cerr << "ERROR: incorrect number of arguments to Player-Online.x\n";
+        cerr << "ERROR: incorrect number of arguments to " << argv[0] << endl;
         cerr << "Arguments given were:\n";
         for (unsigned int j = 1; j < allArgs.size(); j++)
             cout << "'" << *allArgs[j] << "'" << endl;

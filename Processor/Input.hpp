@@ -25,14 +25,14 @@ InputBase<T>::InputBase(ArithmeticProcessor* proc) :
 
 template<class T>
 Input<T>::Input(SubProcessor<T>& proc, MAC_Check& mc) :
-        InputBase<T>(&proc.Proc), proc(&proc), MC(mc), prep(proc.DataF), P(proc.P),
+        InputBase<T>(proc.Proc), proc(&proc), MC(mc), prep(proc.DataF), P(proc.P),
         shares(proc.P.num_players())
 {
 }
 
 template<class T>
 Input<T>::Input(SubProcessor<T>* proc, Player& P) :
-        InputBase<T>(&proc->Proc), proc(proc), MC(proc->MC), prep(proc->DataF), P(
+        InputBase<T>(proc->Proc), proc(proc), MC(proc->MC), prep(proc->DataF), P(
                 proc->P), shares(P.num_players())
 {
     assert (proc != 0);
@@ -207,11 +207,12 @@ void InputBase<T>::prepare(SubProcessor<T>& Proc, int player, const int* params,
         int size)
 {
     auto& input = Proc.input;
+    assert(Proc.Proc != 0);
     if (player == Proc.P.my_num())
     {
         for (int j = 0; j < size; j++)
         {
-            U tuple = Proc.Proc.template get_input<U>(Proc.Proc.use_stdin(),
+            U tuple = Proc.Proc->template get_input<U>(Proc.Proc->use_stdin(),
                     params);
             for (auto x : tuple.items)
                 input.add_mine(x);
@@ -247,7 +248,7 @@ void InputBase<T>::input(SubProcessor<T>& Proc,
 
     int n_from_me = 0;
 
-    if (Proc.Proc.use_stdin())
+    if (Proc.Proc and Proc.Proc->use_stdin())
     {
         for (size_t i = n_arg_tuple - 1; i < args.size(); i += n_arg_tuple)
             n_from_me += (args[i] == Proc.P.my_num()) * size;
@@ -293,7 +294,7 @@ void InputBase<T>::input_mixed(SubProcessor<T>& Proc, const vector<int>& args,
         case U::TYPE: \
             n_arg_tuple = U::N_DEST + U::N_PARAM + 2; \
             player = args[i + n_arg_tuple - 1]; \
-            if (type != last_type and Proc.Proc.use_stdin()) \
+            if (type != last_type and Proc.Proc and Proc.Proc->use_stdin()) \
                 cout << "Please input " << U::NAME << "s:" << endl; \
             prepare<U>(Proc, player, &args[i + U::N_DEST + 1], size); \
             break;

@@ -53,6 +53,7 @@ public:
 
 	static int size() { return N_BYTES; }
 	static int size_in_limbs() { return N_WORDS; }
+	static int size_in_bits() { return size() * 8; }
 	static int t() { return 0; }
 
 	static char type_char() { return 'R'; }
@@ -113,6 +114,8 @@ public:
 
 	Z2<K> operator/(const Z2& other) const { (void) other; throw not_implemented(); }
 
+	Z2<K> operator&(const Z2& other) const;
+
 	Z2<K>& operator+=(const Z2<K>& other);
 	Z2<K>& operator-=(const Z2<K>& other);
 
@@ -147,6 +150,9 @@ public:
 
 	void SHL(const Z2& a, const bigint& i) { *this = a << i.get_ui(); }
 	void SHR(const Z2& a, const bigint& i) { *this = a >> i.get_ui(); }
+
+	void SHL(const Z2& a, int i) { *this = a << i; }
+	void SHR(const Z2& a, int i) { *this = a >> i; }
 
 	void AND(const Z2& a, const Z2& b);
 	void OR(const Z2& a, const Z2& b);
@@ -348,10 +354,9 @@ ostream& operator<<(ostream& o, const SignedZ2<K>& x)
 }
 
 template<int K>
-inline void to_signed_bigint(bigint& res, const SignedZ2<K>& x, int n)
+void to_bigint(bigint& res, const SignedZ2<K>& a)
 {
-    bigint tmp = x;
-    to_signed_bigint(res, tmp, n);
+    res = a;
 }
 
 #endif /* MATH_Z2K_H_ */

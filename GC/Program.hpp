@@ -61,7 +61,7 @@ template <class T>
 void Program<T>::parse(istream& s)
 {
     p.resize(0);
-    Instruction<T> instr;
+    Instruction instr;
     s.peek();
     int pos = 0;
     CALLGRIND_STOP_INSTRUMENTATION;

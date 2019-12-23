@@ -20,7 +20,7 @@ template<class T, class U>
 void sacrifice(const vector<T>& check_triples, Player& P);
 
 template<class T>
-class MaliciousRepPrep : public BufferPrep<T>
+class MaliciousRepPrep : public MaliciousRingPrep<T>
 {
     template<class U> friend class MalRepRingPrep;
 
@@ -28,7 +28,8 @@ class MaliciousRepPrep : public BufferPrep<T>
 
     DataPositions honest_usage;
     ReplicatedPrep<typename T::Honest> honest_prep;
-    typename T::Honest::Protocol* replicated;
+    typename T::Honest::MAC_Check honest_mc;
+    SubProcessor<typename T::Honest>* honest_proc;
     typename T::MAC_Check MC;
     SubProcessor<T>* proc;
 
