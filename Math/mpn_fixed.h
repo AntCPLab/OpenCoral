@@ -110,10 +110,10 @@ inline mp_limb_t mpn_add_n_with_carry(mp_limb_t* res, const mp_limb_t* x, const 
         char carry = 0;
         for (int i = 0; i < n; i++)
 #if defined(__clang__)
-#if __clang_major__ < 8 || (defined(__APPLE__) && __clang_major__ < 11)
-            carry = __builtin_ia32_addcarry_u64(carry, x[i], y[i], (unsigned long long*)&res[i]);
-#else
+#if __has_builtin(__builtin_ia32_addcarryx_u64)
             carry = __builtin_ia32_addcarryx_u64(carry, x[i], y[i], (unsigned long long*)&res[i]);
+#else
+            carry = __builtin_ia32_addcarry_u64(carry, x[i], y[i], (unsigned long long*)&res[i]);
 #endif
 #else
             carry = _addcarryx_u64(carry, x[i], y[i], (unsigned long long*)&res[i]);
