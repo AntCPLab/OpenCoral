@@ -6,6 +6,7 @@ from .floatingpoint import two_power
 from . import comparison, floatingpoint
 import math
 from . import util
+from .util import is_zero, is_one
 import operator
 from functools import reduce
 
@@ -128,15 +129,15 @@ class _number(object):
         return self * self
 
     def __add__(self, other):
-        if other is 0:
+        if is_zero(other):
             return self
         else:
             return self.add(other)
 
     def __mul__(self, other):
-        if other is 0:
+        if is_zero(other):
             return 0
-        elif other is 1:
+        elif is_one(other):
             return self
         else:
             return self.mul(other)
@@ -1487,7 +1488,7 @@ class sgf2n(_secret, _gf2n):
         return self ^ cgf2n(2**program.galois_length - 1)
 
     def __xor__(self, other):
-        if other is 0:
+        if is_zero(other):
             return self
         else:
             return super(sgf2n, self).add(other)
@@ -1588,7 +1589,7 @@ class _bitint(object):
                               get_carry=False):
         lower = []
         for (ai,bi) in zip(a,b):
-            if ai is 0 or bi is 0:
+            if is_zero(ai) or is_zero(bi):
                 lower.append(ai + bi)
                 a.pop(0)
                 b.pop(0)
@@ -2590,7 +2591,7 @@ class unreduced_sfix(_single):
         self.kappa = kappa
 
     def __add__(self, other):
-        if other is 0:
+        if is_zero(other):
             return self
         assert self.k == other.k
         assert self.m == other.m
@@ -2722,7 +2723,7 @@ class _unreduced_squant(object):
         self.res_params = res_params or params[0]
 
     def __add__(self, other):
-        if other is 0:
+        if is_zero(other):
             return self
         assert self.params == other.params
         assert self.res_params == other.res_params
@@ -3340,7 +3341,7 @@ class Array(object):
         self.assign(self.value_type.get_input_from(player, size=len(self)))
 
     def __add__(self, other):
-        if other is 0:
+        if is_zero(other):
             return self
         assert len(self) == len(other)
         return self.get_vector() + other
@@ -3451,7 +3452,7 @@ class SubMultiArray(object):
         return res
 
     def __add__(self, other):
-        if other is 0:
+        if is_zero(other):
             return self
         assert self.sizes == other.sizes
         if len(self.sizes) == 2:

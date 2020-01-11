@@ -3,6 +3,7 @@ import mpc_math, math
 from Compiler.types import *
 from Compiler.types import _unreduced_squant
 from Compiler.library import *
+from Compiler.util import is_zero
 from functools import reduce
 
 def log_e(x):
@@ -470,7 +471,7 @@ class QuantConv2d(QuantConvBase):
                             in_x = in_x_origin + filter_x
                             inside_x = (0 <= in_x) * (in_x < inputs_w)
                             inside = inside_y * inside_x
-                            if inside is 0:
+                            if is_zero(inside):
                                 continue
                             for in_c in range(n_channels_in):
                                 iv += [self.X[0][in_y * inside_y]
@@ -530,7 +531,7 @@ class QuantDepthwiseConv2d(QuantConvBase):
                                 in_y = in_y_origin + filter_y
                                 inside = (0 <= in_x) * (in_x < inputs_w) * \
                                          (0 <= in_y) * (in_y < inputs_h)
-                                if inside is 0:
+                                if is_zero(inside):
                                     continue
                                 iv += [self.X[0][in_y][in_x][in_c]]
                                 wv += [self.weights[0][filter_y][filter_x][oc]]

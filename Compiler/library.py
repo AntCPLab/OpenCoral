@@ -1,6 +1,6 @@
 from Compiler.types import cint,sint,cfix,sfix,sfloat,MPCThread,Array,MemValue,cgf2n,sgf2n,_number,_mem,_register,regint,Matrix,_types, cfloat, _single, localint
 from Compiler.instructions import *
-from Compiler.util import tuplify,untuplify
+from Compiler.util import tuplify,untuplify,is_zero
 from Compiler import instructions,instructions_base,comparison,program,util
 import inspect,math
 import random
@@ -834,7 +834,7 @@ def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
     if not (isinstance(n_parallel, int) or n_parallel is None):
         raise CompilerException('Number of parallel executions' \
                                     'must be constant')
-    n_parallel = 1 if n_parallel is 0 else n_parallel
+    n_parallel = 1 if is_zero(n_parallel) else n_parallel
     if mem_state is None:
         # default to list of MemValues to allow varying types
         mem_state = [MemValue(x) for x in initializer()]

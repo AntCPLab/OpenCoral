@@ -419,7 +419,7 @@ class sbitvec(object):
             self.v = sbits.trans(elements)
     def popcnt(self):
         res = sbitint.wallace_tree([[b] for b in self.v])
-        while res[-1] is 0:
+        while util.is_zero(res[-1]):
             del res[-1]
         return self.from_vec(res)
     def elements(self, start=None, stop=None):
@@ -622,7 +622,7 @@ class sbitint(_bitint, _number, sbits):
 
 class sbitintvec(sbitvec):
     def __add__(self, other):
-        if other is 0:
+        if util.is_zero(other):
             return self
         assert(len(self.v) == len(other.v))
         v = sbitint.bit_adder(self.v, other.v)

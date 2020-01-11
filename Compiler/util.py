@@ -151,10 +151,10 @@ def is_constant_float(x):
     return isinstance(x, float) or is_constant(x)
 
 def is_zero(x):
-    try:
-        return int(x) is 0
-    except:
-        return False
+    return is_constant(x) and x == 0
+
+def is_one(x):
+    return is_constant(x) and x == 1
 
 def is_all_ones(x, n):
     if is_constant(x):
