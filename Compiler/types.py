@@ -3615,6 +3615,7 @@ class _mem(_number):
     __sub__ = lambda self,other: self.read() - other
     __mul__ = lambda self,other: self.read() * other
     __truediv__ = lambda self,other: self.read() / other
+    __floordiv__ = lambda self,other: self.read() // other
     __mod__ = lambda self,other: self.read() % other
     __pow__ = lambda self,other: self.read() ** other
     __neg__ = lambda self,other: -self.read()
@@ -3634,6 +3635,7 @@ class _mem(_number):
     __rsub__ = lambda self,other: other - self.read()
     __rmul__ = lambda self,other: other * self.read()
     __rtruediv__ = lambda self,other: other / self.read()
+    __rfloordiv__ = lambda self,other: other // self.read()
     __rmod__ = lambda self,other: other % self.read()
     __rand__ = lambda self,other: other & self.read()
     __rxor__ = lambda self,other: other ^ self.read()
@@ -3642,7 +3644,8 @@ class _mem(_number):
     __iadd__ = lambda self,other: self.write(self.read() + other)
     __isub__ = lambda self,other: self.write(self.read() - other)
     __imul__ = lambda self,other: self.write(self.read() * other)
-    __idiv__ = lambda self,other: self.write(self.read() / other)
+    __itruediv__ = lambda self,other: self.write(self.read() / other)
+    __ifloordiv__ = lambda self,other: self.write(self.read() // other)
     __imod__ = lambda self,other: self.write(self.read() % other)
     __ipow__ = lambda self,other: self.write(self.read() ** other)
     __iand__ = lambda self,other: self.write(self.read() & other)
@@ -3654,7 +3657,8 @@ class _mem(_number):
     iadd = __iadd__
     isub = __isub__
     imul = __imul__
-    idiv = __idiv__
+    itruediv = __itruediv__
+    ifloordiv = __ifloordiv__
     imod = __imod__
     ipow = __ipow__
     iand = __iand__
