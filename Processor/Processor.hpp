@@ -64,6 +64,7 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
 template<class sint, class sgf2n>
 Processor<sint, sgf2n>::~Processor()
 {
+  share_thread.post_run();
 #ifdef VERBOSE
   if (sent)
     cerr << "Opened " << sent << " elements in " << rounds << " rounds" << endl;

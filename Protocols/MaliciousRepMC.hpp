@@ -64,6 +64,11 @@ void HashMaliciousRepMC<T>::reset()
 template<class T>
 HashMaliciousRepMC<T>::~HashMaliciousRepMC()
 {
+    if (needs_checking)
+    {
+        cerr << endl << "SECURITY BUG: insufficient checking" << endl;
+        terminate();
+    }
     free(hash_state);
 }
 

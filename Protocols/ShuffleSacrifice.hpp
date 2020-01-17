@@ -120,6 +120,7 @@ void ShuffleSacrifice<T>::dabit_sacrifice(vector<dabit<T> >& output,
 
     to_check.resize(N);
     output = to_check;
+    MCB.Check(P);
     delete &MCB;
 }
 

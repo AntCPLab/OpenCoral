@@ -43,6 +43,11 @@ MAC_Check_<U>::MAC_Check_(const typename U::mac_key_type::Scalar& ai, int openin
 template<class T>
 MAC_Check_<T>::~MAC_Check_()
 {
+  if (WaitingForCheck() > 0)
+    {
+      cerr << endl << "SECURITY BUG: insufficient checking" << endl;
+      terminate();
+    }
 }
 
 template<class U>

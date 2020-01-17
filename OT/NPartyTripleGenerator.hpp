@@ -745,6 +745,7 @@ void MascotTripleGenerator<Share<gfp1>>::generateBitsFromTriples(
         a_squared[i] = triples[i].a[0] * opened[i] - triples[i].c[0];
     MC.POpen_Begin(opened, a_squared, globalPlayer);
     MC.POpen_End(opened, a_squared, globalPlayer);
+    MC.Check(globalPlayer);
     auto one = Share<gfp1>::constant(1, globalPlayer.my_num(), MC.get_alphai());
     bits.clear();
     for (int i = 0; i < nTriplesPerLoop; i++)

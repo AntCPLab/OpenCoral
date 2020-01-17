@@ -47,6 +47,7 @@ void RepPrep<T>::buffer_triples()
     assert(protocol != 0);
     auto MC = ShareThread<T>::s().new_mc({});
     shuffle_triple_generation(this->triples, protocol->P, *MC, 64);
+    MC->Check(protocol->P);
     delete MC;
 }
 
