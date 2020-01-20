@@ -697,7 +697,7 @@ def loopy_chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=
                     store_in_mem(load_secret_mem(y), x)
             def outer(i):
                 def inner(j):
-                    base = j
+                    base = j + a_base + i * l
                     step = l // k
                     if k == 2:
                         tmp_addr = regint.load_mem(tmp_i)
@@ -706,11 +706,12 @@ def loopy_chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=
                         store_in_mem(tmp_addr + 2, tmp_i)
                     else:
                         def inner2(m):
+                            m += base
                             tmp_addr = regint.load_mem(tmp_i)
                             load_and_store(m, tmp_addr)
                             store_in_mem(tmp_addr + 1, tmp_i)
-                        range_loop(inner2, base + step, base + (k - 1) * step, step)
-                range_loop(inner, a_base + i * l, a_base + i * l + l // k)
+                        range_loop(inner2, step, (k - 1) * step, step)
+                range_loop(inner, l // k)
             instructions.program.curr_tape.merge_opens = False
             to_tmp = True
             store_in_mem(tmp_base, tmp_i)
