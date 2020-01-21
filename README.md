@@ -159,7 +159,10 @@ or `CONFIG.mine`.
 # Running computation
 
 See `Programs/Source/` for some example MPC programs, in particular
-`tutorial.mpc`.
+`tutorial.mpc`. Furthermore, [Read the
+Docs](https://mp-spdz.readthedocs.io/en/latest/) hosts a more
+detailed reference of the high-level functionality extracted from the
+Python code in the `Compiler` directory.
 
 ### Compiling high-level programs
 
