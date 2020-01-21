@@ -1,3 +1,8 @@
+"""
+This module defines functions directly available in high-level programs,
+in particularly providing flow control and output.
+"""
+
 from Compiler.types import cint,sint,cfix,sfix,sfloat,MPCThread,Array,MemValue,cgf2n,sgf2n,_number,_mem,_register,regint,Matrix,_types, cfloat, _single, localint
 from Compiler.instructions import *
 from Compiler.util import tuplify,untuplify,is_zero
@@ -49,7 +54,8 @@ def set_instruction_type(function):
 
 
 def print_str(s, *args):
-    """ Print a string, with optional args for adding variables/registers with %s """
+    """ Print a string, with optional args for adding
+    variables/registers with ``%s``. """
     def print_plain_str(ss):
         """ Print a plain string (no custom formatting options) """
         i = 1
@@ -91,11 +97,36 @@ def print_str(s, *args):
                     print_plain_str(str(val))
 
 def print_ln(s='', *args):
-    """ Print line, with optional args for adding variables/registers with %s """
+    """ Print line, with optional args for adding variables/registers
+    with ``%s``. By default only player 0 outputs, but the ``-I``
+    command-line option changes that.
+
+    :param s: Python string with same number of ``%s`` as length of :py:obj:`args`
+    :param args: list of public values (regint/cint/int/cfix/cfloat/localint)
+
+    Example:
+
+    .. code::
+
+        print_ln('a is %s.', a.reveal())
+    """
     print_str(s, *args)
     print_char('\n')
 
 def print_ln_if(cond, ss, *args):
+    """ Print line if :py:obj:`cond` is true. The further arguments
+    are treated as in :py:func:`print_str`/:py:func:`print_ln`.
+
+    :param cond: regint/cint/int/localint
+    :param ss: Python string
+    :param args: list of public values
+
+    Example:
+
+    .. code::
+
+        print_ln_if(get_player_id() == 0, 'Player 0 here')
+    """
     if util.is_constant(cond):
         if cond:
             print_ln(ss, *args)
@@ -118,15 +149,20 @@ def print_ln_if(cond, ss, *args):
                 s = s[4:]
 
 def print_float_precision(n):
+    """ Set the precision for floating-point printing.
+
+    :param n: number of digits (int) """
     print_float_prec(n)
 
 def runtime_error(msg='', *args):
-    """ Print an error message and abort the runtime. """
+    """ Print an error message and abort the runtime.
+    Parameters work as in :py:func:`print_ln` """
     print_str('User exception: ')
     print_ln(msg, *args)
     crash()
 
 def public_input():
+    """ Public input read from ``Programs/Public-Input/<progname>``. """
     res = regint()
     pubinput(res)
     return res
@@ -245,12 +281,14 @@ def get_random_int(bits, size=None):
 
 @vectorize
 def get_thread_number():
+    """ Returns the thread number. """
     res = regint()
     ldtn(res)
     return res
 
 @vectorize
 def get_arg():
+    """ Returns the thread argument. """
     res = regint()
     ldarg(res)
     return res
@@ -815,18 +853,66 @@ def range_loop(loop_body, start, stop=None, step=None):
                 lambda x: ((stop - start) // step) * x[0]
 
 def for_range(start, stop=None, step=None):
-    """ Execute loop bodies consecutively """
+    """
+    Decorator to execute loop bodies consecutively.  Arguments work as
+    in Python :py:func:`range`, but they can by any public
+    integer. Information has to be passed out via container types such
+    as :py:class:`Compiler.types.Array` or
+    :py:class:`Compiler.types.MemValue`.
+
+    :param start/stop/step: regint/cint/int
+
+    Example:
+
+    .. code::
+
+        a = sint.Array(n)
+        x = MemValue(sint(0))
+        @for_range(n)
+        def _(i):
+            a[i] = i
+            x.write(x + 1)
+    """
     def decorator(loop_body):
         range_loop(loop_body, start, stop, step)
         return loop_body
     return decorator
 
 def for_range_parallel(n_parallel, n_loops):
-    """ Execute up to n_parallel loop bodies in parallel """
+    """
+    Decorator to execute a loop :py:obj:`n_loops` up to
+    :py:obj:`n_parallel` loop bodies in parallel.
+
+    :param n_parallel: compile-time (int)
+    :param n_loops: regint/cint/int
+
+    Example:
+
+    .. code::
+
+        @for_range_parallel(n_parallel, n_loops)
+        def _(i):
+            a[i] = a[i] * a[i]
+    """
     return map_reduce_single(n_parallel, n_loops)
 
 def for_range_opt(n_loops, budget=None):
-    """ Execute loop bodies in parallel up to an optimization budget """
+    """ Execute loop bodies in parallel up to an optimization budget.
+    This prevents excessive loop unrolling. The budget is respected
+    even with nested loops.
+
+    :param n_loops: compile-time (int)
+    :param budget: number of instructions after which to start optimization (default is 100,000)
+    :type: compile-time (int)
+
+    Example:
+
+    .. code::
+
+        @for_range_opt(n)
+        def _(i):
+            ...
+    """
     return map_reduce_single(None, n_loops, budget=budget)
 
 def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
@@ -940,23 +1026,63 @@ def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
 
 def for_range_multithread(n_threads, n_parallel, n_loops, thread_mem_req={}):
     """
-    Execute loop bodies in up to n_threads threads,
-    up to n_parallel in parallel per thread
+    Execute :py:obj:`n_loops` loop bodies in up to :py:obj:`n_threads`
+    threads, up to :py:obj:`n_parallel` in parallel per thread.
+
+    :param n_threads/n_parallel: compile-time (int)
+    :param n_loops: regint/cint/int
+
     """
     return map_reduce(n_threads, n_parallel, n_loops, \
                           lambda *x: [], lambda *x: [], thread_mem_req)
 
 def for_range_opt_multithread(n_threads, n_loops):
     """
-    Execute loop bodies in up to n_threads threads,
-    in parallel up to an optimization budget per thread
+    Execute :py:obj:`n_loops` loop bodies in up to :py:obj:`n_threads`
+    threads, in parallel up to an optimization budget per thread
+    similar to :py:func:`for_range_opt`.
+
+    :param n_threads: compile-time (int)
+    :param n_loops: regint/cint/int
+
+    The following will execute loop bodies 0-9 in one thread, 10-19 in
+    another etc:
+
+    .. code::
+
+        @for_range_opt_multithread(8, 80)
+        def _(i):
+            ...
+
+    Multidimensional ranges are supported as well. The following
+    executes ``f(0, 0)`` to ``f(2, 0)`` in one thread and ``f(2, 1)``
+    to ``f(4, 2)`` in another.
+
+    .. code::
+
+        @for_range_opt_multithread(2, [5, 3])
+        def f(i, j):
+            ...
     """
     return for_range_multithread(n_threads, None, n_loops)
 
 def multithread(n_threads, n_items):
     """
-    Distribute the computation of n_items to n_threads threads,
-    but leave the in-thread repetition up to the user
+    Distribute the computation of :py:obj:`n_items` to
+    :py:obj:`n_threads` threads, but leave the in-thread repetition up
+    to the user.
+
+    :param n_threads: compile-time (int)
+    :param n_items: regint/cint/int
+
+    The following executes ``f(0, 8)``, ``f(8, 8)``, and
+    ``f(16, 9)`` in three different threads:
+
+    .. code::
+
+        @multithread(8, 25)
+        def f(base, size):
+            ...
     """
     return map_reduce(n_threads, None, n_items, initializer=lambda: [],
                       reducer=None, looping=False)
@@ -1047,6 +1173,23 @@ def map_sum(n_threads, n_parallel, n_loops, n_items, value_types):
     return map_reduce(n_threads, n_parallel, n_loops, initializer, summer)
 
 def foreach_enumerate(a):
+    """ Run-time loop over public data. This uses
+    ``Player-Data/Public-Input/<progname>``. Example:
+
+    .. code::
+
+        @foreach_enumerate([2, 8, 3])
+        def _(i, j):
+            print_ln('%s: %s', i, j)
+
+    This will output:
+
+    .. code::
+
+        0: 2
+        1: 8
+        2: 3
+    """
     for x in a:
         get_program().public_input(' '.join(str(y) for y in tuplify(x)))
     def decorator(loop_body):
@@ -1072,6 +1215,22 @@ def while_loop(loop_body, condition, arg):
         regint.pop()
 
 def while_do(condition, *args):
+    """ While-do loop. The decorator requires an initialization, and
+    the loop body function must return a suitable input for
+    :py:obj:`condition`.
+
+    :param condition: function returning public integer (regint/cint/int)
+    :param args: arguments given to :py:obj:`condition` and loop body
+
+    The following executes an ten-fold loop:
+
+    .. code::
+
+        @while_do(lambda x: x < 10, regint(0))
+        def f(i):
+            ...
+            return i + 1
+    """
     def decorator(loop_body):
         while_loop(loop_body, condition, *args)
         return loop_body
@@ -1091,6 +1250,16 @@ def do_loop(condition, loop_fn):
     regint.pop()
 
 def do_while(loop_fn):
+    """ Do-while loop. The loop is stopped if the return value is zero.
+    It must be public. The following executes exactly once:
+
+    .. code::
+
+        @do_while
+        def _():
+            ...
+            return regint(0)
+    """
     scope = instructions.program.curr_block
     parent_node = get_tape().req_node
     # possibly unknown loop count
@@ -1169,6 +1338,19 @@ def if_statement(condition, if_fn, else_fn=None):
         end_if()
 
 def if_(condition):
+    """
+    Conditional execution without else block.
+
+    :param condition: regint/cint/int
+
+    Usage:
+
+    .. code::
+
+        @if_(x > 0)
+        def _():
+            ...
+    """
     def decorator(body):
         if_then(condition)
         body()
@@ -1176,6 +1358,22 @@ def if_(condition):
     return decorator
 
 def if_e(condition):
+    """
+    Conditional execution with else block.
+
+    :param condition: regint/cint/int
+
+    Usage:
+
+    .. code::
+
+        @if_e(x > 0)
+        def _():
+            ...
+        @else_
+        def _():
+            ...
+    """
     def decorator(body):
         if_then(condition)
         body()
@@ -1223,26 +1421,46 @@ def not_(term):
     return lambda: 1 - term()
 
 def start_timer(timer_id=0):
+    """ Start timer. Timer 0 runs from the start of the program. The
+    total time of all used timers is output at the end. Fails if
+    already running.
+
+    :param timer_id: compile-time (int) """
     get_tape().start_new_basicblock(name='pre-start-timer')
     start(timer_id)
     get_tape().start_new_basicblock(name='post-start-timer')
 
 def stop_timer(timer_id=0):
+    """ Stop timer. Fails if not running.
+
+    :param timer_id: compile-time (int) """
     get_tape().start_new_basicblock(name='pre-stop-timer')
     stop(timer_id)
     get_tape().start_new_basicblock(name='post-stop-timer')
 
 def get_number_of_players():
+    """
+    :return: the number of players
+    :rtype: regint
+    """
     res = regint()
     nplayers(res)
     return res
 
 def get_threshold():
+    """ The threshold is the maximal number of corrupted
+    players.
+
+    :rtype: regint
+    """
     res = regint()
     threshold(res)
     return res
 
 def get_player_id():
+    """
+    :return: player number
+    :rtype: localint (cannot be used for computation) """
     res = localint()
     playerid(res._v)
     return res

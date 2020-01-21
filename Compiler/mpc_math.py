@@ -1,8 +1,11 @@
-##
-# @file
-# Arithmetic Module for Complex Math Operations
-#
-# Implements trigonometric and logarithmic functions.
+"""
+Module for math operations.
+
+Implements trigonometric and logarithmic functions.
+
+This has to imported explicitely.
+"""
+
 
 import math
 from Compiler import floatingpoint
@@ -207,26 +210,28 @@ def scos(w, s):
 
 # facade method calls --it is built in a generic way
 
-##
-# Returns the sin of any given fractional value.
-#
-# @param x: fractional input (sfix, sfloat).
-#
-# @return  returns the sin of x (sfix, sfloat).
 def sin(x):
+    """
+    Returns the sine of any given fractional value.
+
+    :param x: fractional input (sfix, sfloat)
+
+    :return: sin of :py:obj:`x` (sfix, sfloat)
+    """
     # reduces the angle to the [0,\pi/2) interval.
     w, b1, b2 = sTrigSub(x)
     # returns the sin with sign correction
     return ssin(w, b1)
 
 
-##
-# Returns the sin of any given fractional value.
-#
-# @param x: fractional input (sfix, sfloat).
-#
-# @return  returns the sin of x (sfix, sfloat).
 def cos(x):
+    """
+    Returns the cosine of any given fractional value.
+
+    :param x: fractional input (sfix, sfloat)
+
+    :return: cos of :py:obj:`x` (sfix, sfloat)
+    """
     # reduces the angle to the [0,\pi/2) interval.
     w, b1, b2 = sTrigSub(x)
 
@@ -234,13 +239,14 @@ def cos(x):
     return scos(w, b2)
 
 
-##
-# Returns the tan (sfix, sfloat) of any given fractional value.
-#
-# @param x: fractional input (sfix, sfloat).
-#
-# @return  returns the tan of x (sifx, sfloat).
 def tan(x):
+    """
+    Returns the tangent of any given fractional value.
+
+    :param x: fractional input (sfix, sfloat)
+
+    :return: tan of :py:obj:`x` (sfix, sfloat)
+    """
     # reduces the angle to the [0,\pi/2) interval.
     w, b1, b2 = sTrigSub(x)
     # calculates the sin and the cos.
@@ -251,13 +257,15 @@ def tan(x):
     return local_tan
 
 
-##
-# Returns the result of 2^a for any unbounded number
-# @param a: exponent for 2^a
-#
-# @return returns the value of 2^a if it is within the range
 @types.vectorize
 def exp2_fx(a):
+    """
+    Power of two for fixed-point numbers.
+
+    :param a: exponent for :math:`2^a` (sfix)
+
+    :return: :math:`2^a` if it is within the range. Undefined otherwise
+    """
     if types.program.options.ring:
         sint = types.sint
         intbitint = types.intbitint
@@ -314,17 +322,20 @@ def exp2_fx(a):
         return (1 - s) * g + s * ((types.sfix(1)) / g)
 
 
-##
-# Returns the result of log_2(x) for any unbounded number. This is
-# achieved by changing x into f*2^n where f is bounded by[0.5, 1].
-# Then the polynomials are used  to calculate the log_2 of f,
-# which is then just added to n.
-#
-# @param x: input for log_2 (sfix, sint).
-#
-# @return returns (sfix) the value of log2(X)
 @types.vectorize
 def log2_fx(x):
+    """
+    Returns the result of :math:`\log_2(x)` for any unbounded
+    number. This is achieved by changing :py:obj:`x` into
+    :math:`f \cdot 2^n` where f is bounded by :math:`[0.5, 1]`.  Then the
+    polynomials are used to calculate :math:`\log_2(f)`, which is then
+    just added to :math:`n`.
+
+    :param x: input for :math:`\log_2` (sfix, sint).
+
+    :return: (sfix) the value of :math:`\log_2(x)`
+
+    """
     if type(x) is types.sfix:
         # transforms sfix to f*2^n, where f is [o.5,1] bounded
         # obtain number bounded by [0,5 and 1] by transforming input to sfloat
@@ -347,17 +358,18 @@ def log2_fx(x):
     return a  # *(1-(f.z))*(1-f.s)*(1-f.error)
 
 
-##
-# Returns the value of the expression x^y where both inputs
-# are secret shared. It uses  log2_fx together with
-# exp2_fx to calcualte the expresion 2^{y*log2(x)}.
-#
-# @param x: (sfix) secret shared base.
-#
-# @param y: (sfix, clear types) secret shared exponent.
-#
-# @return returns the value of x^y
 def pow_fx(x, y):
+    """
+    Returns the value of the expression :math:`x^y` where both inputs
+    are secret shared. It uses  :py:func:`log2_fx` together with
+    :py:func:`exp2_fx` to calculate the expression :math:`2^{y \log_2(x)}`.
+
+    :param x: (sfix) secret shared base.
+
+    :param y: (sfix, clear types) secret shared exponent.
+
+    :return: :math:`x^y` (sfix)
+    """
     log2_x =0
     # obtains log2(x)
     if (type(x) == int or type(x) == float):
@@ -370,17 +382,19 @@ def pow_fx(x, y):
     return exp2_fx(exp)
 
 
-##
-# Returns the value of the expression log_b(x) where x is
-# secret shared. It uses log2_fx to calculate the expression
-# logb(2)*log2(x).
-#
-# @param x:(sfix, sint) secret shared coefficient for log.
-#
-# @param b:(int) base for log operation.
-#
-# @return returns (sfix) the value of logb(x).
 def log_fx(x, b):
+    """
+    Returns the value of the expression :math:`\log_b(x)` where
+    :py:obj:`x` is secret shared. It uses :py:func:`log2_fx` to
+    calculate the expression :math:`\log_b(2) \cdot \log_2(x)`.
+
+    :param x: (sfix, sint) secret shared coefficient for log.
+
+    :param b: (float) base for log operation.
+
+    :return: (sfix) the value of :math:`log_b(x)`.
+
+    """
     # calculates logb(2)
     logb_2 = math.log(2, b)
     # returns  logb(2) * log2(x)
@@ -673,19 +687,18 @@ def sqrt_fx(x_l, k, f):
 
     return g
 
-##
-# Returns the sqrt (sfix) of any given fractional
-# value as long as it can be rounded to a integral value
-# to 2^f precision.
-#
-# Note that sqrt only works as long as this inequality is respected:
-# 3*k - 2 *f < x.f (x.f by default is 20)
-# @param x: fractional input (sfix).
-#
-# @return  returns the aTan of x (sifx).
+
 @types.vectorize
 def sqrt(x, k = types.sfix.k, f = types.sfix.f):
+    """
+    Returns the square root (sfix) of any given fractional
+    value as long as it can be rounded to a integral value
+    with :py:obj:`f` bits of decimal precision.
 
+    :param x: fractional input (sfix).
+
+    :return:  square root of :py:obj:`x` (sfix).
+    """
     if (3 *k -2 * f >= types.sfix.f):
         return sqrt_simplified_fx(x)
         # raise OverflowError("bound for precision violated: 3 * k - 2 * f <  x.f ")
@@ -694,13 +707,14 @@ def sqrt(x, k = types.sfix.k, f = types.sfix.f):
         return sqrt_fx(param ,k ,f)
 
 
-##
-# Returns the aTan (sfix) of any given fractional value.
-#
-# @param x: fractional input (sfix).
-#
-# @return  returns the aTan of x (sifx).
 def atan(x):
+    """
+    Returns the arctangent (sfix) of any given fractional value.
+
+    :param x: fractional input (sfix).
+
+    :return:  arctan of :py:obj:`x` (sfix).
+    """
     # obtain absolute value of x
     s = x < 0
     x_abs  = (s * (-2) + 1) * x
@@ -726,13 +740,14 @@ def atan(x):
     return y
 
 
-##
-# Returns the aSin (sfix) of any given fractional value.
-#
-# @param x: fractional input (sfix). valid interval is -1.0 <= x <= 1
-#
-# @return  returns the aSin of x (sfix).
 def asin(x):
+    """
+    Returns the arcsine (sfix) of any given fractional value.
+
+    :param x: fractional input (sfix). valid interval is :math:`-1 \le x \le 1`
+
+    :return:  arcsin of :py:obj:`x` (sfix).
+    """
     # Square x
     x_2 = x*x
     # trignometric identities
@@ -741,12 +756,13 @@ def asin(x):
     return atan(x_sqrt_l)
 
 
-##
-# Returns the aCos (sfix) of any given fractional value.
-#
-# @param x: fractional input (sfix). -1.0 < x < 1
-#
-# @return  returns the aCos of x (sifx).
 def acos(x):
+    """
+    Returns the arccosine (sfix) of any given fractional value.
+
+    :param x: fractional input (sfix). :math:`-1 \le x \le 1`
+
+    :return:  arccos of :py:obj:`x` (sfix).
+    """
     y = asin(x)
     return pi_over_2 - y

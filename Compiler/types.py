@@ -1,3 +1,71 @@
+"""
+This module defines all types availabe in high-level programs.  These
+include basic types such as secret integers or floating-point numbers
+and container types. A single instance of the former uses one or more
+so-called registers in the virtual machine while the latter use the
+so-called memory.  For every register type, there is a corresponding
+dedicated memory.
+
+Registers are used for computation, allocated on an ongoing basis,
+and thread-specific. The memory is allocated statically and shared
+between threads. This means that memory-based types such as
+:py:class:`Array` can be used to transfer information between threads.
+
+The current way of implementing loops does not allow
+to transfer information out of loops with a register, therefore it's
+necessary to use memory-based types for that as well.
+
+If viewing this documentation in processed form, many function signatures
+appear generic because of the use of decorators. See the source code for the
+correct signature.
+
+Basic types
+-----------
+
+Basic types contain many special methods such as :py:func:`__add__`. This is
+used for operator overloading in Python. In some operations such as
+secure comparison, the secure computation protocols allows for more
+parameters than just the operands which influence the performance. In
+this case, we provide an alias for better code readability. For
+example, :meth:`sint.greater_than` is an alias of
+:py:meth:`sint.__gt__`. When using operator overloading, the
+parameters default to the globally defined ones.
+
+Methods of basic types generally return instances of the respective type.
+
+Note that the data model of Python operates with reverse operators
+such as :py:func:`__radd__`. This means that if for the usual operator of the
+first operand does not support the second operand, the reverse
+operator of the second operand is used. For example,
+:py:meth:`_clear.__sub__` does not support secret values as second
+operand but :py:meth:`_secret.__rsub__` does support clear values, so
+``cint(3) - sint(2)`` will result in a secret integer of value 1.
+
+.. autosummary::
+   :nosignatures:
+
+   sint
+   cint
+   regint
+   sfix
+   cfix
+   sfloat
+   sgf2n
+   cgf2n
+
+Container types
+---------------
+
+.. autosummary::
+   :nosignatures:
+
+   MemValue
+   Array
+   Matrix
+   MultiArray
+
+"""
+
 from Compiler.program import Tape
 from Compiler.exceptions import *
 from Compiler.instructions import *
@@ -48,6 +116,17 @@ class MPCThread(object):
         program.stop_thread(self)
 
 
+def copy_doc(a, b):
+    try:
+        a.__doc__ = b.__doc__
+    except:
+        pass
+
+def no_doc(operation):
+    def wrapper(*args, **kwargs):
+        return operation(*args, **kwargs)
+    return wrapper
+
 def vectorize(operation):
     def vectorized_operation(self, *args, **kwargs):
         if len(args):
@@ -58,6 +137,7 @@ def vectorize(operation):
         res = operation(self, *args, **kwargs)
         reset_global_vector_size()
         return res
+    copy_doc(vectorized_operation, operation)
     return vectorized_operation
 
 def vectorize_max(operation):
@@ -72,6 +152,7 @@ def vectorize_max(operation):
         res = operation(self, *args, **kwargs)
         reset_global_vector_size()
         return res
+    copy_doc(vectorized_operation, operation)
     return vectorized_operation
 
 def vectorized_classmethod(function):
@@ -86,6 +167,7 @@ def vectorized_classmethod(function):
         else:
             res = function(cls, *args, **kwargs)
         return res
+    copy_doc(vectorized_function, function)
     return classmethod(vectorized_function)
 
 def vectorize_init(function):
@@ -106,6 +188,7 @@ def vectorize_init(function):
         else:
             res = function(*args, **kwargs)
         return res
+    copy_doc(vectorized_init, function)
     return vectorized_init
 
 def set_instruction_type(operation):
@@ -114,6 +197,7 @@ def set_instruction_type(operation):
         res = operation(self, *args, **kwargs)
         reset_global_instruction_type()
         return res
+    copy_doc(instruction_typed_operation, operation)
     return instruction_typed_operation
 
 def read_mem_value(operation):
@@ -121,20 +205,30 @@ def read_mem_value(operation):
         if len(args) > 0 and isinstance(args[0], MemValue):
             args = (args[0].read(),) + args[1:]
         return operation(self, *args, **kwargs)
+    copy_doc(read_mem_operation, operation)
     return read_mem_operation
 
 
 class _number(object):
+    """ Number functionality. """
+
     def square(self):
+        """ Square. """
         return self * self
 
     def __add__(self, other):
+        """ Optimized addition.
+
+        :param other: any compatible type """
         if is_zero(other):
             return self
         else:
             return self.add(other)
 
     def __mul__(self, other):
+        """ Optimized multiplication.
+
+        :param other: any compatible type """
         if is_zero(other):
             return 0
         elif is_one(other):
@@ -147,6 +241,9 @@ class _number(object):
 
     @vectorize
     def __pow__(self, exp):
+        """ Exponentation through square-and-multiply.
+
+        :param exp: compile-time (int) """
         if isinstance(exp, int) and exp >= 0:
             if exp == 0:
                 return self.__class__(1)
@@ -170,17 +267,30 @@ class _number(object):
         return 2**self
 
     def min(self, other):
+        """ Minimum.
+
+        :param other: any compatible type """
         return (self < other).if_else(self, other)
 
     def max(self, other):
+        """ Maximum.
+
+        :param other: any compatible type """
         return (self < other).if_else(other, self)
 
 class _int(object):
+    """ Integer functionality. """
+
     @staticmethod
     def bit_adder(*args, **kwargs):
         return intbitint.bit_adder(*args, **kwargs)
 
     def if_else(self, a, b):
+        """ MUX on bit in arithmetic circuits.
+
+        :param a/b: any type supporting the necessary operations
+        :return: a if :py:obj:`self` is 1, b if :py:obj:`self` is 0, undefined otherwise
+        :rtype: depending on operands, secret if any of them is """
         if hasattr(a, 'for_mux'):
             f, a, b = a.for_mux(b)
         else:
@@ -188,34 +298,71 @@ class _int(object):
         return f(self * (a - b) + b)
 
     def cond_swap(self, a, b):
+        """ Swapping in arithmetic circuits.
+
+        :param a/b: any type supporting the necessary operations
+        :return: ``(a, b)`` if :py:obj:`self` is 0, ``(b, a)`` if :py:obj:`self` is 1, and undefined otherwise
+        :rtype: depending on operands, secret if any of them is """
         prod = self * (a - b)
         return a - prod, b + prod
 
     def bit_xor(self, other):
+        """ XOR in arithmetic circuits.
+
+        :param self/other: 0 or 1 (any compatible type)
+        :return: type depends on inputs (secret if any of them is) """
         return self + other - 2 * self * other
 
     def bit_and(self, other):
+        """ AND in arithmetic circuits.
+
+        :param self/other: 0 or 1 (any compatible type)
+        :rtype: depending on inputs (secret if any of them is) """
         return self * other
 
     def half_adder(self, other):
+        """ Half adder in arithmetic circuits.
+
+        :param self/other: 0 or 1 (any compatible type)
+        :return: binary sum, carry
+        :rtype: depending on inputs, secret if any is """
         carry = self * other
         return self + other - 2 * carry, carry
 
 class _bit(object):
+    """ Binary functionality. """
+
     def bit_xor(self, other):
+        """ XOR in binary circuits.
+
+        :param self/other: 0 or 1 (any compatible type)
+        :rtype: depending on inputs (secret if any of them is) """
         return self ^ other
 
     def bit_and(self, other):
+        """ AND in binary circuits.
+
+        :param self/other: 0 or 1 (any compatible type)
+        :rtype: depending on inputs (secret if any of them is) """
         return self & other
 
     def half_adder(self, other):
+        """ Half adder in binary circuits.
+
+        :param self/other: 0 or 1 (any compatible type)
+        :return: binary sum, carry
+        :rtype: depending on inputs (secret if any of them is) """
         return self ^ other, self & other
 
 class _gf2n(_bit):
+    """ GF(2^n) functionality. """
+
     def if_else(self, a, b):
+        """ MUX in GF(2^n) circuits. Similar to :py:meth:`_int.if_else`. """
         return b ^ self * self.hard_conv(a ^ b)
 
     def cond_swap(self, a, b, t=None):
+        """ Swapping in GF(2^n). Similar to :py:meth:`_int.if_else`. """
         prod = self * self.hard_conv(a ^ b)
         res = a ^ prod, b ^ prod
         if t is None:
@@ -224,17 +371,36 @@ class _gf2n(_bit):
             return tuple(t.conv(r) for r in res)
 
     def bit_xor(self, other):
+        """ XOR in GF(2^n) circuits.
+
+        :param self/other: 0 or 1 (any compatible type)
+        :rtype: depending on inputs (secret if any of them is) """
         return self ^ other
 
 class _structure(object):
+    """ Interface for type-dependent container types. """
+
     MemValue = classmethod(lambda cls, value: MemValue(cls.conv(value)))
+    """ Type-dependent memory value. """
 
     @classmethod
     def Array(cls, size, *args, **kwargs):
+        """ Type-dependent array. Example:
+
+        .. code::
+
+            a = sint.Array(10)
+        """
         return Array(size, cls, *args, **kwargs)
 
     @classmethod
     def Matrix(cls, rows, columns, *args, **kwargs):
+        """ Type-dependent matrix. Example:
+
+        .. code::
+
+            a = sint.Matrix(10, 10)
+        """
         return Matrix(rows, columns, cls, *args, **kwargs)
 
     @classmethod
@@ -313,10 +479,16 @@ class _register(Tape.Register, _number, _structure):
 
     @staticmethod
     def bit_compose(bits):
+        """ Compose value from bits.
+
+        :param bits: iterable of any type implementing left shift """
         return sum(b << i for i,b in enumerate(bits))
 
     @classmethod
     def malloc(cls, size):
+        """ Allocate memory (statically).
+
+        :param size: compile-time (int) """
         return program.malloc(size, cls)
 
     @set_instruction_type
@@ -356,6 +528,7 @@ class _register(Tape.Register, _number, _structure):
         return res
 
 class _clear(_register):
+    """ Clear domain-dependent type. """
     __slots__ = []
     mov = staticmethod(movc)
 
@@ -388,6 +561,7 @@ class _clear(_register):
     @set_instruction_type
     @vectorize
     def print_reg_plain(self):
+        """ Output. """
         print_reg_plain(self)
 
     @set_instruction_type
@@ -432,24 +606,43 @@ class _clear(_register):
         return res
 
     def add(self, other):
+        """ Addition of public values.
+
+        :param other: convertible type (at least same as :py:obj:`self` and regint/int) """
         return self.clear_op(other, addc, addci)
 
     def mul(self, other):
+        """ Multiplication of public values.
+
+        :param other: convertible type (at least same as :py:obj:`self` and regint/int) """
         return self.clear_op(other, mulc, mulci)
 
     def __sub__(self, other):
+        """ Subtraction of public values.
+
+        :param other: convertible type (at least same as :py:obj:`self` and regint/int) """
         return self.clear_op(other, subc, subci)
 
     def __rsub__(self, other):
         return self.clear_op(other, subc, subcfi, True)
+    __rsub__.__doc__ = __sub__.__doc__
 
     def __truediv__(self, other):
+        """ Field division of public values. Not available for
+        computation modulo a power of two.
+
+        :param other: convertible type (at least same as :py:obj:`self` and regint/int) """
         return self.clear_op(other, divc, divci)
 
     def __rtruediv__(self, other):
         return self.coerce_op(other, divc, True)
+    __rtruediv__.__doc__ = __truediv__.__doc__
 
     def __eq__(self, other):
+        """ Equality check of public values.
+
+        :param other:  convertible type (at least same as :py:obj:`self` and regint/int)
+        :return: 0/1 (regint) """
         if isinstance(other, (_clear,int)):
             return regint(self) == other
         else:
@@ -457,14 +650,24 @@ class _clear(_register):
 
     def __ne__(self, other):
         return 1 - (self == other)
+    __ne__.__doc__ = __eq__.__doc__
 
     def __and__(self, other):
+        """ Bit-wise AND of public values.
+
+        :param other: convertible type (at least same as :py:obj:`self` and regint/int) """
         return self.clear_op(other, andc, andci)
 
     def __xor__(self, other):
+        """ Bit-wise XOR of public values.
+
+        :param other: convertible type (at least same as :py:obj:`self` and regint/int) """
         return self.clear_op(other, xorc, xorci)
 
     def __or__(self, other):
+        """ Bit-wise OR of public values.
+
+        :param other: convertible type (at least same as :py:obj:`self` and regint/int) """
         return self.clear_op(other, orc, orci)
 
     __rand__ = __and__
@@ -472,17 +675,22 @@ class _clear(_register):
     __ror__ = __or__
 
     def reveal(self):
+        """ Identity. """
         return self
 
 
 class cint(_clear, _int):
-    " Clear mod p integer type. """
+    """
+    Clear integer in same domain as secure computation
+    (depends on protocol).
+    """
     __slots__ = []
     instruction_type = 'modp'
     reg_type = 'c'
 
     @vectorized_classmethod
     def read_from_socket(cls, client_id, n=1):
+        """ Read a list of clear values from socket. """
         res = [cls() for i in range(n)]
         readsocketc(client_id, *res)
         if n == 1:
@@ -496,14 +704,16 @@ class cint(_clear, _int):
 
     @vectorized_classmethod
     def write_to_socket(self, client_id, values, message_type=ClientMessageType.NoType):
-        """ Send a list of modp integers to socket """
+        """ Send a list of clear values to socket """
         writesocketc(client_id, message_type, *values)
 
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
+        """ Load from memory by public address. """
         return cls._load_mem(address, ldmc, ldmci)
 
     def store_in_mem(self, address):
+        """ Store in memory by public address. """
         self._store_in_mem(address, stmc, stmci)
 
     @staticmethod
@@ -511,6 +721,10 @@ class cint(_clear, _int):
         return value < 2**31 and value >= -2**31
 
     def __init__(self, val=None, size=None):
+        """
+        :param val: initialization (cint/regint/int/cgf2n or list thereof)
+        :param size: vector size (int), defaults to 1 or size of list
+        """
         super(cint, self).__init__('c', val=val, size=size)
 
     @vectorize
@@ -539,17 +753,31 @@ class cint(_clear, _int):
 
     @vectorize
     def to_regint(self, n_bits=None, dest=None):
+        """ Convert to regint.
+
+        :param n_bits: bit length (int)
+        :return: regint """
         dest = regint() if dest is None else dest
         convmodp(dest, self, bitlength=n_bits)
         return dest
 
     def __mod__(self, other):
+        """ Clear modulo.
+
+        :param other: cint/regint/int """
         return self.clear_op(other, modc, modci)
 
     def __rmod__(self, other):
+        """ Clear modulo.
+
+        :param other: cint/regint/int """
         return self.coerce_op(other, modc, True)
 
     def __lt__(self, other):
+        """ Clear 64-bit comparison.
+
+        :param other: cint/regint/int
+        :return: 0/1 (regint) """
         if isinstance(other, (type(self),int)):
             return regint(self) < other
         else:
@@ -567,8 +795,16 @@ class cint(_clear, _int):
     def __ge__(self, other):
         return 1 - (self < other)
 
+    for op in __gt__, __le__, __ge__:
+        op.__doc__ = __lt__.__doc__
+    del op
+
     @vectorize
     def __eq__(self, other):
+        """ Clear equality test.
+
+        :param other: cint/regint/int
+        :return: 0/1 (regint) """
         if not isinstance(other, (_clear, int)):
             return NotImplemented
         res = 1
@@ -585,24 +821,36 @@ class cint(_clear, _int):
         return res
 
     def __lshift__(self, other):
+        """ Clear left shift.
+
+        :param other: cint/regint/int """
         return self.clear_op(other, shlc, shlci)
 
     def __rshift__(self, other):
+        """ Clear right shift.
+
+        :param other: cint/regint/int """
         return self.clear_op(other, shrc, shrci)
 
     def __neg__(self):
+        """ Clear negation. """
         return 0 - self
 
     def __abs__(self):
+        """ Clear absolute. """
         return (self >= 0).if_else(self, -self)
 
     @vectorize
     def __invert__(self):
+        """ Clear inversion using global bit length. """
         res = cint()
         notc(res, self, program.bit_length)
         return res
 
     def __rpow__(self, base):
+        """ Clear power of two.
+
+        :param other: 2 """
         if base == 2:
             return 1 << self
         else:
@@ -610,18 +858,30 @@ class cint(_clear, _int):
 
     @vectorize
     def __rlshift__(self, other):
+        """ Clear shift.
+
+        :param other: cint/regint/int """
         return cint(other) << self
 
     @vectorize
     def __rrshift__(self, other):
+        """ Clear shift.
+
+        :param other: cint/regint/int """
         return cint(other) >> self
 
     @read_mem_value
     def mod2m(self, other, bit_length=None, signed=None):
+        """ Clear modulo a power of two.
+
+        :param other: cint/regint/int """
         return self % 2**other
 
     @read_mem_value
     def right_shift(self, other, bit_length=None):
+        """ Clear shift.
+
+        :param other: cint/regint/int """
         return self >> other
 
     @read_mem_value
@@ -630,34 +890,51 @@ class cint(_clear, _int):
 
     @vectorize
     def bit_decompose(self, bit_length=None):
+        """ Clear bit decomposition.
+
+        :param bit_length: number of bits (default is global bit length)
+        :return: list of cint """
         if bit_length == 0:
             return []
         bit_length = bit_length or program.bit_length
         return floatingpoint.bits(self, bit_length)
 
     def legendre(self):
+        """ Clear Legendre symbol computation. """
         res = cint()
         legendrec(res, self)
         return res
 
     def digest(self, num_bytes):
+        """ Clear hashing (libsodium default). """
         res = cint()
         digestc(res, self, num_bytes)
         return res
 
     def print_if(self, string):
+        """ Output if value is non-zero.
+
+        :param string: Python string """
         cond_print_str(self, string)
 
 
 
 
 class cgf2n(_clear, _gf2n):
+    """
+    Clear GF(2^n) value. n is 40 or 128,
+    depending on USE_GF2N_LONG compile-time variable.
+    """
     __slots__ = []
     instruction_type = 'gf2n'
     reg_type = 'cg'
 
     @classmethod
     def bit_compose(cls, bits, step=None):
+        """ Clear GF(2^n) bit composition.
+
+        :param bits: list of cgf2n
+        :param step: set every :py:obj:`step`-th bit in output (defaults to 1) """
         size = bits[0].size
         res = cls(size=size)
         vgbitcom(size, res, step or 1, *bits)
@@ -665,9 +942,11 @@ class cgf2n(_clear, _gf2n):
 
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
+        """ Load from memory by public address. """
         return cls._load_mem(address, gldmc, gldmci)
 
     def store_in_mem(self, address):
+        """ Store in memory by public address. """
         self._store_in_mem(address, gstmc, gstmci)
 
     @staticmethod
@@ -675,6 +954,10 @@ class cgf2n(_clear, _gf2n):
         return value < 2**32 and value >= 0
 
     def __init__(self, val=None, size=None):
+        """
+        :param val: initialization (cgf2n/cint/regint/int or list thereof)
+        :param size: vector size (int), defaults to 1 or size of list
+        """
         super(cgf2n, self).__init__('cg', val=val, size=size)
 
     @vectorize
@@ -698,19 +981,27 @@ class cgf2n(_clear, _gf2n):
                     sum += chunk
 
     def __mul__(self, other):
+        """ Clear GF(2^n) multiplication.
+
+        :param other: cgf2n/regint/int """
         return super(cgf2n, self).__mul__(other)
 
     def __neg__(self):
+        """ Identity. """
         return self
 
     @vectorize
     def __invert__(self):
+        """ Clear bit-wise inversion. """
         res = cgf2n()
         gnotc(res, self)
         return res
 
     @vectorize
     def __lshift__(self, other):
+        """ Left shift.
+
+        :param other: compile-time (int) """
         if isinstance(other, int):
             res = cgf2n()
             gshlci(res, self, other)
@@ -720,6 +1011,9 @@ class cgf2n(_clear, _gf2n):
 
     @vectorize
     def __rshift__(self, other):
+        """ Right shift.
+
+        :param other: compile-time (int) """
         if isinstance(other, int):
             res = cgf2n()
             gshrci(res, self, other)
@@ -729,6 +1023,10 @@ class cgf2n(_clear, _gf2n):
 
     @vectorize
     def bit_decompose(self, bit_length=None, step=None):
+        """ Clear bit decomposition.
+
+        :param bit_length: number of bits (defaults to global GF(2^n) bit length)
+        :param step: extract every :py:obj:`step`-th bit (defaults to 1) """
         bit_length = bit_length or program.galois_length
         step = step or 1
         res = [type(self)() for _ in range(bit_length // step)]
@@ -736,6 +1034,10 @@ class cgf2n(_clear, _gf2n):
         return res
 
 class regint(_register, _int):
+    """
+    Clear 64-bit integer.
+    Unlike :py:class:`cint` this is always a 64-bit integer.
+    """
     __slots__ = []
     reg_type = 'ci'
     instruction_type = 'modp'
@@ -748,24 +1050,32 @@ class regint(_register, _int):
 
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
+        """ Load from memory by public address. """
         return cls._load_mem(address, ldmint, ldminti)
 
     def store_in_mem(self, address):
+        """ Store in memory by public address. """
         self._store_in_mem(address, stmint, stminti)
 
     @vectorized_classmethod
     def pop(cls):
+        """ Pop from stack. """
         res = cls()
         popint(res)
         return res
 
     @vectorized_classmethod
     def push(cls, value):
+        """ Push to stack.
+
+        :param value: any convertible type """
         pushint(cls.conv(value))
 
     @vectorized_classmethod
     def get_random(cls, bit_length):
-        """ Public insecure randomness """
+        """ Public insecure randomness.
+
+        :param bit_length: number of bits (int) """
         if isinstance(bit_length, int):
             bit_length = regint(bit_length)
         res = cls()
@@ -810,6 +1120,10 @@ class regint(_register, _int):
 
     @vectorize_init
     def __init__(self, val=None, size=None):
+        """
+        :param val: initialization (cint/cgf2n/regint/int or list thereof)
+        :param size: vector size (int), defaults to 1 or size of list
+        """
         super(regint, self).__init__(self.reg_type, val=val, size=size)
 
     def load_int(self, val):
@@ -851,39 +1165,68 @@ class regint(_register, _int):
         return res
 
     def add(self, other):
+        """ Clear addition.
+
+        :param other: regint/cint/int """
         return self.int_op(other, addint)
 
     def __sub__(self, other):
+        """ Clear subtraction.
+
+        :param other: regint/cint/int """
         return self.int_op(other, subint)
 
     def __rsub__(self, other):
         return self.int_op(other, subint, True)
+    __rsub__.__doc__ = __sub__.__doc__
 
     def mul(self, other):
+        """ Clear multiplication.
+
+        :param other: regint/cint/int """
         return self.int_op(other, mulint)
 
     def __neg__(self):
+        """ Clear negation. """
         return 0 - self
 
     def __floordiv__(self, other):
+        """ Clear integer division (rounding to floor).
+
+        :param other: regint/cint/int """
         return self.int_op(other, divint)
 
     def __rfloordiv__(self, other):
         return self.int_op(other, divint, True)
+    __rfloordiv__.__doc__ = __floordiv__.__doc__
 
     __truediv__ = __floordiv__
     __rtruediv__ = __rfloordiv__
 
     def __mod__(self, other):
+        """ Clear modulo computation.
+
+        :param other: regint/cint/int """
         return self - (self / other) * other
 
     def __rmod__(self, other):
+        """ Clear modulo computation.
+
+        :param other: regint/cint/int """
         return regint(other) % self
 
     def __rpow__(self, other):
+        """ Clear power of two computation.
+
+        :param other: regint/cint/int
+        :rtype: cint """
         return other**cint(self)
 
     def __eq__(self, other):
+        """ Clear comparison.
+
+        :param other: regint/cint/int
+        :return: 0/1 """
         return self.int_op(other, eqc)
 
     def __ne__(self, other):
@@ -901,7 +1244,14 @@ class regint(_register, _int):
     def __ge__(self, other):
         return 1 - (self < other)
 
+    for op in __le__, __lt__, __ge__, __gt__, __ne__:
+        op.__doc__ = __eq__.__doc__
+    del op
+
     def __lshift__(self, other):
+        """ Clear shift.
+
+        :param other: regint/cint/int """
         if isinstance(other, int):
             return self * 2**other
         else:
@@ -919,13 +1269,26 @@ class regint(_register, _int):
     def __rrshift__(self, other):
         return regint(other >> cint(self))
 
+    for op in __rshift__, __rlshift__, __rrshift__:
+        op.__doc__ = __lshift__.__doc__
+    del op
+
     def __and__(self, other):
+        """ Clear bit-wise AND.
+
+        :param other: regint/cint/int """
         return regint(other & cint(self))
 
     def __or__(self, other):
+        """ Clear bit-wise OR.
+
+        :param other: regint/cint/int """
         return regint(other | cint(self))
 
     def __xor__(self, other):
+        """ Clear bit-wise XOR.
+
+        :param other: regint/cint/int """
         return regint(other ^ cint(self))
 
     __rand__ = __and__
@@ -933,10 +1296,17 @@ class regint(_register, _int):
     __rxor__ = __xor__
 
     def mod2m(self, *args, **kwargs):
+        """ Clear modulo a power of two.
+
+        :rtype: cint """
         return cint(self).mod2m(*args, **kwargs)
 
     @vectorize
     def bit_decompose(self, bit_length=None):
+        """ Clear bit decomposition.
+
+        :param bit_length: number of bits (defaults to global bit length)
+        :return: list of regint """
         bit_length = bit_length or min(64, program.bit_length)
         if bit_length > 64:
             raise CompilerError('too many bits demanded')
@@ -946,6 +1316,9 @@ class regint(_register, _int):
 
     @staticmethod
     def bit_compose(bits):
+        """ Clear bit composition.
+
+        :param bits: list of regint/cint/int """
         two = regint(2)
         res = 0
         for bit in reversed(bits):
@@ -954,12 +1327,17 @@ class regint(_register, _int):
         return res
 
     def reveal(self):
+        """ Identity. """
         return self
 
     def print_reg_plain(self):
+        """ Output. """
         print_int(self)
 
     def print_if(self, string):
+        """ Output string if value is non-zero.
+
+        :param string: Python string """
         cint(self).print_if(string)
 
 class localint(object):
@@ -967,12 +1345,15 @@ class localint(object):
     computation. Uses regint internally. """
 
     def __init__(self, value=None):
+        """ :param value: initialization, convertible to regint """
         self._v = regint(value)
         self.size = 1
 
     def output(self):
+        """ Output. """
         self._v.print_reg_plain()
 
+    """ Local comparison. """
     __lt__ = lambda self, other: localint(self._v < other)
     __le__ = lambda self, other: localint(self._v <= other)
     __gt__ = lambda self, other: localint(self._v > other)
@@ -996,7 +1377,9 @@ class _secret(_register):
     @vectorized_classmethod
     @set_instruction_type
     def get_input_from(cls, player):
-        """ Secret input """
+        """ Secret input from player.
+
+        :param: player (compile-time int) """
         res = cls()
         asm_input(res, player)
         return res
@@ -1004,7 +1387,9 @@ class _secret(_register):
     @vectorized_classmethod
     @set_instruction_type
     def get_random_triple(cls):
-        """ Secret random triple according to security model """
+        """ Secret random triple according to security model.
+
+        :return: :math:`(a, b, ab)` """
         res = (cls(), cls(), cls())
         triple(*res)
         return res
@@ -1012,7 +1397,9 @@ class _secret(_register):
     @vectorized_classmethod
     @set_instruction_type
     def get_random_bit(cls):
-        """ Secret random bit according to security model """
+        """ Secret random bit according to security model.
+
+        :return: 0/1 50-50 """
         res = cls()
         bit(res)
         return res
@@ -1020,7 +1407,9 @@ class _secret(_register):
     @vectorized_classmethod
     @set_instruction_type
     def get_random_square(cls):
-        """ Secret random square according to security model """
+        """ Secret random square according to security model.
+
+        :return: :math:`(a, a^2)` """
         res = (cls(), cls())
         square(*res)
         return res
@@ -1028,7 +1417,9 @@ class _secret(_register):
     @vectorized_classmethod
     @set_instruction_type
     def get_random_inverse(cls):
-        """ Secret random inverse according to security model """
+        """ Secret random inverse tuple according to security model.
+
+        :return: :math:`(a, a^{-1})` """
         res = (cls(), cls())
         inverse(*res)
         return res
@@ -1043,6 +1434,14 @@ class _secret(_register):
     @classmethod
     @set_instruction_type
     def dot_product(cls, x, y):
+        """
+        Secret dot product.
+
+        :param x: Iterable of secret values
+        :param y: Iterable of secret values of same length and type
+
+        :rtype: same as inputs
+        """
         x = list(x)
         set_global_vector_size(x[0].size)
         res = cls()
@@ -1074,6 +1473,7 @@ class _secret(_register):
                        for j in range(size)), []))
         return res
 
+    @no_doc
     def __init__(self, reg_type, val=None, size=None):
         if isinstance(val, self.clear_type):
             size = val.size
@@ -1137,10 +1537,17 @@ class _secret(_register):
         return res
 
     def add(self, other):
+        """ Secret addition.
+
+        :param other: any compatible type """
         return self.secret_op(other, adds, addm, addsi)
 
     @set_instruction_type
     def mul(self, other):
+        """ Secret multiplication. Either both operands have the same
+        size or one size 1 for a value-vector multiplication.
+
+        :param other: any compatible type """
         if isinstance(other, _secret) and max(self.size, other.size) > 1 \
            and min(self.size, other.size) == 1:
             x, y = (other, self) if self.size < other.size else (self, other)
@@ -1150,23 +1557,32 @@ class _secret(_register):
         return self.secret_op(other, muls, mulm, mulsi)
 
     def __sub__(self, other):
+        """ Secret subtraction.
+
+        :param other: any compatible type """
         return self.secret_op(other, subs, subml, subsi)
 
     def __rsub__(self, other):
         return self.secret_op(other, subs, submr, subsfi, True)
+    __rsub__.__doc__ = __sub__.__doc__
 
     @vectorize
     def __truediv__(self, other):
+        """ Secret field division.
+
+        :param other: any compatible type """
         return self * (self.clear_type(1) / other)
 
     @vectorize
     def __rtruediv__(self, other):
         a,b = self.get_random_inverse()
         return other * a / (a * self).reveal()
+    __rtruediv__.__doc__ = __truediv__.__doc__
 
     @set_instruction_type
     @vectorize
     def square(self):
+        """ Secret square. """
         res = self.__class__()
         sqrs(res, self)
         return res
@@ -1174,19 +1590,41 @@ class _secret(_register):
     @set_instruction_type
     @vectorize
     def reveal(self):
+        """ Reveal secret value publicly.
+
+        :rtype: relevant clear type """
         res = self.clear_type()
         asm_open(res, self)
         return res
 
     @set_instruction_type
     def reveal_to(self, player):
+        """ Reveal secret value to player.
+        Result written to ``Player-Data/Private-Output-P<player>``
+
+        :param player: int """
         masked = self.__class__()
         startprivateoutput(masked, self, player)
         stopprivateoutput(masked.reveal(), player)
 
 
 class sint(_secret, _int):
-    " Shared mod p integer type. """
+    """
+    Secret integer in the protocol-specific domain.
+
+    Most non-linear operations require compile-time parameters for bit
+    length and statistical security. They default to the global
+    parameters set by :py:meth:`program.set_bit_length` and
+    :py:meth:`program.set_security`. The acceptable minimum for statistical
+    security is considered to be 40.  The defaults for the parameters
+    is output at the beginning of the compilation.
+
+    If the computation domain is modulo a power of two, the
+    operands will be truncated to the bit length, and the security
+    parameter does not matter. Modulo prime, the behaviour is
+    undefined and potentially insecure if the operands are longer than
+    the bit length.
+    """
     __slots__ = []
     instruction_type = 'modp'
     clear_type = cint
@@ -1198,14 +1636,18 @@ class sint(_secret, _int):
 
     @vectorized_classmethod
     def get_random_int(cls, bits):
-        """ Secret random n-bit number according to security model """
+        """ Secret random n-bit number according to security model.
+
+        :param bits: compile-time integer (int) """
         res = sint()
         comparison.PRandInt(res, bits)
         return res
 
     @vectorized_classmethod
     def get_input_from(cls, player):
-        """ Secret input """
+        """ Secret input.
+
+        :param player: compile-time integer (int) """
         res = cls()
         inputmixed('int', res, player)
         return res
@@ -1277,25 +1719,37 @@ class sint(_secret, _int):
 
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
+        """ Load from memory by public address. """
         return cls._load_mem(address, ldms, ldmsi)
 
     def store_in_mem(self, address):
+        """ Store in memory by public address. """
         self._store_in_mem(address, stms, stmsi)
 
     def __init__(self, val=None, size=None):
+        """
+        :param val: initialization (sint/cint/regint/int/cgf2n or list thereof)
+        :param size: vector size (int), defaults to 1 or size of list
+        """
         super(sint, self).__init__('s', val=val, size=size)
 
     @vectorize
     def __neg__(self):
+        """ Secret negation. """
         return 0 - self
 
     @vectorize
     def __abs__(self):
+        """ Secret absolute. Uses global parameters for comparison. """
         return (self >= 0).if_else(self, -self)
 
     @read_mem_value
     @vectorize
     def __lt__(self, other, bit_length=None, security=None):
+        """ Secret comparison (signed).
+
+        :param other: sint/cint/regint/int
+        :return: 0/1 (sint) """
         res = sint()
         comparison.LTZ(res, self - other,
                        (bit_length or program.bit_length) + 1,
@@ -1333,8 +1787,16 @@ class sint(_secret, _int):
     equal = __eq__
     not_equal = __ne__
 
+    for op in __gt__, __le__, __ge__, __eq__, __ne__:
+        op.__doc__ = __lt__.__doc__
+    del op
+
     @vectorize
     def __mod__(self, modulus):
+        """ Secret modulo computation.
+        Uses global parameters for bit length and security.
+
+        :param modulus: power of two (int) """
         if isinstance(modulus, int):
             l = math.log(modulus, 2)
             if 2**int(round(l)) == modulus:
@@ -1343,6 +1805,9 @@ class sint(_secret, _int):
 
     @read_mem_value
     def mod2m(self, m, bit_length=None, security=None, signed=True):
+        """ Secret modulo power of two.
+
+        :param m: secret or public integer (sint/cint/regint/int) """
         bit_length = bit_length or program.bit_length
         security = security or program.security
         if isinstance(m, int):
@@ -1358,6 +1823,8 @@ class sint(_secret, _int):
 
     @vectorize
     def __rpow__(self, base):
+        """ Secret power computation. Base must be two.
+        Uses global parameters for bit length and security. """
         if base == 2:
             return self.pow2()
         else:
@@ -1365,15 +1832,22 @@ class sint(_secret, _int):
 
     @vectorize
     def pow2(self, bit_length=None, security=None):
+        """ Secret power of two. """
         return floatingpoint.Pow2(self, bit_length or program.bit_length, \
                                       security or program.security)
 
     def __lshift__(self, other, bit_length=None, security=None):
+        """ Secret left shift.
+
+        :param other: secret or public integer (sint/cint/regint/int) """
         return self * util.pow2_value(other, bit_length, security)
 
     @vectorize
     @read_mem_value
     def __rshift__(self, other, bit_length=None, security=None):
+        """ Secret right shift.
+
+        :param other: secret or public integer (sint/cint/regint/int) """
         bit_length = bit_length or program.bit_length
         security = security or program.security
         if isinstance(other, int):
@@ -1391,14 +1865,22 @@ class sint(_secret, _int):
     right_shift = __rshift__
 
     def __rlshift__(self, other):
+        """ Secret left shift.
+        Bit length of :py:obj:`self` uses global value.
+
+        :param other: secret or public integer (sint/cint/regint/int) """
         return other * 2**self
 
     @vectorize
     def __rrshift__(self, other):
+        """ Secret right shift.
+
+        :param other: secret or public integer (sint/cint/regint/int) of globale bit length if secret """
         return floatingpoint.Trunc(other, program.bit_length, self, program.security)
 
     @vectorize
     def bit_decompose(self, bit_length=None, security=None):
+        """ Secret bit decomposition. """
         if bit_length == 0:
             return []
         bit_length = bit_length or program.bit_length
@@ -1413,6 +1895,18 @@ class sint(_secret, _int):
 
     @vectorize
     def round(self, k, m, kappa=None, nearest=False, signed=False):
+        """ Truncate and maybe round secret :py:obj:`k`-bit integer
+        by :py:obj:`m` bits. :py:obj:`m` can be secret if
+        :py:obj:`nearest` is false, in which case the truncation will be
+        exact. For public :py:obj:`m`, :py:obj:`nearest` chooses
+        between nearest rounding (rounding half up) and probablistic
+        truncation.
+
+        :param k: int
+        :param m: secret or compile-time integer (sint/int)
+        :param kappa: statistical security parameter (int)
+        :param nearest: bool
+        :param signed: bool """
         kappa = kappa or program.security
         secret = isinstance(m, sint)
         if nearest:
@@ -1430,6 +1924,9 @@ class sint(_secret, _int):
 
     @vectorize
     def int_div(self, other, bit_length=None, security=None):
+        """ Secret integer division.
+
+        :param other: sint """
         k = bit_length or program.bit_length
         kappa = security or program.security
         tmp = library.IntDiv(self, other, k, kappa)
@@ -1442,6 +1939,7 @@ class sint(_secret, _int):
         return floatingpoint.two_power(n)
 
 class sgf2n(_secret, _gf2n):
+    """ Secret GF(2^n) value. """
     __slots__ = []
     instruction_type = 'gf2n'
     clear_type = cgf2n
@@ -1459,12 +1957,18 @@ class sgf2n(_secret, _gf2n):
         return res
 
     def add(self, other):
+        """ Secret GF(2^n) addition (XOR).
+
+        :param other: sg2fn/cgf2n/regint/int """
         if isinstance(other, sgf2nint):
             return NotImplemented
         else:
             return super(sgf2n, self).add(other)
 
     def mul(self, other):
+        """ Secret GF(2^n) multiplication.
+
+        :param other: sg2fn/cgf2n/regint/int """
         if isinstance(other, (sgf2nint)):
             return NotImplemented
         else:
@@ -1472,22 +1976,33 @@ class sgf2n(_secret, _gf2n):
 
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
+        """ Load from memory by public address. """
         return cls._load_mem(address, gldms, gldmsi)
 
     def store_in_mem(self, address):
+        """ Store in memory by public address. """
         self._store_in_mem(address, gstms, gstmsi)
 
     def __init__(self, val=None, size=None):
+        """
+        :param val: initialization (sgf2n/cgf2n/regint/int/cint or list thereof)
+        :param size: vector size (int), defaults to 1 or size of list
+        """
         super(sgf2n, self).__init__('sg', val=val, size=size)
 
     def __neg__(self):
+        """ Identity. """
         return self
 
     @vectorize
     def __invert__(self):
+        """ Secret bit-wise inversion. """
         return self ^ cgf2n(2**program.galois_length - 1)
 
     def __xor__(self, other):
+        """ Secret bit-wise XOR.
+
+        :param other: sg2fn/cgf2n/regint/int """
         if is_zero(other):
             return self
         else:
@@ -1497,6 +2012,9 @@ class sgf2n(_secret, _gf2n):
 
     @vectorize
     def __and__(self, other):
+        """ Secret bit-wise AND.
+
+        :param other: sg2fn/cgf2n/regint/int """
         if isinstance(other, int):
             other_bits = [(other >> i) & 1 \
                               for i in range(program.galois_length)]
@@ -1510,27 +2028,45 @@ class sgf2n(_secret, _gf2n):
 
     @vectorize
     def __lshift__(self, other):
+        """ Secret left shift py public value.
+
+        :param other: regint/cint/int """
         return self * cgf2n(1 << other)
 
     @vectorize
     def right_shift(self, other, bit_length=None):
+        """ Secret right shift by public value:
+
+        :param other: compile-time (int)
+        :param bit_length: number of bits of :py:obj:`self` (defaults to GF(2^n) bit length) """
         bits = self.bit_decompose(bit_length)
         return sum(b << i for i,b in enumerate(bits[other:]))
 
     def equal(self, other, bit_length=None, expand=1):
+        """ Secret comparison.
+
+        :param other: sgf2n/cgf2n/regint/int
+        :return: 0/1 (sgf2n) """
         bits = [1 - bit for bit in (self - other).bit_decompose(bit_length)][::expand]
         while len(bits) > 1:
             bits.insert(0, bits.pop() * bits.pop())
         return bits[0]
 
     def not_equal(self, other, bit_length=None):
+        """ Secret comparison. """
         return 1 - self.equal(other, bit_length)
+    not_equal.__doc__ = equal.__doc__
 
     __eq__ = equal
     __ne__ = not_equal
 
     @vectorize
     def bit_decompose(self, bit_length=None, step=1):
+        """ Secret bit decomposition.
+
+        :param bit_length: number of bits
+        :param step: use every :py:obj:`step`-th bit
+        :return: list of sgf2n """
         if bit_length == 0:
             return []
         bit_length = bit_length or program.galois_length
@@ -1544,7 +2080,6 @@ class sgf2n(_secret, _gf2n):
 
     @vectorize
     def bit_decompose_embedding(self):
-
         random_bits = [self.get_random_bit() \
                            for i in range(8)]
         one = cgf2n(1)
@@ -2028,14 +2563,20 @@ def parse_type(other, k=None, f=None):
         return other
 
 class cfix(_number, _structure):
-    """ Clear fixed point type. """
+    """ Clear fixed-point number represented as clear integer. """
     __slots__ = ['value', 'f', 'k', 'size']
     reg_type = 'c'
     scalars = (int, float, regint)
     @classmethod
     def set_precision(cls, f, k = None):
-        # k is the whole bitlength of fixed point
-        # f is the bitlength of decimal part
+        """ Set the precision of the integer representation. Note that some
+        operations are undefined when the precision of :py:class:`sfix` and
+        :py:class:`cfix` differs.
+
+        :param f: bit length of decimal part
+        :param k: whole bit length of fixed point, defaults to twice :py:obj:`f`.
+
+        """
         cls.f = f
         if k is None:
             cls.k = 2 * f
@@ -2044,6 +2585,7 @@ class cfix(_number, _structure):
 
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
+        """ Load from memory by public address. """
         res = []
         res.append(cint.load_mem(address))
         return cfix(*res)
@@ -2081,6 +2623,7 @@ class cfix(_number, _structure):
 
     @vectorize_init
     def __init__(self, v=None, k=None, f=None, size=None):
+        """ :param v: cfix/float/int """
         f = f or self.f
         k = k or self.k
         self.f = f
@@ -2122,6 +2665,7 @@ class cfix(_number, _structure):
         return cls(other)
 
     def store_in_mem(self, address):
+        """ Store in memory by public address. """
         self.v.store_in_mem(address)
 
     def sizeof(self):
@@ -2129,6 +2673,9 @@ class cfix(_number, _structure):
 
     @vectorize
     def add(self, other):
+        """ Clear fixed-point addition.
+
+        :param other: cfix/cint/regint/int """
         other = parse_type(other)
         if isinstance(other, cfix):
             return cfix(self.v + other.v)
@@ -2137,6 +2684,9 @@ class cfix(_number, _structure):
 
     @vectorize 
     def mul(self, other):
+        """ Clear fixed-point multiplication.
+
+        :param other: cfix/cint/regint/int """
         other = parse_type(other)
         if isinstance(other, cfix):
             assert self.f == other.f
@@ -2151,6 +2701,9 @@ class cfix(_number, _structure):
     
     @vectorize
     def __sub__(self, other):
+        """ Clear fixed-point subtraction.
+
+        :param other: cfix/cint/regint/int """
         other = parse_type(other)
         if isinstance(other, cfix):
             return cfix(self.v - other.v)
@@ -2161,14 +2714,21 @@ class cfix(_number, _structure):
 
     @vectorize
     def __neg__(self):
+        """ Clear fixed-point negation. """
         # cfix type always has .v
         return cfix(-self.v)
     
     def __rsub__(self, other):
         return -self + other
+    __rsub__.__doc__ = __sub__.__doc__
 
     @vectorize
     def __eq__(self, other):
+        """ Clear fixed-point comparison.
+
+        :param other: cfix/cint/regint/int
+        :return: 0/1
+        :rtype: regint """
         other = parse_type(other)
         if isinstance(other, cfix):
             return self.v == other.v
@@ -2179,6 +2739,7 @@ class cfix(_number, _structure):
 
     @vectorize
     def __lt__(self, other):
+        """ Clear fixed-point comparison. """
         other = parse_type(other)
         if isinstance(other, cfix):
             return self.v < other.v
@@ -2191,6 +2752,7 @@ class cfix(_number, _structure):
 
     @vectorize
     def __le__(self, other):
+        """ Clear fixed-point comparison. """
         other = parse_type(other)
         if isinstance(other, cfix):
             return self.v <= other.v
@@ -2201,6 +2763,7 @@ class cfix(_number, _structure):
 
     @vectorize
     def __gt__(self, other):
+        """ Clear fixed-point comparison. """
         other = parse_type(other)
         if isinstance(other, cfix):
             return self.v > other.v
@@ -2211,6 +2774,7 @@ class cfix(_number, _structure):
 
     @vectorize
     def __ge__(self, other):
+        """ Clear fixed-point comparison. """
         other = parse_type(other)
         if isinstance(other, cfix):
             return self.v >= other.v
@@ -2221,6 +2785,7 @@ class cfix(_number, _structure):
 
     @vectorize
     def __ne__(self, other):
+        """ Clear fixed-point comparison. """
         other = parse_type(other)
         if isinstance(other, cfix):
             return self.v != other.v
@@ -2229,8 +2794,15 @@ class cfix(_number, _structure):
         else:
             raise NotImplementedError
 
+    for op in __le__, __lt__, __ge__, __gt__, __ne__:
+        op.__doc__ = __eq__.__doc__
+    del op
+
     @vectorize
     def __truediv__(self, other):
+        """ Clear fixed-point division.
+
+        :param other: cfix/cint/regint/int """
         other = parse_type(other)
         if isinstance(other, cfix):
             return cfix(library.cint_cint_division(self.v, other.v, self.k, self.f))
@@ -2241,6 +2813,7 @@ class cfix(_number, _structure):
             raise TypeError('Incompatible fixed point types in division')
 
     def print_plain(self):
+        """ Clear fixed-point output. """
         if self.k > 64:
             raise CompilerError('Printing of fixed-point numbers not ' +
                                 'implemented for more than 64-bit precision')
@@ -2272,6 +2845,7 @@ class _single(_number, _structure):
 
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
+        """ Load from memory by public address. """
         return cls._new(cls.int_type.load_mem(address))
 
     @classmethod
@@ -2300,6 +2874,10 @@ class _single(_number, _structure):
 
     @classmethod
     def dot_product(cls, x, y, res_params=None):
+        """ Secret dot product.
+
+        :param x: iterable of appropriate secret type
+        :param y: iterable of appropriate secret type and same length """
         return cls.unreduced_dot_product(x, y, res_params).reduce_after_mul()
 
     @classmethod
@@ -2326,6 +2904,7 @@ class _single(_number, _structure):
         return res
 
     def store_in_mem(self, address):
+        """ Store in memory by public address. """
         self.v.store_in_mem(address)
 
     @property
@@ -2336,18 +2915,28 @@ class _single(_number, _structure):
         return self.size
 
     def __len__(self):
+        """ Vector length. """
         return len(self.v)
 
     @vectorize
     def __sub__(self, other):
+        """ Subtraction.
+
+        :param other: appropriate public or secret (incl. sint/cint/regint/int) """
         other = self.coerce(other)
         return self + (-other)
 
     def __rsub__(self, other):
         return -self + other
+    __rsub__.__doc__ = __sub__.__doc__
 
     @vectorize
     def __eq__(self, other):
+        """ Comparison.
+
+        :param other: appropriate public or secret (incl. sint/cint/regint/int)
+        :return: 0/1
+        :rtype: same as internal representation"""
         other = self.coerce(other)
         if isinstance(other, (cfix, _single)):
             return self.v.equal(other.v, self.k, self.kappa)
@@ -2394,8 +2983,12 @@ class _single(_number, _structure):
         else:
             raise NotImplementedError
 
+    for op in __le__, __lt__, __ge__, __gt__, __ne__:
+        op.__doc__ = __eq__.__doc__
+    del op
+
 class _fix(_single):
-    """ Shared fixed point type. """
+    """ Secret fixed point type. """
     __slots__ = ['v', 'f', 'k', 'size']
 
     @classmethod
@@ -2408,6 +3001,7 @@ class _fix(_single):
             if k < f:
                 raise CompilerError('bit length cannot be less than precision')
             cls.k = k
+    set_precision.__doc__ = cfix.set_precision.__doc__
 
     @classmethod
     def coerce(cls, other):
@@ -2418,6 +3012,9 @@ class _fix(_single):
 
     @classmethod
     def from_sint(cls, other, k=None, f=None):
+        """ Convert secret integer.
+
+        :param other: sint """
         res = cls()
         res.f = f or cls.f
         res.k = k or cls.k
@@ -2433,6 +3030,7 @@ class _fix(_single):
 
     @vectorize_init
     def __init__(self, _v=None, size=None):
+        """ :params _v: compile-time value (int/float) """
         self.size = get_global_vector_size()
         f = self.f
         k = self.k
@@ -2469,6 +3067,9 @@ class _fix(_single):
 
     @vectorize 
     def add(self, other):
+        """ Secret fixed-point addition.
+
+        :param other: sfix/cfix/sint/cint/regint/int """
         other = self.coerce(other)
         if isinstance(other, (_fix, cfix)):
             return self._new(self.v + other.v, k=self.k, f=self.f)
@@ -2480,6 +3081,9 @@ class _fix(_single):
 
     @vectorize 
     def mul(self, other):
+        """ Secret fixed-point multiplication.
+
+        :param other: sfix/cfix/sint/cint/regint/int """
         if isinstance(other, (sint, cint, regint, int)):
             return self._new(self.v * other, k=self.k, f=self.f)
         elif isinstance(other, float):
@@ -2511,10 +3115,14 @@ class _fix(_single):
 
     @vectorize
     def __neg__(self):
+        """ Secret fixed-point negation. """
         return type(self)(-self.v)
 
     @vectorize
     def __truediv__(self, other):
+        """ Secret fixed-point division.
+
+        :param other: sfix/cfix/sint/cint/regint/int """
         other = self.coerce(other)
         if isinstance(other, _fix):
             return type(self)(library.FPDiv(self.v, other.v, self.k, self.f,
@@ -2527,13 +3135,20 @@ class _fix(_single):
 
     @vectorize
     def __rtruediv__(self, other):
+        """ Secret fixed-point division.
+
+        :param other: sfix/cfix/sint/cint/regint/int """
         return self.coerce(other) / self
 
     @vectorize
     def compute_reciprocal(self):
+        """ Secret fixed-point reciprocal. """
         return type(self)(library.FPDiv(cint(2) ** self.f, self.v, self.k, self.f, self.kappa, True))
 
     def reveal(self):
+        """ Reveal secret fixed-point number.
+
+        :return: relevant clear type """
         val = self.v.reveal()
         res = self.clear_type(val)
         res.f = self.f
@@ -2541,19 +3156,29 @@ class _fix(_single):
         return res
 
 class sfix(_fix):
+    """ Secret fixed-point number represented as secret integer.
+    This uses integer operations internally, see :py:class:`sint` for security
+    considerations. """
     int_type = sint
     clear_type = cfix
 
     @vectorized_classmethod
     def get_input_from(cls, player):
+        """ Secret fixed-point input.
+
+        :param player: int """
         v = cls.int_type()
         inputmixed('fix', v, cls.f, player)
         return cls._new(v)
 
     @vectorized_classmethod
     def get_random(cls, lower, upper):
-        """ Uniform random number around centre of bounds """
-        """ Range can be smaller """
+        """ Uniform secret random number around centre of bounds.
+        Actual range can be smaller but never larger.
+
+        :param lower: float
+        :param upper: float
+        """
         log_range = int(math.log(upper - lower, 2))
         n_bits = log_range + cls.f
         average = lower + 0.5 * (upper - lower)
@@ -2813,13 +3438,20 @@ class squant_params(object):
         return squant._new(shifted, params=self)
 
 class sfloat(_number, _structure):
-    """ Shared floating point data type, representing (1 - 2s)*(1 - z)*v*2^p.
+    """
+    Secret floating-point number.
+    Represents :math:`(1 - 2s) \cdot (1 - z)\cdot v \cdot 2^p`.
         
         v: significand
+
         p: exponent
+
         z: zero flag
+
         s: sign bit
-        """
+
+    This uses integer operations internally, see :py:class:`sint` for security
+    considerations. """
     __slots__ = ['v', 'p', 'z', 's', 'size']
 
     # single precision
@@ -2845,6 +3477,7 @@ class sfloat(_number, _structure):
 
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
+        """ Load from memory by public address. """
         size = get_global_vector_size()
         if cls.is_address_tuple(address):
             return sfloat(*(sint.load_mem(a, size=size) for a in address))
@@ -2899,6 +3532,9 @@ class sfloat(_number, _structure):
 
     @vectorized_classmethod
     def get_input_from(cls, player):
+        """ Secret floating-point input.
+
+        :param player: int """
         v = sint()
         p = sint()
         z = sint()
@@ -2909,6 +3545,9 @@ class sfloat(_number, _structure):
     @vectorize_init
     @read_mem_value
     def __init__(self, v, p=None, z=None, s=None, size=None):
+        """
+        :param v: initialization (sfloat/sfix/float/int/sint/cint/regint)
+        """
         self.size = get_global_vector_size()
         if p is None:
             if isinstance(v, sfloat):
@@ -2964,6 +3603,7 @@ class sfloat(_number, _structure):
         yield self.s
 
     def store_in_mem(self, address):
+        """ Store in memory by public address. """
         if self.is_address_tuple(address):
             for a, x in zip(address, self):
                 x.store_in_mem(a)
@@ -2976,6 +3616,9 @@ class sfloat(_number, _structure):
 
     @vectorize
     def add(self, other):
+        """ Secret floating-point addition.
+
+        :param other: sfloat/float/sfix/sint/cint/regint/int """
         other = self.conv(other)
         if isinstance(other, sfloat):
             a,c,d,e = [sint() for i in range(4)]
@@ -3062,6 +3705,9 @@ class sfloat(_number, _structure):
     
     @vectorize_max
     def mul(self, other):
+        """ Secret floating-point multiplication.
+
+        :param other: sfloat/float/sfix/sint/cint/regint/int """
         other = self.conv(other)
         if isinstance(other, sfloat):
             v1 = sint()
@@ -3088,12 +3734,19 @@ class sfloat(_number, _structure):
             return NotImplemented
     
     def __sub__(self, other):
+        """ Secret floating-point subtraction.
+
+        :param other: sfloat/float/sfix/sint/cint/regint/int """
         return self + -other
     
     def __rsub__(self, other):
         return -self + other
+    __rsub__.__doc__ = __sub__.__doc__
 
     def __truediv__(self, other):
+        """ Secret floating-point division.
+
+        :param other: sfloat/float/sfix/sint/cint/regint/int """
         other = self.conv(other)
         v = floatingpoint.SDiv(self.v, other.v + other.z * (2**self.vlen - 1),
                                self.vlen, self.kappa, self.round_nearest)
@@ -3111,13 +3764,19 @@ class sfloat(_number, _structure):
 
     def __rtruediv__(self, other):
         return self.conv(other) / self
+    __rtruediv__.__doc__  = __truediv__.__doc__
 
     @vectorize
     def __neg__(self):
+        """ Secret floating-point negation. """
         return sfloat(self.v, self.p,  self.z, (1 - self.s) * (1 - self.z))
 
     @vectorize
     def __lt__(self, other):
+        """ Secret floating-point comparison.
+
+        :param other: sfloat/float/sfix/sint/cint/regint/int
+        :return: 0/1 (sint) """
         other = self.conv(other)
         if isinstance(other, sfloat):
             z1 = self.z
@@ -3139,16 +3798,20 @@ class sfloat(_number, _structure):
             return NotImplemented
     
     def __ge__(self, other):
+        """ Secret floating-point comparison. """
         return 1 - (self < other)
 
     def __gt__(self, other):
+        """ Secret floating-point comparison. """
         return self.conv(other) < self
 
     def __le__(self, other):
+        """ Secret floating-point comparison. """
         return self.conv(other) >= self
 
     @vectorize
     def __eq__(self, other):
+        """ Secret floating-point comparison. """
         other = self.conv(other)
         # the sign can be both ways for zeroes
         both_zero = self.z * other.z
@@ -3158,13 +3821,21 @@ class sfloat(_number, _structure):
             (1 - both_zero) + both_zero
 
     def __ne__(self, other):
+        """ Secret floating-point comparison. """
         return 1 - (self == other)
+
+    for op in __gt__, __le__, __ge__, __eq__, __ne__:
+        op.__doc__ = __lt__.__doc__
+    del op
 
     def log2(self):
         up = self.v.greater_than(1 << (self.vlen - 1), self.vlen, self.kappa)
         return self.p + self.vlen - 1 + up
 
     def round_to_int(self):
+        """ Secret floating-point rounding to integer.
+
+        :return: sint """
         direction = self.p.greater_equal(-self.vlen, self.plen, self.kappa)
         right = self.v.right_shift(-self.p - 1, self.vlen + 1, self.kappa)
         up = right.mod2m(1, self.vlen + 1, self.kappa)
@@ -3173,20 +3844,25 @@ class sfloat(_number, _structure):
         return self.s.if_else(-abs_value, abs_value)
 
     def value(self):
-        """ Gets actual floating point value, if emulation is enabled. """
+        # Gets actual floating point value, if emulation is enabled.
         return (1 - 2*self.s.value)*(1 - self.z.value)*self.v.value/float(2**self.p.value)
 
     def reveal(self):
+        """ Reveal secret floating-point number.
+
+        :return: cfloat """
         return cfloat(self.v.reveal(), self.p.reveal(), self.z.reveal(), self.s.reveal())
 
 class cfloat(object):
-    # Helper class used for printing sfloats
+    """ Helper class for printing revealed sfloats. """
     __slots__ = ['v', 'p', 'z', 's']
 
     def __init__(self, v, p, z, s):
+        """ Parameters as with :py:class:`sfloat` but public. """
         self.v, self.p, self.z, self.s = [cint.conv(x) for x in (v, p, z, s)]
 
     def print_float_plain(self):
+        """ Output. """
         print_float_plain(self.v, self.p, self.z, self.s)
 
 sfix.float_type = sfloat
@@ -3206,8 +3882,12 @@ def _get_type(t):
         return t
 
 class Array(object):
+    """ Array accessible by public index. """
     @classmethod
     def create_from(cls, l):
+        """ Convert Python iterator to array. Basic type will be taken
+        from first element, further elements must to be convertible to
+        that. """
         if isinstance(l, cls):
             return l
         tmp = list(l)
@@ -3216,6 +3896,10 @@ class Array(object):
         return res
 
     def __init__(self, length, value_type, address=None, debug=None):
+        """
+        :param length: compile-time integer (int) or :py:obj:`None` for unknown length
+        :param value_type: basic type
+        :param address: if given (regint/int), the array will not be allocated """
         value_type = _get_type(value_type)
         self.address = address
         self.length = length
@@ -3259,6 +3943,10 @@ class Array(object):
         return index.start or 0, index.stop or self.length, index.step or 1
 
     def __getitem__(self, index):
+        """ Reading from array.
+
+        :param index: public (regint/cint/int/slice)
+        :return: array if slice is given, basic type otherwise"""
         if isinstance(index, slice):
             start, stop, step = self.get_slice(index)
             res_length = (stop - start - 1) // step + 1
@@ -3270,6 +3958,10 @@ class Array(object):
         return self._load(self.get_address(index))
 
     def __setitem__(self, index, value):
+        """ Writing to array.
+
+        :param index: public (regint/cint/int)
+        :param value: convertible for relevant basic type """
         if isinstance(index, slice):
             start, stop, step = self.get_slice(index)
             value = Array.create_from(value)
@@ -3320,6 +4012,9 @@ class Array(object):
         return self
 
     def assign_all(self, value, use_threads=True, conv=True):
+        """ Assign the same value to all entries.
+
+        :param value: convertible to basic type """
         if conv:
             value = self.value_type.conv(value)
         mem_value = MemValue(value)
@@ -3331,6 +4026,10 @@ class Array(object):
         return self
 
     def get_vector(self, base=0, size=None):
+        """ Return vector with content.
+
+        :param base: starting point (regint/cint/int)
+        :param size: length (compile-time int) """
         size = size or self.length
         return self.value_type.load_mem(self.get_address(base), size=size)
 
@@ -3338,28 +4037,44 @@ class Array(object):
         return MemValue(self[index], self.get_address(index))
 
     def input_from(self, player, budget=None):
+        """ Fill with inputs from player if supported by type.
+
+        :param player: compile-time (int) """
         self.assign(self.value_type.get_input_from(player, size=len(self)))
 
     def __add__(self, other):
+        """ Vector addition.
+
+        :param other: vector or container of same length and type that supports operations with type of this array """
         if is_zero(other):
             return self
         assert len(self) == len(other)
         return self.get_vector() + other
 
     def __sub__(self, other):
+        """ Vector subtraction.
+
+        :param other: vector or container of same length and type that supports operations with type of this array """
         assert len(self) == len(other)
         return self.get_vector() - other
 
     def __mul__(self, value):
+        """ Vector multiplication.
+
+        :param other: vector or container of same length and type that supports operations with type of this array """
         return self.get_vector() * value
 
     def __pow__(self, value):
+        """ Vector power-of computation.
+
+        :param other: compile-time integer (int) """
         return self.get_vector() ** value
 
     __radd__ = __add__
     __rmul__ = __mul__
 
     def shuffle(self):
+        """ Insecure shuffle in place. """
         @library.for_range(len(self))
         def _(i):
             j = regint.get_random(64) % (len(self) - i)
@@ -3368,6 +4083,9 @@ class Array(object):
             self[i + j] = tmp
 
     def reveal(self):
+        """ Reveal the whole array.
+
+        :returns: Array of relevant clear type. """
         return Array.create_from(x.reveal() for x in self)
 
 sint.dynamic_array = Array
@@ -3375,7 +4093,9 @@ sgf2n.dynamic_array = Array
 
 
 class SubMultiArray(object):
+    """ Multidimensional array functionality. """
     def __init__(self, sizes, value_type, address, index, debug=None):
+        """ Do not call this, use :py:class:`MultiArray` instead. """
         self.sizes = sizes
         self.value_type = _get_type(value_type)
         self.address = address + index * self.total_size()
@@ -3385,6 +4105,10 @@ class SubMultiArray(object):
             library.print_ln_if(self.address + reduce(operator.mul, self.sizes) * self.value_type.n_elements() > program.allocated_mem[self.value_type.reg_type], 'AOF%d:' % len(self.sizes) + self.debug)
 
     def __getitem__(self, index):
+        """ Part access.
+
+        :param index: public (regint/cint/int)
+        :return: :py:class:`Array` if one-dimensional, :py:class:`SubMultiArray` otherwise"""
         if util.is_constant(index) and index >= self.sizes[0]:
             raise StopIteration
         key = program.curr_block, str(index)
@@ -3405,12 +4129,20 @@ class SubMultiArray(object):
         return self.sub_cache[key]
 
     def __setitem__(self, index, other):
+        """ Part assignment.
+
+        :param index: public (regint/cint/int)
+        :param other: container of matching size and type """
         self[index].assign(other)
 
     def __len__(self):
+        """ Size of top dimension. """
         return self.sizes[0]
 
     def assign_all(self, value):
+        """ Assign the same value to all entries.
+
+        :param value: convertible to relevant basic type """
         @library.for_range(self.sizes[0])
         def f(i):
             self[i].assign_all(value)
@@ -3420,29 +4152,48 @@ class SubMultiArray(object):
         return reduce(operator.mul, self.sizes) * self.value_type.n_elements()
 
     def get_vector(self, base=0, size=None):
+        """ Return vector with content. Not implemented for floating-point.
+
+        :param base: public (regint/cint/int)
+        :param size: compile-time (int) """
         assert self.value_type.n_elements() == 1
         size = size or self.total_size()
         return self.value_type.load_mem(self.address + base, size=size)
 
     def assign_vector(self, vector, base=0):
+        """ Assign vector to content. Not implemented for floating-point.
+
+        :param vector: vector of matching size convertible to relevant basic type
+        :param base: compile-time (int) """
         assert self.value_type.n_elements() == 1
         assert vector.size <= self.total_size()
         vector.store_in_mem(self.address + base)
 
     def assign(self, other):
+        """ Assign container to content. Not implemented for floating-point.
+
+        :param other: container of matching size and type """
         if self.value_type.n_elements() > 1:
             assert self.sizes == other.sizes
         self.assign_vector(other.get_vector())
 
     def same_shape(self):
+        """ :return: new multidimensional array with same shape and basic type """
         return MultiArray(self.sizes, self.value_type)
 
     def input_from(self, player, budget=None):
+        """ Fill with inputs from player if supported by type.
+
+        :param player: compile-time (int) """
         @library.for_range_opt(self.sizes[0], budget=budget)
         def _(i):
             self[i].input_from(player, budget=budget)
 
     def schur(self, other):
+        """ Element-wise product.
+
+        :param other: container of matching size and type
+        :return: container of same shape and type as :py:obj:`self` """
         assert self.sizes == other.sizes
         if len(self.sizes) == 2:
             res = Matrix(self.sizes[0], self.sizes[1], self.value_type)
@@ -3452,6 +4203,10 @@ class SubMultiArray(object):
         return res
 
     def __add__(self, other):
+        """ Element-wise addition.
+
+        :param other: container of matching size and type
+        :return: container of same shape and type as :py:obj:`self` """
         if is_zero(other):
             return self
         assert self.sizes == other.sizes
@@ -3465,10 +4220,17 @@ class SubMultiArray(object):
     __radd__ = __add__
 
     def iadd(self, other):
+        """ Element-wise addition in place.
+
+        :param other: container of matching size and type """
         assert self.sizes == other.sizes
         self.assign_vector(self.get_vector() + other.get_vector())
 
     def __mul__(self, other):
+        """ Matrix-matrix and matrix-vector multiplication.
+
+        :param self: two-dimensional
+        :param other: Matrix or Array of matching size and type """
         return self.mul(other)
 
     def mul(self, other, res_params=None):
@@ -3549,6 +4311,10 @@ class SubMultiArray(object):
         return res_matrix
 
     def plain_mul(self, other, res=None):
+        """ Alternative matrix multiplication.
+
+        :param self: two-dimensional
+        :param other: two-dimensional container of matching type and size """
         assert other.sizes[0] == self.sizes[1]
         return self.budget_mul(other, self.sizes[0], lambda x, i: x[i], \
                                other.sizes[1], \
@@ -3556,11 +4322,19 @@ class SubMultiArray(object):
                                res=res)
 
     def mul_trans(self, other):
+        """ Matrix multiplication with transpose of :py:obj:`other`.
+
+        :param self: two-dimensional
+        :param other: two-dimensional container of matching type and size """
         assert other.sizes[1] == self.sizes[1]
         return self.budget_mul(other, self.sizes[0], lambda x, i: x[i], \
                                other.sizes[0], lambda x, j: x[j])
 
     def trans_mul(self, other, reduce=True, res=None):
+        """ Matrix multiplication with transpose of :py:obj:`self`
+
+        :param self: two-dimensional
+        :param other: two-dimensional container of matching type and size """
         assert other.sizes[0] == self.sizes[0]
         return self.budget_mul(other, self.sizes[1], \
                                lambda x, j: [x[k][j] for k in range(len(x))], \
@@ -3569,6 +4343,9 @@ class SubMultiArray(object):
                                reduce=reduce, res=res)
 
     def transpose(self):
+        """ Matrix transpose.
+
+        :param self: two-dimensional """
         assert len(self.sizes) == 2
         res = Matrix(self.sizes[1], self.sizes[0], self.value_type)
         @library.for_range_opt(self.sizes[1])
@@ -3579,7 +4356,12 @@ class SubMultiArray(object):
         return res
 
 class MultiArray(SubMultiArray):
+    """ Multidimensional array. """
     def __init__(self, sizes, value_type, debug=None, address=None):
+        """
+        :param sizes: shape (compile-time list of integers)
+        :param value_type: basic type of entries
+        """
         if isinstance(address, Array):
             self.array = address
         else:
@@ -3591,7 +4373,13 @@ class MultiArray(SubMultiArray):
             raise CompilerError('Use Array')
 
 class Matrix(MultiArray):
+    """ Matrix. """
     def __init__(self, rows, columns, value_type, debug=None, address=None):
+        """
+        :param rows: compile-time (int)
+        :param columns: compile-time (int)
+        :param value_type: basic type of entries
+        """
         MultiArray.__init__(self, [rows, columns], value_type, debug=debug, \
                             address=address)
 
@@ -3671,6 +4459,10 @@ class _mem(_number):
     store_in_mem = lambda self,address: self.read().store_in_mem(address)
 
 class MemValue(_mem):
+    """ Single value in memory. This is useful to transfer information
+    out of a loop and between threads. Operations are automatically read
+    from memory if required, this means you can use any operation with
+    :py:class:`MemValue` objects as if they were a basic type. """
     __slots__ = ['last_write_block', 'reg_type', 'register', 'address', 'deleted']
 
     @classmethod
@@ -3681,6 +4473,7 @@ class MemValue(_mem):
             return cls(value)
 
     def __init__(self, value, address=None):
+        """ :param value: basic type or int (will be converted to regint) """
         self.last_write_block = None
         if isinstance(value, int):
             self.value_type = regint
@@ -3705,6 +4498,9 @@ class MemValue(_mem):
             raise CompilerError('MemValue deleted')
 
     def read(self):
+        """ Read value.
+
+        :return: relevant basic type instance """
         self.check()
         if program.curr_block != self.last_write_block:
             self.register = library.load_mem(self.address, self.value_type)
@@ -3712,6 +4508,9 @@ class MemValue(_mem):
         return self.register
 
     def write(self, value):
+        """ Write value.
+
+        :param value: convertible to relevant basic type """
         self.check()
         if isinstance(value, MemValue):
             self.register = value.read()
@@ -3727,6 +4526,9 @@ class MemValue(_mem):
         return self
 
     def reveal(self):
+        """ Reveal value.
+
+        :return: relevant clear type """
         return self.read().reveal()
 
     less_than = lambda self,other,bit_length=None,security=None: \
