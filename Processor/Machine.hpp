@@ -209,18 +209,22 @@ DataPositions Machine<sint, sgf2n>::run_tape(int thread_number, int tape_number,
   pthread_mutex_unlock(&t_mutex[thread_number]);
   //printf("Running line %d\n",exec);
   if (progs[tape_number].usage_unknown())
-    { // only one thread allowed
-      if (numt>1)
-        { cerr << "Line " << line_number << " has " <<
-          numt << " threads but tape " << tape_number <<
-          " has unknown offline data usage" << endl;
-        throw invalid_program();
-        }
-      else if (line_number == -1)
+    {
+      if (not opts.live_prep)
         {
-          cerr << "Internally called tape " << tape_number <<
+          // only one thread allowed
+          if (numt>1)
+            { cerr << "Line " << line_number << " has " <<
+              numt << " threads but tape " << tape_number <<
               " has unknown offline data usage" << endl;
-          throw invalid_program();
+            throw invalid_program();
+            }
+          else if (line_number == -1)
+            {
+              cerr << "Internally called tape " << tape_number <<
+                  " has unknown offline data usage" << endl;
+              throw invalid_program();
+            }
         }
       usage_unknown = true;
       return DataPositions(N.num_players());
