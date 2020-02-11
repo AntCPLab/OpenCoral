@@ -298,6 +298,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case INPUTFIX:
       case INPUTFLOAT:
       case INPUTMIXED:
+      case INPUTMIXEDREG:
       case TRUNC_PR:
         num_var_args = get_int(s);
         get_vector(num_var_args, start, s);
@@ -1145,7 +1146,10 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         sint::Input::template input<FloatInput>(Proc.Procp, start, size);
         return;
       case INPUTMIXED:
-        sint::Input::input_mixed(Proc.Procp, start, size);
+        sint::Input::input_mixed(Proc.Procp, start, size, false);
+        return;
+      case INPUTMIXEDREG:
+        sint::Input::input_mixed(Proc.Procp, start, size, true);
         return;
       case STARTINPUT:
         Proc.Procp.input.start(r[0],n);

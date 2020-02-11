@@ -80,6 +80,9 @@ public:
 
 class ArithmeticProcessor : public ProcessorBase
 {
+protected:
+  vector<long> Ci;
+
 public:
   int thread_num;
 
@@ -103,13 +106,18 @@ public:
   {
     return thread_num == 0 and opts.interactive;
   }
+
+  const long& read_Ci(int i) const
+    { return Ci[i]; }
+  long& get_Ci_ref(int i)
+    { return Ci[i]; }
+  void write_Ci(int i,const long& x)
+    { Ci[i]=x; }
 };
 
 template<class sint, class sgf2n>
 class Processor : public ArithmeticProcessor
 {
-  vector<long> Ci;
-
   int reg_max2,reg_maxp,reg_maxi;
 
   // Data structure used for reading/writing data to/from a socket (i.e. an external party to SPDZ)
@@ -183,13 +191,6 @@ class Processor : public ArithmeticProcessor
       { Procp.C[i]=x; }
     void write_Sp(int i,const sint & x)
       { Procp.S[i]=x; }
-
-    const long& read_Ci(int i) const
-      { return Ci[i]; }
-    long& get_Ci_ref(int i)
-      { return Ci[i]; }
-    void write_Ci(int i,const long& x)
-      { Ci[i]=x; }
 
   void dabit(const Instruction& instruction);
 

@@ -108,6 +108,7 @@ opcodes = dict(
     INPUTFIX = 0xF0,
     INPUTFLOAT = 0xF1,
     INPUTMIXED = 0xF2,
+    INPUTMIXEDREG = 0xF3,
     STARTINPUT = 0x61,
     STOPINPUT = 0x62,  
     READSOCKETC = 0x63,

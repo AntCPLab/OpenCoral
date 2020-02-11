@@ -74,6 +74,7 @@ from .floatingpoint import two_power
 from . import comparison, floatingpoint
 import math
 from . import util
+from . import instructions
 from .util import is_zero, is_one
 import operator
 from functools import reduce
@@ -208,6 +209,12 @@ def read_mem_value(operation):
     copy_doc(read_mem_operation, operation)
     return read_mem_operation
 
+def inputmixed(*args):
+    # helper to cover both cases
+    if isinstance(args[-1], int):
+        instructions.inputmixed(*args)
+    else:
+        instructions.inputmixedreg(*args)
 
 class _number(object):
     """ Number functionality. """

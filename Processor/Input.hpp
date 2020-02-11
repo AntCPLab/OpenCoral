@@ -275,8 +275,23 @@ void InputBase<T>::input(SubProcessor<T>& Proc,
 }
 
 template<class T>
+int InputBase<T>::get_player(SubProcessor<T>& Proc, int arg, bool player_from_reg)
+{
+   if (player_from_reg)
+   {
+       assert(Proc.Proc);
+       auto res = Proc.Proc->read_Ci(arg);
+       if (res >= Proc.P.num_players())
+           throw runtime_error("player id too large: " + to_string(res));
+       return res;
+   }
+   else
+       return arg;
+}
+
+template<class T>
 void InputBase<T>::input_mixed(SubProcessor<T>& Proc, const vector<int>& args,
-    int size)
+    int size, bool player_from_reg)
 {
     auto& input = Proc.input;
     input.reset_all(Proc.P);
@@ -293,7 +308,7 @@ void InputBase<T>::input_mixed(SubProcessor<T>& Proc, const vector<int>& args,
 #define X(U) \
         case U::TYPE: \
             n_arg_tuple = U::N_DEST + U::N_PARAM + 2; \
-            player = args[i + n_arg_tuple - 1]; \
+            player = get_player(Proc, args[i + n_arg_tuple - 1], player_from_reg); \
             if (type != last_type and Proc.Proc and Proc.Proc->use_stdin()) \
                 cout << "Please input " << U::NAME << "s:" << endl; \
             prepare<U>(Proc, player, &args[i + U::N_DEST + 1], size); \
@@ -313,12 +328,14 @@ void InputBase<T>::input_mixed(SubProcessor<T>& Proc, const vector<int>& args,
     {
         int n_arg_tuple;
         int type = args[i];
+        int player;
         switch (type)
         {
 #define X(U) \
         case U::TYPE: \
             n_arg_tuple = U::N_DEST + U::N_PARAM + 2; \
-            finalize<U>(Proc, args[i + n_arg_tuple - 1], &args[i + 1], size); \
+            player = get_player(Proc, args[i + n_arg_tuple - 1], player_from_reg); \
+            finalize<U>(Proc, player, &args[i + 1], size); \
             break;
         X(IntInput<typename T::clear>) X(FixInput) X(FloatInput)
 #undef X

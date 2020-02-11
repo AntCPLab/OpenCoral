@@ -918,10 +918,8 @@ class inputfloat(base.TextInputInstruction):
             req_node.increment((self.field_type, 'input', player), \
                                4 * self.get_size())
 
-@base.vectorize
-class inputmixed(base.TextInputInstruction):
+class inputmixed_base(base.TextInputInstruction):
     __slots__ = []
-    code = base.opcodes['INPUTMIXED']
     field_type = 'modp'
     # the following has to match TYPE: (N_DEST, N_PARAM)
     types = {
@@ -936,11 +934,8 @@ class inputmixed(base.TextInputInstruction):
     }
 
     def __init__(self, name, *args):
-        try:
-            type_id = self.type_ids[name]
-        except:
-            pass
-        super(inputmixed_class, self).__init__(type_id, *args)
+        type_id = self.type_ids[name]
+        super(inputmixed_base, self).__init__(type_id, *args)
 
     @property
     def arg_format(self):
@@ -951,13 +946,18 @@ class inputmixed(base.TextInputInstruction):
                 yield 'sw'
             for j in range(self.types[t][1]):
                 yield 'int'
-            yield 'p'
+            yield self.player_arg_type
 
     def bases(self):
         i = 0
         while i < len(self.args):
             yield i
             i += sum(self.types[self.args[i]]) + 2
+
+@base.vectorize
+class inputmixed(inputmixed_base):
+    code = base.opcodes['INPUTMIXED']
+    player_arg_type = 'p'
 
     def add_usage(self, req_node):
         for i in self.bases():
@@ -966,6 +966,15 @@ class inputmixed(base.TextInputInstruction):
             n_dest = self.types[t][0]
             req_node.increment((self.field_type, 'input', player), \
                                n_dest * self.get_size())
+
+@base.vectorize
+class inputmixedreg(inputmixed_base):
+    code = base.opcodes['INPUTMIXEDREG']
+    player_arg_type = 'ci'
+
+    def add_usage(self, req_node):
+        # player 0 as proxy
+        req_node.increment((self.field_type, 'input', 0), float('inf'))
 
 @base.gf2n
 class startinput(base.RawInputInstruction):

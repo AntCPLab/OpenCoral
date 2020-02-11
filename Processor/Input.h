@@ -34,7 +34,9 @@ public:
     template<class U>
     static void input(SubProcessor<T>& Proc, const vector<int>& args, int size);
 
-    static void input_mixed(SubProcessor<T>& Proc, const vector<int>& args, int size);
+    static int get_player(SubProcessor<T>& Proc, int arg, bool player_from_arg);
+    static void input_mixed(SubProcessor<T>& Proc, const vector<int>& args,
+            int size, bool player_from_reg);
     template<class U>
     static void prepare(SubProcessor<T>& Proc, int player, const int* params, int size);
     template<class U>
