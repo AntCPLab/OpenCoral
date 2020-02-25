@@ -689,7 +689,7 @@ class Optimizer:
                         indices = indices_by_label[label]
                         @for_range_multithread(self.n_threads, 1, n)
                         def _(i):
-                            idx = indices[i + j * n_per_epoch]
+                            idx = indices[i + j * n]
                             self.layers[0].X[i + label * n] = X[idx]
                     self.forward(None)
                     self.backward()
