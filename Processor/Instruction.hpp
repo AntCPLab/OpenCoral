@@ -1,3 +1,5 @@
+#ifndef PROCESSOR_INSTRUCTION_HPP_
+#define PROCESSOR_INSTRUCTION_HPP_
 
 #include "Processor/Instruction.h"
 #include "Processor/Machine.h"
@@ -21,6 +23,7 @@
 //#include "Protocols/Replicated.hpp"
 //#include "Protocols/MaliciousRepMC.hpp"
 //#include "Protocols/ShamirMC.hpp"
+#include "Math/bigint.hpp"
 
 #include <stdlib.h>
 #include <algorithm>
@@ -140,6 +143,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case PROTECTMEMINT:
       case CONDPRINTPLAIN:
       case DABIT:
+      case SHUFFLE:
         r[0]=get_int(s);
         r[1]=get_int(s);
         break;
@@ -215,6 +219,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case GSHRCI:
       case USE:
       case USE_INP:
+      case USE_EDABIT:
       case RUN_TAPE:
       case STARTPRIVATEOUTPUT:
       case GSTARTPRIVATEOUTPUT:
@@ -283,6 +288,12 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case PRINTFLOATPLAINB:
         get_vector(4, start, s);
         break;
+      case INCINT:
+        r[0]=get_int(s);
+        r[1]=get_int(s);
+        n = get_int(s);
+        get_vector(2, start, s);
+        break;
       // open instructions + read/write instructions with variable length args
       case WRITEFILESHARE:
       case OPEN:
@@ -302,6 +313,14 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case TRUNC_PR:
         num_var_args = get_int(s);
         get_vector(num_var_args, start, s);
+        break;
+      case MATMULS:
+        get_ints(r, s, 3);
+        get_vector(3, start, s);
+        break;
+      case MATMULSM:
+        get_ints(r, s, 3);
+        get_vector(9, start, s);
         break;
 
       // read from file, input is opcode num_args, 
@@ -355,6 +374,8 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
         get_vector(num_var_args, start, s);
         break;
       case BITDECINT:
+      case EDABIT:
+      case SEDABIT:
           num_var_args = get_int(s) - 1;
           r[0] = get_int(s);
           get_vector(num_var_args, start, s);
@@ -398,6 +419,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case BITDECS:
       case BITCOMS:
       case BITDECC:
+      case CONVCINTVEC:
         num_var_args = get_int(s) - 1;
         get_ints(r, s, 1);
         get_vector(num_var_args, start, s);
@@ -406,8 +428,9 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case CONVCBIT:
         get_ints(r, s, 2);
         break;
-      case REVEAL:
       case CONVSINT:
+      case CONVCBITVEC:
+      case CONVCBIT2S:
         n = get_int(s);
         get_ints(r, s, 2);
         break;
@@ -420,6 +443,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case ANDRS:
       case ANDS:
       case INPUTB:
+      case REVEAL:
         get_vector(get_int(s), start, s);
         break;
       case PRINTREGSIGNED:
@@ -429,6 +453,12 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case TRANS:
         num_var_args = get_int(s) - 1;
         n = get_int(s);
+        get_vector(num_var_args, start, s);
+        break;
+      case SPLIT:
+        num_var_args = get_int(s) - 2;
+        n = get_int(s);
+        get_ints(r, s, 1);
         get_vector(num_var_args, start, s);
         break;
       default:
@@ -457,6 +487,9 @@ bool Instruction::get_offline_data_usage(DataPositions& usage)
       if ((unsigned)r[1] >= usage.inputs.size())
         throw Processor_Error("Player number too high");
       usage.inputs[r[1]][r[0]] = n;
+      return int(n) >= 0;
+    case USE_EDABIT:
+      usage.edabits[{r[0], r[1]}] = n;
       return int(n) >= 0;
     case USE_PREP:
       usage.extended[gfp::field_type()][r] = n;
@@ -495,17 +528,21 @@ int BaseInstruction::get_reg_type() const
     case RESPSECURESOCKET:
     case LDARG:
     case LDINT:
+    case INCINT:
+    case SHUFFLE:
     case CONVMODP:
     case GCONVGF2N:
     case RAND:
     case NPLAYERS:
     case THRESHOLD:
     case PLAYERID:
+    case CONVCBITVEC:
       return INT;
     case PREP:
     case USE_PREP:
     case GUSE_PREP:
-      // those use r[] for a string
+    case USE_EDABIT:
+      // those use r[] not for registers
       return NONE;
     default:
       if (is_gf2n_instruction())
@@ -520,18 +557,33 @@ int BaseInstruction::get_reg_type() const
 inline
 unsigned BaseInstruction::get_max_reg(int reg_type) const
 {
+  int skip = 0;
+  int offset = 0;
+  int size_offset = 0;
+  int size = this->size;
+
   if (opcode == DABIT)
   {
       if (reg_type == SBIT)
           return r[1] + size;
       else if (reg_type == MODP)
           return r[0] + size;
+      else
+          return 0;
   }
-
-  if (get_reg_type() != reg_type) { return 0; }
-
-  int skip = 0;
-  int offset = 0;
+  else if (opcode == EDABIT or opcode == SEDABIT)
+  {
+      if (reg_type == SBIT)
+          skip = 1;
+      else if (reg_type == MODP)
+          return r[0] + size;
+      else
+          return 0;
+  }
+  else if (get_reg_type() != reg_type)
+  {
+	  return 0;
+  }
 
   switch (opcode)
   {
@@ -541,12 +593,16 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
       auto it = start.begin();
       while (it != start.end())
       {
+          assert(it < start.end());
           int n = *it;
           res = max(res, *it++);
           it += n - 1;
       }
       return res;
   }
+  case MATMULS:
+  case MATMULSM:
+      return r[0] + start[0] * start[2];
   case LDMSD:
   case LDMSDI:
       skip = 3;
@@ -560,10 +616,33 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
   case ANDS:
       skip = 4;
       offset = 1;
+      size_offset = -1;
       break;
   case INPUTB:
       skip = 4;
       offset = 3;
+      break;
+  case ANDM:
+      size = DIV_CEIL(n, 64);
+      break;
+  case CONVCBIT2S:
+      size = DIV_CEIL(n, 64);
+      break;
+  case CONVCINTVEC:
+      size = DIV_CEIL(size, 64);
+      break;
+  case CONVCBITVEC:
+      size = n;
+      break;
+  case REVEAL:
+      size = DIV_CEIL(n, 64);
+      skip = 3;
+      offset = 1;
+      size_offset = -1;
+      break;
+  case SPLIT:
+      size = DIV_CEIL(this->size, 64);
+      skip = 1;
       break;
   }
 
@@ -571,7 +650,11 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
   {
       unsigned m = 0;
       for (size_t i = offset; i < start.size(); i += skip)
-          m = max(m, (unsigned)start[i] + 1);
+      {
+          if (size_offset != 0)
+              size = DIV_CEIL(start[i + size_offset], 64);
+          m = max(m, (unsigned)start[i] + size);
+      }
       return m;
   }
 
@@ -687,6 +770,18 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       for (int i = 0; i < size; i++)
         Proc.write_Cp(r[0] + i,Proc.temp.ansp);
       return;
+    case LDMSI:
+      for (int i = 0; i < size; i++)
+        Proc.write_Sp(r[0] + i, Proc.machine.Mp.read_S(Proc.read_Ci(r[1] + i)));
+      return;
+    case LDMS:
+      for (int i = 0; i < size; i++)
+        Proc.write_Sp(r[0] + i, Proc.machine.Mp.read_S(n + i));
+      return;
+    case STMS:
+      for (int i = 0; i < size; i++)
+        Proc.machine.Mp.write_S(n + i, Proc.read_Sp(r[0] + i), Proc.PC);
+      return;
     case ADDC:
       for (int i = 0; i < size; i++)
         Proc.get_Cp_ref(r[0] + i).add(Proc.read_Cp(r[1] + i),Proc.read_Cp(r[2] + i));
@@ -713,6 +808,16 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       for (int i = 0; i < size; i++)
         Proc.get_Sp_ref(r[0] + i).sub(Proc.temp.ansp,Proc.read_Sp(r[1] + i),Proc.P.my_num(),Proc.MCp.get_alphai());
       return;
+    case SUBML:
+      for (int i = 0; i < size; i++)
+         Proc.get_Sp_ref(r[0] + i).sub(Proc.read_Sp(r[1] + i), Proc.read_Cp(r[2] + i),
+             Proc.P.my_num(), Proc.MCp.get_alphai());
+      return;
+    case SUBMR:
+      for (int i = 0; i < size; i++)
+         Proc.get_Sp_ref(r[0] + i).sub(Proc.read_Cp(r[1] + i), Proc.read_Sp(r[2] + i),
+             Proc.P.my_num(), Proc.MCp.get_alphai());
+      return;
     case MULM:
       for (int i = 0; i < size; i++)
         Proc.get_Sp_ref(r[0] + i).mul(Proc.read_Sp(r[1] + i),Proc.read_Cp(r[2] + i));
@@ -726,6 +831,10 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       for (int i = 0; i < size; i++)
         Proc.get_Cp_ref(r[0] + i).mul(Proc.temp.ansp,Proc.read_Cp(r[1] + i));
       return;
+    case SHRCI:
+      for (int i = 0; i < size; i++)
+         Proc.get_Cp_ref(r[0] + i).SHR(Proc.read_Cp(r[1] + i), n);
+      return;
     case TRIPLE:
       for (int i = 0; i < size; i++)
         Procp.DataF.get_three(DATA_TRIPLE, Proc.get_Sp_ref(r[0] + i),
@@ -738,6 +847,24 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
     case LDINT:
       for (int i = 0; i < size; i++)
         Proc.write_Ci(r[0] + i, int(n));
+      return;
+    case INCINT:
+      {
+        for (int i = 0; i < size; i++)
+          {
+            int inc = (i / start[0]) % start[1];
+            Proc.write_Ci(r[0] + i, Proc.read_Ci(r[1]) + inc * int(n));
+          }
+      }
+      return;
+    case SHUFFLE:
+      for (int i = 0; i < size; i++)
+        Proc.write_Ci(r[0] + i, Proc.read_Ci(r[1] + i));
+      for (int i = 0; i < size; i++)
+      {
+        int j = Proc.shared_prng.get_uint(size - i);
+        swap(Proc.get_Ci_ref(r[0] + i), Proc.get_Ci_ref(r[0] + i + j));
+      }
       return;
     case ADDINT:
       for (int i = 0; i < size; i++)
@@ -761,6 +888,20 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.temp.assign_ansp(Proc.read_Ci(r[1] + i));
         Proc.get_Cp_ref(r[0] + i) = Proc.temp.ansp;
       }
+      return;
+    case CONVMODP:
+      if (n == 0)
+        {
+          for (int i = 0; i < size; i++)
+            Proc.write_Ci(r[0] + i,
+                Integer::convert_unsigned(Proc.read_Cp(r[1] + i)).get());
+        }
+      else if (n <= 64)
+        for (int i = 0; i < size; i++)
+          Proc.write_Ci(r[0] + i, Integer(Proc.read_Cp(r[1] + i), n).get());
+      else
+        throw Processor_Error(to_string(n) + "-bit conversion impossible; "
+            "integer registers only have 64 bits");
       return;
 #define X(NAME, CODE) case NAME: CODE; return;
       COMBI_INSTRUCTIONS
@@ -1221,13 +1362,13 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       case SHLC:
         to_bigint(Proc.temp.aa,Proc.read_Cp(r[2]));
         if (Proc.temp.aa > 63)
-          throw not_implemented();
+          throw runtime_error("too much left shift");
            Proc.get_Cp_ref(r[0]).SHL(Proc.read_Cp(r[1]),Proc.temp.aa);
         break;
       case SHRC:
         to_bigint(Proc.temp.aa,Proc.read_Cp(r[2]));
         if (Proc.temp.aa > 63)
-          throw not_implemented();
+          throw runtime_error("too much right shift");
            Proc.get_Cp_ref(r[0]).SHR(Proc.read_Cp(r[1]),Proc.temp.aa);
         break;
       case SHLCI:
@@ -1297,6 +1438,13 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         return;
       case GDOTPRODS:
         Proc.Proc2.dotprods(start, size);
+        return;
+      case MATMULS:
+        Proc.Procp.matmuls(Proc.Procp.get_S(), *this, r[1], r[2]);
+        return;
+      case MATMULSM:
+        Proc.Procp.matmulsm(Proc.machine.Mp.MS, *this, Proc.read_Ci(r[1]),
+            Proc.read_Ci(r[2]));
         return;
       case TRUNC_PR:
         Proc.Procp.protocol.trunc_pr(start, size, Proc.Procp);
@@ -1370,8 +1518,8 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       case CONVMODP:
         if (n == 0)
         {
-          to_bigint(Proc.temp.aa,Proc.read_Cp(r[1]));
-          Proc.write_Ci(r[0], Proc.temp.aa.get_ui());
+          Proc.write_Ci(r[0],
+            Integer::convert_unsigned(Proc.read_Cp(r[1])).get());
         }
         else
         {
@@ -1466,6 +1614,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       case GREQBL:
       case USE:
       case USE_INP:
+      case USE_EDABIT:
       case USE_PREP:
       case GUSE_PREP:
         break;
@@ -1479,7 +1628,9 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.machine.stop(n);
         break;
       case RUN_TAPE:
-        Proc.DataF.skip(Proc.machine.run_tape(r[0], n, r[1], -1));
+        Proc.DataF.skip(
+            Proc.machine.run_tape(r[0], n, r[1], -1, &Proc.DataF.DataFp,
+                &Proc.share_thread.DataF));
         break;
       case JOIN_TAPE:
         Proc.machine.join_tape(r[0]);
@@ -1609,7 +1760,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         return;
       default:
         printf("Case of opcode=0x%x not implemented yet\n",opcode);
-        throw not_implemented();
+        throw runtime_error("invalid opcode: " + to_string(opcode));
         break;
 #define X(NAME, CODE) case NAME: throw runtime_error("wrong case statement"); return;
         COMBI_INSTRUCTIONS
@@ -1630,3 +1781,5 @@ void Program::execute(Processor<sint, sgf2n>& Proc) const
   while (Proc.PC<size)
     { p[Proc.PC].execute(Proc); }
 }
+
+#endif

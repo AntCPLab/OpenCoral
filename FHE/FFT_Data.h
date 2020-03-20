@@ -4,6 +4,7 @@
 #include "Math/modp.h"
 #include "Math/Zp_Data.h"
 #include "Math/gfp.h"
+#include "Math/fixint.h"
 #include "FHE/Ring.h"
 
 /* Class for holding modular arithmetic data wrt the ring 
@@ -36,6 +37,7 @@ class FFT_Data
   public:
   typedef gfp T;
   typedef bigint S;
+  typedef fixint<GFP_MOD_SZ> poly_type;
 
   void init(const Ring& Rg,const Zp_Data& PrD);
 

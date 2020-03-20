@@ -39,6 +39,12 @@ public:
     typedef void DynamicMemory;
     typedef SwitchableOutput out_type;
 
+    typedef This small_type;
+
+    typedef TinierSecret<T> whole_type;
+
+    static const int default_length = 1;
+
     static string name()
     {
         return "tinier share";
@@ -75,6 +81,7 @@ public:
             super(share, mac)
     {
     }
+    TinierShare(const TinierSecret<T>& other);
 
     void XOR(const This& a, const This& b)
     {
@@ -99,6 +106,17 @@ public:
         TinierSecret<T> tmp;
         get_party().DataF.get_one(DATA_BIT, tmp);
         *this = tmp.get_reg(0);
+    }
+
+    This lsb() const
+    {
+        return *this;
+    }
+
+    This get_bit(int i)
+    {
+        assert(i == 0);
+        return lsb();
     }
 };
 

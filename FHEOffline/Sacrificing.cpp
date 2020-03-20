@@ -85,6 +85,7 @@ void Triple_Checking(const Player& P, MAC_Check<T>& MC, int nm,
 
   // Triple checking
   int left_todo=nm; 
+  factory.triples.clear();
   while (left_todo>0)
     { int this_loop=amortize;
       if (this_loop>left_todo)
@@ -121,7 +122,17 @@ void Triple_Checking(const Player& P, MAC_Check<T>& MC, int nm,
 
       for (int i=0; i<this_loop; i++)
         { if (!Tau[i].is_zero())
-	    { throw Offline_Check_Error("Multiplication Triples"); }
+	    {
+              MC.POpen(PO, {a1[i], b1[i], c1[i], a2[i], b2[i], c2[i]}, P);
+              for (int j = 0; j < 2; j++)
+                {
+                  auto prod = PO[3 * j + 1] * PO[3 * j];
+                  if (PO[3 * j + 2] != prod)
+                    cout << PO[3 * j + 2] << " != " << prod << " = "
+                        << PO[3 * j + 1] << " * " << PO[3 * j] << endl;
+                }
+              throw Offline_Check_Error("Multiplication Triples");
+	    }
           if (write_output)
             {
               a1[i].output(outf,false);
@@ -326,6 +337,7 @@ void Square_Checking(const Player& P, MAC_Check<T>& MC, int ns,
 
   // Do the square checking
   int left_todo=ns;
+  square_factory.tuples.clear();
    while (left_todo>0)
     { int this_loop=amortize;
       if (this_loop>left_todo)
@@ -363,6 +375,8 @@ void Square_Checking(const Player& P, MAC_Check<T>& MC, int ns,
             {
               a[i].output(outf_s,false); b[i].output(outf_s,false);
             }
+          else
+              square_factory.tuples.push_back({{a[i], b[i]}});
         }
       left_todo-=this_loop;
     }

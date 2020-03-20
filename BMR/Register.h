@@ -233,6 +233,8 @@ public:
 	template <class T>
 	static void ands(T& processor, const vector<int>& args) { processor.ands(args); }
 	template <class T>
+	static void xors(T& processor, const vector<int>& args) { processor.xors(args); }
+	template <class T>
 	static void inputb(T& processor, const vector<int>& args) { processor.input(args); }
 	template <class T>
 	static T get_input(int from, GC::Processor<T>& processor, int n_bits)

@@ -1,7 +1,8 @@
 #include "Verifier.h"
+#include "Math/Z2k.hpp"
 
 template <class FD, class S>
-Verifier<FD,S>::Verifier(const Proof& proof) : P(proof)
+Verifier<FD,S>::Verifier(Proof& proof) : P(proof)
 {
 #ifdef LESS_ALLOC_MORE_MEM
   z.resize(proof.phim);
@@ -39,19 +40,18 @@ bool Check_Decoding(const vector<S>& AE, bool Diag)
 
 
 template <class FD, class S>
-void Verifier<FD,S>::Stage_2(const vector<int>& e,
+void Verifier<FD,S>::Stage_2(
                           AddableVector<Ciphertext>& c,octetStream& ciphertexts,
                           octetStream& cleartexts,
                           const FHE_PK& pk,bool Diag,bool binary)
 {
-  unsigned int i,k,V=P.V;
+  unsigned int i, V;
 
   c.unpack(ciphertexts, pk);
-  if (c.size() != P.sec)
+  if (c.size() != P.U)
     throw length_error("number of received ciphertexts incorrect");
 
   // Now check the encryptions are correct
-  int ee;
   Ciphertext d1(pk.get_params()), d2(pk.get_params());
   Random_Coins rc(pk.get_params());
   ciphertexts.get(V);
@@ -67,13 +67,7 @@ void Verifier<FD,S>::Stage_2(const vector<int>& e,
       if (!P.check_bounds(z, t, i))
         throw runtime_error("preimage out of bounds");
       d1.unpack(ciphertexts);
-      for (k=0; k<P.sec; k++)
-        { int jj=(i+1)-(k+1);
-          if (jj<0 || jj>= (int) P.sec) { ee=0; }
-          else                          { ee=e[jj]; }
-          if (ee!=0)
-            { add(d1,d1,c.at(jj)); }
-        }
+      P.apply_challenge(i, d1, c, pk);
       rc.assign(t[0], t[1], t[2]);
       pk.encrypt(d2,z,rc);
       if (!(d1 == d2))
@@ -107,13 +101,18 @@ void Verifier<FD,S>::NIZKPoK(AddableVector<Ciphertext>& c,
                           const FHE_PK& pk,bool Diag,
                           bool binary)
 {
-  vector<int> e(P.sec);
+  P.set_challenge(ciphertexts);
 
-  P.get_challenge(e, ciphertexts);
+  Stage_2(c,ciphertexts,cleartexts,pk,Diag,binary);
 
-  Stage_2(e,c,ciphertexts,cleartexts,pk,Diag,binary);
+  if (P.top_gear)
+    {
+      assert(not Diag);
+      assert(not binary);
+      c += c;
+    }
 }
 
 
-template class Verifier<FFT_Data, bigint>;
-template class Verifier<P2Data, bigint>;
+template class Verifier<FFT_Data, fixint<2>>;
+template class Verifier<P2Data, fixint<2>>;

@@ -90,6 +90,13 @@ public:
     }
 };
 
+template<class T>
+TinierShare<T>::TinierShare(const TinierSecret<T>& other)
+{
+    assert(other.get_regs().size() > 0);
+    *this = other.get_reg(0);
+}
+
 } /* namespace GC */
 
 #endif /* GC_TINIERSECRET_H_ */

@@ -123,6 +123,9 @@ class octetStream
   void get(bigint& ans);
 
   template<class T>
+  void store(const T& x);
+
+  template<class T>
   T get();
 
   // works for all statically allocated types
@@ -294,11 +297,23 @@ inline void octetStream::ReceiveExpected(int socket_num, size_t expected)
 }
 
 template<class T>
+void octetStream::store(const T& x)
+{
+    x.pack(*this);
+}
+
+template<class T>
 T octetStream::get()
 {
     T res;
     res.unpack(*this);
     return res;
+}
+
+template<>
+inline int octetStream::get()
+{
+    return get_int(sizeof(int));
 }
 
 #endif

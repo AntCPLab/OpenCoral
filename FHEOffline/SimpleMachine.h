@@ -53,8 +53,6 @@ public:
 class MultiplicativeMachine : public MachineBase
 {
 protected:
-    DataSetup setup;
-
     void parse_options(int argc, const char** argv);
 
     void generate_setup(int slack);
@@ -62,6 +60,8 @@ protected:
     void fake_keys(int slack);
 
 public:
+    DataSetup setup;
+
     virtual ~MultiplicativeMachine() {}
 
     virtual int get_covert() const { return 0; }

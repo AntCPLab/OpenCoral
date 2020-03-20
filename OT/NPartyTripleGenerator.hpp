@@ -8,6 +8,8 @@
 #include "Math/operators.h"
 #include "Tools/Subroutines.h"
 #include "Protocols/MAC_Check.h"
+#include "GC/SemiSecret.h"
+#include "GC/SemiPrep.h"
 
 #include "OT/Triple.hpp"
 #include "OT/OTMultiplier.hpp"
@@ -197,7 +199,7 @@ void NPartyTripleGenerator<W>::generateInputs(int player)
 {
     typedef typename W::input_type::share_type::open_type T;
 
-    auto& nTriplesPerLoop = this->nTriplesPerLoop;
+    auto nTriplesPerLoop = this->nTriplesPerLoop * 10;
     auto& valueBits = this->valueBits;
     auto& share_prg = this->share_prg;
     auto& ot_multipliers = this->ot_multipliers;
@@ -207,9 +209,9 @@ void NPartyTripleGenerator<W>::generateInputs(int player)
     // extra value for sacrifice
     int toCheck = nTriplesPerLoop
             + DIV_CEIL(W::mac_key_type::size_in_bits(), T::size_in_bits());
+    valueBits.resize(1);
     this->signal_multipliers({player, toCheck});
     bool mine = player == globalPlayer.my_num();
-    valueBits.resize(1);
 
     if (mine)
     {

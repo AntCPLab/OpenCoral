@@ -37,6 +37,13 @@ template<class U>
 class ShareSecret
 {
 public:
+    typedef Memory<U> DynamicMemory;
+    typedef SwitchableOutput out_type;
+
+    static const bool expensive_triples = false;
+
+    static const bool is_real = true;
+
     static SwitchableOutput out;
 
     static void store_clear_in_dynamic(Memory<U>& mem,
@@ -50,7 +57,9 @@ public:
     static void ands(Processor<U>& processor, const vector<int>& args)
     { and_(processor, args, false); }
     static void and_(Processor<U>& processor, const vector<int>& args, bool repeat);
+    static void xors(Processor<U>& processor, const vector<int>& args);
     static void inputb(Processor<U>& processor, const vector<int>& args);
+    static void reveal_inst(Processor<U>& processor, const vector<int>& args);
 
     static void convcbit(Integer& dest, const Clear& source) { dest = source; }
 
@@ -79,12 +88,13 @@ public:
     static const int N_BITS = clear::N_BITS;
 
     static const bool dishonest_majority = false;
+    static const bool variable_players = false;
     static const bool needs_ot = false;
 
     static string type_string() { return "replicated secret"; }
     static string phase_name() { return "Replicated computation"; }
 
-    static int default_length;
+    static const int default_length =  8 * sizeof(typename ReplicatedSecret<U>::value_type);
 
     static int threshold(int)
     {
@@ -97,6 +107,14 @@ public:
     template<class T>
     static void generate_mac_key(mac_key_type, T)
     {
+    }
+
+    static ReplicatedSecret constant(const clear& value, int my_num, mac_key_type)
+    {
+      ReplicatedSecret res;
+      if (my_num < 2)
+        res[my_num] = value;
+      return res;
     }
 
     ReplicatedSecret() {}
@@ -117,6 +135,12 @@ public:
 
     ReplicatedSecret operator&(const Clear& other)
     { return super::operator&(BitVec(other)); }
+
+    ReplicatedSecret lsb()
+    { return *this & 1; }
+
+    ReplicatedSecret get_bit(int i)
+    { return (*this >> i) & 1; }
 };
 
 class SemiHonestRepPrep;
@@ -135,6 +159,8 @@ public:
     typedef ReplicatedInput<SemiHonestRepSecret> Input;
 
     typedef SemiHonestRepSecret part_type;
+    typedef SemiHonestRepSecret small_type;
+    typedef SemiHonestRepSecret whole_type;
 
     static MC* new_mc(mac_key_type) { return new MC; }
 

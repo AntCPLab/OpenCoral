@@ -3,6 +3,8 @@ prog = program
 from Compiler.GC.types import *
 from Compiler.GC.instructions import *
 
+bits.unit = 128
+
 program.to_merge = [ldmsdi, stmsdi, ldmsd, stmsd, stmsdci, xors, andrs]
 program.stop_class = type(None)
 

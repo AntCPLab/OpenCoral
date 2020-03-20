@@ -7,7 +7,7 @@
 
 template<class T>
 SemiPrep<T>::SemiPrep(SubProcessor<T>* proc, DataPositions& usage) :
-        RingPrep<T>(proc, usage), OTPrep<T>(proc, usage),
+        BufferPrep<T>(usage), RingPrep<T>(proc, usage), OTPrep<T>(proc, usage),
         SemiHonestRingPrep<T>(proc, usage)
 {
     this->params.set_passive();

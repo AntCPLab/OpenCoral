@@ -1,5 +1,17 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.1.5 (Mar 20, 2020)
+
+- Faster conversion between arithmetic and binary secret sharing using [extended daBits](https://eprint.iacr.org/2020/338)
+- Optimized daBits
+- Optimized logistic regression
+- Faster compilation of repetitive code (compiler option `-C`)
+- ChaiGear: [HighGear](https://eprint.iacr.org/2017/1230) with covert key generation
+- [TopGear](https://eprint.iacr.org/2019/035) zero-knowledge proofs
+- Binary computation based on Shamir secret sharing
+- Fixed security bug: Prove correctness of ciphertexts in input tuple generation
+- Fixed security bug: Missing check in MASCOT bit generation and various binary computations
+
 ## 0.1.4 (Dec 23, 2019)
 
 - Mixed circuit computation with secret sharing

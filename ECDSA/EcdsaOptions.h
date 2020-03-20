@@ -15,6 +15,7 @@ public:
     bool fewer_rounds;
     bool check_open;
     bool check_beaver_open;
+    bool R_after_msg;
 
     EcdsaOptions(ez::ezOptionParser& opt, int argc, const char** argv)
     {
@@ -54,11 +55,21 @@ public:
                 "-B", // Flag token.
                 "--no-beaver-open-check" // Flag token.
         );
+        opt.add(
+                "", // Default.
+                0, // Required?
+                0, // Number of args expected.
+                0, // Delimiter if expecting multiple args.
+                "Only open R after message is known", // Help description.
+                "-R", // Flag token.
+                "--R-after-msg" // Flag token.
+        );
         opt.parse(argc, argv);
         prep_mul = not opt.isSet("-D");
         fewer_rounds = opt.isSet("-P");
         check_open = not opt.isSet("-C");
         check_beaver_open = not opt.isSet("-B");
+        R_after_msg = opt.isSet("-R");
         opt.resetArgs();
     }
 };

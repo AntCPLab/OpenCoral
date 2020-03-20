@@ -161,7 +161,7 @@ void FHE_PK::encrypt(Ciphertext& c, const vector<S>& mess,
     const Random_Coins& rc) const
 {
   Rq_Element mm((*params).FFTD(),polynomial,polynomial);
-  mm.from_vec(mess);
+  mm.from(Iterator<S>(mess));
   quasi_encrypt(c, mm, rc);
 }
 
@@ -302,6 +302,7 @@ void FHE_SK::dist_decrypt_1(vector<bigint>& vv,const Ciphertext& ctx,int player_
     { dec_sh.negate(); }
 
   // Now convert to a vector of bigint's and add the required randomness
+  assert(pr != 0);
   bigint Bd=((*params).B()<<(*params).secp())/(num_players*pr);
   Bd=Bd/2; // make slightly smaller due to rounding issues
 
@@ -332,6 +333,29 @@ void FHE_SK::dist_decrypt_2(vector<bigint>& vv,const vector<bigint>& vv1) const
       vv[i] += vv1[i];
       vv[i] %= mod;
     }
+}
+
+void FHE_PK::pack(octetStream& o) const
+{
+  o.append((octet*) "PKPKPKPK", 8);
+  a0.pack(o);
+  b0.pack(o);
+  Sw_a.pack(o);
+  Sw_b.pack(o);
+  pr.pack(o);
+}
+
+void FHE_PK::unpack(octetStream& o)
+{
+  char tag[8];
+  o.consume((octet*) tag, 8);
+  if (memcmp(tag, "PKPKPKPK", 8))
+    throw runtime_error("invalid serialization of public key");
+  a0.unpack(o);
+  b0.unpack(o);
+  Sw_a.unpack(o);
+  Sw_b.unpack(o);
+  pr.unpack(o);
 }
 
 
@@ -379,7 +403,7 @@ template Ciphertext FHE_PK::encrypt(const Plaintext_<P2Data>& mess) const;
 
 template void FHE_PK::encrypt(Ciphertext& c, const vector<int>& mess,
     const Random_Coins& rc) const;
-template void FHE_PK::encrypt(Ciphertext& c, const vector<bigint>& mess,
+template void FHE_PK::encrypt(Ciphertext& c, const vector<fixint<2>>& mess,
     const Random_Coins& rc) const;
 
 template Plaintext_<FFT_Data> FHE_SK::decrypt(const Ciphertext& c,

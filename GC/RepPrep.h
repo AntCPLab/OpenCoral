@@ -8,6 +8,7 @@
 
 #include "MaliciousRepSecret.h"
 #include "ShiftableTripleBuffer.h"
+#include "PersonalPrep.h"
 #include "Protocols/ReplicatedPrep.h"
 
 namespace GC
@@ -16,13 +17,13 @@ namespace GC
 template<class T> class ShareThread;
 
 template<class T>
-class RepPrep : public BufferPrep<T>, ShiftableTripleBuffer<T>
+class RepPrep : public PersonalPrep<T>, ShiftableTripleBuffer<T>
 {
     ReplicatedBase* protocol;
 
 public:
     RepPrep(DataPositions& usage, ShareThread<T>& thread);
-    RepPrep(DataPositions& usage);
+    RepPrep(DataPositions& usage, int input_player = PersonalPrep<T>::SECURE);
     ~RepPrep();
 
     void set_protocol(typename T::Protocol& protocol);
@@ -32,6 +33,8 @@ public:
 
     void buffer_squares() { throw not_implemented(); }
     void buffer_inverses() { throw not_implemented(); }
+
+    void buffer_inputs(int player);
 
     void get(Dtype type, T* data)
     {

@@ -12,25 +12,33 @@ MaliciousRepPrep<T>::MaliciousRepPrep(SubProcessor<T>* proc, DataPositions& usag
         MaliciousRepPrep<T>(usage)
 {
     this->proc = proc;
-    MaliciousRingPrep<T>::proc = proc;
 }
 
 template<class T>
-MaliciousRepPrep<T>::MaliciousRepPrep(DataPositions& usage) :
-        MaliciousRingPrep<T>(0, usage), honest_usage(usage.num_players()),
-        honest_prep(0, honest_usage), honest_proc(0), proc(0)
+MaliciousRepPrep<T>::MaliciousRepPrep(DataPositions& usage, int) :
+        BufferPrep<T>(usage),
+        honest_prep(0, honest_usage), honest_proc(0)
+{
+}
+
+template<class T>
+MaliciousRepPrepWithBits<T>::MaliciousRepPrepWithBits(SubProcessor<T>* proc,
+        DataPositions& usage) :
+        BufferPrep<T>(usage), MaliciousRepPrep<T>(proc, usage),
+        RingPrep<T>(proc, usage), MaliciousRingPrep<T>(proc, usage)
 {
 }
 
 template<class U>
 MaliciousRepPrep<U>::~MaliciousRepPrep()
 {
+    if (honest_proc)
+        delete honest_proc;
 }
 
 template<class T>
 void MaliciousRepPrep<T>::set_protocol(typename T::Protocol& protocol)
 {
-    RingPrep<T>::set_protocol(protocol);
     init_honest(protocol.P);
 }
 
@@ -191,5 +199,7 @@ void MaliciousRepPrep<T>::buffer_bits()
 template<class T>
 void MaliciousRepPrep<T>::buffer_inputs(int player)
 {
+    auto proc = this->proc;
+    assert(proc);
     this->buffer_inputs_as_usual(player, proc);
 }

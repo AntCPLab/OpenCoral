@@ -10,12 +10,13 @@
 #include "Math/Integer.h"
 #include "Protocols/Replicated.h"
 #include "GC/ShareSecret.h"
+#include "ShareInterface.h"
 
 template<class T> class ReplicatedRingPrep;
 template<class T> class PrivateOutput;
 
 template<class T>
-class Rep3Share : public FixedVec<T, 2>
+class Rep3Share : public FixedVec<T, 2>, public ShareInterface
 {
 public:
     typedef T clear;
@@ -35,6 +36,7 @@ public:
 
     const static bool needs_ot = false;
     const static bool dishonest_majority = false;
+    const static bool expensive = false;
 
     static string type_short()
     {
@@ -120,7 +122,7 @@ public:
     void mul_by_bit(const Rep3Share& x, const T& y)
     {
         (void) x, (void) y;
-        throw not_implemented();
+        throw runtime_error("multiplication by bit not implemented");
     }
 
     void pack(octetStream& os, bool full = true) const

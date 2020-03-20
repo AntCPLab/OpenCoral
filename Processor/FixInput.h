@@ -9,6 +9,7 @@
 #include <iostream>
 
 #include "Math/bigint.h"
+#include "Math/Integer.h"
 
 class FixInput
 {
@@ -19,7 +20,11 @@ public:
 
     const static int TYPE = 1;
 
+#ifdef LOW_PREC_INPUT
+    Integer items[N_DEST];
+#else
     bigint items[N_DEST];
+#endif
 
     void read(std::istream& in, const int* params);
 };

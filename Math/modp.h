@@ -50,6 +50,8 @@ class modp_
       bool negative = false);
   void convert_destroy(bigint& source, const Zp_Data& ZpD);
   void convert_destroy(int source, const Zp_Data& ZpD) { to_modp(*this, source, ZpD); }
+  template<int M>
+  void convert_destroy(const fixint<M>& source, const Zp_Data& ZpD);
 
   void randomize(PRNG& G, const Zp_Data& ZpD);
 

@@ -4,34 +4,30 @@
 
 void DiscreteGauss::set(double RR)
 {
-  R=RR;
-  e=exp(1); e1=exp(0.25); e2=exp(-1.35); 
+  if (RR > 0 or NewHopeB < 1)
+    NewHopeB = max(1, int(round(2 * RR * RR)));
+  assert(NewHopeB > 0);
 }
 
 
 
-/*  Return a value distributed normaly with std dev R */
-int DiscreteGauss::sample(PRNG& G, int stretch) const
+/* This uses the approximation to a Gaussian via
+ * binomial distribution
+ *
+ * This procedure consumes 2*NewHopeB bits
+ *
+ */
+int DiscreteGauss::sample(PRNG &G, int stretch) const
 {
-  /*  Uses the ratio method from Wikipedia to get a 
-       Normal(0,1) variable X
-       Then multiplies X by R
-  */
-  double U,V,X,R1,R2,R3,X2;
-  int ans;
-  while (true)
-    { U=G.get_double();
-      V=G.get_double();
-      R1=5-4*e1*U;
-      R2=4*e2/U+1.4;
-      R3=-4/log(U);
-      X=sqrt(8/e)*(V-0.5)/U;
-      X2=X*X;
-      if (X2<=R1 || (X2<R2 && X2<=R3))
-        { ans=(int) (X*R*stretch);
-          return ans;
-        }
+  int s= 0;
+  // stretch refers to the standard deviation
+  int B = NewHopeB * stretch * stretch;
+  for (int i = 0; i < B; i++)
+    {
+      s += G.get_bit();
+      s -= G.get_bit();
     }
+  return s;
 }
 
 
@@ -39,7 +35,8 @@ int DiscreteGauss::sample(PRNG& G, int stretch) const
 void RandomVectors::set(int nn,int hh,double R)
 {
   n=nn;
-  h=hh;
+  if (h > 0)
+    h=hh;
   DG.set(R);
 }
 
@@ -124,7 +121,7 @@ bool RandomVectors::operator!=(const RandomVectors& other) const
 
 bool DiscreteGauss::operator!=(const DiscreteGauss& other) const
 {
-  if (other.R != R or other.e != e or other.e1 != e1 or other.e2 != e2)
+  if (other.NewHopeB != NewHopeB)
     return true;
   else
     return false;

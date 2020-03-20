@@ -11,6 +11,7 @@ using namespace std;
 #include "Math/gf2n.h"
 #include "Protocols/SPDZ.h"
 #include "Protocols/SemiShare.h"
+#include "ShareInterface.h"
 
 // Forward declaration as apparently this is needed for friends in templates
 template<class T> class Share;
@@ -33,7 +34,7 @@ template<class T> class TinierSecret;
 
 // abstracting SPDZ and SPDZ-wise
 template<class T, class V>
-class Share_
+class Share_ : public ShareInterface
 {
    T a;        // The share
    V mac;      // Shares of the mac
@@ -50,6 +51,7 @@ class Share_
 
    const static bool needs_ot = T::needs_ot;
    const static bool dishonest_majority = T::dishonest_majority;
+   const static bool variable_players = T::variable_players;
 
    static int size()
      { return T::size() + V::size(); }
@@ -119,6 +121,7 @@ class Share_
    { Share_<T, V> res; res.set_share(a / x); res.set_mac(mac / x); return res; }
 
    Share_<T, V>& operator+=(const Share_<T, V>& x) { add(x); return *this; }
+   Share_<T, V>& operator-=(const Share_<T, V>& x) { sub(*this, x); return *this; }
    template <class U>
    Share_<T, V>& operator*=(const U& x) { mul(*this, x); return *this; }
 
@@ -183,6 +186,8 @@ public:
     typedef SPDZ<Share> Protocol;
     typedef MascotFieldPrep<Share> LivePrep;
     typedef MascotPrep<Share> RandomPrep;
+
+    static const bool expensive = true;
 
     static string type_string()
       { return "SPDZ " + T::type_string(); }

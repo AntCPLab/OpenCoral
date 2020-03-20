@@ -16,12 +16,13 @@ from functools import reduce
 class StraightlineAllocator:
     """Allocate variables in a straightline program using n registers.
     It is based on the precondition that every register is only defined once."""
-    def __init__(self, n):
+    def __init__(self, n, program):
         self.alloc = dict_by_id()
         self.usage = Compiler.program.RegType.create_dict(lambda: 0)
         self.defined = dict_by_id()
         self.dealloc = set_by_id()
         self.n = n
+        self.program = program
 
     def alloc_reg(self, reg, free):
         base = reg.vectorbase
@@ -76,7 +77,8 @@ class StraightlineAllocator:
                     # unused register
                     self.alloc_reg(j, alloc_pool)
                     unused_regs.append(j)
-            if unused_regs and len(unused_regs) == len(list(i.get_def())):
+            if unused_regs and len(unused_regs) == len(list(i.get_def())) and \
+               self.program.verbose:
                 # only report if all assigned registers are unused
                 print("Register(s) %s never used, assigned by '%s' in %s" % \
                     (unused_regs,i,format_trace(i.caller)))
@@ -175,37 +177,8 @@ class Merger:
         except StopIteration:
             return mergecount, None
 
-        def expand_vector_args(inst):
-            if inst.is_vec():
-                for arg in inst.args:
-                    arg.create_vector_elements()
-                res = sum(list(zip(*inst.args)), ())
-                return list(res)
-            else:
-                return inst.args
-
         for i in merges_iter:
-            if isinstance(instructions[n], startinput_class):
-                instructions[n].args[1] += instructions[i].args[1]
-            elif isinstance(instructions[n], (stopinput, gstopinput)):
-                if instructions[n].get_size() != instructions[i].get_size():
-                    raise NotImplemented()
-                else:
-                    instructions[n].args += instructions[i].args[1:]
-            else:
-                if instructions[n].get_size() != instructions[i].get_size():
-                    # merge as non-vector instruction
-                    instructions[n].args = expand_vector_args(instructions[n]) + \
-                        expand_vector_args(instructions[i])
-                    if instructions[n].is_vec():
-                        instructions[n].size = 1
-                else:
-                    instructions[n].args += instructions[i].args
-                
-            # join arg_formats if not special iterators
-            # if not isinstance(instructions[n].arg_format, (itertools.repeat, itertools.cycle)) and \
-            #     not isinstance(instructions[i].arg_format, (itertools.repeat, itertools.cycle)):
-            #     instructions[n].arg_format += instructions[i].arg_format
+            instructions[n].merge(instructions[i])
             instructions[i] = None
             self.merge_nodes(n, i)
             mergecount += 1
@@ -343,7 +316,7 @@ class Merger:
             merge = merges[i]
             t = type(self.instructions[merge[0]])
             self.counter[t] += len(merge)
-            if len(merge) > 1000:
+            if len(merge) > 10000:
                 print('Merging %d %s in round %d/%d' % \
                     (len(merge), t.__name__, i, len(merges)))
             self.do_merge(merge)
@@ -504,7 +477,8 @@ class Merger:
                     next_available_depth[type(instr), d] = depth
 
                 round_type[depth] = instr.merge_id()
-                parallel_open[depth] += len(instr.args) * instr.get_size()
+                if int(options.max_parallel_open) > 0:
+                    parallel_open[depth] += len(instr.args) * instr.get_size()
                 depths[n] = depth
 
             if isinstance(instr, ReadMemoryInstruction):
@@ -557,8 +531,9 @@ class Merger:
                 print("Processed dependency of %d/%d instructions at" % \
                     (n, len(block.instructions)), time.asctime())
 
-        if len(open_nodes) > 1000:
-            print("Program has %d %s instructions" % (len(open_nodes), merge_classes))
+        if len(open_nodes) > 1000 and self.block.parent.program.verbose:
+            print("Basic block has %d %s instructions" %
+                  (len(open_nodes), merge_classes))
 
     def merge_nodes(self, i, j):
         """ Merge node j into i, removing node j """
@@ -608,7 +583,7 @@ class Merger:
                 eliminate(list(G.pred[i])[0])
                 eliminate(i)
                 count += 2
-        if count > 0:
+        if count > 0 and self.block.parent.program.verbose:
             print('Eliminated %d dead instructions, among which %d opens: %s' \
                 % (count, open_count, dict(stats)))
 

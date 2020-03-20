@@ -1,5 +1,6 @@
 #include "Ciphertext.h"
 #include "PPData.h"
+#include "P2Data.h"
 #include "Exceptions/Exceptions.h"
 
 Ciphertext::Ciphertext(const FHE_PK& pk) : Ciphertext(pk.get_params())
@@ -118,12 +119,11 @@ template<class T,class FD,class S>
 void mul(Ciphertext& ans,const Plaintext<T,FD,S>& a,const Ciphertext& c)
 {
   a.to_poly();
-  const vector<S>& aa=a.get_poly();
 
   int lev=c.cc0.level();
   Rq_Element ra((*ans.params).FFTD(),evaluation,evaluation);
   if (lev==0) { ra.lower_level(); }
-  ra.from_vec(aa);
+  ra.from(a.get_iterator());
   ans.mul(c, ra);
 }
 

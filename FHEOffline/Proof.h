@@ -8,6 +8,7 @@ using namespace std;
 #include "Math/bigint.h"
 #include "FHE/Ciphertext.h"
 #include "FHE/AddableVector.h"
+#include "Protocols/CowGearOptions.h"
 
 #include "config.h"
 
@@ -21,6 +22,8 @@ enum SlackType
 
 class Proof
 {
+  unsigned int sec;
+
   Proof();   // Private to avoid default 
 
   public:
@@ -29,12 +32,14 @@ class Proof
 
   class Preimages
   {
-    bigint m_tmp;
-    AddableVector<bigint> r_tmp;
+    typedef Int_Random_Coins::value_type::value_type r_type;
+
+    fixint<GFP_MOD_SZ> m_tmp;
+    AddableVector<r_type> r_tmp;
 
   public:
     Preimages(int size, const FHE_PK& pk, const bigint& p, int n_players);
-    AddableMatrix<bigint> m;
+    AddableMatrix<fixint<GFP_MOD_SZ>> m;
     Randomness r;
     void add(octetStream& os);
     void pack(octetStream& os);
@@ -43,17 +48,21 @@ class Proof
     size_t report_size(ReportType type) { return m.report_size(type) + r.report_size(type); }
   };
 
-  unsigned int sec;
   bigint tau,rho;
 
   unsigned int phim;
   int B_plain_length, B_rand_length;
   bigint plain_check, rand_check;
   unsigned int V;
+  unsigned int U;
 
   const FHE_PK* pk;
 
   int n_proofs;
+
+  vector<int> e;
+  vector<vector<int>> W;
+  bool top_gear;
 
   static double dist;
 
@@ -65,19 +74,67 @@ class Proof
       tau=Tau; rho=Rho;
 
       phim=(pk.get_params()).phi_m();
-      V=2*sec-1;
+
+      top_gear = use_top_gear(pk);
+      if (top_gear)
+        {
+          V = ceil((sec + 2) / log2(2 * phim + 1));
+          U = 2 * V;
+#ifdef VERBOSE
+          cerr << "Using " << U << " ciphertexts per proof" << endl;
+#endif
+        }
+      else
+        {
+          U = sec;
+          V = 2 * sec - 1;
+        }
     }
 
   Proof(int sec, const FHE_PK& pk, int n_proofs = 1) :
-      Proof(sec, pk.p() / 2, 2 * 3.2 * sqrt(pk.get_params().phi_m()), pk,
+      Proof(sec, pk.p() / 2,
+          pk.get_params().get_DG().get_NewHopeB(), pk,
           n_proofs) {}
+
+  virtual ~Proof() {}
 
   public:
   static bigint slack(int slack, int sec, int phim);
 
-  void get_challenge(vector<int>& e, const octetStream& ciphertexts) const;
-  template <class T>
-  bool check_bounds(T& z, AddableMatrix<bigint>& t, int i) const;
+  static bool use_top_gear(const FHE_PK& pk)
+  {
+    return CowGearOptions::singleton.top_gear() and pk.p() > 2;
+  }
+
+  static int n_ciphertext_per_proof(int sec, const FHE_PK& pk)
+  {
+    return Proof(sec, pk, 1).U;
+  }
+
+  void set_challenge(const octetStream& ciphertexts);
+  void set_challenge(PRNG& G);
+  void generate_challenge(const Player& P);
+
+  template <class T, class X>
+  bool check_bounds(T& z, X& t, int i) const;
+
+  template<class T, class U>
+  void apply_challenge(int i, T& output, const U& input, const FHE_PK& pk) const
+  {
+    if (top_gear)
+      {
+        for (unsigned j = 0; j < this->U; j++)
+          if (W[i][j] >= 0)
+            output += input[j].mul_by_X_i(W[i][j], pk);
+      }
+    else
+      for (unsigned k = 0; k < sec; k++)
+        {
+          unsigned j = (i + 1) - (k + 1);
+          if (j < sec && e.at(j))
+            output += input.at(j);
+        }
+  }
 };
 
 class NonInteractiveProof : public Proof
@@ -111,8 +168,7 @@ public:
       Proof(sec, pk, n_proofs)
   {
     bigint B;
-    // using mu = 1
-    B = bigint(1) << (sec - 1);
+    B = bigint(1) << sec;
     B_plain_length = numBits(B * tau);
     B_rand_length = numBits(B * rho);
     // leeway for completeness

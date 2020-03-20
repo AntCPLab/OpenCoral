@@ -4,6 +4,7 @@
  */
 
 #include "GC/TinySecret.h"
+#include "GC/TinierSecret.h"
 #include "GC/ShareParty.h"
 #include "GC/TinyMC.h"
 

@@ -10,7 +10,7 @@ void Zp_Data::init(const bigint& p,bool mont)
   if (pr != 0)
     {
       if (pr != p)
-        cerr << "Changing prime from " << p << " to " << pr << endl;
+        cerr << "Changing prime from " << pr << " to " << p << endl;
       if (mont != montgomery)
         cerr << "Changing Montgomery" << endl;
     }

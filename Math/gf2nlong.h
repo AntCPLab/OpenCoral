@@ -17,6 +17,7 @@ using namespace std;
 #include "Tools/random.h"
 #include "Math/field_types.h"
 #include "Math/bigint.h"
+#include "Math/Bit.h"
 
 
 class int128
@@ -69,6 +70,11 @@ template<class T> class SPDZ;
 template<class T> class Share;
 template<class T> class Square;
 
+namespace GC
+{
+class NoValue;
+}
+
 /* This interface compatible with the gfp interface
  * which then allows us to template the Share
  * data type.
@@ -79,7 +85,7 @@ template<class T> class Square;
   Arithmetic in Gf_{2^n} with n<=128
 */
 
-class gf2n_long
+class gf2n_long : public ValueInterface
 {
   int128 a;
 
@@ -101,6 +107,8 @@ class gf2n_long
 
   const static int MAX_N_BITS = 128;
   const static int N_BYTES = sizeof(a);
+
+  static const int N_BITS = -1;
 
   typedef gf2n_long Scalar;
 
@@ -172,7 +180,10 @@ class gf2n_long
   gf2n_long(const gf2n_long& g) { assign(g); }
   gf2n_long(const int128& g)    { assign(g); }
   gf2n_long(int g)         { assign(g); }
+  template<class T>
+  gf2n_long(IntBase<T> g)       { assign(g.get()); }
   gf2n_long(const char* buffer) { assign(buffer); }
+  gf2n_long(GC::NoValue);
   ~gf2n_long()             { ; }
 
   gf2n_long& operator=(const gf2n_long& g)
@@ -240,7 +251,9 @@ class gf2n_long
   gf2n_long operator<<(int i) const { gf2n_long res; res.SHL(*this, i); return res; }
   gf2n_long operator>>(int i) const { gf2n_long res; res.SHR(*this, i); return res; }
 
+  gf2n_long& operator&=(const gf2n_long& x) { AND(*this, x); return *this; }
   gf2n_long& operator>>=(int i) { SHR(*this, i); return *this; }
+  gf2n_long& operator<<=(int i) { SHL(*this, i); return *this; }
 
   /* Crap RNG */
   void randomize(PRNG& G, int n = -1);

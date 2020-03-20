@@ -15,14 +15,16 @@
 #include "ShuffleSacrifice.hpp"
 
 template<class T>
-MalRepRingPrep<T>::MalRepRingPrep(SubProcessor<T>* proc,
-        DataPositions& usage) : MaliciousRingPrep<T>(proc, usage)
+MalRepRingPrep<T>::MalRepRingPrep(SubProcessor<T>*, DataPositions& usage) :
+        BufferPrep<T>(usage)
 {
 }
 
 template<class T>
 MalRepRingPrepWithBits<T>::MalRepRingPrepWithBits(SubProcessor<T>* proc,
-        DataPositions& usage) : MalRepRingPrep<T>(proc, usage)
+        DataPositions& usage) :
+        BufferPrep<T>(usage), RingPrep<T>(proc, usage),
+        MaliciousRingPrep<T>(proc, usage), MalRepRingPrep<T>(proc, usage)
 {
 }
 
@@ -175,6 +177,28 @@ void MalRepRingPrepWithBits<T>::buffer_bits()
     SubProcessor<BitShare> bit_proc(MC, prep, proc->P);
     prep.set_proc(&bit_proc);
     bits_from_square_in_ring(this->bits, OnlineOptions::singleton.batch_size, &prep);
+}
+
+template<class T>
+void MaliciousRingPrep<T>::buffer_edabits(bool strict, int n_bits,
+        ThreadQueues* queues)
+{
+#ifndef NONPERSONAL_EDA
+    this->buffer_edabits_from_personal(strict, n_bits, queues);
+#else
+    assert(this->proc != 0);
+    ShuffleSacrifice<T> shuffle_sacrifice;
+    typedef typename T::bit_type::part_type bit_type;
+    vector<vector<bit_type>> bits;
+    vector<T> sums;
+    this->buffer_edabits_without_check(n_bits, sums, bits,
+            shuffle_sacrifice.minimum_n_inputs(), queues);
+    vector<edabit<T>>& checked = this->edabits[{strict, n_bits}];
+    shuffle_sacrifice.edabit_sacrifice(checked, sums, bits,
+            n_bits, *this->proc, strict, -1, queues);
+    if (strict)
+        this->sanitize(checked, n_bits, -1, queues);
+#endif
 }
 
 template<class T>

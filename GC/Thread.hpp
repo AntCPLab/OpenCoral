@@ -11,6 +11,8 @@
 
 #include "Networking/CryptoPlayer.h"
 
+#include "Processor.hpp"
+
 namespace GC
 {
 

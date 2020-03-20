@@ -592,6 +592,7 @@ XX(Z2<L>,Z2<N>,N,L)
 //X(96, 160)
 XX(SignedZ2<64>, SignedZ2<64>, 64, 64)
 XX(SignedZ2<72>, SignedZ2<72>, 72, 72)
+XX(SignedZ2<40>, SignedZ2<40>, 40, 40)
 
 Y(64, 64)
 Y(64, 48)

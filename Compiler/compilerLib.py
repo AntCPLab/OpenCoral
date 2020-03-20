@@ -71,9 +71,10 @@ def run(args, options, param=-1, merge_opens=True, emulate=True, \
     
     if prog.main_thread_running:
         prog.update_req(prog.curr_tape)
-    print('Program requires:', repr(prog.req_num))
-    print('Cost:', 0 if prog.req_num is None else prog.req_num.cost())
-    print('Memory size:', dict(prog.allocated_mem))
+    if prog.verbose:
+        print('Program requires:', repr(prog.req_num))
+        print('Cost:', 0 if prog.req_num is None else prog.req_num.cost())
+        print('Memory size:', dict(prog.allocated_mem))
 
     # finalize the memory
     prog.finalize_memory()

@@ -3,7 +3,7 @@
  *
  */
 
-#include "Machines/ShamirMachine.cpp"
+#include "Machines/ShamirMachine.hpp"
 
 #include "BMR/RealProgramParty.hpp"
 #include "Math/Z2k.hpp"

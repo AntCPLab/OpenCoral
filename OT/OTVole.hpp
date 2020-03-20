@@ -94,7 +94,7 @@ template <class T>
 void OTVoleBase<T>::hash_row(octet* hash, const Row<T>& row, const __m128i* coefficients) {
 	int num_blocks = DIV_CEIL(row.size() * T::size(), 16);
 
-	octetStream os;
+	os.clear();
 	for(auto& x : row.rows)
 	    x.pack(os);
 	os.serialize(int128());

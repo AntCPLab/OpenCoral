@@ -9,19 +9,26 @@
 #include "Protocols/Shamir.h"
 #include "Protocols/ShamirInput.h"
 #include "Machines/ShamirMachine.h"
-#include "GC/NoShare.h"
+#include "ShareInterface.h"
 
 template<class T> class ReplicatedPrep;
 
+namespace GC
+{
+template<class T> class CcdSecret;
+}
+
 template<class T>
-class ShamirShare : public T
+class ShamirShare : public T, public ShareInterface
 {
 public:
     typedef T clear;
     typedef T open_type;
     typedef T mac_key_type;
+    typedef void sacri_type;
+    typedef void mac_type;
 
-    typedef Shamir<T> Protocol;
+    typedef Shamir<ShamirShare> Protocol;
     typedef ShamirMC<ShamirShare> MAC_Check;
     typedef MAC_Check Direct_MC;
     typedef ShamirInput<ShamirShare> Input;
@@ -29,10 +36,12 @@ public:
     typedef ReplicatedPrep<ShamirShare> LivePrep;
     typedef ShamirShare Honest;
 
-    typedef GC::NoShare bit_type;
+    typedef GC::CcdSecret<gf2n_short> bit_type;
 
     const static bool needs_ot = false;
     const static bool dishonest_majority = false;
+    const static bool variable_players = true;
+    const static bool expensive = false;
 
     static string type_short()
     {
@@ -119,6 +128,11 @@ public:
     void force_to_bit()
     {
         throw not_implemented();
+    }
+
+    ShamirShare get_bit(int)
+    {
+        throw runtime_error("never call this");
     }
 
     void pack(octetStream& os, bool full = true) const

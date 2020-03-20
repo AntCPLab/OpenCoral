@@ -20,14 +20,13 @@ template<class T,class FD,class S>
 class SimpleEncCommitBase : public EncCommitBase<T,FD,S>
 {
 protected:
-    int sec;
     int extra_slack;
 
     int n_rounds;
 
     void generate_ciphertexts(AddableVector<Ciphertext>& c,
             const vector<Plaintext_<FD> >& m, Proof::Randomness& r,
-            const FHE_PK& pk, map<string, Timer>& timers);
+            const FHE_PK& pk, map<string, Timer>& timers, Proof& proof);
 
     virtual void prepare_plaintext(PRNG& G) = 0;
 
@@ -46,12 +45,16 @@ template <class FD>
 class NonInteractiveProofSimpleEncCommit : public SimpleEncCommitBase_<FD>
 {
 protected:
-    typedef bigint S;
+    typedef fixint<GFP_MOD_SZ> S;
 
     const PlayerBase& P;
     const FHE_PK& pk;
     const FD& FTD;
 
+    virtual const FHE_PK& get_pk_for_verification(int offset) = 0;
+    virtual void add_ciphertexts(vector<Ciphertext>& ciphertexts, int offset) = 0;
+
+public:
     NonInteractiveProof proof;
 
 #ifdef LESS_ALLOC_MORE_MEM
@@ -60,17 +63,13 @@ protected:
     Verifier<FD,S> verifier;
 #endif
 
-    virtual const FHE_PK& get_pk_for_verification(int offset) = 0;
-    virtual void add_ciphertexts(vector<Ciphertext>& ciphertexts, int offset) = 0;
-
-public:
     map<string, Timer>& timers;
 
     NonInteractiveProofSimpleEncCommit(const PlayerBase& P, const FHE_PK& pk,
             const FD& FTD, map<string, Timer>& timers,
 				       const MachineBase& machine);
     virtual ~NonInteractiveProofSimpleEncCommit() {}
-    size_t generate_proof(AddableVector<Ciphertext>& c, const vector<Plaintext_<FD> >& m,
+    size_t generate_proof(AddableVector<Ciphertext>& c, vector<Plaintext_<FD> >& m,
             octetStream& ciphertexts, octetStream& cleartexts);
     size_t create_more(octetStream& my_ciphertext, octetStream& my_cleartext);
     virtual size_t report_size(ReportType type);
@@ -86,6 +85,8 @@ protected:
     AddableVector< Plaintext_<FD> > m;
 
     int n_calls;
+
+    const FHE_PK& pk;
 
     void prepare_plaintext(PRNG& G);
     virtual void create_more() = 0;
@@ -104,7 +105,8 @@ class SimpleEncCommit: public NonInteractiveProofSimpleEncCommit<FD>,
         public SimpleEncCommitFactory<FD>
 {
 protected:
-    const FHE_PK& get_pk_for_verification(int offset) { (void)offset; return this->pk; }
+    const FHE_PK& get_pk_for_verification(int)
+    { return NonInteractiveProofSimpleEncCommit<FD>::pk; }
     void prepare_plaintext(PRNG& G)
     { SimpleEncCommitFactory<FD>::prepare_plaintext(G); }
     void add_ciphertexts(vector<Ciphertext>& ciphertexts, int offset);
@@ -127,7 +129,7 @@ template <class FD>
 class SummingEncCommit: public SimpleEncCommitFactory<FD>,
         public SimpleEncCommitBase_<FD>
 {
-    typedef bigint S;
+    typedef fixint<GFP_MOD_SZ> S;
 
     InteractiveProof proof;
     const FHE_PK& pk;
@@ -148,15 +150,8 @@ public:
     map<string, Timer>& timers;
 
     SummingEncCommit(const Player& P, const FHE_PK& pk, const FD& FTD,
-            map<string, Timer>& timers, const MachineBase& machine, int thread_num) :
-    SimpleEncCommitFactory<FD>(pk, FTD, machine), SimpleEncCommitBase_<FD>(machine),
-	proof(this->sec, pk, P.num_players()), pk(pk), FTD(FTD), P(P),
-	thread_num(thread_num),
-#ifdef LESS_ALLOC_MORE_MEM
-            prover(proof, FTD), verifier(proof), preimages(proof.V, this->pk,
-                FTD.get_prime(), P.num_players()),
-#endif
-            timers(timers) {}
+            map<string, Timer>& timers, const MachineBase& machine, int thread_num);
+
     void next(Plaintext_<FD>& mess, Ciphertext& C) { SimpleEncCommitFactory<FD>::next(mess, C); }
     void create_more();
     size_t report_size(ReportType type);

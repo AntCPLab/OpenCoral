@@ -16,6 +16,9 @@ using namespace std;
 #include "mpn_fixed.h"
 #include "ValueInterface.h"
 
+template<class T> class IntBase;
+template<int L> class fixint;
+
 template <int K>
 class Z2 : public ValueInterface
 {
@@ -27,7 +30,6 @@ protected:
 	static const int N_WORDS = ((K + 7) / 8 + sizeof(mp_limb_t) - 1)
 			/ sizeof(mp_limb_t);
 	static const int N_LIMB_BITS = 8 * sizeof(mp_limb_t);
-	static const uint64_t UPPER_MASK = uint64_t(-1LL) >> (N_LIMB_BITS - 1 - (K - 1) % N_LIMB_BITS);
 
 	mp_limb_t a[N_WORDS];
 
@@ -49,7 +51,9 @@ public:
 	typedef DummyZ2kProtocol Protocol;
 
 	static const int N_BITS = K;
+	static const int MAX_EDABITS = K;
 	static const int N_BYTES = (K + 7) / 8;
+        static const uint64_t UPPER_MASK = uint64_t(-1LL) >> (N_LIMB_BITS - 1 - (K - 1) % N_LIMB_BITS);
 
 	static int size() { return N_BYTES; }
 	static int size_in_limbs() { return N_WORDS; }
@@ -77,7 +81,8 @@ public:
 	Z2(__m128i x) : Z2() { avx_memcpy(a, &x, min(N_BYTES, 16)); }
 	Z2(int x) : Z2(long(x)) { a[N_WORDS - 1] &= UPPER_MASK; }
 	Z2(long x) : Z2(uint64_t(x)) { if (K > 64 and x < 0) memset(&a[1], -1, N_BYTES - 8); }
-	Z2(const Integer& x);
+	template<class T>
+	Z2(const IntBase<T>& x);
 	Z2(const bigint& x);
 	Z2(const void* buffer) : Z2() { assign(buffer); }
 	template <int L>
@@ -112,12 +117,15 @@ public:
 	Z2<K> operator*(bool other) const { return other ? *this : Z2<K>(); }
 	Z2<K> operator*(int other) const { return *this * Z2<K>(other); }
 
-	Z2<K> operator/(const Z2& other) const { (void) other; throw not_implemented(); }
+	Z2<K> operator/(const Z2& other) const { (void) other; throw division_by_zero(); }
 
 	Z2<K> operator&(const Z2& other) const;
 
 	Z2<K>& operator+=(const Z2<K>& other);
 	Z2<K>& operator-=(const Z2<K>& other);
+	Z2<K>& operator&=(const Z2<K>& other);
+	Z2<K>& operator<<=(int other);
+	Z2<K>& operator>>=(int other);
 
 	Z2<K> operator<<(int i) const;
 	Z2<K> operator>>(int i) const;
@@ -184,17 +192,23 @@ public:
     template <int L>
     SignedZ2(const SignedZ2<L>& other) : Z2<K>(other)
     {
-        if (K < L and other.negative())
-        {
-            this->a[Z2<K>::N_WORDS - 1] |= ~Z2<K>::UPPER_MASK;
-            for (int i = Z2<K>::N_WORDS; i < this->N_WORDS; i++)
-                this->a[i] = -1;
-        }
+        extend(other);
     }
 
-    SignedZ2(const Integer& other) : SignedZ2(SignedZ2<64>(other))
+
+    template<int L>
+    void extend(const SignedZ2<L>& other)
     {
+        if (L < K and other.negative())
+        {
+            this->a[other.size_in_limbs() - 1] |= ~other.UPPER_MASK;
+            for (int i = Z2<L>::size_in_limbs(); i < this->N_WORDS; i++)
+              this->a[i] = -1;
+        }
+        this->normalize();
     }
+
+    SignedZ2(const Integer& other);
 
     template<class T>
     SignedZ2(const T& other) :
@@ -202,9 +216,26 @@ public:
     {
     }
 
+    template<int L>
+    SignedZ2(const fixint<L>& other) :
+            Z2<K>(other)
+    {
+        extend(other);
+    }
+
     bool negative() const
     {
         return this->a[this->N_WORDS - 1] & 1ll << ((K - 1) % (8 * sizeof(mp_limb_t)));
+    }
+
+    bool operator<(const SignedZ2& other) const
+    {
+        return (*this - other).negative();
+    }
+
+    bool operator>(const SignedZ2& other) const
+    {
+        return (other - this).negative();
     }
 
     SignedZ2 operator-() const
@@ -212,9 +243,26 @@ public:
         return SignedZ2() - *this;
     }
 
+    void negate()
+    {
+        *this = -*this;
+    }
+
     SignedZ2 operator-(const SignedZ2& other) const
     {
         return Z2<K>::operator-(other);
+    }
+
+    template<int L>
+    SignedZ2<K + L> operator*(const Z2<L>& other) const
+    {
+        assert((K % 64 == 0) and (L % 64 == 0));
+        return Z2<K>::operator*(other);
+    }
+
+    SignedZ2<K> operator*(int other) const
+    {
+        return operator*(SignedZ2<64>(other));
     }
 
     void output(ostream& s, bool human = true) const;
@@ -254,6 +302,27 @@ Z2<K>& Z2<K>::operator-=(const Z2<K>& other)
 }
 
 template <int K>
+Z2<K>& Z2<K>::operator&=(const Z2<K>& other)
+{
+	*this = *this & other;
+	return *this;
+}
+
+template <int K>
+Z2<K>& Z2<K>::operator<<=(int other)
+{
+	*this = *this << other;
+	return *this;
+}
+
+template <int K>
+Z2<K>& Z2<K>::operator>>=(int other)
+{
+	*this = *this >> other;
+	return *this;
+}
+
+template <int K>
 template <int L, int M>
 inline Z2<K> Z2<K>::Mul(const Z2<L>& x, const Z2<M>& y)
 {
@@ -278,8 +347,11 @@ Z2<K> Z2<K>::operator<<(int i) const
 	for (int j = n_limb_shift; j < N_WORDS; j++)
 		res.a[j] = a[j - n_limb_shift];
 	int n_inside_shift = i % N_LIMB_BITS;
-	if (n_inside_shift > 0)
-		mpn_lshift(res.a, res.a, N_WORDS, n_inside_shift);
+	if (N_WORDS == 1)
+	    res.a[0] <<= n_inside_shift;
+	else
+	    if (n_inside_shift > 0)
+	        mpn_lshift(res.a, res.a, N_WORDS, n_inside_shift);
 	res.a[N_WORDS - 1] &= UPPER_MASK;
 	return res;
 }
@@ -288,11 +360,13 @@ template <int K>
 Z2<K> Z2<K>::operator>>(int i) const
 {
 	Z2<K> res;
-	int n_byte_shift = i / 8;
-	if (N_BYTES - n_byte_shift > 0)
-		memcpy(res.a, (char*)a + n_byte_shift, N_BYTES - n_byte_shift);
-	int n_inside_shift = i % 8;
-	if (n_inside_shift > 0)
+	int n_limb_shift = i / N_LIMB_BITS;
+	for (int j = 0; j < N_WORDS - n_limb_shift; j++)
+		res.a[j] = a[j + n_limb_shift];
+	int n_inside_shift = i % N_LIMB_BITS;
+	if (N_WORDS == 1)
+		res.a[0] >>= n_inside_shift;
+	else if (n_inside_shift > 0)
 		mpn_rshift(res.a, res.a, N_WORDS, n_inside_shift);
 	return res;
 }

@@ -62,6 +62,12 @@ public:
   { return to_string(thread.elapsed()) + "/" + to_string(wall.elapsed()); }
 };
 
+class RunningTimer : public Timer
+{
+public:
+  RunningTimer() { start(); }
+};
+
 inline Timer& Timer::start()
 {
   if (running)

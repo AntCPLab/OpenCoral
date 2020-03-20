@@ -21,6 +21,37 @@ namespace GC
 template<class T> class ShareThread;
 template<class T> class RepPrep;
 
+class SmallMalRepSecret : public FixedVec<BitVec_<unsigned char>, 2>
+{
+    typedef FixedVec<BitVec_<unsigned char>, 2> super;
+    typedef SmallMalRepSecret This;
+
+public:
+    typedef MaliciousRepMC<This> MC;
+    typedef BitVec_<unsigned char> open_type;
+    typedef open_type clear;
+    typedef BitVec mac_key_type;
+
+    static MC* new_mc(mac_key_type)
+    {
+        return new HashMaliciousRepMC<This>;
+    }
+
+    SmallMalRepSecret()
+    {
+    }
+    template<class T>
+    SmallMalRepSecret(const T& other) :
+            super(other)
+    {
+    }
+
+    This lsb() const
+    {
+        return *this & 1;
+    }
+};
+
 class MaliciousRepSecret : public ReplicatedSecret<MaliciousRepSecret>
 {
     typedef ReplicatedSecret<MaliciousRepSecret> super;
@@ -36,6 +67,11 @@ public:
     typedef RepPrep<MaliciousRepSecret> LivePrep;
 
     typedef MaliciousRepSecret part_type;
+    typedef MaliciousRepSecret whole_type;
+
+    typedef SmallMalRepSecret small_type;
+
+    static const bool expensive_triples = true;
 
     static MC* new_mc(mac_key_type)
     {

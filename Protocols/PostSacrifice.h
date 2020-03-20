@@ -19,8 +19,6 @@ class PostSacrifice : public ProtocolBase<T>
     vector<array<prep_type, 2>> operands;
     vector<prep_type> results;
 
-    void check();
-
 public:
     Player& P;
 
@@ -31,6 +29,8 @@ public:
     typename T::clear prepare_mul(const T& x, const T& y, int n = -1);
     void exchange() { internal.exchange(); }
     T finalize_mul(int n = -1);
+
+    void check();
 
     int get_n_relevant_players() { return internal.get_n_relevant_players(); }
 };

@@ -7,6 +7,8 @@
 #include "FHEOffline/PairwiseMachine.h"
 #include "FHEOffline/Producer.h"
 #include "Protocols/SemiShare.h"
+#include "GC/SemiSecret.h"
+#include "GC/SemiPrep.h"
 
 #include "Protocols/MAC_Check.hpp"
 #include "Protocols/SemiInput.hpp"
@@ -21,20 +23,21 @@ PairwiseGenerator<FD>::PairwiseGenerator(int thread_num,
             thread_num, machine.output),
     EC(P, machine.other_pks, machine.setup<FD>().FieldD, timers, machine, *this),
     MC(machine.setup<FD>().alphai),
-    C(machine.sec, machine.setup<FD>().params), volatile_memory(0),
+    n_ciphertexts(Proof::n_ciphertext_per_proof(machine.sec, machine.pk)),
+    C(n_ciphertexts, machine.setup<FD>().params), volatile_memory(0),
     machine(machine)
 {
     for (int i = 1; i < P.num_players(); i++)
         multipliers.push_back(new Multiplier<FD>(i, *this));
     const FD& FieldD = machine.setup<FD>().FieldD;
-    a.resize(machine.sec, FieldD);
-    b.resize(machine.sec, FieldD);
-    c.resize(machine.sec, FieldD);
+    a.resize(n_ciphertexts, FieldD);
+    b.resize(n_ciphertexts, FieldD);
+    c.resize(n_ciphertexts, FieldD);
     a.allocate_slots(FieldD.get_prime());
     b.allocate_slots(FieldD.get_prime());
     // extra limb for addition
     c.allocate_slots((bigint)FieldD.get_prime() << 64);
-    b_mod_q.resize(machine.sec,
+    b_mod_q.resize(n_ciphertexts,
     { machine.setup<FD>().params, evaluation, evaluation });
 }
 
@@ -64,8 +67,8 @@ void PairwiseGenerator<FD>::run()
         c.mul(a, b);
         timers["Plaintext multiplication"].stop();
         timers["FFT of b"].start();
-        for (int i = 0; i < machine.sec; i++)
-            b_mod_q.at(i).from_vec(b.at(i).get_poly());
+        for (int i = 0; i < n_ciphertexts; i++)
+            b_mod_q.at(i).from(b.at(i).get_iterator());
         timers["FFT of b"].stop();
         timers["Proof exchange"].start();
         size_t verifier_memory = EC.create_more(ciphertexts, cleartexts);
@@ -73,7 +76,7 @@ void PairwiseGenerator<FD>::run()
         volatile_memory = max(prover_memory, verifier_memory);
 
         Rq_Element values({machine.setup<FD>().params, evaluation, evaluation});
-        for (int k = 0; k < machine.sec; k++)
+        for (int k = 0; k < n_ciphertexts; k++)
         {
             producer.ai = a[k];
             producer.bi = b[k];
@@ -90,7 +93,7 @@ void PairwiseGenerator<FD>::run()
                 else
                 {
                     timers["Plaintext conversion"].start();
-                    values.from_vec(producer.values[j].get_poly());
+                    values.from(producer.values[j].get_iterator());
                     timers["Plaintext conversion"].stop();
                 }
 
@@ -122,7 +125,7 @@ void PairwiseGenerator<FD>::generate_inputs(int player)
     {
         SeededPRNG G;
         b[0].randomize(G);
-        b_mod_q.at(0).from_vec(b.at(0).get_poly());
+        b_mod_q.at(0).from(b.at(0).get_iterator());
         producer.macs[0].mul(machine.setup<FD>().alpha, b[0]);
     }
     else

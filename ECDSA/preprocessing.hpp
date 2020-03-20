@@ -11,6 +11,13 @@
 #include "Processor/Data_Files.h"
 #include "Protocols/ReplicatedPrep.h"
 #include "Protocols/MaliciousShamirShare.h"
+#include "GC/TinierSecret.h"
+#include "GC/TinierPrep.h"
+#include "GC/MaliciousCcdSecret.h"
+#include "GC/TinyMC.h"
+
+#include "GC/TinierSharePrep.hpp"
+#include "GC/CcdSecret.h"
 
 template<template<class U> class T>
 class EcTuple
@@ -18,6 +25,8 @@ class EcTuple
 public:
     T<P256Element::Scalar> a;
     T<P256Element::Scalar> b;
+    P256Element::Scalar c;
+    T<P256Element> secret_R;
     P256Element R;
 };
 
@@ -62,9 +71,10 @@ void preprocessing(vector<EcTuple<T>>& tuples, int buffer_size,
         for (int i = 0; i < buffer_size; i++)
             secret_Rs.push_back(bs[i] / cs_opened[i]);
     }
-    vector<P256Element> opened_Rs;
+    vector<P256Element> opened_Rs(buffer_size);
     typename cShare::Direct_MC MCc(MCp.get_alphai());
-    MCc.POpen_Begin(opened_Rs, secret_Rs, extra_player);
+    if (not opts.R_after_msg)
+        MCc.POpen_Begin(opened_Rs, secret_Rs, extra_player);
     if (prep_mul)
     {
         protocol.init_mul(&proc);
@@ -74,10 +84,13 @@ void preprocessing(vector<EcTuple<T>>& tuples, int buffer_size,
     }
     if (opts.fewer_rounds)
         MCp.POpen_End(cs_opened, cs, extra_player);
-    MCc.POpen_End(opened_Rs, secret_Rs, extra_player);
-    if (opts.fewer_rounds)
-        for (int i = 0; i < buffer_size; i++)
-            opened_Rs[i] /= cs_opened[i];
+    if (not opts.R_after_msg)
+    {
+        MCc.POpen_End(opened_Rs, secret_Rs, extra_player);
+        if (opts.fewer_rounds)
+            for (int i = 0; i < buffer_size; i++)
+                opened_Rs[i] /= cs_opened[i];
+    }
     if (prep_mul)
         protocol.stop_exchange();
     if (opts.check_open)
@@ -88,7 +101,7 @@ void preprocessing(vector<EcTuple<T>>& tuples, int buffer_size,
     {
         tuples.push_back(
                 { inv_ks[i], prep_mul ? protocol.finalize_mul() : pShare(),
-                        opened_Rs[i] });
+                        cs_opened[i], secret_Rs[i], opened_Rs[i] });
     }
     timer.stop();
     cout << "Generated " << buffer_size << " tuples in " << timer.elapsed()
@@ -112,6 +125,7 @@ void check(vector<EcTuple<T>>& tuples, T<P256Element::Scalar> sk,
         assert(open_sk * inv_k == MC.POpen(tuple.b, P));
         assert(tuple.R == k);
     }
+    MC.Check(P);
 }
 
 template<>

@@ -11,6 +11,8 @@
 
 #include "instructions.h"
 
+#include "Machine.hpp"
+
 namespace GC
 {
 

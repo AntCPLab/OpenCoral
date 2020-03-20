@@ -221,6 +221,8 @@ class InputProducer : public Producer<FD>
   bool write_output;
 
 public:
+  vector<vector<InputTuple<Share<T>>>> inputs;
+
   InputProducer(const Player& P, int output_thread = 0, bool write_output = true,
       string dir = PREP_DIR);
   ~InputProducer();
@@ -228,7 +230,15 @@ public:
   string data_type() { return "Inputs"; }
 
   void run(const Player& P, const FHE_PK& pk, const Ciphertext& calpha,
-      EncCommitBase_<FD>& EC, DistDecrypt<FD>& dd, const T& alphai);
+      EncCommitBase_<FD>& EC, DistDecrypt<FD>& dd, const T& alphai)
+  {
+      run(P, pk, calpha, EC, dd, alphai, -1);
+  }
+
+  void run(const Player& P, const FHE_PK& pk, const Ciphertext& calpha,
+      EncCommitBase_<FD>& EC, DistDecrypt<FD>& dd, const T& alphai,
+      int player);
+
   int sacrifice(const Player& P, MAC_Check<T>& MC);
 
   // no ops

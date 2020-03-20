@@ -69,13 +69,31 @@ def divide_by_two(res, x, m=1):
     inv2m(tmp, m)
     mulc(res, x, tmp)
 
+@instructions_base.cisc
 def LTZ(s, a, k, kappa):
     """
     s = (a ?< 0)
 
     k: bit length of a
     """
-    from .types import sint
+    from .types import sint, _bitint
+    from .GC.types import sbitvec
+    if program.use_split():
+        movs(s, sint.conv(sbitvec(a, k).v[-1]))
+        return
+    elif program.options.ring:
+        from . import floatingpoint
+        assert(int(program.options.ring) >= k)
+        m = k - 1
+        shift = int(program.options.ring) - k
+        r_prime, r_bin = MaskingBitsInRing(k)
+        tmp = a - r_prime
+        c_prime = (tmp << shift).reveal() >> shift
+        a = r_bin[0].bit_decompose_clear(c_prime, m)
+        b = r_bin[:m]
+        u = CarryOutRaw(a[::-1], b[::-1])
+        movs(s, sint.conv(r_bin[m].bit_xor(c_prime >> m).bit_xor(u)))
+        return
     t = sint()
     Trunc(t, a, k, k - 1, kappa, True)
     subsfi(s, t, 0)
@@ -86,6 +104,7 @@ def LessThanZero(a, k, kappa):
     LTZ(res, a, k, kappa)
     return res
 
+@instructions_base.cisc
 def Trunc(d, a, k, m, kappa, signed):
     """
     d = a >> m
@@ -120,7 +139,7 @@ def TruncRing(d, a, k, m, signed):
         movs(d, res)
     return res
 
-def TruncZeroes(a, k, m, signed):
+def TruncZeros(a, k, m, signed):
     if program.options.ring:
         return TruncLeakyInRing(a, k, m, signed)
     else:
@@ -139,9 +158,8 @@ def TruncLeakyInRing(a, k, m, signed):
     from .types import sint, intbitint, cint, cgf2n
     n_bits = k - m
     n_shift = int(program.options.ring) - n_bits
-    if program.use_dabit and n_bits > 1:
-        r, r_bits = zip(*(sint.get_dabit() for i in range(n_bits)))
-        r = sint.bit_compose(r)
+    if n_bits > 1:
+        r, r_bits = MaskingBitsInRing(n_bits, True)
     else:
         r_bits = [sint.get_random_bit() for i in range(n_bits)]
         r = sint.bit_compose(r_bits)
@@ -150,7 +168,7 @@ def TruncLeakyInRing(a, k, m, signed):
     shifted = ((a << (n_shift - m)) + (r << n_shift)).reveal()
     masked = shifted >> n_shift
     u = sint()
-    BitLTL(u, masked, r_bits, 0)
+    BitLTL(u, masked, r_bits[:n_bits], 0)
     res = (u << n_bits) + masked - r
     if signed:
         res -= (1 << (n_bits - 1))
@@ -174,6 +192,7 @@ def TruncRoundNearest(a, k, m, kappa, signed=False):
     Trunc(res, a + (1 << (m - 1)), k + 1, m, kappa, signed)
     return res
 
+@instructions_base.cisc
 def Mod2m(a_prime, a, k, m, kappa, signed):
     """
     a_prime = a % 2^m
@@ -199,16 +218,11 @@ def Mod2mRing(a_prime, a, k, m, signed):
     assert(int(program.options.ring) >= k)
     from Compiler.types import sint, intbitint, cint
     shift = int(program.options.ring) - m
-    if program.use_dabit:
-        r, r_bin = zip(*(sint.get_dabit() for i in range(m)))
-    else:
-        r = [sint.get_random_bit() for i in range(m)]
-        r_bin = r
-    r_prime = sint.bit_compose(r)
+    r_prime, r_bin = MaskingBitsInRing(m, True)
     tmp = a + r_prime
     c_prime = (tmp << shift).reveal() >> shift
     u = sint()
-    BitLTL(u, c_prime, r_bin, 0)
+    BitLTL(u, c_prime, r_bin[:m], 0)
     res = (u << m) + c_prime - r_prime
     if a_prime is not None:
         movs(a_prime, res)
@@ -247,19 +261,35 @@ def Mod2mField(a_prime, a, k, m, kappa, signed):
     adds(a_prime, t[5], t[4])
     return r_dprime, r_prime, c, c_prime, u, t, c2k1
 
+def MaskingBitsInRing(m, strict=False):
+    from Compiler.types import sint
+    if program.use_edabit():
+        return sint.get_edabit(m, strict)
+    elif program.use_dabit:
+        r, r_bin = zip(*(sint.get_dabit() for i in range(m)))
+    else:
+        r = [sint.get_random_bit() for i in range(m)]
+        r_bin = r
+    return sint.bit_compose(r), r_bin
+
 def PRandM(r_dprime, r_prime, b, k, m, kappa, use_dabit=True):
     """
     r_dprime = random secret integer in range [0, 2^(k + kappa - m) - 1]
     r_prime = random secret integer in range [0, 2^m - 1]
     b = array containing bits of r_prime
     """
+    program.curr_tape.require_bit_length(k + kappa)
+    from .types import sint
+    if program.use_edabit() and m > 1:
+        movs(r_dprime, sint.get_edabit(k + kappa - m, True)[0])
+        tmp, b[:] = sint.get_edabit(m, True)
+        movs(r_prime, tmp)
+        return
     t = [[program.curr_block.new_reg('s') for j in range(2)] for i in range(m)]
     t[0][1] = b[-1]
     PRandInt(r_dprime, k + kappa - m)
     # r_dprime is always multiplied by 2^m
-    program.curr_tape.require_bit_length(k + kappa)
     if use_dabit and program.use_dabit and m > 1:
-        from .types import sint
         r, b[:] = zip(*(sint.get_dabit() for i in range(m)))
         r = sint.bit_compose(r)
         movs(r_prime, r)
@@ -389,17 +419,25 @@ def CarryOut(res, a, b, c=0, kappa=None):
     b: array of secret bits (same length as a)
     c: initial carry-in bit
     """
+    from .types import sint
+    movs(res, sint.conv(CarryOutRaw(a, b, c)))
+
+def CarryOutRaw(a, b, c=0):
+    assert len(a) == len(b)
     k = len(a)
     from . import types
     d = [program.curr_block.new_reg('s') for i in range(k)]
     s = [program.curr_block.new_reg('s') for i in range(3)]
     for i in range(k):
         d[i] = list(b[i].half_adder(a[i]))
-    s[0] = d[-1][0] * c
+    s[0] = d[-1][0].bit_and(c)
     s[1] = d[-1][1] + s[0]
     d[-1][1] = s[1]
-    
-    movs(res, types.sint.conv(CarryOutAux(d[::-1], kappa)))
+    return CarryOutAux(d[::-1], None)
+
+def CarryOutRawLE(a, b, c=0):
+    """ Little-endian version """
+    return CarryOutRaw(a[::-1], b[::-1], c)
 
 def CarryOutLE(a, b, c=0):
     """ Little-endian version """
@@ -416,13 +454,12 @@ def BitLTL(res, a, b, kappa):
     b: array of secret bits (same length as a)
     """
     k = len(b)
-    from . import floatingpoint
-    a_bits = floatingpoint.bits(a, k)
+    a_bits = b[0].bit_decompose_clear(a, k)
     s = [[program.curr_block.new_reg('s') for i in range(k)] for j in range(2)]
     t = [program.curr_block.new_reg('s') for i in range(1)]
     for i in range(len(b)):
         s[0][i] = b[0].long_one() - b[i]
-    CarryOut(t[0], a_bits[::-1], s[0][::-1], 1, kappa)
+    CarryOut(t[0], a_bits[::-1], s[0][::-1], b[0].long_one(), kappa)
     subsfi(res, t[0], 1)
     return a_bits, s[0]
 

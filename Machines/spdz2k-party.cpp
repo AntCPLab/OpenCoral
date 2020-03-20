@@ -3,9 +3,6 @@
  *
  */
 
-#include "GC/TinySecret.h"
-#include "GC/TinyMC.h"
-#include "GC/TinyPrep.h"
 #include "GC/TinierSecret.h"
 #include "Processor/Machine.h"
 #include "Processor/RingOptions.h"
@@ -14,12 +11,6 @@
 #include "Networking/Server.h"
 
 #include "Player-Online.hpp"
-#include "SPDZ2k.hpp"
-#include "GC/ShareParty.hpp"
-#include "GC/ShareSecret.hpp"
-#include "GC/Secret.hpp"
-#include "GC/TinyPrep.hpp"
-#include "GC/TinierSharePrep.hpp"
 
 int main(int argc, const char** argv)
 {

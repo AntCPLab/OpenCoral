@@ -49,7 +49,10 @@ inline P256Element::Scalar hash_to_scalar(const unsigned char* message, size_t l
 template<template<class U> class T>
 EcSignature sign(const unsigned char* message, size_t length,
         EcTuple<T> tuple,
-        typename T<P256Element::Scalar>::MAC_Check& MC, Player& P,
+        typename T<P256Element::Scalar>::MAC_Check& MC,
+        typename T<P256Element>::MAC_Check& MCc,
+        Player& P,
+        EcdsaOptions opts,
         P256Element pk,
         T<P256Element::Scalar> sk = {},
         SubProcessor<T<P256Element::Scalar>>* proc = 0)
@@ -60,16 +63,30 @@ EcSignature sign(const unsigned char* message, size_t length,
     size_t start = P.sent;
     auto stats = P.comm_stats;
     EcSignature signature;
-    signature.R = tuple.R;
+    vector<P256Element> opened_R;
+    if (opts.R_after_msg)
+        MCc.POpen_Begin(opened_R, {tuple.secret_R}, P);
     T<P256Element::Scalar> prod = tuple.b;
+    auto& protocol = proc->protocol;
     if (proc)
     {
-        auto& protocol = proc->protocol;
         protocol.init_mul(proc);
         protocol.prepare_mul(sk, tuple.a);
-        protocol.exchange();
+        protocol.start_exchange();
+    }
+    if (opts.R_after_msg)
+    {
+        MCc.POpen_End(opened_R, {tuple.secret_R}, P);
+        tuple.R = opened_R[0];
+        if (opts.fewer_rounds)
+            tuple.R /= tuple.c;
+    }
+    if (proc)
+    {
+        protocol.stop_exchange();
         prod = protocol.finalize_mul();
     }
+    signature.R = tuple.R;
     auto rx = tuple.R.x();
     signature.s = MC.open(
             tuple.a * hash_to_scalar(message, length) + prod * rx, P);
@@ -132,7 +149,7 @@ void sign_benchmark(vector<EcTuple<T>>& tuples, T<P256Element::Scalar> sk,
 
     for (size_t i = 0; i < min(10lu, tuples.size()); i++)
     {
-        check(sign(message, 1 << i, tuples[i], MCp, P, pk, sk, proc), message,
+        check(sign(message, 1 << i, tuples[i], MCp, MCc, P, opts, pk, sk, proc), message,
                 1 << i, pk);
         if (not opts.check_open)
             continue;
@@ -142,6 +159,7 @@ void sign_benchmark(vector<EcTuple<T>>& tuples, T<P256Element::Scalar> sk,
         auto stats = check_player.comm_stats;
         auto start = check_player.sent;
         MCp.Check(P);
+        MCc.Check(P);
         cout << "Online checking took " << timer.elapsed() * 1e3 << " ms and sending "
             << (check_player.sent - start) << " bytes" << endl;
         auto diff = (check_player.comm_stats - stats);

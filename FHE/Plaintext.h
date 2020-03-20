@@ -18,9 +18,13 @@
  */
 
 #include "FHE/Generator.h"
+#include "Math/fixint.h"
 
 #include <vector>
 using namespace std;
+
+class FHE_PK;
+class Rq_Element;
 
 // Forward declaration as apparently this is needed for friends in templates
 template<class T,class FD,class S> class Plaintext;
@@ -35,9 +39,11 @@ enum condition { Full, Diagonal, Bits };
 
 enum PT_Type   { Polynomial, Evaluation, Both }; 
 
-template<class T,class FD,class S>
+template<class T,class FD,class _>
 class Plaintext
 {
+  typedef typename FD::poly_type S;
+
   int n_slots;
   int degree;
 
@@ -60,7 +66,7 @@ class Plaintext
   const FD& get_field() const { return *Field_Data; }
   unsigned int num_slots() const { return n_slots; }
 
-  void assign(const Plaintext<T,FD,S>& p)
+  void assign(const Plaintext& p)
     { Field_Data=p.Field_Data;
       a=p.a; b=p.b; type=p.type;
       n_slots = p.n_slots;
@@ -70,12 +76,7 @@ class Plaintext
   Plaintext(const FD& FieldD, PT_Type type = Polynomial)
   { Field_Data=&FieldD; set_sizes(); allocate(type); }
 
-  Plaintext(const Plaintext<T,FD,S>& p)   { assign(p); }
-  ~Plaintext() { ; }
-  Plaintext& operator=(const Plaintext<T,FD,S>& p)
-    { if (this!=&p) { assign(p); }
-      return *this;
-    }
+  Plaintext(const FD& FieldD, const Rq_Element& other);
 
   void allocate(PT_Type type) const;
   void allocate() const { allocate(type); }
@@ -117,17 +118,23 @@ class Plaintext
   void set_poly(const vector<S>& v)
     { type=Polynomial; b=v; }
   const vector<S>& get_poly() const
-    { if (type==Evaluation) { throw rep_mismatch(); }
+    {
+      to_poly();
       return b;
     }
 
   Iterator<S> get_iterator() const { to_poly(); return b; }
 
+  void from(const Generator<bigint>& source) const;
+
   // This sets a poly from a vector of bigint's which needs centering
   // modulo mod, before assigning (used in decryption)
   //    vv[i] is already assumed reduced modulo mod though but in 
   //    range [0,...,mod)
-  void set_poly_mod(const vector<bigint>& vv,const bigint& mod);
+  void set_poly_mod(const vector<bigint>& vv,const bigint& mod)
+  {
+    set_poly_mod(Iterator<bigint>(vv), mod);
+  }
   void set_poly_mod(const Generator<bigint>& generator, const bigint& mod);
 
   // Converts between Evaluation,Polynomial and Both representations
@@ -144,36 +151,38 @@ class Plaintext
   void assign_one(PT_Type t = Evaluation);
   void assign_constant(T constant, PT_Type t = Evaluation);
 
-  friend void add<>(Plaintext<T,FD,S>& z,const Plaintext<T,FD,S>& x,const Plaintext<T,FD,S>& y);
-  friend void sub<>(Plaintext<T,FD,S>& z,const Plaintext<T,FD,S>& x,const Plaintext<T,FD,S>& y);
-  friend void mul<>(Plaintext<T,FD,S>& z,const Plaintext<T,FD,S>& x,const Plaintext<T,FD,S>& y);
-  friend void sqr<>(Plaintext<T,FD,S>& z,const Plaintext<T,FD,S>& x);
+  friend void add<>(Plaintext& z,const Plaintext& x,const Plaintext& y);
+  friend void sub<>(Plaintext& z,const Plaintext& x,const Plaintext& y);
+  friend void mul<>(Plaintext& z,const Plaintext& x,const Plaintext& y);
+  friend void sqr<>(Plaintext& z,const Plaintext& x);
 
-  Plaintext<T,FD,S> operator+(const Plaintext<T,FD,S>& x) const
-  { Plaintext<T,FD,S> res(*Field_Data); add(res, *this, x); return res; }
-  Plaintext<T,FD,S> operator-(const Plaintext<T,FD,S>& x) const
-  { Plaintext<T,FD,S> res(*Field_Data); sub(res, *this, x); return res; }
+  Plaintext operator+(const Plaintext& x) const
+  { Plaintext res(*Field_Data); add(res, *this, x); return res; }
+  Plaintext operator-(const Plaintext& x) const
+  { Plaintext res(*Field_Data); sub(res, *this, x); return res; }
 
-  void mul(const Plaintext<T,FD,S>& x, const Plaintext<T,FD,S>& y)
+  void mul(const Plaintext& x, const Plaintext& y)
   { x.from_poly(); y.from_poly(); ::mul(*this, x, y); }
 
-  Plaintext<T,FD,S> operator*(const Plaintext<T,FD,S>& x)
-  { Plaintext<T,FD,S> res(*Field_Data); res.mul(*this, x); return res; }
+  Plaintext operator*(const Plaintext& x)
+  { Plaintext res(*Field_Data); res.mul(*this, x); return res; }
 
-  Plaintext<T,FD,S>& operator+=(const Plaintext<T,FD,S>& y);
-  Plaintext<T,FD,S>& operator-=(const Plaintext<T,FD,S>& y)
+  Plaintext& operator+=(const Plaintext& y);
+  Plaintext& operator-=(const Plaintext& y)
   { to_poly(); y.to_poly(); ::sub(*this, *this, y); return *this; }
 
   void negate();
 
-  bool equals(const Plaintext<T,FD,S>& x) const;
-  bool operator!=(const Plaintext<T,FD,S>& x) { return !equals(x); }
+  Rq_Element mul_by_X_i(int i, const FHE_PK& pk) const;
+
+  bool equals(const Plaintext& x) const;
+  bool operator!=(const Plaintext& x) { return !equals(x); }
 
   bool is_diagonal() const { throw not_implemented(); }
   bool is_binary() const { throw not_implemented(); }
 
-  friend ostream& operator<< <>(ostream& s,const Plaintext<T,FD,S>& e);
-  friend istream& operator>> <>(istream& s,Plaintext<T,FD,S>& e);
+  friend ostream& operator<< <>(ostream& s,const Plaintext& e);
+  friend istream& operator>> <>(istream& s,Plaintext& e);
 
   /* Pack and unpack into an octetStream 
    *   For unpack we assume the FFTD has been assigned correctly already

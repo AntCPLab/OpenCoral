@@ -156,13 +156,26 @@ void set_up_client_socket(int& mysocket,const char* hostname,int Portnum)
    cout << "connect to ip " << hex << addr4->sin_addr.s_addr << " port " << addr4->sin_port << dec << endl;
 #endif
 
+   int attempts = 0;
+   long wait = 1;
    do
    {  fl=1;
       while (fl==1 || errno==EINPROGRESS)
-       { fl=connect(mysocket, addr, len); }
+        {
+          fl=connect(mysocket, addr, len);
+          attempts++;
+          if (fl != 0)
+            usleep(wait *= 2);
+        }
    }
-   while (fl==-1 && errno==ECONNREFUSED && timer.elapsed() < 60);
-   if (fl<0) { error("set_up_socket:connect:",hostname);  }
+   while (fl == -1 && (errno == ECONNREFUSED || errno == ETIMEDOUT)
+            && timer.elapsed() < 60);
+
+   if (fl < 0)
+     {
+       cout << attempts << " attempts" << endl;
+       error("set_up_socket:connect:", hostname);
+     }
 
    freeaddrinfo(ai);
 
@@ -201,15 +214,7 @@ template<>
 void receive(int socket,int& a)
 {
   unsigned char msg[1];
-  int i=0;
-  while (i < 1)
-    { i=recv(socket,msg,1,0);
-#ifdef __APPLE__
-      check_non_blocking_result(i);
-#else
-      if (i<0) { error("Receiving error - 2"); }
-#endif
-    }
+  receive(socket, msg, 1);
   a=msg[0];
 }
 

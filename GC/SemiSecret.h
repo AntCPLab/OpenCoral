@@ -24,19 +24,21 @@ public:
     typedef Memory<SemiSecret> DynamicMemory;
 
     typedef SemiMC<SemiSecret> MC;
+    typedef DirectSemiMC<SemiSecret> Direct_MC;
     typedef Beaver<SemiSecret> Protocol;
     typedef MC MAC_Check;
     typedef SemiPrep LivePrep;
     typedef SemiInput<SemiSecret> Input;
 
     typedef SemiSecret part_type;
+    typedef SemiSecret small_type;
 
     static const int default_length = sizeof(BitVec) * 8;
 
     static string type_string() { return "binary secret"; }
     static string phase_name() { return "Binary computation"; }
 
-    static MC* new_mc(mac_key_type) { return new MC; }
+    static MC* new_mc(mac_key_type);
 
     template<class T>
     static void generate_mac_key(mac_key_type, T)
@@ -72,6 +74,9 @@ public:
     { *this = BitVec(x ^ y).mask(n); }
 
     void reveal(size_t n_bits, Clear& x);
+
+    SemiSecret lsb()
+    { return *this & 1; }
 };
 
 } /* namespace GC */

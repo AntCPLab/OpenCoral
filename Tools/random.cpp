@@ -1,6 +1,8 @@
 
 #include "Tools/random.h"
 #include "Math/bigint.h"
+#include "Math/fixint.h"
+#include "Math/Z2k.hpp"
 #include "Tools/Subroutines.h"
 #include <stdio.h>
 #include <sodium.h>
@@ -9,7 +11,8 @@
 using namespace std;
 
 
-PRNG::PRNG() : cnt(0)
+PRNG::PRNG() :
+    cnt(0), n_cached_bits(0), cached_bits(0)
 {
 #ifdef __AES__
   #ifdef USE_AES
@@ -29,7 +32,7 @@ void PRNG::ReSeed()
   InitSeed();
 }
 
-void PRNG::SeedGlobally(Player& P)
+void PRNG::SeedGlobally(const Player& P)
 {
   octet seed[SEED_SIZE];
   Create_Random_Seed(seed, P, SEED_SIZE);
@@ -218,16 +221,7 @@ void PRNG::randomBnd(mp_limb_t* res, const mp_limb_t* B, size_t n_bytes, mp_limb
   }
 }
 
-bigint PRNG::randomBnd(const bigint& B, bool positive)
-{
-  bigint x;
-#ifdef REALLOC_POLICE
-  x = B;
-#endif
-  randomBnd(x, B, positive);
-  return x;
-}
-
+template<>
 void PRNG::randomBnd(bigint& x, const bigint& B, bool positive)
 {
   int i = 0;
@@ -248,6 +242,23 @@ void PRNG::randomBnd(bigint& x, const bigint& B, bool positive)
     }
 }
 
+template<>
+void PRNG::randomBnd(fixint<2>& x, const bigint& B, bool positive)
+{
+  randomBnd(bigint::tmp, B, positive);
+  x = bigint::tmp;
+}
+
+bigint PRNG::randomBnd(const bigint& B, bool positive)
+{
+  bigint x;
+#ifdef REALLOC_POLICE
+  x = B;
+#endif
+  randomBnd(x, B, positive);
+  return x;
+}
+
 void PRNG::get_bigint(bigint& res, int n_bits, bool positive)
 {
   assert(n_bits > 0);
@@ -263,11 +274,27 @@ void PRNG::get_bigint(bigint& res, int n_bits, bool positive)
     mpz_neg(res.get_mpz_t(), res.get_mpz_t());
 }
 
+template<>
 void PRNG::get(bigint& res, int n_bits, bool positive)
 {
   get_bigint(res, n_bits, positive);
 }
 
+template<>
+void PRNG::get(fixint<0>& res, int n_bits, bool positive)
+{
+  get(bigint::tmp, n_bits, positive);
+  res = bigint::tmp;
+}
+
+template<>
+void PRNG::get(fixint<2>& res, int n_bits, bool positive)
+{
+  get(bigint::tmp, n_bits, positive);
+  res = bigint::tmp;
+}
+
+template<>
 void PRNG::get(int& res, int n_bits, bool positive)
 {
   res = get_uint();

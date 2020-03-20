@@ -17,6 +17,7 @@
 #include "FHE/FHE_Params.h"
 #include "FHE/tools.h"
 #include "FHE/Generator.h"
+#include "Plaintext.h"
 #include <vector>
 
 // Forward declare the friend functions
@@ -62,8 +63,17 @@ protected:
   Rq_Element(const FHE_Params& params) :
       Rq_Element(params.FFTD()) {}
 
+  Rq_Element(const FHE_PK& pk);
+
   Rq_Element(const Ring_Element& b0,const Ring_Element& b1) :
     a({b0, b1}), lev(n_mults()) {}
+
+  template<class T, class FD, class S>
+  Rq_Element(const FHE_Params& params, const Plaintext<T, FD, S>& plaintext) :
+      Rq_Element(params)
+  {
+    from(plaintext.get_iterator());
+  }
 
   // Destructor
   ~Rq_Element()
@@ -91,6 +101,8 @@ protected:
   // Multiply something by p1 and make level 1
   void mul_by_p1();
 
+  Rq_Element mul_by_X_i(int i) const;
+
   void randomize(PRNG& G,int lev=-1);
 
   // Scale from level 1 to level 0, if at level 0 do nothing
@@ -113,9 +125,15 @@ protected:
   vector<bigint>  to_vec_bigint() const;
   void to_vec_bigint(vector<bigint>& v) const;
 
-  ConversionIterator get_iterator();
+  ConversionIterator get_iterator() const;
   template <class T>
   void from(const Generator<T>& generator, int level=-1);
+
+  template <class T>
+  void from(const vector<T>& source, int level=-1)
+    {
+      from(Iterator<T>(source), level);
+    }
 
   bigint infinity_norm() const;
 
@@ -156,9 +174,22 @@ template<class S>
 Rq_Element& Rq_Element::operator+=(const vector<S>& other)
 {
   Rq_Element tmp = *this;
-  tmp.from_vec(other, lev);
+  tmp.from(Iterator<S>(other), lev);
   add(*this, *this, tmp);
   return *this;
+}
+
+template <class T>
+void Rq_Element::from(const Generator<T>& generator, int level)
+{
+  set_level(level);
+  if (lev == 1)
+    {
+      auto clone = generator.clone();
+      a[1].from(*clone);
+      delete clone;
+    }
+  a[0].from(generator);
 }
 
 #endif

@@ -12,6 +12,7 @@
 #include "Processor/OnlineOptions.h"
 
 #include "Processor/Online-Thread.h"
+#include "Processor/ThreadJob.h"
 
 #include "GC/Machine.h"
 
@@ -50,9 +51,6 @@ class Machine : public BaseMachine
 
   public:
 
-  vector<pthread_mutex_t> t_mutex;
-  vector<pthread_cond_t>  client_ready;
-  vector<pthread_cond_t>  server_ready;
   vector<Program>  progs;
 
   Memory<sgf2n> M2;
@@ -84,8 +82,10 @@ class Machine : public BaseMachine
 
   const Names& get_N() { return N; }
 
-  DataPositions run_tape(int thread_number, int tape_number, int arg, int line_number);
-  void join_tape(int thread_number);
+  DataPositions run_tape(int thread_number, int tape_number, int arg,
+      int line_number, Preprocessing<sint>* prep = 0,
+      Preprocessing<typename sint::bit_type>* bit_prep = 0);
+  DataPositions join_tape(int thread_number);
   void run();
 
   string memory_filename();

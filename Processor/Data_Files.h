@@ -53,12 +53,15 @@ public:
   vector< vector<long long> > files;
   vector< vector<long long> > inputs;
   map<DataTag, long long> extended[N_DATA_FIELD_TYPE];
+  map<pair<bool, int>, long long> edabits;
 
   DataPositions(int num_players = 0) { set_num_players(num_players); }
   void reset() { *this = DataPositions(inputs.size()); }
   void set_num_players(int num_players);
   int num_players() { return inputs.size(); }
   void increase(const DataPositions& delta);
+  DataPositions& operator-=(const DataPositions& delta);
+  DataPositions operator-(const DataPositions& delta) const;
   void print_cost() const;
 };
 
@@ -76,6 +79,7 @@ protected:
   void count(Dtype dtype) { usage.files[T::field_type()][dtype]++; }
   void count(DataTag tag, int n = 1) { usage.extended[T::field_type()][tag] += n; }
   void count_input(int player) { usage.inputs[player][T::field_type()]++; }
+  void count_edabit(bool strict, int n_bits) { usage.edabits[{strict, n_bits}]++; }
 
 public:
   template<class U, class V>
@@ -112,10 +116,19 @@ public:
   void get(vector<T>& S, DataTag tag, const vector<int>& regs, int vector_size);
 
   virtual array<T, 3> get_triple(int n_bits);
+  virtual T get_bit();
   virtual void get_dabit(T&, typename T::bit_type&) { throw runtime_error("no daBit"); }
+  virtual void get_edabits(bool, size_t, T*, vector<typename T::bit_type>&,
+      const vector<int>&)
+  { throw runtime_error("no edaBit"); }
+
+  virtual void push_triples(const vector<array<T, 3>>&)
+  { throw runtime_error("no pushing"); }
 
   virtual void buffer_triples() {}
   virtual void buffer_inverses() {}
+
+  virtual Preprocessing<typename T::part_type>& get_part() { throw runtime_error("no part"); }
 };
 
 template<class T>
@@ -194,7 +207,9 @@ public:
 template<class sint, class sgf2n>
 class Data_Files
 {
-  DataPositions usage;
+  friend class Processor<sint, sgf2n>;
+
+  DataPositions usage, skipped;
 
   public:
 
@@ -213,10 +228,10 @@ class Data_Files
 
   DataPositions get_usage()
   {
-    return usage;
+    return usage - skipped;
   }
 
-  void reset_usage() { usage.reset(); }
+  void reset_usage() { usage.reset(); skipped.reset(); }
 
   size_t data_sent() { return DataFp.data_sent() + DataF2.data_sent(); }
 };
@@ -257,7 +272,7 @@ inline void Preprocessing<T>::get(Dtype dtype, T* a)
       get_one(dtype, a[0]);
       break;
   default:
-      throw not_implemented();
+      throw runtime_error("unsupported data type: " + to_string(dtype));
   }
 }
 
@@ -303,6 +318,14 @@ array<T, 3> Preprocessing<T>::get_triple(int n_bits)
   (void) n_bits;
   array<T, 3> res;
   get(DATA_TRIPLE, res.data());
+  return res;
+}
+
+template<class T>
+T Preprocessing<T>::get_bit()
+{
+  T res;
+  get_one(DATA_BIT, res);
   return res;
 }
 

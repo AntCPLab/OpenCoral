@@ -6,6 +6,9 @@
 #include "Integer.h"
 
 template<class T>
+const int IntBase<T>::N_BITS;
+
+template<class T>
 void IntBase<T>::output(ostream& s,bool human) const
 {
   if (human)
@@ -23,6 +26,7 @@ void IntBase<T>::input(istream& s,bool human)
     s.read((char*)&a, sizeof(a));
 }
 
+inline
 void Integer::reqbl(int n)
 {
   if ((int)n < 0 && size() * 8 != -(int)n)
@@ -38,13 +42,18 @@ void Integer::reqbl(int n)
     }
 }
 
+inline
 Integer::Integer(const Integer& x, int n_bits)
 {
-  a = abs(x.get());
-  a &= ~(uint64_t(-1) << (n_bits - 1) << 1);
-  if (x < 0)
-    a = -a;
+  if (n_bits == 1)
+    *this = x & 1;
+  else if (n_bits == 64)
+    *this = x;
+  else
+    {
+      a = abs(x.get());
+      a &= ~(uint64_t(-1) << (n_bits - 1) << 1);
+      if (x < 0)
+        a = -a;
+    }
 }
-
-template class IntBase<long>;
-template class IntBase<bool>;

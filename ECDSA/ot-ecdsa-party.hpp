@@ -18,6 +18,7 @@
 #include "Processor/Processor.hpp"
 #include "Processor/Data_Files.hpp"
 #include "Processor/Input.hpp"
+#include "GC/TinyPrep.hpp"
 
 #include <assert.h>
 
@@ -103,6 +104,8 @@ void run(int argc, const char** argv)
     typename pShare::Direct_MC MCp(keyp, N, 0);
     ArithmeticProcessor _({}, 0);
     typename pShare::LivePrep sk_prep(0, usage);
+    GC::ShareThread<typename pShare::bit_type> thread(N,
+            OnlineOptions::singleton, P, {}, usage);
     SubProcessor<pShare> sk_proc(_, MCp, sk_prep, P);
     pShare sk, __;
     // synchronize

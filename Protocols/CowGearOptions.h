@@ -10,6 +10,8 @@
 
 class CowGearOptions
 {
+    bool use_top_gear;
+
     void lowgear_from_covert();
 
 public:
@@ -20,6 +22,11 @@ public:
 
     CowGearOptions();
     CowGearOptions(ez::ezOptionParser& opt, int argc, const char** argv);
+
+    bool top_gear()
+    {
+        return use_top_gear;
+    }
 };
 
 #endif /* PROTOCOLS_COWGEAROPTIONS_H_ */

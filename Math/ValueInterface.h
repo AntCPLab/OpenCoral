@@ -9,11 +9,14 @@
 class ValueInterface
 {
 public:
+    static const int MAX_EDABITS = 0;
+
     static int t() { return 0; }
 
     template<class T>
     static void init(bool mont = true) { (void) mont; }
     static void init_default(int l) { (void) l; }
+    static void init_field() {}
 
     static void read_setup(int nparties, int lg2p, int gf2ndegree);
 

@@ -5,6 +5,7 @@
 #include "Tools/ezOptionParser.h"
 #include "Tools/Config.h"
 #include "Networking/Server.h"
+#include "GC/TinierSecret.h"
 
 #include <iostream>
 #include <map>
@@ -65,15 +66,6 @@ int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt, bool live_pr
       "Filename containing list of party ip addresses. Alternative to --hostname and running Server.x for startup coordination.", // Help description.
       "-ip", // Flag token.
       "--ip-file-name" // Flag token.
-    );
-    opt.add(
-          "", // Default.
-          0, // Required?
-          0, // Number of args expected.
-          0, // Delimiter if expecting multiple args.
-          "Direct communication instead of star-shaped", // Help description.
-          "-d", // Flag token.
-          "--direct" // Flag token.
     );
     opt.add(
           "", // Default.
@@ -181,7 +173,7 @@ int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt, bool live_pr
 #endif
     {
         Machine<T, U>(playerno, playerNames, online_opts.progname, online_opts.memtype, lg2,
-                opt.get("--direct")->isSet, opening_sum, opt.get("--parallel")->isSet,
+                online_opts.direct, opening_sum, opt.get("--parallel")->isSet,
                 opt.get("--threads")->isSet, max_broadcast,
                 opt.get("--encrypted")->isSet, online_opts.live_prep,
                 online_opts).run();

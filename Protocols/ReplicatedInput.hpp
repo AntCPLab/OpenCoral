@@ -9,6 +9,7 @@
 #include "ReplicatedInput.h"
 #include "Processor/Processor.h"
 
+#include "Processor/Input.hpp"
 
 template<class T>
 void ReplicatedInput<T>::reset(int player)

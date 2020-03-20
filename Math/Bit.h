@@ -8,6 +8,8 @@
 
 #include "BitVec.h"
 
+class gf2n_short;
+
 class Bit : public BitVec_<bool>
 {
     typedef BitVec_<bool> super;
@@ -21,14 +23,21 @@ public:
     Bit()
     {
     }
-    Bit(bool other) :
+    Bit(int other) :
             super(other)
     {
+        assert(other == 0 or other == 1);
     }
     Bit(const super::super& other) :
             super(other)
     {
     }
+    Bit(char*)
+    {
+        throw runtime_error("never call this");
+    }
+
+    Bit(const gf2n_short& other);
 
     Bit operator*(const Bit& other) const
     {
@@ -48,6 +57,15 @@ public:
     void unpack(octetStream& os, int = -1)
     {
         super::unpack(os, 1);
+    }
+
+    void operator>>=(int)
+    {
+        throw runtime_error("never call this");
+    }
+    void operator<<=(int)
+    {
+        throw runtime_error("never call this");
     }
 };
 

@@ -40,10 +40,19 @@ Compiler.mpc\_math module
 -------------------------
 
 .. automodule:: Compiler.mpc_math
-   :members:
-   :no-undoc-members:
-   :show-inheritance:
-
+.. autofunction:: atan
+.. autofunction:: acos
+.. autofunction:: asin
+.. autofunction:: cos
 .. autofunction:: exp2_fx
 .. autofunction:: log2_fx
+.. autofunction:: log_fx
+.. autofunction:: pow_fx
+.. autofunction:: sin
 .. autofunction:: sqrt
+.. autofunction:: tan
+
+Compiler.ml module
+-------------------------
+
+.. automodule:: Compiler.ml

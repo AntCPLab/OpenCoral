@@ -15,8 +15,9 @@ template<class T>
 class TinierPrep : public TinyPrep<T>
 {
 public:
-    TinierPrep(DataPositions& usage, ShareThread<T>& thread) :
-            TinyPrep<T>(usage, thread)
+    TinierPrep(DataPositions& usage, ShareThread<T>& thread,
+            bool amplify = true) :
+            TinyPrep<T>(usage, thread, amplify)
     {
     }
 

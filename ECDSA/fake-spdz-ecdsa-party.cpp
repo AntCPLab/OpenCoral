@@ -17,6 +17,10 @@
 #include "Processor/Input.hpp"
 #include "Processor/Processor.hpp"
 #include "Processor/Data_Files.hpp"
+#include "Protocols/MascotPrep.hpp"
+#include "GC/Secret.hpp"
+#include "GC/TinyPrep.hpp"
+#include "OT/NPartyTripleGenerator.hpp"
 
 #include <assert.h>
 
@@ -41,6 +45,10 @@ int main(int argc, const char** argv)
     Sub_Data_Files<pShare> prep(N, prefix, usage);
     typename pShare::Direct_MC MCp(keyp);
     ArithmeticProcessor _({}, 0);
+    BaseMachine machine;
+    machine.ot_setups.push_back({P, false});
+    GC::ShareThread<typename pShare::bit_type> thread(N,
+            OnlineOptions::singleton, P, {}, usage);
     SubProcessor<pShare> proc(_, MCp, prep, P);
 
     pShare sk, __;

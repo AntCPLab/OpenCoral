@@ -42,8 +42,10 @@ public:
 
     typedef typename T::super check_type;
 
-    static const bool dishonest_majority = true;
+    static const bool dishonest_majority = T::dishonest_majority;
+    static const bool variable_players = T::variable_players;
     static const bool needs_ot = true;
+    static const bool expensive_triples = false;
 
     static const int default_length = 64;
 
@@ -57,9 +59,15 @@ public:
         return part_type::size() * default_length;
     }
 
-    static void generate_mac_key(mac_key_type& dest, const mac_key_type& source)
+    template<class U>
+    static void generate_mac_key(mac_key_type&, const U&)
     {
-        dest = source;
+    }
+
+    template<class U>
+    static void reveal_inst(U& processor, const vector<int>& args)
+    {
+        T::reveal_inst(processor, args);
     }
 
     static This constant(BitVec other, int my_num, mac_key_type alphai)
@@ -75,6 +83,10 @@ public:
     {
     }
     VectorSecret(const super& other) :
+            super(other)
+    {
+    }
+    VectorSecret(const Clear& other) :
             super(other)
     {
     }
@@ -128,6 +140,11 @@ public:
         return res;
     }
 
+    T get_bit(int i) const
+    {
+        return this->get_reg(i);
+    }
+
     void output(ostream& s, bool human = true) const
     {
         assert(this->get_regs().size() == default_length);
@@ -172,6 +189,12 @@ public:
         for (auto access : accesses)
             mem[access.address] = super::constant(access.value,
                     party.P->my_num(), {});
+    }
+
+    static void generate_mac_key(typename This::mac_key_type& dest,
+            const typename This::mac_key_type& source)
+    {
+        dest = source;
     }
 
     TinySecret()

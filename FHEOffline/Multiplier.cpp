@@ -27,7 +27,7 @@ Multiplier<FD>::Multiplier(int offset, PairwiseMachine& machine, Player& P,
     product_share(machine.setup<FD>().FieldD), rc(machine.pk),
     volatile_capacity(0)
 {
-    product_share.allocate_slots(machine.setup<FD>().params.p0() << 64);
+    product_share.allocate_slots(machine.pk.p() << 64);
 }
 
 template <class FD>
@@ -35,7 +35,7 @@ void Multiplier<FD>::multiply_and_add(Plaintext_<FD>& res,
         const Ciphertext& enc_a, const Plaintext_<FD>& b)
 {
     Rq_Element bb(enc_a.get_params(), evaluation, evaluation);
-    bb.from_vec(b.get_poly());
+    bb.from(b.get_iterator());
     multiply_and_add(res, enc_a, bb);
 }
 

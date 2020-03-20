@@ -13,7 +13,7 @@
 #include "SemiShare.h"
 #include "SemiMC.h"
 #include "ReplicatedInput.h"
-#include "Rep3Share.h"
+#include "Rep3Share2k.h"
 
 #include "SemiMC.hpp"
 #include "Math/Z2k.hpp"
@@ -83,6 +83,24 @@ void ProtocolBase<T>::mulrs(const vector<int>& reg,
         SubProcessor<T>& proc)
 {
     proc.mulrs(reg);
+}
+
+template<class T>
+void ProtocolBase<T>::multiply(vector<T>& products,
+        vector<pair<T, T> >& multiplicands, int begin, int end,
+        SubProcessor<T>& proc)
+{
+#ifdef VERBOSE
+    fprintf(stderr, "multiply from %d to %d in %d\n", begin, end,
+            BaseMachine::thread_num);
+#endif
+
+    init_mul(&proc);
+    for (int i = begin; i < end; i++)
+        prepare_mul(multiplicands[i].first, multiplicands[i].second);
+    exchange();
+    for (int i = begin; i < end; i++)
+        products[i] = finalize_mul();
 }
 
 template<class T>
@@ -207,10 +225,11 @@ T Replicated<T>::get_random()
 
 template<int K>
 void trunc_pr(const vector<int>& regs, int size,
-        SubProcessor<Rep3Share<SignedZ2<K>>>& proc)
+        SubProcessor<Rep3Share2<K>>& proc)
 {
     assert(regs.size() % 4 == 0);
     assert(proc.P.num_players() == 3);
+    assert(proc.Proc != 0);
     typedef SignedZ2<K> value_type;
     typedef Rep3Share<value_type> T;
     bool generate = proc.P.my_num() == 2;
@@ -228,7 +247,7 @@ void trunc_pr(const vector<int>& regs, int size,
             for (int l = 0; l < size; l++)
             {
                 auto& res = proc.get_S_ref(regs[i] + l);
-                auto& G = proc.Proc.secure_prng;
+                auto& G = proc.Proc->secure_prng;
                 auto mask = G.template get<value_type>();
                 auto unmask = (mask << (n_shift + 1)) >> (n_shift + m + 1);
                 T shares[4];
@@ -315,7 +334,7 @@ template<class T>
 void trunc_pr(const vector<int>& regs, int size, SubProcessor<T>& proc)
 {
     (void) regs, (void) size, (void) proc;
-    throw not_implemented();
+    throw runtime_error("trunc_pr not implemented");
 }
 
 template<class T>

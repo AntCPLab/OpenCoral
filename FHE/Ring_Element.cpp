@@ -147,6 +147,47 @@ void mul(Ring_Element& ans,const Ring_Element& a,const modp& b)
 }
 
 
+Ring_Element Ring_Element::mul_by_X_i(int j) const
+{
+  Ring_Element ans;
+  auto& a = *this;
+  ans.partial_assign(a);
+  if (ans.rep == evaluation)
+    {
+      modp xj, xj2;
+      Power(xj, (*ans.FFTD).get_root(0), j, (*a.FFTD).get_prD());
+      Sqr(xj2, xj, (*a.FFTD).get_prD());
+      for (int i= 0; i < (*ans.FFTD).phi_m(); i++)
+        {
+          Mul(ans.element[i], a.element[i], xj, (*a.FFTD).get_prD());
+          Mul(xj, xj, xj2, (*a.FFTD).get_prD());
+        }
+    }
+  else
+    {
+      Ring_Element aa(*ans.FFTD, ans.rep);
+      for (int i= 0; i < (*ans.FFTD).phi_m(); i++)
+        {
+          int k= j + i, s= 1;
+          while (k >= (*ans.FFTD).phi_m())
+            {
+              k-= (*ans.FFTD).phi_m();
+              s= -s;
+            }
+          if (s == 1)
+            {
+              aa.element[k]= a.element[i];
+            }
+          else
+            {
+              Negate(aa.element[k], a.element[i], (*a.FFTD).get_prD());
+            }
+        }
+      ans= aa;
+    }
+  return ans;
+}
+
 
 void Ring_Element::randomize(PRNG& G,bool Diag)
 {
@@ -318,20 +359,6 @@ void Ring_Element::from_vec(const vector<int>& v)
 //  cout << "RE:from_vec<int>:: " << *this << endl;
 }
 
-template <class T>
-void Ring_Element::from(const Generator<T>& generator)
-{
-  RepType t=rep;
-  rep=polynomial;
-  T tmp;
-  for (int i=0; i<(*FFTD).phi_m(); i++)
-    {
-      generator.get(tmp);
-      element[i].convert_destroy(tmp, (*FFTD).get_prD());
-    }
-  change_rep(t);
-}
-
 ConversionIterator Ring_Element::get_iterator() const
 {
   if (rep != polynomial)
@@ -389,6 +416,7 @@ modp Ring_Element::get_constant() const
 
 void store(octetStream& o,const vector<modp>& v,const Zp_Data& ZpD)
 {
+  ZpD.pack(o);
   o.store((int)v.size());
   for (unsigned int i=0; i<v.size(); i++)
      { v[i].pack(o,ZpD); }
@@ -397,6 +425,12 @@ void store(octetStream& o,const vector<modp>& v,const Zp_Data& ZpD)
 
 void get(octetStream& o,vector<modp>& v,const Zp_Data& ZpD)
 {
+  Zp_Data check_Zpd;
+  check_Zpd.unpack(o);
+  if (check_Zpd != ZpD)
+    throw runtime_error(
+        "mismatch: " + to_string(check_Zpd.pr_bit_length) + "/"
+            + to_string(ZpD.pr_bit_length));
   unsigned int length;
   o.get(length);
   v.resize(length);
@@ -408,7 +442,7 @@ void get(octetStream& o,vector<modp>& v,const Zp_Data& ZpD)
 void Ring_Element::pack(octetStream& o) const
 {
   check_size();
-  o.store(rep);
+  o.store(unsigned(rep));
   store(o,element,(*FFTD).get_prD());
 }
 

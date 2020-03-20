@@ -13,11 +13,11 @@
 template<class T>
 class ShamirMC : public MAC_Check_Base<T>
 {
-    vector<typename T::clear::Scalar> reconstruction;
+    vector<typename T::open_type::Scalar> reconstruction;
 
     bool send;
 
-    void finalize(vector<typename T::clear>& values, const vector<T>& S);
+    void finalize(vector<typename T::open_type>& values, const vector<T>& S);
 
 protected:
     vector<octetStream> os;
@@ -38,9 +38,9 @@ public:
         ShamirMC()
     { (void)_; (void)__; (void)___; (void)____; }
 
-    void POpen(vector<typename T::clear>& values,const vector<T>& S,const Player& P);
-    void POpen_Begin(vector<typename T::clear>& values,const vector<T>& S,const Player& P);
-    void POpen_End(vector<typename T::clear>& values,const vector<T>& S,const Player& P);
+    void POpen(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
+    void POpen_Begin(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
+    void POpen_End(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
 
     void Check(const Player& P) { (void)P; }
 };

@@ -3,11 +3,16 @@
  *
  */
 
+#ifndef GC_PROGRAM_HPP_
+#define GC_PROGRAM_HPP_
+
 #include <GC/Program.h>
 
 #include "config.h"
 
 #include "Tools/callgrind.h"
+
+#include "Instruction.hpp"
 
 namespace GC
 {
@@ -133,3 +138,5 @@ BreakType Program<T>::execute(Processor<T>& Proc, U& dynamic_memory,
 }
 
 } /* namespace GC */
+
+#endif

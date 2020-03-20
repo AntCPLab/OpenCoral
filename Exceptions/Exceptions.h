@@ -221,4 +221,12 @@ public:
     }
 };
 
+class ran_out
+{
+    const char* what() const
+    {
+        return "insufficient preprocessing";
+    }
+};
+
 #endif

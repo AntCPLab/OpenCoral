@@ -24,40 +24,17 @@ NTL_CLIENT
 
 #include "FHEOffline/DataSetup.h"
 
-
-template <>
-void generate_setup(int n_parties, int plaintext_length, int sec,
-    FHE_Params& params, FFT_Data& FTD, int slack, bool round_up)
-{
-  Ring Rp;
-  bigint p0p,p1p,p;
-  SPDZ_Data_Setup_Char_p(Rp, FTD, p0p, p1p, n_parties, plaintext_length, sec,
-      slack, round_up);
-  params.set(Rp, {p0p, p1p});
-}
-
-
-template <>
-void generate_setup(int n_parties, int plaintext_length, int sec,
-    FHE_Params& params, P2Data& P2D, int slack, bool round_up)
-{
-  Ring R;
-  bigint pr0,pr1;
-  SPDZ_Data_Setup_Char_2(R, P2D, pr0, pr1, n_parties, plaintext_length, sec,
-      slack, round_up);
-  params.set(R, {pr0, pr1});
-}
-
-
 void generate_setup(int n, int lgp, int lg2, int sec, bool skip_2,
     int slack, bool round_up)
 {
   DataSetup setup;
 
   // do the full setup for SHE data
-  generate_setup(n, lgp, sec, setup.setup_p.params, setup.setup_p.FieldD, slack, round_up);
+  Parameters(n, lgp, sec, slack, round_up).generate_setup(setup.setup_p.params,
+      setup.setup_p.FieldD);
   if (!skip_2)
-    generate_setup(n, lg2, sec, setup.setup_2.params, setup.setup_2.FieldD, slack, round_up);
+    Parameters(n, lg2, sec, slack, round_up).generate_setup(
+        setup.setup_2.params, setup.setup_2.FieldD);
 
   setup.write_setup(skip_2);
 }
@@ -208,9 +185,9 @@ int finalize_lengths(int& lg2p0, int& lg2p1, int n, int m, int* lg2pi, bool roun
 /*
  * Subroutine for creating the FHE parameters
  */
-int SPDZ_Data_Setup_Char_p_Sub(Ring& R, bigint& pr0, bigint& pr1, int n,
-    int idx, int& m, bigint& p, int sec, int slack = 0, bool round_up = false)
+int Parameters::SPDZ_Data_Setup_Char_p_Sub(int idx, int& m, bigint& p)
 {
+  int n = n_parties;
   int lg2pi[5][2][9]
              = {  {  {130,132,132,132,132,132,132,132,132},
                      {104,104,104,106,106,108,108,110,110} },
@@ -291,13 +268,13 @@ void generate_modulus(bigint& pr, const int m, const bigint p, const int lg2pr,
 /*
  * Create the char p FHE parameters
  */
-void SPDZ_Data_Setup_Char_p(Ring& R, FFT_Data& FTD, bigint& pr0, bigint& pr1,
-    int n, int lgp, int sec, int slack, bool round_up)
+template <>
+void Parameters::SPDZ_Data_Setup(FFT_Data& FTD)
 {
   bigint p;
   int idx, m;
-  SPDZ_Data_Setup_Primes(p, lgp, idx, m);
-  SPDZ_Data_Setup_Char_p_Sub(R, pr0, pr1, n, idx, m, p, sec, slack, round_up);
+  SPDZ_Data_Setup_Primes(p, plaintext_length, idx, m);
+  SPDZ_Data_Setup_Char_p_Sub(idx, m, p);
 
   Zp_Data Zp(p);
   gfp::init_field(p);
@@ -574,9 +551,12 @@ void char_2_dimension(int& m, int& lg2)
     }
 }
 
-void SPDZ_Data_Setup_Char_2(Ring& R, P2Data& P2D, bigint& pr0, bigint& pr1,
-    int n, int lg2, int sec, int slack, bool round_up)
+template <>
+void Parameters::SPDZ_Data_Setup(P2Data& P2D)
 {
+  int n = n_parties;
+  int lg2 = plaintext_length;
+
   int lg2pi[2][9]
              = {  {70,70,70,70,70,70,70,70,70},
                   {70,75,75,75,75,80,80,80,80}
@@ -760,7 +740,8 @@ void SPDZ_Data_Setup_Char_p_General(Ring& R, PPData& PPD, bigint& pr0,
     { throw bad_value(); }
   cout << "Chosen value of m=" << m << "\t\t phi(m)=" << bphi_m << " : " << min_hwt << " : " << bmx << endl;
 
-  SPDZ_Data_Setup_Char_p_Sub(R,pr0,pr1,n,idx,m,p,sec);
+  Parameters parameters(n, lgp, sec);
+  parameters.SPDZ_Data_Setup_Char_p_Sub(idx,m,p);
   int mx=0;
   for (int i=0; i<R.phi_m(); i++)
     { if (mx<R.Phi()[i]) { mx=R.Phi()[i]; } }
@@ -769,6 +750,9 @@ void SPDZ_Data_Setup_Char_p_General(Ring& R, PPData& PPD, bigint& pr0,
   Zp_Data Zp(p);
   gfp::init_field(p);
   PPD.init(R,Zp);
+
+  pr0 = parameters.pr0;
+  pr1 = parameters.pr1;
 }
 
 

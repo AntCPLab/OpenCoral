@@ -3,6 +3,21 @@
 #include "FHE/Ring_Element.h"
 #include "FHE/PPData.h"
 #include "FHE/P2Data.h"
+#include "FHE/Rq_Element.h"
+#include "FHE_Keys.h"
+#include "Math/Z2k.hpp"
+
+
+
+template<>
+void Plaintext<gfp, FFT_Data, bigint>::from(const Generator<bigint>& source) const
+{
+  for (auto& x : b)
+    {
+      source.get(bigint::tmp);
+      x = bigint::tmp;
+    }
+}
 
 
 template<>
@@ -11,7 +26,7 @@ void Plaintext<gfp,FFT_Data,bigint>::from_poly() const
   if (type!=Polynomial) { return; }
 
   Ring_Element e(*Field_Data,polynomial);
-  e.from_vec(b);
+  e.from(b);
   e.change_rep(evaluation);
   a.resize(n_slots);
   for (unsigned int i=0; i<a.size(); i++)
@@ -29,7 +44,7 @@ void Plaintext<gfp,FFT_Data,bigint>::to_poly() const
   for (unsigned int i=0; i<a.size(); i++)
     { e.set_element(i,a[i].get()); }
   e.change_rep(polynomial);
-  e.to_vec_bigint(b);
+  from(e.get_iterator());
   type=Both;
 }
 
@@ -59,7 +74,10 @@ void Plaintext<gfp,PPData,bigint>::to_poly() const
     { bb[i]=a[i].get(); }
   (*Field_Data).from_eval(bb);
   for (unsigned int i=0; i<bb.size(); i++)
-    { to_bigint(b[i],bb[i],(*Field_Data).prData); }
+    {
+      to_bigint(bigint::tmp,bb[i],(*Field_Data).prData);
+      b[i] = bigint::tmp;
+    }
   type=Both;
 }
 
@@ -122,7 +140,7 @@ void Plaintext<T, FD, S>::allocate_slots(const bigint& value)
 {
   b.resize(degree);
   for (auto& x : b)
-    x = value;
+    x.allocate_slots(value);
 }
 
 template<>
@@ -151,49 +169,17 @@ void signed_mod(bigint& x, const bigint& mod, const bigint& half_mod, const bigi
     x += dest_mod;
 }
 
-template<>
-void Plaintext<gfp,FFT_Data,bigint>::set_poly_mod(const Generator<bigint>& generator,const bigint& mod)
+template<class T, class FD, class S>
+void Plaintext<T, FD, S>::set_poly_mod(const Generator<bigint>& generator,const bigint& mod)
 {
   allocate(Polynomial);
   bigint half_mod = mod / 2;
   for (unsigned int i=0; i<b.size(); i++)
     {
-      generator.get(b[i]);
-      signed_mod(b[i], mod, half_mod, Field_Data->get_prime());
+      generator.get(bigint::tmp);
+      signed_mod(bigint::tmp, mod, half_mod, Field_Data->get_prime());
+      b[i] = bigint::tmp;
     }
-}
-
-
-template<>
-void Plaintext<gfp,FFT_Data,bigint>::set_poly_mod(const vector<bigint>& vv,const bigint& mod)
-{
-  b = vv;
-  vector<bigint>& pol = b;
-  bigint half_mod = mod / 2;
-  for (unsigned int i=0; i<vv.size(); i++)
-    {
-      pol[i] = vv[i];
-      if (pol[i] > half_mod)
-        pol[i] -= mod;
-      pol[i] %= (*Field_Data).get_prime();
-      if (pol[i]<0) { pol[i]+=(*Field_Data).get_prime(); }
-    }
-  type = Polynomial;
-}
-
-
-template<>
-void Plaintext<gfp,PPData,bigint>::set_poly_mod(const vector<bigint>& vv,const bigint& mod)
-{
-  b = vv;
-  vector<bigint>& pol = b;
-  for (unsigned int i=0; i<vv.size(); i++)
-    { if (vv[i]>mod/2) { pol[i]=vv[i]-mod; }
-      else             { pol[i]=vv[i];     }
-      pol[i]=pol[i]%(*Field_Data).get_prime();
-      if (pol[i]<0) { pol[i]+=(*Field_Data).get_prime(); }
-    }
-  type = Polynomial;
 }
 
 
@@ -229,7 +215,8 @@ void Plaintext<gf2n_short,P2Data,int>::set_poly_mod(const Generator<bigint>& gen
 }
 
 
-void rand_poly(vector<bigint>& b,PRNG& G,const bigint& pr,bool positive=true)
+template<class T>
+void rand_poly(vector<T>& b,PRNG& G,const bigint& pr,bool positive=true)
 {
   for (unsigned int i=0; i<b.size(); i++)
     {
@@ -416,7 +403,7 @@ void Plaintext<T,FD,S>::assign_constant(T constant, PT_Type t)
 
 template<class T,class FD,class S>
 Plaintext<T,FD,S>& Plaintext<T,FD,S>::operator+=(
-    const Plaintext<T,FD,S>& y)
+    const Plaintext& y)
 {
   if (Field_Data!=y.Field_Data)  { throw field_mismatch(); }
 
@@ -687,8 +674,16 @@ void Plaintext<gf2n_short,P2Data,int>::negate()
 
 
 
+template<class T, class FD, class S>
+Rq_Element Plaintext<T, FD, S>::mul_by_X_i(int i, const FHE_PK& pk) const
+{
+  return Rq_Element(pk.get_params(), *this).mul_by_X_i(i);
+}
+
+
+
 template<class T,class FD,class S>
-bool Plaintext<T,FD,S>::equals(const Plaintext<T,FD,S>& x) const
+bool Plaintext<T,FD,S>::equals(const Plaintext& x) const
 {
   if (Field_Data!=x.Field_Data) { return false; }
   if (type!=x.type)
@@ -730,7 +725,7 @@ void Plaintext<T,FD,S>::unpack(octetStream& o)
   if (size != b.size())
     throw length_error("unexpected length received");
   for (unsigned int i = 0; i < b.size(); i++)
-    o.get(b[i]);
+    b[i] = o.get<S>();
 }
 
 

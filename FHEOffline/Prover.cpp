@@ -3,6 +3,7 @@
 
 #include "FHE/P2Data.h"
 #include "Tools/random.h"
+#include "Math/Z2k.hpp"
 
 
 template <class FD, class U>
@@ -62,35 +63,25 @@ template <class FD, class U>
 bool Prover<FD,U>::Stage_2(Proof& P, octetStream& cleartexts,
                         const vector<U>& x,
                         const Proof::Randomness& r,
-                        const vector<int>& e)
+                        const FHE_PK& pk)
 {
   size_t allocate = P.V * P.phim
       * (5 + numBytes(P.plain_check) + 3 * (5 + numBytes(P.rand_check)));
   cleartexts.resize_precise(allocate);
   cleartexts.reset_write_head();
 
-  unsigned int i,k;
-  int j,ee;
+  unsigned int i;
 #ifndef LESS_ALLOC_MORE_MEM
-  AddableVector<bigint> z;
-  AddableMatrix<bigint> t;
+  AddableVector<fixint<GFP_MOD_SZ>> z;
+  AddableMatrix<fixint<GFP_MOD_SZ>> t;
 #endif
   cleartexts.reset_write_head();
   cleartexts.store(P.V);
   for (i=0; i<P.V; i++)
     { z=y[i];
       t=s[i];
-      for (k=0; k<P.sec; k++)
-        { j=(i+1)-(k+1);
-          if (j<0 || j>=(int) P.sec) { ee=0; }
-          else                       { ee=e[j]; }
-
-          if (ee!=0)
-	    {
-              z += x[j];
-	      t += r[j];
-            }
-        }
+      P.apply_challenge(i, z, x, pk);
+      P.apply_challenge(i, t, r, pk);
       if (not P.check_bounds(z, t, i))
           return false;
       z.pack(cleartexts);
@@ -118,8 +109,6 @@ size_t Prover<FD,U>::NIZKPoK(Proof& P, octetStream& ciphertexts, octetStream& cl
                         const Proof::Randomness& r,
                         bool Diag,bool binary)
 {
-  vector<int> e(P.sec);
-
 //  AElement<T> AE;
 //  for (i=0; i<P.sec; i++)
 //    { AE.assign(x.at(i));
@@ -134,9 +123,9 @@ size_t Prover<FD,U>::NIZKPoK(Proof& P, octetStream& ciphertexts, octetStream& cl
   while (!ok)
     { cnt++;
       Stage_1(P,ciphertexts,c,pk,Diag,binary);
-      P.get_challenge(e, ciphertexts);
+      P.set_challenge(ciphertexts);
       // Check check whether we are OK, or whether we should abort
-      ok = Stage_2(P,cleartexts,x,r,e);
+      ok = Stage_2(P,cleartexts,x,r,pk);
     }
   if (cnt > 1)
       cout << "\t\tNumber iterations of prover = " << cnt << endl;
@@ -173,7 +162,7 @@ void Prover<FD, U>::report_size(ReportType type, MemoryUsage& res)
 
 
 template class Prover<FFT_Data, Plaintext_<FFT_Data> >;
-template class Prover<FFT_Data, AddableVector<bigint> >;
+//template class Prover<FFT_Data, AddableVector<bigint> >;
 
 template class Prover<P2Data, Plaintext_<P2Data> >;
-template class Prover<P2Data, AddableVector<bigint> >;
+//template class Prover<P2Data, AddableVector<bigint> >;

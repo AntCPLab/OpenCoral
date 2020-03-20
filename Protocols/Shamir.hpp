@@ -3,13 +3,16 @@
  *
  */
 
+#ifndef PROTOCOLS_SHAMIR_HPP_
+#define PROTOCOLS_SHAMIR_HPP_
+
 #include "Shamir.h"
 #include "ShamirInput.h"
 #include "Machines/ShamirMachine.h"
 #include "Tools/benchmarking.h"
 
-template<class U>
-U Shamir<U>::get_rec_factor(int i, int n)
+template<class T>
+typename T::open_type::Scalar Shamir<T>::get_rec_factor(int i, int n)
 {
     U res = 1;
     for (int j = 0; j < n; j++)
@@ -18,8 +21,8 @@ U Shamir<U>::get_rec_factor(int i, int n)
     return res;
 }
 
-template<class U>
-Shamir<U>::Shamir(Player& P) : resharing(0), P(P)
+template<class T>
+Shamir<T>::Shamir(Player& P) : resharing(0), P(P)
 {
     if (not P.is_encrypted())
         insecure("unencrypted communication");
@@ -27,27 +30,27 @@ Shamir<U>::Shamir(Player& P) : resharing(0), P(P)
     n_mul_players = 2 * threshold + 1;
 }
 
-template<class U>
-Shamir<U>::~Shamir()
+template<class T>
+Shamir<T>::~Shamir()
 {
     if (resharing != 0)
         delete resharing;
 }
 
-template<class U>
-Shamir<U> Shamir<U>::branch()
+template<class T>
+Shamir<T> Shamir<T>::branch()
 {
     return P;
 }
 
-template<class U>
-int Shamir<U>::get_n_relevant_players()
+template<class T>
+int Shamir<T>::get_n_relevant_players()
 {
     return ShamirMachine::s().threshold + 1;
 }
 
-template<class U>
-void Shamir<U>::reset()
+template<class T>
+void Shamir<T>::reset()
 {
     os.clear();
     os.resize(P.num_players());
@@ -61,33 +64,33 @@ void Shamir<U>::reset()
         resharing->reset(i);
 }
 
-template<class U>
-void Shamir<U>::init_mul(SubProcessor<T>* proc)
+template<class T>
+void Shamir<T>::init_mul(SubProcessor<T>* proc)
 {
     (void) proc;
     init_mul();
 }
 
-template<class U>
-void Shamir<U>::init_mul()
+template<class T>
+void Shamir<T>::init_mul()
 {
     reset();
     if (rec_factor == 0 and P.my_num() < n_mul_players)
         rec_factor = get_rec_factor(P.my_num(), n_mul_players);
 }
 
-template<class U>
-U Shamir<U>::prepare_mul(const T& x, const T& y, int n)
+template<class T>
+typename T::clear Shamir<T>::prepare_mul(const T& x, const T& y, int n)
 {
     (void) n;
     auto add_share = x * y * rec_factor;
     if (P.my_num() < n_mul_players)
         resharing->add_mine(add_share);
-    return add_share;
+    return {};
 }
 
-template<class U>
-void Shamir<U>::exchange()
+template<class T>
+void Shamir<T>::exchange()
 {
     for (int offset = 1; offset < P.num_players(); offset++)
     {
@@ -106,16 +109,16 @@ void Shamir<U>::exchange()
     }
 }
 
-template<class U>
-void Shamir<U>::start_exchange()
+template<class T>
+void Shamir<T>::start_exchange()
 {
     if (P.my_num() < n_mul_players)
         for (int offset = 1; offset < P.num_players(); offset++)
             P.send_relative(offset, resharing->os[P.get_player(offset)]);
 }
 
-template<class U>
-void Shamir<U>::stop_exchange()
+template<class T>
+void Shamir<T>::stop_exchange()
 {
     for (int offset = 1; offset < P.num_players(); offset++)
     {
@@ -125,15 +128,15 @@ void Shamir<U>::stop_exchange()
     }
 }
 
-template<class U>
-ShamirShare<U> Shamir<U>::finalize_mul(int n)
+template<class T>
+T Shamir<T>::finalize_mul(int n)
 {
     (void) n;
     return finalize(n_mul_players);
 }
 
-template<class U>
-ShamirShare<U> Shamir<U>::finalize(int n_relevant_players)
+template<class T>
+T Shamir<T>::finalize(int n_relevant_players)
 {
     ShamirShare<U> res = U(0);
     if (P.my_num() < n_relevant_players)
@@ -148,8 +151,8 @@ ShamirShare<U> Shamir<U>::finalize(int n_relevant_players)
     return res;
 }
 
-template<class U>
-ShamirShare<U> Shamir<U>::get_random()
+template<class T>
+T Shamir<T>::get_random()
 {
     if (random.empty())
         buffer_random();
@@ -158,10 +161,10 @@ ShamirShare<U> Shamir<U>::get_random()
     return res;
 }
 
-template<class U>
-void Shamir<U>::buffer_random()
+template<class T>
+void Shamir<T>::buffer_random()
 {
-    Shamir<U> shamir(P);
+    Shamir<T> shamir(P);
     shamir.reset();
     int buffer_size = OnlineOptions::singleton.batch_size;
     if (P.my_num() <= threshold)
@@ -171,3 +174,5 @@ void Shamir<U>::buffer_random()
     for (int i = 0; i < buffer_size; i++)
         random.push_back(shamir.finalize(threshold + 1));
 }
+
+#endif

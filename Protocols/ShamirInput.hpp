@@ -9,8 +9,10 @@
 #include "ShamirInput.h"
 #include "Machines/ShamirMachine.h"
 
+#include "Protocols/ReplicatedInput.hpp"
+
 template<class T>
-vector<vector<typename T::clear>> ShamirInput<T>::vandermonde;
+vector<vector<typename T::open_type>> ShamirInput<T>::vandermonde;
 
 template<class U>
 void IndividualInput<U>::reset(int player)
@@ -25,7 +27,7 @@ void IndividualInput<U>::reset(int player)
 }
 
 template<class T>
-const vector<vector<typename T::clear>>& ShamirInput<T>::get_vandermonde(
+const vector<vector<typename T::open_type>>& ShamirInput<T>::get_vandermonde(
         size_t t, size_t n)
 {
     if (vandermonde.size() < n)
@@ -35,7 +37,7 @@ const vector<vector<typename T::clear>>& ShamirInput<T>::get_vandermonde(
         if (vandermonde[i].size() < t)
         {
             vandermonde[i].resize(t);
-            typename T::clear x = 1;
+            typename T::open_type x = 1;
             for (size_t j = 0; j < t; j++)
             {
                 x *= (i + 1);
@@ -47,7 +49,7 @@ const vector<vector<typename T::clear>>& ShamirInput<T>::get_vandermonde(
 }
 
 template<class T>
-void ShamirInput<T>::add_mine(const typename T::clear& input, int n_bits)
+void ShamirInput<T>::add_mine(const typename T::open_type& input, int n_bits)
 {
     (void) n_bits;
     auto& P = this->P;
@@ -61,7 +63,7 @@ void ShamirInput<T>::add_mine(const typename T::clear& input, int n_bits)
 
     for (int i = 0; i < n; i++)
     {
-        typename T::clear x = input;
+        typename T::open_type x = input;
         for (int j = 0; j < t; j++)
             x += randomness[j] * vandermonde[i][j];
         if (i == P.my_num())

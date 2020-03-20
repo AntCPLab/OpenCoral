@@ -12,13 +12,17 @@
 #include "FHE/Plaintext.h"
 #include "Tools/MemoryUsage.h"
 
+class MachineBase;
+
 template<class T,class FD,class S>
 class EncCommitBase
 {
 public:
   size_t volatile_memory;
 
-  EncCommitBase() : volatile_memory(0) {}
+  const MachineBase* machine;
+
+  EncCommitBase(const MachineBase* machine = 0) : volatile_memory(0), machine(machine) {}
   virtual ~EncCommitBase() {}
   virtual condition get_condition() { return Full; }
   virtual void next(Plaintext<T,FD,S>& mess, Ciphertext& c)

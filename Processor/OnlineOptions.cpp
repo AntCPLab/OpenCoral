@@ -17,6 +17,8 @@ OnlineOptions::OnlineOptions() : playerno(-1)
     live_prep = true;
     batch_size = 10000;
     memtype = "empty";
+    direct = false;
+    fake_batch = false;
 }
 
 OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
@@ -98,6 +100,24 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
             "-m", // Flag token.
             "--memory" // Flag token.
     );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Direct communication instead of star-shaped", // Help description.
+            "-d", // Flag token.
+            "--direct" // Flag token.
+    );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Use insecurely small batches for testing", // Help description.
+            "-fake-batch", // Flag token.
+            "--fake-batch" // Flag token.
+    );
 
     opt.parse(argc, argv);
 
@@ -109,6 +129,16 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
         live_prep = opt.get("-L")->isSet;
     opt.get("-b")->getInt(batch_size);
     opt.get("--memory")->getString(memtype);
+    direct = opt.isSet("--direct");
+
+    bool fb = opt.isSet("--fake-batch");
+#ifdef INSECURE
+    fake_batch = fb;
+#else
+    if (fb)
+        throw runtime_error("option only supported "
+                "when compiled with -DINSECURE");
+#endif
 
     opt.resetArgs();
 }

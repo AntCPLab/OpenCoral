@@ -64,6 +64,7 @@ enum
     NPLAYERS = 0xE2,
     THRESHOLD = 0xE3,
     PLAYERID = 0xE4,
+    USE_EDABIT = 0xE5,
     // Addition
     ADDC = 0x20,
     ADDS = 0x21,
@@ -96,6 +97,8 @@ enum
     MULRS = 0xA7,
     DOTPRODS = 0xA8,
     TRUNC_PR = 0xA9,
+    MATMULS = 0xAA,
+    MATMULSM = 0xAB,
     // Data access
     TRIPLE = 0x50,
     BIT = 0x51,
@@ -104,6 +107,8 @@ enum
     INPUTMASK = 0x56,
     PREP = 0x57,
     DABIT = 0x58,
+    EDABIT = 0x59,
+    SEDABIT = 0x5A,
     // Input
     INPUT = 0x60,
     INPUTFIX = 0xF0,
@@ -154,6 +159,8 @@ enum
     MULINT = 0x9D,
     DIVINT = 0x9E,
     PRINTINT = 0x9F,
+    INCINT = 0xD1,
+    SHUFFLE = 0xD2,
     // Conversion
     CONVINT = 0xC0,
     CONVMODP = 0xC1,

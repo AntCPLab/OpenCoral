@@ -56,6 +56,8 @@ public:
 
 		Row<T> tmp;
 
+	    octetStream os;
+
 	    virtual void consistency_check (vector<octetStream>& os);
 
 	    void set_coeffs(__m128i* coefficients, PRNG& G, int num_elements) const;

@@ -7,6 +7,7 @@
 #define PROTOCOLS_SPDZ2KPREP_H_
 
 #include "MascotPrep.h"
+#include "RingOnlyPrep.h"
 #include "Spdz2kShare.h"
 #include "GC/TinySecret.h"
 
@@ -14,7 +15,7 @@ template<class T, class U>
 void bits_from_square_in_ring(vector<T>& bits, int buffer_size, U* bit_prep);
 
 template<class T>
-class Spdz2kPrep : public MascotPrep<T>
+class Spdz2kPrep : public virtual MascotPrep<T>, public virtual RingOnlyPrep<T>
 {
     typedef Spdz2kShare<T::k + 2, T::s> BitShare;
     DataPositions bit_pos;
@@ -32,8 +33,11 @@ public:
 
     void buffer_inverses() { throw division_by_zero(); }
     void buffer_bits();
+    void buffer_dabits(ThreadQueues* queues);
 
+#ifdef SPDZ2K_BIT
     void get_dabit(T& a, GC::TinySecret<T::s>& b);
+#endif
 
     size_t data_sent();
 };

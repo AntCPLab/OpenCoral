@@ -11,8 +11,10 @@ documentation
 """
 
 import itertools
+import operator
 from . import tools
 from random import randint
+from functools import reduce
 from Compiler.config import *
 from Compiler.exceptions import *
 import Compiler.instructions_base as base
@@ -316,6 +318,11 @@ class use(base.Instruction):
 class use_inp(base.Instruction):
     r""" Input usage. """
     code = base.opcodes['USE_INP']
+    arg_format = ['int','int','int']
+
+class use_edabit(base.Instruction):
+    r""" edaBit usage. """
+    code = base.opcodes['USE_EDABIT']
     arg_format = ['int','int','int']
 
 class run_tape(base.Instruction):
@@ -808,7 +815,29 @@ class dabit(base.DataInstruction):
     code = base.opcodes['DABIT']
     arg_format = ['sw', 'sbw']
     field_type = 'modp'
-    data_type = 'bit'
+    data_type = 'dabit'
+
+@base.vectorize
+class edabit(base.Instruction):
+    """ edaBit """
+    __slots__ = []
+    code = base.opcodes['EDABIT']
+    arg_format = tools.chain(['sw'], itertools.repeat('sbw'))
+    field_type = 'modp'
+
+    def add_usage(self, req_node):
+        req_node.increment(('edabit', len(self.args) - 1), self.get_size())
+
+@base.vectorize
+class sedabit(base.Instruction):
+    """ strict edaBit """
+    __slots__ = []
+    code = base.opcodes['SEDABIT']
+    arg_format = tools.chain(['sw'], itertools.repeat('sbw'))
+    field_type = 'modp'
+
+    def add_usage(self, req_node):
+        req_node.increment(('sedabit', len(self.args) - 1), self.get_size())
 
 @base.gf2n
 @base.vectorize
@@ -988,7 +1017,19 @@ class startinput(base.RawInputInstruction):
         req_node.increment((self.field_type, 'input', self.args[0]), \
                                self.args[1])
 
-class stopinput(base.RawInputInstruction):
+    def merge(self, other):
+        self.args[1] += other.args[1]
+
+class StopInputInstruction(base.RawInputInstruction):
+    __slots__ = []
+
+    def merge(self, other):
+        if self.get_size() != other.get_size():
+            raise NotImplemented()
+        else:
+            self.args += other.args[1:]
+
+class stopinput(StopInputInstruction):
     r""" Receive inputs from player $p$ and put in registers. """
     __slots__ = []
     code = base.opcodes['STOPINPUT']
@@ -997,7 +1038,7 @@ class stopinput(base.RawInputInstruction):
     def has_var_args(self):
         return True
 
-class gstopinput(base.RawInputInstruction):
+class gstopinput(StopInputInstruction):
     r""" Receive inputs from player $p$ and put in registers. """
     __slots__ = []
     code = 0x100 + base.opcodes['STOPINPUT']
@@ -1322,6 +1363,26 @@ class bitdecint(base.Instruction):
     code = base.opcodes['BITDECINT']
     arg_format = tools.chain(['ci'], itertools.repeat('ciw'))
 
+class incint(base.VectorInstruction):
+    __slots__ = []
+    code = base.opcodes['INCINT']
+    arg_format = ['ciw', 'ci', 'i', 'i', 'i']
+
+    def __init__(self, *args, **kwargs):
+        assert len(args[1]) == 1
+        if len(args) == 3:
+            args = list(args) + [1, len(args[0])]
+        super(incint, self).__init__(*args, **kwargs)
+
+class shuffle(base.VectorInstruction):
+    __slots__ = []
+    code = base.opcodes['SHUFFLE']
+    arg_format = ['ciw','ci']
+
+    def __init__(self, *args, **kwargs):
+        super(shuffle, self).__init__(*args, **kwargs)
+        assert len(args[0]) == len(args[1])
+
 ###
 ### Clear comparison instructions
 ###
@@ -1429,6 +1490,9 @@ class convmodp(base.Instruction):
     code = base.opcodes['CONVMODP']
     arg_format = ['ciw', 'c', 'int']
     def __init__(self, *args, **kwargs):
+        if len(args) == len(self.arg_format):
+            super(convmodp_class, self).__init__(*args)
+            return
         bitlength = kwargs.get('bitlength')
         bitlength = program.bit_length if bitlength is None else bitlength
         if bitlength > 64:
@@ -1472,7 +1536,7 @@ class muls(base.VarArgsInstruction, base.DataInstruction):
     def merge_id(self):
         # can merge different sizes
         # but not if large
-        if self.get_size() > 100:
+        if self.get_size() is None or self.get_size() > 100:
             return type(self), self.get_size()
         return type(self)
 
@@ -1560,6 +1624,31 @@ class dotprods(base.VarArgsInstruction, base.DataInstruction):
         for i in self.bases():
             for reg in self.args[i + 2:i + self.args[i]]:
                 yield reg
+
+class matmul_base(base.DataInstruction):
+    data_type = 'triple'
+    is_vec = lambda self: True
+
+    def get_repeat(self):
+        return reduce(operator.mul, self.args[3:6])
+
+class matmuls(matmul_base):
+    """ Secret matrix multiplication """
+    code = base.opcodes['MATMULS']
+    arg_format = ['sw','s','s','int','int','int']
+
+class matmulsm(matmul_base):
+    """ Secret matrix multiplication reading directly from memory """
+    code = base.opcodes['MATMULSM']
+    arg_format = ['sw','ci','ci','int','int','int','ci','ci','ci','ci',
+                  'int','int']
+
+    def __init__(self, *args, **kwargs):
+        matmul_base.__init__(self, *args, **kwargs)
+        for i in range(2):
+            assert args[6 + i].size == args[3 + i]
+        for i in range(2):
+            assert args[8 + i].size == args[4 + i]
 
 @base.vectorize
 class trunc_pr(base.VarArgsInstruction):

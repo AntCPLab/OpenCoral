@@ -49,11 +49,20 @@ void PairwiseSetup<FD>::init(const Player& P, int sec, int plaintext_length,
 template <class FD>
 void PairwiseSetup<FD>::secure_init(Player& P, PairwiseMachine& machine, int plaintext_length, int sec)
 {
+    ::secure_init(*this, P, machine, plaintext_length, sec);
+    alpha = FieldD;
+}
+
+template <class T>
+void secure_init(T& setup, Player& P, MachineBase& machine,
+        int plaintext_length, int sec)
+{
     machine.sec = sec;
     sec = max(sec, 40);
     machine.drown_sec = sec;
-    string filename = PREP_DIR "Params-" + FD::T::type_string() + "-"
-            + to_string(plaintext_length) + "-" + to_string(sec) + "-P"
+    string filename = PREP_DIR + T::name() + "-"
+            + to_string(plaintext_length) + "-" + to_string(sec) + "-"
+            + to_string(CowGearOptions::singleton.top_gear()) + "-P"
             + to_string(P.my_num());
     try
     {
@@ -61,38 +70,54 @@ void PairwiseSetup<FD>::secure_init(Player& P, PairwiseMachine& machine, int pla
         octetStream os;
         os.input(file);
         os.get(machine.extra_slack);
-        params.unpack(os);
-        FieldD.unpack(os);
-        FieldD.init_field();
-        check(P, machine);
+        setup.unpack(os);
+        setup.check(P, machine);
     }
     catch (...)
     {
         cout << "Finding parameters for security " << sec << " and field size ~2^"
                 << plaintext_length << endl;
-        machine.extra_slack = generate_semi_setup(plaintext_length, sec, params, FieldD, true);
-        check(P, machine);
+        setup.generate(P, machine, plaintext_length, sec);
+        setup.check(P, machine);
         octetStream os;
         os.store(machine.extra_slack);
-        params.pack(os);
-        FieldD.pack(os);
+        setup.pack(os);
         ofstream file(filename);
         os.output(file);
     }
-    alpha = FieldD;
 }
 
 template <class FD>
-void PairwiseSetup<FD>::check(Player& P, PairwiseMachine& machine)
+void PairwiseSetup<FD>::generate(Player&, MachineBase& machine,
+        int plaintext_length, int sec)
+{
+    machine.extra_slack = generate_semi_setup(plaintext_length, sec, params,
+            FieldD, true);
+}
+
+template<class FD>
+void PairwiseSetup<FD>::pack(octetStream& os) const
+{
+    params.pack(os);
+    FieldD.pack(os);
+}
+
+template<class FD>
+void PairwiseSetup<FD>::unpack(octetStream& os)
+{
+    params.unpack(os);
+    FieldD.unpack(os);
+    FieldD.init_field();
+}
+
+template <class FD>
+void PairwiseSetup<FD>::check(Player& P, MachineBase& machine)
 {
     Bundle<octetStream> bundle(P);
     bundle.mine.store(machine.extra_slack);
     params.pack(bundle.mine);
     FieldD.hash(bundle.mine);
-    P.Broadcast_Receive(bundle, true);
-    for (auto& os : bundle)
-        if (os != bundle.mine)
-            throw runtime_error("mismatch of parameters among parties");
+    bundle.compare(P);
 }
 
 template <class FD>
@@ -161,3 +186,6 @@ void PairwiseSetup<FD>::set_alphai(T alphai)
 
 template class PairwiseSetup<FFT_Data>;
 template class PairwiseSetup<P2Data>;
+
+template void secure_init(PartSetup<FFT_Data>&, Player&, MachineBase&, int, int);
+template void secure_init(PartSetup<P2Data>&, Player&, MachineBase&, int, int);

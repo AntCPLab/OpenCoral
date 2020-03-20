@@ -1,5 +1,6 @@
 #include "Zp_Data.h"
 #include "modp.h"
+#include "Z2k.hpp"
 
 #include "Exceptions/Exceptions.h"
 
@@ -151,6 +152,18 @@ void modp_<L>::convert_destroy(bigint& xx,
 }
 
 template<int L>
+template<int M>
+void modp_<L>::convert_destroy(const fixint<M>& xx,
+    const Zp_Data& ZpD)
+{
+  assert(xx.size_in_limbs() <= L);
+  SignedZ2<64 * L> tmp = xx;
+  if (xx.negative())
+    tmp += ZpD.pr;
+  convert(tmp.get(), ZpD.t, ZpD, false);
+}
+
+template<int L>
 void modp_<L>::convert(const mp_limb_t* source, mp_size_t size, const Zp_Data& ZpD, bool negative)
 {
   assert(size <= ZpD.t);
@@ -226,7 +239,7 @@ void Power(modp_<L>& ans,const modp_<L>& x,const bigint& exp,const Zp_Data& ZpD)
   if (exp<0)  { throw not_implemented();  }
   modp t=x;
   assignOne(ans,ZpD);
-  bigint e=exp;
+  bigint& e = bigint::tmp = exp;
   while (e!=0)
      { if ((e&1)==1) { Mul(ans,ans,t,ZpD); }
        e>>=1;

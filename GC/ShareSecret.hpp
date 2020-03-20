@@ -26,7 +26,10 @@ namespace GC
 {
 
 template<class U>
-int ReplicatedSecret<U>::default_length = 8 * sizeof(typename ReplicatedSecret<U>::value_type);
+const int VectorSecret<U>::default_length;
+
+template<class U>
+const int ReplicatedSecret<U>::default_length;
 
 template<class U>
 SwitchableOutput ShareSecret<U>::out;
@@ -123,6 +126,34 @@ void ShareSecret<U>::inputb(Processor<U>& processor,
 }
 
 template<class U>
+void ShareSecret<U>::reveal_inst(Processor<U>& processor,
+        const vector<int>& args)
+{
+    auto& party = ShareThread<U>::s();
+    assert(args.size() % 3 == 0);
+    vector<U> shares;
+    for (size_t i = 0; i < args.size(); i += 3)
+    {
+        int n = args[i];
+        int r1 = args[i + 2];
+        if (n > max(U::default_length, Clear::N_BITS))
+            assert(U::default_length == Clear::N_BITS);
+        for (int j = 0; j < DIV_CEIL(n, U::default_length); j++)
+            shares.push_back(processor.S[r1 + j].mask(n));
+    }
+    assert(party.MC);
+    PointerVector<typename U::open_type> opened;
+    party.MC->POpen(opened, shares, *party.P);
+    for (size_t i = 0; i < args.size(); i += 3)
+    {
+        int n = args[i];
+        int r0 = args[i + 1];
+        for (int j = 0; j < DIV_CEIL(n, U::default_length); j++)
+            processor.C[r0 + j] = opened.next().mask(n);
+    }
+}
+
+template<class U>
 BitVec ReplicatedSecret<U>::local_mul(const ReplicatedSecret& other) const
 {
     return (*this)[0] * other.sum() + (*this)[1] * other[0];
@@ -134,6 +165,12 @@ void ShareSecret<U>::and_(
         bool repeat)
 {
     ShareThread<U>::s().and_(processor, args, repeat);
+}
+
+template<class U>
+void ShareSecret<U>::xors(Processor<U>& processor, const vector<int>& args)
+{
+    ShareThread<U>::s().xors(processor, args);
 }
 
 template<class U>

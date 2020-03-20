@@ -1,5 +1,11 @@
 #include "Rq_Element.h"
+#include "FHE_Keys.h"
 #include "Exceptions/Exceptions.h"
+
+Rq_Element::Rq_Element(const FHE_PK& pk) :
+        Rq_Element(pk.get_params().FFTD())
+{
+}
 
 Rq_Element::Rq_Element(const vector<FFT_Data>& prd, RepType r0, RepType r1)
 {
@@ -55,6 +61,19 @@ void Rq_Element::negate()
 {
 	for (int i=0; i<=lev; ++i)
 		a[i].negate();
+}
+
+Rq_Element Rq_Element::mul_by_X_i(int i) const
+{
+  Rq_Element res;
+  res.lev = lev;
+  res.a.clear();
+  for (auto& x : a)
+    {
+      auto tmp = x.mul_by_X_i(i);
+      res.a.push_back(tmp);
+    }
+  return res;
 }
 
 void add(Rq_Element& ans,const Rq_Element& ra,const Rq_Element& rb)
@@ -173,19 +192,6 @@ void Rq_Element::from_vec(const vector<int>& v,int level)
 	  a[i].from_vec(v);
 }
 
-template <class T>
-void Rq_Element::from(const Generator<T>& generator, int level)
-{
-  set_level(level);
-  if (lev == 1)
-    {
-      auto clone = generator.clone();
-      a[1].from(*clone);
-      delete clone;
-    }
-  a[0].from(generator);
-}
-
 vector<bigint> Rq_Element::to_vec_bigint() const
 {
   vector<bigint> v;
@@ -220,7 +226,7 @@ void Rq_Element::to_vec_bigint(vector<bigint>& v) const
     }
 }
 
-ConversionIterator Rq_Element::get_iterator()
+ConversionIterator Rq_Element::get_iterator() const
 {
   if (lev != 0)
     throw not_implemented();
@@ -339,7 +345,8 @@ void Rq_Element::raise_level()
 void Rq_Element::check_level() const
 {
   if ((unsigned)lev > (unsigned)n_mults())
-    throw range_error("level out of range");
+    throw range_error(
+        "level out of range: " + to_string(lev) + "/" + to_string(n_mults()));
 }
 
 void Rq_Element::partial_assign(const Rq_Element& x, const Rq_Element& y)

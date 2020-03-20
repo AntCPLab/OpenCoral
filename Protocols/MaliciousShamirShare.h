@@ -10,7 +10,12 @@
 #include "Protocols/Beaver.h"
 #include "Protocols/MaliciousShamirMC.h"
 
-template<class T> class MaliciousRepPrep;
+template<class T> class MaliciousRepPrepWithBits;
+
+namespace GC
+{
+template<class T> class MaliciousCcdSecret;
+}
 
 template<class T>
 class MaliciousShamirShare : public ShamirShare<T>
@@ -24,8 +29,10 @@ public:
     typedef ShamirInput<MaliciousShamirShare> Input;
     typedef ::PrivateOutput<MaliciousShamirShare> PrivateOutput;
     typedef ShamirShare<T> Honest;
-    typedef MaliciousRepPrep<MaliciousShamirShare> LivePrep;
+    typedef MaliciousRepPrepWithBits<MaliciousShamirShare> LivePrep;
     typedef T random_type;
+
+    typedef GC::MaliciousCcdSecret<gf2n_short> bit_type;
 
     static string type_short()
     {

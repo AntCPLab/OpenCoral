@@ -18,19 +18,27 @@ namespace GC
 
 template<class T>
 StandaloneShareThread<T>::StandaloneShareThread(int i, ThreadMaster<T>& master) :
-        ShareThread<T>(master.N, master.opts), Thread<T>(i, master)
+        ShareThread<T>(master.N, master.opts, usage), Thread<T>(i, master)
 {
 }
 
 template<class T>
-ShareThread<T>::ShareThread(const Names& N, OnlineOptions& opts) :
-        P(0), MC(0), protocol(0), usage(N.num_players()), DataF(
+ShareThread<T>::ShareThread(const Names& N, OnlineOptions& opts, DataPositions& usage) :
+        P(0), MC(0), protocol(0), DataF(
                 opts.live_prep ?
                         *static_cast<Preprocessing<T>*>(new typename T::LivePrep(
                                 usage, *this)) :
                         *static_cast<Preprocessing<T>*>(new Sub_Data_Files<T>(N,
                                 get_prep_dir(N.num_players(), 128, 128), usage)))
 {
+}
+
+template<class T>
+ShareThread<T>::ShareThread(const Names& N, OnlineOptions& opts, Player& P,
+        typename T::mac_key_type mac_key, DataPositions& usage) :
+        ShareThread(N, opts, usage)
+{
+    pre_run(P, mac_key);
 }
 
 template<class T>
@@ -59,6 +67,7 @@ template<class T>
 void StandaloneShareThread<T>::pre_run()
 {
     ShareThread<T>::pre_run(*Thread<T>::P, ShareParty<T>::s().mac_key);
+    usage.set_num_players(Thread<T>::P->num_players());
 }
 
 template<class T>
@@ -84,11 +93,16 @@ void ShareThread<T>::and_(Processor<T>& processor,
         int left = args[i + 2];
         int right = args[i + 3];
         T y_ext;
-        if (repeat)
-            y_ext = processor.S[right].extend_bit();
-        else
-            y_ext = processor.S[right];
-        protocol->prepare_mul(processor.S[left].mask(n_bits), y_ext.mask(n_bits), n_bits);
+        for (int j = 0; j < DIV_CEIL(n_bits, T::default_length); j++)
+        {
+            if (repeat)
+                y_ext = processor.S[right].extend_bit();
+            else
+                y_ext = processor.S[right + j];
+            int n = min(T::default_length, n_bits - j * T::default_length);
+            protocol->prepare_mul(processor.S[left + j].mask(n),
+                    y_ext.mask(n), n);
+        }
     }
 
     protocol->exchange();
@@ -97,7 +111,30 @@ void ShareThread<T>::and_(Processor<T>& processor,
     {
         int n_bits = args[i];
         int out = args[i + 1];
-        processor.S[out] = protocol->finalize_mul(n_bits);
+        for (int j = 0; j < DIV_CEIL(n_bits, T::default_length); j++)
+        {
+            int n = min(T::default_length, n_bits - j * T::default_length);
+            processor.S[out + j] = protocol->finalize_mul(n);
+        }
+    }
+}
+
+template<class T>
+void ShareThread<T>::xors(Processor<T>& processor, const vector<int>& args)
+{
+    processor.check_args(args, 4);
+    for (size_t i = 0; i < args.size(); i += 4)
+    {
+        int n_bits = args[i];
+        int out = args[i + 1];
+        int left = args[i + 2];
+        int right = args[i + 3];
+        for (int j = 0; j < DIV_CEIL(n_bits, T::default_length); j++)
+        {
+            int n = min(T::default_length, n_bits - j * T::default_length);
+            processor.S[out + j].xor_(n, processor.S[left + j],
+                    processor.S[right + j]);
+        }
     }
 }
 

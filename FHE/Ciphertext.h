@@ -35,11 +35,17 @@ class Ciphertext
 
   Ciphertext(const FHE_PK &pk);
 
+  Ciphertext(const Rq_Element& a0, const Rq_Element& a1, const Ciphertext& C) :
+      Ciphertext(C.get_params())
+  {
+    set(a0, a1, C.get_pk_id());
+  }
+
   ~Ciphertext() {  ; }
 
   // Rely on default copy assignment/constructor
   
-  word get_pk_id() { return pk_id; }
+  word get_pk_id() const { return pk_id; }
 
   void set(const Rq_Element& a0, const Rq_Element& a1, word pk_id)
     { cc0=a0; cc1=a1; this->pk_id = pk_id; }
@@ -93,8 +99,13 @@ class Ciphertext
   template <class FD>
   Ciphertext& operator*=(const Plaintext_<FD>& other) { ::mul(*this, *this, other); return *this; }
 
-  Ciphertext mul(const Ciphertext& x, const FHE_PK& pk) const
+  Ciphertext mul(const FHE_PK& pk, const Ciphertext& x) const
   { Ciphertext res(*params); ::mul(res, *this, x, pk); return res; }
+
+  Ciphertext mul_by_X_i(int i, const FHE_PK&) const
+  {
+    return {cc0.mul_by_X_i(i), cc1.mul_by_X_i(i), *this};
+  }
 
   int level() const { return cc0.level(); }
 

@@ -1,9 +1,37 @@
-import mpc_math, math
+"""
+This module contains machine learning functionality. It is work in
+progress, so you must expect things to change. The most tested
+functionality is logistic regression. It can be run as follows::
 
+    sgd = ml.SGD([ml.Dense(n_examples, n_features, 1),
+                  ml.Output(n_examples, approx=True)], n_epochs,
+                 report_loss=True)
+    sgd.layers[0].X.input_from(0)
+    sgd.layers[1].Y.input_from(1)
+    sgd.reset()
+    sgd.run()
+
+This loads measurements from party 0 and labels (0/1) from party
+1. After running, the model is stored in :py:obj:`sgd.layers[0].W` and
+:py:obj:`sgd.layers[1].b`. The :py:obj:`approx` parameter determines
+whether to use an approximate sigmoid function. Inference can be run as
+follows::
+
+    data = sfix.Matrix(n_test, n_features)
+    data.input_from(0)
+    res = sgd.eval(data)
+    print_ln('Results: %s', [x.reveal() for x in res])
+"""
+
+import math
+
+from Compiler import mpc_math
 from Compiler.types import *
 from Compiler.types import _unreduced_squant
 from Compiler.library import *
-from Compiler.util import is_zero
+from Compiler.util import is_zero, tree_reduce
+from Compiler.comparison import CarryOutRawLE
+from Compiler.GC.types import sbitint
 from functools import reduce
 
 def log_e(x):
@@ -31,6 +59,29 @@ def sigmoid_prime(x):
     sx = sigmoid(x)
     return sx * (1 - sx)
 
+@vectorize
+def approx_sigmoid(x):
+    if approx_sigmoid.special and \
+       get_program().options.ring and get_program().use_edabit():
+        l = int(get_program().options.ring)
+        r, r_bits = sint.get_edabit(x.k, False)
+        c = ((x.v - r) << (l - x.k)).reveal() >> (l - x.k)
+        c_bits = c.bit_decompose(x.k)
+        lower_overflow = CarryOutRawLE(c_bits[:x.f - 1], r_bits[:x.f - 1])
+        higher_bits = sbitint.bit_adder(c_bits[x.f - 1:], r_bits[x.f - 1:],
+                                        lower_overflow)
+        sign = higher_bits[-1]
+        higher_bits.pop(-1)
+        aa = sign & ~util.tree_reduce(operator.and_, higher_bits)
+        bb = ~sign & ~util.tree_reduce(operator.and_, [~x for x in higher_bits])
+        a, b = (sint.conv(x) for x in (aa, bb))
+    else:
+        a = x < -0.5
+        b = x > 0.5
+    return a.if_else(0, b.if_else(1, 0.5 + x))
+
+approx_sigmoid.special = False
+
 def lse_0_from_e_x(x, e_x):
     return sanitize(-x, log_e(1 + e_x), x + 2 ** -x.f, 0)
 
@@ -56,7 +107,7 @@ class Layer:
     n_threads = 1
 
 class Output(Layer):
-    def __init__(self, N, debug=False):
+    def __init__(self, N, debug=False, approx=False):
         self.N = N
         self.X = sfix.Array(N)
         self.Y = sfix.Array(N)
@@ -64,9 +115,8 @@ class Output(Layer):
         self.l = MemValue(sfix(-1))
         self.e_x = sfix.Array(N)
         self.debug = debug
-        self.weights = cint.Array(N)
-        self.weights.assign_all(1)
-        self.weight_total = N
+        self.weights = None
+        self.approx = approx
 
     nablas = lambda self: ()
     thetas = lambda self: ()
@@ -75,30 +125,45 @@ class Output(Layer):
     def divisor(self, divisor, size):
         return cfix(1.0 / divisor, size=size)
 
-    def forward(self, N=None):
-        N = N or self.N
+    def forward(self, batch):
+        if self.approx:
+            self.l.write(999)
+            return
+        N = len(batch)
         lse = sfix.Array(N)
         @multithread(self.n_threads, N)
         def _(base, size):
             x = self.X.get_vector(base, size)
-            y = self.Y.get_vector(base, size)
+            y = self.Y.get(batch.get_vector(base, size))
             e_x = exp(-x)
             self.e_x.assign(e_x, base)
             lse.assign(lse_0_from_e_x(-x, e_x) + x * (1 - y), base)
         e_x = self.e_x.get_vector(0, N)
         self.l.write(sum(lse) * \
-                     self.divisor(self.N, 1))
+                     self.divisor(N, 1))
 
-    def backward(self):
-        @multithread(self.n_threads, self.N)
+    def eval(self, size, base=0):
+        if self.approx:
+            return approx_sigmoid(self.X.get_vector(base, size))
+        else:
+            return sigmoid_from_e_x(self.X.get_vector(base, size),
+                                    self.e_x.get_vector(base, size))
+
+    def backward(self, batch):
+        N = len(batch)
+        @multithread(self.n_threads, N)
         def _(base, size):
-            diff = sigmoid_from_e_x(self.X.get_vector(base, size),
-                                    self.e_x.get_vector(base, size)) - \
-                                self.Y.get_vector(base, size)
+            diff = self.eval(size, base) - \
+                   self.Y.get(batch.get_vector(base, size))
             assert sfix.f == cfix.f
-            diff *= self.weights.get_vector(base, size)
-            self.nabla_X.assign(diff * self.divisor(self.weight_total, size), \
-                                base)
+            if self.weights is None:
+                diff *= self.divisor(N, size)
+            else:
+                assert N == len(self.weights)
+                diff *= self.weights.get_vector(base, size)
+                if self.weight_total != 1:
+                    diff *= self.divisor(self.weight_total, size)
+            self.nabla_X.assign(diff, base)
         # @for_range_opt(len(diff))
         # def _(i):
         #     self.nabla_X[i] = self.nabla_X[i] * self.weights[i]
@@ -112,6 +177,7 @@ class Output(Layer):
                 #print_ln('%s', x)
 
     def set_weights(self, weights):
+        self.weights = cfix.Array(len(weights))
         self.weights.assign(weights)
         self.weight_total = sum(weights)
 
@@ -119,16 +185,28 @@ class DenseBase(Layer):
     thetas = lambda self: (self.W, self.b)
     nablas = lambda self: (self.nabla_W, self.nabla_b)
 
-    def backward_params(self, f_schur_Y):
-        N = self.N
+    def backward_params(self, f_schur_Y, batch):
+        N = len(batch)
         tmp = Matrix(self.d_in, self.d_out, unreduced_sfix)
 
-        @for_range_opt_multithread(self.n_threads, [self.d_in, self.d_out])
-        def _(j, k):
-            assert self.d == 1
-            a = [f_schur_Y[i][0][k] for i in range(N)]
-            b = [self.X[i][0][j] for i in range(N)]
-            tmp[j][k] = sfix.unreduced_dot_product(a, b)
+        assert self.d == 1
+        if self.d_out == 1:
+            @multithread(self.n_threads, self.d_in)
+            def _(base, size):
+                A = sfix.Matrix(1, self.N, address=f_schur_Y.address)
+                B = sfix.Matrix(self.N, self.d_in, address=self.X.address)
+                mp = A.direct_mul(B, reduce=False,
+                                  indices=(regint(0, size=1),
+                                           regint.inc(N),
+                                           batch.get_vector(),
+                                           regint.inc(size, base)))
+                tmp.assign_vector(mp, base)
+        else:
+            @for_range_opt_multithread(self.n_threads, [self.d_in, self.d_out])
+            def _(j, k):
+                a = [f_schur_Y[i][0][k] for i in range(N)]
+                b = [self.X[i][0][j] for i in batch]
+                tmp[j][k] = sfix.unreduced_dot_product(a, b)
 
         if self.d_in * self.d_out < 100000:
             print('reduce at once')
@@ -189,26 +267,34 @@ class Dense(DenseBase):
                 self.W[i][j] = sfix.get_random(-r, r)
         self.b.assign_all(0)
 
-    def compute_f_input(self):
-        prod = MultiArray([self.N, self.d, self.d_out], sfix)
-        @for_range_opt_multithread(self.n_threads, self.N)
-        def _(i):
-            self.X[i].plain_mul(self.W, res=prod[i])
+    def compute_f_input(self, batch):
+        N = len(batch)
+        prod = MultiArray([N, self.d, self.d_out], sfix)
+        assert self.d == 1
+        assert self.d_out == 1
+        @multithread(self.n_threads, N)
+        def _(base, size):
+            X_sub = sfix.Matrix(self.N, self.d_in, address=self.X.address)
+            prod.assign_vector(
+                X_sub.direct_mul(self.W, indices=(batch.get_vector(base, size),
+                                                  regint.inc(self.d_in),
+                                                  regint.inc(self.d_in),
+                                                  regint.inc(self.d_out))),
+                base)
 
-        @for_range_opt_multithread(self.n_threads, self.N)
-        def _(i):
-            @for_range_opt(self.d)
-            def _(j):
-                v = prod[i][j].get_vector() + self.b.get_vector()
-                self.f_input[i][j].assign(v)
+        @multithread(self.n_threads, N)
+        def _(base, size):
+            v = prod.get_vector(base, size) + self.b.expand_to_vector(0, size)
+            self.f_input.assign_vector(v, base)
         progress('f input')
 
-    def forward(self):
-        self.compute_f_input()
-        self.Y.assign_vector(self.f(self.f_input.get_vector()))
+    def forward(self, batch=None):
+        self.compute_f_input(batch=batch)
+        self.Y.assign_vector(self.f(
+            self.f_input.get_part_vector(0, len(batch))))
 
-    def backward(self, compute_nabla_X=True):
-        N = self.N
+    def backward(self, compute_nabla_X=True, batch=None):
+        N = len(batch)
         d = self.d
         d_out = self.d_out
         X = self.X
@@ -233,6 +319,7 @@ class Dense(DenseBase):
 
             @for_range_opt(N)
             def _(i):
+                i = batch[i]
                 f_schur_Y[i] = nabla_Y[i].schur(f_prime_bit[i])
 
             progress('f prime schur Y')
@@ -240,6 +327,7 @@ class Dense(DenseBase):
         if compute_nabla_X:
             @for_range_opt(N)
             def _(i):
+                i = batch[i]
                 if self.activation == 'id':
                     nabla_X[i] = nabla_Y[i].mul_trans(W)
                 else:
@@ -247,7 +335,7 @@ class Dense(DenseBase):
 
             progress('nabla X')
 
-        self.backward_params(f_schur_Y)
+        self.backward_params(f_schur_Y, batch=batch)
 
 class QuantizedDense(DenseBase):
     def __init__(self, N, d_in, d_out):
@@ -443,8 +531,8 @@ class QuantConv2d(QuantConvBase):
         _, inputs_h, inputs_w, n_channels_in = self.input_shape
         return weights_h * weights_w * n_channels_in
 
-    def forward(self, N=1):
-        assert(N == 1)
+    def forward(self, batch):
+        assert len(batch) == 1
         assert(self.weight_shape[0] == self.output_shape[-1])
 
         _, weights_h, weights_w, _ = self.weight_shape
@@ -499,8 +587,8 @@ class QuantDepthwiseConv2d(QuantConvBase):
         _, weights_h, weights_w, _ = self.weight_shape
         return weights_h * weights_w
 
-    def forward(self, N=1):
-        assert(N == 1)
+    def forward(self, batch):
+        assert len(batch) == 1
         assert(self.weight_shape[-1] == self.output_shape[-1])
         assert(self.input_shape[-1] == self.output_shape[-1])
 
@@ -562,8 +650,8 @@ class QuantAveragePool2d(QuantBase):
         for s in self.input_squant, self.output_squant:
             s.set_params(sfloat.get_input_from(player), sint.get_input_from(player))
 
-    def forward(self, N=1):
-        assert(N == 1)
+    def forward(self, batch):
+        assert len(batch) == 1
 
         _, input_h, input_w, n_channels_in = self.input_shape
         _, output_h, output_w, n_channels_out = self.output_shape
@@ -623,8 +711,8 @@ class QuantReshape(QuantBase):
         for i in range(2):
             sint.get_input_from(player)
 
-    def forward(self, N=1):
-        assert(N == 1)
+    def forward(self, batch):
+        assert len(batch) == 1
         # reshaping is implicit
         self.Y.assign(self.X)
 
@@ -634,8 +722,8 @@ class QuantSoftmax(QuantBase):
         for s in self.input_squant, self.output_squant:
             s.set_params(sfloat.get_input_from(player), sint.get_input_from(player))
 
-    def forward(self, N=1):
-        assert(N == 1)
+    def forward(self, batch):
+        assert len(batch) == 1
         assert(len(self.input_shape) == 2)
 
         # just print the best
@@ -648,31 +736,40 @@ class QuantSoftmax(QuantBase):
 class Optimizer:
     n_threads = Layer.n_threads
 
-    def forward(self, N):
+    def forward(self, N=None, batch=None):
+        if batch is None:
+            batch = regint.Array(N)
+            batch.assign(regint.inc(N))
         for j in range(len(self.layers) - 1):
-            self.layers[j].forward()
-            self.layers[j + 1].X.assign(self.layers[j].Y)
-        self.layers[-1].forward(N)
+            self.layers[j].forward(batch=batch)
+            tmp = self.layers[j].Y.get_part_vector(0, len(batch))
+            self.layers[j + 1].X.assign_vector(tmp)
+        self.layers[-1].forward(batch=batch)
 
-    def backward(self):
+    def eval(self, data):
+        N = len(data)
+        self.layers[0].X.assign(data)
+        self.forward(N)
+        return self.layers[-1].eval(N)
+
+    def backward(self, batch):
         for j in range(1, len(self.layers)):
-            self.layers[-j].backward()
-            self.layers[-j - 1].nabla_Y.assign(self.layers[-j].nabla_X)
-        self.layers[0].backward(compute_nabla_X=False)
+            self.layers[-j].backward(batch=batch)
+            self.layers[-j - 1].nabla_Y.assign_vector(
+                self.layers[-j].nabla_X.get_part_vector(0, len(batch)))
+        self.layers[0].backward(compute_nabla_X=False, batch=batch)
 
-    def run(self):
+    def run(self, batch_size=None):
+        if batch_size is not None:
+            N = batch_size
+        else:
+            N = self.layers[0].N
         i = MemValue(0)
         @do_while
         def _():
             if self.X_by_label is not None:
-                N = self.layers[0].N
-                assert self.layers[-1].N == N
                 assert N % 2 == 0
                 n = N // 2
-                @for_range(n)
-                def _(i):
-                    self.layers[-1].Y[i] = 0
-                    self.layers[-1].Y[i + n] = 1
                 n_per_epoch = int(math.ceil(1. * max(len(X) for X in
                                                      self.X_by_label) / n))
                 print('%d runs per epoch' % n_per_epoch)
@@ -680,26 +777,27 @@ class Optimizer:
                 for label, X in enumerate(self.X_by_label):
                     indices = regint.Array(n * n_per_epoch)
                     indices_by_label.append(indices)
-                    indices.assign(i % len(X) for i in range(len(indices)))
+                    indices.assign(regint.inc(len(indices), 0, 1, 1, len(X)))
                     indices.shuffle()
                 @for_range(n_per_epoch)
                 def _(j):
-                    j = MemValue(j)
+                    batch = regint.Array(N)
                     for label, X in enumerate(self.X_by_label):
                         indices = indices_by_label[label]
-                        @for_range_multithread(self.n_threads, 1, n)
-                        def _(i):
-                            idx = indices[i + j * n]
-                            self.layers[0].X[i + label * n] = X[idx]
-                    self.forward(None)
-                    self.backward()
+                        batch.assign(indices.get_vector(j * n, n) +
+                                     regint(label * len(self.X_by_label[0]), size=n),
+                                     label * n)
+                    self.forward(batch=batch)
+                    self.backward(batch=batch)
                     self.update(i)
             else:
-                self.forward(None)
-                self.backward()
+                batch = regint.Array(N)
+                batch.assign(regint.inc(N))
+                self.forward(batch=batch)
+                self.backward(batch=batch)
                 self.update(i)
             loss = self.layers[-1].l
-            if self.report_loss:
+            if self.report_loss and not self.layers[-1].approx:
                 print_ln('loss after epoch %s: %s', i, loss.reveal())
             else:
                 print_ln('done with epoch %s', i)
@@ -772,6 +870,13 @@ class SGD(Optimizer):
 
     def reset(self, X_by_label=None):
         self.X_by_label = X_by_label
+        if X_by_label is not None:
+            for label, X in enumerate(X_by_label):
+                @for_range_multithread(self.n_threads, 1, len(X))
+                def _(i):
+                    j = i + label * len(X_by_label[0])
+                    self.layers[0].X[j] = X[i]
+                    self.layers[-1].Y[j] = label
         for y in self.delta_thetas:
             y.assign_all(0)
         for layer in self.layers:
@@ -780,16 +885,15 @@ class SGD(Optimizer):
     def update(self, i_epoch):
         for nabla, theta, delta_theta in zip(self.nablas, self.thetas,
                                              self.delta_thetas):
-            @for_range_opt_multithread(self.n_threads, len(nabla))
-            def _(k):
-                old = delta_theta[k]
-                if isinstance(old, Array):
-                    old = old.get_vector()
+            @multithread(self.n_threads, len(nabla))
+            def _(base, size):
+                old = delta_theta.get_vector(base, size)
                 red_old = self.momentum * old
-                new = self.gamma * nabla[k]
+                new = self.gamma * nabla.get_vector(base, size)
                 diff = red_old - new
-                delta_theta[k] = diff
-                theta[k] = theta[k] + delta_theta[k]
+                delta_theta.assign_vector(diff, base)
+                theta.assign_vector(theta.get_vector(base, size) +
+                                    delta_theta.get_vector(base, size), base)
                 if self.debug:
                     for x, name in (old, 'old'), (red_old, 'red_old'), \
                         (new, 'new'), (diff, 'diff'): 

@@ -10,7 +10,7 @@
 
 template<class T> class HashMaliciousRepMC;
 template<class T> class Beaver;
-template<class T> class MaliciousRepPrep;
+template<class T> class MaliciousRepPrepWithBits;
 
 namespace GC
 {
@@ -29,11 +29,13 @@ public:
     typedef ReplicatedInput<MaliciousRep3Share<T>> Input;
     typedef ::PrivateOutput<MaliciousRep3Share<T>> PrivateOutput;
     typedef Rep3Share<T> Honest;
-    typedef MaliciousRepPrep<MaliciousRep3Share> LivePrep;
+    typedef MaliciousRepPrepWithBits<MaliciousRep3Share> LivePrep;
     typedef MaliciousRep3Share prep_type;
     typedef T random_type;
 
     typedef GC::MaliciousRepSecret bit_type;
+
+    const static bool expensive = true;
 
     static string type_short()
     {

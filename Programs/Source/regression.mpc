@@ -20,6 +20,12 @@ sfloat.vlen = sfix.f
 if 'nearest' in program.args:
    sfix.round_nearest = True
 
+if 'edabit' in program.args:
+   program.use_edabit(True)
+
+if 'split' in program.args:
+   program.use_split(3)
+
 n_examples = 227
 n_normal = 84
 n_features = 12634
@@ -43,7 +49,7 @@ except:
 
 print('Using %d threads' % ml.Layer.n_threads)
 
-n_fold = 5
+n_fold = 10 if '10fold' in program.args else 5
 test_share = 1. / n_fold
 n_ex = [n_normal, n_pos]
 n_tests = [int(test_share * x) for x in n_ex]
@@ -60,6 +66,9 @@ elif weighted:
 else:
    N = max(n_train) * 2
 
+batch_size = N
+N = max(batch_size, sum(n_train))
+
 n_test = sum(n_tests)
 
 indices = [regint.Array(n) for n in n_ex]
@@ -73,7 +82,7 @@ if 'quant' in program.args:
 else:
    dense = ml.Dense(N, n_features, 1)
 
-layers = [dense, ml.Output(N, debug=debug)]
+layers = [dense, ml.Output(N, debug=debug, approx='approx' in program.args)]
 
 Y = sfix.Array(n_examples)
 X = sfix.Matrix(n_examples, n_features)
@@ -136,8 +145,10 @@ def _(i_run):
                factor = 2
             else:
                factor = 1
-            layers[-1].set_weights([factor * n_train[1]] * n_train[0] +
-                                   [n_train[0]] * n_train[1])
+            weights = [factor * n_train[1]] * n_train[0] + \
+                      [n_train[0]] * n_train[1]
+            weights = list(map(lambda x: x / sum(weights), weights))
+            layers[-1].set_weights(weights)
             n_indices = n_train
             n = n_train[0]
          else:
@@ -152,7 +163,9 @@ def _(i_run):
       else:
          sgd.reset(Xs)
 
-      sgd.run()
+      start_timer(1)
+      sgd.run(batch_size)
+      stop_timer(1)
 
       match = lambda x, y: (y.v >> y.f).if_else(x > 0.5, x < 0.5)
 
@@ -162,7 +175,8 @@ def _(i_run):
          @for_range(N)
          def _(i):
             y = layers[-1].Y[i].reveal()
-            x = ml.sigmoid(layers[0].Y[i][0][0]).reveal()
+            f = ml.approx_sigmoid if layers[-1].approx else ml.sigmoid
+            x = f(layers[0].Y[i][0][0]).reveal()
             m = match(x, y)
             pos_acc.iadd(m * y)
             neg_acc.iadd(m * (1 - y))
@@ -170,7 +184,8 @@ def _(i_run):
                print_ln('%s %s %s', match(x, y), y, x)
          return neg_acc.read(), pos_acc.read()
 
-      print_ln('train_acc: %s', sum(get_acc(N)) / N)
+      sgd.forward(sum(n_train))
+      print_ln('train_acc: %s', sum(get_acc(sum(n_train))) / sum(n_train))
 
       @for_range(n_test)
       def _(i):

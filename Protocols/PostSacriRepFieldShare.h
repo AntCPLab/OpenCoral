@@ -24,7 +24,7 @@ public:
     typedef MAC_Check Direct_MC;
     typedef ReplicatedInput<PostSacriRepFieldShare> Input;
     typedef ::PrivateOutput<PostSacriRepFieldShare> PrivateOutput;
-    typedef MaliciousRepPrep<PostSacriRepFieldShare> LivePrep;
+    typedef MaliciousRepPrepWithBits<PostSacriRepFieldShare> LivePrep;
 
     PostSacriRepFieldShare()
     {

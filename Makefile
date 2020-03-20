@@ -9,7 +9,7 @@ NETWORK = $(patsubst %.cpp,%.o,$(wildcard Networking/*.cpp))
 
 PROCESSOR = $(patsubst %.cpp,%.o,$(wildcard Processor/*.cpp))
 
-FHEOFFLINE = $(patsubst %.cpp,%.o,$(wildcard FHEOffline/*.cpp FHE/*.cpp))
+FHEOFFLINE = $(patsubst %.cpp,%.o,$(wildcard FHEOffline/*.cpp FHE/*.cpp)) Protocols/CowGearOptions.o
 
 GC = $(patsubst %.cpp,%.o,$(wildcard GC/*.cpp)) $(PROCESSOR)
 GC_SEMI = GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
@@ -17,11 +17,11 @@ GC_SEMI = GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
 OT = $(patsubst %.cpp,%.o,$(filter-out OT/OText_main.cpp,$(wildcard OT/*.cpp)))
 OT_EXE = ot.x ot-offline.x
 
-COMMON = $(MATH) $(TOOLS) $(NETWORK)
+COMMON = $(MATH) $(TOOLS) $(NETWORK) GC/square64.o
 COMPLETE = $(COMMON) $(PROCESSOR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(GC) $(OT)
 YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp)) $(OT) BMR/Key.o
 BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp)) $(COMMON) $(PROCESSOR) $(OT)
-VM = $(PROCESSOR) $(COMMON) GC/square64.o
+VM = $(PROCESSOR) $(COMMON) GC/square64.o OT/OTTripleSetup.o OT/BaseOT.o $(LIBSIMPLEOT)
 
 
 LIB = libSPDZ.a
@@ -30,7 +30,7 @@ LIBSIMPLEOT = SimpleOT/libsimpleot.a
 
 # used for dependency generation
 OBJS = $(BMR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(YAO) $(COMPLETE) $(patsubst %.cpp,%.o,$(wildcard Machines/*.cpp))
-DEPS := $(wildcard */*.d)
+DEPS := $(wildcard */*.d */*/*.d)
 
 # never delete
 .SECONDARY: $(OBJS)
@@ -39,11 +39,12 @@ DEPS := $(wildcard */*.d)
 all: arithmetic binary gen_input online offline externalIO bmr
 
 arithmetic: rep-ring rep-field shamir semi2k-party.x semi-party.x spdz2k-party.x mascot-party.x
-binary: rep-bin yao semi-bin-party.x tinier-party.x tiny-party.x real-bmr
+binary: rep-bin yao semi-bin-party.x tinier-party.x tiny-party.x ccd-party.x malicious-ccd-party.x real-bmr
 
 ifeq ($(USE_NTL),1)
 all: overdrive she-offline
-arithmetic: hemi-party.x cowgear-party.x
+gear: cowgear-party.x chaigear-party.x
+arithmetic: hemi-party.x gear
 endif
 
 -include $(DEPS)
@@ -95,13 +96,13 @@ shamir: shamir-party.x malicious-shamir-party.x galois-degree.x
 ecdsa: $(patsubst ECDSA/%.cpp,%.x,$(wildcard ECDSA/*-ecdsa-party.cpp))
 ecdsa-static: static-dir $(patsubst ECDSA/%.cpp,static/%.x,$(wildcard ECDSA/*-ecdsa-party.cpp))
 
-$(LIBRELEASE): $(patsubst %.cpp,%.o,$(wildcard Machines/S*.cpp)) $(patsubst %.cpp,%.o,$(wildcard Protocols/*.cpp)) $(YAO) $(PROCESSOR) $(COMMON) $(BMR) $(FHEOFFLINE) $(GC)
+$(LIBRELEASE): $(patsubst %.cpp,%.o,$(wildcard Protocols/*.cpp)) $(YAO) $(PROCESSOR) $(COMMON) $(BMR) $(FHEOFFLINE) $(GC)
 	$(AR) -csr $@ $^
 
 static/%.x: Machines/%.o $(LIBRELEASE) $(LIBSIMPLEOT)
-	$(CXX) $(CFLAGS) -o $@ $^ -Wl,-Map=$<.map -Wl,-Bstatic -static-libgcc -static-libstdc++ $(BOOST) $(LDLIBS) -Wl,-Bdynamic -ldl
+	$(CXX) $(CFLAGS) -o $@ $^ $(LIBRELEASE) $(LIBSIMPLEOT) -Wl,-Map=$<.map -Wl,-Bstatic -static-libgcc -static-libstdc++ $(BOOST) $(LDLIBS) -Wl,-Bdynamic -ldl
 
-static/%.x: ECDSA/%.o ECDSA/P256Element.o Machines/ShamirMachine.o $(VM) $(OT) $(LIBSIMPLEOT)
+static/%.x: ECDSA/%.o ECDSA/P256Element.o $(VM) $(OT) $(LIBSIMPLEOT)
 	$(CXX) $(CFLAGS) -o $@ $^ -Wl,-Map=$<.map -Wl,-Bstatic -static-libgcc -static-libstdc++ $(BOOST) $(LDLIBS) $(ECLIB) -Wl,-Bdynamic -ldl
 
 static-dir:
@@ -169,21 +170,21 @@ malicious-rep-bin-party.x: GC/square64.o
 semi-bin-party.x: $(VM) $(OT) GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
 tiny-party.x: $(OT)
 tinier-party.x: $(OT)
-shamir-party.x: Machines/ShamirMachine.o
-malicious-shamir-party.x: Machines/ShamirMachine.o
-spdz2k-party.x: $(OT)
+spdz2k-party.x: $(OT) $(patsubst %.cpp,%.o,$(wildcard Machines/SPDZ2*.cpp))
+static/spdz2k-party.x: $(patsubst %.cpp,%.o,$(wildcard Machines/SPDZ2*.cpp))
 semi-party.x: $(OT) GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
 semi2k-party.x: $(OT) GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
 hemi-party.x: $(FHEOFFLINE) $(GC_SEMI) $(OT)
 cowgear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o $(OT)
+chaigear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o $(OT)
 mascot-party.x: Machines/SPDZ.o $(OT)
+static/mascot-party.x: Machines/SPDZ.o
 Player-Online.x: Machines/SPDZ.o $(OT)
 ps-rep-ring-party.x: Protocols/MalRepRingOptions.o
 malicious-rep-ring-party.x: Protocols/MalRepRingOptions.o
-mal-shamir-ecdsa-party.x: Machines/ShamirMachine.o
-shamir-ecdsa-party.x: Machines/ShamirMachine.o
-semi-ecdsa-party.x: $(OT) $(LIBSIMPLEOT) GC/SemiPrep.o
+semi-ecdsa-party.x: $(OT) $(LIBSIMPLEOT) GC/SemiPrep.o GC/SemiSecret.o
 mascot-ecdsa-party.x: $(OT) $(LIBSIMPLEOT)
+fake-spdz-ecdsa-party.x: $(OT) $(LIBSIMPLEOT)
 
 $(LIBSIMPLEOT): SimpleOT/Makefile
 	$(MAKE) -C SimpleOT

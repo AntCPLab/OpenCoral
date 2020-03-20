@@ -36,6 +36,8 @@ opcodes = dict(
     STMSBI = 0x243,
     MOVSB = 0x244,
     INPUTB = 0x246,
+    SPLIT = 0x248,
+    CONVCBIT2S = 0x249,
     XORCBI = 0x210,
     BITDECC = 0x211,
     CONVCINT = 0x213,
@@ -49,15 +51,23 @@ opcodes = dict(
     MULCBI = 0x21c,
     SHRCBI = 0x21d,
     SHLCBI = 0x21e,
+    CONVCINTVEC = 0x21f,
     PRINTREGSIGNED = 0x220,
     PRINTREGB = 0x221,
     PRINTREGPLAINB = 0x222,
     PRINTFLOATPLAINB = 0x223,
     CONDPRINTSTRB = 0x224,
     CONVCBIT = 0x230,
+    CONVCBITVEC = 0x231,
 )
 
-class xors(base.Instruction):
+class BinaryVectorInstruction(base.Instruction):
+    is_vec = lambda self: True
+
+    def copy(self, size, subs):
+        return type(self)(*self.get_new_args(size, subs))
+
+class xors(BinaryVectorInstruction):
     code = opcodes['XORS']
     arg_format = tools.cycle(['int','sbw','sb','sb'])
 
@@ -73,15 +83,21 @@ class xorcbi(base.Instruction):
     code = opcodes['XORCBI']
     arg_format = ['cbw','cb','int']
 
-class andrs(base.Instruction):
+class andrs(BinaryVectorInstruction):
     code = opcodes['ANDRS']
     arg_format = tools.cycle(['int','sbw','sb','sb'])
 
-class ands(base.Instruction):
+    def add_usage(self, req_node):
+        req_node.increment(('bit', 'triple'), sum(self.args[::4]))
+
+class ands(BinaryVectorInstruction):
     code = opcodes['ANDS']
     arg_format = tools.cycle(['int','sbw','sb','sb'])
 
-class andm(base.Instruction):
+    def add_usage(self, req_node):
+        req_node.increment(('bit', 'triple'), sum(self.args[::4]))
+
+class andm(BinaryVectorInstruction):
     code = opcodes['ANDM']
     arg_format = ['int','sbw','sb','cb']
 
@@ -181,6 +197,31 @@ class convcbit(base.Instruction):
     code = opcodes['CONVCBIT']
     arg_format = ['ciw','cb']
 
+@base.vectorize
+class convcintvec(base.Instruction):
+    code = opcodes['CONVCINTVEC']
+    arg_format = tools.chain(['c'], tools.cycle(['cbw']))
+
+class convcbitvec(BinaryVectorInstruction):
+    code = opcodes['CONVCBITVEC']
+    arg_format = ['int','ciw','cb']
+    def __init__(self, *args):
+        super(convcbitvec, self).__init__(*args)
+        assert(args[2].n == args[0])
+        args[1].set_size(args[0])
+
+class convcbit2s(BinaryVectorInstruction):
+    code = opcodes['CONVCBIT2S']
+    arg_format = ['int','sbw','cb']
+
+@base.vectorize
+class split(base.Instruction):
+    code = opcodes['SPLIT']
+    arg_format = tools.chain(['int','s'], tools.cycle(['sbw']))
+    def __init__(self, *args, **kwargs):
+        super(split_class, self).__init__(*args, **kwargs)
+        assert (len(args) - 2) % args[0] == 0
+
 class movsb(base.Instruction):
     code = opcodes['MOVSB']
     arg_format = ['sbw','sb']
@@ -196,9 +237,9 @@ class bitb(base.Instruction):
     code = opcodes['BITB']
     arg_format = ['sbw']
 
-class reveal(base.Instruction):
+class reveal(BinaryVectorInstruction, base.VarArgsInstruction, base.Mergeable):
     code = opcodes['REVEAL']
-    arg_format = ['int','cbw','sb']
+    arg_format = tools.cycle(['int','cbw','sb'])
 
 class inputb(base.DoNotEliminateInstruction, base.VarArgsInstruction):
     __slots__ = []

@@ -8,6 +8,11 @@
 #include "Protocols/MaliciousShamirShare.h"
 #include "Math/gfp.h"
 #include "Math/gf2n.h"
+#include "GC/VectorProtocol.h"
+#include "GC/CcdPrep.h"
+#include "GC/TinyMC.h"
+#include "GC/MaliciousCcdSecret.h"
+#include "GC/VectorInput.h"
 
 #include "Protocols/ReplicatedMachine.hpp"
 
@@ -22,6 +27,10 @@
 #include "Protocols/MAC_Check_Base.hpp"
 #include "Protocols/fake-stuff.hpp"
 #include "Protocols/Beaver.hpp"
+#include "Protocols/Spdz2kPrep.hpp"
+#include "GC/ShareSecret.hpp"
+#include "GC/VectorProtocol.hpp"
+#include "GC/Secret.hpp"
 
 ShamirOptions ShamirOptions::singleton;
 
@@ -80,11 +89,6 @@ ShamirMachineSpec<T>::ShamirMachineSpec(int argc, const char** argv)
     auto& opts = ShamirOptions::singleton;
     ez::ezOptionParser opt;
     opts = {opt, argc, argv};
+    T<gfp>::bit_type::part_type::open_type::init_field();
     ReplicatedMachine<T<gfp>, T<gf2n>>(argc, argv, "shamir", opt, opts.nparties);
 }
-
-template class ShamirMachineSpec<ShamirShare>;
-template class ShamirMachineSpec<MaliciousShamirShare>;
-
-template class Machine<ShamirShare<gfp>, ShamirShare<gf2n>>;
-template class Machine<MaliciousShamirShare<gfp>, MaliciousShamirShare<gf2n>>;

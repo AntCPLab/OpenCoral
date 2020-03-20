@@ -17,22 +17,16 @@ P_VALUES = { 32: 2147565569, \
 
 P_VALUES[-1] = P_VALUES[128]
 
-BIT_LENGTHS = { -1: 32,
+BIT_LENGTHS = { -1: 64,
                 32: 16,
                 64: 16,
                 128: 64,
                 256: 64,
                 512: 64 }
 
-STAT_SEC = { -1: 6,
-             32: 6,
-             64: 30,
-             128: 40,
-             256: 40,
-             512: 40 }
 
-
-COST = { 'modp': defaultdict(lambda: 0,
+COST = defaultdict(lambda: defaultdict(lambda: 0),
+        { 'modp': defaultdict(lambda: 0,
          { 'triple': 0.00020652622883106154,
            'square': 0.00020652622883106154,
            'bit': 0.00020652622883106154,
@@ -51,7 +45,7 @@ COST = { 'modp': defaultdict(lambda: 0,
          'all': { 'round': 0,
                   'inv': 0,
          }
-}
+})
 
 
 try:

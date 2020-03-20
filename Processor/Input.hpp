@@ -24,6 +24,12 @@ InputBase<T>::InputBase(ArithmeticProcessor* proc) :
 }
 
 template<class T>
+Input<T>::Input(SubProcessor<T>& proc) :
+        Input(proc, proc.MC)
+{
+}
+
+template<class T>
 Input<T>::Input(SubProcessor<T>& proc, MAC_Check& mc) :
         InputBase<T>(proc.Proc), proc(&proc), MC(mc), prep(proc.DataF), P(proc.P),
         shares(proc.P.num_players())

@@ -54,6 +54,9 @@ public:
             int size);
     void mulrs(const vector<int>& reg, SubProcessor<T>& proc);
 
+    void multiply(vector<T>& products, vector<pair<T, T>>& multiplicands,
+            int begin, int end, SubProcessor<T>& proc);
+
     virtual void init_mul(SubProcessor<T>* proc) = 0;
     virtual typename T::clear prepare_mul(const T& x, const T& y, int n = -1) = 0;
     virtual void exchange() = 0;
@@ -65,10 +68,12 @@ public:
     T finalize_dotprod(int length);
 
     virtual void trunc_pr(const vector<int>& regs, int size, SubProcessor<T>& proc)
-    { (void) regs, (void) size; (void) proc; throw not_implemented(); }
+    { (void) regs, (void) size; (void) proc; throw runtime_error("trunc_pr not implemented"); }
 
     virtual void start_exchange() { exchange(); }
     virtual void stop_exchange() {}
+
+    virtual void check() {}
 };
 
 template <class T>

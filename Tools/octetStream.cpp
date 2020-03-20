@@ -76,6 +76,7 @@ octetStream::octetStream(FlexBuffer& buffer)
 
 void octetStream::hash(octetStream& output) const
 {
+  assert(output.mxlen >= crypto_generichash_blake2b_BYTES_MIN);
   crypto_generichash(output.data, crypto_generichash_BYTES_MIN, data, len, NULL, 0);
   output.len=crypto_generichash_BYTES_MIN;
 }
@@ -370,6 +371,8 @@ void octetStream::input(istream& s)
 {
   size_t size;
   s.read((char*)&size, sizeof(size));
+  if (not s.good())
+    throw IO_Error("not enough data");
   resize_min(size);
   s.read((char*)data, size);
   len = size;

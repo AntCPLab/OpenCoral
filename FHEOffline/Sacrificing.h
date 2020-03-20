@@ -25,6 +25,8 @@ template <class T>
 class TupleSacriFactory
 {
 public:
+    vector<array<T, 2>> tuples;
+
     virtual ~TupleSacriFactory() {}
     virtual void get(T& a, T& b) = 0;
 };

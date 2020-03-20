@@ -9,6 +9,8 @@
 #include "Sacrificing.h"
 #include "Reshare.h"
 #include "DistDecrypt.h"
+#include "SimpleEncCommit.h"
+#include "SimpleMachine.h"
 #include "Tools/mkpath.h"
 
 template<class FD>
@@ -610,7 +612,7 @@ InputProducer<FD>::~InputProducer()
 template<class FD>
 void InputProducer<FD>::run(const Player& P, const FHE_PK& pk,
         const Ciphertext& calpha, EncCommitBase_<FD>& EC, DistDecrypt<FD>& dd,
-        const T& alphai)
+        const T& alphai, int player)
 {
     (void)alphai;
 
@@ -620,43 +622,86 @@ void InputProducer<FD>::run(const Player& P, const FHE_PK& pk,
     G.ReSeed();
 
     Ciphertext gama(params),dummyc(params),ca(params);
-    vector<octetStream> oca(P.num_players());
     const FD& FieldD = dd.f.get_field();
     Plaintext<T,FD,S> a(FieldD),ai(FieldD),gai(FieldD);
-    Random_Coins rc(params);
 
     this->n_slots = FieldD.num_slots();
 
     Share<T> Sh;
 
-    a.randomize(G);
-    rc.generate(G);
-    pk.encrypt(ca, a, rc);
-    ca.pack(oca[P.my_num()]);
-    P.Broadcast_Receive(oca);
+    inputs.resize(P.num_players());
 
-    for (int j = 0; j < P.num_players(); j++)
+    int min, max;
+    if (player < 0)
     {
-        ca.unpack(oca[j]);
-        // Reshare the aj values
-        dd.reshare(ai, ca, EC);
+        min = 0;
+        max = P.num_players();
+    }
+    else
+    {
+        min = player;
+        max = player + 1;
+    }
 
-        // Generate encrypted MAC values
-        mul(gama, calpha, ca, pk);
+    map<string, Timer> timers;
+    assert(EC.machine);
+    SimpleEncCommit_<FD> personal_EC(P, pk, FieldD, timers, *EC.machine, 0);
+    octetStream ciphertexts, cleartexts;
 
-        // Get shares on the MACs
-        dd.reshare(gai, gama, EC);
-
-        for (unsigned int i = 0; i < ai.num_slots(); i++)
+    for (int j = min; j < max; j++)
+    {
+        AddableVector<Ciphertext> C;
+        vector<Plaintext_<FD>> m(EC.machine->sec, FieldD);
+        if (j == P.my_num())
         {
-            Sh.set_share(ai.element(i));
-            Sh.set_mac(gai.element(i));
-            if (write_output)
+            for (auto& x : m)
+                x.randomize(G);
+            personal_EC.generate_proof(C, m, ciphertexts, cleartexts);
+            P.send_all(ciphertexts, true);
+            P.send_all(cleartexts, true);
+        }
+        else
+        {
+            P.receive_player(j, ciphertexts, true);
+            P.receive_player(j, cleartexts, true);
+            C.resize(personal_EC.machine->sec, pk.get_params());
+            Verifier<FD, fixint<GFP_MOD_SZ>>(personal_EC.proof).NIZKPoK(C, ciphertexts,
+                    cleartexts, pk, false, false);
+        }
+
+        inputs[j].clear();
+
+        for (size_t i = 0; i < C.size(); i++)
+        {
+            auto& ca = C.at(i);
+            auto& a = m.at(i);
+
+            // Reshare the aj values
+            dd.reshare(ai, ca, EC);
+
+            // Generate encrypted MAC values
+            mul(gama, calpha, ca, pk);
+
+            // Get shares on the MACs
+            dd.reshare(gai, gama, EC);
+
+            for (unsigned int i = 0; i < ai.num_slots(); i++)
             {
-                Sh.output(outf[j], false);
-                if (j == P.my_num())
+                Sh.set_share(ai.element(i));
+                Sh.set_mac(gai.element(i));
+                if (write_output)
                 {
-                    a.element(i).output(outf[j], false);
+                    Sh.output(outf[j], false);
+                    if (j == P.my_num())
+                    {
+                        a.element(i).output(outf[j], false);
+                    }
+                }
+                else
+                {
+                    inputs[j].push_back({Sh, {}});
+                    if (j == P.my_num())
+                        inputs[j].back().value = a.element(i);
                 }
             }
         }

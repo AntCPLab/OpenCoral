@@ -22,7 +22,7 @@ def get_block():
 
 def vectorize(function):
     def vectorized_function(*args, **kwargs):
-        if len(args) > 0 and isinstance(args[0], program.Tape.Register):
+        if len(args) > 0 and 'size' in dir(args[0]):
             instructions_base.set_global_vector_size(args[0].size)
             res = function(*args, **kwargs)
             instructions_base.reset_global_vector_size()
@@ -88,7 +88,7 @@ def print_str(s, *args):
                 raise CompilerError('Cannot print secret value:', args[i])
             elif isinstance(val, cfloat):
                 val.print_float_plain()
-            elif isinstance(val, list):
+            elif isinstance(val, (list, tuple, Array)):
                 print_str('[' + ', '.join('%s' for i in range(len(val))) + ']', *val)
             else:
                 try:
@@ -362,9 +362,14 @@ class Function:
 
 class FunctionTape(Function):
     # not thread-safe
+    def __init__(self, function, name=None, compile_args=[],
+                 single_thread=False):
+        Function.__init__(self, function, name, compile_args)
+        self.single_thread = single_thread
     def on_first_call(self, wrapped_function):
         self.thread = MPCThread(wrapped_function, self.name,
-                                args=self.compile_args)
+                                args=self.compile_args,
+                                single_thread=self.single_thread)
     def on_call(self, base, bases):
         return FunctionTapeCall(self.thread, base, bases)
 
@@ -375,6 +380,9 @@ def function_tape_with_compile_args(*args):
     def wrapper(function):
         return FunctionTape(function, compile_args=args)
     return wrapper
+
+def single_thread_function_tape(function):
+    return FunctionTape(function, single_thread=True)
 
 def memorize(x):
     if isinstance(x, (tuple, list)):
@@ -397,13 +405,15 @@ class FunctionBlock(Function):
         block.alloc_pool = defaultdict(set)
         del parent_node.children[-1]
         self.node = get_tape().req_node
-        print('Compiling function', self.name)
+        if get_program().verbose:
+            print('Compiling function', self.name)
         result = wrapped_function(*self.compile_args)
         if result is not None:
             self.result = memorize(result)
         else:
             self.result = None
-        print('Done compiling function', self.name)
+        if get_program().verbose:
+            print('Done compiling function', self.name)
         p_return_address = get_tape().program.malloc(1, 'ci')
         get_tape().function_basicblocks[block] = p_return_address
         return_address = regint.load_mem(p_return_address)
@@ -528,7 +538,7 @@ def chunky_odd_even_merge_sort(a):
                                 a[m], a[m+step] = cond_swap(a[m], a[m+step])
                 for i in range(len(a)):
                     a[i].store_in_mem(i * a[i].sizeof())
-            chunk = MPCThread(round, 'sort-%d-%d' % (l,k))
+            chunk = MPCThread(round, 'sort-%d-%d' % (l,k), single_thread=True)
             chunk.start()
             chunk.join()
             #round()
@@ -541,7 +551,6 @@ def chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=7, use
         a_base = instructions.program.malloc(n, 's')
         for i,j in enumerate(a):
             store_in_mem(j, a_base + i)
-        instructions.program.restart_main_thread()
     else:
         a_base = a
     tmp_base = instructions.program.malloc(n, 's')
@@ -657,7 +666,6 @@ def chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=7, use
             run_postproc()
 
     if isinstance(a, list):
-        instructions.program.restart_main_thread()
         for i in range(n):
             a[i] = load_secret_mem(a_base + i)
         instructions.program.free(a_base, 's')
@@ -669,7 +677,6 @@ def loopy_chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=
         a_base = instructions.program.malloc(n, 's')
         for i,j in enumerate(a):
             store_in_mem(j, a_base + i)
-        instructions.program.restart_main_thread()
     else:
         a_base = a
     tmp_base = instructions.program.malloc(n, 's')
@@ -764,7 +771,6 @@ def loopy_chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=
             range_loop(outer, n // l)
 
     if isinstance(a, list):
-        instructions.program.restart_main_thread()
         for i in range(n):
             a[i] = load_secret_mem(a_base + i)
         instructions.program.free(a_base, 's')
@@ -772,30 +778,39 @@ def loopy_chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=
     instructions.program.free(tmp_i, 'ci')
 
 
-def loopy_odd_even_merge_sort(a, sorted_length=1, n_parallel=32):
+def loopy_odd_even_merge_sort(a, sorted_length=1, n_parallel=32,
+                              n_threads=None):
+    steps = {}
     l = sorted_length
     while l < len(a):
         l *= 2
         k = 1
         while k < l:
             k *= 2
-            n_outer = len(a) // l
-            n_inner = l // k
             n_innermost = 1 if k == 2 else k // 2 - 1
-            @for_range_parallel(n_parallel // n_innermost // n_inner, n_outer)
-            def loop(i):
-                @for_range_parallel(n_parallel // n_innermost, n_inner)
-                def inner(j):
-                    base = i*l + j
-                    step = l//k
-                    if k == 2:
-                        a[base], a[base+step] = cond_swap(a[base], a[base+step])
-                    else:
-                        @for_range_parallel(n_parallel, n_innermost)
-                        def f(i):
-                            m1 = step + i * 2 * step
-                            m2 = m1 + base
-                            a[m2], a[m2+step] = cond_swap(a[m2], a[m2+step])
+            key = k
+            if key not in steps:
+                @function_block
+                def step(l):
+                    l = MemValue(l)
+                    @for_range_opt_multithread(n_threads, len(a) // k)
+                    def _(i):
+                        n_inner = l // k
+                        j = i % n_inner
+                        i //= n_inner
+                        base = i*l + j
+                        step = l//k
+                        if k == 2:
+                            a[base], a[base+step] = \
+                                                cond_swap(a[base], a[base+step])
+                        else:
+                            @for_range_opt(n_innermost)
+                            def f(i):
+                                m1 = step + i * 2 * step
+                                m2 = m1 + base
+                                a[m2], a[m2+step] = cond_swap(a[m2], a[m2+step])
+                steps[key] = step
+            steps[key](l)
 
 def mergesort(A):
     B = Array(len(A), sint)
@@ -899,11 +914,12 @@ def for_range_parallel(n_parallel, n_loops):
 def for_range_opt(n_loops, budget=None):
     """ Execute loop bodies in parallel up to an optimization budget.
     This prevents excessive loop unrolling. The budget is respected
-    even with nested loops.
+    even with nested loops. Note that optimization is rather
+    rudimentary for runtime :py:obj:`n_loops` (regint/cint). Consider
+    using :py:func:`for_range_parallel` in this case.
 
-    :param n_loops: compile-time (int)
+    :param n_loops: int/regint/cint
     :param budget: number of instructions after which to start optimization (default is 100,000)
-    :type: compile-time (int)
 
     Example:
 
@@ -912,6 +928,7 @@ def for_range_opt(n_loops, budget=None):
         @for_range_opt(n)
         def _(i):
             ...
+
     """
     return map_reduce_single(None, n_loops, budget=budget)
 
@@ -929,6 +946,8 @@ def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
     else:
         # use Arrays for multithread version
         use_array = True
+    if not util.is_constant(n_loops):
+        budget //= 10
     def decorator(loop_body):
         my_n_parallel = n_parallel
         if isinstance(n_parallel, int):
@@ -955,17 +974,18 @@ def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
                 r = reducer(mem_state, state)
                 write_state_to_memory(r)
         else:
-            if n_loops == 0:
+            if is_zero(n_loops):
                 return
-            regint.push(0)
+            n_opt_loops_reg = regint(0)
+            n_opt_loops_inst = get_block().instructions[-1]
             parent_block = get_block()
-            @while_do(lambda x: x + regint.pop() <= n_loops, regint(0))
+            @while_do(lambda x: x + n_opt_loops_reg <= n_loops, regint(0))
             def _(i):
                 state = tuplify(initializer())
                 k = 0
                 block = get_block()
-                while k < n_loops and (len(get_block()) < budget \
-                                       or k == 0) \
+                while (not util.is_constant(n_loops) or k < n_loops) \
+                      and (len(get_block()) < budget or k == 0) \
                       and block is get_block():
                     j = i + k
                     state = reducer(tuplify(loop_body(j)), state)
@@ -974,13 +994,13 @@ def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
                 write_state_to_memory(r)
                 global n_opt_loops
                 n_opt_loops = k
-                regint.push(k)
+                n_opt_loops_inst.args[1] = k
                 return i + k
             my_n_parallel = n_opt_loops
             loop_rounds = n_loops // my_n_parallel
             blocks = get_tape().basicblocks
             n_to_merge = 5
-            if loop_rounds == 1 and parent_block is blocks[-n_to_merge]:
+            if util.is_one(loop_rounds) and parent_block is blocks[-n_to_merge]:
                 # merge blocks started by if and do_while
                 def exit_elimination(block):
                     if block.exit_condition is not None:
@@ -996,14 +1016,15 @@ def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
                 for block in blocks[-n_to_merge + 1:]:
                     merged.instructions += block.instructions
                     exit_elimination(block)
-                    block.purge()
+                    block.purge(retain_usage=False)
                 del blocks[-n_to_merge + 1:]
                 del get_tape().req_node.children[-1]
                 merged.children = []
                 get_tape().active_basicblock = merged
             else:
                 req_node = get_tape().req_node.children[-1].nodes[0]
-                req_node.children[0].aggregator = lambda x: loop_rounds * x[0]
+                if util.is_constant(loop_rounds):
+                    req_node.children[0].aggregator = lambda x: loop_rounds * x[0]
         if isinstance(n_loops, int):
             state = mem_state
             for j in range(loop_rounds * my_n_parallel, n_loops):
@@ -1040,7 +1061,9 @@ def for_range_opt_multithread(n_threads, n_loops):
     """
     Execute :py:obj:`n_loops` loop bodies in up to :py:obj:`n_threads`
     threads, in parallel up to an optimization budget per thread
-    similar to :py:func:`for_range_opt`.
+    similar to :py:func:`for_range_opt`. Note that optimization is rather
+    rudimentary for runtime :py:obj:`n_loops` (regint/cint). Consider
+    using :py:func:`for_range_multithread` in this case.
 
     :param n_threads: compile-time (int)
     :param n_loops: regint/cint/int
@@ -1089,7 +1112,7 @@ def multithread(n_threads, n_items):
 
 def map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, \
                    thread_mem_req={}, looping=True):
-    n_threads = n_threads or 1
+    assert(n_threads != 0)
     if isinstance(n_loops, list):
         split = n_loops
         n_loops = reduce(operator.mul, n_loops)
@@ -1103,9 +1126,22 @@ def map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, \
             return new_body
         new_dec = map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, thread_mem_req)
         return lambda loop_body: new_dec(decorator(loop_body))
+    n_loops = MemValue.if_necessary(n_loops)
+    if n_threads == None or util.is_one(n_loops):
+        if not looping:
+            return lambda loop_body: loop_body(0, n_loops)
+        dec = map_reduce_single(n_parallel, n_loops, initializer, reducer)
+        if thread_mem_req:
+            thread_mem = Array(thread_mem_req[regint], regint)
+            return lambda loop_body: dec(lambda i: loop_body(i, thread_mem))
+        else:
+            return dec
     def decorator(loop_body):
-        thread_rounds = n_loops // n_threads
-        remainder = n_loops % n_threads
+        thread_rounds = MemValue.if_necessary(n_loops // n_threads)
+        if util.is_constant(thread_rounds):
+            remainder = n_loops % n_threads
+        else:
+            remainder = 0
         for t in thread_mem_req:
             if t != regint:
                 raise CompilerError('Not implemented for other than regint')
@@ -1113,6 +1149,11 @@ def map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, \
         state = tuple(initializer())
         def f(inc):
             base = args[get_arg()][0]
+            if not util.is_constant(thread_rounds):
+                i = base / thread_rounds
+                overhang = n_loops % n_threads
+                inc = i < overhang
+                base += inc.if_else(i, overhang)
             if not looping:
                 return loop_body(base, thread_rounds + inc)
             if thread_mem_req:
@@ -1129,7 +1170,7 @@ def map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, \
                     return loop_body(base + i)
         prog = get_program()
         threads = []
-        if thread_rounds:
+        if not util.is_zero(thread_rounds):
             tape = prog.new_tape(f, (0,), 'multithread')
             for i in range(n_threads - remainder):
                 mem_state = make_array(initializer())
@@ -1465,6 +1506,15 @@ def get_player_id():
     playerid(res._v)
     return res
 
+def break_point(name=''):
+    """
+    Insert break point. This makes sure that all following code
+    will be executed after preceding code.
+
+    :param name: Name for identification (optional)
+    """
+    get_tape().start_new_basicblock(name=name)
+
 # Fixed point ops
 
 from math import ceil, log
@@ -1590,6 +1640,7 @@ def IntDiv(a, b, k, kappa=None):
     return FPDiv(a.extend(2 * k) << k, b.extend(2 * k) << k, 2 * k, k,
                  kappa, nearest=True)
 
+@instructions_base.ret_cisc
 def FPDiv(a, b, k, f, kappa, simplex_flag=False, nearest=False):
     """
         Goldschmidt method as presented in Catrina10,

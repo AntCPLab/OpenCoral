@@ -9,6 +9,7 @@
 #include "Protocols/Beaver.h"
 #include "Processor/DummyProtocol.h"
 #include "Processor/NoLivePrep.h"
+#include "ShareInterface.h"
 
 #include <string>
 using namespace std;
@@ -29,7 +30,7 @@ class SemiSecret;
 }
 
 template<class T>
-class SemiShare : public T
+class SemiShare : public T, public ShareInterface
 {
     typedef T super;
 
@@ -56,6 +57,8 @@ public:
 
     const static bool needs_ot = true;
     const static bool dishonest_majority = true;
+    const static bool variable_players = true;
+    const static bool expensive = false;
 
     static string type_short() { return "D" + string(1, T::type_char()); }
 

@@ -142,39 +142,26 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   /* Set up the threads */
   tinfo.resize(nthreads);
   threads.resize(nthreads);
-  t_mutex.resize(nthreads);
-  client_ready.resize(nthreads);
-  server_ready.resize(nthreads);
+  queues.resize(nthreads);
   join_timer.resize(nthreads);
 
   for (int i=0; i<nthreads; i++)
-    { pthread_mutex_init(&t_mutex[i],NULL);
-      pthread_cond_init(&client_ready[i],NULL);
-      pthread_cond_init(&server_ready[i],NULL);
+    {
+      queues[i] = new ThreadQueue;
+      // stand-in for initialization
+      queues[i]->schedule({});
       tinfo[i].thread_num=i;
       tinfo[i].Nms=&N;
       tinfo[i].alphapi=&alphapi;
       tinfo[i].alpha2i=&alpha2i;
-      tinfo[i].prognum=-2;  // Dont do anything until we are ready
-      tinfo[i].finished=true;
-      tinfo[i].ready=false;
       tinfo[i].machine=this;
-      // lock for synchronization
-      pthread_mutex_lock(&t_mutex[i]);
       pthread_create(&threads[i],NULL,thread_info<sint, sgf2n>::Main_Func,&tinfo[i]);
     }
 
   // synchronize with clients before starting timer
   for (int i=0; i<nthreads; i++)
     {
-      while (!tinfo[i].ready)
-        {
-#ifdef DEBUG_THREADS
-          cerr << "Waiting for thread " << i << " to be ready" << endl;
-#endif
-          pthread_cond_wait(&client_ready[i],&t_mutex[i]);
-        }
-      pthread_mutex_unlock(&t_mutex[i]);
+      queues[i]->result();
     }
 }
 
@@ -193,20 +180,74 @@ void Machine<sint, sgf2n>::load_program(string threadname, string filename)
 }
 
 template<class sint, class sgf2n>
-DataPositions Machine<sint, sgf2n>::run_tape(int thread_number, int tape_number, int arg, int line_number)
+DataPositions Machine<sint, sgf2n>::run_tape(int thread_number, int tape_number,
+    int arg, int line_number, Preprocessing<sint>* prep,
+    Preprocessing<typename sint::bit_type>* bit_prep)
 {
   if (thread_number >= (int)tinfo.size())
     throw Processor_Error("invalid thread number: " + to_string(thread_number) + "/" + to_string(tinfo.size()));
   if (tape_number >= (int)progs.size())
     throw Processor_Error("invalid tape number: " + to_string(tape_number) + "/" + to_string(progs.size()));
-  pthread_mutex_lock(&t_mutex[thread_number]);
-  tinfo[thread_number].prognum=tape_number;
-  tinfo[thread_number].arg=arg;
-  tinfo[thread_number].pos=pos;
-  tinfo[thread_number].finished=false;
+
+  // central preprocessing
+  auto usage = progs[tape_number].get_offline_data_used();
+  if (sint::expensive and prep != 0)
+    {
+      try
+      {
+          auto& source = *dynamic_cast<BufferPrep<sint>*>(prep);
+          auto& dest =
+              dynamic_cast<BufferPrep<sint>&>(tinfo[thread_number].processor->DataF.DataFp);
+          for (auto it = usage.edabits.begin(); it != usage.edabits.end(); it++)
+            {
+              bool strict = it->first.first;
+              int n_bits = it->first.second;
+              size_t required = it->second;
+              auto& dest_buffer = dest.edabits[it->first];
+              auto& source_buffer = source.edabits[it->first];
+              while (dest_buffer.size() < required)
+                {
+                  if (source_buffer.empty())
+                    source.buffer_edabits(strict, n_bits, &queues);
+                  size_t n = min(source_buffer.size(),
+                      required - dest_buffer.size());
+                  dest_buffer.insert(dest_buffer.end(), source_buffer.end() - n,
+                      source_buffer.end());
+                  source_buffer.erase(source_buffer.end() - n,
+                      source_buffer.end());
+                }
+            }
+      }
+      catch (bad_cast& e)
+      {
+#ifdef VERBOSE
+        cerr << "Problem with central preprocessing" << endl;
+#endif
+      }
+    }
+
+  typedef typename sint::bit_type bit_type;
+  if (bit_type::expensive_triples and bit_prep)
+    {
+      try
+      {
+          auto& source = *dynamic_cast<BufferPrep<bit_type>*>(bit_prep);
+          auto &dest =
+              dynamic_cast<BufferPrep<bit_type>&>(tinfo[thread_number].processor->share_thread.DataF);
+          for (int i = 0; i < DIV_CEIL(usage.files[DATA_GF2][DATA_TRIPLE],
+                                        bit_type::default_length); i++)
+            dest.push_triples({source.get_triple(bit_type::default_length)});
+      }
+      catch (bad_cast& e)
+      {
+#ifdef VERBOSE
+        cerr << "Problem with central bit triple preprocessing: " << e.what() << endl;
+#endif
+      }
+    }
+
+  queues[thread_number]->schedule({tape_number, arg, pos});
   //printf("Send signal to run program %d in thread %d\n",tape_number,thread_number);
-  pthread_cond_signal(&server_ready[thread_number]);
-  pthread_mutex_unlock(&t_mutex[thread_number]);
   //printf("Running line %d\n",exec);
   if (progs[tape_number].usage_unknown())
     {
@@ -237,15 +278,13 @@ DataPositions Machine<sint, sgf2n>::run_tape(int thread_number, int tape_number,
 }
 
 template<class sint, class sgf2n>
-void Machine<sint, sgf2n>::join_tape(int i)
+DataPositions Machine<sint, sgf2n>::join_tape(int i)
 {
   join_timer[i].start();
-  pthread_mutex_lock(&t_mutex[i]);
   //printf("Waiting for client to terminate\n");
-  if ((tinfo[i].finished)==false)
-    { pthread_cond_wait(&client_ready[i],&t_mutex[i]); }
-  pthread_mutex_unlock(&t_mutex[i]);
+  auto pos = queues[i]->result().pos;
   join_timer[i].stop();
+  return pos;
 }
 
 template<class sint, class sgf2n>
@@ -279,12 +318,13 @@ void Machine<sint, sgf2n>::run()
                 pos.increase(run_tape(i, tn, arg, exec));
             }
           // Make sure all terminate before we continue
-          for (int i=0; i<numt; i++)
+          auto new_pos = join_tape(0);
+          for (int i=1; i<numt; i++)
             { join_tape(i);
             }
          if (usage_unknown)
            { // synchronize files
-             pos = tinfo[0].pos;
+             pos = new_pos;
              usage_unknown = false;
            }
          //printf("Finished running line %d\n",exec);
@@ -297,12 +337,9 @@ void Machine<sint, sgf2n>::run()
   finish_timer.start();
   // Tell all C-threads to stop
   for (int i=0; i<nthreads; i++)
-    { pthread_mutex_lock(&t_mutex[i]);
+    {
 	//printf("Send kill signal to client\n");
-        tinfo[i].prognum=-1;
-        tinfo[i].ready = false;
-        pthread_cond_signal(&server_ready[i]);
-      pthread_mutex_unlock(&t_mutex[i]);
+      queues[i]->schedule(-1);
     }
 
   // reset to sum actual usage
@@ -314,15 +351,10 @@ void Machine<sint, sgf2n>::run()
   // Wait until all clients have signed out
   for (int i=0; i<nthreads; i++)
     {
-      pthread_mutex_lock(&t_mutex[i]);
-      tinfo[i].ready = true;
-      pthread_cond_signal(&server_ready[i]);
-      pthread_mutex_unlock(&t_mutex[i]);
+      queues[i]->schedule({});
+      pos.increase(queues[i]->result().pos);
       pthread_join(threads[i],NULL);
-      pthread_mutex_destroy(&t_mutex[i]);
-      pthread_cond_destroy(&client_ready[i]);
-      pthread_cond_destroy(&server_ready[i]);
-      pos.increase(tinfo[i].pos);
+      delete queues[i];
     }
   finish_timer.stop();
   

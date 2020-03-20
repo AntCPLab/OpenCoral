@@ -7,7 +7,6 @@
 
 #include "Protocols/Shamir.hpp"
 #include "Protocols/ShamirInput.hpp"
-#include "Protocols/ShamirMC.hpp"
 
 #include "hm-ecdsa-party.hpp"
 

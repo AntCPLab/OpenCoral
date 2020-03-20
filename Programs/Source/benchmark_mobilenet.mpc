@@ -7,8 +7,31 @@ if len(program.args) > 2:
       program.use_trunc_pr = True
    elif program.args[2] == '2':
       squant.round_nearest = True
+   elif program.args[2] == '3':
+      program.use_trunc_pr = True
+      program.use_edabit(True) 
+   elif program.args[2] == '4':
+      program.use_edabit(True)
+      program.use_dabit = True
+   elif program.args[2] == '5':
+      squant.round_nearest = True
+      program.use_edabit(True)
+   elif program.args[2] == '6':
+      program.use_edabit(True)
+      program.use_dabit = False
+   elif program.args[2] == '7':
+      program.use_edabit(True)
+      program.use_trunc_pr = True
    elif not program.args[2] == '0':
       raise Exception('option invalid')
+
+if program.options.ring:
+   edabits = [(False, 1), (False, 29)]
+   if program.args[2] == '4':
+      edabits += [(True, 27), (True, 44)]
+else:
+   edabits = [(True, 67), (True, 44), (True, 28), (True, 41)]
+program.use_edabit_for = lambda *args: args in edabits
 
 ml.QuantBase.n_threads = 8
 

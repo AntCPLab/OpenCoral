@@ -10,6 +10,7 @@
 using namespace std;
 
 #include "FHE/Plaintext.h"
+#include "Rq_Element.h"
 
 template<class T>
 class AddableVector: public vector<T>
@@ -25,6 +26,11 @@ public:
     AddableVector<T>(const vector<U>& other)
     {
         this->assign(other.begin(), other.end());
+    }
+
+    AddableVector(const Rq_Element& other) :
+            AddableVector(other.to_vec_bigint())
+    {
     }
 
     template <class U>
@@ -65,6 +71,8 @@ public:
         for (size_t i = 0; i < y.size(); i++)
             (*this)[i].mul(x[i], y[i]);
     }
+
+    AddableVector mul_by_X_i(int i, const FHE_PK& pk) const;
 
     void generateUniform(PRNG& G, int n_bits)
     {
@@ -171,6 +179,19 @@ public:
         for (int i = 0; i < n; i++)
             (*this)[i].resize(m);
     }
+
+    AddableMatrix mul_by_X_i(int i, const FHE_PK& pk) const;
 };
+
+template<class T>
+AddableMatrix<T> AddableMatrix<T>::mul_by_X_i(int i,
+        const FHE_PK& pk) const
+{
+    AddableMatrix<T> res;
+    res.resize(this->size());
+    for (size_t j = 0; j < this->size(); j++)
+        res[j] = (*this)[j].mul_by_X_i(i, pk);
+    return res;
+}
 
 #endif /* FHEOFFLINE_ADDABLEVECTOR_H_ */

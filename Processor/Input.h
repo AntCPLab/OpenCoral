@@ -26,9 +26,8 @@ protected:
     Buffer<typename T::clear, typename T::clear> buffer;
     Timer timer;
 
-    vector<octetStream> os;
-
 public:
+    vector<octetStream> os;
     int values_input;
 
     template<class U>
@@ -75,6 +74,7 @@ class Input : public InputBase<T>
     open_type rr, t, xi;
 
 public:
+    Input(SubProcessor<T>& proc);
     Input(SubProcessor<T>& proc, MAC_Check& mc);
     Input(SubProcessor<T>* proc, Player& P);
     Input(MAC_Check& MC, Preprocessing<T>& prep, Player& P);

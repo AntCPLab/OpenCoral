@@ -95,7 +95,8 @@ class ClientMessageType:
 
 
 class MPCThread(object):
-    def __init__(self, target, name, args = [], runtime_arg = None):
+    def __init__(self, target, name, args = [], runtime_arg = 0,
+                 single_thread = False):
         """ Create a thread from a callable object. """
         if not callable(target):
             raise CompilerError('Target %s for thread %s is not callable' % (target,name))
@@ -105,17 +106,32 @@ class MPCThread(object):
         self.args = args
         self.runtime_arg = runtime_arg
         self.running = 0
+        self.tape_handle = program.new_tape(target, args, name,
+                                            single_thread=single_thread)
+        self.run_handles = []
     
     def start(self, runtime_arg = None):
         self.running += 1
-        program.start_thread(self, runtime_arg or self.runtime_arg)
+        self.run_handles.append(program.run_tape(self.tape_handle, \
+                                           runtime_arg or self.runtime_arg))
     
     def join(self):
         if not self.running:
             raise CompilerError('Thread %s is not running' % self.name)
         self.running -= 1
-        program.stop_thread(self)
+        program.join_tape(self.run_handles.pop(0))
 
+
+def copy_doc(a, b):
+    try:
+        a.__doc__ = b.__doc__
+    except:
+        pass
+
+def no_doc(operation):
+    def wrapper(*args, **kwargs):
+        return operation(*args, **kwargs)
+    return wrapper
 
 def copy_doc(a, b):
     try:
@@ -131,7 +147,9 @@ def no_doc(operation):
 def vectorize(operation):
     def vectorized_operation(self, *args, **kwargs):
         if len(args):
+            from .GC.types import bits
             if (isinstance(args[0], Tape.Register) or isinstance(args[0], sfloat)) \
+                    and not isinstance(args[0], bits) \
                     and args[0].size != self.size:
                 raise CompilerError('Different vector sizes of operands')
         set_global_vector_size(self.size)
@@ -292,6 +310,10 @@ class _int(object):
     def bit_adder(*args, **kwargs):
         return intbitint.bit_adder(*args, **kwargs)
 
+    @staticmethod
+    def ripple_carry_adder(*args, **kwargs):
+        return intbitint.ripple_carry_adder(*args, **kwargs)
+
     def if_else(self, a, b):
         """ MUX on bit in arithmetic circuits.
 
@@ -416,6 +438,9 @@ class _structure(object):
                                         res_params) \
                    for k in range(len(row))).reduce_after_mul()
 
+class _vec(object):
+    pass
+
 class _register(Tape.Register, _number, _structure):
     @staticmethod
     def n_elements():
@@ -427,7 +452,7 @@ class _register(Tape.Register, _number, _structure):
             val = val.read()
         if isinstance(val, cls):
             return val
-        elif not isinstance(val, _register):
+        elif not isinstance(val, (_register, _vec)):
             try:
                 return type(val)(cls.conv(v) for v in val)
             except TypeError:
@@ -467,8 +492,7 @@ class _register(Tape.Register, _number, _structure):
         address = regint.conv(address)
         if size > 1 and address.size == 1:
             res = regint(size=size)
-            for i in range(size):
-                movint(res[i], address + regint(i, size=1))
+            incint(res, address, 1)
             return res
         else:
             return address
@@ -1089,6 +1113,29 @@ class regint(_register, _int):
         rand(res, bit_length)
         return res
 
+    @classmethod
+    def inc(cls, size, base=0, step=1, repeat=1, wrap=None):
+        """
+        Produce :py:class:`regint` vector with certain patterns.
+        This is particularly useful for :py:meth:`SubMultiArray.direct_mul`.
+
+        :param size: Result size
+        :param base: First value
+        :param step: Increase step
+        :param repeat: Repeate this many times
+        :param wrap: Start over after this many increases
+
+        The following produces (1, 1, 1, 3, 3, 3, 5, 5, 5, 7)::
+
+            regint.inc(10, 1, 2, 3)
+
+        """
+        res = regint(size=size)
+        if wrap is None:
+            wrap = size
+        incint(res, cls.conv(base, size=1), step, repeat, wrap)
+        return res
+
     @vectorized_classmethod
     def read_from_socket(cls, client_id, n=1):
         """ Receive n register values from socket """
@@ -1333,6 +1380,12 @@ class regint(_register, _int):
             res += bit
         return res
 
+    def shuffle(self):
+        """ Returns insecure shuffle of vector. """
+        res = regint(size=len(self))
+        shuffle(res, self)
+        return res
+
     def reveal(self):
         """ Identity. """
         return self
@@ -1371,7 +1424,7 @@ class localint(object):
 class _secret(_register):
     __slots__ = []
 
-    mov = staticmethod(movs)
+    mov = staticmethod(set_instruction_type(movs))
     PreOR = staticmethod(lambda l: floatingpoint.PreORC(l))
     PreOp = staticmethod(lambda op, l: floatingpoint.PreOpL(op, l))
 
@@ -1475,9 +1528,7 @@ class _secret(_register):
         res = cls(size=size)
         n_rows = len(A) // n
         n_cols = len(B) // n
-        dotprods(*sum(([res[j], [A[j // n_cols * n + k] for k in range(n)],
-                        [B[k * n_cols + j % n_cols] for k in range(n)]]
-                       for j in range(size)), []))
+        matmuls(res, A, B, n_rows, n, n_cols)
         return res
 
     @no_doc
@@ -1502,7 +1553,7 @@ class _secret(_register):
     @read_mem_value
     @vectorize
     def load_other(self, val):
-        from Compiler.GC.types import sbits
+        from Compiler.GC.types import sbits, sbitvec
         if isinstance(val, self.clear_type):
             self.load_clear(val)
         elif isinstance(val, type(self)):
@@ -1510,9 +1561,16 @@ class _secret(_register):
         elif isinstance(val, sbits):
             assert(val.n == self.size)
             r = self.get_dabit()
-            v = regint()
-            bitdecint_class(regint((r[1] ^ val).reveal()), *v)
-            movs(self, r[0].bit_xor(v))
+            movs(self, r[0].bit_xor((r[1] ^ val).reveal().to_regint_by_bit()))
+        elif isinstance(val, sbitvec):
+            assert(sum(x.n for x in val.v) == self.size)
+            for val_part, base in zip(val, range(0, self.size, 64)):
+                left = min(64, self.size - base)
+                r = self.get_dabit(size=left)
+                v = regint(size=left)
+                bitdecint_class(regint((r[1] ^ val_part).reveal()), *v)
+                part = r[0].bit_xor(v)
+                vmovs(left, self.get_vector(base, left), part)
         else:
             self.load_clear(self.clear_type(val))
 
@@ -1555,8 +1613,8 @@ class _secret(_register):
         size or one size 1 for a value-vector multiplication.
 
         :param other: any compatible type """
-        if isinstance(other, _secret) and max(self.size, other.size) > 1 \
-           and min(self.size, other.size) == 1:
+        if isinstance(other, _secret) and (1 in (self.size, other.size)) \
+           and (self.size, other.size) != (1, 1):
             x, y = (other, self) if self.size < other.size else (self, other)
             res = type(self)(size=x.size)
             mulrs(res, x, y)
@@ -1667,9 +1725,34 @@ class sint(_secret, _int):
         dabit(*res)
         return res
 
+    @vectorized_classmethod
+    def get_edabit(cls, n_bits, strict=False):
+        """ Bits in arithmetic and binary circuit """
+        """ according to security model """
+        if not program.use_edabit_for(strict, n_bits):
+            if program.use_dabit:
+                a, b = zip(*(sint.get_dabit() for i in range(n_bits)))
+                return sint.bit_compose(a), b
+            else:
+                a = [sint.get_random_bit() for i in range(n_bits)]
+                return sint.bit_compose(a), a
+        whole = cls()
+        size = get_global_vector_size()
+        from Compiler.GC.types import sbits, sbitvec
+        bits = [sbits.get_type(size)() for i in range(n_bits)]
+        if strict:
+            sedabit(whole, *bits)
+        else:
+            edabit(whole, *bits)
+        return whole, bits
+
     @staticmethod
     def long_one():
         return 1
+
+    @staticmethod
+    def bit_decompose_clear(a, n_bits):
+        return floatingpoint.bits(a, n_bits)
 
     @classmethod
     def get_raw_input_from(cls, player):
@@ -1732,6 +1815,15 @@ class sint(_secret, _int):
     def store_in_mem(self, address):
         """ Store in memory by public address. """
         self._store_in_mem(address, stms, stmsi)
+
+    @classmethod
+    def direct_matrix_mul(cls, A, B, n, m, l, reduce=None, indices=None):
+        if indices is None:
+            indices = [regint.inc(i) for i in (n, m, m, l)]
+        res = cls(size=indices[0].size * indices[3].size)
+        matmulsm(res, regint(A), regint(B), len(indices[0]), len(indices[1]),
+                 len(indices[3]), *(list(indices) + [m, l]))
+        return res
 
     def __init__(self, val=None, size=None):
         """
@@ -1810,6 +1902,7 @@ class sint(_secret, _int):
                 return self.mod2m(int(l))
         raise NotImplementedError('Modulo only implemented for powers of two.')
 
+    @vectorize
     @read_mem_value
     def mod2m(self, m, bit_length=None, security=None, signed=True):
         """ Secret modulo power of two.
@@ -1940,6 +2033,10 @@ class sint(_secret, _int):
         res = type(self)()
         comparison.Trunc(res, tmp, 2 * k, k, kappa, True)
         return res
+
+    def trunc_zeros(self, n_zeros, bit_length=None, signed=True):
+        bit_length = bit_length or program.bit_length
+        return comparison.TruncZeros(self, bit_length, n_zeros, signed)
 
     @staticmethod
     def two_power(n):
@@ -2120,11 +2217,14 @@ class _bitint(object):
     @classmethod
     def bit_adder_selection(cls, a, b, carry_in=0, get_carry=False):
         if cls.log_rounds:
-            return cls.carry_lookahead_adder(a, b, carry_in=carry_in)
+            return cls.carry_lookahead_adder(a, b, carry_in=carry_in,
+                                             get_carry=get_carry)
         elif cls.linear_rounds:
-            return cls.ripple_carry_adder(a, b, carry_in=carry_in)
+            return cls.ripple_carry_adder(a, b, carry_in=carry_in,
+                                             get_carry=get_carry)
         else:
-            return cls.carry_select_adder(a, b, carry_in=carry_in)
+            return cls.carry_select_adder(a, b, carry_in=carry_in,
+                                          get_carry=get_carry)
 
     @classmethod
     def carry_lookahead_adder(cls, a, b, fewer_inv=False, carry_in=0,
@@ -2205,8 +2305,8 @@ class _bitint(object):
 
     @staticmethod
     def full_adder(a, b, carry):
-        s = a + b
-        return s + carry, util.if_else(s, carry, a)
+        s = a ^ b
+        return s ^ carry, a ^ (s & (carry ^ a))
 
     @staticmethod
     def bit_comparator(a, b):
@@ -2243,6 +2343,7 @@ class _bitint(object):
         b = util.bit_decompose(other, self.n_bits)
         return self.compose(self.bit_adder(a, b))
 
+    @ret_cisc
     def mul(self, other):
         if type(other) == self.bin_type:
             raise CompilerError('Unclear multiplication')
@@ -2270,12 +2371,13 @@ class _bitint(object):
     @classmethod
     def wallace_tree_from_matrix(cls, bit_matrix, get_carry=True):
         columns = [[_f for _f in (bit_matrix[j][i-j] \
-                                     for j in range(min(len(bit_matrix), i + 1))) if _f] \
+                                     for j in range(min(len(bit_matrix), i + 1))) \
+                    if not is_zero(_f)] \
                        for i in range(len(bit_matrix[0]))]
         return cls.wallace_tree_from_columns(columns, get_carry)
 
     @classmethod
-    def wallace_tree_from_columns(cls, columns, get_carry=True):
+    def wallace_tree_without_finish(cls, columns, get_carry=True):
         self = cls
         while max(len(c) for c in columns) > 2:
             new_columns = [[] for i in range(len(columns) + 1)]
@@ -2296,7 +2398,12 @@ class _bitint(object):
                 columns = new_columns[:-1]
         for col in columns:
             col.extend([0] * (2 - len(col)))
-        return self.bit_adder(*list(zip(*columns)))
+        return tuple(list(x) for x in zip(*columns))
+
+    @classmethod
+    def wallace_tree_from_columns(cls, columns, get_carry=True):
+        summands = cls.wallace_tree_without_finish(columns, get_carry)
+        return cls.bit_adder(*summands)
 
     @classmethod
     def wallace_tree(cls, rows):
@@ -2556,15 +2663,15 @@ def parse_type(other, k=None, f=None):
     if isinstance(other, cfix.scalars):
         return cfix(other, k=k, f=f)
     elif isinstance(other, cint):
-        tmp = cfix()
+        tmp = cfix(k=k, f=f)
         tmp.load_int(other)
         return tmp
     elif isinstance(other, sint):
-        tmp = sfix()
+        tmp = sfix(k=k, f=f)
         tmp.load_int(other)
         return tmp
     elif isinstance(other, sfloat):
-        tmp = sfix(other)
+        tmp = sfix(other, k=k, f=f)
         return tmp
     else:
         return other
@@ -2631,8 +2738,8 @@ class cfix(_number, _structure):
     @vectorize_init
     def __init__(self, v=None, k=None, f=None, size=None):
         """ :param v: cfix/float/int """
-        f = f or self.f
-        k = k or self.k
+        f = self.f if f is None else f
+        k = self.k if k is None else k
         self.f = f
         self.k = k
         self.size = get_global_vector_size()
@@ -2693,7 +2800,9 @@ class cfix(_number, _structure):
     def mul(self, other):
         """ Clear fixed-point multiplication.
 
-        :param other: cfix/cint/regint/int """
+        :param other: cfix/cint/regint/int/sint """
+        if isinstance(other, sint):
+            return sfix._new(self.v * other, k=self.k, f=self.f)
         other = parse_type(other)
         if isinstance(other, cfix):
             assert self.f == other.f
@@ -2814,8 +2923,12 @@ class cfix(_number, _structure):
         if isinstance(other, cfix):
             return cfix(library.cint_cint_division(self.v, other.v, self.k, self.f))
         elif isinstance(other, sfix):
-            return sfix(library.FPDiv(self.v, other.v, self.k, self.f,
-                                      other.kappa, nearest=sfix.round_nearest))
+            assert self.k == other.k
+            assert self.f == other.f
+            return sfix._new(library.FPDiv(self.v, other.v, self.k, self.f,
+                                           other.kappa,
+                                           nearest=sfix.round_nearest),
+                             k=self.k, f=self.f)
         else:
             raise TypeError('Incompatible fixed point types in division')
 
@@ -3022,25 +3135,29 @@ class _fix(_single):
         """ Convert secret integer.
 
         :param other: sint """
-        res = cls()
-        res.f = f or cls.f
-        res.k = k or cls.k
+        res = cls(k=k, f=f)
         res.load_int(cls.int_type.conv(other))
         return res
 
     @classmethod
     def _new(cls, other, k=None, f=None):
-        res = cls(other)
-        res.k = k or cls.k
-        res.f = f or cls.f
+        res = cls(other, k=k, f=f)
         return res
 
     @vectorize_init
-    def __init__(self, _v=None, size=None):
+    def __init__(self, _v=None, k=None, f=None, size=None):
         """ :params _v: compile-time value (int/float) """
         self.size = get_global_vector_size()
-        f = self.f
-        k = self.k
+        if k is None:
+            k = self.k
+        else:
+            self.k = k
+        if f is None:
+            f = self.f
+        else:
+            self.f = f
+        assert k is not None
+        assert f is not None
         # warning: don't initialize a sfix from a sint, this is only used in internal methods;
         # for external initialization use load_int.
         if _v is None:
@@ -3110,7 +3227,7 @@ class _fix(_single):
             val = self.v.TruncMul(other.v, self.k + other.k, other.f,
                                   self.kappa,
                                   self.round_nearest)
-            if self.size >= other.size:
+            if 'vec' not in self.__dict__:
                 return self._new(val, k=self.k, f=self.f)
             else:
                 return self.vec._new(val, k=self.k, f=self.f)
@@ -3123,7 +3240,7 @@ class _fix(_single):
     @vectorize
     def __neg__(self):
         """ Secret fixed-point negation. """
-        return type(self)(-self.v)
+        return self._new(-self.v, k=self.k, f=self.f)
 
     @vectorize
     def __truediv__(self, other):
@@ -3131,14 +3248,17 @@ class _fix(_single):
 
         :param other: sfix/cfix/sint/cint/regint/int """
         other = self.coerce(other)
+        assert self.k == other.k
+        assert self.f == other.f
         if isinstance(other, _fix):
-            return type(self)(library.FPDiv(self.v, other.v, self.k, self.f,
-                                            self.kappa,
-                                            nearest=self.round_nearest))
+            v = library.FPDiv(self.v, other.v, self.k, self.f, self.kappa,
+                              nearest=self.round_nearest)
         elif isinstance(other, cfix):
-            return type(self)(library.sint_cint_division(self.v, other.v, self.k, self.f, self.kappa))
+            v = library.sint_cint_division(self.v, other.v, self.k, self.f,
+                                           self.kappa)
         else:
             raise TypeError('Incompatible fixed point types in division')
+        return self._new(v, k=self.k, f=self.f)
 
     @vectorize
     def __rtruediv__(self, other):
@@ -3192,11 +3312,21 @@ class sfix(_fix):
         lower = average - 0.5 * 2 ** log_range
         return cls._new(cls.int_type.get_random_int(n_bits)) + lower
 
+    @classmethod
+    def direct_matrix_mul(cls, A, B, n, m, l, reduce=True, indices=None):
+        # pre-multiplication must be identity
+        tmp = cls.int_type.direct_matrix_mul(A, B, n, m, l, indices=indices)
+        res = unreduced_sfix._new(tmp)
+        if reduce:
+            res = res.reduce_after_mul()
+        return res
+
     def coerce(self, other):
         return parse_type(other, k=self.k, f=self.f)
 
     def mul_no_reduce(self, other, res_params=None):
         assert self.f == other.f
+        assert self.k == other.k
         return self.unreduced(self.v * other.v)
 
     def pre_mul(self):
@@ -3221,6 +3351,8 @@ class unreduced_sfix(_single):
         self.k = k
         self.m = m
         self.kappa = kappa
+        assert self.k is not None
+        assert self.m is not None
 
     def __add__(self, other):
         if is_zero(other):
@@ -3236,7 +3368,8 @@ class unreduced_sfix(_single):
     def reduce_after_mul(self):
         return sfix(sfix.int_type.round(self.v, self.k, self.m, self.kappa,
                                         nearest=sfix.round_nearest,
-                                        signed=True))
+                                        signed=True),
+                    k=self.k // 2, f=self.m)
 
 sfix.unreduced_type = unreduced_sfix
 
@@ -4012,11 +4145,14 @@ class Array(object):
             pass
         try:
             other.store_in_mem(self.get_address(base))
-            assert len(self) >= other.size + base
+            if len(self) != None and util.is_constant(base):
+                assert len(self) >= other.size + base
         except AttributeError:
             for i,j in enumerate(other):
                 self[i] = j
         return self
+
+    assign_vector = assign
 
     def assign_all(self, value, use_threads=True, conv=True):
         """ Assign the same value to all entries.
@@ -4039,6 +4175,19 @@ class Array(object):
         :param size: length (compile-time int) """
         size = size or self.length
         return self.value_type.load_mem(self.get_address(base), size=size)
+
+    get_part_vector = get_vector
+
+    def get(self, indices):
+        return self.value_type.load_mem(
+            regint(self.address, size=len(indices)) + indices,
+            size=len(indices))
+
+    def expand_to_vector(self, index, size):
+        assert self.value_type.n_elements() == 1
+        address = regint(size=size)
+        incint(address, regint(self.get_address(index), size=1), 0)
+        return self.value_type.load_mem(address, size=size)
 
     def get_mem_value(self, index):
         return MemValue(self[index], self.get_address(index))
@@ -4082,12 +4231,15 @@ class Array(object):
 
     def shuffle(self):
         """ Insecure shuffle in place. """
-        @library.for_range(len(self))
-        def _(i):
-            j = regint.get_random(64) % (len(self) - i)
-            tmp = self[i]
-            self[i] = self[i + j]
-            self[i + j] = tmp
+        if self.value_type == regint:
+            self.assign(self.get_vector().shuffle())
+        else:
+            @library.for_range(len(self))
+            def _(i):
+                j = regint.get_random(64) % (len(self) - i)
+                tmp = self[i]
+                self[i] = self[i + j]
+                self[i + j] = tmp
 
     def reveal(self):
         """ Reveal the whole array.
@@ -4184,6 +4336,14 @@ class SubMultiArray(object):
             assert self.sizes == other.sizes
         self.assign_vector(other.get_vector())
 
+    def get_part_vector(self, base=0, size=None):
+        assert self.value_type.n_elements() == 1
+        part_size = reduce(operator.mul, self.sizes[1:])
+        size = (size or len(self)) * part_size
+        assert size <= self.total_size()
+        return self.value_type.load_mem(self.address + base * part_size,
+                                        size=size)
+
     def same_shape(self):
         """ :return: new multidimensional array with same shape and basic type """
         return MultiArray(self.sizes, self.value_type)
@@ -4254,6 +4414,7 @@ class SubMultiArray(object):
                 for i, x in enumerate(other):
                     matrix[i][0] = x
                 res = self * matrix
+                library.break_point()
                 return Array.create_from(x[0] for x in res)
         elif isinstance(other, SubMultiArray):
             assert len(other.sizes) == 2
@@ -4291,6 +4452,32 @@ class SubMultiArray(object):
             return res_matrix
         else:
             raise NotImplementedError
+
+    def direct_mul(self, other, reduce=True, indices=None):
+        """ Matrix multiplication in the virtual machine.
+
+        :param self: :py:class:`Matrix` / 2-dimensional :py:class:`MultiArray`
+        :param other: :py:class:`Matrix` / 2-dimensional :py:class:`MultiArray`
+        :param indices: 4-tuple of :py:class:`regint` vectors for index selection (default is complete multiplication)
+        :return: Matrix as vector of relevant type (row-major)
+
+        The following executes a matrix multiplication selecting every third row
+        of :py:obj:`A`::
+
+            A = sfix.Matrix(7, 4)
+            B = sfix.Matrix(4, 5)
+            C = sfix.Matrix(3, 5)
+            C.assign_vector(A.direct_mul(B, indices=(regint.inc(3, 0, 3),
+                                                     regint.inc(4),
+                                                     regint.inc(4),
+                                                     regint.inc(5)))
+        """
+        assert len(self.sizes) == 2
+        assert len(other.sizes) == 2
+        assert self.sizes[1] == other.sizes[0]
+        return self.value_type.direct_matrix_mul(self.address, other.address,
+                                                 self.sizes[0], *other.sizes,
+                                                 reduce=reduce, indices=indices)
 
     def budget_mul(self, other, n_rows, row, n_columns, column, reduce=True,
                    res=None):
@@ -4348,6 +4535,26 @@ class SubMultiArray(object):
                                other.sizes[1], \
                                lambda x, j: [x[k][j] for k in range(len(x))],
                                reduce=reduce, res=res)
+
+    def parallel_mul(self, other):
+        assert self.sizes[1] == other.sizes[0]
+        assert len(self.sizes) == 2
+        assert len(other.sizes) == 2
+        assert self.value_type.n_elements() == 1
+        n = self.sizes[0] * other.sizes[1]
+        a = []
+        b = []
+        for i in range(self.sizes[1]):
+            addresses = regint(size=n)
+            incint(addresses, regint(self.address + i), self.sizes[1],
+                   other.sizes[1], n)
+            a.append(self.value_type.load_mem(addresses, size=n))
+            addresses = regint(size=n)
+            incint(addresses, regint(other.address + i * other.sizes[1]), 1,
+                   1, other.sizes[1])
+            b.append(self.value_type.load_mem(addresses, size=n))
+        res = self.value_type.dot_product(a, b)
+        return res
 
     def transpose(self):
         """ Matrix transpose.

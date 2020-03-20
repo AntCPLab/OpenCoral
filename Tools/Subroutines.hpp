@@ -32,7 +32,7 @@ void Create_Random(T& ans,const Player& P)
              { throw invalid_commitment(); }
           e[i].unpack(ee);
           }
-      ans.add(ans,e[i]);
+      ans += e[i];
     }
 }
 

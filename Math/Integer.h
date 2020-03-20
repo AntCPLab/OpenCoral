@@ -110,6 +110,11 @@ class Integer : public IntBase<long>
 
   static const bool invertible = false;
 
+  template<int X, int L>
+  static Integer convert_unsigned(const gfp_<X, L>& other);
+  template<int K>
+  static Integer convert_unsigned(const Z2<K>& other);
+
   Integer()                 { a = 0; }
   Integer(long a) : IntBase(a) {}
   Integer(const bigint& x)  { *this = (x > 0) ? x.get_ui() : -x.get_ui(); }
@@ -167,6 +172,12 @@ inline void IntBase<bool>::randomize(PRNG& G)
   a = G.get_bit();
 }
 
+template<>
+inline void IntBase<unsigned char>::randomize(PRNG& G)
+{
+  a = G.get_uchar();
+}
+
 template<int X, int L>
 Integer::Integer(const gfp_<X, L>& x)
 {
@@ -174,10 +185,25 @@ Integer::Integer(const gfp_<X, L>& x)
   *this = bigint::tmp;
 }
 
+template<int X, int L>
+Integer Integer::convert_unsigned(const gfp_<X, L>& other)
+{
+  to_bigint(bigint::tmp, other);
+  return bigint::tmp;
+}
+
+template<int K>
+Integer Integer::convert_unsigned(const Z2<K>& other)
+{
+  return bigint::tmp = other;
+}
+
 // slight misnomer
 inline void to_gfp(Integer& res, const bigint& x)
 {
   res = x.get_si();
 }
+
+#include "Integer.hpp"
 
 #endif /* INTEGER_H_ */

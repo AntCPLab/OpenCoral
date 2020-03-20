@@ -96,6 +96,7 @@ inline void receive(int socket,octet *msg,size_t len)
 {
   size_t i=0;
   int fail = 0;
+  long wait = 1;
   while (len-i>0)
     { int j=recv(socket,msg+i,len-i,0);
       // success first
@@ -105,11 +106,11 @@ inline void receive(int socket,octet *msg,size_t len)
         {
           if (errno == EAGAIN or errno == EINTR)
             {
-              if (++fail > 10000)
+              if (++fail > 25)
                 error("Unavailable too many times");
               else
                 {
-                  usleep(1000);
+                  usleep(wait *= 2);
                 }
             }
           else

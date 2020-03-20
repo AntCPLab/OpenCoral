@@ -26,11 +26,14 @@ protected:
 
     vector<array<typename T::part_type, 3>> triple_buffer;
 
+    const bool amplify;
+
 public:
-    TinyPrep(DataPositions& usage, ShareThread<T>& thread);
+    TinyPrep(DataPositions& usage, ShareThread<T>& thread, bool amplify = true);
     ~TinyPrep();
 
     void set_protocol(Beaver<T>& protocol);
+    void init(Player& P);
 
     void buffer_triples();
     void buffer_bits();

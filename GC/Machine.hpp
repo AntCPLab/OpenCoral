@@ -11,6 +11,8 @@
 #include "GC/Program.h"
 #include "ThreadMaster.h"
 
+#include "Program.hpp"
+
 namespace GC
 {
 

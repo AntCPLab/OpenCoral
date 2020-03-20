@@ -29,14 +29,14 @@ class FHE_Params
 
   public:
 
-  FHE_Params(int n_mults = 1) : FFTData(n_mults + 1), sec_p(-1) {}
+  FHE_Params(int n_mults = 1) : FFTData(n_mults + 1), Chi(64, 0.7), sec_p(-1) {}
 
   int n_mults() const { return FFTData.size() - 1; }
 
   // Rely on default copy assignment/constructor (not that they should
   // ever be needed)
 
-  void set(const Ring& R,const vector<bigint>& primes,double r=3.2,int hwt=64);
+  void set(const Ring& R,const vector<bigint>& primes,double r=-1,int hwt=-1);
   void set_sec(int sec);
 
   vector<bigint> sampleGaussian(PRNG& G, int noise_boost = 1) const

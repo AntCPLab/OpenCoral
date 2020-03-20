@@ -29,6 +29,8 @@ class PairwiseGenerator : public GeneratorBase
     MultiEncCommit<FD> EC;
     MAC_Check<T> MC;
 
+    int n_ciphertexts;
+
     // temporary data
     AddableVector<Ciphertext> C;
     octetStream ciphertexts, cleartexts;

@@ -138,16 +138,15 @@ public:
             new SquareProducer<FD>(setup.FieldD, P.my_num(), 0, true, dir),
             new_bit_producer(setup.FieldD, P, setup.pk, spdz2.covert, true, 0, true, dir),
             new InverseProducer<FD>(setup.FieldD, P.my_num(), 0, true, true, dir),
-            new InputProducer<FD>(P, 0, true, dir)
         };
         vector<Spdz2GeneratorThread<FD>*> generators;
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 4; i++)
         {
             generators.push_back(new Spdz2GeneratorThread<FD>(*this, *producers[i], i));
             if (not spdz2.minimal)
                 pthread_create(&generators[i]->thread, 0, run_producer<FD>, generators[i]);
         }
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 4; i++)
         {
             if (spdz2.minimal)
                 generators[i]->run();

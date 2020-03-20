@@ -47,7 +47,11 @@ public:
     typedef SPDZ<Spdz2kShare> Protocol;
     typedef Spdz2kPrep<Spdz2kShare> LivePrep;
 
+#ifdef SPDZ2K_BIT
     typedef GC::TinySecret<S> bit_type;
+#else
+    typedef GC::TinierSecret<gf2n_short> bit_type;
+#endif
 
     const static int k = K;
     const static int s = S;
@@ -64,7 +68,7 @@ public:
 
 
 template<int K, int S>
-Spdz2kShare<K, S> operator*(const typename Spdz2kShare<K,S>::clear& x, Spdz2kShare<K, S>& y)
+Spdz2kShare<K, S> operator*(const typename Spdz2kShare<K,S>::open_type& x, Spdz2kShare<K, S>& y)
 {
     return typename Spdz2kShare<K,S>::tmp_type(x) * typename Spdz2kShare<K,S>::super(y);
 }

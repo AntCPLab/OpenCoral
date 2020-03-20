@@ -13,7 +13,7 @@ DistDecrypt<FD>::DistDecrypt(const Player& P, const FHE_SK& share,
   bigint limit = pk.get_params().Q() << 64;
   vv.allocate_slots(limit);
   vv1.allocate_slots(limit);
-  mf.allocate_slots(pk.get_params().p0() << 64);
+  mf.allocate_slots(pk.p() << 64);
 }
 
 template<class FD>

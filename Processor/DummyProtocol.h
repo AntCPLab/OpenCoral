@@ -14,6 +14,7 @@ using namespace std;
 
 class Player;
 class DataPositions;
+class ThreadQueues;
 
 template<class T> class SubProcessor;
 
@@ -64,6 +65,26 @@ public:
             P(P)
     {
     }
+
+    template<class T>
+    void init_mul(SubProcessor<T>* = 0)
+    {
+        throw not_implemented();
+    }
+    template<class T>
+    void prepare_mul(const T&, const T&, int = 0)
+    {
+        throw not_implemented();
+    }
+    void exchange()
+    {
+        throw not_implemented();
+    }
+    int finalize_mul(int = 0)
+    {
+        throw not_implemented();
+        return 0;
+    }
 };
 
 template<class T>
@@ -80,7 +101,7 @@ public:
             Preprocessing<T>(usage)
     {
     }
-    DummyLivePrep(DataPositions& usage) :
+    DummyLivePrep(DataPositions& usage, bool = true) :
             Preprocessing<T>(usage)
     {
     }
@@ -105,6 +126,18 @@ public:
         fail();
     }
     void get_no_count(vector<T>&, DataTag, const vector<int>&, int)
+    {
+        fail();
+    }
+    void buffer_personal_triples(vector<array<T, 3>>&, size_t, size_t)
+    {
+        fail();
+    }
+    void buffer_personal_triples(size_t, ThreadQueues*)
+    {
+        fail();
+    }
+    void shrink_to_fit()
     {
         fail();
     }
@@ -154,7 +187,8 @@ public:
         (void) P;
         throw not_implemented();
     }
-    void add_mine(int a, int b = 0)
+    template<class U>
+    void add_mine(U a, int b = 0)
     {
         (void) a, (void) b;
         throw not_implemented();

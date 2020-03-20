@@ -18,10 +18,10 @@ template<class T> class ShamirInput;
 
 class Player;
 
-template<class U>
-class Shamir : public ProtocolBase<ShamirShare<U>>
+template<class T>
+class Shamir : public ProtocolBase<T>
 {
-    typedef ShamirShare<U> T;
+    typedef typename T::open_type::Scalar U;
 
     vector<octetStream> os;
     vector<U> reconstruction;
@@ -55,7 +55,19 @@ public:
 
     void init_mul();
     void init_mul(SubProcessor<T>* proc);
-    U prepare_mul(const T& x, const T& y, int n = -1);
+
+    template<class V>
+    void init_mul(V*)
+    {
+        init_mul();
+    }
+    template<class V, class W>
+    void init_mul(const V&, const W&)
+    {
+        init_mul();
+    }
+
+    typename T::clear prepare_mul(const T& x, const T& y, int n = -1);
 
     void exchange();
     void start_exchange();

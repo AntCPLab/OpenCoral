@@ -53,8 +53,6 @@ def main():
                       help="eliminate instructions with unused result")
     parser.add_option("-P", "--profile", action="store_true", dest="profile",
                       help="profile compilation")
-    parser.add_option("-C", "--continous", action="store_true", dest="continuous",
-                      help="continuous computation")
     parser.add_option("-s", "--stop", action="store_true", dest="stop",
                       help="stop on register errors")
     parser.add_option("-R", "--ring", dest="ring", default=0,
@@ -70,6 +68,12 @@ def main():
                       "(default: 100000)")
     parser.add_option("-X", "--mixed", action="store_true", dest="mixed",
                       help="mixing arithmetic and binary computation")
+    parser.add_option("-Y", "--edabit", action="store_true", dest="edabit",
+                      help="mixing arithmetic and binary computation using edaBits")
+    parser.add_option("-C", "--CISC", action="store_true", dest="cisc",
+                      help="faster CISC compilation mode")
+    parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
+                      help="more verbose output")
     options,args = parser.parse_args()
     if len(args) < 1:
         parser.print_help()
@@ -84,6 +88,10 @@ def main():
         if options.asmoutfile:
             for tape in prog.tapes:
                 tape.write_str(options.asmoutfile + '-' + tape.name)
+
+        if prog.use_public_input_file:
+            print('WARNING: %s is required to run the program' % \
+                  prog.public_input_file.name)
 
     if options.profile:
         import cProfile

@@ -16,6 +16,7 @@
 #include "Protocols/fake-stuff.hpp"
 #include "Protocols/MaliciousRepMC.hpp"
 #include "Protocols/Beaver.hpp"
+#include "Protocols/Spdz2kPrep.hpp"
 #include "Math/Z2k.hpp"
 #include "GC/ShareSecret.hpp"
 #include "GC/RepPrep.hpp"

@@ -671,6 +671,7 @@ XXX(Z2<L>, N, L)
 //X(96, 160)
 XXX(SignedZ2<64>, 64, 64)
 XXX(SignedZ2<72>, 72, 72)
+XXX(SignedZ2<40>, 40, 40)
 
 Y(64, 64)
 Y(64, 48)

@@ -14,6 +14,7 @@ using namespace std;
 
 #include "Math/Integer.h"
 #include "Processor/ProcessorBase.h"
+#include "Processor/Instruction.h"
 
 namespace GC
 {
@@ -84,11 +85,15 @@ public:
     void store_clear_in_dynamic(const vector<int>& args, U& dynamic_memory);
 
     void xors(const vector<int>& args);
+    void andm(const ::BaseInstruction& instruction);
     void and_(const vector<int>& args, bool repeat);
     void andrs(const vector<int>& args) { and_(args, true); }
     void ands(const vector<int>& args) { and_(args, false); }
 
     void input(const vector<int>& args);
+    void reveal(const vector<int>& args);
+
+    void reveal(const ::BaseInstruction& instruction);
 
     void print_reg(int reg, int n);
     void print_reg_plain(Clear& value);

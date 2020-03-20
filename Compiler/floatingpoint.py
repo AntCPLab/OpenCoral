@@ -4,6 +4,7 @@ from . import types
 from . import comparison
 from . import program
 from . import util
+from . import instructions_base
 
 ##
 ## Helper functions for floating point arithmetic
@@ -50,13 +51,14 @@ def maskField(a, k, kappa):
     asm_open(c, a + two_power(k) * r_dprime + r_prime)# + 2**(k-1))
     return c, r
 
+@instructions_base.ret_cisc
 def EQZ(a, k, kappa):
     if program.Program.prog.options.ring:
         c, r = maskRing(a, k)
     else:
         c, r = maskField(a, k, kappa)
     d = [None]*k
-    for i,b in enumerate(bits(c, k)):
+    for i,b in enumerate(r[0].bit_decompose_clear(c, k)):
         d[i] = r[i].bit_xor(b)
     return 1 - types.sint.conv(KOR(d, kappa))
 
@@ -299,6 +301,7 @@ def BitDec(a, k, m, kappa, bits_to_compute=None):
 
 def BitDecRing(a, k, m):
     n_shift = int(program.Program.prog.options.ring) - m
+    assert(n_shift >= 0)
     if program.Program.prog.use_dabit:
         r, r_bits = zip(*(types.sint.get_dabit() for i in range(m)))
         r = types.sint.bit_compose(r)
@@ -328,10 +331,11 @@ def BitDecField(a, k, m, kappa, bits_to_compute=None):
         print('BitDec assertion failed')
         print('a =', a.value)
         print('a mod 2^%d =' % k, (a.value % 2**k))
-    res = r[0].bit_adder(r, list(bits(c,m)))
+    res = r[0].bit_adder(r, list(r[0].bit_decompose_clear(c,m)))
     return [types.sint.conv(bit) for bit in res]
 
 
+@instructions_base.ret_cisc
 def Pow2(a, l, kappa):
     m = int(ceil(log(l, 2)))
     t = BitDec(a, m, m, kappa)
@@ -361,10 +365,16 @@ def B2U_from_Pow2(pow2a, l, kappa):
         for i in range(l):
             bit(r[i])
         r_bits = r
-    comparison.PRandInt(t, kappa)
-    asm_open(c, pow2a + two_power(l) * t + sum(two_power(i)*r[i] for i in range(l)))
-    comparison.program.curr_tape.require_bit_length(l + kappa)
-    c = list(bits(c, l))
+    if program.Program.prog.options.ring:
+        n_shift = int(program.Program.prog.options.ring) - l
+        assert n_shift > 0
+        c = ((pow2a + types.sint.bit_compose(r)) << n_shift).reveal() >> n_shift
+    else:
+        comparison.PRandInt(t, kappa)
+        asm_open(c, pow2a + two_power(l) * t +
+                 sum(two_power(i) * r[i] for i in range(l)))
+        comparison.program.curr_tape.require_bit_length(l + kappa)
+    c = list(r_bits[0].bit_decompose_clear(c, l))
     x = [r_bits[i].bit_xor(c[i]) for i in range(l)]
     #print ' '.join(str(b.value) for b in x)
     y = PreOR(x, kappa)
@@ -402,10 +412,14 @@ def Trunc(a, l, m, kappa, compute_modulo=False, signed=False):
         r_prime += t2
         r_dprime += t1 - t2
     #assert(r_prime.value == (sum(2**i*x[i].value*r[i].value for i in range(l)) % comparison.program.P))
-    comparison.PRandInt(rk, kappa)
-    r_dprime += two_power(l) * rk
-    #assert(r_dprime.value == (2**l * rk.value + sum(2**i*(1 - x[i].value)*r[i].value for i in range(l)) % comparison.program.P))
-    asm_open(c, a + r_dprime + r_prime)
+    if program.Program.prog.options.ring:
+        n_shift = int(program.Program.prog.options.ring) - l
+        c = ((a + r_dprime + r_prime) << n_shift).reveal() >> n_shift
+    else:
+        comparison.PRandInt(rk, kappa)
+        r_dprime += two_power(l) * rk
+        #assert(r_dprime.value == (2**l * rk.value + sum(2**i*(1 - x[i].value)*r[i].value for i in range(l)) % comparison.program.P))
+        asm_open(c, a + r_dprime + r_prime)
     for i in range(1,l):
         ci[i] = c % two_power(i)
         #assert(ci[i].value == c.value % 2**i)
@@ -438,6 +452,12 @@ def TruncInRing(to_shift, l, pow2m):
     masked = shifted >> n_shift
     bits = types.intbitint.bit_adder(r_bits, masked.bit_decompose(l))
     return types.sint.bit_compose(reversed(bits))
+
+def SplitInRing(a, l, m):
+    pow2m = Pow2(m, l, None)
+    upper = TruncInRing(a, l, pow2m)
+    lower = a - upper * pow2m
+    return lower, upper, pow2m
 
 def TruncRoundNearestAdjustOverflow(a, length, target_length, kappa):
     t = comparison.TruncRoundNearest(a, length, length - target_length, kappa)
@@ -496,6 +516,7 @@ def FLRound(x, mode):
     p = ((p1 + d * a) * (1 - b) + b * away_from_zero * (1 - l)) * (1 - z)
     return v, p, z, s
 
+@instructions_base.ret_cisc
 def TruncPr(a, k, m, kappa=None, signed=True):
     """ Probabilistic truncation [a/2^m + u]
         where Pr[u = 1] = (a % 2^m) / 2^m
@@ -513,8 +534,11 @@ def TruncPrRing(a, k, m, signed=True):
     n_ring = int(program.Program.prog.options.ring)
     assert n_ring >= k, '%d too large' % k
     if k == n_ring:
-        for i in range(m):
-            a += types.sint.get_random_bit() << i
+        if program.Program.prog.use_edabit():
+            a += types.sint.get_edabit(m, True)[0]
+        else:
+            for i in range(m):
+                a += types.sint.get_random_bit() << i
         return comparison.TruncLeakyInRing(a, k, m, signed=signed)
     else:
         from .types import sint
@@ -525,13 +549,22 @@ def TruncPrRing(a, k, m, signed=True):
             trunc_pr(res, a, k, m)
         else:
             # extra bit to mask overflow
-            r_bits = [sint.get_random_bit() for i in range(k + 1)]
-            n_shift = n_ring - len(r_bits)
-            tmp = a + sint.bit_compose(r_bits)
+            if program.Program.prog.use_edabit():
+                lower = sint.get_edabit(m, True)[0]
+                upper = sint.get_edabit(k - m, True)[0]
+                msb = sint.get_random_bit()
+                r = (msb << k) + (upper << m) + lower
+            else:
+                r_bits = [sint.get_random_bit() for i in range(k + 1)]
+                r = sint.bit_compose(r_bits)
+                upper = sint.bit_compose(r_bits[m:k])
+                msb = r_bits[-1]
+            n_shift = n_ring - (k + 1)
+            tmp = a + r
             masked = (tmp << n_shift).reveal()
             shifted = (masked << 1 >> (n_shift + m + 1))
-            overflow = r_bits[-1].bit_xor(masked >> (n_ring - 1))
-            res = shifted - sint.bit_compose(r_bits[m:k]) + \
+            overflow = msb.bit_xor(masked >> (n_ring - 1))
+            res = shifted - upper + \
                   (overflow << (k - m))
         if signed:
             res -= (1 << (k - m - 1))
@@ -555,6 +588,7 @@ def TruncPrField(a, k, m, kappa=None):
     d = (a - a_prime) / two_to_m
     return d
 
+@instructions_base.ret_cisc
 def SDiv(a, b, l, kappa, round_nearest=False):
     theta = int(ceil(log(l / 3.5) / log(2)))
     alpha = two_power(2*l)
@@ -564,7 +598,7 @@ def SDiv(a, b, l, kappa, round_nearest=False):
     y = y.round(2 * l + 1, l, kappa, round_nearest, signed=False)
     x2 = types.sint()
     comparison.Mod2m(x2, x, 2 * l + 1, l, kappa, False)
-    x1 = comparison.TruncZeroes(x - x2, 2 * l + 1, l, True)
+    x1 = comparison.TruncZeros(x - x2, 2 * l + 1, l, True)
     for i in range(theta-1):
         y = y * (x1 + two_power(l)) + (y * x2).round(2 * l, l, kappa,
                                                      round_nearest,
@@ -576,7 +610,7 @@ def SDiv(a, b, l, kappa, round_nearest=False):
                               signed=False)
         x2 = types.sint()
         comparison.Mod2m(x2, x, 2 * l, l, kappa, False)
-        x1 = comparison.TruncZeroes(x - x2, 2 * l + 1, l, True)
+        x1 = comparison.TruncZeros(x - x2, 2 * l + 1, l, True)
     y = y * (x1 + two_power(l)) + (y * x2).round(2 * l, l, kappa,
                                                  round_nearest, signed=False)
     y = y.round(2 * l + 1, l - 1, kappa, round_nearest)

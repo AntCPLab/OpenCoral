@@ -57,6 +57,9 @@ class PRNG
 
    int cnt;    // How many bytes of the current random value have been used
 
+   int n_cached_bits;
+   word cached_bits;
+
    void hash(); // Hashes state to random and sets cnt=0
    void next();
 
@@ -72,7 +75,7 @@ class PRNG
    void ReSeed();
 
    // Agree securely on seed
-   void SeedGlobally(Player& P);
+   void SeedGlobally(const Player& P);
 
    // Set seed from array
    void SetSeed(const unsigned char*);
@@ -81,14 +84,15 @@ class PRNG
    void InitSeed();
    
    double get_double();
-   bool get_bit() { return get_uchar() & 1; }
+   bool get_bit();
    unsigned char get_uchar();
    unsigned int get_uint();
    unsigned int get_uint(int upper);
    void get_bigint(bigint& res, int n_bits, bool positive = true);
-   void get(bigint& res, int n_bits, bool positive = true);
-   void get(int& res, int n_bits, bool positive = true);
-   void randomBnd(bigint& res, const bigint& B, bool positive=true);
+   template<class T>
+   void get(T& res, int n_bits, bool positive = true);
+   template<class T>
+   void randomBnd(T& res, const bigint& B, bool positive=true);
    bigint randomBnd(const bigint& B, bool positive=true);
    template<int N_BYTES>
    void randomBnd(mp_limb_t* res, const mp_limb_t* B, mp_limb_t mask = -1);
@@ -125,11 +129,22 @@ public:
 class GlobalPRNG : public PRNG
 {
 public:
-  GlobalPRNG(Player& P)
+  GlobalPRNG(const Player& P)
   {
     SeedGlobally(P);
   }
 };
+
+inline bool PRNG::get_bit()
+{
+  if (n_cached_bits == 0)
+    {
+      cached_bits = get_word();
+      n_cached_bits = 64;
+    }
+  n_cached_bits--;
+  return (cached_bits >>= 1) & 1;
+}
 
 inline unsigned char PRNG::get_uchar()
 {

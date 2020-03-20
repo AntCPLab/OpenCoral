@@ -301,7 +301,8 @@ def iter_waksman(a, config, reverse=False):
         conf_address = MemValue(config.address + depth.read()*n)
         do_round(size, conf_address, a.address, a2.address, 1)
 
-        for i in range(n):
+        @for_range(n)
+        def _(i):
             a[i] = a2[i]
 
         nblocks.write(nblocks*2)
@@ -317,7 +318,8 @@ def iter_waksman(a, config, reverse=False):
         conf_address = MemValue(config.address + depth.read()*n)
         do_round(size, conf_address, a.address, a2.address, 0)
 
-        for i in range(n):
+        @for_range(n)
+        def _(i):
             a[i] = a2[i]
 
         nblocks.write(nblocks//2)
@@ -379,6 +381,14 @@ def config_shuffle(n, value_type):
     config_bits = configure_waksman(perm)
     # 2-D array
     config = Array(len(config_bits) * len(perm), value_type.reg_type)
+    if n > 1024:
+        for x in config_bits:
+            for y in x:
+                get_program().public_input(y)
+        @for_range(sum(len(x) for x in config_bits))
+        def _(i):
+            config[i] = public_input()
+        return config
     for i,c in enumerate(config_bits):
         for j,b in enumerate(c):
             config[i * len(perm) + j] = b

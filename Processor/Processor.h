@@ -18,6 +18,7 @@
 #include "ProcessorBase.h"
 #include "OnlineOptions.h"
 #include "Tools/SwitchableOutput.h"
+#include "Tools/CheckVector.h"
 #include "GC/Processor.h"
 #include "GC/ShareThread.h"
 
@@ -27,12 +28,14 @@ template <class T>
 class SubProcessor
 {
   vector<typename T::clear> C;
-  vector<T> S;
+  CheckVector<T> S;
 
   // This is the vector of partially opened values and shares we need to store
   // as the Open commands are split in two
   vector<typename T::open_type> PO;
   vector<T> Sh_PO;
+
+  DataPositions bit_usage;
 
   void resize(int size)       { C.resize(size); S.resize(size); }
 
@@ -40,6 +43,8 @@ class SubProcessor
   template<class U> friend class SPDZ;
   template<class U> friend class ProtocolBase;
   template<class U> friend class Beaver;
+
+  typedef typename T::bit_type::part_type BT;
 
 public:
   ArithmeticProcessor* Proc;
@@ -50,10 +55,14 @@ public:
   typename T::Protocol protocol;
   typename T::Input input;
 
+  typename BT::LivePrep bit_prep;
+  vector<typename BT::LivePrep*> personal_bit_preps;
+
   SubProcessor(ArithmeticProcessor& Proc, typename T::MAC_Check& MC,
       Preprocessing<T>& DataF, Player& P);
   SubProcessor(typename T::MAC_Check& MC, Preprocessing<T>& DataF, Player& P,
       ArithmeticProcessor* Proc = 0);
+  ~SubProcessor();
 
   // Access to PO (via calls to POpen start/stop)
   void POpen(const vector<int>& reg,const Player& P,int size);
@@ -61,6 +70,10 @@ public:
   void muls(const vector<int>& reg, int size);
   void mulrs(const vector<int>& reg);
   void dotprods(const vector<int>& reg, int size);
+  void matmuls(const vector<T>& source, const Instruction& instruction, int a,
+      int b);
+  void matmulsm(const CheckVector<T>& source, const Instruction& instruction, int a,
+      int b);
 
   vector<T>& get_S()
   {
@@ -81,7 +94,7 @@ public:
 class ArithmeticProcessor : public ProcessorBase
 {
 protected:
-  vector<long> Ci;
+  CheckVector<long> Ci;
 
 public:
   int thread_num;
@@ -113,6 +126,8 @@ public:
     { return Ci[i]; }
   void write_Ci(int i,const long& x)
     { Ci[i]=x; }
+  CheckVector<long>& get_Ci()
+    { return Ci; }
 };
 
 template<class sint, class sgf2n>
@@ -130,10 +145,10 @@ class Processor : public ArithmeticProcessor
   typename sint::MAC_Check& MCp;
   Machine<sint, sgf2n>& machine;
 
+  GC::ShareThread<typename sint::bit_type> share_thread;
+  GC::Processor<typename sint::bit_type> Procb;
   SubProcessor<sgf2n> Proc2;
   SubProcessor<sint>  Procp;
-  GC::Processor<typename sint::bit_type> Procb;
-  GC::ShareThread<typename sint::bit_type> share_thread;
 
   typename sgf2n::PrivateOutput privateOutput2;
   typename sint::PrivateOutput privateOutputp;
@@ -193,6 +208,12 @@ class Processor : public ArithmeticProcessor
       { Procp.S[i]=x; }
 
   void dabit(const Instruction& instruction);
+  void edabit(const Instruction& instruction, bool strict = false);
+
+  void convcbitvec(const Instruction& instruction);
+  void convcintvec(const Instruction& instruction);
+  void convcbit2s(const Instruction& instruction);
+  void split(const Instruction& instruction);
 
   // Access to external client sockets for reading clear/shared data
   void read_socket_ints(int client_id, const vector<int>& registers);

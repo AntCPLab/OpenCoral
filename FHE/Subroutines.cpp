@@ -1,8 +1,8 @@
 
 #include "Subroutines.h"
-#include "modp.h"
+#include "Math/modp.h"
 
-#include "modp.hpp"
+#include "Math/modp.hpp"
 
 void Subs(modp& ans,const vector<int>& poly,const modp& x,const Zp_Data& ZpD)
 {

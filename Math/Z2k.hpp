@@ -47,7 +47,8 @@ Z2<K>::Z2(const bigint& x) : Z2()
 }
 
 template<int K>
-Z2<K>::Z2(const Integer& x) :
+template<class T>
+Z2<K>::Z2(const IntBase<T>& x) :
         Z2((uint64_t)x.get())
 {
 }
@@ -146,6 +147,15 @@ void Z2<K>::output(ostream& s, bool human) const
 	}
 	else
 		s.write((char*)a, N_BYTES);
+}
+
+template<int K>
+SignedZ2<K>::SignedZ2(const Integer& other)
+{
+    if (K == 64)
+        this->a[0] = other.get();
+    else
+        *this = SignedZ2<64>(other);
 }
 
 template <int K>

@@ -20,6 +20,7 @@ class P2Data
   public:
   typedef gf2n_short T;
   typedef int S;
+  typedef int poly_type;
 
   int num_slots() const { return slots; }
   int degree() const { return A.size() ? A.size() : 0; }

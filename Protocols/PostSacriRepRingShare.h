@@ -32,6 +32,8 @@ public:
     typedef ::PrivateOutput<PostSacriRepRingShare> PrivateOutput;
     typedef MalRepRingPrepWithBits<PostSacriRepRingShare> LivePrep;
 
+    const static bool expensive = true;
+
     static string type_short()
     {
         return "PR";

@@ -39,7 +39,7 @@
 #define MII MACH->MI[PI1.get()]
 
 #define BIT_INSTRUCTIONS \
-    X(XORS, PROC.xors(EXTRA)) \
+    X(XORS, T::xors(PROC, EXTRA)) \
     X(XORCB, C0.xor_(PC1, PC2)) \
     X(XORCBI, C0.xor_(PC1, IMM)) \
     X(ANDRS, T::andrs(PROC, EXTRA)) \
@@ -61,7 +61,7 @@
     X(MOVSB, S0 = PS1) \
     X(TRANS, T::trans(PROC, IMM, EXTRA)) \
     X(BITB, PROC.random_bit(S0)) \
-    X(REVEAL, PS1.reveal(IMM, C0)) \
+    X(REVEAL, T::reveal_inst(PROC, EXTRA)) \
     X(PRINTREGSIGNED, PROC.print_reg_signed(IMM, C0)) \
     X(PRINTREGB, PROC.print_reg(R0, IMM)) \
     X(PRINTREGPLAINB, PROC.print_reg_plain(C0)) \
@@ -69,13 +69,19 @@
     X(CONDPRINTSTRB, if(C0.get()) PROC.print_str(IMM)) \
 
 #define COMBI_INSTRUCTIONS BIT_INSTRUCTIONS \
-    X(ANDM, S0 = PS1 & PC2) \
+    X(ANDM, processor.andm(instruction)) \
     X(LDMSBI, S0 = processor.memories.MS[Proc.read_Ci(REG1)]) \
     X(STMSBI, processor.memories.MS[Proc.read_Ci(REG1)] = S0) \
     X(CONVSINT, S0.load_clear(IMM, Proc.read_Ci(REG1))) \
     X(CONVCINT, C0 = Proc.read_Ci(REG1)) \
     X(CONVCBIT, Proc.write_Ci(R0, PC1.get())) \
+    X(CONVCINTVEC, Proc.convcintvec(instruction)) \
+    X(CONVCBITVEC, Proc.convcbitvec(instruction)) \
+    X(CONVCBIT2S, Proc.convcbit2s(instruction)) \
     X(DABIT, Proc.dabit(INST)) \
+    X(EDABIT, Proc.edabit(INST)) \
+    X(SEDABIT, Proc.edabit(INST, true)) \
+    X(SPLIT, Proc.split(INST)) \
 
 #define GC_INSTRUCTIONS \
     X(LDMSBI, S0 = MSI) \
@@ -127,6 +133,7 @@
     X(STOPGRIND, CALLGRIND_STOP_INSTRUMENTATION) \
     X(RUN_TAPE, MACH->run_tape(R0, IMM, REG1)) \
     X(JOIN_TAPE, MACH->join_tape(R0)) \
+    X(USE, ) \
 
 #define INSTRUCTIONS BIT_INSTRUCTIONS GC_INSTRUCTIONS
 

@@ -33,6 +33,37 @@ void DataPositions::increase(const DataPositions& delta)
       for (it = delta_ext.begin(); it != delta_ext.end(); it++)
           extended[field_type][it->first] += it->second;
     }
+  for (auto it = delta.edabits.begin(); it != delta.edabits.end(); it++)
+    edabits[it->first] += it->second;
+}
+
+DataPositions& DataPositions::operator-=(const DataPositions& delta)
+{
+  inputs.resize(max(inputs.size(), delta.inputs.size()),
+      vector<long long>(N_DATA_FIELD_TYPE));
+  for (unsigned int field_type = 0; field_type < N_DATA_FIELD_TYPE;
+      field_type++)
+    {
+      for (unsigned int dtype = 0; dtype < N_DTYPE; dtype++)
+        files[field_type][dtype] -= delta.files[field_type][dtype];
+      for (unsigned int j = 0; j < delta.inputs.size(); j++)
+        inputs[j][field_type] -= delta.inputs[j][field_type];
+
+      map<DataTag, long long>::const_iterator it;
+      const map<DataTag, long long> &delta_ext = delta.extended[field_type];
+      for (it = delta_ext.begin(); it != delta_ext.end(); it++)
+        extended[field_type][it->first] -= it->second;
+    }
+  for (auto it = delta.edabits.begin(); it != delta.edabits.end(); it++)
+    edabits[it->first] -= it->second;
+  return *this;
+}
+
+DataPositions DataPositions::operator-(const DataPositions& other) const
+{
+  DataPositions res = *this;
+  res -= other;
+  return res;
 }
 
 void DataPositions::print_cost() const
@@ -71,6 +102,19 @@ void DataPositions::print_cost() const
 
   if (total_cost > 0)
     cerr << "Total cost: " << total_cost << endl;
+
+  if (not edabits.empty())
+    cerr << "  edaBits" << endl;
+  for (auto it = edabits.begin(); it != edabits.end(); it++)
+    {
+      if (print_verbose)
+        cerr << setw(13) << "";
+      cerr << "    " << setw(10) << it->second << " of length "
+          << it->first.second;
+      if (it->first.first)
+        cerr << " (strict)";
+      cerr << endl;
+    }
 }
 
 void DataPositions::process_line(long long items_used, const char* name,

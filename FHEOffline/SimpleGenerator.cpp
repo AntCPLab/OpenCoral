@@ -12,10 +12,11 @@
 
 template <template <class> class T, class FD>
 SimpleGenerator<T,FD>::SimpleGenerator(const Names& N, const PartSetup<FD>& setup,
-        const MultiplicativeMachine& machine, int thread_num, Dtype data_type) :
-        GeneratorBase(thread_num, N),
-        setup(setup), machine(machine), dd(P, setup),
-        volatile_memory(0),
+        const MultiplicativeMachine& machine,
+        int thread_num, Dtype data_type, Player* player) :
+        GeneratorBase(thread_num, N, player),
+        setup(setup), machine(machine),
+        volatile_memory(0), dd(P, setup),
         EC(P, setup.pk, setup.FieldD, timers, machine, thread_num)
 {
     if (machine.produce_inputs)
@@ -51,14 +52,14 @@ SimpleGenerator<T,FD>::~SimpleGenerator()
 }
 
 template <template <class> class T, class FD>
-void SimpleGenerator<T,FD>::run()
+void SimpleGenerator<T,FD>::run(bool exhaust)
 {
     Timer timer(CLOCK_THREAD_CPUTIME_ID);
     timer.start();
     timers["MC init"].start();
     MAC_Check<typename FD::T> MC(setup.alphai);
     timers["MC init"].stop();
-    while (total < machine.nTriplesPerThread or EC.has_left())
+    while (total < machine.nTriplesPerThread or (exhaust and EC.has_left()))
     {
         producer->run(P, setup.pk, setup.calpha, EC, dd, setup.alphai);
         producer->sacrifice(P, MC);

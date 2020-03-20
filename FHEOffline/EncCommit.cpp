@@ -262,7 +262,7 @@ void EncCommit<T,FD,S>::Create_More() const
         { if (cond!=Full) 
              { throw not_implemented(); }
           else          
-             { m_Delta.from(UniformGenerator(Gseed[i],numBits(Bound1))); }
+             { m_Delta.from(UniformGenerator<bigint>(Gseed[i],numBits(Bound1))); }
           rc_Delta.generateUniform(Gseed[i],Bound2,Bound3,Bound3);
           Ciphertext Delta(params);
           (*pk).quasi_encrypt(Delta,m_Delta,rc_Delta);
@@ -319,7 +319,7 @@ void EncCommit<T,FD,S>::Create_More() const
                      if (cond!=Full) 
                         { throw not_implemented(); }
                      else   
-	                { mm.from(UniformGenerator(G,numBits(Bound1))); }
+	                { mm.from(UniformGenerator<bigint>(G, numBits(Bound1))); }
                      rr.generateUniform(G,Bound2,Bound3,Bound3);
                      (*pk).quasi_encrypt(cc,mm,rr);
                      occ.reset_write_head();
@@ -357,10 +357,10 @@ void EncCommit<T,FD,S>::Create_More() const
                 { throw not_implemented();
                 }
               else   
-	        { m_Delta.from(UniformGenerator(G,numBits(Bound1))); }
+	        { m_Delta.from(UniformGenerator<bigint>(G, numBits(Bound1))); }
               rc_Delta.generateUniform(G,Bound2,Bound3,Bound3);
               
-              Iterator<S> vm=m[i].get_iterator();
+              auto vm=m[i].get_iterator();
               z[0].from(vm);
               add(z[0],z[0],m_Delta);
               add(rr,rc[i],rc_Delta);

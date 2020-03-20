@@ -6,6 +6,7 @@
 #include "Proof.h"
 #include "FHE/P2Data.h"
 #include "FHEOffline/EncCommit.h"
+#include "Math/Z2k.hpp"
 
 double Proof::dist = 0;
 
@@ -32,22 +33,50 @@ bigint Proof::slack(int slack, int sec, int phim)
   }
 }
 
-void Proof::get_challenge(vector<int>& e, const octetStream& ciphertexts) const
+void Proof::set_challenge(const octetStream& ciphertexts)
 {
-  unsigned int i;
-  bigint hashout = ciphertexts.check_sum();
-
-  for (i=0; i<sec; i++)
-    { e[i]=(hashout.get_ui()>>(i))&1; }
+  octetStream hash = ciphertexts.hash();
+  PRNG G;
+  assert(hash.get_length() >= SEED_SIZE);
+  G.SetSeed(hash.get_data());
+  set_challenge(G);
 }
 
+void Proof::set_challenge(PRNG& G)
+{
+  unsigned int i;
+
+  if (top_gear)
+    {
+      W.resize(V, vector<int>(U));
+      for (i = 0; i < V; i++)
+        for (unsigned j = 0; j < U; j++)
+          W[i][j] = G.get_uint(2 * phim) - 1;
+    }
+  else
+    {
+      e.resize(sec);
+      for (i = 0; i < sec; i++)
+        {
+          e[i] = G.get_bit();
+        }
+    }
+}
+
+void Proof::generate_challenge(const Player& P)
+{
+  GlobalPRNG G(P);
+  set_challenge(G);
+}
+
+template<class T>
 class AbsoluteBoundChecker
 {
-  bigint bound, neg_bound;
+  T bound, neg_bound;
 
 public:
-  AbsoluteBoundChecker(bigint bound) : bound(bound), neg_bound(-bound) {}
-  bool outside(const bigint& value, double& dist)
+  AbsoluteBoundChecker(T bound) : bound(bound), neg_bound(-this->bound) {}
+  bool outside(const T& value, double& dist)
   {
     (void)dist;
 #ifdef PRINT_MIN_DIST
@@ -57,17 +86,17 @@ public:
   }
 };
 
-template <class T>
-bool Proof::check_bounds(T& z, AddableMatrix<bigint>& t, int i) const
+template <class T, class X>
+bool Proof::check_bounds(T& z, X& t, int i) const
 {
   unsigned int j,k;
 
   // Check Bound 1 and Bound 2
-  AbsoluteBoundChecker plain_checker(plain_check * n_proofs);
-  AbsoluteBoundChecker rand_checker(rand_check * n_proofs);
+  AbsoluteBoundChecker<fixint<2>> plain_checker(plain_check * n_proofs);
+  AbsoluteBoundChecker<fixint<2>> rand_checker(rand_check * n_proofs);
   for (j=0; j<phim; j++)
     {
-      const bigint& te = z[j];
+      auto& te = z[j];
       if (plain_checker.outside(te, dist))
         {
           cout << "Fail on Check 1 " << i << " " << j << endl;
@@ -78,10 +107,10 @@ bool Proof::check_bounds(T& z, AddableMatrix<bigint>& t, int i) const
     }
   for (k=0; k<3; k++)
     {
-      const vector<bigint>& coeffs = t[k];
+      auto& coeffs = t[k];
       for (j=0; j<coeffs.size(); j++)
         {
-          const bigint& te = coeffs.at(j);
+          auto& te = coeffs.at(j);
           if (rand_checker.outside(te, dist))
             {
               cout << "Fail on Check 2 " << k << " : " << i << " " << j << endl;
@@ -101,7 +130,7 @@ Proof::Preimages::Preimages(int size, const FHE_PK& pk, const bigint& p, int n_p
   // extra limb for addition
   bigint limit = p << (64 + n_players);
   m.allocate_slots(limit);
-  r.allocate_slots(limit);
+  r.allocate_slots(n_players);
   m_tmp = m[0][0];
   r_tmp = r[0][0];
 }
@@ -136,8 +165,8 @@ void Proof::Preimages::unpack(octetStream& os)
   unsigned int size;
   os.get(size);
   m.resize(size);
-  if (size != r.size())
-    throw runtime_error("unexpected size of preimage randomness");
+  assert(not r.empty());
+  r.resize(size, r[0]);
   for (size_t i = 0; i < m.size(); i++)
     {
       m[i].unpack(os);
@@ -151,7 +180,6 @@ void Proof::Preimages::check_sizes()
     throw runtime_error("preimage sizes don't match");
 }
 
-template bool Proof::check_bounds(Plaintext<gfp,FFT_Data,bigint>& z, AddableMatrix<bigint>& t, int i) const;
-template bool Proof::check_bounds(AddableVector<bigint>& z, AddableMatrix<bigint>& t, int i) const;
-
-template bool Proof::check_bounds(Plaintext_<P2Data>& z, AddableMatrix<bigint>& t, int i) const;
+template bool Proof::check_bounds(AddableVector<fixint<2>>& z, AddableMatrix<fixint<0>>& t, int i) const;
+template bool Proof::check_bounds(AddableVector<fixint<2>>& z, AddableMatrix<fixint<1>>& t, int i) const;
+template bool Proof::check_bounds(AddableVector<fixint<2>>& z, AddableMatrix<fixint<2>>& t, int i) const;

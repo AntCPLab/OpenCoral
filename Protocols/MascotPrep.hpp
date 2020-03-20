@@ -13,10 +13,11 @@
 #include "OT/Triple.hpp"
 #include "OT/NPartyTripleGenerator.hpp"
 #include "Protocols/ShuffleSacrifice.hpp"
+#include "Protocols/Spdz2kPrep.hpp"
 
 template<class T>
 OTPrep<T>::OTPrep(SubProcessor<T>* proc, DataPositions& usage) :
-        RingPrep<T>(proc, usage), triple_generator(0)
+        BufferPrep<T>(usage), RingPrep<T>(proc, usage), triple_generator(0)
 {
 }
 
@@ -44,6 +45,13 @@ void OTPrep<T>::set_protocol(typename T::Protocol& protocol)
 template<class T>
 void MascotPrep<T>::buffer_triples()
 {
+#ifdef INSECURE
+#ifdef FAKE_MASCOT_TRIPLES
+    this->triples.resize(this->triples.size() + OnlineOptions::singleton.batch_size);
+    return;
+#endif
+#endif
+
     auto& params = this->params;
     auto& triple_generator = this->triple_generator;
     params.generateBits = false;
@@ -75,14 +83,18 @@ void MascotFieldPrep<T>::buffer_bits()
 }
 
 template<class T>
-void MascotFieldPrep<T>::buffer_dabits()
+void MascotPrep<T>::buffer_dabits(ThreadQueues* queues)
 {
     assert(this->proc != 0);
+    DabitSacrifice<T> dabit_sacrifice;
     vector<dabit<T>> check_dabits;
-    ShuffleSacrifice<T> shuffle_sacrifice;
+#ifdef VERBOSE_DABIT
+    cerr << "Generate daBits to sacrifice" << endl;
+#endif
     this->buffer_dabits_without_check(check_dabits,
-            shuffle_sacrifice.minimum_n_inputs());
-    shuffle_sacrifice.dabit_sacrifice(this->dabits, check_dabits, *this->proc);
+            dabit_sacrifice.minimum_n_inputs(), queues);
+    dabit_sacrifice.sacrifice_and_check_bits(this->dabits, check_dabits,
+            *this->proc, queues);
 }
 
 template<class T>

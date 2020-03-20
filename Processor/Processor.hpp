@@ -1,8 +1,11 @@
+#ifndef PROCESSOR_PROCESSOR_HPP_
+#define PROCESSOR_PROCESSOR_HPP_
 
 #include "Processor/Processor.h"
 #include "Processor/Program.h"
 #include "Networking/STS.h"
 #include "Protocols/fake-stuff.h"
+#include "GC/square64.h"
 
 #include "Protocols/ReplicatedInput.hpp"
 #include "Protocols/ReplicatedPrivateOutput.hpp"
@@ -23,10 +26,35 @@ SubProcessor<T>::SubProcessor(ArithmeticProcessor& Proc, typename T::MAC_Check& 
 template <class T>
 SubProcessor<T>::SubProcessor(typename T::MAC_Check& MC,
     Preprocessing<T>& DataF, Player& P, ArithmeticProcessor* Proc) :
-    Proc(Proc), MC(MC), P(P), DataF(DataF), protocol(P), input(*this, MC)
+    Proc(Proc), MC(MC), P(P), DataF(DataF), protocol(P), input(*this, MC),
+    bit_prep(bit_usage)
 {
   DataF.set_proc(this);
   DataF.set_protocol(protocol);
+  bit_usage.set_num_players(P.num_players());
+  personal_bit_preps.resize(P.num_players());
+  for (int i = 0; i < P.num_players(); i++)
+    personal_bit_preps[i] = new typename BT::LivePrep(bit_usage, i);
+}
+
+template<class T>
+SubProcessor<T>::~SubProcessor()
+{
+  for (size_t i = 0; i < personal_bit_preps.size(); i++)
+    {
+      auto& x = personal_bit_preps[i];
+#ifdef VERBOSE
+      if (x->data_sent())
+        cerr << "Sent for personal bit preprocessing threads of player " << i << ": " <<
+              x->data_sent() * 1e-6 << " MB" << endl;
+#endif
+      delete x;
+    }
+#ifdef VERBOSE
+  if (bit_prep.data_sent())
+    cerr << "Sent for global bit preprocessing threads: " <<
+        bit_prep.data_sent() * 1e-6 << " MB" << endl;
+#endif
 }
 
 template<class sint, class sgf2n>
@@ -36,8 +64,9 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
         const Program& program)
 : ArithmeticProcessor(machine.opts, thread_num),DataF(machine, &Procp, &Proc2),P(P),
   MC2(MC2),MCp(MCp),machine(machine),
+  share_thread(machine.get_N(), machine.opts, P, machine.get_bit_mac_key(), DataF.usage),
+  Procb(machine.bit_memories),
   Proc2(*this,MC2,DataF.DataF2,P),Procp(*this,MCp,DataF.DataFp,P),
-  Procb(machine.bit_memories), share_thread(machine.get_N(), machine.opts),
   privateOutput2(Proc2),privateOutputp(Procp),
   external_clients(ExternalClients(P.my_num(), machine.prep_dir_prefix)),
   binary_file_io(Binary_File_IO())
@@ -56,8 +85,6 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
   shared_prng.SeedGlobally(P);
 
   out.activate(P.my_num() == 0 or machine.opts.interactive);
-
-  share_thread.pre_run(P, machine.get_bit_mac_key());
 }
 
 
@@ -106,16 +133,87 @@ template<class sint, class sgf2n>
 void Processor<sint, sgf2n>::dabit(const Instruction& instruction)
 {
   int size = instruction.get_size();
-  assert(size <= sint::bit_type::clear::n_bits);
-  auto& bin = Procb.S[instruction.get_r(1)];
-  bin = {};
+  int unit = sint::bit_type::default_length;
+  for (int i = 0; i < DIV_CEIL(size, unit); i++)
+  {
+    Procb.S[instruction.get_r(1) + i] = {};
+  }
   for (int i = 0; i < size; i++)
   {
     typename sint::bit_type tmp;
     Procp.DataF.get_dabit(Procp.get_S_ref(instruction.get_r(0) + i), tmp);
-    bin ^= tmp << i;
+    Procb.S[instruction.get_r(1) + i / unit] ^= tmp << (i % unit);
   }
 }
+
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::edabit(const Instruction& instruction, bool strict)
+{
+  auto& regs = instruction.get_start();
+  int size = instruction.get_size();
+  Procp.DataF.get_edabits(strict, size,
+          &Procp.get_S_ref(instruction.get_r(0)), Procb.S, regs);
+}
+
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::convcbitvec(const Instruction& instruction)
+{
+  for (size_t i = 0; i < instruction.get_n(); i++)
+    {
+      int i1 = i / GC::Clear::N_BITS;
+      int i2 = i % GC::Clear::N_BITS;
+      Ci[instruction.get_r(0) + i] = Procb.C[instruction.get_r(1) + i1].get_bit(i2);
+    }
+}
+
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::convcintvec(const Instruction& instruction)
+{
+  int unit = GC::Clear::N_BITS;
+  assert(unit == 64);
+  int n_inputs = instruction.get_size();
+  int n_bits = instruction.get_start().size();
+  for (int i = 0; i < DIV_CEIL(n_inputs, unit); i++)
+    {
+      for (int j = 0; j < DIV_CEIL(n_bits, unit); j++)
+        {
+          square64 square;
+          int n_rows = min(n_inputs - i * unit, unit);
+          int n_cols = min(n_bits - j * unit, unit);
+          for (int k = 0; k < n_rows; k++)
+            square.rows[k] =
+                Integer(Procp.C[instruction.get_r(0) + i * unit + k]
+                                >> (j * unit)).get();
+          square.transpose(n_rows, n_cols);
+          for (int k = 0; k < n_cols; k++)
+            Procb.C[instruction.get_start()[k + j * unit] + i] = square.rows[k];
+        }
+    }
+}
+
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::convcbit2s(const Instruction& instruction)
+{
+  int unit = GC::Clear::N_BITS;
+  for (int i = 0; i < DIV_CEIL(instruction.get_n(), unit); i++)
+    Procb.S[instruction.get_r(0) + i] = sint::bit_type::constant(
+        Procb.C[instruction.get_r(1) + i], P.my_num(),
+        share_thread.MC->get_alphai());
+}
+
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::split(const Instruction& instruction)
+{
+  int n = instruction.get_n();
+  assert (instruction.get_start().size() % n == 0);
+  int unit = GC::Clear::N_BITS;
+  assert(unit == 64);
+  int n_inputs = instruction.get_size();
+  int n_bits = instruction.get_start().size() / n;
+  sint::split(Procb.S, instruction.get_start(), n_bits,
+      &read_Sp(instruction.get_r(0)), n_inputs, P);
+}
+
 
 #include "Networking/sockets.h"
 #include "Math/Setup.h"
@@ -539,6 +637,65 @@ void SubProcessor<T>::dotprods(const vector<int>& reg, int size)
     }
 }
 
+template<class T>
+void SubProcessor<T>::matmuls(const vector<T>& source,
+        const Instruction& instruction, int a, int b)
+{
+    auto& dim = instruction.get_start();
+    auto A = source.begin() + a;
+    auto B = source.begin() + b;
+    auto C = S.begin() + (instruction.get_r(0));
+    assert(A + dim[0] * dim[1] <= source.end());
+    assert(B + dim[1] * dim[2] <= source.end());
+    assert(C + dim[0] * dim[2] <= S.end());
+
+    protocol.init_dotprod(this);
+    for (int i = 0; i < dim[0]; i++)
+        for (int j = 0; j < dim[2]; j++)
+        {
+            for (int k = 0; k < dim[1]; k++)
+                protocol.prepare_dotprod(*(A + i * dim[1] + k),
+                        *(B + k * dim[2] + j));
+            protocol.next_dotprod();
+        }
+    protocol.exchange();
+    for (int i = 0; i < dim[0]; i++)
+        for (int j = 0; j < dim[2]; j++)
+            *(C + i * dim[2] + j) = protocol.finalize_dotprod(dim[1]);
+}
+
+template<class T>
+void SubProcessor<T>::matmulsm(const CheckVector<T>& source,
+        const Instruction& instruction, int a, int b)
+{
+    auto& dim = instruction.get_start();
+    auto C = S.begin() + (instruction.get_r(0));
+    assert(C + dim[0] * dim[2] <= S.end());
+    assert(Proc);
+
+    protocol.init_dotprod(this);
+    for (int i = 0; i < dim[0]; i++)
+    {
+        auto ii = Proc->get_Ci().at(dim[3] + i);
+        for (int j = 0; j < dim[2]; j++)
+        {
+            auto jj = Proc->get_Ci().at(dim[6] + j);
+            for (int k = 0; k < dim[1]; k++)
+            {
+                auto kk = Proc->get_Ci().at(dim[4] + k);
+                auto ll = Proc->get_Ci().at(dim[5] + k);
+                protocol.prepare_dotprod(source.at(a + ii * dim[7] + kk),
+                        source.at(b + ll * dim[8] + jj));
+            }
+            protocol.next_dotprod();
+        }
+    }
+    protocol.exchange();
+    for (int i = 0; i < dim[0]; i++)
+        for (int j = 0; j < dim[2]; j++)
+            *(C + i * dim[2] + j) = protocol.finalize_dotprod(dim[1]);
+}
+
 template<class sint, class sgf2n>
 ostream& operator<<(ostream& s,const Processor<sint, sgf2n>& P)
 {
@@ -586,3 +743,5 @@ void Processor<sint, sgf2n>::maybe_encrypt_sequence(int client_id)
     it_cs->second.second++;
   }
 }
+
+#endif

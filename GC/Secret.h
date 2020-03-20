@@ -81,6 +81,8 @@ public:
 
     static const bool needs_ot = false;
 
+    static const bool is_real = true;
+
     static T& cast(T& reg) { return *reinterpret_cast<T*>(&reg); }
     static const T& cast(const T& reg) { return *reinterpret_cast<const T*>(&reg); }
 
@@ -108,8 +110,14 @@ public:
     static void ands(Processor<U>& processor, const vector<int>& args)
     { T::ands(processor, args); }
     template<class U>
+    static void xors(Processor<U>& processor, const vector<int>& args)
+    { T::xors(processor, args); }
+    template<class U>
     static void inputb(Processor<U>& processor, const vector<int>& args)
     { T::inputb(processor, args); }
+    template<class U>
+    static void reveal_inst(Processor<U>& processor, const vector<int>& args)
+    { processor.reveal(args); }
 
     template<class U>
     static void trans(Processor<U>& processor, int n_inputs, const vector<int>& args);

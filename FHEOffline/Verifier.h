@@ -8,14 +8,14 @@ template <class FD, class S>
 class Verifier
 {
   AddableVector<S> z;
-  AddableMatrix<S> t;
+  AddableMatrix<Int_Random_Coins::value_type::value_type> t;
 
-  const Proof& P;
+  Proof& P;
 
 public:
-  Verifier(const Proof& proof);
+  Verifier(Proof& proof);
 
-  void Stage_2(const vector<int>& e,
+  void Stage_2(
       AddableVector<Ciphertext>& c, octetStream& ciphertexts,
       octetStream& cleartexts,const FHE_PK& pk,bool Diag,bool binary=false);
 

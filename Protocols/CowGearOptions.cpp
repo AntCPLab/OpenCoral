@@ -16,6 +16,7 @@ CowGearOptions::CowGearOptions()
 {
     covert_security = 20;
     lowgear_from_covert();
+    use_top_gear = false;
 }
 
 void CowGearOptions::lowgear_from_covert()
@@ -46,6 +47,15 @@ CowGearOptions::CowGearOptions(ez::ezOptionParser& opt, int argc,
             "-l", // Flag token.
             "--lowgear-security" // Flag token.
     );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Use TopGear", // Help description.
+            "-T", // Flag token.
+            "--top-gear" // Flag token.
+    );
     opt.parse(argc, argv);
     if (opt.isSet("-c"))
         opt.get("-c")->getInt(covert_security);
@@ -63,5 +73,6 @@ CowGearOptions::CowGearOptions(ez::ezOptionParser& opt, int argc,
     }
     else
         lowgear_from_covert();
+    use_top_gear = opt.isSet("-T");
     opt.resetArgs();
 }

@@ -6,7 +6,7 @@
 #include "ShamirMC.h"
 
 template<class T>
-void ShamirMC<T>::POpen_Begin(vector<typename T::clear>& values,
+void ShamirMC<T>::POpen_Begin(vector<typename T::open_type>& values,
         const vector<T>& S, const Player& P)
 {
     (void) values;
@@ -28,7 +28,7 @@ void ShamirMC<T>::prepare(const vector<T>& S, const Player& P)
 }
 
 template<class T>
-void ShamirMC<T>::POpen(vector<typename T::clear>& values, const vector<T>& S,
+void ShamirMC<T>::POpen(vector<typename T::open_type>& values, const vector<T>& S,
         const Player& P)
 {
     prepare(S, P);
@@ -55,7 +55,7 @@ void ShamirMC<T>::exchange(const Player& P)
 }
 
 template<class T>
-void ShamirMC<T>::POpen_End(vector<typename T::clear>& values,
+void ShamirMC<T>::POpen_End(vector<typename T::open_type>& values,
         const vector<T>& S, const Player& P)
 {
     P.receive_all(os);
@@ -63,7 +63,7 @@ void ShamirMC<T>::POpen_End(vector<typename T::clear>& values,
 }
 
 template<class T>
-void ShamirMC<T>::finalize(vector<typename T::clear>& values,
+void ShamirMC<T>::finalize(vector<typename T::open_type>& values,
         const vector<T>& S)
 {
     int n_relevant_players = ShamirMachine::s().threshold + 1;
@@ -71,7 +71,7 @@ void ShamirMC<T>::finalize(vector<typename T::clear>& values,
     {
         reconstruction.resize(n_relevant_players, 1);
         for (int i = 0; i < n_relevant_players; i++)
-            reconstruction[i] = Shamir<typename T::clear::Scalar>::get_rec_factor(i,
+            reconstruction[i] = Shamir<T>::get_rec_factor(i,
                     n_relevant_players);
     }
 
@@ -79,5 +79,5 @@ void ShamirMC<T>::finalize(vector<typename T::clear>& values,
     values.resize(S.size());
     for (size_t i = 0; i < values.size(); i++)
         for (int j = 0; j < n_relevant_players; j++)
-            values[i] += os[j].template get<typename T::clear>() * reconstruction[j];
+            values[i] += os[j].template get<typename T::open_type>() * reconstruction[j];
 }

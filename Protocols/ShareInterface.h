@@ -1,0 +1,29 @@
+/*
+ * ShareInterface.h
+ *
+ */
+
+#ifndef PROTOCOLS_SHAREINTERFACE_H_
+#define PROTOCOLS_SHAREINTERFACE_H_
+
+#include <vector>
+using namespace std;
+
+class Player;
+
+namespace GC
+{
+class NoShare;
+}
+
+class ShareInterface
+{
+public:
+    typedef GC::NoShare part_type;
+
+    template<class T, class U>
+    static void split(vector<U>, vector<int>, int, T*, int, Player&)
+    { throw runtime_error("split not implemented"); }
+};
+
+#endif /* PROTOCOLS_SHAREINTERFACE_H_ */

@@ -11,11 +11,14 @@
 #include "Math/gfp.h"
 #include "ECDSA/P256Element.h"
 #include "Tools/Bundle.h"
+#include "GC/TinyMC.h"
+#include "GC/MaliciousCcdSecret.h"
+#include "GC/CcdSecret.h"
+#include "GC/VectorInput.h"
 
 #include "ECDSA/preprocessing.hpp"
 #include "ECDSA/sign.hpp"
 #include "Protocols/MaliciousRepMC.hpp"
-#include "Protocols/MaliciousRepPrep.hpp"
 #include "Protocols/Beaver.hpp"
 #include "Protocols/fake-stuff.hpp"
 #include "Processor/Input.hpp"
@@ -24,6 +27,8 @@
 #include "GC/ShareSecret.hpp"
 #include "GC/RepPrep.hpp"
 #include "GC/ThreadMaster.hpp"
+#include "GC/Secret.hpp"
+#include "Machines/ShamirMachine.hpp"
 
 #include <assert.h>
 

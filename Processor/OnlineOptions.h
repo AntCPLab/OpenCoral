@@ -20,6 +20,8 @@ public:
     std::string progname;
     int batch_size;
     std::string memtype;
+    bool direct;
+    bool fake_batch;
 
     OnlineOptions();
     OnlineOptions(ez::ezOptionParser& opt, int argc, const char** argv,

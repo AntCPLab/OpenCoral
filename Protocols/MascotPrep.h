@@ -28,17 +28,26 @@ public:
 };
 
 template<class T>
-class MascotPrep : public OTPrep<T>, public RandomPrep<T>
+class MascotPrep: public virtual MaliciousRingPrep<T>,
+        public virtual OTPrep<T>,
+        public RandomPrep<T>
 {
 public:
     MascotPrep(SubProcessor<T>* proc, DataPositions& usage) :
-            RingPrep<T>(proc, usage), OTPrep<T>(proc, usage)
+            BufferPrep<T>(usage), RingPrep<T>(proc, usage),
+            MaliciousRingPrep<T>(proc, usage),
+            OTPrep<T>(proc, usage)
+    {
+    }
+    virtual ~MascotPrep()
     {
     }
 
     void buffer_triples();
     void buffer_inputs(int player);
     void buffer_bits() { throw runtime_error("use subclass"); }
+    virtual void buffer_dabits(ThreadQueues* queues);
+    void buffer_edabits(bool strict, int n_bits, ThreadQueues* queues);
 
     T get_random();
 };
@@ -48,11 +57,12 @@ class MascotFieldPrep : public MascotPrep<T>
 {
     void buffer_inverses();
     void buffer_bits();
-    void buffer_dabits();
 
 public:
     MascotFieldPrep<T>(SubProcessor<T>* proc, DataPositions& usage) :
-            RingPrep<T>(proc, usage), MascotPrep<T>(proc, usage)
+            BufferPrep<T>(usage),
+            RingPrep<T>(proc, usage), MaliciousRingPrep<T>(proc, usage),
+            OTPrep<T>(proc, usage), MascotPrep<T>(proc, usage)
     {
     }
 };

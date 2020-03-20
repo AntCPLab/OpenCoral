@@ -68,7 +68,7 @@ template<class T>
 T Beaver<T>::finalize_mul(int n)
 {
     (void) n;
-    typename T::clear masked[2];
+    typename T::open_type masked[2];
     T& tmp = (*triple)[2];
     for (int k = 0; k < 2; k++)
     {

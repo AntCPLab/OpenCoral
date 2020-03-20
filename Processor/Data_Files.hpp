@@ -103,7 +103,17 @@ Data_Files<sint, sgf2n>::Data_Files(Machine<sint, sgf2n>& machine, SubProcessor<
 template<class sint, class sgf2n>
 Data_Files<sint, sgf2n>::~Data_Files()
 {
+#ifdef VERBOSE
+  if (DataFp.data_sent())
+    cerr << "Sent for " << sint::type_string() << " preprocessing threads: " <<
+        DataFp.data_sent() * 1e-6 << " MB" << endl;
+#endif
   delete &DataFp;
+#ifdef VERBOSE
+  if (DataF2.data_sent())
+    cerr << "Sent for " << sgf2n::type_string() << " preprocessing threads: " <<
+        DataF2.data_sent() * 1e-6 << " MB" << endl;
+#endif
   delete &DataF2;
 }
 
@@ -153,6 +163,7 @@ void Data_Files<sint, sgf2n>::skip(const DataPositions& pos)
 {
   DataPositions new_pos = usage;
   new_pos.increase(pos);
+  skipped.increase(pos);
   seekg(new_pos);
 }
 

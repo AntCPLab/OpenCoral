@@ -31,7 +31,7 @@ void collapse_byte(int& b,const gf2n_short& a);
   Arithmetic in Gf_{2^n} with n<64
 */
 
-class gf2n_short
+class gf2n_short : public ValueInterface
 {
   friend class gf2n_long;
 
@@ -67,7 +67,9 @@ class gf2n_short
   static const int MAX_N_BITS = 64;
   static const int N_BYTES = sizeof(a);
 
-  static void init_field(int nn);
+  static const int N_BITS = -1;
+
+  static void init_field(int nn = 0);
   static int degree() { return n; }
   static int default_degree() { return 40; }
   static int get_nterms() { return nterms; }
@@ -127,8 +129,11 @@ class gf2n_short
   gf2n_short(word a)		{ assign(a); }
   gf2n_short(long a)		{ assign(a); }
   gf2n_short(int a)			{ assign(a); }
+  gf2n_short(bool a)        { assign(a); }
   gf2n_short(const char* a) { assign(a); }
   gf2n_short(const int128& a) { reduce(a.get_upper(), a.get_lower()); }
+  template<class T>
+  gf2n_short(IntBase<T> a)  { assign(a.get()); }
   ~gf2n_short()             { ; }
 
   int is_zero() const            { return (a==0); }
@@ -193,7 +198,9 @@ class gf2n_short
   gf2n_short operator<<(int i) const { gf2n_short res; res.SHL(*this, i); return res; }
   gf2n_short operator>>(int i) const { gf2n_short res; res.SHR(*this, i); return res; }
 
+  gf2n_short& operator&=(const gf2n_short& x) { AND(*this, x); return *this; }
   gf2n_short& operator>>=(int i) { SHR(*this, i); return *this; }
+  gf2n_short& operator<<=(int i) { SHL(*this, i); return *this; }
 
   /* Crap RNG */
   void randomize(PRNG& G, int n = -1);

@@ -90,6 +90,8 @@ class Ring_Element
   friend void mul(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b);
   friend void mul(Ring_Element& ans,const Ring_Element& a,const modp& b);
 
+  Ring_Element mul_by_X_i(int i) const;
+
   void randomize(PRNG& G,bool Diag=false);
 
   bool equals(const Ring_Element& a) const;
@@ -115,6 +117,12 @@ class Ring_Element
 
   template <class T>
   void from(const Generator<T>& generator);
+
+  template <class T>
+  void from(const vector<T>& source)
+  {
+    from(Iterator<T>(source));
+  }
 
   // This gets the constant term of the poly rep as a modp element
   modp get_constant() const;
@@ -166,6 +174,21 @@ public:
 
 inline void mul(Ring_Element& ans,const modp& a,const Ring_Element& b)
 { mul(ans,b,a); }
+
+
+template <class T>
+void Ring_Element::from(const Generator<T>& generator)
+{
+  RepType t=rep;
+  rep=polynomial;
+  T tmp;
+  for (int i=0; i<(*FFTD).phi_m(); i++)
+    {
+      generator.get(tmp);
+      element[i].convert_destroy(tmp, (*FFTD).get_prD());
+    }
+  change_rep(t);
+}
 
 #endif
 

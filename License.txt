@@ -1,5 +1,5 @@
 CSIRO Open Source Software Licence Agreement (variation of the BSD / MIT License)
-Copyright (c) 2019, Commonwealth Scientific and Industrial Research Organisation (CSIRO) ABN 41 687 119 230.
+Copyright (c) 2020, Commonwealth Scientific and Industrial Research Organisation (CSIRO) ABN 41 687 119 230.
 All rights reserved. CSIRO is willing to grant you a licence to this MP-SPDZ sofware on the following terms, except where otherwise indicated for third party material.
 Redistribution and use of this software in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
@@ -26,7 +26,7 @@ Please contact mks.keller@gmail.com
 The same license as for SPDZ-2 applies.
 ___________________________________________________________________
 SCALE-MAMBA [https://github.com/KULeuven-COSIC/SCALE-MAMBA]
-Copyright (c) 2019, The University of Bristol, COSIC-KU Leuven
+Copyright (c) 2020, The University of Bristol, COSIC-KU Leuven
 Please contact nigel.smart@kuleuven.be
 See below for the full license.
 ___________________________________________________________________
@@ -58,7 +58,7 @@ This software incorporates components from the original SPDZ system, as well as 
 extensions. It's  copyright therefore rests with the following two institutions:
 
 Copyright (c) 2017, The University of Bristol, Senate House, Tyndall Avenue, Bristol, BS8 1TH, United Kingdom.
-Copyright (c) 2018, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
+Copyright (c) 2020, COSIC-KU Leuven, Kasteelpark Arenberg 10, bus 2452, B-3001 Leuven-Heverlee, Belgium.
 
 All rights reserved
 

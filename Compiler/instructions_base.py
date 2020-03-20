@@ -8,6 +8,7 @@ from Compiler.exceptions import *
 from Compiler.config import *
 from Compiler import util
 from Compiler import tools
+from Compiler import program
 
 
 ###
@@ -59,6 +60,7 @@ opcodes = dict(
     NPLAYERS = 0xE2,
     THRESHOLD = 0xE3,
     PLAYERID = 0xE4,
+    USE_EDABIT = 0xE5,
     # Addition
     ADDC = 0x20,
     ADDS = 0x21,
@@ -93,6 +95,8 @@ opcodes = dict(
     MULRS = 0xA7,
     DOTPRODS = 0xA8,
     TRUNC_PR = 0xA9,
+    MATMULS = 0xAA,
+    MATMULSM = 0xAB,
     # Data access
     TRIPLE = 0x50,
     BIT = 0x51,
@@ -103,6 +107,8 @@ opcodes = dict(
     INPUTMASK = 0x56,
     PREP = 0x57,
     DABIT = 0x58,
+    EDABIT = 0x59,
+    SEDABIT = 0x5A,
     # Input
     INPUT = 0x60,
     INPUTFIX = 0xF0,
@@ -153,6 +159,8 @@ opcodes = dict(
     MULINT = 0x9D,
     DIVINT = 0x9E,
     PRINTINT = 0x9F,
+    INCINT = 0xD1,
+    SHUFFLE = 0xD2,
     # Conversion
     CONVINT = 0xC0,
     CONVMODP = 0xC1,
@@ -235,13 +243,17 @@ def vectorize(instruction, global_dict=None):
         def __init__(self, size, *args, **kwargs):
             self.size = size
             super(Vectorized_Instruction, self).__init__(*args, **kwargs)
-            for arg,f in zip(self.args, self.arg_format):
-                if issubclass(ArgFormats[f], RegisterArgFormat):
-                    arg.set_size(size)
+            if not kwargs.get('copying', False):
+                for arg,f in zip(self.args, self.arg_format):
+                    if issubclass(ArgFormats[f], RegisterArgFormat):
+                        arg.set_size(size)
         def get_code(self):
-            return (self.size << 10) + self.code
+            return instruction.get_code(self, self.get_size())
         def get_pre_arg(self):
-            return "%d, " % self.size
+            try:
+                return "%d, " % self.size
+            except:
+                return "{undef}, "
         def is_vec(self):
             return True
         def get_size(self):
@@ -250,6 +262,9 @@ def vectorize(instruction, global_dict=None):
             set_global_vector_size(self.size)
             super(Vectorized_Instruction, self).expand()
             reset_global_vector_size()
+        def copy(self, size, subs):
+            return type(self)(size, *self.get_new_args(size, subs),
+                              copying=True)
 
     @functools.wraps(instruction)
     def maybe_vectorized_instruction(*args, **kwargs):
@@ -360,6 +375,169 @@ def gf2n(instruction):
     return maybe_gf2n_instruction
     #return instruction
 
+class Mergeable:
+    pass
+
+def cisc(function):
+    class MergeCISC(Mergeable):
+        instructions = {}
+
+        def __init__(self, *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
+            self.calls = [(args, kwargs)]
+            self.params = []
+            self.used = []
+            for arg in self.args[1:]:
+                if isinstance(arg, program.curr_tape.Register):
+                    self.used.append(arg)
+                    self.params.append(type(arg))
+                else:
+                    self.params.append(arg)
+            self.function = function
+            program.curr_block.instructions.append(self)
+
+        def get_def(self):
+            return [self.args[0]]
+
+        def get_used(self):
+            return self.used
+
+        def is_vec(self):
+            return True
+
+        def merge_id(self):
+            return self.function, tuple(self.params), \
+                tuple(sorted(self.kwargs.items()))
+
+        def merge(self, other):
+            self.calls += other.calls
+
+        def get_size(self):
+            return self.args[0].size
+
+        def new_instructions(self, size, regs):
+            if self.merge_id() not in self.instructions:
+                from Compiler.program import Tape
+                tape = Tape(self.function.__name__, program)
+                old_tape = program.curr_tape
+                program.curr_tape = tape
+                block = tape.BasicBlock(tape, None, None)
+                tape.active_basicblock = block
+                set_global_vector_size(None)
+                args = []
+                for arg in self.args:
+                    try:
+                        args.append(type(arg)(size=None))
+                    except:
+                        args.append(arg)
+                program.options.cisc = False
+                self.function(*args, **self.kwargs)
+                program.options.cisc = True
+                reset_global_vector_size()
+                program.curr_tape = old_tape
+                from Compiler.allocator import Merger
+                merger = Merger(block, program.options,
+                                tuple(program.to_merge))
+                args[0].can_eliminate = False
+                merger.eliminate_dead_code()
+                assert int(program.options.max_parallel_open) == 0, \
+                    'merging restriction not compatible with ' \
+                    'mergeable CISC instructions'
+                merger.longest_paths_merge()
+                filtered = filter(lambda x: x is not None, block.instructions)
+                self.instructions[self.merge_id()] = list(filtered), args
+            template, args = self.instructions[self.merge_id()]
+            subs = util.dict_by_id()
+            for arg, reg in zip(args, regs):
+                subs[arg] = reg
+            set_global_vector_size(size)
+            for inst in template:
+                inst.copy(size, subs)
+            reset_global_vector_size()
+
+        def expand_merged(self):
+            tape = program.curr_tape
+            block = tape.BasicBlock(tape, None, None)
+            tape.active_basicblock = block
+            size = sum(call[0][0].size for call in self.calls)
+            new_regs = []
+            for arg in self.args:
+                try:
+                    new_regs.append(type(arg)(size=size))
+                except:
+                    break
+            base = 0
+            for call in self.calls:
+                for new_reg, reg in zip(new_regs[1:], call[0][1:]):
+                    set_global_vector_size(reg.size)
+                    reg.mov(new_reg.get_vector(base, reg.size), reg)
+                    reset_global_vector_size()
+                base += reg.size
+            self.new_instructions(size, new_regs)
+            base = 0
+            for call in self.calls:
+                reg = call[0][0]
+                set_global_vector_size(reg.size)
+                reg.mov(reg, new_regs[0].get_vector(base, reg.size))
+                reset_global_vector_size()
+                base += reg.size
+            return block.instructions
+
+    MergeCISC.__name__ = function.__name__
+
+    def wrapper(*args, **kwargs):
+        if program.options.cisc:
+            return MergeCISC(*args, **kwargs)
+        else:
+            return function(*args, **kwargs)
+    return wrapper
+
+def ret_cisc(function):
+    def instruction(res, *args, **kwargs):
+        res.mov(res, function(*args, **kwargs))
+    instruction.__name__ = function.__name__
+    instruction = cisc(instruction)
+
+    def wrapper(*args, **kwargs):
+        if not program.options.cisc:
+            return function(*args, **kwargs)
+        from Compiler import types
+        if isinstance(args[0], types._clear):
+            res_type = type(args[1])
+        else:
+            res_type = type(args[0])
+        res = res_type(size=args[0].size)
+        instruction(res, *args, **kwargs)
+        return res
+    return wrapper
+
+def sfix_cisc(function):
+    from Compiler.types import sfix, sint, cfix, copy_doc
+    def instruction(res, arg, k, f):
+        assert k is not None
+        assert f is not None
+        old = sfix.k, sfix.f, cfix.k, cfix.f
+        sfix.k, sfix.f, cfix.k, cfix.f = [None] * 4
+        res.mov(res, function(sfix._new(arg, k=k, f=f)).v)
+        sfix.k, sfix.f, cfix.k, cfix.f = old
+    instruction.__name__ = function.__name__
+    instruction = cisc(instruction)
+
+    def wrapper(*args, **kwargs):
+        if isinstance(args[0], sfix):
+            assert len(args) == 1
+            assert not kwargs
+            assert args[0].size == args[0].v.size
+            k = args[0].k
+            f = args[0].f
+            res = sfix._new(sint(size=args[0].size), k=k, f=f)
+            instruction(res.v, args[0].v, k, f)
+            return res
+        else:
+            return function(*args, **kwargs)
+    copy_doc(wrapper, function)
+    return wrapper
 
 class RegType(object):
     """ enum-like static class for Register types """
@@ -381,6 +559,8 @@ class RegType(object):
         return res
 
 class ArgFormat(object):
+    is_reg = False
+
     @classmethod
     def check(cls, arg):
         return NotImplemented
@@ -390,11 +570,13 @@ class ArgFormat(object):
         return NotImplemented
 
 class RegisterArgFormat(ArgFormat):
+    is_reg = True
+
     @classmethod
     def check(cls, arg):
         if not isinstance(arg, program.curr_tape.Register):
             raise ArgumentError(arg, 'Invalid register argument')
-        if arg.i > REG_MAX:
+        if arg.i > REG_MAX and arg.i != float('inf'):
             raise ArgumentError(arg, 'Register index too large')
         if arg.program != program.curr_tape:
             raise ArgumentError(arg, 'Register from other tape, trace: %s' % \
@@ -425,7 +607,7 @@ class ClearIntAF(RegisterArgFormat):
 class IntArgFormat(ArgFormat):
     @classmethod
     def check(cls, arg):
-        if not isinstance(arg, int):
+        if not isinstance(arg, int) and not arg is None:
             raise ArgumentError(arg, 'Expected an integer-valued argument')
 
     @classmethod
@@ -487,7 +669,7 @@ ArgFormats = {
 }
 
 def format_str_is_reg(format_str):
-    return issubclass(ArgFormats[format_str], RegisterArgFormat)
+    return ArgFormats[format_str].is_reg
 
 def format_str_is_writeable(format_str):
     return format_str_is_reg(format_str) and format_str[-1] == 'w'
@@ -504,7 +686,8 @@ class Instruction(object):
     def __init__(self, *args, **kwargs):
         """ Create an instruction and append it to the program list. """
         self.args = list(args)
-        self.check_args()
+        if not kwargs.get('copying', False):
+            self.check_args()
         if not program.FIRST_PASS:
             if kwargs.get('add_to_prog', True):
                 program.curr_block.instructions.append(self)
@@ -519,9 +702,9 @@ class Instruction(object):
         if Instruction.count % 100000 == 0:
             print("Compiled %d lines at" % self.__class__.count, time.asctime())
 
-    def get_code(self):
-        return self.code
-    
+    def get_code(self, prefix=0):
+        return (prefix << 10) + self.code
+
     def get_encoding(self):
         enc = int_to_bytes(self.get_code())
         # add the number of registers if instruction flagged as has var args
@@ -540,12 +723,12 @@ class Instruction(object):
     
     def check_args(self):
         """ Check the args match up with that specified in arg_format """
-        for n,(arg,f) in enumerate(itertools.zip_longest(self.args, self.arg_format)):
-            if arg is None:
-                if not isinstance(self.arg_format, (list, tuple)):
-                    break # end of optional arguments
-                else:
-                    raise CompilerError('Incorrect number of arguments for instruction %s' % (self))
+        try:
+            if len(self.args) != len(self.arg_format):
+                raise CompilerError('Incorrect number of arguments for instruction %s' % (self))
+        except TypeError:
+            pass
+        for n,(arg,f) in enumerate(zip(self.args, self.arg_format)):
             try:
                 ArgFormats[f].check(arg)
             except ArgumentError as e:
@@ -589,6 +772,42 @@ class Instruction(object):
     def merge_id(self):
         return type(self), self.get_size()
 
+    def merge(self, other):
+        if self.get_size() != other.get_size():
+            # merge as non-vector instruction
+            self.args = self.expand_vector_args() + other.expand_vector_args()
+            if self.is_vec():
+                self.size = 1
+        else:
+            self.args += other.args
+
+    def expand_vector_args(self):
+        if self.is_vec():
+            for arg in self.args:
+                arg.create_vector_elements()
+                res = sum(list(zip(*self.args)), ())
+                return list(res)
+        else:
+            return self.args
+
+    def expand_merged(self):
+        return [self]
+
+    def get_new_args(self, size, subs):
+        new_args = []
+        for arg, f in zip(self.args, self.arg_format):
+            if arg in subs:
+                new_args.append(subs[arg])
+            elif arg is None:
+                new_args.append(size)
+            else:
+                if format_str_is_writeable(f):
+                    new_args.append(arg.copy())
+                    subs[arg] = new_args[-1]
+                else:
+                    new_args.append(arg)
+        return new_args
+
     # String version of instruction attempting to replicate encoded version
     def __str__(self):
         
@@ -605,6 +824,13 @@ class Instruction(object):
 class VarArgsInstruction(Instruction):
     def has_var_args(self):
         return True
+
+class VectorInstruction(Instruction):
+    __slots__ = []
+    is_vec = lambda self: True
+
+    def get_code(self):
+        return super(VectorInstruction, self).get_code(len(self.args[0]))
 
 ###
 ### Basic arithmetic

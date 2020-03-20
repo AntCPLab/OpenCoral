@@ -522,7 +522,7 @@ void TinierMultiplier<U>::multiplyForInputs(MultJob job)
     auth_ot_ext.set_role(mine ? RECEIVER : SENDER);
     if (mine)
         this->inbox.pop();
-    assert(not mine or job.n_inputs <= (int)generator.valueBits[0].size());
+    assert(not mine or job.n_inputs <= (int)generator.valueBits.at(0).size());
     auth_ot_ext.expand_correlate_unchecked(generator.valueBits[0], job.n_inputs);
     auth_ot_ext.transpose();
     auto& input_macs = this->input_macs;

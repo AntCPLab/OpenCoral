@@ -15,19 +15,7 @@
 #include "GC/TinierPrep.h"
 #include "GC/TinyMC.h"
 
-#include "Processor/Data_Files.hpp"
-#include "Processor/Instruction.hpp"
-#include "Processor/Machine.hpp"
-#include "Protocols/MAC_Check.hpp"
-#include "Protocols/fake-stuff.hpp"
-#include "Protocols/Beaver.hpp"
-#include "Protocols/Share.hpp"
-#include "GC/ShareSecret.hpp"
-#include "GC/TinyPrep.hpp"
-#include "GC/Secret.hpp"
-#include "GC/TinierSharePrep.hpp"
-#include "OT/NPartyTripleGenerator.hpp"
-
+#include "SPDZ.hpp"
 #include "Player-Online.hpp"
 
 #include "Protocols/CowGearPrep.hpp"

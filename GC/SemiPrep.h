@@ -25,7 +25,7 @@ class SemiPrep : public BufferPrep<SemiSecret>, ShiftableTripleBuffer<SemiSecret
 
 public:
     SemiPrep(DataPositions& usage, ShareThread<SemiSecret>& thread);
-    SemiPrep(DataPositions& usage);
+    SemiPrep(DataPositions& usage, bool = true);
     ~SemiPrep();
 
     void set_protocol(Beaver<SemiSecret>& protocol);
@@ -44,6 +44,11 @@ public:
     array<SemiSecret, 3> get_triple(int n_bits)
     {
         return ShiftableTripleBuffer<SemiSecret>::get_triple(n_bits);
+    }
+
+    void buffer_personal_triples(vector<array<SemiSecret, 3>>&, size_t, size_t)
+    {
+        throw not_implemented();
     }
 };
 

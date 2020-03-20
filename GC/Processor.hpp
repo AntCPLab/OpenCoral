@@ -185,6 +185,14 @@ void Processor<T>::xors(const vector<int>& args)
     }
 }
 
+template<class T>
+void Processor<T>::andm(const ::BaseInstruction& instruction)
+{
+    for (int i = 0; i < DIV_CEIL(instruction.get_n(), T::default_length); i++)
+        S[instruction.get_r(0) + i] = S[instruction.get_r(1) + i]
+                & C[instruction.get_r(2) + i];
+}
+
 template <class T>
 void Processor<T>::and_(const vector<int>& args, bool repeat)
 {
@@ -206,6 +214,22 @@ void Processor<T>::input(const vector<int>& args)
 #ifdef DEBUG_INPUT
         cout << "input to " << args[i+2] << "/" << &S[args[i+2]] << endl;
 #endif
+    }
+}
+
+template <class T>
+void Processor<T>::reveal(const vector<int>& args)
+{
+    for (size_t j = 0; j < args.size(); j += 3)
+    {
+        int n = args[j];
+        int r0 = args[j + 1];
+        int r1 = args[j + 2];
+        if (n > max(T::default_length, Clear::N_BITS))
+            assert(T::default_length == Clear::N_BITS);
+        for (int i = 0; i < DIV_CEIL(n, T::default_length); i++)
+            S[r1 + i].reveal(min(Clear::N_BITS, n - i * Clear::N_BITS),
+                    C[r0 + i]);
     }
 }
 
@@ -232,6 +256,8 @@ void Processor<T>::print_reg_signed(unsigned n_bits, Clear& value)
     unsigned n_shift = 0;
     if (n_bits > 1)
         n_shift = sizeof(value.get()) * 8 - n_bits;
+    if (n_shift > 63)
+        n_shift = 0;
     T::out << dec << (value.get() << n_shift >> n_shift) << flush;
 }
 

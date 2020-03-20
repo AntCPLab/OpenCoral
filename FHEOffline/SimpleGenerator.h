@@ -55,20 +55,20 @@ class SimpleGenerator : public GeneratorBase
     const PartSetup<FD>& setup;
     const MultiplicativeMachine& machine;
 
-    SimpleDistDecrypt<FD> dd;
-
     size_t volatile_memory;
 
 public:
+    SimpleDistDecrypt<FD> dd;
     T<FD> EC;
     Producer<FD>* producer;
 
     SimpleGenerator(const Names& N, const PartSetup<FD>& setup,
             const MultiplicativeMachine& machine, int thread_num,
-            Dtype data_type = DATA_TRIPLE);
+            Dtype data_type = DATA_TRIPLE, Player* player = 0);
     ~SimpleGenerator();
 
-    void run();
+    void run() { run(true); }
+    void run(bool exhaust);
     size_t report_size(ReportType type);
     void report_size(ReportType type, MemoryUsage& res);
     size_t report_sent() { return P.sent; }

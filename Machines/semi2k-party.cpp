@@ -19,6 +19,9 @@ int main(int argc, const char** argv)
     RingOptions opts(opt, argc, argv);
     switch (opts.R)
     {
+    case 40:
+        spdz_main<Semi2kShare<40>, SemiShare<gf2n>>(argc, argv, opt);
+        break;
     case 64:
         spdz_main<Semi2kShare<64>, SemiShare<gf2n>>(argc, argv, opt);
         break;

@@ -8,6 +8,10 @@
 #include "Protocols/fake-stuff.h"
 #include "FHE/NTL-Subs.h"
 #include "Tools/benchmarking.h"
+#include "Tools/Bundle.h"
+#include "PairwiseSetup.h"
+#include "Proof.h"
+#include "SimpleMachine.h"
 
 #include <iostream>
 using namespace std;
@@ -58,8 +62,8 @@ void PartSetup<FD>::generate_setup(int n_parties, int plaintext_length, int sec,
     int slack, bool round_up)
 {
   sec = max(sec, 40);
-  ::generate_setup(n_parties, plaintext_length, sec, params, FieldD,
-      slack, round_up);
+  Parameters(n_parties, plaintext_length, sec, slack, round_up).generate_setup(
+      params, FieldD);
   params.set_sec(sec);
   pk = FHE_PK(params, FieldD.get_prime());
   sk = FHE_SK(params, FieldD.get_prime());
@@ -254,6 +258,7 @@ void DataSetup::output(int my_number, int nn, bool specific_dir)
 template <class FD>
 void PartSetup<FD>::pack(octetStream& os)
 {
+    os.append((octet*)"PARTSETU", 8);
     params.pack(os);
     FieldD.pack(os);
     pk.pack(os);
@@ -265,8 +270,15 @@ void PartSetup<FD>::pack(octetStream& os)
 template <class FD>
 void PartSetup<FD>::unpack(octetStream& os)
 {
+    char tag[8];
+    os.consume((octet*) tag, 8);
+    if (memcmp(tag, "PARTSETU", 8))
+      throw runtime_error("invalid serialization of setup");
     params.unpack(os);
     FieldD.unpack(os);
+    pk = {params, FieldD};
+    sk = pk;
+    calpha = params;
     pk.unpack(os);
     sk.unpack(os);
     calpha.unpack(os);
@@ -303,6 +315,95 @@ bool PartSetup<FD>::operator!=(const PartSetup<FD>& other)
         return true;
     else
         return false;
+}
+
+template<class FD>
+void PartSetup<FD>::secure_init(Player& P, MachineBase& machine,
+    int plaintext_length, int sec)
+{
+    ::secure_init(*this, P, machine, plaintext_length, sec);
+}
+
+template<class FD>
+void PartSetup<FD>::generate(Player& P, MachineBase&, int plaintext_length,
+        int sec)
+{
+    generate_setup(P.num_players(), plaintext_length, sec,
+            INTERACTIVE_SPDZ1_SLACK, false);
+}
+
+template<class FD>
+void PartSetup<FD>::check(Player& P, MachineBase& machine)
+{
+    Bundle<octetStream> bundle(P);
+    bundle.mine.store(machine.extra_slack);
+    auto& os = bundle.mine;
+    params.pack(os);
+    FieldD.hash(os);
+    pk.pack(os);
+    calpha.pack(os);
+    bundle.compare(P);
+}
+
+template<class FD>
+void PartSetup<FD>::covert_key_generation(Player& P,
+    MultiplicativeMachine& machine, int num_runs)
+{
+    auto& setup = machine.setup.part<FD>();
+    Run_Gen_Protocol(setup.pk, setup.sk, P, num_runs, false);
+}
+
+template<class FD>
+void PartSetup<FD>::covert_mac_generation(Player& P,
+    MultiplicativeMachine& machine, int num_runs)
+{
+    auto& setup = machine.setup.part<FD>();
+    generate_mac_key(setup.alphai, setup.calpha, setup.FieldD, setup.pk, P,
+            num_runs);
+}
+
+template<class FD>
+void PartSetup<FD>::covert_secrets_generation(Player& P,
+    MultiplicativeMachine& machine, int num_runs)
+{
+    octetStream os;
+    params.pack(os);
+    FieldD.pack(os);
+    string filename = PREP_DIR "ChaiGear-Secrets-" + to_string(num_runs) + "-"
+            + os.check_sum(20).get_str(16) + "-P" + to_string(P.my_num());
+
+    string error;
+
+    try
+    {
+        ifstream input(filename);
+        os.input(input);
+        unpack(os);
+    }
+    catch (exception& e)
+    {
+        error = e.what();
+    }
+
+    try
+    {
+        check(P, machine);
+    }
+    catch (mismatch_among_parties& e)
+    {
+        error = e.what();
+    }
+
+    if (not error.empty())
+    {
+        cerr << "Running secrets generation because " << error << endl;
+        covert_key_generation(P, machine, num_runs);
+        covert_mac_generation(P, machine, num_runs);
+        ofstream output(filename);
+        octetStream os;
+        pack(os);
+        os.output(output);
+    }
 }
 
 template class PartSetup<FFT_Data>;

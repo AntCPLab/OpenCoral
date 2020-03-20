@@ -9,8 +9,10 @@
 
 class FHE_PK;
 
-class Int_Random_Coins : public AddableMatrix<bigint>
+class Int_Random_Coins : public AddableMatrix<fixint<0>>
 {
+  typedef value_type::value_type T;
+
   const FHE_Params* params;
 public:
   Int_Random_Coins(const FHE_Params& params) : params(&params)
@@ -20,14 +22,16 @@ public:
 
   void sample(PRNG& G)
   {
-    (*this)[0].from(HalfGenerator(G));
+    (*this)[0].from(HalfGenerator<T>(G));
     for (int i = 1; i < 3; i++)
-      (*this)[i].from(GaussianGenerator(params->get_DG(), G));
+      (*this)[i].from(GaussianGenerator<T>(params->get_DG(), G));
   }
 };
 
 class Random_Coins
 {
+  typedef bigint T;
+
   Rq_Element uu,vv,ww;
   const FHE_Params *params;
 
@@ -56,16 +60,25 @@ class Random_Coins
 
   template <class T>
   void assign(const vector<T>& u,const vector<T>& v,const vector<T>& w)
-    { uu.from_vec(u); vv.from_vec(v); ww.from_vec(w); }
+    {
+      uu.from(u);
+      vv.from(v);
+      ww.from(w);
+    }
 
   void assign(const Int_Random_Coins& rc)
-  { uu.from_vec(rc[0]); vv.from_vec(rc[1]); ww.from_vec(rc[2]); }
+    {
+      uu.from(rc[0]);
+      vv.from(rc[1]);
+      ww.from(rc[2]);
+    }
 
   /* Generate a standard distribution */
   void generate(PRNG& G)
-    { uu.from(HalfGenerator(G));
-      vv.from(GaussianGenerator(params->get_DG(), G));
-      ww.from(GaussianGenerator(params->get_DG(), G));
+    {
+      uu.from(HalfGenerator<T>(G));
+      vv.from(GaussianGenerator<T>(params->get_DG(), G));
+      ww.from(GaussianGenerator<T>(params->get_DG(), G));
     }
 
   // Generate all from Uniform in range (-B,...B)
@@ -74,9 +87,9 @@ class Random_Coins
       if (B1 == 0)
         uu.assign_zero();
       else
-        uu.from(UniformGenerator(G,numBits(B1)));
-      vv.from(UniformGenerator(G,numBits(B2)));
-      ww.from(UniformGenerator(G,numBits(B3)));
+        uu.from(UniformGenerator<T>(G,numBits(B1)));
+      vv.from(UniformGenerator<T>(G,numBits(B2)));
+      ww.from(UniformGenerator<T>(G,numBits(B3)));
     }
 
 

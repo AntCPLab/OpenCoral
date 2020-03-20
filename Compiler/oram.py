@@ -57,10 +57,14 @@ class intBlock(Block):
         length = sum(self.lengths)
         self.n_bits = length * entries_per_block
         self.start = self.value_type.hard_conv(start * length)
-        self.lower, self.shift = \
-            floatingpoint.Trunc(self.value, self.n_bits, self.start, \
+        if Program.prog.options.ring:
+            self.lower, trunc, self.shift = floatingpoint.SplitInRing(
+                self.value, self.n_bits, self.start)
+        else:
+            self.lower, self.shift = \
+                floatingpoint.Trunc(self.value, self.n_bits, self.start, \
                                     Program.prog.security, True)
-        trunc = (self.value - self.lower) / self.shift
+            trunc = (self.value - self.lower) / self.shift
         self.slice = trunc.mod2m(length, self.n_bits, False)
         self.upper = (trunc - self.slice) * self.shift
     def get_slice(self):
@@ -810,7 +814,7 @@ def get_n_threads(n_loops):
         if n_loops > 2048:
             return 8
         else:
-            return 1
+            return None
     else:
         return n_threads
 
@@ -1375,7 +1379,11 @@ def get_value_size(value_type):
     if value_type == sgf2n:
         return Program.prog.galois_length
     elif value_type == sint:
-        return 127 - Program.prog.security
+        ring = Program.prog.options.ring
+        if ring:
+            return int(ring)
+        else:
+            return 127 - Program.prog.security
     else:
         return value_type.max_length
 
@@ -1477,11 +1485,13 @@ class PackedIndexStructure(object):
             rem = mod2m(index, self.log_entries_per_block, log2(self.size), False)
             c = mod2m(rem, self.log_entries_per_element, \
                           self.log_entries_per_block, False)
-            b = (rem - c) / self.entries_per_element
+            b = (rem - c).trunc_zeros(self.log_entries_per_element,
+                                      self.log_entries_per_block)
             if self.small:
                 return 0, b, c
             else:
-                return (index - rem) / self.entries_per_block, b, c
+                return (index - rem).trunc_zeros(self.log_entries_per_block,
+                                                 log2(self.size)), b, c
         else:
             index_bits = bit_decompose(index, log2(self.size))
             l1 = self.log_entries_per_element

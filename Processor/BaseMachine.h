@@ -8,6 +8,8 @@
 
 #include "Tools/time-func.h"
 #include "OT/OTTripleSetup.h"
+#include "ThreadJob.h"
+#include "ThreadQueues.h"
 
 #include <map>
 #include <fstream>
@@ -33,6 +35,8 @@ public:
     int nthreads;
 
     vector<OTTripleSetup> ot_setups;
+
+    ThreadQueues queues;
 
     static BaseMachine& s();
 

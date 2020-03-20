@@ -11,8 +11,10 @@ namespace GC
 {
 
 template<class T>
-TinyPrep<T>::TinyPrep(DataPositions& usage, ShareThread<T>& thread) :
-        BufferPrep<T>(usage), thread(thread), triple_generator(0)
+TinyPrep<T>::TinyPrep(DataPositions& usage, ShareThread<T>& thread,
+        bool amplify) :
+        BufferPrep<T>(usage), thread(thread), triple_generator(0),
+        amplify(amplify)
 {
 
 }
@@ -40,15 +42,20 @@ TinyOnlyPrep<T>::~TinyOnlyPrep()
 template<class T>
 void TinyPrep<T>::set_protocol(Beaver<T>& protocol)
 {
-    (void) protocol;
+    init(protocol.P);
+}
+
+template<class T>
+void TinyPrep<T>::init(Player& P)
+{
     params.generateMACs = true;
     params.amplify = false;
     params.check = false;
     auto& thread = ShareThread<T>::s();
     triple_generator = new typename T::TripleGenerator(
-            BaseMachine::s().fresh_ot_setup(), protocol.P.N, -1,
+            BaseMachine::s().fresh_ot_setup(), P.N, -1,
             OnlineOptions::singleton.batch_size, 1, params,
-            thread.MC->get_alphai(), &protocol.P);
+            thread.MC->get_alphai(), &P);
     triple_generator->multi_threaded = false;
 }
 
@@ -68,10 +75,16 @@ template<class T>
 void TinyPrep<T>::buffer_triples()
 {
     auto& triple_generator = this->triple_generator;
+    assert(triple_generator != 0);
     params.generateBits = false;
     vector<array<typename T::check_type, 3>> triples;
     ShuffleSacrifice<typename T::check_type> sacrifice;
-    while (int(triples.size()) < sacrifice.minimum_n_inputs_with_combining())
+    size_t required;
+    if (amplify)
+        required = sacrifice.minimum_n_inputs_with_combining();
+    else
+        required = sacrifice.minimum_n_inputs();
+    while (triples.size() < required)
     {
         triple_generator->generatePlainTriples();
         triple_generator->unlock();
@@ -102,8 +115,9 @@ void TinyPrep<T>::buffer_triples()
     }
     sacrifice.triple_sacrifice(triples, triples,
             *thread.P, thread.MC->get_part_MC());
-    sacrifice.triple_combine(triples, triples, *thread.P,
-            thread.MC->get_part_MC());
+    if (amplify)
+        sacrifice.triple_combine(triples, triples, *thread.P,
+                thread.MC->get_part_MC());
     for (size_t i = 0; i < triples.size() / T::default_length; i++)
     {
         this->triples.push_back({});

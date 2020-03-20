@@ -19,7 +19,7 @@ public:
             RepPrep<SemiHonestRepSecret>(usage)
     {
     }
-    SemiHonestRepPrep(DataPositions& usage) :
+    SemiHonestRepPrep(DataPositions& usage, bool = false) :
             RepPrep<SemiHonestRepSecret>(usage)
     {
     }

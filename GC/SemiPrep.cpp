@@ -20,13 +20,16 @@ SemiPrep::SemiPrep(DataPositions& usage, ShareThread<SemiSecret>&) :
 {
 }
 
-SemiPrep::SemiPrep(DataPositions& usage) :
+SemiPrep::SemiPrep(DataPositions& usage, bool) :
         BufferPrep<SemiSecret>(usage), triple_generator(0)
 {
 }
 
 void SemiPrep::set_protocol(Beaver<SemiSecret>& protocol)
 {
+    if (triple_generator)
+        return;
+
     (void) protocol;
     params.set_passive();
     triple_generator = new SemiSecret::TripleGenerator(

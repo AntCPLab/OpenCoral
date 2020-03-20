@@ -11,6 +11,8 @@
 #include <vector>
 using namespace std;
 
+#include "Tools/CheckVector.h"
+
 typedef unsigned long wire_id_t;
 typedef unsigned long gate_id_t;
 typedef unsigned int party_id_t;
@@ -35,22 +37,6 @@ public:
 	}
 	uint8_t operator[](int i) { return rep[i]; }
 	bool call(bool left, bool right) { return rep[2 * left + right]; }
-};
-
-template <class T>
-class CheckVector : public vector<T>
-{
-public:
-	CheckVector() : vector<T>() {}
-	CheckVector(size_t size) : vector<T>(size) {}
-	CheckVector(size_t size, const T& def) : vector<T>(size, def) {}
-#ifdef CHECK_SIZE
-	T& operator[](size_t i) { return this->at(i); }
-	const T& operator[](size_t i) const { return this->at(i); }
-#else
-	T& at(size_t i) { return (*this)[i]; }
-	const T& at(size_t i) const { return (*this)[i]; }
-#endif
 };
 
 #endif /* CIRCUIT_INC_COMMON_H_ */

@@ -12,6 +12,8 @@
 #include "Math/Setup.h"
 
 class DataSetup;
+class MachineBase;
+class MultiplicativeMachine;
 
 template <class FD>
 class PartSetup
@@ -25,6 +27,11 @@ public:
   FHE_SK sk;
   Ciphertext calpha;
   typename FD::T alphai;
+
+  static string name()
+  {
+    return "GlobalParams-" + T::type_string();
+  }
 
   PartSetup();
   void generate_setup(int n_parties, int plaintext_length, int sec, int slack,
@@ -42,6 +49,19 @@ public:
 
   void check(int sec) const;
   bool operator!=(const PartSetup<FD>& other);
+
+  void secure_init(Player& P, MachineBase& machine, int plaintext_length,
+      int sec);
+  void generate(Player& P, MachineBase& machine, int plaintext_length,
+      int sec);
+  void check(Player& P, MachineBase& machine);
+
+  void covert_key_generation(Player& P, MultiplicativeMachine& machine,
+      int num_runs);
+  void covert_mac_generation(Player& P, MultiplicativeMachine& machine,
+      int num_runs);
+  void covert_secrets_generation(Player& P, MultiplicativeMachine& machine,
+      int num_runs);
 };
 
 class DataSetup

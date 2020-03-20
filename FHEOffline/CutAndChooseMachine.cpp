@@ -18,6 +18,11 @@ CutAndChooseMachine::CutAndChooseMachine(int argc, const char** argv)
           "--covert" // Flag token.
     );
     parse_options(argc, argv);
+    if (produce_inputs)
+    {
+        cerr << "Producing input tuples is not implemented" << endl;
+        exit(1);
+    }
     covert = opt.isSet("--covert");
     if (not covert and sec != 40)
         throw runtime_error("active cut-and-choose only implemented for 40-bit security");

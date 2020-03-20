@@ -9,7 +9,7 @@
 #include <xmmintrin.h>
 #include <emmintrin.h>
 
-int gf2n_short::n;
+int gf2n_short::n = 0;
 int gf2n_short::t1;
 int gf2n_short::t2;
 int gf2n_short::t3;
@@ -63,6 +63,11 @@ void gf2n_short::init_field(int nn)
       cerr << "Using GF(2^" << nn << ")" << endl;
 #endif
     }
+
+  if (nn == n)
+      return;
+
+  assert(n == 0);
 
   gf2n_short::init_tables();
   int i,j=-1;

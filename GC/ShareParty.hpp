@@ -38,7 +38,7 @@ ShareParty<T>::ShareParty(int argc, const char** argv, int default_batch_size) :
     singleton = this;
 
     NetworkOptionsWithNumber network_opts(opt, argc, argv,
-            T::dishonest_majority ? 2 : 3, T::dishonest_majority);
+            T::dishonest_majority ? 2 : 3, T::variable_players);
     if (T::dishonest_majority)
         opt.add(
                 "", // Default.

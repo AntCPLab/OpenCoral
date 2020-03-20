@@ -13,13 +13,14 @@ class ReplicatedPrep2k : public ReplicatedRingPrep<T>
 {
 public:
     ReplicatedPrep2k(SubProcessor<T>* proc, DataPositions& usage) :
-            RingPrep<T>(proc, usage), ReplicatedRingPrep<T>(proc, usage)
+            BufferPrep<T>(usage), RingPrep<T>(proc, usage),
+            ReplicatedRingPrep<T>(proc, usage)
     {
     }
 
-    void get_dabit(T& a, typename T::bit_type& b)
+    void get_dabit_no_count(T& a, typename T::bit_type& b)
     {
-        this->get_one(DATA_BIT, a);
+        this->get_one_no_count(DATA_BIT, a);
         b = a & 1;
     }
 };

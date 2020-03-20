@@ -12,6 +12,8 @@ from Compiler import floatingpoint
 from Compiler import types
 from Compiler import comparison
 from Compiler import program
+from Compiler import instructions_base
+
 # polynomials as enumerated on Hart's book
 ##
 # @private
@@ -154,8 +156,8 @@ def p_eval(p_c, x):
 def sTrigSub(x):
     # reduction to 2* \pi
     f = x * (1.0 / (2 * pi))
-    f = load_sint(trunc(f), type(x))
-    y = x - (f) * (2 * pi)
+    f = trunc(f)
+    y = x - (f) * x.coerce(2 * pi)
     # reduction to \pi
     b1 = y > pi
     w = b1 * ((2 * pi - y) - y) + y
@@ -210,6 +212,7 @@ def scos(w, s):
 
 # facade method calls --it is built in a generic way
 
+@instructions_base.sfix_cisc
 def sin(x):
     """
     Returns the sine of any given fractional value.
@@ -224,6 +227,7 @@ def sin(x):
     return ssin(w, b1)
 
 
+@instructions_base.sfix_cisc
 def cos(x):
     """
     Returns the cosine of any given fractional value.
@@ -239,6 +243,7 @@ def cos(x):
     return scos(w, b2)
 
 
+@instructions_base.sfix_cisc
 def tan(x):
     """
     Returns the tangent of any given fractional value.
@@ -258,6 +263,7 @@ def tan(x):
 
 
 @types.vectorize
+@instructions_base.sfix_cisc
 def exp2_fx(a):
     """
     Power of two for fixed-point numbers.
@@ -273,39 +279,49 @@ def exp2_fx(a):
         n_int_bits = int(math.ceil(math.log(a.k - a.f, 2)))
         n_bits = a.f + n_int_bits
         n_shift = int(types.program.options.ring) - a.k
-        r_bits = [sint.get_random_bit() for i in range(a.k)]
-        shifted = ((a.v - sint.bit_compose(r_bits)) << n_shift).reveal()
+        if types.program.use_edabit():
+            l = sint.get_edabit(a.f, True)
+            u = sint.get_edabit(a.k - a.f, True)
+            r_bits = l[1] + u[1]
+            r = l[0] + (u[0] << a.f)
+            lower_r = l[0]
+        else:
+            r_bits = [sint.get_random_bit() for i in range(a.k)]
+            r = sint.bit_compose(r_bits)
+            lower_r = sint.bit_compose(r_bits[:a.f])
+        shifted = ((a.v - r) << n_shift).reveal()
         masked_bits = (shifted >> n_shift).bit_decompose(a.k)
-        lower_overflow = sint()
-        comparison.CarryOut(lower_overflow, masked_bits[a.f-1::-1],
+        lower_overflow = comparison.CarryOutRaw(masked_bits[a.f-1::-1],
                             r_bits[a.f-1::-1])
-        lower_r = sint.bit_compose(r_bits[:a.f])
         lower_masked = sint.bit_compose(masked_bits[:a.f])
-        lower = lower_r + lower_masked - (lower_overflow << (a.f))
+        lower = lower_r + lower_masked - (sint.conv(lower_overflow) << (a.f))
         c = types.sfix._new(lower, k=a.k, f=a.f)
-        higher_bits = intbitint.bit_adder(masked_bits[a.f:n_bits],
-                                          r_bits[a.f:n_bits],
+        higher_bits = r_bits[0].bit_adder(r_bits[a.f:n_bits],
+                                          masked_bits[a.f:n_bits],
                                           carry_in=lower_overflow,
                                           get_carry=True)
-        d = types.sfix.from_sint(floatingpoint.Pow2_from_bits(higher_bits[:-1]),
-                                 k=a.k, f=a.f)
+        assert(len(higher_bits) == n_bits - a.f + 1)
+        pow2_bits = [sint.conv(x) for x in higher_bits]
+        d = floatingpoint.Pow2_from_bits(pow2_bits[:-1])
         e = p_eval(p_1045, c)
         g = d * e
-        small_result = types.sfix._new(g.v.round(a.k + 1, a.f, signed=False,
+        small_result = types.sfix._new(g.v.round(a.f + 2 ** n_int_bits,
+                                            2 ** n_int_bits, signed=False,
                                             nearest=types.sfix.round_nearest),
                                        k=a.k, f=a.f)
         carry = comparison.CarryOutLE(masked_bits[n_bits:-1],
                                       r_bits[n_bits:-1],
                                       higher_bits[-1])
         # should be for free
-        highest_bits = intbitint.ripple_carry_adder(
+        highest_bits = r_bits[0].ripple_carry_adder(
             masked_bits[n_bits:-1], [0] * (a.k - n_bits),
             carry_in=higher_bits[-1])
         bits_to_check = [x.bit_xor(y)
                          for x, y in zip(highest_bits[:-1], r_bits[n_bits:-1])]
-        t = floatingpoint.KMul(bits_to_check)
+        t = sint.conv(floatingpoint.KOpL(lambda x, y: x.bit_and(y),
+                                        bits_to_check))
         # sign
-        s = masked_bits[-1].bit_xor(r_bits[-1]).bit_xor(carry)
+        s = carry.bit_xor(sint.conv(r_bits[-1])).bit_xor(masked_bits[-1])
         return s.if_else(t.if_else(small_result, 0), g)
     else:
         # obtain absolute value of a
@@ -313,16 +329,17 @@ def exp2_fx(a):
         a = (s * (-2) + 1) * a
         # isolates fractional part of number
         b = trunc(a)
-        c = a - load_sint(b, type(a))
+        c = a - b
         # squares integer part of a
-        d = load_sint(b.pow2(types.sfix.k - types.sfix.f), type(a))
+        d = b.pow2(a.k - a.f)
         # evaluates fractional part of a in p_1045
         e = p_eval(p_1045, c)
         g = d * e
-        return (1 - s) * g + s * ((types.sfix(1)) / g)
+        return (1 - s) * g + s / g
 
 
 @types.vectorize
+@instructions_base.sfix_cisc
 def log2_fx(x):
     """
     Returns the result of :math:`\log_2(x)` for any unbounded
@@ -347,14 +364,13 @@ def log2_fx(x):
         v, p, vlen = d.v, d.p, d.vlen
     # isolates mantisa of d, now the n can be also substituted by the
     # secret shared p from d in the expresion above.
-    v = load_sint(v, type(x))
-    w = (1.0 / (2 ** (vlen)))
+    w = x.coerce(1.0 / (2 ** (vlen)))
     v = v * w
     # polynomials for the  log_2 evaluation of f are calculated
     P = p_eval(p_2524, v)
     Q = p_eval(q_2524, v)
     # the log is returned by adding the result of the division plus p.
-    a = P / Q + load_sint(vlen + p, type(x))
+    a = P / Q + (vlen + p)
     return a  # *(1-(f.z))*(1-f.s)*(1-f.error)
 
 
@@ -515,7 +531,7 @@ def norm_simplified_SQ(b, k):
 # @return g: approximated sqrt
 def sqrt_simplified_fx(x):
     # fix theta (number of iterations)
-    theta = max(int(math.ceil(math.log(types.sfix.k))), 6)
+    theta = max(int(math.ceil(math.log(x.k))), 6)
 
     # process to use 2^(m/2) approximation
     m_odd, m, w = norm_simplified_SQ(x.v, x.k)
@@ -524,15 +540,15 @@ def sqrt_simplified_fx(x):
         m_odd =  (1 - 2 * m_odd) + m_odd
         w = (w * 2 - w) * (1-m_odd) + w
     # map number to use sfix format and instantiate the number
-    w = types.sfix(w * 2 ** ((x.f - (x.f % 2)) // 2))
+    w = types.sfix(w * 2 ** ((x.f - (x.f % 2)) // 2), k=x.k, f=x.f)
     # obtains correct 2 ** (m/2)
-    w = (w * (types.cfix(2 ** (1/2.0))) - w) * m_odd + w
+    w = (w * (2 ** (1/2.0)) - w) * m_odd + w
     # produce x/ 2^(m/2)
-    y_0 = types.cfix(1.0) / w
+    y_0 = 1 / w
 
     # from this point on it sufices to work sfix-wise
     g_0 = (y_0 * x)
-    h_0 = y_0 * types.cfix(0.5)
+    h_0 = y_0 * 0.5
     gh_0 = g_0 * h_0
 
     ## initialization
@@ -689,7 +705,8 @@ def sqrt_fx(x_l, k, f):
 
 
 @types.vectorize
-def sqrt(x, k = types.sfix.k, f = types.sfix.f):
+@instructions_base.sfix_cisc
+def sqrt(x, k=None, f=None):
     """
     Returns the square root (sfix) of any given fractional
     value as long as it can be rounded to a integral value
@@ -699,7 +716,11 @@ def sqrt(x, k = types.sfix.k, f = types.sfix.f):
 
     :return:  square root of :py:obj:`x` (sfix).
     """
-    if (3 *k -2 * f >= types.sfix.f):
+    if k is None:
+        k = x.k
+    if f is None:
+        f = x.f
+    if (3 *k -2 * f >= f):
         return sqrt_simplified_fx(x)
         # raise OverflowError("bound for precision violated: 3 * k - 2 * f <  x.f ")
     else:
@@ -707,6 +728,7 @@ def sqrt(x, k = types.sfix.k, f = types.sfix.f):
         return sqrt_fx(param ,k ,f)
 
 
+@instructions_base.sfix_cisc
 def atan(x):
     """
     Returns the arctangent (sfix) of any given fractional value.
@@ -720,12 +742,12 @@ def atan(x):
     x_abs  = (s * (-2) + 1) * x
     # angle isolation
     b = x_abs > 1
-    v = (types.cfix(1.0) / x_abs)
+    v = 1 / x_abs
     v = (1 - b) * (x_abs - v) + v
     v_2 =v*v
 
     # range of polynomial coefficients
-    assert x.k - x.f >= 18
+    assert x.k - x.f >= 15
     P = p_eval(p_5102, v_2)
     Q = p_eval(q_5102, v_2)
 

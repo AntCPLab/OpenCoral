@@ -12,10 +12,11 @@
 namespace GC
 {
 
-class NoValue
+class NoValue : public ValueInterface
 {
 public:
     const static int n_bits = 0;
+    const static int MAX_N_BITS = 0;
 
     static bool allows(Dtype)
     {
@@ -32,10 +33,32 @@ public:
         throw runtime_error("VM does not support binary circuits");
     }
 
+    NoValue() {}
+    NoValue(int) { fail(); }
+
     void assign(const char*) { fail(); }
 
     int get() const { fail(); return 0; }
+
+    int operator<<(int) const { fail(); return 0; }
+    void operator+=(int) { fail(); }
+
+    bool get_bit(int) { fail(); return 0; }
+
+    void randomize(PRNG&) { fail(); }
 };
+
+inline ostream& operator<<(ostream& o, NoValue)
+{
+    return o;
+}
+
+template<class T>
+inline bool operator!=(const T&, NoValue&)
+{
+    NoValue::fail();
+    return true;
+}
 
 class NoShare : public Phase
 {
@@ -52,8 +75,13 @@ public:
 
     typedef NoShare bit_type;
     typedef NoShare part_type;
+    typedef NoShare small_type;
+
+    static const int default_length = 1;
 
     static const bool needs_ot = false;
+    static const bool expensive_triples = false;
+    static const bool is_real = false;
 
     static MC* new_mc(mac_key_type)
     {
@@ -91,9 +119,12 @@ public:
     }
 
     static void inputb(Processor<NoShare>&, const vector<int>&) { fail(); }
+    static void reveal_inst(Processor<NoShare>&, const vector<int>&) { fail(); }
 
     static void input(Processor<NoShare>&, InputArgs&) { fail(); }
     static void trans(Processor<NoShare>&, Integer, const vector<int>&) { fail(); }
+
+    static NoShare constant(GC::Clear, int, mac_key_type) { fail(); return {}; }
 
     NoShare() {}
 
@@ -115,6 +146,13 @@ public:
     void operator^=(NoShare) { fail(); }
 
     NoShare operator+(const NoShare&) const { fail(); return {}; }
+
+    NoShare operator+(int) const { fail(); return {}; }
+    NoShare operator&(int) const { fail(); return {}; }
+    NoShare operator>>(int) const { fail(); return {}; }
+
+    NoShare lsb() const { fail(); return {}; }
+    NoShare get_bit(int) const { fail(); return {}; }
 };
 
 } /* namespace GC */

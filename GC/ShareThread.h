@@ -30,10 +30,11 @@ public:
     typename T::MC* MC;
     typename T::Protocol* protocol;
 
-    DataPositions usage;
     Preprocessing<T>& DataF;
 
-    ShareThread(const Names& N, OnlineOptions& opts);
+    ShareThread(const Names& N, OnlineOptions& opts, DataPositions& usage);
+    ShareThread(const Names& N, OnlineOptions& opts, Player& P,
+            typename T::mac_key_type mac_key, DataPositions& usage);
     virtual ~ShareThread();
 
     virtual typename T::MC* new_mc(typename T::mac_key_type mac_key)
@@ -43,12 +44,15 @@ public:
     void post_run();
 
     void and_(Processor<T>& processor, const vector<int>& args, bool repeat);
+    void xors(Processor<T>& processor, const vector<int>& args);
 };
 
 template<class T>
 class StandaloneShareThread : public ShareThread<T>, public Thread<T>
 {
 public:
+    DataPositions usage;
+
     StandaloneShareThread(int i, ThreadMaster<T>& master);
 
     void pre_run();
@@ -61,7 +65,7 @@ thread_local ShareThread<T>* ShareThread<T>::singleton = 0;
 template<class T>
 inline ShareThread<T>& ShareThread<T>::s()
 {
-    if (singleton)
+    if (singleton and T::is_real)
         return *singleton;
     else
         throw runtime_error("no singleton");

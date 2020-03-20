@@ -13,18 +13,20 @@ template<class T> ostream& operator<<(ostream& s,const Memory<T>& M);
 template<class T> istream& operator>>(istream& s,Memory<T>& M);
 
 #include "Processor/Program.h"
+#include "Tools/CheckVector.h"
 
 template<class T> 
 class Memory
 {
-  vector<T> MS;
-  vector<typename T::clear> MC;
 #ifdef MEMPROTECT
   set< pair<unsigned int,unsigned int> > protected_s;
   set< pair<unsigned int,unsigned int> > protected_c;
 #endif
 
   public:
+
+  CheckVector<T> MS;
+  vector<typename T::clear> MC;
 
   void resize_s(int sz)
     { MS.resize(sz); }

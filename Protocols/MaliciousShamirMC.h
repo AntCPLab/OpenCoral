@@ -11,9 +11,9 @@
 template<class T>
 class MaliciousShamirMC : public ShamirMC<T>
 {
-    vector<vector<typename T::clear::Scalar>> reconstructions;
+    vector<vector<typename T::open_type::Scalar>> reconstructions;
 
-    void finalize(vector<typename T::clear>& values, const vector<T>& S,
+    void finalize(vector<typename T::open_type>& values, const vector<T>& S,
             const Player& P);
 
 public:
@@ -31,9 +31,9 @@ public:
     { (void)_; (void)__; (void)___; (void)____; }
 
 
-    void POpen(vector<typename T::clear>& values, const vector<T>& S,
+    void POpen(vector<typename T::open_type>& values, const vector<T>& S,
             const Player& P);
-    void POpen_End(vector<typename T::clear>& values, const vector<T>& S,
+    void POpen_End(vector<typename T::open_type>& values, const vector<T>& S,
             const Player& P);
 };
 

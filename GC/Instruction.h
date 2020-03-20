@@ -64,6 +64,8 @@ enum
     STMSBI = 0x243,
     MOVSB = 0x244,
     INPUTB = 0x246,
+    SPLIT = 0x248,
+    CONVCBIT2S = 0x249,
     // write to clear
     CLEAR_WRITE = 0x210,
     XORCBI = 0x210,
@@ -79,6 +81,7 @@ enum
     MULCBI = 0x21c,
     SHRCBI = 0x21d,
     SHLCBI = 0x21e,
+    CONVCINTVEC = 0x21f,
     // don't write
     PRINTREGSIGNED = 0x220,
     PRINTREGB = 0x221,
@@ -87,6 +90,7 @@ enum
     CONDPRINTSTRB = 0x224,
     // write to regint
     CONVCBIT = 0x230,
+    CONVCBITVEC = 0x231,
 };
 
 #endif /* PROCESSOR_GC_INSTRUCTION_H_ */

@@ -17,25 +17,18 @@ class thread_info
   public: 
 
   int thread_num;
-  int covert;
   Names*  Nms;
   typename sgf2n::mac_key_type *alpha2i;
   typename sint::mac_key_type *alphapi;
-  int prognum;
-  bool finished;
-  bool ready;
-
-  // rownums for triples, bits, squares, and inverses etc
-  DataPositions pos;
-  // Integer arg (optional)
-  int arg;
 
   Machine<sint, sgf2n>* machine;
+  Processor<sint, sgf2n>* processor;
 
   static void* Main_Func(void *ptr);
 
   static void purge_preprocessing(Machine<sint, sgf2n>& machine);
+
+  void Sub_Main_Func();
 };
 
 #endif
-

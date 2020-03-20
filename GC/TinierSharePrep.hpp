@@ -3,14 +3,22 @@
  *
  */
 
+#ifndef GC_TINIERSHARE_PREP_HPP_
+#define GC_TINIERSHARE_PREP_HPP_
+
 #include "TinierSharePrep.h"
+
+#include "PersonalPrep.hpp"
 
 namespace GC
 {
 
 template<class T>
-TinierSharePrep<T>::TinierSharePrep(DataPositions& usage) :
-        BufferPrep<T>(usage), triple_generator(0)
+TinierSharePrep<T>::TinierSharePrep(DataPositions& usage, int input_player) :
+        PersonalPrep<T>(usage, input_player), triple_generator(0),
+        whole_prep(usage,
+                ShareThread<TinierSecret<typename T::mac_key_type>>::s(),
+                input_player == PersonalPrep<T>::SECURE)
 {
 }
 
@@ -24,6 +32,9 @@ TinierSharePrep<T>::~TinierSharePrep()
 template<class T>
 void TinierSharePrep<T>::set_protocol(typename T::Protocol& protocol)
 {
+    if (triple_generator)
+        return;
+
     params.generateMACs = true;
     params.amplify = false;
     params.check = false;
@@ -35,6 +46,23 @@ void TinierSharePrep<T>::set_protocol(typename T::Protocol& protocol)
             params, thread.MC->get_alphai(), &protocol.P);
     triple_generator->multi_threaded = false;
     this->inputs.resize(thread.P->num_players());
+    whole_prep.init(*thread.P);
+}
+
+template<class T>
+void TinierSharePrep<T>::buffer_triples()
+{
+    if (this->input_player != this->SECURE)
+    {
+        this->buffer_personal_triples();
+        return;
+    }
+
+    array<TinierSecret<typename T::mac_key_type>, 3> whole;
+    whole_prep.get(DATA_TRIPLE, whole.data());
+    for (size_t i = 0; i < whole[0].get_regs().size(); i++)
+        this->triples.push_back(
+        {{ whole[0].get_reg(i), whole[1].get_reg(i), whole[2].get_reg(i) }});
 }
 
 template<class T>
@@ -50,10 +78,12 @@ void TinierSharePrep<T>::buffer_inputs(int player)
 template<class T>
 size_t TinierSharePrep<T>::data_sent()
 {
+    size_t res = whole_prep.data_sent();
     if (triple_generator)
-        return triple_generator->data_sent();
-    else
-        return 0;
+        res += triple_generator->data_sent();
+    return res;
 }
 
 }
+
+#endif

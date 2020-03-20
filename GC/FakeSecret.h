@@ -53,8 +53,14 @@ public:
     { processor.andrs(args); }
     static void ands(GC::Processor<FakeSecret>& processor, const vector<int>& regs);
     template <class T>
+    static void xors(GC::Processor<T>& processor, const vector<int>& regs)
+    { processor.xors(regs); }
+    template <class T>
     static void inputb(T& processor, const vector<int>& args)
     { processor.input(args); }
+    template <class T>
+    static void reveal_inst(T& processor, const vector<int>& args)
+    { processor.reveal(args); }
 
     static void trans(Processor<FakeSecret>& processor, int n_inputs,
             const vector<int>& args);

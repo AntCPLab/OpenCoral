@@ -27,6 +27,7 @@ class gmp_random;
 class Integer;
 template<int K> class Z2;
 template<int K> class SignedZ2;
+template<int L> class fixint;
 
 namespace GC
 {
@@ -54,6 +55,8 @@ public:
   bigint(const Z2<K>& x);
   template <int K>
   bigint(const SignedZ2<K>& x);
+  template <int L>
+  bigint(const fixint<L>& x) : bigint(typename fixint<L>::super(x)) {}
   bigint(const Integer& x);
   bigint(const GC::Clear& x);
 

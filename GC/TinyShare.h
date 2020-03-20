@@ -32,6 +32,8 @@ public:
 
     typedef SwitchableOutput out_type;
 
+    typedef This small_type;
+
     static string name()
     {
         return "tiny share";

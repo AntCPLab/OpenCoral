@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef GC_INSTRUCTION_HPP_
+#define GC_INSTRUCTION_HPP_
+
 #include <algorithm>
 
 #include "GC/Instruction.h"
@@ -13,6 +16,8 @@
 #include "Tools/parse.h"
 
 #include "GC/Instruction_inline.h"
+
+#include "Processor/Instruction.hpp"
 
 namespace GC
 {
@@ -97,3 +102,5 @@ void Instruction::parse(istream& s, int pos)
 }
 
 } /* namespace GC */
+
+#endif

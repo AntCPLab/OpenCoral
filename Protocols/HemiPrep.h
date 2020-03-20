@@ -28,6 +28,7 @@ public:
     static void teardown();
 
     HemiPrep(SubProcessor<T>* proc, DataPositions& usage) :
+            BufferPrep<T>(usage),
             RingPrep<T>(proc, usage), SemiHonestRingPrep<T>(proc, usage)
     {
     }

@@ -12,6 +12,16 @@
 namespace GC
 {
 
+const int SemiSecret::default_length;
+
+SemiSecret::MC* SemiSecret::new_mc(mac_key_type)
+{
+    if (OnlineOptions::singleton.direct)
+        return new Direct_MC;
+    else
+        return new MC;
+}
+
 void SemiSecret::trans(Processor<SemiSecret>& processor, int n_outputs,
         const vector<int>& args)
 {

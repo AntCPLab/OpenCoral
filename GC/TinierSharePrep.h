@@ -9,17 +9,23 @@
 #include "Protocols/ReplicatedPrep.h"
 #include "OT/NPartyTripleGenerator.h"
 #include "ShareThread.h"
+#include "PersonalPrep.h"
 
 namespace GC
 {
 
+template<class T> class TinierPrep;
+template<class T> class TinierSecret;
+
 template<class T>
-class TinierSharePrep : public BufferPrep<T>
+class TinierSharePrep : public PersonalPrep<T>
 {
     typename T::TripleGenerator* triple_generator;
     MascotParams params;
 
-    void buffer_triples() { throw not_implemented(); }
+    TinierPrep<TinierSecret<typename T::mac_key_type>> whole_prep;
+
+    void buffer_triples();
     void buffer_squares() { throw not_implemented(); }
     void buffer_bits() { throw not_implemented(); }
     void buffer_inverses() { throw not_implemented(); }
@@ -27,7 +33,8 @@ class TinierSharePrep : public BufferPrep<T>
     void buffer_inputs(int player);
 
 public:
-    TinierSharePrep(DataPositions& usage);
+    TinierSharePrep(DataPositions& usage, int input_player =
+            PersonalPrep<T>::SECURE);
     ~TinierSharePrep();
 
     void set_protocol(typename T::Protocol& protocol);

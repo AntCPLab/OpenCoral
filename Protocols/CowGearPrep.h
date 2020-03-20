@@ -31,7 +31,9 @@ public:
     static void teardown();
 
     CowGearPrep(SubProcessor<T>* proc, DataPositions& usage) :
-            MaliciousRingPrep<T>(proc, usage), pairwise_generator(0)
+            BufferPrep<T>(usage),
+            RingPrep<T>(proc, usage), MaliciousRingPrep<T>(proc, usage),
+            pairwise_generator(0)
     {
     }
     ~CowGearPrep();

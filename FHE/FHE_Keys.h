@@ -27,7 +27,7 @@ class FHE_SK
   // secret key always on lower level
   void assign(const Rq_Element& s) { sk=s; sk.lower_level(); }
 
-  FHE_SK(const FHE_Params& pms, const bigint& p = 0)
+  FHE_SK(const FHE_Params& pms, const bigint& p)
     : sk(pms.FFTD(),evaluation,evaluation) { params=&pms; pr=p; }
 
   FHE_SK(const FHE_PK& pk);
@@ -110,6 +110,17 @@ class FHE_PK
       Sw_b(pms.FFTD(),evaluation,evaluation) 
        { params=&pms; pr=p; }
 
+  FHE_PK(const FHE_Params& pms, int p) :
+      FHE_PK(pms, bigint(p))
+  {
+  }
+
+  template<class FD>
+  FHE_PK(const FHE_Params& pms, const FD& FTD) :
+      FHE_PK(pms, FTD.get_prime())
+  {
+  }
+
   // Rely on default copy constructor/assignment
   
   const Rq_Element& a() const { return a0; }
@@ -148,10 +159,8 @@ class FHE_PK
   friend istream& operator>>(istream& s, FHE_PK& PK)
     { s >> PK.a0 >> PK.b0 >> PK.Sw_a >> PK.Sw_b; return s; }
 
-  void pack(octetStream& o) const
-    { a0.pack(o); b0.pack(o); Sw_a.pack(o); Sw_b.pack(o); pr.pack(o); }
-  void unpack(octetStream& o) 
-    { a0.unpack(o); b0.unpack(o); Sw_a.unpack(o); Sw_b.unpack(o); pr.unpack(o); }
+  void pack(octetStream& o) const;
+  void unpack(octetStream& o);
   
   bool operator!=(const FHE_PK& x) const;
 

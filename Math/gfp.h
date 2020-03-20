@@ -9,7 +9,9 @@ using namespace std;
 #include "Math/Zp_Data.h"
 #include "Math/field_types.h"
 #include "Math/Setup.h"
+#include "Math/Bit.h"
 #include "Tools/random.h"
+#include "GC/NoShare.h"
 
 #include "Math/modp.hpp"
 
@@ -57,6 +59,11 @@ class gfp_
   static const int N_LIMBS = L;
   static const int MAX_N_BITS = 64 * L;
   static const int N_BYTES = sizeof(a);
+
+  // must be negative
+  static const int N_BITS = -1;
+
+  static const int MAX_EDABITS = MAX_N_BITS - 40;
 
   template<class T>
   static void init(bool mont = true)
@@ -121,11 +128,15 @@ class gfp_
   gfp_(const bigint& x) { to_modp(a, x, ZpD); }
   gfp_(int x)           { assign(x); }
   gfp_(long x)          { assign(x); }
+  gfp_(word x)          { assign(x); }
+  template<class T>
+  gfp_(IntBase<T> x)    { assign(x.get()); }
   gfp_(const void* buffer) { assign((char*)buffer); }
   template<int Y>
   gfp_(const gfp_<Y, L>& x);
   template<int K>
   gfp_(const SignedZ2<K>& other);
+  gfp_(GC::NoValue)  { GC::NoValue::fail(); }
 
   gfp_& operator=(const __m128i other)
     {
@@ -238,8 +249,12 @@ class gfp_
   gfp_ operator&(const gfp_& x) { gfp_ res; res.AND(*this, x); return res; }
   gfp_ operator^(const gfp_& x) { gfp_ res; res.XOR(*this, x); return res; }
   gfp_ operator|(const gfp_& x) { gfp_ res; res.OR(*this, x); return res; }
-  gfp_ operator<<(int i) { gfp_ res; res.SHL(*this, i); return res; }
+  gfp_ operator<<(int i) const { gfp_ res; res.SHL(*this, i); return res; }
   gfp_ operator>>(int i) { gfp_ res; res.SHR(*this, i); return res; }
+
+  gfp_& operator&=(const gfp_& x) { AND(*this, x); return *this; }
+  gfp_& operator<<=(int i) { SHL(*this, i); return *this; }
+  gfp_& operator>>=(int i) { SHR(*this, i); return *this; }
 
   void force_to_bit() { throw runtime_error("impossible"); }
 

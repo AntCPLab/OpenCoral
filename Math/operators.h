@@ -11,7 +11,7 @@
 //template <class T>
 //T operator*(const T& y, const bool& x) { return x ? y : T(); }
 template <class T>
-T& operator*=(const T& y, const bool& x) { y = x ? y : T(); return y; }
+T& operator*=(T& y, const bool& x) { y = x ? y : T(); return y; }
 
 //template <class T, class U>
 //T operator+(const T& x, const U& y) { T res; res.add(x, y); return res; }

@@ -12,6 +12,11 @@ template<class T> class HashMaliciousRepMC;
 template<class T> class Beaver;
 template<class T> class BrainPrep;
 
+namespace GC
+{
+class MaliciousRepSecret;
+}
+
 template<int K, int S>
 class BrainShare : public Rep3Share<SignedZ2<K>>
 {
@@ -27,6 +32,8 @@ public:
     typedef ReplicatedInput<BrainShare> Input;
     typedef ::PrivateOutput<BrainShare> PrivateOutput;
     typedef BrainPrep<BrainShare> LivePrep;
+
+    typedef GC::MaliciousRepSecret bit_type;
 
     const static int N_MASK_BITS = clear::N_BITS + S;
     const static int Z_BITS = 2 * (N_MASK_BITS) + 5 + S;

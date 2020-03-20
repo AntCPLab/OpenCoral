@@ -31,7 +31,8 @@ public:
 
     BitVec_() {}
     BitVec_(long a) : super(a) {}
-    BitVec_(const super& a) : super(a) {}
+    template<class U>
+    BitVec_(const IntBase<U>& a) : super(a.get()) {}
     template<int K>
     BitVec_(const Z2<K>& a) : super(a.get_limb(0)) {}
 

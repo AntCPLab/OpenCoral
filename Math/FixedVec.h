@@ -208,6 +208,12 @@ public:
         return *this;
     }
 
+    FixedVec<T, L>& operator-=(const FixedVec<T, L>& other)
+    {
+        sub(*this, other);
+        return *this;
+    }
+
     FixedVec<T, L>& operator*=(const FixedVec<T, L>& other)
     {
         *this = *this * other;
@@ -258,9 +264,9 @@ public:
 
     T sum() const
     {
-        T res = 0;
-        for (auto& x : v)
-            res += x;
+        T res = v[0];
+        for (int i = 1; i < L; i++)
+            res += v[i];
         return res;
     }
 
@@ -300,6 +306,11 @@ public:
     {
         for (auto& x : v)
             x.force_to_bit();
+    }
+
+    FixedVec get_bit(int i)
+    {
+        return (*this >> i) & 1;
     }
 
     void output(ostream& s, bool human) const

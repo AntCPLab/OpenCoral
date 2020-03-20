@@ -3,11 +3,20 @@
  *
  */
 
+#ifndef PROTOCOLS_SPDZ2KPREP_HPP_
+#define PROTOCOLS_SPDZ2KPREP_HPP_
+
 #include "Spdz2kPrep.h"
+
+#include "DabitSacrifice.hpp"
+#include "RingOnlyPrep.hpp"
 
 template<class T>
 Spdz2kPrep<T>::Spdz2kPrep(SubProcessor<T>* proc, DataPositions& usage) :
-        RingPrep<T>(proc, usage), MascotPrep<T>(proc, usage)
+        BufferPrep<T>(usage),
+        RingPrep<T>(proc, usage), MaliciousRingPrep<T>(proc, usage),
+        OTPrep<T>(proc, usage), MascotPrep<T>(proc, usage),
+        RingOnlyPrep<T>(proc, usage)
 {
     this->params.amplify = false;
     bit_MC = 0;
@@ -57,7 +66,7 @@ void MaliciousRingPrep<T>::buffer_bits()
     assert(this->protocol != 0);
     auto& protocol = *this->protocol;
     protocol.init_mul(this->proc);
-    T one(1, protocol.P.my_num(), this->proc->MC.get_alphai());
+    auto one = T::constant(1, protocol.P.my_num(), this->proc->MC.get_alphai());
     for (auto& bit : this->bits)
         // one of the two is not a zero divisor, so if the product is zero, one of them is too
         protocol.prepare_mul(one - bit, bit);
@@ -109,12 +118,95 @@ void bits_from_square_in_ring(vector<T>& bits, int buffer_size, U* bit_prep)
     bit_MC->Check(bit_proc->P);
 }
 
+#ifdef SPDZ2K_BIT
 template<class T>
 void Spdz2kPrep<T>::get_dabit(T& a, GC::TinySecret<T::s>& b)
 {
     this->get_one(DATA_BIT, a);
     b.resize_regs(1);
     b.get_reg(0) = Spdz2kShare<1, T::s>(a);
+}
+#endif
+
+template<class T>
+void Spdz2kPrep<T>::buffer_dabits(ThreadQueues* queues)
+{
+    assert(this->proc != 0);
+    vector<dabit<T>> check_dabits;
+    DabitSacrifice<T> dabit_sacrifice;
+    int buffer_size = OnlineOptions::singleton.batch_size;
+    if (queues)
+        buffer_size *= queues->size();
+    this->buffer_dabits_from_bits_without_check(check_dabits,
+            dabit_sacrifice.minimum_n_inputs(buffer_size), queues);
+    dabit_sacrifice.sacrifice_without_bit_check(this->dabits, check_dabits,
+            *this->proc, queues);
+}
+
+template<class T>
+void MascotPrep<T>::buffer_edabits(bool strict, int n_bits,
+        ThreadQueues* queues)
+{
+    this->buffer_edabits_from_personal(strict, n_bits, queues);
+}
+
+template<class T>
+void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
+        ThreadQueues* queues)
+{
+    assert(this->proc != 0);
+    typedef typename T::bit_type::part_type bit_type;
+    vector<vector<bit_type>> bits;
+    vector<T> sums;
+#ifdef VERBOSE_EDA
+    cerr << "Generate edaBits of length " << n_bits << " to sacrifice" << endl;
+    Timer timer;
+    timer.start();
+#endif
+    auto &party = GC::ShareThread<typename T::bit_type>::s();
+    SubProcessor<bit_type> bit_proc(party.MC->get_part_MC(),
+            this->proc->bit_prep, this->proc->P);
+    int n_relevant = this->proc->protocol.get_n_relevant_players();
+    vector<vector<vector<bit_type>>> player_bits(n_bits);
+    for (int i = 0; i < n_relevant; i++)
+    {
+        vector<T> tmp;
+        vector<vector<bit_type>> tmp_bits;
+        this->buffer_personal_edabits(n_bits, tmp, tmp_bits, bit_proc,
+                i, strict, queues);
+        sums.resize(tmp.size());
+        for (size_t j = 0; j < tmp.size(); j++)
+            sums[j] += tmp[j];
+        for (int j = 0; j < n_bits; j++)
+            player_bits[j].push_back(tmp_bits[j]);
+    }
+    RunningTimer add_timer;
+    BitAdder().add(bits, player_bits, bit_proc, bit_type::default_length,
+            queues);
+    player_bits.clear();
+#ifdef VERBOSE_EDA
+    cerr << "Adding edaBits took " << add_timer.elapsed() << " seconds" << endl;
+    cerr << "Done with generating edaBits after " << timer.elapsed()
+            << " seconds" << endl;
+#endif
+    vector<edabit<T>> checked;
+    for (size_t i = 0; i < sums.size(); i++)
+    {
+        checked.push_back({sums[i], {}});
+        int i1 = i / bit_type::default_length;
+        int i2 = i % bit_type::default_length;
+        checked.back().second.reserve(bits.at(i1).size());
+        for (auto& x : bits.at(i1))
+            checked.back().second.push_back(x.get_bit(i2));
+    }
+    sums.clear();
+    sums.shrink_to_fit();
+    bits.clear();
+    bits.shrink_to_fit();
+    if (strict)
+        this->sanitize(checked, n_bits, -1, queues);
+    for (auto& x : checked)
+        this->edabits[{strict, n_bits}].push_back(x);
 }
 
 template<class T>
@@ -125,3 +217,5 @@ size_t Spdz2kPrep<T>::data_sent()
         res += bit_prep->data_sent();
     return res;
 }
+
+#endif

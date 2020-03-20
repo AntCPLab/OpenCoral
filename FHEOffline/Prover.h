@@ -14,8 +14,8 @@ class Prover
   AddableVector< Plaintext_<FD> > y;
 
 #ifdef LESS_ALLOC_MORE_MEM
-  AddableVector<bigint> z;
-  AddableMatrix<bigint> t;
+  AddableVector<fixint<GFP_MOD_SZ>> z;
+  AddableMatrix<Int_Random_Coins::value_type::value_type> t;
 #endif
 
 public:
@@ -30,7 +30,7 @@ public:
   bool Stage_2(Proof& P, octetStream& cleartexts,
                const vector<U>& x,
                const Proof::Randomness& r,
-               const vector<int>& e);
+               const FHE_PK& pk);
 
   /* Only has a non-interactive version using the ROM 
       - If Diag is true then the plaintexts x are assumed to be
