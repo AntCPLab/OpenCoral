@@ -68,7 +68,7 @@ for dabit in ${dabit:-0 1 2}; do
 	done
     fi
 
-    for i in hemi semi; do
+    for i in hemi semi soho; do
 	test_vm $i
     done
 

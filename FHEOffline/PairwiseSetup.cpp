@@ -63,7 +63,7 @@ void secure_init(T& setup, Player& P, MachineBase& machine,
     string filename = PREP_DIR + T::name() + "-"
             + to_string(plaintext_length) + "-" + to_string(sec) + "-"
             + to_string(CowGearOptions::singleton.top_gear()) + "-P"
-            + to_string(P.my_num());
+            + to_string(P.my_num()) + "-" + to_string(P.num_players());
     try
     {
         ifstream file(filename);

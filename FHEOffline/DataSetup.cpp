@@ -346,31 +346,28 @@ void PartSetup<FD>::check(Player& P, MachineBase& machine)
 }
 
 template<class FD>
-void PartSetup<FD>::covert_key_generation(Player& P,
-    MultiplicativeMachine& machine, int num_runs)
+void PartSetup<FD>::covert_key_generation(Player& P, int num_runs)
 {
-    auto& setup = machine.setup.part<FD>();
-    Run_Gen_Protocol(setup.pk, setup.sk, P, num_runs, false);
+    Run_Gen_Protocol(pk, sk, P, num_runs, false);
 }
 
 template<class FD>
-void PartSetup<FD>::covert_mac_generation(Player& P,
-    MultiplicativeMachine& machine, int num_runs)
+void PartSetup<FD>::covert_mac_generation(Player& P, int num_runs)
 {
-    auto& setup = machine.setup.part<FD>();
-    generate_mac_key(setup.alphai, setup.calpha, setup.FieldD, setup.pk, P,
+    generate_mac_key(alphai, calpha, FieldD, pk, P,
             num_runs);
 }
 
 template<class FD>
-void PartSetup<FD>::covert_secrets_generation(Player& P,
-    MultiplicativeMachine& machine, int num_runs)
+void PartSetup<FD>::covert_secrets_generation(Player& P, MachineBase& machine,
+        int num_runs)
 {
     octetStream os;
     params.pack(os);
     FieldD.pack(os);
     string filename = PREP_DIR "ChaiGear-Secrets-" + to_string(num_runs) + "-"
-            + os.check_sum(20).get_str(16) + "-P" + to_string(P.my_num());
+            + os.check_sum(20).get_str(16) + "-P" + to_string(P.my_num()) + "-"
+            + to_string(P.num_players());
 
     string error;
 
@@ -397,8 +394,8 @@ void PartSetup<FD>::covert_secrets_generation(Player& P,
     if (not error.empty())
     {
         cerr << "Running secrets generation because " << error << endl;
-        covert_key_generation(P, machine, num_runs);
-        covert_mac_generation(P, machine, num_runs);
+        covert_key_generation(P, num_runs);
+        covert_mac_generation(P, num_runs);
         ofstream output(filename);
         octetStream os;
         pack(os);

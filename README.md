@@ -72,7 +72,7 @@ The following table lists all protocols that are fully supported.
 | --- | --- | --- | --- | --- |
 | Malicious, dishonest majority | [MASCOT](#secret-sharing) | [SPDZ2k](#secret-sharing) | [Tiny / Tinier](#secret-sharing) | [BMR](#bmr) |
 | Covert, dishonest majority | [CowGear / ChaiGear](#secret-sharing) | N/A | N/A | N/A |
-| Semi-honest, dishonest majority | [Semi / Hemi](#secret-sharing) | [Semi2k](#secret-sharing) | [SemiBin](#secret-sharing) | [Yao's GC](#yaos-garbled-circuits) / [BMR](#bmr) |
+| Semi-honest, dishonest majority | [Semi / Hemi / Soho](#secret-sharing) | [Semi2k](#secret-sharing) | [SemiBin](#secret-sharing) | [Yao's GC](#yaos-garbled-circuits) / [BMR](#bmr) |
 | Malicious, honest majority | [Shamir / Rep3 / PS](#honest-majority) | [Brain / Rep3 / PS](#honest-majority) | [Rep3 / CCD](#honest-majority) | [BMR](#bmr) |
 | Semi-honest, honest majority | [Shamir / Rep3](#honest-majority) | [Rep3](#honest-majority) | [Rep3 / CCD](#honest-majority) | [BMR](#bmr) |
 
@@ -136,7 +136,7 @@ compute the preprocessing time for a particular computation.
  - Boost.Thread for BMR (`libboost-thread-dev` on Ubuntu), tested against 1.65
  - 64-bit CPU
  - Python 3.5 or later
- - NTL library for CowGear, ChaiGear, and the SPDZ-2 and Overdrive offline phases (optional; tested with NTL 10.5)
+ - NTL library for homomorphic encryption (optional; tested with NTL 10.5)
  - If using macOS, Sierra or later
 
 #### Compilation
@@ -149,7 +149,7 @@ compute the preprocessing time for a particular computation.
    extensions in the `ARCH` variable.
  - To benchmark online-only protocols or Overdrive, add the following line at the top: `MY_CFLAGS = -DINSECURE`
  - `PREP_DIR` should point to should be a local, unversioned directory to store preprocessing data (default is `Player-Data` in the current directory).
- - For CowGear, ChaiGear, and the SPDZ-2 and Overdrive offline phases, set `USE_NTL = 1`.
+ - For homomorphic encryption, set `USE_NTL = 1`.
 
 2) Run make to compile all the software (use the flag -j for faster
 compilation multiple threads). See below on how to compile specific
@@ -278,6 +278,7 @@ The following table shows all programs for dishonest-majority computation using 
 | `cowgear-party.x` | Adapted [LowGear](https://eprint.iacr.org/2017/1230) | Mod prime | Covert | `cowgear.sh` |
 | `chaigear-party.x` | Adapted [HighGear](https://eprint.iacr.org/2017/1230) | Mod prime | Covert | `chaigear.sh` |
 | `hemi-party.x` | Semi-homomorphic encryption | Mod prime | Semi-honest | `hemi.sh` |
+| `soho-party.x` | Somewhat homomorphic encryption | Mod prime | Semi-honest | `soho.sh` |
 | `semi-bin-party.x` | OT-based | Binary | Semi-honest | `semi-bin.sh` |
 | `tiny-party.x` | Adapted SPDZ2k | Binary | Malicious | `tiny.sh` |
 | `tinier-party.x` | [FKOS15](https://eprint.iacr.org/2015/901) | Binary | Malicious | `tinier.sh` |
@@ -304,7 +305,8 @@ an adapted version of HighGear. Option `-T` activates
 [TopGear](https://eprint.iacr.org/2019/035) zero-knowledge proofs in
 both.
 
-Hemi denotes the stripped version version of LowGear for semi-honest
+Hemi and Soho denote the stripped version version of LowGear and
+HighGear, respectively, for semi-honest
 security similar to Semi, that is, generating additively shared Beaver
 triples using semi-homomorphic encryption.
 

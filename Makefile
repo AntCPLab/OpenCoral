@@ -44,7 +44,7 @@ binary: rep-bin yao semi-bin-party.x tinier-party.x tiny-party.x ccd-party.x mal
 ifeq ($(USE_NTL),1)
 all: overdrive she-offline
 gear: cowgear-party.x chaigear-party.x
-arithmetic: hemi-party.x gear
+arithmetic: hemi-party.x soho-party.x gear
 endif
 
 -include $(DEPS)
@@ -175,6 +175,7 @@ static/spdz2k-party.x: $(patsubst %.cpp,%.o,$(wildcard Machines/SPDZ2*.cpp))
 semi-party.x: $(OT) GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
 semi2k-party.x: $(OT) GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
 hemi-party.x: $(FHEOFFLINE) $(GC_SEMI) $(OT)
+soho-party.x: $(FHEOFFLINE) $(GC_SEMI) $(OT)
 cowgear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o $(OT)
 chaigear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o $(OT)
 mascot-party.x: Machines/SPDZ.o $(OT)

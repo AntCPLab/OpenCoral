@@ -56,12 +56,9 @@ public:
       int sec);
   void check(Player& P, MachineBase& machine);
 
-  void covert_key_generation(Player& P, MultiplicativeMachine& machine,
-      int num_runs);
-  void covert_mac_generation(Player& P, MultiplicativeMachine& machine,
-      int num_runs);
-  void covert_secrets_generation(Player& P, MultiplicativeMachine& machine,
-      int num_runs);
+  void covert_key_generation(Player& P, int num_runs);
+  void covert_mac_generation(Player& P, int num_runs);
+  void covert_secrets_generation(Player& P, MachineBase& machine, int num_runs);
 };
 
 class DataSetup
