@@ -180,6 +180,6 @@ void Proof::Preimages::check_sizes()
     throw runtime_error("preimage sizes don't match");
 }
 
-template bool Proof::check_bounds(AddableVector<fixint<2>>& z, AddableMatrix<fixint<0>>& t, int i) const;
-template bool Proof::check_bounds(AddableVector<fixint<2>>& z, AddableMatrix<fixint<1>>& t, int i) const;
-template bool Proof::check_bounds(AddableVector<fixint<2>>& z, AddableMatrix<fixint<2>>& t, int i) const;
+template bool Proof::check_bounds(AddableVector<fixint<GFP_MOD_SZ>>& z, AddableMatrix<fixint<0>>& t, int i) const;
+template bool Proof::check_bounds(AddableVector<fixint<GFP_MOD_SZ>>& z, AddableMatrix<fixint<1>>& t, int i) const;
+template bool Proof::check_bounds(AddableVector<fixint<GFP_MOD_SZ>>& z, AddableMatrix<fixint<2>>& t, int i) const;

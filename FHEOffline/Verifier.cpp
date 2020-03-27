@@ -114,5 +114,5 @@ void Verifier<FD,S>::NIZKPoK(AddableVector<Ciphertext>& c,
 }
 
 
-template class Verifier<FFT_Data, fixint<2>>;
-template class Verifier<P2Data, fixint<2>>;
+template class Verifier<FFT_Data, fixint<GFP_MOD_SZ>>;
+template class Verifier<P2Data, fixint<GFP_MOD_SZ>>;
