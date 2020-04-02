@@ -77,6 +77,9 @@ class bits(Tape.Register, _structure, _bit):
     def n_elements():
         return 1
     @classmethod
+    def mem_size(cls):
+        return math.ceil(cls.n / cls.unit)
+    @classmethod
     def load_mem(cls, address, mem_type=None, size=None):
         if size not in (None, 1):
             v = [cls.load_mem(address + i) for i in range(size)]
@@ -101,9 +104,8 @@ class bits(Tape.Register, _structure, _bit):
     def copy(self):
         return type(self)(n=instructions_base.get_global_vector_size())
     def set_length(self, n):
-        if n > self.max_length:
-            print(self.max_length)
-            raise Exception('too long: %d' % n)
+        if n > self.n:
+            raise Exception('too long: %d/%d' % (n, self.n))
         self.n = n
     def set_size(self, size):
         pass
@@ -135,7 +137,7 @@ class bits(Tape.Register, _structure, _bit):
         if self.n != None:
             suffix = '%d' % self.n
             if type(self).n != None and type(self).n != self.n:
-                suffice += '/%d' % type(self).n
+                suffix += '/%d' % type(self).n
         else:
             suffix = 'undef'
         return '%s(%s)' % (super(bits, self).__repr__(), suffix)
@@ -237,6 +239,7 @@ class sbits(bits):
     bitdec = inst.bitdecs
     bitcom = inst.bitcoms
     conv_regint = inst.convsint
+    one_cache = {}
     @classmethod
     def conv_regint_by_bit(cls, n, res, other):
         tmp = cbits.get_type(n)()
@@ -285,14 +288,12 @@ class sbits(bits):
                             % (value, self.n))
         if self.n <= 32:
             inst.ldbits(self, self.n, value)
-        elif self.n <= 64:
-            self.load_other(regint(value, size=1))
-        elif self.n <= 128:
-            lower = sbits.get_type(64)(value % 2**64)
-            upper = sbits.get_type(self.n - 64)(value >> 64)
-            self.mov(self, lower + (upper << 64))
         else:
-            raise NotImplementedError('more than 128 bits wanted')
+            size = math.ceil(self.n / self.unit)
+            tmp = regint(size=size)
+            for i in range(size):
+                tmp[i].load_int((value >> (i * 64)) % 2**64)
+            self.load_other(tmp)
     def load_other(self, other):
         if isinstance(other, cbits) and self.n == other.n:
             inst.convcbit2s(self.n, self, other)
@@ -393,11 +394,10 @@ class sbits(bits):
         # res = type(self)(n=self.n)
         # inst.nots(res, self)
         # return res
-        if self.n == None or self.n > self.unit:
-            one = self.get_type(self.n)()
-            self.conv_regint_by_bit(self.n, one, regint(1, size=self.n))
-        else:
-            one = self.new(value=self.long_one(), n=self.n)
+        key = self.n, library.get_block()
+        if key not in self.one_cache:
+            self.one_cache[key] = self.new(value=self.long_one(), n=self.n)
+        one = self.one_cache[key]
         return self + one
     def __neg__(self):
         return self
@@ -432,12 +432,12 @@ class sbits(bits):
     @classmethod
     def trans(cls, rows):
         rows = list(rows)
-        if len(rows) == 1:
+        if len(rows) == 1 and rows[0].n <= rows[0].unit:
             return rows[0].bit_decompose()
         n_columns = rows[0].n
         for row in rows:
             assert(row.n == n_columns)
-        if n_columns == 1:
+        if n_columns == 1 and len(rows) <= cls.unit:
             return [cls.bit_compose(rows)]
         else:
             res = [cls.new(n=len(rows)) for i in range(n_columns)]
@@ -452,6 +452,10 @@ class sbits(bits):
     @staticmethod
     def ripple_carry_adder(*args, **kwargs):
         return sbitint.ripple_carry_adder(*args, **kwargs)
+    def to_sint(self, n_bits):
+        bits = sbitvec.from_vec(sbitvec([self]).v[:n_bits]).elements()[0]
+        bits = sint(bits, size=n_bits)
+        return sint.bit_compose(bits)
 
 class sbitvec(_vec):
     @classmethod
@@ -524,6 +528,8 @@ class sbitvec(_vec):
         return iter(self.v)
     def __len__(self):
         return len(self.v)
+    def __getitem__(self, index):
+        return self.v[index]
     @classmethod
     def conv(cls, other):
         return cls.from_vec(other.v)

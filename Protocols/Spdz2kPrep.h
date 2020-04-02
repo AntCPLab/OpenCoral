@@ -9,7 +9,6 @@
 #include "MascotPrep.h"
 #include "RingOnlyPrep.h"
 #include "Spdz2kShare.h"
-#include "GC/TinySecret.h"
 
 template<class T, class U>
 void bits_from_square_in_ring(vector<T>& bits, int buffer_size, U* bit_prep);

@@ -342,8 +342,10 @@ class Function:
                                                              x.reg_type)))
                 runtime_args = [None] * len(args)
                 for t in sorted(type_args, key=lambda x: x.reg_type):
-                    for i,i_arg in enumerate(type_args[t]):
+                    i = 0
+                    for i_arg in type_args[t]:
                         runtime_args[i_arg] = t.load_mem(bases[t] + i)
+                        i += util.mem_size(t)
                 return self.function(*(list(compile_args) + runtime_args))
             self.on_first_call(wrapped_function)
             self.type_args[len(args)] = type_args
@@ -354,10 +356,12 @@ class Function:
         for i,reg_type in enumerate(sorted(type_args,
                                            key=lambda x: x.reg_type)):
             store_in_mem(bases[reg_type], base + i)
-            for j,i_arg in enumerate(type_args[reg_type]):
+            j = 0
+            for i_arg in type_args[reg_type]:
                 if get_reg_type(args[i_arg]) != reg_type:
                     raise CompilerError('type mismatch')
                 store_in_mem(args[i_arg], bases[reg_type] + j)
+                j += util.mem_size(reg_type)
         return self.on_call(base, bases)
 
 class FunctionTape(Function):

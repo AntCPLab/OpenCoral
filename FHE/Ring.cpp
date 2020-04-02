@@ -29,19 +29,27 @@ istream& operator>>(istream& s,Ring& R)
 void Ring::pack(octetStream& o) const
 {
   o.store(mm);
-  o.store(phim);
-  o.store(pi);
-  o.store(pi_inv);
-  o.store(poly);
+  if (((mm - 1) & mm) != 0)
+    {
+      o.store(phim);
+      o.store(pi);
+      o.store(pi_inv);
+      o.store(poly);
+    }
 }
 
 void Ring::unpack(octetStream& o)
 {
   o.get(mm);
-  o.get(phim);
-  o.get(pi);
-  o.get(pi_inv);
-  o.get(poly);
+  if (((mm - 1) & mm) != 0)
+    {
+      o.get(phim);
+      o.get(pi);
+      o.get(pi_inv);
+      o.get(poly);
+    }
+  else
+    init(*this, mm);
 }
 
 bool Ring::operator !=(const Ring& other) const

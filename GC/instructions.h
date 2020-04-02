@@ -30,12 +30,11 @@
 
 #define IMM instruction.get_n()
 #define EXTRA instruction.get_start()
+#define SIZE instruction.get_size()
 
-#define MSD processor.memories.MS[IMM]
-#define MMC processor.memories.MC[IMM]
+#define MMS processor.memories.MS
+#define MMC processor.memories.MC
 #define MID MACH->MI[IMM]
-
-#define MSI processor.memories.MS[PI1.get()]
 #define MII MACH->MI[PI1.get()]
 
 #define BIT_INSTRUCTIONS \
@@ -44,7 +43,6 @@
     X(XORCBI, C0.xor_(PC1, IMM)) \
     X(ANDRS, T::andrs(PROC, EXTRA)) \
     X(ANDS, T::ands(PROC, EXTRA)) \
-    X(INPUTB, T::inputb(PROC, EXTRA)) \
     X(ADDCB, C0 = PC1 + PC2) \
     X(ADDCBI, C0 = PC1 + IMM) \
     X(MULCBI, C0 = PC1 * IMM) \
@@ -54,24 +52,25 @@
     X(SHRCBI, C0 = PC1 >> IMM) \
     X(SHLCBI, C0 = PC1 << IMM) \
     X(LDBITS, S0.load_clear(REG1, IMM)) \
-    X(LDMSB, S0 = MSD) \
-    X(STMSB, MSD = S0) \
-    X(LDMCB, C0 = MMC) \
-    X(STMCB, MMC = C0) \
+    X(LDMSB, PROC.mem_op(SIZE, PROC.S, MMS, R0, IMM)) \
+    X(STMSB, PROC.mem_op(SIZE, MMS, PROC.S, IMM, R0)) \
+    X(LDMCB, PROC.mem_op(SIZE, PROC.C, MMC, R0, IMM)) \
+    X(STMCB, PROC.mem_op(SIZE, MMC, PROC.C, IMM, R0)) \
+    X(LDMSBI, PROC.mem_op(SIZE, PROC.S, MMS, R0, Ci[REG1])) \
+    X(STMSBI, PROC.mem_op(SIZE, MMS, PROC.S, Ci[REG1], R0)) \
     X(MOVSB, S0 = PS1) \
     X(TRANS, T::trans(PROC, IMM, EXTRA)) \
     X(BITB, PROC.random_bit(S0)) \
     X(REVEAL, T::reveal_inst(PROC, EXTRA)) \
-    X(PRINTREGSIGNED, PROC.print_reg_signed(IMM, C0)) \
-    X(PRINTREGB, PROC.print_reg(R0, IMM)) \
+    X(PRINTREGSIGNED, PROC.print_reg_signed(IMM, R0)) \
+    X(PRINTREGB, PROC.print_reg(R0, IMM, SIZE)) \
     X(PRINTREGPLAINB, PROC.print_reg_plain(C0)) \
     X(PRINTFLOATPLAINB, PROC.print_float(EXTRA)) \
     X(CONDPRINTSTRB, if(C0.get()) PROC.print_str(IMM)) \
 
 #define COMBI_INSTRUCTIONS BIT_INSTRUCTIONS \
+    X(INPUTB, T::inputb(PROC, Proc, EXTRA)) \
     X(ANDM, processor.andm(instruction)) \
-    X(LDMSBI, S0 = processor.memories.MS[Proc.read_Ci(REG1)]) \
-    X(STMSBI, processor.memories.MS[Proc.read_Ci(REG1)] = S0) \
     X(CONVSINT, S0.load_clear(IMM, Proc.read_Ci(REG1))) \
     X(CONVCINT, C0 = Proc.read_Ci(REG1)) \
     X(CONVCBIT, Proc.write_Ci(R0, PC1.get())) \
@@ -84,8 +83,7 @@
     X(SPLIT, Proc.split(INST)) \
 
 #define GC_INSTRUCTIONS \
-    X(LDMSBI, S0 = MSI) \
-    X(STMSBI, MSI = S0) \
+    X(INPUTB, T::inputb(PROC, EXTRA)) \
     X(LDMSD, PROC.load_dynamic_direct(EXTRA, MD)) \
     X(STMSD, PROC.store_dynamic_direct(EXTRA, MD)) \
     X(LDMSDI, PROC.load_dynamic_indirect(EXTRA, MD)) \

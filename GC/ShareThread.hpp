@@ -75,7 +75,9 @@ void ShareThread<T>::post_run()
 {
     MC->Check(*this->P);
 #ifndef INSECURE
+#ifdef VERBOSE
     cerr << "Removing used pre-processed data" << endl;
+#endif
     DataF.prune();
 #endif
 }

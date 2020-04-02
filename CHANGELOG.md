@@ -1,5 +1,12 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.1.6 (Apr 2, 2020)
+
+- Bristol Fashion circuits
+- Semi-honest computation with somewhat homomorphic encryption
+- Use SSL for client connections
+- Client facilities for all arithmetic protocols
+
 ## 0.1.5 (Mar 20, 2020)
 
 - Faster conversion between arithmetic and binary secret sharing using [extended daBits](https://eprint.iacr.org/2020/338)

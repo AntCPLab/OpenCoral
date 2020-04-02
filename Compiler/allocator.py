@@ -210,85 +210,6 @@ class Merger:
                     max_depth_of[v] = min(max_depth_of[u], max_depth_of[v])
         return max_depth_of
 
-    def merge_inputs(self):
-        merges = defaultdict(list)
-        remaining_input_nodes = []
-        def do_merge(nodes):
-            if len(nodes) > 1000:
-                print('Merging %d inputs...' % len(nodes))
-            self.do_merge(iter(nodes))
-        for n in self.input_nodes:
-            inst = self.instructions[n]
-            merge = merges[inst.args[0],inst.__class__]
-            if len(merge) == 0:
-                remaining_input_nodes.append(n)
-            merge.append(n)
-            if len(merge) >= self.max_parallel_open:
-                do_merge(merge)
-                merge[:] = []
-        for merge in reversed(sorted(merges.values())):
-            if merge:
-                do_merge(merge)
-        self.input_nodes = remaining_input_nodes
-
-    def compute_preorder(self, merges, rev_depth_of):
-        # find flexible nodes that can be on several levels
-        # and find sources on level 0
-        G = self.G
-        merge_nodes_set = self.open_nodes
-        depth_of = self.depths
-        instructions = self.instructions
-        flex_nodes = defaultdict(dict)
-        starters = []
-        for n in range(len(G)):
-            if n not in merge_nodes_set and \
-                depth_of[n] != rev_depth_of[n] and G[n] and G.get_attr(n,'start') == -1 and not isinstance(instructions[n], AsymmetricCommunicationInstruction):
-                    #print n, depth_of[n], rev_depth_of[n]
-                    flex_nodes[depth_of[n]].setdefault(rev_depth_of[n], set()).add(n)
-            elif len(G.pred[n]) == 0 and \
-                    not isinstance(self.instructions[n], RawInputInstruction):
-                starters.append(n)
-            if n % 10000000 == 0 and n > 0:
-                print("Processed %d nodes at" % n, time.asctime())
-
-        inputs = defaultdict(list)
-        for node in self.input_nodes:
-            player = self.instructions[node].args[0]
-            inputs[player].append(node)
-        first_inputs = [l[0] for l in inputs.values()]
-        other_inputs = []
-        i = 0
-        while True:
-            i += 1
-            found = False
-            for l in inputs.values():
-                if i < len(l):
-                    other_inputs.append(l[i])
-                    found = True
-            if not found:
-                break
-        other_inputs.reverse()
-
-        preorder = []
-        # magical preorder for topological search
-        max_depth = max(merges)
-        if max_depth > 10000:
-            print("Computing pre-ordering ...")
-        for i in range(max_depth, 0, -1):
-            preorder.append(G.get_attr(merges[i], 'stop'))
-            for j in flex_nodes[i-1].values():
-                preorder.extend(j)
-            preorder.extend(flex_nodes[0].get(i, []))
-            preorder.append(merges[i])
-            if i % 100000 == 0 and i > 0:
-                print("Done level %d at" % i, time.asctime())
-        preorder.extend(other_inputs)
-        preorder.extend(starters)
-        preorder.extend(first_inputs)
-        if max_depth > 10000:
-            print("Done at", time.asctime())
-        return preorder
-
     def longest_paths_merge(self):
         """ Attempt to merge instructions of type instruction_type (which are given in
         merge_nodes) using longest paths algorithm.
@@ -301,7 +222,7 @@ class Merger:
         instructions = self.instructions
         merge_nodes = self.open_nodes
         depths = self.depths
-        if not merge_nodes and not self.input_nodes:
+        if not merge_nodes:
             return 0
 
         # merge opens at same depth
@@ -321,8 +242,6 @@ class Merger:
                     (len(merge), t.__name__, i, len(merges)))
             self.do_merge(merge)
 
-        self.merge_inputs()
-
         preorder = None
 
         if len(instructions) > 100000:
@@ -340,7 +259,6 @@ class Merger:
         options = self.options
         open_nodes = set()
         self.open_nodes = open_nodes
-        self.input_nodes = []
         colordict = defaultdict(lambda: 'gray', asm_open='red',\
                                 ldi='lightblue', ldm='lightblue', stm='blue',\
                                 mov='yellow', mulm='orange', mulc='orange',\
@@ -507,14 +425,7 @@ class Merger:
             elif isinstance(instr, PublicFileIOInstruction):
                 keep_order(instr, n, instr.__class__)
             elif isinstance(instr, RawInputInstruction):
-                keep_order(instr, n, instr.__class__, 0)
-                self.input_nodes.append(n)
-                G.add_node(n, merges=[])
-                player = instr.args[0]
-                if isinstance(instr, stopinput):
-                    add_edge(last[startinput_class][player], n)
-                elif isinstance(instr, gstopinput):
-                    add_edge(last[gstartinput][player], n)
+                keep_order(instr, n, instr.__class__)
             elif isinstance(instr, startprivateoutput_class):
                 keep_order(instr, n, startprivateoutput_class, 2)
             elif isinstance(instr, stopprivateoutput_class):
@@ -559,18 +470,14 @@ class Merger:
             unused_result = not G.degree(i) and len(list(inst.get_def())) \
                 and reduce(operator.and_, (reg.can_eliminate for reg in inst.get_def())) \
                 and not isinstance(inst, (DoNotEliminateInstruction))
-            stop_node = G.get_attr(i, 'stop')
-            unused_startopen = stop_node != -1 and instructions[stop_node] is None
             def eliminate(i):
                 G.remove_node(i)
                 merge_nodes.discard(i)
                 stats[type(instructions[i]).__name__] += 1
                 instructions[i] = None
-            if unused_result or unused_startopen:
+            if unused_result:
                 eliminate(i)
                 count += 1
-                if unused_startopen:
-                    open_count += len(inst.args)
             # remove unnecessary stack instructions
             # left by optimization with budget
             if isinstance(inst, popint_class) and \

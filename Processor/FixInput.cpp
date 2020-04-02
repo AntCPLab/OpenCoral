@@ -5,17 +5,18 @@
 
 #include "FixInput.h"
 
-const char* FixInput::NAME = "real number";
-
-void FixInput::read(std::istream& in, const int* params)
+template<>
+void FixInput_<Integer>::read(std::istream& in, const int* params)
 {
-#ifdef LOW_PREC_INPUT
     double x;
     in >> x;
     items[0] = x * (1 << *params);
-#else
+}
+
+template<>
+void FixInput_<bigint>::read(std::istream& in, const int* params)
+{
     mpf_class x;
     in >> x;
     items[0] = x << *params;
-#endif
 }

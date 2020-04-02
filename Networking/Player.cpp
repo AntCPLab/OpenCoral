@@ -2,7 +2,6 @@
 #include "Player.h"
 #include "ssl_sockets.h"
 #include "Exceptions/Exceptions.h"
-#include "Networking/STS.h"
 #include "Tools/int.h"
 #include "Tools/NetworkOptions.h"
 #include "Networking/Server.h"

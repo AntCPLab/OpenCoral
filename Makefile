@@ -59,7 +59,7 @@ offline: $(OT_EXE) Check-Offline.x
 
 gen_input: gen_input_f2n.x gen_input_fp.x
 
-externalIO: client-setup.x bankers-bonus-client.x bankers-bonus-commsec-client.x
+externalIO: bankers-bonus-client.x
 
 bmr: bmr-program-party.x bmr-program-tparty.x
 
@@ -134,9 +134,6 @@ bmr-clean:
 bankers-bonus-client.x: ExternalIO/bankers-bonus-client.cpp $(COMMON)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
-bankers-bonus-commsec-client.x: ExternalIO/bankers-bonus-commsec-client.cpp $(COMMON)
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
-
 simple-offline.x: $(FHEOFFLINE)
 pairwise-offline.x: $(FHEOFFLINE)
 cnc-offline.x: $(FHEOFFLINE)
@@ -194,6 +191,9 @@ OT/BaseOT.o: SimpleOT/Makefile
 
 SimpleOT/Makefile:
 	git submodule update --init SimpleOT
+
+Programs/Circuits:
+	git submodule update --init Programs/Circuits
 
 .PHONY: mpir-setup mpir-global mpir
 mpir-setup:

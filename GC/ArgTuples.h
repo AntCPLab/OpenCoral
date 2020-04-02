@@ -96,6 +96,8 @@ public:
             res += x.from == from;
         return res;
     }
+
+    int n_interactive_inputs_from_me(int my_num);
 };
 
 #endif /* GC_ARGTUPLES_H_ */

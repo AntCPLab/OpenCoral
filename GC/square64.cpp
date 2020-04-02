@@ -7,6 +7,7 @@
 #include "Tools/cpu_support.h"
 #include <stdexcept>
 #include <iostream>
+#include <assert.h>
 using namespace std;
 
 union matrix32x8
@@ -97,6 +98,9 @@ void square64::transpose(int n_rows, int n_cols)
     cout << "transpose" << endl;
     print();
 #endif
+
+    assert(n_rows <= 64);
+    assert(n_cols <= 64);
 
     square64 tmp = *this;
     *this = {};

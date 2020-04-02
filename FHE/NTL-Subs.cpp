@@ -345,19 +345,38 @@ void init(Ring& Rg,int m)
   Rg.pi.resize(Rg.phim);    Rg.pi_inv.resize(Rg.mm);
   for (int i=0; i<Rg.mm; i++) { Rg.pi_inv[i]=-1; }
 
-  int k=0;
-  for (int i=1; i<Rg.mm; i++)
-    { if (gcd(i,Rg.mm)==1)
-        { Rg.pi[k]=i;
-          Rg.pi_inv[i]=k;
-          k++;
+  if (((m - 1) & m) == 0)
+    {
+      // m is power of two
+      // no need to generate poly
+      int k = 0;
+      for (int i = 1; i < Rg.mm; i++)
+        {
+          // easy GCD
+          if (i % 2 == 1)
+            {
+              Rg.pi[k] = i;
+              Rg.pi_inv[i] = k;
+              k++;
+            }
         }
     }
+  else
+    {
+      int k=0;
+      for (int i=1; i<Rg.mm; i++)
+        { if (gcd(i,Rg.mm)==1)
+          { Rg.pi[k]=i;
+          Rg.pi_inv[i]=k;
+          k++;
+          }
+        }
 
-  ZZX P=Cyclotomic(Rg.mm);
-  Rg.poly.resize(Rg.phim+1);
-  for (int i=0; i<Rg.phim+1; i++)
-    { Rg.poly[i]=to_int(coeff(P,i)); } 
+      ZZX P=Cyclotomic(Rg.mm);
+      Rg.poly.resize(Rg.phim+1);
+      for (int i=0; i<Rg.phim+1; i++)
+        { Rg.poly[i]=to_int(coeff(P,i)); }
+    }
 }
 
 

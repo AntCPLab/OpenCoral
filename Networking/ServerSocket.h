@@ -12,9 +12,12 @@
 using namespace std;
 
 #include <pthread.h>
+#include <netinet/tcp.h>
 
 #include "Tools/WaitQueue.h"
 #include "Tools/Signal.h"
+
+class ServerJob;
 
 class ServerSocket
 {
@@ -25,8 +28,12 @@ protected:
     Signal data_signal;
     pthread_t thread;
 
+    vector<ServerJob*> jobs;
+
     // disable copying
     ServerSocket(const ServerSocket& other);
+
+    void process_connection(int socket, int client_id);
 
     virtual void process_client(int) {}
 
@@ -38,14 +45,11 @@ public:
 
     virtual void accept_clients();
 
+    void wait_for_client_id(int socket, sockaddr dest);
+
     // This depends on clients sending their id as int.
     // Has to be thread-safe.
     int get_connection_socket(int number);
-
-    // How many client connections have been made.
-    virtual int get_connection_count();
-
-    void close_socket();
 };
 
 /*
@@ -55,17 +59,14 @@ class AnonymousServerSocket : public ServerSocket
 {
 private:
     // No. of accepted connections in this instance
-    int num_accepted_clients;
     queue<int> client_connection_queue;
 
     void process_client(int client_id);
 
 public:
     AnonymousServerSocket(int Portnum) :
-        ServerSocket(Portnum), num_accepted_clients(0) { };
+        ServerSocket(Portnum) { };
     void init();
-
-    virtual int get_connection_count();
 
     // Get socket and id for the last client who connected
     int get_connection_socket(int& client_id);

@@ -92,6 +92,8 @@ class gfp_
 
   static bool allows(Dtype type);
 
+  static void specification(octetStream& os);
+
   static const bool invertible = true;
 
   static gfp_ Mul(gfp_ a, gfp_ b) { return a * b; }

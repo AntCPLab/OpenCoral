@@ -115,6 +115,7 @@ enum
     INPUTFLOAT = 0xF1,
     INPUTMIXED = 0xF2,
     INPUTMIXEDREG = 0xF3,
+    RAWINPUT = 0xF4,
     STARTINPUT = 0x61,
     STOPINPUT = 0x62,
     READSOCKETC = 0x63,
@@ -248,6 +249,7 @@ enum
     GSTOPINPUT = 0x162,
     GREADSOCKETS = 0x164,
     GWRITESOCKETS = 0x166,
+    GRAWINPUT = 0x1F4,
     // Bitwise logic
     GANDC = 0x170,
     GXORC = 0x171,
@@ -328,6 +330,8 @@ public:
   int get_opcode() const { return opcode; }
   int get_size() const { return size; }
 
+  // Reads a single instruction from the istream
+  void parse(istream& s, int inst_pos);
   void parse_operands(istream& s, int pos, int file_pos);
 
   bool is_gf2n_instruction() const { return ((opcode&0x100)!=0); }
@@ -347,9 +351,6 @@ class DataPositions;
 class Instruction : public BaseInstruction
 {
 public:
-  // Reads a single instruction from the istream
-  void parse(istream& s, int inst_pos);
-
   // Return whether usage is known
   bool get_offline_data_usage(DataPositions& usage);
 
@@ -360,7 +361,6 @@ public:
   template<class sint, class sgf2n>
   void execute(Processor<sint, sgf2n>& Proc) const;
 };
-
 
 #endif
 

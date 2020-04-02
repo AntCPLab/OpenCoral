@@ -82,7 +82,14 @@ if 'quant' in program.args:
 else:
    dense = ml.Dense(N, n_features, 1)
 
-layers = [dense, ml.Output(N, debug=debug, approx='approx' in program.args)]
+if 'approx' in program.args:
+   approx = 3
+elif 'approx5' in program.args:
+   approx = 5
+else:
+   approx = False
+
+layers = [dense, ml.Output(N, debug=debug, approx=approx)]
 
 Y = sfix.Array(n_examples)
 X = sfix.Matrix(n_examples, n_features)

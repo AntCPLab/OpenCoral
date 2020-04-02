@@ -232,7 +232,7 @@ def inputmixed(*args):
     if isinstance(args[-1], int):
         instructions.inputmixed(*args)
     else:
-        instructions.inputmixedreg(*args)
+        instructions.inputmixedreg(*(args[:-1] + (regint.conv(args[-1]),)))
 
 class _number(object):
     """ Number functionality. """
@@ -762,7 +762,11 @@ class cint(_clear, _int):
     def load_int(self, val):
         if val:
             # +1 for sign
-            program.curr_tape.require_bit_length(1 + int(math.ceil(math.log(abs(val)))))
+            bit_length = 1 + int(math.ceil(math.log(abs(val))))
+            if program.options.ring:
+                assert(bit_length <= int(program.options.ring))
+            elif program.param != -1 or program.options.field:
+                program.curr_tape.require_bit_length(bit_length)
         if self.in_immediate_range(val):
             ldi(self, val)
         else:
@@ -783,7 +787,7 @@ class cint(_clear, _int):
                     sum += sign * chunk
 
     @vectorize
-    def to_regint(self, n_bits=None, dest=None):
+    def to_regint(self, n_bits=64, dest=None):
         """ Convert to regint.
 
         :param n_bits: bit length (int)
@@ -1146,23 +1150,6 @@ class regint(_register, _int):
         else:
             return res
 
-    @vectorized_classmethod
-    def read_client_public_key(cls, client_id):
-        """ Receive 8 register values from socket containing client public key."""
-        res = [cls() for i in range(8)]
-        readclientpublickey(client_id, *res)
-        return res
-
-    @vectorized_classmethod
-    def init_secure_socket(cls, client_id, w1, w2, w3, w4, w5, w6, w7, w8):
-        """ Use 8 register values containing client public key."""
-        initsecuresocket(client_id, w1, w2, w3, w4, w5, w6, w7, w8)
-
-    @vectorized_classmethod
-    def resp_secure_socket(cls, client_id, w1, w2, w3, w4, w5, w6, w7, w8):
-        """ Receive 8 register values from socket containing client public key."""
-        respsecuresocket(client_id, w1, w2, w3, w4, w5, w6, w7, w8)
-
     @vectorize
     def write_to_socket(self, client_id, message_type=ClientMessageType.NoType):
         writesocketint(client_id, message_type, self)
@@ -1439,7 +1426,7 @@ class _secret(_register):
     def get_input_from(cls, player):
         """ Secret input from player.
 
-        :param: player (compile-time int) """
+        :param player: public (regint/cint/int) """
         res = cls()
         asm_input(res, player)
         return res
@@ -1648,9 +1635,12 @@ class _secret(_register):
     @vectorize
     def square(self):
         """ Secret square. """
-        res = self.__class__()
-        sqrs(res, self)
-        return res
+        if program.use_square():
+            res = self.__class__()
+            sqrs(res, self)
+            return res
+        else:
+            return self * self
 
     @set_instruction_type
     @vectorize
@@ -1712,7 +1702,7 @@ class sint(_secret, _int):
     def get_input_from(cls, player):
         """ Secret input.
 
-        :param player: compile-time integer (int) """
+        :param player: public (regint/cint/int) """
         res = cls()
         inputmixed('int', res, player)
         return res
@@ -1757,8 +1747,7 @@ class sint(_secret, _int):
     @classmethod
     def get_raw_input_from(cls, player):
         res = cls()
-        startinput(player, 1)
-        stopinput(player, res)
+        rawinput(player, res)
         return res
 
     @classmethod
@@ -2056,8 +2045,7 @@ class sgf2n(_secret, _gf2n):
     @classmethod
     def get_raw_input_from(cls, player):
         res = cls()
-        gstartinput(player, 1)
-        gstopinput(player, res)
+        grawinput(player, res)
         return res
 
     def add(self, other):
@@ -3293,7 +3281,7 @@ class sfix(_fix):
     def get_input_from(cls, player):
         """ Secret fixed-point input.
 
-        :param player: int """
+        :param player: public (regint/cint/int) """
         v = cls.int_type()
         inputmixed('fix', v, cls.f, player)
         return cls._new(v)
@@ -3674,7 +3662,7 @@ class sfloat(_number, _structure):
     def get_input_from(cls, player):
         """ Secret floating-point input.
 
-        :param player: int """
+        :param player: public (regint/cint/int) """
         v = sint()
         p = sint()
         z = sint()
@@ -4195,7 +4183,7 @@ class Array(object):
     def input_from(self, player, budget=None):
         """ Fill with inputs from player if supported by type.
 
-        :param player: compile-time (int) """
+        :param player: public (regint/cint/int) """
         self.assign(self.value_type.get_input_from(player, size=len(self)))
 
     def __add__(self, other):
@@ -4351,7 +4339,7 @@ class SubMultiArray(object):
     def input_from(self, player, budget=None):
         """ Fill with inputs from player if supported by type.
 
-        :param player: compile-time (int) """
+        :param player: public (regint/cint/int) """
         @library.for_range_opt(self.sizes[0], budget=budget)
         def _(i):
             self[i].input_from(player, budget=budget)
@@ -4596,6 +4584,12 @@ class Matrix(MultiArray):
         """
         MultiArray.__init__(self, [rows, columns], value_type, debug=debug, \
                             address=address)
+
+    def set_column(self, index, vector):
+        assert self.value_type.n_elements() == 1
+        addresses = regint.inc(self.sizes[0], self.address + index,
+                               self.sizes[1])
+        vector.store_in_mem(addresses)
 
 class VectorArray(object):
     def __init__(self, length, value_type, vector_size, address=None):

@@ -16,7 +16,9 @@ SemiHomomorphicNoiseBounds::SemiHomomorphicNoiseBounds(const bigint& p,
 {
     if (sigma <= 0)
         this->sigma = sigma = FHE_Params().get_R();
+#ifdef VERBOSE
     cerr << "Standard deviation: " << this->sigma << endl;
+#endif
     h += extra_h * sec;
     produce_epsilon_constants();
 

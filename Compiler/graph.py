@@ -17,7 +17,7 @@ class SparseDiGraph(object):
         """ max_nodes: maximum no of nodes
         default_attributes: dict of node attributes and default values """
         if default_attributes is None:
-            default_attributes = { 'merges': None, 'stop': -1, 'start': -1 }
+            default_attributes = { 'merges': None }
         self.default_attributes = default_attributes
         self.attribute_pos = dict(list(zip(list(default_attributes.keys()), list(range(len(default_attributes))))))
         self.n = max_nodes

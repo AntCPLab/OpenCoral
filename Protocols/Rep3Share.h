@@ -127,12 +127,14 @@ public:
 
     void pack(octetStream& os, bool full = true) const
     {
-        (void)full;
-        FixedVec<T, 2>::pack(os);
+        if (full)
+            FixedVec<T, 2>::pack(os);
+        else
+            (*this)[0].pack(os);
     }
     void unpack(octetStream& os, bool full = true)
     {
-        (void)full;
+        assert(full);
         FixedVec<T, 2>::unpack(os);
     }
 };

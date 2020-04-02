@@ -26,7 +26,7 @@ namespace GC
 {
 
 template<class U>
-const int VectorSecret<U>::default_length;
+const int ReplicatedSecret<U>::N_BITS;
 
 template<class U>
 const int ReplicatedSecret<U>::default_length;
@@ -92,6 +92,7 @@ void ShareSecret<U>::store_clear_in_dynamic(Memory<U>& mem,
 
 template<class U>
 void ShareSecret<U>::inputb(Processor<U>& processor,
+        ProcessorBase& input_processor,
         const vector<int>& args)
 {
     auto& party = ShareThread<U>::s();
@@ -99,16 +100,22 @@ void ShareSecret<U>::inputb(Processor<U>& processor,
     input.reset_all(*party.P);
 
     InputArgList a(args);
-    bool interactive = Thread<U>::s().n_interactive_inputs_from_me(a) > 0;
+    bool interactive = a.n_interactive_inputs_from_me(party.P->my_num()) > 0;
+    int dl = U::default_length;
 
     for (auto x : a)
     {
         if (x.from == party.P->my_num())
         {
-            input.add_mine(processor.get_input(x.params, interactive), x.n_bits);
+            bigint whole_input = processor.get_long_input(x.params,
+                    input_processor, interactive);
+            for (int i = 0; i < DIV_CEIL(x.n_bits, dl); i++)
+                input.add_mine(bigint(whole_input >> (i * dl)).get_si(),
+                        min(dl, x.n_bits - i * dl));
         }
         else
-            input.add_other(x.from);
+            for (int i = 0; i < DIV_CEIL(x.n_bits, dl); i++)
+                input.add_other(x.from);
     }
 
     if (interactive)
@@ -120,8 +127,12 @@ void ShareSecret<U>::inputb(Processor<U>& processor,
     {
         int from = x.from;
         int n_bits = x.n_bits;
-        auto& res = processor.S[x.dest];
-        res = input.finalize(from, n_bits).mask(n_bits);
+        for (int i = 0; i < DIV_CEIL(x.n_bits, dl); i++)
+        {
+            auto& res = processor.S[x.dest + i];
+            int n = min(dl, n_bits - i * dl);
+            res = input.finalize(from, n).mask(n);
+        }
     }
 }
 
@@ -139,7 +150,11 @@ void ShareSecret<U>::reveal_inst(Processor<U>& processor,
         if (n > max(U::default_length, Clear::N_BITS))
             assert(U::default_length == Clear::N_BITS);
         for (int j = 0; j < DIV_CEIL(n, U::default_length); j++)
-            shares.push_back(processor.S[r1 + j].mask(n));
+        {
+            shares.push_back(
+                    processor.S[r1 + j].mask(
+                            min(U::default_length, n - j * U::default_length)));
+        }
     }
     assert(party.MC);
     PointerVector<typename U::open_type> opened;
@@ -149,7 +164,10 @@ void ShareSecret<U>::reveal_inst(Processor<U>& processor,
         int n = args[i];
         int r0 = args[i + 1];
         for (int j = 0; j < DIV_CEIL(n, U::default_length); j++)
-            processor.C[r0 + j] = opened.next().mask(n);
+        {
+            processor.C[r0 + j] = opened.next().mask(
+                    min(U::default_length, n - j * U::default_length));
+        }
     }
 }
 
@@ -180,12 +198,22 @@ void ReplicatedSecret<U>::trans(Processor<U>& processor,
     assert(length == 2);
     for (int k = 0; k < 2; k++)
     {
-        square64 square;
-        for (size_t i = n_outputs; i < args.size(); i++)
-            square.rows[i - n_outputs] = processor.S[args[i]][k].get();
-        square.transpose(args.size() - n_outputs, n_outputs);
-        for (int i = 0; i < n_outputs; i++)
-            processor.S[args[i]][k] = square.rows[i];
+        for (int j = 0; j < DIV_CEIL(n_outputs, N_BITS); j++)
+            for (int l = 0; l < DIV_CEIL(args.size() - n_outputs, N_BITS); l++)
+            {
+                square64 square;
+                size_t input_base = n_outputs + l * N_BITS;
+                for (size_t i = input_base; i < min(input_base + N_BITS, args.size()); i++)
+                    square.rows[i - input_base] = processor.S[args[i] + j][k].get();
+                square.transpose(
+                        min(size_t(N_BITS), args.size() - n_outputs - l * N_BITS),
+                        min(N_BITS, n_outputs - j * N_BITS));
+                int output_base = j * N_BITS;
+                for (int i = output_base; i < min(n_outputs, output_base + N_BITS); i++)
+                {
+                    processor.S[args[i] + l][k] = square.rows[i - output_base];
+                }
+            }
     }
 }
 

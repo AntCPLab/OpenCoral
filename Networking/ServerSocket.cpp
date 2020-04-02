@@ -74,11 +74,59 @@ void ServerSocket::init()
   pthread_create(&thread, 0, accept_thread, this);
 }
 
+class ServerJob
+{
+  ServerSocket& server;
+  int socket;
+  sockaddr dest;
+
+public:
+  pthread_t thread;
+
+  ServerJob(ServerSocket& server, int socket, sockaddr dest) :
+      server(server), socket(socket), dest(dest), thread(0)
+  {
+  }
+
+  static void* run(void* job)
+  {
+    auto& server_job = *(ServerJob*)(job);
+    server_job.server.wait_for_client_id(server_job.socket, server_job.dest);
+    return 0;
+  }
+};
+
 ServerSocket::~ServerSocket()
 {
+  for (auto& job : jobs)
+    {
+      pthread_cancel(job->thread);
+      pthread_join(job->thread, 0);
+      delete job;
+    }
+
   pthread_cancel(thread);
   pthread_join(thread, 0);
   if (close(main_socket)) { error("close(main_socket"); };
+}
+
+void ServerSocket::wait_for_client_id(int socket, sockaddr dest)
+{
+  (void) dest;
+  int client_id;
+  try
+    {
+      receive(socket, (unsigned char*) &client_id, sizeof(client_id));
+      process_connection(socket, client_id);
+    }
+  catch (closed_connection&)
+    {
+#ifdef DEBUG_NETWORKING
+      auto& conn = *(sockaddr_in*) &dest;
+      fprintf(stderr, "client on %s:%d left without identification\n",
+          inet_ntoa(conn.sin_addr), ntohs(conn.sin_port));
+#endif
+    }
 }
 
 void ServerSocket::accept_clients()
@@ -92,25 +140,19 @@ void ServerSocket::accept_clients()
       if (consocket<0) { error("set_up_socket:accept"); }
 
       int client_id;
-      try
-      {
-          receive(consocket, (unsigned char*)&client_id, sizeof(client_id));
-      }
-      catch (closed_connection&)
-      {
+      if (receive_all_or_nothing(consocket, (unsigned char*)&client_id, sizeof(client_id)))
+        process_connection(consocket, client_id);
+      else
+        {
 #ifdef DEBUG_NETWORKING
-          auto& conn = *(sockaddr_in*)&dest;
-          cerr << "client on " << inet_ntoa(conn.sin_addr) << ":"
-                  << ntohs(conn.sin_port) << " left without identification"
-                  << endl;
+          auto& conn = *(sockaddr_in*) &dest;
+          fprintf(stderr, "deferring client on %s:%d to thread\n",
+              inet_ntoa(conn.sin_addr), ntohs(conn.sin_port));
 #endif
-      }
-
-      data_signal.lock();
-      process_client(client_id);
-      clients[client_id] = consocket;
-      data_signal.broadcast();
-      data_signal.unlock();
+          // defer to thread
+          jobs.push_back(new ServerJob(*this, consocket, dest));
+          pthread_create(&jobs.back()->thread, 0, ServerJob::run, jobs.back());
+        }
 
 #ifdef __APPLE__
       int flags = fcntl(consocket, F_GETFL, 0);
@@ -121,14 +163,18 @@ void ServerSocket::accept_clients()
     }
 }
 
-int ServerSocket::get_connection_count()
+void ServerSocket::process_connection(int consocket, int client_id)
 {
   data_signal.lock();
-  int connection_count = clients.size();
+#ifdef DEBUG_NETWORKING
+  cerr << "client " << hex << client_id << " is on socket " << dec << consocket
+      << endl;
+#endif
+  process_client(client_id);
+  clients[client_id] = consocket;
+  data_signal.broadcast();
   data_signal.unlock();
-  return connection_count;
 }
-
 
 int ServerSocket::get_connection_socket(int id)
 {
@@ -163,16 +209,10 @@ void AnonymousServerSocket::init()
   pthread_create(&thread, 0, anonymous_accept_thread, this);
 }
 
-int AnonymousServerSocket::get_connection_count()
-{
-  return num_accepted_clients;
-}
-
 void AnonymousServerSocket::process_client(int client_id)
 {
   if (clients.find(client_id) != clients.end())
     close_client_socket(clients[client_id]);
-  num_accepted_clients++;
   client_connection_queue.push(client_id);
 }
 

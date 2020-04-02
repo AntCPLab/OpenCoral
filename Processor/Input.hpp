@@ -100,7 +100,7 @@ template<class T>
 void Input<T>::add_other(int player)
 {
     open_type t;
-    shares[player].push_back({});
+    shares.at(player).push_back({});
     prep.get_input(shares[player].back(), t, player);
 }
 
@@ -131,12 +131,16 @@ void InputBase<T>::exchange()
 }
 
 template<class T>
-void Input<T>::start(int player, int n_inputs)
+void InputBase<T>::raw_input(SubProcessor<T>& proc, const vector<int>& args)
 {
-    reset(player);
-    if (player == P.my_num())
+    auto& P = proc.P;
+    reset_all(P);
+
+    for (auto it = args.begin(); it != args.end();)
     {
-        for (int i = 0; i < n_inputs; i++)
+        int player = *it++;
+        it++;
+        if (player == P.my_num())
         {
             clear t;
             try
@@ -149,32 +153,20 @@ void Input<T>::start(int player, int n_inputs)
             }
             add_mine(t);
         }
-        send_mine();
-    }
-    else
-    {
-        for (int i = 0; i < n_inputs; i++)
-            add_other(player);
-    }
-}
-
-template<class T>
-void Input<T>::stop(int player, const vector<int>& targets)
-{
-    assert(proc != 0);
-    if (P.my_num() == player)
-        for (unsigned int i = 0; i < targets.size(); i++)
-            proc->get_S_ref(targets[i]) = finalize_mine();
-    else
-    {
-        octetStream o;
-        this->timer.start();
-        P.receive_player(player, o, true);
-        this->timer.stop();
-        for (unsigned int i = 0; i < targets.size(); i++)
+        else
         {
-            finalize_other(player, proc->get_S_ref(targets[i]), o);
+            add_other(player);
         }
+    }
+
+    timer.start();
+    exchange();
+    timer.stop();
+
+    for (auto it = args.begin(); it != args.end();)
+    {
+        int player = *it++;
+        proc.get_S_ref(*it++) = finalize(player);
     }
 }
 

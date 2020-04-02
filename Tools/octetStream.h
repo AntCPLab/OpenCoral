@@ -127,6 +127,8 @@ class octetStream
 
   template<class T>
   T get();
+  template<class T>
+  void get(T& ans);
 
   // works for all statically allocated types
   template <class T>
@@ -134,8 +136,10 @@ class octetStream
   template <class T>
   void unserialize(T& x) { consume((octet*)&x, sizeof(x)); }
 
-  void store(const vector<int>& v);
-  void get(vector<int>& v);
+  template <class T>
+  void store(const vector<T>& v);
+  template <class T>
+  void get(vector<T>& v);
 
   void consume(octetStream& s,size_t l)
     { s.resize(l);
@@ -147,20 +151,8 @@ class octetStream
   void Send(T socket_num) const;
   template<class T>
   void Receive(T socket_num);
-  void ReceiveExpected(int socket_num, size_t expected);
-
-  // In-place authenticated encryption using sodium; key of length crypto_generichash_BYTES
-  // ciphertext = Enc(message) | MAC | counter
-  //
-  // This is much like 'encrypt' but uses a deterministic counter for the nonce,
-  // allowing enforcement of message order.
-  void encrypt_sequence(const octet* key, uint64_t counter);
-  void decrypt_sequence(const octet* key, uint64_t counter);
-
-  // In-place authenticated encryption using sodium; key of length crypto_secretbox_KEYBYTES
-  // ciphertext = Enc(message) | MAC | nonce
-  void encrypt(const octet* key);
-  void decrypt(const octet* key);
+  template<class T>
+  void ReceiveExpected(T socket_num, size_t expected);
 
   void input(istream& s);
   void output(ostream& s);
@@ -278,7 +270,8 @@ inline void octetStream::Receive(T socket_num)
   reset_read_head();
 }
 
-inline void octetStream::ReceiveExpected(int socket_num, size_t expected)
+template<class T>
+inline void octetStream::ReceiveExpected(T socket_num, size_t expected)
 {
   size_t nlen = 0;
   receive(socket_num, nlen, LENGTH_SIZE);
@@ -310,10 +303,34 @@ T octetStream::get()
     return res;
 }
 
+template<class T>
+void octetStream::get(T& res)
+{
+    res.unpack(*this);
+}
+
 template<>
 inline int octetStream::get()
 {
     return get_int(sizeof(int));
+}
+
+template<class T>
+void octetStream::store(const vector<T>& v)
+{
+  store(v.size());
+  for (auto& x : v)
+    store(x);
+}
+
+template<class T>
+void octetStream::get(vector<T>& v)
+{
+  size_t size;
+  get(size);
+  v.resize(size);
+  for (auto& x : v)
+    get(x);
 }
 
 #endif

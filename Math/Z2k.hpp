@@ -37,6 +37,12 @@ bool Z2<K>::allows(Dtype dtype)
 }
 
 template<int K>
+void Z2<K>::specification(octetStream& os)
+{
+	os.store(K);
+}
+
+template<int K>
 Z2<K>::Z2(const bigint& x) : Z2()
 {
 	auto mp = x.get_mpz_t();

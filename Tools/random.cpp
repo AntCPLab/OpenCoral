@@ -3,6 +3,7 @@
 #include "Math/bigint.h"
 #include "Math/fixint.h"
 #include "Math/Z2k.hpp"
+#include "Math/gfp.h"
 #include "Tools/Subroutines.h"
 #include <stdio.h>
 #include <sodium.h>

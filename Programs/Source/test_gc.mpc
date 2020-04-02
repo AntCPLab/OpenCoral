@@ -97,8 +97,3 @@ test(c[0], 0)
 test(c[1], 1)
 test(c[2], 1)
 test(c[3], 0)
-
-k = 41
-a = int(2.9142 * 2**k)
-alpha = sbitint.get_type(2 * k)(a)
-test(sbits.bit_compose((alpha >> 64).bit_decompose()[:64]), 0)

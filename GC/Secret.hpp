@@ -290,12 +290,14 @@ void Secret<T>::trans(Processor<U>& processor, int n_outputs,
         const vector<int>& args)
 {
     int n_inputs = args.size() - n_outputs;
+    int dl = U::default_length;
     for (int i = 0; i < n_outputs; i++)
     {
-        processor.S[args[i]].resize_regs(n_inputs);
+        for (int j = 0; j < DIV_CEIL(n_inputs, dl); j++)
+            processor.S[args[i] + j].resize_regs(min(dl, n_inputs - j * dl));
         for (int j = 0; j < n_inputs; j++)
-            processor.S[args[i]].registers[j] =
-                    processor.S[args[n_outputs + j]].registers[i];
+            processor.S[args[i] + j / dl].registers[j % dl] =
+                    processor.S[args[n_outputs + j] + i / dl].registers[i % dl];
     }
 }
 

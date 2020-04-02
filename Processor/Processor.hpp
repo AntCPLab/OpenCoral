@@ -3,7 +3,6 @@
 
 #include "Processor/Processor.h"
 #include "Processor/Program.h"
-#include "Networking/STS.h"
 #include "Protocols/fake-stuff.h"
 #include "GC/square64.h"
 
@@ -68,7 +67,7 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
   Procb(machine.bit_memories),
   Proc2(*this,MC2,DataF.DataF2,P),Procp(*this,MCp,DataF.DataFp,P),
   privateOutput2(Proc2),privateOutputp(Procp),
-  external_clients(ExternalClients(P.my_num(), machine.prep_dir_prefix)),
+  external_clients(P.my_num(), machine.prep_dir_prefix),
   binary_file_io(Binary_File_IO())
 {
   reset(program,0);
@@ -222,7 +221,6 @@ void Processor<sint, sgf2n>::split(const Instruction& instruction)
 // RegType and SecrecyType determines how registers are read and the socket stream is packed.
 // If message_type is > 0, send message_type in bytes 0 - 3, to allow an external client to
 //  determine the data structure being sent in a message.
-// Encryption is enabled if key material (for DH Auth Encryption and/or STS protocol) has been already setup.
 template<class sint, class sgf2n>
 void Processor<sint, sgf2n>::write_socket(const RegType reg_type, const SecrecyType secrecy_type, const bool send_macs,
                              int socket_id, int message_type, const vector<int>& registers)
@@ -239,7 +237,11 @@ void Processor<sint, sgf2n>::write_socket(const RegType reg_type, const SecrecyT
   {
     if (reg_type == MODP && secrecy_type == SECRET) {
       // Send vector of secret shares and optionally macs
-      get_Sp_ref(registers[i]).pack(socket_stream, send_macs);
+      if (send_macs)
+        get_Sp_ref(registers[i]).pack(socket_stream);
+      else
+        get_Sp_ref(registers[i]).pack(socket_stream,
+            sint::get_rec_factor(P.my_num(), P.num_players()));
     }
     else if (reg_type == MODP && secrecy_type == CLEAR) {
       // Send vector of clear public field elements
@@ -257,15 +259,7 @@ void Processor<sint, sgf2n>::write_socket(const RegType reg_type, const SecrecyT
     }
   }
 
-  // Apply DH Auth encryption if session keys have been created.
-  map<int,octet*>::iterator it = external_clients.symmetric_client_keys.find(socket_id);
-  if (it != external_clients.symmetric_client_keys.end()) {
-    socket_stream.encrypt(it->second);
-  }
-
-  // Apply STS commsec encryption if session keys have been created.
   try {
-    maybe_encrypt_sequence(socket_id);
     socket_stream.Send(external_clients.get_socket(socket_id));
   }
     catch (bad_value& e) {
@@ -282,7 +276,6 @@ void Processor<sint, sgf2n>::read_socket_ints(int client_id, const vector<int>& 
   int m = registers.size();
   socket_stream.reset_write_head();
   socket_stream.Receive(external_clients.get_socket(client_id));
-  maybe_decrypt_sequence(client_id);
   for (int i = 0; i < m; i++)
   {
     int val;
@@ -298,7 +291,6 @@ void Processor<sint, sgf2n>::read_socket_vector(int client_id, const vector<int>
   int m = registers.size();
   socket_stream.reset_write_head();
   socket_stream.Receive(external_clients.get_socket(client_id));
-  maybe_decrypt_sequence(client_id);
   for (int i = 0; i < m; i++)
   {
     get_Cp_ref(registers[i]).unpack(socket_stream);
@@ -312,146 +304,13 @@ void Processor<sint, sgf2n>::read_socket_private(int client_id, const vector<int
   int m = registers.size();
   socket_stream.reset_write_head();
   socket_stream.Receive(external_clients.get_socket(client_id));
-  maybe_decrypt_sequence(client_id);
 
-  map<int,octet*>::iterator it = external_clients.symmetric_client_keys.find(client_id);
-  if (it != external_clients.symmetric_client_keys.end())
-  {
-    socket_stream.decrypt(it->second);
-  }
   for (int i = 0; i < m; i++)
   {
     get_Sp_ref(registers[i]).unpack(socket_stream, read_macs);
   }
 }
 
-// Read socket for client public key as 8 ints, calculate session key for client.
-template<class sint, class sgf2n>
-void Processor<sint, sgf2n>::read_client_public_key(int client_id, const vector<int>& registers) {
-
-  read_socket_ints(client_id, registers);
-
-  // After read into registers, need to extract values
-  vector<int> client_public_key (registers.size(), 0);
-  for(unsigned int i = 0; i < registers.size(); i++) {
-    client_public_key[i] = (int&)get_Ci_ref(registers[i]);
-  }
-
-  external_clients.generate_session_key_for_client(client_id, client_public_key);  
-}
-
-template<class sint, class sgf2n>
-void Processor<sint, sgf2n>::init_secure_socket_internal(int client_id, const vector<int>& registers) {
-  external_clients.symmetric_client_commsec_send_keys.erase(client_id);
-  external_clients.symmetric_client_commsec_recv_keys.erase(client_id);
-  unsigned char client_public_bytes[crypto_sign_PUBLICKEYBYTES];
-  sts_msg1_t m1;
-  sts_msg2_t m2;
-  sts_msg3_t m3;
-
-  external_clients.load_server_keys_once();
-  external_clients.require_ed25519_keys();
-
-  // Validate inputs and state
-  if(registers.size() != 8) {
-      throw "Invalid call to init_secure_socket.";
-  }
-
-  // Extract client long term public key into bytes
-  vector<int> client_public_key (registers.size(), 0);
-  for(unsigned int i = 0; i < registers.size(); i++) {
-    client_public_key[i] = (int&)get_Ci_ref(registers[i]);
-  }
-  external_clients.curve25519_ints_to_bytes(client_public_bytes,  client_public_key);
-
-  // Start Station to Station Protocol
-  STS ke(client_public_bytes, external_clients.server_publickey_ed25519, external_clients.server_secretkey_ed25519);
-  m1 = ke.send_msg1();
-  socket_stream.reset_write_head();
-  socket_stream.append(m1.bytes, sizeof m1.bytes);
-  socket_stream.Send(external_clients.get_socket(client_id));
-  socket_stream.ReceiveExpected(external_clients.get_socket(client_id),
-                                96);
-  socket_stream.consume(m2.pubkey, sizeof m2.pubkey);
-  socket_stream.consume(m2.sig, sizeof m2.sig);
-  m3 = ke.recv_msg2(m2);
-  socket_stream.reset_write_head();
-  socket_stream.append(m3.bytes, sizeof m3.bytes);
-  socket_stream.Send(external_clients.get_socket(client_id));
-
-  // Use results of STS to generate send and receive keys.
-  vector<unsigned char> sendKey = ke.derive_secret(crypto_secretbox_KEYBYTES);
-  vector<unsigned char> recvKey = ke.derive_secret(crypto_secretbox_KEYBYTES);
-  external_clients.symmetric_client_commsec_send_keys[client_id] = make_pair(sendKey,0);
-  external_clients.symmetric_client_commsec_recv_keys[client_id] = make_pair(recvKey,0);
-}
-
-template<class sint, class sgf2n>
-void Processor<sint, sgf2n>::init_secure_socket(int client_id, const vector<int>& registers) {
-
-  try {
-      init_secure_socket_internal(client_id, registers);
-  } catch (char const *e) {
-      cerr << "STS initiator role failed with: " << e << endl;
-      throw Processor_Error("STS initiator failed");
-  }
-}
-
-template<class sint, class sgf2n>
-void Processor<sint, sgf2n>::resp_secure_socket(int client_id, const vector<int>& registers) {
-  try {
-      resp_secure_socket_internal(client_id, registers);
-  } catch (char const *e) {
-      cerr << "STS responder role failed with: " << e << endl;
-      throw Processor_Error("STS responder failed");
-  }
-}
-
-template<class sint, class sgf2n>
-void Processor<sint, sgf2n>::resp_secure_socket_internal(int client_id, const vector<int>& registers) {
-  external_clients.symmetric_client_commsec_send_keys.erase(client_id);
-  external_clients.symmetric_client_commsec_recv_keys.erase(client_id);
-  unsigned char client_public_bytes[crypto_sign_PUBLICKEYBYTES];
-  sts_msg1_t m1;
-  sts_msg2_t m2;
-  sts_msg3_t m3;
-
-  external_clients.load_server_keys_once();
-  external_clients.require_ed25519_keys();
-
-  // Validate inputs and state
-  if(registers.size() != 8) {
-      throw "Invalid call to init_secure_socket.";
-  }
-  vector<int> client_public_key (registers.size(), 0);
-  for(unsigned int i = 0; i < registers.size(); i++) {
-    client_public_key[i] = (int&)get_Ci_ref(registers[i]);
-  }
-  external_clients.curve25519_ints_to_bytes(client_public_bytes,  client_public_key);
-
-  // Start Station to Station Protocol for the responder
-  STS ke(client_public_bytes, external_clients.server_publickey_ed25519, external_clients.server_secretkey_ed25519);
-  socket_stream.reset_read_head();
-  socket_stream.ReceiveExpected(external_clients.get_socket(client_id),
-                                32);
-  socket_stream.consume(m1.bytes, sizeof m1.bytes);
-  m2 = ke.recv_msg1(m1);
-  socket_stream.reset_write_head();
-  socket_stream.append(m2.pubkey, sizeof m2.pubkey);
-  socket_stream.append(m2.sig, sizeof m2.sig);
-  socket_stream.Send(external_clients.get_socket(client_id));
-
-  socket_stream.ReceiveExpected(external_clients.get_socket(client_id),
-                                64);
-  socket_stream.consume(m3.bytes, sizeof m3.bytes);
-  ke.recv_msg3(m3);
-
-  // Use results of STS to generate send and receive keys.
-  vector<unsigned char> recvKey = ke.derive_secret(crypto_secretbox_KEYBYTES);
-  vector<unsigned char> sendKey = ke.derive_secret(crypto_secretbox_KEYBYTES);
-  external_clients.symmetric_client_commsec_recv_keys[client_id] = make_pair(recvKey,0);
-  external_clients.symmetric_client_commsec_send_keys[client_id] = make_pair(sendKey,0);
-}
 
 // Read share data from a file starting at file_pos until registers filled.
 // file_pos_register is written with new file position (-1 is eof).
@@ -720,28 +579,6 @@ ostream& operator<<(ostream& s,const Processor<sint, sgf2n>& P)
     }
 
   return s;
-}
-
-template<class sint, class sgf2n>
-void Processor<sint, sgf2n>::maybe_decrypt_sequence(int client_id)
-{
-  map<int, pair<vector<octet>,uint64_t> >::iterator it_cs = external_clients.symmetric_client_commsec_recv_keys.find(client_id);
-  if (it_cs != external_clients.symmetric_client_commsec_recv_keys.end())
-  {
-    socket_stream.decrypt_sequence(&it_cs->second.first[0], it_cs->second.second);
-    it_cs->second.second++;
-  }
-}
-
-template<class sint, class sgf2n>
-void Processor<sint, sgf2n>::maybe_encrypt_sequence(int client_id)
-{
-  map<int, pair<vector<octet>,uint64_t> >::iterator it_cs = external_clients.symmetric_client_commsec_send_keys.find(client_id);
-  if (it_cs != external_clients.symmetric_client_commsec_send_keys.end())
-  {
-    socket_stream.encrypt_sequence(&it_cs->second.first[0], it_cs->second.second);
-    it_cs->second.second++;
-  }
 }
 
 #endif

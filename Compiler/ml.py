@@ -60,27 +60,21 @@ def sigmoid_prime(x):
     return sx * (1 - sx)
 
 @vectorize
-def approx_sigmoid(x):
-    if approx_sigmoid.special and \
-       get_program().options.ring and get_program().use_edabit():
-        l = int(get_program().options.ring)
-        r, r_bits = sint.get_edabit(x.k, False)
-        c = ((x.v - r) << (l - x.k)).reveal() >> (l - x.k)
-        c_bits = c.bit_decompose(x.k)
-        lower_overflow = CarryOutRawLE(c_bits[:x.f - 1], r_bits[:x.f - 1])
-        higher_bits = sbitint.bit_adder(c_bits[x.f - 1:], r_bits[x.f - 1:],
-                                        lower_overflow)
-        sign = higher_bits[-1]
-        higher_bits.pop(-1)
-        aa = sign & ~util.tree_reduce(operator.and_, higher_bits)
-        bb = ~sign & ~util.tree_reduce(operator.and_, [~x for x in higher_bits])
-        a, b = (sint.conv(x) for x in (aa, bb))
+def approx_sigmoid(x, n=3):
+    if n == 5:
+        cuts = [-5, -2.5, 2.5, 5]
+        le = [0] + [x <= cut for cut in cuts] + [1]
+        select = [le[i + 1] - le[i] for i in range(5)]
+        outputs = [cfix(10 ** -4),
+                   0.02776 * x + 0.145,
+                   0.17 * x + 0.5,
+                   0.02776 * x + 0.85498,
+                   cfix(1 - 10 ** -4)]
+        return sum(a * b for a, b in zip(select, outputs))
     else:
         a = x < -0.5
         b = x > 0.5
-    return a.if_else(0, b.if_else(1, 0.5 + x))
-
-approx_sigmoid.special = False
+        return a.if_else(0, b.if_else(1, 0.5 + x))
 
 def lse_0_from_e_x(x, e_x):
     return sanitize(-x, log_e(1 + e_x), x + 2 ** -x.f, 0)
@@ -144,7 +138,7 @@ class Output(Layer):
 
     def eval(self, size, base=0):
         if self.approx:
-            return approx_sigmoid(self.X.get_vector(base, size))
+            return approx_sigmoid(self.X.get_vector(base, size), self.approx)
         else:
             return sigmoid_from_e_x(self.X.get_vector(base, size),
                                     self.e_x.get_vector(base, size))
@@ -531,7 +525,7 @@ class QuantConv2d(QuantConvBase):
         _, inputs_h, inputs_w, n_channels_in = self.input_shape
         return weights_h * weights_w * n_channels_in
 
-    def forward(self, batch):
+    def forward(self, batch=[None]):
         assert len(batch) == 1
         assert(self.weight_shape[0] == self.output_shape[-1])
 

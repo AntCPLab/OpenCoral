@@ -24,6 +24,8 @@ public:
     template<class T, class U>
     static void split(vector<U>, vector<int>, int, T*, int, Player&)
     { throw runtime_error("split not implemented"); }
+
+    static bool get_rec_factor(int, int) { return false; }
 };
 
 #endif /* PROTOCOLS_SHAREINTERFACE_H_ */

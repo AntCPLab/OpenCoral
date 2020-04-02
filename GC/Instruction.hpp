@@ -76,14 +76,7 @@ unsigned Instruction::get_mem(RegType reg_type) const
 inline
 void Instruction::parse(istream& s, int pos)
 {
-    n = 0;
-    start.resize(0);
-    ::memset(r, 0, sizeof(r));
-
-    int file_pos = s.tellg();
-    opcode = ::get_int(s);
-
-    parse_operands(s, pos, file_pos);
+    BaseInstruction::parse(s, pos);
 
     switch(opcode)
     {

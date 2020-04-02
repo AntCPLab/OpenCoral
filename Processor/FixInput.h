@@ -11,7 +11,8 @@
 #include "Math/bigint.h"
 #include "Math/Integer.h"
 
-class FixInput
+template<class T>
+class FixInput_
 {
 public:
     const static int N_DEST = 1;
@@ -20,13 +21,18 @@ public:
 
     const static int TYPE = 1;
 
-#ifdef LOW_PREC_INPUT
-    Integer items[N_DEST];
-#else
-    bigint items[N_DEST];
-#endif
+    T items[N_DEST];
 
     void read(std::istream& in, const int* params);
 };
+
+template<class T>
+const char* FixInput_<T>::NAME = "real number";
+
+#ifdef LOW_PREC_INPUT
+typedef FixInput_<Integer> FixInput;
+#else
+typedef FixInput_<bigint> FixInput;
+#endif
 
 #endif /* PROCESSOR_FIXINPUT_H_ */

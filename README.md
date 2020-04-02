@@ -147,7 +147,7 @@ compute the preprocessing time for a particular computation.
    required. This includes mainstream processors released 2014 or later.
    For older models you need to deactivate the respective
    extensions in the `ARCH` variable.
- - To benchmark online-only protocols or Overdrive, add the following line at the top: `MY_CFLAGS = -DINSECURE`
+ - To benchmark online-only protocols or Overdrive offline phases, add the following line at the top: `MY_CFLAGS = -DINSECURE`
  - `PREP_DIR` should point to should be a local, unversioned directory to store preprocessing data (default is `Player-Data` in the current directory).
  - For homomorphic encryption, set `USE_NTL = 1`.
 
@@ -239,6 +239,29 @@ Extended daBits were introduced by [Escudero et
 al.](https://eprint.iacr.org/2020/338) You can activate them by using
 `-Y` instead of `-X`. Note that this also activates classic daBits
 when useful.
+
+#### Bristol Fashion circuits
+
+Bristol Fashion is the name of a description format of binary circuits
+used by
+[SCALE-MAMBA](https://github.com/KULeuven-COSIC/SCALE-MAMBA). You can
+access such circuits from the high-level language if they are present
+in `Programs/Circuits`. To run the AES-128 circuit provided with
+SCALE-MAMBA, you can run the following:
+```
+make Programs/Circuits
+./compile.py aes_circuit
+Scripts/semi.sh aes_circuit
+```
+This downloads the circuit, compiles it to MP-SPDZ bytecode, and runs
+it as semi-honest two-party computation 1000 times in parallel. It
+should then output the AES test vector
+`0x3ad77bb40d7a3660a89ecaf32466ef97`. You can run it with any other
+protocol as well.
+
+See the
+[documentation](https://mp-spdz.readthedocs.io/en/latest/Compiler.html#module-Compiler.circuit)
+for further examples.
 
 #### Compiling and running programs from external directories
 

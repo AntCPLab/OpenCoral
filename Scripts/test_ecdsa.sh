@@ -1,6 +1,6 @@
 #!/bin/bash
 
-make -j4 ecdsa Fake-ECDSA.x
+make -j4 ecdsa Fake-ECDSA.x secure.x
 
 run()
 {
@@ -19,8 +19,11 @@ for i in rep mal-rep shamir mal-shamir; do
     run $i 2
 done
 
-./Fake-ECDSA.x
-
-for i in semi mascot fake-spdz; do
+for i in semi mascot; do
     run $i 1
 done
+
+if ! ./secure.x; then
+    ./Fake-ECDSA.x
+    run fake-spdz 1
+fi

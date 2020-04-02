@@ -67,11 +67,19 @@ void Processor<T>::reset(const U& program)
 template<class T>
 inline long long GC::Processor<T>::get_input(const int* params, bool interactive)
 {
-    bigint res = ProcessorBase::get_input<FixInput>(interactive, &params[1]).items[0];
+    assert(params[0] <= 64);
+    return get_long_input(params, *this, interactive).get_si();
+}
+
+template<class T>
+bigint GC::Processor<T>::get_long_input(const int* params,
+        ProcessorBase& input_proc, bool interactive)
+{
+    bigint res = input_proc.get_input<FixInput_<bigint>>(interactive,
+            &params[1]).items[0];
     int n_bits = *params;
     check_input(res, n_bits);
-    assert(n_bits <= 64);
-    return res.get_si();
+    return res;
 }
 
 template<class T>
@@ -171,6 +179,17 @@ void GC::Processor<T>::store_clear_in_dynamic(const vector<int>& args,
     T::store_clear_in_dynamic(dynamic_memory, accesses);
 }
 
+template<class T>
+template<class U>
+void Processor<T>::mem_op(int n, Memory<U>& dest, const Memory<U>& source,
+        Integer dest_address, Integer source_address)
+{
+    for (int i = 0; i < n; i++)
+    {
+        dest[dest_address + i] = source[source_address + i];
+    }
+}
+
 template <class T>
 void Processor<T>::xors(const vector<int>& args)
 {
@@ -234,12 +253,15 @@ void Processor<T>::reveal(const vector<int>& args)
 }
 
 template <class T>
-void Processor<T>::print_reg(int reg, int n)
+void Processor<T>::print_reg(int reg, int n, int size)
 {
 #ifdef DEBUG_VALUES
     cout << "print_reg " << typeid(T).name() << " " << reg << " " << &C[reg] << endl;
 #endif
-    T::out << "Reg[" << reg << "] = " << hex << showbase << C[reg] << dec << " # ";
+    bigint output;
+    for (int i = 0; i < size; i++)
+        output += bigint((unsigned long)C[reg + i].get()) << (T::default_length * i);
+    T::out << "Reg[" << reg << "] = " << hex << showbase << output << dec << " # ";
     print_str(n);
     T::out << endl << flush;
 }
@@ -251,14 +273,29 @@ void Processor<T>::print_reg_plain(Clear& value)
 }
 
 template <class T>
-void Processor<T>::print_reg_signed(unsigned n_bits, Clear& value)
+void Processor<T>::print_reg_signed(unsigned n_bits, Integer reg)
 {
-    unsigned n_shift = 0;
-    if (n_bits > 1)
-        n_shift = sizeof(value.get()) * 8 - n_bits;
-    if (n_shift > 63)
-        n_shift = 0;
-    T::out << dec << (value.get() << n_shift >> n_shift) << flush;
+    if (n_bits <= Clear::N_BITS)
+    {
+        auto value = C[reg];
+        unsigned n_shift = 0;
+        if (n_bits > 1)
+            n_shift = sizeof(value.get()) * 8 - n_bits;
+        if (n_shift > 63)
+            n_shift = 0;
+        T::out << dec << (value.get() << n_shift >> n_shift) << flush;
+    }
+    else
+    {
+        bigint tmp = 0;
+        for (int i = 0; i < DIV_CEIL(n_bits, Clear::N_BITS); i++)
+        {
+            tmp += bigint((unsigned long)C[reg + i].get()) << (i * Clear::N_BITS);
+        }
+        if (tmp >= bigint(1) << (n_bits - 1))
+            tmp -= bigint(1) << n_bits;
+        T::out << dec << tmp << flush;
+    }
 }
 
 template <class T>

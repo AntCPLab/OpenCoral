@@ -3,9 +3,7 @@
 #include "Math/Setup.h"
 #include "Protocols/Share.h"
 #include "Tools/ezOptionParser.h"
-#include "Tools/Config.h"
 #include "Networking/Server.h"
-#include "GC/TinierSecret.h"
 
 #include <iostream>
 #include <map>

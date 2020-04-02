@@ -71,8 +71,57 @@ void SohoPrep<T>::buffer_triples()
 }
 
 template<class T>
+void SohoPrep<T>::buffer_squares()
+{
+
+    auto& proc = this->proc;
+    assert(proc != 0);
+    lock.lock();
+    if (not setup)
+    {
+        PlainPlayer P(proc->P.N, T::clear::type_char());
+        basic_setup(P);
+    }
+    lock.unlock();
+
+    Plaintext_<FD> ai(setup->FieldD);
+    SeededPRNG G;
+    ai.randomize(G);
+    Ciphertext Ca = setup->pk.encrypt(ai);
+    octetStream os;
+    Ca.pack(os);
+
+    for (int i = 1; i < proc->P.num_players(); i++)
+    {
+        proc->P.pass_around(os);
+        Ca.add<0>(os);
+    }
+
+    Ciphertext Cc = Ca.mul(setup->pk, Ca);
+    Plaintext_<FD> ci(setup->FieldD);
+    SimpleDistDecrypt<FD> dd(proc->P, *setup);
+    EncCommitBase_<FD> EC;
+    dd.reshare(ci, Cc, EC);
+
+    for (unsigned i = 0; i < ai.num_slots(); i++)
+        this->squares.push_back({{ai.element(i), ci.element(i)}});
+}
+
+template<class T>
 void SohoPrep<T>::buffer_inverses()
 {
     assert(this->proc != 0);
     ::buffer_inverses(this->inverses, *this, this->proc->MC, this->proc->P);
+}
+
+template<>
+void SohoPrep<SohoShare<gfp>>::buffer_bits()
+{
+    buffer_bits_from_squares(*this);
+}
+
+template<>
+void SohoPrep<SohoShare<gf2n_short>>::buffer_bits()
+{
+    buffer_bits_without_check();
 }

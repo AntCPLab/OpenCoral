@@ -34,9 +34,6 @@ class ldi(base.Instruction):
     __slots__ = []
     code = base.opcodes['LDI']
     arg_format = ['cw','i']
-    
-    def execute(self):
-        self.args[0].value = self.args[1]
 
 @base.gf2n
 @base.vectorize
@@ -45,9 +42,6 @@ class ldsi(base.Instruction):
     __slots__ = []
     code = base.opcodes['LDSI']
     arg_format = ['sw','i']
-    
-    def execute(self):
-        self.args[0].value = self.args[1]
 
 @base.gf2n
 @base.vectorize
@@ -57,9 +51,6 @@ class ldmc(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
     code = base.opcodes['LDMC']
     arg_format = ['cw','int']
 
-    def execute(self):
-        self.args[0].value = program.mem_c[self.args[1]]
-
 @base.gf2n
 @base.vectorize
 class ldms(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
@@ -67,9 +58,6 @@ class ldms(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
     __slots__ = []
     code = base.opcodes['LDMS']
     arg_format = ['sw','int']
-
-    def execute(self):
-        self.args[0].value = program.mem_s[self.args[1]]
 
 @base.gf2n
 @base.vectorize
@@ -79,9 +67,6 @@ class stmc(base.DirectMemoryWriteInstruction):
     code = base.opcodes['STMC']
     arg_format = ['c','int']
 
-    def execute(self):
-        program.mem_c[self.args[1]] = self.args[0].value
-
 @base.gf2n
 @base.vectorize
 class stms(base.DirectMemoryWriteInstruction):
@@ -90,18 +75,12 @@ class stms(base.DirectMemoryWriteInstruction):
     code = base.opcodes['STMS']
     arg_format = ['s','int']
 
-    def execute(self):
-        program.mem_s[self.args[1]] = self.args[0].value
-
 @base.vectorize
 class ldmint(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
     r""" Assigns register $ci_i$ the value in memory \verb+Ci[n]+. """
     __slots__ = []
     code = base.opcodes['LDMINT']
     arg_format = ['ciw','int']
-
-    def execute(self):
-        self.args[0].value = program.mem_i[self.args[1]]
 
 @base.vectorize
 class stmint(base.DirectMemoryWriteInstruction):
@@ -110,18 +89,12 @@ class stmint(base.DirectMemoryWriteInstruction):
     code = base.opcodes['STMINT']
     arg_format = ['ci','int']
 
-    def execute(self):
-        program.mem_i[self.args[1]] = self.args[0].value
-
 # must have seperate instructions because address is always modp
 @base.vectorize
 class ldmci(base.ReadMemoryInstruction):
     r""" Assigns register $c_i$ the value in memory \verb+C[cj]+. """
     code = base.opcodes['LDMCI']
     arg_format = ['cw','ci']
-    
-    def execute(self):
-        self.args[0].value = program.mem_c[self.args[1].value]
 
 @base.vectorize
 class ldmsi(base.ReadMemoryInstruction):
@@ -129,17 +102,11 @@ class ldmsi(base.ReadMemoryInstruction):
     code = base.opcodes['LDMSI']
     arg_format = ['sw','ci']
 
-    def execute(self):
-        self.args[0].value = program.mem_s[self.args[1].value]
-
 @base.vectorize
 class stmci(base.WriteMemoryInstruction):
     r""" Sets \verb+C[cj]+ to be the value $c_i$. """
     code = base.opcodes['STMCI']
     arg_format = ['c','ci']
-
-    def execute(self):
-        program.mem_c[self.args[1].value] = self.args[0].value
 
 @base.vectorize
 class stmsi(base.WriteMemoryInstruction):
@@ -147,17 +114,11 @@ class stmsi(base.WriteMemoryInstruction):
     code = base.opcodes['STMSI']
     arg_format = ['s','ci']
 
-    def execute(self):
-        program.mem_s[self.args[1].value] = self.args[0].value
-
 @base.vectorize
 class ldminti(base.ReadMemoryInstruction):
     r""" Assigns register $ci_i$ the value in memory \verb+Ci[cj]+. """
     code = base.opcodes['LDMINTI']
     arg_format = ['ciw','ci']
-
-    def execute(self):
-        self.args[0].value = program.mem_i[self.args[1].value]
 
 @base.vectorize
 class stminti(base.WriteMemoryInstruction):
@@ -165,17 +126,11 @@ class stminti(base.WriteMemoryInstruction):
     code = base.opcodes['STMINTI']
     arg_format = ['ci','ci']
 
-    def execute(self):
-        program.mem_i[self.args[1].value] = self.args[0].value
-
 @base.vectorize
 class gldmci(base.ReadMemoryInstruction):
     r""" Assigns register $c_i$ the value in memory \verb+C[cj]+. """
     code = base.opcodes['LDMCI'] + 0x100
     arg_format = ['cgw','ci']
-    
-    def execute(self):
-        self.args[0].value = program.mem_c[self.args[1].value]
 
 @base.vectorize
 class gldmsi(base.ReadMemoryInstruction):
@@ -183,26 +138,17 @@ class gldmsi(base.ReadMemoryInstruction):
     code = base.opcodes['LDMSI'] + 0x100
     arg_format = ['sgw','ci']
 
-    def execute(self):
-        self.args[0].value = program.mem_s[self.args[1].value]
-
 @base.vectorize
 class gstmci(base.WriteMemoryInstruction):
     r""" Sets \verb+C[cj]+ to be the value $c_i$. """
     code = base.opcodes['STMCI'] + 0x100
     arg_format = ['cg','ci']
 
-    def execute(self):
-        program.mem_c[self.args[1].value] = self.args[0].value
-
 @base.vectorize
 class gstmsi(base.WriteMemoryInstruction):
     r""" Sets \verb+S[cj]+ to be the value $s_i$. """
     code = base.opcodes['STMSI'] + 0x100
     arg_format = ['sg','ci']
-
-    def execute(self):
-        program.mem_s[self.args[1].value] = self.args[0].value
 
 @base.gf2n
 @base.vectorize
@@ -233,9 +179,6 @@ class movc(base.Instruction):
     code = base.opcodes['MOVC']
     arg_format = ['cw','c']
 
-    def execute(self):
-        self.args[0].value = self.args[1].value
-
 @base.gf2n
 @base.vectorize
 class movs(base.Instruction):
@@ -243,9 +186,6 @@ class movs(base.Instruction):
     __slots__ = []
     code = base.opcodes['MOVS']
     arg_format = ['sw','s']
-
-    def execute(self):
-        self.args[0].value = self.args[1].value
 
 @base.vectorize
 class movint(base.Instruction):
@@ -452,9 +392,6 @@ class divc(base.InvertInstruction):
     __slots__ = []
     code = base.opcodes['DIVC']
     arg_format = ['cw','c','c']
-    
-    def execute(self):
-        self.args[0].value = self.args[1].value * pow(self.args[2].value, program.P-2, program.P) % program.P
 
 @base.gf2n
 @base.vectorize
@@ -463,9 +400,6 @@ class modc(base.Instruction):
     __slots__ = []
     code = base.opcodes['MODC']
     arg_format = ['cw','c','c']
-
-    def execute(self):
-        self.args[0].value = self.args[1].value % self.args[2].value
 
 @base.vectorize
 class inv2m(base.InvertInstruction):
@@ -498,9 +432,6 @@ class andc(base.Instruction):
     __slots__ = []
     code = base.opcodes['ANDC']
     arg_format = ['cw','c','c']
-    
-    def execute(self):
-        self.args[0].value = (self.args[1].value & self.args[2].value) % program.P
 
 @base.gf2n
 @base.vectorize
@@ -509,9 +440,6 @@ class orc(base.Instruction):
     __slots__ = []
     code = base.opcodes['ORC']
     arg_format = ['cw','c','c']
-    
-    def execute(self):
-        self.args[0].value = (self.args[1].value | self.args[2].value) % program.P
 
 @base.gf2n
 @base.vectorize
@@ -520,9 +448,6 @@ class xorc(base.Instruction):
     __slots__ = []
     code = base.opcodes['XORC']
     arg_format = ['cw','c','c']
-    
-    def execute(self):
-        self.args[0].value = (self.args[1].value ^ self.args[2].value) % program.P
 
 @base.vectorize
 class notc(base.Instruction):
@@ -530,9 +455,6 @@ class notc(base.Instruction):
     __slots__ = []
     code = base.opcodes['NOTC']
     arg_format = ['cw','c', 'int']
-    
-    def execute(self):
-        self.args[0].value = (~self.args[1].value + 2 ** self.args[2]) % program.P
 
 @base.vectorize
 class gnotc(base.Instruction):
@@ -543,9 +465,6 @@ class gnotc(base.Instruction):
 
     def is_gf2n(self):
         return True
-
-    def execute(self):
-        self.args[0].value = ~self.args[1].value
 
 @base.vectorize
 class gbitdec(base.Instruction):
@@ -672,8 +591,6 @@ class divci(base.InvertInstruction, base.ClearImmediate):
     r""" Clear division by immediate value $c_i=c_j/n$. """
     __slots__ = []
     code = base.opcodes['DIVCI']
-    def execute(self):
-        self.args[0].value = self.args[1].value * pow(self.args[2], program.P-2, program.P) % program.P
 
 @base.gf2n
 @base.vectorize
@@ -719,9 +636,6 @@ class shlc(base.Instruction):
     __slots__ = []
     code = base.opcodes['SHLC']
     arg_format = ['cw','c','c']
-    
-    def execute(self):
-        self.args[0].value = (self.args[1].value << self.args[2].value) % program.P
 
 @base.gf2n
 @base.vectorize
@@ -730,9 +644,6 @@ class shrc(base.Instruction):
     __slots__ = []
     code = base.opcodes['SHRC']
     arg_format = ['cw','c','c']
-    
-    def execute(self):
-        self.args[0].value = (self.args[1].value >> self.args[2].value) % program.P
 
 @base.gf2n
 @base.vectorize
@@ -764,11 +675,6 @@ class triple(base.DataInstruction):
     code = base.opcodes['TRIPLE']
     arg_format = ['sw','sw','sw']
     data_type = 'triple'
-    
-    def execute(self):
-        self.args[0].value = randint(0,program.P)
-        self.args[1].value = randint(0,program.P)
-        self.args[2].value = (self.args[0].value * self.args[1].value) % program.P
 
 @base.vectorize
 class gbittriple(base.DataInstruction):
@@ -804,9 +710,6 @@ class bit(base.DataInstruction):
     code = base.opcodes['BIT']
     arg_format = ['sw']
     data_type = 'bit'
-    
-    def execute(self):
-        self.args[0].value = randint(0,1)
 
 @base.vectorize
 class dabit(base.DataInstruction):
@@ -848,10 +751,6 @@ class square(base.DataInstruction):
     code = base.opcodes['SQUARE']
     arg_format = ['sw','sw']
     data_type = 'square'
-    
-    def execute(self):
-        self.args[0].value = randint(0,program.P)
-        self.args[1].value = (self.args[0].value * self.args[0].value) % program.P
 
 @base.gf2n
 @base.vectorize
@@ -867,11 +766,6 @@ class inverse(base.DataInstruction):
         if program.options.ring and not self.is_gf2n():
             raise CompilerError('random inverse in ring not implemented')
         base.DataInstruction.__init__(self, *args, **kwargs)
-
-    def execute(self):
-        self.args[0].value = randint(0,program.P)
-        import gmpy
-        self.args[1].value = int(gmpy.invert(self.args[0].value, program.P))
 
 @base.gf2n
 @base.vectorize
@@ -920,8 +814,6 @@ class asm_input(base.TextInputInstruction):
         for player in self.args[1::2]:
             req_node.increment((self.field_type, 'input', player), \
                                self.get_size())
-    def execute(self):
-        self.args[0].value = _python_input("Enter player %d's input:" % self.args[1]) % program.P
 
 @base.vectorize
 class inputfix(base.TextInputInstruction):
@@ -1006,46 +898,18 @@ class inputmixedreg(inputmixed_base):
         req_node.increment((self.field_type, 'input', 0), float('inf'))
 
 @base.gf2n
-class startinput(base.RawInputInstruction):
+class rawinput(base.RawInputInstruction, base.Mergeable):
     r""" Receive inputs from player $p$. """
     __slots__ = []
-    code = base.opcodes['STARTINPUT']
-    arg_format = ['p', 'int']
+    code = base.opcodes['RAWINPUT']
+    arg_format = tools.cycle(['p','sw'])
     field_type = 'modp'
 
     def add_usage(self, req_node):
-        req_node.increment((self.field_type, 'input', self.args[0]), \
-                               self.args[1])
-
-    def merge(self, other):
-        self.args[1] += other.args[1]
-
-class StopInputInstruction(base.RawInputInstruction):
-    __slots__ = []
-
-    def merge(self, other):
-        if self.get_size() != other.get_size():
-            raise NotImplemented()
-        else:
-            self.args += other.args[1:]
-
-class stopinput(StopInputInstruction):
-    r""" Receive inputs from player $p$ and put in registers. """
-    __slots__ = []
-    code = base.opcodes['STOPINPUT']
-    arg_format = tools.chain(['p'], itertools.repeat('sw'))
-
-    def has_var_args(self):
-        return True
-
-class gstopinput(StopInputInstruction):
-    r""" Receive inputs from player $p$ and put in registers. """
-    __slots__ = []
-    code = 0x100 + base.opcodes['STOPINPUT']
-    arg_format = tools.chain(['p'], itertools.repeat('sgw'))
-
-    def has_var_args(self):
-        return True
+        for i in range(0, len(self.args), 2):
+            player = self.args[i]
+            req_node.increment((self.field_type, 'input', player), \
+                               self.get_size())
 
 @base.gf2n
 @base.vectorize
@@ -1054,9 +918,6 @@ class print_mem(base.IOInstruction):
     __slots__ = []
     code = base.opcodes['PRINTMEM']
     arg_format = ['c']
-    
-    def execute(self):
-        pass
 
 @base.gf2n
 @base.vectorize
@@ -1068,9 +929,6 @@ class print_reg(base.IOInstruction):
     
     def __init__(self, reg, comment=''):
         super(print_reg_class, self).__init__(reg, self.str_to_int(comment))
-
-    def execute(self):
-        pass
 
 @base.gf2n
 @base.vectorize
@@ -1238,41 +1096,6 @@ class acceptclientconnection(base.IOInstruction):
     code = base.opcodes['ACCEPTCLIENTCONNECTION']
     arg_format = ['ciw', 'int']
 
-class connectipv4(base.IOInstruction):
-    """Connect to server at IPv4 address in register \verb|cj| at given port. Write socket handle to register \verb|ci|"""
-    __slots__ = []
-    code = base.opcodes['CONNECTIPV4']
-    arg_format = ['ciw', 'ci', 'int']
-
-class readclientpublickey(base.IOInstruction):
-    """Read a client public key as 8 32-bit ints for a specified client id"""
-    __slots__ = []
-    code = base.opcodes['READCLIENTPUBLICKEY']
-    arg_format = tools.chain(['ci'], itertools.repeat('ci'))
-
-    def has_var_args(self):
-        return True
-
-class initsecuresocket(base.IOInstruction):
-    """Read a client public key as 8 32-bit ints for a specified client id,
-    negotiate a shared key via STS and use it for replay resistant comms"""
-    __slots__ = []
-    code = base.opcodes['INITSECURESOCKET']
-    arg_format = tools.chain(['ci'], itertools.repeat('ci'))
-
-    def has_var_args(self):
-        return True
-
-class respsecuresocket(base.IOInstruction):
-    """Read a client public key as 8 32-bit ints for a specified client id,
-    negotiate a shared key via STS and use it for replay resistant comms"""
-    __slots__ = []
-    code = base.opcodes['RESPSECURESOCKET']
-    arg_format = tools.chain(['ci'], itertools.repeat('ci'))
-
-    def has_var_args(self):
-        return True
-
 class writesharestofile(base.IOInstruction):
     """Write shares to a file"""
     __slots__ = []
@@ -1392,12 +1215,6 @@ class eqzc(base.UnaryComparisonInstruction):
     r""" Clear comparison $c_i = (c_j \stackrel{?}{==} 0)$. """
     __slots__ = []
     code = base.opcodes['EQZC']
-    
-    def execute(self):
-        if self.args[1].value == 0:
-            self.args[0].value = 1
-        else:
-            self.args[0].value = 0
 
 @base.vectorize
 class ltzc(base.UnaryComparisonInstruction):
@@ -1435,9 +1252,6 @@ class jmp(base.JumpInstruction):
     arg_format = ['int']
     jump_arg = 0
 
-    def execute(self):
-        pass
-
 class jmpi(base.JumpInstruction):
     """ Unconditional relative jump of $c_i+1$ instructions. """
     __slots__ = []
@@ -1457,9 +1271,6 @@ class jmpnz(base.JumpInstruction):
     code = base.opcodes['JMPNZ']
     arg_format = ['ci', 'int']
     jump_arg = 1
-    
-    def execute(self):
-        pass
 
 class jmpeqz(base.JumpInstruction):
     r""" Jump $n+1$ instructions if $c_i == 0$. """
@@ -1467,9 +1278,6 @@ class jmpeqz(base.JumpInstruction):
     code = base.opcodes['JMPEQZ']
     arg_format = ['ci', 'int']
     jump_arg = 1
-    
-    def execute(self):
-        pass
 
 ###
 ### Conversions

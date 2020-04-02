@@ -205,6 +205,12 @@ bool gfp_<X, L>::allows(Dtype type)
     }
 }
 
+template<int X, int L>
+void gfp_<X, L>::specification(octetStream& os)
+{
+    os.store(pr());
+}
+
 void to_signed_bigint(bigint& ans, const gfp& x)
 {
     to_bigint(ans, x);

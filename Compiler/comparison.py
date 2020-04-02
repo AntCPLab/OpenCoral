@@ -262,6 +262,7 @@ def Mod2mField(a_prime, a, k, m, kappa, signed):
     return r_dprime, r_prime, c, c_prime, u, t, c2k1
 
 def MaskingBitsInRing(m, strict=False):
+    program.curr_tape.require_bit_length(1)
     from Compiler.types import sint
     if program.use_edabit():
         return sint.get_edabit(m, strict)

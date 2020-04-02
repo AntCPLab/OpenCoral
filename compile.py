@@ -26,24 +26,22 @@ def main():
                       help="specify output file")
     parser.add_option("-a", "--asm-output", dest="asmoutfile",
                       help="asm output file for debugging")
-    parser.add_option("-l", "--asm-input", action="store_true", dest="assemblymode",
-                      help="old-style asm input")
     parser.add_option("-p", "--primesize", dest="param", default=-1,
                       help="bit length of modulus")
     parser.add_option("-g", "--galoissize", dest="galois", default=40,
                       help="bit length of Galois field")
     parser.add_option("-d", "--debug", action="store_true", dest="debug",
                       help="keep track of trace for debugging")
-    parser.add_option("-e", "--emulate", action="store_true", dest="emulate", default=False,
-                      help="emulate register values for debugging")
     parser.add_option("-c", "--comparison", dest="comparison", default="log",
                       help="comparison variant: log|plain|inv|sinv")
     parser.add_option("-r", "--noreorder", dest="reorder_between_opens",
                       action="store_false", default=True,
                       help="don't attempt to place instructions between start/stop opens")
-    parser.add_option("-O", "--optimize-hard", action="store_false",
+    parser.add_option("-M", "--preserve-mem-order", action="store_true",
                       dest="preserve_mem_order", default=False,
-                      help="don't preserve order of memory instructions; possible loss of correctness")
+                      help="preserve order of memory instructions; possible efficiency loss")
+    parser.add_option("-O", "--optimize-hard", action="store_true",
+                      dest="optimize_hard", help="currently not in use")
     parser.add_option("-u", "--noreallocate", action="store_true", dest="noreallocate",
                       default=False, help="don't reallocate")
     parser.add_option("-m", "--max-parallel-open", dest="max_parallel_open",
@@ -79,10 +77,13 @@ def main():
         parser.print_help()
         return
 
+    if options.optimize_hard:
+        print('Note that -O/--optimize-hard currently has no effect')
+
     def compilation():
         prog = Compiler.run(args, options, param=int(options.param),
-                            merge_opens=options.merge_opens, emulate=options.emulate,
-                            assemblymode=options.assemblymode, debug=options.debug)
+                            merge_opens=options.merge_opens,
+                            debug=options.debug)
         prog.write_bytes(options.outfile)
 
         if options.asmoutfile:

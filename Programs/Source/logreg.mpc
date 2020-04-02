@@ -32,8 +32,6 @@ sgd = ml.SGD(layers, batch // 128 * 10 , debug=debug, report_loss=False)
 sgd.reset([X_normal, X_pos])
 sgd.run(batch_size=batch)
 
-ml.approx_sigmoid.special = False
-
 # @for_range(1000)
 # def _(i):
 #     sgd.backward()

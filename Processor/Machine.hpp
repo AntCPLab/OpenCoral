@@ -35,7 +35,6 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
 
   // Set up the fields
   prep_dir_prefix = get_prep_dir(N.num_players(), opts.lgp, lg2);
-  char filename[2048];
   bool read_mac_keys = false;
 
   sgf2n::clear::init_field(lg2);
@@ -96,16 +95,7 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   sint::clear::next::template init<typename sint::clear>(false);
 
   // Initialize the global memory
-  if (memtype.compare("new")==0)
-     {sprintf(filename, PREP_DIR "Player-Memory-P%d", my_number);
-       ifstream memfile(filename);
-       if (memfile.fail()) { throw file_error(filename); }
-       M2.Load_Memory(memfile);
-       Mp.Load_Memory(memfile);
-       Mi.Load_Memory(memfile);
-       memfile.close();
-     }
-  else if (memtype.compare("old")==0)
+  if (memtype.compare("old")==0)
      {
        inpf.open(memory_filename(), ios::in | ios::binary);
        if (inpf.fail()) { throw file_error(memory_filename()); }

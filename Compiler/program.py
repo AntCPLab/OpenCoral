@@ -39,11 +39,11 @@ class Program(object):
     
     These are created by executing a file containing appropriate instructions
     and threads. """
-    def __init__(self, args, options, param=-1, assemblymode=False):
+    def __init__(self, args, options, param=-1):
         self.options = options
         self.verbose = options.verbose
         self.args = args
-        self.init_names(args, assemblymode)
+        self.init_names(args)
         self.P = P_VALUES[param]
         self.param = param
         if (param != -1) + sum(x != 0 for x in(options.ring, options.field,
@@ -65,8 +65,6 @@ class Program(object):
         self.tape_counter = 0
         self.tapes = []
         self._curr_tape = None
-        self.EMULATE = True # defaults
-        self.FIRST_PASS = False
         self.DEBUG = False
         self.main_thread_running = False
         self.allocated_mem = RegType.create_dict(lambda: USER_MEM)
@@ -102,9 +100,8 @@ class Program(object):
         self.use_dabit = options.mixed
         self._edabit = options.edabit
         self._split = False
+        self._square = False
         Program.prog = self
-        
-        self.reset_values()
 
     def get_args(self):
         return self.args
@@ -131,7 +128,7 @@ class Program(object):
             res = max(res, sum(running.values()))
         return res
     
-    def init_names(self, args, assemblymode):
+    def init_names(self, args):
         # ignore path to file - source must be in Programs/Source
         if 'Programs' in os.listdir(os.getcwd()):
             # compile prog in ./Programs/Source directory
@@ -153,8 +150,6 @@ class Program(object):
         
         if os.path.exists(args[0]):
             self.infile = args[0]
-        elif assemblymode:
-            self.infile = self.programs_dir + '/Source/' + progname + '.asm'
         else:
             self.infile = self.programs_dir + '/Source/' + progname + '.mpc'
         """
@@ -234,40 +229,6 @@ class Program(object):
         else:
             self.req_num += tape.req_num
     
-    def read_memory(self, filename):
-        """ Read the clear and shared memory from a file """
-        f = open(filename)
-        n = int(next(f))
-        self.mem_c = [0]*n
-        self.mem_s = [0]*n
-        mem = self.mem_c
-        done_c = False
-        for line in f:
-            line = line.split(' ')
-            a = int(line[0])
-            b = int(line[1])
-            if a != -1:
-                mem[a] = b
-            elif done_c:
-                break
-            else:
-                mem = self.mem_s
-                done_c = True
-    
-    def get_memory(self, mem_type, i):
-        if mem_type == 'c':
-            return self.mem_c[i]
-        elif mem_type == 's':
-            return self.mem_s[i]
-        raise CompilerError('Invalid memory type')
-    
-    def reset_values(self):
-        """ Reset register and memory values. """
-        for tape in self.tapes:
-            tape.reset_registers()
-        self.mem_c = list(range(USER_MEM + TMP_MEM))
-        self.mem_s = list(range(USER_MEM + TMP_MEM))
-    
     def write_bytes(self, outfile=None):
         """ Write all non-empty threads and schedule to files. """
         # runtime doesn't support 'new-style' parallelism yet
@@ -329,17 +290,6 @@ class Program(object):
                 tape.write_str(self.options.asmoutfile + '-' + tape.name)
             tape.purge()
     
-    def emulate(self):
-        """ Emulate execution of entire program. """
-        self.reset_values()
-        for sch in self.schedule:
-            if sch[0] == 'start':
-                for tape in sch[1]:
-                    self._curr_tape = tape
-                    for block in tape.basicblocks:
-                        for line in block.instructions:
-                            line.execute()
-    
     def restart_main_thread(self):
         if self.main_thread_running:
             # wait for main thread to finish
@@ -375,6 +325,10 @@ class Program(object):
         if size == 0:
             return
         if isinstance(mem_type, type):
+            try:
+                size *= math.ceil(mem_type.n / mem_type.unit)
+            except AttributeError:
+                pass
             self.types[mem_type.reg_type] = mem_type
             mem_type = mem_type.reg_type
         elif reg_type is not None:
@@ -446,6 +400,12 @@ class Program(object):
         else:
             assert change in (2, 3)
             self._split = change
+
+    def use_square(self, change=None):
+        if change is None:
+            return self._square
+        else:
+            self._square = change
 
 class Tape:
     """ A tape contains a list of basic blocks, onto which instructions are added. """
@@ -588,7 +548,6 @@ class Tape:
         #print 'Compiling basic block', sub.name
 
     def init_registers(self):
-        self.reset_registers()
         self.reg_counter = RegType.create_dict(lambda: 0)
    
     def init_names(self, name):
@@ -605,7 +564,6 @@ class Tape:
         for block in self.basicblocks:
             block.purge()
         self._is_empty = (len(self.basicblocks) == 0)
-        del self.reg_values
         del self.basicblocks
         del self.active_basicblock
         self.purged = True
@@ -840,13 +798,6 @@ class Tape:
         else:
             return self.reg_counter[reg_type]
     
-    def reset_registers(self):
-        """ Reset register values to zero. """
-        self.reg_values = RegType.create_dict(lambda: [])
-    
-    def get_value(self, reg_type, i):
-        return self.reg_values[reg_type][i]
-    
     def __str__(self):
         return self.name
 
@@ -883,12 +834,28 @@ class Tape:
         def cost(self):
             return sum(num * COST[req[0]][req[1]] for req,num in list(self.items()) \
                        if req[1] != 'input' and req[0] != 'edabit')
+        def pretty(self):
+            t = lambda x: 'integer' if x == 'modp' else x
+            res = []
+            for req, num in self.items():
+                domain = t(req[0])
+                n = '%12.0f' % num
+                if req[1] == 'input':
+                    res += ['%s %s inputs from player %d' \
+                            % (n, domain, req[2])]
+                elif domain.endswith('edabit'):
+                    if domain == 'sedabit':
+                        eda = 'strict edabits'
+                    else:
+                        eda = 'loose edabits'
+                    res += ['%s %s of length %d' % (n, eda, req[1])]
+                elif req[0] != 'all':
+                    res += ['%s %s %ss' % (n, domain, req[1])]
+            if self['all','round']:
+                res += ['% 12.0f virtual machine rounds' % self['all','round']]
+            return res
         def __str__(self):
-            return ", ".join('%s inputs in %s from player %d' \
-                                % (num, req[0], req[2]) \
-                                if req[1] == 'input' \
-                                else '%s %ss in %s' % (num, req[1], req[0]) \
-                                for req,num in list(self.items()))
+            return ', '.join(self.pretty())
         def __repr__(self):
             return repr(dict(self))
 
@@ -959,14 +926,12 @@ class Tape:
         """
         Class for creating new registers. The register's index is automatically assigned
         based on the block's  reg_counter dictionary.
-        
-        The 'value' property is for emulation.
         """
         __slots__ = ["reg_type", "program", "absolute_i", "relative_i", \
                          "size", "vector", "vectorbase", "caller", \
                          "can_eliminate"]
 
-        def __init__(self, reg_type, program, value=None, size=None, i=None):
+        def __init__(self, reg_type, program, size=None, i=None):
             """ Creates a new register.
                 reg_type must be one of those defined in RegType. """
             if Compiler.instructions_base.get_global_instruction_type() == 'gf2n':
@@ -989,8 +954,6 @@ class Tape:
             else:
                 self.i = float('inf')
             self.vector = []
-            if value is not None:
-                self.value = value
             self.can_eliminate = True
             if Program.prog.DEBUG:
                 self.caller = [frame[1:] for frame in inspect.stack()[1:]]
@@ -1010,22 +973,9 @@ class Tape:
         def set_size(self, size):
             if self.size == size:
                 return
-            elif not self.program.program.options.assemblymode:
+            else:
                 raise CompilerError('Mismatch of instruction and register size:'
                                     ' %s != %s' % (self.size, size))
-            elif self.size == 1 and self.vectorbase is self:
-                if '%s%d' % (self.reg_type, self.i) in compilerLib.VARS:
-                    # create vector register in assembly mode
-                    self.size = size
-                    self.vector = [self]
-                    for i in range(1,size):
-                        reg = compilerLib.VARS['%s%d' % (self.reg_type, self.i + i)]
-                        reg.set_vectorbase(self)
-                        self.vector.append(reg)
-                else:
-                    raise CompilerError('Cannot find %s in VARS' % str(self))
-            else:
-                raise CompilerError('Cannot reset size of vector register')
 
         def set_vectorbase(self, vectorbase):
             if self.vectorbase is not self:
@@ -1073,16 +1023,6 @@ class Tape:
 
         def copy(self):
             return Tape.Register(self.reg_type, Program.prog.curr_tape)
-
-        @property
-        def value(self):
-            return self.program.reg_values[self.reg_type][self.i]
-        
-        @value.setter
-        def value(self, val):
-            while (len(self.program.reg_values[self.reg_type]) <= self.i):
-                self.program.reg_values[self.reg_type] += [0] * INIT_REG_MAX
-            self.program.reg_values[self.reg_type][self.i] = val
 
         @property
         def is_gf2n(self):

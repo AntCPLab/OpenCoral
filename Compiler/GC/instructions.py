@@ -67,19 +67,33 @@ class BinaryVectorInstruction(base.Instruction):
     def copy(self, size, subs):
         return type(self)(*self.get_new_args(size, subs))
 
+class NonVectorInstruction(base.Instruction):
+    is_vec = lambda self: False
+
+    def __init__(self, *args, **kwargs):
+        assert(args[0].n <= args[0].unit)
+        super(NonVectorInstruction, self).__init__(*args, **kwargs)
+
+class NonVectorInstruction1(base.Instruction):
+    is_vec = lambda self: False
+
+    def __init__(self, *args, **kwargs):
+        assert(args[1].n <= args[1].unit)
+        super(NonVectorInstruction1, self).__init__(*args, **kwargs)
+
 class xors(BinaryVectorInstruction):
     code = opcodes['XORS']
     arg_format = tools.cycle(['int','sbw','sb','sb'])
 
-class xorm(base.Instruction):
+class xorm(NonVectorInstruction):
     code = opcodes['XORM']
     arg_format = ['int','sbw','sb','cb']
 
-class xorcb(base.Instruction):
+class xorcb(NonVectorInstruction):
     code = opcodes['XORCB']
     arg_format = ['cbw','cb','cb']
 
-class xorcbi(base.Instruction):
+class xorcbi(NonVectorInstruction):
     code = opcodes['XORCBI']
     arg_format = ['cbw','cb','int']
 
@@ -101,47 +115,48 @@ class andm(BinaryVectorInstruction):
     code = opcodes['ANDM']
     arg_format = ['int','sbw','sb','cb']
 
-class addcb(base.Instruction):
+class addcb(NonVectorInstruction):
     code = opcodes['ADDCB']
     arg_format = ['cbw','cb','cb']
 
-class addcbi(base.Instruction):
+class addcbi(NonVectorInstruction):
     code = opcodes['ADDCBI']
     arg_format = ['cbw','cb','int']
 
-class mulcbi(base.Instruction):
+class mulcbi(NonVectorInstruction):
     code = opcodes['MULCBI']
     arg_format = ['cbw','cb','int']
 
-class bitdecs(base.VarArgsInstruction):
+class bitdecs(NonVectorInstruction, base.VarArgsInstruction):
     code = opcodes['BITDECS']
     arg_format = tools.chain(['sb'], itertools.repeat('sbw'))
 
-class bitcoms(base.VarArgsInstruction):
+class bitcoms(NonVectorInstruction, base.VarArgsInstruction):
     code = opcodes['BITCOMS']
     arg_format = tools.chain(['sbw'], itertools.repeat('sb'))
 
-class bitdecc(base.VarArgsInstruction):
+class bitdecc(NonVectorInstruction, base.VarArgsInstruction):
     code = opcodes['BITDECC']
     arg_format = tools.chain(['cb'], itertools.repeat('cbw'))
 
-class shrcbi(base.Instruction):
+class shrcbi(NonVectorInstruction):
     code = opcodes['SHRCBI']
     arg_format = ['cbw','cb','int']
 
-class shlcbi(base.Instruction):
+class shlcbi(NonVectorInstruction):
     code = opcodes['SHLCBI']
     arg_format = ['cbw','cb','int']
 
-class ldbits(base.Instruction):
+class ldbits(NonVectorInstruction):
     code = opcodes['LDBITS']
     arg_format = ['sbw','i','i']
 
-class ldmsb(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
+class ldmsb(base.DirectMemoryInstruction, base.ReadMemoryInstruction,
+            base.VectorInstruction):
     code = opcodes['LDMSB']
     arg_format = ['sbw','int']
 
-class stmsb(base.DirectMemoryWriteInstruction):
+class stmsb(base.DirectMemoryWriteInstruction, base.VectorInstruction):
     code = opcodes['STMSB']
     arg_format = ['sb','int']
     # def __init__(self, *args, **kwargs):
@@ -149,19 +164,20 @@ class stmsb(base.DirectMemoryWriteInstruction):
     #     import inspect
     #     self.caller = [frame[1:] for frame in inspect.stack()[1:]]
 
-class ldmcb(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
+class ldmcb(base.DirectMemoryInstruction, base.ReadMemoryInstruction,
+            base.VectorInstruction):
     code = opcodes['LDMCB']
     arg_format = ['cbw','int']
 
-class stmcb(base.DirectMemoryWriteInstruction):
+class stmcb(base.DirectMemoryWriteInstruction, base.VectorInstruction):
     code = opcodes['STMCB']
     arg_format = ['cb','int']
 
-class ldmsbi(base.ReadMemoryInstruction):
+class ldmsbi(base.ReadMemoryInstruction, base.VectorInstruction):
     code = opcodes['LDMSBI']
     arg_format = ['sbw','ci']
 
-class stmsbi(base.WriteMemoryInstruction):
+class stmsbi(base.WriteMemoryInstruction, base.VectorInstruction):
     code = opcodes['STMSBI']
     arg_format = ['sb','ci']
 
@@ -185,15 +201,15 @@ class stmsdci(base.WriteMemoryInstruction):
     code = opcodes['STMSDCI']
     arg_format = tools.cycle(['cb','cb'])
 
-class convsint(base.Instruction):
+class convsint(NonVectorInstruction1):
     code = opcodes['CONVSINT']
     arg_format = ['int','sbw','ci']
 
-class convcint(base.Instruction):
+class convcint(NonVectorInstruction):
     code = opcodes['CONVCINT']
     arg_format = ['cbw','ci']
 
-class convcbit(base.Instruction):
+class convcbit(NonVectorInstruction1):
     code = opcodes['CONVCBIT']
     arg_format = ['ciw','cb']
 
@@ -222,18 +238,19 @@ class split(base.Instruction):
         super(split_class, self).__init__(*args, **kwargs)
         assert (len(args) - 2) % args[0] == 0
 
-class movsb(base.Instruction):
+class movsb(NonVectorInstruction):
     code = opcodes['MOVSB']
     arg_format = ['sbw','sb']
 
 class trans(base.VarArgsInstruction):
     code = opcodes['TRANS']
+    is_vec = lambda self: True
     def __init__(self, *args):
         self.arg_format = ['int'] + ['sbw'] * args[0] + \
                           ['sb'] * (len(args) - 1 - args[0])
         super(trans, self).__init__(*args)
 
-class bitb(base.Instruction):
+class bitb(NonVectorInstruction):
     code = opcodes['BITB']
     arg_format = ['sbw']
 
@@ -245,20 +262,22 @@ class inputb(base.DoNotEliminateInstruction, base.VarArgsInstruction):
     __slots__ = []
     code = opcodes['INPUTB']
     arg_format = tools.cycle(['p','int','int','sbw'])
+    is_vec = lambda self: True
 
-class print_regb(base.IOInstruction):
+class print_regb(base.VectorInstruction, base.IOInstruction):
     code = opcodes['PRINTREGB']
     arg_format = ['cb','i']
     def __init__(self, reg, comment=''):
         super(print_regb, self).__init__(reg, self.str_to_int(comment))
 
-class print_reg_plainb(base.IOInstruction):
+class print_reg_plainb(NonVectorInstruction, base.IOInstruction):
     code = opcodes['PRINTREGPLAINB']
     arg_format = ['cb']
 
 class print_reg_signed(base.IOInstruction):
     code = opcodes['PRINTREGSIGNED']
     arg_format = ['int','cb']
+    is_vec = lambda self: True
 
 class print_float_plainb(base.IOInstruction):
     __slots__ = []

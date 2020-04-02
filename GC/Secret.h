@@ -21,6 +21,8 @@
 
 #include <fstream>
 
+class ProcessorBase;
+
 namespace GC
 {
 
@@ -115,6 +117,10 @@ public:
     template<class U>
     static void inputb(Processor<U>& processor, const vector<int>& args)
     { T::inputb(processor, args); }
+    template<class U>
+    static void inputb(Processor<U>& processor, ProcessorBase& input_proc,
+            const vector<int>& args)
+    { T::inputb(processor, input_proc, args); }
     template<class U>
     static void reveal_inst(Processor<U>& processor, const vector<int>& args)
     { processor.reveal(args); }

@@ -14,17 +14,13 @@ template <class T>
 class PrepLessInput : public InputBase<T>
 {
 protected:
-    SubProcessor<T>* processor;
     vector<T> shares;
     size_t i_share;
 
 public:
     PrepLessInput(SubProcessor<T>* proc) :
-            InputBase<T>(proc ? proc->Proc : 0), processor(proc), i_share(0) {}
+            InputBase<T>(proc ? proc->Proc : 0), i_share(0) {}
     virtual ~PrepLessInput() {}
-
-    void start(int player, int n_inputs);
-    void stop(int player, vector<int> targets);
 
     virtual void reset(int player) = 0;
     virtual void add_mine(const typename T::open_type& input,

@@ -34,7 +34,7 @@
 #include "Tools/callgrind.h"
 
 inline
-void Instruction::parse(istream& s, int inst_pos)
+void BaseInstruction::parse(istream& s, int inst_pos)
 {
   n=0; start.resize(0);
   r[0]=0; r[1]=0; r[2]=0; r[3]=0;
@@ -224,7 +224,6 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case STARTPRIVATEOUTPUT:
       case GSTARTPRIVATEOUTPUT:
       case DIGESTC:
-      case CONNECTIPV4: // write socket handle, read IPv4 address, portnum
         r[0]=get_int(s);
         r[1]=get_int(s);
         n = get_int(s);
@@ -254,8 +253,6 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case PRINTREGB:
       case GPRINTREG:
       case LDINT:
-      case STARTINPUT:
-      case GSTARTINPUT:
       case STOPPRIVATEOUTPUT:
       case GSTOPPRIVATEOUTPUT:
       case INPUTMASK:
@@ -310,6 +307,8 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case INPUTFLOAT:
       case INPUTMIXED:
       case INPUTMIXEDREG:
+      case RAWINPUT:
+      case GRAWINPUT:
       case TRUNC_PR:
         num_var_args = get_int(s);
         get_vector(num_var_args, start, s);
@@ -336,7 +335,6 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case READSOCKETC:
       case READSOCKETS:
       case READSOCKETINT:
-      case READCLIENTPUBLICKEY:   
         num_var_args = get_int(s) - 1;
         r[0] = get_int(s);
         get_vector(num_var_args, start, s);
@@ -352,20 +350,18 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
         r[1] = get_int(s);
         get_vector(num_var_args, start, s);
         break;
+      case CONNECTIPV4:
+        throw runtime_error("parties as clients not supported any more");
+      case READCLIENTPUBLICKEY:
       case INITSECURESOCKET:
       case RESPSECURESOCKET:
-        num_var_args = get_int(s) - 1;
-        r[0] = get_int(s);
-        get_vector(num_var_args, start, s);
-        break;
+        throw runtime_error("VM-controlled encryption not supported any more");
       // raw input
+      case STARTINPUT:
+      case GSTARTINPUT:
       case STOPINPUT:
       case GSTOPINPUT:
-        // subtract player number argument
-        num_var_args = get_int(s) - 1;
-        n = get_int(s);
-        get_vector(num_var_args, start, s);
-        break;
+        throw runtime_error("two-stage input not supported any more");
       case GBITDEC:
       case GBITCOM:
         num_var_args = get_int(s) - 2;
@@ -621,6 +617,7 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
   case INPUTB:
       skip = 4;
       offset = 3;
+      size_offset = -2;
       break;
   case ANDM:
       size = DIV_CEIL(n, 64);
@@ -733,6 +730,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
   typedef typename sint::bit_type T;
   auto& processor = Proc.Procb;
   auto& instruction = *this;
+  auto& Ci = Proc.get_Ci();
 
   // optimize some instructions
   switch (opcode)
@@ -1292,17 +1290,11 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       case INPUTMIXEDREG:
         sint::Input::input_mixed(Proc.Procp, start, size, true);
         return;
-      case STARTINPUT:
-        Proc.Procp.input.start(r[0],n);
+      case RAWINPUT:
+        Proc.Procp.input.raw_input(Proc.Procp, start);
         break;
-      case GSTARTINPUT:
-        Proc.Proc2.input.start(r[0],n);
-        break;
-      case STOPINPUT:
-        Proc.Procp.input.stop(n,start);
-        break;
-      case GSTOPINPUT:
-        Proc.Proc2.input.stop(n,start);
+      case GRAWINPUT:
+        Proc.Proc2.input.raw_input(Proc.Proc2, start);
         break;
       case ANDC:
            Proc.get_Cp_ref(r[0]).AND(Proc.read_Cp(r[1]),Proc.read_Cp(r[2]));
@@ -1670,26 +1662,16 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
           ss << "No connection on port " << r[0] << endl;
           throw Processor_Error(ss.str());
         }
+        if (Proc.P.my_num() == 0)
+        {
+          octetStream os;
+          os.store(int(sint::open_type::type_char()));
+          sint::open_type::specification(os);
+          os.Send(Proc.external_clients.get_socket(client_handle));
+        }
         Proc.write_Ci(r[0], client_handle);
         break;
       }
-      case CONNECTIPV4:
-      {
-        // connect to server at port n + my_num()
-        int ipv4 = Proc.read_Ci(r[1]);
-        int server_handle = Proc.external_clients.connect_to_server(n, ipv4);
-        Proc.write_Ci(r[0], server_handle);
-        break;
-      }
-      case READCLIENTPUBLICKEY:
-        Proc.read_client_public_key(Proc.read_Ci(r[0]), start);
-        break;
-      case INITSECURESOCKET:
-        Proc.init_secure_socket(Proc.read_Ci(r[i]), start);
-        break;
-      case RESPSECURESOCKET:
-        Proc.resp_secure_socket(Proc.read_Ci(r[i]), start);
-        break;
       case READSOCKETINT:
         Proc.read_socket_ints(Proc.read_Ci(r[0]), start);
         break;

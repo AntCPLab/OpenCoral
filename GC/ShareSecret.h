@@ -20,6 +20,7 @@ using namespace std;
 #include "Protocols/Replicated.h"
 #include "Protocols/ReplicatedMC.h"
 #include "Processor/DummyProtocol.h"
+#include "Processor/ProcessorBase.h"
 
 namespace GC
 {
@@ -58,7 +59,10 @@ public:
     { and_(processor, args, false); }
     static void and_(Processor<U>& processor, const vector<int>& args, bool repeat);
     static void xors(Processor<U>& processor, const vector<int>& args);
-    static void inputb(Processor<U>& processor, const vector<int>& args);
+    static void inputb(Processor<U>& processor, const vector<int>& args)
+    { inputb(processor, processor, args); }
+    static void inputb(Processor<U>& processor, ProcessorBase& input_processor,
+            const vector<int>& args);
     static void reveal_inst(Processor<U>& processor, const vector<int>& args);
 
     static void convcbit(Integer& dest, const Clear& source) { dest = source; }

@@ -58,47 +58,6 @@ void ReplicatedInput<T>::exchange()
 }
 
 template<class T>
-void PrepLessInput<T>::start(int player, int n_inputs)
-{
-    assert(processor != 0);
-    auto& proc = *processor;
-    reset(player);
-
-    if (player == proc.P.my_num())
-    {
-        for (int i = 0; i < n_inputs; i++)
-        {
-            typename T::clear t;
-            this->buffer.input(t);
-            add_mine(t);
-        }
-
-        send_mine();
-    }
-}
-
-template<class T>
-void PrepLessInput<T>::stop(int player, vector<int> targets)
-{
-    assert(processor != 0);
-    auto& proc = *processor;
-    if (proc.P.my_num() == player)
-    {
-        for (unsigned int i = 0; i < targets.size(); i++)
-            proc.get_S_ref(targets[i]) = finalize_mine();
-    }
-    else
-    {
-        octetStream o;
-        this->timer.start();
-        proc.P.receive_player(player, o, true);
-        this->timer.stop();
-        for (unsigned int i = 0; i < targets.size(); i++)
-            finalize_other(player, proc.get_S_ref(targets[i]), o);
-    }
-}
-
-template<class T>
 inline void ReplicatedInput<T>::finalize_other(int player, T& target,
         octetStream& o, int n_bits)
 {

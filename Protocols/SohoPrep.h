@@ -25,7 +25,9 @@ public:
     }
 
     void buffer_triples();
+    void buffer_squares();
     void buffer_inverses();
+    void buffer_bits();
 };
 
 #endif /* PROTOCOLS_SOHOPREP_H_ */

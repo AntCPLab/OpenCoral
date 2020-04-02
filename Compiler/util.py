@@ -182,6 +182,12 @@ def expand(x, size):
     except AttributeError:
         return x
 
+def mem_size(x):
+    try:
+        return x.mem_size()
+    except AttributeError:
+        return 1
+
 class set_by_id(object):
     def __init__(self, init=[]):
         self.content = {}

@@ -112,6 +112,10 @@ public:
 
   OnlineOptions opts;
 
+  ArithmeticProcessor() :
+      ArithmeticProcessor(OnlineOptions::singleton, BaseMachine::thread_num)
+  {
+  }
   ArithmeticProcessor(OnlineOptions opts, int thread_num) : thread_num(thread_num),
           sent(0), rounds(0), opts(opts) {}
 
@@ -217,12 +221,6 @@ class Processor : public ArithmeticProcessor
 
   // Access to external client sockets for reading clear/shared data
   void read_socket_ints(int client_id, const vector<int>& registers);
-  // Setup client public key
-  void read_client_public_key(int client_id, const vector<int>& registers);
-  void init_secure_socket(int client_id, const vector<int>& registers);
-  void init_secure_socket_internal(int client_id, const vector<int>& registers);
-  void resp_secure_socket(int client_id, const vector<int>& registers);
-  void resp_secure_socket_internal(int client_id, const vector<int>& registers);
   
   void write_socket(const RegType reg_type, const SecrecyType secrecy_type, const bool send_macs,
                              int socket_id, int message_type, const vector<int>& registers);
@@ -239,8 +237,6 @@ class Processor : public ArithmeticProcessor
   friend ostream& operator<<(ostream& s,const Processor<T, U>& P);
 
   private:
-    void maybe_decrypt_sequence(int client_id);
-    void maybe_encrypt_sequence(int client_id);
 
   template<class T> friend class SPDZ;
   template<class T> friend class SubProcessor;

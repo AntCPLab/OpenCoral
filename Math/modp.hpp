@@ -20,6 +20,17 @@ void modp_<L>::unpack(octetStream& o,const Zp_Data& ZpD)
   o.consume((octet*) x,ZpD.t*sizeof(mp_limb_t));
 }
 
+template<int L>
+void modp_<L>::unpack(octetStream& o)
+{
+  o.consume((octet*) x,L*sizeof(mp_limb_t));
+}
+
+template<int L>
+void modp_<L>::pack(octetStream& o) const
+{
+  o.append((octet*) x,L*sizeof(mp_limb_t));
+}
 
 template<int L>
 void Negate(modp_<L>& ans,const modp_<L>& x,const Zp_Data& ZpD)

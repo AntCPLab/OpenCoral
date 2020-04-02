@@ -57,6 +57,11 @@ public:
         return ShamirMachine::s().threshold;
     }
 
+    static T get_rec_factor(int i, int n)
+    {
+        return Protocol::get_rec_factor(i, n);
+    }
+
     static ShamirShare constant(T value, int my_num, const T& alphai = {})
     {
         return ShamirShare(value, my_num, alphai);
@@ -135,14 +140,17 @@ public:
         throw runtime_error("never call this");
     }
 
-    void pack(octetStream& os, bool full = true) const
+    void pack(octetStream& os, const T& rec_factor) const
     {
-        (void)full;
+        (*this * rec_factor).pack(os);
+    }
+    void pack(octetStream& os) const
+    {
         T::pack(os);
     }
     void unpack(octetStream& os, bool full = true)
     {
-        (void)full;
+        assert(full);
         T::unpack(os);
     }
 };

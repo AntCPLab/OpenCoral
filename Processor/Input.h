@@ -57,6 +57,8 @@ public:
     virtual T finalize_mine() = 0;
     virtual void finalize_other(int player, T& target, octetStream& o, int n_bits = -1) = 0;
     T finalize(int player, int n_bits = -1);
+
+    void raw_input(SubProcessor<T>& proc, const vector<int>& args);
 };
 
 template<class T>
@@ -88,9 +90,6 @@ public:
 
     T finalize_mine();
     void finalize_other(int player, T& target, octetStream& o, int n_bits = -1);
-
-    void start(int player, int n_inputs);
-    void stop(int player, const vector<int>& targets);
 };
 
 #endif /* PROCESSOR_INPUT_H_ */

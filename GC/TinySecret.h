@@ -218,6 +218,9 @@ public:
     }
 };
 
+template<class U>
+const int VectorSecret<U>::default_length;
+
 template<class T>
 inline VectorSecret<T> operator*(const BitVec& clear, const VectorSecret<T>& share)
 {

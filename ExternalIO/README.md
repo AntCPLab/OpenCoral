@@ -1,4 +1,32 @@
-The ExternalIO directory contains examples of managing I/O between external client processes and SPDZ parties running SPDZ engines. These instructions assume that SPDZ has been built as per the [project readme](../README.md).
+The ExternalIO directory contains an example of managing I/O between external client processes and SPDZ parties running SPDZ engines. These instructions assume that SPDZ has been built as per the [project readme](../README.md).
+
+## Working Examples
+
+[bankers-bonus-client.cpp](./bankers-bonus-client.cpp) acts as a
+client to [bankers_bonus.mpc](../Programs/Source/bankers_bonus.mpc)
+and demonstrates sending input and receiving output as described by
+[Damgård et al.](https://eprint.iacr.org/2015/1006) The computation
+allows up to eight clients to input a number and computes the client
+with the largest input. You can run it as follows from the main
+directory:
+```
+make bankers-bonus-client.x
+./compile.py bankers_bonus 1
+Scripts/setup-ssl.sh <nparties>
+Scripts/setup-clients.sh 3
+Scripts/<protocol>.sh &
+./bankers-bonus-client.x 0 <nparties 100 0 &
+./bankers-bonus-client.x 1 <nparties> 200 0 &
+./bankers-bonus-client.x 2 <nparties> 50 1
+```
+This should output that the winning id is 1. Note that the ids have to
+be incremental, and the client with the highest id has to input 1 as
+the last argument while the others have to input 0 there. Furthermore,
+`<nparties>` refers to the number of parties running the computation
+not the number of clients, and `<protocol>` can be the name of
+protocol script. The setup scripts generate the necessary SSL
+certificates and keys. Therefore, if you run the computation on
+different hosts, you will have to distribute the `*.pem` files.
 
 ## I/O MPC Instructions
 
@@ -55,49 +83,3 @@ Receive shares of private inputs from a client, blocking on client send. This is
 *message_type* - optional integer which will be sent in first 4 bytes of message, to indicate message type to client.
 
 *[inputs]* - returned list of shares of private input.
-
-
-## Securing communications
-
-Two cryptographic protocols have been implemented for use in particular applications and are included here for completeness:
-
-1. Communication security using a Station to Station key agreement and libsodium Secret Box using a nonce counter for message ordering.
-2. Authenticated Diffie-Hellman without message ordering.
-
- Please note these are **NOT** required to allow external client I/O. Your mileage may vary, for example in a web setting TLS may be sufficient to secure communications between processes.
-
-[client-setup.cpp](../client-setup.cpp) is a utility which is run to generate the key material for both the external clients and SPDZ parties for both protocols.
-
-#### MPC instructions
-
-**regint.init_secure_socket**(*regint client_socket_id*, *[regint] public_signing_key*)
-
-STS protocol initiator. Read a client public key for a specified client connection and negotiate a shared key via STS. All subsequent write_socket / read_socket instructions are encrypted / decrypted for replay resistant commsec.
-
-*client_socket_id* - an identifier used to refer to the client socket.
-
-*public_signing_key* - client public key supplied as list of 8 32-bit ints.  
-
-**regint.resp_secure_socket**(*regint client_socket_id*, *[regint] public_signing_key*)
-
-STS protocol responder. Read a client public key for a specified client connection and negotiate a shared key via STS. All subsequent write_socket / read_socket instructions are encrypted / decrypted for replay resistant commsec.
-
-*client_socket_id* - an identifier used to refer to the client socket.
-
-*public_signing_key* - client public key supplied as list of 8 32-bit ints.  
-
-*[regint public_key]* **regint.read_client_public_key**(*regint client_socket_id*)
-
-Instruction to read the client public key and run setup for the authenticated Diffie-Hellman encryption. All subsequent write_socket instructions are encrypted. Only the sint.read_from_socket instruction is encrypted. 
-
-*client_socket_id* - an identifier used to refer to the client socket.
-
-*public_key* - client public key made available to mpc programs as list of 8 32-bit ints.  
-
-## Working Examples
-
-See [bankers-bonus-client.cpp](./bankers-bonus-client.cpp) which acts as a client to [bankers_bonus.mpc](../Programs/Source/bankers_bonus.mpc) and demonstrates sending input and receiving output with no communications security.
-
-See [bankers-bonus-commsec-client.cpp](./bankers-bonus-commsec-client.cpp) which acts as a client to [bankers_bonus_commsec.mpc](../Programs/Source/bankers_bonus_commsec.mpc) which runs the same algorithm but includes both the available crypto protocols.
-
-More instructions on how to run these are provided in the *-client files.

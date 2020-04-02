@@ -65,6 +65,8 @@ public:
     void reset(const U& program);
 
     long long get_input(const int* params, bool interactive = false);
+    bigint get_long_input(const int* params, ProcessorBase& input_proc,
+            bool interactive = false);
 
     void bitcoms(T& x, const vector<int>& regs) { x.bitcom(S, regs); }
     void bitdecs(const vector<int>& regs, const T& x) { x.bitdec(S, regs); }
@@ -84,6 +86,10 @@ public:
     template<class U>
     void store_clear_in_dynamic(const vector<int>& args, U& dynamic_memory);
 
+    template<class U>
+    void mem_op(int n, Memory<U>& dest, const Memory<U>& source,
+            Integer dest_address, Integer source_address);
+
     void xors(const vector<int>& args);
     void andm(const ::BaseInstruction& instruction);
     void and_(const vector<int>& args, bool repeat);
@@ -95,9 +101,9 @@ public:
 
     void reveal(const ::BaseInstruction& instruction);
 
-    void print_reg(int reg, int n);
+    void print_reg(int reg, int n, int size);
     void print_reg_plain(Clear& value);
-    void print_reg_signed(unsigned n_bits, Clear& value);
+    void print_reg_signed(unsigned n_bits, Integer value);
     void print_chr(int n);
     void print_str(int n);
     void print_float(const vector<int>& args);

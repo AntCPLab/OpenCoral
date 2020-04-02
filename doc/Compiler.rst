@@ -56,3 +56,9 @@ Compiler.ml module
 -------------------------
 
 .. automodule:: Compiler.ml
+
+Compiler.circuit module
+-----------------------
+
+.. automodule:: Compiler.circuit
+   :members:

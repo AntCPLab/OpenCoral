@@ -90,18 +90,23 @@ void Thread<T>::finish()
     pthread_join(thread, 0);
 }
 
-
 template<class T>
-int GC::Thread<T>::n_interactive_inputs_from_me(InputArgList& args)
+int Thread<T>::n_interactive_inputs_from_me(InputArgList& args)
+{
+    return args.n_interactive_inputs_from_me(P->my_num());
+}
+
+} /* namespace GC */
+
+
+inline int InputArgList::n_interactive_inputs_from_me(int my_num)
 {
     int res = 0;
-    if (thread_num == 0 and master.opts.interactive)
-        res = args.n_inputs_from(P->my_num());
+    if (ArithmeticProcessor().use_stdin())
+        res = n_inputs_from(my_num);
     if (res > 0)
         cout << "Please enter " << res << " numbers:" << endl;
     return res;
 }
-
-} /* namespace GC */
 
 #endif

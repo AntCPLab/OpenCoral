@@ -61,6 +61,9 @@ class modp_
   void pack(octetStream& o,const Zp_Data& ZpD) const;
   void unpack(octetStream& o,const Zp_Data& ZpD);
 
+  void pack(octetStream& o) const;
+  void unpack(octetStream& o);
+
   bool operator==(const modp_& other) const { return 0 == mpn_cmp(x, other.x, L); }
   bool operator!=(const modp_& other) const { return not (*this == other); }
 

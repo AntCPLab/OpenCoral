@@ -42,6 +42,7 @@ MAYBE_INLINE bool Instruction::execute(Processor<T>& processor,
     cout << endl;
 #endif
     const Instruction& instruction = *this;
+    auto& Ci = processor.I;
     switch (opcode)
     {
 #define X(NAME, CODE) case NAME: CODE; return true;

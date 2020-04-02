@@ -180,6 +180,13 @@ void FFT_Data::pack(octetStream& o) const
 {
   R.pack(o);
   prData.pack(o);
+  o.store(root);
+  o.store(twop);
+  o.store(two_root);
+  o.store(b);
+  iphi.pack(o);
+  o.store(powers);
+  o.store(powers_i);
 }
 
 
@@ -187,7 +194,13 @@ void FFT_Data::unpack(octetStream& o)
 {
   R.unpack(o);
   prData.unpack(o);
-  init(R, prData);
+  o.get(root);
+  o.get(twop);
+  o.get(two_root);
+  o.get(b);
+  iphi.unpack(o);
+  o.get(powers);
+  o.get(powers_i);
 }
 
 

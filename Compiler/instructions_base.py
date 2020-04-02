@@ -115,6 +115,7 @@ opcodes = dict(
     INPUTFLOAT = 0xF1,
     INPUTMIXED = 0xF2,
     INPUTMIXEDREG = 0xF3,
+    RAWINPUT = 0xF4,
     STARTINPUT = 0x61,
     STOPINPUT = 0x62,  
     READSOCKETC = 0x63,
@@ -688,15 +689,12 @@ class Instruction(object):
         self.args = list(args)
         if not kwargs.get('copying', False):
             self.check_args()
-        if not program.FIRST_PASS:
-            if kwargs.get('add_to_prog', True):
-                program.curr_block.instructions.append(self)
-            if program.DEBUG:
-                self.caller = [frame[1:] for frame in inspect.stack()[1:]]
-            else:
-                self.caller = None
-            if program.EMULATE:
-                self.execute()
+        if kwargs.get('add_to_prog', True):
+            program.curr_block.instructions.append(self)
+        if program.DEBUG:
+            self.caller = [frame[1:] for frame in inspect.stack()[1:]]
+        else:
+            self.caller = None
         
         Instruction.count += 1
         if Instruction.count % 100000 == 0:
@@ -716,10 +714,6 @@ class Instruction(object):
     
     def get_bytes(self):
         return bytearray(self.get_encoding())
-    
-    def execute(self):
-        """ Emulate execution of this instruction """
-        raise NotImplementedError('execute method must be implemented')
     
     def check_args(self):
         """ Check the args match up with that specified in arg_format """
@@ -839,20 +833,11 @@ class VectorInstruction(Instruction):
 class AddBase(Instruction):
     __slots__ = []
 
-    def execute(self):
-        self.args[0].value = (self.args[1].value + self.args[2].value) % program.P
-
 class SubBase(Instruction):
     __slots__ = []
 
-    def execute(self):
-        self.args[0].value = (self.args[1].value - self.args[2].value) % program.P
-
 class MulBase(Instruction):
     __slots__ = []
-
-    def execute(self):
-        self.args[0].value = (self.args[1].value * self.args[2].value) % program.P
 
 ###
 ### Basic arithmetic with immediate values
@@ -860,9 +845,6 @@ class MulBase(Instruction):
 
 class ImmediateBase(Instruction):
     __slots__ = ['op']
-
-    def execute(self):
-        exec('self.args[0].value = self.args[1].value.%s(self.args[2]) %% program.P' % self.op)
 
 class SharedImmediate(ImmediateBase):
     __slots__ = []
@@ -1023,10 +1005,7 @@ class CISC(Instruction):
     def __init__(self, *args):
         self.args = args
         self.check_args()
-        #if EMULATE:
-        #    self.expand()
-        if not program.FIRST_PASS:
-            self.expand()
+        self.expand()
     
     def expand(self):
         """ Expand this into a sequence of RISC instructions. """

@@ -4,8 +4,6 @@
   to deduce the maximum value from a range of integer input.
 
   Demonstrate clients external to computing parties supplying input and receiving an authenticated result. See bankers-bonus-client.cpp for client (and setup instructions).
-
-  For an implementation with communications security see bankers_bonus_commsec.mpc.
   
   Wait for MAX_NUM_CLIENTS to join the game or client finish flag to be sent
   before calculating the maximum.

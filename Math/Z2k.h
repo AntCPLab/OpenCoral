@@ -73,6 +73,8 @@ public:
 	static void reqbl(int n);
 	static bool allows(Dtype dtype);
 
+	static void specification(octetStream& os);
+
 	typedef Z2 next;
 	typedef Z2 Scalar;
 
@@ -254,9 +256,15 @@ public:
     }
 
     template<int L>
-    SignedZ2<K + L> operator*(const Z2<L>& other) const
+    SignedZ2<K + L> operator*(const SignedZ2<L>& other) const
     {
         assert((K % 64 == 0) and (L % 64 == 0));
+        return Z2<K>::operator*(other);
+    }
+
+    template<int L>
+    Z2<K + L> operator*(const Z2<L>& other) const
+    {
         return Z2<K>::operator*(other);
     }
 

@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <iostream>
+#include <assert.h>
 using namespace std;
 
 #include "Tools/octetStream.h"
@@ -31,7 +32,7 @@ class Ring
 
   int p(int i)      const { return pi.at(i);     }
   int p_inv(int i)  const { return pi_inv.at(i); }
-  const vector<int>& Phi() const { return poly;         }
+  const vector<int>& Phi() const { assert(poly.size()); return poly; }
 
   friend ostream& operator<<(ostream& s,const Ring& R);
   friend istream& operator>>(istream& s,Ring& R);
