@@ -191,7 +191,7 @@ void MaliciousRepPrep<T>::buffer_bits()
         T& f = check_squares[i][0];
         T& h = check_squares[i][1];
         auto& rho = opened[i];
-        masked.push_back(t2 * a - h - rho * (t * a + f));
+        checks.push_back(t2 * a - h - rho * (t * a + f));
     }
     MC.CheckFor(0, checks, P);
 }
