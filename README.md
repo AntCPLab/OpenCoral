@@ -295,7 +295,7 @@ The following table shows all programs for dishonest-majority computation using 
 | Program | Protocol | Domain | Security | Script |
 | --- | --- | --- | --- | --- |
 | `mascot-party.x` | [MASCOT](https://eprint.iacr.org/2016/505) | Mod prime | Malicious | `mascot.sh` |
-| `spdz2k-party.x` | [SPDZ2k](https://eprint.iacr.org/2018/482) | Mod 2^k | Malicious | `spdk2k.sh` |
+| `spdz2k-party.x` | [SPDZ2k](https://eprint.iacr.org/2018/482) | Mod 2^k | Malicious | `spdz2k.sh` |
 | `semi-party.x` | OT-based | Mod prime | Semi-honest | `semi.sh` |
 | `semi2k-party.x` | OT-based | Mod 2^k | Semi-honest | `semi2k.sh` |
 | `cowgear-party.x` | Adapted [LowGear](https://eprint.iacr.org/2017/1230) | Mod prime | Covert | `cowgear.sh` |
