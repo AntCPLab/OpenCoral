@@ -31,7 +31,7 @@ Scripts/mascot.sh tutorial
 ```
 
 This runs [the tutorial](Programs/Source/tutorial.mpc) with two
-parties parties and malicious security.
+parties and malicious security.
 
 #### TL;DR (Source Distribution)
 
@@ -113,7 +113,7 @@ the computation with a particular focus on minimizing the number of
 communication rounds (for protocol based on secret sharing) or on
 AES-NI pipelining (for garbled circuits).
 
-The software implements uses two different bytecode sets, one for
+The software uses two different bytecode sets, one for
 arithmetic circuits and one for boolean circuits. The high-level code
 slightly differs between the two variants, but we aim to keep these
 differences a at minimum.
@@ -122,7 +122,7 @@ In the section on computation we will explain how to compile a
 high-level program for the various computation domains and then how to
 run it with different protocols.
 
-The section on offline phases will then explain how to benchmark the
+The section on offline phases will explain how to benchmark the
 offline phases required for the SPDZ protocol. Running the online
 phase outputs the amount of offline material required, which allows to
 compute the preprocessing time for a particular computation.
@@ -148,11 +148,11 @@ compute the preprocessing time for a particular computation.
    For older models you need to deactivate the respective
    extensions in the `ARCH` variable.
  - To benchmark online-only protocols or Overdrive offline phases, add the following line at the top: `MY_CFLAGS = -DINSECURE`
- - `PREP_DIR` should point to should be a local, unversioned directory to store preprocessing data (default is `Player-Data` in the current directory).
+ - `PREP_DIR` should point to a local, unversioned directory to store preprocessing data (the default is `Player-Data` in the current directory).
  - For homomorphic encryption, set `USE_NTL = 1`.
 
 2) Run make to compile all the software (use the flag -j for faster
-compilation multiple threads). See below on how to compile specific
+compilation using multiple threads). See below on how to compile specific
 parts only. Remember to run `make clean` first after changing `CONFIG`
 or `CONFIG.mine`.
 
@@ -214,7 +214,7 @@ used to switch from arithmetic to binary computation for certain
 non-linear functions such as
 comparison, bit decomposition, truncation, and modulo power of two,
 which are use for fixed- and floating-point operations. There are
-several of achieving this as described below.
+several ways of achieving this as described below.
 
 ##### Classic daBits
 
@@ -236,7 +236,7 @@ Section 4.1.
 ##### Extended daBits
 
 Extended daBits were introduced by [Escudero et
-al.](https://eprint.iacr.org/2020/338) You can activate them by using
+al.](https://eprint.iacr.org/2020/338). You can activate them by using
 `-Y` instead of `-X`. Note that this also activates classic daBits
 when useful.
 
