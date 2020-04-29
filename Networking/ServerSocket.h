@@ -45,7 +45,7 @@ public:
 
     virtual void accept_clients();
 
-    void wait_for_client_id(int socket, sockaddr dest);
+    void wait_for_client_id(int socket, struct sockaddr dest);
 
     // This depends on clients sending their id as int.
     // Has to be thread-safe.

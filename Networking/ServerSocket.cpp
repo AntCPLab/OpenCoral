@@ -78,12 +78,12 @@ class ServerJob
 {
   ServerSocket& server;
   int socket;
-  sockaddr dest;
+  struct sockaddr dest;
 
 public:
   pthread_t thread;
 
-  ServerJob(ServerSocket& server, int socket, sockaddr dest) :
+  ServerJob(ServerSocket& server, int socket, struct sockaddr dest) :
       server(server), socket(socket), dest(dest), thread(0)
   {
   }
@@ -110,7 +110,7 @@ ServerSocket::~ServerSocket()
   if (close(main_socket)) { error("close(main_socket"); };
 }
 
-void ServerSocket::wait_for_client_id(int socket, sockaddr dest)
+void ServerSocket::wait_for_client_id(int socket, struct sockaddr dest)
 {
   (void) dest;
   int client_id;
