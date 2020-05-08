@@ -110,31 +110,3 @@ int QGroup::nth_element(int n) const
   elems[n]=elem;
   return elem;
 }
-
-
-
-ostream& operator<<(ostream& s,const QGroup& QGrp)
-{
-  s << QGrp.m << " " << QGrp.ngen << " " << QGrp.Gord << endl;
-  int i;
-  for (i=0; i<QGrp.ngen; i++) { s << QGrp.g[i] << " " << QGrp.d[i]; }
-  s << endl;
-  for (i=0; i<QGrp.Gord; i++) { s << QGrp.elems[i] << " "; }
-
-
-  return s;
-}
-
-istream& operator>>(istream& s,QGroup& QGrp)
-{
-  s >> QGrp.m >> QGrp.ngen >> QGrp.Gord;
-  QGrp.g.resize(QGrp.ngen);
-  QGrp.d.resize(QGrp.ngen);
-  int i;
-  for (i=0; i<QGrp.ngen; i++) { s >> QGrp.g[i] >> QGrp.d[i]; }
-  QGrp.elems.resize(QGrp.Gord);
-  for (i=0; i<QGrp.Gord; i++) { s >> QGrp.elems[i]; }
-
-  return s;
-}
-

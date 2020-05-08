@@ -180,8 +180,7 @@ template<class T>
 inline T Replicated<T>::finalize_mul(int n)
 {
     T result;
-    result[0] = add_shares.front();
-    add_shares.pop_front();
+    result[0] = add_shares.next();
     result[1].unpack(os[1], n);
     return result;
 }

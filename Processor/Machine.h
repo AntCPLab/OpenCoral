@@ -60,12 +60,9 @@ class Machine : public BaseMachine
 
   vector<Timer> join_timer;
   Timer finish_timer;
-  
-  string prep_dir_prefix;
 
   bool direct;
   int opening_sum;
-  bool parallel;
   bool receive_threads;
   int max_broadcast;
   bool use_encryption;
@@ -76,7 +73,7 @@ class Machine : public BaseMachine
   atomic<size_t> data_sent;
 
   Machine(int my_number, Names& playerNames, string progname,
-      string memtype, int lg2, bool direct, int opening_sum, bool parallel,
+      string memtype, int lg2, bool direct, int opening_sum,
       bool receive_threads, int max_broadcast, bool use_encryption, bool live_prep,
       OnlineOptions opts);
 
@@ -89,6 +86,9 @@ class Machine : public BaseMachine
   void run();
 
   string memory_filename();
+
+  template<class T>
+  string prep_dir_prefix();
 
   // Only for Player-Demo.cpp
   Machine(Names& N = *(new Names())): N(N) {}

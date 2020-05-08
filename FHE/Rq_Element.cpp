@@ -132,52 +132,6 @@ bool Rq_Element::equals(const Rq_Element& other) const
 }
 
 
-ostream& operator<<(ostream& s,const Rq_Element& a)
-{
-  s << a.lev << " [ " << a.a[0];
-  if (a.lev!=0) { s << " , " << a.a[1]; }
-  s << " ]";
-  return s;
-}
-
-istream& operator>>(istream& s, Rq_Element& a)
-{
-  s >> a.lev;
-  int ch = s.get();
-  while (isspace(ch))
-      ch = s.get();
-
-  while (ch != '[')
-      ch = s.get();
-
-  if (!(s >> a.a[0]))
-      throw IO_Error("bad Rq_Element input");
-
-  ch = s.get();
-  while (isspace(ch))
-      ch = s.get();
-
-  if (a.lev != 0)
-  {
-      if (ch != ',')
-          { throw IO_Error("bad Rq_Element input: no ',' ch = " +to_string((char)ch)); }
-
-      if (!(s >> a.a[1]))
-          { throw IO_Error("bad Rq_Element input for a1"); }
-  }
-  while (ch != ']')
-  {
-      ch = s.peek();
-      while (isspace(ch))
-      {
-          s.get();
-          ch = s.peek();
-      }
-  }
-  s.get();
-  return s;
-}
-
 void Rq_Element::from_vec(const vector<bigint>& v,int level)
 {
   set_level(level);

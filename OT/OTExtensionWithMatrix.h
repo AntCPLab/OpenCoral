@@ -20,16 +20,10 @@ public:
     U& t1;
     U u;
 
-    OTCorrelator(int nbaseOTs, int baseLength,
-                int nloops, int nsubloops,
-                TwoPartyPlayer* player,
-                const BitVector& baseReceiverInput,
-                const vector< vector<BitVector> >& baseSenderInput,
-                const vector<BitVector>& baseReceiverOutput,
+    OTCorrelator(TwoPartyPlayer* player,
                 OT_ROLE role=BOTH,
                 bool passive=false)
-    : OTExtension(nbaseOTs, baseLength, nloops, nsubloops, player, baseReceiverInput,
-            baseSenderInput, baseReceiverOutput, role, passive),
+    : OTExtension(player, role, passive),
             senderOutputMatrices(2), matrices(2),
             receiverOutputMatrix(matrices[0]), t1(matrices[1]) {}
 
@@ -53,30 +47,27 @@ public:
 
 class OTExtensionWithMatrix : public OTCorrelator<BitMatrix>
 {
+    int nsubloops;
+
 public:
     PRNG G;
 
     static OTExtensionWithMatrix setup(TwoPartyPlayer& player,
             int128 delta, OT_ROLE role, bool passive);
 
-    OTExtensionWithMatrix(int nbaseOTs, int baseLength,
-                int nloops, int nsubloops,
+    OTExtensionWithMatrix(
                 TwoPartyPlayer* player,
-                const BitVector& baseReceiverInput,
-                const vector< vector<BitVector> >& baseSenderInput,
-                const vector<BitVector>& baseReceiverOutput,
                 OT_ROLE role=BOTH,
-                bool passive=false)
-    : OTCorrelator<BitMatrix>(nbaseOTs, baseLength, nloops, nsubloops, player, baseReceiverInput,
-            baseSenderInput, baseReceiverOutput, role, passive) {
+                bool passive=false, int nsubloops = 1)
+    : OTCorrelator<BitMatrix>(player, role, passive),
+            nsubloops(nsubloops)
+    {
       G.ReSeed();
     }
 
     OTExtensionWithMatrix(BaseOT& baseOT, TwoPartyPlayer* player, bool passive);
 
-    void seed(vector<BitMatrix>& baseSenderInput,
-            BitMatrix& baseReceiverOutput);
-    void transfer(int nOTs, const BitVector& receiverInput);
+    void transfer(int nOTs, const BitVector& receiverInput, int nloops);
     void extend(int nOTs, BitVector& newReceiverInput);
     void extend_correlated(const BitVector& newReceiverInput);
     void extend_correlated(int nOTs, const BitVector& newReceiverInput);
@@ -101,6 +92,12 @@ public:
 
 protected:
     void hash_outputs(int nOTs);
+
+    void check_correlation(int nOTs,
+        const BitVector& receiverInput);
+
+    void check_iteration(__m128i delta, __m128i q, __m128i q2,
+        __m128i t, __m128i t2, __m128i x);
 };
 
 #endif /* OT_OTEXTENSIONWITHMATRIX_H_ */

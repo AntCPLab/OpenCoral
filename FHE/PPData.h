@@ -49,9 +49,6 @@ class PPData
   int p_inv(int i)  const        { return R.p_inv(i); }
   const vector<int>& Phi() const { return R.Phi();    }
 
-  friend ostream& operator<<(ostream& s,const PPData& PPD); 
-  friend istream& operator>>(istream& s,PPData& PPD); 
-
   // Convert input vector from poly to evaluation representation
   //   - Uses naive method and not FFT, we only use this rarely in any case
   void to_eval(vector<modp>& elem) const;

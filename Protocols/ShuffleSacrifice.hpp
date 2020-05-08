@@ -73,20 +73,28 @@ void ShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
     typedef typename T::bit_type::part_type BT;
     typedef typename BT::small_type ST;
     vector<edabit<T>> to_check;
-    int dl = T::bit_type::part_type::default_length;
+    size_t dl = T::bit_type::part_type::default_length;
     assert(wholes.size() >= size_t(minimum_n_inputs(minimum_n_outputs())));
-    assert(parts.at(0).size() >= n_bits);
+    assert(parts.size() >= n_bits);
+    for (auto& x: parts)
+        assert(x.size() >= size_t(DIV_CEIL(wholes.size(), dl)));
 
     RunningTimer init_timer;
     to_check.reserve(wholes.size());
-    for (size_t i = 0; i < wholes.size(); i++)
+    size_t n_bits_input = parts.size();
+    assert(n_bits_input <= edabit<T>::second_type::MAX_SIZE);
+    for (int i1 = 0; i1 < DIV_CEIL(wholes.size(), dl); i1++)
     {
-        int i1 = i / dl;
-        int i2 = i % dl;
-        to_check.push_back({wholes[i], {}});
-        to_check.back().second.reserve(parts[0].size());
-        for (size_t k = 0; k < parts[0].size(); k++)
-            to_check.back().second.push_back(ST(parts.at(i1).at(k) >> i2).get_bit(0));
+        int n = min(dl, wholes.size() - i1 * dl);
+        for (int i2 = 0; i2 < n; i2++)
+            to_check.push_back({wholes[i1 * dl + i2], {}});
+        for (size_t k = 0; k < n_bits_input; k++)
+        {
+            auto& bits = parts[k][i1];
+            for (int i2 = 0; i2 < n; i2++)
+                to_check[i1 * dl + i2].second.push_back_no_check(
+                        ST(bits >> i2).get_bit(0));
+        }
     }
     wholes.clear();
     wholes.shrink_to_fit();
@@ -112,8 +120,8 @@ void ShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
         proc.personal_bit_preps.at(player)->buffer_personal_triples(n_triples,
                 queues);
         for (int i = 0; i < n_triples; i++)
-            personal_prep.push_triples(
-            { proc.personal_bit_preps.at(player)->get_triple(dl) });
+            personal_prep.push_triple(
+                    proc.personal_bit_preps.at(player)->get_triple(dl));
         proc.personal_bit_preps.at(player)->shrink_to_fit();
     }
 #ifdef VERBOSE_EDA
@@ -386,7 +394,7 @@ void ShuffleSacrifice<T>::edabit_sacrifice_buckets(vector<edabit<T>>& to_check,
     {
         typename T::clear sum, single = opened[i];
         for (size_t k = 0; k < n_bits; k++)
-            sum += typename T::clear(bits.at(i * (n_bits) + k).get_bit(0)) << k;
+            sum += T::clear::power_of_two(bits.at(i * (n_bits) + k).get_bit(0), k);
         if (not strict)
             sum <<= n_shift;
         if (single != sum)

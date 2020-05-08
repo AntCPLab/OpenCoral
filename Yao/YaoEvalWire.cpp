@@ -54,20 +54,35 @@ void YaoEvalWire::and_(GC::Processor<GC::Secret<YaoEvalWire> >& processor,
 		hashes = hash_vec.data();
 	}
 	size_t i_label = 0;
-	size_t n_args = args.size();
 	auto& evaluator = YaoEvaluator::s();
-	for (size_t i = 0; i < n_args; i += 4)
+	int dl = GC::Secret<YaoEvalWire>::default_length;
+	for (auto it = args.begin(); it < args.end(); it += 4)
 	{
-		auto& left = processor.S[args[i + 2]];
-		auto& right = processor.S[args[i + 3]];
-
-		for (int k = 0; k < args[i]; k++)
+		if (*it == 1)
 		{
-			auto& left_wire = left.get_reg(k);
-			auto& right_key = right.get_reg(repeat ? 0 : k).key;
 			evaluator.counter++;
-			labels[i_label++] = YaoGate::E_input(left_wire.key, right_key,
+			labels[i_label++] = YaoGate::E_input(
+					processor.S[*(it + 2)].get_reg(0).key,
+					processor.S[*(it + 3)].get_reg(0).key,
 					evaluator.get_gate_id());
+		}
+		else
+		{
+			int n_units = DIV_CEIL(*it, dl);
+			for (int j = 0; j < n_units; j++)
+			{
+				auto& left = processor.S[*(it + 2) + j];
+				auto& right = processor.S[*(it + 3) + (repeat ? 0 : j)];
+				int n = min(dl, *it - j * dl);
+				for (int k = 0; k < n; k++)
+				{
+					auto& left_wire = left.get_reg(k);
+					auto& right_key = right.get_reg(repeat ? 0 : k).key;
+					evaluator.counter++;
+					labels[i_label++] = YaoGate::E_input(left_wire.key, right_key,
+							evaluator.get_gate_id());
+				}
+			}
 		}
 	}
 	MMO& mmo = evaluator.mmo;
@@ -77,22 +92,40 @@ void YaoEvalWire::and_(GC::Processor<GC::Secret<YaoEvalWire> >& processor,
 	for (; i < n_hashes; i++)
 		hashes[i] = mmo.hash(labels[i]);
 	size_t j = 0;
-	for (size_t i = 0; i < n_args; i += 4)
+	for (auto it = args.begin(); it < args.end(); it += 4)
 	{
-		auto& left = processor.S[args[i + 2]];
-		auto& right = processor.S[args[i + 3]];
-		auto& out = processor.S[args[i + 1]];
-		out.resize_regs(args[i]);
-		int n = args[i];
-
-		for (int k = 0; k < n; k++)
+		if (*it == 1)
 		{
-			auto& right_wire = right.get_reg(repeat ? 0 : k);
-			auto& left_wire = left.get_reg(k);
+			auto& out = processor.S[*(it + 1)];
+			out.resize_regs(1);
 			YaoGate gate;
 			evaluator.load_gate(gate);
-			gate.eval(out.get_reg(k), hashes[j++],
-					gate.get_entry(left_wire.external, right_wire.external));
+			gate.eval(out.get_reg(0), hashes[j++],
+					gate.get_entry(processor.S[*(it + 2)].get_reg(0).external,
+							processor.S[*(it + 3)].get_reg(0).external));
+		}
+		else
+		{
+			int n_units = DIV_CEIL(*it, dl);
+			for (int l = 0; l < n_units; l++)
+			{
+				auto& left = processor.S[*(it + 2) + l];
+				auto& right = processor.S[*(it + 3) + (repeat ? 0 : l)];
+				auto& out = processor.S[*(it + 1) + l];
+				int n = min(dl, *it - l * dl);
+				out.resize_regs(n);
+
+				for (int k = 0; k < n; k++)
+				{
+					auto& right_wire = right.get_reg(repeat ? 0 : k);
+					auto& left_wire = left.get_reg(k);
+					YaoGate gate;
+					evaluator.load_gate(gate);
+					gate.eval(out.get_reg(k), hashes[j++],
+							gate.get_entry(left_wire.external,
+									right_wire.external));
+				}
+			}
 		}
 	}
 }
@@ -161,12 +194,6 @@ void YaoEvalWire::op(const YaoEvalWire& left, const YaoEvalWire& right,
 	gate.eval(*this, left, right);
 }
 
-void YaoEvalWire::XOR(const YaoEvalWire& left, const YaoEvalWire& right)
-{
-	external = left.external ^ right.external;
-	key = left.key ^ right.key;
-}
-
 bool YaoEvalWire::get_output()
 {
 	YaoEvaluator::s().taint();
@@ -190,12 +217,13 @@ void YaoEvalWire::set(Key key, bool external)
 	set(key);
 }
 
-void YaoEvalWire::convcbit(Integer& dest, const GC::Clear& source)
+void YaoEvalWire::convcbit(Integer& dest, const GC::Clear& source,
+		GC::Processor<GC::Secret<YaoEvalWire>>&)
 {
 	auto& evaluator = YaoEvaluator::s();
 	dest = source;
 	evaluator.P->send_long(0, source.get());
-	evaluator.untaint();
+	throw needs_cleaning();
 }
 
 template void YaoEvalWire::and_<false>(

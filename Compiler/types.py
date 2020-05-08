@@ -11,10 +11,6 @@ and thread-specific. The memory is allocated statically and shared
 between threads. This means that memory-based types such as
 :py:class:`Array` can be used to transfer information between threads.
 
-The current way of implementing loops does not allow
-to transfer information out of loops with a register, therefore it's
-necessary to use memory-based types for that as well.
-
 If viewing this documentation in processed form, many function signatures
 appear generic because of the use of decorators. See the source code for the
 correct signature.
@@ -303,6 +299,19 @@ class _number(object):
         :param other: any compatible type """
         return (self < other).if_else(other, self)
 
+    @classmethod
+    def dot_product(cls, a, b):
+        from Compiler.library import for_range_opt_multithread
+        res = MemValue(cls(0))
+        l = min(len(a), len(b))
+        aa, bb = [Array(l, cls) for i in range(2)]
+        aa.assign(a)
+        bb.assign(b)
+        @for_range_opt_multithread(None, l)
+        def _(i):
+            res.iadd(aa[i] * bb[i])
+        return res.read()
+
 class _int(object):
     """ Integer functionality. """
 
@@ -531,7 +540,10 @@ class _register(Tape.Register, _number, _structure):
             self.load_int(val)
         elif isinstance(val, (tuple, list)):
             for i, x in enumerate(val):
-                self.mov(self[i], type(self)(x, size=1))
+                if util.is_constant(x):
+                    self[i].load_int(x)
+                else:
+                    self[i].load_other(x)
         elif val is not None:
             self.load_other(val)
 
@@ -2282,13 +2294,14 @@ class _bitint(object):
         return res
 
     @classmethod
-    def ripple_carry_adder(cls, a, b, carry_in=0):
+    def ripple_carry_adder(cls, a, b, carry_in=0, get_carry=True):
         carry = carry_in
         res = []
         for aa, bb in zip(a, b):
             cc, carry = cls.full_adder(aa, bb, carry)
             res.append(cc)
-        res.append(carry)
+        if get_carry:
+            res.append(carry)
         return res
 
     @staticmethod
@@ -2930,7 +2943,7 @@ class cfix(_number, _structure):
         sign = cint(tmp < 0)
         abs_v = sign.if_else(-self.v, self.v)
         print_float_plain(cint(abs_v), cint(-self.f), \
-                          cint(0), cint(sign))
+                          cint(0), cint(sign), cint(0))
 
 class _single(_number, _structure):
     """ Representation as single integer preserving the order """
@@ -3697,13 +3710,13 @@ class sfloat(_number, _structure):
         if isinstance(v, int):
             if not ((v >= 2**(self.vlen-1) and v < 2**(self.vlen)) or v == 0):
                 raise CompilerError('Floating point number malformed: significand')
-            self.v = library.load_int_to_secret(v)
+            self.v = sint(v)
         else:
             self.v = v
         if isinstance(p, int):
             if not (p >= -2**(self.plen - 1) and p < 2**(self.plen - 1)):
                 raise CompilerError('Floating point number malformed: exponent %d not unsigned %d-bit integer' % (p, self.plen))
-            self.p = library.load_int_to_secret(p)
+            self.p = sint(p)
         else:
             self.p = p
         if isinstance(z, int):
@@ -3983,15 +3996,19 @@ class sfloat(_number, _structure):
 
 class cfloat(object):
     """ Helper class for printing revealed sfloats. """
-    __slots__ = ['v', 'p', 'z', 's']
+    __slots__ = ['v', 'p', 'z', 's', 'nan']
 
-    def __init__(self, v, p, z, s):
+    def __init__(self, v, p=None, z=None, s=None, nan=0):
         """ Parameters as with :py:class:`sfloat` but public. """
-        self.v, self.p, self.z, self.s = [cint.conv(x) for x in (v, p, z, s)]
+        if s is None:
+            parts = [cint.conv(x) for x in (v.v, v.p, v.z, v.s, v.nan)]
+        else:
+            parts = [cint.conv(x) for x in (v, p, z, s, nan)]
+        self.v, self.p, self.z, self.s, self.nan = parts
 
     def print_float_plain(self):
         """ Output. """
-        print_float_plain(self.v, self.p, self.z, self.s)
+        print_float_plain(self.v, self.p, self.z, self.s, self.nan)
 
 sfix.float_type = sfloat
 
@@ -4668,7 +4685,7 @@ class _mem(_number):
 
 class MemValue(_mem):
     """ Single value in memory. This is useful to transfer information
-    out of a loop and between threads. Operations are automatically read
+    between threads. Operations are automatically read
     from memory if required, this means you can use any operation with
     :py:class:`MemValue` objects as if they were a basic type. """
     __slots__ = ['last_write_block', 'reg_type', 'register', 'address', 'deleted']
@@ -4711,7 +4728,7 @@ class MemValue(_mem):
         :return: relevant basic type instance """
         self.check()
         if program.curr_block != self.last_write_block:
-            self.register = library.load_mem(self.address, self.value_type)
+            self.register = self.value_type.load_mem(self.address)
             self.last_write_block = program.curr_block
         return self.register
 

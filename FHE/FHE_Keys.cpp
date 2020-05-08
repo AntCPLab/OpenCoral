@@ -4,7 +4,6 @@
 #include "P2Data.h"
 #include "PPData.h"
 #include "FFT_Data.h"
-#include "FHEOffline/FullSetup.h"
 
 
 FHE_SK::FHE_SK(const FHE_PK& pk) : FHE_SK(pk.get_params(), pk.p())

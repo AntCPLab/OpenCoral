@@ -12,7 +12,7 @@
 #include "GC/ShareSecret.h"
 #include "ShareInterface.h"
 
-template<class T> class ReplicatedRingPrep;
+template<class T> class ReplicatedPrep;
 template<class T> class PrivateOutput;
 
 template<class T>
@@ -29,7 +29,7 @@ public:
     typedef MAC_Check Direct_MC;
     typedef ReplicatedInput<Rep3Share> Input;
     typedef ::PrivateOutput<Rep3Share> PrivateOutput;
-    typedef ReplicatedRingPrep<Rep3Share> LivePrep;
+    typedef ReplicatedPrep<Rep3Share> LivePrep;
     typedef Rep3Share Honest;
 
     typedef GC::SemiHonestRepSecret bit_type;

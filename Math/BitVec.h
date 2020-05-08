@@ -40,6 +40,8 @@ public:
     BitVec_ operator-(const BitVec_& other) const { return *this ^ other; }
     BitVec_ operator*(const BitVec_& other) const { return *this & other; }
 
+    BitVec_ operator~() const { return ~this->a; }
+
     BitVec_ operator/(const BitVec_& other) const { (void) other; throw not_implemented(); }
 
     BitVec_& operator+=(const BitVec_& other) { *this ^= other; return *this; }
@@ -48,15 +50,17 @@ public:
     BitVec_ extend_bit() const { return -(this->a & 1); }
     BitVec_ mask(int n) const { return n < n_bits ? *this & ((1L << n) - 1) : *this; }
 
-    template<int t>
     void add(octetStream& os) { *this += os.get<BitVec_>(); }
 
     void mul(const BitVec_& a, const BitVec_& b) { *this = a * b; }
 
     void randomize(PRNG& G, int n = n_bits) { super::randomize(G); *this = mask(n); }
 
-    void pack(octetStream& os, int n = n_bits) const { os.store_int(this->a, DIV_CEIL(n, 8)); }
-    void unpack(octetStream& os, int n = n_bits) { this->a = os.get_int(DIV_CEIL(n, 8)); }
+    void pack(octetStream& os) const { os.store_int<sizeof(T)>(this->a); }
+    void unpack(octetStream& os) { this->a = os.get_int<sizeof(T)>(); }
+
+    void pack(octetStream& os, int n) const { os.store_int(this->a, DIV_CEIL(n, 8)); }
+    void unpack(octetStream& os, int n) { this->a = os.get_int(DIV_CEIL(n, 8)); }
 
     static BitVec_ unpack_new(octetStream& os, int n = n_bits)
     {

@@ -326,32 +326,13 @@ void MascotTripleGenerator<T>::generateBitsGf2n()
    }
 }
 
-template<>
-inline
-void MascotTripleGenerator<Share<gf2n_long>>::generateBits()
+template<class T>
+void MascotTripleGenerator<T>::generateBits()
 {
-    generateBitsGf2n();
-}
-
-template<>
-inline
-void MascotTripleGenerator<Share<gf2n_short>>::generateBits()
-{
-    generateBitsGf2n();
-}
-
-template<>
-inline
-void MascotTripleGenerator<Share<gfp1>>::generateBits()
-{
-	generateTriples();
-}
-
-template<>
-inline
-void MascotTripleGenerator<Share<gfp3>>::generateBits()
-{
-    generateTriples();
+    if (T::clear::characteristic_two)
+        generateBitsGf2n();
+    else
+        generateTriples();
 }
 
 template<class T>
@@ -392,7 +373,7 @@ void Spdz2kTripleGenerator<T>::generateTriples()
 		this->print_progress(k);
 
 		for (int j = 0; j < 2; j++)
-			valueBits[j].template randomize_blocks<gf2n>(share_prg);
+			valueBits[j].randomize(share_prg);
 
 		for (int j = 0; j < nTriplesPerLoop + 1; j++)
 		{
@@ -464,7 +445,7 @@ void Spdz2kTripleGenerator<T>::generateTriples()
 		r.set_mac(r_mac);
 
 		MC.set_random_element(r);
-		sacrificeZ2k(uncheckedTriples, MC, G);
+		sacrificeZ2k(MC, G);
 	}
 }
 
@@ -564,7 +545,7 @@ void MascotTripleGenerator<U>::generateTriples()
         valueBits[2*i].resize(field_size * nPreampTriplesPerLoop);
     valueBits[1].resize(field_size * nTriplesPerLoop);
     vector< PlainTriple<T,2> > amplifiedTriples;
-    MAC_Check<T> MC(this->get_mac_key());
+    MAC_Check MC(this->get_mac_key());
 
     if (machine.amplify)
         preampTriples.resize(nTriplesPerLoop);
@@ -636,7 +617,7 @@ void MascotTripleGenerator<U>::generateTriples()
 
                 if (machine.check)
                 {
-                    sacrifice(uncheckedTriples, this->MC ? *this->MC : MC, G);
+                    sacrifice(this->MC ? *this->MC : MC, G);
                 }
             }
         }
@@ -644,19 +625,21 @@ void MascotTripleGenerator<U>::generateTriples()
 }
 
 template<class T>
-void MascotTripleGenerator<T>::sacrifice(
-		vector<ShareTriple_<open_type, mac_key_type, 2> >& uncheckedTriples, typename T::MAC_Check& MC, PRNG& G)
+void MascotTripleGenerator<T>::sacrifice(typename T::MAC_Check& MC, PRNG& G)
 {
     auto& machine = this->machine;
     auto& nTriplesPerLoop = this->nTriplesPerLoop;
     auto& globalPlayer = this->globalPlayer;
     auto& outputFile = this->outputFile;
+    auto& uncheckedTriples = this->uncheckedTriples;
+
+    assert(T::clear::length() >= 40);
 
     vector<T> maskedAs(nTriplesPerLoop);
-    vector<TripleToSacrifice<open_type> > maskedTriples(nTriplesPerLoop);
+    vector<TripleToSacrifice<T> > maskedTriples(nTriplesPerLoop);
     for (int j = 0; j < nTriplesPerLoop; j++)
     {
-        maskedTriples[j].prepare_sacrifice(uncheckedTriples[j], G);
+        maskedTriples[j].template prepare_sacrifice<T>(uncheckedTriples[j], G);
         maskedAs[j] = maskedTriples[j].a[0];
     }
 
@@ -672,7 +655,7 @@ void MascotTripleGenerator<T>::sacrifice(
     MC.Check(globalPlayer);
 
     if (machine.generateBits)
-        generateBitsFromTriples(uncheckedTriples, MC, outputFile);
+        generateBitsFromTriples(MC, outputFile);
     else
         if (machine.output)
             for (int j = 0; j < nTriplesPerLoop; j++)
@@ -681,8 +664,7 @@ void MascotTripleGenerator<T>::sacrifice(
 
 template<class W>
 template<class U>
-void Spdz2kTripleGenerator<W>::sacrificeZ2k(
-        vector<ShareTriple_<sacri_type, mac_key_type, 2> >& uncheckedTriples, U& MC, PRNG& G)
+void Spdz2kTripleGenerator<W>::sacrificeZ2k(U& MC, PRNG& G)
 {
     typedef sacri_type T;
     typedef open_type V;
@@ -691,14 +673,15 @@ void Spdz2kTripleGenerator<W>::sacrificeZ2k(
     auto& nTriplesPerLoop = this->nTriplesPerLoop;
     auto& globalPlayer = this->globalPlayer;
     auto& outputFile = this->outputFile;
+    auto& uncheckedTriples = this->uncheckedTriples;
 
     vector< Share<T> > maskedAs(nTriplesPerLoop);
-    vector<TripleToSacrifice<T> > maskedTriples(nTriplesPerLoop);
+    vector<TripleToSacrifice<Share<T>> > maskedTriples(nTriplesPerLoop);
     for (int j = 0; j < nTriplesPerLoop; j++)
     {
         // compute [p] = t * [a] - [ahat]
         // and first part of [sigma], i.e., t * [c] - [chat] 
-        maskedTriples[j].prepare_sacrifice(uncheckedTriples[j], G);
+        maskedTriples[j].template prepare_sacrifice<W>(uncheckedTriples[j], G);
         maskedAs[j] = maskedTriples[j].a[0];
     }
 
@@ -729,14 +712,15 @@ void Spdz2kTripleGenerator<W>::sacrificeZ2k(
     else
         if (machine.output)
             for (int j = 0; j < nTriplesPerLoop; j++)
-                uncheckedTriples[j].template reduce<V>().output(outputFile, 1);
+                uncheckedTriples[j].template reduce<W>().output(outputFile, 1);
 }
 
 template<>
-template<class U, class V, class W, int N>
-void MascotTripleGenerator<Share<gfp1>>::generateBitsFromTriples(
-        vector< ShareTriple_<U, V, N> >& triples, W& MC, ofstream& outputFile)
+inline
+void MascotTripleGenerator<Share<gfp1>>::generateBitsFromTriples(MAC_Check& MC,
+        ofstream& outputFile)
 {
+    auto& triples = this->uncheckedTriples;
     vector< Share<gfp1> > a_plus_b(nTriplesPerLoop), a_squared(nTriplesPerLoop);
     for (int i = 0; i < nTriplesPerLoop; i++)
         a_plus_b[i] = triples[i].a[0] + triples[i].b;
@@ -764,15 +748,9 @@ void MascotTripleGenerator<Share<gfp1>>::generateBitsFromTriples(
 }
 
 template<class T>
-template<class U, class V, class W, int N>
-void MascotTripleGenerator<T>::generateBitsFromTriples(
-        vector< ShareTriple_<U, V, N> >& triples, W& MC, ofstream& outputFile)
+void MascotTripleGenerator<T>::generateBitsFromTriples(MAC_Check&, ofstream&)
 {
     throw how_would_that_work();
-    // warning gymnastics
-    triples[0];
-    MC.number();
-    outputFile << "";
 }
 
 template <class T>

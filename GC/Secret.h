@@ -19,6 +19,8 @@
 
 #include "Processor/DummyProtocol.h"
 
+#include "Tools/FixedVector.h"
+
 #include <fstream>
 
 class ProcessorBase;
@@ -65,7 +67,13 @@ template<class T> class Machine;
 template <class T>
 class Secret
 {
-    CheckVector<T> registers;
+#ifdef FIXED_REGISTERS
+    typedef FixedVector<T, FIXED_REGISTERS> RegVector;
+#else
+    typedef CheckVector<T> RegVector;
+#endif
+
+    RegVector registers;
 
     T& get_new_reg();
 
@@ -128,7 +136,10 @@ public:
     template<class U>
     static void trans(Processor<U>& processor, int n_inputs, const vector<int>& args);
 
-    static void convcbit(Integer& dest, const Clear& source) { T::convcbit(dest, source); }
+    template<class U>
+    static void convcbit(Integer& dest, const Clear& source,
+            Processor<U>& proc)
+    { T::convcbit(dest, source, proc); }
 
     Secret();
     Secret(const Integer& x) { *this = x; }
@@ -145,8 +156,8 @@ public:
     template<class U>
     void bitdec(Memory<U>& S, const vector<int>& regs) const;
 
-    Secret<T> operator+(const Secret<T> x) const;
-    Secret<T>& operator+=(const Secret<T> x) { *this = *this + x; return *this; }
+    Secret<T> operator+(const Secret<T>& x) const;
+    Secret<T>& operator+=(const Secret<T>& x) { *this = *this + x; return *this; }
 
     void xor_(int n, const Secret<T>& x, const Secret<T>& y)
     {
@@ -154,6 +165,7 @@ public:
         for (int i = 0; i < n; i++)
             XOR<T>(registers[i], x.get_reg(i), y.get_reg(i));
     }
+    void invert(int n, const Secret<T>& x);
     void and_(int n, const Secret<T>& x, const Secret<T>& y, bool repeat);
     void andrs(int n, const Secret<T>& x, const Secret<T>& y) { and_(n, x, y, true); }
 
@@ -161,16 +173,16 @@ public:
     void reveal(size_t n_bits, U& x);
 
     int size() const { return registers.size(); }
-    CheckVector<T>& get_regs() { return registers; }
-    const CheckVector<T>& get_regs() const { return registers; }
+    RegVector& get_regs() { return registers; }
+    const RegVector& get_regs() const { return registers; }
 
     const T& get_reg(int i) const { return *reinterpret_cast<const T*>(&registers.at(i)); }
     T& get_reg(int i) { return *reinterpret_cast<T*>(&registers.at(i)); }
-    void resize_regs(int n);
+    void resize_regs(size_t n);
 };
 
 template <class T>
-int Secret<T>::default_length = 128;
+int Secret<T>::default_length = 64;
 
 template <class T>
 typename T::out_type Secret<T>::out = T::out;

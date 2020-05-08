@@ -38,13 +38,6 @@ run_player() {
     else
 	params="$port localhost $*"
     fi
-    if test $bin = Player-KeyGen.x -a ! -e Player-Data/Params-Data; then
-	./Setup.x $players $size 40
-    fi
-    if [[ $bin =~ Player- && ! $bin =~ Player-Online.x ]]; then
-	>&2 echo Running $SPDZROOT/Server.x $players $port
-	$SPDZROOT/Server.x $players $port &
-    fi
     rem=$(($players - 2))
     if test "$1"; then
 	log_prefix=$1-

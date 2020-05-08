@@ -9,7 +9,6 @@ using namespace std;
 
 #include "Protocols/Share.h"
 #include "Networking/Player.h"
-#include "Protocols/Summer.h"
 #include "Protocols/MAC_Check_Base.h"
 #include "Protocols/RandomPrep.h"
 #include "Tools/time-func.h"
@@ -25,16 +24,13 @@ using namespace std;
 #define POPEN_MAX 1000000
 
 
-template <class T>
-void write_mac_key(string& dir, int my_num, const T& key);
-template <class T>
-void read_mac_key(string& dir, int my_num, T& key);
-
-
 template<class T>
 class TreeSum
 {
   static const char* mc_timer_names[];
+
+  void start(vector<T>& values, const Player& P);
+  void finish(vector<T>& values, const Player& P);
 
 protected:
   int base_player;
@@ -44,7 +40,6 @@ protected:
 
   void ReceiveValues(vector<T>& values, const Player& P, int sender);
   virtual void AddToValues(vector<T>& values) { (void)values; }
-  virtual void GetValues(vector<T>& values) { (void)values; }
 
 public:
   vector<octetStream> oss;
@@ -54,8 +49,6 @@ public:
   TreeSum(int opening_sum = 10, int max_broadcast = 10, int base_player = 0);
   virtual ~TreeSum();
 
-  void start(vector<T>& values, const Player& P);
-  void finish(vector<T>& values, const Player& P);
   void run(vector<T>& values, const Player& P);
 
   octetStream& get_buffer() { return os; }
@@ -76,10 +69,7 @@ class MAC_Check_ : public TreeSum<typename U::open_type>, public MAC_Check_Base<
   vector<typename U::mac_type> macs;
   vector<T> vals;
 
-  virtual void AddToMacs(const vector<U>& shares);
-  virtual void PrepareSending(vector<T>& values,const vector<U>& S);
   void AddToValues(vector<T>& values);
-  void GetValues(vector<T>& values);
   void CheckIfNeeded(const Player& P);
   int WaitingForCheck()
     { return max(macs.size(), vals.size()); }
@@ -90,15 +80,9 @@ class MAC_Check_ : public TreeSum<typename U::open_type>, public MAC_Check_Base<
       int max_broadcast = 10, int send_player = 0);
   virtual ~MAC_Check_();
 
-  /* Run protocols to partially open data and check the MACs are 
-   * all OK.
-   *  - Implicit assume that the amount of data being sent does
-   *    not overload the OS
-   * Begin and End expect the same arrays values and S passed to them
-   * and they expect values to be of the same size as S.
-   */
-  virtual void POpen_Begin(vector<T>& values,const vector<U>& S,const Player& P);
-  virtual void POpen_End(vector<T>& values,const vector<U>& S,const Player& P);
+  virtual void init_open(const Player& P, int n = 0);
+  virtual void prepare_open(const U& secret);
+  virtual void exchange(const Player& P);
 
   virtual void AddToCheck(const U& share, const T& value, const Player& P);
   virtual void Check(const Player& P);
@@ -123,15 +107,15 @@ protected:
 
   W get_random_element();
 
-  void AddToMacs(const vector< W >& shares);
-  void PrepareSending(vector<T>& values,const vector<W >& S);
-
 public:
   vector<W> random_elements;
 
   void AddToCheck(const W& share, const T& value, const Player& P);
   MAC_Check_Z2k(const T& ai, int opening_sum=10, int max_broadcast=10, int send_player=0);
   MAC_Check_Z2k(const T& ai, Names& Nms, int thread_num);
+
+  void prepare_open(const W& secret);
+
   virtual void Check(const Player& P);
   void set_random_element(const W& random_element);
   void set_prep(RandomPrep<W>& prep);
@@ -139,56 +123,15 @@ public:
 };
 
 
-template<class T, int t>
+template<class T>
   void add_openings(vector<T>& values, const Player& P, int sum_players, int last_sum_players, int send_player, TreeSum<T>& MC);
-
-
-template<class T>
-class Separate_MAC_Check: public MAC_Check_<T>
-{
-  // Different channel for checks
-  PlainPlayer check_player;
-
-protected:
-  // No sense to expose this
-  Separate_MAC_Check(const typename T::mac_key_type& ai, Names& Nms, int thread_num, int opening_sum=10, int max_broadcast=10, int send_player=0);
-  virtual ~Separate_MAC_Check() {};
-
-public:
-  virtual void Check(const Player& P);
-
-  const Player& get_check_player(const Player& P) const { (void) P; return check_player; }
-};
-
-
-template<class T>
-class Parallel_MAC_Check: public Separate_MAC_Check<Share<T>>
-{
-  // Different channel for every round
-  PlainPlayer send_player;
-  // Managed by Summer
-  Player* receive_player;
-
-  vector< Summer<T>* > summers;
-
-  int send_base_player;
-
-  WaitQueue< vector<T> > value_queue;
-
-public:
-  Parallel_MAC_Check(const T& ai, Names& Nms, int thread_num, int opening_sum=10, int max_broadcast=10, int send_player=0);
-  virtual ~Parallel_MAC_Check();
-
-  virtual void POpen_Begin(vector<T>& values,const vector<Share<T> >& S,const Player& P);
-  virtual void POpen_End(vector<T>& values,const vector<Share<T> >& S,const Player& P);
-
-  friend class Summer<T>;
-};
 
 
 template<class T>
 class Direct_MAC_Check: public MAC_Check_<T>
 {
+  typedef MAC_Check_<T> super;
+
   typedef typename T::open_type open_type;
 
   int open_counter;
@@ -200,18 +143,18 @@ public:
   Direct_MAC_Check(const typename T::mac_key_type::Scalar& ai);
   ~Direct_MAC_Check();
 
-  void POpen_Begin(vector<open_type>& values,const vector<T>& S,const Player& P);
-  void POpen_End(vector<open_type>& values,const vector<T>& S,const Player& P);
+  void init_open(const Player& P, int n = 0);
+  void prepare_open(const T& secret);
+  void exchange(const Player& P);
 };
 
 template <class T>
-class Passing_MAC_Check : public Separate_MAC_Check<Share<T>>
+class Passing_MAC_Check : public Direct_MAC_Check<T>
 {
 public:
-  Passing_MAC_Check(const T& ai, Names& Nms, int thread_num);
+  Passing_MAC_Check(const typename T::mac_key_type::Scalar& ai);
 
-  void POpen_Begin(vector<T>& values,const vector<Share<T> >& S,const Player& P);
-  void POpen_End(vector<T>& values,const vector<Share<T> >& S,const Player& P);
+  void exchange(const Player& P);
 };
 
 
@@ -256,7 +199,7 @@ size_t TreeSum<T>::report_size(ReportType type)
     return os.get_length();
 }
 
-template<class T, int t>
+template<class T>
 void add_openings(vector<T>& values, const Player& P, int sum_players, int last_sum_players, int send_player, TreeSum<T>& MC)
 {
   MC.player_timers.resize(P.num_players());
@@ -292,7 +235,7 @@ void add_openings(vector<T>& values, const Player& P, int sum_players, int last_
       MC.timers[SUM].start();
       for (unsigned int i=0; i<values.size(); i++)
         {
-          values[i].template add<t>(oss[j]);
+          values[i].add(oss[j]);
         }
       MC.timers[SUM].stop();
     }
@@ -323,10 +266,7 @@ void TreeSum<T>::start(vector<T>& values, const Player& P)
       if (my_relative_num < sum_players)
         {
           timers[RECV_ADD].start();
-          if (T::t() == 2)
-            add_openings<T,2>(values, P, sum_players, last_sum_players, base_player, *this);
-          else
-            add_openings<T,0>(values, P, sum_players, last_sum_players, base_player, *this);
+          add_openings<T>(values, P, sum_players, last_sum_players, base_player, *this);
           timers[RECV_ADD].stop();
         }
     }
@@ -371,8 +311,6 @@ void TreeSum<T>::finish(vector<T>& values, const Player& P)
       int sender = (base_player + my_relative_num / max_broadcast) % P.num_players();
       ReceiveValues(values, P, sender);
     }
-  else
-    GetValues(values);
 }
 
 template<class T>
@@ -384,36 +322,6 @@ void TreeSum<T>::ReceiveValues(vector<T>& values, const Player& P, int sender)
   for (unsigned int i = 0; i < values.size(); i++)
     values[i].unpack(os);
   AddToValues(values);
-}
-
-template <class T>
-string mac_key_filename(string& dir, int my_num)
-{
-  return dir + "/Player-MAC-Key-" + T::type_string() + "-P" + to_string(my_num);
-}
-
-template <class T>
-void write_mac_key(string& dir, int my_num, const T& key)
-{
-  string filename = mac_key_filename<T>(dir, my_num);
-  cout << "Writing to " << filename << endl;
-  ofstream outf(filename);
-  key.output(outf, false);
-  if (not outf.good())
-    throw IO_Error(filename);
-}
-
-template <class T>
-T read_mac_key(string& dir, int my_num)
-{
-  string filename = mac_key_filename<T>(dir, my_num);
-  cout << "Reading from " << filename << endl;
-  T key;
-  ifstream inpf(filename);
-  key.input(inpf, false);
-  if (not inpf.good())
-    throw IO_Error(filename);
-  return key;
 }
 
 #endif

@@ -26,6 +26,9 @@ public:
     { throw runtime_error("split not implemented"); }
 
     static bool get_rec_factor(int, int) { return false; }
+
+    template<class T>
+    static void read_or_generate_mac_key(const string&, const Names&, T&) {}
 };
 
 #endif /* PROTOCOLS_SHAREINTERFACE_H_ */

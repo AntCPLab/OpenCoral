@@ -8,7 +8,8 @@
 
 #include "Networking/Player.h"
 #include "FHE/FHE_Keys.h"
-#include "FHEOffline/FullSetup.h"
+#include "FHE/FHE_Params.h"
+#include "FHE/P2Data.h"
 #include "Math/Setup.h"
 
 class DataSetup;
@@ -36,7 +37,6 @@ public:
   PartSetup();
   void generate_setup(int n_parties, int plaintext_length, int sec, int slack,
       bool round_up);
-  void output_setup(ostream& s) const;
 
   void fake(vector<FHE_SK>& sks, vector<T>& alphais, int nplayers, bool distributed = true);
   void fake(vector<PartSetup<FD> >& setups, int nplayers, bool distributed = true);
@@ -59,6 +59,8 @@ public:
   void covert_key_generation(Player& P, int num_runs);
   void covert_mac_generation(Player& P, int num_runs);
   void covert_secrets_generation(Player& P, MachineBase& machine, int num_runs);
+
+  void output(Names& N);
 };
 
 class DataSetup
@@ -67,34 +69,10 @@ public:
   PartSetup<FFT_Data> setup_p;
   PartSetup<P2Data> setup_2;
 
-  FHE_Params &params_p,&params_2;
-  FFT_Data& FTD;
-  P2Data& P2D;
-
-  FHE_PK& pk_p;
-  FHE_SK& sk_p;
-
-  FHE_PK& pk_2;
-  FHE_SK& sk_2;
-
-  Ciphertext& calphap;
-  Ciphertext& calpha2;
-
-  gfp& alphapi;
-  gf2n_short& alpha2i;
-
   DataSetup();
-  DataSetup(Names & N, bool skip_2 = false);
   DataSetup(const DataSetup& other) : DataSetup() { *this = other; }
   DataSetup& operator=(const DataSetup& other);
 
-  void write_setup(string dir, bool skip_2);
-  void write_setup(bool skip_2);
-  void write_setup(const Names& N, bool skip_2);
-  string get_prep_dir(int n_parties) const;
-  void read_setup(bool skip_2, string dir = PREP_DIR);
-  void read(Names& N, bool skip_2 = false, string dir = PREP_DIR);
-  void output(int my_number, int nn, bool specific_dir = false);
   template <class FD>
   PartSetup<FD>& part();
 };

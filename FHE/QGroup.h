@@ -41,9 +41,6 @@ class QGroup
    int gord(int i)    const { return d[i]; }
    int order()        const { return Gord;  }
 
-   friend ostream& operator<<(ostream& s,const QGroup& QGrp);
-   friend istream& operator>>(istream& s,QGroup& QGrp);
-
    // For 0 <= n < ord returns the nth element
    int nth_element(int n) const;
 };

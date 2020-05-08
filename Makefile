@@ -14,7 +14,7 @@ FHEOFFLINE = $(patsubst %.cpp,%.o,$(wildcard FHEOffline/*.cpp FHE/*.cpp)) Protoc
 GC = $(patsubst %.cpp,%.o,$(wildcard GC/*.cpp)) $(PROCESSOR)
 GC_SEMI = GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
 
-OT = $(patsubst %.cpp,%.o,$(filter-out OT/OText_main.cpp,$(wildcard OT/*.cpp)))
+OT = $(patsubst %.cpp,%.o,$(wildcard OT/*.cpp))
 OT_EXE = ot.x ot-offline.x
 
 COMMON = $(MATH) $(TOOLS) $(NETWORK) GC/square64.o
@@ -36,9 +36,13 @@ DEPS := $(wildcard */*.d */*/*.d)
 .SECONDARY: $(OBJS)
 
 
-all: arithmetic binary gen_input online offline externalIO bmr
+all: arithmetic binary gen_input online offline externalIO bmr doc
 
-arithmetic: rep-ring rep-field shamir semi2k-party.x semi-party.x spdz2k-party.x mascot-party.x
+.PHONY: doc
+doc:
+	cd doc; $(MAKE) html
+
+arithmetic: rep-ring rep-field shamir semi2k-party.x semi-party.x mascot
 binary: rep-bin yao semi-bin-party.x tinier-party.x tiny-party.x ccd-party.x malicious-ccd-party.x real-bmr
 
 ifeq ($(USE_NTL),1)
@@ -71,7 +75,7 @@ she-offline: Check-Offline.x spdz2-offline.x
 
 overdrive: simple-offline.x pairwise-offline.x cnc-offline.x
 
-rep-field: malicious-rep-field-party.x replicated-field-party.x ps-rep-field-party.x Setup.x
+rep-field: malicious-rep-field-party.x replicated-field-party.x ps-rep-field-party.x
 
 rep-ring: replicated-ring-party.x brain-party.x malicious-rep-ring-party.x ps-rep-ring-party.x Fake-Offline.x
 
@@ -80,6 +84,7 @@ rep-bin: replicated-bin-party.x malicious-rep-bin-party.x Fake-Offline.x
 replicated: rep-field rep-ring rep-bin
 
 spdz2k: spdz2k-party.x ot-offline.x Check-Offline-Z2k.x galois-degree.x Fake-Offline.x
+mascot: mascot-party.x spdz2k
 
 tldr:
 	-echo ARCH = -march=native >> CONFIG.mine
@@ -123,10 +128,10 @@ ot-offline.x: $(OT) $(LIBSIMPLEOT) Machines/TripleMachine.o
 gc-emulate.x: $(PROCESSOR) GC/FakeSecret.o GC/square64.o
 
 bmr-%.x: $(BMR) Machines/bmr-%.cpp $(LIBSIMPLEOT)
-	$(CXX) $(CFLAGS) -o $@ $^ $(BOOST) $(LDLIBS)
+	$(CXX) -o $@ $(CFLAGS) $^ $(BOOST) $(LDLIBS)
 
 %-bmr-party.x: Machines/%-bmr-party.o $(BMR) $(LIBSIMPLEOT)
-	$(CXX) $(CFLAGS) -o $@ $^ $(BOOST) $(LDLIBS)
+	$(CXX) -o $@ $(CFLAGS) $^ $(BOOST) $(LDLIBS)
 
 bmr-clean:
 	-rm BMR/*.o BMR/*/*.o GC/*.o
@@ -149,6 +154,9 @@ galois-degree.x: Utils/galois-degree.cpp
 
 default-prime-length.x: Utils/default-prime-length.cpp
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
+
+secure.x: Utils/secure.o
+	$(CXX) -o $@ $(CFLAGS) $^
 
 %.x: Utils/%.o $(COMMON)
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)

@@ -2,7 +2,7 @@
 #define _random
 
 #include "Tools/octetStream.h"
-#include "Tools/sha1.h"
+#include "Tools/Hash.h"
 #include "Tools/aes.h"
 #include "Tools/avx_memcpy.h"
 #include "Networking/data.h"
@@ -13,8 +13,8 @@
 
 #ifndef USE_AES
   #define PIPELINES   1
-  #define SEED_SIZE   HASH_SIZE
-  #define RAND_SIZE   HASH_SIZE
+  #define SEED_SIZE   randombytes_SEEDBYTES
+  #define RAND_SIZE   480
 #else
 #ifdef __AES__
   #define PIPELINES   8
@@ -26,6 +26,7 @@
 #endif
 
 class Player;
+class PlayerBase;
 
 /* This basically defines a randomness expander, if using
  * as a real PRG on an input stream you should first collapse
@@ -75,7 +76,7 @@ class PRNG
    void ReSeed();
 
    // Agree securely on seed
-   void SeedGlobally(const Player& P);
+   void SeedGlobally(const PlayerBase& P);
 
    // Set seed from array
    void SetSeed(const unsigned char*);
@@ -83,7 +84,6 @@ class PRNG
    void SecureSeed(Player& player);
    void InitSeed();
    
-   double get_double();
    bool get_bit();
    unsigned char get_uchar();
    unsigned int get_uint();
@@ -129,7 +129,7 @@ public:
 class GlobalPRNG : public PRNG
 {
 public:
-  GlobalPRNG(const Player& P)
+  GlobalPRNG(const PlayerBase& P)
   {
     SeedGlobally(P);
   }

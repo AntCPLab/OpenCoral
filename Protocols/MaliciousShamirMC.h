@@ -13,6 +13,8 @@ class MaliciousShamirMC : public ShamirMC<T>
 {
     vector<vector<typename T::open_type::Scalar>> reconstructions;
 
+    vector<typename T::open_type> shares;
+
     void finalize(vector<typename T::open_type>& values, const vector<T>& S,
             const Player& P);
 
@@ -30,11 +32,8 @@ public:
             MaliciousShamirMC()
     { (void)_; (void)__; (void)___; (void)____; }
 
-
-    void POpen(vector<typename T::open_type>& values, const vector<T>& S,
-            const Player& P);
-    void POpen_End(vector<typename T::open_type>& values, const vector<T>& S,
-            const Player& P);
+    void init_open(const Player& P, int n = 0);
+    typename T::open_type finalize_open();
 };
 
 #endif /* PROTOCOLS_MALICIOUSSHAMIRMC_H_ */

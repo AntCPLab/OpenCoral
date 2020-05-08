@@ -10,6 +10,7 @@
 using namespace std;
 
 #include "Networking/Player.h"
+#include "Tools/PointerVector.h"
 
 template<class T>
 class MAC_Check_Base
@@ -17,6 +18,9 @@ class MAC_Check_Base
 protected:
     /* MAC Share */
     typename T::mac_key_type::Scalar alphai;
+
+    PointerVector<T> secrets;
+    PointerVector<typename T::open_type> values;
 
 public:
     int values_opened;
@@ -30,12 +34,17 @@ public:
 
     const typename T::mac_key_type::Scalar& get_alphai() const { return alphai; }
 
-    virtual void POpen_Begin(vector<typename T::open_type>& values,const vector<T>& S,const Player& P) = 0;
-    virtual void POpen_End(vector<typename T::open_type>& values,const vector<T>& S,const Player& P) = 0;
+    virtual void POpen_Begin(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
+    virtual void POpen_End(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
     virtual void POpen(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
     typename T::open_type POpen(const T& secret, const Player& P);
     // alternative name to avoid conflict
     typename T::open_type open(const T& secret, const Player& P) { return POpen(secret, P); }
+
+    virtual void init_open(const Player& P, int n = 0);
+    virtual void prepare_open(const T& secret);
+    virtual void exchange(const Player& P) = 0;
+    virtual typename T::open_type finalize_open();
 
     virtual void CheckFor(const typename T::open_type& value, const vector<T>& shares, const Player& P);
 

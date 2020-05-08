@@ -7,6 +7,7 @@
 #define YAO_YAOCOMMON_H_
 
 #include <stdexcept>
+#include <math.h>
 
 #include "Exceptions/Exceptions.h"
 #include "GC/RuntimeBranching.h"

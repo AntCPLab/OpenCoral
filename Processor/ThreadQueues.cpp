@@ -20,6 +20,9 @@ int ThreadQueues::find_available()
     for (size_t i = 1; i < size(); i++)
         if (at(i)->available())
             available.push_back(i);
+#ifdef VERBOSE_QUEUES
+    cerr << "Using " << available.size() << " threads" << endl;
+#endif
     return available.size();
 }
 

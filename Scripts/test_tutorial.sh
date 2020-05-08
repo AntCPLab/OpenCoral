@@ -28,11 +28,11 @@ function test_vm
     vm=$1
     shift
     if ! Scripts/$vm.sh tutorial $* | grep 'weighted average: 2.333'; then
-       for i in 0 1 2; do
-	   mv logs/tutorial-$i logs/tutorial-$i.bak
-       done
-       Scripts/$vm.sh tutorial $*
-       exit 1
+	for i in 0 1 2; do
+	    echo == Party $i
+	    cat logs/tutorial-$i
+	done
+	exit 1
     fi
 }
 
@@ -40,14 +40,16 @@ for dabit in ${dabit:-0 1 2}; do
     if [[ $dabit = 1 ]]; then
 	compile_opts="$compile_opts -X"
     elif [[ $dabit = 2 ]]; then
-	run_opts="$run_opts --fake-batch"
+	if [[ $cheap != 1 ]]; then
+	    run_opts="$run_opts --fake-batch"
+	fi
 	compile_opts="$compile_opts -Y"
     fi
 
     ./compile.py -R 64 $compile_opts tutorial
 
     for i in ring semi2k; do
-	test_vm $i
+	test_vm $i $run_opts
     done
 
     if ! test "$dabit" = 2 -a "$cheap" = 1; then

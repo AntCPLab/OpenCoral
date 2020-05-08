@@ -33,7 +33,7 @@ public:
 template<class T>
 class HashMaliciousRepMC : public MaliciousRepMC<T>
 {
-    crypto_generichash_state* hash_state;
+    Hash hash;
 
     octetStream os;
 
@@ -58,6 +58,8 @@ public:
 
     void POpen(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
     void POpen_End(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
+
+    virtual typename T::open_type finalize_open();
 
     void CheckFor(const typename T::open_type& value, const vector<T>& shares, const Player& P);
 

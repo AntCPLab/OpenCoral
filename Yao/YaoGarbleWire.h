@@ -51,7 +51,8 @@ public:
 	static void inputb(GC::Processor<GC::Secret<YaoGarbleWire>>& processor,
 			const vector<int>& args);
 
-	static void convcbit(Integer& dest, const GC::Clear& source);
+	static void convcbit(Integer& dest, const GC::Clear& source,
+			GC::Processor<GC::Secret<YaoGarbleWire>>&);
 
 	void randomize(PRNG& prng);
 	void set(Key key, bool mask);
@@ -62,5 +63,27 @@ public:
 	void XOR(const YaoGarbleWire& left, const YaoGarbleWire& right);
 	char get_output();
 };
+
+inline void YaoGarbleWire::randomize(PRNG& prng)
+{
+    key = prng.get_doubleword();
+#ifdef DEBUG
+    //key = YaoGarbler::s().counter << 1;
+#endif
+    set(key, prng.get_uchar() & 1);
+}
+
+inline void YaoGarbleWire::set(Key key, bool mask)
+{
+    key.set_signal(0);
+    this->key = key;
+    this->mask = mask;
+}
+
+inline void YaoGarbleWire::XOR(const YaoGarbleWire& left, const YaoGarbleWire& right)
+{
+    mask = left.mask ^ right.mask;
+    key = left.key ^ right.key;
+}
 
 #endif /* YAO_YAOGARBLEWIRE_H_ */

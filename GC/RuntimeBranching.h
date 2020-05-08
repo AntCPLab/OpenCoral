@@ -14,7 +14,7 @@ class RuntimeBranching
     bool tainted;
 
 public:
-	RuntimeBranching() : tainted(false)
+	RuntimeBranching() : tainted(true)
 	{
 	}
 
@@ -24,6 +24,8 @@ public:
         tainted = false;
         if (was_tainted)
             throw needs_cleaning();
+        else
+            taint();
     }
     void taint()
     {

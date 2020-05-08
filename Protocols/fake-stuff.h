@@ -23,13 +23,11 @@ void check_share(vector<Share<T> >& Sa,
 // Generate MAC key shares
 void generate_keys(const string& directory, int nplayers);
 
-template <class T, class U>
-void write_mac_keys(const string& directory, int player_num, int nplayers, U keyp, T key2);
+template <class T>
+void write_mac_key(const string& directory, int player_num, int nplayers, T key);
 
-template <class T, class U>
-void read_mac_keys(const string& directory, int player_num, int nplayers, U& keyp, T& key2);
-template <class T, class U>
-void read_mac_keys(const string& directory, const Names& N, U& keyp, T& key2);
+template <class U>
+void read_mac_key(const string& directory, int player_num, int nplayers, U& key);
 
 template <class T>
 class Files
@@ -37,9 +35,9 @@ class Files
 public:
   ofstream* outf;
   int N;
-  typename T::mac_key_type key;
+  typename T::mac_type key;
   PRNG G;
-  Files(int N, const typename T::mac_key_type& key, const string& prefix) : N(N), key(key)
+  Files(int N, const typename T::mac_type& key, const string& prefix) : N(N), key(key)
   {
     outf = new ofstream[N];
     for (int i=0; i<N; i++)

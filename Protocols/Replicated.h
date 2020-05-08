@@ -13,6 +13,7 @@ using namespace std;
 
 #include "Tools/octetStream.h"
 #include "Tools/random.h"
+#include "Tools/PointerVector.h"
 #include "Networking/Player.h"
 
 template<class T> class SubProcessor;
@@ -80,7 +81,7 @@ template <class T>
 class Replicated : public ReplicatedBase, public ProtocolBase<T>
 {
     vector<octetStream> os;
-    deque<typename T::clear> add_shares;
+    PointerVector<typename T::clear> add_shares;
     typename T::clear dotprod_share;
 
 public:

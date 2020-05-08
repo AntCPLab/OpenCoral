@@ -116,13 +116,13 @@ void check(vector<EcTuple<T>>& tuples, T<P256Element::Scalar> sk,
     P256Element::Scalar alphai, Player& P)
 {
     typename T<P256Element::Scalar>::MAC_Check MC(alphai);
-    auto open_sk = MC.POpen(sk, P);
+    auto open_sk = MC.open(sk, P);
     for (auto& tuple : tuples)
     {
-        auto inv_k = MC.POpen(tuple.a, P);
+        auto inv_k = MC.open(tuple.a, P);
         auto k = inv_k;
         k.invert();
-        assert(open_sk * inv_k == MC.POpen(tuple.b, P));
+        assert(open_sk * inv_k == MC.open(tuple.b, P));
         assert(tuple.R == k);
     }
     MC.Check(P);

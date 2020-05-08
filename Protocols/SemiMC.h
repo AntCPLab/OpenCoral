@@ -16,9 +16,10 @@ public:
     // emulate MAC_Check
     SemiMC(const typename T::mac_key_type& _ = {}, int __ = 0, int ___ = 0)
     { (void)_; (void)__; (void)___; }
+    virtual ~SemiMC() {}
 
-    void POpen_Begin(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
-    void POpen_End(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
+    virtual void prepare_open(const T& secret);
+    virtual void exchange(const Player& P);
 
     void Check(const Player& P) { (void)P; }
 
@@ -38,6 +39,9 @@ public:
     { POpen_(values, S, P); }
     void POpen_Begin(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
     void POpen_End(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
+
+    void exchange(const Player& P) { exchange_(P); }
+    void exchange_(const PlayerBase& P);
 
     void Check(const Player& P) { (void)P; }
 };

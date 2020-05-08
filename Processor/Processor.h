@@ -3,7 +3,6 @@
 #define _Processor
 
 /* This is a representation of a processing element
- *   Consisting of 256 clear and 256 shared registers
  */
 
 #include "Math/Integer.h"
@@ -29,11 +28,6 @@ class SubProcessor
 {
   vector<typename T::clear> C;
   CheckVector<T> S;
-
-  // This is the vector of partially opened values and shares we need to store
-  // as the Open commands are split in two
-  vector<typename T::open_type> PO;
-  vector<T> Sh_PO;
 
   DataPositions bit_usage;
 
@@ -170,8 +164,6 @@ class Processor : public ArithmeticProcessor
 
   SwitchableOutput out;
 
-  static const int reg_bytes = 4;
-  
   void reset(const Program& program,int arg); // Reset the state of the processor
   string get_filename(const char* basename, bool use_number);
 

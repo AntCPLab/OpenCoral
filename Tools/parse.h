@@ -10,40 +10,33 @@
 #include <vector>
 using namespace std;
 
-// Read a byte
-inline int get_val(istream& s)
-{
-  char cc;
-  s.get(cc);
-  int a=cc;
-  if (a<0) { a+=256; }
-  return a;
-}
+#ifdef __APPLE__
+# include <libkern/OSByteOrder.h>
+#define be32toh(x) OSSwapBigToHostInt32(x)
+#endif
 
 // Read a 4-byte integer
 inline int get_int(istream& s)
 {
-  int n = 0;
-  for (int i=0; i<4; i++)
-    { n<<=8;
-      int t=get_val(s);
-      n+=t;
-    }
-  return n;
+  int n;
+  s.read((char*) &n, 4);
+  return be32toh(n);
 }
 
 // Read several integers
 inline void get_ints(int* res, istream& s, int count)
 {
+  s.read((char*) res, 4 * count);
   for (int i = 0; i < count; i++)
-    res[i] = get_int(s);
+    res[i] = be32toh(res[i]);
 }
 
 inline void get_vector(int m, vector<int>& start, istream& s)
 {
   start.resize(m);
+  s.read((char*) start.data(), 4 * m);
   for (int i = 0; i < m; i++)
-    start[i] = get_int(s);
+    start[i] = be32toh(start[i]);
 }
 
 #endif /* TOOLS_PARSE_H_ */

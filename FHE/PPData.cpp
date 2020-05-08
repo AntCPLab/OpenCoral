@@ -20,26 +20,6 @@ void PPData::init(const Ring& Rg,const Zp_Data& PrD)
 
   root=Find_Primitive_Root_m(Rg.m(),Rg.Phi(),PrD);
 }
-    
-
-ostream& operator<<(ostream& s,const PPData& PPD)
-{
-  bigint ans;
-  s << PPD.prData << endl;
-  s << PPD.R << endl;
-  to_bigint(ans,PPD.root,PPD.prData); s << ans << " ";
-
-  return s;
-}
-
-
-istream& operator>>(istream& s,PPData& PPD)
-{
-  bigint ans;
-  s >> PPD.prData >> PPD.R;
-  s >> ans; to_modp(PPD.root,ans,PPD.prData);
-  return s;
-}
 
 
 

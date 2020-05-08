@@ -58,6 +58,7 @@ enum
     TRANS = 0x20c,
     BITB = 0x20d,
     ANDM = 0x20e,
+    NOTS = 0x20f,
     LDMSB = 0x240,
     STMSB = 0x241,
     LDMSBI = 0x242,

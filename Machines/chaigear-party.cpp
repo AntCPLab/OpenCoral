@@ -8,6 +8,7 @@
 #include "Player-Online.hpp"
 #include "SPDZ.hpp"
 #include "Protocols/ChaiGearPrep.hpp"
+#include "Math/gfp.hpp"
 
 int main(int argc, const char** argv)
 {

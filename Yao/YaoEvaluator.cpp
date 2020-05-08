@@ -12,6 +12,7 @@
 #include "GC/Secret.hpp"
 #include "GC/Thread.hpp"
 #include "GC/ThreadMaster.hpp"
+#include "Tools/MMO.hpp"
 
 thread_local YaoEvaluator* YaoEvaluator::singleton = 0;
 
@@ -76,6 +77,10 @@ bool YaoEvaluator::receive(Player& P)
 		return false;
 	P.receive_player(0, gates);
 	P.receive_player(0, output_masks);
+#ifdef DEBUG_YAO
+	cout << "received " << gates.size() << " gates and " << output_masks.size()
+	        << " output masks at " << processor.PC << endl;
+#endif
 	return true;
 }
 

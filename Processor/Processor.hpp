@@ -3,7 +3,6 @@
 
 #include "Processor/Processor.h"
 #include "Processor/Program.h"
-#include "Protocols/fake-stuff.h"
 #include "GC/square64.h"
 
 #include "Protocols/ReplicatedInput.hpp"
@@ -67,7 +66,7 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
   Procb(machine.bit_memories),
   Proc2(*this,MC2,DataF.DataF2,P),Procp(*this,MCp,DataF.DataFp,P),
   privateOutput2(Proc2),privateOutputp(Procp),
-  external_clients(P.my_num(), machine.prep_dir_prefix),
+  external_clients(P.my_num()),
   binary_file_io(Binary_File_IO())
 {
   reset(program,0);
@@ -365,49 +364,18 @@ void SubProcessor<T>::POpen(const vector<int>& reg,const Player& P,int size)
 {
   assert(reg.size() % 2 == 0);
   int sz=reg.size() / 2;
-  Sh_PO.clear();
-  Sh_PO.reserve(sz*size);
-  if (size>1)
-    {
-      for (typename vector<int>::const_iterator reg_it=reg.begin() + 1;
-          reg_it < reg.end(); reg_it += 2)
-        {
-          auto begin=S.begin()+*reg_it;
-          Sh_PO.insert(Sh_PO.end(),begin,begin+size);
-        }
-    }
-  else
-    {
-      for (int i=0; i<sz; i++)
-        { Sh_PO.push_back(S[reg[2 * i + 1]]); }
-    }
-  PO.resize(sz*size);
-  MC.POpen(PO,Sh_PO,P);
-  if (size>1)
-    {
-      auto PO_it=PO.begin();
-      for (typename vector<int>::const_iterator reg_it=reg.begin();
-          reg_it!=reg.end(); reg_it += 2)
-        {
-          for (auto C_it=C.begin()+*reg_it;
-              C_it!=C.begin()+*reg_it+size; C_it++)
-            {
-              *C_it=*PO_it;
-              PO_it++;
-            }
-        }
-    }
-  else
-    {
-      for (unsigned int i = 0; i < reg.size() / 2; i++)
-        {
-          C[reg[2 * i]] = PO[i];
-        }
-    }
+  MC.init_open(P, sz * size);
+  for (auto it = reg.begin() + 1; it < reg.end(); it += 2)
+    for (int i = 0; i < size; i++)
+      MC.prepare_open(S[*it + i]);
+  MC.exchange(P);
+  for (auto it = reg.begin(); it < reg.end(); it += 2)
+    for (int i = 0; i < size; i++)
+      C[*it + i] = MC.finalize_open();
 
   if (Proc != 0)
     {
-      Proc->sent += reg.size() * size;
+      Proc->sent += sz * size;
       Proc->rounds++;
     }
 }

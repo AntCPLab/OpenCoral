@@ -13,7 +13,8 @@ class SemiPrep2k : public SemiPrep<T>
 {
 public:
     SemiPrep2k(SubProcessor<T>* proc, DataPositions& usage) :
-            BufferPrep<T>(usage), RingPrep<T>(proc, usage),
+            BufferPrep<T>(usage), BitPrep<T>(proc, usage),
+            RingPrep<T>(proc, usage),
             OTPrep<T>(proc, usage), SemiHonestRingPrep<T>(proc, usage),
             SemiPrep<T>(proc, usage)
     {

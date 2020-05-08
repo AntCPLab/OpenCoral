@@ -19,6 +19,7 @@ enum ThreadJobType
     SANITIZE_JOB,
     EDABIT_SACRIFICE_JOB,
     PERSONAL_TRIPLE_JOB,
+    TRIPLE_SACRIFICE_JOB,
     NO_JOB
 };
 
@@ -144,6 +145,17 @@ public:
         type = PERSONAL_TRIPLE_JOB;
         output = triples;
         arg = player;
+    }
+};
+
+class TripleSacrificeJob : public ThreadJob
+{
+public:
+    TripleSacrificeJob(void* triples, const void* check_triples)
+    {
+        type = TRIPLE_SACRIFICE_JOB;
+        output = triples;
+        input = check_triples;
     }
 };
 

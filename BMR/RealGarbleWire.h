@@ -23,7 +23,8 @@ public:
 	static void load(vector<GC::ReadAccess<GC::Secret<RealGarbleWire>>>& accesses,
 			const NoMemory& source);
 
-	static void convcbit(Integer& dest, const GC::Clear& source);
+	static void convcbit(Integer& dest, const GC::Clear& source,
+	        GC::Processor<GC::Secret<RealGarbleWire>>& processor);
 
 	RealGarbleWire(const Register& reg) : PRFRegister(reg) {}
 

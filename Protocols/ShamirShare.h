@@ -26,7 +26,7 @@ public:
     typedef T open_type;
     typedef T mac_key_type;
     typedef void sacri_type;
-    typedef void mac_type;
+    typedef GC::NoShare mac_type;
 
     typedef Shamir<ShamirShare> Protocol;
     typedef ShamirMC<ShamirShare> MAC_Check;

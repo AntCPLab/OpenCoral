@@ -58,8 +58,7 @@ protected:
     vector<BitVector> receiverOutput;
 
     void multiplyForTriples();
-    void multiplyForBits();
-    void multiplyForGf2nBits();
+    virtual void multiplyForBits();
 	virtual void multiplyForInputs(MultJob job) = 0;
 
     virtual void after_correlation() = 0;
@@ -87,6 +86,9 @@ class MascotMultiplier : public OTMultiplier<T>
     void init_authenticator(const BitVector& baseReceiverInput,
             const vector< vector<BitVector> >& baseSenderInput,
             const vector<BitVector>& baseReceiverOutput);
+
+    void multiplyForBits();
+    void multiplyForGf2nBits();
 
 public:
     vector<typename T::open_type> c_output;

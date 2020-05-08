@@ -23,9 +23,10 @@ class OT_thread_info
     int thread_num;
     bool stop;
     int other_player_num;
-    OTExtension* ot_ext;
+    OTExtensionWithMatrix* ot_ext;
     int nOTs, nbase;
     BitVector receiverInput;
+    int nloops;
 };
 
 void* run_otext_thread(void* ptr)
@@ -35,7 +36,7 @@ void* run_otext_thread(void* ptr)
     //int num = tinfo->thread_num;
     //int other_player_num = tinfo->other_player_num;
     printf("\tI am in thread %d\n", tinfo->thread_num);
-    tinfo->ot_ext->transfer(tinfo->nOTs, tinfo->receiverInput);
+    tinfo->ot_ext->transfer(tinfo->nOTs, tinfo->receiverInput, tinfo->nloops);
     return NULL;
 }
 
@@ -322,14 +323,14 @@ void OTMachine::run()
         tinfos[i].thread_num = i+1;
         tinfos[i].other_player_num = 1 - my_num;
         tinfos[i].nOTs = nOTs;
-        tinfos[i].ot_ext = new OTExtensionWithMatrix(nbase, bot.length(),
-                nloops, nsubloops,
+        tinfos[i].ot_ext = new OTExtensionWithMatrix(
                 players[i],
-                base_receiver_input_copy[i],
-                base_sender_inputs_copy[i],
-                base_receiver_outputs_copy[i],
                 ot_role,
-                passive);
+                passive,
+                nsubloops);
+        tinfos[i].ot_ext->init(base_receiver_input_copy[i],
+                base_sender_inputs_copy[i], base_receiver_outputs_copy[i]);
+        tinfos[i].nloops = nloops;
 
         // create the thread
         pthread_create(&threads[i], NULL, run_otext_thread, &tinfos[i]);

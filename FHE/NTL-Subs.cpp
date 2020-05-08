@@ -35,8 +35,6 @@ void generate_setup(int n, int lgp, int lg2, int sec, bool skip_2,
   if (!skip_2)
     Parameters(n, lg2, sec, slack, round_up).generate_setup(
         setup.setup_2.params, setup.setup_2.FieldD);
-
-  setup.write_setup(skip_2);
 }
 
 
@@ -337,7 +335,7 @@ ZZX Cyclotomic(int N)
 }
 
 
-void init(Ring& Rg,int m)
+void init(Ring& Rg, int m, bool generate_poly)
 {
   Rg.mm=m;
   Rg.phim=phi_N(Rg.mm);
@@ -345,7 +343,7 @@ void init(Ring& Rg,int m)
   Rg.pi.resize(Rg.phim);    Rg.pi_inv.resize(Rg.mm);
   for (int i=0; i<Rg.mm; i++) { Rg.pi_inv[i]=-1; }
 
-  if (((m - 1) & m) == 0)
+  if (((m - 1) & m) == 0 and not generate_poly)
     {
       // m is power of two
       // no need to generate poly
@@ -766,9 +764,11 @@ void SPDZ_Data_Setup_Char_p_General(Ring& R, PPData& PPD, bigint& pr0,
     { if (mx<R.Phi()[i]) { mx=R.Phi()[i]; } }
   cout << "Max Coeff = " << mx << endl;
 
+  init(R, m, true);
+
   Zp_Data Zp(p);
-  gfp::init_field(p);
   PPD.init(R,Zp);
+  gfp::init_field(p);
 
   pr0 = parameters.pr0;
   pr1 = parameters.pr1;

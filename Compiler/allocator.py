@@ -44,6 +44,11 @@ class StraightlineAllocator:
 
         base.i = self.alloc[base]
 
+        for dup in base.duplicates:
+            dup = dup.vectorbase
+            self.alloc[dup] = self.alloc[base]
+            dup.i = self.alloc[base]
+
     def dealloc_reg(self, reg, inst, free):
         if reg.vector:
             self.dealloc |= reg.vector
@@ -51,11 +56,28 @@ class StraightlineAllocator:
             self.dealloc.add(reg)
         base = reg.vectorbase
 
-        if base.vector:
-            for i in base.vector:
-                if i not in self.dealloc:
-                    # not all vector elements ready for deallocation
-                    return
+        seen = set_by_id()
+        to_check = set_by_id()
+        to_check.add(base)
+        while to_check:
+            dup = to_check.pop()
+            if dup not in seen:
+                seen.add(dup)
+                base = dup.vectorbase
+                if base.vector:
+                    for i in base.vector:
+                        if i not in self.dealloc:
+                            # not all vector elements ready for deallocation
+                            return
+                        if len(i.duplicates) > 1:
+                            for x in i.duplicates:
+                                to_check.add(x)
+                else:
+                    if base not in self.dealloc:
+                        return
+                for x in itertools.chain(dup.duplicates, base.duplicates):
+                    to_check.add(x)
+
         free[reg.reg_type, base.size].add(self.alloc[base])
         if inst.is_vec() and base.vector:
             self.defined[base] = inst
@@ -98,31 +120,24 @@ class StraightlineAllocator:
         #     (self.usage[Compiler.program.RegType.ClearGF2N], self.usage[Compiler.program.RegType.SecretGF2N])
         return self.usage
 
+    def finalize(self, options):
+        for reg in self.alloc:
+            for x in reg.vector:
+                if x not in self.dealloc and reg not in self.dealloc:
+                    print('Warning: read before write at register', x)
+                    print('\tregister trace: %s' % format_trace(x.caller,
+                                                                '\t\t'))
+                    if options.stop:
+                        sys.exit(1)
 
 def determine_scope(block, options):
     last_def = defaultdict_by_id(lambda: -1)
     used_from_scope = set_by_id()
 
-    def find_in_scope(reg, scope):
-        while True:
-            if scope is None:
-                return False
-            elif reg in scope.defined_registers:
-                return True
-            scope = scope.scope
-
     def read(reg, n):
         if last_def[reg] == -1:
-            if find_in_scope(reg, block.scope):
-                used_from_scope.add(reg)
-                reg.can_eliminate = False
-            else:
-                print('Warning: read before write at register', reg)
-                print('\tline %d: %s' % (n, instr))
-                print('\tinstruction trace: %s' % format_trace(instr.caller, '\t\t'))
-                print('\tregister trace: %s' % format_trace(reg.caller, '\t\t'))
-                if options.stop:
-                    sys.exit(1)
+            reg.can_eliminate = False
+            used_from_scope.add(reg)
 
     def write(reg, n):
         if last_def[reg] != -1:
@@ -149,7 +164,6 @@ def determine_scope(block, options):
                 write(reg, n)
 
     block.used_from_scope = used_from_scope
-    block.defined_registers = set_by_id(last_def.keys())
 
 class Merger:
     def __init__(self, block, options, merge_classes):
@@ -184,31 +198,6 @@ class Merger:
             mergecount += 1
 
         return mergecount, n
-
-    def compute_max_depths(self, depth_of):
-        """ Compute the maximum 'depth' at which every instruction can be placed.
-        This is the minimum depth of any merge_node succeeding an instruction.
-
-        Similar to DAG shortest paths algorithm. Traverses the graph in reverse
-        topological order, updating the max depth of each node's predecessors.
-        """
-        G = self.G
-        merge_nodes_set = self.open_nodes
-        top_order = Compiler.graph.topological_sort(G)
-        max_depth_of = [None] * len(G)
-        max_depth = max(depth_of)
-
-        for i in range(len(max_depth_of)):
-            if i in merge_nodes_set:
-                max_depth_of[i] = depth_of[i] - 1
-            else:
-                max_depth_of[i] = max_depth
-
-        for u in reversed(top_order):
-            for v in G.pred[u]:
-                if v not in merge_nodes_set:
-                    max_depth_of[v] = min(max_depth_of[u], max_depth_of[v])
-        return max_depth_of
 
     def longest_paths_merge(self):
         """ Attempt to merge instructions of type instruction_type (which are given in
@@ -466,9 +455,17 @@ class Merger:
         open_count = 0
         stats = defaultdict(lambda: 0)
         for i,inst in zip(range(len(instructions) - 1, -1, -1), reversed(instructions)):
+            if inst is None:
+                continue
+            can_eliminate_defs = True
+            for reg in inst.get_def():
+                for dup in reg.duplicates:
+                    if not dup.can_eliminate:
+                        can_eliminate_defs = False
+                        break
             # remove if instruction has result that isn't used
             unused_result = not G.degree(i) and len(list(inst.get_def())) \
-                and reduce(operator.and_, (reg.can_eliminate for reg in inst.get_def())) \
+                and can_eliminate_defs \
                 and not isinstance(inst, (DoNotEliminateInstruction))
             def eliminate(i):
                 G.remove_node(i)

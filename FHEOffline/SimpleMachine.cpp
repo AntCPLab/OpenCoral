@@ -13,6 +13,8 @@
 #include "Protocols/MAC_Check.h"
 #include "Protocols/fake-stuff.h"
 
+#include "Protocols/fake-stuff.hpp"
+
 void* run_generator(void* generator)
 {
     ((GeneratorBase*)generator)->run();
@@ -217,13 +219,6 @@ void MultiplicativeMachine::fake_keys(int slack)
     if (P.my_num() == 0)
     {
         part_setup.generate_setup(N.num_players(), field_size, drown_sec, slack, true);
-        if (output)
-        {
-            ofstream outf;
-            bigint p = setup.FTD.get_prime();
-            write_online_setup(outf, PREP_DIR, p != 0 ? p : 1, gf2n_short::degree());
-        }
-
         vector<PartSetup<FD> > setups;
         part_setup.fake(setups, P.num_players(), false);
         for (int i = 1; i < P.num_players(); i++)
@@ -243,7 +238,7 @@ void MultiplicativeMachine::fake_keys(int slack)
     part_setup.check(drown_sec);
 
     if (output)
-        write_mac_keys(PREP_DIR, N.my_num(), N.num_players(), setup.alphapi, setup.alpha2i);
+        part_setup.output(N);
 }
 
 void MachineBase::run()

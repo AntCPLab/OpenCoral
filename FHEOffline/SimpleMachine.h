@@ -45,6 +45,10 @@ public:
 
     size_t report_size(ReportType type);
 
+    template<class FD>
+    string get_prep_dir(Player& P) const
+    { return get_prep_sub_dir<Share<typename FD::T>>(P.num_players()); }
+
     string tradeoff();
 
     void mult_performance();

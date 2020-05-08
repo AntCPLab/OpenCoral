@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef GC_BITADDER_HPP_
+#define GC_BITADDER_HPP_
+
 #include "BitAdder.h"
 
 #include <assert.h>
@@ -79,6 +82,7 @@ void BitAdder::add(vector<vector<T> >& res,
         return multi_add(res, summands, begin, end, proc, length, input_begin);
 
     vector<T> carries(n_items);
+    vector<T> a(n_items), b(n_items);
     auto& protocol = proc.protocol;
     for (int i = 0; i < n_bits; i++)
     {
@@ -86,7 +90,6 @@ void BitAdder::add(vector<vector<T> >& res,
         assert(summands[i][0].size() >= input_begin + n_items);
         assert(summands[i][1].size() >= input_begin + n_items);
 
-        vector<T> a(n_items), b(n_items);
         for (size_t j = 0; j < n_items; j++)
         {
             a[j] = summands[i][0][input_begin + j];
@@ -161,3 +164,5 @@ void BitAdder::multi_add(vector<vector<T> >& res,
 
     add(res, my_summands, begin, end, proc, length, 0);
 }
+
+#endif

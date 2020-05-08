@@ -25,7 +25,8 @@ template<class T>
 MaliciousRepPrepWithBits<T>::MaliciousRepPrepWithBits(SubProcessor<T>* proc,
         DataPositions& usage) :
         BufferPrep<T>(usage), MaliciousRepPrep<T>(proc, usage),
-        RingPrep<T>(proc, usage), MaliciousRingPrep<T>(proc, usage)
+        BitPrep<T>(proc, usage), RingPrep<T>(proc, usage),
+        MaliciousRingPrep<T>(proc, usage)
 {
 }
 
@@ -60,14 +61,15 @@ void MaliciousRepPrep<U>::clear_tmp()
 template<class T>
 void MaliciousRepPrep<T>::buffer_triples()
 {
+    assert(T::open_type::length() >= 40);
     auto& triples = this->triples;
     auto buffer_size = OnlineOptions::singleton.batch_size;
     clear_tmp();
-    Player& P = honest_prep.protocol->P;
+    assert(honest_proc != 0);
+    Player& P = honest_proc->P;
     check_triples.clear();
     check_triples.reserve(buffer_size);
-    assert(honest_prep.protocol != 0);
-    auto& honest_prot = *honest_prep.protocol;
+    auto& honest_prot = honest_proc->protocol;
     honest_prot.init_mul();
     for (int i = 0; i < buffer_size; i++)
     {
@@ -122,7 +124,8 @@ void MaliciousRepPrep<T>::buffer_squares()
     auto& squares = this->squares;
     auto buffer_size = OnlineOptions::singleton.batch_size;
     clear_tmp();
-    Player& P = honest_prep.protocol->P;
+    assert(honest_proc);
+    Player& P = honest_proc->P;
     squares.clear();
     for (int i = 0; i < buffer_size; i++)
     {
@@ -157,7 +160,8 @@ void MaliciousRepPrep<T>::buffer_squares()
 template<class T>
 void MaliciousRepPrep<T>::buffer_inverses()
 {
-    ::buffer_inverses(this->inverses, *this, MC, honest_prep.protocol->P);
+    assert(honest_proc);
+    ::buffer_inverses(this->inverses, *this, MC, honest_proc->P);
 }
 
 template<class T>
@@ -166,7 +170,8 @@ void MaliciousRepPrep<T>::buffer_bits()
     auto& bits = this->bits;
     auto buffer_size = OnlineOptions::singleton.batch_size;
     clear_tmp();
-    Player& P = honest_prep.protocol->P;
+    assert(honest_proc);
+    Player& P = honest_proc->P;
     bits.clear();
     for (int i = 0; i < buffer_size; i++)
     {

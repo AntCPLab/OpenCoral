@@ -577,8 +577,6 @@ class RegisterArgFormat(ArgFormat):
     def check(cls, arg):
         if not isinstance(arg, program.curr_tape.Register):
             raise ArgumentError(arg, 'Invalid register argument')
-        if arg.i > REG_MAX and arg.i != float('inf'):
-            raise ArgumentError(arg, 'Register index too large')
         if arg.program != program.curr_tape:
             raise ArgumentError(arg, 'Register from other tape, trace: %s' % \
                                     util.format_trace(arg.caller))
@@ -588,6 +586,7 @@ class RegisterArgFormat(ArgFormat):
 
     @classmethod
     def encode(cls, arg):
+        assert arg.i >= 0
         return int_to_bytes(arg.i)
 
 class ClearModpAF(RegisterArgFormat):

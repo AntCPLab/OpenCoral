@@ -12,6 +12,7 @@
 template<>
 void Plaintext<gfp, FFT_Data, bigint>::from(const Generator<bigint>& source) const
 {
+  b.resize(degree);
   for (auto& x : b)
     {
       source.get(bigint::tmp);
@@ -317,41 +318,6 @@ void Plaintext<T,FD,S>::randomize(PRNG& G, int n_bits, bool Diag, bool binary, P
     default:
       throw not_implemented();
   }
-}
-
-
-template<class T,class FD,class S>
-ostream& operator<<(ostream& s,const Plaintext<T,FD,S>& e)
-{
-  e.to_poly();
-  s << "[";
-  bigint te;
-  for (unsigned int i=0; i<e.b.size(); i++) 
-    { s << e.b[i] << " "; }
-  s << "]";
-  return s;
-}
-
-
-template<class T,class FD,class S>
-istream& operator>>(istream& s, Plaintext<T,FD,S>& e)
-{
-  int ch = s.get();
-  while (isspace(ch)) { ch = s.get(); }
-  
-  if (ch != '[')
-     { throw IO_Error("Bad Plaintext input: no '['"); }
-  for (unsigned int i=0; i<e.b.size(); i++)                 
-    { s >> e.b[i]; }
-  ch=s.get();
-  while (isspace(ch)) { ch = s.get(); }
-
-  if (ch != ']')
-     { throw IO_Error("Bad Plaintext input: no ']'"); }
-
-  e.type=Polynomial;
-
-  return s;
 }
 
 
@@ -765,8 +731,6 @@ void Plaintext<T, FD, S>::print_evaluation(int n_elements, string desc) const
 
 
 template class Plaintext<gfp,FFT_Data,bigint>;
-template ostream& operator<<(ostream& s,const Plaintext<gfp,FFT_Data,bigint>& e);
-template istream& operator>>(istream& s,Plaintext<gfp,FFT_Data,bigint>& e);
 
 template void mul(Plaintext<gfp,FFT_Data,bigint>& z,const Plaintext<gfp,FFT_Data,bigint>& x,const Plaintext<gfp,FFT_Data,bigint>& y);
 template void sqr(Plaintext<gfp,FFT_Data,bigint>& z,const Plaintext<gfp,FFT_Data,bigint>& x);
@@ -774,8 +738,6 @@ template void sqr(Plaintext<gfp,FFT_Data,bigint>& z,const Plaintext<gfp,FFT_Data
 
 
 template class Plaintext<gfp,PPData,bigint>;
-template ostream& operator<<(ostream& s,const Plaintext<gfp,PPData,bigint>& e);
-template istream& operator>>(istream& s,Plaintext<gfp,PPData,bigint>& e);
 
 template void mul(Plaintext<gfp,PPData,bigint>& z,const Plaintext<gfp,PPData,bigint>& x,const Plaintext<gfp,PPData,bigint>& y);
 template void sqr(Plaintext<gfp,PPData,bigint>& z,const Plaintext<gfp,PPData,bigint>& x);
@@ -783,8 +745,6 @@ template void sqr(Plaintext<gfp,PPData,bigint>& z,const Plaintext<gfp,PPData,big
 
 
 template class Plaintext<gf2n_short,P2Data,int>;
-template ostream& operator<<(ostream& s,const Plaintext<gf2n_short,P2Data,int>& e);
-template istream& operator>>(istream& s,Plaintext<gf2n_short,P2Data,int>& e);
 
 template void mul(Plaintext<gf2n_short,P2Data,int>& z,const Plaintext<gf2n_short,P2Data,int>& x,const Plaintext<gf2n_short,P2Data,int>& y);
 template void sqr(Plaintext<gf2n_short,P2Data,int>& z,const Plaintext<gf2n_short,P2Data,int>& x);

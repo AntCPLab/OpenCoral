@@ -23,7 +23,6 @@ class ExternalClients
   map<int,AnonymousServerSocket*> client_connection_servers;
   
   int party_num;
-  const string prep_data_dir;
 
   // Maps holding per client values (indexed by unique 32-bit id)
   std::map<int,ssl_socket*> external_client_sockets;
@@ -33,7 +32,7 @@ class ExternalClients
 
   public:
 
-  ExternalClients(int party_num, const string& prep_data_dir);
+  ExternalClients(int party_num);
   ~ExternalClients();
 
   void start_listening(int portnum_base);

@@ -38,31 +38,10 @@ TrustedProgramParty* TrustedProgramParty::singleton = 0;
 
 BaseTrustedParty::BaseTrustedParty()
 {
-#ifdef __PURE_SHE__
-	init_modulos();
-	init_temp_mpz_t(_temp_mpz);
-	std::cout << "_temp_mpz: " << _temp_mpz << std::endl;
-#endif
 	_num_prf_received = 0;
 	_received_gc_received = 0;
 	n_received = 0;
 	randomfd = open("/dev/urandom", O_RDONLY);
-}
-
-TrustedParty::TrustedParty(const char* netmap_file, // required to init Node
-						   const char* circuit_file // required to init BooleanCircuit
-						   )
-{
-	_circuit = new BooleanCircuit( circuit_file );
-	_G = _circuit->NumGates();
-#ifndef N_PARTIES
-	_N = _circuit->NumParties();
-#endif
-	_W = _circuit->NumWires();
-	_OW = _circuit->NumOutWires();
-	reset();
-	garbled_tbl_size = _G;
-	init(netmap_file, 0, _N);
 }
 
 TrustedProgramParty::TrustedProgramParty(int argc, char** argv) :
@@ -108,9 +87,6 @@ TrustedProgramParty::~TrustedProgramParty()
 	cout << "Random timer: " << random_timer.elapsed() << endl;
 }
 
-TrustedParty::~TrustedParty() {
-}
-
 void BaseTrustedParty::NodeReady()
 {
 #ifdef DEBUG_STEPS
@@ -132,16 +108,7 @@ void BaseTrustedParty::prepare_randomness()
 		msg_keys[i].resize(MSG_KEYS_HEADER_SZ);
 	}
 
-#ifdef __PURE_SHE__
-	_circuit->_sqr_keys = new Key[number_of_keys];
-	memset(_circuit->_sqr_keys, 0, size_of_keys);
-#endif
-
-#ifdef __PURE_SHE__
-		_fill_keys_for_party(_circuit->_sqr_keys, party_keys, pid);
-#else
 	done_filling = _fill_keys();
-#endif
 }
 
 void BaseTrustedParty::send_randomness()
@@ -159,40 +126,6 @@ void BaseTrustedParty::send_randomness()
 	send_output_masks();
 }
 
-void TrustedParty::send_input_masks(party_id_t pid)
-{
-	prepare_input_regs(pid);
-	/* sending masks for input wires */
-	msg_input_masks.resize(get_n_parties());
-	SendBuffer& buffer = msg_input_masks[pid-1];
-	buffer.clear();
-	fill_message_type(buffer, TYPE_MASK_INPUTS);
-	for (auto input_regs = input_regs_queue.begin();
-			input_regs != input_regs_queue.end(); input_regs++)
-	{
-		int n_wires = (*input_regs)[pid].size();
-#ifdef DEBUG_ROUNDS
-		cout << dec << n_wires << " inputs from " << pid << endl;
-#endif
-		for (int i = 0; i < n_wires; i++)
-			buffer.push_back(registers[(*input_regs)[pid][i]].get_mask());
-#ifdef DEBUG2
-		printf("input masks for party %d\n", pid);
-		phex(buffer);
-#endif
-#ifdef DEBUG_VALUES
-		printf("input masks for party %d:\t", pid);
-		print_masks((*input_regs)[pid]);
-		cout << "on registers:" << endl;
-		print_indices((*input_regs)[pid]);
-#endif
-	}
-#ifdef DEBUG_ROUNDS
-	cout << "sending " << dec << buffer.size() - 4 << " input masks" << endl;
-#endif
-	_node->Send(pid, buffer);
-}
-
 void TrustedProgramParty::send_input_masks(party_id_t pid)
 {
 	SendBuffer& buffer = msg_input_masks[pid-1];
@@ -200,29 +133,6 @@ void TrustedProgramParty::send_input_masks(party_id_t pid)
 	cout << "sending " << buffer.size() << " input masks to " << pid << endl;
 #endif
 	_node->Send(pid, buffer);
-}
-
-void TrustedParty::send_output_masks()
-{
-	prepare_output_regs();
-	/* output wires' masks are the same for all players */
-	/* sending masks for output wires */
-
-	int _OW = output_regs.size();
-	SendBuffer& msg_output_masks = get_buffer(TYPE_MASK_OUTPUT);
-	for (int i = 0; i < _OW; i++)
-		msg_output_masks.push_back(get_reg(output_regs[i]).get_mask());
-	_node->Broadcast(msg_output_masks);
-#ifdef DEBUG2
-				printf("output masks\n");
-				phex(msg_output_masks);
-#endif
-#ifdef DEBUG_VALUES
-	printf("output masks:\t\t\t");
-	print_masks(output_regs);
-	cout << "on registers:" << endl;
-	print_indices(output_regs);
-#endif
 }
 
 void TrustedProgramParty::send_output_masks()
@@ -301,29 +211,9 @@ void BaseTrustedParty::NewMessage(int from, ReceivedMsg& msg)
 
 }
 
-void TrustedParty::_launch_online()
-{
-	printf("press to launch online\n");
-	getchar();
-	_node->Broadcast(get_buffer(TYPE_LAUNCH_ONLINE));
-	printf("launched\n");
-}
-
 void TrustedProgramParty::_launch_online()
 {
 	_node->Broadcast(get_buffer(TYPE_LAUNCH_ONLINE));
-}
-
-void TrustedParty::garble()
-{
-	for(gate_id_t g=1; g<=_G; g++) {
-#ifdef DEBUG
-		std::cout << "garbling gate " << g << std::endl ;
-#endif
-		Gate& gate = _circuit->_gates[g];
-        registers[gate._out].garble(registers[gate._left], registers[gate._right],
-                gate._func, &gate, g, prf_outputs, buffers[TYPE_GARBLED_CIRCUIT]);
-	}
 }
 
 void BaseTrustedParty::_compute_send_garbled_circuit()
@@ -346,45 +236,6 @@ void BaseTrustedParty::_compute_send_garbled_circuit()
 void BaseTrustedParty::Start()
 {
 	_node->Start();
-}
-
-bool TrustedParty::_fill_keys()
-{
-	resize_registers();
-	for (wire_id_t w=0; w<_W; w++) {
-		registers[w].init(randomfd, _N);
-		add_keys(registers[w]);
-	}
-	return true;
-}
-
-#ifdef __PURE_SHE__
-void TrustedParty::_fill_keys_for_party(Key* sqr_keys, Key* keys, party_id_t pid)
-{
-	int nullfd = open("/dev/urandom", O_RDONLY);
-
-	for (wire_id_t w=0; w<_W; w++) {
-		read(nullfd, (char*)(sqr_keys+pid-1), sizeof(Key));
-		read(nullfd, (char*)(sqr_keys+_N+pid-1), sizeof(Key));
-#ifdef __PRIME_FIELD__
-		sqr_keys[pid-1].adjust();
-		sqr_keys[pid+_N-1].adjust();
-#endif
-		keys[pid-1] = sqr_keys[pid-1].sqr(_temp_mpz);
-		keys[pid+_N-1] = sqr_keys[pid+_N-1].sqr(_temp_mpz);
-		sqr_keys = sqr_keys + 2*_N;
-		keys = keys + 2*_N;
-	}
-	close(nullfd);
-}
-#endif
-
-
-void TrustedParty::_print_keys()
-{
-	for (wire_id_t w=0; w<_W; w++) {
-		registers[w].keys.print(w);
-	}
 }
 
 void TrustedProgramParty::NodeReady()

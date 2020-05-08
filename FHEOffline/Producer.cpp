@@ -13,6 +13,8 @@
 #include "SimpleMachine.h"
 #include "Tools/mkpath.h"
 
+#include "Math/gfp.hpp"
+
 template<class FD>
 Producer<FD>::Producer(int output_thread, bool write_output) :
     n_slots(0), output_thread(output_thread), write_output(write_output),
@@ -143,79 +145,6 @@ void TripleProducer<T, FD, S>::run(const Player& P, const FHE_PK& pk,
   timers["Decrypting"].stop();
 
   reset();
-}
-
-template <class T, class FD, class S>
-int TripleProducer<T, FD, S>::output(const Player& P, int thread,
-    int output_thread)
-{
-  ofstream outf;
-  string file = this->open_file(outf, P.my_num(), output_thread, true, false);
-  printf("%d : Writing some data into the file %s\n",thread,file.c_str());
-
-  // Step i
-  Share<T> a,b,c;
-  int n = ai.num_slots() - i;
-  for (; i<ai.num_slots(); i++)
-    { a.set_share(ai.element(i)); a.set_mac(gam_ai.element(i));
-      b.set_share(bi.element(i)); b.set_mac(gam_bi.element(i));
-      c.set_share(ci.element(i)); c.set_mac(gam_ci.element(i));
-      a.output(outf,false);
-      b.output(outf,false);
-      c.output(outf,false);
-    }
-  outf.close();
-  return n;
-}
-
-template <class FD>
-int TupleProducer<FD>::output(const Player& P, int thread,
-    int output_thread)
-{
-  // Open file for appending the initial triples
-  ofstream outf;
-  string file = this->open_file(outf, P.my_num(), output_thread, true, false);
-  printf("%d : Writing some data into the file %s\n",thread,file.c_str());
-
-  // Step i
-  Share<T> a,b,c;
-  int cnt = 0;
-  while (true)
-    {
-      try
-      {
-          get(a, b);
-          a.output(outf,false);
-          b.output(outf,false);
-          cnt++;
-      }
-      catch (overflow_error& e)
-      {
-          break;
-      }
-    }
-  outf.close();
-  return cnt;
-}
-
-int gfpBitProducer::output(const Player& P, int thread,
-    int output_thread)
-{
-  // Open file for appending the initial triples
-  ofstream outf;
-  string file = this->open_file(outf, P.my_num(), output_thread, true, false);
-  printf("%d : Writing some data into the file %s\n",thread,file.c_str());
-
-  // Step i
-  Share<T> a,b,c;
-  int n = bits.size() - i;
-  while (i < bits.size())
-    {
-      get(a);
-      a.output(outf,false);
-    }
-  outf.close();
-  return n;
 }
 
 template <class T>

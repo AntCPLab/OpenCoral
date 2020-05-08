@@ -374,6 +374,8 @@ def BitLTC1(u, a, b, kappa):
     subsi(s[k-1], p[k-1], 1)
     subcfi(c[3][0], a_bits[0], 1)
     mulm(t[4][0], s[0], c[3][0])
+    from .types import sint
+    t[3] = [sint() for i in range(k)]
     for i in range(1,k):
         subcfi(c[3][i], a_bits[i], 1)
         mulm(t[3][i], s[i], c[3][i])

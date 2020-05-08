@@ -55,7 +55,11 @@ public:
 
     void triple_sacrifice(vector<array<T, 3>>& triples,
             vector<array<T, 3>>& check_triples, Player& P,
-            typename T::MAC_Check& MC);
+            typename T::MAC_Check& MC, ThreadQueues* queues = 0);
+    void triple_sacrifice(vector<array<T, 3>>& triples,
+            vector<array<T, 3>>& check_triples, Player& P,
+            typename T::MAC_Check& MC, int begin, int end);
+
     void triple_combine(vector<array<T, 3>>& triples,
             vector<array<T, 3>>& to_combine, Player& P,
             typename T::MAC_Check& MC);

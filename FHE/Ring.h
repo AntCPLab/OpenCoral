@@ -34,16 +34,15 @@ class Ring
   int p_inv(int i)  const { return pi_inv.at(i); }
   const vector<int>& Phi() const { assert(poly.size()); return poly; }
 
-  friend ostream& operator<<(ostream& s,const Ring& R);
-  friend istream& operator>>(istream& s,Ring& R);
-
-  friend void init(Ring& Rg,int m);
+  friend void init(Ring& Rg, int m, bool generate_poly);
 
   void pack(octetStream& o) const;
   void unpack(octetStream& o);
 
   bool operator!=(const Ring& other) const;
 };
+
+void init(Ring& Rg, int m, bool generate_poly = false);
 
 #endif
 

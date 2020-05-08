@@ -14,7 +14,8 @@
 template<class T>
 Spdz2kPrep<T>::Spdz2kPrep(SubProcessor<T>* proc, DataPositions& usage) :
         BufferPrep<T>(usage),
-        RingPrep<T>(proc, usage), MaliciousRingPrep<T>(proc, usage),
+        BitPrep<T>(proc, usage), RingPrep<T>(proc, usage),
+        MaliciousRingPrep<T>(proc, usage),
         OTPrep<T>(proc, usage), MascotPrep<T>(proc, usage),
         RingOnlyPrep<T>(proc, usage)
 {
@@ -188,6 +189,7 @@ void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
     cerr << "Adding edaBits took " << add_timer.elapsed() << " seconds" << endl;
     cerr << "Done with generating edaBits after " << timer.elapsed()
             << " seconds" << endl;
+    RunningTimer finalize_timer;
 #endif
     vector<edabit<T>> checked;
     for (size_t i = 0; i < sums.size(); i++)
@@ -205,8 +207,17 @@ void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
     bits.shrink_to_fit();
     if (strict)
         this->sanitize(checked, n_bits, -1, queues);
+    auto& output = this->edabits[{strict, n_bits}];
     for (auto& x : checked)
-        this->edabits[{strict, n_bits}].push_back(x);
+    {
+        if (output.empty() or output.back().full())
+            output.push_back(x);
+        else
+            output.back().push_back(x);
+    }
+#ifdef VERBOSE_EDA
+    cerr << "Finalizing took " << finalize_timer.elapsed() << " seconds" << endl;
+#endif
 }
 
 template<class T>

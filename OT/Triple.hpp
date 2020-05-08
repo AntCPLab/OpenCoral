@@ -71,6 +71,15 @@ public:
             c[i].output(outputStream, human);
         }
     }
+
+    template<class V>
+    Triple<V, 1> reduce()
+    {
+        Triple<V, 1> triple;
+        for (int i = 0; i < 3; i++)
+            triple.byIndex(i, 0) = byIndex(i, 0);
+        return triple;
+    }
 };
 
 template <class T, int N>
@@ -116,9 +125,11 @@ public:
     }
 };
 
-template <class T, class U, int N>
-class ShareTriple_ : public Triple<Share<T>, N>
+template <class U, int N>
+class ShareTriple : public Triple<U, N>
 {
+    typedef typename U::open_type T;
+
 public:
     template<class V>
     void from(PlainTriple<T,N>& triple,
@@ -130,68 +141,33 @@ public:
             for (int j = 0; j < repeat; j++)
             {
                 T value = triple.byIndex(l,j);
-                T mac;
+                typename U::mac_type mac;
                 mac.mul(value, generator.get_mac_key());
                 for (int i = 0; i < generator.nparties-1; i++)
                     mac += generator.ot_multipliers[i]->macs.at(l).at(iTriple * repeat + j);
-                Share<T>& share = this->byIndex(l,j);
+                U& share = this->byIndex(l,j);
                 share.set_share(value);
                 share.set_mac(mac);
             }
         }
     }
-
-    Share<T> get_check_value(PRNG& G)
-    {
-        Share<T> res;
-        res += G.get<T>() * this->b;
-        for (int i = 0; i < N; i++)
-        {
-            res += G.get<T>() * this->a[i];
-            res += G.get<T>() * this->c[i];
-        }
-        return res;
-    }
-
-    template<class V>
-    Triple<Share<V>, 1> reduce() {
-        Triple<Share<V>, 1> triple;
-
-        Share<V> _a;
-        _a.set_share(V(this->a[0].get_share()));
-        _a.set_mac(V(this->a[0].get_mac()));
-        triple.a[0] = _a;
-
-        Share<V> _b;
-        _b.set_share(V(this->b.get_share()));
-        _b.set_mac(V(this->b.get_mac()));
-        triple.b = _b;
-
-        Share<V> _c;
-        _c.set_share(V(this->c[0].get_share()));
-        _c.set_mac(V(this->c[0].get_mac()));
-        triple.c[0] = _c;
-
-        return triple;
-    }
-
 };
 
 template <class T>
-class TripleToSacrifice : public Triple<Share<T>, 1>
+class TripleToSacrifice : public Triple<T, 1>
 {
 public:
-    template <class U>
-    void prepare_sacrifice(const ShareTriple_<T, U, 2>& uncheckedTriple, PRNG& G)
+    template <class W>
+    void prepare_sacrifice(const Triple<T, 2>& uncheckedTriple, PRNG& G)
     {
         this->b = uncheckedTriple.b;
-        U t;
+        typename W::mac_key_type t;
         t.randomize(G);
         this->a[0] = uncheckedTriple.a[0] * t - uncheckedTriple.a[1];
         this->c[0] = uncheckedTriple.c[0] * t - uncheckedTriple.c[1];
     }
 
-    Share<T> computeCheckShare(const T& maskedA)
+    T computeCheckShare(const typename T::open_type& maskedA)
     {
         return this->c[0] - maskedA * this->b;
     }

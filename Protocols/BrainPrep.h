@@ -14,7 +14,8 @@ class BrainPrep : public MaliciousRingPrep<T>
 {
 public:
     BrainPrep(SubProcessor<T>* proc, DataPositions& usage) :
-            BufferPrep<T>(usage), RingPrep<T>(proc, usage),
+            BufferPrep<T>(usage), BitPrep<T>(proc, usage),
+            RingPrep<T>(proc, usage),
             MaliciousRingPrep<T>(proc, usage)
     {
     }

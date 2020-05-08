@@ -212,7 +212,7 @@ class closed_connection
     }
 };
 
-class no_singleton : runtime_error
+class no_singleton : public runtime_error
 {
 public:
     no_singleton(string msg) :
@@ -226,6 +226,24 @@ class ran_out
     const char* what() const
     {
         return "insufficient preprocessing";
+    }
+};
+
+class wrong_gfp_size : public runtime_error
+{
+public:
+    wrong_gfp_size(string msg) :
+            runtime_error(msg)
+    {
+    }
+};
+
+class mac_key_error: public runtime_error
+{
+public:
+    mac_key_error(string filename) :
+            runtime_error("error loading MAC key from " + filename)
+    {
     }
 };
 

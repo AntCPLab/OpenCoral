@@ -193,14 +193,36 @@ void Processor<T>::mem_op(int n, Memory<U>& dest, const Memory<U>& source,
 template <class T>
 void Processor<T>::xors(const vector<int>& args)
 {
-    check_args(args, 4);
-    size_t n_args = args.size();
-    for (size_t i = 0; i < n_args; i += 4)
+    assert(args.size() % 4 == 0);
+    int dl = T::default_length;
+    for (auto it = args.begin(); it < args.end(); it += 4)
     {
-        S[args[i+1]].xor_(args[i], S[args[i+2]], S[args[i+3]]);
+        if (*it == 1)
+            S[*(it + 1)].xor_(1, S[*(it + 2)], S[*(it + 3)]);
+        else
+        {
+            int n_units = DIV_CEIL(*it, dl);
+            for (int j = 0; j < n_units; j++)
+            {
+                int left = min(dl, *it - j * dl);
+                S[*(it + 1) + j].xor_(left, S[*(it + 2) + j],
+                        S[*(it + 3) + j]);
+            }
+        }
 #ifndef FREE_XOR
         complexity += args[i];
 #endif
+    }
+}
+
+template<class T>
+void Processor<T>::nots(const ::BaseInstruction& instruction)
+{
+    int total = instruction.get_n();
+    for (int i = 0; i < DIV_CEIL(total, T::default_length); i++)
+    {
+        int n = min(T::default_length, total - i * T::default_length);
+        S[instruction.get_r(0) + i].invert(n, S[instruction.get_r(1) + i]);
     }
 }
 
@@ -218,6 +240,7 @@ void Processor<T>::and_(const vector<int>& args, bool repeat)
     check_args(args, 4);
     for (size_t i = 0; i < args.size(); i += 4)
     {
+        assert(args[i] <= T::default_length);
         S[args[i+1]].and_(args[i], S[args[i+2]], S[args[i+3]], repeat);
         complexity += args[i];
     }
@@ -313,7 +336,9 @@ void Processor<T>::print_str(int n)
 template <class T>
 void Processor<T>::print_float(const vector<int>& args)
 {
-    T::out << bigint::get_float(C[args[0]], C[args[1]], C[args[2]], C[args[3]]) << flush;
+    bigint::output_float(T::out,
+            bigint::get_float(C[args[0]], C[args[1]], C[args[2]], C[args[3]]),
+            C[args[4]]);
 }
 
 template <class T>

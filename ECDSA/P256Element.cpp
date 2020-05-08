@@ -5,6 +5,8 @@
 
 #include "P256Element.h"
 
+#include "Math/gfp.hpp"
+
 #include <cryptopp/oids.h>
 #include <cryptopp/misc.h>
 

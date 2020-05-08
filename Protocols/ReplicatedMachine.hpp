@@ -17,7 +17,7 @@ ReplicatedMachine<T, U>::ReplicatedMachine(int argc, const char** argv,
 {
     (void) name;
 
-    OnlineOptions online_opts(opt, argc, argv);
+    OnlineOptions online_opts(opt, argc, argv, 1000, true, T::clear::invertible);
     OnlineOptions::singleton = online_opts;
     NetworkOptionsWithNumber network_opts(opt, argc, argv, nplayers, false);
     opt.add(
@@ -42,7 +42,7 @@ ReplicatedMachine<T, U>::ReplicatedMachine(int argc, const char** argv,
     Server* server = network_opts.start_networking(N, playerno);
 
     Machine<T, U>(playerno, N, progname, online_opts.memtype,
-            gf2n::default_degree(), 0, 0, 0, 0, 0, use_encryption,
+            gf2n::default_degree(), 0, 0, 0, 0, use_encryption,
             online_opts.live_prep, online_opts).run();
 
     if (server)

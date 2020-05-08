@@ -9,10 +9,11 @@ the ones used below into ``Programs/Circuits`` as follows::
 
 """
 
-from Compiler.GC.types import sbitvec, sbits
+from Compiler.GC.types import *
 from Compiler.library import function_block
 from Compiler import util
 import itertools
+import struct
 
 class Circuit:
     """
@@ -199,3 +200,100 @@ def sha3_256(x):
         if len(Z) <= 256:
             S = unflatten(Keccak_f(flatten(S)))
     return sbitvec.from_vec(Z[:256])
+
+class ieee_float:
+    """
+    This gives access IEEE754 floating-point operations using Bristol
+    Fashion circuits. The following example computes the standard
+    deviation of 10 integers input by each of party 0 and 1::
+
+        from circuit import ieee_float
+
+        values = []
+
+        for i in range(2):
+            for j in range(10):
+                values.append(sbitint.get_type(64).get_input_from(i))
+
+        fvalues = [ieee_float(x) for x in values]
+
+        avg = sum(fvalues) / ieee_float(len(fvalues))
+        var = sum(x * x for x in fvalues) / ieee_float(len(fvalues)) - avg * avg
+        stddev = var.sqrt()
+
+        print_ln('avg: %s', avg.reveal())
+        print_ln('var: %s', var.reveal())
+        print_ln('stddev: %s', stddev.reveal())
+    """
+
+    _circuits = {}
+    is_clear = False
+
+    @classmethod
+    def circuit(cls, name):
+        if name not in cls._circuits:
+            cls._circuits[name] = Circuit('FP-' + name)
+        return cls._circuits[name]
+
+    def __init__(self, value):
+        if isinstance(value, sbitvec):
+            self.value = value
+        elif isinstance(value, (sbitint, sbitintvec)):
+            self.value = self.circuit('i2f')(sbitvec(value))
+        elif util.is_constant_float(value):
+            self.value = sbitvec(sbits.get_type(64)(
+                struct.unpack('Q', struct.pack('d', value))[0]))
+        else:
+            raise Exception('cannot convert type %s' % type(value))
+
+    def __add__(self, other):
+        return ieee_float(self.circuit('add')(self.value, other.value))
+
+    def __radd__(self, other):
+        if util.is_zero(other):
+            return self
+        else:
+            return NotImplemented
+
+    def __neg__(self):
+        v = self.value.v[:]
+        v[-1] = ~v[-1]
+        return ieee_float(sbitvec.from_vec(v))
+
+    def __sub__(self, other):
+        return self + -other
+
+    def __mul__(self, other):
+        return ieee_float(self.circuit('mul')(self.value, other.value))
+
+    def __truediv__(self, other):
+        return ieee_float(self.circuit('div')(self.value, other.value))
+
+    def __eq__(self, other):
+        res = sbitvec.from_vec(self.circuit('eq')(self.value,
+                                                  other.value).v[:1])
+        if res.v[0].n == 1:
+            return res.elements()[0]
+        else:
+            return res
+
+    def sqrt(self):
+        return ieee_float(self.circuit('sqrt')(self.value))
+
+    def to_int(self):
+        res = sbitintvec.from_vec(self.circuit('f2i')(self.value))
+        if res.v[0].n == 1:
+            return res.elements()[0]
+        else:
+            return res
+
+    def reveal(self):
+        assert self.value.v[0].n == 1
+        m = self.value.v[:52]
+        e = self.value.v[52:63]
+        s = [self.value.v[63]]
+        m, e, s = [sbitvec.from_vec(x).elements()[0].reveal()
+                   for x in (m, e, s)]
+        return cbitfloat(2 ** 52 + m, e - 2 ** 10 - 51,
+                         cbit((m.to_regint() == 0) * (e.to_regint() == 0)), s,
+                         (e.to_regint() == 2 ** 11 - 1))

@@ -20,10 +20,10 @@ using namespace std;
 template<class sint, class sgf2n>
 Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
     string progname_str, string memtype, int lg2, bool direct,
-    int opening_sum, bool parallel, bool receive_threads, int max_broadcast,
+    int opening_sum, bool receive_threads, int max_broadcast,
     bool use_encryption, bool live_prep, OnlineOptions opts)
   : my_number(my_number), N(playerNames), tn(0), numt(0), usage_unknown(false),
-    direct(direct), opening_sum(opening_sum), parallel(parallel),
+    direct(direct), opening_sum(opening_sum),
     receive_threads(receive_threads), max_broadcast(max_broadcast),
     use_encryption(use_encryption), live_prep(live_prep), opts(opts),
     data_sent(0)
@@ -34,51 +34,18 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
     this->max_broadcast = N.num_players();
 
   // Set up the fields
-  prep_dir_prefix = get_prep_dir(N.num_players(), opts.lgp, lg2);
-  bool read_mac_keys = false;
-
   sgf2n::clear::init_field(lg2);
+  sint::clear::read_or_generate_setup(prep_dir_prefix<sint>(), opts);
 
-  try
-    {
-      sint::clear::read_setup(N.num_players(), opts.lgp, lg2);
-      ::read_mac_keys(prep_dir_prefix, my_number, N.num_players(), alphapi, alpha2i);
-      read_mac_keys = true;
-    }
-  catch (file_error& e)
-    {
-#ifdef VERBOSE
-      cerr << "Field or MAC key setup failed, using defaults"
-          << endl;
-#endif
-      sint::clear::init_default(opts.lgp);
-      // make directory for outputs if necessary
-      mkdir_p(PREP_DIR);
-    }
-  catch (end_of_file& e)
-    {
-      cerr << "End of file reading MAC key but maybe we don't need it" << endl;
-    }
+  // make directory for outputs if necessary
+  mkdir_p(PREP_DIR);
 
   auto P = new PlainPlayer(N, 0xF00);
   sint::LivePrep::basic_setup(*P);
   delete P;
 
-  if (not read_mac_keys)
-    {
-#ifdef VERBOSE
-      cerr << "Generating fresh MAC keys" << endl;
-#endif
-      SeededPRNG G;
-      alphapi.randomize(G);
-      alpha2i.randomize(G);
-
-#ifdef DEBUG_MAC
-      alpha2i = my_number;
-      alphapi = my_number;
-      alphapi = alphapi << 60;
-#endif
-    }
+  sint::read_or_generate_mac_key(prep_dir_prefix<sint>(), N, alphapi);
+  sgf2n::read_or_generate_mac_key(prep_dir_prefix<sgf2n>(), N, alpha2i);
 
 #ifdef DEBUG_MAC
   cerr << "MAC Key p = " << alphapi << endl;
@@ -174,9 +141,9 @@ DataPositions Machine<sint, sgf2n>::run_tape(int thread_number, int tape_number,
     int arg, int line_number, Preprocessing<sint>* prep,
     Preprocessing<typename sint::bit_type>* bit_prep)
 {
-  if (thread_number >= (int)tinfo.size())
+  if (size_t(thread_number) >= tinfo.size())
     throw Processor_Error("invalid thread number: " + to_string(thread_number) + "/" + to_string(tinfo.size()));
-  if (tape_number >= (int)progs.size())
+  if (size_t(tape_number) >= progs.size())
     throw Processor_Error("invalid tape number: " + to_string(tape_number) + "/" + to_string(progs.size()));
 
   // central preprocessing
@@ -192,7 +159,8 @@ DataPositions Machine<sint, sgf2n>::run_tape(int thread_number, int tape_number,
             {
               bool strict = it->first.first;
               int n_bits = it->first.second;
-              size_t required = it->second;
+              size_t required = DIV_CEIL(it->second,
+                  sint::bit_type::part_type::default_length);
               auto& dest_buffer = dest.edabits[it->first];
               auto& source_buffer = source.edabits[it->first];
               while (dest_buffer.size() < required)
@@ -226,7 +194,7 @@ DataPositions Machine<sint, sgf2n>::run_tape(int thread_number, int tape_number,
               dynamic_cast<BufferPrep<bit_type>&>(tinfo[thread_number].processor->share_thread.DataF);
           for (int i = 0; i < DIV_CEIL(usage.files[DATA_GF2][DATA_TRIPLE],
                                         bit_type::default_length); i++)
-            dest.push_triples({source.get_triple(bit_type::default_length)});
+            dest.push_triple(source.get_triple(bit_type::default_length));
       }
       catch (bad_cast& e)
       {
@@ -424,6 +392,16 @@ template<class sint, class sgf2n>
 string Machine<sint, sgf2n>::memory_filename()
 {
   return BaseMachine::memory_filename(sint::type_short(), my_number);
+}
+
+template<class sint, class sgf2n>
+template<class T>
+string Machine<sint, sgf2n>::prep_dir_prefix()
+{
+  int lgp = opts.lgp;
+  if (opts.prime)
+    lgp = numBits(opts.prime);
+  return get_prep_sub_dir<T>(PREP_DIR, N.num_players(), lgp);
 }
 
 template<class sint, class sgf2n>

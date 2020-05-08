@@ -13,7 +13,8 @@ class RingOnlyPrep : public virtual RingPrep<T>
 {
 protected:
     RingOnlyPrep<T>(SubProcessor<T>* proc, DataPositions& usage) :
-            BufferPrep<T>(usage), RingPrep<T>(proc, usage)
+            BufferPrep<T>(usage), BitPrep<T>(proc, usage),
+            RingPrep<T>(proc, usage)
     {
     }
 

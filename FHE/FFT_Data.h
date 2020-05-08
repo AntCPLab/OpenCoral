@@ -78,9 +78,6 @@ class FFT_Data
   bool operator==(const FFT_Data& other) const { return not (*this != other); }
   bool operator!=(const FFT_Data& other) const;
 
-  friend ostream& operator<<(ostream& s,const FFT_Data& FFTD); 
-  friend istream& operator>>(istream& s,FFT_Data& FFTD); 
-
   friend void BFFT(vector<modp>& ans,const vector<modp>& a,const FFT_Data& FFTD,bool forward);
 };
 

@@ -30,6 +30,7 @@ opcodes = dict(
     TRANS = 0x20c,
     BITB = 0x20d,
     ANDM = 0x20e,
+    NOTS = 0x20f,
     LDMSB = 0x240,
     STMSB = 0x241,
     LDMSBI = 0x242,
@@ -114,6 +115,10 @@ class ands(BinaryVectorInstruction):
 class andm(BinaryVectorInstruction):
     code = opcodes['ANDM']
     arg_format = ['int','sbw','sb','cb']
+
+class nots(BinaryVectorInstruction):
+    code = opcodes['NOTS']
+    arg_format = ['int','sbw','sb']
 
 class addcb(NonVectorInstruction):
     code = opcodes['ADDCB']
@@ -282,7 +287,7 @@ class print_reg_signed(base.IOInstruction):
 class print_float_plainb(base.IOInstruction):
     __slots__ = []
     code = opcodes['PRINTFLOATPLAINB']
-    arg_format = ['cb', 'cb', 'cb', 'cb']
+    arg_format = ['cb', 'cb', 'cb', 'cb', 'cb']
 
 class cond_print_strb(base.IOInstruction):
     r""" Print a 4 character string. """

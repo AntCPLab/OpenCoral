@@ -58,6 +58,7 @@ public:
 	static int size() { return N_BYTES; }
 	static int size_in_limbs() { return N_WORDS; }
 	static int size_in_bits() { return size() * 8; }
+	static int length() { return size_in_bits(); }
 	static int t() { return 0; }
 
 	static char type_char() { return 'R'; }
@@ -74,6 +75,8 @@ public:
 	static bool allows(Dtype dtype);
 
 	static void specification(octetStream& os);
+
+	static Z2 power_of_two(bool bit, int exp) { return Z2(bit) << exp; }
 
 	typedef Z2 next;
 	typedef Z2 Scalar;
@@ -146,7 +149,6 @@ public:
 
 	void mul(const Z2& a) { *this = Z2::Mul(*this, a); }
 
-	template <int t>
 	void add(octetStream& os) { add(os.consume(size())); }
 
 	Z2& invert();

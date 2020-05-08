@@ -25,8 +25,21 @@ mpf_class bigint::get_float(T v, Integer exp, T z, T s)
         res *= -1;
     }
     if (not z.is_bit() or not s.is_bit())
+      {
+        cerr << "z=" << z << " s=" << s << endl;
         throw Processor_Error("invalid floating point number");
+      }
     return res;
+}
+
+template<class U, class T>
+void bigint::output_float(U& o, const mpf_class& x, T nan)
+{
+    assert(nan.is_bit());
+    if (nan.is_zero())
+        o << x;
+    else
+        o << "NaN";
 }
 
 #endif /* MATH_BIGINT_HPP_ */

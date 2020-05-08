@@ -4,8 +4,6 @@
 #include "Processor/Data_Files.h"
 #include "Processor/Processor.h"
 
-#include "Protocols/ReplicatedPrep.hpp"
-
 template<class T>
 Lock Sub_Data_Files<T>::tuple_lengths_lock;
 template<class T>
@@ -27,7 +25,8 @@ Preprocessing<T>* Preprocessing<T>::get_new(
   if (machine.live_prep)
     return get_live_prep(proc, usage);
   else
-    return new Sub_Data_Files<T>(machine.get_N(), machine.prep_dir_prefix, usage);
+    return new Sub_Data_Files<T>(machine.get_N(),
+        machine.template prep_dir_prefix<T>(), usage);
 }
 
 

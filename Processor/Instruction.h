@@ -305,7 +305,15 @@ struct TempVars {
   bigint aa,aa2;
   typename sint::open_type rrp, xip;
   // assign without allocation
+  void assign_ansp(unsigned int n)
+  {
+    ansp = int(n);
+  }
   void assign_ansp(int n)
+  {
+    ansp = n;
+  }
+  void assign_ansp(long n)
   {
     ansp = n;
   }

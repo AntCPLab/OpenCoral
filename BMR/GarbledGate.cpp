@@ -43,18 +43,15 @@ void GarbledGate::compute_prfs_outputs(const Register** in_wires, int my_id,
     for(int w=0; w<=1; w++) {
         for (int b=0; b<=1; b++) {
             const Key& key = in_wires[w]->key(my_id, b);
-            AES_KEY aes_key;
-            AES_128_Key_Expansion((unsigned char*)&key.r, &aes_key);
+            __m128i rd_key[15];
+            aes_128_schedule((octet*) rd_key, (unsigned char*)&key.r);
 #ifdef DEBUG
             cout << "using key " << key << endl;
 #endif
             for (int e=0; e<=1; e++) {
                 for (int j=1; j<= n_parties; j++) {
                     prf_output[j-1].outputs[w][b][e][0] =
-                            aes_128_encrypt(*(__m128i*)input(e, j), (octet*)aes_key.rd_key);
-#ifdef __PRIME_FIELD__
-                    ((Key*)prf_outputs_index)->adjust();
-#endif
+                            aes_128_encrypt(*(__m128i*)input(e, j), (octet*)rd_key);
                 }
             }
         }

@@ -41,11 +41,12 @@
     X(XORS, T::xors(PROC, EXTRA)) \
     X(XORCB, C0.xor_(PC1, PC2)) \
     X(XORCBI, C0.xor_(PC1, IMM)) \
+    X(NOTS, processor.nots(INST)) \
     X(ANDRS, T::andrs(PROC, EXTRA)) \
     X(ANDS, T::ands(PROC, EXTRA)) \
     X(ADDCB, C0 = PC1 + PC2) \
-    X(ADDCBI, C0 = PC1 + IMM) \
-    X(MULCBI, C0 = PC1 * IMM) \
+    X(ADDCBI, C0 = PC1 + int(IMM)) \
+    X(MULCBI, C0 = PC1 * int(IMM)) \
     X(BITDECS, PROC.bitdecs(EXTRA, S0)) \
     X(BITCOMS, PROC.bitcoms(S0, EXTRA)) \
     X(BITDECC, PROC.bitdecc(EXTRA, C0)) \
@@ -91,7 +92,7 @@
     X(STMSDCI, PROC.store_clear_in_dynamic(EXTRA, MD)) \
     X(CONVSINT, S0.load_clear(IMM, PI1)) \
     X(CONVCINT, C0 = PI1) \
-    X(CONVCBIT, T::convcbit(I0, PC1)) \
+    X(CONVCBIT, T::convcbit(I0, PC1, PROC)) \
     X(PRINTCHR, PROC.print_chr(IMM)) \
     X(PRINTSTR, PROC.print_str(IMM)) \
     X(PRINTFLOATPREC, PROC.print_float_prec(IMM)) \

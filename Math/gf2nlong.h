@@ -145,6 +145,7 @@ class gf2n_long : public ValueInterface
   static bool allows(Dtype type) { (void) type; return true; }
 
   static const bool invertible = true;
+  static const bool characteristic_two = true;
 
   static gf2n_long cut(int128 x) { return x; }
 
@@ -202,14 +203,10 @@ class gf2n_long : public ValueInterface
     { a=x.a^y.a; }
   void add(const gf2n_long& x)
     { a^=x.a; }
-  template<int T>
   void add(octet* x)
     { a^=int128(_mm_loadu_si128((__m128i*)x)); }
-  template <int T>
   void add(octetStream& os)
-    { add<T>(os.consume(size())); }
-  void add(octet* x)
-    { add<0>(x); }
+    { add(os.consume(size())); }
   void sub(const gf2n_long& x,const gf2n_long& y)
     { a=x.a^y.a; }
   void sub(const gf2n_long& x)

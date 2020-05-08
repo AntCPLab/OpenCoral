@@ -8,7 +8,6 @@
 
 #include <GC/ShareThread.h>
 #include "GC/ShareParty.h"
-#include "Protocols/MaliciousRepMC.h"
 #include "Math/Setup.h"
 
 #include "Processor/Data_Files.hpp"
@@ -29,7 +28,7 @@ ShareThread<T>::ShareThread(const Names& N, OnlineOptions& opts, DataPositions& 
                         *static_cast<Preprocessing<T>*>(new typename T::LivePrep(
                                 usage, *this)) :
                         *static_cast<Preprocessing<T>*>(new Sub_Data_Files<T>(N,
-                                get_prep_dir(N.num_players(), 128, 128), usage)))
+                                get_prep_sub_dir<T>(PREP_DIR, N.num_players()), usage)))
 {
 }
 

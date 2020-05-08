@@ -11,6 +11,7 @@
 #include "Player-Online.hpp"
 #include "Semi.hpp"
 #include "GC/ShareSecret.hpp"
+#include "Math/gfp.hpp"
 
 int main(int argc, const char** argv)
 {

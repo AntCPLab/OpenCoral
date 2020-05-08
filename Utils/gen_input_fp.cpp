@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include "Math/gfp.h"
+#include "Math/gfp.hpp"
 #include "Tools/Buffer.h"
 #include "Tools/ezOptionParser.h"
 #include "Math/Setup.h"
@@ -61,7 +61,7 @@ int main(int argc, const char** argv) {
     opt.get("-N")->getInt(nparties);
     opt.get("-lgp")->getInt(lgp);
     opt.get("-lg2")->getInt(lg2);
-    read_setup(nparties, lgp, lg2);
+    gfp::init_default(lgp);
 
 	std::string input_name, output_name;
 	bool use_stdin = false;

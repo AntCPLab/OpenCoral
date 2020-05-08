@@ -6,7 +6,6 @@
 #ifndef GC_MACHINE_H_
 #define GC_MACHINE_H_
 
-#include <GC/FakeSecret.h>
 #include "GC/Clear.h"
 #include "GC/Memory.h"
 

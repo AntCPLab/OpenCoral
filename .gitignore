@@ -112,3 +112,6 @@ Persistence/*
 ehthumbs.db
 Thumbs.db
 **/*.x.dSYM/**
+
+# Sphinx build
+_build/

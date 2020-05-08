@@ -185,6 +185,8 @@ class cbits(bits):
                 return op(self, cbits(other))
     __add__ = lambda self, other: \
               self.clear_op(other, inst.addcb, inst.addcbi, operator.add)
+    __sub__ = lambda self, other: \
+              self.clear_op(-other, inst.addcb, inst.addcbi, operator.add)
     __xor__ = lambda self, other: \
               self.clear_op(other, inst.xorcb, inst.xorcbi, operator.xor)
     __radd__ = __add__
@@ -216,10 +218,13 @@ class cbits(bits):
         inst.cond_print_strb(self, string)
     def reveal(self):
         return self
-    def to_regint(self, dest):
+    def to_regint(self, dest=None):
+        if dest is None:
+            dest = regint()
         if self.n > 64:
             raise CompilerError('too many bits')
         inst.convcbit(dest, self)
+        return dest
     def to_regint_by_bit(self):
         if self.n != None:
             res = regint(size=self.n)
@@ -239,7 +244,6 @@ class sbits(bits):
     bitdec = inst.bitdecs
     bitcom = inst.bitcoms
     conv_regint = inst.convsint
-    one_cache = {}
     @classmethod
     def conv_regint_by_bit(cls, n, res, other):
         tmp = cbits.get_type(n)()
@@ -391,14 +395,9 @@ class sbits(bits):
     def __lshift__(self, i):
         return self.bit_compose([sbit(0)] * i + self.bit_decompose()[:self.max_length-i])
     def __invert__(self):
-        # res = type(self)(n=self.n)
-        # inst.nots(res, self)
-        # return res
-        key = self.n, library.get_block()
-        if key not in self.one_cache:
-            self.one_cache[key] = self.new(value=self.long_one(), n=self.n)
-        one = self.one_cache[key]
-        return self + one
+        res = type(self)(n=self.n)
+        inst.nots(self.n, res, self)
+        return res
     def __neg__(self):
         return self
     def reveal(self):
@@ -757,7 +756,7 @@ class cbitfix(object):
         bits = self.v.bit_decompose(self.k)
         sign = bits[-1]
         v = self.v + (sign << (self.k)) * -1
-        inst.print_float_plainb(v, cbits(-self.f, n=32), cbits(0), cbits(0))
+        inst.print_float_plainb(v, cbits(-self.f, n=32), cbits(0), cbits(0), cbits(0))
 
 class sbitfix(_fix):
     float_type = type(None)
@@ -809,3 +808,10 @@ class sbitfixvec(_fix):
         return sbitfix.k
 
 sbitfix.vec = sbitfixvec
+
+class cbitfloat:
+    def __init__(self, v, p, z, s, nan=0):
+        self.v, self.p, self.z, self.s, self.nan = v, p, z, s, cbit.conv(nan)
+
+    def output(self):
+        inst.print_float_plainb(self.v, self.p, self.z, self.s, self.nan)

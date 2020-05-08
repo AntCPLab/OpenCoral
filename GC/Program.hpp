@@ -105,7 +105,8 @@ BreakType Program<T>::execute(Processor<T>& Proc, U& dynamic_memory,
     if (PC != -1)
         Proc.PC = PC;
 #ifdef DEBUG_ROUNDS
-    cout << typeid(T).name() << " starting at PC " << Proc.PC << endl;
+    cout << typeid(T).name() << " starting at PC " << Proc.PC << "/" <<
+            p.size() << endl;
 #endif
     unsigned int size = p.size();
     size_t time = Proc.time;
@@ -113,7 +114,8 @@ BreakType Program<T>::execute(Processor<T>& Proc, U& dynamic_memory,
     do
     {
 #ifdef DEBUG_EXE
-    	cout << "execute " << time << "/" << Proc.PC << endl;
+        cout << "execute " << time << "/" << Proc.PC << " " << T::phase_name()
+                << endl;
 #endif
         if (Proc.PC >= size)
         {

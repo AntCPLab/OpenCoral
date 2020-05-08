@@ -6,6 +6,8 @@
 #include "SohoPrep.h"
 #include "FHEOffline/DataSetup.h"
 
+#include "ReplicatedPrep.hpp"
+
 template<class T>
 PartSetup<typename SohoPrep<T>::FD>* SohoPrep<T>::setup = 0;
 
@@ -55,8 +57,8 @@ void SohoPrep<T>::buffer_triples()
     for (int i = 1; i < proc->P.num_players(); i++)
     {
         proc->P.pass_around(os);
-        Ca.add<0>(os);
-        Cb.add<0>(os);
+        Ca.add(os);
+        Cb.add(os);
     }
 
     Ciphertext Cc = Ca.mul(setup->pk, Cb);
@@ -94,7 +96,7 @@ void SohoPrep<T>::buffer_squares()
     for (int i = 1; i < proc->P.num_players(); i++)
     {
         proc->P.pass_around(os);
-        Ca.add<0>(os);
+        Ca.add(os);
     }
 
     Ciphertext Cc = Ca.mul(setup->pk, Ca);

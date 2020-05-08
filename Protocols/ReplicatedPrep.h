@@ -94,6 +94,8 @@ public:
 
     void push_triples(const vector<array<T, 3>>& triples)
     { this->triples.insert(this->triples.end(), triples.begin(), triples.end()); }
+    void push_triple(const array<T, 3>& triple)
+    { this->triples.push_back(triple); }
 
     void shrink_to_fit();
 
@@ -105,25 +107,34 @@ public:
 };
 
 template<class T>
-class RingPrep : public virtual BufferPrep<T>
+class BitPrep : public virtual BufferPrep<T>
 {
-    typedef typename T::bit_type::part_type BT;
+protected:
+    int base_player;
+
+    typename T::Protocol* protocol;
 
     void buffer_ring_bits_without_check(vector<T>& bits, PRNG& G,
             int buffer_size);
 
-protected:
-    template<class U> friend class MaliciousRepPrep;
+public:
+    BitPrep(SubProcessor<T>* proc, DataPositions& usage);
 
-    typename T::Protocol* protocol;
-
-    int base_player;
-
-    size_t sent;
+    void set_protocol(typename T::Protocol& protocol);
 
     void buffer_squares();
 
     void buffer_bits_without_check();
+};
+
+template<class T>
+class RingPrep : public virtual BitPrep<T>
+{
+    typedef typename T::bit_type::part_type BT;
+
+protected:
+    size_t sent;
+
     void buffer_dabits_without_check(vector<dabit<T>>& dabits,
             int buffer_size = -1, ThreadQueues* queues = 0);
     void buffer_edabits_without_check(int n_bits, vector<T>& sums,
@@ -143,8 +154,6 @@ public:
     virtual ~RingPrep() {}
 
     vector<T>& get_bits() { return this->bits; }
-
-    void set_protocol(typename T::Protocol& protocol);
 
     void sanitize(vector<edabit<T>>& edabits, int n_bits,
             int player = -1, ThreadQueues* queues = 0);
@@ -173,7 +182,8 @@ class SemiHonestRingPrep : public virtual RingPrep<T>
 {
 public:
     SemiHonestRingPrep(SubProcessor<T>* proc, DataPositions& usage) :
-            BufferPrep<T>(usage), RingPrep<T>(proc, usage)
+            BufferPrep<T>(usage), BitPrep<T>(proc, usage),
+			RingPrep<T>(proc, usage)
     {
     }
     virtual ~SemiHonestRingPrep() {}
@@ -201,7 +211,8 @@ protected:
 
 public:
     MaliciousRingPrep(SubProcessor<T>* proc, DataPositions& usage) :
-            BufferPrep<T>(usage), RingPrep<T>(proc, usage)
+            BufferPrep<T>(usage), BitPrep<T>(proc, usage),
+            RingPrep<T>(proc, usage)
     {
     }
     virtual ~MaliciousRingPrep() {}
@@ -212,7 +223,7 @@ public:
 };
 
 template<class T>
-class ReplicatedRingPrep : public SemiHonestRingPrep<T>
+class ReplicatedRingPrep : public virtual BitPrep<T>
 {
 protected:
     void buffer_triples();
@@ -220,21 +231,27 @@ protected:
 
 public:
     ReplicatedRingPrep(SubProcessor<T>* proc, DataPositions& usage) :
-            BufferPrep<T>(usage), RingPrep<T>(proc, usage),
-            SemiHonestRingPrep<T>(proc, usage)
+            BufferPrep<T>(usage), BitPrep<T>(proc, usage)
     {
     }
+
+    virtual ~ReplicatedRingPrep() {}
+
+    virtual void buffer_bits() { this->buffer_bits_without_check(); }
 };
 
 template<class T>
-class ReplicatedPrep: public ReplicatedRingPrep<T>
+class ReplicatedPrep : public virtual ReplicatedRingPrep<T>,
+        public virtual SemiHonestRingPrep<T>
 {
     void buffer_inverses();
 
 public:
     ReplicatedPrep(SubProcessor<T>* proc, DataPositions& usage) :
-            BufferPrep<T>(usage), RingPrep<T>(proc, usage),
-            ReplicatedRingPrep<T>(proc, usage)
+            BufferPrep<T>(usage), BitPrep<T>(proc, usage),
+            ReplicatedRingPrep<T>(proc, usage),
+            RingPrep<T>(proc, usage),
+            SemiHonestRingPrep<T>(proc, usage)
     {
     }
 
@@ -243,6 +260,7 @@ public:
     {
     }
 
+    void buffer_squares() { ReplicatedRingPrep<T>::buffer_squares(); }
     void buffer_bits();
 };
 

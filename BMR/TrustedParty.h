@@ -42,10 +42,6 @@ protected:
 
 	bool done_filling;
 
-#ifdef __PURE_SHE__
-	mpz_t _temp_mpz;
-	void _fill_keys_for_party(Key* sqr_keys, Key* keys, party_id_t pid);
-#endif
 	virtual bool _fill_keys() = 0;
 
 	void _compute_send_garbled_circuit();
@@ -58,29 +54,6 @@ protected:
 	virtual void garble() = 0;
 
 	void add_keys(const Register& reg);
-};
-
-class TrustedParty : public BaseTrustedParty, public CommonCircuitParty {
-
-public:
-	TrustedParty(const char* netmap_file,  const char* circuit_file );
-	virtual ~TrustedParty();
-
-	/* TEST methods */
-
-private:
-#ifdef __PURE_SHE__
-	mpz_t _temp_mpz;
-	void _fill_keys_for_party(Key* sqr_keys, Key* keys, party_id_t pid);
-#endif
-	bool _fill_keys();
-
-	void _launch_online();
-	void _print_keys();
-
-	void send_input_masks(party_id_t pid);
-	void send_output_masks();
-	void garble();
 };
 
 class TrustedProgramParty : public BaseTrustedParty {

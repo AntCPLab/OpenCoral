@@ -6,6 +6,8 @@
 #include "Protocols/Spdz2kShare.h"
 #include "Protocols/BrainShare.h"
 #include "Protocols/MaliciousRep3Share.h"
+#include "Protocols/PostSacriRepRingShare.h"
+#include "Protocols/PostSacriRepFieldShare.h"
 #include "Protocols/SemiShare.h"
 #include "Protocols/MaliciousShamirShare.h"
 #include "Protocols/fake-stuff.h"
@@ -24,6 +26,7 @@
 #include "Protocols/fake-stuff.hpp"
 #include "Processor/Data_Files.hpp"
 #include "Math/Z2k.hpp"
+#include "Math/gfp.hpp"
 #include "GC/Secret.hpp"
 
 #include <sstream>
@@ -45,7 +48,8 @@ void make_bit_triples(const gf2n& key,int N,int ntrip,Dtype dtype,bool zero)
   /* Generate Triples */
   for (int i=0; i<N; i++)
     { stringstream filename;
-      filename << prep_data_prefix << DataPositions::dtype_names[dtype] << "-2-P" << i;
+      filename << get_prep_sub_dir<Share<gf2n>>(prep_data_prefix, N)
+          << DataPositions::dtype_names[dtype] << "-2-P" << i;
       cout << "Opening " << filename.str() << endl;
       outf[i].open(filename.str().c_str(),ios::out | ios::binary);
       if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
@@ -80,7 +84,7 @@ void make_bit_triples(const gf2n& key,int N,int ntrip,Dtype dtype,bool zero)
  * str    = "2" or "p"
  */
 template<class T>
-void make_square_tuples(const typename T::mac_key_type& key,int N,int ntrip,const string& str,bool zero)
+void make_square_tuples(const typename T::mac_type& key,int N,int ntrip,const string& str,bool zero)
 {
   (void) str;
 
@@ -93,7 +97,8 @@ void make_square_tuples(const typename T::mac_key_type& key,int N,int ntrip,cons
   /* Generate Squares */
   for (int i=0; i<N; i++)
     { stringstream filename;
-      filename << prep_data_prefix << "Squares-" << T::type_short() << "-P" << i;
+      filename << get_prep_sub_dir<T>(prep_data_prefix, N) << "Squares-"
+          << T::type_short() << "-P" << i;
       cout << "Opening " << filename.str() << endl;
       outf[i].open(filename.str().c_str(),ios::out | ios::binary);
       if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
@@ -119,7 +124,7 @@ void make_square_tuples(const typename T::mac_key_type& key,int N,int ntrip,cons
  * ntrip  = Number bits needed
  */
 template<class T>
-void make_bits(const typename T::mac_key_type& key, int N, int ntrip, bool zero,
+void make_bits(const typename T::mac_type& key, int N, int ntrip, bool zero,
     int thread_num = -1)
 {
   PRNG G;
@@ -131,7 +136,8 @@ void make_bits(const typename T::mac_key_type& key, int N, int ntrip, bool zero,
   /* Generate Bits */
   for (int i=0; i<N; i++)
     { stringstream filename;
-      filename << prep_data_prefix << "Bits-" << T::type_short() << "-P" << i
+      filename << get_prep_sub_dir<T>(prep_data_prefix, N) << "Bits-"
+          << T::type_short() << "-P" << i
           << Sub_Data_Files<T>::get_suffix(thread_num);
       cout << "Opening " << filename.str() << endl;
       outf[i].open(filename.str().c_str(),ios::out | ios::binary);
@@ -156,7 +162,7 @@ void make_bits(const typename T::mac_key_type& key, int N, int ntrip, bool zero,
  *
  */
 template<class T>
-void make_inputs(const typename T::mac_key_type& key,int N,int ntrip,const string& str,bool zero)
+void make_inputs(const typename T::mac_type& key,int N,int ntrip,const string& str,bool zero)
 {
   (void) str;
 
@@ -170,7 +176,8 @@ void make_inputs(const typename T::mac_key_type& key,int N,int ntrip,const strin
   for (int player=0; player<N; player++)
     { for (int i=0; i<N; i++)
         { stringstream filename;
-          filename << prep_data_prefix << "Inputs-" << T::type_short() << "-P" << i << "-" << player;
+          filename << get_prep_sub_dir<T>(prep_data_prefix, N) << "Inputs-"
+              << T::type_short() << "-P" << i << "-" << player;
           cout << "Opening " << filename.str() << endl;
           outf[i].open(filename.str().c_str(),ios::out | ios::binary);
           if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
@@ -194,10 +201,10 @@ void make_inputs(const typename T::mac_key_type& key,int N,int ntrip,const strin
 
 
 template<class T>
-void make_PreMulC(const typename T::mac_key_type& key, int N, int ntrip, bool zero)
+void make_PreMulC(const typename T::mac_type& key, int N, int ntrip, bool zero)
 {
   stringstream ss;
-  ss << prep_data_prefix << "PreMulC-" << T::type_short();
+  ss << get_prep_sub_dir<T>(prep_data_prefix, N) << "PreMulC-" << T::type_short();
   Files<T> files(N, key, ss.str());
   PRNG G;
   G.ReSeed();
@@ -222,7 +229,7 @@ void make_PreMulC(const typename T::mac_key_type& key, int N, int ntrip, bool ze
 }
 
 template<class T>
-void make_basic(const typename T::mac_key_type& key, int nplayers, int nitems, bool zero)
+void make_basic(const typename T::mac_type& key, int nplayers, int nitems, bool zero)
 {
     make_mult_triples<T>(key, nplayers, nitems, zero, prep_data_prefix);
     make_bits<T>(key, nplayers, nitems, zero);
@@ -480,14 +487,13 @@ int generate(ez::ezOptionParser& opt)
 
   PRNG G;
   G.ReSeed();
-  prep_data_prefix = get_prep_dir(nplayers, lgp, lg2);
+  prep_data_prefix = PREP_DIR;
   // Set up the fields
-  ofstream outf;
-  bigint p;
-  generate_online_setup(outf, prep_data_prefix, p, lgp, lg2);
+  T::clear::template generate_setup<T>(prep_data_prefix, nplayers, lgp);
+  gfp::init_default(lgp);
 
   /* Find number players and MAC keys etc*/
-  typename T::mac_key_type::Scalar keyp;
+  typename T::mac_type::Scalar keyp;
   gf2n key2;
 
   // create PREP_DIR if not there
@@ -497,9 +503,10 @@ int generate(ez::ezOptionParser& opt)
     throw file_error(PREP_DIR);
   }
 
-  generate_mac_keys<T>(keyp, key2, nplayers, prep_data_prefix);
-
   typedef Share<gf2n> sgf2n;
+
+  generate_mac_keys<T>(keyp, nplayers, prep_data_prefix);
+  generate_mac_keys<sgf2n>(key2, nplayers, prep_data_prefix);
 
   make_mult_triples<sgf2n>(key2,nplayers,ntrip2,zero,prep_data_prefix);
   make_mult_triples<T>(keyp,nplayers,ntripp,zero,prep_data_prefix);
@@ -526,6 +533,10 @@ int generate(ez::ezOptionParser& opt)
     make_basic<Rep3Share<gf2n>>({}, nplayers, default_num, zero);
     make_basic<BrainShare<64, 40>>({}, nplayers, default_num, zero);
     make_basic<MaliciousRep3Share<gf2n>>({}, nplayers, default_num, zero);
+    make_basic<MaliciousRep3Share<gfp>>({}, nplayers, default_num, zero);
+    make_bits<PostSacriRepRingShare<64, 40>>({}, nplayers, default_num, zero);
+    make_bits<PostSacriRepFieldShare<gfp>>({}, nplayers, default_num, zero);
+    make_bits<PostSacriRepFieldShare<gf2n>>({}, nplayers, default_num, zero);
 
     make_mult_triples<GC::MaliciousRepSecret>({}, nplayers, ntrip2, zero, prep_data_prefix);
     make_bits<GC::MaliciousRepSecret>({}, nplayers, nbits2, zero);
@@ -537,15 +548,14 @@ int generate(ez::ezOptionParser& opt)
   make_mult_triples<GC::SemiSecret>({}, nplayers, default_num, zero, prep_data_prefix);
   make_bits<GC::SemiSecret>({}, nplayers, default_num, zero);
 
-  gf2n _;
-  Z2<40> keyt;
-  generate_mac_keys<GC::TinySecret<40>>(keyt, _, nplayers, prep_data_prefix);
+  Z2<41> keyt;
+  generate_mac_keys<GC::TinySecret<40>>(keyt, nplayers, prep_data_prefix);
 
   make_mult_triples<GC::TinySecret<40>>(keyt, nplayers, default_num, zero, prep_data_prefix);
   make_bits<GC::TinySecret<40>>(keyt, nplayers, default_num, zero);
 
   gf2n_short keytt;
-  generate_mac_keys<GC::TinierSecret<gf2n_short>>(keytt, _, nplayers, prep_data_prefix);
+  generate_mac_keys<GC::TinierSecret<gf2n_short>>(keytt, nplayers, prep_data_prefix);
   make_mult_triples<GC::TinierSecret<gf2n_short>>(keytt, nplayers, default_num, zero, prep_data_prefix);
   make_bits<GC::TinierSecret<gf2n_short>>(keytt, nplayers, default_num, zero);
 

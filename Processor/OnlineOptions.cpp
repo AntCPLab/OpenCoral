@@ -22,7 +22,8 @@ OnlineOptions::OnlineOptions() : playerno(-1)
 }
 
 OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
-        const char** argv, int default_batch_size, bool default_live_prep) :
+        const char** argv, int default_batch_size, bool default_live_prep,
+        bool variable_prime_length) :
         OnlineOptions()
 {
     if (default_batch_size <= 0)
@@ -40,15 +41,28 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
           "--interactive" // Flag token.
     );
     string default_lgp = to_string(lgp);
-    opt.add(
-          default_lgp.c_str(), // Default.
-          0, // Required?
-          1, // Number of args expected.
-          0, // Delimiter if expecting multiple args.
-          ("Bit length of GF(p) field (default: " + default_lgp + ")").c_str(), // Help description.
-          "-lgp", // Flag token.
-          "--lgp" // Flag token.
-    );
+    if (variable_prime_length)
+    {
+        opt.add(
+                default_lgp.c_str(), // Default.
+                0, // Required?
+                1, // Number of args expected.
+                0, // Delimiter if expecting multiple args.
+                ("Bit length of GF(p) field (default: " + default_lgp + ")").c_str(), // Help description.
+                "-lgp", // Flag token.
+                "--lgp" // Flag token.
+        );
+        opt.add(
+                "", // Default.
+                0, // Required?
+                1, // Number of args expected.
+                0, // Delimiter if expecting multiple args.
+                "Prime for GF(p) field (default: read from file or "
+                "generated from -lgp argument)", // Help description.
+                "-P", // Flag token.
+                "--prime" // Flag token.
+        );
+    }
     if (default_live_prep)
         opt.add(
                 "", // Default.
@@ -122,7 +136,14 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
     opt.parse(argc, argv);
 
     interactive = opt.isSet("-I");
-    opt.get("--lgp")->getInt(lgp);
+    if (variable_prime_length)
+    {
+        opt.get("--lgp")->getInt(lgp);
+        string p;
+        opt.get("--prime")->getString(p);
+        if (not p.empty())
+            prime = bigint(p);
+    }
     if (default_live_prep)
         live_prep = not opt.get("-F")->isSet;
     else

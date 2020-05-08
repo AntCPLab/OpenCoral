@@ -15,16 +15,11 @@ class OTVoleBase : public OTExtension
 public:
 	const int S;
 
-	OTVoleBase(int S, int nbaseOTs, int baseLength,
-	                int nloops, int nsubloops,
+	OTVoleBase(int S,
 	                TwoPartyPlayer* player,
-	                const BitVector& baseReceiverInput,
-	                const vector< vector<BitVector> >& baseSenderInput,
-	                const vector<BitVector>& baseReceiverOutput,
 	                OT_ROLE role=BOTH,
 	                bool passive=false)
-	    : OTExtension(nbaseOTs, baseLength, nloops, nsubloops, player, baseReceiverInput,
-	            baseSenderInput, baseReceiverOutput, INV_ROLE(role), passive),
+	    : OTExtension(player, role, passive),
 	        S(S),
 	        corr_prime(),
 	        t0(S),
@@ -36,6 +31,8 @@ public:
 	            this->ot_role = role;
 	            local_prng.ReSeed();
 	        }
+
+	    virtual ~OTVoleBase() {}
 
 	    void evaluate(vector<T>& output, const vector<T>& newReceiverInput);
 
@@ -73,16 +70,11 @@ class OTVole : public OTVoleBase<T>
 {
 
 public:
-    OTVole(int S, int nbaseOTs, int baseLength,
-                int nloops, int nsubloops,
+    OTVole(int S,
                 TwoPartyPlayer* player,
-                const BitVector& baseReceiverInput,
-                const vector< vector<BitVector> >& baseSenderInput,
-                const vector<BitVector>& baseReceiverOutput,
                 OT_ROLE role=BOTH,
                 bool passive=false)
-    : OTVoleBase<T>(S, nbaseOTs, baseLength, nloops, nsubloops, player, baseReceiverInput,
-            baseSenderInput, baseReceiverOutput, INV_ROLE(role), passive) {
+    : OTVoleBase<T>(S, player, role, passive) {
     }
 
     int n_challenges() { return NUM_VOLE_CHALLENGES; }

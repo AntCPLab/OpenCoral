@@ -102,9 +102,8 @@ ShareParty<T>::ShareParty(int argc, const char** argv, int default_batch_size) :
 
     try
     {
-        gf2n _;
-        read_mac_keys(get_prep_dir(network_opts.nplayers, 128, 128), this->N,
-                this->mac_key, _);
+        read_mac_key(get_prep_sub_dir<T>(PREP_DIR, network_opts.nplayers), this->N,
+                this->mac_key);
     }
     catch (exception& e)
     {

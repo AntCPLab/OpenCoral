@@ -22,6 +22,7 @@
 #include "GC/Thread.hpp"
 #include "GC/ThreadMaster.hpp"
 #include "Math/Z2k.hpp"
+#include "Protocols/fake-stuff.hpp"
 
 template<class T>
 RealProgramParty<T>* RealProgramParty<T>::singleton = 0;
@@ -84,7 +85,7 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	cerr << "delta: " << delta << endl;
 #endif
 
-	string prep_dir = get_prep_dir(nparties, 128, 128);
+	string prep_dir = get_prep_sub_dir<T>(nparties);
 	usage = DataPositions(N.num_players());
 	if (online_opts.live_prep)
 	{
@@ -95,8 +96,7 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	}
 	else
 	{
-		Z2<64> _;
-		read_mac_keys(prep_dir, online_opts.playerno, nparties, _, mac_key);
+	    T::read_or_generate_mac_key(prep_dir, N, mac_key);
 		prep = new Sub_Data_Files<T>(N, prep_dir, usage);
 	}
 
@@ -105,6 +105,7 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	garble_processor.reset(program);
 	this->processor.open_input_file(N.my_num(), 0);
 
+	GC::ShareThread<typename T::bit_type> share_thread(N, online_opts, *P, 0, usage);
 	shared_proc = new SubProcessor<T>(dummy_proc, *MC, *prep, *P);
 
 	auto& inputter = shared_proc->input;

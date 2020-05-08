@@ -1,5 +1,10 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.1.7 (May 8, 2020)
+
+- Possibility of using global keyword in loops instead of MemValue
+- IEEE754 floating-point functionality using Bristol Fashion circuits
+
 ## 0.1.6 (Apr 2, 2020)
 
 - Bristol Fashion circuits

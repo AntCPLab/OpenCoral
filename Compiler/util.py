@@ -200,8 +200,17 @@ class set_by_id(object):
     def __iter__(self):
         return iter(self.content.values())
 
+    def __bool__(self):
+        return bool(self.content)
+
+    def __len__(self):
+        return len(self.content)
+
     def add(self, value):
         self.content[id(value)] = value
+
+    def pop(self):
+        return self.content.popitem()[1]
 
     def __ior__(self, values):
         for value in values:
@@ -223,6 +232,9 @@ class dict_by_id(object):
 
     def keys(self):
         return (x[0] for x in self.content.values())
+
+    def __iter__(self):
+        return self.keys()
 
 class defaultdict_by_id(dict_by_id):
     def __init__(self, default):

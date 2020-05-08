@@ -20,6 +20,7 @@ public:
 
     Row(const vector<T>& _rows) : rows(_rows) {}
 
+    Row(DeferredMinus<T> d) { *this = d; }
 
     bool operator==(const Row<T>& other) const;
     bool operator!=(const Row<T>& other) const { return not (*this == other); }

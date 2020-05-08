@@ -7,6 +7,7 @@
 #include "Protocols/ReplicatedMachine.hpp"
 #include "Machines/Rep.hpp"
 #include "Protocols/PostSacrifice.hpp"
+#include "Math/gfp.hpp"
 
 int main(int argc, const char** argv)
 {

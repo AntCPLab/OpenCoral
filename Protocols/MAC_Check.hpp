@@ -51,33 +51,30 @@ MAC_Check_<T>::~MAC_Check_()
 }
 
 template<class U>
-void MAC_Check_<U>::PrepareSending(vector<T>& values, const vector<U>& S)
+void MAC_Check_<U>::init_open(const Player&, int n)
 {
-  values.resize(S.size());
-  for (unsigned int i=0; i<S.size(); i++)
-    { values[i]=S[i].get_share(); }
+  macs.reserve(macs.size() + n);
+  this->secrets.clear();
+  this->values.clear();
+  this->secrets.reserve(n);
+  this->values.reserve(n);
 }
 
 template<class U>
-void MAC_Check_<U>::POpen_Begin(vector<T>& values,const vector<U>& S,const Player& P)
+void MAC_Check_<U>::prepare_open(const U& secret)
 {
-  AddToMacs(S);
-
-  PrepareSending(values, S);
-
-  this->start(values, P);
-
-  this->values_opened += S.size();
+  this->values.push_back(secret.get_share());
+  macs.push_back(secret.get_mac());
 }
 
 template<class U>
-void MAC_Check_<U>::POpen_End(vector<T>& values,const vector<U>& S,const Player& P)
+void MAC_Check_<U>::exchange(const Player& P)
 {
-  S.size();
+  this->run(this->values, P);
 
-  this->finish(values, P);
+  this->values_opened += this->values.size();
 
-  popen_cnt += values.size();
+  popen_cnt += this->values.size();
   CheckIfNeeded(P);
 
   /* not compatible with continuous communication
@@ -87,39 +84,11 @@ void MAC_Check_<U>::POpen_End(vector<T>& values,const vector<U>& S,const Player&
   */
 }
 
-template<class U>
-void MAC_Check_<U>::AddToMacs(const vector<U>& shares)
-{
-  for (unsigned int i = 0; i < shares.size(); i++)
-    macs.push_back(shares[i].get_mac());
-#ifdef DEBUG_MAC
-  if (shares.size())
-    cout << "adding macs " << shares.back() << " / " <<
-        shares.back().get_mac() << " / " << macs.back() << endl;
-#endif
-}
-
 
 template<class U>
 void MAC_Check_<U>::AddToValues(vector<T>& values)
 {
   vals.insert(vals.end(), values.begin(), values.end());
-}
-
-
-template<class U>
-void MAC_Check_<U>::GetValues(vector<T>& values)
-{
-  int size = values.size();
-  if (popen_cnt + size > int(vals.size()))
-    {
-      stringstream ss;
-      ss << "wanted " << values.size() << " values from " << popen_cnt << ", only " << vals.size() << " in store";
-      throw out_of_range(ss.str());
-    }
-  values.clear();
-  typename vector<T>::iterator first = vals.begin() + popen_cnt;
-  values.insert(values.end(), first, first + size);
 }
 
 
@@ -219,12 +188,6 @@ void MAC_Check_<U>::Check(const Player& P)
   popen_cnt=0;
 }
 
-template<class T>
-int mc_base_id(int function_id, int thread_num)
-{
-  return (function_id << 28) + ((T::field_type() + 1) << 24) + (thread_num << 16);
-}
-
 template<class T, class U, class V, class W>
 MAC_Check_Z2k<T, U, V, W>::MAC_Check_Z2k(const T& ai, int opening_sum, int max_broadcast, int send_player) :
     MAC_Check_<W>(ai, opening_sum, max_broadcast, send_player), prep(0)
@@ -246,24 +209,11 @@ void MAC_Check_Z2k<T, U, V, W>::AddToCheck(const W& share, const T& value, const
 }
 
 template<class T, class U, class V, class W>
-void MAC_Check_Z2k<T, U, V, W>::AddToMacs(const vector<W >& shares)
+void MAC_Check_Z2k<T, U, V, W>::prepare_open(const W& secret)
 {
-  for (auto& share : shares)
-    this->shares.push_back(share.get_share());
-  MAC_Check_<W>::AddToMacs(shares);
-#ifdef DEBUG_MAC
-  cout << "add share " << shares.back() << " / " << this->shares.back() << endl;
-#endif
-}
-
-template<class T, class U, class V, class W>
-void MAC_Check_Z2k<T, U, V, W>::PrepareSending(vector<T>& values,
-        const vector<W >& S)
-{
-  values.clear();
-  values.reserve(S.size());
-  for (auto& share : S)
-    values.push_back(V(share.get_share()));
+  shares.push_back(secret.get_share());
+  this->values.push_back(V(secret.get_share()));
+  this->macs.push_back(secret.get_mac());
 }
 
 template<class T, class U, class V, class W>
@@ -368,127 +318,6 @@ void MAC_Check_Z2k<T, U, V, W>::Check(const Player& P)
   if (!zj_sum.is_zero()) { throw mac_fail(); }
 }
 
-template<class T>
-Separate_MAC_Check<T>::Separate_MAC_Check(const typename T::mac_key_type& ai, Names& Nms,
-    int thread_num, int opening_sum, int max_broadcast, int send_player) :
-    MAC_Check_<T>(ai, opening_sum, max_broadcast, send_player),
-    check_player(Nms, mc_base_id<T>(1, thread_num))
-{
-}
-
-template<class T>
-void Separate_MAC_Check<T>::Check(const Player& P)
-{
-  P.my_num();
-  MAC_Check_<T>::Check(check_player);
-}
-
-
-template<class T>
-void* run_summer_thread(void* summer)
-{
-  ((Summer<T>*) summer)->run();
-  return 0;
-}
-
-template <class T>
-Parallel_MAC_Check<T>::Parallel_MAC_Check(const T& ai, Names& Nms,
-    int thread_num, int opening_sum, int max_broadcast, int base_player) :
-    Separate_MAC_Check<T>(ai, Nms, thread_num, opening_sum, max_broadcast, base_player),
-    send_player(Nms, mc_base_id<T>(2, thread_num)),
-    send_base_player(base_player)
-{
-  int sum_players = Nms.num_players();
-  Player* summer_send_player = &send_player;
-  for (int i = 0; ; i++)
-    {
-      int last_sum_players = sum_players;
-      sum_players = (sum_players - 2 + opening_sum) / opening_sum;
-      int next_sum_players = (sum_players - 2 + opening_sum) / opening_sum;
-      if (sum_players == 0)
-        break;
-      Player* summer_receive_player = summer_send_player;
-      summer_send_player = new PlainPlayer(Nms, mc_base_id<T>(3, thread_num));
-      summers.push_back(new Summer<T>(sum_players, last_sum_players, next_sum_players,
-              summer_send_player, summer_receive_player, *this));
-      pthread_create(&(summers[i]->thread), 0, run_summer_thread<T>, summers[i]);
-    }
-  receive_player = summer_send_player;
-}
-
-template<class T>
-Parallel_MAC_Check<T>::~Parallel_MAC_Check()
-{
-  for (unsigned int i = 0; i < summers.size(); i++)
-    {
-      summers[i]->input_queue.stop();
-      pthread_join(summers[i]->thread, 0);
-      delete summers[i];
-    }
-}
-
-template<class T>
-void Parallel_MAC_Check<T>::POpen_Begin(vector<T>& values,
-        const vector<Share<T> >& S, const Player& P)
-{
-  values.size();
-  this->AddToMacs(S);
-
-  int my_relative_num = positive_modulo(P.my_num() - send_base_player, P.num_players());
-  int sum_players = (P.num_players() - 2 + this->opening_sum) / this->opening_sum;
-  int receiver = positive_modulo(send_base_player + my_relative_num % sum_players, P.num_players());
-
-  // use queue rather sending to myself
-  if (receiver == P.my_num())
-    {
-      for (unsigned int i = 0; i < S.size(); i++)
-        values[i] = S[i].get_share();
-      summers.front()->share_queue.push(values);
-    }
-  else
-    {
-      this->os.reset_write_head();
-      for (unsigned int i=0; i<S.size(); i++)
-          S[i].get_share().pack(this->os);
-      this->timers[SEND].start();
-      send_player.send_to(receiver,this->os,true);
-      this->timers[SEND].stop();
-    }
-
-  for (unsigned int i = 0; i < summers.size(); i++)
-      summers[i]->input_queue.push(S.size());
-
-  this->values_opened += S.size();
-  send_base_player = (send_base_player + 1) % send_player.num_players();
-}
-
-template<class T>
-void Parallel_MAC_Check<T>::POpen_End(vector<T>& values,
-        const vector<Share<T> >& S, const Player& P)
-{
-  int last_size = 0;
-  this->timers[WAIT_SUMMER].start();
-  summers.back()->output_queue.pop(last_size);
-  this->timers[WAIT_SUMMER].stop();
-  if (int(values.size()) != last_size)
-    {
-      stringstream ss;
-      ss << "stopopen wants " << values.size() << " values, but I have " << last_size << endl;
-      throw Processor_Error(ss.str().c_str());
-    }
-
-  if (this->base_player == P.my_num())
-    {
-      value_queue.pop(values);
-      if (int(values.size()) != last_size)
-        throw Processor_Error("wrong number of local values");
-      else
-        this->AddToValues(values);
-    }
-  this->MAC_Check<T>::POpen_End(values, S, *receive_player);
-  this->base_player = (this->base_player + 1) % send_player.num_players();
-}
-
 
 
 template<class T>
@@ -511,38 +340,23 @@ Direct_MAC_Check<T>::~Direct_MAC_Check() {
   cerr << T::type_string() << " open counter: " << open_counter << endl;
 }
 
-
 template<class T>
-void Direct_MAC_Check<T>::POpen_Begin(vector<open_type>& values,const vector<T>& S,const Player& P)
-{
-  values.resize(S.size());
-  this->os.reset_write_head();
-  for (unsigned int i=0; i<S.size(); i++)
-    S[i].get_share().pack(this->os);
-  this->timers[SEND].start();
-  P.send_all(this->os,true);
-  this->timers[SEND].stop();
-
-  this->AddToMacs(S);
-  for (unsigned int i=0; i<S.size(); i++)
-    this->vals.push_back(S[i].get_share());
-}
-
-template<class T, int t>
 void direct_add_openings(vector<T>& values, const PlayerBase& P, vector<octetStream>& os)
 {
   for (unsigned int i=0; i<values.size(); i++)
     for (int j=0; j<P.num_players(); j++)
       if (j!=P.my_num())
-	values[i].template add<t>(os.at(j));
+	values[i].add(os.at(j));
 }
 
 template<class T>
-void Direct_MAC_Check<T>::POpen_End(vector<open_type>& values,const vector<T>& S,const Player& P)
+void Direct_MAC_Check<T>::exchange(const Player& P)
 {
-  S.size();
+  this->timers[SEND].start();
+  P.send_all(this->os,true);
+  this->timers[SEND].stop();
+
   oss.resize(P.num_players());
-  this->GetValues(values);
 
   this->timers[RECV].start();
 
@@ -551,25 +365,21 @@ void Direct_MAC_Check<T>::POpen_End(vector<open_type>& values,const vector<T>& S
   this->timers[RECV].stop();
   open_counter++;
 
-  if (open_type::t() == 2)
-    direct_add_openings<open_type,2>(values, P, oss);
-  else
-    direct_add_openings<open_type,0>(values, P, oss);
+  direct_add_openings<open_type>(this->values, P, oss);
 
-  for (unsigned int i = 0; i < values.size(); i++)
-    this->vals[this->popen_cnt+i] = values[i];
+  this->AddToValues(this->values);
 
-  this->popen_cnt += values.size();
+  this->popen_cnt += this->values.size();
   this->CheckIfNeeded(P);
 }
 
 template<class T>
-Passing_MAC_Check<T>::Passing_MAC_Check(const T& ai, Names& Nms, int num) :
-  Separate_MAC_Check<Share<T>>(ai, Nms, num)
+Passing_MAC_Check<T>::Passing_MAC_Check(const typename T::mac_key_type::Scalar& ai) :
+    Direct_MAC_Check<T>(ai)
 {
 }
 
-template<class T, int t>
+template<class T>
 void passing_add_openings(vector<T>& values, octetStream& os)
 {
   octetStream new_os;
@@ -583,40 +393,33 @@ void passing_add_openings(vector<T>& values, octetStream& os)
 }
 
 template<class T>
-void Passing_MAC_Check<T>::POpen_Begin(vector<T>& values,const vector<Share<T> >& S,const Player& P)
+void Direct_MAC_Check<T>::init_open(const Player& P, int n)
 {
-  values.resize(S.size());
-  this->os.reset_write_head();
-  for (unsigned int i=0; i<S.size(); i++)
-    {
-      S[i].get_share().pack(this->os);
-      values[i] = S[i].get_share();
-    }
-  this->AddToMacs(S);
-
-  for (int i = 0; i < P.num_players() - 1; i++)
-    {
-      P.pass_around(this->os);
-      if (T::t() == 2)
-        passing_add_openings<T,2>(values, this->os);
-      else
-        passing_add_openings<T,0>(values, this->os);
-    }
-
-  for (unsigned int i = 0; i < values.size(); i++)
-    {
-      T tmp;
-      tmp.unpack(this->os);
-      this->vals.push_back(tmp);
-    }
+  super::init_open(P, n);
+  this->os.clear();
+  this->os.reserve(n * T::open_type::size());
 }
 
 template<class T>
-void Passing_MAC_Check<T>::POpen_End(vector<T>& values,const vector<Share<T> >& S,const Player& P)
+void Direct_MAC_Check<T>::prepare_open(const T& secret)
 {
-  (void)S;
-  this->GetValues(values);
-  this->popen_cnt += values.size();
+  secret.get_share().pack(this->os);
+  this->values.push_back(secret.get_share());
+  this->macs.push_back(secret.get_mac());
+}
+
+template<class T>
+void Passing_MAC_Check<T>::exchange(const Player& P)
+{
+  for (int i = 0; i < P.num_players() - 1; i++)
+    {
+      P.pass_around(this->os);
+      passing_add_openings(this->values, this->os);
+    }
+  for (auto& x : this->values)
+    x.unpack(this->os);
+  this->AddToValues(this->values);
+  this->popen_cnt += this->values.size();
   this->CheckIfNeeded(P);
 }
 

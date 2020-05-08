@@ -70,6 +70,7 @@ class gf2n_short : public ValueInterface
   static const int N_BITS = -1;
 
   static void init_field(int nn = 0);
+  static void reset() { n = 0; }
   static int degree() { return n; }
   static int default_degree() { return 40; }
   static int get_nterms() { return nterms; }
@@ -94,6 +95,7 @@ class gf2n_short : public ValueInterface
   static bool allows(Dtype type) { (void) type; return true; }
 
   static const bool invertible = true;
+  static const bool characteristic_two = true;
 
   static gf2n_short cut(int128 x) { return x.get_lower(); }
 
@@ -147,14 +149,10 @@ class gf2n_short : public ValueInterface
     { a=x.a^y.a; }  
   void add(const gf2n_short& x)
     { a^=x.a; }
-  template<int T>
   void add(octet* x)
     { a^=*(word*)(x); }
-  template <int T>
   void add(octetStream& os)
-    { add<T>(os.consume(size())); }
-  void add(octet* x)
-    { add<0>(x); }
+    { add(os.consume(size())); }
   void sub(const gf2n_short& x,const gf2n_short& y)
     { a=x.a^y.a; }
   void sub(const gf2n_short& x)

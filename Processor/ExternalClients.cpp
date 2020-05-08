@@ -4,8 +4,8 @@
 #include <arpa/inet.h>
 #include <thread>
 
-ExternalClients::ExternalClients(int party_num, const string& prep_data_dir):
-   party_num(party_num), prep_data_dir(prep_data_dir),
+ExternalClients::ExternalClients(int party_num):
+   party_num(party_num),
    ctx(0)
 {
 }

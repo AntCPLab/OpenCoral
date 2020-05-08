@@ -11,6 +11,7 @@ using namespace std;
 
 #include "GC/Clear.h"
 #include "GC/Machine.h"
+#include "GC/RuntimeBranching.h"
 
 #include "Math/Integer.h"
 #include "Processor/ProcessorBase.h"
@@ -33,7 +34,7 @@ public:
 };
 
 template <class T>
-class Processor : public ::ProcessorBase
+class Processor : public ::ProcessorBase, public GC::RuntimeBranching
 {
 public:
     static int check_args(const vector<int>& args, int n);
@@ -91,6 +92,7 @@ public:
             Integer dest_address, Integer source_address);
 
     void xors(const vector<int>& args);
+    void nots(const ::BaseInstruction& instruction);
     void andm(const ::BaseInstruction& instruction);
     void and_(const vector<int>& args, bool repeat);
     void andrs(const vector<int>& args) { and_(args, true); }

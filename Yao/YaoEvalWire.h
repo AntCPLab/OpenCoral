@@ -41,7 +41,8 @@ public:
 	static void inputb(GC::Processor<GC::Secret<YaoEvalWire>>& processor,
 			const vector<int>& args);
 
-	static void convcbit(Integer& dest, const GC::Clear& source);
+	static void convcbit(Integer& dest, const GC::Clear& source,
+			GC::Processor<GC::Secret<YaoEvalWire>>&);
 
 	void set(const Key& key);
 	void set(Key key, bool external);
@@ -52,5 +53,11 @@ public:
 	void XOR(const YaoEvalWire& left, const YaoEvalWire& right);
 	bool get_output();
 };
+
+inline void YaoEvalWire::XOR(const YaoEvalWire& left, const YaoEvalWire& right)
+{
+	external = left.external ^ right.external;
+	key = left.key ^ right.key;
+}
 
 #endif /* YAO_YAOEVALWIRE_H_ */

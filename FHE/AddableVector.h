@@ -33,8 +33,7 @@ public:
     {
     }
 
-    template <class U>
-    void allocate_slots(const U& init)
+    void allocate_slots(const bigint& init)
     {
         for (auto& x: *this)
             x.allocate_slots(init);

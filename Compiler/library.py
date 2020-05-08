@@ -170,64 +170,10 @@ def public_input():
 # mostly obsolete functions
 # use the equivalent from types.py
 
-def load_int(value, size=None):
-    return regint(value, size=size)
-
-def load_int_to_secret(value, size=None):
-    return sint(value, size=size)
-
-def load_int_to_secret_vector(vector):
-    res = sint(size=len(vector))
-    for i,val in enumerate(vector):
-        ldsi(res[i], val)
-    return res
-
-@vectorize
-def load_float_to_secret(value, sec=40):
-    def _bit_length(x):
-        return len(bin(x).lstrip('-0b'))
-    
-    num,den = value.as_integer_ratio()
-    exp = int(round(math.log(den, 2)))
-    
-    nbits = _bit_length(num)
-    if nbits > sfloat.vlen:
-        num >>= (nbits - sfloat.vlen)
-        exp -= (nbits - sfloat.vlen)
-    elif nbits < sfloat.vlen:
-        num <<= (sfloat.vlen - nbits)
-        exp += (sfloat.vlen - nbits)
-    
-    if _bit_length(exp) > sfloat.plen:
-        raise CompilerException('Cannot load floating point to secret: overflow')
-    if num < 0:
-        s = load_int_to_secret(1)
-        z = load_int_to_secret(0)
-    else:
-        s = load_int_to_secret(0)
-        if num == 0:
-            z = load_int_to_secret(1)
-        else:
-            z = load_int_to_secret(0)
-    v = load_int_to_secret(num)
-    p = load_int_to_secret(exp)
-    return sfloat(v, p, s, z)
-
-def load_clear_mem(address):
-    return cint.load_mem(address)
-
-def load_secret_mem(address):
-    return sint.load_mem(address)
-
-def load_mem(address, value_type):
-    if value_type in _types:
-        value_type = _types[value_type]
-    return value_type.load_mem(address)
-
 @vectorize
 def store_in_mem(value, address):
     if isinstance(value, int):
-        value = load_int(value)
+        value = regint(value)
     try:
         value.store_in_mem(address)
     except AttributeError:
@@ -255,29 +201,6 @@ def reveal(secret):
             res = cint()
         instructions.asm_open(res, secret)
         return res
-
-@vectorize
-def compare_secret(a, b, length, sec=40):
-    res = sint()
-    instructions.lts(res, a, b, length, sec)
-
-def get_input_from(player, size=None):
-    return sint.get_input_from(player, size=size)
-
-def get_random_triple(size=None):
-    return sint.get_random_triple(size=size)
-
-def get_random_bit(size=None):
-    return sint.get_random_bit(size=size)
-
-def get_random_square(size=None):
-    return sint.get_random_square(size=size)
-
-def get_random_inverse(size=None):
-    return sint.get_random_inverse(size=size)
-
-def get_random_int(bits, size=None):
-    return sint.get_random_int(bits, size=size)
 
 @vectorize
 def get_thread_number():
@@ -573,8 +496,8 @@ def chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=7, use
             def swap_list(list_base):
                 for i in range(size // 2):
                     base = list_base + 2 * i
-                    x, y = cond_swap(load_secret_mem(base),
-                                     load_secret_mem(base + 1))
+                    x, y = cond_swap(sint.load_mem(base),
+                                     sint.load_mem(base + 1))
                     store_in_mem(x, base)
                     store_in_mem(y, base + 1)
             chunks[size] = FunctionTape(swap_list, 'sort-%d' % size)
@@ -605,9 +528,9 @@ def chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=7, use
 
     def load_and_store(x, y, to_right):
         if to_right:
-            store_in_mem(load_secret_mem(x), y)
+            store_in_mem(sint.load_mem(x), y)
         else:
-            store_in_mem(load_secret_mem(y), x)
+            store_in_mem(sint.load_mem(y), x)
 
     def run_setup(k, a_addr, step, tmp_addr):
         if k == 2:
@@ -671,7 +594,7 @@ def chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=7, use
 
     if isinstance(a, list):
         for i in range(n):
-            a[i] = load_secret_mem(a_base + i)
+            a[i] = sint.load_mem(a_base + i)
         instructions.program.free(a_base, 's')
     instructions.program.free(tmp_base, 's')
 
@@ -708,8 +631,8 @@ def loopy_chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=
             def swap_list(list_base):
                 for i in range(size // 2):
                     base = list_base + 2 * i
-                    x, y = cond_swap(load_secret_mem(base),
-                                     load_secret_mem(base + 1))
+                    x, y = cond_swap(sint.load_mem(base),
+                                     sint.load_mem(base + 1))
                     store_in_mem(x, base)
                     store_in_mem(y, base + 1)
             chunks[size] = FunctionTape(swap_list, 'sort-%d' % size)
@@ -741,9 +664,9 @@ def loopy_chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=
             k *= 2
             def load_and_store(x, y):
                 if to_tmp:
-                    store_in_mem(load_secret_mem(x), y)
+                    store_in_mem(sint.load_mem(x), y)
                 else:
-                    store_in_mem(load_secret_mem(y), x)
+                    store_in_mem(sint.load_mem(y), x)
             def outer(i):
                 def inner(j):
                     base = j + a_base + i * l
@@ -776,7 +699,7 @@ def loopy_chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=
 
     if isinstance(a, list):
         for i in range(n):
-            a[i] = load_secret_mem(a_base + i)
+            a[i] = sint.load_mem(a_base + i)
         instructions.program.free(a_base, 's')
     instructions.program.free(tmp_base, 's')
     instructions.program.free(tmp_i, 'ci')
@@ -863,7 +786,7 @@ def range_loop(loop_body, start, stop=None, step=None):
     else:
         b = step > 0
         condition = lambda x: b * (x < stop) + (1 - b) * (x > stop)
-    while_loop(loop_fn, condition, start)
+    while_loop(loop_fn, condition, start, g=loop_body.__globals__)
     if isinstance(start, int) and isinstance(stop, int) \
             and isinstance(step, int):
         # known loop count
@@ -876,8 +799,8 @@ def for_range(start, stop=None, step=None):
     Decorator to execute loop bodies consecutively.  Arguments work as
     in Python :py:func:`range`, but they can by any public
     integer. Information has to be passed out via container types such
-    as :py:class:`Compiler.types.Array` or
-    :py:class:`Compiler.types.MemValue`.
+    as :py:class:`Compiler.types.Array` or declaring registers as
+    :py:obj:`global`.
 
     :param start/stop/step: regint/cint/int
 
@@ -886,11 +809,12 @@ def for_range(start, stop=None, step=None):
     .. code::
 
         a = sint.Array(n)
-        x = MemValue(sint(0))
+        x = sint(0)
         @for_range(n)
         def _(i):
             a[i] = i
-            x.write(x + 1)
+            global x
+            x += 1
     """
     def decorator(loop_body):
         range_loop(loop_body, start, stop, step)
@@ -1244,20 +1168,19 @@ def foreach_enumerate(a):
         return f
     return decorator
 
-def while_loop(loop_body, condition, arg):
+def while_loop(loop_body, condition, arg, g=None):
     if not callable(condition):
         raise CompilerError('Condition must be callable')
     # store arg in stack
     pre_condition = condition(arg)
     if not isinstance(pre_condition, (bool,int)) or pre_condition:
-        pushint(arg if isinstance(arg,regint) else regint(arg))
+        arg = regint(arg)
         def loop_fn():
-            result = loop_body(regint.pop())
+            result = loop_body(arg)
+            result.link(arg)
             cont = condition(result)
-            pushint(result)
             return cont
-        if_statement(pre_condition, lambda: do_while(loop_fn))
-        regint.pop()
+        if_statement(pre_condition, lambda: do_while(loop_fn, g=g))
 
 def while_do(condition, *args):
     """ While-do loop. The decorator requires an initialization, and
@@ -1294,7 +1217,21 @@ def do_loop(condition, loop_fn):
     do_while(wrapped_loop)
     regint.pop()
 
-def do_while(loop_fn):
+def _run_and_link(function, g=None):
+    if g is None:
+        g = function.__globals__
+    import copy
+    pre = copy.copy(g)
+    res = function()
+    if g:
+        for name, var in pre.items():
+            if isinstance(var, program.Tape.Register):
+                new_var = g[name]
+                if id(new_var) != id(var):
+                    new_var.link(var)
+    return res
+
+def do_while(loop_fn, g=None):
     """ Do-while loop. The loop is stopped if the return value is zero.
     It must be public. The following executes exactly once:
 
@@ -1311,7 +1248,7 @@ def do_while(loop_fn):
     get_tape().open_scope(lambda x: x[0].set_all(float('Inf')), \
                               name='begin-loop')
     loop_block = instructions.program.curr_block
-    condition = loop_fn()
+    condition = _run_and_link(loop_fn, g)
     if callable(condition):
         condition = condition()
     branch = instructions.jmpnz(regint.conv(condition), 0, add_to_prog=False)
@@ -1398,7 +1335,7 @@ def if_(condition):
     """
     def decorator(body):
         if_then(condition)
-        body()
+        _run_and_link(body)
         end_if()
     return decorator
 
@@ -1421,44 +1358,39 @@ def if_e(condition):
     """
     def decorator(body):
         if_then(condition)
-        body()
+        _run_and_link(body)
     return decorator
 
 def else_(body):
     else_then()
-    body()
+    _run_and_link(body)
     end_if()
 
 def and_(*terms):
-    # not thread-safe
-    p_res = instructions.program.malloc(1, 'ci')
+    res = regint(0)
     for term in terms:
         if_then(term())
-    store_in_mem(1, p_res)
+    old_res = res
+    res = regint(1)
+    res.link(old_res)
     for term in terms:
         else_then()
-        store_in_mem(0, p_res)
         end_if()
     def load_result():
-        res = regint.load_mem(p_res)
-        instructions.program.free(p_res, 'ci')
         return res
     return load_result
 
 def or_(*terms):
-    # not thread-safe
-    p_res = instructions.program.malloc(1, 'ci')
-    res = regint()
+    res = regint(1)
     for term in terms:
         if_then(term())
-        store_in_mem(1, p_res)
         else_then()
-    store_in_mem(0, p_res)
+    old_res = res
+    res = regint(0)
+    res.link(old_res)
     for term in terms:
         end_if()
     def load_result():
-        res = regint.load_mem(p_res)
-        instructions.program.free(p_res, 'ci')
         return res
     return load_result
 

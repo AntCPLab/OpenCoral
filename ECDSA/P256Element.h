@@ -59,7 +59,6 @@ public:
     void sub(const P256Element& x, const P256Element& y) { *this = x - y; }
     void mul(const P256Element& x, const Scalar& y) { *this = x * y; }
     void mul(const Scalar& x, const P256Element& y) { *this = y * x; }
-    template<int T>
     void add(octetStream& os) { *this += os.get<P256Element>(); }
 
     void pack(octetStream& os) const;

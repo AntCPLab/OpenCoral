@@ -13,7 +13,6 @@
 #include "Protocols/MalRepRingPrep.hpp"
 #include "Protocols/MaliciousRepPrep.hpp"
 #include "Protocols/MAC_Check_Base.hpp"
-#include "Protocols/fake-stuff.hpp"
 #include "Protocols/MaliciousRepMC.hpp"
 #include "Protocols/Beaver.hpp"
 #include "Protocols/Spdz2kPrep.hpp"
@@ -21,10 +20,3 @@
 #include "GC/ShareSecret.hpp"
 #include "GC/RepPrep.hpp"
 #include "GC/ThreadMaster.hpp"
-
-template<>
-Preprocessing<Rep3Share<gf2n>>* Preprocessing<Rep3Share<gf2n>>::get_live_prep(
-    SubProcessor<Rep3Share<gf2n>>* proc, DataPositions& usage)
-{
-  return new ReplicatedPrep<Rep3Share<gf2n>>(proc, usage);
-}

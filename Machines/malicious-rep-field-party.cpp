@@ -6,6 +6,7 @@
 #include "Protocols/MaliciousRep3Share.h"
 #include "Protocols/ReplicatedMachine.hpp"
 #include "Machines/Rep.hpp"
+#include "Math/gfp.hpp"
 
 int main(int argc, const char** argv)
 {

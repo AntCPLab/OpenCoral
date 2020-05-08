@@ -9,6 +9,7 @@
 #include "Protocols/MAC_Check.h"
 
 #include "Protocols/MAC_Check.hpp"
+#include "Math/gfp.hpp"
 
 template <template <class> class T, class FD>
 SimpleGenerator<T,FD>::SimpleGenerator(const Names& N, const PartSetup<FD>& setup,
@@ -19,26 +20,27 @@ SimpleGenerator<T,FD>::SimpleGenerator(const Names& N, const PartSetup<FD>& setu
         volatile_memory(0), dd(P, setup),
         EC(P, setup.pk, setup.FieldD, timers, machine, thread_num)
 {
+    string prep_dir = machine.get_prep_dir<FD>(P);
     if (machine.produce_inputs)
-        producer = new InputProducer<FD>(P, thread_num, machine.output);
+        producer = new InputProducer<FD>(P, thread_num, machine.output, prep_dir);
     else
         switch (data_type)
         {
         case DATA_TRIPLE:
             producer = new TripleProducer_<FD>(setup.FieldD, P.my_num(),
-                    thread_num, machine.output);
+                    thread_num, machine.output, prep_dir);
             break;
         case DATA_SQUARE:
             producer = new SquareProducer<FD>(setup.FieldD, P.my_num(),
-                    thread_num, machine.output);
+                    thread_num, machine.output, prep_dir);
             break;
         case DATA_BIT:
             producer = new_bit_producer(setup.FieldD, P, setup.pk, machine.get_covert(), true,
-                    thread_num, machine.output);
+                    thread_num, machine.output, prep_dir);
             break;
         case DATA_INVERSE:
             producer = new InverseProducer<FD>(setup.FieldD, P.my_num(),
-                    thread_num, machine.output);
+                    thread_num, machine.output, true, prep_dir);
             break;
         default:
             throw runtime_error("data type not implemented");

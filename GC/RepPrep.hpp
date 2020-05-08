@@ -53,7 +53,10 @@ void RepPrep<T>::buffer_triples()
 
     assert(protocol != 0);
     auto MC = ShareThread<T>::s().new_mc({});
-    shuffle_triple_generation(this->triples, protocol->P, *MC, 64);
+    ThreadQueues* queues = 0;
+    if (BaseMachine::has_singleton() and BaseMachine::thread_num == 0)
+        queues = &BaseMachine::s().queues;
+    shuffle_triple_generation(this->triples, protocol->P, *MC, 64, queues);
     MC->Check(protocol->P);
     delete MC;
 }

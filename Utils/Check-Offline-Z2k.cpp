@@ -16,36 +16,16 @@ template <class W>
 void check_triples_Z2k(int n_players, string type_char = "")
 {
     typedef typename W::open_type T;
-    typedef typename W::mac_key_type U;
     typedef typename W::open_type V;
 
     T keyp; keyp.assign_zero();
-    U pp;
-    ifstream inpf;
-    for (int i= 0; i < n_players; i++)
-    {
-      stringstream ss;
-      ss << get_prep_dir(n_players, 128, 128) << "Player-MAC-Keys";
-      ss << "-P" << i;
-      cout << "Opening file " << ss.str() << endl;
-      inpf.open(ss.str().c_str());
-      if (inpf.fail()) { throw file_error(ss.str()); }
-      int n;
-      inpf >> n;
-      assert(n == n_players);
-      pp.input(inpf,true);
-      cout << " Key " << i << "\t p: " << pp << endl;
-      keyp.add(pp);
-      inpf.close();
-    }
-    cout << "--------------\n";
-    cout << "Final Keys :\t p: " << keyp << endl;
+    read_global_mac_key(get_prep_sub_dir<W>(n_players), n_players, keyp);
 
     ifstream* inputFiles = new ifstream[n_players];
     for (int i = 0; i < n_players; i++)
     {
         stringstream ss;
-        ss << get_prep_dir(n_players, 128, 128) << "Triples-";
+        ss << get_prep_sub_dir<W>(n_players) << "Triples-";
         if (type_char.size())
             ss << type_char;
         else
@@ -74,9 +54,9 @@ void check_triples_Z2k(int n_players, string type_char = "")
         check_share<T, V>(cs, c, mac, n_players, keyp);
         
         prod.mul(a, b);
-        if (prod != c)
+        if (typename W::clear(prod) != c)
         {
-          cout << j << ": " << c << " != " << a << " * " << b << endl;
+          cout << j << ": " << c << " != " << prod << " = " << a << " * " << b << endl;
           throw bad_value();
         }
         j++;

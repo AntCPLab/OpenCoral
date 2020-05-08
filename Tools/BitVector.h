@@ -288,21 +288,15 @@ void inline BitVector::set(const T& a)
     memcpy(bytes, a.get_ptr(), a.size());
 }
 
-template<>
-inline void BitVector::randomize_blocks<gfp1>(PRNG& G)
-{
-    gfp1 tmp;
-    for (size_t i = 0; i < (nbytes / gfp1::size()); i++)
-    {
-        tmp.randomize(G);
-        memcpy(bytes + i * gfp1::size(), tmp.get_ptr(), gfp1::size());
-    }
-}
-
 template<class T>
 inline void BitVector::randomize_blocks(PRNG& G)
 {
-    randomize(G);
+    T tmp;
+    for (size_t i = 0; i < (nbytes / T::size()); i++)
+    {
+        tmp.randomize(G);
+        memcpy(bytes + i * T::size(), tmp.get_ptr(), T::size());
+    }
 }
 
 #endif

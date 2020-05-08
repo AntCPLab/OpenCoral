@@ -19,6 +19,7 @@
 #include "Player-Online.hpp"
 
 #include "Protocols/CowGearPrep.hpp"
+#include "Math/gfp.hpp"
 
 int main(int argc, const char** argv)
 {

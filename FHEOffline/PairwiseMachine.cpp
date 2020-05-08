@@ -39,7 +39,7 @@ void PairwiseMachine::init()
         gfp::init_field(p);
         ofstream outf;
         if (output)
-            write_online_setup(outf, PREP_DIR, p, 40);
+            write_online_setup(get_prep_dir<FFT_Data>(P), p);
     }
 
     for (int i = 0; i < nthreads; i++)
@@ -68,8 +68,7 @@ void PairwiseMachine::setup_keys()
     PairwiseSetup<FD>& s = setup<FD>();
     s.init(P, drown_sec, field_size, extra_slack);
     if (output)
-        write_mac_keys(PREP_DIR, P.my_num(), P.num_players(), setup_p.alphai,
-                setup_2.alphai);
+        write_mac_key(get_prep_dir<FD>(P), P.my_num(), P.num_players(), s.alphai);
     for (auto& x : other_pks)
         x = FHE_PK(s.params, s.FieldD.get_prime());
     sk = FHE_SK(pk);

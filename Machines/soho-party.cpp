@@ -20,11 +20,11 @@
 #include "Protocols/SemiInput.hpp"
 #include "Protocols/MAC_Check_Base.hpp"
 #include "Protocols/MAC_Check.hpp"
-#include "Protocols/fake-stuff.hpp"
 #include "Protocols/SemiMC.hpp"
 #include "Protocols/Beaver.hpp"
 #include "GC/ShareSecret.hpp"
 #include "GC/SemiHonestRepPrep.h"
+#include "Math/gfp.hpp"
 
 int main(int argc, const char** argv)
 {

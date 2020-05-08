@@ -13,6 +13,7 @@
 #include "GC/Machine.hpp"
 #include "GC/Secret.hpp"
 #include "GC/Thread.hpp"
+#include "Tools/MMO.hpp"
 
 thread_local YaoGarbler* YaoGarbler::singleton = 0;
 
@@ -87,8 +88,14 @@ void YaoGarbler::post_run()
 
 void YaoGarbler::send(Player& P)
 {
+#ifdef DEBUG_YAO
+    cerr << "sending " << gates.size() << " gates and " <<
+            output_masks.size() << " output masks at " << processor.PC << endl;
+#endif
 	P.send_long(1, YaoCommon::MORE);
+	size_t size = gates.size();
 	P.send_to(1, gates, true);
+	gates.allocate(2 * size);
 	P.send_to(1, output_masks, true);
 }
 

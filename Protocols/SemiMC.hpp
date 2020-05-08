@@ -11,34 +11,38 @@
 #include "MAC_Check.hpp"
 
 template<class T>
-void SemiMC<T>::POpen_Begin(vector<typename T::open_type>& values,
-        const vector<T>& S, const Player& P)
+void SemiMC<T>::prepare_open(const T& secret)
 {
-    values.clear();
-    for (auto& x : S)
-        values.push_back(x);
-    this->start(values, P);
+    this->values.push_back(secret);
 }
 
 template<class T>
-void SemiMC<T>::POpen_End(vector<typename T::open_type>& values,
-        const vector<T>& S, const Player& P)
+void SemiMC<T>::exchange(const Player& P)
 {
-    (void) S;
-    this->finish(values, P);
+    this->run(this->values, P);
 }
 
 template<class T>
 void DirectSemiMC<T>::POpen_(vector<typename T::open_type>& values,
         const vector<T>& S, const PlayerBase& P)
 {
-    values.clear();
-    values.insert(values.begin(), S.begin(), S.end());
+    this->values.clear();
+    this->values.reserve(S.size());
+    for (auto& secret : S)
+        this->prepare_open(secret);
+    this->exchange_(P);
+    values = this->values;
+}
+
+template<class T>
+void DirectSemiMC<T>::exchange_(const PlayerBase& P)
+{
     Bundle<octetStream> oss(P);
-    for (auto& x : values)
+    oss.mine.reserve(this->values.size());
+    for (auto& x : this->values)
         x.pack(oss.mine);
     P.Broadcast_Receive(oss, true);
-    direct_add_openings<typename T::open_type, 0>(values, P, oss);
+    direct_add_openings<typename T::open_type>(this->values, P, oss);
 }
 
 template<class T>
@@ -59,7 +63,7 @@ void DirectSemiMC<T>::POpen_End(vector<typename T::open_type>& values,
 {
     Bundle<octetStream> oss(P);
     P.receive_all(oss);
-    direct_add_openings<typename T::open_type, 0>(values, P, oss);
+    direct_add_openings<typename T::open_type>(values, P, oss);
 }
 
 #endif

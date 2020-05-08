@@ -16,6 +16,7 @@ class PointerVector : public vector<T>
 
 public:
     PointerVector(size_t size = 0) : vector<T>(size), i(0) {}
+    PointerVector(const vector<T>& other) : vector<T>(other), i(0) {}
     void clear()
     {
         vector<T>::clear();

@@ -101,7 +101,7 @@ void run(int argc, const char** argv)
     DataPositions usage;
 
     OnlineOptions::singleton.batch_size = 1;
-    typename pShare::Direct_MC MCp(keyp, N, 0);
+    typename pShare::Direct_MC MCp(keyp);
     ArithmeticProcessor _({}, 0);
     typename pShare::LivePrep sk_prep(0, usage);
     GC::ShareThread<typename pShare::bit_type> thread(N,

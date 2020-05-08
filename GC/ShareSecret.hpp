@@ -45,6 +45,14 @@ void ShareSecret<U>::check_length(int n, const Integer& x)
 }
 
 template<class U>
+void ShareSecret<U>::invert(int n, const U& x)
+{
+    U ones;
+    ones.load_clear(64, -1);
+    static_cast<U&>(*this) = U(x ^ ones) & get_mask(n);
+}
+
+template<class U>
 void ReplicatedSecret<U>::load_clear(int n, const Integer& x)
 {
     this->check_length(n, x);

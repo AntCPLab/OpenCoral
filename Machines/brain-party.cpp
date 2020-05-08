@@ -9,6 +9,7 @@
 
 #include "Protocols/ReplicatedMachine.hpp"
 #include "Machines/RepRing.hpp"
+#include "Math/gfp.hpp"
 
 int main(int argc, const char** argv)
 {

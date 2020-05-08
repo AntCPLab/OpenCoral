@@ -362,31 +362,3 @@ void imatrix::unpack(octetStream& o)
       x.unpack(o);
     }
 }
-
-ostream& operator<<(ostream& s,const imatrix& A)
-{
-  s << A.size() << " " << A[0].size() << endl;
-  for (unsigned int i=0; i<A.size(); i++)
-    { for (unsigned int j=0; j<A[0].size(); j++)
-        { s << A[i][j] << " "; }
-      s << endl;
-    }
-  return s;
-}
-
-istream& operator>>(istream& s,imatrix& A)
-{
-  int r,c;
-  s >> r >> c;
-  A.resize(r, imatrix::value_type(c) );
-  for (int i=0; i<r; i++)
-    { for (int j=0; j<c; j++)
-        {
-          bool b;
-          s >> b;
-          A[i][j] = b;
-        }
-    }
-  return s;
-}
-

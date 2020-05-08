@@ -32,7 +32,8 @@ public:
 
     CowGearPrep(SubProcessor<T>* proc, DataPositions& usage) :
             BufferPrep<T>(usage),
-            RingPrep<T>(proc, usage), MaliciousRingPrep<T>(proc, usage),
+            BitPrep<T>(proc, usage), RingPrep<T>(proc, usage),
+            MaliciousRingPrep<T>(proc, usage),
             pairwise_generator(0)
     {
     }

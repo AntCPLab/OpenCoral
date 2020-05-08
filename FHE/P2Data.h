@@ -49,9 +49,6 @@ class P2Data
 
   void load_or_generate(const Ring& Rg);
 
-  friend ostream& operator<<(ostream& s,const P2Data& P2D);
-  friend istream& operator>>(istream& s,P2Data& P2D);
-
   friend void init(P2Data& P2D,const Ring& Rg);
 };
 

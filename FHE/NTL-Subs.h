@@ -60,7 +60,7 @@ int common_semi_setup(FHE_Params& params, int m, bigint p, int lgp0, int lgp1,
     bool round_up);
 
 // Everything else needs NTL
-void init(Ring& Rg,int m);
+void init(Ring& Rg, int m, bool generate_poly);
 void init(P2Data& P2D,const Ring& Rg);
 
 // For use when we want p to be a specific value 

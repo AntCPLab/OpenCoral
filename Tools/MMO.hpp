@@ -5,14 +5,11 @@
  */
 
 #include "MMO.h"
-#include "Math/gf2n.h"
 #include "Math/gfp.h"
-#include "Math/bigint.h"
-#include "Math/Z2k.h"
-#include "Math/BitVec.h"
 #include <unistd.h>
 
 
+inline
 void MMO::zeroIV()
 {
     if (N_KEYS > (1 << 8))
@@ -26,7 +23,7 @@ void MMO::zeroIV()
     }
 }
 
-
+inline
 void MMO::setIV(int i, octet key[AES_BLK_SIZE])
 {
     aes_schedule(IV[i],key);
@@ -72,73 +69,64 @@ void MMO::hashBlocks(void* output, const void* input)
 }
 
 template <>
+inline
 void MMO::hashBlocks<gfp1, 1>(void* output, const void* input)
 {
     if (gfp1::get_ZpD().get_t() != 2)
         throw not_implemented();
     encrypt_and_xor<1>(output, input, IV[0]);
     while (mpn_cmp((mp_limb_t*)output, gfp1::get_ZpD().get_prA(), gfp1::t()) >= 0)
-        encrypt_and_xor<1>(output, output, IV[0]);
+        _mm_storeu_si128((__m128i *) output,
+                aes_128_encrypt(_mm_loadu_si128((__m128i *) output), IV[0]));
 }
 
 template <int X, int L>
 void MMO::hashEightGfp(void* output, const void* input)
 {
-    if (gfp_<X, L>::get_ZpD().get_t() < 2)
-        throw not_implemented();
     gfp_<X, L>* out = (gfp_<X, L>*)output;
-    hashBlocks<8, gfp_<X, L>::N_BYTES>(output, input, sizeof(gfp_<X, L>));
-    for (int i = 0; i < 8; i++)
-        out[i].zero_overhang();
+    const int block_size = sizeof(__m128i);
+    const int n_blocks = (gfp_<X, L>::N_BYTES + block_size - 1) / block_size;
+    __m128i tmp[8][n_blocks];
+    hashBlocks<8, n_blocks * block_size>(tmp, input, n_blocks * block_size);
     int left = 8;
     int indices[8] = {0, 1, 2, 3, 4, 5, 6, 7};
     while (left)
     {
         int now_left = 0;
         for (int j = 0; j < left; j++)
+        {
+            memcpy(out[indices[j]].get_ptr(), &tmp[indices[j]], gfp_<X, L>::N_BYTES);
+            out[indices[j]].zero_overhang();
             if (mpn_cmp((mp_limb_t*) out[indices[j]].get_ptr(),
                     gfp_<X, L>::get_ZpD().get_prA(), gfp_<X, L>::t()) >= 0)
             {
                 indices[now_left] = indices[j];
                 now_left++;
             }
+        }
         left = now_left;
 
-        int block_size = sizeof(__m128i);
-        int n_blocks = DIV_CEIL(gfp_<X, L>::size(), block_size);
-        for (int i = 0; i < n_blocks; i++)
-            for (int j = 0; j < left; j++)
+        for (int j = 0; j < left; j++)
+        {
+            __m128i in = tmp[indices[j]][0];
+            for (int i = 0; i < n_blocks; i++)
             {
-                __m128i* addr = (__m128i*) out[indices[j]].get_ptr() + i;
-                __m128i* in = (__m128i*) out[indices[j]].get_ptr();
-                auto tmp = aes_128_encrypt(_mm_loadu_si128(in), IV[i]);
-                memcpy(addr, &tmp, min(block_size, gfp_<X, L>::size() - i * block_size));
-                out[indices[j]].zero_overhang();
+                tmp[indices[j]][i] = aes_128_encrypt(in, IV[i]);
             }
+        }
     }
 }
 
 template <>
+inline
 void MMO::hashBlocks<gfp1, 8>(void* output, const void* input)
 {
     hashEightGfp<1, GFP_MOD_SZ>(output, input);
 }
 
 template <>
+inline
 void MMO::hashBlocks<gfp3, 8>(void* output, const void* input)
 {
     hashEightGfp<3, 4>(output, input);
 }
-
-#define ZZ(F,N) \
-    template void MMO::hashBlocks<F,N>(void*, const void*);
-#define Z(F) ZZ(F,1) ZZ(F,2) ZZ(F,8)
-Z(gf2n_long) Z(Z2<64>) Z(Z2<112>) Z(Z2<128>) Z(Z2<160>) Z(Z2<114>) Z(Z2<130>)
-Z(Z2<72>)
-Z(SignedZ2<64>) Z(SignedZ2<72>)
-Z(gf2n_short)
-Z(BitVec)
-Z(Z2<41>)
-Z(Z2<120>) Z(Z2<122>) Z(Z2<136>) Z(Z2<138>)
-Z(Z2<65>) Z(Z2<49>)
-Z(Z2<40>)

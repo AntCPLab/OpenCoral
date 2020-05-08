@@ -206,10 +206,11 @@ void RealGarbleWire<T>::load(
 }
 
 template<class T>
-void RealGarbleWire<T>::convcbit(Integer& dest, const GC::Clear& source)
+void RealGarbleWire<T>::convcbit(Integer& dest, const GC::Clear& source,
+        GC::Processor<GC::Secret<RealGarbleWire>>& processor)
 {
 	(void) source;
 	auto& party = RealProgramParty<T>::s();
-	party.untaint();
+	processor.untaint();
 	dest = party.convcbit;
 }

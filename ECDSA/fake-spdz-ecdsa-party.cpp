@@ -36,11 +36,10 @@ int main(int argc, const char** argv)
     P256Element::init();
 
     P256Element::Scalar keyp;
-    gf2n key2;
-    string prefix = PREP_DIR "ECDSA/";
-    read_mac_keys(prefix, N, keyp, key2);
-
     typedef Share<P256Element::Scalar> pShare;
+    string prefix = get_prep_sub_dir<pShare>(PREP_DIR "ECDSA/", 2);
+    read_mac_key(prefix, N, keyp);
+
     DataPositions usage;
     Sub_Data_Files<pShare> prep(N, prefix, usage);
     typename pShare::Direct_MC MCp(keyp);

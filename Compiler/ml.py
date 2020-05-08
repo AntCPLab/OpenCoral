@@ -14,8 +14,9 @@ functionality is logistic regression. It can be run as follows::
 This loads measurements from party 0 and labels (0/1) from party
 1. After running, the model is stored in :py:obj:`sgd.layers[0].W` and
 :py:obj:`sgd.layers[1].b`. The :py:obj:`approx` parameter determines
-whether to use an approximate sigmoid function. Inference can be run as
-follows::
+whether to use an approximate sigmoid function. Setting it to 5 uses
+a five-piece approximation instead of a three-piece one.
+Inference can be run as follows::
 
     data = sfix.Matrix(n_test, n_features)
     data.input_from(0)
@@ -761,32 +762,28 @@ class Optimizer:
         i = MemValue(0)
         @do_while
         def _():
-            if self.X_by_label is not None:
-                assert N % 2 == 0
-                n = N // 2
-                n_per_epoch = int(math.ceil(1. * max(len(X) for X in
-                                                     self.X_by_label) / n))
-                print('%d runs per epoch' % n_per_epoch)
-                indices_by_label = []
-                for label, X in enumerate(self.X_by_label):
-                    indices = regint.Array(n * n_per_epoch)
-                    indices_by_label.append(indices)
-                    indices.assign(regint.inc(len(indices), 0, 1, 1, len(X)))
-                    indices.shuffle()
-                @for_range(n_per_epoch)
-                def _(j):
-                    batch = regint.Array(N)
-                    for label, X in enumerate(self.X_by_label):
-                        indices = indices_by_label[label]
-                        batch.assign(indices.get_vector(j * n, n) +
-                                     regint(label * len(self.X_by_label[0]), size=n),
-                                     label * n)
-                    self.forward(batch=batch)
-                    self.backward(batch=batch)
-                    self.update(i)
-            else:
+            if self.X_by_label is None:
+                self.X_by_label = [[None] * self.layers[0].N]
+            assert len(self.X_by_label) in (1, 2)
+            assert N % len(self.X_by_label) == 0
+            n = N // len(self.X_by_label)
+            n_per_epoch = int(math.ceil(1. * max(len(X) for X in
+                                                 self.X_by_label) / n))
+            print('%d runs per epoch' % n_per_epoch)
+            indices_by_label = []
+            for label, X in enumerate(self.X_by_label):
+                indices = regint.Array(n * n_per_epoch)
+                indices_by_label.append(indices)
+                indices.assign(regint.inc(len(indices), 0, 1, 1, len(X)))
+                indices.shuffle()
+            @for_range(n_per_epoch)
+            def _(j):
                 batch = regint.Array(N)
-                batch.assign(regint.inc(N))
+                for label, X in enumerate(self.X_by_label):
+                    indices = indices_by_label[label]
+                    batch.assign(indices.get_vector(j * n, n) +
+                                 regint(label * len(self.X_by_label[0]), size=n),
+                                 label * n)
                 self.forward(batch=batch)
                 self.backward(batch=batch)
                 self.update(i)

@@ -28,8 +28,6 @@ class Rq_Element;
 
 // Forward declaration as apparently this is needed for friends in templates
 template<class T,class FD,class S> class Plaintext;
-template<class T,class FD,class S> ostream& operator<<(ostream& s,const Plaintext<T,FD,S>& e);
-template<class T,class FD,class S> istream& operator>>(istream& s, Plaintext<T,FD,S>& e);
 template<class T,class FD,class S> void add(Plaintext<T,FD,S>& z,const Plaintext<T,FD,S>& x,const Plaintext<T,FD,S>& y);
 template<class T,class FD,class S> void sub(Plaintext<T,FD,S>& z,const Plaintext<T,FD,S>& x,const Plaintext<T,FD,S>& y);
 template<class T,class FD,class S> void mul(Plaintext<T,FD,S>& z,const Plaintext<T,FD,S>& x,const Plaintext<T,FD,S>& y);
@@ -180,9 +178,6 @@ class Plaintext
 
   bool is_diagonal() const { throw not_implemented(); }
   bool is_binary() const { throw not_implemented(); }
-
-  friend ostream& operator<< <>(ostream& s,const Plaintext& e);
-  friend istream& operator>> <>(istream& s,Plaintext& e);
 
   /* Pack and unpack into an octetStream 
    *   For unpack we assume the FFTD has been assigned correctly already

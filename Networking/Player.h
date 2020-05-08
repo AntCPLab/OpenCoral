@@ -17,7 +17,7 @@ using namespace std;
 #include "Tools/octetStream.h"
 #include "Tools/FlexBuffer.h"
 #include "Networking/sockets.h"
-#include "Tools/sha1.h"
+#include "Tools/Hash.h"
 #include "Tools/int.h"
 #include "Networking/Receiver.h"
 #include "Networking/Sender.h"
@@ -51,18 +51,18 @@ class Names
   mutable ServerSocket* server;
 
   void init(int player,int pnb,int my_port,const char* servername);
-  Names(int player,int pnb,int my_port,const char* servername)
+  Names(int player,int pnb,int my_port,const char* servername) : Names()
     { init(player,pnb,my_port,servername); }
   // Set up names when we KNOW who we are going to be using before hand
   void init(int player,int pnb,vector<octet*> Nms);
-  Names(int player,int pnb,vector<octet*> Nms)
+  Names(int player,int pnb,vector<octet*> Nms) : Names()
     { init(player,pnb,Nms); }
   void init(int player,int pnb,vector<string> Nms);
-  Names(int player,int pnb,vector<string> Nms)
+  Names(int player,int pnb,vector<string> Nms) : Names()
     { init(player,pnb,Nms); }
   // nplayers = 0 for taking it from hostsfile
   void init(int player, int pnb, const string& hostsfile, int players = 0);
-  Names(int player, int pnb, const string& hostsfile)
+  Names(int player, int pnb, const string& hostsfile) : Names()
     { init(player, pnb, hostsfile); }
 
   // initialize from command-line options
@@ -140,7 +140,7 @@ class Player : public PlayerBase
 protected:
   int nplayers;
 
-  mutable blk_SHA_CTX ctx;
+  mutable Hash ctx;
 
 public:
   const Names& N;

@@ -22,6 +22,8 @@ void BufferBase::setup(ifstream* f, int length, string filename,
 
 void BufferBase::seekg(int pos)
 {
+    if (not file)
+        file = open();
     file->seekg(pos * tuple_length);
     if (file->eof() || file->fail())
     {

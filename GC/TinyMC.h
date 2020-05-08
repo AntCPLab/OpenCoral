@@ -15,8 +15,7 @@ template<class T>
 class TinyMC : public MAC_Check_Base<T>
 {
     typename T::check_type::MAC_Check part_MC;
-    vector<typename T::part_type::open_type> part_values;
-    vector<typename T::check_type> part_shares;
+    PointerVector<int> sizes;
 
 public:
     TinyMC(typename T::mac_key_type mac_key) :
@@ -30,30 +29,32 @@ public:
         return part_MC;
     }
 
-    void POpen_Begin(vector<typename T::open_type>& values, const vector<T>& S,
-            const Player& P)
+    void init_open(const Player& P, int n)
     {
-        values.clear();
-        part_shares.clear();
-        for (auto& share : S)
-            for (auto& part : share.get_regs())
-                part_shares.push_back(part);
-        part_MC.POpen_Begin(part_values, part_shares, P);
+        part_MC.init_open(P);
+        sizes.clear();
+        sizes.reserve(n);
     }
 
-    void POpen_End(vector<typename T::open_type>& values, const vector<T>& S,
-            const Player& P)
+    void prepare_open(const T& secret)
     {
-        values.clear();
-        part_MC.POpen_End(part_values, part_shares, P);
-        int i = 0;
-        for (auto& share : S)
-        {
-            typename T::open_type opened = 0;
-            for (size_t j = 0; j < share.get_regs().size(); j++)
-                opened += typename T::open_type(part_values[i++].get_bit(0)) << j;
-            values.push_back(opened);
-        }
+        for (auto& part : secret.get_regs())
+            part_MC.prepare_open(part);
+        sizes.push_back(secret.get_regs().size());
+    }
+
+    void exchange(const Player& P)
+    {
+        part_MC.exchange(P);
+    }
+
+    typename T::open_type finalize_open()
+    {
+        int n = sizes.next();
+        typename T::open_type opened = 0;
+        for (int i = 0; i < n; i++)
+            opened += typename T::open_type(part_MC.finalize_open().get_bit(0)) << i;
+        return opened;
     }
 
     void Check(const Player& P)

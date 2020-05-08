@@ -18,6 +18,7 @@
 #include "Protocols/fake-stuff.hpp"
 #include "Processor/Data_Files.hpp"
 #include "Math/Z2k.hpp"
+#include "Math/gfp.hpp"
 
 #include <sstream>
 #include <fstream>
@@ -52,6 +53,10 @@ void check_mult_triples(const typename T::mac_key_type& key,int N,vector<Sub_Dat
         }
 
       cout << n << " triples of type " << T::type_string() << endl;
+  }
+  catch (file_error& e)
+  {
+      cout << e.what() << " after " << n << " triples of type " << T::type_string() << endl;
   }
   catch (exception& e)
   {
@@ -186,13 +191,16 @@ vector<Sub_Data_Files<T>*> setup(int N, DataPositions& usage, int thread_num = -
 {
   vector<Sub_Data_Files<T>*> dataF(N);
   for (int i = 0; i < N; i++)
-    dataF[i] = new Sub_Data_Files<T>(i, N, PREP_DATA_PREFIX, usage, thread_num);
+    dataF[i] = new Sub_Data_Files<T>(i, N,
+        get_prep_sub_dir<T>(PREP_DATA_PREFIX, N), usage, thread_num);
   return dataF;
 }
 
 template<class T>
-void check(typename T::mac_key_type key, int N, bool only_bits = false)
+void check(int N, bool only_bits = false)
 {
+  typename T::mac_key_type key;
+  read_global_mac_key(get_prep_sub_dir<T>(PREP_DATA_PREFIX, N), N, key);
   DataPositions usage(N);
   auto dataF = setup<T>(N, usage);
   check_bits(key, N, dataF);
@@ -278,9 +286,18 @@ int main(int argc, const char** argv)
       PREP_DATA_PREFIX += "/";
     }
   else
-    PREP_DATA_PREFIX = get_prep_dir(nparties, lgp, lg2);
+    PREP_DATA_PREFIX = PREP_DIR;
 
-  read_setup(PREP_DATA_PREFIX);
+  string prep_dir = get_prep_sub_dir<Share<gfp>>(PREP_DATA_PREFIX, nparties, lgp);
+
+  try
+    {
+      read_setup(prep_dir);
+    }
+  catch (exception& e)
+    {
+      cerr << "Ignoring: " << e.what() << endl;
+    }
 
   if (!use_montgomery)
   {
@@ -288,30 +305,27 @@ int main(int argc, const char** argv)
     gfp::init_field(gfp::pr(), false);
   }
 
-  /* Find number players and MAC keys etc*/
-  char filename[1024];
-  gfp keyp,pp; keyp.assign_zero();
-  gf2n key2,p2; key2.assign_zero();
-  int N=1;
-  ifstream inpf;
-  for (int i= 0; i < nparties; i++)
-  {
-      sprintf(filename, (PREP_DATA_PREFIX + "Player-MAC-Keys-P%d").c_str(), i);
-      inpf.open(filename);
-      if (inpf.fail()) { throw file_error(filename); }
-      inpf >> N;
-      pp.input(inpf,true);
-      p2.input(inpf,true);
-      cout << " Key " << i << "\t p: " << pp << "\n\t 2: " << p2 << endl;
-      keyp.add(pp);
-      key2.add(p2);
-      inpf.close();
-  }
-  cout << "--------------\n";
-  cout << "Final Keys :\t p: " << keyp << "\n\t\t 2: " << key2 << endl;
+  int N = nparties;
 
-  check<Share<gfp>>(keyp, N);
-  check<Share<gf2n>>(key2, N);
+  try
+    {
+      check<Share<gfp>>(N);
+    }
+  catch (exception& e)
+    {
+      cerr << "Ignoring: " << e.what() << endl;
+    }
+
+  if (lg2 > 64)
+    {
+      gf2n_long::init_field(lg2);
+      check<Share<gf2n_long>>(N);
+    }
+  else
+    {
+      gf2n_short::init_field(lg2);
+      check<Share<gf2n_short>>(N);
+    }
 
   if (N == 3)
     {

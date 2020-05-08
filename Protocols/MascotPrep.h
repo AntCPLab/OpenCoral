@@ -34,7 +34,8 @@ class MascotPrep: public virtual MaliciousRingPrep<T>,
 {
 public:
     MascotPrep(SubProcessor<T>* proc, DataPositions& usage) :
-            BufferPrep<T>(usage), RingPrep<T>(proc, usage),
+            BufferPrep<T>(usage), BitPrep<T>(proc, usage),
+            RingPrep<T>(proc, usage),
             MaliciousRingPrep<T>(proc, usage),
             OTPrep<T>(proc, usage)
     {
@@ -61,7 +62,8 @@ class MascotFieldPrep : public MascotPrep<T>
 public:
     MascotFieldPrep<T>(SubProcessor<T>* proc, DataPositions& usage) :
             BufferPrep<T>(usage),
-            RingPrep<T>(proc, usage), MaliciousRingPrep<T>(proc, usage),
+            BitPrep<T>(proc, usage), RingPrep<T>(proc, usage),
+            MaliciousRingPrep<T>(proc, usage),
             OTPrep<T>(proc, usage), MascotPrep<T>(proc, usage)
     {
     }

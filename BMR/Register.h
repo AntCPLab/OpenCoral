@@ -240,7 +240,8 @@ public:
 	static T get_input(int from, GC::Processor<T>& processor, int n_bits)
 	{ return T::input(from, processor.get_input(n_bits), n_bits); }
 
-	static void convcbit(Integer& dest, const GC::Clear& source)
+	template<class T>
+	static void convcbit(Integer& dest, const GC::Clear& source, T&)
 	{ (void) dest, (void) source; throw not_implemented(); }
 
 	void input(party_id_t from, char value = -1) { (void)from; (void)value; }
@@ -324,7 +325,8 @@ public:
 		throw runtime_error("use EvalRegister::inputb()");
 	}
 
-	static void convcbit(Integer& dest, const GC::Clear& source);
+	static void convcbit(Integer& dest, const GC::Clear& source,
+	        GC::Processor<GC::Secret<EvalRegister>>& proc);
 
 	EvalRegister(const Register& reg) : ProgramRegister(reg) {}
 

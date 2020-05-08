@@ -209,7 +209,6 @@ Player::Player(const Names& Nms) :
 {
   nplayers=Nms.nplayers;
   player_no=Nms.player_no;
-  blk_SHA1_Init(&ctx);
 }
 
 
@@ -320,7 +319,7 @@ void Player::send_to(int player,const octetStream& o,bool donthash) const
   TimeScope ts(comm_stats["Sending directly"].add(o));
   send_to_no_stats(player, o);
   if (!donthash)
-    { blk_SHA1_Update(&ctx,o.get_data(),o.get_length()); }
+    { hash_update(&ctx,o.get_data(),o.get_length()); }
   sent += o.get_length();
 }
 
@@ -341,7 +340,7 @@ void MultiPlayer<T>::send_all(const octetStream& o,bool donthash) const
          { o.Send(sockets[i]); }
      }
   if (!donthash)
-    { blk_SHA1_Update(&ctx,o.get_data(),o.get_length()); }
+    { hash_update(&ctx,o.get_data(),o.get_length()); }
   sent += o.get_length() * (num_players() - 1);
 }
 
@@ -363,7 +362,7 @@ void Player::receive_player(int i,octetStream& o,bool donthash) const
   receive_player_no_stats(i, o);
   comm_stats["Receiving directly"].add(o, ts);
   if (!donthash)
-    { blk_SHA1_Update(&ctx,o.get_data(),o.get_length()); }
+    { hash_update(&ctx,o.get_data(),o.get_length()); }
 }
 
 template<class T>
@@ -464,7 +463,7 @@ void MultiPlayer<T>::Broadcast_Receive(vector<octetStream>& o,bool donthash) con
     }
   if (!donthash)
     { for (int i=0; i<nplayers; i++)
-        { blk_SHA1_Update(&ctx,o[i].get_data(),o[i].get_length()); }
+        { hash_update(&ctx,o[i].get_data(),o[i].get_length()); }
     }
   sent += o[player_no].get_length() * (num_players() - 1);
 }
@@ -474,10 +473,8 @@ void Player::Check_Broadcast() const
 {
   if (ctx.size == 0)
     return;
-  octet hashVal[HASH_SIZE];
   vector<octetStream> h(nplayers);
-  blk_SHA1_Final(hashVal,&ctx);
-  h[player_no].append(hashVal,HASH_SIZE);
+  h[player_no].concat(ctx.final());
 
   Broadcast_Receive(h,true);
   for (int i=0; i<nplayers; i++)
@@ -486,7 +483,7 @@ void Player::Check_Broadcast() const
 	    { throw broadcast_invalid(); }
         }
     }
-  blk_SHA1_Init(&ctx);
+  ctx.reset();
 }
 
 template<>
@@ -580,7 +577,7 @@ void ThreadPlayer::send_all(const octetStream& o,bool donthash) const
      }
 
   if (!donthash)
-    { blk_SHA1_Update(&ctx,o.get_data(),o.get_length()); }
+    { hash_update(&ctx,o.get_data(),o.get_length()); }
 
   for (int i = 0; i < nplayers; i++)
     if (i != player_no)

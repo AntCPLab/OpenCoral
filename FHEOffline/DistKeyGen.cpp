@@ -274,10 +274,7 @@ void check_randomness(vector<octetStream>& seeds,
     // Check key-switching data
     if (!ed_sum.c0().equals(actual_sw.c0()) ||
         !ed_sum.c1().equals(actual_sw.c1()))
-      { cout << ed_sum.c0() << endl;
-        cout << actual_sw.c0() << endl << endl;
-        cout << ed_sum.c1() << endl;
-        cout << actual_sw.c1() << endl << endl;
+      {
         throw bad_keygen("switching key doesn't match");
       }
 }

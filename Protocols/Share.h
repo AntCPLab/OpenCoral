@@ -15,11 +15,10 @@ using namespace std;
 
 // Forward declaration as apparently this is needed for friends in templates
 template<class T> class Share;
-template<class T> T combine(const vector< Share<T> >& S);
-template<class T> bool check_macs(const vector< Share<T> >& S,const T& key);
 
 template<class T> class MAC_Check_;
 template<class T> class Direct_MAC_Check;
+template<class T> class Passing_MAC_Check;
 template<class T> class MascotMultiplier;
 template<class T> class MascotFieldPrep;
 template<class T> class MascotTripleGenerator;
@@ -97,10 +96,10 @@ class Share_ : public ShareInterface
    /* Arithmetic Routines */
    void mul(const Share_<T, V>& S,const clear& aa);
    void mul_by_bit(const Share_<T, V>& S,const clear& aa);
-   void add(const Share_<T, V>& S,const clear& aa,int my_num,const T& alphai);
+   void add(const Share_<T, V>& S,const clear& aa,int my_num,const V& alphai);
    void negate() { a.negate(); mac.negate(); }
-   void sub(const Share_<T, V>& S,const clear& aa,int my_num,const T& alphai);
-   void sub(const clear& aa,const Share_<T, V>& S,int my_num,const T& alphai);
+   void sub(const Share_<T, V>& S,const clear& aa,int my_num,const V& alphai);
+   void sub(const clear& aa,const Share_<T, V>& S,int my_num,const V& alphai);
    void add(const Share_<T, V>& S1,const Share_<T, V>& S2);
    void sub(const Share_<T, V>& S1,const Share_<T, V>& S2);
    void add(const Share_<T, V>& S1) { add(*this,S1); }
@@ -147,18 +146,6 @@ class Share_ : public ShareInterface
 
    void pack(octetStream& os, bool full = true) const;
    void unpack(octetStream& os, bool full = true);
-
-    /* Takes a vector of shares, one from each player and
-     * determines the shared value
-     *   - i.e. Partially open the shares
-     */
-   friend T combine<T>(const vector< Share<T> >& S);
-
-   /* Given a set of shares, one from each player and
-    * the global key, determines if the sharing is valid
-    *   - Mainly for test purposes
-    */
-   friend bool check_macs<T>(const vector< Share<T> >& S,const T& key);
 };
 
 // SPDZ(2k) only
@@ -180,7 +167,7 @@ public:
     typedef Rectangle Square;
 
     typedef MAC_Check_<Share> MAC_Check;
-    typedef Direct_MAC_Check<Share> Direct_MC;
+    typedef Passing_MAC_Check<Share> Direct_MC;
     typedef ::Input<Share> Input;
     typedef ::PrivateOutput<Share> PrivateOutput;
     typedef SPDZ<Share> Protocol;
@@ -191,6 +178,10 @@ public:
 
     static string type_string()
       { return "SPDZ " + T::type_string(); }
+
+    template<class U>
+    static void read_or_generate_mac_key(string directory, const Names& N,
+            U& key);
 
     Share() {}
     template<class U>
@@ -228,19 +219,19 @@ inline void Share_<T, V>::mul(const Share_<T, V>& S,const clear& aa)
 }
 
 template<class T, class V>
-inline void Share_<T, V>::add(const Share_<T, V>& S,const clear& aa,int my_num,const T& alphai)
+inline void Share_<T, V>::add(const Share_<T, V>& S,const clear& aa,int my_num,const V& alphai)
 {
   *this = S + Share_<T, V>(aa, my_num, alphai);
 }
 
 template<class T, class V>
-inline void Share_<T, V>::sub(const Share_<T, V>& S,const clear& aa,int my_num,const T& alphai)
+inline void Share_<T, V>::sub(const Share_<T, V>& S,const clear& aa,int my_num,const V& alphai)
 {
   *this = S - Share_<T, V>(aa, my_num, alphai);
 }
 
 template<class T, class V>
-inline void Share_<T, V>::sub(const clear& aa,const Share_<T, V>& S,int my_num,const T& alphai)
+inline void Share_<T, V>::sub(const clear& aa,const Share_<T, V>& S,int my_num,const V& alphai)
 {
   *this = Share_<T, V>(aa, my_num, alphai) - S;
 }

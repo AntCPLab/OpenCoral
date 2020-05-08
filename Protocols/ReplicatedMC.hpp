@@ -31,8 +31,16 @@ void ReplicatedMC<T>::prepare(const vector<T>& S)
     assert(T::length == 2);
     o.reset_write_head();
     to_send.reset_write_head();
+    to_send.reserve(S.size() * T::value_type::size());
     for (auto& x : S)
         x[0].pack(to_send);
+}
+
+template<class T>
+void ReplicatedMC<T>::exchange(const Player& P)
+{
+    prepare(this->secrets);
+    P.pass_around(to_send, o, -1);
 }
 
 template<class T>
@@ -54,6 +62,12 @@ void ReplicatedMC<T>::finalize(vector<typename T::open_type>& values,
         tmp.unpack(o);
         values[i] = S[i].sum() + tmp;
     }
+}
+
+template<class T>
+typename T::open_type ReplicatedMC<T>::finalize_open()
+{
+    return this->secrets.next().sum() + o.get<typename T::open_type>();
 }
 
 #endif

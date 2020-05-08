@@ -12,6 +12,7 @@
 #include "Processor/Processor.hpp"
 #include "Processor/Input.hpp"
 #include "Protocols/LimitedPrep.hpp"
+#include "GC/BitAdder.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -45,7 +46,7 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
 #endif
       player = new CryptoPlayer(*(tinfo->Nms), num << 16);
     }
-  else if (!machine.receive_threads or machine.direct or machine.parallel)
+  else if (!machine.receive_threads or machine.direct)
     {
 #ifdef VERBOSE
       cerr << "Using single-threaded receiving" << endl;
@@ -69,15 +70,8 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
   if (machine.direct)
     {
       cerr << "Using direct communication. If computation stalls, use -m when compiling." << endl;
-      MC2 = new typename sgf2n::Direct_MC(*(tinfo->alpha2i),*(tinfo->Nms), num);
-      MCp = new typename sint::Direct_MC(*(tinfo->alphapi),*(tinfo->Nms), num);
-    }
-  else if (machine.parallel)
-    {
-      cerr << "Using indirect communication with background threads." << endl;
-      //MC2 = new Parallel_MAC_Check<gf2n>(*(tinfo->alpha2i),*(tinfo->Nms), num, machine.opening_sum, machine.max_broadcast);
-      //MCp = new Parallel_MAC_Check<gfp>(*(tinfo->alphapi),*(tinfo->Nms), num, machine.opening_sum, machine.max_broadcast);
-      throw not_implemented();
+      MC2 = new typename sgf2n::Direct_MC(*(tinfo->alpha2i));
+      MCp = new typename sint::Direct_MC(*(tinfo->alphapi));
     }
   else
     {
@@ -114,7 +108,9 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
       auto job = queues->next();
       program = job.prognum;
       wait_timer.stop();
-      //printf("\tRunning program %d\n",program);
+#ifdef DEBUG_THREADS
+      printf("\tRunning program %d\n",program);
+#endif
 
       if (program==-1)
         { flag=false;
@@ -202,9 +198,21 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
               *(vector<array<BT, 3>>*) job.output, job.begin, job.end);
           queues->finished(job);
         }
+      else if (job.type == TRIPLE_SACRIFICE_JOB)
+        {
+          typedef typename sint::bit_type B;
+          auto &party = GC::ShareThread<B>::s();
+          ShuffleSacrifice<B>().triple_sacrifice(
+              *(vector<array<B, 3>>*) job.output,
+              *(vector<array<B, 3>>*) job.input, *party.P, *party.MC, job.begin,
+              job.end);
+          queues->finished(job);
+        }
       else
         { // RUN PROGRAM
-          //printf("\tClient %d about to run %d in execution %d\n",num,program,exec);
+#ifdef DEBUG_THREADS
+          printf("\tClient %d about to run %d\n",num,program);
+#endif
           Proc.reset(progs[program], job.arg);
 
           // Bits, Triples, Squares, and Inverses skipping
@@ -236,7 +244,9 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
           P.Check_Broadcast();
           //printf("\tBroadcast checked\n");
 
-         // printf("\tSignalling I have finished\n");
+#ifdef DEBUG_THREADS
+          printf("\tSignalling I have finished\n");
+#endif
           wait_timer.start();
           queues->finished(job);
 	 wait_timer.stop();

@@ -50,7 +50,4 @@ vector<modp> solve(modp_matrix& C,const Zp_Data& PrD);
 //   - Input matrix is assumed to have more rows than columns
 void pinv(imatrix& Ai,const imatrix& A);
 
-ostream& operator<<(ostream& s,const imatrix& A);
-istream& operator>>(istream& s,imatrix& A);
-
 #endif

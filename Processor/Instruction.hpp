@@ -280,10 +280,10 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case STARTGRIND:
       case STOPGRIND:
         break;
-      // instructions with 4 register operands
+      // instructions with 5 register operands
       case PRINTFLOATPLAIN:
       case PRINTFLOATPLAINB:
-        get_vector(4, start, s);
+        get_vector(5, start, s);
         break;
       case INCINT:
         r[0]=get_int(s);
@@ -427,6 +427,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case CONVSINT:
       case CONVCBITVEC:
       case CONVCBIT2S:
+      case NOTS:
         n = get_int(s);
         get_ints(r, s, 2);
         break;
@@ -532,6 +533,7 @@ int BaseInstruction::get_reg_type() const
     case NPLAYERS:
     case THRESHOLD:
     case PLAYERID:
+    case CONVCBIT:
     case CONVCBITVEC:
       return INT;
     case PREP:
@@ -620,6 +622,7 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
       size_offset = -2;
       break;
   case ANDM:
+  case NOTS:
       size = DIV_CEIL(n, 64);
       break;
   case CONVCBIT2S:
@@ -1563,13 +1566,14 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         break;
       case PRINTFLOATPLAIN:
           {
+            auto nan = Proc.read_Cp(start[4]);
             typename sint::clear v = Proc.read_Cp(start[0]);
             typename sint::clear p = Proc.read_Cp(start[1]);
             typename sint::clear z = Proc.read_Cp(start[2]);
             typename sint::clear s = Proc.read_Cp(start[3]);
             // MPIR can't handle more precision in exponent
             long exp = Integer(p, 31).get();
-            Proc.out << bigint::get_float(v, exp, z, s) << flush;
+            bigint::output_float(Proc.out, bigint::get_float(v, exp, z, s), nan);
           }
       break;
       case PRINTFLOATPREC:

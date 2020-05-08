@@ -25,25 +25,16 @@ using namespace std;
 class OTExtension
 {
 public:
-    BitVector baseReceiverInput;
-    vector< vector<BitVector> > senderOutput;
-    vector<BitVector> receiverOutput;
     map<string,long long> times;
 
     OTExtension(const BaseOT& baseOT, TwoPartyPlayer* player, bool passive);
 
-    OTExtension(int nbaseOTs, int baseLength,
-                int nloops, int nsubloops,
-                TwoPartyPlayer* player,
-                const BitVector& baseReceiverInput,
-                const vector< vector<BitVector> >& baseSenderInput,
-                const vector<BitVector>& baseReceiverOutput,
+    OTExtension(TwoPartyPlayer* player,
                 OT_ROLE role=BOTH,
                 bool passive=false)
-        : baseReceiverInput(baseReceiverInput), passive_only(passive), nbaseOTs(nbaseOTs),
-          baseLength(baseLength), nloops(nloops), nsubloops(nsubloops), ot_role(role), player(player)
+        : passive_only(passive), nbaseOTs(-1),
+          ot_role(role), player(player)
     {
-        init(baseReceiverInput, baseSenderInput, baseReceiverOutput);
     }
 
     void init(const BitVector& baseReceiverInput,
@@ -52,12 +43,7 @@ public:
     {
         nbaseOTs = baseReceiverInput.size();
         this->baseReceiverInput = baseReceiverInput;
-        init(baseSenderInput, baseReceiverOutput);
-    }
 
-    void init(const vector< vector<BitVector> >& baseSenderInput,
-            const vector<BitVector>& baseReceiverOutput)
-    {
         if (baseSenderInput.size() != baseReceiverOutput.size())
             throw runtime_error("mismatch in number of base OTs");
         assert(baseReceiverInput.size() == baseSenderInput.size());
@@ -117,29 +103,16 @@ public:
         }
     }
 
-    virtual ~OTExtension() {}
-
-    virtual void transfer(int nOTs, const BitVector& receiverInput);
-    virtual octet* get_receiver_output(int i);
-    virtual octet* get_sender_output(int choice, int i);
-
     void set_role(OT_ROLE role) { ot_role = role; }
 
 protected:
+    BitVector baseReceiverInput;
     bool passive_only;
-    int nbaseOTs, baseLength, nloops, nsubloops;
+    int nbaseOTs;
     OT_ROLE ot_role;
     TwoPartyPlayer* player;
     vector< vector<PRNG> > G_sender;
     vector<PRNG> G_receiver;
-
-    void check_correlation(int nOTs,
-        const BitVector& receiverInput);
-
-    void check_iteration(__m128i delta, __m128i q, __m128i q2,
-        __m128i t, __m128i t2, __m128i x);
-
-    void hash_outputs(int nOTs, vector<BitVector>& receiverOutput);
 };
 
 #endif

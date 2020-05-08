@@ -16,6 +16,7 @@
 
 #include "Protocols/fake-stuff.hpp"
 #include "Math/Z2k.hpp"
+#include "Math/gfp.hpp"
 #include "OT/NPartyTripleGenerator.hpp"
 
 #include <iostream>
@@ -129,23 +130,11 @@ TripleMachine::TripleMachine(int argc, const char** argv) :
     if (opt.isSet("-S"))
         opt.get("-S")->getInt(z2s);
 
-    bigint p;
-    if (output)
-    {
-        prep_data_dir = get_prep_dir(nplayers, 128, 128);
-        ofstream outf;
-        generate_online_setup(outf, prep_data_dir, p, 128, 128);
-    }
-    else
-    {
-        int idx, m;
-        SPDZ_Data_Setup_Primes(p, 128, idx, m);
-    }
-
     // doesn't work with Montgomery multiplication
-    gfp1::init_field(p, false);
-    gfp::init_field(p, true);
+    gfp1::init_default(gfp::MAX_N_BITS, false);
+    gfp::init_default(gfp::MAX_N_BITS, true);
     gf2n_long::init_field(128);
+    gf2n_short::init_field(40);
     
     PRNG G;
     G.ReSeed();
@@ -158,6 +147,13 @@ template<class T>
 GeneratorThread* TripleMachine::new_generator(OTTripleSetup& setup, int i,
         typename T::mac_key_type mac_key)
 {
+    if (output and i == 0)
+    {
+        T::clear::template generate_setup<T>(PREP_DIR, nplayers, 128);
+        prep_data_dir = get_prep_sub_dir<T>(PREP_DIR, nplayers);
+        write_mac_key(prep_data_dir, my_num, nplayers, mac_key);
+    }
+
     return new typename T::TripleGenerator(setup, N[i % nConnections], i,
             nTriplesPerThread, nloops, *this, mac_key);
 }
@@ -245,16 +241,4 @@ void TripleMachine::run()
 
     for (size_t i = 0; i < generators.size(); i++)
         delete generators[i];
-
-    if (output)
-        output_mac_keys();
-}
-
-void TripleMachine::output_mac_keys()
-{
-    if (z2k) {
-        write_mac_keys(prep_data_dir, my_num, nplayers, mac_keyz, mac_key2);
-    }
-    else
-        write_mac_keys(prep_data_dir, my_num, nplayers, mac_keyp, mac_key2);
 }

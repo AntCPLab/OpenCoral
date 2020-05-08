@@ -45,6 +45,8 @@ public:
 
   template<class T>
   static mpf_class get_float(T v, Integer exp, T z, T s);
+  template<class U, class T>
+  static void output_float(U& o, const mpf_class& x, T nan);
 
   bigint() : mpz_class() {}
   template <class T>

@@ -168,7 +168,7 @@ void ChaiGearPrep<T>::buffer_inputs(int player)
     for (auto& input : inputs[player])
         this->inputs[player].push_back(input);
 #ifdef VERBOSE_HE
-    cerr << "generated " << generator.inputs.size() << " inputs, now got "
+    cerr << "generated " << inputs.size() << " inputs, now got "
             << this->inputs[player].size() << endl;
 #endif
 }

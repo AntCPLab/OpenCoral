@@ -103,24 +103,6 @@ void P2Data::unpack(octetStream& o)
   check_dimensions();
 }
 
-ostream& operator<<(ostream& s,const P2Data& P2D)
-{
-  P2D.check_dimensions();
-  s << P2D.slots << endl;
-  s << P2D.A << endl;
-  s << P2D.Ai << endl;
-  return s;
-}
-
-istream& operator>>(istream& s,P2Data& P2D)
-{
-  s >> P2D.slots;
-  s >> P2D.A;
-  s >> P2D.Ai;
-  P2D.check_dimensions();
-  return s;
-}
-
 string get_filename(const Ring& Rg)
 {
   return (string) PREP_DIR + "P2D-" + to_string(gf2n_short::degree()) + "x"

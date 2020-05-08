@@ -23,7 +23,8 @@ MalRepRingPrep<T>::MalRepRingPrep(SubProcessor<T>*, DataPositions& usage) :
 template<class T>
 MalRepRingPrepWithBits<T>::MalRepRingPrepWithBits(SubProcessor<T>* proc,
         DataPositions& usage) :
-        BufferPrep<T>(usage), RingPrep<T>(proc, usage),
+        BufferPrep<T>(usage), BitPrep<T>(proc, usage),
+        RingPrep<T>(proc, usage),
         MaliciousRingPrep<T>(proc, usage), MalRepRingPrep<T>(proc, usage)
 {
 }
@@ -48,6 +49,7 @@ void MalRepRingPrep<T>::buffer_squares()
     prep.buffer_squares();
     for (auto& x : prep.squares)
         this->squares.push_back({{x[0], x[1]}});
+    prep.squares.clear();
 }
 
 template<class T>
@@ -61,6 +63,7 @@ void MalRepRingPrep<T>::simple_buffer_triples()
     prep.buffer_triples();
     for (auto& x : prep.triples)
         this->triples.push_back({{x[0], x[1], x[2]}});
+    prep.triples.clear();
 }
 
 template<class T>
@@ -74,8 +77,9 @@ void MalRepRingPrep<T>::shuffle_buffer_triples()
 
 template<class T>
 void shuffle_triple_generation(vector<array<T, 3>>& triples, Player& P,
-        typename T::MAC_Check& MC, int n_bits = -1)
+        typename T::MAC_Check& MC, int n_bits = -1, ThreadQueues* queues = 0)
 {
+    RunningTimer timer;
     ShuffleSacrifice<T> sacrifice;
     vector<array<T, 3>> check_triples;
     int buffer_size = sacrifice.minimum_n_inputs(OnlineOptions::singleton.batch_size);
@@ -84,7 +88,17 @@ void shuffle_triple_generation(vector<array<T, 3>>& triples, Player& P,
     Replicated<T> protocol(P);
     generate_triples(check_triples, buffer_size, &protocol, n_bits);
 
-    sacrifice.triple_sacrifice(triples, check_triples, P, MC);
+#ifdef VERBOSE_SHUFFLE
+    double gen_time = timer.elapsed();
+    cerr << "Triple generation took " << gen_time << " seconds" << endl;
+#endif
+
+    sacrifice.triple_sacrifice(triples, check_triples, P, MC, queues);
+
+#ifdef VERBOSE_SHUFFLE
+    cerr << "Triple sacrifice took " << timer.elapsed() - gen_time << " seconds" << endl;
+    cerr << "Total shuffle triple generation took " << timer.elapsed() << " seconds" << endl;
+#endif
 }
 
 template<class T>
@@ -107,7 +121,7 @@ void ShuffleSacrifice<T>::shuffle(vector<U>& check_triples, Player& P)
 template<class T>
 void ShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
         vector<array<T, 3>>& check_triples, Player& P,
-        typename T::MAC_Check& MC)
+        typename T::MAC_Check& MC, ThreadQueues* queues)
 {
     int buffer_size = check_triples.size();
     int N = (buffer_size - C) / B;
@@ -128,10 +142,34 @@ void ShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
         if (typename T::clear(opened[3 * i] * opened[3 * i + 1]) != opened[3 * i + 2])
             throw Offline_Check_Error("shuffle opening");
 
+    triples.resize(N);
+
+    if (queues)
+    {
+        TripleSacrificeJob job(&triples, &check_triples);
+        int start = queues->distribute(job, N);
+        triple_sacrifice(triples, check_triples, P, MC, start, N);
+        queues->wrap_up(job);
+    }
+    else
+        triple_sacrifice(triples, check_triples, P, MC, 0, N);
+}
+
+template<class T>
+void ShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
+        vector<array<T, 3>>& check_triples, Player& P,
+        typename T::MAC_Check& MC, int begin, int end)
+{
+#ifdef VERBOSE_SHUFFLE
+    cerr << "sacrificing triples " << begin << " to " << end << endl;
+#endif
     // sacrifice buckets
     vector<T> masked;
-    masked.reserve(2 * N);
-    for (int i = 0; i < N; i++)
+    int buffer_size = check_triples.size();
+    int N = buffer_size / B;
+    int size = end - begin;
+    masked.reserve(2 * size);
+    for (int i = begin; i < end; i++)
     {
         T& a = check_triples[i][0];
         T& b = check_triples[i][1];
@@ -143,11 +181,12 @@ void ShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
             masked.push_back(b - g);
         }
     }
+    vector<typename T::open_type> opened;
     MC.POpen(opened, masked, P);
     auto it = opened.begin();
     vector<T> checks;
-    checks.reserve(2 * N);
-    for (int i = 0; i < N; i++)
+    checks.reserve(2 * size);
+    for (int i = begin; i < end; i++)
     {
         T& b = check_triples[i][1];
         T& c = check_triples[i][2];
@@ -159,10 +198,9 @@ void ShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
             typename T::open_type& sigma = *(it++);
             checks.push_back(c - h - b * rho - f * sigma);
         }
+        triples[i] = check_triples[i];
     }
     MC.CheckFor(0, checks, P);
-    check_triples.resize(N);
-    triples = check_triples;
 }
 
 template<class T>
@@ -183,6 +221,7 @@ template<class T>
 void MaliciousRingPrep<T>::buffer_edabits(bool strict, int n_bits,
         ThreadQueues* queues)
 {
+    RunningTimer timer;
 #ifndef NONPERSONAL_EDA
     this->buffer_edabits_from_personal(strict, n_bits, queues);
 #else
@@ -198,6 +237,9 @@ void MaliciousRingPrep<T>::buffer_edabits(bool strict, int n_bits,
             n_bits, *this->proc, strict, -1, queues);
     if (strict)
         this->sanitize(checked, n_bits, -1, queues);
+#endif
+#ifdef VERBOSE_EDA
+    cerr << "Total edaBit generation took " << timer.elapsed() << " seconds" << endl;
 #endif
 }
 

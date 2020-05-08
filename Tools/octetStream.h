@@ -25,6 +25,7 @@
 #include <vector>
 #include <stdio.h>
 #include <iostream>
+#include <assert.h>
 
 #include <sodium.h>
  
@@ -118,6 +119,11 @@ class octetStream
 
   void store_int(size_t a, int n_bytes);
   size_t get_int(int n_bytes);
+
+  template<int N_BYTES>
+  void store_int(size_t a);
+  template<int N_BYTES>
+  size_t get_int();
 
   void store(const bigint& x);
   void get(bigint& ans);
@@ -246,6 +252,25 @@ inline void octetStream::store_int(size_t l, int n_bytes)
 inline size_t octetStream::get_int(int n_bytes)
 {
   return decode_length(consume(n_bytes), n_bytes);
+}
+
+template<int N_BYTES>
+inline void octetStream::store_int(size_t l)
+{
+  assert(N_BYTES <= 8);
+  resize(len+N_BYTES);
+  uint64_t tmp = htole64(l);
+  memcpy(data + len, &tmp, N_BYTES);
+  len+=N_BYTES;
+}
+
+template<int N_BYTES>
+inline size_t octetStream::get_int()
+{
+  assert(N_BYTES <= 8);
+  size_t tmp = 0;
+  memcpy(&tmp, consume(N_BYTES), N_BYTES);
+  return le64toh(tmp);
 }
 
 

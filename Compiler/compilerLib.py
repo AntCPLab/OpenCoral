@@ -42,7 +42,7 @@ def run(args, options, param=-1, merge_opens=True,
     for tape in prog.tapes:
         tape.optimize(options)
     
-    if prog.main_thread_running:
+    if prog.tapes:
         prog.update_req(prog.curr_tape)
 
     if prog.req_num:

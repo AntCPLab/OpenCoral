@@ -8,10 +8,10 @@ using namespace std;
 #include "Math/modp.h"
 #include "Math/Zp_Data.h"
 #include "Math/field_types.h"
-#include "Math/Setup.h"
 #include "Math/Bit.h"
 #include "Tools/random.h"
 #include "GC/NoShare.h"
+#include "Processor/OnlineOptions.h"
 
 #include "Math/modp.hpp"
 
@@ -30,6 +30,8 @@ template<class T> class SPDZ;
 template<class T> class Square;
 class FFT_Data;
 
+template<class T> void generate_prime_setup(string, int, int);
+
 #ifndef GFP_MOD_SZ
 #define GFP_MOD_SZ 2
 #endif
@@ -45,6 +47,8 @@ class gfp_
 
   modp_type a;
   static Zp_Data ZpD;
+
+  static thread_local vector<gfp_> powers;
 
   public:
 
@@ -70,8 +74,10 @@ class gfp_
     { init_field(T::pr(), mont); }
   static void init_field(const bigint& p,bool mont=true);
   static void init_default(int lgp, bool mont = true);
-  static void read_setup(int nparties, int lg2p, int gf2ndegree)
-    { ::read_setup(nparties, lg2p, gf2ndegree); }
+  static void read_or_generate_setup(string dir, const OnlineOptions& opts);
+  template<class T>
+  static void generate_setup(string dir, int nplayers, int lgp)
+    { generate_prime_setup<T>(dir, nplayers, lgp); }
 
   static bigint pr()   
     { return ZpD.pr; }
@@ -95,8 +101,11 @@ class gfp_
   static void specification(octetStream& os);
 
   static const bool invertible = true;
+  static const bool characteristic_two = false;
 
   static gfp_ Mul(gfp_ a, gfp_ b) { return a * b; }
+
+  static gfp_ power_of_two(bool bit, int exp);
 
   void assign(const gfp_& g) { a=g.a; }
   void assign_zero()        { assignZero(a,ZpD); }
@@ -167,12 +176,8 @@ class gfp_
   bool operator!=(const gfp_& y) const { return !equal(y); }
 
   // x+y
-  template <int T>
-  void add(void* x)
-    { ZpD.Add<T>(a.x,a.x,(mp_limb_t*)x); }
-  template <int T>
   void add(octetStream& os)
-    { add<T>(os.consume(size())); }
+    { add(os.consume(size())); }
   void add(const gfp_& x,const gfp_& y)
     { ZpD.Add<L>(a.x,x.a.x,y.a.x); }
   void add(const gfp_& x)
@@ -283,10 +288,11 @@ typedef gfp_<2, 4> gfp2;
 // for OT-based ECDSA
 typedef gfp_<3, 4> gfp3;
 
-void to_signed_bigint(bigint& ans,const gfp& x);
-
 template<int X, int L>
 Zp_Data gfp_<X, L>::ZpD;
+
+template<int X, int L>
+thread_local vector<gfp_<X, L>> gfp_<X, L>::powers;
 
 template<int X, int L>
 template<int Y>
@@ -310,6 +316,15 @@ template <int X, int L>
 inline void gfp_<X, L>::zero_overhang()
 {
   a.x[t() - 1] &= ZpD.overhang_mask();
+}
+
+template<int X, int L>
+void to_signed_bigint(bigint& ans, const gfp_<X, L>& x)
+{
+    to_bigint(ans, x);
+    // get sign and abs(x)
+    if (mpz_cmp(ans.get_mpz_t(), gfp_<X, L>::get_ZpD().pr_half.get_mpz_t()) > 0)
+        ans -= gfp_<X, L>::pr();
 }
 
 #endif

@@ -16,6 +16,9 @@ void Zp_Data::init(const bigint& p,bool mont)
     }
 #endif
 
+  if (not probPrime(p))
+    throw runtime_error(p.get_str() + " is not a prime");
+
   pr=p;
   pr_half = p / 2;
   mask=static_cast<mp_limb_t>(1ULL<<((mpz_sizeinbase(pr.get_mpz_t(),2)-1)%(8*sizeof(mp_limb_t))))-1;

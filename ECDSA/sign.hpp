@@ -11,6 +11,7 @@
 #include "Tools/Bundle.h"
 
 #include "preprocessing.hpp"
+#include "Math/gfp.hpp"
 
 class EcSignature
 {

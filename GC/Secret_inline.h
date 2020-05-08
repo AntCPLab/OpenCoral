@@ -46,7 +46,7 @@ inline T AND(const T& left, const T& right)
 }
 
 template<class T>
-inline Secret<T> GC::Secret<T>::operator+(const Secret<T> x) const
+inline Secret<T> GC::Secret<T>::operator+(const Secret<T>& x) const
 {
     Secret<T> res;
     int min_n = min(registers.size(), x.registers.size());
@@ -66,17 +66,31 @@ inline Secret<T> GC::Secret<T>::operator+(const Secret<T> x) const
 }
 
 template <class T>
+void Secret<T>::invert(int n, const Secret<T>& x)
+{
+    resize_regs(n);
+    T one = T::new_reg();
+    one.public_input(1);
+    for (int i = 0; i < n; i++)
+    {
+        XOR(get_reg(i), x.get_reg(i), one);
+    }
+}
+
+template <class T>
 MAYBE_INLINE void Secret<T>::and_(int n, const Secret<T>& x, const Secret<T>& y, bool repeat)
 {
+    assert(n <= default_length);
     resize_regs(n);
     for (int i = 0; i < n; i++)
         AND<T>(registers[i], x.get_reg(i), y.get_reg(repeat ? 0 : i));
 }
 
 template <class T>
-inline void Secret<T>::resize_regs(int n)
+inline void Secret<T>::resize_regs(size_t n)
 {
-    registers.resize(n, T::new_reg());
+    if (registers.size() != n)
+        registers.resize(n, T::new_reg());
 }
 
 } /* namespace GC */

@@ -8,17 +8,6 @@
 #include <mpirxx.h>
 
 #include "BitMatrix.h"
-#include "Rectangle.h"
-#include "BitDiagonal.h"
-#include "Math/gf2n.h"
-#include "Math/gfp.h"
-#include "Math/Z2k.h"
-#include "Math/BitVec.h"
-#include "GC/TinySecret.h"
-
-#include "OT/Rectangle.hpp"
-#include "Math/Z2k.hpp"
-#include "Math/Square.hpp"
 
 union matrix16x8
 {
@@ -458,43 +447,6 @@ void BitMatrix::resize(int length)
     squares.resize(length / 128);
 }
 
-template <class U>
-size_t Matrix<U>::vertical_size()
-{
-    return squares.size() * U::N_ROWS;
-}
-
-template <class U>
-bool Matrix<U>::operator==(Matrix<U>& other)
-{
-    if (squares.size() != other.squares.size())
-        throw invalid_length();
-    for (size_t i = 0; i < squares.size(); i++)
-        if (not(squares[i] == other.squares[i]))
-            return false;
-    return true;
-}
-
-template <class U>
-bool Matrix<U>::operator!=(Matrix<U>& other)
-{
-    return not (*this == other);
-}
-
-template <class U>
-void Matrix<U>::randomize(PRNG& G)
-{
-    for (size_t i = 0; i < squares.size(); i++)
-        squares[i].randomize(G);
-}
-
-template <class U>
-void Matrix<U>::randomize(int row, PRNG& G)
-{
-    for (size_t i = 0; i < squares.size(); i++)
-        squares[i].randomize(row, G);
-}
-
 void BitMatrix::transpose()
 {
     for (size_t i = 0; i < squares.size(); i++)
@@ -519,51 +471,6 @@ void BitMatrix::check_transpose(BitMatrix& dual)
     cout << "No errors in transpose" << endl;
 }
 
-template <class U>
-void Matrix<U>::print_side_by_side(Matrix<U>& other)
-{
-    for (int i = 0; i < 32; i++)
-    {
-        for (int j = 0; j < 64; j++)
-            cout << squares[0].get_bit(i,j);
-        cout << " ";
-        for (int j = 0; j < 64; j++)
-            cout << other.squares[0].get_bit(i,j);
-        cout << endl;
-    }
-}
-
-template <class U>
-void Matrix<U>::print_conditional(BitVector& conditions)
-{
-    for (int i = 0; i < 32; i++)
-    {
-        if (conditions.get_bit(i))
-            for (int j = 0; j < 65; j++)
-                cout << " ";
-        for (int j = 0; j < 64; j++)
-            cout << squares[0].get_bit(i,j);
-        if (!conditions.get_bit(i))
-            for (int j = 0; j < 65; j++)
-                cout << " ";
-        cout << endl;
-    }
-}
-
-template <class U>
-void Matrix<U>::pack(octetStream& os) const
-{
-    for (size_t i = 0; i < squares.size(); i++)
-        squares[i].pack(os);
-}
-
-template <class U>
-void Matrix<U>::unpack(octetStream& os)
-{
-    for (size_t i = 0; i < squares.size(); i++)
-        squares[i].unpack(os);
-}
-
 void BitMatrix::vertical_to(vector<BitVector>& output)
 {
     int n = 128 * squares.size();
@@ -575,137 +482,9 @@ void BitMatrix::vertical_to(vector<BitVector>& output)
     }
 }
 
-template <class U>
-Slice<U>::Slice(U& bm, size_t start, size_t size) :
-        bm(bm), start(start)
-{
-    end = start + size;
-    if (end > bm.squares.size())
-    {
-        stringstream ss;
-        ss << "Matrix slice (" << start << "," << end << ") larger than matrix (" << bm.squares.size() << ")";
-        throw invalid_argument(ss.str());
-    }
-}
-
-template <class U>
-Slice<U>& Slice<U>::rsub(Slice<U>& other)
-{
-    if (bm.squares.size() < other.end)
-        throw invalid_length();
-    for (size_t i = other.start; i < other.end; i++)
-        bm.squares[i].rsub(other.bm.squares[i]);
-    return *this;
-}
-
-template <class U>
-Slice<U>& Slice<U>::sub(BitVector& other, int repeat)
-{
-    if (end * U::PartType::N_COLUMNS > other.size() * repeat)
-        throw invalid_length(to_string(U::PartType::N_COLUMNS));
-    for (size_t i = start; i < end; i++)
-    {
-        bm.squares[i].sub(other.get_ptr_to_byte(i / repeat,
-                U::PartType::N_ROW_BYTES));
-    }
-    return *this;
-}
-
-template <class U>
-void Slice<U>::randomize(int row, PRNG& G)
-{
-    for (size_t i = start; i < end; i++)
-        bm.squares[i].randomize(row, G);
-}
-
-template <class U>
-void Slice<U>::conditional_add(BitVector& conditions, U& other, bool useOffset)
-{
-    for (size_t i = start; i < end; i++)
-        bm.squares[i].conditional_add(conditions, other.squares[i], useOffset * i);
-}
-
 template <>
 void Slice<BitMatrix>::transpose()
 {
     for (size_t i = start; i < end; i++)
         bm.squares[i].transpose();
 }
-
-template <class U>
-template <class T>
-void Slice<U>::print()
-{
-    cout << "hex / value" << endl;
-    for (int i = 0; i < 16; i++)
-    {
-        cout << T(bm.squares[0].rows[i]) << endl;
-    }
-    cout << endl;
-}
-
-template <class U>
-void Slice<U>::pack(octetStream& os) const
-{
-    os.reserve(U::PartType::size() * (end - start));
-    for (size_t i = start; i < end; i++)
-        bm.squares[i].pack(os);
-}
-
-template <class U>
-void Slice<U>::unpack(octetStream& os)
-{
-    for (size_t i = start; i < end; i++)
-        bm.squares[i].unpack(os);
-}
-
-#undef XXX
-#define XXX(T,N,L) \
-template class Matrix<Rectangle< Z2<N>, Z2<L> > >; \
-template class Slice<Matrix<Rectangle< Z2<N>, Z2<L> > > >; \
-
-#undef X
-#define X(N,L) \
-XXX(Z2<L>, N, L)
-
-//X(96, 160)
-XXX(SignedZ2<64>, 64, 64)
-XXX(SignedZ2<72>, 72, 72)
-XXX(SignedZ2<40>, 40, 40)
-
-Y(64, 64)
-Y(64, 48)
-Y(66, 64)
-Y(66, 48)
-Y(32, 32)
-Y(1, 40)
-Y(72, 48)
-Y(74, 48)
-Y(72, 64)
-Y(74, 64)
-Y(1, 48)
-Y(1, 64)
-
-template class Matrix<square128>;
-
-#define BMS X(BitMatrix)
-#undef X
-#define X(BM) \
-template class Slice<BM>; \
-XX(BM, gf2n_long)
-
-#define XX(BM, GF) \
-//template void Slice<BM >::print<GF>();
-
-BMS
-
-#define XXXX(BM, GF) \
-        template class Slice<BM>; \
-        template size_t BM::vertical_size(); \
-        XX(BM, GF)
-
-XXXX(Matrix<gf2n_short_square>, gf2n_short)
-XXXX(Matrix<Square<gf2n_long>>, gf2n_long)
-XXXX(Matrix<Square<gfp1>>, gfp1)
-XXXX(Matrix<Square<gfp3>>, gfp3)
-XXXX(Matrix<BitDiagonal>, BitVec)

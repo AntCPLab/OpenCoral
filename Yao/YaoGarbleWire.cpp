@@ -12,22 +12,6 @@
 #include "GC/Secret.hpp"
 #include "GC/Thread.hpp"
 
-void YaoGarbleWire::randomize(PRNG& prng)
-{
-	key = prng.get_doubleword();
-#ifdef DEBUG
-	//key = YaoGarbler::s().counter << 1;
-#endif
-	set(key, prng.get_bit());
-}
-
-void YaoGarbleWire::set(Key key, bool mask)
-{
-	key.set_signal(0);
-	this->key = key;
-	this->mask = mask;
-}
-
 void YaoGarbleWire::random()
 {
 	mask = YaoGarbler::s().prng.get_bit();
@@ -137,18 +121,36 @@ void YaoGarbleWire::and_(GC::Memory<GC::Secret<YaoGarbleWire> >& S,
 	//timers["Hash input"].start();
 	const Key& delta = garbler.get_delta();
 	size_t i_label = 0;
-	for (size_t i = start; i < end; i += 4)
+	int dl = GC::Secret<YaoGarbleWire>::default_length;
+	Key left_delta = delta.doubling(1);
+	Key right_delta = delta.doubling(2);
+	for (auto it = args.begin() + start; it < args.begin() + end; it += 4)
 	{
-		for (int k = 0; k < args[i]; k++)
+		if (*it == 1)
 		{
-			auto& left_wire = S[args[i + 2]].get_reg(k);
-			const Key& right_key = S[args[i + 3]].get_reg(repeat ? 0 : k).key;
 			counter++;
-			for (int i = 0; i < 2; i++)
-				for (int j = 0; j < 2; j++)
-					labels[i_label++] = YaoGate::E_input(
-							left_wire.key ^ (i ? delta : 0),
-							right_key ^ (j ? delta : 0), counter);
+			YaoGate::E_inputs(&labels[i_label], S[*(it + 2)].get_reg(0).key,
+					S[*(it + 3)].get_reg(0).key, left_delta, right_delta,
+					counter);
+			i_label += 4;
+		}
+		else
+		{
+			int n_units = DIV_CEIL(*it, dl);
+			for (int j = 0; j < n_units; j++)
+			{
+				int left = min(dl, *it - j * dl);
+				for (int k = 0; k < left; k++)
+				{
+					auto& left_wire = S[*(it + 2) + j].get_reg(k);
+					const Key& right_key = S[*(it + 3) + j].get_reg(
+							repeat ? 0 : k).key;
+					counter++;
+					YaoGate::E_inputs(&labels[i_label], left_wire.key,
+							right_key, left_delta, right_delta, counter);
+					i_label += 4;
+				}
+			}
 		}
 	}
 	//timers["Hash input"].stop();
@@ -162,29 +164,50 @@ void YaoGarbleWire::and_(GC::Memory<GC::Secret<YaoGarbleWire> >& S,
 	//timers["Hashing"].stop();
 	//timers["Garbling"].start();
 	size_t i_hash = 0;
-	for (size_t i = start; i < end; i += 4)
+	for (auto it = args.begin() + start; it < args.begin() + end; it += 4)
 	{
-		//timers["Outer ref"].start();
-		auto& out = S[args[i + 1]];
-		//timers["Outer ref"].stop();
-		//timers["Resizing"].start();
-		out.resize_regs(args[i]);
-		//timers["Resizing"].stop();
-		int n = args[i];
-		for (int k = 0; k < n; k++)
+		if (*it == 1)
 		{
-			YaoGarbleWire& right_wire = S[args[i + 3]].get_reg(repeat ? 0 : k);
-			//timers["Inner ref"].start();
-			auto& left_wire = S[args[i + 2]].get_reg(k);
-			//timers["Inner ref"].stop();
-			//timers["Randomizing"].start();
-			out.get_reg(k).randomize(prng);
-			//timers["Randomizing"].stop();
-			//timers["Gate computation"].start();
-			(gate++)->garble(out.get_reg(k), &hashes[i_hash], left_wire.mask,
-					right_wire.mask, 0x0001, garbler.get_delta());
+			auto& out = S[*(it + 1)];
+			out.resize_regs(1);
+			out.get_reg(0).randomize(prng);
+			(gate++)->and_garble(out.get_reg(0), &hashes[i_hash],
+					S[*(it + 2)].get_reg(0).mask,
+					S[*(it + 3)].get_reg(0).mask, garbler.get_delta());
 			//timers["Gate computation"].stop();
 			i_hash += 4;
+		}
+		else
+		{
+			int n_units = DIV_CEIL(*it, dl);
+			for (int j = 0; j < n_units; j++)
+			{
+				//timers["Outer ref"].start();
+				auto& out = S[*(it + 1) + j];
+				//timers["Outer ref"].stop();
+				//timers["Resizing"].start();
+				int n = min(dl, *it - j * dl);
+				out.resize_regs(n);
+				//timers["Resizing"].stop();
+				for (int k = 0; k < n; k++)
+				{
+					YaoGarbleWire& right_wire =
+							S[*(it + 3) + (repeat ? 0 : j)].get_reg(
+									repeat ? 0 : k);
+					//timers["Inner ref"].start();
+					auto& left_wire = S[*(it + 2) + j].get_reg(k);
+					//timers["Inner ref"].stop();
+					//timers["Randomizing"].start();
+					out.get_reg(k).randomize(prng);
+					//timers["Randomizing"].stop();
+					//timers["Gate computation"].start();
+					(gate++)->and_garble(out.get_reg(k), &hashes[i_hash],
+							left_wire.mask, right_wire.mask,
+							garbler.get_delta());
+					//timers["Gate computation"].stop();
+					i_hash += 4;
+				}
+			}
 		}
 	}
 	//timers["Garbling"].stop();
@@ -250,20 +273,15 @@ void YaoGarbleWire::op(const YaoGarbleWire& left, const YaoGarbleWire& right,
 	YaoGarbler::s().store_gate(gate);
 }
 
-void YaoGarbleWire::XOR(const YaoGarbleWire& left, const YaoGarbleWire& right)
-{
-	mask = left.mask ^ right.mask;
-	key = left.key ^ right.key;
-}
-
 char YaoGarbleWire::get_output()
 {
 	YaoGarbler::s().taint();
 	YaoGarbler::s().output_masks.push_back(mask);
-	return -1;
+	return 0;
 }
 
-void YaoGarbleWire::convcbit(Integer& dest, const GC::Clear& source)
+void YaoGarbleWire::convcbit(Integer& dest, const GC::Clear& source,
+		GC::Processor<GC::Secret<YaoGarbleWire>>&)
 {
 	(void) source;
 	auto& garbler = YaoGarbler::s();

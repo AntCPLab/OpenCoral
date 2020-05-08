@@ -6,7 +6,6 @@
 #include <string.h>
 #include "Networking/sockets.h"
 #include "Networking/ssl_sockets.h"
-#include "Tools/sha1.h"
 #include "Exceptions/Exceptions.h"
 #include "Networking/data.h"
 #include "Math/bigint.h"

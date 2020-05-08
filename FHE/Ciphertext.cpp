@@ -85,36 +85,6 @@ void mul(Ciphertext& ans,const Ciphertext& c0,const Ciphertext& c1,
 }
 
 
-
-istream& operator>>(istream& s, Ciphertext& c)
-{
-  int ch=s.get();
-  while (isspace(ch))
-    { ch = s.get(); }
-  if (ch != '[')
-     { throw IO_Error("Bad Ring_Element input: no '['"); }
-
-  s >> c.pk_id;
-  s >> c.cc0;
-
-  ch=s.get();
-  while (isspace(ch))
-    { ch = s.get(); }
-  if (ch != ',')
-     { throw IO_Error("Bad Ring_Element input: no ','"); }
-
-  s >> c.cc1;
-
-  ch=s.get();
-  while (isspace(ch))
-    { ch = s.get(); }
-  if (ch != ']')
-     { throw IO_Error("Bad Ring_Element input: no ']'"); }
-
-  return s;
-}
-
-
 template<class T,class FD,class S>
 void mul(Ciphertext& ans,const Plaintext<T,FD,S>& a,const Ciphertext& c)
 {
@@ -136,16 +106,7 @@ void Ciphertext::mul(const Ciphertext& c, const Rq_Element& ra)
   ::mul(cc1,ra,c.cc1);
 }
 
-template <>
-void Ciphertext::add<0>(octetStream& os)
-{
-  Ciphertext tmp(*params);
-  tmp.unpack(os);
-  *this += tmp;
-}
-
-template <>
-void Ciphertext::add<2>(octetStream& os)
+void Ciphertext::add(octetStream& os)
 {
   Ciphertext tmp(*params);
   tmp.unpack(os);

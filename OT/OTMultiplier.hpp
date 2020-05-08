@@ -12,6 +12,7 @@
 #include "OT/OTVole.hpp"
 #include "OT/Row.hpp"
 #include "OT/Rectangle.hpp"
+#include "OT/OTCorrelator.hpp"
 
 #include <math.h>
 
@@ -21,21 +22,21 @@ template<class T>
 OTMultiplier<T>::OTMultiplier(OTTripleGenerator<T>& generator,
         int thread_num) :
         generator(generator), thread_num(thread_num),
-        rot_ext(128, 128, 0, 1,
-                generator.players[thread_num], generator.baseReceiverInput,
-                generator.baseSenderInputs[thread_num],
-                generator.baseReceiverOutputs[thread_num], BOTH,
+        rot_ext(generator.players[thread_num], BOTH,
                 !generator.machine.correlation_check),
-        otCorrelator(0, 0, 0, 0, generator.players[thread_num], {}, {}, {}, BOTH, true)
+        otCorrelator(generator.players[thread_num], BOTH, true)
 {
     this->thread = 0;
+    rot_ext.init(generator.baseReceiverInput,
+            generator.baseSenderInputs[thread_num],
+            generator.baseReceiverOutputs[thread_num]);
 }
 
 template<class T>
 MascotMultiplier<T>::MascotMultiplier(OTTripleGenerator<T>& generator,
         int thread_num) :
         OTMultiplier<T>(generator, thread_num),
-		auth_ot_ext(128, 128, 0, 1, generator.players[thread_num], {}, {}, {}, BOTH, true)
+		auth_ot_ext(generator.players[thread_num], BOTH, true)
 {
     c_output.resize(generator.nTriplesPerLoop);
 }
@@ -45,11 +46,8 @@ TinyMultiplier<T>::TinyMultiplier(OTTripleGenerator<T>& generator,
         int thread_num) :
         OTMultiplier<T>(generator, thread_num),
         mac_vole(T::part_type::mac_key_type::N_BITS,
-                128, 128, 0, 1,
                 generator.players[thread_num],
-                { },
-                { },
-                { }, BOTH, false)
+                BOTH, false)
 {
     c_output.resize(generator.nTriplesPerLoop);
 }
@@ -58,7 +56,7 @@ template<class T>
 TinierMultiplier<T>::TinierMultiplier(OTTripleGenerator<T>& generator,
         int thread_num) :
         OTMultiplier<T>(generator, thread_num),
-        auth_ot_ext(128, 128, 0, 1, generator.players[thread_num], {}, {}, {}, BOTH, true)
+        auth_ot_ext(generator.players[thread_num], BOTH, true)
 {
     c_output.resize(generator.nTriplesPerLoop);
 }
@@ -69,11 +67,11 @@ Spdz2kMultiplier<K, S>::Spdz2kMultiplier(OTTripleGenerator<Spdz2kShare<K, S>>& g
         (generator, thread_num)
 {
 #ifdef USE_OPT_VOLE
-		mac_vole = new OTVole<Z2<MAC_BITS>>(S, 128, 128, 0, 1, generator.players[thread_num], {}, {}, {}, BOTH, false);
-		input_mac_vole = new OTVole<Z2<K + S>>(S, 128, 128, 0, 1, generator.players[thread_num], {}, {}, {}, BOTH, false);
+		mac_vole = new OTVole<Z2<MAC_BITS>>(S, generator.players[thread_num], BOTH, false);
+		input_mac_vole = new OTVole<Z2<K + S>>(S, generator.players[thread_num], BOTH, false);
 #else
-		mac_vole = new OTVoleBase<Z2<MAC_BITS>>(S, 128, 128, 0, 1, generator.players[thread_num], {}, {}, {}, BOTH, false);
-		input_mac_vole = new OTVoleBase<Z2<K + S>>(S, 128, 128, 0, 1, generator.players[thread_num], {}, {}, {}, BOTH, false);
+		mac_vole = new OTVoleBase<Z2<MAC_BITS>>(S, generator.players[thread_num], BOTH, false);
+		input_mac_vole = new OTVoleBase<Z2<K + S>>(S, generator.players[thread_num], BOTH, false);
 #endif
 }
 
@@ -404,36 +402,37 @@ void Spdz2kMultiplier<K, S>::after_correlation()
 
 template<>
 inline
-void OTMultiplier<Share<gfp1>>::multiplyForBits()
+void MascotMultiplier<Share<gfp1>>::multiplyForBits()
 {
     multiplyForTriples();
 }
 
 template<>
 inline
-void OTMultiplier<Share<gf2n_long>>::multiplyForBits()
+void MascotMultiplier<Share<gf2n_long>>::multiplyForBits()
 {
     multiplyForGf2nBits();
 }
 
 template<>
 inline
-void OTMultiplier<Share<gf2n_short>>::multiplyForBits()
+void MascotMultiplier<Share<gf2n_short>>::multiplyForBits()
 {
     multiplyForGf2nBits();
 }
 
 template<class T>
-void OTMultiplier<T>::multiplyForGf2nBits()
+void MascotMultiplier<T>::multiplyForGf2nBits()
 {
     auto& macs = this->macs;
     auto& outbox = this->outbox;
+    auto& generator = this->generator;
 
     int nBits = generator.nTriplesPerLoop + generator.field_size;
     int nBlocks = ceil(1.0 * nBits / 128);
-    BitVector extKeyBits = keyBits;
+    BitVector extKeyBits = this->keyBits;
     extKeyBits.resize_zero(128);
-    auto extSenderOutput = senderOutput;
+    auto extSenderOutput = this->senderOutput;
     extSenderOutput.resize(128, {2, BitVector(128)});
     SeededPRNG G;
     for (auto& x : extSenderOutput)
@@ -443,11 +442,11 @@ void OTMultiplier<T>::multiplyForGf2nBits()
                 y.resize(128);
                 y.randomize(G);
             }
-    auto extReceiverOutput = receiverOutput;
+    auto extReceiverOutput = this->receiverOutput;
     extReceiverOutput.resize(128, 128);
-    OTExtensionWithMatrix auth_ot_ext(128, 128, 0, 1,
-            generator.players[thread_num], extKeyBits, extSenderOutput,
-            extReceiverOutput, BOTH, true);
+    OTExtensionWithMatrix auth_ot_ext(generator.players[this->thread_num], BOTH,
+            true);
+    auth_ot_ext.init(extKeyBits, extSenderOutput, extReceiverOutput);
     auth_ot_ext.set_role(BOTH);
     auth_ot_ext.resize(nBlocks * 128);
     macs.resize(1);
@@ -538,6 +537,12 @@ void TinierMultiplier<U>::multiplyForInputs(MultJob job)
 
 template<class T>
 void OTMultiplier<T>::multiplyForBits()
+{
+    throw runtime_error("bit generation not implemented in this case");
+}
+
+template<class T>
+void MascotMultiplier<T>::multiplyForBits()
 {
     throw runtime_error("bit generation not implemented in this case");
 }

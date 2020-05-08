@@ -6,19 +6,25 @@
 #ifndef MATH_VALUEINTERFACE_H_
 #define MATH_VALUEINTERFACE_H_
 
+#include "Exceptions/Exceptions.h"
+
+class OnlineOptions;
+
 class ValueInterface
 {
 public:
     static const int MAX_EDABITS = 0;
-
-    static int t() { return 0; }
 
     template<class T>
     static void init(bool mont = true) { (void) mont; }
     static void init_default(int l) { (void) l; }
     static void init_field() {}
 
-    static void read_setup(int nparties, int lg2p, int gf2ndegree);
+    static void read_or_generate_setup(const string&, const OnlineOptions&) {}
+    template<class T>
+    static void generate_setup(string, int, int) {}
+
+    static int power_of_two(bool, int) { throw not_implemented(); }
 
     void normalize() {}
 };

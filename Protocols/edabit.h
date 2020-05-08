@@ -51,6 +51,11 @@ public:
         return a.empty();
     }
 
+    bool full()
+    {
+        return a.full();
+    }
+
     size_t size()
     {
         return a.size();
@@ -77,6 +82,15 @@ public:
             for (auto& x : b)
                 res.second.push_back(x);
         return res;
+    }
+
+    void push_back(const edabit<T>& x)
+    {
+        for (size_t i = 0; i < x.second.size(); i++)
+        {
+            b[i] ^= typename T::bit_type::part_type(x.second[i]) << a.size();
+        }
+        a.push_back(x.first);
     }
 };
 

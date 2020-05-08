@@ -15,7 +15,7 @@ template<class T, class U>
 int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt, bool live_prep_default = true)
 {
     OnlineOptions& online_opts = OnlineOptions::singleton;
-    online_opts = {opt, argc, argv, 1000, live_prep_default};
+    online_opts = {opt, argc, argv, 1000, live_prep_default, T::clear::invertible};
 
     opt.example = string() + argv[0] + " -p 0 -N 2 sample-prog\n" + argv[0]
             + " -h localhost -p 1 -N 2 sample-prog\n";
@@ -52,7 +52,9 @@ int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt, bool live_pr
           0, // Required?
           1, // Number of args expected.
           0, // Delimiter if expecting multiple args.
-          "Host where Server.x is running to coordinate startup (default: localhost). Ignored if --ip-file-name is used.", // Help description.
+          "Host where Server.x or party 0 is running to coordinate startup "
+          "(default: localhost). "
+          "Ignored if --ip-file-name is used.", // Help description.
           "-h", // Flag token.
           "--hostname" // Flag token.
     );
@@ -64,15 +66,6 @@ int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt, bool live_pr
       "Filename containing list of party ip addresses. Alternative to --hostname and running Server.x for startup coordination.", // Help description.
       "-ip", // Flag token.
       "--ip-file-name" // Flag token.
-    );
-    opt.add(
-          "", // Default.
-          0, // Required?
-          0, // Number of args expected.
-          0, // Delimiter if expecting multiple args.
-          "Star-shaped communication handled by background threads", // Help description.
-          "-P", // Flag token.
-          "--parallel" // Flag token.
     );
     opt.add(
           "0", // Default.
@@ -102,15 +95,24 @@ int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt, bool live_pr
           "--max-broadcast" // Flag token.
     );
     opt.add(
-          "", // Default.
+          "2", // Default.
           0, // Required?
           1, // Number of args expected.
           0, // Delimiter if expecting multiple args.
-          "Number of players. Server.x is not used if given. "
-          "Player 0 must run on host given with -h then. "
-          "Default: Use Server.x or IP file", // Help description.
+          "Number of players (default: 2). "
+          "Ignored if external server is used.", // Help description.
           "-N", // Flag token.
           "--nparties" // Flag token.
+    );
+    opt.add(
+          "", // Default.
+          0, // Required?
+          0, // Number of args expected.
+          0, // Delimiter if expecting multiple args.
+          "Use external server. "
+          "Default is to coordinate through player 0.", // Help description.
+          "-ext-server", // Flag token.
+          "--external-server" // Flag token.
     );
     opt.add(
           "", // Default.
@@ -150,7 +152,7 @@ int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt, bool live_pr
         throw runtime_error("cannot set port number when using IP file");
       playerNames.init(playerno, pnbase, ipFileName);
     } else {
-      if (opt.get("-N")->isSet)
+      if (not opt.get("-ext-server")->isSet)
       {
         if (my_port != Names::DEFAULT_PORT)
           throw runtime_error("cannot set port number when not using Server.x");
@@ -161,7 +163,7 @@ int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt, bool live_pr
       }
       else
       {
-        cerr << "Number of players not given, relying on external Server.x" << endl;
+        cerr << "Relying on external Server.x" << endl;
         playerNames.init(playerno, pnbase, my_port, hostname.c_str());
       }
     }
@@ -171,7 +173,7 @@ int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt, bool live_pr
 #endif
     {
         Machine<T, U>(playerno, playerNames, online_opts.progname, online_opts.memtype, lg2,
-                online_opts.direct, opening_sum, opt.get("--parallel")->isSet,
+                online_opts.direct, opening_sum,
                 opt.get("--threads")->isSet, max_broadcast,
                 opt.get("--encrypted")->isSet, online_opts.live_prep,
                 online_opts).run();

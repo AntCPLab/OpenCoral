@@ -124,7 +124,7 @@ int Open_Challenge(vector<unsigned int>& e,vector<octetStream>& Open_e,
 }
 
 
-void Create_Random_Seed(octet* seed,const Player& P,int len)
+void Create_Random_Seed(octet* seed,const PlayerBase& P,int len)
 {
   PRNG G;
   G.ReSeed();
@@ -187,15 +187,4 @@ void Commit_To_Seeds(vector<PRNG>& G,
       seeds[i][P.my_num()].append(G[i].get_seed(),SEED_SIZE);
     }
   Commit(Comm_seeds,Open_seeds,seeds,P,num_runs);
-}
-
-
-void generate_challenge(vector<int>& challenge, const Player& P)
-{
-  octet seed[SEED_SIZE];
-  Create_Random_Seed(seed, P, SEED_SIZE);
-  PRNG G;
-  G.SetSeed(seed);
-  for (size_t i = 0; i < challenge.size(); i++)
-    challenge[i] = G.get_uchar() % 2;
 }

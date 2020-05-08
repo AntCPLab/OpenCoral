@@ -19,6 +19,7 @@ using namespace std;
 #include "Math/Setup.h"
 
 #include "Protocols/MAC_Check.hpp"
+#include "Math/gfp.hpp"
 
 class Spdz2
 {
@@ -131,7 +132,7 @@ public:
         signal.broadcast();
         signal.unlock();
 
-        string dir = get_prep_dir(P.num_players(), spdz2.prime_length, spdz2.gf2n_length);
+        string dir = get_prep_sub_dir<Share<typename FD::T>>(P.num_players());
         Producer<FD>* producers[] =
         {
             new TripleProducer_<FD>(setup.FieldD, P.my_num(), 0, true, dir),
@@ -307,18 +308,12 @@ int main(int argc, const char** argv)
     // gfp parameter generation is much faster
     if (not spdz2.minimal)
         thread_p.signal.wait();
-    DataSetup& setup = spdz2.setup;
-    setup.setup_p = thread_p.setup;
-    // write preliminary data for early checking
-    setup.write_setup(spdz2.N, true);
-    setup.output(spdz2.N.my_num(), spdz2.N.num_players(), true);
+    thread_p.setup.output(spdz2.N);
 
     // gf2n is slower
     if (not spdz2.minimal)
         thread_2.signal.wait();
-    setup.setup_2 = thread_2.setup;
-    setup.write_setup(spdz2.N, false);
-    setup.output(spdz2.N.my_num(), spdz2.N.num_players(), true);
+    thread_2.setup.output(spdz2.N);
 
     for (int i = 0; i < 2; i++)
         if (not spdz2.minimal)

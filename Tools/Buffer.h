@@ -35,6 +35,8 @@ public:
 
     BufferBase() : file(0), next(BUFFER_SIZE),
             tuple_length(-1), eof(false) {}
+    ~BufferBase() {}
+    virtual ifstream* open() = 0;
     void setup(ifstream* f, int length, string filename, const char* type = "",
             const char* field = "");
     void seekg(int pos);
@@ -53,7 +55,8 @@ class Buffer : public BufferBase
     void read(char* read_buffer);
 
 public:
-    ~Buffer();
+    virtual ~Buffer();
+    virtual ifstream* open();
     void input(U& a);
     void fill_buffer();
 };
@@ -69,9 +72,14 @@ public:
     {
     }
 
+    ifstream* open()
+    {
+        file = new ifstream(this->filename, ios::in | ios::binary);
+        return file;
+    }
+
     void setup(string filename, int tuple_length, const char* data_type = "")
     {
-        file = new ifstream(filename, ios::in | ios::binary);
         Buffer<U, V>::setup(file, tuple_length, filename, data_type, U::type_string().c_str());
     }
 
@@ -110,13 +118,19 @@ inline void Buffer<T, U>::fill_buffer()
 }
 
 template<class T, class U>
+ifstream* Buffer<T, U>::open()
+{
+    throw IO_Error(T::type_string() + " buffer not set up");
+}
+
+template<class T, class U>
 inline void Buffer<T, U>::read(char* read_buffer)
 {
     int size_in_bytes = T::size() * BUFFER_SIZE;
     int n_read = 0;
     timer.start();
     if (not file)
-        throw IO_Error(T::type_string() + " buffer not set up");
+        file = open();
     do
     {
         file->read(read_buffer + n_read, size_in_bytes - n_read);

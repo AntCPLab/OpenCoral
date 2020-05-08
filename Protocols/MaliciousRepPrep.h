@@ -27,7 +27,7 @@ class MaliciousRepPrep : public virtual BufferPrep<T>
     typedef BufferPrep<T> super;
 
     DataPositions honest_usage;
-    ReplicatedPrep<typename T::Honest> honest_prep;
+    ReplicatedRingPrep<typename T::Honest> honest_prep;
     typename T::Honest::MAC_Check honest_mc;
     SubProcessor<typename T::Honest>* honest_proc;
     typename T::MAC_Check MC;

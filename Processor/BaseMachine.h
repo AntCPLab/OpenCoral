@@ -39,6 +39,7 @@ public:
     ThreadQueues queues;
 
     static BaseMachine& s();
+    static bool has_singleton() { return singleton != 0; }
 
     static string memory_filename(string type_short, int my_number);
 

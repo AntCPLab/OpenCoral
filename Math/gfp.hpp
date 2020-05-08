@@ -1,3 +1,5 @@
+#ifndef MATH_GFP_HPP_
+#define MATH_GFP_HPP_
 
 #include "Math/gfp.h"
 #include "Math/Setup.h"
@@ -5,6 +7,17 @@
 #include "Exceptions/Exceptions.h"
 
 #include "Math/bigint.hpp"
+#include "Math/Setup.hpp"
+
+template<int X, int L>
+inline void gfp_<X, L>::read_or_generate_setup(string dir,
+        const OnlineOptions& opts)
+{
+  if (opts.prime == 0)
+    read_setup<gfp_<X, L>>(dir, opts.lgp);
+  else
+    init_field(opts.prime);
+}
 
 template<int X, int L>
 void gfp_<X, L>::init_field(const bigint& p, bool mont)
@@ -14,13 +27,13 @@ void gfp_<X, L>::init_field(const bigint& p, bool mont)
   if (ZpD.get_t() > L)
     {
       cout << "modulus is " << p << endl;
-      throw runtime_error(name + " too small for modulus. "
+      throw wrong_gfp_size(name + " too small for modulus. "
               "Maybe change GFP_MOD_SZ to " + to_string(ZpD.get_t()));
     }
   if (ZpD.get_t() < L)
     {
       if (mont)
-        throw runtime_error(name + " too large for modulus. "
+        throw wrong_gfp_size(name + " too large for modulus. "
             "Maybe change GFP_MOD_SZ to " + to_string(ZpD.get_t()));
       else
         cerr << name << " larger than necessary for modulus " << p << endl;
@@ -113,10 +126,7 @@ void gfp_<X, L>::SHL(const gfp_& x,int n)
     {
       if (n != 0)
         {
-          bigint& bi = bigint::tmp;
-          to_bigint(bi,x,false);
-          bi <<= n;
-          convert_destroy(bi);
+          *this = x * power_of_two(1, n);
         }
       else
         assign(x);
@@ -181,7 +191,7 @@ gfp_<X, L> gfp_<X, L>::sqrRoot()
 template <int X, int L>
 void gfp_<X, L>::reqbl(int n)
 {
-  if ((int)n > 0 && gfp::pr() < bigint(1) << (n-1))
+  if ((int)n > 0 && pr() < bigint(1) << (n-1))
     {
       cout << "Tape requires prime of bit length " << n << endl;
       throw invalid_params();
@@ -211,17 +221,21 @@ void gfp_<X, L>::specification(octetStream& os)
     os.store(pr());
 }
 
-void to_signed_bigint(bigint& ans, const gfp& x)
+template <int X, int L>
+gfp_<X, L> gfp_<X, L>::power_of_two(bool bit, int exp)
 {
-    to_bigint(ans, x);
-    // get sign and abs(x)
-    if (mpz_cmp(ans.get_mpz_t(), gfp::get_ZpD().pr_half.get_mpz_t()) > 0)
-        ans -= gfp::pr();
+    if (bit)
+    {
+        while (exp >= int(powers.size()))
+        {
+            bigint::tmp = 1;
+            bigint::tmp <<= powers.size();
+            powers.push_back(bigint::tmp);
+        }
+        return powers.at(exp);
+    }
+    else
+        return 0;
 }
 
-template class gfp_<0, GFP_MOD_SZ>;
-template class gfp_<1, GFP_MOD_SZ>;
-template class gfp_<2, 4>;
-template class gfp_<3, 4>;
-
-template mpf_class bigint::get_float(gfp, Integer, gfp, gfp);
+#endif

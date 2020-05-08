@@ -72,7 +72,6 @@ public:
   void run(const Player& P, const FHE_PK& pk,
       const Ciphertext& calpha, EncCommitBase<T, FD, S>& EC,
       DistDecrypt<FD>& dd, const T& alphai);
-  int output(const Player& P, int thread, int output_thread = 0);
 
   int sacrifice(const Player& P, MAC_Check<T>& MC);
   void get(Share<T>& a, Share<T>& b, Share<T>& c);
@@ -105,7 +104,6 @@ public:
       EncCommitBase_<FD>& EC, DistDecrypt<FD>& dd, Ciphertext& ca,
       Ciphertext & cb);
 
-  int output(const Player& P, int thread, int output_thread = 0);
   virtual void get(Share<T>& a, Share<T>& b);
 };
 

@@ -56,11 +56,6 @@ class Ciphertext
   
   void assign_zero() { cc0.assign_zero(); cc1.assign_zero(); pk_id = 0; }
 
-  // Assumes IO already knows what params, and have set them already
-  friend ostream& operator<<(ostream& s,const Ciphertext& c)
-    { s << "[ " << c.pk_id << " " << c.cc0 << " , " << c.cc1 << "]"; return s; }
-  friend istream& operator>>(istream& s,Ciphertext& c);
-
   // Scale down an element from level 1 to level 0, if at level 0 do nothing
   void Scale(const bigint& p)    { cc0.Scale(p); cc1.Scale(p); }
 
@@ -121,7 +116,6 @@ class Ciphertext
   void input(istream& s)
     { cc0.input(s); cc1.input(s); s.read((char*)&pk_id, sizeof(pk_id)); }
 
-  template <int t>
   void add(octetStream& os);
 
   size_t report_size(ReportType type) const { return cc0.report_size(type) + cc1.report_size(type); }

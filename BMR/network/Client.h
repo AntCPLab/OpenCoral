@@ -7,7 +7,6 @@
 #define NETWORK_INC_CLIENT_H_
 
 #include "common.h"
-#include "mq.h"
 //#include <queue>
 //#include <boost/thread.hpp>
 //#include <boost/thread/mutex.hpp>

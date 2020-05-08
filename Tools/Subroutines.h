@@ -85,10 +85,7 @@ T Create_Random(const Player& P)
 }
 
 /* Produce a random seed of length len */
-void Create_Random_Seed(octet* seed,const Player& P,int len);
-
-// populates challenge with random bits
-void generate_challenge(vector<int>& challenge, const Player& P);
+void Create_Random_Seed(octet* seed,const PlayerBase& P,int len);
 
 
 

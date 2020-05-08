@@ -6,6 +6,7 @@
 #include "Tools/benchmarking.h"
 #include "Math/gfp.h"
 #include "Math/gf2n.h"
+#include "Math/Setup.h"
 
 #include "Protocols/ShamirInput.hpp"
 
@@ -86,20 +87,20 @@ void make_share(SemiShare<T>* Sa,const T& a,int N,const T& key,PRNG& G)
   Sa[N-1]=S;
 }
 
-template<class T>
-void make_share(FixedVec<T, 2>* Sa, const T& a, int N, const T& key, PRNG& G);
+template<class T, class U, class V>
+void make_share(FixedVec<T, 2>* Sa, const V& a, int N, const U& key, PRNG& G);
 
 template<class T>
 inline void make_share(vector<T>& Sa,
-    const typename T::clear& a, int N, const typename T::mac_key_type& key,
+    const typename T::clear& a, int N, const typename T::mac_type& key,
     PRNG& G)
 {
   Sa.resize(N);
   make_share(Sa.data(), a, N, key, G);
 }
 
-template<class T>
-void make_share(FixedVec<T, 2>* Sa, const T& a, int N, const T& key, PRNG& G)
+template<class T, class U, class V>
+void make_share(FixedVec<T, 2>* Sa, const V& a, int N, const U& key, PRNG& G)
 {
   (void) key;
   assert(N == 3);
@@ -117,7 +118,8 @@ void make_share(FixedVec<T, 2>* Sa, const T& a, int N, const T& key, PRNG& G)
 }
 
 template<class T>
-void make_share(ShamirShare<T>* Sa, const T& a, int N, const T&, PRNG& G)
+void make_share(ShamirShare<T>* Sa, const T& a, int N,
+    const typename ShamirShare<T>::mac_type&, PRNG& G)
 {
   insecure("share generation", false);
   const auto& vandermonde = ShamirInput<ShamirShare<T>>::get_vandermonde(N / 2, N);
@@ -187,24 +189,6 @@ void check_share(vector<T>& Sa, typename T::clear& value,
     }
 }
 
-inline void generate_keys(const string& directory, int nplayers)
-{
-  PRNG G;
-  G.ReSeed();
-
-  gf2n mac2;
-  gfp macp;
-  mac2.assign_zero();
-  macp.assign_zero();
-
-  for (int i = 0; i < nplayers; i++)
-  {
-    mac2.randomize(G);
-    macp.randomize(G);
-    write_mac_keys(directory, i, nplayers, macp, mac2);
-  }
-}
-
 template<class T>
 inline string mac_filename(string directory, int playerno)
 {
@@ -214,8 +198,8 @@ inline string mac_filename(string directory, int playerno)
       + to_string(playerno);
 }
 
-template <class T, class U>
-void write_mac_keys(const string& directory, int i, int nplayers, U macp, T mac2)
+template <class U>
+void write_mac_key(const string& directory, int i, int nplayers, U key)
 {
   ofstream outf;
   stringstream filename;
@@ -223,21 +207,18 @@ void write_mac_keys(const string& directory, int i, int nplayers, U macp, T mac2
   cout << "Writing to " << filename.str().c_str() << endl;
   outf.open(filename.str().c_str());
   outf << nplayers << endl;
-  macp.output(outf,true);
-  outf << " ";
-  mac2.output(outf,true);
-  outf << endl;
+  key.output(outf,true);
   outf.close();
 }
 
-template <class T, class U>
-void read_mac_keys(const string& directory, const Names& N, U& keyp, T& key2)
+template <class T>
+void read_mac_key(const string& directory, const Names& N, T& key)
 {
-  read_mac_keys(directory, N.my_num(), N.num_players(), keyp, key2);
+  read_mac_key(directory, N.my_num(), N.num_players(), key);
 }
 
-template <class T, class U>
-void read_mac_keys(const string& directory, int player_num, int nplayers, U& keyp, T& key2)
+template <class U>
+void read_mac_key(const string& directory, int player_num, int nplayers, U& key)
 {
   int nn;
 
@@ -252,30 +233,50 @@ void read_mac_keys(const string& directory, int player_num, int nplayers, U& key
 #ifdef VERBOSE
       cerr << "Could not open MAC key file. Perhaps it needs to be generated?\n";
 #endif
-      throw file_error(filename);
+      throw mac_key_error(filename);
     }
   inpf >> nn;
   if (nn!=nplayers)
     { cerr << "KeyGen was last run with " << nn << " players." << endl;
       cerr << "  - You are running Online with " << nplayers << " players." << endl;
-      exit(1);
+      throw mac_key_error(filename);
     }
 
-  keyp.input(inpf,true);
-  key2.input(inpf,true);
+  key.input(inpf,true);
+
+  if (inpf.fail())
+      throw mac_key_error(filename);
+
   inpf.close();
 }
 
+template <class U>
+void read_global_mac_key(const string& directory, int nparties, U& key)
+{
+  U pp;
+  key.assign_zero();
+
+  for (int i= 0; i < nparties; i++)
+    {
+      read_mac_key(directory, i, nparties, pp);
+      cout << " Key " << i << ": " << pp << endl;
+      key.add(pp);
+    }
+
+  cout << "--------------\n";
+  cout << "Final Keys : " << key << endl;
+}
+
 template<class T>
-void generate_mac_keys(typename T::mac_key_type::Scalar& keyp, gf2n& key2,
+void generate_mac_keys(typename T::mac_type::Scalar& key,
     int nplayers, string prep_data_prefix)
 {
-  keyp.assign_zero();
-  gf2n p2;
-  key2.assign_zero();
+  key.assign_zero();
   int tmpN = 0;
   ifstream inpf;
   SeededPRNG G;
+  prep_data_prefix = get_prep_sub_dir<T>(prep_data_prefix, nplayers);
+
   for (int i = 0; i < nplayers; i++)
     {
       stringstream filename;
@@ -284,17 +285,15 @@ void generate_mac_keys(typename T::mac_key_type::Scalar& keyp, gf2n& key2,
               i);
       inpf.open(filename.str().c_str());
       typename T::mac_key_type::Scalar pp;
-      gf2n p2;
       if (inpf.fail())
         {
           inpf.close();
           cout << "No MAC key share for player " << i << ", generating a fresh one\n";
           pp.randomize(G);
-          p2.randomize(G);
           ofstream outf(filename.str().c_str());
           if (outf.fail())
             throw file_error(filename.str().c_str());
-          outf << nplayers << " " << pp << " " << p2;
+          outf << nplayers << " " << pp << endl;
           outf.close();
           cout << "Written new MAC key share to " << filename.str() << endl;
         }
@@ -302,15 +301,13 @@ void generate_mac_keys(typename T::mac_key_type::Scalar& keyp, gf2n& key2,
         {
           inpf >> tmpN; // not needed here
           pp.input(inpf,true);
-          p2.input(inpf,true);
           inpf.close();
         }
-      cout << " Key " << i << "\t p: " << pp << "\n\t 2: " << p2 << endl;
-      keyp.add(pp);
-      key2.add(p2);
+      cout << " Key " << i << ": " << pp << endl;
+      key.add(pp);
     }
   cout << "--------------\n";
-  cout << "Final Keys :\t p: " << keyp << "\n\t\t 2: " << key2 << endl;
+  cout << "Final Key: " << key << endl;
 }
 
 /* N      = Number players
@@ -318,7 +315,7 @@ void generate_mac_keys(typename T::mac_key_type::Scalar& keyp, gf2n& key2,
  * str    = "2" or "p"
  */
 template<class T>
-void make_mult_triples(const typename T::mac_key_type& key, int N, int ntrip,
+void make_mult_triples(const typename T::mac_type& key, int N, int ntrip,
     bool zero, string prep_data_prefix, int thread_num = -1)
 {
   PRNG G;
@@ -330,7 +327,7 @@ void make_mult_triples(const typename T::mac_key_type& key, int N, int ntrip,
   /* Generate Triples */
   for (int i=0; i<N; i++)
     { stringstream filename;
-      filename << prep_data_prefix << "Triples-" << T::type_short() << "-P" << i
+      filename << get_prep_sub_dir<T>(prep_data_prefix, N) << "Triples-" << T::type_short() << "-P" << i
           << Sub_Data_Files<T>::get_suffix(thread_num);
       cout << "Opening " << filename.str() << endl;
       outf[i].open(filename.str().c_str(),ios::out | ios::binary);
@@ -362,7 +359,7 @@ void make_mult_triples(const typename T::mac_key_type& key, int N, int ntrip,
  * str    = "2" or "p"
  */
 template<class T>
-void make_inverse(const typename T::mac_key_type& key, int N, int ntrip, bool zero,
+void make_inverse(const typename T::mac_type& key, int N, int ntrip, bool zero,
     string prep_data_prefix)
 {
   PRNG G;
@@ -374,7 +371,7 @@ void make_inverse(const typename T::mac_key_type& key, int N, int ntrip, bool ze
   /* Generate Triples */
   for (int i=0; i<N; i++)
     { stringstream filename;
-      filename << prep_data_prefix << "Inverses-" << T::type_short() << "-P" << i;
+      filename << get_prep_sub_dir<T>(prep_data_prefix, N) << "Inverses-" << T::type_short() << "-P" << i;
       cout << "Opening " << filename.str() << endl;
       outf[i].open(filename.str().c_str(),ios::out | ios::binary);
       if (outf[i].fail()) { throw file_error(filename.str().c_str()); }

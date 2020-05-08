@@ -26,8 +26,6 @@ void add(Rq_Element& ans,const Rq_Element& a,const Rq_Element& b);
 void sub(Rq_Element& ans,const Rq_Element& a,const Rq_Element& b);
 void mul(Rq_Element& ans,const Rq_Element& a,const Rq_Element& b);
 void mul(Rq_Element& ans,const Rq_Element& a,const bigint& b);
-ostream& operator<<(ostream& s,const Rq_Element& a);
-istream& operator>>(istream& s, Rq_Element& a);
 
 class Rq_Element
 {
@@ -145,9 +143,6 @@ protected:
       for(int i=0; i<=lev; ++i) ans*=a[i].get_prime();
       return ans;
     }
-
-  friend ostream& operator<<(ostream& s,const Rq_Element& a);
-  friend istream& operator>>(istream& s, Rq_Element& a);
 
   /* Pack and unpack into an octetStream 
    *   For unpack we assume the prData for a0 and a1 has been assigned 

@@ -258,9 +258,6 @@ void Register::eval(const Register& left, const Register& right, GarbledGate& ga
         PRF_chunk(left.external_key(i), gate.input(ext_l, 1), prf_output, PAD_TO_8(n_parties));
         for(party_id_t j=1; j<=n_parties; j++) {
             k = *(Key*)(prf_output+16*(j-1));
-#ifdef __PRIME_FIELD__
-            k.adjust();
-#endif
 #ifdef DEBUG
                         printf("Fk^%d_{%u,%d}(%d,%u,%d) = ",i, w_l, sig_l,ext_l,g,j);
                         std::cout << k << std::endl;
@@ -274,9 +271,6 @@ void Register::eval(const Register& left, const Register& right, GarbledGate& ga
         PRF_chunk(right.external_key(i), gate.input(ext_r, 1) , prf_output, PAD_TO_8(n_parties));
         for(party_id_t j=1; j<=n_parties; j++) {
             k = *(Key*)(prf_output+16*(j-1));
-#ifdef __PRIME_FIELD__
-            k.adjust();
-#endif
 #ifdef DEBUG
             printf("Fk^%d_{%u,%d}(%d,%u,%d) = ",i, w_r, sig_r,ext_r,g,j);
                         std::cout << k << std::endl;
@@ -284,12 +278,6 @@ void Register::eval(const Register& left, const Register& right, GarbledGate& ga
             garbled_entry[j-1] -= k;
         }
     }
-
-#if __PURE_SHE__
-    for(party_id_t j=1; j<=n_parties; j++) {
-        garbled_entry[j-1].sqr_in_place(tmp_mpz);
-    }
-#endif
 
 //  for(party_id_t i=1; i<=n_parties; i++) {
 //      std::cout << garbled_entry[i-1] << "  ";
@@ -429,11 +417,7 @@ void Register::garble(const Register& left, const Register& right,
 #endif
 
     // these are the 0-keys
-#ifdef __PURE_SHE__
-    Key* outwire_start = _circuit->_sqr_keys + gate->_out*2*n_parties;
-#else
     Register& outwire = *this;
-#endif
     keys.init(n_parties);
     KeyVector& keyxa = outwire[xa];
     KeyVector& keyxb = outwire[xb];
@@ -617,12 +601,13 @@ void EvalRegister::inputb(GC::Processor<GC::Secret<EvalRegister> >& processor,
 		access.received_labels(oss);
 }
 
-void EvalRegister::convcbit(Integer& dest, const GC::Clear& source)
+void EvalRegister::convcbit(Integer& dest, const GC::Clear& source,
+        GC::Processor<GC::Secret<EvalRegister>>& processor)
 {
 	auto& party = ProgramParty::s();
 	dest = source;
 	party.convcbit = source;
-	party.untaint();
+	processor.untaint();
 }
 
 void EvalRegister::input_helper(char value, octetStream& os)
@@ -984,12 +969,6 @@ void KeyTuple<I>::randomize()
 		{
 			keys[i][j] = { 0, (counter << 16) + (i << 8) + j };
 			counter++;
-		}
-#endif
-#ifdef __PRIME_FIELD__
-		for (int j = 0; j < keys[i].size(); j++)
-		{
-			keys[i][j].adjust();
 		}
 #endif
 	}

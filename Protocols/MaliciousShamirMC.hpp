@@ -13,25 +13,7 @@ MaliciousShamirMC<T>::MaliciousShamirMC()
 }
 
 template<class T>
-void MaliciousShamirMC<T>::POpen(vector<typename T::open_type>& values,
-        const vector<T>& S, const Player& P)
-{
-    this->prepare(S, P);
-    this->exchange(P);
-    finalize(values, S, P);
-}
-
-template<class T>
-void MaliciousShamirMC<T>::POpen_End(vector<typename T::open_type>& values,
-        const vector<T>& S, const Player& P)
-{
-    P.receive_all(this->os);
-    finalize(values, S, P);
-}
-
-template<class T>
-void MaliciousShamirMC<T>::finalize(vector<typename T::open_type>& values,
-        const vector<T>& S, const Player& P)
+void MaliciousShamirMC<T>::init_open(const Player& P, int n)
 {
     int threshold = ShamirMachine::s().threshold;
     if (reconstructions.empty())
@@ -46,27 +28,26 @@ void MaliciousShamirMC<T>::finalize(vector<typename T::open_type>& values,
         }
     }
 
-    values.clear();
-    values.resize(S.size());
-    vector<typename T::open_type> shares(2 * threshold + 1);
-    for (size_t i = 0; i < values.size(); i++)
+    ShamirMC<T>::init_open(P, n);
+}
+
+template<class T>
+typename T::open_type MaliciousShamirMC<T>::finalize_open()
+{
+    int threshold = ShamirMachine::s().threshold;
+    shares.resize(2 * threshold + 1);
+    for (size_t j = 0; j < shares.size(); j++)
+        shares[j].unpack((*this->os)[j]);
+    typename T::open_type value = 0;
+    for (int j = 0; j < threshold + 1; j++)
+        value += shares[j] * reconstructions[threshold + 1][j];
+    for (int j = threshold + 2; j <= 2 * threshold + 1; j++)
     {
-        for (size_t j = 0; j < shares.size(); j++)
-            if (int(j) == P.my_num())
-                shares[j] = S[i];
-            else
-                shares[j].unpack(this->os[j]);
-        typename T::open_type value = 0;
-        for (int j = 0; j < threshold + 1; j++)
-            value += shares[j] * reconstructions[threshold + 1][j];
-        for (int j = threshold + 2; j <= 2 * threshold + 1; j++)
-        {
-            typename T::open_type check = 0;
-            for (int k = 0; k < j; k++)
-                check += shares[k] * reconstructions[j][k];
-            if (check != value)
-                throw mac_fail();
-        }
-        values[i] = value;
+        typename T::open_type check = 0;
+        for (int k = 0; k < j; k++)
+            check += shares[k] * reconstructions[j][k];
+        if (check != value)
+            throw mac_fail();
     }
+    return value;
 }

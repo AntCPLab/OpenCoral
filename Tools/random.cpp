@@ -33,7 +33,7 @@ void PRNG::ReSeed()
   InitSeed();
 }
 
-void PRNG::SeedGlobally(const Player& P)
+void PRNG::SeedGlobally(const PlayerBase& P)
 {
   octet seed[SEED_SIZE];
   Create_Random_Seed(seed, P, SEED_SIZE);
@@ -79,7 +79,7 @@ void PRNG::InitSeed()
 
 void PRNG::print_state() const
 {
-  int i;
+  unsigned i;
   for (i=0; i<SEED_SIZE; i++)
     { if (seed[i]<10){ cout << "0"; }
       cout << hex << (int) seed[i]; 
@@ -101,11 +101,10 @@ void PRNG::print_state() const
 void PRNG::hash()
 {
   #ifndef USE_AES
-    // Hash seed to get a random value
-    blk_SHA_CTX ctx;
-    blk_SHA1_Init(&ctx);
-    blk_SHA1_Update(&ctx,state,SEED_SIZE);
-    blk_SHA1_Final(random,&ctx);
+    unsigned char tmp[RAND_SIZE + SEED_SIZE];
+    randombytes_buf_deterministic(tmp, sizeof tmp, seed);
+    memcpy(random, tmp, RAND_SIZE);
+    memcpy(seed, tmp + RAND_SIZE, SEED_SIZE);
   #else
     if (useC)
        { software_ecb_aes_128_encrypt<PIPELINES>((__m128i*)random,(__m128i*)state,KeyScheduleC); }
@@ -129,20 +128,6 @@ void PRNG::next()
           s[1]++;
     }
   hash();
-}
-
-
-double PRNG::get_double()
-{
-  // We need four bytes of randomness
-  if (cnt>RAND_SIZE-4) { next(); }
-  unsigned int a0=random[cnt],a1=random[cnt+1],a2=random[cnt+2],a3=random[cnt+3];
-  double ans=(a0+(a1<<8)+(a2<<16)+(a3<<24));
-  cnt=cnt+4;
-  unsigned int den=0xFFFFFFFF;
-  ans=ans/den;
-  //print_state(); cout << " DBLE " <<  ans << endl;
-  return ans;
 }
 
 
@@ -211,6 +196,7 @@ void PRNG::randomBnd(mp_limb_t* res, const mp_limb_t* B, size_t n_bytes, mp_limb
     return;
   default:
     {
+      assert(n_bytes != 0);
       size_t n_limbs = (n_bytes + sizeof(mp_limb_t) - 1) / sizeof(mp_limb_t);
       do
       {
@@ -264,13 +250,14 @@ void PRNG::get_bigint(bigint& res, int n_bits, bool positive)
 {
   assert(n_bits > 0);
   int n_bytes = (n_bits + 7) / 8;
-  if (n_bytes > 1000)
-    throw not_implemented();
-  octet bytes[1000];
+  int n_words = DIV_CEIL(n_bytes, sizeof(word));
+  word words[n_words];
+  octet* bytes = (octet*) words;
+  words[n_words - 1] = 0;
   get_octets(bytes, n_bytes);
   octet mask = (1 << (n_bits % 8)) - 1;
-  bytes[0] &= mask;
-  bigintFromBytes(res, bytes, n_bytes);
+  bytes[n_bytes - 1] &= mask;
+  mpz_import(res.get_mpz_t(), n_words, -1, sizeof(word), -1, 0, bytes);
   if (not positive and (get_bit()))
     mpz_neg(res.get_mpz_t(), res.get_mpz_t());
 }

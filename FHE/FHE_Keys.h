@@ -36,12 +36,6 @@ class FHE_SK
   
   const Rq_Element& s() const { return sk; }
 
-  // Assumes params is set out of band
-  friend ostream& operator<<(ostream& s,const FHE_SK& SK)
-    { s << SK.sk; return s; }
-  friend istream& operator>>(istream& s, FHE_SK& SK)
-    { s >> SK.sk; return s; }
-  
   void pack(octetStream& os) const { sk.pack(os); pr.pack(os); }
   void unpack(octetStream& os)     { sk.unpack(os); pr.unpack(os); }
 
@@ -153,12 +147,6 @@ class FHE_PK
   void check_noise(const Rq_Element& x, bool check_modulo = false);
 
   // params setting is done out of these IO/pack/unpack functions
-
-  friend ostream& operator<<(ostream& s,const FHE_PK& PK)
-    { s << PK.a0 << PK.b0 << PK.Sw_a << PK.Sw_b; return s; }
-  friend istream& operator>>(istream& s, FHE_PK& PK)
-    { s >> PK.a0 >> PK.b0 >> PK.Sw_a >> PK.Sw_b; return s; }
-
   void pack(octetStream& o) const;
   void unpack(octetStream& o);
   

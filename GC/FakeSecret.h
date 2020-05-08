@@ -65,7 +65,8 @@ public:
     static void trans(Processor<FakeSecret>& processor, int n_inputs,
             const vector<int>& args);
 
-    static void convcbit(Integer& dest, const Clear& source) { dest = source; }
+    template <class T>
+    static void convcbit(Integer& dest, const Clear& source, T&) { dest = source; }
 
     static FakeSecret input(GC::Processor<FakeSecret>& processor, const InputArgs& args);
     static FakeSecret input(int from, const int128& input, int n_bits);
@@ -93,6 +94,7 @@ public:
     void and_(int n, const FakeSecret& x, const FakeSecret& y, bool repeat);
     void andrs(int n, const FakeSecret& x, const FakeSecret& y) { (void)n; a = x.a * y.a; }
 
+    void invert(int, const FakeSecret& x) { *this = ~x.a; }
 
     void random_bit() { a = random() % 2; }
 

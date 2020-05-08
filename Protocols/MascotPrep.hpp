@@ -14,10 +14,12 @@
 #include "OT/NPartyTripleGenerator.hpp"
 #include "Protocols/ShuffleSacrifice.hpp"
 #include "Protocols/Spdz2kPrep.hpp"
+#include "Protocols/ReplicatedPrep.hpp"
 
 template<class T>
 OTPrep<T>::OTPrep(SubProcessor<T>* proc, DataPositions& usage) :
-        BufferPrep<T>(usage), RingPrep<T>(proc, usage), triple_generator(0)
+        BufferPrep<T>(usage), BitPrep<T>(proc, usage),
+        RingPrep<T>(proc, usage), triple_generator(0)
 {
 }
 

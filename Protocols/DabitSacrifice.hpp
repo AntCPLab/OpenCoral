@@ -9,6 +9,8 @@
 #include "DabitSacrifice.h"
 #include "Tools/PointerVector.h"
 
+#include <math.h>
+
 template<class T>
 dabit<T>& operator+=(dabit<T>& x, const dabit<T>& y)
 {

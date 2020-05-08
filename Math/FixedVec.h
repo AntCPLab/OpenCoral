@@ -202,6 +202,14 @@ public:
         return res;
     }
 
+    FixedVec<T, L>operator~() const
+    {
+        FixedVec<T, L> res;
+        for (int i = 0; i < L; i++)
+            res[i] = ~v[i];
+        return res;
+    }
+
     FixedVec<T, L>& operator+=(const FixedVec<T, L>& other)
     {
         add(other);

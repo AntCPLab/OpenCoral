@@ -14,13 +14,14 @@
 #include "Protocols/SemiInput.hpp"
 #include "Protocols/ReplicatedInput.hpp"
 #include "Processor/Input.hpp"
+#include "Math/gfp.hpp"
 
 template <class FD>
 PairwiseGenerator<FD>::PairwiseGenerator(int thread_num,
         PairwiseMachine& machine, Player* player) :
     GeneratorBase(thread_num, machine.N, player),
     producer(machine.setup<FD>().FieldD, P.my_num(),
-            thread_num, machine.output),
+            thread_num, machine.output, machine.get_prep_dir<FD>(P)),
     EC(P, machine.other_pks, machine.setup<FD>().FieldD, timers, machine, *this),
     MC(machine.setup<FD>().alphai),
     n_ciphertexts(Proof::n_ciphertext_per_proof(machine.sec, machine.pk)),

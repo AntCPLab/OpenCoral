@@ -9,14 +9,18 @@
 #include "ReplicatedPrep.h"
 
 template<class T>
-class ReplicatedPrep2k : public ReplicatedRingPrep<T>
+class ReplicatedPrep2k : public virtual SemiHonestRingPrep<T>,
+        public virtual ReplicatedRingPrep<T>
 {
 public:
     ReplicatedPrep2k(SubProcessor<T>* proc, DataPositions& usage) :
-            BufferPrep<T>(usage), RingPrep<T>(proc, usage),
-            ReplicatedRingPrep<T>(proc, usage)
+            BufferPrep<T>(usage), BitPrep<T>(proc, usage),
+			RingPrep<T>(proc, usage),
+            SemiHonestRingPrep<T>(proc, usage), ReplicatedRingPrep<T>(proc, usage)
     {
     }
+
+    void buffer_bits() { this->buffer_bits_without_check(); }
 
     void get_dabit_no_count(T& a, typename T::bit_type& b)
     {

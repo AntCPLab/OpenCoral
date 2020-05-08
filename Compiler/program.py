@@ -61,12 +61,10 @@ class Program(object):
         self.galois_length = int(options.galois)
         if self.verbose:
             print('Galois length:', self.galois_length)
-        self.schedule = [('start', [])]
         self.tape_counter = 0
         self.tapes = []
         self._curr_tape = None
         self.DEBUG = False
-        self.main_thread_running = False
         self.allocated_mem = RegType.create_dict(lambda: USER_MEM)
         self.free_mem_blocks = defaultdict(set)
         self.allocated_mem_blocks = {}
@@ -109,24 +107,7 @@ class Program(object):
     def max_par_tapes(self):
         """ Upper bound on number of tapes that will be run in parallel.
         (Excludes empty tapes) """
-        if self.n_threads > 1:
-            if len(self.schedule) > 1:
-                raise CompilerError('Static and dynamic parallelism not compatible')
-            return self.n_threads
-        res = 1
-        running = defaultdict(lambda: 0)
-        for action,tapes in self.schedule:
-            tapes = [t[0] for t in tapes if not t[0].is_empty()]
-            if action == 'start':
-                for tape in tapes:
-                    running[tape] += 1
-            elif action == 'stop':
-                for tape in tapes:
-                    running[tape] -= 1
-            else:
-                raise CompilerError('Invalid schedule action')
-            res = max(res, sum(running.values()))
-        return res
+        return self.n_threads
     
     def init_names(self, args):
         # ignore path to file - source must be in Programs/Source
@@ -203,26 +184,6 @@ class Program(object):
         self.curr_tape.start_new_basicblock(name='post-join_tape')
         self.free_threads.add(thread_number)
 
-    def start_thread(self, thread, arg):
-        if self.main_thread_running:
-            # wait for main thread to finish
-            self.schedule_wait(self.curr_tape)
-            self.main_thread_running = False
-        
-        # compile thread if not been used already
-        if thread.tape not in self.tapes:
-            self.curr_tape = thread.tape
-            self.tapes.append(thread.tape)
-            thread.target(*thread.args)
-        
-        # add thread to schedule
-        self.schedule_start(thread.tape, arg)
-        self.curr_tape = None
-    
-    def stop_thread(self, thread):
-        tape = thread.tape
-        self.schedule_wait(tape)
-
     def update_req(self, tape):
         if self.req_num is None:
             self.req_num = tape.req_num
@@ -231,8 +192,6 @@ class Program(object):
     
     def write_bytes(self, outfile=None):
         """ Write all non-empty threads and schedule to files. """
-        # runtime doesn't support 'new-style' parallelism yet
-        old_style = True
 
         nonempty_tapes = [t for t in self.tapes]
 
@@ -242,45 +201,11 @@ class Program(object):
         sch_file.write(str(self.max_par_tapes()) + '\n')
         sch_file.write(str(len(nonempty_tapes)) + '\n')
         sch_file.write(' '.join(tape.name for tape in nonempty_tapes) + '\n')
-        
-        # assign tapes indices (needed for scheduler)
-        for i,tape in enumerate(nonempty_tapes):
-            tape.index = i
-        
-        for sch in self.schedule:
-            # schedule may still contain empty tapes: ignore these
-            tapes = [x for x in sch[1] if not x[0].is_empty()]
-            # no empty line
-            if not tapes:
-                continue
-            line = ' '.join(str(t[0].index) +
-                            (':' + str(t[1]) if t[1] is not None else '') for t in tapes)
-            if old_style:
-                if sch[0] == 'start':
-                    sch_file.write('%d %s\n' % (len(tapes), line))
-            else:
-                sch_file.write('%s %d %s\n' % (tapes[0], len(tapes), line))
-        
+        sch_file.write('1 0\n')
         sch_file.write('0\n')
         sch_file.write(' '.join(sys.argv) + '\n')
         for tape in self.tapes:
             tape.write_bytes()
-    
-    def schedule_start(self, tape, arg=None):
-        """ Schedule the start of a thread. """
-        if self.schedule[-1][0] == 'start':
-            self.schedule[-1][1].append((tape, arg))
-        else:
-            self.schedule.append(('start', [(tape, arg)]))
-    
-    def schedule_wait(self, tape):
-        """ Schedule the end of a thread. """
-        if self.schedule[-1][0] == 'stop':
-            self.schedule[-1][1].append((tape, None))
-        else:
-            self.schedule.append(('stop', [(tape, None)]))
-        self.finalize_tape(tape)
-        self.update_req(tape)
 
     def finalize_tape(self, tape):
         if not tape.purged:
@@ -290,23 +215,13 @@ class Program(object):
                 tape.write_str(self.options.asmoutfile + '-' + tape.name)
             tape.purge()
     
-    def restart_main_thread(self):
-        if self.main_thread_running:
-            # wait for main thread to finish
-            self.schedule_wait(self._curr_tape)
-            self.main_thread_running = False
-        self._curr_tape = Tape(self.name, self)
-        self.tapes.append(self._curr_tape)
-        # add to schedule
-        self.schedule_start(self._curr_tape)
-        self.main_thread_running = True
-    
     @property
     def curr_tape(self):
         """ The tape that is currently running."""
         if self._curr_tape is None:
-            # Create a new main thread if necessary
-            self.restart_main_thread()
+            assert not self.tapes
+            self._curr_tape = Tape(self.name, self)
+            self.tapes.append(self._curr_tape)
         return self._curr_tape
 
     @curr_tape.setter
@@ -363,7 +278,8 @@ class Program(object):
                 if mem_type in self.types:
                     self.types[mem_type].load_mem(size - 1, mem_type)
                 else:
-                    library.load_mem(size - 1, mem_type)
+                    from Compiler.types import _get_type
+                    _get_type(mem_type).load_mem(size - 1, mem_type)
 
     def public_input(self, x):
         self.public_input_file.write('%s\n' % str(x))
@@ -449,7 +365,6 @@ class Tape:
             self.purged = False
             self.n_rounds = 0
             self.n_to_merge = 0
-            self.defined_registers = None
 
         def __len__(self):
             return len(self.instructions)
@@ -503,7 +418,6 @@ class Tape:
             if len(self.usage_instructions) > 1000:
                 print('Retaining %d instructions' % len(self.usage_instructions))
             del self.instructions
-            del self.defined_registers
             self.purged = True
 
         def add_usage(self, req_node):
@@ -611,7 +525,6 @@ class Tape:
                 if options.merge_opens and self.merge_opens:
                     if len(block.instructions) == 0:
                         block.used_from_scope = util.set_by_id()
-                        block.defined_registers = util.set_by_id()
                         continue
                     if len(block.instructions) > 100000:
                         print('Merging instructions...')
@@ -681,6 +594,7 @@ class Tape:
                             block.exit_block.scope is not None:
                         alloc_loop(block.exit_block.scope)
                 allocator.process(block.instructions, block.alloc_pool)
+            allocator.finalize(options)
 
         # offline data requirements
         if self.program.verbose:
@@ -929,7 +843,7 @@ class Tape:
         """
         __slots__ = ["reg_type", "program", "absolute_i", "relative_i", \
                          "size", "vector", "vectorbase", "caller", \
-                         "can_eliminate"]
+                         "can_eliminate", "duplicates"]
 
         def __init__(self, reg_type, program, size=None, i=None):
             """ Creates a new register.
@@ -955,6 +869,7 @@ class Tape:
                 self.i = float('inf')
             self.vector = []
             self.can_eliminate = True
+            self.duplicates = util.set_by_id([self])
             if Program.prog.DEBUG:
                 self.caller = [frame[1:] for frame in inspect.stack()[1:]]
             else:
@@ -1023,6 +938,11 @@ class Tape:
 
         def copy(self):
             return Tape.Register(self.reg_type, Program.prog.curr_tape)
+
+        def link(self, other):
+            self.duplicates |= other.duplicates
+            for dup in self.duplicates:
+                dup.duplicates = self.duplicates
 
         @property
         def is_gf2n(self):

@@ -55,8 +55,6 @@ public:
             typename T::mac_key_type mac_key);
 
     void run();
-
-    void output_mac_keys();
 };
 
 #endif /* OT_TRIPLEMACHINE_H_ */

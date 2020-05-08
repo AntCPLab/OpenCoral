@@ -47,17 +47,13 @@ void MaliciousRepMC<T>::Check(const Player& P)
 template<class T>
 HashMaliciousRepMC<T>::HashMaliciousRepMC()
 {
-    // deal with alignment issues
-    int error = posix_memalign((void**)&hash_state, 64, sizeof(crypto_generichash_state));
-    if (error)
-        throw runtime_error(string("failed to allocate hash state: ") + strerror(error));
     reset();
 }
 
 template<class T>
 void HashMaliciousRepMC<T>::reset()
 {
-    crypto_generichash_init(hash_state, 0, 0, crypto_generichash_BYTES);
+    hash.reset();
     needs_checking = false;
 }
 
@@ -69,7 +65,6 @@ HashMaliciousRepMC<T>::~HashMaliciousRepMC()
         cerr << endl << "SECURITY BUG: insufficient checking" << endl;
         terminate();
     }
-    free(hash_state);
 }
 
 template<class T>
@@ -89,9 +84,20 @@ void HashMaliciousRepMC<T>::POpen_End(vector<typename T::open_type>& values,
 }
 
 template<class T>
+typename T::open_type HashMaliciousRepMC<T>::finalize_open()
+{
+    auto res = ReplicatedMC<T>::finalize_open();
+    os.reset_write_head();
+    res.pack(os);
+    update();
+    return res;
+}
+
+template<class T>
 void HashMaliciousRepMC<T>::finalize(const vector<typename T::open_type>& values)
 {
     os.reset_write_head();
+    os.reserve(values.size() * T::open_type::size());
     for (auto& value : values)
         value.pack(os);
     update();
@@ -100,7 +106,7 @@ void HashMaliciousRepMC<T>::finalize(const vector<typename T::open_type>& values
 template<class T>
 void HashMaliciousRepMC<T>::update()
 {
-    crypto_generichash_update(hash_state, os.get_data(), os.get_length());
+    hash.update(os);
     needs_checking = true;
 }
 
@@ -132,11 +138,9 @@ void HashMaliciousRepMC<T>::Check(const Player& P)
 {
     if (needs_checking)
     {
-        unsigned char hash[crypto_generichash_BYTES];
-        crypto_generichash_final(hash_state, hash, sizeof hash);
-        reset();
         vector<octetStream> os(P.num_players());
-        os[P.my_num()].serialize(hash);
+        hash.final(os[P.my_num()]);
+        reset();
         P.Broadcast_Receive(os);
         for (int i = 0; i < P.num_players(); i++)
             if (os[i] != os[P.my_num()])

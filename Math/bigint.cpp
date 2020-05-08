@@ -154,10 +154,3 @@ void bigint::lottery()
       throw runtime_error("much deallocation");
 }
 #endif
-
-template mpf_class bigint::get_float(Integer, Integer, Integer, Integer);
-template mpf_class bigint::get_float(Z2<64>, Integer, Z2<64>, Z2<64>);
-template mpf_class bigint::get_float(Z2<72>, Integer, Z2<72>, Z2<72>);
-template mpf_class bigint::get_float(SignedZ2<64>, Integer, SignedZ2<64>, SignedZ2<64>);
-template mpf_class bigint::get_float(SignedZ2<72>, Integer, SignedZ2<72>, SignedZ2<72>);
-template mpf_class bigint::get_float(GC::Clear, Integer, GC::Clear, GC::Clear);

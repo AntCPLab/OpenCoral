@@ -97,12 +97,6 @@ class Random_Coins
   friend void add(Random_Coins& ans,
                   const Random_Coins& x,const Random_Coins& y);
 
-  // Don't bother outputing params, assumes these are implicitly known
-  friend ostream& operator<<(ostream& s,const Random_Coins& rc)
-    { s << rc.uu << " " << rc.vv << " " << rc.ww;
-      return s;
-    }
-
   void pack(octetStream& o) const { uu.pack(o); vv.pack(o); ww.pack(o); }
 
   size_t report_size(ReportType type)

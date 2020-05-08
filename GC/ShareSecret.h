@@ -65,11 +65,14 @@ public:
             const vector<int>& args);
     static void reveal_inst(Processor<U>& processor, const vector<int>& args);
 
-    static void convcbit(Integer& dest, const Clear& source) { dest = source; }
+    template<class T>
+    static void convcbit(Integer& dest, const Clear& source, T&) { dest = source; }
 
     static BitVec get_mask(int n) { return n >= 64 ? -1 : ((1L << n) - 1); }
 
     void check_length(int n, const Integer& x);
+
+    void invert(int n, const U& x);
 
     void random_bit();
 };

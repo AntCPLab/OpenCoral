@@ -25,12 +25,13 @@
 #include "Protocols/ShamirMC.hpp"
 #include "Protocols/MaliciousShamirMC.hpp"
 #include "Protocols/MAC_Check_Base.hpp"
-#include "Protocols/fake-stuff.hpp"
 #include "Protocols/Beaver.hpp"
 #include "Protocols/Spdz2kPrep.hpp"
+#include "Protocols/ReplicatedPrep.hpp"
 #include "GC/ShareSecret.hpp"
 #include "GC/VectorProtocol.hpp"
 #include "GC/Secret.hpp"
+#include "Math/gfp.hpp"
 
 ShamirOptions ShamirOptions::singleton;
 

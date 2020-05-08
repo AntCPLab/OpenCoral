@@ -129,9 +129,6 @@ class Ring_Element
   modp get_element(int i) const { return element[i]; }
   void set_element(int i,const modp& a) { element[i]=a; }
 
-  friend ostream& operator<<(ostream& s,const Ring_Element& e);
-  friend istream& operator>>(istream& s, Ring_Element& e);
-
   /* Pack and unpack into an octetStream 
    *   For unpack we assume the FFTD has been assigned correctly already
    */

@@ -60,6 +60,7 @@ GC::BreakType CommonParty::second_phase(GC::Program<T>& program,
 	catch (needs_cleaning& e)
 	{
 		next = GC::CLEANING_BREAK;
+        processor.PC--;
 	}
 #ifdef DEBUG_ROUNDS
 	cout << "finished second phase at " << processor.PC
