@@ -76,6 +76,21 @@ The following table lists all protocols that are fully supported.
 | Malicious, honest majority | [Shamir / Rep3 / PS](#honest-majority) | [Brain / Rep3 / PS](#honest-majority) | [Rep3 / CCD](#honest-majority) | [BMR](#bmr) |
 | Semi-honest, honest majority | [Shamir / Rep3](#honest-majority) | [Rep3](#honest-majority) | [Rep3 / CCD](#honest-majority) | [BMR](#bmr) |
 
+#### Paper and Citation
+
+The design of MP-SPDZ is described in [this
+paper](https://eprint.iacr.org/2020/521). If you use it for an
+academic project, please cite:
+```
+@misc{mp-spdz,
+    author = {Marcel Keller},
+    title = {{MP-SPDZ}: A Versatile Framework for Multi-Party Computation},
+    howpublished = {Cryptology ePrint Archive, Report 2020/521},
+    year = {2020},
+    note = {\url{https://eprint.iacr.org/2020/521}},
+}
+```
+
 #### History
 
 The software started out as an implementation of [the improved SPDZ
