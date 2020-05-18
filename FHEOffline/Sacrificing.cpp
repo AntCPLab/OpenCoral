@@ -36,7 +36,6 @@ void Triple_Checking(const Player& P, MAC_Check<T>& MC, int nm,
 
   // Triple checking
   int left_todo=nm; 
-  factory.triples.clear();
   while (left_todo>0)
     { int this_loop=amortize;
       if (this_loop>left_todo)

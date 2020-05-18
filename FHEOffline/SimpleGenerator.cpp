@@ -61,6 +61,7 @@ void SimpleGenerator<T,FD>::run(bool exhaust)
     timers["MC init"].start();
     MAC_Check<typename FD::T> MC(setup.alphai);
     timers["MC init"].stop();
+    producer->clear();
     while (total < machine.nTriplesPerThread or (exhaust and EC.has_left()))
     {
         producer->run(P, setup.pk, setup.calpha, EC, dd, setup.alphai);

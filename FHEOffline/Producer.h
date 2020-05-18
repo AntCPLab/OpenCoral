@@ -45,6 +45,7 @@ public:
       bool clear);
   virtual void clear_file(int my_num, int thread_num = 0, bool initial = true);
 
+  virtual void clear() = 0;
   virtual void run(const Player& P, const FHE_PK& pk,
       const Ciphertext& calpha, EncCommitBase<T, FD, S>& EC,
       DistDecrypt<FD>& dd, const T& alphai) = 0;
@@ -69,6 +70,7 @@ public:
   TripleProducer(const FD& Field, int my_num, int output_thread = 0,
       bool write_output = true, string dir = PREP_DIR);
 
+  void clear() { this->triples.clear(); }
   void run(const Player& P, const FHE_PK& pk,
       const Ciphertext& calpha, EncCommitBase<T, FD, S>& EC,
       DistDecrypt<FD>& dd, const T& alphai);
@@ -127,6 +129,7 @@ public:
       string dir = PREP_DIR);
   string data_type() { return "Inverses"; }
 
+  void clear() { this->tuples.clear(); }
   void run(const Player& P, const FHE_PK& pk, const Ciphertext& calpha, 
       EncCommitBase_<FD>& EC, DistDecrypt<FD>& dd, const T& alphai);
   void get(Share<T>& a, Share<T>& b);
@@ -147,6 +150,7 @@ public:
       bool write_output = true, string dir = PREP_DIR);
   string data_type() { return "Squares"; }
 
+  void clear() { this->tuples.clear(); }
   void run(const Player& P, const FHE_PK& pk, const Ciphertext& calpha,
       EncCommitBase_<FD>& EC, DistDecrypt<FD>& dd, const T& alphai);
   void get(Share<T>& a, Share<T>& b) { TupleProducer<FD>::get(a, b); }
@@ -172,6 +176,7 @@ public:
       string dir = PREP_DIR);
   string data_type() { return "Bits"; }
 
+  void clear() { bits.clear(); }
   void run(const Player& P, const FHE_PK& pk, const Ciphertext& calpha,
       EncCommitBase_<FD>& EC, DistDecrypt<FD>& dd, const gfp& alphai);
   int output(const Player& P, int thread, int output_thread = 0);
@@ -202,6 +207,7 @@ public:
       int output_thread = 0, bool write_output = true, string dir = PREP_DIR);
   string data_type() { return "Bits"; }
 
+  void clear() {}
   void run(const Player& P, const FHE_PK& pk, const Ciphertext& calpha,
       EncCommitBase_<FD>& EC, DistDecrypt<FD>& dd, const T& alphai);
 
@@ -226,6 +232,8 @@ public:
   ~InputProducer();
 
   string data_type() { return "Inputs"; }
+
+  void clear() {}
 
   void run(const Player& P, const FHE_PK& pk, const Ciphertext& calpha,
       EncCommitBase_<FD>& EC, DistDecrypt<FD>& dd, const T& alphai)
