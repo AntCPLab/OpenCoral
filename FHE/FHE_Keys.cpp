@@ -402,7 +402,7 @@ template Ciphertext FHE_PK::encrypt(const Plaintext_<P2Data>& mess) const;
 
 template void FHE_PK::encrypt(Ciphertext& c, const vector<int>& mess,
     const Random_Coins& rc) const;
-template void FHE_PK::encrypt(Ciphertext& c, const vector<fixint<2>>& mess,
+template void FHE_PK::encrypt(Ciphertext& c, const vector<fixint<GFP_MOD_SZ>>& mess,
     const Random_Coins& rc) const;
 
 template Plaintext_<FFT_Data> FHE_SK::decrypt(const Ciphertext& c,

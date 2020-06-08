@@ -82,7 +82,7 @@ bool isOne(const modp_<L>& x,const Zp_Data& ZpD)
     }
   else
     { if (x.x[0]!=1) { return false; }
-      for (int i=1; i<ZpD.t; i++)
+      for (int i=1; i<min(ZpD.t, L); i++)
 	{ if (x.x[i]!=0) { return false; } }
     }
   return true;
