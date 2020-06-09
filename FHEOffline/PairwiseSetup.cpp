@@ -62,6 +62,7 @@ void secure_init(T& setup, Player& P, MachineBase& machine,
     machine.drown_sec = sec;
     string filename = PREP_DIR + T::name() + "-"
             + to_string(plaintext_length) + "-" + to_string(sec) + "-"
+            + OnlineOptions::singleton.prime.get_str() + "-"
             + to_string(CowGearOptions::singleton.top_gear()) + "-P"
             + to_string(P.my_num()) + "-" + to_string(P.num_players());
     try

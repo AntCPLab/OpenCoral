@@ -69,6 +69,25 @@ void SPDZ_Data_Setup_Primes(bigint& p,int lgp,int& idx,int& m)
 
 void generate_prime(bigint& p, int lgp, int m)
 {
+  if (OnlineOptions::singleton.prime > 0)
+    {
+      p = OnlineOptions::singleton.prime;
+      if (!probPrime(p))
+        {
+          cerr << p << " is not a prime" << endl;
+          exit(1);
+        }
+      else if (m != 1 and p % m != 1)
+        {
+          cerr << p
+              << " is not compatible with our encryption scheme, must be 1 modulo "
+              << m << endl;
+          exit(1);
+        }
+      else
+          return;
+    }
+
   bigint u;
   int ex;
   ex = lgp - numBits(m);
