@@ -17,7 +17,7 @@ GC_SEMI = GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
 OT = $(patsubst %.cpp,%.o,$(wildcard OT/*.cpp))
 OT_EXE = ot.x ot-offline.x
 
-COMMON = $(MATH) $(TOOLS) $(NETWORK) GC/square64.o
+COMMON = $(MATH) $(TOOLS) $(NETWORK) GC/square64.o Processor/OnlineOptions.o
 COMPLETE = $(COMMON) $(PROCESSOR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(GC) $(OT)
 YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp)) $(OT) BMR/Key.o
 BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp)) $(COMMON) $(PROCESSOR) $(OT)
