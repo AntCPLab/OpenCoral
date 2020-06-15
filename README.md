@@ -297,6 +297,35 @@ Player-Data Programs
 $ ../spdz/Scripts/run-online.sh test
 ```
 
+### TensorFlow inference
+
+MP-SPDZ supports inference with selected TensorFlow graphs, in
+particular DenseNet, ResNet, and SqueezeNet as used in
+[CrypTFlow](https://github.com/mpc-msri/EzPC). For example, you can
+run SqueezeNet inference for ImageNet as follows:
+
+```
+git clone https://github.com/mkskeller/EzPC
+cd EzPC/Athos/Networks/SqueezeNetImgNet
+axel -a -n 5 -c --output ./PreTrainedModel https://github.com/avoroshilov/tf-squeezenet/raw/master/sqz_full.mat
+pip3 install scipy==1.1.0
+python3 squeezenet_main.py --in ./SampleImages/n02109961_36.JPEG --saveTFMetadata True
+python3 squeezenet_main.py --in ./SampleImages/n02109961_36.JPEG --scalingFac 12 --saveImgAndWtData True
+cd ../../../..
+Scripts/fixed-rep-to-float.py EzPC/Athos/Networks/SqueezeNetImgNet/SqNetImgNet_img_input.inp
+./compile.py -R 64 tf EzPC/Athos/Networks/SqueezeNetImgNet/graphDef.bin 1 trunc_pr split
+Scripts/ring.sh tf-EzPC_Athos_Networks_SqueezeNetImgNet_graphDef.bin-1-trunc_pr-split
+```
+
+This requires TensorFlow and the axel command-line utility to be
+installed. It runs inference with
+three-party semi-honest computation, similar to CrypTFlow's
+Porthos. Replace 1 by the desired number of thread in the last two
+lines. If you run with any other protocol, you will need to remove
+`trunc_pr` and `split`. Also note that you will need to use a
+CrypTFlow repository that includes the patch in
+https://github.com/mkskeller/EzPC/commit/2021be90d21dc26894be98f33cd10dd26769f479.
+
 ## Dishonest majority
 
 Some full implementations require oblivious transfer, which is
@@ -310,6 +339,7 @@ The following table shows all programs for dishonest-majority computation using 
 | Program | Protocol | Domain | Security | Script |
 | --- | --- | --- | --- | --- |
 | `mascot-party.x` | [MASCOT](https://eprint.iacr.org/2016/505) | Mod prime | Malicious | `mascot.sh` |
+| `mama-party.x` | MASCOT* | Mod prime | Malicious | `mama.sh` |
 | `spdz2k-party.x` | [SPDZ2k](https://eprint.iacr.org/2018/482) | Mod 2^k | Malicious | `spdz2k.sh` |
 | `semi-party.x` | OT-based | Mod prime | Semi-honest | `semi.sh` |
 | `semi2k-party.x` | OT-based | Mod 2^k | Semi-honest | `semi2k.sh` |
@@ -320,6 +350,12 @@ The following table shows all programs for dishonest-majority computation using 
 | `semi-bin-party.x` | OT-based | Binary | Semi-honest | `semi-bin.sh` |
 | `tiny-party.x` | Adapted SPDZ2k | Binary | Malicious | `tiny.sh` |
 | `tinier-party.x` | [FKOS15](https://eprint.iacr.org/2015/901) | Binary | Malicious | `tinier.sh` |
+
+Mama denotes MASCOT with several MACs to increase the security
+parameter to a multiple of the prime length. The number of MACs
+defaults to three, and it is controlled by the `N_MAMA_MACS`
+compile-time parameter (add `MY_CFLAGS += -DN_MAMA_MACS=<number of
+MACs>` to `CONFIG.mine`).
 
 Semi and Semi2k denote the result of stripping MASCOT/SPDZ2k of all
 steps required for malicious security, namely amplifying, sacrificing,

@@ -17,7 +17,7 @@ using namespace std;
 namespace GC
 {
 
-template <class T> class Program;
+class Program;
 
 template <class T>
 class Memories
@@ -38,7 +38,7 @@ class Machine : public ::BaseMachine, public Memories<T>
 public:
     Memory<Integer> MI;
 
-    vector<Program<T> > progs;
+    vector<Program> progs;
 
     bool use_encryption;
     bool more_comm_less_comp;

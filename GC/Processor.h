@@ -20,8 +20,6 @@ using namespace std;
 namespace GC
 {
 
-template <class T> class Program;
-
 class ExecutionStats : public map<int, size_t>
 {
 public:
@@ -39,7 +37,8 @@ class Processor : public ::ProcessorBase, public GC::RuntimeBranching
 public:
     static int check_args(const vector<int>& args, int n);
 
-    static void check_input(bigint in, int n_bits);
+    template<class U>
+    static void check_input(const U& in, int n_bits);
 
     Machine<T>* machine;
     Memories<T>& memories;
@@ -56,6 +55,8 @@ public:
 
     ExecutionStats stats;
 
+    Timer xor_timer;
+
     Processor(Machine<T>& machine);
     Processor(Memories<T>& memories, Machine<T>* machine = 0);
     ~Processor();
@@ -66,7 +67,8 @@ public:
     void reset(const U& program);
 
     long long get_input(const int* params, bool interactive = false);
-    bigint get_long_input(const int* params, ProcessorBase& input_proc,
+    template<class U>
+    U get_long_input(const int* params, ProcessorBase& input_proc,
             bool interactive = false);
 
     void bitcoms(T& x, const vector<int>& regs) { x.bitcom(S, regs); }
@@ -92,6 +94,7 @@ public:
             Integer dest_address, Integer source_address);
 
     void xors(const vector<int>& args);
+    void xors(const vector<int>& args, size_t start, size_t end);
     void nots(const ::BaseInstruction& instruction);
     void andm(const ::BaseInstruction& instruction);
     void and_(const vector<int>& args, bool repeat);
@@ -118,9 +121,9 @@ inline int GC::Processor<T>::check_args(const vector<int>& args, int n)
     if (args.size() % n != 0)
         throw runtime_error("invalid number of arguments");
     int total = 0;
-    for (size_t i = 0; i < args.size(); i += n)
+    for (auto it = args.begin(); it < args.end(); it += n)
     {
-        total += args[i];
+        total += *it;
     }
     return total;
 }

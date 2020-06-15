@@ -38,7 +38,7 @@ public:
         baseSenderInputs.resize(nparties - 1);
         baseReceiverOutputs.resize(nparties - 1);
 
-#ifdef VERBOSE
+#ifdef VERBOSE_BASEOT
         if (real_OTs)
             cout << "Doing real base OTs\n";
         else

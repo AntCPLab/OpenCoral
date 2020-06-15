@@ -64,4 +64,12 @@ void SemiPrep::buffer_bits()
         this->bits.push_back((r >> i) & 1);
 }
 
+size_t SemiPrep::data_sent()
+{
+    if (triple_generator)
+        return triple_generator->data_sent();
+    else
+        return 0;
+}
+
 } /* namespace GC */

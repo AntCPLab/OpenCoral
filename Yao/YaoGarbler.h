@@ -18,11 +18,11 @@
 
 #include <thread>
 
-class YaoGate;
-
-class YaoGarbler : public GC::Thread<GC::Secret<YaoGarbleWire>>, public YaoCommon
+class YaoGarbler: public GC::Thread<GC::Secret<YaoGarbleWire>>,
+		public YaoCommon<YaoGarbleWire>
 {
 	friend class YaoGarbleWire;
+	friend class YaoCommon<YaoGarbleWire>;
 
 protected:
 	static thread_local YaoGarbler* singleton;
@@ -42,8 +42,6 @@ public:
 	SendBuffer output_masks;
 	MMO mmo;
 
-	vector<YaoAndJob*> and_jobs;
-
 	map<string, Timer> timers;
 
 	RealTwoPartyPlayer player;
@@ -58,18 +56,16 @@ public:
 
 	bool continuous() { return master.continuous and master.machine.nthreads == 1; }
 
-	void run(GC::Program<GC::Secret<YaoGarbleWire>>& program);
+	void run(GC::Program& program);
 	void run(Player& P, bool continuous);
 	void post_run();
 	void send(Player& P);
 
 	void process_receiver_inputs();
 
-	const Key& get_delta() { return master.delta; }
+	Key get_delta() { return master.get_delta(); }
 	void store_gate(const YaoGate& gate);
 
-	int get_n_worker_threads()
-	{ return max(1u, thread::hardware_concurrency() / master.machine.nthreads); }
 	int get_threshold() { return master.threshold; }
 
 	long get_gate_id() { return gate_id(thread_num); }

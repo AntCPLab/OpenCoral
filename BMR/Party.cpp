@@ -382,9 +382,6 @@ void FakeProgramParty::receive_spdz_wires(ReceivedMsg& msg)
 void ProgramParty::store_wire(const Register& reg)
 {
 	wires.serialize(reg.key(get_id(), 0));
-#ifndef FREE_XOR
-	wires.serialize(reg.key(get_id(), 1));
-#endif
 #ifdef DEBUG
 	cout << "storing wire" << endl;
 	reg.print();
@@ -394,11 +391,7 @@ void ProgramParty::store_wire(const Register& reg)
 void ProgramParty::load_wire(Register& reg)
 {
 	wires.unserialize(reg.key(get_id(), 0));
-#ifdef FREE_XOR
 	reg.key(get_id(), 1) = reg.key(get_id(), 0) ^ get_delta();
-#else
-	wires.unserialize(reg.key(get_id(), 1));
-#endif
 #ifdef DEBUG
 	cout << "loading wire" << endl;
 	reg.print();

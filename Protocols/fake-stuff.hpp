@@ -4,8 +4,6 @@
 #include "Protocols/fake-stuff.h"
 #include "Processor/Data_Files.h"
 #include "Tools/benchmarking.h"
-#include "Math/gfp.h"
-#include "Math/gf2n.h"
 #include "Math/Setup.h"
 
 #include "Protocols/ShamirInput.hpp"

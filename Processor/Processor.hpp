@@ -523,6 +523,63 @@ void SubProcessor<T>::matmulsm(const CheckVector<T>& source,
             *(C + i * dim[2] + j) = protocol.finalize_dotprod(dim[1]);
 }
 
+template<class T>
+void SubProcessor<T>::conv2ds(const Instruction& instruction)
+{
+    protocol.init_dotprod(this);
+    auto& args = instruction.get_start();
+    int output_h = args[0], output_w = args[1];
+    int inputs_h = args[2], inputs_w = args[3];
+    int weights_h = args[4], weights_w = args[5];
+    int stride_h = args[6], stride_w = args[7];
+    int n_channels_in = args[8];
+    int padding_h = args[9];
+    int padding_w = args[10];
+    int r0 = instruction.get_r(0);
+    int r1 = instruction.get_r(1);
+    int r2 = instruction.get_r(2);
+    int lengths[output_h][output_w];
+    memset(lengths, 0, sizeof(lengths));
+
+    for (int out_y = 0; out_y < output_h; out_y++)
+        for (int out_x = 0; out_x < output_w; out_x++)
+        {
+            int in_x_origin = (out_x * stride_w) - padding_w;
+            int in_y_origin = (out_y * stride_h) - padding_h;
+
+            for (int filter_y = 0; filter_y < weights_h; filter_y++)
+            {
+                int in_y = in_y_origin + filter_y;
+                if ((0 <= in_y) and (in_y < inputs_h))
+                    for (int filter_x = 0; filter_x < weights_w; filter_x++)
+                    {
+                        int in_x = in_x_origin + filter_x;
+                        if ((0 <= in_x) and (in_x < inputs_w))
+                        {
+                            for (int in_c = 0; in_c < n_channels_in; in_c++)
+                                protocol.prepare_dotprod(
+                                        S[r1 + (in_y * inputs_w + in_x) *
+                                          n_channels_in + in_c],
+                                        S[r2 + (filter_y * weights_w + filter_x) *
+                                          n_channels_in + in_c]);
+                            lengths[out_y][out_x] += n_channels_in;
+                        }
+                    }
+            }
+
+            protocol.next_dotprod();
+        }
+
+    protocol.exchange();
+
+    for (int out_y = 0; out_y < output_h; out_y++)
+        for (int out_x = 0; out_x < output_w; out_x++)
+        {
+            S[r0 + out_y * output_w + out_x] = protocol.finalize_dotprod(
+                    lengths[out_y][out_x]);
+        }
+}
+
 template<class sint, class sgf2n>
 ostream& operator<<(ostream& s,const Processor<sint, sgf2n>& P)
 {

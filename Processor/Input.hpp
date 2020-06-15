@@ -131,7 +131,8 @@ void InputBase<T>::exchange()
 }
 
 template<class T>
-void InputBase<T>::raw_input(SubProcessor<T>& proc, const vector<int>& args)
+void InputBase<T>::raw_input(SubProcessor<T>& proc, const vector<int>& args,
+        int size)
 {
     auto& P = proc.P;
     reset_all(P);
@@ -142,20 +143,24 @@ void InputBase<T>::raw_input(SubProcessor<T>& proc, const vector<int>& args)
         it++;
         if (player == P.my_num())
         {
-            clear t;
-            try
+            for (int i = 0; i < size; i++)
             {
-                this->buffer.input(t);
+                clear t;
+                try
+                {
+                    this->buffer.input(t);
+                }
+                catch (not_enough_to_buffer& e)
+                {
+                    throw runtime_error("Insufficient input data to buffer");
+                }
+                add_mine(t);
             }
-            catch (not_enough_to_buffer& e)
-            {
-                throw runtime_error("Insufficient input data to buffer");
-            }
-            add_mine(t);
         }
         else
         {
-            add_other(player);
+            for (int i = 0; i < size; i++)
+                add_other(player);
         }
     }
 
@@ -166,7 +171,9 @@ void InputBase<T>::raw_input(SubProcessor<T>& proc, const vector<int>& args)
     for (auto it = args.begin(); it != args.end();)
     {
         int player = *it++;
-        proc.get_S_ref(*it++) = finalize(player);
+        int base = *it++;
+        for (int i = 0; i < size; i++)
+            proc.get_S_ref(base + i) = finalize(player);
     }
 }
 

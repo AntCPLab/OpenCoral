@@ -23,7 +23,7 @@ public:
     int batch_size;
     std::string memtype;
     bool direct;
-    bool fake_batch;
+    int bucket_size;
 
     OnlineOptions();
     OnlineOptions(ez::ezOptionParser& opt, int argc, const char** argv,

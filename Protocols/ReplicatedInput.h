@@ -41,6 +41,7 @@ class ReplicatedInput : public PrepLessInput<T>
     vector<octetStream> os;
     SeededPRNG secure_prng;
     ReplicatedBase protocol;
+    vector<bool> expect;
 
 public:
     ReplicatedInput(SubProcessor<T>& proc) :
@@ -65,6 +66,7 @@ public:
             PrepLessInput<T>(proc), proc(proc), P(P), protocol(P)
     {
         assert(T::length == 2);
+        expect.resize(P.num_players());
     }
 
     void reset(int player);

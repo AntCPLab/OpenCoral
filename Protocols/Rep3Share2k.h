@@ -38,7 +38,8 @@ public:
         FixedVec<T, 2>::operator=(other);
     }
 
-    static void split(vector<bit_type>& dest, const vector<int>& regs,
+    template<class U>
+    static void split(vector<U>& dest, const vector<int>& regs,
             int n_bits, const Rep3Share2* source, int n_inputs, Player& P)
     {
         int my_num = P.my_num();
@@ -75,7 +76,7 @@ public:
                 break;
             case 2:
             {
-                ReplicatedInput<bit_type> input(P);
+                ReplicatedInput<U> input(P);
                 input.reset_all(P);
                 if (P.my_num() == 0)
                 {
@@ -86,6 +87,10 @@ public:
                     for (int j = 0; j < n_bits; j++)
                         input.add_mine(square.rows[j], m);
                 }
+                else
+                    for (int j = 0; j < n_bits; j++)
+                        input.add_other(0);
+
                 input.exchange();
                 for (int j = 0; j < n_bits; j++)
                     dest.at(regs.at(2 * j) + k) = input.finalize(0, m);

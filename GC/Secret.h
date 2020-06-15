@@ -34,32 +34,8 @@ class Secret;
 template <class T>
 inline void XOR(T& res, const T& left, const T& right)
 {
-#ifdef FREE_XOR
-    Secret<T>::cast(res).XOR(Secret<T>::cast(left), Secret<T>::cast(right));
-#else
-    Secret<T>::cast(res).op(Secret<T>::cast(left), Secret<T>::cast(right), 0x0110);
-#endif
+    res.XOR(left, right);
 }
-
-class AuthValue
-{
-public:
-    static string type_string() { return "authenticated value"; }
-    word share;
-    int128 mac;
-    AuthValue() : share(0), mac(0) {}
-    void assign(const word& value, const int128& mac_key, bool first_player);
-    void check(const word& mac_key) const;
-    friend ostream& operator<<(ostream& o, const AuthValue& auth_value);
-};
-
-class Mask
-{
-public:
-    word share;
-    int128 mac;
-    Mask() : share(0) {}
-};
 
 template<class T> class Processor;
 template<class T> class Machine;
@@ -78,6 +54,8 @@ class Secret
     T& get_new_reg();
 
 public:
+    typedef T part_type;
+
     typedef typename T::DynamicMemory DynamicMemory;
 
     typedef NoShare bit_type;
@@ -93,19 +71,13 @@ public:
 
     static const bool is_real = true;
 
-    static T& cast(T& reg) { return *reinterpret_cast<T*>(&reg); }
-    static const T& cast(const T& reg) { return *reinterpret_cast<const T*>(&reg); }
-
     static Secret<T> input(party_id_t from, const int128& input, int n_bits = -1);
     static Secret<T> input(Processor<Secret<T>>& processor, const InputArgs& args);
     void random(int n_bits, int128 share);
     void random_bit();
-    static Secret<T> reconstruct(const int128& x, int length);
     template <class U>
     static void store_clear_in_dynamic(U& mem, const vector<ClearWriteAccess>& accesses)
     { T::store_clear_in_dynamic(mem, accesses); }
-    void store(Memory<AuthValue>& mem, size_t address);
-    static Secret<T> carryless_mult(const Secret<T>& x, const Secret<T>& y);
     static void output(T& reg);
 
     template<class U, class V>
@@ -146,7 +118,6 @@ public:
 
     void load_clear(int n, const Integer& x);
     void operator=(const Integer& x) { load_clear(default_length, x); }
-    void load(int n, const Memory<AuthValue>& mem, size_t address);
 
     Secret<T> operator<<(int i);
     Secret<T> operator>>(int i);
@@ -176,8 +147,8 @@ public:
     RegVector& get_regs() { return registers; }
     const RegVector& get_regs() const { return registers; }
 
-    const T& get_reg(int i) const { return *reinterpret_cast<const T*>(&registers.at(i)); }
-    T& get_reg(int i) { return *reinterpret_cast<T*>(&registers.at(i)); }
+    const T& get_reg(int i) const { return registers.at(i); }
+    T& get_reg(int i) { return registers.at(i); }
     void resize_regs(size_t n);
 };
 

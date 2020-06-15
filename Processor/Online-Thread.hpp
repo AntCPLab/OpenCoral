@@ -270,9 +270,12 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
   wait_timer.stop();
 
 #ifdef VERBOSE
-  cerr << num << " : MAC Checking" << endl;
-  cerr << "\tMC2.number=" << MC2->number() << endl;
-  cerr << "\tMCp.number=" << MCp->number() << endl;
+  if (MC2->number() + MCp->number() > 0)
+    cerr << num << " : MAC Checking" << endl;
+  if (MC2->number())
+    cerr << "\tMC2.number=" << MC2->number() << endl;
+  if (MCp->number())
+    cerr << "\tMCp.number=" << MCp->number() << endl;
 
   cerr << "Thread " << num << " timer: " << thread_timer.elapsed() << endl;
   cerr << "Thread " << num << " wait timer: " << wait_timer.elapsed() << endl;

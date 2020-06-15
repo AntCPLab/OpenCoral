@@ -14,6 +14,7 @@
 template<class T>
 void ReplicatedInput<T>::reset(int player)
 {
+    assert(P.num_players() == 3);
     if (player == P.my_num())
     {
         this->shares.clear();
@@ -22,6 +23,7 @@ void ReplicatedInput<T>::reset(int player)
         for (auto& o : os)
             o.reset_write_head();
     }
+    expect[player] = false;
 }
 
 template<class T>
@@ -39,7 +41,7 @@ inline void ReplicatedInput<T>::add_mine(const typename T::open_type& input, int
 template<class T>
 void ReplicatedInput<T>::add_other(int player)
 {
-    (void) player;
+    expect[player] = true;
 }
 
 template<class T>
@@ -51,17 +53,25 @@ void ReplicatedInput<T>::send_mine()
 template<class T>
 void ReplicatedInput<T>::exchange()
 {
-    for (int i = 1; i < P.num_players(); i++)
-    {
-        P.pass_around(os[i - 1], InputBase<T>::os[P.get_player(-i)], i);
-    }
+    bool receive = expect[P.get_player(1)];
+    bool send = not os[1].empty();
+    auto& dest =  InputBase<T>::os[P.get_player(1)];
+    if (send)
+        if (receive)
+            P.pass_around(os[1], dest, -1);
+        else
+            P.send_to(P.get_player(-1), os[1], true);
+    else
+        if (receive)
+            P.receive_player(P.get_player(1), dest, true);
 }
 
 template<class T>
 inline void ReplicatedInput<T>::finalize_other(int player, T& target,
         octetStream& o, int n_bits)
 {
-    if (P.get_offset(player) == 1)
+    int offset = player - P.my_num();
+    if (offset == 1 or offset == -2)
     {
         typename T::value_type t;
         t.unpack(o, n_bits);

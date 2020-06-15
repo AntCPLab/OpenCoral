@@ -2,6 +2,8 @@
 #include "FHE/Matrix.h"
 #include "Exceptions/Exceptions.h"
 
+#include "Math/modp.hpp"
+
 #include <stdlib.h>
 #include <iostream>
 

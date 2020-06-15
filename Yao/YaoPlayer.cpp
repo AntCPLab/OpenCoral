@@ -94,6 +94,8 @@ YaoPlayer::YaoPlayer(int argc, const char** argv)
 
 	if (my_num == 1)
 	    ((YaoEvalMaster*)master)->machine.write_memory(0);
+
+	delete master;
 }
 
 YaoPlayer::~YaoPlayer()

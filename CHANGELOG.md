@@ -1,5 +1,12 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.1.8 (June 15, 2020)
+
+- Half-gate garbling
+- Native 2D convolution
+- Inference with some TensorFlow graphs
+- MASCOT with several MACs to increase security
+
 ## 0.1.7 (May 8, 2020)
 
 - Possibility of using global keyword in loops instead of MemValue

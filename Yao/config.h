@@ -10,4 +10,15 @@
 
 //#define CHECK_BUFFER
 
+#define HALF_GATES
+
+class YaoFullGate;
+class YaoHalfGate;
+
+#ifdef HALF_GATES
+typedef YaoHalfGate YaoGate;
+#else
+typedef YaoFullGate YaoGate;
+#endif
+
 #endif /* YAO_CONFIG_H_ */

@@ -63,25 +63,9 @@ void Secret<T>::random(int n_bits, int128 share)
     (void)share;
     if (n_bits > 128)
         throw not_implemented();
-#ifdef NO_INPUT
     resize_regs(n_bits);
     for (int i = 0; i < n_bits; i++)
     	get_reg(i).random();
-#else
-    for (int i = 0; i < CommonParty::singleton->get_n_parties(); i++)
-    {
-    	Secret<T> tmp = *this;
-    	Secret<T> s = input(i + 1, share, n_bits);
-    	*this = tmp + s;
-#ifdef DEBUG_DYNAMIC
-    	int128 a,b,c;
-    	tmp.reveal(a);
-    	s.reveal(b);
-    	reveal(c);
-    	cout << c << " = " << a << " ^ " << b << " (" << dec << n_bits << ", " << share << ")" << endl;
-#endif
-    }
-#endif
 #ifdef DEBUG_RANDOM
     int128 revealed;
     reveal(revealed);
@@ -97,11 +81,7 @@ void Secret<T>::random(int n_bits, int128 share)
 template <class T>
 void Secret<T>::random_bit()
 {
-#ifdef NO_INPUT
 	return random(1, 0);
-#else
-    return random(1, CommonParty::s().prng.get_uchar() & 1);
-#endif
 }
 
 template <class T>
@@ -115,67 +95,7 @@ void Secret<T>::store(U& mem,
 template <class T>
 void Secret<T>::output(T& reg)
 {
-    cast(reg).output();
-}
-
-template <class T>
-Secret<T> Secret<T>::carryless_mult(const Secret<T>& x, const Secret<T>& y)
-{
-    Secret<T> res;
-    if (x.registers.size() == 0)
-        throw not_implemented();
-#ifdef DEBUG_DYNAMIC2
-    for (int i = 0; i < x.registers.size(); i++)
-        output(x.registers[i]);
-    for (int i = 0; i < y.registers.size(); i++)
-        output(y.registers[i]);
-#endif
-    for (size_t i = 0; i < x.registers.size() + y.registers.size() - 1; i++)
-    {
-        int start = max((size_t)0, i - y.registers.size() + 1);
-        int stop = min(i + 1, x.registers.size());
-        T sum = AND<T>(x.get_reg(start), y.get_reg(i - start));
-#ifdef DEBUG_DYNAMIC2
-        output(sum);
-        cout << "carryless " << i << " " << start << " " << i - start <<
-                " sum "  << (int)cast(sum).get_output() <<
-                " x " << (int)x.get_reg(start).get_output() <<
-                " y " << (int)y.get_reg(i - start).get_output() <<
-                " sum id " << sum.get_reg().get_id() << endl;
-#endif
-        for (int j = start + 1; j < stop; j++)
-        {
-            T product = AND<T>(x.get_reg(j), y.get_reg(i - j));
-            sum = XOR<T>(sum, product);
-#ifdef DEBUG_DYNAMIC2
-            cout << "carryless " <<
-                    " prod id " << product.get_reg().get_id() <<
-                    " sum id " << sum.get_reg().get_id() << endl << flush;
-            output(product);
-            output(sum);
-            cout << "carryless " << i << " " << j << " " << i - j <<
-                    " prod " << (int)cast(product).get_output() <<
-                    " sum "  << (int)cast(sum).get_output() <<
-                    " x " << (int)x.get_reg(j).get_output() <<
-                    " y " << (int)y.get_reg(i - j).get_output() << endl;
-#endif
-        }
-        res.registers.push_back(sum);
-    }
-#ifdef DEBUG_DYNAMIC
-    word a, b;
-    int128 c;
-    x.reveal(a);
-    y.reveal(b);
-    res.reveal(c);
-    cout << typeid(T).name() << endl;
-    cout << c << " = " << hex << a << " * " << b << endl;
-    AuthValue d;
-    d.assign(a, b, false);
-    if (d.mac != c)
-    	throw runtime_error("carryless mult");
-#endif
-    return res;
+    reg.output();
 }
 
 template <class T>
@@ -189,7 +109,7 @@ template<class T>
 T& GC::Secret<T>::get_new_reg()
 {
 	registers.push_back(T::new_reg());
-	T &res = cast(registers.back());
+	T& res = registers.back();
 #ifdef DEBUG_REGS
 	cout << "Secret: new " << typeid(T).name() << " " << res.get_id() << " at " << &res << endl;
 #endif

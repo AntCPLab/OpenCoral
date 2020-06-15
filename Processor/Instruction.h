@@ -99,6 +99,7 @@ enum
     TRUNC_PR = 0xA9,
     MATMULS = 0xAA,
     MATMULSM = 0xAB,
+    CONV2DS = 0xAC,
     // Data access
     TRIPLE = 0x50,
     BIT = 0x51,

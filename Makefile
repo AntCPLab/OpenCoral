@@ -84,7 +84,7 @@ rep-bin: replicated-bin-party.x malicious-rep-bin-party.x Fake-Offline.x
 replicated: rep-field rep-ring rep-bin
 
 spdz2k: spdz2k-party.x ot-offline.x Check-Offline-Z2k.x galois-degree.x Fake-Offline.x
-mascot: mascot-party.x spdz2k
+mascot: mascot-party.x spdz2k mama-party.x
 
 tldr:
 	-echo ARCH = -march=native >> CONFIG.mine
@@ -101,7 +101,7 @@ shamir: shamir-party.x malicious-shamir-party.x galois-degree.x
 ecdsa: $(patsubst ECDSA/%.cpp,%.x,$(wildcard ECDSA/*-ecdsa-party.cpp))
 ecdsa-static: static-dir $(patsubst ECDSA/%.cpp,static/%.x,$(wildcard ECDSA/*-ecdsa-party.cpp))
 
-$(LIBRELEASE): $(patsubst %.cpp,%.o,$(wildcard Protocols/*.cpp)) $(YAO) $(PROCESSOR) $(COMMON) $(BMR) $(FHEOFFLINE) $(GC)
+$(LIBRELEASE): $(patsubst %.cpp,%.o,$(wildcard Protocols/*.cpp)) $(PROCESSOR) $(COMMON) $(BMR) $(FHEOFFLINE) $(GC)
 	$(AR) -csr $@ $^
 
 static/%.x: Machines/%.o $(LIBRELEASE) $(LIBSIMPLEOT)
@@ -145,14 +145,15 @@ cnc-offline.x: $(FHEOFFLINE)
 spdz2-offline.x: $(FHEOFFLINE)
 
 yao-party.x: $(YAO)
+static/yao-party.x: $(YAO)
 
 yao-clean:
 	-rm Yao/*.o
 
-galois-degree.x: Utils/galois-degree.cpp
+galois-degree.x: Utils/galois-degree.o
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
-default-prime-length.x: Utils/default-prime-length.cpp
+default-prime-length.x: Utils/default-prime-length.o
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 secure.x: Utils/secure.o
@@ -186,6 +187,7 @@ chaigear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o $(OT)
 mascot-party.x: Machines/SPDZ.o $(OT)
 static/mascot-party.x: Machines/SPDZ.o
 Player-Online.x: Machines/SPDZ.o $(OT)
+mama-party.x: $(OT)
 ps-rep-ring-party.x: Protocols/MalRepRingOptions.o
 malicious-rep-ring-party.x: Protocols/MalRepRingOptions.o
 semi-ecdsa-party.x: $(OT) $(LIBSIMPLEOT) GC/SemiPrep.o GC/SemiSecret.o
@@ -200,6 +202,7 @@ OT/BaseOT.o: SimpleOT/Makefile
 SimpleOT/Makefile:
 	git submodule update --init SimpleOT
 
+.PHONY: Programs/Circuits
 Programs/Circuits:
 	git submodule update --init Programs/Circuits
 

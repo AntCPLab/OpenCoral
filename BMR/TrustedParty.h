@@ -70,10 +70,8 @@ public:
 	void store_wire(const Register& reg);
 	void load_wire(Register& reg);
 
-#ifdef FREE_XOR
 	const Key& delta(int i) { return deltas[i]; }
 	const KeyVector& get_deltas() { return deltas; }
-#endif
 
 private:
 	friend class GarbleRegister;
@@ -84,14 +82,12 @@ private:
 
 	GC::Machine< GC::Secret<GarbleRegister> > machine;
 	GC::Processor< GC::Secret<GarbleRegister> > processor;
-	GC::Program< GC::Secret<GarbleRegister> > program;
+	GC::Program program;
 
 	GC::Machine< GC::Secret<RandomRegister> > random_machine;
 	GC::Processor< GC::Secret<RandomRegister> > random_processor;
 
-#ifdef FREE_XOR
 	KeyVector deltas;
-#endif
 
 	vector<octetStream> spdz_wires[SPDZ_OP_N];
 	vector< Share<gf2n_long> > mask_shares;

@@ -70,7 +70,7 @@ void Thread<T>::run()
 }
 
 template<class T>
-void Thread<T>::run(Program<T>& program)
+void Thread<T>::run(Program& program)
 {
     while (program.execute(processor, master.memory) != DONE_BREAK)
         ;

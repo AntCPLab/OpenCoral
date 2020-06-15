@@ -21,10 +21,6 @@ using namespace std;
 #include "Math/gf2n.h"
 #include "Tools/FlexBuffer.h"
 
-#ifndef FREE_XOR
-#warning not using free XOR has not been tested in a while
-#endif
-
 //#define PAD_TO_8(n) (n+8-n%8)
 #define PAD_TO_8(n) (n)
 
@@ -119,9 +115,6 @@ public:
 
 namespace GC
 {
-class AuthValue;
-class Mask;
-class SpdzShare;
 template <class T>
 class Secret;
 template <class T>
@@ -208,16 +201,9 @@ public:
 	typedef BlackHole out_type;
 	static BlackHole out;
 
-	static void check(const int128& value, word share, int128 mac)
-	{ (void)value; (void)share; (void)mac; }
-	static void get_dyn_mask(GC::Mask& mask, int length, int mac_length)
-	{ (void)mask; (void)length; (void)mac_length; }
 	template <class T>
 	static void store_clear_in_dynamic(T& mem, const vector<GC::ClearWriteAccess>& accesses)
 	{ (void)mem; (void)accesses; }
-	static void unmask(GC::AuthValue& dest, word mask_share, int128 mac_mask_share,
-			word masked, int128 masked_mac)
-	{ (void)dest; (void)mask_share; (void)mac_mask_share; (void)masked; (void)masked_mac; }
 
 	template<class T>
 	static void store(NoMemory& dest,
@@ -260,9 +246,6 @@ public:
 	template<class T>
 	static void store(NoMemory& dest,
 			const vector<GC::WriteAccess<T> >& accesses) { (void)dest; (void)accesses; }
-	template<class T>
-	static void load(vector<GC::ReadAccess<T> >& accesses,
-			const GC::Memory<GC::SpdzShare>& source) { (void)accesses; (void)source; }
 
 	// most BMR phases don't need actual input
 	template<class T>
@@ -300,11 +283,6 @@ public:
 
     typedef ostream& out_type;
     static ostream& out;
-
-    static void check(const int128& value, word share, int128 mac);
-    static void get_dyn_mask(GC::Mask& mask, int length, int mac_length);
-    static void unmask(GC::AuthValue& dest, word mask_share, int128 mac_mask_share,
-    		word masked, int128 masked_mac);
 
     template<class T, class U>
     static void store(GC::Memory<U>& dest,

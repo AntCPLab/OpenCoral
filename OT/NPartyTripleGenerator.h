@@ -8,7 +8,7 @@
 #include "Processor/InputTuple.h"
 
 #include "OT/OTTripleSetup.h"
-#include "OT/TripleMachine.h"
+#include "OT/MascotParams.h"
 #include "OT/OTMultiplier.h"
 
 #include <map>
@@ -143,22 +143,42 @@ public:
 };
 
 template<class T>
-class MascotTripleGenerator : public NPartyTripleGenerator<T>
+class SimpleMascotTripleGenerator : public NPartyTripleGenerator<T>
+{
+    typedef typename T::mac_key_type mac_key_type;
+    typedef typename T::MAC_Check MAC_Check;
+
+    virtual void sacrifice(typename T::MAC_Check&, PRNG&) { throw not_implemented(); }
+
+public:
+    vector< ShareTriple<T, 2> > uncheckedTriples;
+
+    SimpleMascotTripleGenerator(const OTTripleSetup& setup, const Names& names,
+            int thread_num, int nTriples, int nloops, MascotParams& machine,
+            mac_key_type mac_key,
+            Player* parentPlayer = 0);
+    virtual ~SimpleMascotTripleGenerator() {}
+
+    void generateTriples();
+};
+
+template<class T>
+class MascotTripleGenerator : public SimpleMascotTripleGenerator<T>
 {
     typedef typename T::open_type open_type;
     typedef typename T::mac_key_type mac_key_type;
     typedef typename T::MAC_Check MAC_Check;
 
-    void generateTriples();
     void generateBits();
     void generateBitsGf2n();
-    void generateBitsFromTriples(MAC_Check& MC, ofstream& outputFile);
+    template <int X, int L>
+    void generateBitsFromTriples(MAC_Check& MC, ofstream& outputFile, gfp_<X, L>);
+    template <class U>
+    void generateBitsFromTriples(MAC_Check& MC, ofstream& outputFile, U);
 
     void sacrifice(typename T::MAC_Check& MC, PRNG& G);
 
 public:
-    vector< ShareTriple<T, 2> > uncheckedTriples;
-
     vector<T> bits;
 
     MascotTripleGenerator(const OTTripleSetup& setup, const Names& names,

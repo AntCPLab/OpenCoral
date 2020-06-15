@@ -13,16 +13,19 @@
 #include "GC/Thread.hpp"
 #include "GC/ThreadMaster.hpp"
 #include "Tools/MMO.hpp"
+#include "YaoWire.hpp"
 
 thread_local YaoEvaluator* YaoEvaluator::singleton = 0;
 
 YaoEvaluator::YaoEvaluator(int thread_num, YaoEvalMaster& master) :
 		Thread<GC::Secret<YaoEvalWire>>(thread_num, master),
+		YaoCommon<YaoEvalWire>(master),
 		master(master),
 		player(N, 0, thread_num << 24),
 		ot_ext(OTExtensionWithMatrix::setup(player, {}, RECEIVER, true))
 {
 	set_n_program_threads(master.machine.nthreads);
+	this->init(*this);
 }
 
 void YaoEvaluator::pre_run()
@@ -31,7 +34,7 @@ void YaoEvaluator::pre_run()
 		receive_to_store(*P);
 }
 
-void YaoEvaluator::run(GC::Program<GC::Secret<YaoEvalWire>>& program)
+void YaoEvaluator::run(GC::Program& program)
 {
 	singleton = this;
 
@@ -43,7 +46,7 @@ void YaoEvaluator::run(GC::Program<GC::Secret<YaoEvalWire>>& program)
 	}
 }
 
-void YaoEvaluator::run(GC::Program<GC::Secret<YaoEvalWire>>& program, Player& P)
+void YaoEvaluator::run(GC::Program& program, Player& P)
 {
 	auto next = GC::TIME_BREAK;
 	do
@@ -60,7 +63,7 @@ void YaoEvaluator::run(GC::Program<GC::Secret<YaoEvalWire>>& program, Player& P)
 	while(GC::DONE_BREAK != next);
 }
 
-void YaoEvaluator::run_from_store(GC::Program<GC::Secret<YaoEvalWire>>& program)
+void YaoEvaluator::run_from_store(GC::Program& program)
 {
 	machine.reset_timer();
 	do

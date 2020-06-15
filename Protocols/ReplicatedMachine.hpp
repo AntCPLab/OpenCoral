@@ -17,7 +17,7 @@ ReplicatedMachine<T, U>::ReplicatedMachine(int argc, const char** argv,
 {
     (void) name;
 
-    OnlineOptions online_opts(opt, argc, argv, 1000, true, T::clear::invertible);
+    OnlineOptions online_opts(opt, argc, argv, 10000, true, T::clear::invertible);
     OnlineOptions::singleton = online_opts;
     NetworkOptionsWithNumber network_opts(opt, argc, argv, nplayers, false);
     opt.add(

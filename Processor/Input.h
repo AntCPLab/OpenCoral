@@ -58,7 +58,7 @@ public:
     virtual void finalize_other(int player, T& target, octetStream& o, int n_bits = -1) = 0;
     T finalize(int player, int n_bits = -1);
 
-    void raw_input(SubProcessor<T>& proc, const vector<int>& args);
+    void raw_input(SubProcessor<T>& proc, const vector<int>& args, int size);
 };
 
 template<class T>

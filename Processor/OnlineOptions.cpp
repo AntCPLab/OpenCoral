@@ -18,7 +18,7 @@ OnlineOptions::OnlineOptions() : playerno(-1)
     batch_size = 10000;
     memtype = "empty";
     direct = false;
-    fake_batch = false;
+    bucket_size = 3;
 }
 
 OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
@@ -107,9 +107,8 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
             0, // Required?
             1, // Number of args expected.
             0, // Delimiter if expecting multiple args.
-            "Where to obtain memory, new|old|empty (default: empty)\n\t"
-            "new: copy from Player-Memory-P<i> file\n\t"
-            "old: reuse previous memory in Memory-P<i>\n\t"
+            "Where to obtain memory, old|empty (default: empty)\n\t"
+            "old: reuse previous memory in Memory-<type>-P<i>\n\t"
             "empty: create new empty memory", // Help description.
             "-m", // Flag token.
             "--memory" // Flag token.
@@ -124,13 +123,13 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
             "--direct" // Flag token.
     );
     opt.add(
-            "", // Default.
+            "3", // Default.
             0, // Required?
-            0, // Number of args expected.
+            1, // Number of args expected.
             0, // Delimiter if expecting multiple args.
-            "Use insecurely small batches for testing", // Help description.
-            "-fake-batch", // Flag token.
-            "--fake-batch" // Flag token.
+            "Batch size for sacrifice (3-5, default: 3)", // Help description.
+            "-B", // Flag token.
+            "--bucket-size" // Flag token.
     );
 
     opt.parse(argc, argv);
@@ -152,14 +151,7 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
     opt.get("--memory")->getString(memtype);
     direct = opt.isSet("--direct");
 
-    bool fb = opt.isSet("--fake-batch");
-#ifdef INSECURE
-    fake_batch = fb;
-#else
-    if (fb)
-        throw runtime_error("option only supported "
-                "when compiled with -DINSECURE");
-#endif
+    opt.get("--bucket-size")->getInt(bucket_size);
 
     opt.resetArgs();
 }

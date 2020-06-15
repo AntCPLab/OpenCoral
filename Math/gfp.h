@@ -155,16 +155,6 @@ class gfp_
       return *this;
     }
 
-  void to_m128i(__m128i& ans)
-    {
-      memcpy(&ans, a.x, sizeof(ans));
-    }
-
-  __m128i to_m128i()
-    {
-      return _mm_loadu_si128((__m128i*)a.x);
-    }
-
   void zero_overhang();
   void check();
 

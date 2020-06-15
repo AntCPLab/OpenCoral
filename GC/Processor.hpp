@@ -39,7 +39,10 @@ template<class T>
 Processor<T>::~Processor()
 {
 #ifdef VERBOSE
-	cerr << "Finished after " << time << " instructions" << endl;
+    if (xor_timer.elapsed() > 0)
+        cerr << "XOR time: " << xor_timer.elapsed() << endl;
+    if (time > 0)
+        cerr << "Finished after " << time << " instructions" << endl;
 #endif
 }
 
@@ -68,14 +71,15 @@ template<class T>
 inline long long GC::Processor<T>::get_input(const int* params, bool interactive)
 {
     assert(params[0] <= 64);
-    return get_long_input(params, *this, interactive).get_si();
+    return get_long_input<Integer>(params, *this, interactive).get();
 }
 
 template<class T>
-bigint GC::Processor<T>::get_long_input(const int* params,
+template<class U>
+U GC::Processor<T>::get_long_input(const int* params,
         ProcessorBase& input_proc, bool interactive)
 {
-    bigint res = input_proc.get_input<FixInput_<bigint>>(interactive,
+    U res = input_proc.get_input<FixInput_<U>>(interactive,
             &params[1]).items[0];
     int n_bits = *params;
     check_input(res, n_bits);
@@ -83,19 +87,20 @@ bigint GC::Processor<T>::get_long_input(const int* params,
 }
 
 template<class T>
-void GC::Processor<T>::check_input(bigint in, int n_bits)
+template<class U>
+void GC::Processor<T>::check_input(const U& in, int n_bits)
 {
 	auto test = in >> (n_bits - 1);
 	if (n_bits == 1)
 	{
 		if (not (in == 0 or in == 1))
-			throw runtime_error("input not a bit: " + in.get_str());
+			throw runtime_error("input not a bit: " + to_string(in));
 	}
 	else if (not (test == 0 or test == -1))
 	{
 		throw runtime_error(
 				"input too large for a " + std::to_string(n_bits)
-						+ "-bit signed integer: " + in.get_str());
+						+ "-bit signed integer: " + to_string(in));
 	}
 }
 
@@ -193,9 +198,18 @@ void Processor<T>::mem_op(int n, Memory<U>& dest, const Memory<U>& source,
 template <class T>
 void Processor<T>::xors(const vector<int>& args)
 {
-    assert(args.size() % 4 == 0);
+	xors(args, 0, args.size());
+}
+
+template <class T>
+void Processor<T>::xors(const vector<int>& args, size_t start, size_t end)
+{
+    assert(start % 4 == 0);
+    assert(end % 4 == 0);
+    assert(start < end);
+    assert(args.begin() + end <= args.end());
     int dl = T::default_length;
-    for (auto it = args.begin(); it < args.end(); it += 4)
+    for (auto it = args.begin() + start; it < args.begin() + end; it += 4)
     {
         if (*it == 1)
             S[*(it + 1)].xor_(1, S[*(it + 2)], S[*(it + 3)]);
@@ -209,9 +223,6 @@ void Processor<T>::xors(const vector<int>& args)
                         S[*(it + 3) + j]);
             }
         }
-#ifndef FREE_XOR
-        complexity += args[i];
-#endif
     }
 }
 

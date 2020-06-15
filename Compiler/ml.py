@@ -1,7 +1,8 @@
 """
 This module contains machine learning functionality. It is work in
-progress, so you must expect things to change. The most tested
-functionality is logistic regression. It can be run as follows::
+progress, so you must expect things to change. The only tested
+functionality for training is logistic regression. It can be run as
+follows::
 
     sgd = ml.SGD([ml.Dense(n_examples, n_features, 1),
                   ml.Output(n_examples, approx=True)], n_epochs,
@@ -22,11 +23,27 @@ Inference can be run as follows::
     data.input_from(0)
     res = sgd.eval(data)
     print_ln('Results: %s', [x.reveal() for x in res])
+
+For inference/classification, this module offers the layers necessary
+for neural networks such as DenseNet, ResNet, and SqueezeNet. A
+minimal example using input from player 0 and model from player 1
+looks as follows::
+
+    graph = Optimizer()
+    graph.layers = layers
+    layers[0].X.input_from(0)
+    for layer in layers:
+        layer.input_from(1)
+    graph.forward(1)
+    res = layers[-1].Y
+
+See the `readme <https://github.com/data61/MP-SPDZ/#tensorflow-inference>`_ for
+an example of how to run MP-SPDZ on TensorFlow graphs.
 """
 
 import math
 
-from Compiler import mpc_math
+from Compiler import mpc_math, util
 from Compiler.types import *
 from Compiler.types import _unreduced_squant
 from Compiler.library import *
@@ -51,17 +68,29 @@ def sanitize(x, raw, lower, upper):
     return (x < -limit).if_else(lower, res)
 
 def sigmoid(x):
+    """ Sigmoid function.
+
+    :param x: sfix """
     return sigmoid_from_e_x(x, exp(-x))
 
 def sigmoid_from_e_x(x, e_x):
     return sanitize(x, 1 / (1 + e_x), 0, 1)
 
 def sigmoid_prime(x):
+    """ Sigmoid derivative.
+
+    :param x: sfix """
     sx = sigmoid(x)
     return sx * (1 - sx)
 
 @vectorize
 def approx_sigmoid(x, n=3):
+    """ Piece-wise approximate sigmoid as in
+    `Dahl et al. <https://arxiv.org/abs/1810.08130>`_
+
+    :param x: input
+    :param n: number of pieces, 3 (default) or 5
+    """
     if n == 5:
         cuts = [-5, -2.5, 2.5, 5]
         le = [0] + [x <= cut for cut in cuts] + [1]
@@ -84,10 +113,23 @@ def lse_0(x):
     return lse_0_from_e_x(x, exp(x))
 
 def relu_prime(x):
+    """ ReLU derivative. """
     return (0 <= x)
 
 def relu(x):
+    """ ReLU function (maximum of input and zero). """
     return (0 < x).if_else(x, 0)
+
+def argmax(x):
+    """ Compute index of maximum element.
+
+    :param x: iterable
+    :returns: sint
+    """
+    def op(a, b):
+        comp = (a[1] > b[1])
+        return comp.if_else(a[0], b[0]), comp.if_else(a[1], b[1])
+    return tree_reduce(op, enumerate(x))[0]
 
 def progress(x):
     return
@@ -98,10 +140,47 @@ def set_n_threads(n_threads):
     Layer.n_threads = n_threads
     Optimizer.n_threads = n_threads
 
+class Tensor(MultiArray):
+    def __init__(self, *args, **kwargs):
+        kwargs['alloc'] = False
+        super(Tensor, self).__init__(*args, **kwargs)
+
 class Layer:
     n_threads = 1
+    inputs = []
+    input_bias = True
+
+    @property
+    def shape(self):
+        return list(self._Y.sizes)
+
+    @property
+    def X(self):
+        self._X.alloc()
+        return self._X
+
+    @X.setter
+    def X(self, value):
+        self._X = value
+
+    @property
+    def Y(self):
+        self._Y.alloc()
+        return self._Y
+
+    @Y.setter
+    def Y(self, value):
+        self._Y = value
+
+class NoVariableLayer(Layer):
+    input_from = lambda *args, **kwargs: None
 
 class Output(Layer):
+    """ Fixed-point logistic regression output layer.
+
+    :param N: number of examples
+    :param approx: :py:obj:`False` (default) or parameter for :py:obj:`approx_sigmoid`
+    """
     def __init__(self, N, debug=False, approx=False):
         self.N = N
         self.X = sfix.Array(N)
@@ -220,6 +299,12 @@ class DenseBase(Layer):
         progress('nabla W/b')
 
 class Dense(DenseBase):
+    """ Fixed-point dense (matrix multiplication) layer.
+
+    :param N: number of examples
+    :param d_in: input dimension
+    :param d_out: output dimension
+    """
     def __init__(self, N, d_in, d_out, d=1, activation='id'):
         self.activation = activation
         if activation == 'id':
@@ -241,12 +326,9 @@ class Dense(DenseBase):
         self.W = sfix.Matrix(d_in, d_out)
         self.b = sfix.Array(d_out)
 
-        self.reset()
-
         self.nabla_Y = MultiArray([N, d, d_out], sfix)
         self.nabla_X = MultiArray([N, d, d_in], sfix)
         self.nabla_W = sfix.Matrix(d_in, d_out)
-        self.nabla_W.assign_all(0)
         self.nabla_b = sfix.Array(d_out)
 
         self.f_input = MultiArray([N, d, d_out], sfix)
@@ -262,11 +344,18 @@ class Dense(DenseBase):
                 self.W[i][j] = sfix.get_random(-r, r)
         self.b.assign_all(0)
 
+    def input_from(self, player, raw=False):
+        self.W.input_from(player, raw=raw)
+        if self.input_bias:
+            self.b.input_from(player, raw=raw)
+
     def compute_f_input(self, batch):
         N = len(batch)
-        prod = MultiArray([N, self.d, self.d_out], sfix)
         assert self.d == 1
-        assert self.d_out == 1
+        if self.input_bias:
+            prod = MultiArray([N, self.d, self.d_out], sfix)
+        else:
+            prod = self.f_input
         @multithread(self.n_threads, N)
         def _(base, size):
             X_sub = sfix.Matrix(self.N, self.d_in, address=self.X.address)
@@ -277,10 +366,17 @@ class Dense(DenseBase):
                                                   regint.inc(self.d_out))),
                 base)
 
-        @multithread(self.n_threads, N)
-        def _(base, size):
-            v = prod.get_vector(base, size) + self.b.expand_to_vector(0, size)
-            self.f_input.assign_vector(v, base)
+        if self.input_bias:
+            if self.d_out == 1:
+                @multithread(self.n_threads, N)
+                def _(base, size):
+                    v = prod.get_vector(base, size) + self.b.expand_to_vector(0, size)
+                    self.f_input.assign_vector(v, base)
+            else:
+                @for_range_opt_multithread(self.n_threads, N)
+                def _(i):
+                    v = prod[i].get_vector() + self.b.get_vector()
+                    self.f_input[i].assign_vector(v)
         progress('f input')
 
     def forward(self, batch=None):
@@ -406,32 +502,243 @@ class Dropout:
     def backward(self):
         self.nabla_X = self.nabla_Y.schur(self.B)
 
+class Relu(NoVariableLayer):
+    """ Fixed-point ReLU layer.
+
+    :param shape: input/output shape (tuple/list of int)
+    """
+    def __init__(self, shape, inputs=None):
+        self.X = Tensor(shape, sfix)
+        self.Y = Tensor(shape, sfix)
+        self.inputs = inputs
+
+    def forward(self, batch=[0]):
+        assert len(batch) == 1
+        @multithread(self.n_threads, self.X[batch[0]].total_size())
+        def _(base, size):
+            tmp = relu(self.X[batch[0]].get_vector(base, size))
+            self.Y[batch[0]].assign_vector(tmp, base)
+
+class Square(NoVariableLayer):
+    """ Fixed-point square layer.
+
+    :param shape: input/output shape (tuple/list of int)
+    """
+    def __init__(self, shape):
+        self.X = MultiArray(shape, sfix)
+        self.Y = MultiArray(shape, sfix)
+
+    def forward(self, batch=[0]):
+        assert len(batch) == 1
+        self.Y.assign_vector(self.X.get_part_vector(batch[0]) ** 2)
+
+class MaxPool(NoVariableLayer):
+    """ Fixed-point MaxPool layer.
+
+    :param shape: input shape (tuple/list of four int)
+    :param strides: strides (tuple/list of four int, first and last must be 1)
+    :param ksize: kernel size (tuple/list of four int, first and last must be 1)
+    :param padding: :py:obj:`'VALID'` (default) or :py:obj:`'SAME'`
+    """
+    def __init__(self, shape, strides=(1, 2, 2, 1), ksize=(1, 2, 2, 1),
+                 padding='VALID'):
+        assert len(shape) == 4
+        for x in strides, ksize:
+            for i in 0, 3:
+                assert x[i] == 1
+        self.X = MultiArray(shape, sfix)
+        if padding == 'SAME':
+            output_shape = [int(math.ceil(shape[i] / strides[i])) for i in range(4)]
+        else:
+            output_shape = [(shape[i] - ksize[i]) // strides[i] + 1 for i in range(4)]
+        self.Y = MultiArray(output_shape, sfix)
+        self.strides = strides
+        self.ksize = ksize
+
+    def forward(self, batch=[0]):
+        assert len(batch) == 1
+        bi = MemValue(batch[0])
+        need_padding = [self.strides[i] * (self.Y.sizes[i] - 1) + self.ksize[i] >
+                        self.X.sizes[i] for i in range(4)]
+        @for_range_opt_multithread(self.n_threads, self.X.sizes[3])
+        def _(k):
+            @for_range_opt(self.Y.sizes[1])
+            def _(i):
+                h_base = self.strides[1] * i
+                @for_range_opt(self.Y.sizes[2])
+                def _(j):
+                    w_base = self.strides[2] * j
+                    pool = []
+                    for ii in range(self.ksize[1]):
+                        h = h_base + ii
+                        if need_padding[1]:
+                            h_in = h < self.X.sizes[1]
+                        else:
+                            h_in = True
+                        for jj in range(self.ksize[2]):
+                            w = w_base + jj
+                            if need_padding[2]:
+                                w_in = w < self.X.sizes[2]
+                            else:
+                                w_in = True
+                            if not is_zero(h_in * w_in):
+                                pool.append(h_in * w_in * self.X[bi][h_in * h]
+                                            [w_in * w][k])
+                    self.Y[bi][i][j][k] = util.tree_reduce(
+                        lambda a, b: a.max(b), pool)
+
+class Argmax(NoVariableLayer):
+    """ Fixed-point Argmax layer.
+
+    :param shape: input shape (tuple/list of two int)
+    """
+    def __init__(self, shape):
+        assert len(shape) == 2
+        self.X = MultiArray(shape, sfix)
+        self.Y = Array(shape[0], sint)
+
+    def forward(self, batch=[0]):
+        assert len(batch) == 1
+        self.Y[batch[0]] = argmax(self.X[batch[0]])
+
+class Concat(NoVariableLayer):
+    """ Fixed-point concatentation layer.
+
+    :param inputs: two input layers (tuple/list)
+    :param dimension: dimension for concatenation (must be 3)
+    """
+    def __init__(self, inputs, dimension):
+        self.inputs = inputs
+        self.dimension = dimension
+        shapes = [inp.shape for inp in inputs]
+        assert dimension == 3
+        assert len(shapes) == 2
+        assert len(shapes[0]) == len(shapes[1])
+        shape = []
+        for i in range(len(shapes[0])):
+            if i == dimension:
+                shape.append(shapes[0][i] + shapes[1][i])
+            else:
+                assert shapes[0][i] == shapes[1][i]
+                shape.append(shapes[0][i])
+        self.Y = Tensor(shape, sfix)
+
+    def forward(self, batch=[0]):
+        assert len(batch) == 1
+        @for_range_multithread(self.n_threads, 1, self.Y.sizes[1:3])
+        def _(i, j):
+            X = [x.Y[batch[0]] for x in self.inputs]
+            self.Y[batch[0]][i][j].assign_vector(X[0][i][j].get_vector())
+            self.Y[batch[0]][i][j].assign_part_vector(
+                X[1][i][j].get_vector(),
+                len(X[0][i][j]))
+
+class Add(NoVariableLayer):
+    """ Fixed-point addition layer.
+
+    :param inputs: two input layers with same shape (tuple/list)
+    """
+    def __init__(self, inputs):
+        assert len(inputs) > 1
+        shape = inputs[0].shape
+        for inp in inputs:
+            assert inp.shape == shape
+        self.Y = Tensor(shape, sfix)
+        self.inputs = inputs
+
+    def forward(self, batch=[0]):
+        assert len(batch) == 1
+        @multithread(self.n_threads, self.Y[0].total_size())
+        def _(base, size):
+            tmp = sum(inp.Y[batch[0]].get_vector(base, size)
+                      for inp in self.inputs)
+            self.Y[batch[0]].assign_vector(tmp, base)
+
+class FusedBatchNorm(Layer):
+    """ Fixed-point fused batch normalization layer.
+
+    :param shape: input/output shape (tuple/list of four int)
+    """
+    def __init__(self, shape, inputs=None):
+        assert len(shape) == 4
+        self.X = Tensor(shape, sfix)
+        self.Y = Tensor(shape, sfix)
+        self.weights = sfix.Array(shape[3])
+        self.bias = sfix.Array(shape[3])
+        self.inputs = inputs
+
+    def input_from(self, player, raw=False):
+        self.weights.input_from(player, raw=raw)
+        self.bias.input_from(player, raw=raw)
+        tmp = sfix.Array(len(self.bias))
+        tmp.input_from(player, raw=raw)
+        tmp.input_from(player, raw=raw)
+
+    def forward(self, batch=[0]):
+        assert len(batch) == 1
+        @for_range_opt_multithread(self.n_threads, self.X.sizes[1:3])
+        def _(i, j):
+            self.Y[batch[0]][i][j].assign_vector(
+                self.X[batch[0]][i][j].get_vector() * self.weights.get_vector()
+                + self.bias.get_vector())
+
 class QuantBase(object):
-    n_threads = 1
+    bias_before_reduction = True
 
     @staticmethod
     def new_squant():
         class _(squant):
             @classmethod
+            def get_params_from(cls, player):
+                cls.set_params(sfloat.get_input_from(player),
+                               sint.get_input_from(player))
+            @classmethod
             def get_input_from(cls, player, size=None):
                 return cls._new(sint.get_input_from(player, size=size))
         return _
 
-    def __init__(self, input_shape, output_shape):
+    def const_div(self, acc, n):
+        logn = int(math.log(n, 2))
+        acc = (acc + n // 2)
+        if 2 ** logn == n:
+            acc = acc.round(self.output_squant.params.k + logn, logn, nearest=True)
+        else:
+            acc = acc.int_div(sint(n), self.output_squant.params.k + logn)
+        return acc
+
+class FixBase:
+    bias_before_reduction = False
+
+    @staticmethod
+    def new_squant():
+        class _(sfix):
+            params = None
+        return _
+
+    def input_params_from(self, player):
+        pass
+
+    def const_div(self, acc, n):
+        return (sfix._new(acc) * self.output_squant(1 / n)).v
+
+class BaseLayer(Layer):
+    def __init__(self, input_shape, output_shape, inputs=None):
         self.input_shape = input_shape
         self.output_shape = output_shape
 
         self.input_squant = self.new_squant()
         self.output_squant = self.new_squant()
 
-        self.X = MultiArray(input_shape, self.input_squant)
-        self.Y = MultiArray(output_shape, self.output_squant)
+        self.X = Tensor(input_shape, self.input_squant)
+        self.Y = Tensor(output_shape, self.output_squant)
+        self.inputs = inputs
 
     def temp_shape(self):
         return [0]
 
-class QuantConvBase(QuantBase):
+class ConvBase(BaseLayer):
     fewer_rounds = True
+    use_conv2ds = False
     temp_weights = None
     temp_inputs = None
 
@@ -443,12 +750,32 @@ class QuantConvBase(QuantBase):
         cls.temp_weights = sfix.Array(size)
         cls.temp_inputs = sfix.Array(size)
 
-    def __init__(self, input_shape, weight_shape, bias_shape, output_shape, stride):
-        super(QuantConvBase, self).__init__(input_shape, output_shape)
+    def __init__(self, input_shape, weight_shape, bias_shape, output_shape, stride,
+                 padding='SAME', tf_weight_format=False, inputs=None):
+        super(ConvBase, self).__init__(input_shape, output_shape, inputs=inputs)
 
         self.weight_shape = weight_shape
         self.bias_shape = bias_shape
         self.stride = stride
+        self.tf_weight_format = tf_weight_format
+        if padding == 'SAME':
+            # https://web.archive.org/web/20171223022012/https://www.tensorflow.org/api_guides/python/nn
+            self.padding = []
+            for i in 1, 2:
+                s = stride[i - 1]
+                if tf_weight_format:
+                    w = weight_shape[i - 1]
+                else:
+                    w = weight_shape[i]
+                if (input_shape[i] % stride[1] == 0):
+                    pad_total = max(w - s, 0)
+                else:
+                    pad_total = max(w - (input_shape[i] % s), 0)
+                self.padding.append(pad_total // 2)
+        elif padding == 'VALID':
+            self.padding = [0, 0]
+        else:
+            self.padding = padding
 
         self.weight_squant = self.new_squant()
         self.bias_squant = self.new_squant()
@@ -456,28 +783,28 @@ class QuantConvBase(QuantBase):
         self.weights = MultiArray(weight_shape, self.weight_squant)
         self.bias = Array(output_shape[-1], self.bias_squant)
 
-        self.unreduced = MultiArray(self.output_shape, sint,
-                                    address=self.Y.address)
+        self.unreduced = Tensor(self.output_shape, sint)
 
-        assert(weight_shape[-1] == input_shape[-1])
+        if tf_weight_format:
+            weight_in = weight_shape[2]
+        else:
+            weight_in = weight_shape[3]
+        assert(weight_in == input_shape[-1])
         assert(bias_shape[0] == output_shape[-1])
         assert(len(bias_shape) == 1)
         assert(len(input_shape) == 4)
         assert(len(output_shape) == 4)
         assert(len(weight_shape) == 4)
 
-    def input_from(self, player):
-        for s in self.input_squant, self.weight_squant, self.bias_squant, self.output_squant:
-            s.set_params(sfloat.get_input_from(player), sint.get_input_from(player))
-        self.weights.input_from(player, budget=100000)
-        self.bias.input_from(player)
-        print('WARNING: assuming that bias quantization parameters are correct')
-
-        self.output_squant.params.precompute(self.input_squant.params, self.weight_squant.params)
+    def input_from(self, player, raw=False):
+        self.input_params_from(player)
+        self.weights.input_from(player, budget=100000, raw=raw)
+        if self.input_bias:
+            self.bias.input_from(player, raw=raw)
 
     def dot_product(self, iv, wv, out_y, out_x, out_c):
         bias = self.bias[out_c]
-        acc = squant.unreduced_dot_product(iv, wv)
+        acc = self.output_squant.unreduced_dot_product(iv, wv)
         acc.v += bias.v
         acc.res_params = self.output_squant.params
         #self.Y[0][out_y][out_x][out_c] = acc.reduce_after_mul()
@@ -488,26 +815,17 @@ class QuantConvBase(QuantBase):
         n_summands = self.n_summands()
         start_timer(2)
         n_outputs = reduce(operator.mul, self.output_shape)
-        if n_outputs % self.n_threads == 0:
-            n_per_thread = n_outputs // self.n_threads
-            @for_range_opt_multithread(self.n_threads, self.n_threads)
-            def _(i):
-                res = _unreduced_squant(
-                    sint.load_mem(unreduced.address + i * n_per_thread,
-                                  size=n_per_thread),
-                    (self.input_squant.params, self.weight_squant.params),
-                    self.output_squant.params,
-                    n_summands).reduce_after_mul()
-                res.store_in_mem(self.Y.address + i * n_per_thread)
-        else:
-            @for_range_opt_multithread(self.n_threads, self.output_shape[1])
-            def _(out_y):
-                self.Y[0][out_y].assign_vector(_unreduced_squant(
-                    unreduced[0][out_y].get_vector(),
-                    (self.input_squant.params, self.weight_squant.params),
-                    self.output_squant.params,
-                    n_summands).reduce_after_mul())
+        @multithread(self.n_threads, n_outputs)
+        def _(base, n_per_thread):
+            res = self.input_squant().unreduced(
+                sint.load_mem(unreduced.address + base,
+                              size=n_per_thread),
+                self.weight_squant(),
+                self.output_squant.params,
+                n_summands).reduce_after_mul()
+            res.store_in_mem(self.Y.address + base)
         stop_timer(2)
+        unreduced.delete()
 
     def temp_shape(self):
         return list(self.output_shape[1:]) + [self.n_summands()]
@@ -520,7 +838,7 @@ class QuantConvBase(QuantBase):
                              address=self.temp_weights)
         return inputs, weights
 
-class QuantConv2d(QuantConvBase):
+class Conv2d(ConvBase):
     def n_summands(self):
         _, weights_h, weights_w, _ = self.weight_shape
         _, inputs_h, inputs_w, n_channels_in = self.input_shape
@@ -528,17 +846,50 @@ class QuantConv2d(QuantConvBase):
 
     def forward(self, batch=[None]):
         assert len(batch) == 1
-        assert(self.weight_shape[0] == self.output_shape[-1])
 
-        _, weights_h, weights_w, _ = self.weight_shape
+        if self.tf_weight_format:
+            assert(self.weight_shape[3] == self.output_shape[-1])
+            weights_h, weights_w, _, _ = self.weight_shape
+        else:
+            assert(self.weight_shape[0] == self.output_shape[-1])
+            _, weights_h, weights_w, _ = self.weight_shape
         _, inputs_h, inputs_w, n_channels_in = self.input_shape
         _, output_h, output_w, n_channels_out = self.output_shape
 
         stride_h, stride_w = self.stride
-        padding_h, padding_w = (weights_h // 2, weights_w // 2)
+        padding_h, padding_w = self.padding
 
-        if self.fewer_rounds:
-            inputs, weights = self.prepare_temp()
+        self.unreduced.alloc()
+
+        if self.use_conv2ds:
+            @for_range_opt_multithread(self.n_threads, n_channels_out)
+            def _(j):
+                inputs = self.X.get_part_vector(0)
+                if self.tf_weight_format:
+                    weights = self.weights.get_vector_by_indices(None, None, None, j)
+                else:
+                    weights = self.weights.get_part_vector(j)
+                inputs = inputs.pre_mul()
+                weights = weights.pre_mul()
+                res = sint(size = output_h * output_w)
+                conv2ds(res, inputs, weights, output_h, output_w,
+                        inputs_h, inputs_w, weights_h, weights_w,
+                        stride_h, stride_w, n_channels_in, padding_h, padding_w)
+                if self.bias_before_reduction:
+                    res += self.bias.expand_to_vector(j, res.size).v
+                self.unreduced.assign_vector_by_indices(res, 0, None, None, j)
+            self.reduction()
+            if not self.bias_before_reduction:
+                @for_range_multithread(self.n_threads, 1,
+                                       [self.output_shape[1],
+                                        self.output_shape[2]])
+                def _(i, j):
+                    self.Y[0][i][j].assign_vector(self.Y[0][i][j].get_vector() +
+                                                  self.bias.get_vector())
+            return
+        else:
+            if self.fewer_rounds:
+                inputs, weights = self.prepare_temp()
 
         @for_range_opt_multithread(self.n_threads,
                                    [output_h, output_w, n_channels_out])
@@ -577,7 +928,29 @@ class QuantConv2d(QuantConvBase):
 
         self.reduction()
 
-class QuantDepthwiseConv2d(QuantConvBase):
+class QuantConvBase(QuantBase):
+    def input_params_from(self, player):
+        for s in self.input_squant, self.weight_squant, self.bias_squant, self.output_squant:
+            s.get_params_from(player)
+        print('WARNING: assuming that bias quantization parameters are correct')
+        self.output_squant.params.precompute(self.input_squant.params, self.weight_squant.params)
+
+class QuantConv2d(QuantConvBase, Conv2d):
+    pass
+
+class FixConv2d(Conv2d, FixBase):
+    """ Fixed-point 2D convolution layer.
+
+    :param input_shape: input shape (tuple/list of four int)
+    :param weight_shape: weight shape (tuple/list of four int)
+    :param bias_shape: bias shape (tuple/list of one int)
+    :param output_shape: output shape (tuple/list of four int)
+    :param stride: stride (tuple/list of two int)
+    :param padding: :py:obj:`'SAME'` (default), :py:obj:`'VALID'`, or tuple/list of two int
+    :param tf_weight_format: weight shape format is (height, width, input channels, output channels) instead of the default (output channels, height, widght, input channels)
+    """
+
+class QuantDepthwiseConv2d(QuantConvBase, Conv2d):
     def n_summands(self):
         _, weights_h, weights_w, _ = self.weight_shape
         return weights_h * weights_w
@@ -592,12 +965,34 @@ class QuantDepthwiseConv2d(QuantConvBase):
         _, output_h, output_w, n_channels_out = self.output_shape
 
         stride_h, stride_w = self.stride
-        padding_h, padding_w = (weights_h // 2, weights_w // 2)
+        padding_h, padding_w = self.padding
 
         depth_multiplier = 1
 
-        if self.fewer_rounds:
-            inputs, weights = self.prepare_temp()
+        self.unreduced.alloc()
+
+        if self.use_conv2ds:
+            assert depth_multiplier == 1
+            assert self.weight_shape[0] == 1
+            @for_range_opt_multithread(self.n_threads, n_channels_in)
+            def _(j):
+                inputs = self.X.get_vector_by_indices(0, None, None, j)
+                assert not self.tf_weight_format
+                weights = self.weights.get_vector_by_indices(0, None, None,
+                                                             j)
+                inputs = inputs.pre_mul()
+                weights = weights.pre_mul()
+                res = sint(size = output_h * output_w)
+                conv2ds(res, inputs, weights, output_h, output_w,
+                        inputs_h, inputs_w, weights_h, weights_w,
+                        stride_h, stride_w, 1, padding_h, padding_w)
+                res += self.bias.expand_to_vector(j, res.size).v
+                self.unreduced.assign_vector_by_indices(res, 0, None, None, j)
+            self.reduction()
+            return
+        else:
+            if self.fewer_rounds:
+                inputs, weights = self.prepare_temp()
 
         @for_range_opt_multithread(self.n_threads,
                                    [output_h, output_w, n_channels_in])
@@ -635,66 +1030,74 @@ class QuantDepthwiseConv2d(QuantConvBase):
 
         self.reduction()
 
-class QuantAveragePool2d(QuantBase):
-    def __init__(self, input_shape, output_shape, filter_size):
-        super(QuantAveragePool2d, self).__init__(input_shape, output_shape)
+class AveragePool2d(BaseLayer):
+    def __init__(self, input_shape, output_shape, filter_size, strides=(1, 1)):
+        super(AveragePool2d, self).__init__(input_shape, output_shape)
         self.filter_size = filter_size
+        self.strides = strides
+        for i in (0, 1):
+            if strides[i] == 1:
+                assert output_shape[1+i] == 1
+                assert filter_size[i] == input_shape[1+i]
+            else:
+                assert strides[i] == filter_size[i]
+                assert output_shape[1+i] * strides[i] == input_shape[1+i]
 
-    def input_from(self, player):
-        print('WARNING: assuming that input and output quantization parameters are the same')
-        for s in self.input_squant, self.output_squant:
-            s.set_params(sfloat.get_input_from(player), sint.get_input_from(player))
+    def input_from(self, player, raw=False):
+        self.input_params_from(player)
 
-    def forward(self, batch):
+    def forward(self, batch=[0]):
         assert len(batch) == 1
 
         _, input_h, input_w, n_channels_in = self.input_shape
         _, output_h, output_w, n_channels_out = self.output_shape
 
-        n = input_h * input_w
-        print('divisor: ', n)
-
-        assert output_h == output_w == 1
         assert n_channels_in == n_channels_out
 
         padding_h, padding_w = (0, 0)
-        stride_h, stride_w = (2, 2)
+        stride_h, stride_w = self.strides
         filter_h, filter_w = self.filter_size
+        n = filter_h * filter_w
+        print('divisor: ', n)
 
-        @for_range_opt(output_h)
-        def _(out_y):
-            @for_range_opt(output_w)
-            def _(out_x):
-                @for_range_opt(n_channels_in)
-                def _(c):
-                    in_x_origin = (out_x * stride_w) - padding_w
-                    in_y_origin = (out_y * stride_h) - padding_h
-                    fxs = (-in_x_origin).max(0)
-                    #fxe = min(filter_w, input_w - in_x_origin)
-                    fys = (-in_y_origin).max(0)
-                    #fye = min(filter_h, input_h - in_y_origin)
-                    acc = 0
-                    #fc = 0
-                    for i in range(filter_h):
-                        filter_y = fys + i
-                        for j in range(filter_w):
-                            filter_x = fxs + j
-                            in_x = in_x_origin + filter_x
-                            in_y = in_y_origin + filter_y
-                            acc += self.X[0][in_y][in_x][c].v
-                            #fc += 1
-                    logn = int(math.log(n, 2))
-                    acc = (acc + n // 2)
-                    if 2 ** logn == n:
-                        acc = acc.round(self.output_squant.params.k + logn,
-                                        logn, nearest=True)
-                    else:
-                        acc = acc.int_div(sint(n),
-                                          self.output_squant.params.k + logn)
-                    #acc = min(255, max(0, acc))
-                    self.Y[0][out_y][out_x][c] = self.output_squant._new(acc)
+        @for_range_opt_multithread(self.n_threads,
+                                   [output_h, output_w, n_channels_in])
+        def _(out_y, out_x, c):
+            in_x_origin = (out_x * stride_w) - padding_w
+            in_y_origin = (out_y * stride_h) - padding_h
+            fxs = util.max(-in_x_origin, 0)
+            #fxe = min(filter_w, input_w - in_x_origin)
+            fys = util.max(-in_y_origin, 0)
+            #fye = min(filter_h, input_h - in_y_origin)
+            acc = 0
+            #fc = 0
+            for i in range(filter_h):
+                filter_y = fys + i
+                for j in range(filter_w):
+                    filter_x = fxs + j
+                    in_x = in_x_origin + filter_x
+                    in_y = in_y_origin + filter_y
+                    acc += self.X[0][in_y][in_x][c].v
+                    #fc += 1
+            acc = self.const_div(acc, n)
+            self.Y[0][out_y][out_x][c] = self.output_squant._new(acc)
 
-class QuantReshape(QuantBase):
+class QuantAveragePool2d(QuantBase, AveragePool2d):
+    def input_params_from(self, player):
+        print('WARNING: assuming that input and output quantization parameters are the same')
+        for s in self.input_squant, self.output_squant:
+            s.get_params_from(player)
+
+class FixAveragePool2d(FixBase, AveragePool2d):
+    """ Fixed-point 2D AvgPool layer.
+
+    :param input_shape: input shape (tuple/list of four int)
+    :param output_shape: output shape (tuple/list of four int)
+    :param filter_size: filter size (tuple/list of two int)
+    :param strides: strides (tuple/list of two int)
+    """
+
+class QuantReshape(QuantBase, BaseLayer):
     def __init__(self, input_shape, _, output_shape):
         super(QuantReshape, self).__init__(input_shape, output_shape)
 
@@ -711,7 +1114,7 @@ class QuantReshape(QuantBase):
         # reshaping is implicit
         self.Y.assign(self.X)
 
-class QuantSoftmax(QuantBase):
+class QuantSoftmax(QuantBase, BaseLayer):
     def input_from(self, player):
         print('WARNING: assuming that input and output quantization parameters are the same')
         for s in self.input_squant, self.output_squant:
@@ -729,32 +1132,76 @@ class QuantSoftmax(QuantBase):
         print_ln('guess: %s', util.tree_reduce(comp, list(enumerate(self.X[0])))[0].reveal())
 
 class Optimizer:
+    """ Base class for graphs of layers. """
     n_threads = Layer.n_threads
 
-    def forward(self, N=None, batch=None):
+    @property
+    def layers(self):
+        """ Get all layers. """
+        return self._layers
+
+    @layers.setter
+    def layers(self, layers):
+        """ Construct linear graph from list of layers. """
+        self._layers = layers
+        prev = None
+        for layer in layers:
+            if not layer.inputs and prev is not None:
+                layer.inputs = [prev]
+            prev = layer
+
+    def set_layers_with_inputs(self, layers):
+        """ Construct graph from :py:obj:`inputs` members of list of layers. """
+        self._layers = layers
+        used = set([None])
+        for layer in reversed(layers):
+            layer.last_used = list(filter(lambda x: x not in used, layer.inputs))
+            used.update(layer.inputs)
+
+    def forward(self, N=None, batch=None, keep_intermediate=True):
+        """ Compute graph.
+
+        :param N: batch size (used if batch not given)
+        :param batch: indices for computation (:py:class:`Compiler.types.Array`. or list)
+        :param keep_intermediate: do not free memory of intermediate results after use
+        """
         if batch is None:
             batch = regint.Array(N)
             batch.assign(regint.inc(N))
-        for j in range(len(self.layers) - 1):
-            self.layers[j].forward(batch=batch)
-            tmp = self.layers[j].Y.get_part_vector(0, len(batch))
-            self.layers[j + 1].X.assign_vector(tmp)
-        self.layers[-1].forward(batch=batch)
+        for layer in self.layers:
+            if layer.inputs and len(layer.inputs) == 1 and layer.inputs[0] is not None:
+                layer._X.address = layer.inputs[0].Y.address
+            layer.Y.alloc()
+            break_point()
+            layer.forward(batch=batch)
+            break_point()
+            if not keep_intermediate:
+                for l in layer.last_used:
+                    l.Y.delete()
 
     def eval(self, data):
+        """ Compute evaluation after training. """
         N = len(data)
         self.layers[0].X.assign(data)
         self.forward(N)
         return self.layers[-1].eval(N)
 
     def backward(self, batch):
-        for j in range(1, len(self.layers)):
-            self.layers[-j].backward(batch=batch)
-            self.layers[-j - 1].nabla_Y.assign_vector(
-                self.layers[-j].nabla_X.get_part_vector(0, len(batch)))
-        self.layers[0].backward(compute_nabla_X=False, batch=batch)
+        """ Compute backward propagation. """
+        for layer in reversed(self.layers):
+            if len(layer.inputs) == 0:
+                layer.backward(compute_nabla_X=False, batch=batch)
+            else:
+                layer.backward(batch=batch)
+                if len(layer.inputs) == 1:
+                    layer.inputs[0].nabla_Y.assign_vector(
+                        layer.nabla_X.get_part_vector(0, len(batch)))
 
     def run(self, batch_size=None):
+        """ Run training.
+
+        :param batch_size: batch size (defaults to example size of first layer)
+        """
         if batch_size is not None:
             N = batch_size
         else:
@@ -841,6 +1288,12 @@ class Adam(Optimizer):
                            mpc_math.sqrt(vhat) + self.epsilon
 
 class SGD(Optimizer):
+    """ Stochastic gradient descent.
+
+    :param layers: layers of linear graph
+    :param n_epochs: number of epochs for training
+    :param report_loss: disclose and print loss
+    """
     def __init__(self, layers, n_epochs, debug=False, report_loss=False):
         self.momentum = 0.9
         self.layers = layers
@@ -860,6 +1313,10 @@ class SGD(Optimizer):
         self.X_by_label = None
 
     def reset(self, X_by_label=None):
+        """ Reset layer parameters.
+
+        :param X_by_label: if given, set training data by public labels for balancing
+        """
         self.X_by_label = X_by_label
         if X_by_label is not None:
             for label, X in enumerate(X_by_label):

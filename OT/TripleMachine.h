@@ -9,29 +9,10 @@
 #include "Math/gf2n.h"
 #include "Math/gfp.h"
 #include "Math/Z2k.h"
-#include "Tools/OfflineMachineBase.h"
 #include "OT/OTTripleSetup.h"
+#include "OT/MascotParams.h"
 
 class GeneratorThread;
-
-class MascotParams : virtual public OfflineParams
-{
-public:
-    string prep_data_dir;
-    bool generateMACs;
-    bool amplify;
-    bool check;
-    bool correlation_check;
-    bool generateBits;
-    bool use_extension;
-    bool fewer_rounds;
-    bool fiat_shamir;
-    struct timeval start, stop;
-
-    MascotParams();
-
-    void set_passive();
-};
 
 class TripleMachine : public OfflineMachineBase, public MascotParams
 {

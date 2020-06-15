@@ -304,12 +304,15 @@ class _number(object):
         from Compiler.library import for_range_opt_multithread
         res = MemValue(cls(0))
         l = min(len(a), len(b))
-        aa, bb = [Array(l, cls) for i in range(2)]
-        aa.assign(a)
-        bb.assign(b)
+        xx = [a, b]
+        for i, x in enumerate((a, b)):
+            if not isinstance(x, Array):
+                xx[i] = Array(l, cls)
+                xx[i].assign(x)
+        aa, bb = xx
         @for_range_opt_multithread(None, l)
         def _(i):
-            res.iadd(aa[i] * bb[i])
+            res.iadd(res.value_type.conv(aa[i] * bb[i]))
         return res.read()
 
 class _int(object):
@@ -488,11 +491,16 @@ class _register(Tape.Register, _number, _structure):
     @vectorized_classmethod
     @set_instruction_type
     def _load_mem(cls, address, direct_inst, indirect_inst):
-        res = cls()
         if isinstance(address, _register):
+            if address.size > 1:
+                size = address.size
+            else:
+                size = get_global_vector_size()
+            res = cls(size=size)
             indirect_inst(res, cls._expand_address(address,
                                                    get_global_vector_size()))
         else:
+            res = cls()
             direct_inst(res, address)
         return res
 
@@ -530,6 +538,10 @@ class _register(Tape.Register, _number, _structure):
 
         :param size: compile-time (int) """
         return program.malloc(size, cls)
+
+    @classmethod
+    def free(cls, addr):
+        program.free(addr, cls.reg_type)
 
     @set_instruction_type
     def __init__(self, reg_type, val, size):
@@ -964,7 +976,8 @@ class cint(_clear, _int):
         :param string: Python string """
         cond_print_str(self, string)
 
-
+    def output_if(self, cond):
+        cond_print_plain(cond, self, cint(0))
 
 
 class cgf2n(_clear, _gf2n):
@@ -1399,6 +1412,9 @@ class regint(_register, _int):
         :param string: Python string """
         cint(self).print_if(string)
 
+    def output_if(self, cond):
+        cint(self).output_if(cond)
+
 class localint(object):
     """ Local integer that must prevented from leaking into the secure
     computation. Uses regint internally. """
@@ -1419,6 +1435,11 @@ class localint(object):
     __ge__ = lambda self, other: localint(self._v >= other)
     __eq__ = lambda self, other: localint(self._v == other)
     __ne__ = lambda self, other: localint(self._v != other)
+
+class personal(object):
+    def __init__(self, player, value):
+        self.player = player
+        self._v = value
 
 class _secret(_register):
     __slots__ = []
@@ -1666,13 +1687,17 @@ class _secret(_register):
 
     @set_instruction_type
     def reveal_to(self, player):
-        """ Reveal secret value to player.
+        """ Reveal secret value to :py:obj:`player`.
         Result written to ``Player-Data/Private-Output-P<player>``
 
-        :param player: int """
+        :param player: int
+        :returns: value to be used with :py:func:`Compiler.library.print_ln_to`
+        """
         masked = self.__class__()
+        res = personal(player, self.clear_type())
         startprivateoutput(masked, self, player)
-        stopprivateoutput(masked.reveal(), player)
+        stopprivateoutput(res._v, masked.reveal(), player)
+        return res
 
 
 class sint(_secret, _int):
@@ -2365,8 +2390,7 @@ class _bitint(object):
                 other = self.bin_type(other)
             except CompilerError:
                 return NotImplemented
-            products = [x * other for x in self_bits]
-            bit_matrix = [util.bit_decompose(x, self.n_bits) for x in products]
+            bit_matrix = self.get_bit_matrix(self_bits, other)
         return self.compose(self.wallace_tree_from_matrix(bit_matrix, False))
 
     @classmethod
@@ -2536,6 +2560,11 @@ class sgf2nint(_bitint, sgf2n):
         res.bits = bits + [0] * (cls.n_bits - len(bits))
         gmovs(res, sum(b << i for i,b in enumerate(bits)))
         return res
+
+    @staticmethod
+    def get_bit_matrix(self_bits, other):
+        products = [x * other for x in self_bits]
+        return [util.bit_decompose(x, len(self_bits)) for x in products]
 
     def load_other(self, other):
         if isinstance(other, sgf2nint):
@@ -2945,17 +2974,15 @@ class cfix(_number, _structure):
         print_float_plain(cint(abs_v), cint(-self.f), \
                           cint(0), cint(sign), cint(0))
 
+    def output_if(self, cond):
+        cond_print_plain(cond, self.v, cint(-self.f))
+
 class _single(_number, _structure):
     """ Representation as single integer preserving the order """
     """ E.g. fixed-point numbers """
     __slots__ = ['v']
     kappa = 40
     round_nearest = False
-
-    @property
-    @classmethod
-    def reg_type(cls):
-        return cls.int_type.reg_type
 
     @classmethod
     def receive_from_client(cls, n, client_id, message_type=ClientMessageType.NoType):
@@ -2988,6 +3015,10 @@ class _single(_number, _structure):
     @classmethod
     def malloc(cls, size):
         return program.malloc(size, cls.int_type)
+
+    @classmethod
+    def free(cls, addr):
+        return cls.int_type.free(addr)
 
     @staticmethod
     def n_elements():
@@ -3300,6 +3331,10 @@ class sfix(_fix):
         return cls._new(v)
 
     @vectorized_classmethod
+    def get_raw_input_from(cls, player):
+        return cls._new(cls.int_type.get_raw_input_from(player))
+
+    @vectorized_classmethod
     def get_random(cls, lower, upper):
         """ Uniform secret random number around centre of bounds.
         Actual range can be smaller but never larger.
@@ -3339,6 +3374,16 @@ class sfix(_fix):
     @staticmethod
     def multipliable(v, k, f):
         return cfix(cint.conv(v), k, f)
+
+    def reveal_to(self, player):
+        """ Reveal secret value to :py:obj:`player`.
+        Raw representation written to ``Player-Data/Private-Output-P<player>``
+
+        :param player: int
+        :returns: value to be used with :py:func:`Compiler.library.print_ln_to`
+        """
+        return personal(player, cfix(self.v.reveal_to(player)._v,
+                                     self.k, self.f))
 
 class unreduced_sfix(_single):
     int_type = sint
@@ -4040,7 +4085,7 @@ class Array(object):
         res.assign(tmp)
         return res
 
-    def __init__(self, length, value_type, address=None, debug=None):
+    def __init__(self, length, value_type, address=None, debug=None, alloc=True):
         """
         :param length: compile-time integer (int) or :py:obj:`None` for unknown length
         :param value_type: basic type
@@ -4049,17 +4094,19 @@ class Array(object):
         self.address = address
         self.length = length
         self.value_type = value_type
-        if address is None:
-            self.address = self._malloc()
+        self.address = address
         self.address_cache = {}
         self.debug = debug
+        if alloc:
+            self.alloc()
 
-    def _malloc(self):
-        return self.value_type.malloc(self.length)
+    def alloc(self):
+        if self.address is None:
+            self.address = self.value_type.malloc(self.length)
 
     def delete(self):
-        if program:
-            program.free(self.address, self.value_type.reg_type)
+        self.value_type.free(self.address)
+        self.address = None
 
     def get_address(self, index):
         key = str(index)
@@ -4074,8 +4121,9 @@ class Array(object):
             if n == 1:
                 # length can be None for single-element arrays
                 length = 0
+            base = self.address + index
             self.address_cache[program.curr_block, key] = \
-                util.untuplify([self.address + index + i * length \
+                util.untuplify([base + i * length \
                                 for i in range(n)])
             if self.debug:
                 library.print_ln_if(index >= self.length, 'OF:' + self.debug)
@@ -4136,6 +4184,9 @@ class Array(object):
     def __len__(self):
         return self.length
 
+    def total_size(self):
+        return len(self) * self.value_type.n_elements()
+
     def __iter__(self):
         for i in range(self.length):
             yield self[i]
@@ -4153,11 +4204,17 @@ class Array(object):
             if len(self) != None and util.is_constant(base):
                 assert len(self) >= other.size + base
         except AttributeError:
-            for i,j in enumerate(other):
-                self[i] = j
+            if isinstance(other, Array):
+                @library.for_range_opt(len(other))
+                def _(i):
+                    self[i] = other[i]
+            else:
+                for i,j in enumerate(other):
+                    self[i] = j
         return self
 
     assign_vector = assign
+    assign_part_vector = assign
 
     def assign_all(self, value, use_threads=True, conv=True):
         """ Assign the same value to all entries.
@@ -4197,11 +4254,20 @@ class Array(object):
     def get_mem_value(self, index):
         return MemValue(self[index], self.get_address(index))
 
-    def input_from(self, player, budget=None):
+    def input_from(self, player, budget=None, raw=False):
         """ Fill with inputs from player if supported by type.
 
         :param player: public (regint/cint/int) """
-        self.assign(self.value_type.get_input_from(player, size=len(self)))
+        if raw:
+            input_from = self.value_type.get_raw_input_from
+        else:
+            input_from = self.value_type.get_input_from
+        try:
+            self.assign(input_from(player, size=len(self)))
+        except:
+            @library.for_range_opt(len(self), budget=budget)
+            def _(i):
+                self[i] = input_from(player)
 
     def __add__(self, other):
         """ Vector addition.
@@ -4260,9 +4326,12 @@ class SubMultiArray(object):
     """ Multidimensional array functionality. """
     def __init__(self, sizes, value_type, address, index, debug=None):
         """ Do not call this, use :py:class:`MultiArray` instead. """
-        self.sizes = sizes
+        self.sizes = tuple(sizes)
         self.value_type = _get_type(value_type)
-        self.address = address + index * self.total_size()
+        if address is not None:
+            self.address = address + index * self.total_size()
+        else:
+            self.address = None
         self.sub_cache = {}
         self.debug = debug
         if debug:
@@ -4344,22 +4413,58 @@ class SubMultiArray(object):
     def get_part_vector(self, base=0, size=None):
         assert self.value_type.n_elements() == 1
         part_size = reduce(operator.mul, self.sizes[1:])
-        size = (size or len(self)) * part_size
+        size = (size or 1) * part_size
         assert size <= self.total_size()
         return self.value_type.load_mem(self.address + base * part_size,
                                         size=size)
+
+    def get_addresses(self, *indices):
+        assert self.value_type.n_elements() == 1
+        assert len(indices) == len(self.sizes)
+        size = 1
+        base = 0
+        has_glob = False
+        last_was_glob = False
+        for i, x in enumerate(indices):
+            part_size = reduce(operator.mul, (1,) + self.sizes[i + 1:])
+            if x is None:
+                assert not has_glob or last_was_glob
+                has_glob = True
+                size *= self.sizes[i]
+                skip = part_size
+            else:
+                base += x * part_size
+            last_was_glob = x is None
+        res = regint.inc(size, self.address + base, skip)
+        return res
+
+    def get_vector_by_indices(self, *indices):
+        addresses = self.get_addresses(*indices)
+        return self.value_type.load_mem(addresses)
+
+    def assign_vector_by_indices(self, vector, *indices):
+        addresses = self.get_addresses(*indices)
+        vector.store_in_mem(addresses)
 
     def same_shape(self):
         """ :return: new multidimensional array with same shape and basic type """
         return MultiArray(self.sizes, self.value_type)
 
-    def input_from(self, player, budget=None):
+    def input_from(self, player, budget=None, raw=False):
         """ Fill with inputs from player if supported by type.
 
         :param player: public (regint/cint/int) """
-        @library.for_range_opt(self.sizes[0], budget=budget)
-        def _(i):
-            self[i].input_from(player, budget=budget)
+        if (budget is None or self.total_size() < budget) and \
+           self.value_type.n_elements() == 1:
+            if raw:
+                input_from = self.value_type.get_raw_input_from
+            else:
+                input_from = self.value_type.get_input_from
+            self.assign_vector(input_from(player, size=self.total_size()))
+        else:
+            @library.for_range_opt(self.sizes[0], budget=budget)
+            def _(i):
+                self[i].input_from(player, budget=budget, raw=raw)
 
     def schur(self, other):
         """ Element-wise product.
@@ -4484,6 +4589,11 @@ class SubMultiArray(object):
                                                  self.sizes[0], *other.sizes,
                                                  reduce=reduce, indices=indices)
 
+    def direct_mul_to_matrix(self, other):
+        res = self.value_type.Matrix(self.sizes[0], other.sizes[1])
+        res.assign_vector(self.direct_mul(other))
+        return res
+
     def budget_mul(self, other, n_rows, row, n_columns, column, reduce=True,
                    res=None):
         assert len(self.sizes) == 2
@@ -4576,7 +4686,7 @@ class SubMultiArray(object):
 
 class MultiArray(SubMultiArray):
     """ Multidimensional array. """
-    def __init__(self, sizes, value_type, debug=None, address=None):
+    def __init__(self, sizes, value_type, debug=None, address=None, alloc=True):
         """
         :param sizes: shape (compile-time list of integers)
         :param value_type: basic type of entries
@@ -4585,11 +4695,25 @@ class MultiArray(SubMultiArray):
             self.array = address
         else:
             self.array = Array(reduce(operator.mul, sizes), \
-                               value_type, address=address)
+                               value_type, address=address, alloc=alloc)
         SubMultiArray.__init__(self, sizes, value_type, self.array.address, 0, \
                                debug=debug)
         if len(sizes) < 2:
             raise CompilerError('Use Array')
+
+    @property
+    def address(self):
+        return self.array.address
+
+    @address.setter
+    def address(self, value):
+        self.array.address = value
+
+    def alloc(self):
+        self.array.alloc()
+
+    def delete(self):
+        self.array.delete()
 
 class Matrix(MultiArray):
     """ Matrix. """
@@ -4777,8 +4901,14 @@ class MemValue(_mem):
 
     if_else = lambda self,*args,**kwargs: self.read().if_else(*args, **kwargs)
 
-    expand_to_vector = lambda self,*args,**kwargs: \
-                       self.read().expand_to_vector(*args, **kwargs)
+    def expand_to_vector(self, size=None):
+        if program.curr_block == self.last_write_block:
+            return self.read().expand_to_vector(size)
+        else:
+            if size is None:
+                size = get_global_vector_size()
+            addresses = regint.inc(size, self.address, 0)
+            return self.value_type.load_mem(addresses)
 
     def __repr__(self):
         return 'MemValue(%s,%d)' % (self.value_type, self.address)

@@ -19,7 +19,12 @@ void Triple_Checking(const Player& P, MAC_Check<T>& MC, int nm,
     int output_thread, TripleSacriFactory< Share<T> >& factory, bool write_output,
     bool clear, string dir)
 {
-  assert(T::length() >= 40);
+  if (T::length() < 40)
+    {
+      cerr << "Field too small for reasonable security" << endl;
+      cerr << "Use a larger field or remove this warning from " << __FILE__ << endl;
+      exit(1);
+    }
 
   ofstream outf;
   if (write_output)

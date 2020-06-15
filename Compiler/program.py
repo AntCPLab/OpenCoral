@@ -14,6 +14,7 @@ from collections import defaultdict, deque
 import itertools
 import math
 from functools import reduce
+import re
 
 
 data_types = dict(
@@ -66,8 +67,9 @@ class Program(object):
         self._curr_tape = None
         self.DEBUG = False
         self.allocated_mem = RegType.create_dict(lambda: USER_MEM)
-        self.free_mem_blocks = defaultdict(set)
+        self.free_mem_blocks = defaultdict(lambda: defaultdict(set))
         self.allocated_mem_blocks = {}
+        self.saved = 0
         self.req_num = None
         self.tape_stack = []
         self.n_threads = 1
@@ -142,7 +144,8 @@ class Program(object):
         else:
             self.name = progname
         if len(args) > 1:
-            self.name += '-' + '-'.join(args[1:])
+            self.name += '-' + '-'.join(re.sub('/', '_', arg)
+                                        for arg in args[1:])
         self.progname = progname
 
     def new_tape(self, function, args=[], name=None, single_thread=False):
@@ -248,9 +251,20 @@ class Program(object):
             mem_type = mem_type.reg_type
         elif reg_type is not None:
             self.types[mem_type] = reg_type
-        key = size, mem_type
-        if self.free_mem_blocks[key]:
-            addr = self.free_mem_blocks[key].pop()
+        block_size = 0
+        blocks = self.free_mem_blocks[mem_type]
+        if len(blocks[size]) > 0:
+            block_size = size
+        else:
+            for block_size, addresses in blocks.items():
+                if block_size >= size and len(addresses) > 0:
+                    break
+            else:
+                block_size = 0
+        if block_size >= size:
+            addr = self.free_mem_blocks[mem_type][block_size].pop()
+            self.free_mem_blocks[mem_type][block_size - size].add(addr + size)
+            self.saved += size
         else:
             addr = self.allocated_mem[mem_type]
             self.allocated_mem[mem_type] += size
@@ -265,7 +279,7 @@ class Program(object):
            is not self.curr_tape.basicblocks[0].alloc_pool:
             raise CompilerError('Cannot free memory within function block')
         size = self.allocated_mem_blocks.pop((addr,mem_type))
-        self.free_mem_blocks[size,mem_type].add(addr)
+        self.free_mem_blocks[mem_type][size].add(addr)
 
     def finalize_memory(self):
         from . import library
@@ -280,6 +294,9 @@ class Program(object):
                 else:
                     from Compiler.types import _get_type
                     _get_type(mem_type).load_mem(size - 1, mem_type)
+        if self.verbose:
+            if self.saved:
+                print('Saved %s memory units through reallocation' % self.saved)
 
     def public_input(self, x):
         self.public_input_file.write('%s\n' % str(x))

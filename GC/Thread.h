@@ -50,7 +50,7 @@ public:
 
     void run();
     virtual void pre_run() {}
-    virtual void run(Program<T>& program);
+    virtual void run(Program& program);
     virtual void post_run() {}
 
     void join_tape();

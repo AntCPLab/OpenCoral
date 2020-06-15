@@ -41,10 +41,19 @@ NPartyTripleGenerator<T>::NPartyTripleGenerator(const OTTripleSetup& setup,
 }
 
 template<class T>
-MascotTripleGenerator<T>::MascotTripleGenerator(const OTTripleSetup& setup,
+SimpleMascotTripleGenerator<T>::SimpleMascotTripleGenerator(const OTTripleSetup& setup,
         const Names& names, int thread_num, int _nTriples, int nloops,
         MascotParams& machine, mac_key_type mac_key, Player* parentPlayer) :
         NPartyTripleGenerator<T>(setup, names, thread_num, _nTriples, nloops,
+                machine, mac_key, parentPlayer)
+{
+}
+
+template<class T>
+MascotTripleGenerator<T>::MascotTripleGenerator(const OTTripleSetup& setup,
+        const Names& names, int thread_num, int _nTriples, int nloops,
+        MascotParams& machine, mac_key_type mac_key, Player* parentPlayer) :
+        SimpleMascotTripleGenerator<T>(setup, names, thread_num, _nTriples, nloops,
                 machine, mac_key, parentPlayer)
 {
 }
@@ -332,7 +341,7 @@ void MascotTripleGenerator<T>::generateBits()
     if (T::clear::characteristic_two)
         generateBitsGf2n();
     else
-        generateTriples();
+        this->generateTriples();
 }
 
 template<class T>
@@ -519,7 +528,7 @@ void OTTripleGenerator<U>::plainTripleRound(int k)
 }
 
 template<class U>
-void MascotTripleGenerator<U>::generateTriples()
+void SimpleMascotTripleGenerator<U>::generateTriples()
 {
     typedef typename U::open_type T;
 
@@ -655,7 +664,7 @@ void MascotTripleGenerator<T>::sacrifice(typename T::MAC_Check& MC, PRNG& G)
     MC.Check(globalPlayer);
 
     if (machine.generateBits)
-        generateBitsFromTriples(MC, outputFile);
+        generateBitsFromTriples(MC, outputFile, typename T::clear());
     else
         if (machine.output)
             for (int j = 0; j < nTriplesPerLoop; j++)
@@ -715,12 +724,15 @@ void Spdz2kTripleGenerator<W>::sacrificeZ2k(U& MC, PRNG& G)
                 uncheckedTriples[j].template reduce<W>().output(outputFile, 1);
 }
 
-template<>
-inline
-void MascotTripleGenerator<Share<gfp1>>::generateBitsFromTriples(MAC_Check& MC,
-        ofstream& outputFile)
+template<class T>
+template<int X, int L>
+void MascotTripleGenerator<T>::generateBitsFromTriples(MAC_Check& MC,
+        ofstream& outputFile, gfp_<X, L>)
 {
+    typedef gfp_<X, L> gfp1;
     auto& triples = this->uncheckedTriples;
+    auto& nTriplesPerLoop = this->nTriplesPerLoop;
+    auto& globalPlayer = this->globalPlayer;
     vector< Share<gfp1> > a_plus_b(nTriplesPerLoop), a_squared(nTriplesPerLoop);
     for (int i = 0; i < nTriplesPerLoop; i++)
         a_plus_b[i] = triples[i].a[0] + triples[i].b;
@@ -740,7 +752,7 @@ void MascotTripleGenerator<Share<gfp1>>::generateBitsFromTriples(MAC_Check& MC,
         if (root.is_zero())
             continue;
         Share<gfp1> bit = (triples[i].a[0] / root + one) / gfp1(2);
-        if (machine.output)
+        if (this->machine.output)
             bit.output(outputFile, false);
         else
             bits.push_back(bit);
@@ -748,7 +760,8 @@ void MascotTripleGenerator<Share<gfp1>>::generateBitsFromTriples(MAC_Check& MC,
 }
 
 template<class T>
-void MascotTripleGenerator<T>::generateBitsFromTriples(MAC_Check&, ofstream&)
+template<class U>
+void MascotTripleGenerator<T>::generateBitsFromTriples(MAC_Check&, ofstream&, U)
 {
     throw how_would_that_work();
 }

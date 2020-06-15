@@ -115,7 +115,8 @@ void ShareSecret<U>::inputb(Processor<U>& processor,
     {
         if (x.from == party.P->my_num())
         {
-            bigint whole_input = processor.get_long_input(x.params,
+            bigint whole_input = processor.template
+                    get_long_input<bigint>(x.params,
                     input_processor, interactive);
             for (int i = 0; i < DIV_CEIL(x.n_bits, dl); i++)
                 input.add_mine(bigint(whole_input >> (i * dl)).get_si(),

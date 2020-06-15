@@ -8,6 +8,7 @@
 #include "Protocols/Share.h"
 #include "Protocols/fake-stuff.h"
 #include "Protocols/MAC_Check.h"
+#include "Protocols/Rep3Share.h"
 #include "Tools/ezOptionParser.h"
 #include "Exceptions/Exceptions.h"
 #include "GC/MaliciousRepSecret.h"

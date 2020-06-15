@@ -42,6 +42,9 @@ void BaseMachine::load_schedule(string progname)
   inpf >> nthreads;
   inpf >> nprogs;
 
+  if (inpf.fail())
+    throw file_error("Error reading " + fname);
+
 #ifdef DEBUG_FILES
   cerr << "Number of threads I will run in parallel = " << nthreads << endl;
   cerr << "Number of program sequences I need to load = " << nprogs << endl;

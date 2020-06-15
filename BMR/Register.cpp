@@ -48,12 +48,10 @@ void Register::init(int rfd, int n_parties) {
 	mask = mask>0 ? 1 : 0;
 	keys.init(n_parties);
 	keys.randomize();
-#ifdef KEY_SIGNAL
 	for (int i = 0; i < 2; i++)
 		for (size_t j = 0; j < keys[i].size(); j++)
 			if (keys[i][j].get_signal() != i)
 				keys[i][j] ^= Key(1);
-#endif
 }
 
 void Register::set_eval_keys()
@@ -284,21 +282,7 @@ void Register::eval(const Register& left, const Register& right, GarbledGate& ga
 //  }
 //  std::cout << std::endl;
 
-#ifdef KEY_SIGNAL
     external = garbled_entry[my_id - 1].get_signal();
-#else
-    if(garbled_entry[my_id-1] == key(my_id, 0)) {
-        external = 0;
-    } else if (garbled_entry[my_id-1] == key(my_id, 1)) {
-        external = 1;
-    } else {
-        printf("\nERROR!!!\n");
-        cout << "got key: " << garbled_entry[my_id - 1] << endl;
-        cout << "possibilities: " << key(my_id, 0) << " " << key(my_id, 1) << endl;
-        throw std::invalid_argument("result key doesn't fit any of my keys");
-//      return NO_SIGNAL;
-    }
-#endif
 
 #ifdef DEBUG_MASK
     cout << "output signal: " << (int)external << endl;
@@ -680,9 +664,7 @@ void RandomRegister::randomize()
 	party.random_timer.start();
 	init(party.randomfd, party._N);
 	party.random_timer.stop();
-#ifdef FREE_XOR
 	keys[1] = keys[0] ^ party.get_deltas();
-#endif
 	party.add_keys(*this);
 }
 
@@ -764,16 +746,13 @@ void EvalRegister::output()
 	ProgramParty& party = ProgramParty::s();
 	party.load_wire(*this);
 	set_mask(party.output_masks.pop_front());
-#ifdef KEY_SIGNAL
 #ifdef DEBUG_REGS
 	cout << "check " << get_id() << endl;
 #endif
 	check_signal_key(party.get_id(), garbled_entry);
-#endif
 	party.taint();
 }
 
-#ifdef FREE_XOR
 void RandomRegister::XOR(const Register& left, const Register& right)
 {
 	mask = left.get_mask() ^ right.get_mask();
@@ -822,46 +801,6 @@ void EvalRegister::XOR(const Register& left, const Register& right)
 	for (size_t i = 0; i < garbled_entry.size(); i++)
 		cout << garbled_entry[i] << " = " << left.get_garbled_entry()[i]
 				<< " ^ " << right.get_garbled_entry()[i] << endl;
-#endif
-}
-#endif
-
-void EvalRegister::check(const int128& value, word share, int128 mac)
-{
-#ifdef DEBUG_DYNAMIC
-	cout << "check result " << value << endl;
-#endif
-	if (value != 0)
-	{
-		cout << "MAC check: " << value << " " << share<< " " << mac << endl;
-		throw runtime_error("MAC check failed");
-	}
-}
-
-void EvalRegister::get_dyn_mask(GC::Mask& mask, int length, int mac_length)
-{
-	mask.share = CommonParty::s().prng.get_word() & ((1ULL << length) - 1);
-	mask.mac = int128(CommonParty::s().prng.get_doubleword())
-            		& int128::ones(mac_length);
-#ifdef DEBUG_DYNAMIC
-	cout << "mask " << hex << mask.share << " " << mask.mac << " ";
-	cout << ((1ULL << length) - 1) << " " << int128::ones(mac_length) << endl;
-#endif
-}
-
-void EvalRegister::unmask(GC::AuthValue& dest, word mask_share, int128 mac_mask_share,
-		word masked, int128 masked_mac)
-{
-	dest.share = mask_share;
-	dest.mac = mac_mask_share;
-	if (ProgramParty::s()._id == 1)
-	{
-		dest.share ^= masked;
-		dest.mac ^= masked_mac;
-	}
-#ifdef DEBUG_DYNAMIC
-	cout << dest.share << " ?= " << mask_share << " ^ " << masked << endl;
-	cout << dest.mac << " ?= " << mac_mask_share << " ^ " << masked_mac << endl;
 #endif
 }
 

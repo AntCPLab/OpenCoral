@@ -11,8 +11,8 @@
 #include "Spdz2kPrep.h"
 
 #include "GC/BitAdder.h"
-#include "Math/gfp.h"
 #include "Processor/OnlineOptions.h"
+#include "Protocols/Rep3Share.h"
 
 #include "MaliciousRingPrep.hpp"
 #include "ShuffleSacrifice.hpp"
@@ -63,7 +63,7 @@ BitPrep<T>::BitPrep(SubProcessor<T>* proc, DataPositions& usage) :
 
 template<class T>
 RingPrep<T>::RingPrep(SubProcessor<T>* proc, DataPositions& usage) :
-        BufferPrep<T>(usage), BitPrep<T>(proc, usage), sent(0)
+        BufferPrep<T>(usage), BitPrep<T>(proc, usage)
 {
 }
 
@@ -258,22 +258,22 @@ void XOR(vector<T>& res, vector<T>& x, vector<T>& y,
         res[i] = x[i] + y[i] - prot.finalize_mul() * two;
 }
 
-template<template<class U> class T>
-void buffer_bits_from_squares(RingPrep<T<gfp>>& prep)
+template<class T>
+void buffer_bits_from_squares(RingPrep<T>& prep)
 {
     auto proc = prep.get_proc();
     assert(proc != 0);
     auto& bits = prep.get_bits();
-    vector<array<T<gfp>, 2>> squares(prep.buffer_size);
-    vector<T<gfp>> s;
+    vector<array<T, 2>> squares(prep.buffer_size);
+    vector<T> s;
     for (int i = 0; i < prep.buffer_size; i++)
     {
         prep.get_two(DATA_SQUARE, squares[i][0], squares[i][1]);
         s.push_back(squares[i][1]);
     }
-    vector<gfp> open;
+    vector<typename T::clear> open;
     proc->MC.POpen(open, s, proc->P);
-    auto one = T<gfp>::constant(1, proc->P.my_num(), proc->MC.get_alphai());
+    auto one = T::constant(1, proc->P.my_num(), proc->MC.get_alphai());
     for (size_t i = 0; i < s.size(); i++)
         if (open[i] != 0)
             bits.push_back((squares[i][0] / open[i].sqrRoot() + one) / 2);
@@ -282,15 +282,15 @@ void buffer_bits_from_squares(RingPrep<T<gfp>>& prep)
         throw runtime_error("squares were all zero");
 }
 
-template<template<class U> class T>
-void buffer_bits_spec(ReplicatedPrep<T<gfp>>& prep, vector<T<gfp>>& bits,
-    typename T<gfp>::Protocol& prot)
+template<template<class U> class T, int X, int L>
+void buffer_bits_spec(ReplicatedPrep<T<gfp_<X, L>>>& prep, vector<T<gfp_<X, L>>>& bits,
+    typename T<gfp_<X, L>>::Protocol& prot)
 {
     (void) bits, (void) prot;
     if (prot.get_n_relevant_players() > 10)
         buffer_bits_from_squares(prep);
     else
-        prep.ReplicatedRingPrep<T<gfp>>::buffer_bits();
+        prep.ReplicatedRingPrep<T<gfp_<X, L>>>::buffer_bits();
 }
 
 template<class T>

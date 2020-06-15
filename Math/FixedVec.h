@@ -26,6 +26,8 @@ class FixedVec
 
 public:
     typedef T value_type;
+    typedef FixedVec Scalar;
+
     static const int length = L;
 
     static int size()
@@ -134,6 +136,12 @@ public:
         add(*this, x);
     }
 
+    void add(octetStream& os)
+    {
+        for (int i = 0; i < L; i++)
+            v[i].add(os);
+    }
+
     void negate()
     {
         for (auto& x : v)
@@ -146,6 +154,11 @@ public:
             if (v[i] != x[i])
                 return false;
         return true;
+    }
+
+    bool operator!=(const FixedVec& other) const
+    {
+        return not equal(other);
     }
 
     bool is_zero()
@@ -299,6 +312,13 @@ public:
         for (auto& x : v)
             x.randomize(G);
     }
+
+    void almost_randomize(PRNG& G)
+    {
+        for (auto& x : v)
+            x.almost_randomize(G);
+    }
+
     void randomize_to_sum(const T& sum, PRNG& G)
     {
         T s = 0;
@@ -347,7 +367,7 @@ public:
 template <class U, class T, int L>
 FixedVec<T, L> operator*(const U& a, const FixedVec<T, L>& b)
 {
-    return b * a;
+    return b * T(a);
 }
 
 template <class T, int L>

@@ -7,6 +7,7 @@
 #include "Processor/Processor.h"
 #include "Protocols/MaliciousRepMC.h"
 #include "Tools/Subroutines.h"
+#include "Math/gfp.h"
 
 template<class T> class ZProtocol;
 
@@ -80,6 +81,8 @@ public:
                 tmp.randomize(G);
                 input.add_mine(tmp);
             }
+            for (int i = 0; i < this->P.num_players(); i++)
+                input.add_other(i);
             input.exchange();
             for (int i = 0; i < buffer_size; i++)
             {

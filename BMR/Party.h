@@ -99,7 +99,7 @@ protected:
 
 	GC::Machine< GC::Secret<EvalRegister> > machine;
 	GC::Processor<GC::Secret<EvalRegister> > processor;
-	GC::Program<GC::Secret<EvalRegister> > program;
+	GC::Program program;
 
 	GC::Machine< GC::Secret<PRFRegister> > prf_machine;
 	GC::Processor<GC::Secret<PRFRegister> > prf_processor;
@@ -170,11 +170,7 @@ public:
 	void get_spdz_wire(SpdzOp op, DualWire<T>& spdz_wire);
 };
 
-#ifdef SPDZ_AUTH
 typedef ProgramPartySpec<Share<gf2n_long>> FakeProgramPartySuper;
-#else
-typedef ProgramPartySpec<GC::Memory<AuthValue>> FakeProgramPartySuper;
-#endif
 
 class FakeProgramParty : virtual public BaseParty, virtual public FakeProgramPartySuper
 {

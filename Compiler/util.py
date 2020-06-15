@@ -109,6 +109,7 @@ def round_to_int(x):
 
 def tree_reduce(function, sequence):
     sequence = list(sequence)
+    assert len(sequence) > 0
     n = len(sequence)
     if n == 1:
         return sequence[0]
@@ -161,6 +162,9 @@ def is_all_ones(x, n):
         return x == 2**n - 1
     else:
         return False
+
+def max(x, y):
+    return if_else(x > y, x, y)
 
 def long_one(x):
     try:

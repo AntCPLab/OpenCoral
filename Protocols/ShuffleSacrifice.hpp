@@ -14,6 +14,12 @@
 #include "LimitedPrep.hpp"
 
 template<class T>
+ShuffleSacrifice<T>::ShuffleSacrifice() :
+        B(OnlineOptions::singleton.bucket_size), C(this->B)
+{
+}
+
+template<class T>
 inline void ShuffleSacrifice<T>::triple_combine(vector<array<T, 3> >& triples,
         vector<array<T, 3> >& to_combine, Player& P,
         typename T::MAC_Check& MC)

@@ -8,8 +8,8 @@
 
 #include "CommonParty.h"
 
-template <class T, class U>
-GC::BreakType CommonParty::first_phase(GC::Program<U>& program,
+template <class T>
+GC::BreakType CommonParty::first_phase(GC::Program& program,
 		GC::Processor<T>& processor, GC::Machine<T>& machine)
 {
 	(void)machine;
@@ -20,7 +20,7 @@ GC::BreakType CommonParty::first_phase(GC::Program<U>& program,
 	GC::BreakType next;
 	try
 	{
-		next = (reinterpret_cast<GC::Program<T>*>(&program))->execute(processor, dynamic_memory);
+		next = program.execute(processor, dynamic_memory);
 	}
 	catch (needs_cleaning& e)
 	{
@@ -44,7 +44,7 @@ GC::BreakType CommonParty::first_phase(GC::Program<U>& program,
 }
 
 template<class T, class U>
-GC::BreakType CommonParty::second_phase(GC::Program<T>& program,
+GC::BreakType CommonParty::second_phase(GC::Program& program,
 		GC::Processor<T>& processor, GC::Machine<T>& machine,
 		U& dynamic_memory)
 {

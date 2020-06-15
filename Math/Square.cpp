@@ -5,6 +5,8 @@
 
 #include "Square.h"
 #include "BitVec.h"
+#include "gf2n.h"
+#include "gfp.h"
 
 template<>
 void Square<gf2n_short>::to(gf2n_short& result)

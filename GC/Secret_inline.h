@@ -28,13 +28,10 @@ inline T XOR(const T& left, const T& right)
 template <class T>
 inline void AND(T& res, const T& left, const T& right)
 {
-#ifdef KEY_SIGNAL
 #ifdef DEBUG_REGS
     cout << "*" << res.get_id() << " = AND(*" << left.get_id() << ",*" << right.get_id() << ")" << endl;
 #endif
-#else
-#endif
-    Secret<T>::cast(res).op(Secret<T>::cast(left), Secret<T>::cast(right), 0x0001);
+    res.op(left, right, 0x0001);
 }
 
 template <class T>

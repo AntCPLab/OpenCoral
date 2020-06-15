@@ -400,29 +400,22 @@ void Spdz2kMultiplier<K, S>::after_correlation()
     this->outbox.push({});
 }
 
-template<>
-inline
-void MascotMultiplier<Share<gfp1>>::multiplyForBits()
+template<class T>
+void MascotMultiplier<T>::multiplyForBits()
 {
-    multiplyForTriples();
-}
-
-template<>
-inline
-void MascotMultiplier<Share<gf2n_long>>::multiplyForBits()
-{
-    multiplyForGf2nBits();
-}
-
-template<>
-inline
-void MascotMultiplier<Share<gf2n_short>>::multiplyForBits()
-{
-    multiplyForGf2nBits();
+    multiplyForBits(typename T::clear());
 }
 
 template<class T>
-void MascotMultiplier<T>::multiplyForGf2nBits()
+template<int X, int L>
+void MascotMultiplier<T>::multiplyForBits(gfp_<X, L>)
+{
+    throw runtime_error("should not be called");
+}
+
+template<class T>
+template<class U>
+void MascotMultiplier<T>::multiplyForBits(U)
 {
     auto& macs = this->macs;
     auto& outbox = this->outbox;
@@ -537,12 +530,6 @@ void TinierMultiplier<U>::multiplyForInputs(MultJob job)
 
 template<class T>
 void OTMultiplier<T>::multiplyForBits()
-{
-    throw runtime_error("bit generation not implemented in this case");
-}
-
-template<class T>
-void MascotMultiplier<T>::multiplyForBits()
 {
     throw runtime_error("bit generation not implemented in this case");
 }

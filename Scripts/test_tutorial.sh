@@ -7,8 +7,6 @@ while getopts XYC opt; do
 	   ;;
 	Y) dabit=2
 	   ;;
-	C) cheap=1
-	   ;;
     esac
 done
 
@@ -36,50 +34,30 @@ function test_vm
     fi
 }
 
+# big buckets for smallest batches
+run_opts="$run_opts -B 5"
+
 for dabit in ${dabit:-0 1 2}; do
     if [[ $dabit = 1 ]]; then
 	compile_opts="$compile_opts -X"
     elif [[ $dabit = 2 ]]; then
-	if [[ $cheap != 1 ]]; then
-	    run_opts="$run_opts --fake-batch"
-	fi
 	compile_opts="$compile_opts -Y"
     fi
 
     ./compile.py -R 64 $compile_opts tutorial
 
-    for i in ring semi2k; do
+    for i in ring semi2k brain mal-rep-ring ps-rep-ring spdz2k; do
 	test_vm $i $run_opts
     done
 
-    if ! test "$dabit" = 2 -a "$cheap" = 1; then
-	for i in brain mal-rep-ring ps-rep-ring spdz2k; do
-	    test_vm $i $run_opts
-	done
-    fi
-
     ./compile.py  $compile_opts tutorial
 
-    for i in rep-field shamir; do
-	test_vm $i
+    for i in rep-field shamir mal-rep-field ps-rep-field mal-shamir hemi semi \
+		       soho cowgear mascot; do
+	test_vm $i $run_opts
     done
 
-    if ! test "$dabit" = 2 -a "$cheap" = 1; then
-	for i in mal-rep-field ps-rep-field mal-shamir; do
-	    test_vm $i $run_opts
-	done
-    fi
-
-    for i in hemi semi soho; do
-	test_vm $i
-    done
-
-    if ! test "$dabit" = 2 -a "$cheap" = 1; then
-	for i in cowgear mascot; do
-	    test_vm $i $run_opts
-	done
-	test_vm chaigear $run_opts -l 3 -c 2
-    fi
+    test_vm chaigear $run_opts -l 3 -c 2
 done
 
 ./compile.py tutorial
@@ -89,6 +67,6 @@ test_vm chaigear -T -l 3 -c 2
 
 ./compile.py -B 16  $compile_opts tutorial
 
-for i in replicated mal-rep-bin semi-bin ccd mal-ccd yao tinier rep-bmr mal-rep-bmr shamir-bmr mal-shamir-bmr tiny; do
+for i in replicated mal-rep-bin semi-bin ccd mal-ccd yao tinier rep-bmr mal-rep-bmr shamir-bmr mal-shamir-bmr; do
     test_vm $i
 done

@@ -3,7 +3,7 @@ This module defines functions directly available in high-level programs,
 in particularly providing flow control and output.
 """
 
-from Compiler.types import cint,sint,cfix,sfix,sfloat,MPCThread,Array,MemValue,cgf2n,sgf2n,_number,_mem,_register,regint,Matrix,_types, cfloat, _single, localint
+from Compiler.types import cint,sint,cfix,sfix,sfloat,MPCThread,Array,MemValue,cgf2n,sgf2n,_number,_mem,_register,regint,Matrix,_types, cfloat, _single, localint, personal, copy_doc
 from Compiler.instructions import *
 from Compiler.util import tuplify,untuplify,is_zero
 from Compiler import instructions,instructions_base,comparison,program,util
@@ -35,6 +35,7 @@ def vectorize(function):
             res = function(*args, **kwargs)
         return res
     vectorized_function.__name__ = function.__name__
+    copy_doc(vectorized_function, function)
     return vectorized_function
 
 def set_instruction_type(function):
@@ -59,7 +60,7 @@ def print_str(s, *args):
     def print_plain_str(ss):
         """ Print a plain string (no custom formatting options) """
         i = 1
-        while 4*i < len(ss):
+        while 4*i <= len(ss):
             print_char4(ss[4*(i-1):4*i])
             i += 1
         i = 4*(i-1)
@@ -110,8 +111,7 @@ def print_ln(s='', *args):
 
         print_ln('a is %s.', a.reveal())
     """
-    print_str(s, *args)
-    print_char('\n')
+    print_str(s + '\n', *args)
 
 def print_ln_if(cond, ss, *args):
     """ Print line if :py:obj:`cond` is true. The further arguments
@@ -138,15 +138,35 @@ def print_ln_if(cond, ss, *args):
         cond = cint.conv(cond)
         for i, s in enumerate(subs):
             if i != 0:
-                cond_print_plain(cond, cint.conv(args[i - 1]))
-            if i < len(args):
-                s += ' ' * ((-len(s)) % 4)
-            else:
-                s += ' ' * ((-len(s) + 3) % 4)
+                args[i - 1].output_if(cond)
+            if i == len(args):
                 s += '\n'
+            s += '\0' * ((-len(s)) % 4)
             while s:
                 cond.print_if(s[:4])
                 s = s[4:]
+
+def print_ln_to(player, ss, *args):
+    """ Print line at :py:obj:`player` only. Note that printing is
+    disabled by default except at player 0.
+
+    :param player: int
+    :param ss: Python string
+    :param args: list of values known to :py:obj:`player`
+
+    Example::
+
+        print_ln_to(player, 'output for %s: %s', player, x.reveal_to(player))
+    """
+    cond = player == get_player_id()
+    new_args = []
+    for arg in args:
+        if isinstance(arg, personal):
+            assert arg.player == player
+            new_args.append(arg._v)
+        else:
+            new_args.append(arg)
+    print_ln_if(cond, ss, *new_args)
 
 def print_float_precision(n):
     """ Set the precision for floating-point printing.
@@ -1041,7 +1061,7 @@ def multithread(n_threads, n_items):
 def map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, \
                    thread_mem_req={}, looping=True):
     assert(n_threads != 0)
-    if isinstance(n_loops, list):
+    if isinstance(n_loops, (list, tuple)):
         split = n_loops
         n_loops = reduce(operator.mul, n_loops)
         def decorator(loop_body):

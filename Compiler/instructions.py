@@ -898,6 +898,7 @@ class inputmixedreg(inputmixed_base):
         req_node.increment((self.field_type, 'input', 0), float('inf'))
 
 @base.gf2n
+@base.vectorize
 class rawinput(base.RawInputInstruction, base.Mergeable):
     r""" Receive inputs from player $p$. """
     __slots__ = []
@@ -941,7 +942,7 @@ class print_reg_plain(base.IOInstruction):
 class cond_print_plain(base.IOInstruction):
     r""" Conditionally print the value of a register. """
     code = base.opcodes['CONDPRINTPLAIN']
-    arg_format = ['c', 'c']
+    arg_format = ['c', 'c', 'c']
 
 class print_int(base.IOInstruction):
     r""" Print only the value of register \verb|ci| to stdout. """
@@ -1142,7 +1143,7 @@ class stopprivateoutput(base.Instruction):
     r""" Previously iniated private output to $n$ via $c_i$. """
     __slots__ = []
     code = base.opcodes['STOPPRIVATEOUTPUT']
-    arg_format = ['c','p']
+    arg_format = ['cw','c','p']
 
 @base.vectorize
 class rand(base.Instruction):
@@ -1457,6 +1458,24 @@ class matmulsm(matmul_base):
             assert args[6 + i].size == args[3 + i]
         for i in range(2):
             assert args[8 + i].size == args[4 + i]
+
+class conv2ds(base.DataInstruction):
+    """ Secret 2D convolution """
+    code = base.opcodes['CONV2DS']
+    arg_format = ['sw','s','s','int','int','int','int','int','int','int','int',
+                  'int','int','int']
+    data_type = 'triple'
+    is_vec = lambda self: True
+
+    def __init__(self, *args, **kwargs):
+        super(conv2ds, self).__init__(*args, **kwargs)
+        assert args[0].size == args[3] * args[4]
+        assert args[1].size == args[5] * args[6] * args[11]
+        assert args[2].size == args[7] * args[8] * args[11]
+
+    def get_repeat(self):
+        return self.args[3] * self.args[4] * self.args[7] * self.args[8] * \
+            self.args[11]
 
 @base.vectorize
 class trunc_pr(base.VarArgsInstruction):

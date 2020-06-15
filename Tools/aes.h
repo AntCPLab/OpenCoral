@@ -75,7 +75,7 @@ inline __m128i aes_128_encrypt(__m128i in, const octet* key)
 }
 
 template <int N>
-inline void software_ecb_aes_128_encrypt(__m128i* out, __m128i* in, uint* key)
+inline void software_ecb_aes_128_encrypt(__m128i* out, const __m128i* in, uint* key)
 {
     for (int i = 0; i < N; i++)
         aes_128_encrypt((octet*)&out[i], (octet*)&in[i], key);
@@ -85,7 +85,7 @@ template <int N>
 #ifndef __clang__
 __attribute__((optimize("unroll-loops")))
 #endif
-inline void ecb_aes_128_encrypt(__m128i* out, __m128i* in, const octet* key)
+inline void ecb_aes_128_encrypt(__m128i* out, const __m128i* in, const octet* key)
 {
 #ifdef __AES__
     if (cpu_has_aes())

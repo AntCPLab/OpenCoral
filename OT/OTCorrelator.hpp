@@ -135,8 +135,6 @@ void OTExtensionWithMatrix::hash_outputs(int nOTs, vector<V>& senderOutput,
     gettimeofday(&startv, NULL);
 #endif
 
-    typedef typename V::PartType::RowType T;
-
     int n_rows = V::PartType::N_ROWS_ALLOCATED;
     int n = (nOTs + n_rows - 1) / n_rows * V::PartType::N_ROWS;
     for (int i = 0; i < 2; i++)
@@ -165,13 +163,13 @@ void OTExtensionWithMatrix::hash_outputs(int nOTs, vector<V>& senderOutput,
                             senderOutputMatrices[1].squares[i_outer_input].rows[i_inner_input + j];
             }
             for (int j = 0; j < 2; j++)
-                mmo.hashBlocks<T, 8>(
+                mmo.hashEightBlocks(
                         &senderOutput[j].squares[i_outer_output].rows[i_inner_output],
                         &tmp[j]);
         }
         if (ot_role & RECEIVER)
         {
-            mmo.hashBlocks<T, 8>(
+            mmo.hashEightBlocks(
                     &receiverOutput.squares[i_outer_output].rows[i_inner_output],
                     &receiverOutputMatrix.squares[i_outer_input].rows[i_inner_input]);
         }

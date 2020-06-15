@@ -140,7 +140,7 @@ public:
             int repeat = this->repeat(l, generator.machine.check);
             for (int j = 0; j < repeat; j++)
             {
-                T value = triple.byIndex(l,j);
+                typename U::share_type value = triple.byIndex(l,j);
                 typename U::mac_type mac;
                 mac.mul(value, generator.get_mac_key());
                 for (int i = 0; i < generator.nparties-1; i++)

@@ -7,7 +7,6 @@
 #define MATH_SETUP_H_
 
 #include "Math/bigint.h"
-#include "Math/gfp.h"
 #include "Tools/mkpath.h"
 
 #include <iostream>
@@ -66,10 +65,6 @@ void generate_prime_setup(string dir, int nparties, int lgp)
     bigint p;
     generate_online_setup(get_prep_sub_dir<T>(dir, nparties, lgp), p, lgp);
 }
-
-// Read prime from file
-template<class T = gfp>
-void read_setup(const string& dir_prefix, int lgp = -1);
 
 void init_gf2n(int gf2ndegree);
 

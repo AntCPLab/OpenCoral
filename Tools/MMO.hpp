@@ -5,7 +5,6 @@
  */
 
 #include "MMO.h"
-#include "Math/gfp.h"
 #include <unistd.h>
 
 
@@ -68,20 +67,8 @@ void MMO::hashBlocks(void* output, const void* input)
         ((T*)output + j)->normalize();
 }
 
-template <>
-inline
-void MMO::hashBlocks<gfp1, 1>(void* output, const void* input)
-{
-    if (gfp1::get_ZpD().get_t() != 2)
-        throw not_implemented();
-    encrypt_and_xor<1>(output, input, IV[0]);
-    while (mpn_cmp((mp_limb_t*)output, gfp1::get_ZpD().get_prA(), gfp1::t()) >= 0)
-        _mm_storeu_si128((__m128i *) output,
-                aes_128_encrypt(_mm_loadu_si128((__m128i *) output), IV[0]));
-}
-
 template <int X, int L>
-void MMO::hashEightGfp(void* output, const void* input)
+void MMO::hashEightBlocks(gfp_<X, L>* output, const void* input)
 {
     gfp_<X, L>* out = (gfp_<X, L>*)output;
     const int block_size = sizeof(__m128i);
@@ -117,16 +104,15 @@ void MMO::hashEightGfp(void* output, const void* input)
     }
 }
 
-template <>
-inline
-void MMO::hashBlocks<gfp1, 8>(void* output, const void* input)
+template <class T>
+void MMO::hashEightBlocks(T* output, const void* input)
 {
-    hashEightGfp<1, GFP_MOD_SZ>(output, input);
+    hashBlocks<T, 8>(output, input);
 }
 
 template <>
 inline
-void MMO::hashBlocks<gfp3, 8>(void* output, const void* input)
+void MMO::hashEightBlocks(__m128i* output, const void* input)
 {
-    hashEightGfp<3, 4>(output, input);
+    hashBlocks<8, 16>(output, input, 16);
 }

@@ -20,7 +20,7 @@ void OTTripleSetup::setup()
         baseReceiverOutputs[i] = baseOTs[i]->receiver_outputs;
     }
     gettimeofday(&baseOTend, NULL);
-#ifdef VERBOSE
+#ifdef VERBOSE_BASEOT
     double basetime = timeval_diff(&baseOTstart, &baseOTend);
     cout << "\t\tBaseTime: " << basetime/1000000 << endl << flush;
 #endif

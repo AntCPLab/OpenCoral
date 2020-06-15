@@ -17,15 +17,14 @@
 namespace GC
 {
 
-template <class T>
-Program<T>::Program() :
-        offline_data_used(0), unknown_usage(false)
+inline
+Program::Program()
 {
     compute_constants();
 }
 
-template <class T>
-void Program<T>::compute_constants()
+inline
+void Program::compute_constants()
 {
     for (int reg_type = 0; reg_type < MAX_REG_TYPE; reg_type++)
     {
@@ -34,8 +33,6 @@ void Program<T>::compute_constants()
     }
     for (unsigned int i = 0; i < p.size(); i++)
     {
-        if (!p[i].get_offline_data_usage(offline_data_used))
-            unknown_usage = true;
         for (int reg_type = 0; reg_type < MAX_REG_TYPE; reg_type++)
         {
             max_reg[reg_type] = max(max_reg[reg_type],
@@ -46,15 +43,15 @@ void Program<T>::compute_constants()
     }
 }
 
-template <class T>
-void Program<T>::parse(const string& bytecode_name)
+inline
+void Program::parse(const string& bytecode_name)
 {
     string filename = "Programs/Bytecode/" + bytecode_name + ".bc";
     parse_file(filename);
 }
 
-template <class T>
-void Program<T>::parse_file(const string& filename)
+inline
+void Program::parse_file(const string& filename)
 {
     ifstream s(filename.c_str());
     if (s.bad() or s.fail())
@@ -62,8 +59,8 @@ void Program<T>::parse_file(const string& filename)
     parse(s);
 }
 
-template <class T>
-void Program<T>::parse(istream& s)
+inline
+void Program::parse(istream& s)
 {
     p.resize(0);
     Instruction instr;
@@ -84,22 +81,9 @@ void Program<T>::parse(istream& s)
     compute_constants();
 }
 
-template <class T>
-void Program<T>::print_offline_cost() const
-{
-    if (unknown_usage)
-    {
-        cerr << "Tape has unknown usage" << endl;
-        return;
-    }
-
-    cerr << "Cost of first tape: " << offline_data_used << endl;
-}
-
-template <class T>
-template <class U>
+template <class T, class U>
 __attribute__((flatten))
-BreakType Program<T>::execute(Processor<T>& Proc, U& dynamic_memory,
+BreakType Program::execute(Processor<T>& Proc, U& dynamic_memory,
         int PC) const
 {
     if (PC != -1)

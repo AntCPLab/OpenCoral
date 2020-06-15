@@ -14,30 +14,27 @@
 #include "GC/Secret.hpp"
 #include "GC/Thread.hpp"
 #include "Tools/MMO.hpp"
+#include "YaoWire.hpp"
 
 thread_local YaoGarbler* YaoGarbler::singleton = 0;
 
 YaoGarbler::YaoGarbler(int thread_num, YaoGarbleMaster& master) :
 		GC::Thread<GC::Secret<YaoGarbleWire>>(thread_num, master),
+		YaoCommon<YaoGarbleWire>(master),
 		master(master),
 		and_proc_timer(CLOCK_PROCESS_CPUTIME_ID),
 		and_main_thread_timer(CLOCK_THREAD_CPUTIME_ID),
 		player(master.N, 1, thread_num << 24),
 		ot_ext(OTExtensionWithMatrix::setup(player,
-				master.delta.get<__m128i>(), SENDER, true))
+				master.get_delta().get<__m128i>(), SENDER, true))
 {
 	prng.ReSeed();
 	set_n_program_threads(master.machine.nthreads);
-
-	and_jobs.resize(get_n_worker_threads());
-	for (auto& job : and_jobs)
-		job = new YaoAndJob(*this);
+	this->init(*this);
 }
 
 YaoGarbler::~YaoGarbler()
 {
-	for (auto& job : and_jobs)
-		delete job;
 #ifdef VERBOSE
 	cerr << "Number of AND gates: " << counter << endl;
 #endif
@@ -52,7 +49,7 @@ YaoGarbler::~YaoGarbler()
 #endif
 }
 
-void YaoGarbler::run(GC::Program<GC::Secret<YaoGarbleWire>>& program)
+void YaoGarbler::run(GC::Program& program)
 {
 	singleton = this;
 

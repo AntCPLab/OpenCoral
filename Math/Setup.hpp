@@ -8,8 +8,8 @@
 
 #include "gfp.h"
 
-template<class T>
-void read_setup(const string& dir_prefix, int lgp)
+template<class T = gfp>
+void read_setup(const string& dir_prefix, int lgp = -1)
 {
     bigint p;
 

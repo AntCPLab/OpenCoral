@@ -267,7 +267,7 @@ class Merger:
         last_print_str = None
         last = defaultdict(lambda: defaultdict(lambda: None))
         last_open = deque()
-        last_text_input = [None, None]
+        last_input = defaultdict(lambda: [None, None])
 
         depths = [0] * len(block.instructions)
         self.depths = depths
@@ -331,6 +331,16 @@ class Merger:
                 add_edge(last[t][player], n)
             last[t][player] = n
 
+        def keep_merged_order(instr, n, t):
+            if last_input[t][0] is not None:
+                if instr.merge_id() != \
+                   block.instructions[last_input[t][0]].merge_id():
+                    add_edge(last_input[t][0], n)
+                    last_input[t][1] = last_input[t][0]
+                elif last_input[t][1] is not None:
+                    add_edge(last_input[t][1], n)
+            last_input[t][0] = n
+
         for n,instr in enumerate(block.instructions):
             outputs,inputs = instr.get_def(), instr.get_used()
 
@@ -355,14 +365,9 @@ class Merger:
 
             # will be merged
             if isinstance(instr, TextInputInstruction):
-                if last_text_input[0] is not None:
-                    if instr.merge_id() != \
-                       block.instructions[last_text_input[0]].merge_id():
-                        add_edge(last_text_input[0], n)
-                        last_text_input[1] = last_text_input[0]
-                    elif last_text_input[1] is not None:
-                        add_edge(last_text_input[1], n)
-                last_text_input[0] = n
+                keep_merged_order(instr, n, TextInputInstruction)
+            elif isinstance(instr, RawInputInstruction):
+                keep_merged_order(instr, n, RawInputInstruction)
 
             if isinstance(instr, merge_classes):
                 open_nodes.add(n)
@@ -413,12 +418,10 @@ class Merger:
                 last_print_str = n
             elif isinstance(instr, PublicFileIOInstruction):
                 keep_order(instr, n, instr.__class__)
-            elif isinstance(instr, RawInputInstruction):
-                keep_order(instr, n, instr.__class__)
             elif isinstance(instr, startprivateoutput_class):
                 keep_order(instr, n, startprivateoutput_class, 2)
             elif isinstance(instr, stopprivateoutput_class):
-                keep_order(instr, n, stopprivateoutput_class, 1)
+                keep_order(instr, n, stopprivateoutput_class, 2)
             elif isinstance(instr, prep_class):
                 keep_order(instr, n, instr.args[0])
             elif isinstance(instr, StackInstruction):

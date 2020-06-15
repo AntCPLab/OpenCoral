@@ -160,6 +160,11 @@ class Integer : public IntBase<long>
   void SHR(const Integer& x, const Integer& y) { *this = (unsigned long)x.a >> y.a; }
 };
 
+inline string to_string(const Integer& x)
+{
+  return to_string(x.get());
+}
+
 template<>
 inline void IntBase<long>::randomize(PRNG& G)
 {

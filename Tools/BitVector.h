@@ -13,9 +13,8 @@ using namespace std;
 #include "Exceptions/Exceptions.h"
 #include "Networking/data.h"
 // just for util functions
-#include "Math/bigint.h"
 #include "Math/gf2nlong.h"
-#include "Math/gfp.h"
+#include "Math/FixedVec.h"
 
 class PRNG;
 class octetStream;
@@ -186,7 +185,8 @@ class BitVector
 
     template <class T>
     void set(const T& a);
-
+    template <class T, int L>
+    void set(const FixedVec<T, L>& a);
     bool get_bit(int i) const
       {
         if (i >= (int)nbits)
@@ -279,6 +279,18 @@ template <class T>
 void inline BitVector::set_portion(int i, const T& a)
 {
     memcpy(bytes + a.size() * i, a.get_ptr(), a.size());
+}
+
+template <class T, int L>
+void BitVector::set(const FixedVec<T, L>& a)
+{
+    resize(8 * a.size());
+    size_t base = 0;
+    for (int i = 0; i < L; i++)
+    {
+        memcpy(bytes + base, a[i].get_ptr(), a[i].size());
+        base += a[i].size();
+    }
 }
 
 template <class T>

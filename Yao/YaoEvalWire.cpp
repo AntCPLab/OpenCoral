@@ -14,6 +14,7 @@
 #include "GC/Processor.hpp"
 #include "GC/Secret.hpp"
 #include "GC/Thread.hpp"
+#include "YaoCommon.hpp"
 
 ostream& YaoEvalWire::out = cout;
 
@@ -32,98 +33,100 @@ template<bool repeat>
 void YaoEvalWire::and_(GC::Processor<GC::Secret<YaoEvalWire> >& processor,
 		const vector<int>& args)
 {
-	int total_ands = processor.check_args(args, 4);
+	YaoEvaluator& party = YaoEvaluator::s();
+	int total = processor.check_args(args, 4);
+	int threshold = 1024;
+	if (total < threshold)
+	{
+		// run in single thread
+		and_singlethread<repeat>(processor, args, total);
+		return;
+	}
+
+	processor.complexity += total;
+	int i_thread = 0, start = 0;
+	for (auto& x : party.get_splits(args, threshold, total))
+	{
+		auto i_gate = x[0];
+		auto end = x[1];
+		YaoGate* gate = (YaoGate*) party.gates.consume(
+				i_gate * sizeof(YaoGate));
+		party.jobs[i_thread++]->dispatch(YAO_AND_JOB, processor, args, start,
+				end, i_gate, gate, party.get_gate_id(), repeat);
+		party.counter += i_gate;
+		start = end;
+	}
+	party.wait(i_thread);
+}
+
+template<bool repeat>
+void YaoEvalWire::and_singlethread(GC::Processor<GC::Secret<YaoEvalWire> >& processor,
+		const vector<int>& args, int total_ands)
+{
 	if (total_ands < 10)
-		return processor.andrs(args);
+		return processor.and_(args, repeat);
 	processor.complexity += total_ands;
-	Key* labels;
-	Key* hashes;
-	vector<Key> label_vec, hash_vec;
-	size_t n_hashes = total_ands;
-	Key label_arr[1000], hash_arr[1000];
-	if (total_ands < 1000)
-	{
-		labels = label_arr;
-		hashes = hash_arr;
-	}
-	else
-	{
-		label_vec.resize(n_hashes);
-		hash_vec.resize(n_hashes);
-		labels = label_vec.data();
-		hashes = hash_vec.data();
-	}
-	size_t i_label = 0;
-	auto& evaluator = YaoEvaluator::s();
+	size_t n_args = args.size();
+	YaoEvaluator& party = YaoEvaluator::s();
+	YaoGate* gate = (YaoGate*) party.gates.consume(total_ands * sizeof(YaoGate));
+	long counter = party.get_gate_id();
+	map<string, Timer> timers;
+	SeededPRNG prng;
+	and_(processor.S, args, 0, n_args, total_ands, gate, counter,
+			prng, timers, repeat, party);
+	party.counter += counter - party.get_gate_id();
+}
+
+void YaoEvalWire::and_(GC::Memory<GC::Secret<YaoEvalWire> >& S,
+		const vector<int>& args, size_t start, size_t end, size_t,
+		YaoGate* gates, long& gate_id, PRNG&, map<string, Timer>&,
+		bool repeat, YaoEvaluator& evaluator)
+{
 	int dl = GC::Secret<YaoEvalWire>::default_length;
-	for (auto it = args.begin(); it < args.end(); it += 4)
+	MMO& mmo = evaluator.mmo;
+	for (auto it = args.begin() + start; it < args.begin() + end; it += 4)
 	{
 		if (*it == 1)
 		{
-			evaluator.counter++;
-			labels[i_label++] = YaoGate::E_input(
-					processor.S[*(it + 2)].get_reg(0).key,
-					processor.S[*(it + 3)].get_reg(0).key,
-					evaluator.get_gate_id());
+			Key label[YaoGate::N_EVAL_HASHES];
+			Key hash[YaoGate::N_EVAL_HASHES];
+			gate_id++;
+			YaoGate::eval_inputs(label,
+					S[*(it + 2)].get_reg(0).key(),
+					S[*(it + 3)].get_reg(0).key(),
+					gate_id);
+			mmo.hash<YaoGate::N_EVAL_HASHES>(hash, label);
+			auto& out = S[*(it + 1)];
+			out.resize_regs(1);
+			YaoGate& gate = *gates;
+			gates++;
+			gate.eval(out.get_reg(0), hash, S[*(it + 2)].get_reg(0),
+					S[*(it + 3)].get_reg(0));
 		}
 		else
 		{
 			int n_units = DIV_CEIL(*it, dl);
 			for (int j = 0; j < n_units; j++)
 			{
-				auto& left = processor.S[*(it + 2) + j];
-				auto& right = processor.S[*(it + 3) + (repeat ? 0 : j)];
+				auto& left = S[*(it + 2) + j];
+				auto& right = S[*(it + 3) + (repeat ? 0 : j)];
+				auto& out = S[*(it + 1) + j];
 				int n = min(dl, *it - j * dl);
-				for (int k = 0; k < n; k++)
-				{
-					auto& left_wire = left.get_reg(k);
-					auto& right_key = right.get_reg(repeat ? 0 : k).key;
-					evaluator.counter++;
-					labels[i_label++] = YaoGate::E_input(left_wire.key, right_key,
-							evaluator.get_gate_id());
-				}
-			}
-		}
-	}
-	MMO& mmo = evaluator.mmo;
-	size_t i;
-	for (i = 0; i + 8 <= n_hashes; i += 8)
-		mmo.hash<8>(&hashes[i], &labels[i]);
-	for (; i < n_hashes; i++)
-		hashes[i] = mmo.hash(labels[i]);
-	size_t j = 0;
-	for (auto it = args.begin(); it < args.end(); it += 4)
-	{
-		if (*it == 1)
-		{
-			auto& out = processor.S[*(it + 1)];
-			out.resize_regs(1);
-			YaoGate gate;
-			evaluator.load_gate(gate);
-			gate.eval(out.get_reg(0), hashes[j++],
-					gate.get_entry(processor.S[*(it + 2)].get_reg(0).external,
-							processor.S[*(it + 3)].get_reg(0).external));
-		}
-		else
-		{
-			int n_units = DIV_CEIL(*it, dl);
-			for (int l = 0; l < n_units; l++)
-			{
-				auto& left = processor.S[*(it + 2) + l];
-				auto& right = processor.S[*(it + 3) + (repeat ? 0 : l)];
-				auto& out = processor.S[*(it + 1) + l];
-				int n = min(dl, *it - l * dl);
 				out.resize_regs(n);
-
 				for (int k = 0; k < n; k++)
 				{
-					auto& right_wire = right.get_reg(repeat ? 0 : k);
+					Key label[YaoGate::N_EVAL_HASHES];
+					Key hash[YaoGate::N_EVAL_HASHES];
 					auto& left_wire = left.get_reg(k);
-					YaoGate gate;
-					evaluator.load_gate(gate);
-					gate.eval(out.get_reg(k), hashes[j++],
-							gate.get_entry(left_wire.external,
-									right_wire.external));
+					auto& right_key = right.get_reg(repeat ? 0 : k).key();
+					gate_id++;
+					YaoGate::eval_inputs(label, left_wire.key(), right_key,
+							gate_id);
+					mmo.hash<YaoGate::N_EVAL_HASHES>(hash, label);
+					auto& right_wire = right.get_reg(repeat ? 0 : k);
+					YaoGate& gate = *gates;
+					gates++;
+					gate.eval(out.get_reg(k), hash, left_wire, right_wire);
 				}
 			}
 		}
@@ -197,23 +200,22 @@ void YaoEvalWire::op(const YaoEvalWire& left, const YaoEvalWire& right,
 bool YaoEvalWire::get_output()
 {
 	YaoEvaluator::s().taint();
-	bool res = external ^ YaoEvaluator::s().output_masks.pop_front();
+	bool res = external() ^ YaoEvaluator::s().output_masks.pop_front();
 #ifdef DEBUG
-    cout << "output " << res << " mask " << (external ^ res) << " external "
-            << external << endl;
+    cout << "output " << res << " mask " << (external() ^ res) << " external() "
+            << external() << endl;
 #endif
 	return res;
 }
 
 void YaoEvalWire::set(const Key& key)
 {
-	this->key = key;
-	external = key.get_signal();
+	this->key_ = key;
 }
 
 void YaoEvalWire::set(Key key, bool external)
 {
-	key.set_signal(external);
+	assert(key.get_signal() == external);
 	set(key);
 }
 

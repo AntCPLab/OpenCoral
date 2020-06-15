@@ -44,7 +44,7 @@ public:
   static void init_thread() { tmp = 0; }
 
   template<class T>
-  static mpf_class get_float(T v, Integer exp, T z, T s);
+  static mpf_class get_float(T v, T p, T z, T s);
   template<class U, class T>
   static void output_float(U& o, const mpf_class& x, T nan);
 

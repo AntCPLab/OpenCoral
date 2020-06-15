@@ -68,6 +68,7 @@ public:
       int b);
   void matmulsm(const CheckVector<T>& source, const Instruction& instruction, int a,
       int b);
+  void conv2ds(const Instruction& instruction);
 
   vector<T>& get_S()
   {

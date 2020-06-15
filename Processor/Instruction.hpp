@@ -101,6 +101,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case SUBINT:
       case MULINT:
       case DIVINT:
+      case CONDPRINTPLAIN:
         r[0]=get_int(s);
         r[1]=get_int(s);
         r[2]=get_int(s);
@@ -141,7 +142,6 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case GPROTECTMEMS:
       case GPROTECTMEMC:
       case PROTECTMEMINT:
-      case CONDPRINTPLAIN:
       case DABIT:
       case SHUFFLE:
         r[0]=get_int(s);
@@ -223,6 +223,8 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case RUN_TAPE:
       case STARTPRIVATEOUTPUT:
       case GSTARTPRIVATEOUTPUT:
+      case STOPPRIVATEOUTPUT:
+      case GSTOPPRIVATEOUTPUT:
       case DIGESTC:
         r[0]=get_int(s);
         r[1]=get_int(s);
@@ -253,8 +255,6 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case PRINTREGB:
       case GPRINTREG:
       case LDINT:
-      case STOPPRIVATEOUTPUT:
-      case GSTOPPRIVATEOUTPUT:
       case INPUTMASK:
       case GINPUTMASK:
       case ACCEPTCLIENTCONNECTION:
@@ -320,6 +320,10 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case MATMULSM:
         get_ints(r, s, 3);
         get_vector(9, start, s);
+        break;
+      case CONV2DS:
+        get_ints(r, s, 3);
+        get_vector(11, start, s);
         break;
 
       // read from file, input is opcode num_args, 
@@ -489,7 +493,7 @@ bool Instruction::get_offline_data_usage(DataPositions& usage)
       usage.edabits[{r[0], r[1]}] = n;
       return int(n) >= 0;
     case USE_PREP:
-      usage.extended[gfp::field_type()][r] = n;
+      usage.extended[DATA_INT][r] = n;
       return int(n) >= 0;
     case GUSE_PREP:
       usage.extended[gf2n::field_type()][r] = n;
@@ -601,6 +605,8 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
   case MATMULS:
   case MATMULSM:
       return r[0] + start[0] * start[2];
+  case CONV2DS:
+      return r[0] + start[0] * start[1];
   case LDMSD:
   case LDMSDI:
       skip = 3;
@@ -778,6 +784,10 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
     case LDMS:
       for (int i = 0; i < size; i++)
         Proc.write_Sp(r[0] + i, Proc.machine.Mp.read_S(n + i));
+      return;
+    case STMSI:
+      for (int i = 0; i < size; i++)
+        Proc.machine.Mp.write_S(Proc.read_Ci(r[1] + i), Proc.read_Sp(r[0] + i), Proc.PC);
       return;
     case STMS:
       for (int i = 0; i < size; i++)
@@ -1119,7 +1129,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         break;
       case LEGENDREC:
         to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
-        Proc.temp.aa = mpz_legendre(Proc.temp.aa.get_mpz_t(), gfp::pr().get_mpz_t());
+        Proc.temp.aa = mpz_legendre(Proc.temp.aa.get_mpz_t(), sint::clear::pr().get_mpz_t());
         to_gfp(Proc.temp.ansp, Proc.temp.aa);
         Proc.write_Cp(r[0], Proc.temp.ansp);
         break;
@@ -1294,11 +1304,11 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         sint::Input::input_mixed(Proc.Procp, start, size, true);
         return;
       case RAWINPUT:
-        Proc.Procp.input.raw_input(Proc.Procp, start);
-        break;
+        Proc.Procp.input.raw_input(Proc.Procp, start, size);
+        return;
       case GRAWINPUT:
-        Proc.Proc2.input.raw_input(Proc.Proc2, start);
-        break;
+        Proc.Proc2.input.raw_input(Proc.Proc2, start, size);
+        return;
       case ANDC:
            Proc.get_Cp_ref(r[0]).AND(Proc.read_Cp(r[1]),Proc.read_Cp(r[2]));
         break;
@@ -1441,6 +1451,9 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.Procp.matmulsm(Proc.machine.Mp.MS, *this, Proc.read_Ci(r[1]),
             Proc.read_Ci(r[2]));
         return;
+      case CONV2DS:
+        Proc.Procp.conv2ds(*this);
+        return;
       case TRUNC_PR:
         Proc.Procp.protocol.trunc_pr(start, size, Proc.Procp);
         return;
@@ -1552,7 +1565,14 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         break;
       case CONDPRINTPLAIN:
         if (not Proc.read_Cp(r[0]).is_zero())
-          Proc.out << Proc.read_Cp(r[1]) << flush;
+          {
+            auto v = Proc.read_Cp(r[1]);
+            auto p = Proc.read_Cp(r[2]);
+            if (p.is_zero())
+              Proc.out << v << flush;
+            else
+              Proc.out << bigint::get_float(v, p, {}, {}) << flush;
+          }
         break;
       case GPRINTREGPLAIN:
            {
@@ -1571,9 +1591,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
             typename sint::clear p = Proc.read_Cp(start[1]);
             typename sint::clear z = Proc.read_Cp(start[2]);
             typename sint::clear s = Proc.read_Cp(start[3]);
-            // MPIR can't handle more precision in exponent
-            long exp = Integer(p, 31).get();
-            bigint::output_float(Proc.out, bigint::get_float(v, exp, z, s), nan);
+            bigint::output_float(Proc.out, bigint::get_float(v, p, z, s), nan);
           }
       break;
       case PRINTFLOATPREC:
@@ -1586,7 +1604,13 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         break;
       case CONDPRINTSTR:
           if (not Proc.read_Cp(r[0]).is_zero())
-            Proc.out << string((char*)&n,sizeof(n)) << flush;
+            {
+              string str = {(char*)&n, sizeof(n)};
+              size_t n = str.find('\0');
+              if (n < 4)
+                str.erase(n);
+              Proc.out << str << flush;
+            }
         break;
       case PRINTCHR:
            {
@@ -1733,10 +1757,10 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.privateOutput2.start(n,r[0],r[1]);
         break;
       case STOPPRIVATEOUTPUT:
-        Proc.privateOutputp.stop(n,r[0]);
+        Proc.privateOutputp.stop(n,r[0],r[1]);
         break;
       case GSTOPPRIVATEOUTPUT:
-        Proc.privateOutput2.stop(n,r[0]);
+        Proc.privateOutput2.stop(n,r[0],r[1]);
         break;
       case PREP:
         Procp.DataF.get(Proc.Procp.get_S(), r, start, size);

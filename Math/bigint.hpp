@@ -10,8 +10,10 @@
 #include "Integer.h"
 
 template<class T>
-mpf_class bigint::get_float(T v, Integer exp, T z, T s)
+mpf_class bigint::get_float(T v, T p, T z, T s)
 {
+    // MPIR can't handle more precision in exponent
+    Integer exp = Integer(p, 31).get();
     bigint tmp = v;
     mpf_class res = tmp;
     if (exp > 0)

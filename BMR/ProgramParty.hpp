@@ -31,8 +31,8 @@ void ProgramPartySpec<T>::load(string progname)
 	program.parse(progname + "-0");
 	machine.reset(program, dynamic_memory);
 	processor.reset(program);
-	prf_machine.reset(*reinterpret_cast<GC::Program<GC::Secret<PRFRegister> >* >(&program));
-	prf_processor.reset(*reinterpret_cast<GC::Program<GC::Secret<PRFRegister> >* >(&program));
+	prf_machine.reset(program);
+	prf_processor.reset(program);
 }
 
 template<class T>

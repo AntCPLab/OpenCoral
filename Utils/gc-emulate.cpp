@@ -26,7 +26,7 @@ int main(int argc, char** argv)
     GC::Memory<GC::FakeSecret> dynamic_memory;
     GC::Machine<GC::FakeSecret> machine;
     GC::Processor<GC::FakeSecret> processor(machine);
-    GC::Program<GC::FakeSecret> program;
+    GC::Program program;
     program.parse(string(argv[1]) + "-0");
     machine.reset(program, dynamic_memory);
     processor.reset(program);

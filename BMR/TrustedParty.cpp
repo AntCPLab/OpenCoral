@@ -56,8 +56,8 @@ TrustedProgramParty::TrustedProgramParty(int argc, char** argv) :
 	program.parse(string(argv[1]) + "-0");
 	processor.reset(program);
 	machine.reset(program);
-	random_processor.reset(program.cast< GC::Secret<RandomRegister> >());
-	random_machine.reset(program.cast< GC::Secret<RandomRegister> >());
+	random_processor.reset(program);
+	random_machine.reset(program);
 	if (singleton)
 		throw runtime_error("there can only be one");
 	singleton = this;
@@ -65,7 +65,6 @@ TrustedProgramParty::TrustedProgramParty(int argc, char** argv) :
 		init(argv[2], 0);
 	else
 		init("LOOPBACK", 0);
-#ifdef FREE_XOR
 	deltas.resize(_N);
 	for (size_t i = 0; i < _N; i++)
 	{
@@ -73,13 +72,10 @@ TrustedProgramParty::TrustedProgramParty(int argc, char** argv) :
 #ifdef DEBUG
 		deltas[i] = Key(i + 1, 0);
 #endif
-#ifdef KEY_SIGNAL
 		if (deltas[i].get_signal() == 0)
 			deltas[i] ^= Key(1);
-#endif
 		cout << "Delta " << i << ": " << deltas[i] << endl;
 	}
-#endif
 }
 
 TrustedProgramParty::~TrustedProgramParty()
@@ -240,14 +236,12 @@ void BaseTrustedParty::Start()
 
 void TrustedProgramParty::NodeReady()
 {
-#ifdef FREE_XOR
 	for (int i = 0; i < get_n_parties(); i++)
 	{
 		SendBuffer& buffer = get_buffer(TYPE_DELTA);
 		buffer.serialize(deltas[i]);
 		_node->Send(i + 1, buffer);
 	}
-#endif
 	this->BaseTrustedParty::NodeReady();
 }
 

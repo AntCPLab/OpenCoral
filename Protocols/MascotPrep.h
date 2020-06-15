@@ -8,7 +8,7 @@
 
 #include "ReplicatedPrep.h"
 #include "RandomPrep.h"
-#include "OT/TripleMachine.h"
+#include "OT/MascotParams.h"
 
 template<class T>
 class OTPrep : public virtual RingPrep<T>

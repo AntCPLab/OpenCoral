@@ -78,9 +78,7 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	    P = new CryptoPlayer(N, 0);
 
 	delta = prng.get_doubleword();
-#ifdef KEY_SIGNAL
 	delta.set_signal(1);
-#endif
 #ifdef VERBOSE
 	cerr << "delta: " << delta << endl;
 #endif
@@ -201,16 +199,11 @@ RealProgramParty<T>::~RealProgramParty()
 template<class T>
 void RealProgramParty<T>::receive_keys(Register& reg)
 {
-#ifndef FREE_XOR
-#error not implemented
-#endif
 	auto& _id = this->_id;
 	auto& _N = this->_N;
 	reg.init(_N);
 	reg.keys[0][_id - 1] = this->prng.get_doubleword();
-#ifdef KEY_SIGNAL
 	reg.keys[0][_id - 1].set_signal(0);
-#endif
 	reg.keys[1][_id - 1] = reg.keys[0][_id - 1] ^ this->get_delta();
 }
 

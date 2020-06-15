@@ -56,6 +56,10 @@ Compiler.ml module
 -------------------------
 
 .. automodule:: Compiler.ml
+   :members:
+   :no-undoc-members:
+   :exclude-members: Adam, Tensor
+.. autofunction:: approx_sigmoid
 
 Compiler.circuit module
 -----------------------

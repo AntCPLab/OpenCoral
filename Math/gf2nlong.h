@@ -152,7 +152,6 @@ class gf2n_long : public ValueInterface
   static gf2n_long Mul(gf2n_long a, gf2n_long b) { return a * b; }
 
   int128 get() const { return a; }
-  __m128i to_m128i() const { return a.a; }
   word get_word() const { return _mm_cvtsi128_si64(a.a); }
 
   const void* get_ptr() const { return &a.a; }

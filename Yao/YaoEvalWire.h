@@ -10,17 +10,20 @@
 #include "BMR/Gate.h"
 #include "BMR/Register.h"
 #include "Processor/DummyProtocol.h"
+#include "config.h"
+#include "YaoWire.h"
 
-class YaoEvalWire : public Phase
+class YaoEvaluator;
+
+class YaoEvalWire : public YaoWire
 {
 public:
+	typedef YaoEvaluator Party;
+
 	static string name() { return "YaoEvalWire"; }
 
 	typedef ostream& out_type;
 	static ostream& out;
-
-	bool external;
-	Key key;
 
 	static YaoEvalWire new_reg() { return {}; }
 
@@ -37,6 +40,14 @@ public:
 	template<bool repeat>
 	static void and_(GC::Processor<GC::Secret<YaoEvalWire>>& processor,
 			const vector<int>& args);
+	template<bool repeat>
+	static void and_singlethread(
+			GC::Processor<GC::Secret<YaoEvalWire>>& processor,
+			const vector<int>& args, int total_ands);
+	static void and_(GC::Memory<GC::Secret<YaoEvalWire>>& S,
+			const vector<int>& args, size_t start, size_t end,
+			size_t total_ands, YaoGate* gate, long& counter, PRNG& prng,
+			map<string, Timer>& timers, bool repeat, YaoEvaluator& garbler);
 
 	static void inputb(GC::Processor<GC::Secret<YaoEvalWire>>& processor,
 			const vector<int>& args);
@@ -47,17 +58,20 @@ public:
 	void set(const Key& key);
 	void set(Key key, bool external);
 
+	const Key& key() const
+	{
+		return key_;
+	}
+
+	bool external() const
+	{
+		return key_.get_signal();
+	}
+
 	void random();
 	void public_input(bool value);
 	void op(const YaoEvalWire& left, const YaoEvalWire& right, Function func);
-	void XOR(const YaoEvalWire& left, const YaoEvalWire& right);
 	bool get_output();
 };
-
-inline void YaoEvalWire::XOR(const YaoEvalWire& left, const YaoEvalWire& right)
-{
-	external = left.external ^ right.external;
-	key = left.key ^ right.key;
-}
 
 #endif /* YAO_YAOEVALWIRE_H_ */

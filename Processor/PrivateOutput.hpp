@@ -9,6 +9,7 @@
 template<class T>
 void PrivateOutput<T>::start(int player, int target, int source)
 {
+    assert (player < proc.P.num_players());
     open_type mask;
     proc.DataF.get_input(proc.get_S_ref(target), mask, player);
     proc.get_S_ref(target) += proc.get_S_ref(source);
@@ -18,11 +19,11 @@ void PrivateOutput<T>::start(int player, int target, int source)
 }
 
 template<class T>
-void PrivateOutput<T>::stop(int player, int source)
+void PrivateOutput<T>::stop(int player, int dest, int source)
 {
     if (player == proc.P.my_num() and proc.Proc)
     {
-        open_type value;
+        auto& value = proc.get_C_ref(dest);
         value.sub(proc.get_C_ref(source), masks.front());
         value.output(proc.Proc->private_output, false);
         masks.pop_front();

@@ -7,7 +7,7 @@
 #define GC_TINYPREP_H_
 
 #include "Thread.h"
-#include "OT/TripleMachine.h"
+#include "OT/MascotParams.h"
 #include "Protocols/Beaver.h"
 #include "Protocols/ReplicatedPrep.h"
 #include "Protocols/RandomPrep.h"

@@ -23,7 +23,7 @@ public:
     PrivateOutput(SubProcessor<T>& proc) : proc(proc) { };
 
     void start(int player, int target, int source);
-    void stop(int player, int source);
+    void stop(int player, int dest, int source);
 };
 
 #endif /* PROCESSOR_PRIVATEOUTPUT_H_ */

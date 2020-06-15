@@ -58,11 +58,11 @@ protected:
     LocalBuffer wires;
     ReceivedMsgStore wire_storage;
 
-    template<class T, class U>
-    GC::BreakType first_phase(GC::Program<U>& program, GC::Processor<T>& processor,
+    template<class T>
+    GC::BreakType first_phase(GC::Program& program, GC::Processor<T>& processor,
             GC::Machine<T>& machine);
     template<class T, class U>
-    GC::BreakType second_phase(GC::Program<T>& program, GC::Processor<T>& processor,
+    GC::BreakType second_phase(GC::Program& program, GC::Processor<T>& processor,
             GC::Machine<T>& machine, U& dynamic_memory);
 
 public:

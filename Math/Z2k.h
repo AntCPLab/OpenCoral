@@ -257,10 +257,8 @@ public:
         return Z2<K>::operator-(other);
     }
 
-    template<int L>
-    SignedZ2<K + L> operator*(const SignedZ2<L>& other) const
+    SignedZ2<K> operator*(const SignedZ2<K>& other) const
     {
-        assert((K % 64 == 0) and (L % 64 == 0));
         return Z2<K>::operator*(other);
     }
 

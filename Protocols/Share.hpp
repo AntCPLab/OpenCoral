@@ -1,10 +1,5 @@
 
 #include "Share.h"
-#include "Math/gfp.h"
-#include "Math/gf2n.h"
-#include "Math/Z2k.h"
-#include "Math/FixedVec.h"
-#include "Math/Integer.h"
 
 
 template<class T>

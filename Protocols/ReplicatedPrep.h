@@ -9,10 +9,9 @@
 #include "Networking/Player.h"
 #include "Processor/Data_Files.h"
 #include "Processor/OnlineOptions.h"
-#include "Processor/Machine.h"
-#include "Protocols/Rep3Share.h"
+#include "Processor/ThreadQueues.h"
 #include "Protocols/ShuffleSacrifice.h"
-#include "Math/gfp.h"
+#include "Protocols/MAC_Check_Base.h"
 #include "edabit.h"
 
 #include <array>
@@ -133,8 +132,6 @@ class RingPrep : public virtual BitPrep<T>
     typedef typename T::bit_type::part_type BT;
 
 protected:
-    size_t sent;
-
     void buffer_dabits_without_check(vector<dabit<T>>& dabits,
             int buffer_size = -1, ThreadQueues* queues = 0);
     void buffer_edabits_without_check(int n_bits, vector<T>& sums,
@@ -173,8 +170,6 @@ public:
     void buffer_personal_edabits_without_check(int n_bits, vector<T>& sums,
             vector<vector<BT> >& bits, SubProcessor<BT>& proc, int input_player,
             int begin, int end);
-
-    virtual size_t data_sent() { return sent; }
 };
 
 template<class T>

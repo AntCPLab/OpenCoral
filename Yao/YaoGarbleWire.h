@@ -8,19 +8,19 @@
 
 #include "BMR/Key.h"
 #include "BMR/Register.h"
+#include "config.h"
+#include "YaoWire.h"
 
 #include <map>
 
-class YaoGate;
 class YaoGarbler;
 
-class YaoGarbleWire : public Phase
+class YaoGarbleWire : public YaoWire
 {
 public:
-	static string name() { return "YaoGarbleWire"; }
+	typedef YaoGarbler Party;
 
-	Key key;
-	bool mask;
+	static string name() { return "YaoGarbleWire"; }
 
 	static YaoGarbleWire new_reg() { return {}; }
 
@@ -57,33 +57,47 @@ public:
 	void randomize(PRNG& prng);
 	void set(Key key, bool mask);
 
+	Key full_key() const
+	{
+	    return key_;
+	}
+
+	void set_full_key(Key key)
+	{
+	    key_ = key;
+	}
+
+	Key key() const
+	{
+		Key res = key_;
+		res.set_signal(0);
+		return res;
+	}
+
+	bool mask() const
+	{
+		return key_.get_signal();
+	}
+
 	void random();
 	void public_input(bool value);
 	void op(const YaoGarbleWire& left, const YaoGarbleWire& right, Function func);
-	void XOR(const YaoGarbleWire& left, const YaoGarbleWire& right);
 	char get_output();
 };
 
 inline void YaoGarbleWire::randomize(PRNG& prng)
 {
-    key = prng.get_doubleword();
+    key_ = prng.get_doubleword();
 #ifdef DEBUG
     //key = YaoGarbler::s().counter << 1;
 #endif
-    set(key, prng.get_uchar() & 1);
 }
 
 inline void YaoGarbleWire::set(Key key, bool mask)
 {
-    key.set_signal(0);
-    this->key = key;
-    this->mask = mask;
-}
-
-inline void YaoGarbleWire::XOR(const YaoGarbleWire& left, const YaoGarbleWire& right)
-{
-    mask = left.mask ^ right.mask;
-    key = left.key ^ right.key;
+    key.set_signal(mask);
+    this->key_ = key;
+    assert(key.get_signal() == mask);
 }
 
 #endif /* YAO_YAOGARBLEWIRE_H_ */

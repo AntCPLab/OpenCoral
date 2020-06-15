@@ -7,7 +7,7 @@
 #define GC_SEMIPREP_H_
 
 #include "Protocols/ReplicatedPrep.h"
-#include "OT/TripleMachine.h"
+#include "OT/MascotParams.h"
 #include "SemiSecret.h"
 #include "ShiftableTripleBuffer.h"
 
@@ -50,6 +50,8 @@ public:
     {
         throw not_implemented();
     }
+
+    size_t data_sent();
 };
 
 } /* namespace GC */

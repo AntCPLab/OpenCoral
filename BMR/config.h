@@ -10,10 +10,6 @@
 //#define N_PARTIES 2
 #define MAX_N_PARTIES 3
 
-#define FREE_XOR
-#define KEY_SIGNAL
-#define SPDZ_AUTH
-#define NO_INPUT
 #define MAX_INLINE
 
 //#define SIGNAL_CHECK

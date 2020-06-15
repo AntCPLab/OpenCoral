@@ -88,7 +88,10 @@ class MascotMultiplier : public OTMultiplier<T>
             const vector<BitVector>& baseReceiverOutput);
 
     void multiplyForBits();
-    void multiplyForGf2nBits();
+    template <class U>
+    void multiplyForBits(U);
+    template <int X, int L>
+    void multiplyForBits(gfp_<X, L>);
 
 public:
     vector<typename T::open_type> c_output;

@@ -37,7 +37,7 @@ public:
 	void serialize(SendBuffer& output) const { output.serialize(r); }
 	void serialize_no_allocate(SendBuffer& output) const { output.serialize_no_allocate(r); }
 
-	bool get_signal() const { return _mm_cvtsi128_si64(r) & 1; }
+	bool get_signal() const { return _mm_cvtsi128_si32(r) & 1; }
 	void set_signal(bool signal);
 
 	Key doubling(int i) const;

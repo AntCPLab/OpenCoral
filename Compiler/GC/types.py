@@ -459,7 +459,41 @@ class sbits(bits):
 class sbitvec(_vec):
     @classmethod
     def get_type(cls, n):
-        return cls
+        class sbitvecn(cls):
+            @staticmethod
+            def malloc(size):
+                return sbits.malloc(size * n)
+            @staticmethod
+            def n_elements():
+                return n
+            @classmethod
+            def get_input_from(cls, player):
+                return cls.from_vec(
+                    sbits.get_input_from(player, n).bit_decompose(n))
+            get_raw_input_from = get_input_from
+            def __init__(self, other=None):
+                if other is not None:
+                    self.v = sbits(other, n=n).bit_decompose(n)
+            @classmethod
+            def load_mem(cls, address):
+                try:
+                    assert len(address) == n
+                    return cls.from_vec(sbit.load_mem(x) for x in address)
+                except:
+                    return cls.from_vec(sbit.load_mem(address + i)
+                                        for i in range(n))
+            def store_in_mem(self, address):
+                assert self.v[0].n == 1
+                try:
+                    assert len(address) == n
+                    for x, y in zip(self.v, address):
+                        x.store_in_mem(y)
+                except:
+                    for i in range(n):
+                        self.v[i].store_in_mem(address + i)
+            def reveal(self):
+                return self.elements()[0].reveal()
+        return sbitvecn
     @classmethod
     def from_vec(cls, vector):
         res = cls()
@@ -640,6 +674,7 @@ class sbitint(_bitint, _number, sbits):
     n_bits = None
     bin_type = None
     types = {}
+    vector_mul = True
     @classmethod
     def get_type(cls, n, other=None):
         if isinstance(other, sbitvec):
@@ -727,8 +762,24 @@ class sbitint(_bitint, _number, sbits):
         bits = self.bit_decompose()
         res_bits = self.bit_adder(bits[m:k], [bits[m-1]])
         return self.get_type(k - m).compose(res_bits)
+    @classmethod
+    def get_bit_matrix(cls, self_bits, other):
+        n = len(self_bits)
+        assert n == other.n
+        res = []
+        for i, bit in enumerate(self_bits):
+            if util.is_zero(bit):
+                res.append([0] * (n - i))
+            else:
+                if cls.vector_mul:
+                    x = sbits.get_type(n - i)()
+                    inst.andrs(n - i, x, other, bit)
+                    res.append(x.bit_decompose(n - i))
+                else:
+                    res.append([(x & bit) for x in other.bit_decompose(n - i)])
+        return res
 
-class sbitintvec(sbitvec):
+class sbitintvec(sbitvec, _number):
     def __add__(self, other):
         if util.is_zero(other):
             return self
@@ -740,10 +791,11 @@ class sbitintvec(sbitvec):
         assert(len(self.v) == len(other.v))
         return self.from_vec(sbitint.bit_less_than(self.v, other.v))
     def __mul__(self, other):
-        assert isinstance(other, sbitint)
-        matrix = [[x * b for x in self.v] for b in other.bit_decompose()]
+        matrix = []
+        for i, b in enumerate(other.bit_decompose()):
+            matrix.append([x * b for x in self.v[:len(self.v)-i]])
         v = sbitint.wallace_tree_from_matrix(matrix)
-        return self.from_vec(v)
+        return self.from_vec(v[:len(self.v)])
     __rmul__ = __mul__
     reduce_after_mul = lambda x: x
 

@@ -25,29 +25,31 @@ class ShuffleSacrifice
 {
     typedef typename T::bit_type::part_type BT;
 
-    static const int B = 3;
+    const int B;
 
 public:
-    static const int C = 3;
+    const int C;
 
-    static int minimum_n_inputs(int n_outputs = 1)
+    ShuffleSacrifice();
+
+    int minimum_n_inputs(int n_outputs = 1)
     {
         return max(n_outputs, minimum_n_outputs()) * B + C;
     }
-    static int minimum_n_inputs_with_combining()
+    int minimum_n_inputs_with_combining()
     {
         return minimum_n_inputs(B * minimum_n_outputs());
     }
-    static int minimum_n_outputs()
+    int minimum_n_outputs()
     {
-#ifdef INSECURE
-        if (OnlineOptions::singleton.fake_batch)
-        {
-            cout << "FAKE FAKE FAKE" << endl;
-            return 1 << 10;
-        }
-#endif
-        return 1 << 20;
+        if (B == 3)
+            return 1 << 20;
+        else if (B == 4)
+            return 10368;
+        else if (B == 5)
+            return 1024;
+        else
+            throw runtime_error("not supported: B = " + to_string(B));
     }
 
     template<class U>

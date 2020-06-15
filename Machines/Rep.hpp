@@ -9,7 +9,6 @@
 #include "Processor/Data_Files.hpp"
 #include "Processor/Instruction.hpp"
 #include "Processor/Machine.hpp"
-#include "Protocols/BrainPrep.hpp"
 #include "Protocols/MalRepRingPrep.hpp"
 #include "Protocols/MaliciousRepPrep.hpp"
 #include "Protocols/MAC_Check_Base.hpp"

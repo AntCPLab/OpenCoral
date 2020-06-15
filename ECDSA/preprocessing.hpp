@@ -11,6 +11,7 @@
 #include "Processor/Data_Files.h"
 #include "Protocols/ReplicatedPrep.h"
 #include "Protocols/MaliciousShamirShare.h"
+#include "Protocols/Rep3Share.h"
 #include "GC/TinierSecret.h"
 #include "GC/TinierPrep.h"
 #include "GC/MaliciousCcdSecret.h"

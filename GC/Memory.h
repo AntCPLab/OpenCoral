@@ -33,9 +33,6 @@ public:
     T& operator[] (Integer i);
     const T& operator[] (Integer i) const;
     size_t capacity_in_bytes() const { return this->capacity() * sizeof(T); }
-
-    template <class U>
-    Memory<U>& cast() { return *reinterpret_cast< Memory<U>* >(this); }
 };
 
 template <class T>

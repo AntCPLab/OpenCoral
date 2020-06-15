@@ -148,7 +148,7 @@ DataPositions Machine<sint, sgf2n>::run_tape(int thread_number, int tape_number,
 
   // central preprocessing
   auto usage = progs[tape_number].get_offline_data_used();
-  if (sint::expensive and prep != 0)
+  if (sint::expensive and prep != 0 and OnlineOptions::singleton.bucket_size == 3)
     {
       try
       {
@@ -185,7 +185,7 @@ DataPositions Machine<sint, sgf2n>::run_tape(int thread_number, int tape_number,
     }
 
   typedef typename sint::bit_type bit_type;
-  if (bit_type::expensive_triples and bit_prep)
+  if (bit_type::expensive_triples and bit_prep and OnlineOptions::singleton.bucket_size == 3)
     {
       try
       {

@@ -10,30 +10,47 @@
 #include "BMR/Key.h"
 #include "YaoGarbleWire.h"
 #include "YaoEvalWire.h"
+#include "YaoHalfGate.h"
 
-class YaoGate
+class YaoFullGate
 {
 	Key entries[2][2];
+
 public:
+	static const int N_EVAL_HASHES = 1;
+
 	static Key E_input(const Key& left, const Key& right, long T);
-	static void E_inputs(Key* output, const Key& left, const Key& right,
+	static void E_inputs(Key* output, const YaoGarbleWire& left,
+			const YaoGarbleWire& right,
 			const Key& left_delta, const Key& right_delta,
 			long T);
+	static void eval_inputs(Key* out, const Key& left, const Key& right, long T)
+	{
+		*out = E_input(left, right, T);
+	}
+	static void randomize(YaoGarbleWire& out, PRNG& prng)
+	{
+		out.randomize(prng);
+	}
+	static Key garble_public_input(bool value, Key)
+	{
+		return value;
+	}
 
-	YaoGate() {}
-	YaoGate(const YaoGarbleWire& out, const YaoGarbleWire& left,
+	YaoFullGate() {}
+	YaoFullGate(const YaoGarbleWire& out, const YaoGarbleWire& left,
 			const YaoGarbleWire& right, Function func);
-	void and_garble(const YaoGarbleWire& out, const Key* hashes, bool left_mask,
-			bool right_mask, Key delta);
+	void and_garble(const YaoGarbleWire& out, const Key* hashes, const YaoGarbleWire& left,
+			const YaoGarbleWire& right, Key delta);
 	void garble(const YaoGarbleWire& out, const Key* hashes, bool left_mask,
 			bool right_mask, Function func, Key delta);
 	void eval(YaoEvalWire& out, const YaoEvalWire& left, const YaoEvalWire& right);
-	void eval(YaoEvalWire& out, const Key& hash,
-			const Key& entry);
+	void eval(YaoEvalWire& out, const Key* hash, const YaoEvalWire& left,
+			const YaoEvalWire& right);
 	const Key& get_entry(bool left, bool right) { return entries[left][right]; }
 };
 
-inline Key YaoGate::E_input(const Key& left, const Key& right, long T)
+inline Key YaoFullGate::E_input(const Key& left, const Key& right, long T)
 {
 	Key res = left.doubling(1) ^ right.doubling(2) ^ T;
 #ifdef DEBUG
@@ -43,11 +60,12 @@ inline Key YaoGate::E_input(const Key& left, const Key& right, long T)
 	return res;
 }
 
-inline void YaoGate::E_inputs(Key* output, const Key& left, const Key& right,
+inline void YaoFullGate::E_inputs(Key* output, const YaoGarbleWire& left,
+		const YaoGarbleWire& right,
 		const Key& left_delta, const Key& right_delta, long T)
 {
-	auto l = left.doubling(1);
-	auto r = right.doubling(2);
+	auto l = left.key().doubling(1);
+	auto r = right.key().doubling(2);
 
 	for (int i = 0; i < 2; i++)
 		for (int j = 0; j < 2; j++)
@@ -55,22 +73,25 @@ inline void YaoGate::E_inputs(Key* output, const Key& left, const Key& right,
 					^ (j ? right_delta : 0) ^ T;
 }
 
-inline void YaoGate::and_garble(const YaoGarbleWire& out, const Key* hashes,
-		bool left_mask, bool right_mask, Key delta)
+__attribute__((always_inline))
+inline void YaoFullGate::and_garble(const YaoGarbleWire& out, const Key* hashes,
+		const YaoGarbleWire& left, const YaoGarbleWire& right, Key delta)
 {
+	bool left_mask = left.mask();
+	bool right_mask = right.mask();
 #define XX(L, R, O) \
 	for (int left = 0; left < 2; left++) \
 		for (int right = 0; right < 2; right++) \
 		{ \
 			int index = 2 * left + right; \
-			Key key = out.key; \
+			Key key = out.key(); \
 			if (((left ^ L) & (right ^ R)) ^ O) \
 				key += delta; \
 			key += hashes[index]; \
 			entries[left][right] = key; \
 		}
 #define Y(L, R) \
-	if (out.mask) \
+	if (out.mask()) \
 		XX(L, R, true) \
 	else \
 		XX(L, R, false)
@@ -86,14 +107,14 @@ inline void YaoGate::and_garble(const YaoGarbleWire& out, const Key* hashes,
 		Z(false)
 }
 
-inline void YaoGate::garble(const YaoGarbleWire& out, const Key* hashes,
+inline void YaoFullGate::garble(const YaoGarbleWire& out, const Key* hashes,
 		bool left_mask, bool right_mask, Function func, Key delta)
 {
 	for (int left = 0; left < 2; left++)
 		for (int right = 0; right < 2; right++)
 		{
-			Key key = out.key;
-			if (func.call(left ^ left_mask, right ^ right_mask) ^ out.mask)
+			Key key = out.key();
+			if (func.call(left ^ left_mask, right ^ right_mask) ^ out.mask())
 				key += delta;
 #ifdef DEBUG
 			cout << "start key " << key << endl;
@@ -112,10 +133,11 @@ inline void YaoGate::garble(const YaoGarbleWire& out, const Key* hashes,
 #endif
 }
 
-inline void YaoGate::eval(YaoEvalWire& out, const Key& hash, const Key& entry)
+inline void YaoFullGate::eval(YaoEvalWire& out, const Key* hash,
+		const YaoEvalWire& left, const YaoEvalWire& right)
 {
-	Key key = entry;
-	key -= hash;
+	Key key = get_entry(left.external(), right.external());
+	key -= *hash;
 #ifdef DEBUG
 	cout << "after left " << key << endl;
 #endif
