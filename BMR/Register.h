@@ -38,11 +38,19 @@ public:
     Key* data() { return keys; }
     const Key* data() const { return keys; }
 #ifdef N_PARTIES
-    BaseKeyVector(int n_parties = 0) { (void)n_parties; avx_memzero(keys, sizeof(keys)); }
+    BaseKeyVector(int n_parties)
+    {
+        for (auto& key : keys)
+            key = 0;
+    }
     size_t size() const { return N_PARTIES; }
     void resize(int size) { (void)size; }
 #else
-    BaseKeyVector(int n_parties = 0) : n_parties(n_parties) { memset(keys, 0, sizeof(keys)); }
+    BaseKeyVector(int n_parties = 0) : n_parties(n_parties)
+    {
+        for (auto& key : keys)
+            key = 0;
+    }
     size_t size() const { return n_parties; }
     void resize(int size) { n_parties = size; }
 private:
