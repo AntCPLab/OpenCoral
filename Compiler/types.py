@@ -4677,11 +4677,13 @@ class SubMultiArray(object):
         :param self: two-dimensional """
         assert len(self.sizes) == 2
         res = Matrix(self.sizes[1], self.sizes[0], self.value_type)
+        library.break_point()
         @library.for_range_opt(self.sizes[1])
         def _(i):
             @library.for_range_opt(self.sizes[0])
             def _(j):
                 res[i][j] = self[j][i]
+        library.break_point()
         return res
 
 class MultiArray(SubMultiArray):
