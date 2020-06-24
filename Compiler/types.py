@@ -3254,7 +3254,10 @@ class _fix(_single):
                 v //= 2
             k = len(bin(abs(v))) - 1
             other = self.multipliable(v, k, f)
-        other = self.coerce(other)
+        try:
+            other = self.coerce(other)
+        except:
+            return NotImplemented
         if isinstance(other, (_fix, self.clear_type)):
             val = self.v.TruncMul(other.v, self.k + other.k, other.f,
                                   self.kappa,
