@@ -816,6 +816,11 @@ class sbitintvec(sbitvec, _number):
 sbitint.vec = sbitintvec
 
 class cbitfix(object):
+    malloc = staticmethod(lambda *args: cbits.malloc(*args))
+    n_elements = staticmethod(lambda: 1)
+    conv = staticmethod(lambda x: x)
+    load_mem = classmethod(lambda cls, *args: cls(cbits.load_mem(*args)))
+    store_in_mem = lambda self, *args: self.v.store_in_mem(*args)
     def __init__(self, value):
         self.v = value
     def output(self):

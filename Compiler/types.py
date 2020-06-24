@@ -3312,10 +3312,10 @@ class _fix(_single):
 
         :return: relevant clear type """
         val = self.v.reveal()
-        res = self.clear_type(val)
-        res.f = self.f
-        res.k = self.k
-        return res
+        class revealed_fix(self.clear_type):
+            f = self.f
+            k = self.k
+        return revealed_fix(val)
 
 class sfix(_fix):
     """ Secret fixed-point number represented as secret integer.
