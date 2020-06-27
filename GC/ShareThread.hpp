@@ -115,7 +115,7 @@ void ShareThread<T>::and_(Processor<T>& processor,
         for (int j = 0; j < DIV_CEIL(n_bits, T::default_length); j++)
         {
             int n = min(T::default_length, n_bits - j * T::default_length);
-            processor.S[out + j] = protocol->finalize_mul(n);
+            processor.S[out + j] = protocol->finalize_mul(n).mask(n);
         }
     }
 }

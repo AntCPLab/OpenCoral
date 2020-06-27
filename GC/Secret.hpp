@@ -216,8 +216,14 @@ void Secret<T>::trans(Processor<U>& processor, int n_outputs,
         for (int j = 0; j < DIV_CEIL(n_inputs, dl); j++)
             processor.S[args[i] + j].resize_regs(min(dl, n_inputs - j * dl));
         for (int j = 0; j < n_inputs; j++)
-            processor.S[args[i] + j / dl].registers[j % dl] =
-                    processor.S[args[n_outputs + j] + i / dl].registers[i % dl];
+        {
+            auto& source = processor.S[args[n_outputs + j] + i / dl].registers;
+            auto& dest = processor.S[args[i] + j / dl].registers[j % dl];
+            if (size_t(i % dl) < source.size())
+                dest = source[i % dl];
+            else
+                dest.public_input(0);
+        }
     }
 }
 
