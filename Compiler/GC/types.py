@@ -794,6 +794,8 @@ class sbitintvec(sbitvec, _number):
         assert(len(self.v) == len(other.v))
         return self.from_vec(sbitint.bit_less_than(self.v, other.v))
     def __mul__(self, other):
+        if isinstance(other, sbits):
+            return self.from_vec(other * x for x in self.v)
         matrix = []
         for i, b in enumerate(other.bit_decompose()):
             matrix.append([x * b for x in self.v[:len(self.v)-i]])
@@ -894,6 +896,11 @@ class sbitfixvec(_fix):
         self._k = value
     def coerce(self, other):
         return other
+    def mul(self, other):
+        if isinstance(other, sbits):
+            return self._new(self.v * other)
+        else:
+            return super(sbitfixvec, self).mul(other)
 
 sbitfix.vec = sbitfixvec
 
