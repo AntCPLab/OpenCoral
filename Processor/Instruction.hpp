@@ -41,7 +41,7 @@ void BaseInstruction::parse(istream& s, int inst_pos)
 
   int pos=s.tellg();
   opcode=get_int(s);
-  size=opcode>>10;
+  size=unsigned(opcode)>>10;
   opcode&=0x3FF;
   
   if (size==0)
