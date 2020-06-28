@@ -3235,7 +3235,6 @@ class _fix(_single):
         else:
             return NotImplemented
 
-    @vectorize 
     def mul(self, other):
         """ Secret fixed-point multiplication.
 
