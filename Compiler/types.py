@@ -4260,6 +4260,7 @@ class Array(object):
         """ Fill with inputs from player if supported by type.
 
         :param player: public (regint/cint/int) """
+        budget = budget or 2 ** 21
         if raw:
             input_from = self.value_type.get_raw_input_from
         else:
