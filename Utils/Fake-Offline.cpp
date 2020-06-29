@@ -229,12 +229,18 @@ void make_PreMulC(const typename T::mac_type& key, int N, int ntrip, bool zero)
 }
 
 template<class T>
-void make_basic(const typename T::mac_type& key, int nplayers, int nitems, bool zero)
+void make_minimal(const typename T::mac_type& key, int nplayers, int nitems, bool zero)
 {
     make_mult_triples<T>(key, nplayers, nitems, zero, prep_data_prefix);
     make_bits<T>(key, nplayers, nitems, zero);
-    make_square_tuples<T>(key, nplayers, nitems, T::type_short(), zero);
     make_inputs<T>(key, nplayers, nitems, T::type_short(), zero);
+}
+
+template<class T>
+void make_basic(const typename T::mac_type& key, int nplayers, int nitems, bool zero)
+{
+    make_minimal<T>(key, nplayers, nitems, zero);
+    make_square_tuples<T>(key, nplayers, nitems, T::type_short(), zero);
     if (T::clear::invertible)
     {
         make_inverse<T>(key, nplayers, nitems, zero, prep_data_prefix);
@@ -551,13 +557,11 @@ int generate(ez::ezOptionParser& opt)
   Z2<41> keyt;
   generate_mac_keys<GC::TinySecret<40>>(keyt, nplayers, prep_data_prefix);
 
-  make_mult_triples<GC::TinySecret<40>>(keyt, nplayers, default_num, zero, prep_data_prefix);
-  make_bits<GC::TinySecret<40>>(keyt, nplayers, default_num, zero);
+  make_minimal<GC::TinySecret<40>>(keyt, nplayers, default_num, zero);
 
   gf2n_short keytt;
   generate_mac_keys<GC::TinierSecret<gf2n_short>>(keytt, nplayers, prep_data_prefix);
-  make_mult_triples<GC::TinierSecret<gf2n_short>>(keytt, nplayers, default_num, zero, prep_data_prefix);
-  make_bits<GC::TinierSecret<gf2n_short>>(keytt, nplayers, default_num, zero);
+  make_minimal<GC::TinierSecret<gf2n_short>>(keytt, nplayers, default_num, zero);
 
   make_basic<ShamirShare<gfp>>({}, nplayers, default_num, zero);
   make_basic<ShamirShare<gf2n>>({}, nplayers, default_num, zero);
