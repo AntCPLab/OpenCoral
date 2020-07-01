@@ -592,7 +592,7 @@ def TruncPrField(a, k, m, kappa=None):
 def SDiv(a, b, l, kappa, round_nearest=False):
     theta = int(ceil(log(l / 3.5) / log(2)))
     alpha = two_power(2*l)
-    w = types.cint(int(2.9142 * two_power(l))) - 2 * b
+    w = types.cint(int(2.9142 * 2 ** l)) - 2 * b
     x = alpha - b * w
     y = a * w
     y = y.round(2 * l + 1, l, kappa, round_nearest, signed=False)
@@ -603,7 +603,7 @@ def SDiv(a, b, l, kappa, round_nearest=False):
         y = y * (x1 + two_power(l)) + (y * x2).round(2 * l, l, kappa,
                                                      round_nearest,
                                                      signed=False)
-        y = y.round(2 * l + 1, l + 1, kappa, round_nearest, signed=False)
+        y = y.round(2 * l + 1, l, kappa, round_nearest, signed=False)
         x = x1 * x2 + (x2**2).round(2 * l + 1, l + 1, kappa, round_nearest,
                                     signed=False)
         x = x1 * x1 + x.round(2 * l + 1, l - 1, kappa, round_nearest,
@@ -613,7 +613,7 @@ def SDiv(a, b, l, kappa, round_nearest=False):
         x1 = comparison.TruncZeros(x - x2, 2 * l + 1, l, True)
     y = y * (x1 + two_power(l)) + (y * x2).round(2 * l, l, kappa,
                                                  round_nearest, signed=False)
-    y = y.round(2 * l + 1, l - 1, kappa, round_nearest)
+    y = y.round(2 * l + 1, l + 1, kappa, round_nearest)
     return y
 
 def SDiv_mono(a, b, l, kappa):
