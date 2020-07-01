@@ -2730,9 +2730,7 @@ class cfix(_number, _structure):
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
         """ Load from memory by public address. """
-        res = []
-        res.append(cint.load_mem(address))
-        return cfix(*res)
+        return cls(cint.load_mem(address))
 
     @vectorized_classmethod
     def read_from_socket(cls, client_id, n=1):
