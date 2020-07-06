@@ -39,7 +39,7 @@ void Hash::final(octetStream& os)
 {
     os.resize_precise(hash_length);
     os.reset_write_head();
-    final(os.get_data());
+    final(os.append(hash_length));
 }
 
 octetStream Hash::final()
