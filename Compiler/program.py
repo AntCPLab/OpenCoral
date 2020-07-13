@@ -74,8 +74,7 @@ class Program(object):
         self.tape_stack = []
         self.n_threads = 1
         self.free_threads = set()
-        self.public_input_file = open(self.programs_dir + '/Public-Input/%s' % self.name, 'w')
-        self.use_public_input_file = False
+        self.public_input_file = None
         self.types = {}
         self.budget = int(self.options.budget)
         self.to_merge = [Compiler.instructions.asm_open_class, \
@@ -299,8 +298,10 @@ class Program(object):
                 print('Saved %s memory units through reallocation' % self.saved)
 
     def public_input(self, x):
+        if self.public_input_file is None:
+            self.public_input_file = open(self.programs_dir +
+                                          '/Public-Input/%s' % self.name, 'w')
         self.public_input_file.write('%s\n' % str(x))
-        self.use_public_input_file = True
 
     def set_bit_length(self, bit_length):
         self.bit_length = bit_length

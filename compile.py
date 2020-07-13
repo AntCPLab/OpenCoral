@@ -90,7 +90,7 @@ def main():
             for tape in prog.tapes:
                 tape.write_str(options.asmoutfile + '-' + tape.name)
 
-        if prog.use_public_input_file:
+        if prog.public_input_file is not None:
             print('WARNING: %s is required to run the program' % \
                   prog.public_input_file.name)
 
