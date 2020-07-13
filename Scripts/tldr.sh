@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 if test `uname` = "Linux"; then
     flags='cat /proc/cpuinfo'
@@ -11,7 +11,7 @@ elif test `uname` = Darwin; then
 	    echo Aborting
 	    exit 1
 	else
-	    /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+	    /usr/bin/env ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 	fi
     fi
     make tldr

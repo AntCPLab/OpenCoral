@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # brew-installed OpenSSL on MacOS
 PATH=/usr/local/opt/openssl/bin:$PATH

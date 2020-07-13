@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 make -j4 ecdsa Fake-ECDSA.x secure.x
 
