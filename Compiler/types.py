@@ -3250,7 +3250,7 @@ class _fix(_single):
                 f -= 1
                 v //= 2
             k = len(bin(abs(v))) - 1
-            other = self.multipliable(v, k, f)
+            other = self.multipliable(v, k, f, self.size)
         try:
             other = self.coerce(other)
         except:
@@ -3372,8 +3372,8 @@ class sfix(_fix):
         return unreduced_sfix(v, self.k * 2, self.f, self.kappa)
 
     @staticmethod
-    def multipliable(v, k, f):
-        return cfix(cint.conv(v), k, f)
+    def multipliable(v, k, f, size):
+        return cfix(cint.conv(v, size=size), k, f)
 
     def reveal_to(self, player):
         """ Reveal secret value to :py:obj:`player`.

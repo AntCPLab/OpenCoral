@@ -862,7 +862,7 @@ class sbitfix(_fix):
     __rxor__ = __xor__
     __rmul__ = __mul__
     @staticmethod
-    def multipliable(other, k, f):
+    def multipliable(other, k, f, size):
         class cls(_fix):
             int_type = sbitint.get_type(k)
         cls.set_precision(f, k)
