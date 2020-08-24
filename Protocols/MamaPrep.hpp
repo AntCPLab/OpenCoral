@@ -10,7 +10,7 @@
 template<class T>
 MamaPrep<T>::MamaPrep(SubProcessor<T>* proc, DataPositions& usage) :
         BufferPrep<T>(usage), BitPrep<T>(proc, usage),
-        RingPrep<T>(proc, usage), OTPrep<T>(proc, usage)
+        OTPrep<T>(proc, usage)
 {
     this->params.amplify = true;
     this->params.generateMACs = true;

@@ -450,17 +450,23 @@ void Player::pass_around(octetStream& o, octetStream& to_receive, int offset) co
  * size getting in the way
  */
 template<class T>
-void MultiPlayer<T>::Broadcast_Receive(vector<octetStream>& o,bool donthash) const
+void MultiPlayer<T>::Broadcast_Receive_no_stats(vector<octetStream>& o) const
 {
   if (o.size() != sockets.size())
     throw runtime_error("player numbers don't match");
-  TimeScope ts(comm_stats["Broadcasting"].add(o[player_no]));
   for (int i=1; i<nplayers; i++)
     {
       int send_to = (my_num() + i) % num_players();
       int receive_from = (my_num() + num_players() - i) % num_players();
       o[my_num()].exchange(sockets[send_to], sockets[receive_from], o[receive_from]);
     }
+}
+
+template<class T>
+void MultiPlayer<T>::Broadcast_Receive(vector<octetStream>& o,bool donthash) const
+{
+  TimeScope ts(comm_stats["Broadcasting"].add(o[player_no]));
+  Broadcast_Receive_no_stats(o);
   if (!donthash)
     { for (int i=0; i<nplayers; i++)
         { hash_update(&ctx,o[i].get_data(),o[i].get_length()); }

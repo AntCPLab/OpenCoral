@@ -91,15 +91,17 @@ void Thread<T>::finish()
 }
 
 template<class T>
-int Thread<T>::n_interactive_inputs_from_me(InputArgList& args)
+size_t GC::Thread<T>::data_sent()
 {
-    return args.n_interactive_inputs_from_me(P->my_num());
+	assert(P);
+	return P->comm_stats.total_data();
 }
 
 } /* namespace GC */
 
 
-inline int InputArgList::n_interactive_inputs_from_me(int my_num)
+template<class T>
+inline int InputArgListBase<T>::n_interactive_inputs_from_me(int my_num)
 {
     int res = 0;
     if (ArithmeticProcessor().use_stdin())

@@ -11,6 +11,7 @@
 template<class T> class HashMaliciousRepMC;
 template<class T> class Beaver;
 template<class T> class MaliciousRepPrepWithBits;
+template<class T> class MaliciousRepPrep;
 
 namespace GC
 {
@@ -30,6 +31,7 @@ public:
     typedef ::PrivateOutput<MaliciousRep3Share<T>> PrivateOutput;
     typedef Rep3Share<T> Honest;
     typedef MaliciousRepPrepWithBits<MaliciousRep3Share> LivePrep;
+    typedef MaliciousRepPrep<MaliciousRep3Share> TriplePrep;
     typedef MaliciousRep3Share prep_type;
     typedef T random_type;
 

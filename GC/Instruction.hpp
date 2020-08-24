@@ -67,7 +67,7 @@ unsigned Instruction::get_mem(RegType reg_type) const
         }
         break;
     default:
-        return BaseInstruction::get_mem(reg_type, MAX_SECRECY_TYPE);
+        return BaseInstruction::get_mem(reg_type);
     }
 
     return 0;

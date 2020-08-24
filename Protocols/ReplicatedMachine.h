@@ -13,6 +13,8 @@ template<class T, class U>
 class ReplicatedMachine
 {
 public:
+    ReplicatedMachine(int argc, const char **argv, ez::ezOptionParser &opt,
+            OnlineOptions &online_opts, int n_players = 3);
     ReplicatedMachine(int argc, const char** argv, string name,
             ez::ezOptionParser& opt, int nplayers = 3);
     ReplicatedMachine(int argc, const char** argv, ez::ezOptionParser& opt,
@@ -20,6 +22,13 @@ public:
             ReplicatedMachine(argc, argv, "", opt, nplayers)
     {
     }
+};
+
+template<template<class T> class U>
+class ReplicatedFieldMachine
+{
+public:
+    ReplicatedFieldMachine(int argc, const char** argv);
 };
 
 #endif /* PROTOCOLS_REPLICATEDMACHINE_H_ */

@@ -51,18 +51,20 @@ public:
 		// Both
 		PRNG local_prng;
 
-		Row<T> tmp;
-
-	    octetStream os;
+	    vector<octetStream> oss;
 
 	    virtual void consistency_check (vector<octetStream>& os);
 
 	    void set_coeffs(__m128i* coefficients, PRNG& G, int num_elements) const;
 
-	    void hash_row(octetStream& os, const Row<T>& row, const __m128i* coefficients);
+	    template<class U>
+	    void hash_row(octetStream& os, const U& row, const __m128i* coefficients);
+	    template<class U>
+	    void hash_row(octet* hash, const U& row, const __m128i* coefficients);
+	    template<class U>
+	    void hash_row(__m128i res[2], const U& row, const __m128i* coefficients);
 
-	    void hash_row(octet* hash, const Row<T>& row, const __m128i* coefficients);
-
+	    static void add_mul(__m128i res[2], __m128i a, __m128i b);
 };
 
 template <class T>

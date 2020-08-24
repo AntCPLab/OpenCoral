@@ -4,10 +4,13 @@
 #include <fstream>
 
 template<class T>
-void Memory<T>::minimum_size(RegType reg_type, const Program& program, string threadname)
+void Memory<T>::minimum_size(RegType secret_type, RegType clear_type,
+    const Program &program, string threadname)
 {
   (void) threadname;
-  const unsigned* sizes = program.direct_mem(reg_type);
+  unsigned sizes[MAX_SECRECY_TYPE];
+  sizes[SECRET]= program.direct_mem(secret_type);
+  sizes[CLEAR] = program.direct_mem(clear_type);
   if (sizes[SECRET] > size_s())
     {
 #ifdef DEBUG_MEMORY

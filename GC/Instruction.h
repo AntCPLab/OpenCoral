@@ -65,6 +65,7 @@ enum
     STMSBI = 0x243,
     MOVSB = 0x244,
     INPUTB = 0x246,
+    INPUTBVEC = 0x247,
     SPLIT = 0x248,
     CONVCBIT2S = 0x249,
     // write to clear

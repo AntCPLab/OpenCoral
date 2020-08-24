@@ -117,11 +117,11 @@ string Processor<sint, sgf2n>::get_filename(const char* prefix, bool use_number)
 template<class sint, class sgf2n>
 void Processor<sint, sgf2n>::reset(const Program& program,int arg)
 {
-  reg_max2 = program.num_reg(GF2N);
-  reg_maxp = program.num_reg(MODP);
   reg_maxi = program.num_reg(INT);
-  Proc2.resize(reg_max2);
-  Procp.resize(reg_maxp);
+  Proc2.get_S().resize(program.num_reg(SGF2N));
+  Proc2.get_C().resize(program.num_reg(CGF2N));
+  Procp.get_S().resize(program.num_reg(SINT));
+  Procp.get_C().resize(program.num_reg(CINT));
   Ci.resize(reg_maxi);
   this->arg = arg;
   Procb.reset(program);

@@ -24,6 +24,8 @@ class YaoGarbler: public GC::Thread<GC::Secret<YaoGarbleWire>>,
 	friend class YaoGarbleWire;
 	friend class YaoCommon<YaoGarbleWire>;
 
+	typedef GC::Thread<GC::Secret<YaoGarbleWire>> super;
+
 protected:
 	static thread_local YaoGarbler* singleton;
 
@@ -69,6 +71,8 @@ public:
 	int get_threshold() { return master.threshold; }
 
 	long get_gate_id() { return gate_id(thread_num); }
+
+	size_t data_sent();
 };
 
 inline YaoGarbler& YaoGarbler::s()

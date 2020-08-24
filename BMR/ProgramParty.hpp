@@ -8,6 +8,8 @@
 
 #include "Party.h"
 
+#include "GC/ShareSecret.hpp"
+
 template<class T>
 ProgramPartySpec<T>* ProgramPartySpec<T>::singleton = 0;
 

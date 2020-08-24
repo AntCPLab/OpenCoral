@@ -13,9 +13,12 @@ template <class T>
 class ArgIter
 {
     vector<int>::const_iterator it;
+    vector<int>::const_iterator end;
 
 public:
-    ArgIter(const vector<int>::const_iterator it) : it(it)
+    ArgIter(const vector<int>::const_iterator it,
+            const vector<int>::const_iterator end) :
+                it(it), end(end)
     {
     }
 
@@ -27,8 +30,10 @@ public:
     ArgIter<T> operator++()
     {
         auto res = it;
-        it += T::n;
-        return res;
+        it += T(res).n;
+        if (it > end)
+            throw runtime_error("wrong number of args");
+        return {res, end};
     }
 
     bool operator!=(const ArgIter<T>& other)
@@ -46,18 +51,16 @@ public:
     ArgList(const vector<int>& args) :
             args(args)
     {
-        if (args.size() % T::n != 0)
-            throw runtime_error("wrong number of args");
     }
 
     ArgIter<T> begin()
     {
-        return args.begin();
+        return {args.begin(), args.end()};
     }
 
     ArgIter<T> end()
     {
-        return args.end();
+        return {args.end(), args.end()};
     }
 };
 
@@ -81,11 +84,12 @@ public:
     }
 };
 
-class InputArgList : public ArgList<InputArgs>
+template<class T>
+class InputArgListBase : public ArgList<T>
 {
 public:
-    InputArgList(const vector<int>& args) :
-            ArgList<InputArgs>(args)
+    InputArgListBase(const vector<int>& args) :
+            ArgList<T>(args)
     {
     }
 
@@ -97,7 +101,55 @@ public:
         return res;
     }
 
+    int n_input_bits()
+    {
+        int res = 0;
+        for (auto x : *this)
+            res += x.n_bits;
+        return res;
+    }
+
     int n_interactive_inputs_from_me(int my_num);
+};
+
+class InputArgList : public InputArgListBase<InputArgs>
+{
+public:
+    InputArgList(const vector<int>& args) :
+            InputArgListBase<InputArgs>(args)
+    {
+    }
+};
+
+class InputVecArgs
+{
+public:
+    int from;
+    int n;
+    int& n_bits;
+    int& n_shift;
+    int params[2];
+    vector<int> dest;
+
+    InputVecArgs(vector<int>::const_iterator it) : n_bits(params[0]), n_shift(params[1])
+    {
+        n = *it++;
+        n_bits = n - 3;
+        n_shift = *it++;
+        from = *it++;
+        dest.resize(n);
+        for (int i = 0; i < n_bits; i++)
+            dest[i] = *it++;
+    }
+};
+
+class InputVecArgList : public InputArgListBase<InputVecArgs>
+{
+public:
+    InputVecArgList(const vector<int>& args) :
+            InputArgListBase<InputVecArgs>(args)
+    {
+    }
 };
 
 #endif /* GC_ARGTUPLES_H_ */

@@ -19,7 +19,6 @@
 #include "GC/Secret.hpp"
 #include "GC/TinyPrep.hpp"
 
-#include "Processor/Machine.hpp"
 #include "Processor/Instruction.hpp"
 #include "Protocols/MAC_Check.hpp"
 #include "Protocols/MAC_Check_Base.hpp"

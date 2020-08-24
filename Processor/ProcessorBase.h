@@ -11,6 +11,8 @@
 #include <fstream>
 using namespace std;
 
+#include "Tools/ExecutionStats.h"
+
 class ProcessorBase
 {
   // Stack
@@ -24,6 +26,8 @@ protected:
   int arg;
 
 public:
+  ExecutionStats stats;
+
   void pushi(long x) { stacki.push(x); }
   void popi(long& x) { x = stacki.top(); stacki.pop(); }
 

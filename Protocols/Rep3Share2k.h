@@ -14,9 +14,9 @@
 template<class T> class ReplicatedPrep2k;
 
 template<int K>
-class Rep3Share2 : public Rep3Share<SignedZ2<K>>
+class Rep3Share2 : public Rep3Share<Z2<K>>
 {
-    typedef SignedZ2<K> T;
+    typedef Z2<K> T;
 
 public:
     typedef Replicated<Rep3Share2> Protocol;
@@ -26,6 +26,7 @@ public:
     typedef ::PrivateOutput<Rep3Share2> PrivateOutput;
     typedef ReplicatedPrep2k<Rep3Share2> LivePrep;
     typedef Rep3Share2 Honest;
+    typedef SignedZ2<K> clear;
 
     typedef GC::SemiHonestRepSecret bit_type;
 

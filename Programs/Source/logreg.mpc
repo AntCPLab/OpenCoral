@@ -3,13 +3,7 @@ from Compiler import ml
 debug = False
 
 program.use_edabit(True)
-program.use_trunc_pr = True
-
-if 'split' in program.args:
-   program.use_split(3)
-
-if 'split2' in program.args:
-   program.use_split(2)
+program.options_from_args()
 
 sfix.set_precision(16, 31)
 cfix.set_precision(16, 31)
@@ -29,9 +23,19 @@ dense = ml.Dense(12800, dim, 1)
 layers = [dense, ml.Output(12800, debug=debug, approx='approx' in program.args)]
 
 sgd = ml.SGD(layers, batch // 128 * 10 , debug=debug, report_loss=False)
-sgd.reset([X_normal, X_pos])
-sgd.run(batch_size=batch)
 
-# @for_range(1000)
-# def _(i):
-#     sgd.backward()
+if not ('forward' in program.args or 'backward' in program.args):
+   sgd.reset([X_normal, X_pos])
+   sgd.run(batch_size=batch)
+
+if 'forward' in program.args:
+   @for_range(1000)
+   def _(i):
+      sgd.forward(N=batch)
+
+if 'backward' in program.args:
+   b = regint.Array(batch)
+   b.assign(regint.inc(batch))
+   @for_range(1000)
+   def _(i):
+      sgd.backward(batch=b)

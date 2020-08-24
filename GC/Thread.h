@@ -56,7 +56,7 @@ public:
     void join_tape();
     void finish();
 
-    int n_interactive_inputs_from_me(InputArgList& args);
+    virtual size_t data_sent();
 };
 
 template<class T>

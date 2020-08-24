@@ -106,10 +106,12 @@ enum
     SQUARE = 0x52,
     INV = 0x53,
     INPUTMASK = 0x56,
+    INPUTMASKREG = 0x5C,
     PREP = 0x57,
     DABIT = 0x58,
     EDABIT = 0x59,
     SEDABIT = 0x5A,
+    RANDOMS = 0x5B,
     // Input
     INPUT = 0x60,
     INPUTFIX = 0xF0,
@@ -143,6 +145,7 @@ enum
     SHRC = 0x81,
     SHLCI = 0x82,
     SHRCI = 0x83,
+    SHRSI = 0x84,
     // Branching and comparison
     JMP = 0x90,
     JMPNZ = 0x91,
@@ -283,13 +286,16 @@ enum
 // Register types
 enum RegType {
   MODP,
-  GF2N,
   INT,
   SBIT,
   CBIT,
   DYN_SBIT,
+  SINT,
+  CINT,
+  SGF2N,
+  CGF2N,
+  NONE,
   MAX_REG_TYPE,
-  NONE
 };
 
 enum SecrecyType {
@@ -323,6 +329,8 @@ struct TempVars {
 
 class BaseInstruction
 {
+  friend class Program;
+
 protected:
   int opcode;         // The code
   int size;           // Vector size
@@ -346,10 +354,10 @@ public:
   bool is_gf2n_instruction() const { return ((opcode&0x100)!=0); }
   virtual int get_reg_type() const;
 
-  bool is_direct_memory_access(SecrecyType sec_type) const;
+  bool is_direct_memory_access() const;
 
   // Returns the memory size used if applicable and known
-  unsigned get_mem(RegType reg_type, SecrecyType sec_type) const;
+  unsigned get_mem(RegType reg_type) const;
 
   // Returns the maximal register used
   unsigned get_max_reg(int reg_type) const;

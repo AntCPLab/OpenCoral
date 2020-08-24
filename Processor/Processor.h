@@ -26,7 +26,7 @@ class Program;
 template <class T>
 class SubProcessor
 {
-  vector<typename T::clear> C;
+  CheckVector<typename T::clear> C;
   CheckVector<T> S;
 
   DataPositions bit_usage;
@@ -70,9 +70,14 @@ public:
       int b);
   void conv2ds(const Instruction& instruction);
 
-  vector<T>& get_S()
+  CheckVector<T>& get_S()
   {
     return S;
+  }
+
+  CheckVector<typename T::clear>& get_C()
+  {
+    return C;
   }
 
   T& get_S_ref(int i)
@@ -132,7 +137,7 @@ public:
 template<class sint, class sgf2n>
 class Processor : public ArithmeticProcessor
 {
-  int reg_max2,reg_maxp,reg_maxi;
+  int reg_max2, reg_maxi;
 
   // Data structure used for reading/writing data to/from a socket (i.e. an external party to SPDZ)
   octetStream socket_stream;

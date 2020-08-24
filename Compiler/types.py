@@ -147,7 +147,8 @@ def vectorize(operation):
             if (isinstance(args[0], Tape.Register) or isinstance(args[0], sfloat)) \
                     and not isinstance(args[0], bits) \
                     and args[0].size != self.size:
-                raise CompilerError('Different vector sizes of operands')
+                raise CompilerError('Different vector sizes of operands: %d/%d'
+                                    % (self.size, args[0].size))
         set_global_vector_size(self.size)
         res = operation(self, *args, **kwargs)
         reset_global_vector_size()
@@ -789,7 +790,7 @@ class cint(_clear, _int):
             bit_length = 1 + int(math.ceil(math.log(abs(val))))
             if program.options.ring:
                 assert(bit_length <= int(program.options.ring))
-            elif program.param != -1 or program.options.field:
+            elif program.options.field:
                 program.curr_tape.require_bit_length(bit_length)
         if self.in_immediate_range(val):
             ldi(self, val)
@@ -1731,6 +1732,15 @@ class sint(_secret, _int):
         """ Secret random n-bit number according to security model.
 
         :param bits: compile-time integer (int) """
+        if program.use_split() == 3:
+            tmp = sint()
+            randoms(tmp, bits)
+            x = tmp.split_to_two_summands(bits, True)
+            overflow = comparison.CarryOutLE(x[1][:-1], x[0][:-1]) + \
+                       sint.conv(x[0][-1])
+            return tmp - (overflow << bits)
+        elif program.use_edabit():
+            return sint.get_edabit(bits, True)[0]
         res = sint()
         comparison.PRandInt(res, bits)
         return res
@@ -2068,6 +2078,37 @@ class sint(_secret, _int):
     def two_power(n):
         return floatingpoint.two_power(n)
 
+    def split_to_n_summands(self, length, n):
+        from .GC.types import sbits
+        from .GC.instructions import split
+        columns = [[sbits.get_type(self.size)()
+                    for i in range(n)] for i in range(length)]
+        split(n, self, *sum(columns, []))
+        return columns
+
+    def split_to_two_summands(self, length, get_carry=False):
+        n = program.use_split()
+        assert n
+        columns = self.split_to_n_summands(length, n)
+        return _bitint.wallace_tree_without_finish(columns, get_carry)
+
+    @vectorize
+    def reveal_to(self, player):
+        """ Reveal secret value to :py:obj:`player`.
+        Result potentially written to ``Player-Data/Private-Output-P<player>.``
+
+        :param player: public integer (int/regint/cint):
+        :returns: value to be used with :py:func:`Compiler.library.print_ln_to`
+        """
+        if not util.is_constant(player) or self.size > 1:
+            secret_mask = sint()
+            player_mask = cint()
+            inputmaskreg(secret_mask, player_mask, player)
+            return personal(player,
+                            (self + secret_mask).reveal() - player_mask)
+        else:
+            return super(sint, self).reveal_to(player)
+
 class sgf2n(_secret, _gf2n):
     """ Secret GF(2^n) value. """
     __slots__ = []
@@ -2255,7 +2296,8 @@ class _bitint(object):
     def carry_lookahead_adder(cls, a, b, fewer_inv=False, carry_in=0,
                               get_carry=False):
         lower = []
-        for (ai,bi) in zip(a,b):
+        a, b = a[:], b[:]
+        for (ai, bi) in zip(a[:], b[:]):
             if is_zero(ai) or is_zero(bi):
                 lower.append(ai + bi)
                 a.pop(0)
@@ -2404,6 +2446,7 @@ class _bitint(object):
     @classmethod
     def wallace_tree_without_finish(cls, columns, get_carry=True):
         self = cls
+        columns = [col[:] for col in columns]
         while max(len(c) for c in columns) > 2:
             new_columns = [[] for i in range(len(columns) + 1)]
             for i,col in enumerate(columns):
@@ -2439,11 +2482,12 @@ class _bitint(object):
             raise CompilerError('Unclear subtraction')
         a = self.bit_decompose()
         b = util.bit_decompose(other, self.n_bits)
-        d = [(1 + ai + bi, (1 - ai) * bi) for (ai,bi) in zip(a,b)]
+        d = [(reduce(util.bit_xor, (ai, bi, 1)), (1 - ai) * bi)
+             for (ai,bi) in zip(a,b)]
         borrow = lambda y,x,*args: \
             (x[0] * y[0], 1 - (1 - x[1]) * (1 - x[0] * y[1]))
         borrows = (0,) + list(zip(*floatingpoint.PreOpL(borrow, d)))[1]
-        return self.compose(ai + bi + borrow \
+        return self.compose(reduce(util.bit_xor, (ai, bi, borrow)) \
                                 for (ai,bi,borrow) in zip(a,b,borrows))
 
     def __rsub__(self, other):
@@ -2715,10 +2759,15 @@ class cfix(_number, _structure):
     def set_precision(cls, f, k = None):
         """ Set the precision of the integer representation. Note that some
         operations are undefined when the precision of :py:class:`sfix` and
-        :py:class:`cfix` differs.
+        :py:class:`cfix` differs. The initial defaults are chosen to
+        allow the best optimization of probabilistic truncation in
+        computation modulo 2^64 (2*k < 64). Generally, 2*k must be at
+        most the integer length for rings and at most m-s-1 for
+        computation modulo an m-bit prime and statistical security s
+        (default 40).
 
-        :param f: bit length of decimal part
-        :param k: whole bit length of fixed point, defaults to twice :py:obj:`f`.
+        :param f: bit length of decimal part (initial default 16)
+        :param k: whole bit length of fixed point, defaults to twice :py:obj:`f` if not given (initial default 31)
 
         """
         cls.f = f
@@ -2788,6 +2837,10 @@ class cfix(_number, _structure):
             self.v = cint(0)
         else:
             raise CompilerError('cannot initialize cfix with %s' % v)
+
+    def __iter__(self):
+        for x in self.v:
+            yield type(self)(x, self.k, self.f)
 
     @vectorize
     def load_int(self, v):
@@ -3141,7 +3194,6 @@ class _fix(_single):
     """ Secret fixed point type. """
     __slots__ = ['v', 'f', 'k', 'size']
 
-    @classmethod
     def set_precision(cls, f, k = None):
         cls.f = f
         # default bitlength = 2*precision
@@ -3152,6 +3204,7 @@ class _fix(_single):
                 raise CompilerError('bit length cannot be less than precision')
             cls.k = k
     set_precision.__doc__ = cfix.set_precision.__doc__
+    set_precision = classmethod(set_precision)
 
     @classmethod
     def coerce(cls, other):
@@ -3377,9 +3430,10 @@ class sfix(_fix):
 
     def reveal_to(self, player):
         """ Reveal secret value to :py:obj:`player`.
-        Raw representation written to ``Player-Data/Private-Output-P<player>``
+        Raw representation possibly written to
+        ``Player-Data/Private-Output-P<player>.``
 
-        :param player: int
+        :param player: public integer (int/regint/cint)
         :returns: value to be used with :py:func:`Compiler.library.print_ln_to`
         """
         return personal(player, cfix(self.v.reveal_to(player)._v,
@@ -3419,17 +3473,8 @@ class unreduced_sfix(_single):
 
 sfix.unreduced_type = unreduced_sfix
 
-# this is for 20 bit decimal precision
-# with 40 bitlength of entire number
-# these constants have been chosen for multiplications to fit in 128 bit prime field
-# (precision n1) 41 + (precision n2) 41 + (stat_sec) 40 = 82 + 40 = 122 <= 128
-# with statistical security of 40
-
-fixed_lower = 20
-fixed_upper = 40
-
-sfix.set_precision(fixed_lower, fixed_upper)
-cfix.set_precision(fixed_lower, fixed_upper)
+sfix.set_precision(16, 31)
+cfix.set_precision(16, 31)
 
 class squant(_single):
     """ Quantization as in ArXiv:1712.05877v1 """
@@ -4222,8 +4267,10 @@ class Array(object):
         :param value: convertible to basic type """
         if conv:
             value = self.value_type.conv(value)
+            if value.size != 1:
+                raise CompilerError('cannot assign vector to all elements')
         mem_value = MemValue(value)
-        self.address = MemValue(self.address)
+        self.address = MemValue.if_necessary(self.address)
         n_threads = 8 if use_threads and len(self) > 2**20 else 1
         @library.for_range_multithread(n_threads, 1024, len(self))
         def f(i):
@@ -4242,7 +4289,7 @@ class Array(object):
 
     def get(self, indices):
         return self.value_type.load_mem(
-            regint(self.address, size=len(indices)) + indices,
+            regint.inc(len(indices), self.address, 0) + indices,
             size=len(indices))
 
     def expand_to_vector(self, index, size):
@@ -4258,13 +4305,13 @@ class Array(object):
         """ Fill with inputs from player if supported by type.
 
         :param player: public (regint/cint/int) """
-        if raw:
+        if raw or program.always_raw():
             input_from = self.value_type.get_raw_input_from
         else:
             input_from = self.value_type.get_input_from
         try:
             self.assign(input_from(player, size=len(self)))
-        except:
+        except TypeError:
             @library.for_range_opt(len(self), budget=budget)
             def _(i):
                 self[i] = input_from(player)
@@ -4317,6 +4364,12 @@ class Array(object):
 
         :returns: Array of relevant clear type. """
         return Array.create_from(x.reveal() for x in self)
+
+    def reveal_list(self):
+        """ Reveal as list. """
+        return list(self.get_vector().reveal())
+
+    reveal_nested = reveal_list
 
 sint.dynamic_array = Array
 sgf2n.dynamic_array = Array
@@ -4454,16 +4507,17 @@ class SubMultiArray(object):
         """ Fill with inputs from player if supported by type.
 
         :param player: public (regint/cint/int) """
-        budget = budget or 2 ** 21
+        budget = budget or Tape.Register.maximum_size
         if (self.total_size() < budget) and \
            self.value_type.n_elements() == 1:
-            if raw:
+            if raw or program.always_raw():
                 input_from = self.value_type.get_raw_input_from
             else:
                 input_from = self.value_type.get_input_from
             self.assign_vector(input_from(player, size=self.total_size()))
         else:
-            @library.for_range_opt(self.sizes[0], budget=budget)
+            @library.for_range_opt(self.sizes[0],
+                                   budget=budget / self[0].total_size())
             def _(i):
                 self[i].input_from(player, budget=budget, raw=raw)
 
@@ -4687,6 +4741,21 @@ class SubMultiArray(object):
         library.break_point()
         return res
 
+    def reveal_list(self):
+        """ Reveal as list. """
+        return list(self.get_vector().reveal())
+
+    def reveal_nested(self):
+        """ Reveal as nested list. """
+        flat = iter(self.get_vector().reveal())
+        res = []
+        def f(sizes):
+            if len(sizes) == 1:
+                return [next(flat) for i in range(sizes[0])]
+            else:
+                return [f(sizes[1:]) for i in range(sizes[0])]
+        return f(self.sizes)
+
 class MultiArray(SubMultiArray):
     """ Multidimensional array. """
     def __init__(self, sizes, value_type, debug=None, address=None, alloc=True):
@@ -4836,10 +4905,12 @@ class MemValue(_mem):
             self.value_type = type(value)
         self.deleted = False
         if address is None:
-            self.address = self.value_type.malloc(1)
+            self.address = self.value_type.malloc(value.size)
+            self.size = value.size
             self.write(value)
         else:
             self.address = address
+            self.size = 1
 
     def delete(self):
         self.value_type.free(self.address)
@@ -4869,6 +4940,8 @@ class MemValue(_mem):
         elif isinstance(value, int):
             self.register = self.value_type(value)
         else:
+            if value.size != self.size:
+                raise CompilerError('size mismatch')
             self.register = value
         if not isinstance(self.register, self.value_type):
             raise CompilerError('Mismatch in register type, cannot write \

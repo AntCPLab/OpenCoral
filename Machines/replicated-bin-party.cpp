@@ -14,7 +14,6 @@
 #include "GC/Thread.hpp"
 #include "GC/ThreadMaster.hpp"
 
-#include "Processor/Machine.hpp"
 #include "Processor/Instruction.hpp"
 #include "Protocols/MaliciousRepMC.hpp"
 #include "Protocols/MAC_Check_Base.hpp"

@@ -138,6 +138,8 @@ void write_online_setup(string dirname, const bigint& p)
   ofstream outf;
   outf.open(ss.str().c_str());
   outf << p << endl;
+  if (!outf.good())
+    throw file_error("cannot write to " + ss.str());
 }
 
 void init_gf2n(int lg2)

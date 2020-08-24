@@ -112,3 +112,8 @@ void YaoGarbler::process_receiver_inputs()
 		receiver_input_keys.pop_front();
 	}
 }
+
+size_t YaoGarbler::data_sent()
+{
+	return super::data_sent() + player.comm_stats.total_data();
+}

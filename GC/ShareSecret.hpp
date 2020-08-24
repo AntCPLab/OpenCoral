@@ -99,6 +99,28 @@ void ShareSecret<U>::store_clear_in_dynamic(Memory<U>& mem,
 }
 
 template<class U>
+template<class T>
+void GC::ShareSecret<U>::my_input(T& inputter, BitVec value, int n_bits)
+{
+    inputter.add_mine(value, n_bits);
+}
+
+template<class U>
+template<class T>
+void GC::ShareSecret<U>::other_input(T& inputter, int from, int)
+{
+    inputter.add_other(from);
+}
+
+template<class U>
+template<class T>
+void GC::ShareSecret<U>::finalize_input(T& inputter, int from,
+        int n_bits)
+{
+    static_cast<U&>(*this) = inputter.finalize(from, n_bits).mask(n_bits);
+}
+
+template<class U>
 void ShareSecret<U>::inputb(Processor<U>& processor,
         ProcessorBase& input_processor,
         const vector<int>& args)
@@ -106,25 +128,46 @@ void ShareSecret<U>::inputb(Processor<U>& processor,
     auto& party = ShareThread<U>::s();
     typename U::Input input(*party.MC, party.DataF, *party.P);
     input.reset_all(*party.P);
+    processor.inputb(input, input_processor, args, party.P->my_num());
+}
 
+template<class U>
+void ShareSecret<U>::inputbvec(Processor<U>& processor,
+        ProcessorBase& input_processor,
+        const vector<int>& args)
+{
+    auto& party = ShareThread<U>::s();
+    typename U::Input input(*party.MC, party.DataF, *party.P);
+    input.reset_all(*party.P);
+    processor.inputbvec(input, input_processor, args, party.P->my_num());
+}
+
+template <class T>
+void Processor<T>::inputb(typename T::Input& input, ProcessorBase& input_processor,
+        const vector<int>& args, int my_num)
+{
     InputArgList a(args);
-    bool interactive = a.n_interactive_inputs_from_me(party.P->my_num()) > 0;
-    int dl = U::default_length;
+    complexity += a.n_input_bits();
+    bool interactive = a.n_interactive_inputs_from_me(my_num) > 0;
+    int dl = T::default_length;
 
     for (auto x : a)
     {
-        if (x.from == party.P->my_num())
+        if (x.from == my_num)
         {
-            bigint whole_input = processor.template
-                    get_long_input<bigint>(x.params,
+            bigint whole_input = get_long_input<bigint>(x.params,
                     input_processor, interactive);
             for (int i = 0; i < DIV_CEIL(x.n_bits, dl); i++)
-                input.add_mine(bigint(whole_input >> (i * dl)).get_si(),
+            {
+                auto& res = S[x.dest + i];
+                res.my_input(input, bigint(whole_input >> (i * dl)).get_si(),
                         min(dl, x.n_bits - i * dl));
+            }
         }
         else
             for (int i = 0; i < DIV_CEIL(x.n_bits, dl); i++)
-                input.add_other(x.from);
+                S[x.dest + i].other_input(input, x.from,
+                        min(dl, x.n_bits - i * dl));
     }
 
     if (interactive)
@@ -138,9 +181,51 @@ void ShareSecret<U>::inputb(Processor<U>& processor,
         int n_bits = x.n_bits;
         for (int i = 0; i < DIV_CEIL(x.n_bits, dl); i++)
         {
-            auto& res = processor.S[x.dest + i];
+            auto& res = S[x.dest + i];
             int n = min(dl, n_bits - i * dl);
-            res = input.finalize(from, n).mask(n);
+            res.finalize_input(input, from, n);
+        }
+    }
+}
+
+template <class T>
+void Processor<T>::inputbvec(typename T::Input& input, ProcessorBase& input_processor,
+        const vector<int>& args, int my_num)
+{
+    InputVecArgList a(args);
+    complexity += a.n_input_bits();
+    bool interactive = a.n_interactive_inputs_from_me(my_num) > 0;
+
+    for (auto x : a)
+    {
+        if (x.from == my_num)
+        {
+            bigint whole_input = get_long_input<bigint>(x.params,
+                    input_processor, interactive);
+            for (int i = 0; i < x.n_bits; i++)
+            {
+                auto& res = S[x.dest[i]];
+                res.my_input(input, bigint(whole_input >> (i)).get_si() & 1, 1);
+            }
+        }
+        else
+            for (int i = 0; i < x.n_bits; i++)
+                S[x.dest[i]].other_input(input, x.from, 1);
+    }
+
+    if (interactive)
+        cout << "Thank you" << endl;
+
+    input.exchange();
+
+    for (auto x : a)
+    {
+        int from = x.from;
+        int n_bits = x.n_bits;
+        for (int i = 0; i < n_bits; i++)
+        {
+            auto& res = S[x.dest[i]];
+            res.finalize_input(input, from, 1);
         }
     }
 }

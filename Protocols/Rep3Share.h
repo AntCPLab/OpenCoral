@@ -13,6 +13,7 @@
 #include "ShareInterface.h"
 
 template<class T> class ReplicatedPrep;
+template<class T> class ReplicatedRingPrep;
 template<class T> class PrivateOutput;
 
 template<class T>
@@ -30,6 +31,7 @@ public:
     typedef ReplicatedInput<Rep3Share> Input;
     typedef ::PrivateOutput<Rep3Share> PrivateOutput;
     typedef ReplicatedPrep<Rep3Share> LivePrep;
+    typedef ReplicatedRingPrep<Rep3Share> TriplePrep;
     typedef Rep3Share Honest;
 
     typedef GC::SemiHonestRepSecret bit_type;

@@ -11,6 +11,7 @@
 #include "Protocols/MaliciousShamirMC.h"
 
 template<class T> class MaliciousRepPrepWithBits;
+template<class T> class MaliciousRepPrep;
 
 namespace GC
 {
@@ -30,6 +31,7 @@ public:
     typedef ::PrivateOutput<MaliciousShamirShare> PrivateOutput;
     typedef ShamirShare<T> Honest;
     typedef MaliciousRepPrepWithBits<MaliciousShamirShare> LivePrep;
+    typedef MaliciousRepPrep<MaliciousShamirShare> TriplePrep;
     typedef T random_type;
 
     typedef GC::MaliciousCcdSecret<gf2n_short> bit_type;

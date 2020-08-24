@@ -57,6 +57,9 @@ public:
 
     void pre_run();
     void post_run() { ShareThread<T>::post_run(); }
+
+    size_t data_sent()
+    { return Thread<T>::data_sent() + this->DataF.data_sent(); }
 };
 
 template<class T>

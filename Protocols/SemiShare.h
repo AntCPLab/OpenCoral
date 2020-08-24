@@ -46,6 +46,7 @@ public:
     typedef ::PrivateOutput<SemiShare> PrivateOutput;
     typedef SPDZ<SemiShare> Protocol;
     typedef SemiPrep<SemiShare> LivePrep;
+    typedef LivePrep TriplePrep;
 
     typedef SemiShare<typename T::next> prep_type;
     typedef SemiMultiplier<SemiShare> Multiplier;

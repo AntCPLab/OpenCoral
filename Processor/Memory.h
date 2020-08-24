@@ -26,7 +26,7 @@ class Memory
   public:
 
   CheckVector<T> MS;
-  vector<typename T::clear> MC;
+  CheckVector<typename T::clear> MC;
 
   void resize_s(int sz)
     { MS.resize(sz); }
@@ -73,7 +73,8 @@ class Memory
     { (void)start, (void)end; cerr << "Memory protection not activated" << endl; }
 #endif
 
-  void minimum_size(RegType reg_type, const Program& program, string threadname);
+  void minimum_size(RegType secret_type, RegType clear_type,
+      const Program& program, string threadname);
 
   friend ostream& operator<< <>(ostream& s,const Memory<T>& M);
   friend istream& operator>> <>(istream& s,Memory<T>& M);

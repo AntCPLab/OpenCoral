@@ -10,6 +10,7 @@
 
 class OnlineOptions;
 class bigint;
+class PRNG;
 
 class ValueInterface
 {
@@ -30,6 +31,8 @@ public:
     static int power_of_two(bool, int) { throw not_implemented(); }
 
     void normalize() {}
+
+    void randomize_part(PRNG&, int) { throw not_implemented(); }
 };
 
 #endif /* MATH_VALUEINTERFACE_H_ */

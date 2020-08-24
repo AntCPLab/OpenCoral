@@ -3,6 +3,7 @@ from Compiler.exceptions import *
 from Compiler.instructions_base import RegType
 import Compiler.instructions
 import Compiler.instructions_base
+import Compiler.instructions_base as inst_base
 from . import compilerLib
 from . import allocator as al
 from . import util
@@ -40,22 +41,20 @@ class Program(object):
     
     These are created by executing a file containing appropriate instructions
     and threads. """
-    def __init__(self, args, options, param=-1):
+    def __init__(self, args, options):
         self.options = options
         self.verbose = options.verbose
         self.args = args
         self.init_names(args)
-        self.P = P_VALUES[param]
-        self.param = param
-        if (param != -1) + sum(x != 0 for x in(options.ring, options.field,
+        if sum(x != 0 for x in(options.ring, options.field,
                                                options.binary)) > 1:
-            raise CompilerError('can only use one out of -p, -B, -R, -F')
+            raise CompilerError('can only use one out of -B, -R, -F')
         if options.ring:
             self.bit_length = int(options.ring) - 1
         else:
             self.bit_length = int(options.binary) or int(options.field)
         if not self.bit_length:
-            self.bit_length = BIT_LENGTHS[param]
+            self.bit_length = 64
         print('Default bit length:', self.bit_length)
         self.security = 40
         print('Default security parameter:', self.security)
@@ -67,7 +66,7 @@ class Program(object):
         self._curr_tape = None
         self.DEBUG = False
         self.allocated_mem = RegType.create_dict(lambda: USER_MEM)
-        self.free_mem_blocks = defaultdict(lambda: defaultdict(set))
+        self.free_mem_blocks = defaultdict(al.BlockAllocator)
         self.allocated_mem_blocks = {}
         self.saved = 0
         self.req_num = None
@@ -100,6 +99,7 @@ class Program(object):
         self._edabit = options.edabit
         self._split = False
         self._square = False
+        self._always_raw = False
         Program.prog = self
 
     def get_args(self):
@@ -165,20 +165,28 @@ class Program(object):
         return tape_index
 
     def run_tape(self, tape_index, arg):
+        return self.run_tapes([[tape_index, arg]])[0]
+
+    def run_tapes(self, args):
         if self.curr_tape is not self.tapes[0]:
             raise CompilerError('Compiler does not support ' \
                                     'recursive spawning of threads')
-        if self.free_threads:
-            thread_number = min(self.free_threads)
-            self.free_threads.remove(thread_number)
-        else:
-            thread_number = self.n_threads
-            self.n_threads += 1
+        thread_numbers = []
+        while len(thread_numbers) < len(args):
+            if self.free_threads:
+                thread_numbers.append(min(self.free_threads))
+                self.free_threads.remove(thread_numbers[-1])
+            else:
+                thread_numbers.append(self.n_threads)
+                self.n_threads += 1
         self.curr_tape.start_new_basicblock(name='pre-run_tape')
-        Compiler.instructions.run_tape(thread_number, arg, tape_index)
+        Compiler.instructions.run_tape(*sum(([x] + list(y) for x, y in
+                                             zip(thread_numbers, args)), []))
         self.curr_tape.start_new_basicblock(name='post-run_tape')
-        self.curr_tape.req_node.children.append(self.tapes[tape_index].req_tree)
-        return thread_number
+        for arg in args:
+            self.curr_tape.req_node.children.append(
+                self.tapes[arg[0]].req_tree)
+        return thread_numbers
 
     def join_tape(self, thread_number):
         self.curr_tape.start_new_basicblock(name='pre-join_tape')
@@ -250,19 +258,9 @@ class Program(object):
             mem_type = mem_type.reg_type
         elif reg_type is not None:
             self.types[mem_type] = reg_type
-        block_size = 0
         blocks = self.free_mem_blocks[mem_type]
-        if len(blocks[size]) > 0:
-            block_size = size
-        else:
-            for block_size, addresses in blocks.items():
-                if block_size >= size and len(addresses) > 0:
-                    break
-            else:
-                block_size = 0
-        if block_size >= size:
-            addr = self.free_mem_blocks[mem_type][block_size].pop()
-            self.free_mem_blocks[mem_type][block_size - size].add(addr + size)
+        addr = blocks.pop(size)
+        if addr is not None:
             self.saved += size
         else:
             addr = self.allocated_mem[mem_type]
@@ -278,7 +276,7 @@ class Program(object):
            is not self.curr_tape.basicblocks[0].alloc_pool:
             raise CompilerError('Cannot free memory within function block')
         size = self.allocated_mem_blocks.pop((addr,mem_type))
-        self.free_mem_blocks[mem_type][size].add(addr)
+        self.free_mem_blocks[mem_type].push(addr, size)
 
     def finalize_memory(self):
         from . import library
@@ -340,6 +338,20 @@ class Program(object):
             return self._square
         else:
             self._square = change
+
+    def always_raw(self, change=None):
+        if change is None:
+            return self._always_raw
+        else:
+            self._always_raw = change
+
+    def options_from_args(self):
+        if 'trunc_pr' in self.args:
+            self.use_trunc_pr = True
+        if 'split' in self.args or 'split3' in self.args:
+            self.use_split(3)
+        if 'raw' in self.args:
+            self.always_raw(True)
 
 class Tape:
     """ A tape contains a list of basic blocks, onto which instructions are added. """
@@ -445,13 +457,14 @@ class Tape:
                 instructions = self.instructions
             for inst in instructions:
                 inst.add_usage(req_node)
-            req_node.num['all', 'round'] = self.n_rounds
-            req_node.num['all', 'inv'] = self.n_to_merge
+            req_node.num['all', 'round'] += self.n_rounds
+            req_node.num['all', 'inv'] += self.n_to_merge
 
         def expand_cisc(self):
             new_instructions = []
             for inst in self.instructions:
                 new_instructions.extend(inst.expand_merged())
+                self.n_rounds += inst.expanded_rounds()
             self.instructions = new_instructions
 
         def __str__(self):
@@ -503,9 +516,6 @@ class Tape:
     def unpurged(function):
         def wrapper(self, *args, **kwargs):
             if self.purged:
-                if self.program.verbose:
-                    print('%s called on purged block %s, ignoring' % \
-                          (function.__name__, self.name))
                 return
             return function(self, *args, **kwargs)
         return wrapper
@@ -585,7 +595,8 @@ class Tape:
         reg_counts = self.count_regs()
         if not options.noreallocate:
             if self.program.verbose:
-                print('Tape register usage:', dict(reg_counts))
+                print('Tape register usage before re-allocation:',
+                      dict(reg_counts))
                 print('modp: %d clear, %d secret' % (reg_counts[RegType.ClearModp], reg_counts[RegType.SecretModp]))
                 print('GF2N: %d clear, %d secret' % (reg_counts[RegType.ClearGF2N], reg_counts[RegType.SecretGF2N]))
                 print('Re-allocating...')
@@ -613,6 +624,8 @@ class Tape:
                         alloc_loop(block.exit_block.scope)
                 allocator.process(block.instructions, block.alloc_pool)
             allocator.finalize(options)
+            if self.program.verbose:
+                print('Tape register usage:', dict(allocator.usage))
 
         # offline data requirements
         if self.program.verbose:
@@ -847,10 +860,6 @@ class Tape:
         if t == 'p':
             self.req_bit_length[t] = max(bit_length + 1, \
                                          self.req_bit_length[t])
-            if self.program.param != -1 and bit_length >= self.program.param:
-                raise CompilerError('Inadequate bit length %d for prime, ' \
-                                    'program requires %d bits' % \
-                                    (self.program.param, self.req_bit_length['p']))
         else:
             self.req_bit_length[t] = max(bit_length, self.req_bit_length)
 
@@ -862,6 +871,7 @@ class Tape:
         __slots__ = ["reg_type", "program", "absolute_i", "relative_i", \
                          "size", "vector", "vectorbase", "caller", \
                          "can_eliminate", "duplicates"]
+        maximum_size = 2 ** (32 - inst_base.Instruction.code_length) - 1
 
         def __init__(self, reg_type, program, size=None, i=None):
             """ Creates a new register.
@@ -875,6 +885,8 @@ class Tape:
             self.program = program
             if size is None:
                 size = Compiler.instructions_base.get_global_vector_size()
+            if size is not None and size > self.maximum_size:
+                raise CompilerError('vector too large')
             self.size = size
             self.vectorbase = self
             self.relative_i = 0

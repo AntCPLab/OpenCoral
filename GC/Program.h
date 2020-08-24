@@ -48,8 +48,8 @@ class Program
     unsigned num_reg(RegType reg_type) const
       { return max_reg[reg_type]; }
 
-    const unsigned* direct_mem(RegType reg_type) const
-      { return &max_mem[reg_type]; }
+    unsigned direct_mem(RegType reg_type) const
+      { return max_mem[reg_type]; }
 
     template<class T, class U>
     BreakType execute(Processor<T>& Proc, U& dynamic_memory, int PC = -1) const;

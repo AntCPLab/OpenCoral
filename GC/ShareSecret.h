@@ -41,9 +41,8 @@ public:
     typedef Memory<U> DynamicMemory;
     typedef SwitchableOutput out_type;
 
-    static const bool expensive_triples = false;
-
     static const bool is_real = true;
+    static const bool actual_inputs = true;
 
     static SwitchableOutput out;
 
@@ -63,6 +62,8 @@ public:
     { inputb(processor, processor, args); }
     static void inputb(Processor<U>& processor, ProcessorBase& input_processor,
             const vector<int>& args);
+    static void inputbvec(Processor<U>& processor, ProcessorBase& input_processor,
+            const vector<int>& args);
     static void reveal_inst(Processor<U>& processor, const vector<int>& args);
 
     template<class T>
@@ -75,6 +76,13 @@ public:
     void invert(int n, const U& x);
 
     void random_bit();
+
+    template<class T>
+    void my_input(T& inputter, BitVec value, int n_bits);
+    template<class T>
+    void other_input(T& inputter, int from, int n_bits = 1);
+    template<class T>
+    void finalize_input(T& inputter, int from, int n_bits);
 };
 
 template<class U>
@@ -168,6 +176,8 @@ public:
     typedef SemiHonestRepSecret part_type;
     typedef SemiHonestRepSecret small_type;
     typedef SemiHonestRepSecret whole_type;
+
+    static const bool expensive_triples = false;
 
     static MC* new_mc(mac_key_type) { return new MC; }
 

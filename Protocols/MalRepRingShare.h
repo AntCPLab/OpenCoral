@@ -10,6 +10,7 @@
 #include "Protocols/MaliciousRep3Share.h"
 
 template<class T> class MalRepRingPrepWithBits;
+template<class T> class MalRepRingPrep;
 
 template<int K, int S>
 class MalRepRingShare : public MaliciousRep3Share<SignedZ2<K>>
@@ -29,6 +30,8 @@ public:
     typedef MalRepRingPrepWithBits<MalRepRingShare> LivePrep;
     typedef MaliciousRep3Share<Z2<K + S>> prep_type;
     typedef Z2<S> random_type;
+    typedef MalRepRingShare<K + 2, S> SquareToBitShare;
+    typedef MalRepRingPrep<MalRepRingShare> SquarePrep;
 
     static string type_short()
     {

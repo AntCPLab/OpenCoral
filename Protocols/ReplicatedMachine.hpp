@@ -18,6 +18,14 @@ ReplicatedMachine<T, U>::ReplicatedMachine(int argc, const char** argv,
     (void) name;
 
     OnlineOptions online_opts(opt, argc, argv, 10000, true, T::clear::invertible);
+    ReplicatedMachine<T, U>(argc, argv, opt, online_opts, nplayers);
+}
+
+template<class T, class U>
+ReplicatedMachine<T, U>::ReplicatedMachine(int argc, const char** argv,
+        ez::ezOptionParser& opt, OnlineOptions& online_opts,
+        int nplayers)
+{
     OnlineOptions::singleton = online_opts;
     NetworkOptionsWithNumber network_opts(opt, argc, argv, nplayers, false);
     opt.add(

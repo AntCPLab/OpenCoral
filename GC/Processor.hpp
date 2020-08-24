@@ -79,6 +79,8 @@ template<class U>
 U GC::Processor<T>::get_long_input(const int* params,
         ProcessorBase& input_proc, bool interactive)
 {
+    if (not T::actual_inputs)
+        return {};
     U res = input_proc.get_input<FixInput_<U>>(interactive,
             &params[1]).items[0];
     int n_bits = *params;
@@ -251,8 +253,12 @@ void Processor<T>::and_(const vector<int>& args, bool repeat)
     check_args(args, 4);
     for (size_t i = 0; i < args.size(); i += 4)
     {
-        assert(args[i] <= T::default_length);
-        S[args[i+1]].and_(args[i], S[args[i+2]], S[args[i+3]], repeat);
+        for (int j = 0; j < DIV_CEIL(args[i], T::default_length); j++)
+        {
+            int n = min(T::default_length, args[i] - j * T::default_length);
+            S[args[i + 1] + j].and_(n, S[args[i + 2] + j],
+                    S[args[i + 3] + (repeat ? 0 : j)], repeat);
+        }
         complexity += args[i];
     }
 }

@@ -62,11 +62,21 @@ done
 
 ./compile.py tutorial
 
-test_vm cowgear -T
-test_vm chaigear -T -l 3 -c 2
+test_vm cowgear $run_opts -T
+test_vm chaigear $run_opts -T -l 3 -c 2
+
+if test $skip_binary; then
+   exit
+fi
 
 ./compile.py -B 16  $compile_opts tutorial
 
-for i in replicated mal-rep-bin semi-bin ccd mal-ccd yao tinier rep-bmr mal-rep-bmr shamir-bmr mal-shamir-bmr; do
-    test_vm $i
+for i in replicated mal-rep-bin semi-bin ccd mal-ccd; do
+    test_vm $i $run_opts
+done
+
+test_vm yao
+
+for i in tinier rep-bmr mal-rep-bmr shamir-bmr mal-shamir-bmr; do
+    test_vm $i $run_opts
 done

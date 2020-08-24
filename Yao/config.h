@@ -10,12 +10,10 @@
 
 //#define CHECK_BUFFER
 
-#define HALF_GATES
-
 class YaoFullGate;
 class YaoHalfGate;
 
-#ifdef HALF_GATES
+#ifndef FULL_GATES
 typedef YaoHalfGate YaoGate;
 #else
 typedef YaoFullGate YaoGate;

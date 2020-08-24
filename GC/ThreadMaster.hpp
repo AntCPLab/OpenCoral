@@ -87,10 +87,12 @@ void ThreadMaster<T>::run()
 
     NamedCommStats stats = P->comm_stats;
     ExecutionStats exe_stats;
+    size_t data_sent = P->comm_stats.total_data();
     for (auto thread : threads)
     {
         stats += thread->P->comm_stats;
         exe_stats += thread->processor.stats;
+        data_sent += thread->data_sent();
         delete thread;
     }
 
@@ -108,7 +110,8 @@ void ThreadMaster<T>::run()
         if (it->second.data > 0)
             cerr << it->first << " " << 1e-6 * it->second.data << " MB" << endl;
 
-    cerr << "Time = " << timer.elapsed() << endl;
+    cerr << "Time = " << timer.elapsed() << " seconds" << endl;
+    cerr << "Data sent = " << data_sent * 1e-6 << " MB" << endl;
 }
 
 } /* namespace GC */

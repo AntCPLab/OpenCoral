@@ -66,7 +66,7 @@ ProtocolBase<T>::~ProtocolBase()
 {
 #ifdef VERBOSE
     if (counter)
-        cerr << "Number of multiplications: " << counter << endl;
+        cerr << "Number of " << T::type_string() << " multiplications: " << counter << endl;
 #endif
 }
 
@@ -220,6 +220,24 @@ T Replicated<T>::get_random()
     for (int i = 0; i < 2; i++)
         res[i].randomize(shared_prngs[i]);
     return res;
+}
+
+template<class T>
+void ProtocolBase<T>::randoms_inst(SubProcessor<T>& proc,
+		const Instruction& instruction)
+{
+    for (int j = 0; j < instruction.get_size(); j++)
+    {
+        auto& res = proc.get_S_ref(instruction.get_r(0) + j);
+        randoms(res, instruction.get_n());
+    }
+}
+
+template<class T>
+void Replicated<T>::randoms(T& res, int n_bits)
+{
+    for (int i = 0; i < 2; i++)
+        res[i].randomize_part(shared_prngs[i], n_bits);
 }
 
 template<int K>

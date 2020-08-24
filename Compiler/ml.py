@@ -112,6 +112,12 @@ def lse_0_from_e_x(x, e_x):
 def lse_0(x):
     return lse_0_from_e_x(x, exp(x))
 
+def approx_lse_0(x, n=3):
+    assert n != 5
+    a = x < -0.5
+    b = x > 0.5
+    return a.if_else(0, b.if_else(x, 0.5 * (x + 0.5) ** 2)) - x
+
 def relu_prime(x):
     """ ReLU derivative. """
     return (0 <= x)
@@ -145,10 +151,19 @@ class Tensor(MultiArray):
         kwargs['alloc'] = False
         super(Tensor, self).__init__(*args, **kwargs)
 
+    def input_from(self, *args, **kwargs):
+        self.alloc()
+        super(Tensor, self).input_from(*args, **kwargs)
+
+    def __getitem__(self, *args):
+        self.alloc()
+        return super(Tensor, self).__getitem__(*args)
+
 class Layer:
     n_threads = 1
     inputs = []
     input_bias = True
+    thetas = lambda self: ()
 
     @property
     def shape(self):
@@ -193,14 +208,13 @@ class Output(Layer):
         self.approx = approx
 
     nablas = lambda self: ()
-    thetas = lambda self: ()
     reset = lambda self: None
 
     def divisor(self, divisor, size):
         return cfix(1.0 / divisor, size=size)
 
     def forward(self, batch):
-        if self.approx:
+        if self.approx == 5:
             self.l.write(999)
             return
         N = len(batch)
@@ -209,10 +223,12 @@ class Output(Layer):
         def _(base, size):
             x = self.X.get_vector(base, size)
             y = self.Y.get(batch.get_vector(base, size))
+            if self.approx:
+                lse.assign(approx_lse_0(x, self.approx) + x * (1 - y), base)
+                return
             e_x = exp(-x)
             self.e_x.assign(e_x, base)
             lse.assign(lse_0_from_e_x(-x, e_x) + x * (1 - y), base)
-        e_x = self.e_x.get_vector(0, N)
         self.l.write(sum(lse) * \
                      self.divisor(N, 1))
 
@@ -323,7 +339,7 @@ class Dense(DenseBase):
 
         self.X = MultiArray([N, d, d_in], sfix)
         self.Y = MultiArray([N, d, d_out], sfix)
-        self.W = sfix.Matrix(d_in, d_out)
+        self.W = Tensor([d_in, d_out], sfix)
         self.b = sfix.Array(d_out)
 
         self.nabla_Y = MultiArray([N, d, d_out], sfix)
@@ -546,12 +562,12 @@ class MaxPool(NoVariableLayer):
         for x in strides, ksize:
             for i in 0, 3:
                 assert x[i] == 1
-        self.X = MultiArray(shape, sfix)
+        self.X = Tensor(shape, sfix)
         if padding == 'SAME':
             output_shape = [int(math.ceil(shape[i] / strides[i])) for i in range(4)]
         else:
             output_shape = [(shape[i] - ksize[i]) // strides[i] + 1 for i in range(4)]
-        self.Y = MultiArray(output_shape, sfix)
+        self.Y = Tensor(output_shape, sfix)
         self.strides = strides
         self.ksize = ksize
 
@@ -741,6 +757,7 @@ class ConvBase(BaseLayer):
     use_conv2ds = False
     temp_weights = None
     temp_inputs = None
+    thetas = lambda self: (self.weights, self.bias)
 
     @classmethod
     def init_temp(cls, layers):
@@ -780,7 +797,7 @@ class ConvBase(BaseLayer):
         self.weight_squant = self.new_squant()
         self.bias_squant = self.new_squant()
 
-        self.weights = MultiArray(weight_shape, self.weight_squant)
+        self.weights = Tensor(weight_shape, self.weight_squant)
         self.bias = Array(output_shape[-1], self.bias_squant)
 
         self.unreduced = Tensor(self.output_shape, sint)
@@ -1158,7 +1175,8 @@ class Optimizer:
             layer.last_used = list(filter(lambda x: x not in used, layer.inputs))
             used.update(layer.inputs)
 
-    def forward(self, N=None, batch=None, keep_intermediate=True):
+    def forward(self, N=None, batch=None, keep_intermediate=True,
+                model_from=None):
         """ Compute graph.
 
         :param N: batch size (used if batch not given)
@@ -1172,12 +1190,16 @@ class Optimizer:
             if layer.inputs and len(layer.inputs) == 1 and layer.inputs[0] is not None:
                 layer._X.address = layer.inputs[0].Y.address
             layer.Y.alloc()
+            if model_from is not None:
+                layer.input_from(model_from)
             break_point()
             layer.forward(batch=batch)
             break_point()
             if not keep_intermediate:
                 for l in layer.last_used:
                     l.Y.delete()
+                for theta in layer.thetas():
+                    theta.delete()
 
     def eval(self, data):
         """ Compute evaluation after training. """
@@ -1207,6 +1229,7 @@ class Optimizer:
         else:
             N = self.layers[0].N
         i = MemValue(0)
+        n_iterations = MemValue(0)
         @do_while
         def _():
             if self.X_by_label is None:
@@ -1216,6 +1239,7 @@ class Optimizer:
             n = N // len(self.X_by_label)
             n_per_epoch = int(math.ceil(1. * max(len(X) for X in
                                                  self.X_by_label) / n))
+            n_iterations.iadd(n_per_epoch)
             print('%d runs per epoch' % n_per_epoch)
             indices_by_label = []
             for label, X in enumerate(self.X_by_label):
@@ -1235,7 +1259,7 @@ class Optimizer:
                 self.backward(batch=batch)
                 self.update(i)
             loss = self.layers[-1].l
-            if self.report_loss and not self.layers[-1].approx:
+            if self.report_loss and self.layers[-1].approx != 5:
                 print_ln('loss after epoch %s: %s', i, loss.reveal())
             else:
                 print_ln('done with epoch %s', i)
@@ -1245,7 +1269,7 @@ class Optimizer:
             if self.tol > 0:
                 res *= (1 - (loss >= 0) * (loss < self.tol)).reveal()
             return res
-        print_ln('finished after %s epochs', i)
+        print_ln('finished after %s epochs and %s iterations', i, n_iterations)
 
 class Adam(Optimizer):
     def __init__(self, layers, n_epochs):

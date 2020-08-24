@@ -17,6 +17,8 @@
 class YaoEvaluator: public GC::Thread<GC::Secret<YaoEvalWire>>,
 		public YaoCommon<YaoEvalWire>
 {
+	typedef GC::Thread<GC::Secret<YaoEvalWire>> super;
+
 protected:
 	static thread_local YaoEvaluator* singleton;
 
@@ -56,6 +58,9 @@ public:
 
 	int get_n_worker_threads()
 	{ return max(1u, thread::hardware_concurrency() / master.machine.nthreads); }
+
+	size_t data_sent()
+	{ return super::data_sent() + player.comm_stats.total_data(); }
 };
 
 inline void YaoEvaluator::load_gate(YaoGate& gate)

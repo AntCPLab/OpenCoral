@@ -57,7 +57,7 @@ include $(wildcard *.d static/*.d)
 %.o: %.cpp
 	$(CXX) -o $@ $< $(CFLAGS) -MMD -MP -c
 
-online: Fake-Offline.x Server.x Player-Online.x Check-Offline.x
+online: Fake-Offline.x Server.x Player-Online.x Check-Offline.x emulate.x
 
 offline: $(OT_EXE) Check-Offline.x
 
@@ -193,6 +193,8 @@ malicious-rep-ring-party.x: Protocols/MalRepRingOptions.o
 semi-ecdsa-party.x: $(OT) $(LIBSIMPLEOT) GC/SemiPrep.o GC/SemiSecret.o
 mascot-ecdsa-party.x: $(OT) $(LIBSIMPLEOT)
 fake-spdz-ecdsa-party.x: $(OT) $(LIBSIMPLEOT)
+emulate.x: GC/FakeSecret.o
+semi-bmr-party.x: GC/SemiPrep.o GC/SemiSecret.o
 
 $(LIBSIMPLEOT): SimpleOT/Makefile
 	$(MAKE) -C SimpleOT

@@ -12,8 +12,14 @@
 #include "GC/ArgTuples.h"
 
 #include "Math/gf2nlong.h"
+#include "Tools/SwitchableOutput.h"
 
 #include "Processor/DummyProtocol.h"
+#include "Protocols/FakePrep.h"
+#include "Protocols/FakeMC.h"
+#include "Protocols/FakeProtocol.h"
+#include "Protocols/FakeInput.h"
+#include "Protocols/ShareInterface.h"
 
 #include <random>
 #include <fstream>
@@ -26,21 +32,41 @@ class Processor;
 template <class T>
 class Machine;
 
-class FakeSecret
+class FakeSecret : public ShareInterface, public BitVec
 {
-    __uint128_t a;
-
 public:
     typedef FakeSecret DynamicType;
     typedef Memory<FakeSecret> DynamicMemory;
 
+    typedef BitVec mac_key_type;
+    typedef BitVec clear;
+    typedef BitVec open_type;
+
+    typedef FakeSecret part_type;
+    typedef FakeSecret small_type;
+    typedef NoShare bit_type;
+
+    typedef FakePrep<FakeSecret> LivePrep;
+    typedef FakeMC<FakeSecret> MC;
+    typedef MC MAC_Check;
+    typedef MC Direct_MC;
+    typedef FakeProtocol<FakeSecret> Protocol;
+    typedef FakeInput<FakeSecret> Input;
+
     static string type_string() { return "fake secret"; }
     static string phase_name() { return "Faking"; }
 
-    static int default_length;
+    static const int default_length = 64;
 
-    typedef ostream& out_type;
-    static ostream& out;
+    static const bool is_real = true;
+
+    static const bool actual_inputs = true;
+
+    static SwitchableOutput out;
+
+    static DataFieldType field_type() { return DATA_GF2; }
+
+    static MC* new_mc(mac_key_type key) { return new MC(key); }
 
     static void store_clear_in_dynamic(Memory<DynamicType>& mem,
     		const vector<GC::ClearWriteAccess>& accesses);
@@ -59,6 +85,11 @@ public:
     static void inputb(T& processor, const vector<int>& args)
     { processor.input(args); }
     template <class T>
+    static void inputb(T& processor, ArithmeticProcessor&, const vector<int>& args)
+    { processor.input(args); }
+    template <class T, class U>
+    static void inputbvec(T&, U&, const vector<int>&) { throw not_implemented(); }
+    template <class T>
     static void reveal_inst(T& processor, const vector<int>& args)
     { processor.reveal(args); }
 
@@ -69,11 +100,13 @@ public:
     static void convcbit(Integer& dest, const Clear& source, T&) { dest = source; }
 
     static FakeSecret input(GC::Processor<FakeSecret>& processor, const InputArgs& args);
-    static FakeSecret input(int from, const int128& input, int n_bits);
+    static FakeSecret input(int from, word input, int n_bits);
 
-    FakeSecret() : a(0) {}
-    FakeSecret(const Integer& x) : a(x.get()) {}
-    FakeSecret(__uint128_t x) : a(x) {}
+    static FakeSecret constant(clear value, int = 0, mac_key_type = {}) { return value; }
+
+    FakeSecret() {}
+    template <class T>
+    FakeSecret(T other) : BitVec(other) {}
 
     __uint128_t operator>>(const FakeSecret& other) const { return a >> other.a; }
     __uint128_t operator<<(const FakeSecret& other) const { return a << other.a; }
@@ -90,17 +123,19 @@ public:
     void bitdec(Memory<FakeSecret>& S, const vector<int>& regs) const;
 
     template <class T>
-    void xor_(int n, const FakeSecret& x, const T& y) { (void)n; a = x.a ^ y.a; }
+    void xor_(int n, const FakeSecret& x, const T& y)
+    { *this = BitVec(x.a ^ y.a).mask(n); }
     void and_(int n, const FakeSecret& x, const FakeSecret& y, bool repeat);
-    void andrs(int n, const FakeSecret& x, const FakeSecret& y) { (void)n; a = x.a * y.a; }
+    void andrs(int n, const FakeSecret& x, const FakeSecret& y)
+    { *this = BitVec(x.a * (y.a & 1)).mask(n); }
 
-    void invert(int, const FakeSecret& x) { *this = ~x.a; }
+    void invert(int n, const FakeSecret& x) { *this = BitVec(~x.a).mask(n); }
 
     void random_bit() { a = random() % 2; }
 
     void reveal(int n_bits, Clear& x) { (void) n_bits; x = a; }
 
-    int size() { return -1; }
+    void invert(FakeSecret) { throw not_implemented(); }
 };
 
 } /* namespace GC */

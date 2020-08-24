@@ -21,11 +21,19 @@ MalRepRingPrep<T>::MalRepRingPrep(SubProcessor<T>*, DataPositions& usage) :
 }
 
 template<class T>
+RingOnlyBitsFromSquaresPrep<T>::RingOnlyBitsFromSquaresPrep(SubProcessor<T>*,
+        DataPositions& usage) :
+        BufferPrep<T>(usage)
+{
+}
+
+template<class T>
 MalRepRingPrepWithBits<T>::MalRepRingPrepWithBits(SubProcessor<T>* proc,
         DataPositions& usage) :
         BufferPrep<T>(usage), BitPrep<T>(proc, usage),
         RingPrep<T>(proc, usage),
-        MaliciousRingPrep<T>(proc, usage), MalRepRingPrep<T>(proc, usage)
+        MaliciousRingPrep<T>(proc, usage), MalRepRingPrep<T>(proc, usage),
+        RingOnlyBitsFromSquaresPrep<T>(proc, usage)
 {
 }
 
@@ -204,14 +212,14 @@ void ShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
 }
 
 template<class T>
-void MalRepRingPrepWithBits<T>::buffer_bits()
+void RingOnlyBitsFromSquaresPrep<T>::buffer_bits()
 {
     auto proc = this->proc;
     assert(proc != 0);
-    typedef MalRepRingShare<T::BIT_LENGTH + 2, T::SECURITY> BitShare;
+    typedef typename T::SquareToBitShare BitShare;
     typename BitShare::MAC_Check MC;
     DataPositions usage;
-    MalRepRingPrep<BitShare> prep(0, usage);
+    typename BitShare::SquarePrep prep(0, usage);
     SubProcessor<BitShare> bit_proc(MC, prep, proc->P);
     prep.set_proc(&bit_proc);
     bits_from_square_in_ring(this->bits, OnlineOptions::singleton.batch_size, &prep);

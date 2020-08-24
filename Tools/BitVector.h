@@ -189,8 +189,10 @@ class BitVector
     void set(const FixedVec<T, L>& a);
     bool get_bit(int i) const
       {
+#ifdef CHECK_SIZE
         if (i >= (int)nbits)
           throw out_of_range("BitVector access: " + to_string(i) + "/" + to_string(nbits));
+#endif
         return (bytes[i/8] >> (i % 8)) & 1;
       }
     void set_bit(int i,unsigned int a)

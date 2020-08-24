@@ -19,6 +19,7 @@ class RealProgramParty : public ProgramPartySpec<T>
 	typedef typename T::Input Inputter;
 
 	friend class RealGarbleWire<T>;
+	friend class GarbleInputter<T>;
 	friend class GarbleJob<T>;
 
 	static RealProgramParty* singleton;
@@ -40,8 +41,14 @@ class RealProgramParty : public ProgramPartySpec<T>
 
 	GC::BreakType next;
 
+	bool one_shot;
+
+	size_t data_sent;
+
 public:
 	static RealProgramParty& s();
+
+	LocalBuffer garble_input_masks, garble_output_masks;
 
 	RealProgramParty(int argc, const char** argv);
 	~RealProgramParty();

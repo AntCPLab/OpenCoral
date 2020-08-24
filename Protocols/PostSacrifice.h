@@ -33,6 +33,8 @@ public:
     void check();
 
     int get_n_relevant_players() { return internal.get_n_relevant_players(); }
+
+    virtual void randoms(T& res, int n_bits) { randomizer.randoms(res, n_bits); }
 };
 
 #endif /* PROTOCOLS_POSTSACRIFICE_H_ */

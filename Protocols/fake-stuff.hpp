@@ -308,6 +308,13 @@ void generate_mac_keys(typename T::mac_type::Scalar& key,
   cout << "Final Key: " << key << endl;
 }
 
+inline void check_files(ofstream* outf, int N)
+{
+  for (int i = 0; i < N; i++)
+    if (outf[i].fail())
+      throw runtime_error("couldn't write to file");
+}
+
 /* N      = Number players
  * ntrip  = Number triples needed
  * str    = "2" or "p"
@@ -347,6 +354,7 @@ void make_mult_triples(const typename T::mac_type& key, int N, int ntrip,
           Sc[j].output(outf[j],false);
         }
     }
+  check_files(outf, N);
   for (int i=0; i<N; i++)
     { outf[i].close(); }
   delete[] outf;
@@ -391,6 +399,7 @@ void make_inverse(const typename T::mac_type& key, int N, int ntrip, bool zero,
           Sb[j].output(outf[j],false);
         }
     }
+  check_files(outf, N);
   for (int i=0; i<N; i++)
     { outf[i].close(); }
   delete[] outf;

@@ -252,8 +252,10 @@ void SummingEncCommit<FD>::create_more()
         this->c.unpack(ciphertexts, this->pk);
         commitments.unpack(ciphertexts, this->pk);
 
+#ifdef VERBOSE_HE
         cout << "Tree-wise sum of ciphertexts with "
                 << 1e-9 * ciphertexts.get_length() << " GB" << endl;
+#endif
         this->timers["Exchanging ciphertexts"].start();
         tree_sum.run(this->c, P);
         tree_sum.run(commitments, P);

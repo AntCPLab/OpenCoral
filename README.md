@@ -191,8 +191,10 @@ to be compiled accordingly.
 
 The integer bit length defaults to 64.
 
-Note that in this context integers do not wrap around as expected, so
-it is the responsibility of the user to make sure that they don't grow
+Note that in this context integers do not wrap around according to the
+bit integer bit length but the length is used for non-linear
+computations such as comparison.
+It is the responsibility of the user to make sure that they don't grow
 too large. If necessary `sint.Mod2m()` can be used to wrap around
 manually.
 
@@ -200,6 +202,10 @@ The integer bit length together with the computation mandate a minimum
 for the size of the prime, which will be output by the compiler. It is
 also communicated to the virtual machine in the bytecode, which will
 fail if the minimum is not met.
+
+The precision for fixed- and floating-point computation are not
+affected by the integer bit length but can be set in the code
+directly.
 
 #### Arithmetic modulo 2^k
 
@@ -326,6 +332,9 @@ lines. If you run with any other protocol, you will need to remove
 CrypTFlow repository that includes the patch in
 https://github.com/mkskeller/EzPC/commit/2021be90d21dc26894be98f33cd10dd26769f479.
 
+[The reference](https://mp-spdz.readthedocs.io/en/latest/Compiler.html#module-Compiler.ml)
+contains further documentation on available layers.
+
 ## Dishonest majority
 
 Some full implementations require oblivious transfer, which is
@@ -373,7 +382,7 @@ al.](https://eprint.iacr.org/2016/944)
 
 CowGear denotes a covertly secure version of LowGear. The reason for
 this is the key generation that only achieves covert security. It is
-possible however to run full LowGear for triple generation by using
+possible however to run full LowGear for the offline phase by using
 `-s` with the desired security parameter. The same holds for ChaiGear,
 an adapted version of HighGear. Option `-T` activates
 [TopGear](https://eprint.iacr.org/2019/035) zero-knowledge proofs in
@@ -425,7 +434,11 @@ argument to change that.
 
 ### Yao's garbled circuits
 
-We use the implementation optimized for AES-NI by [Bellare et al.](https://eprint.iacr.org/2013/426)
+We use half-gate garbling as described by [Guo et
+al.](https://eprint.iacr.org/2014/756.pdf). Alternatively, you can
+activate the implementation optimized by [Bellare et
+al.](https://eprint.iacr.org/2013/426) by adding `MY_CFLAGS +=
+-DFULL_GATES` to `CONFIG.mine`.
 
 Compile the virtual machine:
 
@@ -555,6 +568,7 @@ lists the available schemes.
 | Program | Protocol | Dishonest Maj. | Malicious | \# parties | Script |
 | --- | --- | --- | --- | --- | --- |
 | `real-bmr-party.x` | MASCOT | Y | Y | 2 or more | `real-bmr.sh` |
+| `semi-bmr-party.x` | Semi | Y | Y | 2 or more | `semi-bmr.sh` |
 | `shamir-bmr-party.x` | Shamir | N | N | 3 or more | `shamir-bmr.sh` |
 | `mal-shamir-bmr-party.x` | Shamir | N | Y | 3 or more | `mal-shamir-bmr.sh` |
 | `rep-bmr-party.x` | Replicated | N | N | 3 | `rep-bmr.sh` |
@@ -656,6 +670,13 @@ e.g. if this machine is name `diffie` on the local network:
 
 The software uses TCP ports around 5000 by default, use the `-pn`
 argument to change that.
+
+### SPDZ2k
+
+Creating fake offline data for SPDZ2k requires to call
+`Fake-Offline.x` directly instead of via `setup-online.sh`:
+
+`./Fake-Offline.x <nparties> -Z <bit length k for SPDZ2k> -S <security parameter>`
 
 ### Honest-majority three-party computation of binary circuits with malicious security
 

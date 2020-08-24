@@ -91,64 +91,74 @@ class stmint(base.DirectMemoryWriteInstruction):
 
 # must have seperate instructions because address is always modp
 @base.vectorize
-class ldmci(base.ReadMemoryInstruction):
+class ldmci(base.ReadMemoryInstruction, base.IndirectMemoryInstruction):
     r""" Assigns register $c_i$ the value in memory \verb+C[cj]+. """
     code = base.opcodes['LDMCI']
     arg_format = ['cw','ci']
+    direct = staticmethod(ldmc)
 
 @base.vectorize
-class ldmsi(base.ReadMemoryInstruction):
+class ldmsi(base.ReadMemoryInstruction, base.IndirectMemoryInstruction):
     r""" Assigns register $s_i$ the value in memory \verb+S[cj]+. """
     code = base.opcodes['LDMSI']
     arg_format = ['sw','ci']
+    direct = staticmethod(ldms)
 
 @base.vectorize
-class stmci(base.WriteMemoryInstruction):
+class stmci(base.WriteMemoryInstruction, base.IndirectMemoryInstruction):
     r""" Sets \verb+C[cj]+ to be the value $c_i$. """
     code = base.opcodes['STMCI']
     arg_format = ['c','ci']
+    direct = staticmethod(stmc)
 
 @base.vectorize
-class stmsi(base.WriteMemoryInstruction):
+class stmsi(base.WriteMemoryInstruction, base.IndirectMemoryInstruction):
     r""" Sets \verb+S[cj]+ to be the value $s_i$. """
     code = base.opcodes['STMSI']
     arg_format = ['s','ci']
+    direct = staticmethod(stms)
 
 @base.vectorize
-class ldminti(base.ReadMemoryInstruction):
+class ldminti(base.ReadMemoryInstruction, base.IndirectMemoryInstruction):
     r""" Assigns register $ci_i$ the value in memory \verb+Ci[cj]+. """
     code = base.opcodes['LDMINTI']
     arg_format = ['ciw','ci']
+    direct = staticmethod(ldmint)
 
 @base.vectorize
-class stminti(base.WriteMemoryInstruction):
+class stminti(base.WriteMemoryInstruction, base.IndirectMemoryInstruction):
     r""" Sets \verb+Ci[cj]+ to be the value $ci_i$. """
     code = base.opcodes['STMINTI']
     arg_format = ['ci','ci']
+    direct = staticmethod(stmint)
 
 @base.vectorize
-class gldmci(base.ReadMemoryInstruction):
+class gldmci(base.ReadMemoryInstruction, base.IndirectMemoryInstruction):
     r""" Assigns register $c_i$ the value in memory \verb+C[cj]+. """
     code = base.opcodes['LDMCI'] + 0x100
     arg_format = ['cgw','ci']
+    direct = staticmethod(gldmc)
 
 @base.vectorize
-class gldmsi(base.ReadMemoryInstruction):
+class gldmsi(base.ReadMemoryInstruction, base.IndirectMemoryInstruction):
     r""" Assigns register $s_i$ the value in memory \verb+S[cj]+. """
     code = base.opcodes['LDMSI'] + 0x100
     arg_format = ['sgw','ci']
+    direct = staticmethod(gldms)
 
 @base.vectorize
-class gstmci(base.WriteMemoryInstruction):
+class gstmci(base.WriteMemoryInstruction, base.IndirectMemoryInstruction):
     r""" Sets \verb+C[cj]+ to be the value $c_i$. """
     code = base.opcodes['STMCI'] + 0x100
     arg_format = ['cg','ci']
+    direct = staticmethod(gstmc)
 
 @base.vectorize
-class gstmsi(base.WriteMemoryInstruction):
+class gstmsi(base.WriteMemoryInstruction, base.IndirectMemoryInstruction):
     r""" Sets \verb+S[cj]+ to be the value $s_i$. """
     code = base.opcodes['STMSI'] + 0x100
     arg_format = ['sg','ci']
+    direct = staticmethod(gstms)
 
 @base.gf2n
 @base.vectorize
@@ -268,7 +278,7 @@ class use_edabit(base.Instruction):
 class run_tape(base.Instruction):
     r""" Start tape $n$ in thread $c_i$ with argument $c_j$. """
     code = base.opcodes['RUN_TAPE']
-    arg_format = ['int','int','int']
+    arg_format = tools.cycle(['int','int','int'])
 
 class join_tape(base.Instruction):
     r""" Join thread $c_i$. """
@@ -661,6 +671,12 @@ class shrci(base.ClearShiftInstruction):
     code = base.opcodes['SHRCI']
     op = '__rshift__'
 
+@base.vectorize
+class shrsi(base.ClearShiftInstruction):
+    r""" Secret bitwise shift right by immediate value. """
+    __slots__ = []
+    code = base.opcodes['SHRSI']
+    arg_format = ['sw','s','i']
 
 ###
 ### Data access instructions
@@ -742,6 +758,14 @@ class sedabit(base.Instruction):
     def add_usage(self, req_node):
         req_node.increment(('sedabit', len(self.args) - 1), self.get_size())
 
+@base.vectorize
+class randoms(base.Instruction):
+    """ Random share """
+    __slots__ = []
+    code = base.opcodes['RANDOMS']
+    arg_format = ['sw','int']
+    field_type = 'modp'
+
 @base.gf2n
 @base.vectorize
 class square(base.DataInstruction):
@@ -780,6 +804,17 @@ class inputmask(base.Instruction):
     def add_usage(self, req_node):
         req_node.increment((self.field_type, 'input', self.args[1]), \
                                self.get_size())
+
+@base.vectorize
+class inputmaskreg(base.Instruction):
+    __slots__ = []
+    code = base.opcodes['INPUTMASKREG']
+    arg_format = ['sw', 'cw', 'ci']
+    field_type = 'modp'
+
+    def add_usage(self, req_node):
+        # player 0 as proxy
+        req_node.increment((self.field_type, 'input', 0), float('inf'))
 
 @base.gf2n
 @base.vectorize
@@ -1165,21 +1200,25 @@ class ldint(base.Instruction):
 class addint(base.IntegerInstruction):
     __slots__ = []
     code = base.opcodes['ADDINT']
+    op = operator.add
 
 @base.vectorize
 class subint(base.IntegerInstruction):
     __slots__ = []
     code = base.opcodes['SUBINT']
+    op = operator.sub
 
 @base.vectorize
 class mulint(base.IntegerInstruction):
     __slots__ = []
     code = base.opcodes['MULINT']
+    op = operator.mul
 
 @base.vectorize
 class divint(base.IntegerInstruction):
     __slots__ = []
     code = base.opcodes['DIVINT']
+    op = operator.floordiv
 
 @base.vectorize
 class bitdecint(base.Instruction):
@@ -1228,18 +1267,21 @@ class ltc(base.IntegerInstruction):
     r""" Clear comparison $c_i = (c_j \stackrel{?}{<} c_k)$. """
     __slots__ = []
     code = base.opcodes['LTC']
+    op = operator.lt
 
 @base.vectorize
 class gtc(base.IntegerInstruction):
     r""" Clear comparison $c_i = (c_j \stackrel{?}{>} c_k)$. """
     __slots__ = []
     code = base.opcodes['GTC']
+    op = operator.gt
 
 @base.vectorize
 class eqc(base.IntegerInstruction):
     r""" Clear comparison $c_i = (c_j \stackrel{?}{==} c_k)$. """
     __slots__ = []
     code = base.opcodes['EQC']
+    op = operator.eq
 
 
 ###

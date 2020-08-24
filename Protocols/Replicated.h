@@ -24,6 +24,7 @@ template<class T> class Share;
 template<class T> class Rep3Share;
 template<class T> class MAC_Check_Base;
 template<class T> class Preprocessing;
+class Instruction;
 
 class ReplicatedBase
 {
@@ -70,6 +71,9 @@ public:
 
     virtual void trunc_pr(const vector<int>& regs, int size, SubProcessor<T>& proc)
     { (void) regs, (void) size; (void) proc; throw runtime_error("trunc_pr not implemented"); }
+
+    virtual void randoms(T&, int) { throw runtime_error("randoms not implemented"); }
+    virtual void randoms_inst(SubProcessor<T>&, const Instruction&);
 
     virtual void start_exchange() { exchange(); }
     virtual void stop_exchange() {}
@@ -119,6 +123,7 @@ public:
     void trunc_pr(const vector<int>& regs, int size, SubProcessor<T>& proc);
 
     T get_random();
+    void randoms(T& res, int n_bits);
 
     void start_exchange();
     void stop_exchange();

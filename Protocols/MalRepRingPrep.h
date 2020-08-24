@@ -27,10 +27,20 @@ public:
     void buffer_inputs(int player);
 };
 
+template<class T>
+class RingOnlyBitsFromSquaresPrep : public virtual BufferPrep<T>
+{
+public:
+    RingOnlyBitsFromSquaresPrep(SubProcessor<T>* proc, DataPositions& usage);
+
+    void buffer_bits();
+};
+
 // extra class to avoid recursion
 template<class T>
 class MalRepRingPrepWithBits: public virtual MaliciousRingPrep<T>,
-        public virtual MalRepRingPrep<T>
+        public virtual MalRepRingPrep<T>,
+        public virtual RingOnlyBitsFromSquaresPrep<T>
 {
 public:
     MalRepRingPrepWithBits(SubProcessor<T>* proc, DataPositions& usage);
@@ -40,12 +50,20 @@ public:
         MaliciousRingPrep<T>::set_protocol(protocol);
     }
 
+    void buffer_triples()
+    {
+        MalRepRingPrep<T>::buffer_triples();
+    }
+
     void buffer_squares()
     {
         MalRepRingPrep<T>::buffer_squares();
     }
 
-    void buffer_bits();
+    void buffer_bits()
+    {
+        RingOnlyBitsFromSquaresPrep<T>::buffer_bits();
+    }
 
     void get_dabit_no_count(T& a, typename T::bit_type& b)
     {

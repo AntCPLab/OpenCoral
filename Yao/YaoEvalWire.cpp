@@ -7,6 +7,7 @@
 #include "YaoEvalWire.h"
 #include "YaoGate.h"
 #include "YaoEvaluator.h"
+#include "YaoEvalInput.h"
 #include "BMR/prf.h"
 #include "BMR/common.h"
 #include "GC/ArgTuples.h"
@@ -14,6 +15,7 @@
 #include "GC/Processor.hpp"
 #include "GC/Secret.hpp"
 #include "GC/Thread.hpp"
+#include "GC/ShareSecret.hpp"
 #include "YaoCommon.hpp"
 
 ostream& YaoEvalWire::out = cout;
@@ -133,58 +135,51 @@ void YaoEvalWire::and_(GC::Memory<GC::Secret<YaoEvalWire> >& S,
 	}
 }
 
+template<class T>
+void YaoEvalWire::my_input(T& inputter, bool value, int n_bits)
+{
+	assert(n_bits == 1);
+	auto& inputs = inputter.inputs;
+	size_t start = inputs.size();
+	inputs.resize(start + 1);
+	inputs.set_bit(start, value);
+}
+
+template<class T>
+void YaoEvalWire::finalize_input(T& inputter, int from, int n_bits)
+{
+	assert(n_bits == 1);
+
+	if (from == 1)
+	{
+		auto& i_bit = inputter.i_bit;
+		Key key;
+		inputter.os.unserialize(key);
+		set(key ^ inputter.evaluator.ot_ext.receiverOutputMatrix[i_bit],
+				inputter.inputs.get_bit(i_bit));
+		i_bit++;
+	}
+	else
+	{
+		set(0);
+	}
+}
+
 void YaoEvalWire::inputb(GC::Processor<GC::Secret<YaoEvalWire> >& processor,
         const vector<int>& args)
 {
-	InputArgList a(args);
-	BitVector inputs;
-	inputs.resize(0);
-	auto& evaluator = YaoEvaluator::s();
-	bool interactive = evaluator.n_interactive_inputs_from_me(a) > 0;
+	YaoEvalInput inputter;
+	processor.inputb(inputter, processor, args, inputter.evaluator.P->my_num());
+	return;
+}
 
-	for (auto x : a)
-	{
-		auto& dest = processor.S[x.dest];
-		dest.resize_regs(x.n_bits);
-		if (x.from == 0)
-		{
-			for (auto& reg : dest.get_regs())
-			{
-				reg.set(0);
-			}
-		}
-		else
-		{
-			long long input = processor.get_input(x.params, interactive);
-			size_t start = inputs.size();
-			inputs.resize(start + x.n_bits);
-			for (int i = 0; i < x.n_bits; i++)
-				inputs.set_bit(start + i, (input >> i) & 1);
-		}
-	}
-
-	if (interactive)
-	    cout << "Thank you" << endl;
-
-	evaluator.ot_ext.extend_correlated(inputs.size(), inputs);
-	octetStream os;
-	evaluator.player.receive(os);
-	int i_bit = 0;
-
-	for (auto x : a)
-	{
-		if (x.from == 1)
-		{
-			for (auto& reg : processor.S[x.dest].get_regs())
-			{
-				Key key;
-				os.unserialize(key);
-                reg.set(key ^ evaluator.ot_ext.receiverOutputMatrix[i_bit],
-                        inputs.get_bit(i_bit));
-				i_bit++;
-			}
-		}
-	}
+void YaoEvalWire::inputbvec(GC::Processor<GC::Secret<YaoEvalWire> >& processor,
+        ProcessorBase& input_processor, const vector<int>& args)
+{
+    YaoEvalInput inputter;
+    processor.inputbvec(inputter, input_processor, args,
+            inputter.evaluator.P->my_num());
+    return;
 }
 
 void YaoEvalWire::op(const YaoEvalWire& left, const YaoEvalWire& right,

@@ -73,6 +73,7 @@ void make_bit_triples(const gf2n& key,int N,int ntrip,Dtype dtype,bool zero)
           Sc[j].output(outf[j],false);
         }
     }
+  check_files(outf, N);
   for (int i=0; i<N; i++)
     { outf[i].close(); }
   delete[] outf;
@@ -115,6 +116,7 @@ void make_square_tuples(const typename T::mac_type& key,int N,int ntrip,const st
           Sc[j].output(outf[j],false);
         }
     }
+  check_files(outf, N);
   for (int i=0; i<N; i++)
     { outf[i].close(); }
   delete[] outf;
@@ -150,6 +152,7 @@ void make_bits(const typename T::mac_type& key, int N, int ntrip, bool zero,
       for (int j=0; j<N; j++)
         { Sa[j].output(outf[j],false); }
     }
+  check_files(outf, N);
   for (int i=0; i<N; i++)
     { outf[i].close(); }
   delete[] outf;
@@ -196,6 +199,7 @@ void make_inputs(const typename T::mac_type& key,int N,int ntrip,const string& s
       for (int i=0; i<N; i++)
         { outf[i].close(); }
     }
+  check_files(outf, N);
   delete[] outf;
 }
 
@@ -365,7 +369,7 @@ int main(int argc, const char** argv)
         0, // Required?
         1, // Number of args expected.
         0, // Delimiter if expecting multiple args.
-        "Generate for SPDZ2k with parameter", // Help description.
+        "Generate for SPDZ2k with parameter k (bit length)", // Help description.
         "-Z", // Flag token.
         "--spdz2k" // Flag token.
   );
@@ -550,9 +554,13 @@ int generate(ez::ezOptionParser& opt)
 
   make_basic<SemiShare<gfp>>({}, nplayers, default_num, zero);
   make_basic<SemiShare<gf2n>>({}, nplayers, default_num, zero);
+  make_basic<SemiShare<Z2<64>>>({}, nplayers, default_num, zero);
 
   make_mult_triples<GC::SemiSecret>({}, nplayers, default_num, zero, prep_data_prefix);
   make_bits<GC::SemiSecret>({}, nplayers, default_num, zero);
+
+  gf2n_short::reset();
+  gf2n_short::init_field(40);
 
   Z2<41> keyt;
   generate_mac_keys<GC::TinySecret<40>>(keyt, nplayers, prep_data_prefix);

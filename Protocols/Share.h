@@ -23,6 +23,7 @@ template<class T> class MascotMultiplier;
 template<class T> class MascotFieldPrep;
 template<class T> class MascotTripleGenerator;
 template<class T> class MascotPrep;
+template<class T> class MascotTriplePrep;
 
 union square128;
 
@@ -127,7 +128,7 @@ class Share_ : public ShareInterface
    Share_<T, V> operator<<(int i) { return this->operator*(T(1) << i); }
    Share_<T, V>& operator<<=(int i) { return *this = *this << i; }
 
-   Share_<T, V> operator>>(int i) { return {a >> i, mac >> i}; }
+   Share_<T, V> operator>>(int i) const { return {a >> i, mac >> i}; }
 
    void force_to_bit() { a.force_to_bit(); }
 
@@ -173,6 +174,7 @@ public:
     typedef SPDZ<Share> Protocol;
     typedef MascotFieldPrep<Share> LivePrep;
     typedef MascotPrep<Share> RandomPrep;
+    typedef MascotTriplePrep<Share> TriplePrep;
 
     static const bool expensive = true;
 

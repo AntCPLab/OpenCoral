@@ -61,12 +61,16 @@ YaoPlayer::YaoPlayer(int argc, const char** argv)
 	OnlineOptions online_opts(opt, argc, argv);
 	opt.parse(argc, argv);
 	opt.syntax = "./yao-player.x [OPTIONS] <progname>";
-	if (opt.lastArgs.size() == 1)
+	vector<string*> free_args = opt.firstArgs;
+	free_args.insert(free_args.end(), opt.unknownArgs.begin(), opt.unknownArgs.end());
+	free_args.insert(free_args.end(), opt.lastArgs.begin(), opt.lastArgs.end());
+	if (free_args.size() == 2)
 	{
-		progname = *opt.lastArgs[0];
+		progname = *free_args[1];
 	}
 	else
 	{
+		throw exception();
 		string usage;
 		opt.getUsage(usage);
 		cerr << usage;

@@ -21,6 +21,15 @@ using namespace std;
 
 
 template<class sint, class sgf2n>
+template<class T>
+void thread_info<sint, sgf2n>::print_usage(ostream &o,
+        const vector<T>& regs, string name)
+{
+    if (regs.capacity())
+        o << name << "=" << regs.capacity() << " ";
+}
+
+template<class sint, class sgf2n>
 void thread_info<sint, sgf2n>::Sub_Main_Func()
 {
   bigint::init_thread();
@@ -105,7 +114,7 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
   while (flag)
     { // Wait until I have a program to run
       wait_timer.start();
-      auto job = queues->next();
+      ThreadJob job = queues->next();
       program = job.prognum;
       wait_timer.stop();
 #ifdef DEBUG_THREADS
@@ -279,6 +288,16 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
 
   cerr << "Thread " << num << " timer: " << thread_timer.elapsed() << endl;
   cerr << "Thread " << num << " wait timer: " << wait_timer.elapsed() << endl;
+
+  cerr << "Register usage: ";
+  print_usage(cerr, Proc.Procp.get_S(), "sint");
+  print_usage(cerr, Proc.Procp.get_C(), "cint");
+  print_usage(cerr, Proc.Proc2.get_S(), "sgf2n");
+  print_usage(cerr, Proc.Proc2.get_C(), "cgf2n");
+  print_usage(cerr, Proc.Procb.S, "sbits");
+  print_usage(cerr, Proc.Procb.C, "cbits");
+  print_usage(cerr, Proc.get_Ci(), "regint");
+  cerr << endl;
 #endif
 
   // wind down thread by thread
@@ -287,6 +306,7 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
   prep_sent += Proc.Procp.bit_prep.data_sent();
   for (auto& x : Proc.Procp.personal_bit_preps)
     prep_sent += x->data_sent();
+  machine.stats += Proc.stats;
   delete processor;
 
   machine.data_sent += P.sent + prep_sent;

@@ -2,11 +2,7 @@ import ml
 import util
 import math
 
-if 'trunc_pr' in program.args:
-    program.use_trunc_pr = True
-if 'split' in program.args:
-    program.use_split(3)
-
+program.options_from_args()
 program.options.cisc = True
 
 try:
@@ -72,7 +68,7 @@ else:
 opt = ml.Optimizer()
 opt.layers = layers
 for layer in layers:
-    layer.input_from(0, raw='raw' in program.args)
+    layer.input_from(0)
 layers[0].X.input_from(1)
 start_timer(1)
 opt.forward(1)

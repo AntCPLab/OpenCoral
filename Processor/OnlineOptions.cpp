@@ -163,6 +163,7 @@ void OnlineOptions::finalize(ez::ezOptionParser& opt, int argc,
     opt.parse(argc, argv);
 
     vector<string*> allArgs(opt.firstArgs);
+    allArgs.insert(allArgs.end(), opt.unknownArgs.begin(), opt.unknownArgs.end());
     allArgs.insert(allArgs.end(), opt.lastArgs.begin(), opt.lastArgs.end());
     string usage;
     vector<string> badOptions;

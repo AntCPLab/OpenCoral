@@ -151,6 +151,18 @@ public:
         for (auto& reg : this->get_regs())
             reg.output(s, human);
     }
+
+    template <class U>
+    void my_input(U& inputter, BitVec value, int n_bits)
+    {
+        inputter.add_mine(value, n_bits);
+    }
+
+    template <class U>
+    void finalize_input(U& inputter, int from, int n_bits)
+    {
+        *this = inputter.finalize(from, n_bits).mask(n_bits);
+    }
 };
 
 template<int S>

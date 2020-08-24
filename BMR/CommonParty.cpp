@@ -42,7 +42,6 @@ CommonFakeParty::~CommonFakeParty()
 
 CommonParty::~CommonParty()
 {
-	cerr << "Total time: " << timer.elapsed() << endl;
 #ifdef VERBOSE
 	cerr << "Wire storage: " << 1e-9 * wires.capacity() << " GB" << endl;
 	cerr << "CPU time: " << cpu_timer.elapsed() << endl;
@@ -50,6 +49,7 @@ CommonParty::~CommonParty()
 	cerr << "Second phase time: " << timers[1].elapsed() << endl;
 	cerr << "Number of gates: " << gate_counter << endl;
 #endif
+	cerr << "Time = " << timer.elapsed() << " seconds" << endl;
 }
 
 void CommonParty::check(int n_parties)

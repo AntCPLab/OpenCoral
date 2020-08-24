@@ -14,11 +14,15 @@
 #include <map>
 
 class YaoGarbler;
+class YaoGarbleInput;
+class ProcessorBase;
 
 class YaoGarbleWire : public YaoWire
 {
 public:
 	typedef YaoGarbler Party;
+	typedef YaoGarbleInput Input;
+	typedef GC::Processor<GC::Secret<YaoGarbleWire>> Processor;
 
 	static string name() { return "YaoGarbleWire"; }
 
@@ -49,6 +53,8 @@ public:
 			map<string, Timer>& timers, bool repeat, YaoGarbler& garbler);
 
 	static void inputb(GC::Processor<GC::Secret<YaoGarbleWire>>& processor,
+			const vector<int>& args);
+	static void inputbvec(Processor& processor, ProcessorBase& input_processor,
 			const vector<int>& args);
 
 	static void convcbit(Integer& dest, const GC::Clear& source,
@@ -83,6 +89,25 @@ public:
 	void public_input(bool value);
 	void op(const YaoGarbleWire& left, const YaoGarbleWire& right, Function func);
 	char get_output();
+
+	template<class T>
+	void my_input(T&, bool value, int n_bits)
+	{
+		assert(n_bits == 1);
+		public_input(value);
+	}
+
+	template<class T>
+	void finalize_input(T& inputter, int from, int n_bits)
+	{
+		assert(n_bits == 1);
+		if (from == 1)
+		{
+			set(inputter.garbler.prng.get_doubleword(), 0);
+			assert(mask() == 0);
+			inputter.garbler.receiver_input_keys.back().push_back(full_key());
+		}
+	}
 };
 
 inline void YaoGarbleWire::randomize(PRNG& prng)

@@ -117,7 +117,7 @@ public:
 	Z2<K> operator-(const Z2<K>& other) const;
 
 	template <int L>
-	Z2<K+L> operator*(const Z2<L>& other) const;
+	Z2<(K > L) ? K : L> operator*(const Z2<L>& other) const;
 
 	Z2<K> operator*(bool other) const { return other ? *this : Z2<K>(); }
 	Z2<K> operator*(int other) const { return *this * Z2<K>(other); }
@@ -171,6 +171,7 @@ public:
 	void XOR(const Z2& a, const Z2& b);
 
 	void randomize(PRNG& G, int n = -1);
+	void randomize_part(PRNG& G, int n);
 	void almost_randomize(PRNG& G) { randomize(G); }
 
 	void force_to_bit() { throw runtime_error("impossible"); }
@@ -342,9 +343,9 @@ inline Z2<K> Z2<K>::Mul(const Z2<L>& x, const Z2<M>& y)
 
 template <int K>
 template <int L>
-inline Z2<K+L> Z2<K>::operator*(const Z2<L>& other) const
+inline Z2<(K > L) ? K : L> Z2<K>::operator*(const Z2<L>& other) const
 {
-	return Z2<K+L>::Mul(*this, other);
+	return Z2<(K > L) ? K : L>::Mul(*this, other);
 }
 
 template <int K>
@@ -385,6 +386,14 @@ void Z2<K>::randomize(PRNG& G, int n)
 	(void) n;
 	G.get_octets<N_BYTES>((octet*)a);
 	normalize();
+}
+
+template<int K>
+void Z2<K>::randomize_part(PRNG& G, int n)
+{
+	*this = {};
+	G.get_octets((octet*)a, DIV_CEIL(n, 8));
+	a[DIV_CEIL(n, 64) - 1] &= uint64_t(-1LL) >> (N_LIMB_BITS - 1 - (n - 1) % N_LIMB_BITS);
 }
 
 template<int K>

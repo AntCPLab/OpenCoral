@@ -152,6 +152,33 @@ T Shamir<T>::finalize(int n_relevant_players)
 }
 
 template<class T>
+void Shamir<T>::init_dotprod(SubProcessor<T>* proc)
+{
+    init_mul(proc);
+    dotprod_share = 0;
+}
+
+template<class T>
+void Shamir<T>::prepare_dotprod(const T& x, const T& y)
+{
+    dotprod_share += x * y * rec_factor;
+}
+
+template<class T>
+void Shamir<T>::next_dotprod()
+{
+    if (P.my_num() < n_mul_players)
+        resharing->add_mine(dotprod_share);
+    dotprod_share = 0;
+}
+
+template<class T>
+T Shamir<T>::finalize_dotprod(int)
+{
+    return finalize_mul();
+}
+
+template<class T>
 T Shamir<T>::get_random()
 {
     if (random.empty())

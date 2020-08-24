@@ -17,6 +17,7 @@
 #include "GC/Machine.h"
 
 #include "Tools/time-func.h"
+#include "Tools/ExecutionStats.h"
 
 #include <vector>
 #include <map>
@@ -44,9 +45,6 @@ class Machine : public BaseMachine
   // Keep record of used offline data
   DataPositions pos;
 
-  int tn,numt;
-  bool usage_unknown;
-
   void load_program(string threadname, string filename);
 
   public:
@@ -71,6 +69,7 @@ class Machine : public BaseMachine
   OnlineOptions opts;
 
   atomic<size_t> data_sent;
+  ExecutionStats stats;
 
   Machine(int my_number, Names& playerNames, string progname,
       string memtype, int lg2, bool direct, int opening_sum,
@@ -79,9 +78,12 @@ class Machine : public BaseMachine
 
   const Names& get_N() { return N; }
 
-  DataPositions run_tape(int thread_number, int tape_number, int arg,
-      int line_number, Preprocessing<sint>* prep = 0,
-      Preprocessing<typename sint::bit_type>* bit_prep = 0);
+  DataPositions run_tapes(const vector<int> &args, Preprocessing<sint> *prep,
+      Preprocessing<typename sint::bit_type> *bit_prep);
+  void fill_buffers(int thread_number, int tape_number,
+      Preprocessing<sint> *prep,
+      Preprocessing<typename sint::bit_type> *bit_prep);
+  DataPositions run_tape(int thread_number, int tape_number, int arg);
   DataPositions join_tape(int thread_number);
   void run();
 

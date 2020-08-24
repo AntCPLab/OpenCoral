@@ -9,15 +9,32 @@
 #include "Register.h"
 
 template<class T> class RealProgramParty;
+template<class T> class RealGarbleWire;
+
+template<class T>
+class GarbleInputter
+{
+public:
+	RealProgramParty<T>& party;
+
+	Bundle<octetStream> oss;
+	PointerVector<pair<RealGarbleWire<T>*, int>> tuples;
+
+	GarbleInputter();
+	void exchange();
+};
 
 template<class T>
 class RealGarbleWire : public PRFRegister
 {
 	friend class RealProgramParty<T>;
+	friend class GarbleInputter<T>;
 
 	T mask;
 
 public:
+	typedef GarbleInputter<T> Input;
+
 	static void store(NoMemory& dest,
 			const vector<GC::WriteAccess<GC::Secret<RealGarbleWire>>>& accesses);
 	static void load(vector<GC::ReadAccess<GC::Secret<RealGarbleWire>>>& accesses,
@@ -25,6 +42,11 @@ public:
 
 	static void convcbit(Integer& dest, const GC::Clear& source,
 	        GC::Processor<GC::Secret<RealGarbleWire>>& processor);
+
+	static void inputb(GC::Processor<GC::Secret<RealGarbleWire>>& processor,
+			const vector<int>& args);
+	static void inputbvec(GC::Processor<GC::Secret<RealGarbleWire>>& processor,
+			ProcessorBase& input_processor, const vector<int>& args);
 
 	RealGarbleWire(const Register& reg) : PRFRegister(reg) {}
 
@@ -37,6 +59,10 @@ public:
 	void public_input(bool value);
 	void random();
 	void output();
+
+	void my_input(Input& Inputter, bool value, int n_bits);
+	void other_input(Input& Inputter, int from);
+	void finalize_input(Input&, int from, int);
 };
 
 template<class T>

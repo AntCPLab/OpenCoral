@@ -58,6 +58,33 @@ Secret<T> Secret<T>::input(party_id_t from, const int128& input, int n_bits)
 }
 
 template<class T>
+template<class U>
+void GC::Secret<T>::my_input(U& inputter, BitVec value, int n_bits)
+{
+    resize_regs(n_bits);
+    for (int i = 0; i < n_bits; i++)
+        get_reg(i).my_input(inputter, value.get_bit(i), 1);
+}
+
+template<class T>
+template<class U>
+void GC::Secret<T>::other_input(U& inputter, int from, int n_bits)
+{
+    resize_regs(n_bits);
+    for (int i = 0; i < n_bits; i++)
+        get_reg(i).other_input(inputter, from);
+}
+
+template<class T>
+template<class U>
+void GC::Secret<T>::finalize_input(U& inputter, int from, int n_bits)
+{
+    resize_regs(n_bits);
+    for (int i = 0; i < n_bits; i++)
+        get_reg(i).finalize_input(inputter, from, 1);
+}
+
+template<class T>
 void Secret<T>::random(int n_bits, int128 share)
 {
     (void)share;

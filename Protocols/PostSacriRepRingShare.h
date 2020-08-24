@@ -25,6 +25,7 @@ public:
     typedef SignedZ2<K> clear;
     typedef MaliciousRep3Share<Z2<K + S>> prep_type;
     typedef Z2<S> random_type;
+    typedef MalRepRingShare<K + 2, S> SquareToBitShare;
 
     typedef PostSacrifice<PostSacriRepRingShare> Protocol;
     typedef HashMaliciousRepMC<PostSacriRepRingShare> MAC_Check;
@@ -52,6 +53,16 @@ public:
     template<class U>
     PostSacriRepRingShare(const U& other) : super(other)
     {
+    }
+
+    template<class U>
+    static void split(vector<U>& dest, const vector<int>& regs,
+            int n_bits, const super* source, int n_inputs, Player& P)
+    {
+        if (regs.size() / n_bits != 3)
+            throw runtime_error("only secure with three-way split");
+
+        super::split(dest, regs, n_bits, source, n_inputs, P);
     }
 };
 

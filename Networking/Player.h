@@ -247,6 +247,7 @@ public:
    *  - Assumes o[player_no] contains the thing broadcast by me
    */
   void Broadcast_Receive(vector<octetStream>& o,bool donthash=false) const;
+  void Broadcast_Receive_no_stats(vector<octetStream>& o) const;
 
   // wait for available inputs
   void wait_for_available(vector<int>& players, vector<int>& result) const;

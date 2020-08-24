@@ -10,8 +10,7 @@ void Program::compute_constants()
   for (int reg_type = 0; reg_type < MAX_REG_TYPE; reg_type++)
     {
       max_reg[reg_type] = 0;
-      for (int sec_type = 0; sec_type < MAX_SECRECY_TYPE; sec_type++)
-        max_mem[reg_type][sec_type] = 0;
+      max_mem[reg_type] = 0;
     }
   for (unsigned int i=0; i<p.size(); i++)
     {
@@ -21,13 +20,10 @@ void Program::compute_constants()
         {
           max_reg[reg_type] = max(max_reg[reg_type],
               p[i].get_max_reg(reg_type));
-          for (int sec_type = 0; sec_type < MAX_SECRECY_TYPE; sec_type++)
-            max_mem[reg_type][sec_type] = max(max_mem[reg_type][sec_type],
-                p[i].get_mem(RegType(reg_type), SecrecyType(sec_type)));
+          max_mem[reg_type] = max(max_mem[reg_type],
+              p[i].get_mem(RegType(reg_type)));
         }
     }
-
-  max_mem[INT][SECRET] = 0;
 }
 
 void Program::parse(istream& s)

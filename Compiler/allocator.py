@@ -12,6 +12,51 @@ import operator
 import sys
 from functools import reduce
 
+class BlockAllocator:
+    """ Manages freed memory blocks. """
+    def __init__(self):
+        self.by_logsize = [defaultdict(set) for i in range(32)]
+        self.by_address = {}
+
+    def by_size(self, size):
+        return self.by_logsize[int(math.log(size, 2))][size]
+
+    def push(self, address, size):
+        end = address + size
+        if end in self.by_address:
+            next_size = self.by_address.pop(end)
+            self.by_size(next_size).remove(end)
+            size += next_size
+        self.by_size(size).add(address)
+        self.by_address[address] = size
+
+    def pop(self, size):
+        if len(self.by_size(size)) > 0:
+            block_size = size
+        else:
+            logsize = int(math.log(size, 2))
+            for block_size, addresses in self.by_logsize[logsize].items():
+                if block_size >= size and len(addresses) > 0:
+                    break
+            else:
+                done = False
+                for x in self.by_logsize[logsize + 1:]:
+                    for block_size, addresses in x.items():
+                        if len(addresses) > 0:
+                            done = True
+                            break
+                    if done:
+                        break
+                else:
+                    block_size = 0
+        if block_size >= size:
+            addr = self.by_size(block_size).pop()
+            del self.by_address[addr]
+            diff = block_size - size
+            if diff:
+                self.by_size(diff).add(addr + size)
+                self.by_address[addr + size] = diff
+            return addr
 
 class StraightlineAllocator:
     """Allocate variables in a straightline program using n registers.
@@ -509,3 +554,47 @@ class Merger:
         for i in range(self.G.n):
             print('%d: %s' % (self.depths[i], self.instructions[i]), file=f)
         f.close()
+
+class RegintOptimizer:
+    def __init__(self):
+        self.cache = util.dict_by_id()
+
+    def run(self, instructions):
+        for i, inst in enumerate(instructions):
+            if isinstance(inst, ldint_class):
+                self.cache[inst.args[0]] = inst.args[1]
+            elif isinstance(inst, IntegerInstruction):
+                if inst.args[1] in self.cache and inst.args[2] in self.cache:
+                    res = inst.op(self.cache[inst.args[1]],
+                                  self.cache[inst.args[2]])
+                    if abs(res) < 2 ** 31:
+                        self.cache[inst.args[0]] = res
+                        instructions[i] = ldint(inst.args[0], res,
+                                                add_to_prog=False)
+                elif isinstance(inst, addint_class):
+                    if inst.args[1] in self.cache and \
+                       self.cache[inst.args[1]] == 0:
+                        instructions[i] = inst.args[0].link(inst.args[2])
+                    elif inst.args[2] in self.cache and \
+                       self.cache[inst.args[2]] == 0:
+                        instructions[i] = inst.args[0].link(inst.args[1])
+            elif isinstance(inst, IndirectMemoryInstruction):
+                if inst.args[1] in self.cache:
+                    instructions[i] = inst.get_direct(self.cache[inst.args[1]])
+            elif isinstance(inst, convint_class):
+                if inst.args[1] in self.cache:
+                    res = self.cache[inst.args[1]]
+                    self.cache[inst.args[0]] = res
+                    if abs(res) < 2 ** 31:
+                        instructions[i] = ldi(inst.args[0], res,
+                                              add_to_prog=False)
+            elif isinstance(inst, mulm_class):
+                if inst.args[2] in self.cache:
+                    op = self.cache[inst.args[2]]
+                    if op == 0:
+                        instructions[i] = ldsi(inst.args[0], 0,
+                                               add_to_prog=False)
+                    elif op == 1:
+                        instructions[i] = None
+                        inst.args[0].link(inst.args[1])
+        instructions[:] = filter(lambda x: x is not None, instructions)

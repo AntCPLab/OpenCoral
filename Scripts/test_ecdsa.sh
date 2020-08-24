@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+echo MY_CFLAGS += -DINSECURE >> CONFIG.mine
+touch ECDSA/Fake-ECDSA.cpp
+
 make -j4 ecdsa Fake-ECDSA.x secure.x
 
 run()

@@ -92,8 +92,8 @@ bool Proof::check_bounds(T& z, X& t, int i) const
   unsigned int j,k;
 
   // Check Bound 1 and Bound 2
-  AbsoluteBoundChecker<fixint<2>> plain_checker(plain_check * n_proofs);
-  AbsoluteBoundChecker<fixint<2>> rand_checker(rand_check * n_proofs);
+  AbsoluteBoundChecker<fixint<GFP_MOD_SZ>> plain_checker(plain_check * n_proofs);
+  AbsoluteBoundChecker<fixint<GFP_MOD_SZ>> rand_checker(rand_check * n_proofs);
   for (j=0; j<phim; j++)
     {
       auto& te = z[j];

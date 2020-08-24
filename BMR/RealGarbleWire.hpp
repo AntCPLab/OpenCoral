@@ -94,36 +94,81 @@ void RealGarbleWire<T>::XOR(const RealGarbleWire<T>& left, const RealGarbleWire<
 }
 
 template<class T>
-void RealGarbleWire<T>::input(party_id_t from, char input)
+void RealGarbleWire<T>::inputb(
+		GC::Processor<GC::Secret<RealGarbleWire>>& processor,
+		const vector<int>& args)
 {
-	PRFRegister::input(from, input);
-	auto& party = RealProgramParty<T>::s();
+	GarbleInputter<T> inputter;
+	processor.inputb(inputter, processor, args,
+			inputter.party.P->my_num());
+}
+
+template<class T>
+void RealGarbleWire<T>::inputbvec(
+		GC::Processor<GC::Secret<RealGarbleWire>>& processor,
+		ProcessorBase& input_processor, const vector<int>& args)
+{
+	GarbleInputter<T> inputter;
+	processor.inputbvec(inputter, input_processor, args,
+			inputter.party.P->my_num());
+}
+
+template<class T>
+GarbleInputter<T>::GarbleInputter() :
+		party(RealProgramParty<T>::s()), oss(*party.P)
+{
+}
+
+template<class T>
+void RealGarbleWire<T>::my_input(Input& inputter, bool, int n_bits)
+{
+	assert(n_bits == 1);
+	inputter.tuples.push_back({this, inputter.party.P->my_num()});
+}
+
+template<class T>
+void RealGarbleWire<T>::other_input(Input& inputter, int from)
+{
+	inputter.tuples.push_back({this, from});
+}
+
+template<class T>
+void GarbleInputter<T>::exchange()
+{
 	assert(party.shared_proc != 0);
 	auto& inputter = party.shared_proc->input;
-	inputter.reset(from - 1);
-	if (from == party.get_id())
+	inputter.reset_all(*party.P);
+	for (auto& tuple : tuples)
 	{
-		char my_mask;
-		my_mask = party.prng.get_bit();
-		party.input_masks.serialize(my_mask);
-		inputter.add_mine(my_mask);
-		inputter.send_mine();
-		mask = inputter.finalize_mine();
+		int from = tuple.second;
+		party_id_t from_id = from + 1;
+		tuple.first->PRFRegister::input(from_id, -1);
+		if (from_id == party.get_id())
+		{
+			char my_mask;
+			my_mask = party.prng.get_bit();
+			party.garble_input_masks.serialize(my_mask);
+			inputter.add_mine(my_mask);
 #ifdef DEBUG_MASK
-		cout << "my mask: " << (int)my_mask << endl;
+			cout << "my mask: " << (int)my_mask << endl;
 #endif
+		}
+		else
+		{
+			inputter.add_other(from);
+		}
 	}
-	else
-	{
-		inputter.add_other(from - 1);
-		octetStream os;
-		party.P->receive_player(from - 1, os, true);
-		inputter.finalize_other(from - 1, mask, os);
-	}
+
+	inputter.exchange();
+
+	for (auto& tuple : tuples)
+		tuple.first->mask = (inputter.finalize(tuple.second));
+
 	// important to make sure that mask is a bit
 	try
 	{
-		mask.force_to_bit();
+		for (auto& tuple : tuples)
+			tuple.first->mask.force_to_bit();
 	}
 	catch (not_implemented& e)
 	{
@@ -131,14 +176,34 @@ void RealGarbleWire<T>::input(party_id_t from, char input)
 		assert(party.MC != 0);
 		auto& protocol = party.shared_proc->protocol;
 		protocol.init_mul(party.shared_proc);
-		protocol.prepare_mul(mask, T::constant(1, party.P->my_num(), party.mac_key) - mask);
+		for (auto& tuple : tuples)
+			protocol.prepare_mul(tuple.first->mask,
+					T::constant(1, party.P->my_num(), party.mac_key)
+							- tuple.first->mask);
 		protocol.exchange();
-		if (party.MC->open(protocol.finalize_mul(), *party.P) != 0)
+		vector<T> to_check;
+		to_check.reserve(tuples.size());
+		for (size_t i = 0; i < tuples.size(); i++)
+		{
+			to_check.push_back(protocol.finalize_mul());
+		}
+		try
+		{
+			party.MC->CheckFor(0, to_check, *party.P);
+		}
+		catch (mac_fail&)
+		{
 			throw runtime_error("input mask not a bit");
+		}
 	}
 #ifdef DEBUG_MASK
 	cout << "shared mask: " << party.MC->POpen(mask, *party.P) << endl;
 #endif
+}
+
+template<class T>
+void RealGarbleWire<T>::finalize_input(GarbleInputter<T>&, int, int)
+{
 }
 
 template<class T>
@@ -169,7 +234,7 @@ void RealGarbleWire<T>::output()
 	assert(party.MC != 0);
 	assert(party.P != 0);
 	auto m = party.MC->open(mask, *party.P);
-	party.output_masks.push_back(m.get_bit(0));
+	party.garble_output_masks.push_back(m.get_bit(0));
 	party.taint();
 #ifdef DEBUG_MASK
 	cout << "output mask: " << m << endl;

@@ -52,6 +52,7 @@ run_player() {
     i=$last_player
     >&2 echo Running $prefix $SPDZROOT/$bin $last_player $params
     $prefix $SPDZROOT/$bin $last_player $params > $SPDZROOT/logs/$log_prefix$last_player 2>&1 || return 1
+    wait
 }
 
 sleep 0.5

@@ -71,6 +71,7 @@
 
 #define COMBI_INSTRUCTIONS BIT_INSTRUCTIONS \
     X(INPUTB, T::inputb(PROC, Proc, EXTRA)) \
+    X(INPUTBVEC, T::inputbvec(PROC, Proc, EXTRA)) \
     X(ANDM, processor.andm(instruction)) \
     X(CONVSINT, S0.load_clear(IMM, Proc.read_Ci(REG1))) \
     X(CONVCINT, C0 = Proc.read_Ci(REG1)) \
@@ -85,6 +86,7 @@
 
 #define GC_INSTRUCTIONS \
     X(INPUTB, T::inputb(PROC, EXTRA)) \
+    X(INPUTBVEC, T::inputbvec(PROC, PROC, EXTRA)) \
     X(LDMSD, PROC.load_dynamic_direct(EXTRA, MD)) \
     X(STMSD, PROC.store_dynamic_direct(EXTRA, MD)) \
     X(LDMSDI, PROC.load_dynamic_indirect(EXTRA, MD)) \
@@ -130,7 +132,7 @@
     X(PRINTINT, S0.out << I0) \
     X(STARTGRIND, CALLGRIND_START_INSTRUMENTATION) \
     X(STOPGRIND, CALLGRIND_STOP_INSTRUMENTATION) \
-    X(RUN_TAPE, MACH->run_tape(R0, IMM, REG1)) \
+    X(RUN_TAPE, MACH->run_tapes(EXTRA)) \
     X(JOIN_TAPE, MACH->join_tape(R0)) \
     X(USE, ) \
 

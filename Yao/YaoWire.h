@@ -25,6 +25,9 @@ public:
 	{
 		key_ = left.key_ ^ right.key_;
 	}
+
+	template<class T>
+	void other_input(T&, int) {}
 };
 
 #endif /* YAO_YAOWIRE_H_ */

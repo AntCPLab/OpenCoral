@@ -20,6 +20,13 @@ class ShareInterface
 {
 public:
     typedef GC::NoShare part_type;
+    typedef GC::NoShare bit_type;
+
+    static const bool needs_ot = false;
+    static const bool expensive = false;
+    static const bool expensive_triples = false;
+
+    static string type_short() { return "undef"; }
 
     template<class T, class U>
     static void split(vector<U>, vector<int>, int, T*, int, Player&)
@@ -29,6 +36,9 @@ public:
 
     template<class T>
     static void read_or_generate_mac_key(const string&, const Names&, T&) {}
+
+    template<class T, class U>
+    static void generate_mac_key(T&, U&) {}
 };
 
 #endif /* PROTOCOLS_SHAREINTERFACE_H_ */

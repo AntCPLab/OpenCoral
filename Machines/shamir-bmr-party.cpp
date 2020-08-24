@@ -3,9 +3,8 @@
  *
  */
 
-#include "Machines/ShamirMachine.hpp"
-
 #include "BMR/RealProgramParty.hpp"
+#include "Machines/ShamirMachine.hpp"
 #include "Math/Z2k.hpp"
 
 int main(int argc, const char** argv)

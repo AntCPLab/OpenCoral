@@ -79,7 +79,10 @@ def LTZ(s, a, k, kappa):
     from .types import sint, _bitint
     from .GC.types import sbitvec
     if program.use_split():
-        movs(s, sint.conv(sbitvec(a, k).v[-1]))
+        summands = a.split_to_two_summands(k)
+        carry = CarryOutRawLE(*reversed(list(x[:-1] for x in summands)))
+        msb = carry ^ summands[0][-1] ^ summands[1][-1]
+        movs(s, sint.conv(msb))
         return
     elif program.options.ring:
         from . import floatingpoint
@@ -132,9 +135,31 @@ def Trunc(d, a, k, m, kappa, signed):
     mulm(d, t, c[2])
 
 def TruncRing(d, a, k, m, signed):
-    a_prime = Mod2mRing(None, a, k, m, signed)
-    a -= a_prime
-    res = TruncLeakyInRing(a, k, m, signed)
+    if program.use_split() == 3:
+        from Compiler.types import sint
+        from .GC.types import sbitint
+        length = int(program.options.ring)
+        summands = a.split_to_n_summands(length, 3)
+        x = sbitint.wallace_tree_without_finish(summands, True)
+        if m == 1:
+            low = x[1][1]
+            high = sint.conv(CarryOutLE(x[1][:-1], x[0][:-1])) + \
+                   sint.conv(x[0][-1])
+        else:
+            mid_carry = CarryOutRawLE(x[1][:m], x[0][:m])
+            low = sint.conv(mid_carry) + sint.conv(x[0][m])
+            tmp = util.tree_reduce(carry, (sbitint.half_adder(xx, yy)
+                                           for xx, yy in zip(x[1][m:-1],
+                                                             x[0][m:-1])))
+            top_carry = sint.conv(carry([None, mid_carry], tmp, False)[1])
+            high = top_carry + sint.conv(x[0][-1])
+        shifted = sint()
+        shrsi(shifted, a, m)
+        res = shifted + sint.conv(low) - (high << (length - m))
+    else:
+        a_prime = Mod2mRing(None, a, k, m, signed)
+        a -= a_prime
+        res = TruncLeakyInRing(a, k, m, signed)
     if d is not None:
         movs(d, res)
     return res
@@ -281,7 +306,7 @@ def PRandM(r_dprime, r_prime, b, k, m, kappa, use_dabit=True):
     """
     program.curr_tape.require_bit_length(k + kappa)
     from .types import sint
-    if program.use_edabit() and m > 1:
+    if program.use_edabit() and m > 1 and not const_rounds:
         movs(r_dprime, sint.get_edabit(k + kappa - m, True)[0])
         tmp, b[:] = sint.get_edabit(m, True)
         movs(r_prime, tmp)
@@ -290,7 +315,7 @@ def PRandM(r_dprime, r_prime, b, k, m, kappa, use_dabit=True):
     t[0][1] = b[-1]
     PRandInt(r_dprime, k + kappa - m)
     # r_dprime is always multiplied by 2^m
-    if use_dabit and program.use_dabit and m > 1:
+    if use_dabit and program.use_dabit and m > 1 and not const_rounds:
         r, b[:] = zip(*(sint.get_dabit() for i in range(m)))
         r = sint.bit_compose(r)
         movs(r_prime, r)
@@ -383,7 +408,7 @@ def BitLTC1(u, a, b, kappa):
     Mod2(u, t[4][k-1], k, kappa, False)
     return p, a_bits, d, s, t, c, b, pre_input
 
-def carry(b, a, compute_p):
+def carry(b, a, compute_p=True):
     """ Carry propogation:
         return (p,g) = (p_2, g_2)o(p_1, g_1) -> (p_1 & p_2, g_2 | (p_2 & g_1))
     """

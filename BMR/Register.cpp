@@ -601,37 +601,64 @@ void EvalRegister::input_helper(char value, octetStream& os)
 	os.serialize(get_external());
 }
 
-void EvalRegister::input(party_id_t from, char value)
+EvalInputter::EvalInputter() :
+		party(ProgramParty::s()), oss(*party.P)
 {
-	auto& party = ProgramParty::s();
+}
+
+void EvalRegister::my_input(EvalInputter& inputter, bool input, int n_bits)
+{
+	assert(n_bits == 1);
+	auto& party = inputter.party;
 	party.load_wire(*this);
-	octetStream os;
-	if (from == party.get_id())
-	{
-		if (value and (1 - value))
-			throw runtime_error("invalid input");
-		input_helper(value, os);
-		party.P->send_all(os, true);
-	}
-	else
-	{
-		party.P->receive_player(from - 1, os);
-		char ext;
-		os.unserialize(ext);
-		set_external(ext);            
-	}
-	vector<octetStream> oss(party.get_n_parties());
-	size_t id = party.get_id() - 1;
-	oss[id].serialize(garbled_entry[id]);
-#ifdef DEBUG_COMM
-	cout << "send " << garbled_entry[id] << ", "
-			<< oss[id].get_length() << " bytes from " << id << endl;
-#endif
+	input_helper(input, inputter.oss.mine);
+	inputter.tuples.push_back({this, party.P->my_num()});
+}
+
+void EvalRegister::other_input(EvalInputter& inputter, int from)
+{
+	auto& party = inputter.party;
+	party.load_wire(*this);
+	inputter.tuples.push_back({this, from});
+}
+
+void EvalInputter::exchange()
+{
 	party.P->Broadcast_Receive(oss, true);
+	for (auto& tuple : tuples)
+	{
+		if (tuple.from != party.P->my_num())
+		{
+			char ext;
+			oss[tuple.from].unserialize(ext);
+			tuple.reg->set_external(ext);
+		}
+	}
+
+	size_t id = party.get_id() - 1;
+	for (auto& os : oss)
+		os.reset_write_head();
+
+	for (auto& tuple : tuples)
+	{
+		oss[id].serialize(tuple.reg->get_garbled_entry()[id]);
+#ifdef DEBUG_COMM
+		cout << "send " << garbled_entry[id] << ", "
+				<< oss[id].get_length() << " bytes from " << id << endl;
+#endif
+	}
+
+	party.P->Broadcast_Receive(oss, true);
+}
+
+void EvalRegister::finalize_input(EvalInputter& inputter, int, int)
+{
+	auto& party = inputter.party;
+	size_t id = party.get_id() - 1;
 	for (size_t i = 0; i < (size_t)party.get_n_parties(); i++)
 	{
 		if (i != id)
-			oss[i].unserialize(garbled_entry[i]);
+			inputter.oss[i].unserialize(garbled_entry[i]);
 	}
 	keys[external] = garbled_entry;
 #ifdef DEBUG
@@ -934,4 +961,4 @@ void KeyTuple<I>::print(int wire_id, party_id_t pid)
 }
 
 template class KeyTuple<2>;
-template class KeyTuple<4>;
+template class KeyTuple<4> ;

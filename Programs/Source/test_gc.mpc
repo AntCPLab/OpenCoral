@@ -97,3 +97,6 @@ test(c[0], 0)
 test(c[1], 1)
 test(c[2], 1)
 test(c[3], 0)
+
+test(sbit(sbits(3)), 1)
+test(sbits(sbit(1)), 1)

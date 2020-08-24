@@ -1,5 +1,14 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.1.9 (Aug 24, 2020)
+
+- Streamline inputs to binary circuits
+- Improved private output
+- Emulator for arithmetic circuits
+- Efficient dot product with Shamir's secret sharing
+- Lower memory usage for TensorFlow inference
+- This version breaks bytecode compatibilty.
+
 ## 0.1.8 (June 15, 2020)
 
 - Half-gate garbling

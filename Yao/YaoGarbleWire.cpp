@@ -6,16 +6,21 @@
 #include "YaoGarbleWire.h"
 #include "YaoGate.h"
 #include "YaoGarbler.h"
+#include "YaoGarbleInput.h"
 #include "GC/ArgTuples.h"
 
 #include "GC/Processor.hpp"
 #include "GC/Secret.hpp"
 #include "GC/Thread.hpp"
+#include "GC/ShareSecret.hpp"
 #include "YaoCommon.hpp"
 
 void YaoGarbleWire::random()
 {
-	key_ = YaoGarbler::s().prng.get_bit();
+	if (YaoGarbler::s().prng.get_bit())
+		key_ = YaoGarbler::s().get_delta();
+	else
+		key_ = 0;
 }
 
 void YaoGarbleWire::public_input(bool value)
@@ -154,46 +159,17 @@ void YaoGarbleWire::and_(GC::Memory<GC::Secret<YaoGarbleWire> >& S,
 void YaoGarbleWire::inputb(GC::Processor<GC::Secret<YaoGarbleWire>>& processor,
         const vector<int>& args)
 {
-	InputArgList a(args);
-	int n_evaluator_bits = 0;
 	auto& garbler = YaoGarbler::s();
-	bool interactive = garbler.n_interactive_inputs_from_me(a) > 0;
-	for (auto x : a)
-	{
-		auto& dest = processor.S[x.dest];
-		dest.resize_regs(x.n_bits);
-		if (x.from == 0)
-		{
-			long long input = processor.get_input(x.params, interactive);
-			for (auto& reg : dest.get_regs())
-			{
-				reg.public_input(input & 1);
-				input >>= 1;
-			}
-		}
-		else
-		{
-			n_evaluator_bits += x.n_bits;
-		}
-	}
+	YaoGarbleInput input;
+	processor.inputb(input, processor, args, garbler.P->my_num());
+}
 
-	if (interactive)
-	    cout << "Thank you";
-
-	garbler.receiver_input_keys.push_back({});
-
-	for (auto x : a)
-	{
-		if (x.from == 1)
-		{
-			for (auto& reg : processor.S[x.dest].get_regs())
-			{
-				reg.set(garbler.prng.get_doubleword(), 0);
-				assert(reg.mask() == 0);
-				garbler.receiver_input_keys.back().push_back(reg.full_key());
-			}
-		}
-	}
+void YaoGarbleWire::inputbvec(GC::Processor<GC::Secret<YaoGarbleWire>>& processor,
+        ProcessorBase& input_processor, const vector<int>& args)
+{
+    auto& garbler = YaoGarbler::s();
+    YaoGarbleInput input;
+    processor.inputbvec(input, input_processor, args, garbler.P->my_num());
 }
 
 inline void YaoGarbler::store_gate(const YaoGate& gate)

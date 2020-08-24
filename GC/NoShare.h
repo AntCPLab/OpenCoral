@@ -6,15 +6,23 @@
 #ifndef GC_NOSHARE_H_
 #define GC_NOSHARE_H_
 
-#include "BMR/Register.h"
 #include "Processor/DummyProtocol.h"
+#include "Tools/SwitchableOutput.h"
+
+class InputArgs;
+class ArithmeticProcessor;
 
 namespace GC
 {
 
+template<class T> class Processor;
+class Clear;
+
 class NoValue : public ValueInterface
 {
 public:
+    typedef NoValue Scalar;
+
     const static int n_bits = 0;
     const static int MAX_N_BITS = 0;
 
@@ -24,6 +32,11 @@ public:
     }
 
     static int size()
+    {
+        return 0;
+    }
+
+    static int length()
     {
         return 0;
     }
@@ -43,9 +56,13 @@ public:
     int operator<<(int) const { fail(); return 0; }
     void operator+=(int) { fail(); }
 
+    bool operator!=(NoValue) const { fail(); return 0; }
+
     bool get_bit(int) { fail(); return 0; }
 
     void randomize(PRNG&) { fail(); }
+
+    void invert() { fail(); }
 };
 
 inline ostream& operator<<(ostream& o, NoValue)
@@ -53,18 +70,11 @@ inline ostream& operator<<(ostream& o, NoValue)
     return o;
 }
 
-template<class T>
-inline bool operator!=(const T&, NoValue&)
-{
-    NoValue::fail();
-    return true;
-}
-
-class NoShare : public Phase
+class NoShare
 {
 public:
     typedef DummyMC<NoShare> MC;
-    typedef DummyProtocol Protocol;
+    typedef DummyProtocol<NoShare> Protocol;
     typedef NotImplementedInput<NoShare> Input;
     typedef DummyLivePrep<NoShare> LivePrep;
     typedef DummyMC<NoShare> MAC_Check;
@@ -82,6 +92,8 @@ public:
     static const bool needs_ot = false;
     static const bool expensive_triples = false;
     static const bool is_real = false;
+
+    static SwitchableOutput out;
 
     static MC* new_mc(mac_key_type)
     {
@@ -118,13 +130,16 @@ public:
         NoValue::fail();
     }
 
-    static void inputb(Processor<NoShare>&, const vector<int>&) { fail(); }
+    static void inputb(Processor<NoShare>&, ArithmeticProcessor&, const vector<int>&) { fail(); }
     static void reveal_inst(Processor<NoShare>&, const vector<int>&) { fail(); }
+    static void xors(Processor<NoShare>&, const vector<int>&) { fail(); }
+    static void ands(Processor<NoShare>&, const vector<int>&) { fail(); }
+    static void andrs(Processor<NoShare>&, const vector<int>&) { fail(); }
 
     static void input(Processor<NoShare>&, InputArgs&) { fail(); }
     static void trans(Processor<NoShare>&, Integer, const vector<int>&) { fail(); }
 
-    static NoShare constant(GC::Clear, int, mac_key_type) { fail(); return {}; }
+    static NoShare constant(const GC::Clear&, int, mac_key_type) { fail(); return {}; }
 
     NoShare() {}
 
@@ -146,6 +161,8 @@ public:
     void operator^=(NoShare) { fail(); }
 
     NoShare operator+(const NoShare&) const { fail(); return {}; }
+    NoShare operator-(NoShare) const { fail(); return 0; }
+    NoShare operator*(NoValue) const { fail(); return 0; }
 
     NoShare operator+(int) const { fail(); return {}; }
     NoShare operator&(int) const { fail(); return {}; }
@@ -153,6 +170,8 @@ public:
 
     NoShare lsb() const { fail(); return {}; }
     NoShare get_bit(int) const { fail(); return {}; }
+
+    void invert(int, NoShare) { fail(); }
 };
 
 } /* namespace GC */

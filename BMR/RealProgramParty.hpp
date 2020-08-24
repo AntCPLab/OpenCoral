@@ -44,10 +44,20 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 			"-N", // Flag token.
 			"--nparties" // Flag token.
 	);
+	opt.add(
+			"", // Default.
+			0, // Required?
+			0, // Number of args expected.
+			0, // Delimiter if expecting multiple args.
+			"Evaluate only after garbling.", // Help description.
+			"-O", // Flag token.
+			"--oneshot" // Flag token.
+	);
 	opt.parse(argc, argv);
 	int nparties;
 	opt.get("-N")->getInt(nparties);
 	this->check(nparties);
+	one_shot = opt.isSet("-O");
 
 	NetworkOptions network_opts(opt, argc, argv);
 	OnlineOptions& online_opts = OnlineOptions::singleton;
@@ -90,7 +100,7 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 		mac_key.randomize(prng);
 		if (T::needs_ot)
 			BaseMachine::s().ot_setups.push_back({*P, true});
-		prep = Preprocessing<T>::get_live_prep(0, usage);
+		prep = new typename T::TriplePrep(0, usage);
 	}
 	else
 	{
@@ -122,6 +132,7 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	for (int i = 0; i < SPDZ_OP_N; i++)
 		this->spdz_wires[i].push_back({});
 
+	this->timer.reset();
 	do
 	{
 		next = GC::TIME_BREAK;
@@ -129,7 +140,14 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 		try
 		{
 			this->online_timer.start();
-			this->start_online_round();
+			if (one_shot)
+				this->start_online_round();
+			else
+			{
+				this->load_garbled_circuit();
+				next = this->second_phase(program, this->processor,
+						this->machine, this->dynamic_memory);
+			}
 			this->online_timer.stop();
 		}
 		catch (needs_cleaning& e)
@@ -139,6 +157,7 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	while (next != GC::DONE_BREAK);
 
 	MC->Check(*P);
+	data_sent = P->comm_stats.total_data() + prep->data_sent();
 
 	if (server)
 		delete server;
@@ -152,7 +171,7 @@ void RealProgramParty<T>::garble()
 	auto& program = this->program;
 	auto& MC = this->MC;
 
-	while (next == GC::TIME_BREAK)
+	do
 	{
 		garble_jobs.clear();
 		garble_inputter->reset_all(*P);
@@ -178,13 +197,15 @@ void RealProgramParty<T>::garble()
 		vector<typename T::clear> opened;
 		MC->POpen(opened, wires, *P);
 
+		LocalBuffer garbled_circuit;
 		for (auto& x : opened)
-			this->garbled_circuit.serialize(x);
+			garbled_circuit.serialize(x);
 
-		this->garbled_circuits.push_and_clear(this->garbled_circuit);
-		this->input_masks_store.push_and_clear(this->input_masks);
-		this->output_masks_store.push_and_clear(this->output_masks);
+		this->garbled_circuits.push_and_clear(garbled_circuit);
+		this->input_masks_store.push_and_clear(garble_input_masks);
+		this->output_masks_store.push_and_clear(garble_output_masks);
 	}
+	while (one_shot and next == GC::TIME_BREAK);
 }
 
 template<class T>
@@ -194,6 +215,7 @@ RealProgramParty<T>::~RealProgramParty()
 	delete prep;
 	delete garble_inputter;
 	delete garble_protocol;
+	cout << "Data sent = " << data_sent * 1e-6 << " MB" << endl;
 }
 
 template<class T>

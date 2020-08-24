@@ -19,7 +19,7 @@
 template<class T>
 OTPrep<T>::OTPrep(SubProcessor<T>* proc, DataPositions& usage) :
         BufferPrep<T>(usage), BitPrep<T>(proc, usage),
-        RingPrep<T>(proc, usage), triple_generator(0)
+        triple_generator(0)
 {
 }
 
@@ -33,7 +33,7 @@ OTPrep<T>::~OTPrep()
 template<class T>
 void OTPrep<T>::set_protocol(typename T::Protocol& protocol)
 {
-    RingPrep<T>::set_protocol(protocol);
+    BitPrep<T>::set_protocol(protocol);
     SubProcessor<T>* proc = this->proc;
     assert(proc != 0);
     triple_generator = new typename T::TripleGenerator(
@@ -45,7 +45,7 @@ void OTPrep<T>::set_protocol(typename T::Protocol& protocol)
 }
 
 template<class T>
-void MascotPrep<T>::buffer_triples()
+void MascotTriplePrep<T>::buffer_triples()
 {
 #ifdef INSECURE
 #ifdef FAKE_MASCOT_TRIPLES
@@ -100,7 +100,7 @@ void MascotPrep<T>::buffer_dabits(ThreadQueues* queues)
 }
 
 template<class T>
-void MascotPrep<T>::buffer_inputs(int player)
+void MascotTriplePrep<T>::buffer_inputs(int player)
 {
     auto& triple_generator = this->triple_generator;
     assert(triple_generator);
@@ -112,7 +112,7 @@ void MascotPrep<T>::buffer_inputs(int player)
 }
 
 template<class T>
-T MascotPrep<T>::get_random()
+T MascotTriplePrep<T>::get_random()
 {
     assert(this->proc);
     return BufferPrep<T>::get_random_from_inputs(this->proc->P.num_players());
@@ -135,7 +135,7 @@ T BufferPrep<T>::get_random_from_inputs(int nplayers)
 template<class T>
 size_t OTPrep<T>::data_sent()
 {
-    size_t res = RingPrep<T>::data_sent();
+    size_t res = BitPrep<T>::data_sent();
     if (triple_generator)
         res += triple_generator->data_sent();
     return res;

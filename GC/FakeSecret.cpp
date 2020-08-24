@@ -12,9 +12,8 @@
 namespace GC
 {
 
-int FakeSecret::default_length = 128;
-
-ostream& FakeSecret::out = cout;
+SwitchableOutput FakeSecret::out;
+const int FakeSecret::default_length;
 
 void FakeSecret::load_clear(int n, const Integer& x)
 {
@@ -60,11 +59,8 @@ void FakeSecret::store_clear_in_dynamic(Memory<DynamicType>& mem,
 void FakeSecret::ands(Processor<FakeSecret>& processor,
         const vector<int>& regs)
 {
-	processor.check_args(regs, 4);
-	for (size_t i = 0; i < regs.size(); i += 4)
-		processor.S[regs[i + 1]] = processor.S[regs[i + 2]].a & processor.S[regs[i + 3]].a;
+	processor.ands(regs);
 }
-
 
 void FakeSecret::trans(Processor<FakeSecret>& processor, int n_outputs,
         const vector<int>& args)
@@ -82,15 +78,13 @@ FakeSecret FakeSecret::input(GC::Processor<FakeSecret>& processor, const InputAr
 	return input(args.from, processor.get_input(args.params), args.n_bits);
 }
 
-FakeSecret FakeSecret::input(int from, const int128& input, int n_bits)
+FakeSecret FakeSecret::input(int from, word input, int n_bits)
 {
 	(void)from;
 	(void)n_bits;
-	FakeSecret res;
-	res.a = ((__uint128_t)input.get_upper() << 64) + input.get_lower();
-	if (res.a > ((__uint128_t)1 << n_bits))
+	if (n_bits < 64 and input > word(1) << n_bits)
 		throw out_of_range("input too large");
-	return res;
+	return input;
 }
 
 void FakeSecret::and_(int n, const FakeSecret& x, const FakeSecret& y,
@@ -99,7 +93,7 @@ void FakeSecret::and_(int n, const FakeSecret& x, const FakeSecret& y,
 	if (repeat)
 		return andrs(n, x, y);
 	else
-		throw runtime_error("call static FakeSecret::ands()");
+		*this = BitVec(x & y).mask(n);
 }
 
 } /* namespace GC */

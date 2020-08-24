@@ -37,6 +37,7 @@ opcodes = dict(
     STMSBI = 0x243,
     MOVSB = 0x244,
     INPUTB = 0x246,
+    INPUTBVEC = 0x247,
     SPLIT = 0x248,
     CONVCBIT2S = 0x249,
     XORCBI = 0x210,
@@ -268,6 +269,24 @@ class inputb(base.DoNotEliminateInstruction, base.VarArgsInstruction):
     code = opcodes['INPUTB']
     arg_format = tools.cycle(['p','int','int','sbw'])
     is_vec = lambda self: True
+
+class inputbvec(base.DoNotEliminateInstruction, base.VarArgsInstruction,
+                base.Mergeable):
+    __slots__ = []
+    code = opcodes['INPUTBVEC']
+
+    def __init__(self, *args, **kwargs):
+        self.arg_format = []
+        i = 0
+        while i < len(args):
+            self.arg_format += ['int', 'int', 'p'] + ['sbw'] * (args[i]  - 3)
+            i += args[i]
+        assert i == len(args)
+        super(inputbvec, self).__init__(*args, **kwargs)
+
+    def merge(self, other):
+        self.args += other.args
+        self.arg_format += other.arg_format
 
 class print_regb(base.VectorInstruction, base.IOInstruction):
     code = opcodes['PRINTREGB']

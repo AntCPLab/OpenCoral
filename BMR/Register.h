@@ -20,6 +20,8 @@ using namespace std;
 #include "GC/ArgTuples.h"
 #include "Math/gf2n.h"
 #include "Tools/FlexBuffer.h"
+#include "Tools/PointerVector.h"
+#include "Tools/Bundle.h"
 
 //#define PAD_TO_8(n) (n+8-n%8)
 #define PAD_TO_8(n) (n)
@@ -201,6 +203,8 @@ public:
 inline BlackHole& endl(BlackHole& b) { return b; }
 inline BlackHole& flush(BlackHole& b) { return b; }
 
+class ProcessorBase;
+
 class Phase
 {
 public:
@@ -208,6 +212,8 @@ public:
 
 	typedef BlackHole out_type;
 	static BlackHole out;
+
+	static const bool actual_inputs = true;
 
 	template <class T>
 	static void store_clear_in_dynamic(T& mem, const vector<GC::ClearWriteAccess>& accesses)
@@ -231,6 +237,9 @@ public:
 	template <class T>
 	static void inputb(T& processor, const vector<int>& args) { processor.input(args); }
 	template <class T>
+	static void inputbvec(T&, ProcessorBase&, const vector<int>&)
+	{ throw not_implemented(); }
+	template <class T>
 	static T get_input(int from, GC::Processor<T>& processor, int n_bits)
 	{ return T::input(from, processor.get_input(n_bits), n_bits); }
 
@@ -244,9 +253,24 @@ public:
 	void output() {}
 };
 
+class NoOpInputter
+{
+public:
+	PointerVector<char> inputs;
+
+	void exchange()
+	{
+	}
+};
+
 class ProgramRegister : public Phase, public Register
 {
 public:
+	typedef NoOpInputter Input;
+
+	// only true for evaluation
+	static const bool actual_inputs = false;
+
 	static Register new_reg();
 	static Register tmp_reg() { return new_reg(); }
 	static Register and_reg() { return new_reg(); }
@@ -255,10 +279,17 @@ public:
 	static void store(NoMemory& dest,
 			const vector<GC::WriteAccess<T> >& accesses) { (void)dest; (void)accesses; }
 
+	template <class T>
+	static void inputbvec(T& processor, ProcessorBase& input_processor,
+			const vector<int>& args);
+
 	// most BMR phases don't need actual input
 	template<class T>
 	static T get_input(GC::Processor<T>& processor, const InputArgs& args)
 	{ (void)processor; return T::input(args.from + 1, 0, args.n_bits); }
+
+	void my_input(Input&, bool, int) {}
+	void other_input(Input&, int) {}
 
 	char get_output() { return 0; }
 
@@ -282,6 +313,37 @@ public:
 	void public_input(bool value);
 	void random();
 	void output();
+
+	void finalize_input(NoOpInputter&, int from, int)
+	{ input(from + 1, -1); }
+};
+
+class ProgramParty;
+class EvalRegister;
+
+class EvalInputter
+{
+	class Tuple
+	{
+	public:
+		EvalRegister* reg;
+		int from;
+
+		Tuple(EvalRegister* reg, int from) :
+				reg(reg), from(from)
+		{
+		}
+	};
+
+public:
+	ProgramParty& party;
+
+	Bundle<octetStream> oss;
+	vector<Tuple> tuples;
+
+	EvalInputter();
+	void add_other(int from);
+	void exchange();
 };
 
 class EvalRegister : public ProgramRegister
@@ -289,8 +351,12 @@ class EvalRegister : public ProgramRegister
 public:
     static string name() { return "Evaluation"; }
 
+    typedef EvalInputter Input;
+
     typedef ostream& out_type;
     static ostream& out;
+
+	static const bool actual_inputs = true;
 
     template<class T, class U>
     static void store(GC::Memory<U>& dest,
@@ -303,6 +369,9 @@ public:
 	static void andrs(T& processor, const vector<int>& args);
 	template <class T>
 	static void inputb(T& processor, const vector<int>& args);
+	template <class T>
+	static void inputbvec(T& processor, ProcessorBase& input_processor,
+			const vector<int>& args);
 
 	template <class T>
 	static T get_input(GC::Processor<T>& processor, const InputArgs& args)
@@ -330,6 +399,10 @@ public:
 	static void check_input(long long input, int n_bits);
 	void input(party_id_t from, char value = -1);
 	void input_helper(char value, octetStream& os);
+
+	void my_input(EvalInputter& inputter, bool input, int);
+	void other_input(EvalInputter& inputter, int from);
+	void finalize_input(EvalInputter& inputter, int from, int);
 };
 
 class GarbleRegister : public ProgramRegister
@@ -349,6 +422,9 @@ public:
 	void public_input(bool value);
 	void random();
 	void output() {}
+
+	void finalize_input(NoOpInputter&, int from, int)
+	{ input(from + 1, -1); }
 };
 
 class RandomRegister : public ProgramRegister
@@ -374,6 +450,9 @@ public:
 	void public_input(bool value);
 	void random();
 	void output();
+
+	void finalize_input(NoOpInputter&, int from, int)
+	{ input(from + 1, -1); }
 };
 
 

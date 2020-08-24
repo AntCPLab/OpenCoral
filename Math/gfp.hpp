@@ -193,7 +193,8 @@ void gfp_<X, L>::reqbl(int n)
 {
   if ((int)n > 0 && pr() < bigint(1) << (n-1))
     {
-      cout << "Tape requires prime of bit length " << n << endl;
+      cerr << "Tape requires prime of bit length " << n << endl;
+      cerr << "Run with '-lgp " << n << "'" << endl;
       throw invalid_params();
     }
   else if ((int)n < 0)

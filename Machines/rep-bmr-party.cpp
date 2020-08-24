@@ -3,9 +3,8 @@
  *
  */
 
-#include "Machines/Rep.hpp"
-
 #include "BMR/RealProgramParty.hpp"
+#include "Machines/Rep.hpp"
 
 int main(int argc, const char** argv)
 {

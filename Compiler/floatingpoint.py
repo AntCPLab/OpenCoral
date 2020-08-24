@@ -104,11 +104,15 @@ def PreORC(a, kappa=None, m=None, raw=False):
     k = len(a)
     if k == 1:
         return [a[0]]
+    prog = program.Program.prog
+    kappa = kappa or prog.security
     m = m or k
     if isinstance(a[0], types.sgf2n):
         max_k = program.Program.prog.galois_length - 1
     else:
-        max_k = int(log(program.Program.prog.P) / log(2)) - kappa
+        # assume prime length is power of two
+        prime_length = 2 ** int(ceil(log(prog.bit_length + kappa, 2)))
+        max_k = prime_length - kappa - 2
     assert(max_k > 0)
     if k <= max_k:
         p = [None] * m
@@ -132,7 +136,8 @@ def PreORC(a, kappa=None, m=None, raw=False):
         # not constant-round anymore
         s = [PreORC(a[i:i+max_k], kappa, raw=raw) for i in range(0,k,max_k)]
         t = PreORC([si[-1] for si in s[:-1]], kappa, raw=raw)
-        return sum(([or_op(x, y) for x in si] for si,y in zip(s[1:],t)), s[0])
+        return sum(([or_op(x, y) for x in si]
+                    for si,y in zip(s[1:],t)), s[0])[-m:]
 
 def PreOpL(op, items):
     """
@@ -549,9 +554,10 @@ def TruncPrRing(a, k, m, signed=True):
             trunc_pr(res, a, k, m)
         else:
             # extra bit to mask overflow
-            if program.Program.prog.use_edabit():
-                lower = sint.get_edabit(m, True)[0]
-                upper = sint.get_edabit(k - m, True)[0]
+            prog = program.Program.prog
+            if prog.use_edabit() or prog.use_split() == 3:
+                lower = sint.get_random_int(m)
+                upper = sint.get_random_int(k - m)
                 msb = sint.get_random_bit()
                 r = (msb << k) + (upper << m) + lower
             else:

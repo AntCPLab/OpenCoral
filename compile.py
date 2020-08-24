@@ -26,8 +26,6 @@ def main():
                       help="specify output file")
     parser.add_option("-a", "--asm-output", dest="asmoutfile",
                       help="asm output file for debugging")
-    parser.add_option("-p", "--primesize", dest="param", default=-1,
-                      help="bit length of modulus")
     parser.add_option("-g", "--galoissize", dest="galois", default=40,
                       help="bit length of Galois field")
     parser.add_option("-d", "--debug", action="store_true", dest="debug",
@@ -81,7 +79,7 @@ def main():
         print('Note that -O/--optimize-hard currently has no effect')
 
     def compilation():
-        prog = Compiler.run(args, options, param=int(options.param),
+        prog = Compiler.run(args, options,
                             merge_opens=options.merge_opens,
                             debug=options.debug)
         prog.write_bytes(options.outfile)

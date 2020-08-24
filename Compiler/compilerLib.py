@@ -9,14 +9,14 @@ import time
 import sys
 
 
-def run(args, options, param=-1, merge_opens=True,
+def run(args, options, merge_opens=True,
             reallocate=True, debug=False):
     """ Compile a file and output a Program object.
     
     If merge_opens is set to True, will attempt to merge any parallelisable open
     instructions. """
     
-    prog = Program(args, options, param)
+    prog = Program(args, options)
     instructions.program = prog
     instructions_base.program = prog
     types.program = prog
@@ -24,7 +24,7 @@ def run(args, options, param=-1, merge_opens=True,
     prog.DEBUG = debug
     VARS['program'] = prog
     if options.binary:
-        VARS['sint'] = GC_types.sbitint.get_type(int(options.binary))
+        VARS['sint'] = GC_types.sbitintvec.get_type(int(options.binary))
         VARS['sfix'] = GC_types.sbitfix
     comparison.set_variant(options)
     

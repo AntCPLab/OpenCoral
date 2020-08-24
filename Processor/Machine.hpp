@@ -9,6 +9,7 @@
 
 #include "Math/Setup.h"
 #include "Tools/mkpath.h"
+#include "Tools/Bundle.h"
 
 #include <iostream>
 #include <vector>
@@ -22,7 +23,7 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
     string progname_str, string memtype, int lg2, bool direct,
     int opening_sum, bool receive_threads, int max_broadcast,
     bool use_encryption, bool live_prep, OnlineOptions opts)
-  : my_number(my_number), N(playerNames), tn(0), numt(0), usage_unknown(false),
+  : my_number(my_number), N(playerNames),
     direct(direct), opening_sum(opening_sum),
     receive_threads(receive_threads), max_broadcast(max_broadcast),
     use_encryption(use_encryption), live_prep(live_prep), opts(opts),
@@ -40,9 +41,12 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   // make directory for outputs if necessary
   mkdir_p(PREP_DIR);
 
-  auto P = new PlainPlayer(N, 0xF00);
-  sint::LivePrep::basic_setup(*P);
-  delete P;
+  if (opts.live_prep)
+    {
+      auto P = new PlainPlayer(N, 0xF00);
+      sint::LivePrep::basic_setup(*P);
+      delete P;
+    }
 
   sint::read_or_generate_mac_key(prep_dir_prefix<sint>(), N, alphapi);
   sgf2n::read_or_generate_mac_key(prep_dir_prefix<sgf2n>(), N, alpha2i);
@@ -131,21 +135,29 @@ void Machine<sint, sgf2n>::load_program(string threadname, string filename)
   int i = progs.size() - 1;
   progs[i].parse(pinp);
   pinp.close();
-  M2.minimum_size(GF2N, progs[i], threadname);
-  Mp.minimum_size(MODP, progs[i], threadname);
-  Mi.minimum_size(INT, progs[i], threadname);
+  M2.minimum_size(SGF2N, CGF2N, progs[i], threadname);
+  Mp.minimum_size(SINT, CINT, progs[i], threadname);
+  Mi.minimum_size(NONE, INT, progs[i], threadname);
 }
 
 template<class sint, class sgf2n>
-DataPositions Machine<sint, sgf2n>::run_tape(int thread_number, int tape_number,
-    int arg, int line_number, Preprocessing<sint>* prep,
+DataPositions Machine<sint, sgf2n>::run_tapes(const vector<int>& args,
+    Preprocessing<sint>* prep, Preprocessing<typename sint::bit_type>* bit_prep)
+{
+  assert(args.size() % 3 == 0);
+  for (unsigned i = 0; i < args.size(); i += 3)
+    fill_buffers(args[i], args[i + 1], prep, bit_prep);
+  DataPositions res(N.num_players());
+  for (unsigned i = 0; i < args.size(); i += 3)
+    res.increase(run_tape(args[i], args[i + 1], args[i + 2]));
+  return res;
+}
+
+template<class sint, class sgf2n>
+void Machine<sint, sgf2n>::fill_buffers(int thread_number, int tape_number,
+    Preprocessing<sint>* prep,
     Preprocessing<typename sint::bit_type>* bit_prep)
 {
-  if (size_t(thread_number) >= tinfo.size())
-    throw Processor_Error("invalid thread number: " + to_string(thread_number) + "/" + to_string(tinfo.size()));
-  if (size_t(tape_number) >= progs.size())
-    throw Processor_Error("invalid tape number: " + to_string(tape_number) + "/" + to_string(progs.size()));
-
   // central preprocessing
   auto usage = progs[tape_number].get_offline_data_used();
   if (sint::expensive and prep != 0 and OnlineOptions::singleton.bucket_size == 3)
@@ -203,6 +215,16 @@ DataPositions Machine<sint, sgf2n>::run_tape(int thread_number, int tape_number,
 #endif
       }
     }
+}
+
+template<class sint, class sgf2n>
+DataPositions Machine<sint, sgf2n>::run_tape(int thread_number, int tape_number,
+    int arg)
+{
+  if (size_t(thread_number) >= tinfo.size())
+    throw Processor_Error("invalid thread number: " + to_string(thread_number) + "/" + to_string(tinfo.size()));
+  if (size_t(tape_number) >= progs.size())
+    throw Processor_Error("invalid tape number: " + to_string(tape_number) + "/" + to_string(progs.size()));
 
   queues[thread_number]->schedule({tape_number, arg, pos});
   //printf("Send signal to run program %d in thread %d\n",tape_number,thread_number);
@@ -211,21 +233,10 @@ DataPositions Machine<sint, sgf2n>::run_tape(int thread_number, int tape_number,
     {
       if (not opts.live_prep)
         {
-          // only one thread allowed
-          if (numt>1)
-            { cerr << "Line " << line_number << " has " <<
-              numt << " threads but tape " << tape_number <<
+          cerr << "Internally called tape " << tape_number <<
               " has unknown offline data usage" << endl;
-            throw invalid_program();
-            }
-          else if (line_number == -1)
-            {
-              cerr << "Internally called tape " << tape_number <<
-                  " has unknown offline data usage" << endl;
-              throw invalid_program();
-            }
+          throw invalid_program();
         }
-      usage_unknown = true;
       return DataPositions(N.num_players());
     }
   else
@@ -252,43 +263,12 @@ void Machine<sint, sgf2n>::run()
   proc_timer.start();
   timer[0].start();
 
-  bool flag=true;
-  usage_unknown=false;
-  int exec=0;
-  while (flag)
-    { inpf >> numt;
-      if (numt==0) 
-        { flag=false; }
-      else
-        { for (int i=0; i<numt; i++)
-            {
-	        // Now load up data
-                inpf >> tn;
-
-                // Cope with passing an integer parameter to a tape
-                int arg;
-                if (inpf.get() == ':')
-                  inpf >> arg;
-                else
-                  arg = 0;
-
-                //cerr << "Run scheduled tape " << tn << " in thread " << i << endl;
-                pos.increase(run_tape(i, tn, arg, exec));
-            }
-          // Make sure all terminate before we continue
-          auto new_pos = join_tape(0);
-          for (int i=1; i<numt; i++)
-            { join_tape(i);
-            }
-         if (usage_unknown)
-           { // synchronize files
-             pos = new_pos;
-             usage_unknown = false;
-           }
-         //printf("Finished running line %d\n",exec);
-         exec++;
-      }
-    }
+  // legacy
+  int _;
+  inpf >> _ >> _ >> _;
+  // run main tape
+  pos.increase(run_tape(0, 0, 0));
+  join_tape(0);
 
   print_compiler();
 
@@ -317,6 +297,16 @@ void Machine<sint, sgf2n>::run()
   finish_timer.stop();
   
 #ifdef VERBOSE
+  cerr << "Memory usage: ";
+  tinfo[0].print_usage(cerr, Mp.MS, "sint");
+  tinfo[0].print_usage(cerr, Mp.MC, "cint");
+  tinfo[0].print_usage(cerr, M2.MS, "sgf2n");
+  tinfo[0].print_usage(cerr, M2.MS, "cgf2n");
+  tinfo[0].print_usage(cerr, bit_memories.MS, "sbits");
+  tinfo[0].print_usage(cerr, bit_memories.MC, "cbits");
+  tinfo[0].print_usage(cerr, Mi.MC, "regint");
+  cerr << endl;
+
   for (unsigned int i = 0; i < join_timer.size(); i++)
     cerr << "Join timer: " << i << " " << join_timer[i].elapsed() << endl;
   cerr << "Finish timer: " << finish_timer.elapsed() << endl;
@@ -325,6 +315,15 @@ void Machine<sint, sgf2n>::run()
 
   print_timers();
   cerr << "Data sent = " << data_sent / 1e6 << " MB" << endl;
+
+  PlainPlayer P(N, 0xFFF0);
+  Bundle<octetStream> bundle(P);
+  bundle.mine.store(data_sent.load());
+  P.Broadcast_Receive_no_stats(bundle);
+  size_t global = 0;
+  for (auto& os : bundle)
+      global += os.get_int(8);
+  cerr << "Global data sent = " << global / 1e6 << " MB" << endl;
 
 #ifdef VERBOSE
   if (opening_sum < N.num_players() && !direct)
@@ -373,6 +372,39 @@ void Machine<sint, sgf2n>::run()
   cerr << "Actual cost of program:" << endl;
   pos.print_cost();
 #endif
+
+  if (not stats.empty())
+    {
+      cerr << "Instruction statistics:" << endl;
+      set<pair<size_t, int>> sorted_stats;
+      for (auto& x : stats)
+        {
+          sorted_stats.insert({x.second, x.first});
+        }
+      for (auto& x : sorted_stats)
+        {
+          auto opcode = x.second;
+          auto calls = x.first;
+          cerr << "\t";
+          int n_fill = 15;
+          switch (opcode)
+          {
+#define X(NAME, PRE, CODE) case NAME: cerr << #NAME; n_fill -= strlen(#NAME); break;
+          ARITHMETIC_INSTRUCTIONS
+#undef X
+#define X(NAME, CODE) case NAME: cerr << #NAME; n_fill -= strlen(#NAME); break;
+          COMBI_INSTRUCTIONS
+#undef X
+          default:
+            cerr << hex << setw(5) << showbase << left << opcode;
+            n_fill -= 5;
+            cerr << setw(0);
+          }
+          for (int i = 0; i < n_fill; i++)
+            cerr << " ";
+          cerr << dec << calls << endl;
+        }
+    }
 
 #ifndef INSECURE
   Data_Files<sint, sgf2n> df(*this);

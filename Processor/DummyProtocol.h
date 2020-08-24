@@ -11,6 +11,9 @@ using namespace std;
 
 #include "Math/BitVec.h"
 #include "Data_Files.h"
+#include "Protocols/Replicated.h"
+#include "Protocols/MAC_Check_Base.h"
+#include "Processor/Input.h"
 
 class Player;
 class DataPositions;
@@ -26,17 +29,21 @@ template<class T> class ShareThread;
 }
 
 template<class T>
-class DummyMC
+class DummyMC : public MAC_Check_Base<T>
 {
 public:
-    void POpen(vector<typename T::open_type>&, vector<T>&, Player&)
+    DummyMC()
     {
-        throw not_implemented();
     }
 
-    void Check(Player& P)
+    template<class U>
+    DummyMC(U, int = 0, int = 0)
     {
-        (void) P;
+    }
+
+    void exchange(const Player&)
+    {
+        throw not_implemented();
     }
 
     DummyMC<typename T::part_type>& get_part_MC()
@@ -51,7 +58,8 @@ public:
     }
 };
 
-class DummyProtocol
+template<class T>
+class DummyProtocol : public ProtocolBase<T>
 {
 public:
     Player& P;
@@ -66,13 +74,11 @@ public:
     {
     }
 
-    template<class T>
     void init_mul(SubProcessor<T>* = 0)
     {
         throw not_implemented();
     }
-    template<class T>
-    void prepare_mul(const T&, const T&, int = 0)
+    typename T::clear prepare_mul(const T&, const T&, int = 0)
     {
         throw not_implemented();
     }
@@ -80,10 +86,10 @@ public:
     {
         throw not_implemented();
     }
-    int finalize_mul(int = 0)
+    T finalize_mul(int = 0)
     {
         throw not_implemented();
-        return 0;
+        return {};
     }
 };
 
@@ -91,6 +97,13 @@ template<class T>
 class DummyLivePrep : public Preprocessing<T>
 {
 public:
+    static void basic_setup(Player&)
+    {
+    }
+    static void teardown()
+    {
+    }
+
     static void fail()
     {
         throw runtime_error(
@@ -102,6 +115,11 @@ public:
     {
     }
     DummyLivePrep(DataPositions& usage, bool = true) :
+            Preprocessing<T>(usage)
+    {
+    }
+
+    DummyLivePrep(SubProcessor<T>*, DataPositions& usage) :
             Preprocessing<T>(usage)
     {
     }
@@ -177,7 +195,7 @@ public:
         throw not_implemented();
     }
     template<class T>
-    static void input(SubProcessor<T>& proc, vector<int> regs)
+    static void input(SubProcessor<V>& proc, vector<int> regs, int)
     {
         (void) proc, (void) regs;
         throw not_implemented();
@@ -204,6 +222,14 @@ public:
     V finalize(int a, int b = 0)
     {
         (void) a, (void) b;
+        throw not_implemented();
+    }
+    static void raw_input(SubProcessor<V>&, vector<int>, int)
+    {
+        throw not_implemented();
+    }
+    static void input_mixed(SubProcessor<V>&, vector<int>, int, bool)
+    {
         throw not_implemented();
     }
 };

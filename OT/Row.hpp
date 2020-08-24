@@ -46,34 +46,46 @@ Row<T> Row<T>::operator *(const T& other)
 }
 
 template<class T>
-Row<T> Row<T>::operator +(const Row<T>& other)
+DeferredPlus<T, Row<T>> Row<T>::operator +(const Row<T>& other)
 {
-    Row<T> res = other;
-    res += *this;
-    return res;
+    return {*this, other};
 }
 
 template<class T>
-DeferredMinus<T> Row<T>::operator -(const Row<T>& other)
+DeferredMinus<T, Row<T>> Row<T>::operator -(const Row<T>& other)
 {
-    return DeferredMinus<T>(*this, other);
+    return {*this, other};
 }
 
 template<class T>
-Row<T>& Row<T>::operator=(DeferredMinus<T> d)
+template<class U>
+Row<T>& Row<T>::operator=(const DeferredMinus<T, U>& d)
 {
     size_t size = d.x.size();
     rows.resize(size);
     for (size_t i = 0; i < size; i++)
-        rows[i] = d.x.rows[i] - d.y.rows[i];
+        rows[i] = d[i];
     return *this;
 }
 
 template<class T>
-void Row<T>::randomize(PRNG& G)
+template<class U>
+Row<T>& Row<T>::operator=(const DeferredPlus<T, U>& d)
 {
-    for (size_t i = 0; i < this->size(); i++)
-        rows[i].randomize(G);
+    size_t size = d.x.size();
+    rows.resize(size);
+    for (size_t i = 0; i < size; i++)
+        rows[i] = d[i];
+    return *this;
+}
+
+template<class T>
+void Row<T>::randomize(PRNG& G, size_t size)
+{
+	rows.clear();
+	rows.reserve(size);
+    for (size_t i = 0; i < size; i++)
+        rows.push_back(G.get<T>());
 }
 
 template<class T>
@@ -85,6 +97,14 @@ Row<T> Row<T>::operator<<(int i) const {
     for (size_t j = 0; j < this->size(); j++)
         res.rows[j] = res.rows[j] << i;
     return res;
+}
+
+template<class T, class U>
+void DeferredPlus<T, U>::pack(octetStream& o) const
+{
+    o.store(this->size());
+    for (size_t i = 0; i < this->size(); i++)
+        (*this)[i].pack(o);
 }
 
 template<class T>
@@ -100,9 +120,10 @@ void Row<T>::unpack(octetStream& o)
 {
     size_t size;
     o.get(size);
-    this->rows.resize(size);
-    for (size_t i = 0; i < this->size(); i++)
-        rows[i].unpack(o);
+    rows.clear();
+    rows.reserve(size);
+    for (size_t i = 0; i < size; i++)
+        rows.push_back(o.get<T>());
 }
 
 template <class V>

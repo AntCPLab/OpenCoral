@@ -3,9 +3,8 @@
  *
  */
 
-#include "Machines/SPDZ.cpp"
-
 #include "BMR/RealProgramParty.hpp"
+#include "Machines/SPDZ.hpp"
 
 int main(int argc, const char** argv)
 {

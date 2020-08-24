@@ -11,7 +11,7 @@
 #include "OT/MascotParams.h"
 
 template<class T>
-class OTPrep : public virtual RingPrep<T>
+class OTPrep : public virtual BitPrep<T>
 {
 public:
     typename T::TripleGenerator* triple_generator;
@@ -28,29 +28,40 @@ public:
 };
 
 template<class T>
+class MascotTriplePrep : public OTPrep<T>, public RandomPrep<T>
+{
+public:
+    MascotTriplePrep(SubProcessor<T> *proc, DataPositions &usage) :
+            BufferPrep<T>(usage), BitPrep<T>(proc, usage),
+            OTPrep<T>(proc, usage)
+    {
+    }
+
+    void buffer_triples();
+    void buffer_inputs(int player);
+
+    T get_random();
+};
+
+template<class T>
 class MascotPrep: public virtual MaliciousRingPrep<T>,
-        public virtual OTPrep<T>,
-        public RandomPrep<T>
+        public virtual MascotTriplePrep<T>
 {
 public:
     MascotPrep(SubProcessor<T>* proc, DataPositions& usage) :
             BufferPrep<T>(usage), BitPrep<T>(proc, usage),
             RingPrep<T>(proc, usage),
             MaliciousRingPrep<T>(proc, usage),
-            OTPrep<T>(proc, usage)
+            MascotTriplePrep<T>(proc, usage)
     {
     }
     virtual ~MascotPrep()
     {
     }
 
-    void buffer_triples();
-    void buffer_inputs(int player);
     void buffer_bits() { throw runtime_error("use subclass"); }
     virtual void buffer_dabits(ThreadQueues* queues);
     void buffer_edabits(bool strict, int n_bits, ThreadQueues* queues);
-
-    T get_random();
 };
 
 template<class T>
@@ -64,7 +75,7 @@ public:
             BufferPrep<T>(usage),
             BitPrep<T>(proc, usage), RingPrep<T>(proc, usage),
             MaliciousRingPrep<T>(proc, usage),
-            OTPrep<T>(proc, usage), MascotPrep<T>(proc, usage)
+            MascotTriplePrep<T>(proc, usage), MascotPrep<T>(proc, usage)
     {
     }
 };

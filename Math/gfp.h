@@ -41,7 +41,7 @@ template<class T> void generate_prime_setup(string, int, int);
 #endif
 
 template<int X, int L>
-class gfp_
+class gfp_ : public ValueInterface
 {
   typedef modp_<L> modp_type;
 
@@ -247,7 +247,7 @@ class gfp_
   gfp_ operator^(const gfp_& x) { gfp_ res; res.XOR(*this, x); return res; }
   gfp_ operator|(const gfp_& x) { gfp_ res; res.OR(*this, x); return res; }
   gfp_ operator<<(int i) const { gfp_ res; res.SHL(*this, i); return res; }
-  gfp_ operator>>(int i) { gfp_ res; res.SHR(*this, i); return res; }
+  gfp_ operator>>(int i) const { gfp_ res; res.SHR(*this, i); return res; }
 
   gfp_& operator&=(const gfp_& x) { AND(*this, x); return *this; }
   gfp_& operator<<=(int i) { SHL(*this, i); return *this; }

@@ -7,6 +7,7 @@
 #include "Processor/IntInput.h"
 #include "Processor/FixInput.h"
 #include "Processor/FloatInput.h"
+#include "Processor/instructions.h"
 #include "Exceptions/Exceptions.h"
 #include "Tools/time-func.h"
 #include "Tools/parse.h"
@@ -102,6 +103,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case MULINT:
       case DIVINT:
       case CONDPRINTPLAIN:
+      case INPUTMASKREG:
         r[0]=get_int(s);
         r[1]=get_int(s);
         r[2]=get_int(s);
@@ -199,6 +201,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case ORCI:
       case SHLCI:
       case SHRCI:
+      case SHRSI:
       case SHLCBI:
       case SHRCBI:
       case NOTC:
@@ -220,7 +223,6 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case USE:
       case USE_INP:
       case USE_EDABIT:
-      case RUN_TAPE:
       case STARTPRIVATEOUTPUT:
       case GSTARTPRIVATEOUTPUT:
       case STOPPRIVATEOUTPUT:
@@ -261,6 +263,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case INV2M:
       case CONDPRINTSTR:
       case CONDPRINTSTRB:
+      case RANDOMS:
         r[0]=get_int(s);
         n = get_int(s);
         break;
@@ -310,6 +313,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case RAWINPUT:
       case GRAWINPUT:
       case TRUNC_PR:
+      case RUN_TAPE:
         num_var_args = get_int(s);
         get_vector(num_var_args, start, s);
         break;
@@ -444,6 +448,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case ANDRS:
       case ANDS:
       case INPUTB:
+      case INPUTBVEC:
       case REVEAL:
         get_vector(get_int(s), start, s);
         break;
@@ -544,15 +549,57 @@ int BaseInstruction::get_reg_type() const
     case USE_PREP:
     case GUSE_PREP:
     case USE_EDABIT:
+    case RUN_TAPE:
       // those use r[] not for registers
       return NONE;
+    case LDI:
+    case LDMC:
+    case STMC:
+    case LDMCI:
+    case STMCI:
+    case MOVC:
+    case ADDC:
+    case ADDCI:
+    case SUBC:
+    case SUBCI:
+    case SUBCFI:
+    case MULC:
+    case MULCI:
+    case DIVC:
+    case DIVCI:
+    case MODC:
+    case MODCI:
+    case LEGENDREC:
+    case DIGESTC:
+    case INV2M:
+    case OPEN:
+    case ANDC:
+    case XORC:
+    case ORC:
+    case ANDCI:
+    case XORCI:
+    case ORCI:
+    case NOTC:
+    case SHLC:
+    case SHRC:
+    case SHLCI:
+    case SHRCI:
+    case CONVINT:
+      return CINT;
     default:
       if (is_gf2n_instruction())
-        return GF2N;
+        {
+          Instruction tmp;
+          tmp.opcode = opcode - 0x100;
+          if (tmp.get_reg_type() == CINT)
+            return CGF2N;
+          else
+            return SGF2N;
+        }
       else if (opcode >> 4 == 0x9)
         return INT;
       else
-        return MODP;
+        return SINT;
   }
 }
 
@@ -564,27 +611,35 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
   int size_offset = 0;
   int size = this->size;
 
-  if (opcode == DABIT)
+  // special treatment for instructions writing to different types
+  switch (opcode)
   {
+  case DABIT:
       if (reg_type == SBIT)
           return r[1] + size;
-      else if (reg_type == MODP)
+      else if (reg_type == SINT)
           return r[0] + size;
       else
           return 0;
-  }
-  else if (opcode == EDABIT or opcode == SEDABIT)
-  {
+  case EDABIT:
+  case SEDABIT:
       if (reg_type == SBIT)
           skip = 1;
-      else if (reg_type == MODP)
+      else if (reg_type == SINT)
           return r[0] + size;
       else
           return 0;
-  }
-  else if (get_reg_type() != reg_type)
-  {
-	  return 0;
+      break;
+  case INPUTMASKREG:
+      if (reg_type == SINT)
+          return r[0] + size;
+      else if (reg_type == CINT)
+          return r[1] + size;
+      else
+          return 0;
+  default:
+      if (get_reg_type() != reg_type)
+          return 0;
   }
 
   switch (opcode)
@@ -607,6 +662,9 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
       return r[0] + start[0] * start[2];
   case CONV2DS:
       return r[0] + start[0] * start[1];
+  case OPEN:
+      skip = 2;
+      break;
   case LDMSD:
   case LDMSDI:
       skip = 3;
@@ -627,6 +685,20 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
       offset = 3;
       size_offset = -2;
       break;
+  case INPUTBVEC:
+  {
+	  int res = 0;
+	  auto it = start.begin();
+	  while (it < start.end())
+	  {
+		  int n = *it - 3;
+		  it += 3;
+		  assert(it + n <= start.end());
+		  for (int i = 0; i < n; i++)
+			  res = max(res, *it++);
+	  }
+	  return res + 1;
+  }
   case ANDM:
   case NOTS:
       size = DIV_CEIL(n, 64);
@@ -673,16 +745,16 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
 }
 
 inline
-unsigned BaseInstruction::get_mem(RegType reg_type, SecrecyType sec_type) const
+unsigned BaseInstruction::get_mem(RegType reg_type) const
 {
-  if (get_reg_type() == reg_type and is_direct_memory_access(sec_type))
+  if (get_reg_type() == reg_type and is_direct_memory_access())
     return n + size;
   else
     return 0;
 }
 
 inline
-bool BaseInstruction::is_direct_memory_access(SecrecyType sec_type) const
+bool BaseInstruction::is_direct_memory_access() const
 {
   switch (opcode)
   {
@@ -690,12 +762,10 @@ bool BaseInstruction::is_direct_memory_access(SecrecyType sec_type) const
   case STMS:
   case GLDMS:
   case GSTMS:
-    return sec_type == SECRET;
   case LDMC:
   case STMC:
   case GLDMC:
   case GSTMC:
-    return sec_type == CLEAR;
   case LDMINT:
   case STMINT:
   case LDMSB:
@@ -731,15 +801,8 @@ __attribute__((always_inline))
 #endif
 inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
 {
-  Proc.PC+=1;
   auto& Procp = Proc.Procp;
   auto& Proc2 = Proc.Proc2;
-
-  // binary instructions
-  typedef typename sint::bit_type T;
-  auto& processor = Proc.Procb;
-  auto& instruction = *this;
-  auto& Ci = Proc.get_Ci();
 
   // optimize some instructions
   switch (opcode)
@@ -772,102 +835,6 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       for (int i = 0; i < size; i++)
          Proc.get_S2_ref(r[0] + i).mul(Proc.read_S2(r[1] + i),Proc.read_C2(r[2] + i));
       return;
-    case LDI:
-      Proc.temp.assign_ansp(n);
-      for (int i = 0; i < size; i++)
-        Proc.write_Cp(r[0] + i,Proc.temp.ansp);
-      return;
-    case LDMSI:
-      for (int i = 0; i < size; i++)
-        Proc.write_Sp(r[0] + i, Proc.machine.Mp.read_S(Proc.read_Ci(r[1] + i)));
-      return;
-    case LDMS:
-      for (int i = 0; i < size; i++)
-        Proc.write_Sp(r[0] + i, Proc.machine.Mp.read_S(n + i));
-      return;
-    case STMSI:
-      for (int i = 0; i < size; i++)
-        Proc.machine.Mp.write_S(Proc.read_Ci(r[1] + i), Proc.read_Sp(r[0] + i), Proc.PC);
-      return;
-    case STMS:
-      for (int i = 0; i < size; i++)
-        Proc.machine.Mp.write_S(n + i, Proc.read_Sp(r[0] + i), Proc.PC);
-      return;
-    case ADDC:
-      for (int i = 0; i < size; i++)
-        Proc.get_Cp_ref(r[0] + i).add(Proc.read_Cp(r[1] + i),Proc.read_Cp(r[2] + i));
-      return;
-    case ADDS:
-      for (int i = 0; i < size; i++)
-        Proc.get_Sp_ref(r[0] + i).add(Proc.read_Sp(r[1] + i),Proc.read_Sp(r[2] + i));
-      return;
-    case ADDM:
-      for (int i = 0; i < size; i++)
-        Proc.get_Sp_ref(r[0] + i).add(Proc.read_Sp(r[1] + i),Proc.read_Cp(r[2] + i),Proc.P.my_num(),Proc.MCp.get_alphai());
-      return;
-    case ADDCI:
-      Proc.temp.assign_ansp(n);
-      for (int i = 0; i < size; i++)
-         Proc.get_Cp_ref(r[0] + i).add(Proc.temp.ansp,Proc.read_Cp(r[1] + i));
-      return;
-    case SUBS:
-      for (int i = 0; i < size; i++)
-        Proc.get_Sp_ref(r[0] + i).sub(Proc.read_Sp(r[1] + i),Proc.read_Sp(r[2] + i));
-      return;
-    case SUBSFI:
-      Proc.temp.assign_ansp(n);
-      for (int i = 0; i < size; i++)
-        Proc.get_Sp_ref(r[0] + i).sub(Proc.temp.ansp,Proc.read_Sp(r[1] + i),Proc.P.my_num(),Proc.MCp.get_alphai());
-      return;
-    case SUBML:
-      for (int i = 0; i < size; i++)
-         Proc.get_Sp_ref(r[0] + i).sub(Proc.read_Sp(r[1] + i), Proc.read_Cp(r[2] + i),
-             Proc.P.my_num(), Proc.MCp.get_alphai());
-      return;
-    case SUBMR:
-      for (int i = 0; i < size; i++)
-         Proc.get_Sp_ref(r[0] + i).sub(Proc.read_Cp(r[1] + i), Proc.read_Sp(r[2] + i),
-             Proc.P.my_num(), Proc.MCp.get_alphai());
-      return;
-    case MULM:
-      for (int i = 0; i < size; i++)
-        Proc.get_Sp_ref(r[0] + i).mul(Proc.read_Sp(r[1] + i),Proc.read_Cp(r[2] + i));
-      return;
-    case MULC:
-      for (int i = 0; i < size; i++)
-        Proc.get_Cp_ref(r[0] + i).mul(Proc.read_Cp(r[1] + i),Proc.read_Cp(r[2] + i));
-      return;
-    case MULCI:
-      Proc.temp.assign_ansp(n);
-      for (int i = 0; i < size; i++)
-        Proc.get_Cp_ref(r[0] + i).mul(Proc.temp.ansp,Proc.read_Cp(r[1] + i));
-      return;
-    case SHRCI:
-      for (int i = 0; i < size; i++)
-         Proc.get_Cp_ref(r[0] + i).SHR(Proc.read_Cp(r[1] + i), n);
-      return;
-    case TRIPLE:
-      for (int i = 0; i < size; i++)
-        Procp.DataF.get_three(DATA_TRIPLE, Proc.get_Sp_ref(r[0] + i),
-            Proc.get_Sp_ref(r[1] + i), Proc.get_Sp_ref(r[2] + i));
-      return;
-    case BIT:
-      for (int i = 0; i < size; i++)
-        Procp.DataF.get_one(DATA_BIT, Proc.get_Sp_ref(r[0] + i));
-      return;
-    case LDINT:
-      for (int i = 0; i < size; i++)
-        Proc.write_Ci(r[0] + i, int(n));
-      return;
-    case INCINT:
-      {
-        for (int i = 0; i < size; i++)
-          {
-            int inc = (i / start[0]) % start[1];
-            Proc.write_Ci(r[0] + i, Proc.read_Ci(r[1]) + inc * int(n));
-          }
-      }
-      return;
     case SHUFFLE:
       for (int i = 0; i < size; i++)
         Proc.write_Ci(r[0] + i, Proc.read_Ci(r[1] + i));
@@ -875,29 +842,6 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       {
         int j = Proc.shared_prng.get_uint(size - i);
         swap(Proc.get_Ci_ref(r[0] + i), Proc.get_Ci_ref(r[0] + i + j));
-      }
-      return;
-    case ADDINT:
-      for (int i = 0; i < size; i++)
-        Proc.get_Ci_ref(r[0] + i) = Proc.read_Ci(r[1] + i) + Proc.read_Ci(r[2] + i);
-      return;
-    case SUBINT:
-      for (int i = 0; i < size; i++)
-        Proc.get_Ci_ref(r[0] + i) = Proc.read_Ci(r[1] + i) - Proc.read_Ci(r[2] + i);
-      return;
-    case MULINT:
-      for (int i = 0; i < size; i++)
-        Proc.get_Ci_ref(r[0] + i) = Proc.read_Ci(r[1] + i) * Proc.read_Ci(r[2] + i);
-      return;
-    case DIVINT:
-      for (int i = 0; i < size; i++)
-        Proc.get_Ci_ref(r[0] + i) = Proc.read_Ci(r[1] + i) / Proc.read_Ci(r[2] + i);
-      return;
-    case CONVINT:
-      for (int i = 0; i < size; i++)
-      {
-        Proc.temp.assign_ansp(Proc.read_Ci(r[1] + i));
-        Proc.get_Cp_ref(r[0] + i) = Proc.temp.ansp;
       }
       return;
     case CONVMODP:
@@ -914,9 +858,6 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         throw Processor_Error(to_string(n) + "-bit conversion impossible; "
             "integer registers only have 64 bits");
       return;
-#define X(NAME, CODE) case NAME: CODE; return;
-      COMBI_INSTRUCTIONS
-#undef X
   }
 
   int r[3] = {this->r[0], this->r[1], this->r[2]};
@@ -1275,6 +1216,13 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       case GINV:
         Proc2.DataF.get_two(DATA_INVERSE, Proc.get_S2_ref(r[0]),Proc.get_S2_ref(r[1]));
         break;
+      case RANDOMS:
+        Procp.protocol.randoms_inst(Procp, *this);
+        return;
+      case INPUTMASKREG:
+        Procp.DataF.get_input(Proc.get_Sp_ref(r[0]), Proc.temp.rrp, Proc.read_Ci(r[2]));
+        Proc.write_Cp(r[1], Proc.temp.rrp);
+        break;
       case INPUTMASK:
         Procp.DataF.get_input(Proc.get_Sp_ref(r[0]), Proc.temp.rrp, n);
         if (n == Proc.P.my_num())
@@ -1387,6 +1335,9 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         break;
       case GSHRCI:
            Proc.get_C2_ref(r[0]).SHR(Proc.read_C2(r[1]),n);
+        break;
+      case SHRSI:
+           Proc.get_Sp_ref(r[0]) = Proc.read_Sp(r[1]) >> n;
         break;
       case GBITDEC:
         for (int j = 0; j < size; j++)
@@ -1649,7 +1600,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         break;
       case RUN_TAPE:
         Proc.DataF.skip(
-            Proc.machine.run_tape(r[0], n, r[1], -1, &Proc.DataF.DataFp,
+            Proc.machine.run_tapes(start, &Proc.DataF.DataFp,
                 &Proc.share_thread.DataF));
         break;
       case JOIN_TAPE:
@@ -1788,8 +1739,41 @@ void Program::execute(Processor<sint, sgf2n>& Proc) const
 {
   unsigned int size = p.size();
   Proc.PC=0;
+
+  auto& Procp = Proc.Procp;
+
+  // binary instructions
+  typedef typename sint::bit_type T;
+  auto& processor = Proc.Procb;
+  auto& Ci = Proc.get_Ci();
+
   while (Proc.PC<size)
-    { p[Proc.PC].execute(Proc); }
+    {
+      auto& instruction = p[Proc.PC];
+      auto& r = instruction.r;
+      auto& n = instruction.n;
+      auto& start = instruction.start;
+      auto& size = instruction.size;
+
+#ifdef COUNT_INSTRUCTIONS
+      Proc.stats[p[Proc.PC].get_opcode()]++;
+#endif
+
+      Proc.PC++;
+
+      switch(instruction.get_opcode())
+        {
+#define X(NAME, PRE, CODE) \
+        case NAME: { PRE; for (int i = 0; i < size; i++) { CODE; } } break;
+        ARITHMETIC_INSTRUCTIONS
+#undef X
+#define X(NAME, CODE) case NAME: CODE; break;
+        COMBI_INSTRUCTIONS
+#undef X
+        default:
+          instruction.execute(Proc);
+        }
+    }
 }
 
 #endif

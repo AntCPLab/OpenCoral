@@ -61,8 +61,8 @@ template <class T>
 template <class U>
 void Memories<T>::reset(const U& program)
 {
-    MS.resize_min(*program.direct_mem(SBIT), "memory");
-    MC.resize_min(*program.direct_mem(CBIT), "memory");
+    MS.resize_min(program.direct_mem(SBIT), "memory");
+    MC.resize_min(program.direct_mem(CBIT), "memory");
 }
 
 template <class T>
@@ -70,7 +70,7 @@ template <class U>
 void Machine<T>::reset(const U& program)
 {
     Memories<T>::reset(program);
-    MI.resize_min(*program.direct_mem(INT), "memory");
+    MI.resize_min(program.direct_mem(INT), "memory");
 }
 
 template <class T>
@@ -78,10 +78,18 @@ template <class U, class V>
 void Machine<T>::reset(const U& program, V& MD)
 {
     reset(program);
-    MD.resize_min(*program.direct_mem(DYN_SBIT), "dynamic memory");
+    MD.resize_min(program.direct_mem(DYN_SBIT), "dynamic memory");
 #ifdef DEBUG_MEMORY
     cerr << "reset dynamic mem to " << program.direct_mem(DYN_SBIT) << endl;
 #endif
+}
+
+template<class T>
+void Machine<T>::run_tapes(const vector<int>& args)
+{
+    assert(args.size() % 3 == 0);
+    for (unsigned i = 0; i < args.size(); i++)
+        run_tape(args[i], args[i + 1], args[i + 2]);
 }
 
 template<class T>
