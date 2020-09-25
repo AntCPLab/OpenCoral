@@ -2,12 +2,12 @@
 
 
 #     ===== Compiler usage instructions =====
-# 
+#
 # ./compile.py input_file
-# 
-# will compile Programs/Source/input_file.asm onto
-# Programs/Bytecode/input_file.bc
-# 
+#
+# will compile Programs/Source/input_file.mpc onto
+# Programs/Bytecode/input_file.bc and Programs/Schedules/input_file.sch
+#
 # (run with --help for more options)
 #
 # See the compiler documentation at https://mp-spdz.readthedocs.io
