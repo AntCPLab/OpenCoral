@@ -9,8 +9,9 @@
 # Programs/Bytecode/input_file.bc
 # 
 # (run with --help for more options)
-# 
-# See Compiler/README for details on the Compiler package
+#
+# See the compiler documentation at https://mp-spdz.readthedocs.io
+# for details on the Compiler package
 
 
 from optparse import OptionParser
