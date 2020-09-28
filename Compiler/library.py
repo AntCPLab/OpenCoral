@@ -904,8 +904,7 @@ def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
                       reducer=lambda *x: [], mem_state=None, budget=None):
     budget = budget or get_program().budget
     if not (isinstance(n_parallel, int) or n_parallel is None):
-        raise CompilerException('Number of parallel executions' \
-                                    'must be constant')
+        raise CompilerError('Number of parallel executions must be constant')
     n_parallel = 1 if is_zero(n_parallel) else n_parallel
     if mem_state is None:
         # default to list of MemValues to allow varying types
