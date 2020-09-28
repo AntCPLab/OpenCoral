@@ -1006,7 +1006,7 @@ class JumpInstruction(Instruction):
 
     def set_relative_jump(self, value):
         if value == -1:
-            raise CompilerException('Jump by -1 would cause infinite loop')
+            raise CompilerError('Jump by -1 would cause infinite loop')
         self.args[self.jump_arg] = value
 
     def get_relative_jump(self):

@@ -236,7 +236,7 @@ class CircuitORAM(PathORAM):
                 yield
         self.t.iadd(1)
     def evict(self):
-        raise CompilerException('Using this function is likely an error. Use recursive_evict() instead.')
+        raise CompilerError('Using this function is likely an error. Use recursive_evict() instead.')
         Program.prog.curr_tape.start_new_basicblock(name='circuit-evict-%d' % self.size)
         for i,_ in enumerate(self.evict_rounds()):
             Program.prog.curr_tape.start_new_basicblock(name='circuit-evict-round-%d-%d' % (i, self.size))
