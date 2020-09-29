@@ -80,9 +80,7 @@ def main():
         print('Note that -O/--optimize-hard currently has no effect')
 
     def compilation():
-        prog = Compiler.run(args, options,
-                            merge_opens=options.merge_opens,
-                            debug=options.debug)
+        prog = Compiler.run(args, options, debug=options.debug)
         prog.write_bytes(options.outfile)
 
         if options.asmoutfile:
