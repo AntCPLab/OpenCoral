@@ -856,9 +856,11 @@ class cbitfix(object):
     def __init__(self, value):
         self.v = value
     def output(self):
-        bits = self.v.bit_decompose(self.k)
-        sign = bits[-1]
-        v = self.v + (sign << (self.k)) * -1
+        v = self.v
+        if self.k < v.unit:
+            bits = self.v.bit_decompose(self.k)
+            sign = bits[-1]
+            v += (sign << (self.k)) * -1
         inst.print_float_plainb(v, cbits(-self.f, n=32), cbits(0), cbits(0), cbits(0))
 
 class sbitfix(_fix):
