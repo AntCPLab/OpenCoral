@@ -9,12 +9,11 @@ import time
 import sys
 
 
-def run(args, options, merge_opens=True,
-            reallocate=True, debug=False):
+def run(args, options, reallocate=True, debug=False):
     """ Compile a file and output a Program object.
     
-    If merge_opens is set to True, will attempt to merge any parallelisable open
-    instructions. """
+    If options.merge_opens is set to True, will attempt to merge any
+    parallelisable open instructions. """
     
     prog = Program(args, options)
     instructions.program = prog
