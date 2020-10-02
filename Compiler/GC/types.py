@@ -134,6 +134,8 @@ class bits(Tape.Register, _structure, _bit):
              and self.n == other.n:
             for i in range(math.ceil(self.n / self.unit)):
                 self.mov(self[i], other[i])
+        elif isinstance(other, sint):
+            self.mov(self, sbitvec(other, self.n).elements()[0])
         else:
             try:
                 bits = other.bit_decompose()

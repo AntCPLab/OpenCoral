@@ -2396,14 +2396,6 @@ class _bitint(object):
         raw = sum(map(operator.mul, highest_diff, (a,b)[index]))
         return raw.bit_decompose()[0]
 
-    def load_int(self, other):
-        if -2**(self.n_bits-1) <= other < 2**(self.n_bits-1):
-            self.bin_type.load_int(self, other + 2**self.n_bits \
-                                   if other < 0 else other)
-        else:
-            raise CompilerError('Invalid signed %d-bit integer: %d' % \
-                                    (self.n_bits, other))
-
     def add(self, other):
         if type(other) == self.bin_type:
             raise CompilerError('Unclear addition')
@@ -2609,6 +2601,14 @@ class sgf2nint(_bitint, sgf2n):
     def get_bit_matrix(self_bits, other):
         products = [x * other for x in self_bits]
         return [util.bit_decompose(x, len(self_bits)) for x in products]
+
+    def load_int(self, other):
+        if -2**(self.n_bits-1) <= other < 2**(self.n_bits-1):
+            self.bin_type.load_int(self, other + 2**self.n_bits \
+                                   if other < 0 else other)
+        else:
+            raise CompilerError('Invalid signed %d-bit integer: %d' % \
+                                    (self.n_bits, other))
 
     def load_other(self, other):
         if isinstance(other, sgf2nint):
