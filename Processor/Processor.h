@@ -107,6 +107,7 @@ public:
   ifstream public_input;
   ofstream public_output;
   ofstream private_output;
+  ofstream stdout_redirect_file;
 
   int sent, rounds;
 

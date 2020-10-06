@@ -7,6 +7,7 @@
 #define TOOLS_SWITCHABLEOUTPUT_H_
 
 #include <iostream>
+#include <fstream>
 using namespace std;
 
 class SwitchableOutput
@@ -22,6 +23,14 @@ public:
     void activate(bool on)
     {
         this->on = on;
+    }
+
+    void redirect_to_file(ofstream& out_file)
+    {
+        if (!on)
+            this->on = true;
+        auto *coutbuf = cout.rdbuf();
+        cout.rdbuf(out_file.rdbuf());
     }
 
     template<class T>

@@ -77,12 +77,20 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
   public_output.open(get_filename(PREP_DIR "Public-Output-",true).c_str(), ios_base::out);
   private_output.open(get_filename(PREP_DIR "Private-Output-",true).c_str(), ios_base::out);
 
-  open_input_file(P.my_num(), thread_num);
+  open_input_file(P.my_num(), thread_num, machine.opts.cmd_private_input_file);
 
   secure_prng.ReSeed();
   shared_prng.SeedGlobally(P);
 
   out.activate(P.my_num() == 0 or machine.opts.interactive);
+
+  if (!machine.opts.cmd_private_output_file.empty())
+  {
+    const string stdout_filename = get_parameterized_filename(P.my_num(), thread_num, opts.cmd_private_output_file);
+    stdout_redirect_file.open(stdout_filename.c_str(), ios_base::out);
+    out.redirect_to_file(stdout_redirect_file);
+  }
+
 }
 
 
