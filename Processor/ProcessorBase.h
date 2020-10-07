@@ -44,7 +44,7 @@ public:
     }
 
   void open_input_file(const string& name);
-  void open_input_file(int my_num, int thread_num, string prefix);
+  void open_input_file(int my_num, int thread_num, string prefix="");
 
   template<class T>
   T get_input(bool interactive, const int* params);

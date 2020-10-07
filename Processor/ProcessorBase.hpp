@@ -33,6 +33,9 @@ string ProcessorBase::get_parameterized_filename(int my_num, int thread_num, str
 inline
 void ProcessorBase::open_input_file(int my_num, int thread_num, string prefix)
 {
+    if (prefix.empty())
+        prefix = "Player-Data/Input";
+
     open_input_file(get_parameterized_filename(my_num, thread_num, prefix));
 }
 
