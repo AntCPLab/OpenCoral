@@ -29,7 +29,6 @@ public:
     {
         if (!on)
             this->on = true;
-        auto *coutbuf = cout.rdbuf();
         cout.rdbuf(out_file.rdbuf());
     }
 
