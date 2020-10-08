@@ -48,6 +48,9 @@ class bits(Tape.Register, _structure, _bit):
         if len(bits) == 1:
             return bits[0]
         bits = list(bits)
+        for i in range(len(bits)):
+            if util.is_constant(bits[i]):
+                bits[i] = sbit(bits[i])
         res = cls.new(n=len(bits))
         if len(bits) <= cls.unit:
             cls.bitcom(res, *(sbit.conv(bit) for bit in bits))
