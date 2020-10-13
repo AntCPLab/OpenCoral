@@ -68,6 +68,10 @@ class Share_ : public ShareInterface
    static int threshold(int nplayers)
      { return T::threshold(nplayers); }
 
+   template<class U>
+   static void read_or_generate_mac_key(string directory, const Names& N,
+           U& key);
+
    static Share_ constant(const clear& aa, int my_num, const typename V::Scalar& alphai)
      { return Share_(aa, my_num, alphai); }
 
@@ -180,10 +184,6 @@ public:
 
     static string type_string()
       { return "SPDZ " + T::type_string(); }
-
-    template<class U>
-    static void read_or_generate_mac_key(string directory, const Names& N,
-            U& key);
 
     Share() {}
     template<class U>

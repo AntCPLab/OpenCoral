@@ -59,9 +59,6 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   cerr << "MAC Key 2 = " << alpha2i << endl;
 #endif
 
-  // MAC key for bits might depend on sint MAC key
-  sint::bit_type::generate_mac_key(alphabi, alphapi);
-
   // deactivate output if necessary
   sint::bit_type::out.activate(my_number == 0 or opts.interactive);
 
