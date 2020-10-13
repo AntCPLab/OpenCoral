@@ -30,6 +30,7 @@ public:
   static const int MAX_N_BITS = N_BITS;
 
   static int size() { return sizeof(a); }
+  static int size_in_bits() { return N_BITS; }
   static int length() { return N_BITS; }
   static string type_string() { return "integer"; }
 

@@ -305,11 +305,18 @@ void inline BitVector::set(const T& a)
 template<class T>
 inline void BitVector::randomize_blocks(PRNG& G)
 {
-    T tmp;
-    for (size_t i = 0; i < (nbytes / T::size()); i++)
+    if (T::size_in_bits() == 1)
     {
-        tmp.randomize(G);
-        memcpy(bytes + i * T::size(), tmp.get_ptr(), T::size());
+        G.get_octets(bytes, nbytes);
+    }
+    else
+    {
+        T tmp;
+        for (size_t i = 0; i < (nbytes / T::size()); i++)
+        {
+            tmp.randomize(G);
+            memcpy(bytes + i * T::size(), tmp.get_ptr(), T::size());
+        }
     }
 }
 
