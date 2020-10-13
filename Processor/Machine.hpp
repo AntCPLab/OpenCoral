@@ -37,6 +37,7 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   // Set up the fields
   sgf2n::clear::init_field(lg2);
   sint::clear::read_or_generate_setup(prep_dir_prefix<sint>(), opts);
+  sint::bit_type::mac_key_type::init_field();
 
   // make directory for outputs if necessary
   mkdir_p(PREP_DIR);
@@ -50,6 +51,8 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
 
   sint::read_or_generate_mac_key(prep_dir_prefix<sint>(), N, alphapi);
   sgf2n::read_or_generate_mac_key(prep_dir_prefix<sgf2n>(), N, alpha2i);
+  sint::bit_type::part_type::read_or_generate_mac_key(
+      prep_dir_prefix<typename sint::bit_type>(), N, alphabi);
 
 #ifdef DEBUG_MAC
   cerr << "MAC Key p = " << alphapi << endl;

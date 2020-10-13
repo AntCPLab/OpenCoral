@@ -124,6 +124,8 @@ public:
     {
     }
 
+    static void read_or_generate_mac_key(string, const Names&, mac_key_type) {}
+
     static ReplicatedSecret constant(const clear& value, int my_num, mac_key_type)
     {
       ReplicatedSecret res;
