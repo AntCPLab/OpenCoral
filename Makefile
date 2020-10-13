@@ -236,4 +236,4 @@ mac-setup:
 	-echo USE_NTL = 1 >> CONFIG.mine
 
 clean:
-	-rm */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o static/*.x
+	-rm -f */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o static/*.x
