@@ -30,7 +30,7 @@ public:
     int get_my_num() const { return my_num; }
     int get_base_receiver_input(int i) const { return base_receiver_inputs[i]; }
 
-    OTTripleSetup(Player& N, bool real_OTs)
+    OTTripleSetup(Player& N, bool real_OTs = true)
         : nparties(N.num_players()), my_num(N.my_num()), nbase(128)
     {
         base_receiver_inputs.resize(nbase);
