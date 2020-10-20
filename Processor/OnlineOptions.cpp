@@ -19,6 +19,8 @@ OnlineOptions::OnlineOptions() : playerno(-1)
     memtype = "empty";
     direct = false;
     bucket_size = 3;
+    cmd_private_input_file = "Player-Data/Input";
+    cmd_private_output_file = "";
 }
 
 OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
@@ -40,6 +42,29 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
           "-I", // Flag token.
           "--interactive" // Flag token.
     );
+    opt.add(
+          cmd_private_input_file.c_str(), // Default.
+          0, // Required?
+          1, // Number of args expected.
+          0, // Delimiter if expecting multiple args.
+          "Prefix for input file path (default: Player-Data/Private-Input). "
+          "Input will be read from {prefix}-P{id}-{thread_id}.", // Help description.
+          "-IF", // Flag token.
+          "--input-file" // Flag token.
+    );
+    opt.add(
+          cmd_private_output_file.c_str(), // Default.
+          0, // Required?
+          1, // Number of args expected.
+          0, // Delimiter if expecting multiple args.
+          "Prefix for output file path "
+          "(default: output to stdout for party 0 (silent otherwise "
+          "unless interactive mode is active). "
+          "Output will be written to {prefix}-P{id}-{thread_id}.", // Help description.
+          "-OF", // Flag token.
+          "--output-file" // Flag token.
+    );
+ 
     string default_lgp = to_string(lgp);
     if (variable_prime_length)
     {
@@ -149,6 +174,10 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
         live_prep = opt.get("-L")->isSet;
     opt.get("-b")->getInt(batch_size);
     opt.get("--memory")->getString(memtype);
+
+    opt.get("-IF")->getString(cmd_private_input_file);
+    opt.get("-OF")->getString(cmd_private_output_file);
+
     direct = opt.isSet("--direct");
 
     opt.get("--bucket-size")->getInt(bucket_size);

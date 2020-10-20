@@ -25,10 +25,18 @@ void ProcessorBase::open_input_file(const string& name)
 }
 
 inline
-void ProcessorBase::open_input_file(int my_num, int thread_num)
+string ProcessorBase::get_parameterized_filename(int my_num, int thread_num, string prefix)
 {
-    string input_file = "Player-Data/Input-P" + to_string(my_num) + "-" + to_string(thread_num);
-    open_input_file(input_file);
+    string filename = prefix + "-P" + to_string(my_num) + "-" + to_string(thread_num);
+    return filename;
+}
+inline
+void ProcessorBase::open_input_file(int my_num, int thread_num, string prefix)
+{
+    if (prefix.empty())
+        prefix = "Player-Data/Input";
+
+    open_input_file(get_parameterized_filename(my_num, thread_num, prefix));
 }
 
 template<class T>
