@@ -292,7 +292,7 @@ void Processor<sint, sgf2n>::read_socket_vector(int client_id, const vector<int>
   socket_stream.Receive(external_clients.get_socket(client_id));
   for (int i = 0; i < m; i++)
   {
-    get_Cp_ref(registers[i]).unpack(socket_stream);
+    get_Cp_ref(registers[i]) = socket_stream.get<typename sint::open_type>();
   }
 }
 
