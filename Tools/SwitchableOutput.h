@@ -12,7 +12,7 @@ using namespace std;
 
 class SwitchableOutput
 {
-    bool on;
+    ostream* out;
 
 public:
     SwitchableOutput(bool on = true)
@@ -22,21 +22,22 @@ public:
 
     void activate(bool on)
     {
-        this->on = on;
+        if (on)
+            out = &cout;
+        else
+            out = 0;
     }
 
     void redirect_to_file(ofstream& out_file)
     {
-        if (!on)
-            this->on = true;
-        cout.rdbuf(out_file.rdbuf());
+        out = &out_file;
     }
 
     template<class T>
     SwitchableOutput& operator<<(const T& value)
     {
-        if (on)
-            cout << value;
+        if (out)
+            *out << value;
         return *this;
 
         cout << flush;
@@ -44,8 +45,8 @@ public:
 
     SwitchableOutput& operator<<(ostream& (*__pf)(ostream&))
     {
-        if (on)
-            cout << __pf;
+        if (out)
+            *out << __pf;
         return *this;
     }
 };
