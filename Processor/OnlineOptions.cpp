@@ -47,7 +47,8 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
           0, // Required?
           1, // Number of args expected.
           0, // Delimiter if expecting multiple args.
-          "Private Input file path (default: /Player-Data/Private-Input-P{id}-{thread_id})", // Help description.
+          "Prefix for input file path (default: Player-Data/Private-Input). "
+          "Input will be read from {prefix}-P{id}-{thread_id}.", // Help description.
           "-IF", // Flag token.
           "--input-file" // Flag token.
     );
@@ -56,7 +57,10 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
           0, // Required?
           1, // Number of args expected.
           0, // Delimiter if expecting multiple args.
-          "redirect stdout to private output file path (default: /Player-Data/Private-Output-P{id}-{thread_id})", // Help description.
+          "Prefix for output file path "
+          "(default: output to stdout for party 0 (silent otherwise "
+          "unless interactive mode is active). "
+          "Output will be written to {prefix}-P{id}-{thread_id}.", // Help description.
           "-OF", // Flag token.
           "--output-file" // Flag token.
     );
