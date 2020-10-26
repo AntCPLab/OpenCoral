@@ -68,7 +68,7 @@ CowGearOptions::CowGearOptions(ez::ezOptionParser& opt, int argc,
             cerr << "Invalid LowGear Security parameter: " << lowgear_security << endl;
             exit(1);
         }
-        if (covert_security > (1 << lowgear_security))
+        if (covert_security > (1LL << lowgear_security))
             insecure(", LowGear security less than key generation security");
     }
     else
