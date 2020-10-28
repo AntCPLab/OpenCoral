@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <sodium.h>
+#include <regex>
 using namespace std;
 
 BaseMachine* BaseMachine::singleton = 0;
@@ -28,13 +29,14 @@ BaseMachine::BaseMachine() : nthreads(0)
     singleton = this;
 }
 
-void BaseMachine::load_schedule(string progname)
+void BaseMachine::load_schedule(string progname, bool load_bytecode)
 {
   this->progname = progname;
   string fname = "Programs/Schedules/" + progname + ".sch";
 #ifdef DEBUG_FILES
   cerr << "Opening file " << fname << endl;
 #endif
+  ifstream inpf;
   inpf.open(fname);
   if (inpf.fail()) { throw file_error("Missing '" + fname + "'. Did you compile '" + progname + "'?"); }
 
@@ -54,25 +56,35 @@ void BaseMachine::load_schedule(string progname)
   string threadname;
   for (int i=0; i<nprogs; i++)
     { inpf >> threadname;
-      string filename = "Programs/Bytecode/" + threadname + ".bc";
+      if (load_bytecode)
+        {
+          string filename = "Programs/Bytecode/" + threadname + ".bc";
 #ifdef DEBUG_FILES
-      cerr << "Loading program " << i << " from " << filename << endl;
+          cerr << "Loading program " << i << " from " << filename << endl;
 #endif
-      load_program(threadname, filename);
+          load_program(threadname, filename);
+        }
     }
+
+  for (auto i : {1, 0, 0})
+    {
+      int n;
+      inpf >> n;
+      if (n != i)
+        throw runtime_error("old schedule format not supported");
+    }
+
+  inpf.get();
+  getline(inpf, compiler);
+  inpf.close();
 }
 
 void BaseMachine::print_compiler()
 {
-
-  char compiler[1000];
-  inpf.get();
-  inpf.getline(compiler, 1000);
 #ifdef VERBOSE
-  if (compiler[0] != 0)
+  if (compiler.size() != 0)
     cerr << "Compiler: " << compiler << endl;
 #endif
-  inpf.close();
 }
 
 void BaseMachine::load_program(string threadname, string filename)
@@ -111,4 +123,21 @@ void BaseMachine::print_timers()
 string BaseMachine::memory_filename(string type_short, int my_number)
 {
   return PREP_DIR "Memory-" + type_short + "-P" + to_string(my_number);
+}
+
+int BaseMachine::ring_size_from_schedule(string progname)
+{
+  assert(not singleton);
+  BaseMachine machine;
+  singleton = 0;
+  machine.load_schedule(progname, false);
+  smatch m;
+  regex e("R ([0-9]+)");
+  regex_search(machine.compiler, m, e);
+  if (m.size() > 1)
+  {
+    return stoi(m[1]);
+  }
+  else
+    return 0;
 }

@@ -15,6 +15,10 @@ class FakeInput : public InputBase<T>
     PointerVector<T> results;
 
 public:
+    FakeInput()
+    {
+    }
+
     FakeInput(SubProcessor<T>&, typename T::MAC_Check&)
     {
     }

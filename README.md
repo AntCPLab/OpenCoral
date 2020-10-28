@@ -73,7 +73,7 @@ The following table lists all protocols that are fully supported.
 | Malicious, dishonest majority | [MASCOT](#secret-sharing) | [SPDZ2k](#secret-sharing) | [Tiny / Tinier](#secret-sharing) | [BMR](#bmr) |
 | Covert, dishonest majority | [CowGear / ChaiGear](#secret-sharing) | N/A | N/A | N/A |
 | Semi-honest, dishonest majority | [Semi / Hemi / Soho](#secret-sharing) | [Semi2k](#secret-sharing) | [SemiBin](#secret-sharing) | [Yao's GC](#yaos-garbled-circuits) / [BMR](#bmr) |
-| Malicious, honest majority | [Shamir / Rep3 / PS](#honest-majority) | [Brain / Rep3 / PS](#honest-majority) | [Rep3 / CCD](#honest-majority) | [BMR](#bmr) |
+| Malicious, honest majority | [Shamir / Rep3 / PS / SY](#honest-majority) | [Brain / Rep[34] / PS / SY](#honest-majority) | [Rep3 / CCD](#honest-majority) | [BMR](#bmr) |
 | Semi-honest, honest majority | [Shamir / Rep3](#honest-majority) | [Rep3](#honest-majority) | [Rep3 / CCD](#honest-majority) | [BMR](#bmr) |
 
 #### Paper and Citation
@@ -261,6 +261,19 @@ al.](https://eprint.iacr.org/2020/338). You can activate them by using
 `-Y` instead of `-X`. Note that this also activates classic daBits
 when useful.
 
+##### Local share conversion
+
+This technique has been used by [Mohassel and
+Rindal](https://eprint.iacr.org/2018/403) as well as [Araki et
+al.](https://eprint.iacr.org/2018/762) It involves locally
+converting an arithmetic share to a set of binary shares, from which the
+binary equivalent to the arithmetic share is reconstructed using a
+binary adder. This requires additive secret sharing over a ring
+without any MACs. You can activate it by using `-Z <n>` with the
+compiler where `n` is the number of parties for the standard variant
+(3 or 4) and 2 for the special
+variant by Mohassel and Rindal (available in Rep3 only).
+
 #### Bristol Fashion circuits
 
 Bristol Fashion is the name of a description format of binary circuits
@@ -334,6 +347,15 @@ https://github.com/mkskeller/EzPC/commit/2021be90d21dc26894be98f33cd10dd26769f47
 
 [The reference](https://mp-spdz.readthedocs.io/en/latest/Compiler.html#module-Compiler.ml)
 contains further documentation on available layers.
+
+### Emulation
+
+For arithmetic circuits modulo a power of two and binary circuits, you
+can emulate the computation as follows:
+
+``` ./emulate.x <program> ```
+
+This runs the compiled bytecode in cleartext computation.
 
 ## Dishonest majority
 
@@ -470,20 +492,25 @@ The following table shows all programs for honest-majority computation:
 | `brain-party.x` | Replicated | Mod 2^k | Y | 3 | `brain.sh` |
 | `ps-rep-ring-party.x` | Replicated | Mod 2^k | Y | 3 | `ps-rep-ring.sh` |
 | `malicious-rep-ring-party.x` | Replicated | Mod 2^k | Y | 3 | `mal-rep-ring.sh` |
+| `sy-rep-ring-party.x` | SPDZ-wise replicated | Mod 2^k | Y | 3 | `sy-rep-ring.sh` |
+| `rep4-ring-party.x` | Replicated | Mod 2^k | Y | 4 | `rep4-ring.sh` |
 | `replicated-bin-party.x` | Replicated | Binary | N | 3 | `replicated.sh` |
 | `malicious-rep-bin-party.x` | Replicated | Binary | Y | 3 | `mal-rep-bin.sh` |
 | `replicated-field-party.x` | Replicated | Mod prime | N | 3 | `rep-field.sh` |
 | `ps-rep-field-party.x` | Replicated | Mod prime | Y | 3 | `ps-rep-field.sh` |
+| `sy-rep-field-party.x` | SPDZ-wise replicated | Mod prime | Y | 3 | `sy-rep-field.sh` |
 | `malicious-rep-field-party.x` | Replicated | Mod prime | Y | 3 | `mal-rep-field.sh` |
 | `shamir-party.x` | Shamir | Mod prime | N | 3 or more | `shamir.sh` |
 | `malicious-shamir-party.x` | Shamir | Mod prime | Y | 3 or more | `mal-shamir.sh` |
+| `sy-shamir-party.x` | SPDZ-wise Shamir | Mod prime | Y | 3 or more | `mal-shamir.sh` |
 | `ccd-party.x` | CCD/Shamir | Binary | N | 3 or more | `ccd.sh` |
 | `malicious-cdd-party.x` | CCD/Shamir | Binary | Y | 3 or more | `mal-ccd.sh` |
 
 We use the "generate random triple optimistically/sacrifice/Beaver"
 methodology described by [Lindell and
 Nof](https://eprint.iacr.org/2017/816) to achieve malicious
-security, except for the "PS" (post-sacrifice) protocols where the
+security with plain replicated secret sharing,
+except for the "PS" (post-sacrifice) protocols where the
 actual multiplication is executed optimistally and checked later as
 also described by Lindell and Nof.
 The implementations used by `brain-party.x`,
@@ -492,7 +519,7 @@ and `ps-rep-ring-party.x` correspond to the protocols called DOS18
 preprocessing (single), ABF+17 preprocessing, CDE+18 preprocessing,
 and postprocessing, respectively,
 by [Eerikson et al.](https://eprint.iacr.org/2019/164)
-Otherwise, we use resharing by [Cramer et
+We use resharing by [Cramer et
 al.](https://eprint.iacr.org/2000/037) for Shamir's secret sharing and
 the optimized approach by [Araki et
 al.](https://eprint.iacr.org/2016/768) for replicated secret sharing.
@@ -500,6 +527,14 @@ The CCD protocols are named after the [historic
 paper](https://doi.org/10.1145/62212.62214) by Chaum, Crépeau, and
 Damgård, which introduced binary computation using Shamir secret
 sharing over extension fields of characteristic two.
+SY/SPDZ-wise refers to the line of work started by [Chida et
+al.](https://eprint.iacr.org/2018/570) for computation modulo a prime
+and furthered by [Abspoel et al.](https://eprint.iacr.org/2019/1298)
+for computation modulo a power of two. It involves sharing both a
+secret value and information-theoretic tag similar to SPDZ but not
+with additive secret sharing, hence the name.
+Rep4 refers to the four-party protocol by [Dalskov et
+al.](https://eprint.iacr.org/2020/1330).
 
 All protocols in this section require encrypted channels because the
 information received by the honest majority suffices the reconstruct
@@ -678,23 +713,22 @@ Creating fake offline data for SPDZ2k requires to call
 
 `./Fake-Offline.x <nparties> -Z <bit length k for SPDZ2k> -S <security parameter>`
 
-### Honest-majority three-party computation of binary circuits with malicious security
+You will need to run `spdz2k-party.x -F` in order to use the data from storage.
 
-Compile the virtual machines:
+### Other protocols
 
-`make -j 8 rep-bin`
+Preprocessing data for the default parameters of most other protocols
+can be produced as follows:
 
-Generate preprocessing data:
+`./Fake-Offline.x <nparties> -e <edaBit length,...>`
 
-`Scripts/setup-online.sh 3`
+The `-e` command-line parameters accepts a list of integers seperated
+by commas.
 
-After compilating the mpc file, run as follows:
-
-`malicious-rep-bin-party.x [-I] -h <host of party 0> -p <0/1/2> tutorial`
-
-When running locally, you can omit the host argument. As above, `-I`
-activates interactive input, otherwise inputs are read from
-`Player-Data/Input-P<playerno>-0`.
+You can then run the protocol with argument `-F`. Note that when
+running on several hosts, you will need to distribute the data in
+`Player-Data`. The preprocessing files contain `-P<party number>`
+indicating which party will access it.
 
 ### BMR
 

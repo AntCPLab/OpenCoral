@@ -62,13 +62,14 @@ public:
 	static int t() { return 0; }
 
 	static char type_char() { return 'R'; }
+	static string type_short() { return "R"; }
 	static string type_string() { return "Z2^" + to_string(int(N_BITS)); }
 
 	static DataFieldType field_type() { return DATA_INT; }
 
-	static const bool invertible = false;
+	static const false_type invertible;
 
-	template <int L, int M>
+	template <int L, int M, bool LAZY = false>
 	static Z2<K> Mul(const Z2<L>& x, const Z2<M>& y);
 
 	static void reqbl(int n);
@@ -150,6 +151,9 @@ public:
 	void mul(const Z2& a) { *this = Z2::Mul(*this, a); }
 
 	void add(octetStream& os) { add(os.consume(size())); }
+
+	Z2 lazy_add(const Z2& x) const;
+	Z2 lazy_mul(const Z2& x) const;
 
 	Z2& invert();
 	void invert(const Z2& a) { *this = a; invert(); }
@@ -280,9 +284,16 @@ public:
 template<int K>
 inline Z2<K> Z2<K>::operator+(const Z2<K>& other) const
 {
+	auto res = lazy_add(other);
+	res.normalize();
+	return res;
+}
+
+template<int K>
+Z2<K> Z2<K>::lazy_add(const Z2<K>& other) const
+{
     Z2<K> res;
     mpn_add_fixed_n<N_WORDS>(res.a, a, other.a);
-    res.a[N_WORDS - 1] &= UPPER_MASK;
     return res;
 }
 
@@ -332,12 +343,13 @@ Z2<K>& Z2<K>::operator>>=(int other)
 }
 
 template <int K>
-template <int L, int M>
+template <int L, int M, bool LAZY>
 inline Z2<K> Z2<K>::Mul(const Z2<L>& x, const Z2<M>& y)
 {
 	Z2<K> res;
 	mpn_mul_fixed_<N_WORDS, Z2<L>::N_WORDS, Z2<M>::N_WORDS>(res.a, x.a, y.a);
-	res.a[N_WORDS - 1] &= UPPER_MASK;
+	if (not LAZY)
+		res.normalize();
 	return res;
 }
 
@@ -346,6 +358,12 @@ template <int L>
 inline Z2<(K > L) ? K : L> Z2<K>::operator*(const Z2<L>& other) const
 {
 	return Z2<(K > L) ? K : L>::Mul(*this, other);
+}
+
+template <int K>
+inline Z2<K> Z2<K>::lazy_mul(const Z2<K>& other) const
+{
+	return Z2<K>::Mul<K, K, true>(*this, other);
 }
 
 template <int K>

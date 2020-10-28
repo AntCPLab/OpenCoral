@@ -13,6 +13,8 @@ template<int K>
 const int Z2<K>::N_BITS;
 template<int K>
 const int Z2<K>::N_BYTES;
+template<int K>
+const false_type Z2<K>::invertible;
 
 template<int K>
 void Z2<K>::reqbl(int n)

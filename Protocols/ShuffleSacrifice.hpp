@@ -291,7 +291,7 @@ void ShuffleSacrifice<T>::edabit_sacrifice_buckets(vector<edabit<T>>& to_check,
     if (supply)
     {
         auto& triples = *(vector<array<BT, 3>>*)supply;
-#ifdef VERBOSE
+#ifdef VERBOSE_EDA
         fprintf(stderr, "got %zu supplies\n", triples.size());
 #endif
         if (player < 0)

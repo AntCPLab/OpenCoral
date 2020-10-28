@@ -37,6 +37,12 @@ if len(program.args) > 2:
       n_normal = 49
       n_features = 17814
 
+if 'mnist' in program.args:
+   print('Compiling for MNIST')
+   n_examples = 2115
+   n_normal = 980
+   n_features = 28 ** 2
+
 n_pos = n_examples - n_normal
 n_epochs = 1
 if len(program.args) > 1:

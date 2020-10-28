@@ -42,7 +42,7 @@ all: arithmetic binary gen_input online offline externalIO bmr doc
 doc:
 	cd doc; $(MAKE) html
 
-arithmetic: rep-ring rep-field shamir semi2k-party.x semi-party.x mascot
+arithmetic: rep-ring rep-field shamir semi2k-party.x semi-party.x mascot sy
 binary: rep-bin yao semi-bin-party.x tinier-party.x tiny-party.x ccd-party.x malicious-ccd-party.x real-bmr
 
 ifeq ($(USE_NTL),1)
@@ -77,7 +77,7 @@ overdrive: simple-offline.x pairwise-offline.x cnc-offline.x
 
 rep-field: malicious-rep-field-party.x replicated-field-party.x ps-rep-field-party.x
 
-rep-ring: replicated-ring-party.x brain-party.x malicious-rep-ring-party.x ps-rep-ring-party.x Fake-Offline.x
+rep-ring: replicated-ring-party.x brain-party.x malicious-rep-ring-party.x ps-rep-ring-party.x rep4-ring-party.x
 
 rep-bin: replicated-bin-party.x malicious-rep-bin-party.x Fake-Offline.x
 
@@ -98,10 +98,12 @@ endif
 
 shamir: shamir-party.x malicious-shamir-party.x galois-degree.x
 
+sy: sy-rep-field-party.x sy-rep-ring-party.x sy-shamir-party.x
+
 ecdsa: $(patsubst ECDSA/%.cpp,%.x,$(wildcard ECDSA/*-ecdsa-party.cpp))
 ecdsa-static: static-dir $(patsubst ECDSA/%.cpp,static/%.x,$(wildcard ECDSA/*-ecdsa-party.cpp))
 
-$(LIBRELEASE): $(patsubst %.cpp,%.o,$(wildcard Protocols/*.cpp)) $(PROCESSOR) $(COMMON) $(BMR) $(FHEOFFLINE) $(GC)
+$(LIBRELEASE): Protocols/MalRepRingOptions.o $(PROCESSOR) $(COMMON) $(BMR) $(GC)
 	$(AR) -csr $@ $^
 
 static/%.x: Machines/%.o $(LIBRELEASE) $(LIBSIMPLEOT)
@@ -184,12 +186,18 @@ hemi-party.x: $(FHEOFFLINE) $(GC_SEMI) $(OT)
 soho-party.x: $(FHEOFFLINE) $(GC_SEMI) $(OT)
 cowgear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o $(OT)
 chaigear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o $(OT)
+static/hemi-party.x: $(FHEOFFLINE)
+static/soho-party.x: $(FHEOFFLINE)
+static/cowgear-party.x: $(FHEOFFLINE)
+static/chaigear-party.x: $(FHEOFFLINE)
 mascot-party.x: Machines/SPDZ.o $(OT)
 static/mascot-party.x: Machines/SPDZ.o
 Player-Online.x: Machines/SPDZ.o $(OT)
 mama-party.x: $(OT)
 ps-rep-ring-party.x: Protocols/MalRepRingOptions.o
 malicious-rep-ring-party.x: Protocols/MalRepRingOptions.o
+sy-rep-ring-party.x: Protocols/MalRepRingOptions.o
+rep4-ring-party.x: GC/Rep4Secret.o
 semi-ecdsa-party.x: $(OT) $(LIBSIMPLEOT) GC/SemiPrep.o GC/SemiSecret.o
 mascot-ecdsa-party.x: $(OT) $(LIBSIMPLEOT)
 fake-spdz-ecdsa-party.x: $(OT) $(LIBSIMPLEOT)

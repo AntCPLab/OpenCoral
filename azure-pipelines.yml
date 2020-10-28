@@ -19,6 +19,6 @@ steps:
   - script: |
       make
   - script:
-      Scripts/setup-ssl.sh
+      Scripts/setup-ssl.sh 4
   - script:
       Scripts/test_tutorial.sh -C

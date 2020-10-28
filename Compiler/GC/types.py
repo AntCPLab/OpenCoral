@@ -45,6 +45,7 @@ class bits(Tape.Register, _structure, _bit):
         return cls.bit_compose(sum([util.bit_decompose(item, bit_length) for item in items], []))
     @classmethod
     def bit_compose(cls, bits):
+        bits = list(bits)
         if len(bits) == 1:
             return bits[0]
         bits = list(bits)
@@ -72,7 +73,7 @@ class bits(Tape.Register, _structure, _bit):
                 res = [self.bit_type() for i in range(n)]
                 self.bitdec(self, *res)
             else:
-                res = self.trans([self])
+                res = self.bit_type.trans([self])
             self.decomposed = res
             return res + suffix
         else:
@@ -83,8 +84,8 @@ class bits(Tape.Register, _structure, _bit):
         cbits.conv_cint_vec(a, *res)
         return res
     @classmethod
-    def malloc(cls, size):
-        return Program.prog.malloc(size, cls)
+    def malloc(cls, size, creator_tape=None):
+        return Program.prog.malloc(size, cls, creator_tape=creator_tape)
     @staticmethod
     def n_elements():
         return 1
@@ -430,6 +431,8 @@ class sbits(bits):
     def equal(self, other, n=None):
         bits = (~(self + other)).bit_decompose()
         return reduce(operator.mul, bits)
+    def right_shift(self, m, k, security=None, signed=True):
+        return self.TruncPr(k, m)
     def TruncPr(self, k, m, kappa=None):
         if k > self.n:
             raise Exception('TruncPr overflow: %d > %d' % (k, self.n))
@@ -481,8 +484,8 @@ class sbitvec(_vec):
     def get_type(cls, n):
         class sbitvecn(cls, _structure):
             @staticmethod
-            def malloc(size):
-                return sbit.malloc(size * n)
+            def malloc(size, creator_tape=None):
+                return sbit.malloc(size * n, creator_tape=creator_tape)
             @staticmethod
             def n_elements():
                 return n
@@ -566,7 +569,8 @@ class sbitvec(_vec):
                 x = sbitintvec.from_vec(r_bits) + sbitintvec.from_vec(cb)
                 v = x.v
             self.v = v[:length]
-        elif elements is not None:
+        elif elements is not None and not (util.is_constant(elements) and \
+             elements == 0):
             self.v = sbits.trans(elements)
     def popcnt(self):
         res = sbitint.wallace_tree([[b] for b in self.v])
@@ -606,7 +610,10 @@ class sbitvec(_vec):
         return cls.from_vec(other.v)
     @property
     def size(self):
-        return self.v[0].n
+        if not self.v or util.is_constant(self.v[0]):
+            return 1
+        else:
+            return self.v[0].n
     @property
     def n_bits(self):
         return len(self.v)
@@ -725,6 +732,8 @@ class _sbitintbase:
         return self.get_type(n).bit_compose(bits)
     def round(self, k, m, kappa=None, nearest=None, signed=None):
         bits = self.bit_decompose()
+        if signed:
+            bits += [bits[-1]] * (k - len(bits))
         res_bits = self.bit_adder(bits[m:k], [bits[m-1]])
         return self.get_type(k - m).compose(res_bits)
     def int_div(self, other, bit_length=None):
@@ -781,7 +790,7 @@ class sbitint(_bitint, _number, sbits, _sbitintbase):
     @classmethod
     def bit_compose(cls, bits):
         # truncate and extend bits
-        bits = bits[:cls.n]
+        bits = list(bits)[:cls.n]
         bits += [0] * (cls.n - len(bits))
         return super(sbitint, cls).bit_compose(bits)
     def force_bit_decompose(self, n_bits=None):
@@ -801,6 +810,7 @@ class sbitint(_bitint, _number, sbits, _sbitintbase):
         b = t.bit_compose(other_bits + [other_bits[-1]] * (k - len(other_bits)))
         product = a * b
         res_bits = product.bit_decompose()[m:k]
+        res_bits += [res_bits[-1]] * (self.n - len(res_bits))
         t = self.combo_type(other)
         return t.bit_compose(res_bits)
     def __mul__(self, other):
@@ -824,6 +834,15 @@ class sbitint(_bitint, _number, sbits, _sbitintbase):
                 else:
                     res.append([(x & bit) for x in other.bit_decompose(n - i)])
         return res
+    @classmethod
+    def popcnt_bits(cls, bits):
+        res = sbitvec.from_vec(bits).popcnt().elements()[0]
+        res = cls.conv(res)
+        return res
+    def pow2(self, k):
+        l = int(math.ceil(math.log(k, 2)))
+        bits = [self.equal(i, l) for i in range(k)]
+        return self.bit_compose(bits)
 
 class sbitintvec(sbitvec, _number, _bitint, _sbitintbase):
     def __add__(self, other):
@@ -867,8 +886,11 @@ class cbitfix(object):
     conv = staticmethod(lambda x: x)
     load_mem = classmethod(lambda cls, *args: cls(cbits.load_mem(*args)))
     store_in_mem = lambda self, *args: self.v.store_in_mem(*args)
-    def __init__(self, value):
-        self.v = value
+    @classmethod
+    def _new(cls, value):
+        res = cls()
+        res.v = value
+        return res
     def output(self):
         v = self.v
         if self.k < v.unit:
@@ -897,10 +919,10 @@ class sbitfix(_fix):
         inst.inputb(player, cls.k, cls.f, v)
         return cls._new(v)
     def __xor__(self, other):
-        return type(self)(self.v ^ other.v)
+        return type(self)._new(self.v ^ other.v)
     def __mul__(self, other):
         if isinstance(other, sbit):
-            return type(self)(self.int_type(other * self.v))
+            return type(self)._new(self.int_type(other * self.v))
         elif isinstance(other, sbitfixvec):
             return other * self
         else:
@@ -911,10 +933,11 @@ class sbitfix(_fix):
     def multipliable(other, k, f, size):
         class cls(_fix):
             int_type = sbitint.get_type(k)
+            clear_type = cbitfix
         cls.set_precision(f, k)
         return cls._new(cls.int_type(other), k, f)
 
-sbitfix.set_precision(20, 41)
+sbitfix.set_precision(16, 31)
 
 class sbitfixvec(_fix):
     int_type = sbitintvec

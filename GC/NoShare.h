@@ -7,6 +7,7 @@
 #define GC_NOSHARE_H_
 
 #include "Processor/DummyProtocol.h"
+#include "BMR/Register.h"
 #include "Tools/SwitchableOutput.h"
 
 class InputArgs;
@@ -39,6 +40,11 @@ public:
     static int length()
     {
         return 0;
+    }
+
+    static string type_string()
+    {
+        return "no";
     }
 
     static void fail()
@@ -93,8 +99,6 @@ public:
     static const bool expensive_triples = false;
     static const bool is_real = false;
 
-    static SwitchableOutput out;
-
     static MC* new_mc(mac_key_type)
     {
         return new MC;
@@ -130,7 +134,7 @@ public:
         NoValue::fail();
     }
 
-    static void inputb(Processor<NoShare>&, ArithmeticProcessor&, const vector<int>&) { fail(); }
+    static void inputb(Processor<NoShare>&, const ArithmeticProcessor&, const vector<int>&) { fail(); }
     static void reveal_inst(Processor<NoShare>&, const vector<int>&) { fail(); }
     static void xors(Processor<NoShare>&, const vector<int>&) { fail(); }
     static void ands(Processor<NoShare>&, const vector<int>&) { fail(); }
@@ -138,6 +142,10 @@ public:
 
     static void input(Processor<NoShare>&, InputArgs&) { fail(); }
     static void trans(Processor<NoShare>&, Integer, const vector<int>&) { fail(); }
+
+    static void xors(Processor<NoShare>&, vector<int>) { fail(); }
+    static void ands(Processor<NoShare>&, vector<int>) { fail(); }
+    static void andrs(Processor<NoShare>&, vector<int>) { fail(); }
 
     static NoShare constant(const GC::Clear&, int, mac_key_type) { fail(); return {}; }
 
@@ -161,8 +169,8 @@ public:
     void operator^=(NoShare) { fail(); }
 
     NoShare operator+(const NoShare&) const { fail(); return {}; }
-    NoShare operator-(NoShare) const { fail(); return 0; }
-    NoShare operator*(NoValue) const { fail(); return 0; }
+    NoShare operator-(const NoShare&) const { fail(); return {}; }
+    NoShare operator*(const NoValue&) const { fail(); return {}; }
 
     NoShare operator+(int) const { fail(); return {}; }
     NoShare operator&(int) const { fail(); return {}; }
@@ -172,6 +180,8 @@ public:
     NoShare get_bit(int) const { fail(); return {}; }
 
     void invert(int, NoShare) { fail(); }
+
+    void input(istream&, bool) { fail(); }
 };
 
 } /* namespace GC */

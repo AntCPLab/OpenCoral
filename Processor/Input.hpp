@@ -24,6 +24,12 @@ InputBase<T>::InputBase(ArithmeticProcessor* proc) :
 }
 
 template<class T>
+InputBase<T>::InputBase(SubProcessor<T>* proc) :
+        InputBase(proc ? proc->Proc : 0)
+{
+}
+
+template<class T>
 Input<T>::Input(SubProcessor<T>& proc) :
         Input(proc, proc.MC)
 {
@@ -92,7 +98,7 @@ void Input<T>::add_mine(const open_type& input, int n_bits)
     prep.get_input(share, rr, player);
     t = input - rr;
     t.pack(this->os[player]);
-    share += T::constant(t, 0, MC.get_alphai());
+    share += T::constant(t, player, MC.get_alphai());
     this->values_input++;
 }
 
@@ -190,7 +196,7 @@ void Input<T>::finalize_other(int player, T& target,
     (void) n_bits;
     target = shares[player].next();
     t.unpack(o);
-    target += T::constant(t, 1, MC.get_alphai());
+    target += T::constant(t, P.my_num(), MC.get_alphai());
 }
 
 template<class T>

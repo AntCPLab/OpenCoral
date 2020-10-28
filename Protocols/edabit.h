@@ -15,11 +15,14 @@ template<class T>
 class edabitvec
 {
     typedef FixedVector<typename T::bit_type::part_type, T::clear::MAX_EDABITS + 5> b_type;
-
-    FixedVector<T, T::bit_type::part_type::default_length> a;
-    b_type b;
+    typedef FixedVector<T, T::bit_type::part_type::default_length> a_type;
 
 public:
+    static const int MAX_SIZE = a_type::MAX_SIZE;
+
+    a_type a;
+    b_type b;
+
     edabitvec()
     {
     }
@@ -91,6 +94,27 @@ public:
             b[i] ^= typename T::bit_type::part_type(x.second[i]) << a.size();
         }
         a.push_back(x.first);
+    }
+
+    void input(int length, ifstream& s)
+    {
+        char buffer[MAX_SIZE * T::size()];
+        s.read(buffer, MAX_SIZE * T::size());
+        for (int i = 0; i < MAX_SIZE; i++)
+        {
+            T x;
+            x.assign(buffer + i * T::size());
+            a.push_back(x);
+        }
+        size_t bsize = T::bit_type::part_type::size();
+        char bbuffer[length * bsize];
+        s.read(bbuffer, length * bsize);
+        for (int i = 0; i < length; i++)
+        {
+            typename T::bit_type::part_type x;
+            x.assign(bbuffer + i * bsize);
+            b.push_back(x);
+        }
     }
 };
 

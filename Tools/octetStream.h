@@ -68,6 +68,7 @@ class octetStream
   size_t get_length() const  { return len; }
   size_t get_max_length() const { return mxlen; }
   octet* get_data() const { return data; }
+  octet* get_data_ptr() const { return data + ptr; }
 
   bool done() const 	  { return ptr == len; }
   bool empty() const 	  { return len == 0; }

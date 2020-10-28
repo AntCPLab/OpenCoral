@@ -77,6 +77,12 @@ public:
         a = bit;
         b = bit;
     }
+
+    void get_one_no_count(Dtype dtype, T& a)
+    {
+        assert(dtype == DATA_BIT);
+        a = G.get_uchar() & 1;
+    }
 };
 
 #endif /* PROTOCOLS_FAKEPREP_H_ */

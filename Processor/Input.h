@@ -20,9 +20,9 @@ class InputBase
 {
     typedef typename T::clear clear;
 
+protected:
     Player* P;
 
-protected:
     Buffer<typename T::clear, typename T::clear> buffer;
     Timer timer;
 
@@ -42,6 +42,7 @@ public:
     static void finalize(SubProcessor<T>& Proc, int player, const int* params, int size);
 
     InputBase(ArithmeticProcessor* proc = 0);
+    InputBase(SubProcessor<T>* proc);
     virtual ~InputBase();
 
     virtual void reset(int player) = 0;
@@ -56,7 +57,7 @@ public:
 
     virtual T finalize_mine() = 0;
     virtual void finalize_other(int player, T& target, octetStream& o, int n_bits = -1) = 0;
-    T finalize(int player, int n_bits = -1);
+    virtual T finalize(int player, int n_bits = -1);
 
     void raw_input(SubProcessor<T>& proc, const vector<int>& args, int size);
 };

@@ -10,10 +10,13 @@
 #include "Processor/InputTuple.h"
 #include "Tools/Lock.h"
 #include "Networking/Player.h"
+#include "Protocols/edabit.h"
 
 #include <fstream>
 #include <map>
 using namespace std;
+
+template<class T> class dabit;
 
 class DataTag
 {
@@ -50,9 +53,9 @@ public:
   static const char* field_names[N_DATA_FIELD_TYPE];
   static const int tuple_size[N_DTYPE];
 
-  vector< vector<long long> > files;
-  vector< vector<long long> > inputs;
-  map<DataTag, long long> extended[N_DATA_FIELD_TYPE];
+  array<array<long long, N_DTYPE>, N_DATA_FIELD_TYPE> files;
+  vector< array<long long, N_DATA_FIELD_TYPE> > inputs;
+  array<map<DataTag, long long>, N_DATA_FIELD_TYPE> extended;
   map<pair<bool, int>, long long> edabits;
 
   DataPositions(int num_players = 0) { set_num_players(num_players); }
@@ -63,6 +66,7 @@ public:
   DataPositions& operator-=(const DataPositions& delta);
   DataPositions operator-(const DataPositions& delta) const;
   void print_cost() const;
+  bool empty() const;
 };
 
 template<class sint, class sgf2n> class Processor;
@@ -73,9 +77,12 @@ template<class T> class SubProcessor;
 template<class T>
 class Preprocessing
 {
+protected:
   DataPositions& usage;
 
-protected:
+  map<pair<bool, int>, vector<edabitvec<T>>> edabits;
+  map<pair<bool, int>, edabitvec<T>> my_edabits;
+
   void count(Dtype dtype) { usage.files[T::field_type()][dtype]++; }
   void count(DataTag tag, int n = 1) { usage.extended[T::field_type()][tag] += n; }
   void count_input(int player) { usage.inputs[player][T::field_type()]++; }
@@ -117,10 +124,12 @@ public:
 
   virtual array<T, 3> get_triple(int n_bits);
   virtual T get_bit();
-  virtual void get_dabit(T&, typename T::bit_type&) { throw runtime_error("no daBit"); }
-  virtual void get_edabits(bool, size_t, T*, vector<typename T::bit_type>&,
-      const vector<int>&)
-  { throw runtime_error("no edaBit"); }
+  virtual void get_dabit(T&, typename T::bit_type&);
+  virtual void get_dabit_no_count(T&, typename T::bit_type&) { throw runtime_error("no daBit"); }
+  virtual void get_edabits(bool strict, size_t size, T* a,
+          vector<typename T::bit_type>& Sb, const vector<int>& regs);
+  virtual void get_edabit_no_count(bool, int n_bits, edabit<T>& eb);
+  virtual void buffer_edabits_with_queues(bool, int) { throw runtime_error("no edaBits"); }
 
   virtual void push_triples(const vector<array<T, 3>>&)
   { throw runtime_error("no pushing"); }
@@ -145,10 +154,17 @@ class Sub_Data_Files : public Preprocessing<T>
   vector<BufferOwner<T, T>> input_buffers;
   BufferOwner<InputTuple<T>, RefInputTuple<T>> my_input_buffers;
   map<DataTag, BufferOwner<T, T> > extended;
+  BufferOwner<dabit<T>, dabit<T>> dabit_buffer;
+  map<int, ifstream*> edabit_buffers;
 
   int my_num,num_players;
 
   const string prep_data_dir;
+  int thread_num;
+
+  Sub_Data_Files<typename T::part_type>* part;
+
+  void buffer_edabits_with_queues(bool stric, int n_bits);
 
 public:
   static string get_suffix(int thread_num);
@@ -202,6 +218,9 @@ public:
 
   void setup_extended(const DataTag& tag, int tuple_size = 0);
   void get_no_count(vector<T>& S, DataTag tag, const vector<int>& regs, int vector_size);
+  void get_dabit_no_count(T& a, typename T::bit_type& b);
+
+  Preprocessing<typename T::part_type>& get_part();
 };
 
 template<class sint, class sgf2n>

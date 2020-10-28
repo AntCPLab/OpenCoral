@@ -90,8 +90,9 @@ class Offline_Check_Error: public runtime_error
           runtime_error("Offline-Check-Error : " + m) {}
     };
 class mac_fail:  public bad_value
-    { virtual const char* what() const throw()
-        { return "MacCheck Failure"; }
+    {
+      public:
+      mac_fail(string msg = "MacCheck Failure") : bad_value(msg) {}
     };
 class consistency_check_fail:  public exception
     { virtual const char* what() const throw()

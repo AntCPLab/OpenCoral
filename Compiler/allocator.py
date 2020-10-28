@@ -220,6 +220,7 @@ class Merger:
         else:
             self.max_parallel_open = float('inf')
         self.counter = defaultdict(lambda: 0)
+        self.rounds = defaultdict(lambda: 0)
         self.dependency_graph(merge_classes)
 
     def do_merge(self, merges_iter):
@@ -271,6 +272,7 @@ class Merger:
             merge = merges[i]
             t = type(self.instructions[merge[0]])
             self.counter[t] += len(merge)
+            self.rounds[t] += 1
             if len(merge) > 10000:
                 print('Merging %d %s in round %d/%d' % \
                     (len(merge), t.__name__, i, len(merges)))

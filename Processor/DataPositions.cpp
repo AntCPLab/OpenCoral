@@ -14,13 +14,13 @@ const int DataPositions::tuple_size[N_DTYPE] = { 3, 2, 1, 2, 3, 3 };
 
 void DataPositions::set_num_players(int num_players)
 {
-  files.resize(N_DATA_FIELD_TYPE, vector<long long>(N_DTYPE));
-  inputs.resize(num_players, vector<long long>(N_DATA_FIELD_TYPE));
+  files = {};
+  inputs.resize(num_players, {});
 }
 
 void DataPositions::increase(const DataPositions& delta)
 {
-  inputs.resize(max(inputs.size(), delta.inputs.size()), vector<long long>(N_DATA_FIELD_TYPE));
+  inputs.resize(max(inputs.size(), delta.inputs.size()), {});
   for (unsigned int field_type = 0; field_type < N_DATA_FIELD_TYPE; field_type++)
     {
       for (unsigned int dtype = 0; dtype < N_DTYPE; dtype++)
@@ -39,8 +39,7 @@ void DataPositions::increase(const DataPositions& delta)
 
 DataPositions& DataPositions::operator-=(const DataPositions& delta)
 {
-  inputs.resize(max(inputs.size(), delta.inputs.size()),
-      vector<long long>(N_DATA_FIELD_TYPE));
+  inputs.resize(max(inputs.size(), delta.inputs.size()), {});
   for (unsigned int field_type = 0; field_type < N_DATA_FIELD_TYPE;
       field_type++)
     {
@@ -143,4 +142,26 @@ void DataPositions::process_line(long long items_used, const char* name,
         cerr << " @ " << setw(11) << cost_per_item;
       cerr << suffix << endl;
     }
+}
+
+bool DataPositions::empty() const
+{
+  for (auto& x : files)
+    for (auto& y : x)
+      if (y)
+        return false;
+
+  for (auto& x : inputs)
+    for (auto& y : x)
+      if (y)
+        return false;
+
+  for (auto& x : extended)
+    if (not x.empty())
+      return false;
+
+  if (not edabits.empty())
+    return false;
+
+  return true;
 }

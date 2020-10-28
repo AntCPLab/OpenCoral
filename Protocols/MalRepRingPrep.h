@@ -36,19 +36,12 @@ public:
     void buffer_bits();
 };
 
-// extra class to avoid recursion
 template<class T>
-class MalRepRingPrepWithBits: public virtual MaliciousRingPrep<T>,
-        public virtual MalRepRingPrep<T>,
+class SimplerMalRepRingPrep : public virtual MalRepRingPrep<T>,
         public virtual RingOnlyBitsFromSquaresPrep<T>
 {
 public:
-    MalRepRingPrepWithBits(SubProcessor<T>* proc, DataPositions& usage);
-
-    void set_protocol(typename T::Protocol& protocol)
-    {
-        MaliciousRingPrep<T>::set_protocol(protocol);
-    }
+    SimplerMalRepRingPrep(SubProcessor<T>* proc, DataPositions& usage);
 
     void buffer_triples()
     {
@@ -70,6 +63,29 @@ public:
         this->get_one_no_count(DATA_BIT, a);
         b = a & 1;
     }
+};
+
+template<class T>
+class MalRepRingPrepWithBits: public virtual MaliciousRingPrep<T>,
+        public virtual SimplerMalRepRingPrep<T>
+{
+public:
+    MalRepRingPrepWithBits(SubProcessor<T>* proc, DataPositions& usage);
+
+    void set_protocol(typename T::Protocol& protocol)
+    {
+        MaliciousRingPrep<T>::set_protocol(protocol);
+    }
+
+    void buffer_squares()
+    {
+        MalRepRingPrep<T>::buffer_squares();
+    }
+
+    void buffer_bits()
+    {
+        RingOnlyBitsFromSquaresPrep<T>::buffer_bits();
+    };
 };
 
 #endif /* PROTOCOLS_MALREPRINGPREP_H_ */

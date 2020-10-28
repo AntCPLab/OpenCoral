@@ -64,7 +64,7 @@ void BitAdder::add(vector<vector<T> >& res,
 
     int n_bits = summands.size();
     for (size_t i = begin; i < end; i++)
-        res[i].resize(n_bits + 1);
+        res.at(i).resize(n_bits + 1);
 
     size_t n_items = end - begin;
 

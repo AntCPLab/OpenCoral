@@ -17,6 +17,7 @@ OnlineOptions::OnlineOptions() : playerno(-1)
     live_prep = true;
     batch_size = 10000;
     memtype = "empty";
+    bits_from_squares = false;
     direct = false;
     bucket_size = 3;
     cmd_private_input_file = "Player-Data/Input";
@@ -143,6 +144,15 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
             0, // Required?
             0, // Number of args expected.
             0, // Delimiter if expecting multiple args.
+            "Compute random bits from squares", // Help description.
+            "-Q", // Flag token.
+            "--bits-from-squares" // Flag token.
+    );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
             "Direct communication instead of star-shaped", // Help description.
             "-d", // Flag token.
             "--direct" // Flag token.
@@ -174,6 +184,7 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
         live_prep = opt.get("-L")->isSet;
     opt.get("-b")->getInt(batch_size);
     opt.get("--memory")->getString(memtype);
+    bits_from_squares = opt.isSet("-Q");
 
     opt.get("-IF")->getString(cmd_private_input_file);
     opt.get("-OF")->getString(cmd_private_output_file);

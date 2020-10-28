@@ -52,6 +52,11 @@ SubProcessor<T>::~SubProcessor()
   if (bit_prep.data_sent())
     cerr << "Sent for global bit preprocessing threads: " <<
         bit_prep.data_sent() * 1e-6 << " MB" << endl;
+  if (not bit_usage.empty())
+    {
+      cerr << "Mixed-circuit preprocessing cost:" << endl;
+      bit_usage.print_cost();
+    }
 #endif
 }
 
@@ -82,13 +87,16 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
   secure_prng.ReSeed();
   shared_prng.SeedGlobally(P);
 
-  out.activate(P.my_num() == 0 or machine.opts.interactive);
+  // only output on party 0 if not interactive
+  bool output = P.my_num() == 0 or machine.opts.interactive;
+  out.activate(output);
+  Procb.out.activate(output);
+  setup_redirection(P.my_num(), thread_num, opts);
 
-  if (!machine.opts.cmd_private_output_file.empty())
+  if (stdout_redirect_file.is_open())
   {
-    const string stdout_filename = get_parameterized_filename(P.my_num(), thread_num, opts.cmd_private_output_file);
-    stdout_redirect_file.open(stdout_filename.c_str(), ios_base::out);
     out.redirect_to_file(stdout_redirect_file);
+    Procb.out.redirect_to_file(stdout_redirect_file);
   }
 
 }

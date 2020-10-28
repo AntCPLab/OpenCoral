@@ -12,6 +12,7 @@
 #include "Player-Online.hpp"
 #include "Semi.hpp"
 #include "GC/ShareSecret.hpp"
+#include "Protocols/RepRingOnlyEdabitPrep.hpp"
 
 int main(int argc, const char** argv)
 {

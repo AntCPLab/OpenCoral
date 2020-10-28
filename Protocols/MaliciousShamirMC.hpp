@@ -38,16 +38,24 @@ typename T::open_type MaliciousShamirMC<T>::finalize_open()
     shares.resize(2 * threshold + 1);
     for (size_t j = 0; j < shares.size(); j++)
         shares[j].unpack((*this->os)[j]);
+    return reconstruct(shares);
+}
+
+template<class T>
+typename T::open_type MaliciousShamirMC<T>::reconstruct(
+        const vector<open_type>& shares)
+{
+    int threshold = ShamirMachine::s().threshold;
     typename T::open_type value = 0;
     for (int j = 0; j < threshold + 1; j++)
         value += shares[j] * reconstructions[threshold + 1][j];
-    for (int j = threshold + 2; j <= 2 * threshold + 1; j++)
+    for (size_t j = threshold + 2; j <= shares.size(); j++)
     {
         typename T::open_type check = 0;
-        for (int k = 0; k < j; k++)
+        for (size_t k = 0; k < j; k++)
             check += shares[k] * reconstructions[j][k];
         if (check != value)
-            throw mac_fail();
+            throw mac_fail("inconsistent Shamir secret sharing");
     }
     return value;
 }

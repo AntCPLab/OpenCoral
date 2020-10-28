@@ -28,6 +28,8 @@ void write_mac_key(const string& directory, int player_num, int nplayers, T key)
 
 template <class U>
 void read_mac_key(const string& directory, int player_num, int nplayers, U& key);
+template <class U>
+void read_mac_key(const string& directory, const Names& N, U& key);
 
 template <class T>
 class Files
@@ -55,9 +57,16 @@ public:
   {
     delete[] outf;
   }
-  void output_shares(const typename T::clear& a)
+  template<class U = T>
+  void output_shares(const typename U::clear& a)
   {
-    vector<T> Sa(N);
+    output_shares<T>(a, key);
+  }
+  template<class U>
+  void output_shares(const typename U::clear& a,
+      const typename U::mac_type& key)
+  {
+    vector<U> Sa(N);
     make_share(Sa,a,N,key,G);
     for (int j=0; j<N; j++)
       Sa[j].output(outf[j],false);

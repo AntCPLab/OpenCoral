@@ -32,10 +32,14 @@ public:
     static void split(vector<U>, vector<int>, int, T*, int, Player&)
     { throw runtime_error("split not implemented"); }
 
+    template<class T>
+    static void shrsi(T&, const Instruction&)
+    { throw runtime_error("shrsi not implemented"); }
+
     static bool get_rec_factor(int, int) { return false; }
 
     template<class T>
-    static void read_or_generate_mac_key(const string&, const Names&, T&) {}
+    static void read_or_generate_mac_key(const string&, const Player&, T&) {}
 
     template<class T, class U>
     static void generate_mac_key(T&, U&) {}

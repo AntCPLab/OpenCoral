@@ -24,7 +24,9 @@ USE_GF2N_LONG = 1
 # AVX/AVX2 is required for replicated binary secret sharing
 # BMI2 is used to optimize multiplication modulo a prime
 # ADX is used to optimize big integer additions
+# delete the second line to compile for a platform that supports everything
 ARCH = -mtune=native -msse4.1 -msse4.2 -maes -mpclmul -mavx -mavx2 -mbmi2 -madx
+ARCH = -march=native
 
 # allow to set compiler in CONFIG.mine
 CXX = g++
@@ -60,7 +62,7 @@ else
 BOOST = -lboost_thread $(MY_BOOST)
 endif
 
-CFLAGS += $(ARCH) $(MY_CFLAGS) $(GDEBUG) -Wextra -Wall $(OPTIM) -I$(ROOT) -pthread $(PROF) $(DEBUG) $(MOD) $(MEMPROTECT) $(GF2N_LONG) $(PREP_DIR) -std=c++11 -Werror
+CFLAGS += $(ARCH) $(MY_CFLAGS) $(GDEBUG) -Wextra -Wall $(OPTIM) -I$(ROOT) -pthread $(PROF) $(DEBUG) $(MOD) $(MEMPROTECT) $(GF2N_LONG) $(PREP_DIR) $(SECURE) -std=c++11 -Werror
 CPPFLAGS = $(CFLAGS)
 LD = $(CXX)
 

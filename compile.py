@@ -67,6 +67,10 @@ def main():
                       help="mixing arithmetic and binary computation")
     parser.add_option("-Y", "--edabit", action="store_true", dest="edabit",
                       help="mixing arithmetic and binary computation using edaBits")
+    parser.add_option("-Z", "--split", default=None, dest="split",
+                      help="mixing arithmetic and binary computation "
+                      "using direct conversion if supported "
+                      "(number of parties as argument)")
     parser.add_option("-C", "--CISC", action="store_true", dest="cisc",
                       help="faster CISC compilation mode")
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose",

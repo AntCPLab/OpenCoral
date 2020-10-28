@@ -40,6 +40,7 @@ void Hash::final(octetStream& os)
     os.resize_precise(hash_length);
     os.reset_write_head();
     final(os.append(hash_length));
+    reset();
 }
 
 octetStream Hash::final()

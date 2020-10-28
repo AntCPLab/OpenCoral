@@ -135,27 +135,37 @@ def Trunc(d, a, k, m, kappa, signed):
     mulm(d, t, c[2])
 
 def TruncRing(d, a, k, m, signed):
-    if program.use_split() == 3:
+    program.curr_tape.require_bit_length(1)
+    if program.use_split() in (2, 3):
+        if signed:
+            a += (1 << (k - 1))
         from Compiler.types import sint
         from .GC.types import sbitint
         length = int(program.options.ring)
-        summands = a.split_to_n_summands(length, 3)
+        summands = a.split_to_n_summands(length, program.use_split())
         x = sbitint.wallace_tree_without_finish(summands, True)
-        if m == 1:
-            low = x[1][1]
-            high = sint.conv(CarryOutLE(x[1][:-1], x[0][:-1])) + \
-                   sint.conv(x[0][-1])
+        if program.use_split() == 2:
+            carries = sbitint.get_carries(*x)
+            low = carries[m]
+            high = sint.conv(carries[length])
         else:
-            mid_carry = CarryOutRawLE(x[1][:m], x[0][:m])
-            low = sint.conv(mid_carry) + sint.conv(x[0][m])
-            tmp = util.tree_reduce(carry, (sbitint.half_adder(xx, yy)
-                                           for xx, yy in zip(x[1][m:-1],
-                                                             x[0][m:-1])))
-            top_carry = sint.conv(carry([None, mid_carry], tmp, False)[1])
-            high = top_carry + sint.conv(x[0][-1])
+            if m == 1:
+                low = x[1][1]
+                high = sint.conv(CarryOutLE(x[1][:-1], x[0][:-1])) + \
+                       sint.conv(x[0][-1])
+            else:
+                mid_carry = CarryOutRawLE(x[1][:m], x[0][:m])
+                low = sint.conv(mid_carry) + sint.conv(x[0][m])
+                tmp = util.tree_reduce(carry, (sbitint.half_adder(xx, yy)
+                                               for xx, yy in zip(x[1][m:-1],
+                                                                 x[0][m:-1])))
+                top_carry = sint.conv(carry([None, mid_carry], tmp, False)[1])
+                high = top_carry + sint.conv(x[0][-1])
         shifted = sint()
         shrsi(shifted, a, m)
         res = shifted + sint.conv(low) - (high << (length - m))
+        if signed:
+            res -= (1 << (k - m - 1))
     else:
         a_prime = Mod2mRing(None, a, k, m, signed)
         a -= a_prime

@@ -13,14 +13,27 @@
 int main(int argc, const char** argv)
 {
     ez::ezOptionParser opt;
-    RingOptions opts(opt, argc, argv);
+    RingOptions opts(opt, argc, argv, true);
     switch (opts.R)
     {
     case 64:
-        ReplicatedMachine<PostSacriRepRingShare<64, 40>, PostSacriRepFieldShare<gf2n>>(
-                argc, argv, opt);
-        break;
-    case 72:
+        switch (opts.S)
+        {
+        case 40:
+            ReplicatedMachine<PostSacriRepRingShare<64, 40>,
+                    PostSacriRepFieldShare<gf2n>>(argc, argv, opt);
+            break;
+        case 64:
+            ReplicatedMachine<PostSacriRepRingShare<64, 64>,
+                    PostSacriRepFieldShare<gf2n>>(argc, argv, opt);
+            break;
+        default:
+            cerr << "Security parameter " << opts.S << " not implemented"
+                    << endl;
+            exit(1);
+    }
+    break;
+   case 72:
         ReplicatedMachine<PostSacriRepRingShare<72, 40>, PostSacriRepFieldShare<gf2n>>(
                 argc, argv, opt);
         break;

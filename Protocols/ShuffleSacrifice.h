@@ -12,13 +12,11 @@ using namespace std;
 
 #include "Tools/FixedVector.h"
 #include "edabit.h"
+#include "dabit.h"
 
 class Player;
 
 template<class T> class LimitedPrep;
-
-template<class T>
-using dabit = pair<T, typename T::bit_type::part_type>;
 
 template<class T>
 class ShuffleSacrifice

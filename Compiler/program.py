@@ -98,6 +98,8 @@ class Program(object):
         self.use_dabit = options.mixed
         self._edabit = options.edabit
         self._split = False
+        if options.split:
+            self.use_split(int(options.split))
         self._square = False
         self._always_raw = False
         Program.prog = self
@@ -243,10 +245,12 @@ class Program(object):
         """ The basic block that is currently being created. """
         return self.curr_tape.active_basicblock
     
-    def malloc(self, size, mem_type, reg_type=None):
+    def malloc(self, size, mem_type, reg_type=None, creator_tape=None):
         """ Allocate memory from the top """
         if not isinstance(size, int):
             raise CompilerError('size must be known at compile time')
+        if (creator_tape or self.curr_tape) != self.tapes[0]:
+            raise CompilerError('cannot allocate memory outside main thread')
         if size == 0:
             return
         if isinstance(mem_type, type):
@@ -330,7 +334,9 @@ class Program(object):
         if change is None:
             return self._split
         else:
-            assert change in (2, 3)
+            if change and not self.options.ring:
+                raise CompilerError('splitting only supported for rings')
+            assert change > 1
             self._split = change
 
     def use_square(self, change=None):
@@ -350,8 +356,12 @@ class Program(object):
             self.use_trunc_pr = True
         if 'split' in self.args or 'split3' in self.args:
             self.use_split(3)
+        if 'split4' in self.args:
+            self.use_split(4)
         if 'raw' in self.args:
             self.always_raw(True)
+        if 'edabit' in self.args:
+            self.use_edabit(True)
 
 class Tape:
     """ A tape contains a list of basic blocks, onto which instructions are added. """
@@ -559,12 +569,14 @@ class Tape:
                     numrounds = merger.longest_paths_merge()
                     block.n_rounds = numrounds
                     block.n_to_merge = len(merger.open_nodes)
-                    if numrounds > 0 and self.program.verbose:
-                        print('Program requires %d rounds of communication' % numrounds)
                     if merger.counter and self.program.verbose:
                         print('Block requires', \
                             ', '.join('%d %s' % (y, x.__name__) \
                                      for x, y in list(merger.counter.items())))
+                    if merger.counter and self.program.verbose:
+                        print('Block requires %s rounds' % \
+                            ', '.join('%d %s' % (y, x.__name__) \
+                                     for x, y in list(merger.rounds.items())))
                 # free memory
                 merger = None
                 if options.dead_code_elimination:

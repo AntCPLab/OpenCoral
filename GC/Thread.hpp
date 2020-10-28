@@ -54,7 +54,13 @@ void Thread<T>::run()
         P = new CryptoPlayer(N, thread_num << 16);
     else
         P = new PlainPlayer(N, thread_num << 16);
-    processor.open_input_file(N.my_num(), thread_num);
+    processor.open_input_file(N.my_num(), thread_num,
+            master.opts.cmd_private_input_file);
+    processor.out.activate(N.my_num() == 0 or master.opts.interactive);
+    processor.setup_redirection(P->my_num(), thread_num, master.opts);
+    if (processor.stdout_redirect_file.is_open())
+		processor.out.redirect_to_file(processor.stdout_redirect_file);
+
     done.push(0);
     pre_run();
 

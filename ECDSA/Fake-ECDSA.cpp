@@ -5,6 +5,7 @@
 
 #include "ECDSA/P256Element.h"
 #include "Tools/mkpath.h"
+#include "GC/TinierSecret.h"
 
 #include "Protocols/fake-stuff.hpp"
 #include "Protocols/Share.hpp"

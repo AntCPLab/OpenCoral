@@ -6,7 +6,7 @@
 #include "Processor/config.h"
 #include "Protocols/Share.h"
 #include "GC/TinierSecret.h"
-#include "Math/gfp.h"
+#include "Math/gfp.hpp"
 
 #include "Player-Online.hpp"
 

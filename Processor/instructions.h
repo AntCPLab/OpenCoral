@@ -55,6 +55,9 @@
     X(MULCI, auto dest = &Procp.get_C()[r[0]]; auto op1 = &Procp.get_C()[r[1]]; \
             typename sint::clear op2 = int(n), \
             *dest++ = *op1++ * op2) \
+    X(MULSI, auto dest = &Procp.get_S()[r[0]]; auto op1 = &Procp.get_S()[r[1]]; \
+            typename sint::clear op2 = int(n), \
+            *dest++ = *op1++ * op2) \
     X(SHRCI, auto dest = &Procp.get_C()[r[0]]; auto op1 = &Procp.get_C()[r[1]], \
             *dest++ = *op1++ >> n) \
     X(TRIPLE, auto a = &Procp.get_S()[r[0]]; auto b = &Procp.get_S()[r[1]]; \

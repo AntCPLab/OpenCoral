@@ -21,9 +21,10 @@ public:
     IndividualInput(SubProcessor<T>* proc, Player& P) :
             PrepLessInput<T>(proc), P(P)
     {
+        this->reset_all(P);
     }
     IndividualInput(SubProcessor<T>& proc) :
-            PrepLessInput<T>(&proc), P(proc.P)
+            IndividualInput<T>(&proc , proc.P)
     {
     }
 

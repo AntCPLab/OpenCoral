@@ -18,8 +18,6 @@
 #include "GC/ShareSecret.hpp"
 #include "YaoCommon.hpp"
 
-ostream& YaoEvalWire::out = cout;
-
 void YaoEvalWire::random()
 {
 	set(0);

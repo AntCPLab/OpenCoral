@@ -39,28 +39,32 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   sint::clear::read_or_generate_setup(prep_dir_prefix<sint>(), opts);
   sint::bit_type::mac_key_type::init_field();
 
+  // Initialize gf2n_short for CCD
+  sint::bit_type::part_type::open_type::init_field();
+
   // make directory for outputs if necessary
   mkdir_p(PREP_DIR);
 
+  Player* P;
+  if (use_encryption)
+    P = new CryptoPlayer(N, 0xF00);
+  else
+    P = new PlainPlayer(N, 0xF00);
+
   if (opts.live_prep)
     {
-      auto P = new PlainPlayer(N, 0xF00);
       sint::LivePrep::basic_setup(*P);
-      delete P;
     }
 
-  sint::read_or_generate_mac_key(prep_dir_prefix<sint>(), N, alphapi);
-  sgf2n::read_or_generate_mac_key(prep_dir_prefix<sgf2n>(), N, alpha2i);
+  sint::read_or_generate_mac_key(prep_dir_prefix<sint>(), *P, alphapi);
+  sgf2n::read_or_generate_mac_key(prep_dir_prefix<sgf2n>(), *P, alpha2i);
   sint::bit_type::part_type::read_or_generate_mac_key(
-      prep_dir_prefix<typename sint::bit_type>(), N, alphabi);
+      prep_dir_prefix<typename sint::bit_type>(), *P, alphabi);
 
 #ifdef DEBUG_MAC
   cerr << "MAC Key p = " << alphapi << endl;
   cerr << "MAC Key 2 = " << alpha2i << endl;
 #endif
-
-  // deactivate output if necessary
-  sint::bit_type::out.activate(my_number == 0 or opts.interactive);
 
   // for OT-based preprocessing
   sint::clear::next::template init<typename sint::clear>(false);
@@ -68,6 +72,7 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   // Initialize the global memory
   if (memtype.compare("old")==0)
      {
+       ifstream inpf;
        inpf.open(memory_filename(), ios::in | ios::binary);
        if (inpf.fail()) { throw file_error(memory_filename()); }
        inpf >> M2 >> Mp >> Mi;
@@ -90,15 +95,11 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   if (live_prep
       and (sint::needs_ot or sgf2n::needs_ot or sint::bit_type::needs_ot))
   {
-    Player* P;
-    if (use_encryption)
-      P = new CryptoPlayer(playerNames, 0xF000);
-    else
-      P = new PlainPlayer(playerNames, 0xF000);
     for (int i = 0; i < nthreads; i++)
       ot_setups.push_back({ *P, true });
-    delete P;
   }
+
+  delete P;
 
   /* Set up the threads */
   tinfo.resize(nthreads);
@@ -190,7 +191,7 @@ void Machine<sint, sgf2n>::fill_buffers(int thread_number, int tape_number,
       }
       catch (bad_cast& e)
       {
-#ifdef VERBOSE
+#ifdef VERBOSE_CENTRAL
         cerr << "Problem with central preprocessing" << endl;
 #endif
       }
@@ -210,7 +211,7 @@ void Machine<sint, sgf2n>::fill_buffers(int thread_number, int tape_number,
       }
       catch (bad_cast& e)
       {
-#ifdef VERBOSE
+#ifdef VERBOSE_CENTRAL
         cerr << "Problem with central bit triple preprocessing: " << e.what() << endl;
 #endif
       }
@@ -231,12 +232,14 @@ DataPositions Machine<sint, sgf2n>::run_tape(int thread_number, int tape_number,
   //printf("Running line %d\n",exec);
   if (progs[tape_number].usage_unknown())
     {
+#ifndef INSECURE
       if (not opts.live_prep)
         {
           cerr << "Internally called tape " << tape_number <<
               " has unknown offline data usage" << endl;
           throw invalid_program();
         }
+#endif
       return DataPositions(N.num_players());
     }
   else
@@ -263,9 +266,6 @@ void Machine<sint, sgf2n>::run()
   proc_timer.start();
   timer[0].start();
 
-  // legacy
-  int _;
-  inpf >> _ >> _ >> _;
   // run main tape
   pos.increase(run_tape(0, 0, 0));
   join_tape(0);

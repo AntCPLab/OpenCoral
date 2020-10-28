@@ -11,6 +11,8 @@
 template<class T>
 class MaliciousShamirMC : public ShamirMC<T>
 {
+    typedef typename T::open_type open_type;
+
     vector<vector<typename T::open_type::Scalar>> reconstructions;
 
     vector<typename T::open_type> shares;
@@ -34,6 +36,8 @@ public:
 
     void init_open(const Player& P, int n = 0);
     typename T::open_type finalize_open();
+
+    typename T::open_type reconstruct(const vector<open_type>& shares);
 };
 
 #endif /* PROTOCOLS_MALICIOUSSHAMIRMC_H_ */

@@ -104,7 +104,7 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	}
 	else
 	{
-	    T::read_or_generate_mac_key(prep_dir, N, mac_key);
+	    T::read_or_generate_mac_key(prep_dir, *P, mac_key);
 		prep = new Sub_Data_Files<T>(N, prep_dir, usage);
 	}
 

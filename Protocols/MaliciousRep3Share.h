@@ -11,6 +11,7 @@
 template<class T> class HashMaliciousRepMC;
 template<class T> class Beaver;
 template<class T> class MaliciousRepPrepWithBits;
+template<class T> class MaliciousRepPO;
 template<class T> class MaliciousRepPrep;
 
 namespace GC
@@ -22,6 +23,7 @@ template<class T>
 class MaliciousRep3Share : public Rep3Share<T>
 {
     typedef Rep3Share<T> super;
+    typedef MaliciousRep3Share This;
 
 public:
     typedef Beaver<MaliciousRep3Share<T>> Protocol;
@@ -29,11 +31,13 @@ public:
     typedef MAC_Check Direct_MC;
     typedef ReplicatedInput<MaliciousRep3Share<T>> Input;
     typedef ::PrivateOutput<MaliciousRep3Share<T>> PrivateOutput;
+    typedef MaliciousRepPO<MaliciousRep3Share> PO;
     typedef Rep3Share<T> Honest;
     typedef MaliciousRepPrepWithBits<MaliciousRep3Share> LivePrep;
     typedef MaliciousRepPrep<MaliciousRep3Share> TriplePrep;
     typedef MaliciousRep3Share prep_type;
     typedef T random_type;
+    typedef This Scalar;
 
     typedef GC::MaliciousRepSecret bit_type;
 

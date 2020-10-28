@@ -44,6 +44,8 @@ public:
 
     Timer xor_timer;
 
+    typename T::out_type out;
+
     Processor(Machine<T>& machine);
     Processor(Memories<T>& memories, Machine<T>* machine = 0);
     ~Processor();

@@ -301,15 +301,15 @@ void Processor<T>::print_reg(int reg, int n, int size)
     bigint output;
     for (int i = 0; i < size; i++)
         output += bigint((unsigned long)C[reg + i].get()) << (T::default_length * i);
-    T::out << "Reg[" << reg << "] = " << hex << showbase << output << dec << " # ";
+    out << "Reg[" << reg << "] = " << hex << showbase << output << dec << " # ";
     print_str(n);
-    T::out << endl << flush;
+    out << endl << flush;
 }
 
 template <class T>
 void Processor<T>::print_reg_plain(Clear& value)
 {
-    T::out << hex << showbase << value << dec << flush;
+    out << hex << showbase << value << dec << flush;
 }
 
 template <class T>
@@ -323,7 +323,7 @@ void Processor<T>::print_reg_signed(unsigned n_bits, Integer reg)
             n_shift = sizeof(value.get()) * 8 - n_bits;
         if (n_shift > 63)
             n_shift = 0;
-        T::out << dec << (value.get() << n_shift >> n_shift) << flush;
+        out << dec << (value.get() << n_shift >> n_shift) << flush;
     }
     else
     {
@@ -334,26 +334,26 @@ void Processor<T>::print_reg_signed(unsigned n_bits, Integer reg)
         }
         if (tmp >= bigint(1) << (n_bits - 1))
             tmp -= bigint(1) << n_bits;
-        T::out << dec << tmp << flush;
+        out << dec << tmp << flush;
     }
 }
 
 template <class T>
 void Processor<T>::print_chr(int n)
 {
-    T::out << (char)n << flush;
+    out << (char)n << flush;
 }
 
 template <class T>
 void Processor<T>::print_str(int n)
 {
-    T::out << string((char*)&n,sizeof(n)) << flush;
+    out << string((char*)&n,sizeof(n)) << flush;
 }
 
 template <class T>
 void Processor<T>::print_float(const vector<int>& args)
 {
-    bigint::output_float(T::out,
+    bigint::output_float(out,
             bigint::get_float(C[args[0]], C[args[1]], C[args[2]], C[args[3]]),
             C[args[4]]);
 }
@@ -361,7 +361,7 @@ void Processor<T>::print_float(const vector<int>& args)
 template <class T>
 void Processor<T>::print_float_prec(int n)
 {
-    T::out << setprecision(n);
+    out << setprecision(n);
 }
 
 } /* namespace GC */

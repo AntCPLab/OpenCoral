@@ -23,6 +23,8 @@ class SemiPrep : public BufferPrep<SemiSecret>, ShiftableTripleBuffer<SemiSecret
     SemiSecret::TripleGenerator* triple_generator;
     MascotParams params;
 
+    SeededPRNG secure_prng;
+
 public:
     SemiPrep(DataPositions& usage, ShareThread<SemiSecret>& thread);
     SemiPrep(DataPositions& usage, bool = true);

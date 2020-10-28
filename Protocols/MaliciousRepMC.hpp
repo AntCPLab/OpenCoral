@@ -144,7 +144,7 @@ void HashMaliciousRepMC<T>::Check(const Player& P)
         P.Broadcast_Receive(os);
         for (int i = 0; i < P.num_players(); i++)
             if (os[i] != os[P.my_num()])
-                throw mac_fail();
+                throw mac_fail("check hash mismatch");
     }
 }
 

@@ -24,6 +24,8 @@
 #include <random>
 #include <fstream>
 
+class ProcessorBase;
+
 namespace GC
 {
 
@@ -53,7 +55,10 @@ public:
     typedef FakeProtocol<FakeSecret> Protocol;
     typedef FakeInput<FakeSecret> Input;
 
+    typedef SwitchableOutput out_type;
+
     static string type_string() { return "fake secret"; }
+    static string type_short() { return "emulB"; }
     static string phase_name() { return "Faking"; }
 
     static const int default_length = 64;
@@ -62,7 +67,8 @@ public:
 
     static const bool actual_inputs = true;
 
-    static SwitchableOutput out;
+    static const true_type invertible;
+    static const true_type characteristic_two;
 
     static DataFieldType field_type() { return DATA_GF2; }
 
@@ -87,8 +93,8 @@ public:
     template <class T>
     static void inputb(T& processor, ArithmeticProcessor&, const vector<int>& args)
     { processor.input(args); }
-    template <class T, class U>
-    static void inputbvec(T&, U&, const vector<int>&) { throw not_implemented(); }
+    static void inputbvec(Processor<FakeSecret>& processor,
+            ProcessorBase& input_processor, const vector<int>& args);
     template <class T>
     static void reveal_inst(T& processor, const vector<int>& args)
     { processor.reveal(args); }
@@ -136,6 +142,14 @@ public:
     void reveal(int n_bits, Clear& x) { (void) n_bits; x = a; }
 
     void invert(FakeSecret) { throw not_implemented(); }
+
+    void input(istream&, bool) { throw not_implemented(); }
+
+    bool operator<(FakeSecret) const { return false; }
+
+    void my_input(Input& inputter, BitVec value, int n_bits);
+    void other_input(Input& inputter, int from, int n_bits = 1);
+    void finalize_input(Input& inputter, int from, int n_bits);
 };
 
 } /* namespace GC */

@@ -62,12 +62,12 @@ public:
 
     typedef typename T::Input Input;
 
+    typedef typename T::out_type out_type;
+
     static string type_string() { return "evaluation secret"; }
     static string phase_name() { return T::name(); }
 
     static int default_length;
-
-    static typename T::out_type out;
 
     static const bool needs_ot = false;
 
@@ -169,9 +169,6 @@ public:
 
 template <class T>
 int Secret<T>::default_length = 64;
-
-template <class T>
-typename T::out_type Secret<T>::out = T::out;
 
 template <class T>
 inline ostream& operator<<(ostream& o, Secret<T>& secret)

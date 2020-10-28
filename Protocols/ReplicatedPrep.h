@@ -21,6 +21,9 @@ void buffer_inverses(vector<array<T, 2>>& inverses, Preprocessing<T>& prep,
         MAC_Check_Base<T>& MC, Player& P);
 
 template<class T>
+void bits_from_random(vector<T>& bits, typename T::Protocol& protocol);
+
+template<class T>
 class BufferPrep : public Preprocessing<T>
 {
     template<class U, class V> friend class Machine;
@@ -33,8 +36,6 @@ protected:
     vector<vector<InputTuple<T>>> inputs;
 
     vector<dabit<T>> dabits;
-    map<pair<bool, int>, vector<edabitvec<T>>> edabits;
-    map<pair<bool, int>, edabitvec<T>> my_edabits;
 
     int n_bit_rounds;
 
@@ -62,6 +63,9 @@ protected:
     virtual void buffer_personal_dabits(int)
     { throw runtime_error("no personal daBits"); }
 
+    void push_edabits(vector<edabitvec<T>>& edabits,
+            const vector<T>& sums, const vector<vector<typename T::bit_type::part_type>>& bits,
+            int buffer_size);
 public:
     typedef T share_type;
 
@@ -85,11 +89,7 @@ public:
 
     T get_random_from_inputs(int nplayers);
 
-    virtual void get_dabit(T& a, typename T::bit_type& b);
     virtual void get_dabit_no_count(T& a, typename T::bit_type& b);
-    virtual void get_edabits(bool strict, size_t size, T* a,
-            vector<typename T::bit_type>& Sb, const vector<int>& regs);
-    virtual void get_edabit_no_count(bool strict, int n_bits, edabit<T>& a);
 
     void push_triples(const vector<array<T, 3>>& triples)
     { this->triples.insert(this->triples.end(), triples.begin(), triples.end()); }
@@ -145,6 +145,8 @@ protected:
             bool strict, ThreadQueues* queues = 0);
 
     virtual void buffer_sedabits_from_edabits(int);
+
+    void sanitize(vector<edabitvec<T>>& edabits, int n_bits);
 
 public:
     RingPrep(SubProcessor<T>* proc, DataPositions& usage);

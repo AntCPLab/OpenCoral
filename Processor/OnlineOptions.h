@@ -22,6 +22,7 @@ public:
     std::string progname;
     int batch_size;
     std::string memtype;
+    bool bits_from_squares;
     bool direct;
     int bucket_size;
     std::string cmd_private_input_file;

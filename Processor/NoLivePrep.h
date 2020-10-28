@@ -16,6 +16,13 @@ template<class T>
 class NoLivePrep : public Sub_Data_Files<T>
 {
 public:
+    static void basic_setup(Player&)
+    {
+    }
+    static void teardown()
+    {
+    }
+
     NoLivePrep(SubProcessor<T>* proc, DataPositions& usage) : Sub_Data_Files<T>(0, 0, "", usage, 0)
     {
         (void) proc;

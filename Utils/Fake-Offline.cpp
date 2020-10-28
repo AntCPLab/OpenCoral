@@ -10,12 +10,17 @@
 #include "Protocols/PostSacriRepFieldShare.h"
 #include "Protocols/SemiShare.h"
 #include "Protocols/MaliciousShamirShare.h"
+#include "Protocols/SpdzWiseRingShare.h"
+#include "Protocols/SpdzWiseShare.h"
+#include "Protocols/Rep4Share2k.h"
 #include "Protocols/fake-stuff.h"
 #include "Exceptions/Exceptions.h"
 #include "GC/MaliciousRepSecret.h"
 #include "GC/SemiSecret.h"
 #include "GC/TinySecret.h"
 #include "GC/TinierSecret.h"
+#include "GC/MaliciousCcdSecret.h"
+#include "GC/Rep4Secret.h"
 
 #include "Math/Setup.h"
 #include "Processor/Data_Files.h"
@@ -24,6 +29,7 @@
 #include "Tools/benchmarking.h"
 
 #include "Protocols/fake-stuff.hpp"
+#include "Protocols/Shamir.hpp"
 #include "Processor/Data_Files.hpp"
 #include "Math/Z2k.hpp"
 #include "Math/gfp.hpp"
@@ -35,6 +41,7 @@ using namespace std;
 
 
 string prep_data_prefix;
+ez::ezOptionParser opt;
 
 void make_bit_triples(const gf2n& key,int N,int ntrip,Dtype dtype,bool zero)
 {
@@ -158,6 +165,60 @@ void make_bits(const typename T::mac_type& key, int N, int ntrip, bool zero,
   delete[] outf;
 }
 
+template<class T>
+void make_dabits(const typename T::mac_type& key, int N, int ntrip, bool zero,
+    const typename T::bit_type::mac_type& bit_key = { })
+{
+  Files<T> files(N, key,
+      get_prep_sub_dir<T>(prep_data_prefix, N)
+          + DataPositions::dtype_names[DATA_DABIT] + "-" + T::type_short());
+  SeededPRNG G;
+  for (int i = 0; i < ntrip; i++)
+    {
+      bool bit = not zero && G.get_bit();
+      files.template output_shares<T>(bit);
+      files.template output_shares<typename dabit<T>::bit_type>(bit, bit_key);
+    }
+}
+
+template<class T>
+void make_edabits(const typename T::mac_type& key, int N, int ntrip, bool zero, false_type,
+    const typename T::bit_type::mac_type& bit_key = {})
+{
+  vector<int> lengths;
+  opt.get("-e")->getInts(lengths);
+  for (auto length : lengths)
+    {
+      Files<T> files(N, key,
+          get_prep_sub_dir<T>(prep_data_prefix, N)
+          + "edaBits-" + to_string(length));
+      SeededPRNG G;
+      bigint value;
+      int max_size = edabitvec<T>::MAX_SIZE;
+      for (int i = 0; i < ntrip / max_size; i++)
+        {
+          vector<typename T::clear> as(max_size);
+          vector<typename T::bit_type::part_type::clear> bs(length);
+          for (int j = 0; j < max_size; j++)
+            {
+              if (not zero)
+                G.get_bigint(value, length, true);
+              as[j] = value;
+              for (int k = 0; k < length; k++)
+                bs[k] ^= BitVec(bigint((value >> k) & 1).get_si()) << j;
+            }
+          for (auto& a : as)
+            files.template output_shares<T>(a);
+          for (auto& b : bs)
+            files.template output_shares<typename T::bit_type::part_type>(b, bit_key);
+        }
+    }
+}
+
+template<class T>
+void make_edabits(const typename T::mac_type&, int, int, bool, true_type)
+{
+}
 
 /* N      = Number players
  * ntrip  = Number inputs needed
@@ -245,11 +306,21 @@ void make_basic(const typename T::mac_type& key, int nplayers, int nitems, bool 
 {
     make_minimal<T>(key, nplayers, nitems, zero);
     make_square_tuples<T>(key, nplayers, nitems, T::type_short(), zero);
+    make_dabits<T>(key, nplayers, nitems, zero);
+    make_edabits<T>(key, nplayers, nitems, zero, T::clear::characteristic_two);
     if (T::clear::invertible)
     {
         make_inverse<T>(key, nplayers, nitems, zero, prep_data_prefix);
         make_PreMulC<T>(key, nplayers, nitems, zero);
     }
+}
+
+template<class T>
+void make_with_mac_key(int nplayers, int default_num, bool zero)
+{
+    typename T::mac_share_type::open_type key;
+    generate_mac_keys<T>(key, nplayers, prep_data_prefix);
+    make_basic<T>(key, nplayers, default_num, zero);
 }
 
 template<class T>
@@ -259,8 +330,6 @@ int main(int argc, const char** argv)
 {
   insecure("preprocessing");
   bigint::init_thread();
-
-  ez::ezOptionParser opt;
 
   opt.syntax = "./Fake-Offline.x <nplayers> [OPTIONS]\n\nOptions with 2 arguments take the form '-X <#gf2n tuples>,<#modp tuples>'";
   opt.example = "./Fake-Offline.x 2 -lgp 128 -lg2 128 --default 10000\n./Fake-Offline.x 3 -trip 50000,10000 -btrip 100000\n";
@@ -381,6 +450,15 @@ int main(int argc, const char** argv)
         "SPDZ2k security parameter (default: k)", // Help description.
         "-S", // Flag token.
         "--security" // Flag token.
+  );
+  opt.add(
+        "", // Default.
+        0, // Required?
+        -1, // Number of args expected.
+        ',', // Delimiter if expecting multiple args.
+        "edaBit lengths (separate by comma)", // Help description.
+        "-e", // Flag token.
+        "--edabits" // Flag token.
   );
   opt.parse(argc, argv);
 
@@ -544,13 +622,17 @@ int generate(ez::ezOptionParser& opt)
     make_basic<BrainShare<64, 40>>({}, nplayers, default_num, zero);
     make_basic<MaliciousRep3Share<gf2n>>({}, nplayers, default_num, zero);
     make_basic<MaliciousRep3Share<gfp>>({}, nplayers, default_num, zero);
-    make_bits<PostSacriRepRingShare<64, 40>>({}, nplayers, default_num, zero);
-    make_bits<PostSacriRepFieldShare<gfp>>({}, nplayers, default_num, zero);
-    make_bits<PostSacriRepFieldShare<gf2n>>({}, nplayers, default_num, zero);
+    make_basic<PostSacriRepRingShare<64, 40>>({}, nplayers, default_num, zero);
+    make_basic<PostSacriRepFieldShare<gfp>>({}, nplayers, default_num, zero);
+    make_basic<PostSacriRepFieldShare<gf2n>>({}, nplayers, default_num, zero);
+    make_with_mac_key<SpdzWiseRingShare<64, 40>>(nplayers, default_num, zero);
+    make_with_mac_key<SpdzWiseShare<MaliciousRep3Share<gfp>>>(nplayers, default_num, zero);
 
     make_mult_triples<GC::MaliciousRepSecret>({}, nplayers, ntrip2, zero, prep_data_prefix);
     make_bits<GC::MaliciousRepSecret>({}, nplayers, nbits2, zero);
   }
+  else if (nplayers == 4)
+    make_basic<Rep4Share2<64>>({}, nplayers, default_num, zero);
 
   make_basic<SemiShare<gfp>>({}, nplayers, default_num, zero);
   make_basic<SemiShare<gf2n>>({}, nplayers, default_num, zero);
@@ -565,17 +647,29 @@ int generate(ez::ezOptionParser& opt)
   Z2<41> keyt;
   generate_mac_keys<GC::TinySecret<40>>(keyt, nplayers, prep_data_prefix);
 
-  make_minimal<GC::TinySecret<40>>(keyt, nplayers, default_num, zero);
+  make_minimal<GC::TinySecret<40>>(keyt, nplayers, default_num / 64, zero);
 
   gf2n_short keytt;
   generate_mac_keys<GC::TinierSecret<gf2n_short>>(keytt, nplayers, prep_data_prefix);
-  make_minimal<GC::TinierSecret<gf2n_short>>(keytt, nplayers, default_num, zero);
+  make_minimal<GC::TinierSecret<gf2n_short>>(keytt, nplayers, default_num / 64, zero);
 
-  make_basic<ShamirShare<gfp>>({}, nplayers, default_num, zero);
-  make_basic<ShamirShare<gf2n>>({}, nplayers, default_num, zero);
+  make_dabits<T>(keyp, nplayers, default_num, zero, keytt);
+  make_edabits<T>(keyp, nplayers, default_num, zero, false_type(), keytt);
 
-  make_basic<MaliciousShamirShare<gfp>>({}, nplayers, default_num, zero);
-  make_basic<MaliciousShamirShare<gf2n>>({}, nplayers, default_num, zero);
+  if (nplayers > 2)
+    {
+      make_basic<ShamirShare<gfp>>({}, nplayers, default_num, zero);
+      make_basic<ShamirShare<gf2n>>({}, nplayers, default_num, zero);
+
+      make_basic<MaliciousShamirShare<gfp>>({}, nplayers, default_num, zero);
+      make_basic<MaliciousShamirShare<gf2n>>({}, nplayers, default_num, zero);
+
+      make_with_mac_key<SpdzWiseShare<MaliciousShamirShare<gfp>>>(nplayers,
+          default_num, zero);
+
+      make_mult_triples<GC::MaliciousCcdShare<gf2n_short>>({}, nplayers,
+          default_num, zero, prep_data_prefix);
+    }
 
   return 0;
 }

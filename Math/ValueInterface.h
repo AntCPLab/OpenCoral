@@ -17,6 +17,8 @@ class ValueInterface
 public:
     static const int MAX_EDABITS = 0;
 
+    static const false_type characteristic_two;
+
     template<class T>
     static void init(bool mont = true) { (void) mont; }
     static void init_default(int l) { (void) l; }

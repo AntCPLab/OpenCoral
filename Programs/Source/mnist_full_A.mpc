@@ -1,0 +1,109 @@
+import ml
+import math
+import re
+import util
+
+#ml.report_progress = True
+
+program.options_from_args()
+
+if 'profile' in program.args:
+    print('Compiling for profiling')
+    N = 1000
+    n_test = 100
+elif 'debug' in program.args:
+    N = 100
+    n_test = 100
+else:
+    N = 60000
+    n_test = 10000
+
+n_examples = N
+n_features = 28 ** 2
+
+try:
+    n_epochs = int(program.args[1])
+except:
+    n_epochs = 100
+
+try:
+    batch_size = int(program.args[2])
+except:
+    batch_size = N
+
+assert batch_size <= N
+
+try:
+    ml.set_n_threads(int(program.args[3]))
+except:
+    pass
+
+n_inner = 128
+
+if 'norelu' in program.args:
+    activation = 'id'
+else:
+    activation = 'relu'
+
+if 'nearest' in program.args:
+    sfix.round_nearest = True
+
+if 'double' in program.args:
+    sfix.set_precision(32, 63)
+    cfix.set_precision(32, 63)
+elif 'triple' in program.args:
+    sfix.set_precision(48, 91)
+    cfix.set_precision(48, 91)
+elif 'quadruple' in program.args:
+    sfix.set_precision(64, 127)
+    cfix.set_precision(64, 127)
+elif 'sextuple' in program.args:
+    sfix.set_precision(96, 191)
+    cfix.set_precision(96, 191)
+elif 'octuple' in program.args:
+    sfix.set_precision(128, 255)
+    cfix.set_precision(128, 255)
+
+assert sfix.f * 4 == int(program.options.ring)
+
+debug_ml = ('debug_ml' in program.args) * 2 ** (sfix.f / 2)
+
+if '1dense' in program.args:
+    layers = [ml.Dense(N, n_features, 10, debug=debug_ml)]
+else:
+    layers = [ml.Dense(N, n_features, n_inner, activation=activation, debug=debug_ml),
+              ml.Dense(N, n_inner, n_inner, activation=activation, debug=debug_ml),
+              ml.Dense(N, n_inner, 10, debug=debug_ml)]
+
+layers += [ml.MultiOutput.from_args(program, N, 10)]
+
+layers[-1].cheaper_loss = 'mse' in program.args
+
+if '2dense' in program.args:
+    del layers[1]
+
+layers[-1].Y.input_from(0)
+layers[0].X.input_from(0)
+
+Y = sint.Matrix(n_test, 10)
+X = sfix.Matrix(n_test, n_features)
+Y.input_from(0)
+X.input_from(0)
+
+if 'always_acc' in program.args:
+    n_part_epochs = 1
+else:
+    n_part_epochs = 10
+
+sgd = ml.SGD(layers, n_part_epochs, report_loss=True, debug=debug_ml)
+#sgd.print_update_average = True
+sgd.print_losses = 'print_losses' in program.args
+
+if 'faster' in program.args:
+    sgd.gamma = MemValue(cfix(.1))
+
+if 'slower' in program.args:
+    sgd.gamma = MemValue(cfix(.001))
+
+sgd.run_by_args(program, int(math.ceil(n_epochs / n_part_epochs)), batch_size,
+                X, Y)

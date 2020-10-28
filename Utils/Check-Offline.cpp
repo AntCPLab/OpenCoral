@@ -12,14 +12,19 @@
 #include "Tools/ezOptionParser.h"
 #include "Exceptions/Exceptions.h"
 #include "GC/MaliciousRepSecret.h"
+#include "GC/TinierSecret.h"
+#include "GC/TinyMC.h"
+#include "GC/SemiSecret.h"
 
 #include "Math/Setup.h"
 #include "Processor/Data_Files.h"
 
 #include "Protocols/fake-stuff.hpp"
+#include "Protocols/ReplicatedPrep.hpp"
 #include "Processor/Data_Files.hpp"
 #include "Math/Z2k.hpp"
 #include "Math/gfp.hpp"
+#include "GC/Secret.hpp"
 
 #include <sstream>
 #include <fstream>

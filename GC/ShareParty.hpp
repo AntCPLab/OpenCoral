@@ -80,8 +80,6 @@ ShareParty<T>::ShareParty(int argc, const char** argv, int default_batch_size) :
 
     this->machine.more_comm_less_comp = opt.get("-c")->isSet;
 
-    T::out.activate(my_num == 0 or online_opts.interactive);
-
     if (not this->machine.use_encryption and not T::dishonest_majority)
         insecure("unencrypted communication");
 

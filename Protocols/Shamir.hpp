@@ -191,15 +191,40 @@ T Shamir<T>::get_random()
 template<class T>
 void Shamir<T>::buffer_random()
 {
-    Shamir<T> shamir(P);
-    shamir.reset();
+    if (hyper.empty())
+    {
+        int n = P.num_players();
+        for (int i = 0; i < n - threshold; i++)
+        {
+            hyper.push_back({});
+            for (int j = 0; j < n; j++)
+            {
+                hyper.back().push_back({1});
+                for (int k = 0; k < n; k++)
+                    if (k != j)
+                        hyper.back().back() *= U(n + i - k) / U(j - k);
+            }
+        }
+    }
+
+    ShamirInput<T> input(0, P);
     int buffer_size = OnlineOptions::singleton.batch_size;
-    if (P.my_num() <= threshold)
-        for (int i = 0; i < buffer_size; i++)
-            shamir.resharing->add_mine(secure_prng.get<U>());
-    shamir.exchange();
-    for (int i = 0; i < buffer_size; i++)
-        random.push_back(shamir.finalize(threshold + 1));
+    for (int i = 0; i < buffer_size; i += hyper.size())
+        input.add_mine(secure_prng.get<U>());
+    input.exchange();
+    vector<U> inputs;
+    for (int i = 0; i < buffer_size; i += hyper.size())
+    {
+        inputs.clear();
+        for (int j = 0; j < P.num_players(); j++)
+            inputs.push_back(input.finalize(j));
+        for (size_t j = 0; j < hyper.size(); j++)
+        {
+            random.push_back({});
+            for (int k = 0; k < P.num_players(); k++)
+                random.back() += hyper[j][k] * inputs[k];
+        }
+    }
 }
 
 #endif

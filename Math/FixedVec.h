@@ -156,11 +156,6 @@ public:
         return true;
     }
 
-    bool operator!=(const FixedVec& other) const
-    {
-        return not equal(other);
-    }
-
     bool is_zero()
     {
         return equal(0);
@@ -168,6 +163,11 @@ public:
     bool is_one()
     {
         return equal(1);
+    }
+
+    bool operator!=(const FixedVec<T, L>& other) const
+    {
+        return not equal(other);
     }
 
     FixedVec<T, L>operator+(const FixedVec<T, L>& other) const
@@ -291,6 +291,15 @@ public:
         return res;
     }
 
+    T lazy_sum() const
+    {
+        assert(L > 1);
+        T res = v[0].lazy_add(v[1]);
+        for (int i = 2; i < L; i++)
+            res = res.lazy_add(v[i]);
+        return res;
+    }
+
     FixedVec<T, L> extend_bit() const
     {
         FixedVec<T, L> res;
@@ -343,13 +352,21 @@ public:
 
     void output(ostream& s, bool human) const
     {
-        for (auto& x : v)
-            x.output(s, human);
+        if (human)
+            s << *this;
+        else
+            for (auto& x : v)
+                x.output(s, human);
     }
     void input(istream& s, bool human)
     {
-        for (auto& x : v)
-            x.input(s, human);
+        for (int i = 0; i < L; i++)
+        {
+            if (human and i != 0)
+                if (s.get() != ',')
+                    throw runtime_error("cannot read vector");
+            (*this)[i].input(s, human);
+        }
     }
 
     void pack(octetStream& os) const

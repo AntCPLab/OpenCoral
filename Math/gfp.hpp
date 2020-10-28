@@ -10,6 +10,9 @@
 #include "Math/Setup.hpp"
 
 template<int X, int L>
+const true_type gfp_<X, L>::invertible;
+
+template<int X, int L>
 inline void gfp_<X, L>::read_or_generate_setup(string dir,
         const OnlineOptions& opts)
 {

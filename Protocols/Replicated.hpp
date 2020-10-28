@@ -8,6 +8,7 @@
 
 #include "Replicated.h"
 #include "Processor/Processor.h"
+#include "Processor/TruncPrTuple.h"
 #include "Tools/benchmarking.h"
 
 #include "SemiShare.h"
@@ -64,7 +65,7 @@ inline ReplicatedBase ReplicatedBase::branch()
 template<class T>
 ProtocolBase<T>::~ProtocolBase()
 {
-#ifdef VERBOSE
+#ifdef VERBOSE_COUNT
     if (counter)
         cerr << "Number of " << T::type_string() << " multiplications: " << counter << endl;
 #endif
@@ -90,7 +91,7 @@ void ProtocolBase<T>::multiply(vector<T>& products,
         vector<pair<T, T> >& multiplicands, int begin, int end,
         SubProcessor<T>& proc)
 {
-#ifdef VERBOSE
+#ifdef VERBOSE_CENTRAL
     fprintf(stderr, "multiply from %d to %d in %d\n", begin, end,
             BaseMachine::thread_num);
 #endif
@@ -104,12 +105,32 @@ void ProtocolBase<T>::multiply(vector<T>& products,
 }
 
 template<class T>
+T ProtocolBase<T>::mul(const T& x, const T& y)
+{
+    init_mul(0);
+    prepare_mul(x, y);
+    exchange();
+    return finalize_mul();
+}
+
+template<class T>
 T ProtocolBase<T>::finalize_dotprod(int length)
 {
     counter += length;
     T res;
     for (int i = 0; i < length; i++)
         res += finalize_mul();
+    return res;
+}
+
+template<class T>
+T ProtocolBase<T>::get_random()
+{
+    if (random.empty())
+        buffer_random();
+
+    auto res = random.back();
+    random.pop_back();
     return res;
 }
 
@@ -161,7 +182,8 @@ inline void Replicated<T>::prepare_reshare(const typename T::clear& share,
 template<class T>
 void Replicated<T>::exchange()
 {
-    P.pass_around(os[0], os[1], 1);
+    if (os[0].get_length() > 0)
+        P.pass_around(os[0], os[1], 1);
 }
 
 template<class T>
@@ -179,6 +201,7 @@ void Replicated<T>::stop_exchange()
 template<class T>
 inline T Replicated<T>::finalize_mul(int n)
 {
+    this->counter++;
     T result;
     result[0] = add_shares.next();
     result[1].unpack(os[1], n);
@@ -186,21 +209,22 @@ inline T Replicated<T>::finalize_mul(int n)
 }
 
 template<class T>
-inline void Replicated<T>::init_dotprod(SubProcessor<T>* proc)
+inline void Replicated<T>::init_dotprod()
 {
-    init_mul(proc);
+    init_mul();
     dotprod_share.assign_zero();
 }
 
 template<class T>
 inline void Replicated<T>::prepare_dotprod(const T& x, const T& y)
 {
-    dotprod_share += x.local_mul(y);
+    dotprod_share = dotprod_share.lazy_add(x.local_mul(y));
 }
 
 template<class T>
 inline void Replicated<T>::next_dotprod()
 {
+    dotprod_share.normalize();
     prepare_reshare(dotprod_share);
     dotprod_share.assign_zero();
 }
@@ -209,7 +233,6 @@ template<class T>
 inline T Replicated<T>::finalize_dotprod(int length)
 {
     (void) length;
-    this->counter++;
     return finalize_mul();
 }
 
@@ -223,12 +246,12 @@ T Replicated<T>::get_random()
 }
 
 template<class T>
-void ProtocolBase<T>::randoms_inst(SubProcessor<T>& proc,
+void ProtocolBase<T>::randoms_inst(vector<T>& S,
 		const Instruction& instruction)
 {
     for (int j = 0; j < instruction.get_size(); j++)
     {
-        auto& res = proc.get_S_ref(instruction.get_r(0) + j);
+        auto& res = S[instruction.get_r(0) + j];
         randoms(res, instruction.get_n());
     }
 }
@@ -255,23 +278,17 @@ void trunc_pr(const vector<int>& regs, int size,
         octetStream os[2];
         for (size_t i = 0; i < regs.size(); i += 4)
         {
-            int k = regs[i + 2];
-            int m = regs[i + 3];
-            int n_shift = value_type::N_BITS - 1 - k;
-            assert(m < k);
-            assert(0 < k);
-            assert(m < value_type::N_BITS);
+            TruncPrTuple<value_type> info(regs, i);
             for (int l = 0; l < size; l++)
             {
                 auto& res = proc.get_S_ref(regs[i] + l);
                 auto& G = proc.Proc->secure_prng;
                 auto mask = G.template get<value_type>();
-                auto unmask = (mask << (n_shift + 1)) >> (n_shift + m + 1);
+                auto unmask = info.upper(mask);
                 T shares[4];
                 shares[0].randomize_to_sum(mask, G);
                 shares[1].randomize_to_sum(unmask, G);
-                shares[2].randomize_to_sum(
-                        (mask << (n_shift)) >> (value_type::N_BITS - 1), G);
+                shares[2].randomize_to_sum(info.msb(mask), G);
                 res.randomize(G);
                 shares[3] = res;
                 for (int i = 0; i < 2; i++)

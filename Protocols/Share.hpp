@@ -4,12 +4,12 @@
 
 template<class T, class V>
 template<class U>
-void Share_<T, V>::read_or_generate_mac_key(string directory, const Names& N,
+void Share_<T, V>::read_or_generate_mac_key(string directory, const Player& P,
         U& key)
 {
     try
     {
-        read_mac_key(directory, N, key);
+        read_mac_key(directory, P.N, key);
     }
     catch (mac_key_error&)
     {

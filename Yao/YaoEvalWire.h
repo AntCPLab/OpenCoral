@@ -26,8 +26,7 @@ public:
 
 	static string name() { return "YaoEvalWire"; }
 
-	typedef ostream& out_type;
-	static ostream& out;
+	typedef SwitchableOutput out_type;
 
 	static YaoEvalWire new_reg() { return {}; }
 

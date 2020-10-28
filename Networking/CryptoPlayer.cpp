@@ -20,7 +20,9 @@ void ssl_error(string side, string pronoun, string other, string server)
             << " failed. Make sure " << pronoun
             << " have the necessary certificate (" << PREP_DIR << server
             << ".pem in the default configuration),"
-            << " and run `c_rehash <directory>` on its location." << endl;
+            << " and run `c_rehash <directory>` on its location." << endl
+            << "Also make sure that it's still valid. Certificates generated "
+            << "with `Scripts/setup-ssl.sh` expire after a month." << endl;
 }
 
 CryptoPlayer::CryptoPlayer(const Names& Nms, int id_base) :

@@ -12,6 +12,7 @@
 using namespace std;
 
 #include "Tools/ExecutionStats.h"
+#include "OnlineOptions.h"
 
 class ProcessorBase
 {
@@ -29,6 +30,8 @@ protected:
 
 public:
   ExecutionStats stats;
+
+  ofstream stdout_redirect_file;
 
   void pushi(long x) { stacki.push(x); }
   void popi(long& x) { x = stacki.top(); stacki.pop(); }
@@ -50,6 +53,8 @@ public:
   T get_input(bool interactive, const int* params);
   template<class T>
   T get_input(istream& is, const string& input_filename, const int* params);
+
+  void setup_redirection(int my_nu, int thread_num, OnlineOptions& opts);
 };
 
 #endif /* PROCESSOR_PROCESSORBASE_H_ */

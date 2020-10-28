@@ -134,6 +134,7 @@ class gf2n_long : public ValueInterface
 
   static DataFieldType field_type() { return DATA_GF2N; }
   static char type_char() { return '2'; }
+  static string type_short() { return "2"; }
   static string type_string() { return "gf2n_long"; }
 
   static int size() { return sizeof(a); }
@@ -144,8 +145,8 @@ class gf2n_long : public ValueInterface
 
   static bool allows(Dtype type) { (void) type; return true; }
 
-  static const bool invertible = true;
-  static const bool characteristic_two = true;
+  static const true_type invertible;
+  static const true_type characteristic_two;
 
   static gf2n_long cut(int128 x) { return x; }
 
@@ -216,6 +217,9 @@ class gf2n_long : public ValueInterface
   // x * y when one of x,y is a bit
   void mul_by_bit(const gf2n_long& x, const gf2n_long& y)   { a = x.a.a * y.a.a; }
 
+  gf2n_long lazy_add(const gf2n_long& x) const { return *this + x; }
+  gf2n_long lazy_mul(const gf2n_long& x) const { return *this * x; }
+
   gf2n_long operator+(const gf2n_long& x) const { gf2n_long res; res.add(*this, x); return res; }
   gf2n_long operator*(const gf2n_long& x) const { gf2n_long res; res.mul(*this, x); return res; }
   gf2n_long& operator+=(const gf2n_long& x) { add(x); return *this; }
@@ -250,6 +254,8 @@ class gf2n_long : public ValueInterface
   gf2n_long& operator&=(const gf2n_long& x) { AND(*this, x); return *this; }
   gf2n_long& operator>>=(int i) { SHR(*this, i); return *this; }
   gf2n_long& operator<<=(int i) { SHL(*this, i); return *this; }
+
+  bool operator<(gf2n_long) const { return false; }
 
   /* Crap RNG */
   void randomize(PRNG& G, int n = -1);

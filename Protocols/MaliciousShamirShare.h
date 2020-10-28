@@ -12,6 +12,7 @@
 
 template<class T> class MaliciousRepPrepWithBits;
 template<class T> class MaliciousRepPrep;
+template<class T> class MaliciousShamirPO;
 
 namespace GC
 {
@@ -29,6 +30,7 @@ public:
     typedef MAC_Check Direct_MC;
     typedef ShamirInput<MaliciousShamirShare> Input;
     typedef ::PrivateOutput<MaliciousShamirShare> PrivateOutput;
+    typedef MaliciousShamirPO<MaliciousShamirShare> PO;
     typedef ShamirShare<T> Honest;
     typedef MaliciousRepPrepWithBits<MaliciousShamirShare> LivePrep;
     typedef MaliciousRepPrep<MaliciousShamirShare> TriplePrep;

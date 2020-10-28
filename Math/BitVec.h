@@ -25,6 +25,7 @@ public:
     static const int n_bits = sizeof(T) * 8;
 
     static char type_char() { return 'B'; }
+    static string type_short() { return "B"; }
     static DataFieldType field_type() { return DATA_GF2; }
 
     static bool allows(Dtype dtype) { return dtype == DATA_TRIPLE or dtype == DATA_BIT; }
@@ -59,7 +60,7 @@ public:
     void pack(octetStream& os) const { os.store_int<sizeof(T)>(this->a); }
     void unpack(octetStream& os) { this->a = os.get_int<sizeof(T)>(); }
 
-    void pack(octetStream& os, int n) const { os.store_int(this->a, DIV_CEIL(n, 8)); }
+    void pack(octetStream& os, int n) const { os.store_int(mask(n).a, DIV_CEIL(n, 8)); }
     void unpack(octetStream& os, int n) { this->a = os.get_int(DIV_CEIL(n, 8)); }
 
     static BitVec_ unpack_new(octetStream& os, int n = n_bits)

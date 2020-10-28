@@ -9,6 +9,9 @@
 #include <string>
 using namespace std;
 
+#include "Tools/ezOptionParser.h"
+#include "Processor/OnlineOptions.h"
+
 template<class T, class U>
 class ReplicatedMachine
 {

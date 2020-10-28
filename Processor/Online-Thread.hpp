@@ -240,19 +240,6 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
              job.pos.increase(Proc.DataF.get_usage());
            }
 
-          //double elapsed = timeval_diff(&startv, &endv);
-          //printf("Thread time = %f seconds\n",elapsed/1000000);
-          //printf("\texec = %d\n",exec); exec++;
-          //printf("\tMC2.number = %d\n",MC2.number());
-          //printf("\tMCp.number = %d\n",MCp.number());
-
-          // MACCheck
-          MC2->Check(P);
-          MCp->Check(P);
-          //printf("\tMAC checked\n");
-          P.Check_Broadcast();
-          //printf("\tBroadcast checked\n");
-
 #ifdef DEBUG_THREADS
           printf("\tSignalling I have finished\n");
 #endif
@@ -269,6 +256,7 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
   // MACCheck
   MC2->Check(P);
   MCp->Check(P);
+  Proc.share_thread.MC->Check(P);
 
   //cout << num << " : Checking broadcast" << endl;
   P.Check_Broadcast();

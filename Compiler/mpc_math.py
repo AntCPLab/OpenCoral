@@ -13,6 +13,7 @@ from Compiler import types
 from Compiler import comparison
 from Compiler import program
 from Compiler import instructions_base
+from Compiler import library, util
 
 # polynomials as enumerated on Hart's book
 ##
@@ -33,11 +34,8 @@ p_3508 = [1.00000000000000000000, -0.50000000000000000000,
           0.00000000000000000040]
 ##
 # @private
-p_1045 = [1.000000077443021686, 0.693147180426163827795756,
-          0.224022651071017064605384, 0.055504068620466379157744,
-          0.009618341225880462374977, 0.001332730359281437819329,
-          0.000155107460590052573978, 0.000014197847399765606711,
-          0.000001863347724137967076]
+p_1045 = [math.log(2) ** i / math.factorial(i) for i in range(12)]
+
 ##
 # @private
 p_2524 = [-2.05466671951, -8.8626599391,
@@ -92,8 +90,8 @@ pi_over_2 = math.radians(90)
 #
 # @return truncated sint value of x
 def trunc(x):
-    if type(x) is types.sfix:
-        return floatingpoint.Trunc(x.v, x.k, x.f, x.kappa, signed=True)
+    if isinstance(x, types._fix):
+        return x.v.right_shift(x.f, x.k, security=x.kappa, signed=True)
     elif type(x) is types.sfloat:
         v, p, z, s = floatingpoint.FLRound(x, 0)
         #return types.sfloat(v, p, z, s, x.err) 
@@ -125,7 +123,7 @@ def load_sint(x, l_type):
 # @return the evaluation of the polynomial. return type depends on inputs.
 def p_eval(p_c, x):
     degree = len(p_c) - 1
-    if type(x) is types.sfix:
+    if isinstance(x, types._fix):
         # ignore coefficients smaller than precision
         for c in reversed(p_c):
             if c < 2 ** -(x.f + 1):
@@ -160,10 +158,10 @@ def sTrigSub(x):
     y = x - (f) * x.coerce(2 * pi)
     # reduction to \pi
     b1 = y > pi
-    w = b1 * ((2 * pi - y) - y) + y
+    w = b1.if_else(2 * pi - y, y)
     # reduction  to \pi/2
     b2 = w > pi_over_2
-    w = b2 * ((pi - w) - w) + w
+    w = b2.if_else(pi - w, w)
     # returns scaled angle and boolean flags
     return w, b1, b2
 
@@ -182,9 +180,8 @@ def ssin(w, s):
     v = w * (1.0 / pi_over_2)
     v_2 = v ** 2
     # adjust sign according to the movement in the reduction
-    b = s * (-2) + 1
     # calculate the sin using polynomial evaluation
-    local_sin = b * v * p_eval(p_3307, v_2)
+    local_sin = s.if_else(-v, v) * p_eval(p_3307, v_2)
     return local_sin
 
 
@@ -203,10 +200,10 @@ def scos(w, s):
     # calculates the v of the w.
     v = w
     v_2 = v ** 2
-    # adjust sign according to the movement in the reduction
-    b = s * (-2) + 1
     # calculate the cos using polynomial evaluation
-    local_cos = b * p_eval(p_3508, v_2)
+    tmp = p_eval(p_3508, v_2)
+    # adjust sign according to the movement in the reduction
+    local_cos = s.if_else(-tmp, tmp)
     return local_cos
 
 
@@ -264,11 +261,12 @@ def tan(x):
 
 @types.vectorize
 @instructions_base.sfix_cisc
-def exp2_fx(a):
+def exp2_fx(a, zero_output=False):
     """
     Power of two for fixed-point numbers.
 
     :param a: exponent for :math:`2^a` (sfix)
+    :param zero_output: whether to output zero for very small values. If not, the result will be undefined.
 
     :return: :math:`2^a` if it is within the range. Undefined otherwise
     """
@@ -279,54 +277,95 @@ def exp2_fx(a):
         n_int_bits = int(math.ceil(math.log(a.k - a.f, 2)))
         n_bits = a.f + n_int_bits
         n_shift = int(types.program.options.ring) - a.k
-        if types.program.use_edabit():
-            l = sint.get_edabit(a.f, True)
-            u = sint.get_edabit(a.k - a.f, True)
-            r_bits = l[1] + u[1]
-            r = l[0] + (u[0] << a.f)
-            lower_r = l[0]
+        if types.program.use_split():
+            assert not zero_output
+            from Compiler.GC.types import sbitvec
+            if types.program.use_split() == 3:
+                x = a.v.split_to_two_summands(a.k)
+                bits = types._bitint.carry_lookahead_adder(x[0], x[1],
+                                                           fewer_inv=False)
+                # converting MSB first reduces the number of rounds
+                s = sint.conv(bits[-1])
+                lower_overflow = sint.conv(x[0][a.f]) + \
+                                 sint.conv(x[0][a.f] ^ x[1][a.f] ^ bits[a.f])
+                lower = a.v.raw_mod2m(a.f) - (lower_overflow << a.f)
+            elif types.program.use_split() == 4:
+                x = list(zip(*a.v.split_to_n_summands(a.k, 4)))
+                bi = types._bitint
+                red = bi.wallace_reduction
+                sums1, carries1 = red(*x[:3], get_carry=False)
+                sums2, carries2 = red(x[3], sums1, carries1, False)
+                bits = bi.carry_lookahead_adder(sums2, carries2,
+                                                fewer_inv=False)
+                overflows = bi.full_adder(carries1[a.f], carries2[a.f],
+                                        bits[a.f] ^ sums2[a.f] ^ carries2[a.f])
+                overflows = reversed(list((sint.conv(x)
+                                           for x in reversed(overflows))))
+                lower_overflow = sint.bit_compose(sint.conv(x)
+                                                  for x in overflows)
+                s = sint.conv(bits[-1])
+                lower = a.v.raw_mod2m(a.f) - (lower_overflow << a.f)
+            else:
+                bits = sbitvec(a.v, a.k)
+                s = sint.conv(bits[-1])
+                lower = sint.bit_compose(sint.conv(b) for b in bits[:a.f])
+            higher_bits = bits[a.f:n_bits]
         else:
-            r_bits = [sint.get_random_bit() for i in range(a.k)]
-            r = sint.bit_compose(r_bits)
-            lower_r = sint.bit_compose(r_bits[:a.f])
-        shifted = ((a.v - r) << n_shift).reveal()
-        masked_bits = (shifted >> n_shift).bit_decompose(a.k)
-        lower_overflow = comparison.CarryOutRaw(masked_bits[a.f-1::-1],
-                            r_bits[a.f-1::-1])
-        lower_masked = sint.bit_compose(masked_bits[:a.f])
-        lower = lower_r + lower_masked - (sint.conv(lower_overflow) << (a.f))
+            if types.program.use_edabit():
+                l = sint.get_edabit(a.f, True)
+                u = sint.get_edabit(a.k - a.f, True)
+                r_bits = l[1] + u[1]
+                r = l[0] + (u[0] << a.f)
+                lower_r = l[0]
+            else:
+                r_bits = [sint.get_random_bit() for i in range(a.k)]
+                r = sint.bit_compose(r_bits)
+                lower_r = sint.bit_compose(r_bits[:a.f])
+            shifted = ((a.v - r) << n_shift).reveal()
+            masked_bits = (shifted >> n_shift).bit_decompose(a.k)
+            lower_overflow = comparison.CarryOutRaw(masked_bits[a.f-1::-1],
+                                r_bits[a.f-1::-1])
+            lower_masked = sint.bit_compose(masked_bits[:a.f])
+            lower = lower_r + lower_masked - \
+                    (sint.conv(lower_overflow) << (a.f))
+            higher_bits = r_bits[0].bit_adder(r_bits[a.f:n_bits],
+                                              masked_bits[a.f:n_bits],
+                                              carry_in=lower_overflow,
+                                              get_carry=True)
+            carry = comparison.CarryOutLE(masked_bits[n_bits:-1],
+                                          r_bits[n_bits:-1],
+                                          higher_bits[-1])
+            if zero_output:
+                # should be for free
+                highest_bits = r_bits[0].ripple_carry_adder(
+                    masked_bits[n_bits:-1], [0] * (a.k - n_bits),
+                    carry_in=higher_bits[-1])
+                bits_to_check = [x.bit_xor(y)
+                                 for x, y in zip(highest_bits[:-1],
+                                                 r_bits[n_bits:-1])]
+                t = sint.conv(floatingpoint.KOpL(lambda x, y: x.bit_and(y),
+                                                 bits_to_check))
+            # sign
+            s = carry.bit_xor(sint.conv(r_bits[-1])).bit_xor(masked_bits[-1])
+            del higher_bits[-1]
         c = types.sfix._new(lower, k=a.k, f=a.f)
-        higher_bits = r_bits[0].bit_adder(r_bits[a.f:n_bits],
-                                          masked_bits[a.f:n_bits],
-                                          carry_in=lower_overflow,
-                                          get_carry=True)
-        assert(len(higher_bits) == n_bits - a.f + 1)
+        assert(len(higher_bits) == n_bits - a.f)
         pow2_bits = [sint.conv(x) for x in higher_bits]
-        d = floatingpoint.Pow2_from_bits(pow2_bits[:-1])
+        d = floatingpoint.Pow2_from_bits(pow2_bits)
         e = p_eval(p_1045, c)
         g = d * e
         small_result = types.sfix._new(g.v.round(a.f + 2 ** n_int_bits,
                                             2 ** n_int_bits, signed=False,
                                             nearest=types.sfix.round_nearest),
                                        k=a.k, f=a.f)
-        carry = comparison.CarryOutLE(masked_bits[n_bits:-1],
-                                      r_bits[n_bits:-1],
-                                      higher_bits[-1])
-        # should be for free
-        highest_bits = r_bits[0].ripple_carry_adder(
-            masked_bits[n_bits:-1], [0] * (a.k - n_bits),
-            carry_in=higher_bits[-1])
-        bits_to_check = [x.bit_xor(y)
-                         for x, y in zip(highest_bits[:-1], r_bits[n_bits:-1])]
-        t = sint.conv(floatingpoint.KOpL(lambda x, y: x.bit_and(y),
-                                        bits_to_check))
-        # sign
-        s = carry.bit_xor(sint.conv(r_bits[-1])).bit_xor(masked_bits[-1])
-        return s.if_else(t.if_else(small_result, 0), g)
+        if zero_output:
+            small_result = t.if_else(small_result, 0)
+        return s.if_else(small_result, g)
     else:
+        assert not zero_output
         # obtain absolute value of a
         s = a < 0
-        a = (s * (-2) + 1) * a
+        a = s.if_else(-a, a)
         # isolates fractional part of number
         b = trunc(a)
         c = a - b
@@ -335,7 +374,7 @@ def exp2_fx(a):
         # evaluates fractional part of a in p_1045
         e = p_eval(p_1045, c)
         g = d * e
-        return (1 - s) * g + s / g
+        return s.if_else(1 / g, g)
 
 
 @types.vectorize
@@ -353,19 +392,20 @@ def log2_fx(x):
     :return: (sfix) the value of :math:`\log_2(x)`
 
     """
-    if type(x) is types.sfix:
+    if isinstance(x, types._fix):
         # transforms sfix to f*2^n, where f is [o.5,1] bounded
         # obtain number bounded by [0,5 and 1] by transforming input to sfloat
         v, p, z, s = floatingpoint.Int2FL(x.v, x.k, x.f, x.kappa)
         p -= x.f
         vlen = x.f
+        v = x._new(v, k=x.k, f=x.f)
     else:
         d = types.sfloat(x)
         v, p, vlen = d.v, d.p, d.vlen
+        w = x.coerce(1.0 / (2 ** (vlen)))
+        v *= w
     # isolates mantisa of d, now the n can be also substituted by the
     # secret shared p from d in the expresion above.
-    w = x.coerce(1.0 / (2 ** (vlen)))
-    v = v * w
     # polynomials for the  log_2 evaluation of f are calculated
     P = p_eval(p_2524, v)
     Q = p_eval(q_2524, v)
@@ -384,7 +424,7 @@ def pow_fx(x, y):
 
     :param y: (sfix, clear types) secret shared exponent.
 
-    :return: :math:`x^y` (sfix)
+    :return: :math:`x^y` (sfix) if positive and in range
     """
     log2_x =0
     # obtains log2(x)
@@ -456,9 +496,6 @@ def floor_fx(x):
 def MSB(b, k):
     # calculation of z
     # x in order 0 - k
-    if (k > types.program.bit_length):
-        raise OverflowError("The supported bit \
-        lenght of the application is smaller than k")
 
     x_order = b.bit_decompose(k)
     x = [0] * k
@@ -511,9 +548,7 @@ def norm_simplified_SQ(b, k):
         w_array[i] = z[2 * i - 1] + z[2 * i]
 
     # w aggregation
-    w = types.sint(0)
-    for i in range(k_over_2):
-        w += (2 ** i) * w_array[i]
+    w = b.bit_compose(w_array)
 
     # return computed values
     #return m_odd, m, w
@@ -538,9 +573,9 @@ def sqrt_simplified_fx(x):
     # process to set up the precision and allocate correct 2**f
     if x.f % 2 == 1:
         m_odd =  (1 - 2 * m_odd) + m_odd
-        w = (w * 2 - w) * (1-m_odd) + w
+        w = m_odd.if_else(w, 2 * w)
     # map number to use sfix format and instantiate the number
-    w = types.sfix(w * 2 ** ((x.f - (x.f % 2)) // 2), k=x.k, f=x.f)
+    w = x._new(w << ((x.f - (x.f % 2)) // 2), k=x.k, f=x.f)
     # obtains correct 2 ** (m/2)
     w = (w * (2 ** (1/2.0)) - w) * m_odd + w
     # produce x/ 2^(m/2)
@@ -739,15 +774,15 @@ def atan(x):
     """
     # obtain absolute value of x
     s = x < 0
-    x_abs  = (s * (-2) + 1) * x
+    x_abs  = s.if_else(-x, x)
     # angle isolation
     b = x_abs > 1
     v = 1 / x_abs
-    v = (1 - b) * (x_abs - v) + v
+    v = b.if_else(v, x_abs)
     v_2 =v*v
 
     # range of polynomial coefficients
-    assert x.k - x.f >= 15
+    assert x.k - x.f >= 19
     P = p_eval(p_5102, v_2)
     Q = p_eval(q_5102, v_2)
 
@@ -756,8 +791,8 @@ def atan(x):
     y_pi_over_two =  pi_over_2 - y
 
     # sign correction
-    y = (1 - b) * (y - y_pi_over_two) + y_pi_over_two
-    y = (1 - s) * (y - (-y)) + (-y)
+    y = b.if_else(y_pi_over_two, y)
+    y = s.if_else(-y, y)
 
     return y
 

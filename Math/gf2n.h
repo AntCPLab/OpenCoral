@@ -83,6 +83,7 @@ class gf2n_short : public ValueInterface
 
   static DataFieldType field_type() { return DATA_GF2N; }
   static char type_char() { return '2'; }
+  static string type_short() { return "2"; }
   static string type_string() { return "gf2n"; }
 
   static int size() { return sizeof(a); }
@@ -94,8 +95,8 @@ class gf2n_short : public ValueInterface
 
   static bool allows(Dtype type) { (void) type; return true; }
 
-  static const bool invertible = true;
-  static const bool characteristic_two = true;
+  static const true_type invertible;
+  static const true_type characteristic_two;
 
   static gf2n_short cut(int128 x) { return x.get_lower(); }
 
@@ -162,6 +163,9 @@ class gf2n_short : public ValueInterface
   void mul(const gf2n_short& x) { mul(*this,x); }
   // x * y when one of x,y is a bit
   void mul_by_bit(const gf2n_short& x, const gf2n_short& y)   { a = x.a * y.a; }
+
+  gf2n_short lazy_add(const gf2n_short& x) const { return *this + x; }
+  gf2n_short lazy_mul(const gf2n_short& x) const { return *this * x; }
 
   gf2n_short operator+(const gf2n_short& x) const { gf2n_short res; res.add(*this, x); return res; }
   gf2n_short operator*(const gf2n_short& x) const { gf2n_short res; res.mul(*this, x); return res; }

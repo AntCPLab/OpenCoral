@@ -22,6 +22,7 @@ using namespace std;
 #include "Tools/FlexBuffer.h"
 #include "Tools/PointerVector.h"
 #include "Tools/Bundle.h"
+#include "Tools/SwitchableOutput.h"
 
 //#define PAD_TO_8(n) (n+8-n%8)
 #define PAD_TO_8(n) (n)
@@ -199,6 +200,7 @@ public:
 	BlackHole& operator<<(T) { return *this; }
 	BlackHole& operator<<(BlackHole& (*__pf)(BlackHole&)) { (void)__pf; return *this; }
 	void activate(bool) {}
+	void redirect_to_file(ostream&) {}
 };
 inline BlackHole& endl(BlackHole& b) { return b; }
 inline BlackHole& flush(BlackHole& b) { return b; }
@@ -211,7 +213,6 @@ public:
     typedef NoMemory DynamicMemory;
 
 	typedef BlackHole out_type;
-	static BlackHole out;
 
 	static const bool actual_inputs = true;
 
@@ -353,8 +354,7 @@ public:
 
     typedef EvalInputter Input;
 
-    typedef ostream& out_type;
-    static ostream& out;
+    typedef SwitchableOutput out_type;
 
 	static const bool actual_inputs = true;
 

@@ -174,8 +174,17 @@ def is_all_ones(x, n):
     else:
         return False
 
-def max(x, y):
-    return if_else(x > y, x, y)
+def max(x, y=None):
+    if y is None:
+        return tree_reduce(max, x)
+    else:
+        return if_else(x > y, x, y)
+
+def min(x, y=None):
+    if y is None:
+        return tree_reduce(min, x)
+    else:
+        return if_else(x < y, x, y)
 
 def long_one(x):
     try:

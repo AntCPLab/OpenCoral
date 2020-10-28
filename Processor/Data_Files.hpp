@@ -3,6 +3,8 @@
 
 #include "Processor/Data_Files.h"
 #include "Processor/Processor.h"
+#include "Protocols/dabit.h"
+#include "Math/Setup.h"
 
 template<class T>
 Lock Sub_Data_Files<T>::tuple_lengths_lock;
@@ -54,7 +56,8 @@ template<class T>
 Sub_Data_Files<T>::Sub_Data_Files(int my_num, int num_players,
     const string& prep_data_dir, DataPositions& usage, int thread_num) :
     Preprocessing<T>(usage),
-    my_num(my_num), num_players(num_players), prep_data_dir(prep_data_dir)
+    my_num(my_num), num_players(num_players), prep_data_dir(prep_data_dir),
+    thread_num(thread_num), part(0)
 {
 #ifdef DEBUG_FILES
   cerr << "Setting up Data_Files in: " << prep_data_dir << endl;
@@ -71,6 +74,11 @@ Sub_Data_Files<T>::Sub_Data_Files(int my_num, int num_players,
               tuple_length(dtype), DataPositions::dtype_names[dtype]);
         }
     }
+
+  sprintf(filename, (prep_data_dir + "%s-%s-P%d%s").c_str(),
+      DataPositions::dtype_names[DATA_DABIT], (T::type_short()).c_str(), my_num,
+      suffix.c_str());
+  dabit_buffer.setup(filename, 1, DataPositions::dtype_names[DATA_DABIT]);
 
   input_buffers.resize(num_players);
   for (int i=0; i<num_players; i++)
@@ -127,6 +135,14 @@ Sub_Data_Files<T>::~Sub_Data_Files()
   for (auto it =
       extended.begin(); it != extended.end(); it++)
     it->second.close();
+  dabit_buffer.close();
+  for (auto& x: edabit_buffers)
+    {
+      x.second->close();
+      delete x.second;
+    }
+  if (part != 0)
+    delete part;
 }
 
 template<class T>
@@ -234,6 +250,50 @@ void Sub_Data_Files<T>::get_no_count(vector<T>& S, DataTag tag, const vector<int
   for (int j = 0; j < vector_size; j++)
     for (unsigned int i = 0; i < regs.size(); i++)
       extended[tag].input(S[regs[i] + j]);
+}
+
+template<class T>
+void Sub_Data_Files<T>::get_dabit_no_count(T& a, typename T::bit_type& b)
+{
+  dabit<T> tmp;
+  dabit_buffer.input(tmp);
+  a = tmp.first;
+  b = tmp.second;
+}
+
+template<class T>
+void Sub_Data_Files<T>::buffer_edabits_with_queues(bool strict, int n_bits)
+{
+#ifndef INSECURE
+  throw runtime_error("no secure implementation of reading edaBits from files");
+#endif
+  if (edabit_buffers.find(n_bits) == edabit_buffers.end())
+    {
+      string filename = prep_data_dir + "edaBits-" + to_string(n_bits) + "-P"
+          + to_string(my_num);
+      ifstream* f = new ifstream(filename);
+      if (f->fail())
+        throw runtime_error("cannot open " + filename);
+      edabit_buffers[n_bits] = f;
+    }
+  auto& buffer = *edabit_buffers[n_bits];
+  if (buffer.peek() == EOF)
+    buffer.seekg(0);
+  edabitvec<T> eb;
+  eb.input(n_bits, buffer);
+  this->edabits[{strict, n_bits}].push_back(eb);
+  if (buffer.fail())
+    throw runtime_error("error reading edaBits");
+}
+
+template<class T>
+Preprocessing<typename T::part_type>& Sub_Data_Files<T>::get_part()
+{
+  if (part == 0)
+    part = new Sub_Data_Files<typename T::part_type>(my_num, num_players,
+        get_prep_sub_dir<typename T::part_type>(num_players), this->usage,
+        thread_num);
+  return *part;
 }
 
 #endif

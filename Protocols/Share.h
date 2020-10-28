@@ -41,9 +41,11 @@ class Share_ : public ShareInterface
 
    public:
 
+   typedef T part_type;
    typedef V mac_key_type;
    typedef V mac_type;
    typedef T share_type;
+   typedef V mac_share_type;
    typedef typename T::open_type open_type;
    typedef typename T::clear clear;
 
@@ -56,9 +58,6 @@ class Share_ : public ShareInterface
    static int size()
      { return T::size() + V::size(); }
 
-   static string type_short()
-     { return string(1, T::type_char()); }
-
    static char type_char()
      { return T::type_char(); }
 
@@ -69,7 +68,7 @@ class Share_ : public ShareInterface
      { return T::threshold(nplayers); }
 
    template<class U>
-   static void read_or_generate_mac_key(string directory, const Names& N,
+   static void read_or_generate_mac_key(string directory, const Player& P,
            U& key);
 
    static Share_ constant(const clear& aa, int my_num, const typename V::Scalar& alphai)
@@ -129,7 +128,7 @@ class Share_ : public ShareInterface
    template <class U>
    Share_<T, V>& operator*=(const U& x) { mul(*this, x); return *this; }
 
-   Share_<T, V> operator<<(int i) { return this->operator*(T(1) << i); }
+   Share_<T, V> operator<<(int i) { return this->operator*(clear(1) << i); }
    Share_<T, V>& operator<<=(int i) { return *this = *this << i; }
 
    Share_<T, V> operator>>(int i) const { return {a >> i, mac >> i}; }
@@ -181,6 +180,9 @@ public:
     typedef MascotTriplePrep<Share> TriplePrep;
 
     static const bool expensive = true;
+
+    static string type_short()
+      { return string(1, T::type_char()); }
 
     static string type_string()
       { return "SPDZ " + T::type_string(); }

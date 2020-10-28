@@ -114,6 +114,31 @@ void modp_<L>::to_bigint(bigint& ans,const Zp_Data& ZpD,bool reduce) const
 
 
 template<int L>
+template<int M>
+void modp_<L>::to_bigint(bigint& ans,const Zp_Data& ZpD,bool reduce) const
+{
+  assert(M == ZpD.t);
+  auto& x = *this;
+  mpz_ptr a = ans.get_mpz_t();
+  if (a->_mp_alloc < M)
+      mpz_realloc(a, M);
+  if (ZpD.montgomery)
+    {
+      mp_limb_t one[M];
+      inline_mpn_zero(one,M);
+      one[0]=1;
+      ZpD.Mont_Mult_<M>(a->_mp_d,x.x,one);
+    }
+  else
+    { inline_mpn_copyi(a->_mp_d,x.x,M); }
+  a->_mp_size=M;
+  if (reduce)
+    while (a->_mp_size>=1 && (a->_mp_d)[a->_mp_size-1]==0)
+      { a->_mp_size--; }
+}
+
+
+template<int L>
 void to_modp(modp_<L>& ans,int x,const Zp_Data& ZpD)
 {
   inline_mpn_zero(ans.x,ZpD.t);

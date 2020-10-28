@@ -66,6 +66,8 @@ public:
             PrepLessInput<T>(proc), proc(proc), P(P), protocol(P)
     {
         assert(T::length == 2);
+        InputBase<T>::P = &P;
+        InputBase<T>::os.resize(P.num_players());
         expect.resize(P.num_players());
     }
 

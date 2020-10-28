@@ -14,6 +14,7 @@
 template<class T>
 void ReplicatedInput<T>::reset(int player)
 {
+    InputBase<T>::reset(player);
     assert(P.num_players() == 3);
     if (player == P.my_num())
     {

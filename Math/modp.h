@@ -74,6 +74,8 @@ class modp_
 
   // Convert representation to and from a modp number
   void to_bigint(bigint& ans,const Zp_Data& ZpD,bool reduce=true) const;
+  template<int M>
+  void to_bigint(bigint& ans,const Zp_Data& ZpD,bool reduce=true) const;
 
   template<int T>
   void mul(const modp_& x, const modp_& y, const Zp_Data& ZpD);

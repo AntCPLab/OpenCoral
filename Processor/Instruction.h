@@ -330,6 +330,7 @@ struct TempVars {
 class BaseInstruction
 {
   friend class Program;
+  template<class T> friend class RepRingOnlyEdabitPrep;
 
 protected:
   int opcode;         // The code

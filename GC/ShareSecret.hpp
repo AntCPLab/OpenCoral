@@ -25,14 +25,11 @@
 namespace GC
 {
 
-template<class U>
-const int ReplicatedSecret<U>::N_BITS;
+template<class U, int L>
+const int RepSecretBase<U, L>::N_BITS;
 
-template<class U>
-const int ReplicatedSecret<U>::default_length;
-
-template<class U>
-SwitchableOutput ShareSecret<U>::out;
+template<class U, int L>
+const int RepSecretBase<U, L>::default_length;
 
 template<class U>
 void ShareSecret<U>::check_length(int n, const Integer& x)
@@ -59,16 +56,16 @@ void ReplicatedSecret<U>::load_clear(int n, const Integer& x)
     *this = x;
 }
 
-template<class U>
-void ReplicatedSecret<U>::bitcom(Memory<U>& S, const vector<int>& regs)
+template<class U, int L>
+void RepSecretBase<U, L>::bitcom(Memory<U>& S, const vector<int>& regs)
 {
     *this = 0;
     for (unsigned int i = 0; i < regs.size(); i++)
         *this ^= (S[regs[i]] << i);
 }
 
-template<class U>
-void ReplicatedSecret<U>::bitdec(Memory<U>& S, const vector<int>& regs) const
+template<class U, int L>
+void RepSecretBase<U, L>::bitdec(Memory<U>& S, const vector<int>& regs) const
 {
     for (unsigned int i = 0; i < regs.size(); i++)
         S[regs[i]] = (*this >> i) & 1;
@@ -285,12 +282,11 @@ void ShareSecret<U>::xors(Processor<U>& processor, const vector<int>& args)
     ShareThread<U>::s().xors(processor, args);
 }
 
-template<class U>
-void ReplicatedSecret<U>::trans(Processor<U>& processor,
+template<class U, int L>
+void RepSecretBase<U, L>::trans(Processor<U>& processor,
         int n_outputs, const vector<int>& args)
 {
-    assert(length == 2);
-    for (int k = 0; k < 2; k++)
+    for (int k = 0; k < L; k++)
     {
         for (int j = 0; j < DIV_CEIL(n_outputs, N_BITS); j++)
             for (int l = 0; l < DIV_CEIL(args.size() - n_outputs, N_BITS); l++)
@@ -328,6 +324,14 @@ void ShareSecret<U>::random_bit()
     U res;
     ShareThread<U>::s().DataF.get_one(DATA_BIT, res);
     *this = res;
+}
+
+template<class U>
+U& GC::ShareSecret<U>::operator=(const U& other)
+{
+    U& real_this = static_cast<U&>(*this);
+    real_this = other;
+    return real_this;
 }
 
 }

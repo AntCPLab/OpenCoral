@@ -8,11 +8,12 @@
 #include "GC/square64.h"
 
 #include "GC/Processor.hpp"
+#include "GC/ShareSecret.hpp"
+#include "Processor/Input.hpp"
 
 namespace GC
 {
 
-SwitchableOutput FakeSecret::out;
 const int FakeSecret::default_length;
 
 void FakeSecret::load_clear(int n, const Integer& x)
@@ -87,6 +88,14 @@ FakeSecret FakeSecret::input(int from, word input, int n_bits)
 	return input;
 }
 
+void FakeSecret::inputbvec(Processor<FakeSecret>& processor,
+        ProcessorBase& input_processor, const vector<int>& args)
+{
+    Input input;
+    input.reset_all(*ShareThread<FakeSecret>::s().P);
+    processor.inputbvec(input, input_processor, args, 0);
+}
+
 void FakeSecret::and_(int n, const FakeSecret& x, const FakeSecret& y,
         bool repeat)
 {
@@ -94,6 +103,21 @@ void FakeSecret::and_(int n, const FakeSecret& x, const FakeSecret& y,
 		return andrs(n, x, y);
 	else
 		*this = BitVec(x & y).mask(n);
+}
+
+void FakeSecret::my_input(Input& inputter, BitVec value, int n_bits)
+{
+    inputter.add_mine(value, n_bits);
+}
+
+void FakeSecret::other_input(Input&, int, int)
+{
+    throw runtime_error("emulation is supposed to be lonely");
+}
+
+void FakeSecret::finalize_input(Input& inputter, int from, int n_bits)
+{
+    *this = inputter.finalize(from, n_bits);
 }
 
 } /* namespace GC */

@@ -44,8 +44,6 @@ public:
     static const bool is_real = true;
     static const bool actual_inputs = true;
 
-    static SwitchableOutput out;
-
     static void store_clear_in_dynamic(Memory<U>& mem,
             const vector<ClearWriteAccess>& accesses);
 
@@ -83,20 +81,25 @@ public:
     void other_input(T& inputter, int from, int n_bits = 1);
     template<class T>
     void finalize_input(T& inputter, int from, int n_bits);
+
+    U& operator=(const U&);
 };
 
-template<class U>
-class ReplicatedSecret : public FixedVec<BitVec, 2>, public ShareSecret<U>
+template<class U, int L>
+class RepSecretBase : public FixedVec<BitVec, L>, public ShareSecret<U>
 {
-    typedef FixedVec<BitVec, 2> super;
+    typedef FixedVec<BitVec, L> super;
+    typedef RepSecretBase This;
 
 public:
+    typedef U part_type;
+    typedef U small_type;
+    typedef U whole_type;
+
     typedef BitVec clear;
     typedef BitVec open_type;
     typedef BitVec mac_type;
     typedef BitVec mac_key_type;
-
-    typedef ReplicatedBase Protocol;
 
     typedef NoShare bit_type;
 
@@ -109,7 +112,7 @@ public:
     static string type_string() { return "replicated secret"; }
     static string phase_name() { return "Replicated computation"; }
 
-    static const int default_length =  8 * sizeof(typename ReplicatedSecret<U>::value_type);
+    static const int default_length = N_BITS;
 
     static int threshold(int)
     {
@@ -124,9 +127,45 @@ public:
     {
     }
 
-    static void read_or_generate_mac_key(string, const Names&, mac_key_type) {}
+    static void read_or_generate_mac_key(string, const Player&, mac_key_type)
+    {
+    }
 
-    static ReplicatedSecret constant(const clear& value, int my_num, mac_key_type)
+    RepSecretBase()
+    {
+    }
+    template <class T>
+    RepSecretBase(const T& other) :
+            super(other)
+    {
+    }
+
+    void bitcom(Memory<U>& S, const vector<int>& regs);
+    void bitdec(Memory<U>& S, const vector<int>& regs) const;
+
+    void xor_(int n, const This& x, const This& y)
+    { *this = x ^ y; (void)n; }
+
+    This operator&(const Clear& other)
+    { return super::operator&(BitVec(other)); }
+
+    This lsb()
+    { return *this & 1; }
+
+    This get_bit(int i)
+    { return (*this >> i) & 1; }
+};
+
+template<class U>
+class ReplicatedSecret : public RepSecretBase<U, 2>
+{
+    typedef RepSecretBase<U, 2> super;
+
+public:
+    typedef ReplicatedBase Protocol;
+
+    static ReplicatedSecret constant(const typename super::clear& value, int my_num,
+            typename super::mac_key_type)
     {
       ReplicatedSecret res;
       if (my_num < 2)
@@ -140,27 +179,43 @@ public:
 
     void load_clear(int n, const Integer& x);
 
-    void bitcom(Memory<U>& S, const vector<int>& regs);
-    void bitdec(Memory<U>& S, const vector<int>& regs) const;
-
     BitVec local_mul(const ReplicatedSecret& other) const;
 
-    void xor_(int n, const ReplicatedSecret& x, const ReplicatedSecret& y)
-    { *this = x ^ y; (void)n; }
-
     void reveal(size_t n_bits, Clear& x);
-
-    ReplicatedSecret operator&(const Clear& other)
-    { return super::operator&(BitVec(other)); }
-
-    ReplicatedSecret lsb()
-    { return *this & 1; }
-
-    ReplicatedSecret get_bit(int i)
-    { return (*this >> i) & 1; }
 };
 
 class SemiHonestRepPrep;
+
+class SmallRepSecret : public FixedVec<BitVec_<unsigned char>, 2>
+{
+    typedef FixedVec<BitVec_<unsigned char>, 2> super;
+    typedef SmallRepSecret This;
+
+public:
+    typedef ReplicatedMC<This> MC;
+    typedef BitVec_<unsigned char> open_type;
+    typedef open_type clear;
+    typedef BitVec mac_key_type;
+
+    static MC* new_mc(mac_key_type)
+    {
+        return new MC;
+    }
+
+    SmallRepSecret()
+    {
+    }
+    template<class T>
+    SmallRepSecret(const T& other) :
+            super(other)
+    {
+    }
+
+    This lsb() const
+    {
+        return *this & 1;
+    }
+};
 
 class SemiHonestRepSecret : public ReplicatedSecret<SemiHonestRepSecret>
 {
@@ -176,7 +231,7 @@ public:
     typedef ReplicatedInput<SemiHonestRepSecret> Input;
 
     typedef SemiHonestRepSecret part_type;
-    typedef SemiHonestRepSecret small_type;
+    typedef SmallRepSecret small_type;
     typedef SemiHonestRepSecret whole_type;
 
     static const bool expensive_triples = false;

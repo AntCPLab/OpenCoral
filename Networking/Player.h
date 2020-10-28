@@ -90,7 +90,15 @@ struct CommStats
   size_t data, rounds;
   Timer timer;
   CommStats() : data(0), rounds(0) {}
-  Timer& add(const octetStream& os) { data += os.get_length(); rounds++; return timer; }
+  Timer& add(const octetStream& os)
+    {
+#ifdef VERBOSE_COMM
+      cout << "add " << os.get_length() << endl;
+#endif
+      data += os.get_length();
+      rounds++;
+      return timer;
+    }
   void add(const octetStream& os, const TimeScope& scope) { add(os) += scope; }
   CommStats& operator+=(const CommStats& other);
   CommStats& operator-=(const CommStats& other);

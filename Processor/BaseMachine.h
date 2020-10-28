@@ -22,7 +22,7 @@ protected:
 
     std::map<int,Timer> timer;
 
-    ifstream inpf;
+    string compiler;
 
     void print_timers();
 
@@ -43,10 +43,12 @@ public:
 
     static string memory_filename(string type_short, int my_number);
 
+    static int ring_size_from_schedule(string progname);
+
     BaseMachine();
     virtual ~BaseMachine() {}
 
-    void load_schedule(string progname);
+    void load_schedule(string progname, bool load_bytecode = true);
     void print_compiler();
 
     void time();

@@ -24,8 +24,6 @@
 
 #include <unistd.h>
 
-ostream& EvalRegister::out = cout;
-
 int Register::counter = 0;
 
 void Register::init(int n_parties)

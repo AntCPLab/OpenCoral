@@ -1,6 +1,6 @@
 
 #include "Player-Online.hpp"
-#include "Math/gfp.h"
+#include "Math/gfp.hpp"
 #include "GC/TinierSecret.h"
 
 int main(int argc, const char** argv)

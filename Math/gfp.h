@@ -88,6 +88,7 @@ class gfp_ : public ValueInterface
 
   static DataFieldType field_type() { return DATA_INT; }
   static char type_char() { return 'p'; }
+  static string type_short() { return "p"; }
   static string type_string() { return "gfp"; }
 
   static int size() { return t() * sizeof(mp_limb_t); }
@@ -100,8 +101,7 @@ class gfp_ : public ValueInterface
 
   static void specification(octetStream& os);
 
-  static const bool invertible = true;
-  static const bool characteristic_two = false;
+  static const true_type invertible;
 
   static gfp_ Mul(gfp_ a, gfp_ b) { return a * b; }
 
@@ -183,6 +183,9 @@ class gfp_ : public ValueInterface
     { a.template mul<L>(x.a,y.a,ZpD); }
   void mul(const gfp_& x)
     { a.template mul<L>(a,x.a,ZpD); }
+
+  gfp_ lazy_add(const gfp_& x) const { return *this + x; }
+  gfp_ lazy_mul(const gfp_& x) const { return *this * x; }
 
   gfp_ operator+(const gfp_& x) const { gfp_ res; res.add(*this, x); return res; }
   gfp_ operator-(const gfp_& x) const { gfp_ res; res.sub(*this, x); return res; }
@@ -266,7 +269,7 @@ class gfp_ : public ValueInterface
 
   // Convert representation to and from a bigint number
   friend void to_bigint(bigint& ans,const gfp_& x,bool reduce=true)
-    { to_bigint(ans,x.a,x.ZpD,reduce); }
+    { x.a.template to_bigint<L>(ans, x.ZpD, reduce); }
   friend void to_gfp(gfp_& ans,const bigint& x)
     { to_modp(ans.a,x,ans.ZpD); }
 };

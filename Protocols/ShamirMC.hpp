@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef PROTOCOLS_SHAMIRMC_HPP_
+#define PROTOCOLS_SHAMIRMC_HPP_
+
 #include "ShamirMC.h"
 
 template<class T>
@@ -114,3 +117,5 @@ typename T::open_type ShamirMC<T>::finalize_open()
 
     return res;
 }
+
+#endif

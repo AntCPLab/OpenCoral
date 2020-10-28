@@ -7,17 +7,34 @@
 #define PROTOCOLS_SEMIPREP2K_H_
 
 #include "SemiPrep.h"
+#include "RepRingOnlyEdabitPrep.h"
 
 template<class T>
-class SemiPrep2k : public SemiPrep<T>
+class SemiPrep2k : public SemiPrep<T>, public RepRingOnlyEdabitPrep<T>
 {
+    void buffer_edabits(int n_bits, ThreadQueues* queues)
+    {
+        RepRingOnlyEdabitPrep<T>::buffer_edabits(n_bits, queues);
+    }
+
+    void buffer_edabits(bool strict, int n_bits, ThreadQueues* queues)
+    {
+        BufferPrep<T>::buffer_edabits(strict, n_bits, queues);
+    }
+
+    void buffer_sedabits(int n_bits, ThreadQueues*)
+    {
+        this->buffer_sedabits_from_edabits(n_bits);
+    }
+
 public:
     SemiPrep2k(SubProcessor<T>* proc, DataPositions& usage) :
             BufferPrep<T>(usage), BitPrep<T>(proc, usage),
             OTPrep<T>(proc, usage),
             RingPrep<T>(proc, usage),
             SemiHonestRingPrep<T>(proc, usage),
-            SemiPrep<T>(proc, usage)
+            SemiPrep<T>(proc, usage),
+            RepRingOnlyEdabitPrep<T>(proc, usage)
     {
     }
 

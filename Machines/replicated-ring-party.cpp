@@ -24,6 +24,10 @@ int main(int argc, const char** argv)
         ReplicatedMachine<Rep3Share2<72>, Rep3Share<gf2n>>(argc, argv,
                 "replicated-ring", opt);
         break;
+    case 128:
+        ReplicatedMachine<Rep3Share2<128>, Rep3Share<gf2n>>(argc, argv,
+                "replicated-ring", opt);
+        break;
     default:
         throw runtime_error(to_string(opts.R) + "-bit computation not implemented");
     }

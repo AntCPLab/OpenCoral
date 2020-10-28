@@ -1217,7 +1217,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc2.DataF.get_two(DATA_INVERSE, Proc.get_S2_ref(r[0]),Proc.get_S2_ref(r[1]));
         break;
       case RANDOMS:
-        Procp.protocol.randoms_inst(Procp, *this);
+        Procp.protocol.randoms_inst(Procp.get_S(), *this);
         return;
       case INPUTMASKREG:
         Procp.DataF.get_input(Proc.get_Sp_ref(r[0]), Proc.temp.rrp, Proc.read_Ci(r[2]));
@@ -1314,14 +1314,10 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         break;
       case SHLC:
         to_bigint(Proc.temp.aa,Proc.read_Cp(r[2]));
-        if (Proc.temp.aa > 63)
-          throw runtime_error("too much left shift");
            Proc.get_Cp_ref(r[0]).SHL(Proc.read_Cp(r[1]),Proc.temp.aa);
         break;
       case SHRC:
         to_bigint(Proc.temp.aa,Proc.read_Cp(r[2]));
-        if (Proc.temp.aa > 63)
-          throw runtime_error("too much right shift");
            Proc.get_Cp_ref(r[0]).SHR(Proc.read_Cp(r[1]),Proc.temp.aa);
         break;
       case SHLCI:
@@ -1337,8 +1333,8 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
            Proc.get_C2_ref(r[0]).SHR(Proc.read_C2(r[1]),n);
         break;
       case SHRSI:
-           Proc.get_Sp_ref(r[0]) = Proc.read_Sp(r[1]) >> n;
-        break;
+        sint::shrsi(Procp, *this);
+        return;
       case GBITDEC:
         for (int j = 0; j < size; j++)
           {

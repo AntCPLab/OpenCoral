@@ -47,13 +47,6 @@ template<class T>
 void Machine<T>::load_schedule(string progname)
 {
     BaseMachine::load_schedule(progname);
-    for (auto i : {1, 0, 0})
-    {
-        int n;
-        inpf >> n;
-        if (n != i)
-            throw runtime_error("old schedule format not supported");
-    }
     print_compiler();
 }
 

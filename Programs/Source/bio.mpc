@@ -21,7 +21,7 @@ def match(db_entry, sample):
 from Compiler import util
 
 if n_threads is None:
-    util.tree_reduce(lambda x, y: x.min(y), (match(db[i], sample) for i in range(n)))
+    res = util.tree_reduce(lambda x, y: x.min(y), (match(db[i], sample) for i in range(n)))
 else:
     tmp = sint.Array(n_threads)
 
@@ -31,4 +31,6 @@ else:
                                           (match(db[base + i], sample)
                                            for i in range(size)))
 
-    util.tree_reduce(lambda x, y: x.min(y), tmp)
+    res = util.tree_reduce(lambda x, y: x.min(y), tmp)
+
+print_ln('result: %s', res.reveal())

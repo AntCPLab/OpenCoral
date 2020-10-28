@@ -1,5 +1,24 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.2.0 (Oct 28, 2020)
+
+- Rep4: honest-majority four-party computation with malicious security
+- SY/SPDZ-wise: honest-majority computation with malicious security based on replicated or Shamir secret sharing
+- Training with a sequence of dense layers
+- Training and inference for multi-class classification
+- Local share conversion for semi-honest protocols based on additive secret sharing modulo a power of two
+- edaBit generation based on local share conversion
+- Optimize exponentation with local share conversion
+- Optimize Shamir pseudo-random secret sharing using a hyper-invertible matrix
+- Mathematical functions (exponentation, logarithm, square root, and trigonometric functions) with binary circuits
+- Direct construction of fixed-point values from any type, breaking `sfix(x)` where `x` is the integer representation of a fixed-point number. Use `sfix._new(x)` instead.
+- Optimized dot product for `sfix`
+- Matrix multiplication via operator overloading uses VM-optimized multiplication.
+- Fake preprocessing for daBits and edaBits
+- Fixed security bug: insufficient randomness in SemiBin random bit generation.
+- Fixed security bug: insufficient randomization of FKOS15 inputs.
+- Fixed security bug in binary computation with SPDZ(2k).
+
 ## 0.1.9 (Aug 24, 2020)
 
 - Streamline inputs to binary circuits
@@ -7,7 +26,7 @@ The changelog explains changes pulled through from the private development repos
 - Emulator for arithmetic circuits
 - Efficient dot product with Shamir's secret sharing
 - Lower memory usage for TensorFlow inference
-- This version breaks bytecode compatibilty.
+- This version breaks bytecode compatibility.
 
 ## 0.1.8 (June 15, 2020)
 

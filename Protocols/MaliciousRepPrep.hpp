@@ -63,7 +63,7 @@ void MaliciousRepPrep<T>::buffer_triples()
 {
     assert(T::open_type::length() >= 40);
     auto& triples = this->triples;
-    auto buffer_size = OnlineOptions::singleton.batch_size;
+    auto buffer_size = this->buffer_size;
     clear_tmp();
     assert(honest_proc != 0);
     Player& P = honest_proc->P;
@@ -122,11 +122,12 @@ template<class T>
 void MaliciousRepPrep<T>::buffer_squares()
 {
     auto& squares = this->squares;
-    auto buffer_size = OnlineOptions::singleton.batch_size;
+    auto buffer_size = this->buffer_size;
     clear_tmp();
     assert(honest_proc);
     Player& P = honest_proc->P;
     squares.clear();
+    honest_prep.buffer_size = buffer_size;
     for (int i = 0; i < buffer_size; i++)
     {
         T a, b;

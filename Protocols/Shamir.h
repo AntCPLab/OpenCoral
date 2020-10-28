@@ -32,6 +32,8 @@ class Shamir : public ProtocolBase<T>
 
     vector<T> random;
 
+    vector<vector<typename T::clear>> hyper;
+
     typename T::open_type dotprod_share;
 
     void buffer_random();
@@ -79,7 +81,7 @@ public:
 
     T finalize(int n_input_players);
 
-    void init_dotprod(SubProcessor<T>* proc);
+    void init_dotprod(SubProcessor<T>* proc = 0);
     void prepare_dotprod(const T& x, const T& y);
     void next_dotprod();
     T finalize_dotprod(int length);

@@ -25,7 +25,8 @@ protected:
 public:
     int values_opened;
 
-    MAC_Check_Base() : values_opened(0) {}
+    MAC_Check_Base(const typename T::mac_key_type::Scalar& mac_key = { }) :
+            alphai(mac_key), values_opened(0) {}
     virtual ~MAC_Check_Base() {}
 
     virtual void Check(const Player& P) { (void)P; }

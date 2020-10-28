@@ -134,6 +134,7 @@ def print_ln_if(cond, ss, *args):
     print_str_if(cond, ss + '\n', *args)
 
 def print_str_if(cond, ss, *args):
+    """ Print string conditionally. See :py:func:`print_ln_if` for details. """
     if util.is_constant(cond):
         if cond:
             print_ln(ss, *args)
@@ -160,7 +161,8 @@ def print_str_if(cond, ss, *args):
 
 def print_ln_to(player, ss, *args):
     """ Print line at :py:obj:`player` only. Note that printing is
-    disabled by default except at player 0.
+    disabled by default except at player 0. Activate interactive mode
+    with `-I` to enable it for all players.
 
     :param player: int
     :param ss: Python string
@@ -814,8 +816,8 @@ def range_loop(loop_body, start, stop=None, step=None):
     if step is None:
         step = 1
     def loop_fn(i):
-        loop_body(i)
-        return i + step
+        res = loop_body(i)
+        return util.if_else(res == 0, stop, i + step)
     if isinstance(step, int):
         if step > 0:
             condition = lambda x: x < stop
@@ -840,7 +842,9 @@ def for_range(start, stop=None, step=None):
     in Python :py:func:`range`, but they can by any public
     integer. Information has to be passed out via container types such
     as :py:class:`Compiler.types.Array` or declaring registers as
-    :py:obj:`global`.
+    :py:obj:`global`. Note that changing Python data structures such
+    as lists within the loop is not possible, but the compiler cannot
+    warn about this.
 
     :param start/stop/step: regint/cint/int
 
@@ -1057,7 +1061,7 @@ def for_range_opt_multithread(n_threads, n_loops):
     """
     return for_range_multithread(n_threads, None, n_loops)
 
-def multithread(n_threads, n_items):
+def multithread(n_threads, n_items, max_size=None):
     """
     Distribute the computation of :py:obj:`n_items` to
     :py:obj:`n_threads` threads, but leave the in-thread repetition up
@@ -1075,8 +1079,19 @@ def multithread(n_threads, n_items):
         def f(base, size):
             ...
     """
-    return map_reduce(n_threads, None, n_items, initializer=lambda: [],
-                      reducer=None, looping=False)
+    if max_size is None:
+        return map_reduce(n_threads, None, n_items, initializer=lambda: [],
+                          reducer=None, looping=False)
+    else:
+        def wrapper(function):
+            @multithread(n_threads, n_items)
+            def new_function(base, size):
+                for i in range(0, size, max_size):
+                    part_base = base + i
+                    part_size = min(max_size, size - i)
+                    function(part_base, part_size)
+                    break_point()
+        return wrapper
 
 def map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, \
                    thread_mem_req={}, looping=True):
@@ -1563,8 +1578,8 @@ def cint_cint_division(a, b, k, f):
     theta = int(ceil(log(k/3.5) / log(2)))
     two = cint(2) * two_power(f)
 
-    sign_b = cint(1) - 2 * cint(b < 0)
-    sign_a = cint(1) - 2 * cint(a < 0)
+    sign_b = cint(1) - 2 * cint(b.less_than(0, k))
+    sign_a = cint(1) - 2 * cint(a.less_than(0, k))
     absolute_b = b * sign_b
     absolute_a = a * sign_a
     w0 = approximate_reciprocal(absolute_b, k, f, theta)
@@ -1632,9 +1647,12 @@ def FPDiv(a, b, k, f, kappa, simplex_flag=False, nearest=False):
     f = max((k - nearest) // 2 + 1, f)
     assert 2 * f > k - nearest
     theta = int(ceil(log(k/3.5) / log(2)))
+
+    base.set_global_vector_size(b.size)
     alpha = b.get_type(2 * k).two_power(2*f)
     w = AppRcr(b, k, f, kappa, simplex_flag, nearest).extend(2 * k)
     x = alpha - b.extend(2 * k) * w
+    base.reset_global_vector_size()
 
     y = a.extend(2 *k) * w
     y = y.round(2*k, f, kappa, nearest, signed=True)

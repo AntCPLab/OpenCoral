@@ -49,7 +49,7 @@ length during execution using ``program.set_bit_length(length)``. For
 binary computation you can do so with ``sint =
 sbitint.get_type(length)``.
 
-The following option switches from a single computation domain to
+The following options switch from a single computation domain to
 mixed computation when using in conjunction with arithmetic
 computation:
 
@@ -66,6 +66,14 @@ computation:
 The implementation of both daBits and edaBits are explained in this paper_.
 
 .. _paper: https://eprint.iacr.org/2020/338
+
+.. cmdoption:: -Z <number of parties>
+	       --split
+
+   Enables mixed computation using local conversion. This has been
+   used by `Mohassel and Rindal <https://eprint.iacr.org/2018/403>`_
+   and `Araki et al. <https://eprint.iacr.org/2018/762>`_ It only
+   works with additive secret sharing modulo a power of two.
 
 The following options change less fundamental aspects of the
 computation:

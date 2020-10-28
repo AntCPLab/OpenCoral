@@ -441,6 +441,8 @@ def cisc(function):
                 program.options.cisc = True
                 reset_global_vector_size()
                 program.curr_tape = old_tape
+                for x, bl in tape.req_bit_length.items():
+                    old_tape.require_bit_length(bl, x)
                 from Compiler.allocator import Merger
                 merger = Merger(block, program.options,
                                 tuple(program.to_merge))
@@ -523,25 +525,26 @@ def ret_cisc(function):
 
 def sfix_cisc(function):
     from Compiler.types import sfix, sint, cfix, copy_doc
-    def instruction(res, arg, k, f):
+    def instruction(res, arg, k, f, *args):
         assert k is not None
         assert f is not None
         old = sfix.k, sfix.f, cfix.k, cfix.f
         sfix.k, sfix.f, cfix.k, cfix.f = [None] * 4
-        res.mov(res, function(sfix._new(arg, k=k, f=f)).v)
+        res.mov(res, function(sfix._new(arg, k=k, f=f), *args).v)
         sfix.k, sfix.f, cfix.k, cfix.f = old
     instruction.__name__ = function.__name__
     instruction = cisc(instruction)
 
     def wrapper(*args, **kwargs):
         if isinstance(args[0], sfix):
-            assert len(args) == 1
+            for arg in args[1:]:
+                assert util.is_constant(arg)
             assert not kwargs
             assert args[0].size == args[0].v.size
             k = args[0].k
             f = args[0].f
             res = sfix._new(sint(size=args[0].size), k=k, f=f)
-            instruction(res.v, args[0].v, k, f)
+            instruction(res.v, args[0].v, k, f, *args[1:])
             return res
         else:
             return function(*args, **kwargs)

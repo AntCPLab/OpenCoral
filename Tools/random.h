@@ -135,6 +135,16 @@ public:
   }
 };
 
+template<class T>
+class ElementPRNG : public PRNG
+{
+public:
+  T get()
+    {
+      return PRNG::get<T>();
+    }
+};
+
 inline bool PRNG::get_bit()
 {
   if (n_cached_bits == 0)

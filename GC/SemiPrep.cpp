@@ -58,10 +58,11 @@ SemiPrep::~SemiPrep()
 
 void SemiPrep::buffer_bits()
 {
-    auto& thread = Thread<SemiSecret>::s();
-    word r = thread.secure_prng.get_word();
+    word r = secure_prng.get_word();
     for (size_t i = 0; i < sizeof(word) * 8; i++)
+    {
         this->bits.push_back((r >> i) & 1);
+    }
 }
 
 size_t SemiPrep::data_sent()

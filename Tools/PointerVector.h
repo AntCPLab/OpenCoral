@@ -20,6 +20,10 @@ public:
     void clear()
     {
         vector<T>::clear();
+        reset();
+    }
+    void reset()
+    {
         i = 0;
     }
     T& next()

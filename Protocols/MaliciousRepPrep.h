@@ -17,7 +17,7 @@ template<int K, int S> class MalRepRingShare;
 template<int K, int S> class PostSacriRepRingShare;
 
 template<class T, class U>
-void sacrifice(const vector<T>& check_triples, Player& P);
+void sacrifice(const vector<array<T, 5>>& check_triples, Player& P);
 
 template<class T>
 class MaliciousRepPrep : public virtual BufferPrep<T>

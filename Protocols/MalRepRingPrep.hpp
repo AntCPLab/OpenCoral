@@ -28,12 +28,21 @@ RingOnlyBitsFromSquaresPrep<T>::RingOnlyBitsFromSquaresPrep(SubProcessor<T>*,
 }
 
 template<class T>
+SimplerMalRepRingPrep<T>::SimplerMalRepRingPrep(SubProcessor<T>* proc,
+        DataPositions& usage) :
+        BufferPrep<T>(usage), MalRepRingPrep<T>(proc, usage),
+        RingOnlyBitsFromSquaresPrep<T>(proc, usage)
+{
+}
+
+template<class T>
 MalRepRingPrepWithBits<T>::MalRepRingPrepWithBits(SubProcessor<T>* proc,
         DataPositions& usage) :
         BufferPrep<T>(usage), BitPrep<T>(proc, usage),
         RingPrep<T>(proc, usage),
         MaliciousRingPrep<T>(proc, usage), MalRepRingPrep<T>(proc, usage),
-        RingOnlyBitsFromSquaresPrep<T>(proc, usage)
+        RingOnlyBitsFromSquaresPrep<T>(proc, usage),
+        SimplerMalRepRingPrep<T>(proc, usage)
 {
 }
 
@@ -54,6 +63,7 @@ void MalRepRingPrep<T>::buffer_squares()
     MaliciousRepPrep<prep_type> prep(_);
     assert(this->proc != 0);
     prep.init_honest(this->proc->P);
+    prep.buffer_size = this->buffer_size;
     prep.buffer_squares();
     for (auto& x : prep.squares)
         this->squares.push_back({{x[0], x[1]}});
@@ -68,6 +78,7 @@ void MalRepRingPrep<T>::simple_buffer_triples()
     MaliciousRepPrep<prep_type> prep(_);
     assert(this->proc != 0);
     prep.init_honest(this->proc->P);
+    prep.buffer_size = this->buffer_size;
     prep.buffer_triples();
     for (auto& x : prep.triples)
         this->triples.push_back({{x[0], x[1], x[2]}});
@@ -222,7 +233,7 @@ void RingOnlyBitsFromSquaresPrep<T>::buffer_bits()
     typename BitShare::SquarePrep prep(0, usage);
     SubProcessor<BitShare> bit_proc(MC, prep, proc->P);
     prep.set_proc(&bit_proc);
-    bits_from_square_in_ring(this->bits, OnlineOptions::singleton.batch_size, &prep);
+    bits_from_square_in_ring(this->bits, this->buffer_size, &prep);
 }
 
 template<class T>

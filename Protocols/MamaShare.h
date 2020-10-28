@@ -48,7 +48,12 @@ public:
         return "Mama" + to_string(N);
     }
 
-    static void read_or_generate_mac_key(string, Names&, mac_key_type& key)
+    static string type_short()
+    {
+        return string(1, T::type_char());
+    }
+
+    static void read_or_generate_mac_key(string, Player&, mac_key_type& key)
     {
         SeededPRNG G;
         key.randomize(G);

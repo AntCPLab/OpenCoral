@@ -44,6 +44,11 @@ public:
 template <class T>
 class ProtocolBase
 {
+    virtual void buffer_random() { not_implemented(); }
+
+protected:
+    vector<T> random;
+
 public:
     typedef T share_type;
 
@@ -59,6 +64,8 @@ public:
     void multiply(vector<T>& products, vector<pair<T, T>>& multiplicands,
             int begin, int end, SubProcessor<T>& proc);
 
+    T mul(const T& x, const T& y);
+
     virtual void init_mul(SubProcessor<T>* proc) = 0;
     virtual typename T::clear prepare_mul(const T& x, const T& y, int n = -1) = 0;
     virtual void exchange() = 0;
@@ -69,11 +76,13 @@ public:
     void next_dotprod() {}
     T finalize_dotprod(int length);
 
+    virtual T get_random();
+
     virtual void trunc_pr(const vector<int>& regs, int size, SubProcessor<T>& proc)
     { (void) regs, (void) size; (void) proc; throw runtime_error("trunc_pr not implemented"); }
 
     virtual void randoms(T&, int) { throw runtime_error("randoms not implemented"); }
-    virtual void randoms_inst(SubProcessor<T>&, const Instruction&);
+    virtual void randoms_inst(vector<T>&, const Instruction&);
 
     virtual void start_exchange() { exchange(); }
     virtual void stop_exchange() {}
@@ -115,7 +124,8 @@ public:
 
     void prepare_reshare(const typename T::clear& share, int n = -1);
 
-    void init_dotprod(SubProcessor<T>* proc);
+    void init_dotprod(SubProcessor<T>*) { init_mul(); }
+    void init_dotprod();
     void prepare_dotprod(const T& x, const T& y);
     void next_dotprod();
     T finalize_dotprod(int length);
