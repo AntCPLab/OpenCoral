@@ -21,4 +21,4 @@ steps:
   - script:
       Scripts/setup-ssl.sh 4
   - script:
-      Scripts/test_tutorial.sh -C
+      Scripts/test_tutorial.sh -X
