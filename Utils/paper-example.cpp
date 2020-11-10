@@ -31,9 +31,9 @@ int main(int argc, char** argv)
 
     // must initialize MAC key for security of some protocols
     typename T::mac_key_type mac_key;
-    T::read_or_generate_mac_key("", N, mac_key);
+    T::read_or_generate_mac_key("", P, mac_key);
     typename T::bit_type::mac_key_type binary_mac_key;
-    T::bit_type::part_type::read_or_generate_mac_key("", N, binary_mac_key);
+    T::bit_type::part_type::read_or_generate_mac_key("", P, binary_mac_key);
 
     // global OT setup
     BaseMachine machine;
