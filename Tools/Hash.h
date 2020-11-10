@@ -43,7 +43,11 @@ public:
 
 	void final(unsigned char hashout[hash_length])
 	{
-		crypto_generichash_final(state, hashout, crypto_generichash_BYTES);
+		final(hashout, hash_length);
+	}
+	void final(unsigned char* hashout, size_t length)
+	{
+		crypto_generichash_final(state, hashout, length);
 	}
 	void final(octetStream& os);
 	octetStream final();

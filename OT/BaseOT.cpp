@@ -179,7 +179,26 @@ void BaseOT::exec_base(bool new_receiver_inputs)
         printf("\n");
         #endif
     }
+
+    for (int i = 0; i < nOT; i++)
+    {
+        if (ot_role & RECEIVER)
+            hash_with_id(receiver_outputs.at(i), i);
+        if (ot_role & SENDER)
+            for (int j = 0; j < 2; j++)
+                hash_with_id(sender_inputs.at(i).at(j), i);
+    }
+
     set_seeds();
+}
+
+void BaseOT::hash_with_id(BitVector& bits, long id)
+{
+    assert(bits.size_bytes() >= AES_BLK_SIZE);
+    Hash hash;
+    hash.update(bits.get_ptr(), bits.size_bytes());
+    hash.update(&id, sizeof(id));
+    hash.final(bits.get_ptr(), bits.size_bytes());
 }
 
 void BaseOT::set_seeds()

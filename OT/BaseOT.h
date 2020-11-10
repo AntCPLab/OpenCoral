@@ -29,6 +29,8 @@ void send_if_ot_receiver(TwoPartyPlayer* P, vector<octetStream>& os, OT_ROLE rol
 
 class BaseOT
 {
+    static void hash_with_id(BitVector& bits, long id);
+
 public:
 	BitVector receiver_inputs;
 	vector< vector<BitVector> > sender_inputs;
