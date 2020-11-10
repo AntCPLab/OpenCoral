@@ -12,7 +12,12 @@
 // Matyas-Meyer-Oseas hashing
 class MMO
 {
+#ifdef GFP_MOD_SZ
+    static const int N_KEYS = GFP_MOD_SZ;
+#else
     static const int N_KEYS = 2;
+#endif
+
     octet IV[N_KEYS][176]  __attribute__((aligned (16)));
 
     template<int N>
