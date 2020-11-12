@@ -83,13 +83,13 @@ computation:
 
    Eliminates unused code. This currently means computation that isn't
    used for input or output or written to the so-called memory (e.g.,
-   :py:class:`Compiler.types.Array`; see :py:mod:`Compiler.types`).
+   :py:class:`~Compiler.types.Array`; see :py:mod:`~Compiler.types`).
 
 .. cmdoption:: -b <budget>
 	       --budget=<budget>
 
    Set the budget for loop unrolling with
-   :py:func:`Compiler.library.for_range_opt` and similar. This means
+   :py:func:`~Compiler.library.for_range_opt` and similar. This means
    that loops are unrolled up to *budget* instructions. Default is
    100,000 instructions.
 
@@ -111,23 +111,27 @@ The most important thing to keep in mind is that the Python code is
 executed at compile-time. This means that Python data structures such
 as :py:class:`list` and :py:class:`dict` only exist at compile-time
 and that all Python loops are unrolled. For run-time loops and lists,
-you can use :py:func:`Compiler.library.for_range` (or the more
-optimizing :py:func:`Compiler.library.for_range_opt`) and
-:py:class:`Compiler.types.Array`. For convenient multithreading you
-can use :py:func:`Compiler.library.for_range_opt_multithread`, which
+you can use :py:func:`~Compiler.library.for_range` (or the more
+optimizing :py:func:`~Compiler.library.for_range_opt`) and
+:py:class:`~Compiler.types.Array`. For convenient multithreading you
+can use :py:func:`~Compiler.library.for_range_opt_multithread`, which
 automatically distributes the computation on the requested number of
 threads.
 
 This reference uses the term 'compile-time' to indicate Python types
 (which are inherently known when compiling). If the term 'public' is
 used, this means both compile-time values as well as public run-time
-types such as :py:class:`Compiler.types.regint`.
+types such as :py:class:`~Compiler.types.regint`.
+
+Reference
+---------
 
 .. toctree::
    :maxdepth: 4
    :caption: Contents:
 
    Compiler
+   instructions
 
 
 Indices and tables

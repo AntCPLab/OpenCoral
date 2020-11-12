@@ -291,6 +291,10 @@ def vectorize(instruction, global_dict=None):
     Vectorized_Instruction.__name__ = vectorized_name
     global_dict[vectorized_name] = Vectorized_Instruction
     global_dict[instruction.__name__ + '_class'] = instruction
+    instruction.__doc__ = ''
+    # exclude GF(2^n) instructions from documentation
+    if instruction.code and instruction.code >> 8 == 1:
+        maybe_vectorized_instruction.__doc__ = ''
     return maybe_vectorized_instruction
 
 
@@ -377,6 +381,7 @@ def gf2n(instruction):
         global_dict[GF2N_Instruction.__name__] = GF2N_Instruction
 
     global_dict[instruction.__name__ + '_class'] = instruction_cls
+    instruction_cls.__doc__ = ''
     return maybe_gf2n_instruction
     #return instruction
 

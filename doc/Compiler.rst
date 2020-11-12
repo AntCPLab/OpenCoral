@@ -1,5 +1,5 @@
-Compiler package
-================
+High-Level Interface
+====================
 
 .. toctree::
    :maxdepth: 2

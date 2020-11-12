@@ -1,3 +1,13 @@
+"""
+This module constrains instructions for binary circuits. Unlike
+arithmetic instructions, they generally do not use the vector size in
+the instruction code field. Instead the number of bits affected is
+given as an extra argument.  Also note that a register holds 64 values
+instead of just one as is the case for arithmetic
+instructions. Therefore, an instruction for 65-128 bits will affect
+two registers etc. Similarly, a memory cell holds 64 bits.
+"""
+
 import Compiler.instructions_base as base
 import Compiler.instructions as spdz
 import Compiler.tools as tools
@@ -84,22 +94,59 @@ class NonVectorInstruction1(base.Instruction):
         super(NonVectorInstruction1, self).__init__(*args, **kwargs)
 
 class xors(BinaryVectorInstruction):
+    """ Bitwise XOR of secret bit register vectors.
+
+    :param: number of arguments to follow (multiple of four)
+    :param: number of bits (int)
+    :param: result (sbit)
+    :param: operand (sbit)
+    :param: operand (sbit)
+    :param: (repeat from number of bits)...
+    """
     code = opcodes['XORS']
     arg_format = tools.cycle(['int','sbw','sb','sb'])
 
 class xorm(NonVectorInstruction):
+    """ Bitwise XOR of single secret and clear bit registers.
+
+    :param: number of bits (less or equal 64)
+    :param: result (sbit)
+    :param: operand (sbit)
+    :param: operand (cbit)
+    """
     code = opcodes['XORM']
     arg_format = ['int','sbw','sb','cb']
 
 class xorcb(NonVectorInstruction):
+    """ Bitwise XOR of two single clear bit registers.
+
+    :param: result (cbit)
+    :param: operand (cbit)
+    :param: operand (cbit)
+    """
     code = opcodes['XORCB']
     arg_format = ['cbw','cb','cb']
 
 class xorcbi(NonVectorInstruction):
+    """ Bitwise XOR of single clear bit register and immediate.
+
+    :param: result (cbit)
+    :param: operand (cbit)
+    :param: immediate (int)
+    """
     code = opcodes['XORCBI']
     arg_format = ['cbw','cb','int']
 
 class andrs(BinaryVectorInstruction):
+    """ Constant-vector AND of secret bit registers.
+
+    :param: number of arguments to follow (multiple of four)
+    :param: number of bits (int)
+    :param: result vector (sbit)
+    :param: vector operand (sbit)
+    :param: single operand (sbit)
+    :param: (repeat from number of bits)...
+    """
     code = opcodes['ANDRS']
     arg_format = tools.cycle(['int','sbw','sb','sb'])
 
@@ -107,6 +154,15 @@ class andrs(BinaryVectorInstruction):
         req_node.increment(('bit', 'triple'), sum(self.args[::4]))
 
 class ands(BinaryVectorInstruction):
+    """ Bitwise AND of secret bit register vector.
+
+    :param: number of arguments to follow (multiple of four)
+    :param: number of bits (int)
+    :param: result (sbit)
+    :param: operand (sbit)
+    :param: operand (sbit)
+    :param: (repeat from number of bits)...
+    """
     code = opcodes['ANDS']
     arg_format = tools.cycle(['int','sbw','sb','sb'])
 
@@ -114,55 +170,137 @@ class ands(BinaryVectorInstruction):
         req_node.increment(('bit', 'triple'), sum(self.args[::4]))
 
 class andm(BinaryVectorInstruction):
+    """ Bitwise AND of single secret and clear bit registers.
+
+    :param: number of bits (less or equal 64)
+    :param: result (sbit)
+    :param: operand (sbit)
+    :param: operand (cbit)
+    """
     code = opcodes['ANDM']
     arg_format = ['int','sbw','sb','cb']
 
 class nots(BinaryVectorInstruction):
+    """ Bitwise NOT of secret register vector.
+
+    :param: number of bits (less or equal 64)
+    :param: result (sbit)
+    :param: operand (sbit)
+    """
     code = opcodes['NOTS']
     arg_format = ['int','sbw','sb']
 
 class addcb(NonVectorInstruction):
+    """ Integer addition two single clear bit registers.
+
+    :param: result (cbit)
+    :param: summand (cbit)
+    :param: summand (cbit)
+    """
     code = opcodes['ADDCB']
     arg_format = ['cbw','cb','cb']
 
 class addcbi(NonVectorInstruction):
+    """ Integer addition single clear bit register and immediate.
+
+    :param: result (cbit)
+    :param: summand (cbit)
+    :param: summand (int)
+    """
     code = opcodes['ADDCBI']
     arg_format = ['cbw','cb','int']
 
 class mulcbi(NonVectorInstruction):
+    """ Integer multiplication single clear bit register and immediate.
+
+    :param: result (cbit)
+    :param: factor (cbit)
+    :param: factor (int)
+    """
     code = opcodes['MULCBI']
     arg_format = ['cbw','cb','int']
 
 class bitdecs(NonVectorInstruction, base.VarArgsInstruction):
+    """ Secret bit register decomposition.
+
+    :param: number of arguments to follow / number of bits plus one (int)
+    :param: source (sbit)
+    :param: destination for least significant bit (sbit)
+    :param: (destination for one bit higher)...
+    """
     code = opcodes['BITDECS']
     arg_format = tools.chain(['sb'], itertools.repeat('sbw'))
 
 class bitcoms(NonVectorInstruction, base.VarArgsInstruction):
+    """ Secret bit register decomposition.
+
+    :param: number of arguments to follow / number of bits plus one (int)
+    :param: destination (sbit)
+    :param: source for least significant bit (sbit)
+    :param: (source for one bit higher)...
+    """
     code = opcodes['BITCOMS']
     arg_format = tools.chain(['sbw'], itertools.repeat('sb'))
 
 class bitdecc(NonVectorInstruction, base.VarArgsInstruction):
+    """ Secret bit register decomposition.
+
+    :param: number of arguments to follow / number of bits plus one (int)
+    :param: source (sbit)
+    :param: destination for least significant bit (sbit)
+    :param: (destination for one bit higher)...
+    """
     code = opcodes['BITDECC']
     arg_format = tools.chain(['cb'], itertools.repeat('cbw'))
 
 class shrcbi(NonVectorInstruction):
+    """ Right shift of clear bit register by immediate.
+
+    :param: destination (cbit)
+    :param: source (cbit)
+    :param: number of bits to shift (int)
+    """
     code = opcodes['SHRCBI']
     arg_format = ['cbw','cb','int']
 
 class shlcbi(NonVectorInstruction):
+    """ Left shift of clear bit register by immediate.
+
+    :param: destination (cbit)
+    :param: source (cbit)
+    :param: number of bits to shift (int)
+    """
     code = opcodes['SHLCBI']
     arg_format = ['cbw','cb','int']
 
 class ldbits(NonVectorInstruction):
+    """ Store immediate in secret bit register.
+
+    :param: destination (sbit)
+    :param: number of bits (int)
+    :param: immediate (int)
+    """
     code = opcodes['LDBITS']
     arg_format = ['sbw','i','i']
 
 class ldmsb(base.DirectMemoryInstruction, base.ReadMemoryInstruction,
             base.VectorInstruction):
+    """ Copy secret bit memory cell with compile-time address to secret bit
+    register.
+
+    :param: destination (sbit)
+    :param: memory address (int)
+    """
     code = opcodes['LDMSB']
     arg_format = ['sbw','int']
 
 class stmsb(base.DirectMemoryWriteInstruction, base.VectorInstruction):
+    """ Copy secret bit register to secret bit memory cell with compile-time
+    address.
+
+    :param: source (sbit)
+    :param: memory address (int)
+    """
     code = opcodes['STMSB']
     arg_format = ['sb','int']
     # def __init__(self, *args, **kwargs):
@@ -172,18 +310,42 @@ class stmsb(base.DirectMemoryWriteInstruction, base.VectorInstruction):
 
 class ldmcb(base.DirectMemoryInstruction, base.ReadMemoryInstruction,
             base.VectorInstruction):
+    """ Copy clear bit memory cell with compile-time address to clear bit
+    register.
+
+    :param: destination (cbit)
+    :param: memory address (int)
+    """
     code = opcodes['LDMCB']
     arg_format = ['cbw','int']
 
 class stmcb(base.DirectMemoryWriteInstruction, base.VectorInstruction):
+    """ Copy clear bit register to clear bit memory cell with compile-time
+    address.
+
+    :param: source (cbit)
+    :param: memory address (int)
+    """
     code = opcodes['STMCB']
     arg_format = ['cb','int']
 
 class ldmsbi(base.ReadMemoryInstruction, base.VectorInstruction):
+    """ Copy secret bit memory cell with run-time address to secret bit
+    register.
+
+    :param: destination (sbit)
+    :param: memory address (regint)
+    """
     code = opcodes['LDMSBI']
     arg_format = ['sbw','ci']
 
 class stmsbi(base.WriteMemoryInstruction, base.VectorInstruction):
+    """ Copy secret bit register to secret bit memory cell with run-time
+    address.
+
+    :param: source (sbit)
+    :param: memory address (regint)
+    """
     code = opcodes['STMSBI']
     arg_format = ['sb','ci']
 
@@ -208,23 +370,56 @@ class stmsdci(base.WriteMemoryInstruction):
     arg_format = tools.cycle(['cb','cb'])
 
 class convsint(NonVectorInstruction1):
+    """ Copy clear integer register to secret bit register.
+
+    :param: number of bits (int)
+    :param: destination (sbit)
+    :param: source (regint)
+    """
     code = opcodes['CONVSINT']
     arg_format = ['int','sbw','ci']
 
 class convcint(NonVectorInstruction):
+    """ Copy clear integer register to clear bit register.
+
+    :param: number of bits (int)
+    :param: destination (cbit)
+    :param: source (regint)
+    """
     code = opcodes['CONVCINT']
     arg_format = ['cbw','ci']
 
 class convcbit(NonVectorInstruction1):
+    """ Copy clear bit register to clear integer register.
+
+    :param: destination (regint)
+    :param: source (cbit)
+    """
     code = opcodes['CONVCBIT']
     arg_format = ['ciw','cb']
 
 @base.vectorize
 class convcintvec(base.Instruction):
+    """ Copy clear register vector by bit to clear bit register
+    vectors. This means that the first destination will hold the least
+    significant bits of all inputs etc.
+
+    :param: number of arguments to follow / number of bits plus one (int)
+    :param: source (cint)
+    :param: destination for least significant bits (sbit)
+    :param: (destination for bits one step higher)...
+    """
     code = opcodes['CONVCINTVEC']
     arg_format = tools.chain(['c'], tools.cycle(['cbw']))
 
 class convcbitvec(BinaryVectorInstruction):
+    """ Copy clear bit register vector to clear register by bit. This means
+    that every element of the destination register vector will hold one bit.
+
+    :param: number of bits / vector length (int)
+    :param: destination (regint)
+    :param: source (cbit)
+    """
     code = opcodes['CONVCBITVEC']
     arg_format = ['int','ciw','cb']
     def __init__(self, *args):
@@ -233,11 +428,27 @@ class convcbitvec(BinaryVectorInstruction):
         args[1].set_size(args[0])
 
 class convcbit2s(BinaryVectorInstruction):
+    """ Copy clear bit register vector to secret bit register vector.
+
+    :param: number of bits (int)
+    :param: destination (sbit)
+    :param: source (cbit)
+    """
     code = opcodes['CONVCBIT2S']
     arg_format = ['int','sbw','cb']
 
 @base.vectorize
 class split(base.Instruction):
+    """ Local share conversion. This instruction use the vector length in the
+    instruction code field.
+
+    :param: number of arguments to follow (number of bits times number of additive shares plus one)
+    :param: source (sint)
+    :param: first share of least significant bit
+    :param: second share of least significant bit
+    :param: (remaining share of least significant bit)...
+    :param: (repeat from first share for bit one step higher)...
+    """
     code = opcodes['SPLIT']
     arg_format = tools.chain(['int','s'], tools.cycle(['sbw']))
     def __init__(self, *args, **kwargs):
@@ -245,10 +456,25 @@ class split(base.Instruction):
         assert (len(args) - 2) % args[0] == 0
 
 class movsb(NonVectorInstruction):
+    """ Copy secret bit register.
+
+    :param: destination (sbit)
+    :param: source (sbit)
+    """
     code = opcodes['MOVSB']
     arg_format = ['sbw','sb']
 
 class trans(base.VarArgsInstruction):
+    """ Secret bit register vector transpose. The first destination vector
+    will contain the least significant bits of all source vectors etc.
+
+    :param: number of arguments to follow (int)
+    :param: number of outputs (int)
+    :param: destination for least significant bits (sbit)
+    :param: (destination for bits one step higher)...
+    :param: source (sbit)
+    :param: (source)...
+    """
     code = opcodes['TRANS']
     is_vec = lambda self: True
     def __init__(self, *args):
@@ -257,14 +483,37 @@ class trans(base.VarArgsInstruction):
         super(trans, self).__init__(*args)
 
 class bitb(NonVectorInstruction):
+    """ Copy fresh secret random bit to secret bit register.
+
+    :param: destination (sbit)
+    """
     code = opcodes['BITB']
     arg_format = ['sbw']
 
 class reveal(BinaryVectorInstruction, base.VarArgsInstruction, base.Mergeable):
+    """ Reveal secret bit register vectors and copy result to clear bit
+    register vectors.
+
+    :param: number of arguments to follow (multiple of three)
+    :param: number of bits (int)
+    :param: destination (cbit)
+    :param: source (sbit)
+    :param: (repeat from number of bits)...
+    """
     code = opcodes['REVEAL']
     arg_format = tools.cycle(['int','cbw','sb'])
 
 class inputb(base.DoNotEliminateInstruction, base.VarArgsInstruction):
+    """ Copy private input to secret bit register vectors. The input is
+    read as floating-point number, multiplied by a power of two, and then
+    rounded to an integer.
+
+    :param: number of arguments to follow (multiple of four)
+    :param: player number (int)
+    :param: number of bits in output (int)
+    :param: exponent to power of two factor (int)
+    :param: destination (sbit)
+    """
     __slots__ = []
     code = opcodes['INPUTB']
     arg_format = tools.cycle(['p','int','int','sbw'])
@@ -272,6 +521,18 @@ class inputb(base.DoNotEliminateInstruction, base.VarArgsInstruction):
 
 class inputbvec(base.DoNotEliminateInstruction, base.VarArgsInstruction,
                 base.Mergeable):
+    """ Copy private input to secret bit register bit by bit. The input is
+    read as floating-point number, multiplied by a power of two, rounded to an
+    integer, and then decomposed into bits.
+
+    :param: total number of arguments to follow (int)
+    :param: number of arguments to follow for one input / number of bits plus three (int)
+    :param: exponent to power of two factor (int)
+    :param: player number (int)
+    :param: destination for least significant bit (sbit)
+    :param: (destination for one bit higher)...
+    :param: (repeat from number of arguments to follow for one input)...
+    """
     __slots__ = []
     code = opcodes['INPUTBVEC']
 
@@ -289,27 +550,53 @@ class inputbvec(base.DoNotEliminateInstruction, base.VarArgsInstruction,
         self.arg_format += other.arg_format
 
 class print_regb(base.VectorInstruction, base.IOInstruction):
+    """ Debug output of clear bit register.
+
+    :param: source (cbit)
+    :param: comment (4 bytes / 1 unit)
+    """
     code = opcodes['PRINTREGB']
     arg_format = ['cb','i']
     def __init__(self, reg, comment=''):
         super(print_regb, self).__init__(reg, self.str_to_int(comment))
 
 class print_reg_plainb(NonVectorInstruction, base.IOInstruction):
+    """ Output clear bit register.
+
+    :param: source (cbit)
+    """
     code = opcodes['PRINTREGPLAINB']
     arg_format = ['cb']
 
 class print_reg_signed(base.IOInstruction):
+    """ Signed output of clear bit register.
+
+    :param: bit length (int)
+    :param: source (cbit)
+    """
     code = opcodes['PRINTREGSIGNED']
     arg_format = ['int','cb']
     is_vec = lambda self: True
 
 class print_float_plainb(base.IOInstruction):
+    """ Output floating-number from clear bit registers.
+
+    :param: significand (cbit)
+    :param: exponent (cbit)
+    :param: zero bit (cbit, zero output if bit is one)
+    :param: sign bit (cbit, negative output if bit is one)
+    :param: NaN (cbit, regular number if zero)
+    """
     __slots__ = []
     code = opcodes['PRINTFLOATPLAINB']
     arg_format = ['cb', 'cb', 'cb', 'cb', 'cb']
 
 class cond_print_strb(base.IOInstruction):
-    r""" Print a 4 character string. """
+    """ Conditionally output four bytes.
+
+    :param: condition (cbit, no output if zero)
+    :param: four bytes (int)
+    """
     code = opcodes['CONDPRINTSTRB']
     arg_format = ['cb', 'int']
 
