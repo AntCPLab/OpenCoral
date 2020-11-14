@@ -1561,7 +1561,7 @@ def approximate_reciprocal(divisor, k, f, theta):
         er = shift_two(er * er, k)
 
     q = qr
-    res = shift_two(q, (2*k - 2*f - cnt_leading_zeros))
+    res = q >> (2*k - 2*f - cnt_leading_zeros)
 
     return res
 
