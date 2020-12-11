@@ -199,17 +199,17 @@ void check_share(vector<Share<T> >& Sa,
   int N,
   const T& key)
 {
-  value.assign(0);
-  mac.assign(0);
+  value = (0);
+  mac = (0);
 
   for (int i=0; i<N; i++)
     {
-      value.add(Sa[i].get_share());
-      mac.add(Sa[i].get_mac());
+      value += (Sa[i].get_share());
+      mac += (Sa[i].get_mac());
     }
 
   V res;
-  res.mul(value, key);
+  res = value * key;
   if (res != mac)
     {
       cout << "Value:      " << value << endl;
@@ -238,7 +238,6 @@ void check_share(vector<T>& Sa, typename T::clear& value,
       if (a != b)
       {
         cout << a << " != " << b << endl;
-        cout << hex << a.debug() << " != " << b.debug() << endl;
         for (int i = 0; i < N; i++)
           cout << Sa[i] << endl;
         throw bad_value("invalid replicated secret sharing");
@@ -317,7 +316,7 @@ void read_global_mac_key(const string& directory, int nparties, U& key)
     {
       read_mac_key(directory, i, nparties, pp);
       cout << " Key " << i << ": " << pp << endl;
-      key.add(pp);
+      key += pp;
     }
 
   cout << "--------------\n";
@@ -475,7 +474,7 @@ void make_mult_triples(const typename T::mac_type& key, int N, int ntrip,
       if (!zero)
         b.randomize(G);
       make_share(Sb,b,N,key,G);
-      c.mul(a,b);
+      c = a * b;
       make_share(Sc,c,N,key,G);
       for (int j=0; j<N; j++)
         { Sa[j].output(outf[j],false);
@@ -521,7 +520,7 @@ void make_inverse(const typename T::mac_type& key, int N, int ntrip, bool zero,
           a.randomize(G);
         while (a.is_zero());
       make_share(Sa,a,N,key,G);
-      b=a; b.invert();
+      b.invert(a);
       make_share(Sb,b,N,key,G);
       for (int j=0; j<N; j++)
         { Sa[j].output(outf[j],false);

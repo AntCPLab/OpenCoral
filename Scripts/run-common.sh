@@ -24,7 +24,7 @@ lldb_screen()
 }
 
 run_player() {
-    port=$((RANDOM%60000+10000))
+    port=$((RANDOM%10000+10000))
     bin=$1
     shift
     if ! test -e $SPDZROOT/logs; then

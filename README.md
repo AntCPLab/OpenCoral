@@ -14,11 +14,12 @@ us, but you can also write an email to mp-spdz@googlegroups.com
 
 #### TL;DR (Binary Distribution on Linux or Source Distribution on macOS)
 
-This requires either a Linux distribution originally released 2011 or
-later (glibc 2.12) or macOS High Sierra or later as well as Python 3
+This requires either a Linux distribution originally released 2014 or
+later (glibc 2.17) or macOS High Sierra or later as well as Python 3
 and basic command-line utilities.
 
-Download and unpack the [distribution](https://github.com/n1analytics/MP-SPDZ/releases),
+Download and unpack the
+[distribution](https://github.com/data61/MP-SPDZ/releases),
 then execute the following from
 the top folder:
 
@@ -75,6 +76,10 @@ The following table lists all protocols that are fully supported.
 | Semi-honest, dishonest majority | [Semi / Hemi / Soho](#secret-sharing) | [Semi2k](#secret-sharing) | [SemiBin](#secret-sharing) | [Yao's GC](#yaos-garbled-circuits) / [BMR](#bmr) |
 | Malicious, honest majority | [Shamir / Rep3 / PS / SY](#honest-majority) | [Brain / Rep[34] / PS / SY](#honest-majority) | [Rep3 / CCD](#honest-majority) | [BMR](#bmr) |
 | Semi-honest, honest majority | [Shamir / Rep3](#honest-majority) | [Rep3](#honest-majority) | [Rep3 / CCD](#honest-majority) | [BMR](#bmr) |
+
+See [this paper](https://eprint.iacr.org/2020/300) for an explanation
+of the various security models and high-level introduction to
+multi-party computation.
 
 #### Paper and Citation
 
@@ -143,10 +148,10 @@ phase outputs the amount of offline material required, which allows to
 compute the preprocessing time for a particular computation.
 
 #### Requirements
- - GCC 5 or later (tested with up to 9) or LLVM/clang 5 or later (tested with up to 9). We recommend clang because it performs better.
+ - GCC 5 or later (tested with up to 10) or LLVM/clang 5 or later (tested with up to 10). We recommend clang because it performs better.
  - MPIR library, compiled with C++ support (use flag `--enable-cxx` when running configure). You can use `make -j8 tldr` to install it locally.
  - libsodium library, tested against 1.0.16
- - OpenSSL, tested against and 1.0.2 and 1.1.0
+ - OpenSSL, tested against 1.1.1
  - Boost.Asio with SSL support (`libboost-dev` on Ubuntu), tested against 1.65
  - Boost.Thread for BMR (`libboost-thread-dev` on Ubuntu), tested against 1.65
  - 64-bit CPU
@@ -158,15 +163,20 @@ compute the preprocessing time for a particular computation.
 
 1) Edit `CONFIG` or `CONFIG.mine` to your needs:
 
- - By default, a CPU supporting AES-NI, PCLMUL, AVX2, BMI2, ADX is
+ - By default, the binaries are optimized for the CPU you are
+   compiling on.
+   For all optimizations, a CPU supporting AES-NI, PCLMUL, AVX2, BMI2, ADX is
    required. This includes mainstream processors released 2014 or later.
-   For older models you need to deactivate the respective
-   extensions in the `ARCH` variable.
+   If you intend to run on a different CPU than compiling, you might
+   need to change the `ARCH` variable in `CONFIG` or `CONFIG.mine` to
+   `-march=<cpu>`. See the [GCC
+   documentation](https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html)
+   for the possible options.
  - To benchmark online-only protocols or Overdrive offline phases, add the following line at the top: `MY_CFLAGS = -DINSECURE`
  - `PREP_DIR` should point to a local, unversioned directory to store preprocessing data (the default is `Player-Data` in the current directory).
  - For homomorphic encryption, set `USE_NTL = 1`.
 
-2) Run make to compile all the software (use the flag -j for faster
+2) Run `make` to compile all the software (use the flag `-j` for faster
 compilation using multiple threads). See below on how to compile specific
 parts only. Remember to run `make clean` first after changing `CONFIG`
 or `CONFIG.mine`.
@@ -187,31 +197,41 @@ to be compiled accordingly.
 
 #### Arithmetic modulo a prime
 
-```./compile.py [-F <integer bit length>] <program>```
+```./compile.py [-F <integer bit length>] [-P <prime>] <program>```
 
-The integer bit length defaults to 64.
+The integer bit length defaults to 64, and the prime defaults to none
+given. If a prime is given, it has to be at least two bits longer
+than the integer length.
 
 Note that in this context integers do not wrap around according to the
 bit integer bit length but the length is used for non-linear
 computations such as comparison.
-It is the responsibility of the user to make sure that they don't grow
-too large. If necessary `sint.Mod2m()` can be used to wrap around
-manually.
+Overflow in secret integers might have security implications if no
+concrete prime is given.
 
-The integer bit length together with the computation mandate a minimum
-for the size of the prime, which will be output by the compiler. It is
-also communicated to the virtual machine in the bytecode, which will
-fail if the minimum is not met.
+The parameters given together with the computation mandate some
+restriction on the prime modulus, either an exact value or a minimum
+length. The latter is roughly the integer length plus 40 (default
+security parameter). The restrictions are communicated to the virtual
+machines, which will use an appropriate prime if they have been
+compiled accordingly. By default, they are compiled for prime bit
+lengths up to 256. For larger primes, you will have to compile with
+`MOD = -DGFP_MOD_SZ=<number of limbs>` in `CONFIG.mine` where the
+number of limbs is the the prime length divided by 64 rounded up.
 
 The precision for fixed- and floating-point computation are not
 affected by the integer bit length but can be set in the code
-directly.
+directly. For fixed-point computation this is done via
+`sfix.set_precision()`.
 
 #### Arithmetic modulo 2^k
 
 ```./compile.py -R <integer bit length> <program>```
 
-Currently, most machines support bit lengths 64 and 72.
+The length is communicated to the virtual machines and automatically
+used if supported. By default, they support bit lengths 64, 72, and
+128. If another length is required, use `MOD = DRING_SIZE=<bit
+length>` in `CONFIG.mine`.
 
 #### Binary circuits
 
@@ -265,13 +285,15 @@ when useful.
 
 This technique has been used by [Mohassel and
 Rindal](https://eprint.iacr.org/2018/403) as well as [Araki et
-al.](https://eprint.iacr.org/2018/762) It involves locally
+al.](https://eprint.iacr.org/2018/762) for three parties and [Demmler
+et al.](https://encrypto.de/papers/DSZ15.pdf) for two parties.
+It involves locally
 converting an arithmetic share to a set of binary shares, from which the
 binary equivalent to the arithmetic share is reconstructed using a
 binary adder. This requires additive secret sharing over a ring
 without any MACs. You can activate it by using `-Z <n>` with the
 compiler where `n` is the number of parties for the standard variant
-(3 or 4) and 2 for the special
+and 2 for the special
 variant by Mohassel and Rindal (available in Rep3 only).
 
 #### Bristol Fashion circuits
@@ -434,7 +456,7 @@ To run the tutorial with two parties on one machine, run:
 `./mascot-party.x -N 2 -I -p 1 tutorial` (in a separate terminal)
 
 Using `-I` activates interactive mode, which means that inputs are
-solicitated from standard input, and outputs are given to any
+solicited from standard input, and outputs are given to any
 party. Omitting `-I` leads to inputs being read from
 `Player-Data/Input-P<party number>-0` in text format.
 
@@ -511,7 +533,7 @@ methodology described by [Lindell and
 Nof](https://eprint.iacr.org/2017/816) to achieve malicious
 security with plain replicated secret sharing,
 except for the "PS" (post-sacrifice) protocols where the
-actual multiplication is executed optimistally and checked later as
+actual multiplication is executed optimistically and checked later as
 also described by Lindell and Nof.
 The implementations used by `brain-party.x`,
 `malicious-rep-ring-party.x -S`, `malicious-rep-ring-party.x`,
@@ -722,7 +744,7 @@ can be produced as follows:
 
 `./Fake-Offline.x <nparties> -e <edaBit length,...>`
 
-The `-e` command-line parameters accepts a list of integers seperated
+The `-e` command-line parameters accepts a list of integers separated
 by commas.
 
 You can then run the protocol with argument `-F`. Note that when

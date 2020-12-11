@@ -23,10 +23,11 @@ class Shamir : public ProtocolBase<T>
 {
     typedef typename T::open_type::Scalar U;
 
-    vector<octetStream> os;
+    octetStreams os;
     vector<U> reconstruction;
     U rec_factor;
     ShamirInput<T>* resharing;
+    ShamirInput<T>* random_input;
 
     SeededPRNG secure_prng;
 

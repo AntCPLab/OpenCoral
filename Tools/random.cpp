@@ -229,13 +229,6 @@ void PRNG::randomBnd(bigint& x, const bigint& B, bool positive)
     }
 }
 
-template<>
-void PRNG::randomBnd(fixint<GFP_MOD_SZ>& x, const bigint& B, bool positive)
-{
-  randomBnd(bigint::tmp, B, positive);
-  x = bigint::tmp;
-}
-
 bigint PRNG::randomBnd(const bigint& B, bool positive)
 {
   bigint x;
@@ -266,20 +259,6 @@ template<>
 void PRNG::get(bigint& res, int n_bits, bool positive)
 {
   get_bigint(res, n_bits, positive);
-}
-
-template<>
-void PRNG::get(fixint<0>& res, int n_bits, bool positive)
-{
-  get(bigint::tmp, n_bits, positive);
-  res = bigint::tmp;
-}
-
-template<>
-void PRNG::get(fixint<GFP_MOD_SZ>& res, int n_bits, bool positive)
-{
-  get(bigint::tmp, n_bits, positive);
-  res = bigint::tmp;
 }
 
 template<>

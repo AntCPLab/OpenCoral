@@ -20,41 +20,39 @@ template<class T, class U>
 void sacrifice(const vector<array<T, 5>>& check_triples, Player& P);
 
 template<class T>
-class MaliciousRepPrep : public virtual BufferPrep<T>
+class MaliciousBitOnlyRepPrep : public virtual BufferPrep<T>
 {
-    template<class U> friend class MalRepRingPrep;
-
-    typedef BufferPrep<T> super;
-
+protected:
     DataPositions honest_usage;
     ReplicatedRingPrep<typename T::Honest> honest_prep;
     typename T::Honest::MAC_Check honest_mc;
     SubProcessor<typename T::Honest>* honest_proc;
     typename T::MAC_Check MC;
 
-    vector<T> masked;
-    vector<T> checks;
-    vector <typename T::open_type> opened;
+    void buffer_bits();
 
-    vector<array<T, 5>> check_triples;
-    vector<array<T, 2>> check_squares;
+public:
+    MaliciousBitOnlyRepPrep(SubProcessor<T>*, DataPositions& usage);
+    ~MaliciousBitOnlyRepPrep();
 
-    void clear_tmp();
+    void set_protocol(typename T::Protocol& protocol);
+    void init_honest(Player& P);
+};
+
+template<class T>
+class MaliciousRepPrep : public MaliciousBitOnlyRepPrep<T>
+{
+    template<class U> friend class MalRepRingPrep;
 
 protected:
     void buffer_triples();
     void buffer_squares();
     void buffer_inverses();
-    void buffer_bits();
     void buffer_inputs(int player);
 
 public:
     MaliciousRepPrep(SubProcessor<T>* proc, DataPositions& usage);
     MaliciousRepPrep(DataPositions& usage, int = 0);
-    ~MaliciousRepPrep();
-
-    void set_protocol(typename T::Protocol& protocol);
-    void init_honest(Player& P);
 };
 
 template<class T>

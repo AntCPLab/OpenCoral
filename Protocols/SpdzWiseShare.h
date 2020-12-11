@@ -71,4 +71,8 @@ public:
     }
 };
 
+template<class T> class MaliciousRep3Share;
+template<class T>
+using SpdzWiseRepFieldShare = SpdzWiseShare<MaliciousRep3Share<T>>;
+
 #endif /* PROTOCOLS_SPDZWISESHARE_H_ */

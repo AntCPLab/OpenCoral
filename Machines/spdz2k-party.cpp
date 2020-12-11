@@ -10,7 +10,7 @@
 #include "Math/gf2n.h"
 #include "Networking/Server.h"
 
-#include "Player-Online.hpp"
+#include "Processor/OnlineMachine.hpp"
 #include "Math/Z2k.hpp"
 
 int main(int argc, const char** argv)

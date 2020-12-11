@@ -1,6 +1,7 @@
 #include "SPDZ.hpp"
 
 #include "Protocols/MascotPrep.hpp"
+#include "Processor/FieldMachine.hpp"
 #include "Math/gfp.hpp"
 
-template class Machine<Share<gfp>, Share<gf2n>>;
+template class FieldMachine<Share, Share, DishonestMajorityMachine>;

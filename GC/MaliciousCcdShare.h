@@ -9,7 +9,7 @@
 #include "CcdShare.h"
 #include "Protocols/MaliciousShamirShare.h"
 
-template<class T> class MaliciousRepPrep;
+template<class T> class MaliciousBitOnlyRepPrep;
 
 namespace GC
 {

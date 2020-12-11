@@ -185,7 +185,6 @@ class gf2n_long : public ValueInterface
   gf2n_long(IntBase<T> g)       { assign(g.get()); }
   gf2n_long(const char* buffer) { assign(buffer); }
   gf2n_long(GC::NoValue);
-  ~gf2n_long()             { ; }
 
   gf2n_long& operator=(const gf2n_long& g)
     { if (&g!=this) { assign(g); }

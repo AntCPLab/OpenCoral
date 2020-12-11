@@ -139,7 +139,7 @@ void sign_benchmark(vector<EcTuple<T>>& tuples, T<P256Element::Scalar> sk,
 
     // synchronize
     Bundle<octetStream> bundle(P);
-    P.Broadcast_Receive(bundle, true);
+    P.unchecked_broadcast(bundle);
     Timer timer;
     timer.start();
     auto stats = P.comm_stats;

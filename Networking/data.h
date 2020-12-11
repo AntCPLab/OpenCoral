@@ -12,6 +12,9 @@
 #define le64toh(x) OSSwapLittleToHostInt64(x)
 #endif
 
+#ifdef __linux__
+#include <endian.h>
+#endif
 
 typedef unsigned char octet;
 
@@ -21,11 +24,6 @@ typedef unsigned char octet;
 #else
   typedef unsigned long word;
 #endif
-
-#define BROADCAST 0
-#define ROUTE     1
-#define TERMINATE 2
-#define GO        3
 
 
 inline void encode_length(octet *buff, size_t len, size_t n_bytes)

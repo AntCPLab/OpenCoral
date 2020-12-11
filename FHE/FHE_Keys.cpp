@@ -5,6 +5,8 @@
 #include "PPData.h"
 #include "FFT_Data.h"
 
+#include "Math/modp.hpp"
+
 
 FHE_SK::FHE_SK(const FHE_PK& pk) : FHE_SK(pk.get_params(), pk.p())
 {
@@ -153,15 +155,6 @@ void FHE_PK::encrypt(Ciphertext& c,
 
   mess.to_poly();
   encrypt(c, mess.get_poly(), rc);
-}
-
-template <class S>
-void FHE_PK::encrypt(Ciphertext& c, const vector<S>& mess,
-    const Random_Coins& rc) const
-{
-  Rq_Element mm((*params).FFTD(),polynomial,polynomial);
-  mm.from(Iterator<S>(mess));
-  quasi_encrypt(c, mm, rc);
 }
 
 void FHE_PK::quasi_encrypt(Ciphertext& c,
@@ -399,11 +392,6 @@ template Ciphertext FHE_PK::encrypt(const Plaintext_<FFT_Data>& mess,
     const Random_Coins& rc) const;
 template Ciphertext FHE_PK::encrypt(const Plaintext_<FFT_Data>& mess) const;
 template Ciphertext FHE_PK::encrypt(const Plaintext_<P2Data>& mess) const;
-
-template void FHE_PK::encrypt(Ciphertext& c, const vector<int>& mess,
-    const Random_Coins& rc) const;
-template void FHE_PK::encrypt(Ciphertext& c, const vector<fixint<GFP_MOD_SZ>>& mess,
-    const Random_Coins& rc) const;
 
 template Plaintext_<FFT_Data> FHE_SK::decrypt(const Ciphertext& c,
         const FFT_Data& FieldD);

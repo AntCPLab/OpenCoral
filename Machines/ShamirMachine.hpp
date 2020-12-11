@@ -14,14 +14,13 @@
 #include "GC/MaliciousCcdSecret.h"
 #include "GC/VectorInput.h"
 
-#include "Protocols/ReplicatedMachine.hpp"
+#include "Processor/FieldMachine.hpp"
 
 #include "Processor/Data_Files.hpp"
 #include "Processor/Instruction.hpp"
 #include "Processor/Machine.hpp"
 #include "Protocols/ShamirInput.hpp"
 #include "Protocols/Shamir.hpp"
-#include "Protocols/MaliciousRepPrep.hpp"
 #include "Protocols/ShamirMC.hpp"
 #include "Protocols/MaliciousShamirMC.hpp"
 #include "Protocols/MAC_Check_Base.hpp"
@@ -91,5 +90,5 @@ ShamirMachineSpec<T>::ShamirMachineSpec(int argc, const char** argv)
     ez::ezOptionParser opt;
     opts = {opt, argc, argv};
     T<gfp>::bit_type::part_type::open_type::init_field();
-    ReplicatedMachine<T<gfp>, T<gf2n>>(argc, argv, "shamir", opt, opts.nparties);
+    HonestMajorityFieldMachine<T>(argc, argv, opt, opts.nparties);
 }

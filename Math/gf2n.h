@@ -128,7 +128,7 @@ class gf2n_short : public ValueInterface
       { a &= ~(1UL<<i); }
   }
   
-  gf2n_short()              { a=0; }
+  gf2n_short() : a(0)       {}
   gf2n_short(word a)		{ assign(a); }
   gf2n_short(long a)		{ assign(a); }
   gf2n_short(int a)			{ assign(a); }
@@ -137,7 +137,6 @@ class gf2n_short : public ValueInterface
   gf2n_short(const int128& a) { reduce(a.get_upper(), a.get_lower()); }
   template<class T>
   gf2n_short(IntBase<T> a)  { assign(a.get()); }
-  ~gf2n_short()             { ; }
 
   int is_zero() const            { return (a==0); }
   int is_one()  const            { return (a==1); }

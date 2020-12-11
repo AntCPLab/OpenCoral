@@ -53,7 +53,7 @@ public:
 	static const int N_BITS = K;
 	static const int MAX_EDABITS = K;
 	static const int N_BYTES = (K + 7) / 8;
-        static const uint64_t UPPER_MASK = uint64_t(-1LL) >> (N_LIMB_BITS - 1 - (K - 1) % N_LIMB_BITS);
+	static const mp_limb_t UPPER_MASK = mp_limb_t(-1LL) >> (N_LIMB_BITS - 1 - (K - 1) % N_LIMB_BITS);
 
 	static int size() { return N_BYTES; }
 	static int size_in_limbs() { return N_WORDS; }
@@ -83,10 +83,10 @@ public:
 	typedef Z2 Scalar;
 
 	Z2() { assign_zero(); }
-	Z2(uint64_t x) : Z2() { a[0] = x; }
+	Z2(mp_limb_t x) : Z2() { a[0] = x; }
 	Z2(__m128i x) : Z2() { avx_memcpy(a, &x, min(N_BYTES, 16)); }
 	Z2(int x) : Z2(long(x)) { a[N_WORDS - 1] &= UPPER_MASK; }
-	Z2(long x) : Z2(uint64_t(x)) { if (K > 64 and x < 0) memset(&a[1], -1, N_BYTES - 8); }
+	Z2(long x) : Z2(mp_limb_t(x)) { if (K > 64 and x < 0) memset(&a[1], -1, N_BYTES - 8); }
 	template<class T>
 	Z2(const IntBase<T>& x);
 	Z2(const bigint& x);
@@ -411,7 +411,7 @@ void Z2<K>::randomize_part(PRNG& G, int n)
 {
 	*this = {};
 	G.get_octets((octet*)a, DIV_CEIL(n, 8));
-	a[DIV_CEIL(n, 64) - 1] &= uint64_t(-1LL) >> (N_LIMB_BITS - 1 - (n - 1) % N_LIMB_BITS);
+	a[DIV_CEIL(n, 64) - 1] &= mp_limb_t(-1LL) >> (N_LIMB_BITS - 1 - (n - 1) % N_LIMB_BITS);
 }
 
 template<int K>

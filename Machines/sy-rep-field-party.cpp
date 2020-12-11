@@ -5,7 +5,6 @@
 
 #include "Protocols/SpdzWiseShare.h"
 #include "Protocols/MaliciousRep3Share.h"
-#include "Protocols/ReplicatedMachine.h"
 #include "Protocols/MAC_Check.h"
 #include "Protocols/SpdzWiseMC.h"
 #include "Protocols/SpdzWisePrep.h"
@@ -16,7 +15,7 @@
 #include "Processor/NoLivePrep.h"
 #include "GC/MaliciousCcdSecret.h"
 
-#include "Protocols/ReplicatedMachine.hpp"
+#include "Processor/FieldMachine.hpp"
 #include "Protocols/Replicated.hpp"
 #include "Protocols/MaliciousRepMC.hpp"
 #include "Protocols/Share.hpp"
@@ -35,7 +34,5 @@
 
 int main(int argc, const char** argv)
 {
-    ez::ezOptionParser opts;
-    ReplicatedMachine<SpdzWiseShare<MaliciousRep3Share<gfp>>,
-            SpdzWiseShare<MaliciousRep3Share<gf2n>>>(argc, argv, opts);
+    HonestMajorityFieldMachine<SpdzWiseRepFieldShare>(argc, argv);
 }

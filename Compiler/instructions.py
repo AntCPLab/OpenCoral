@@ -1687,12 +1687,13 @@ class writesharestofile(base.IOInstruction):
         return True
 
 class readsharesfromfile(base.IOInstruction):
-    """
-    Read shares from a file. Pass in start posn, return finish posn, shares.
-    Finish posn will return:
-    -2 file not found
-    -1 eof reached
-    position in file after read finished
+    """ Read shares from ``Persistence/Transactions-P<playerno>.data``.
+
+    :param: number of arguments to follow / number of shares plus two (int)
+    :param: starting position in number of shares from beginning (regint)
+    :param: destination for final position, -1 for eof reached, or -2 for file not found (regint)
+    :param: destination for share (sint)
+    :param: (repeat from destination for share)...
     """
     __slots__ = []
     code = base.opcodes['READFILESHARE']

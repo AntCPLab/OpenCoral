@@ -26,6 +26,19 @@ Compiler.types module
 		     resp_secure_socket, write_share_to_socket,
 		     write_shares_to_socket
 
+Compiler.GC.types module
+------------------------
+
+.. automodule:: Compiler.GC.types
+   :members:
+   :no-undoc-members:
+   :no-inherited-members:
+   :show-inheritance:
+   :exclude-members: PreOp, cbit, dynamic_array, conv_cint_vec, bitdec,
+		     bit_type, bitcom, clear_type, conv_regint, default_type,
+		     mov, dyn_sbits, int_type, mul, vec, load_mem,
+		     DynamicArray, get_raw_input_from
+
 Compiler.library module
 -----------------------
 
@@ -66,3 +79,33 @@ Compiler.circuit module
 
 .. automodule:: Compiler.circuit
    :members:
+
+Compiler.program module
+-----------------------
+
+.. automodule:: Compiler.program
+   :members:
+   :exclude-members: curr_block, curr_tape, free, malloc, write_bytes, Tape,
+		     max_par_tapes
+
+Compiler.oram module
+--------------------
+
+.. automodule:: Compiler.oram
+   :members:
+   :no-undoc-members:
+   :exclude-members: AbstractORAM, AtLeastOneRecursionIndexStructure,
+		     AtLeastOneRecursionPackedORAMWithEmpty, BaseORAM,
+		     BaseORAMIndexStructure, EmptyException, Entry,
+		     LinearORAM, LinearPackedORAM,
+		     LinearPackedORAMWithEmpty, List,
+		     LocalIndexStructure, LocalPackedIndexStructure,
+		     LocalPackedORAM, OneLevelORAM, OptimalPackedORAM,
+		     OptimalPackedORAMWithEmpty,
+		     PackedIndexStructure, PackedORAMWithEmpty, RAM,
+		     RecursiveIndexStructure, RecursiveORAM,
+		     RefBucket, RefRAM, RefTrivialORAM, TreeORAM,
+		     TrivialIndexORAM, TrivialORAM,
+		     TrivialORAMIndexStructure, ValueTuple, demux,
+		     get_log_value_size, get_parallel, get_value_size,
+		     gf2nBlock, intBlock

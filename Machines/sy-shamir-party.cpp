@@ -4,7 +4,6 @@
  */
 
 #include "ShamirMachine.h"
-#include "Protocols/ReplicatedMachine.h"
 #include "Protocols/SpdzWiseShare.h"
 #include "Protocols/MaliciousShamirShare.h"
 #include "Protocols/SpdzWiseMC.h"
@@ -20,14 +19,12 @@
 #include "Protocols/SpdzWiseInput.hpp"
 #include "Protocols/SpdzWiseShare.hpp"
 #include "Machines/ShamirMachine.hpp"
+#include "Machines/MalRep.hpp"
+
+template<class T>
+using SpdzWiseShamirShare = SpdzWiseShare<MaliciousShamirShare<T>>;
 
 int main(int argc, const char** argv)
 {
-    auto& opts = ShamirOptions::singleton;
-    ez::ezOptionParser opt;
-    opts = {opt, argc, argv};
-    ReplicatedMachine<SpdzWiseShare<MaliciousShamirShare<gfp>>,
-            SpdzWiseShare<MaliciousShamirShare<gf2n>>>(
-            argc, argv,
-            { }, opt, opts.nparties);
+    ShamirMachineSpec<SpdzWiseShamirShare>(argc, argv);
 }

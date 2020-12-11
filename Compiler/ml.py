@@ -1,7 +1,8 @@
 """
 This module contains machine learning functionality. It is work in
 progress, so you must expect things to change. The only tested
-functionality for training is logistic regression. It can be run as
+functionality for training is using consective dense/fully-connected
+layers. This includes logistic regression. It can be run as
 follows::
 
     sgd = ml.SGD([ml.Dense(n_examples, n_features, 1),
@@ -39,6 +40,9 @@ looks as follows::
 
 See the `readme <https://github.com/data61/MP-SPDZ/#tensorflow-inference>`_ for
 an example of how to run MP-SPDZ on TensorFlow graphs.
+
+See also `this repository <https://github.com/mkskeller/mnist-mpc>`_
+for an example of how to train a model for MNIST.
 """
 
 import math
@@ -148,6 +152,14 @@ def progress(x):
 def set_n_threads(n_threads):
     Layer.n_threads = n_threads
     Optimizer.n_threads = n_threads
+
+def _no_mem_warnings(function):
+    def wrapper(*args, **kwargs):
+        get_program().warn_about_mem.append(False)
+        res = function(*args, **kwargs)
+        get_program().warn_about_mem.pop()
+        return res
+    return wrapper
 
 class Tensor(MultiArray):
     def __init__(self, *args, **kwargs):
@@ -374,6 +386,10 @@ class MultiOutputBase(NoVariableLayer):
             res = MultiOutput(N, n_output, approx='approx' in program.args)
             res.cheaper_loss = 'mse' in program.args
         res.compute_loss = not 'no_loss' in program.args
+        for arg in program.args:
+            m = re.match('approx=(.*)', arg)
+            if m:
+                res.approx = float(m.group(1))
         return res
 
 class MultiOutput(MultiOutputBase):
@@ -401,7 +417,11 @@ class MultiOutput(MultiOutputBase):
         @for_range_opt_multithread(self.n_threads, N)
         def _(i):
             if self.approx:
-                positives = self.X[i].get_vector() > (0 if self.cheaper_loss else 0.1)
+                if self.cheaper_loss or isinstance(self.approx, float):
+                    limit = 0
+                else:
+                    limit = 0.1
+                positives = self.X[i].get_vector() > limit
                 relus = positives.if_else(self.X[i].get_vector(), 0)
                 self.positives[i].assign_vector(positives)
                 self.relus[i].assign_vector(relus)
@@ -464,6 +484,8 @@ class MultiOutput(MultiOutputBase):
                         self.nabla_X[i][j] = self.positives[i][j].if_else(res, fallback)
                     return
                 relus = self.relus[i].get_vector()
+                if isinstance(self.approx, float):
+                    relus += self.approx
                 positives = self.positives[i].get_vector()
                 inv = (1 / sum(relus)).expand_to_vector(d_out)
                 truths = self.Y[batch[i]].get_vector()
@@ -1485,12 +1507,13 @@ class Optimizer:
             batch.assign(regint.inc(len(batch)))
             return batch
 
+    @_no_mem_warnings
     def forward(self, N=None, batch=None, keep_intermediate=True,
                 model_from=None):
         """ Compute graph.
 
         :param N: batch size (used if batch not given)
-        :param batch: indices for computation (:py:class:`Compiler.types.Array`. or list)
+        :param batch: indices for computation (:py:class:`~Compiler.types.Array` or list)
         :param keep_intermediate: do not free memory of intermediate results after use
         """
         if batch is None:
@@ -1511,6 +1534,7 @@ class Optimizer:
                 for theta in layer.thetas():
                     theta.delete()
 
+    @_no_mem_warnings
     def eval(self, data):
         """ Compute evaluation after training. """
         N = len(data)
@@ -1518,6 +1542,7 @@ class Optimizer:
         self.forward(N)
         return self.layers[-1].eval(N)
 
+    @_no_mem_warnings
     def backward(self, batch):
         """ Compute backward propagation. """
         for layer in reversed(self.layers):
@@ -1531,6 +1556,7 @@ class Optimizer:
                     layer.inputs[0].nabla_Y.assign_vector(
                         layer.nabla_X.get_part_vector(0, len(batch)))
 
+    @_no_mem_warnings
     def run(self, batch_size=None, stop_on_loss=0):
         """ Run training.
 
@@ -1601,6 +1627,7 @@ class Optimizer:
             return res
         print_ln('finished after %s epochs and %s iterations', i, n_iterations)
 
+    @_no_mem_warnings
     def run_by_args(self, program, n_runs, batch_size, test_X, test_Y):
         for arg in program.args:
             m = re.match('rate(.*)', arg)
@@ -1724,6 +1751,7 @@ class SGD(Optimizer):
         self.i_epoch = MemValue(0)
         self.stopped_on_loss = MemValue(0)
 
+    @_no_mem_warnings
     def reset(self, X_by_label=None):
         """ Reset layer parameters.
 

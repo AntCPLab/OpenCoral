@@ -4,6 +4,7 @@
 #include "FHE/P2Data.h"
 #include "Tools/random.h"
 #include "Math/Z2k.hpp"
+#include "Math/modp.hpp"
 
 
 template <class FD, class U>
@@ -72,8 +73,8 @@ bool Prover<FD,U>::Stage_2(Proof& P, octetStream& cleartexts,
 
   unsigned int i;
 #ifndef LESS_ALLOC_MORE_MEM
-  AddableVector<fixint<GFP_MOD_SZ>> z;
-  AddableMatrix<fixint<GFP_MOD_SZ>> t;
+  AddableVector<fixint<gfp::N_LIMBS>> z;
+  AddableMatrix<fixint<gfp::N_LIMBS>> t;
 #endif
   cleartexts.reset_write_head();
   cleartexts.store(P.V);

@@ -8,6 +8,15 @@
 
 #include "gfp.h"
 
+template<class T>
+void generate_online_setup(string dirname, bigint& p, int lgp)
+{
+    int idx, m;
+    SPDZ_Data_Setup_Primes(p, lgp, idx, m);
+    write_online_setup(dirname, p);
+    T::init_field(p);
+}
+
 template<class T = gfp>
 void read_setup(const string& dir_prefix, int lgp = -1)
 {

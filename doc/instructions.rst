@@ -17,7 +17,9 @@ vector size), register number, or immediate value.
 
 For example, adding the secret integers in registers 1 and 2 and then
 storing the result at register 0 leads to the following bytecode (in
-hexadecimal representation)::
+hexadecimal representation):
+
+.. code-block:: none
 
   00 00 00 21  00 00 00 00  00 00 00 01  00 00 00 02
 
@@ -28,7 +30,9 @@ debugging output (``compile.py -a <prefix>``) looks as follows::
 
 There is also a vectorized addition. Adding 10 secret integers in
 registers 10-19 and 20-29 and then storing the result in registers 0-9
-is represented as follows in bytecode::
+is represented as follows in bytecode:
+
+.. code-block:: none
 
   00 00 28 21  00 00 00 00  00 00 00 0a  00 00 00 14
 
@@ -44,7 +48,9 @@ accommodate any number of parallel operations. For these, the first
 argument usually indicates the number of arguments yet to come. For
 example, multiplying the secret integers in registers 2 and 3 as well
 as registers 4 and 5 and the storing the two results in registers 0
-and 1 results in the following bytecode::
+and 1 results in the following bytecode:
+
+.. code-block:: none
 
   00 00 00 a6  00 00 00 06  00 00 00 00  00 00 00 02
   00 00 00 03  00 00 00 01  00 00 00 04  00 00 00 05
@@ -83,9 +89,9 @@ Compiler.instructions module
 		     print_char_regint, protectmemc, sqrs,
 		     start_grind, startprivateoutput, stop_grind,
 		     stopprivateoutput, writesocketc, writesocketint,
-		     writesockets, readsharesfromfile, readsockets,
+		     writesockets, readsockets,
 		     protectmemint, protectmems, print_mem,
-		     matmul_base, g2muls, inputmixed_base
+		     matmul_base, g2muls, inputmixed_base, raw_output
 
 Compiler.GC.instructions module
 -------------------------------

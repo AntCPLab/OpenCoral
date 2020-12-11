@@ -45,8 +45,6 @@ template <class FD>
 class NonInteractiveProofSimpleEncCommit : public SimpleEncCommitBase_<FD>
 {
 protected:
-    typedef fixint<GFP_MOD_SZ> S;
-
     const PlayerBase& P;
     const FHE_PK& pk;
     const FD& FTD;
@@ -60,7 +58,7 @@ public:
 #ifdef LESS_ALLOC_MORE_MEM
     Proof::Randomness r;
     Prover<FD, Plaintext_<FD> > prover;
-    Verifier<FD,S> verifier;
+    Verifier<FD> verifier;
 #endif
 
     map<string, Timer>& timers;
@@ -129,8 +127,6 @@ template <class FD>
 class SummingEncCommit: public SimpleEncCommitFactory<FD>,
         public SimpleEncCommitBase_<FD>
 {
-    typedef fixint<GFP_MOD_SZ> S;
-
     InteractiveProof proof;
     const FHE_PK& pk;
     const FD& FTD;
@@ -139,7 +135,7 @@ class SummingEncCommit: public SimpleEncCommitFactory<FD>,
 
 #ifdef LESS_ALLOC_MORE_MEM
     Prover<FD, Plaintext_<FD> > prover;
-    Verifier<FD,S> verifier;
+    Verifier<FD> verifier;
     Proof::Preimages preimages;
 #endif
 

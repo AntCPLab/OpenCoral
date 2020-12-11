@@ -7,6 +7,8 @@
 #include "FHEOffline/PairwiseGenerator.h"
 #include "FHEOffline/PairwiseMachine.h"
 
+#include "Math/modp.hpp"
+
 template <class FD>
 Multiplier<FD>::Multiplier(int offset, PairwiseGenerator<FD>& generator) :
         Multiplier(offset, generator.machine, generator.P, generator.timers)

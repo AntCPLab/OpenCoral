@@ -9,14 +9,16 @@
 #include <vector>
 #include <emmintrin.h>
 #include <immintrin.h>
-
-#include "Tools/BitVector.h"
-#include "Tools/random.h"
-#include "Tools/MMO.h"
-#include "Math/gf2nlong.h"
-#include "Math/Square.h"
+#include <iostream>
 
 using namespace std;
+
+class BitVector;
+class gf2n_long;
+class PRNG;
+class octetStream;
+
+typedef unsigned char octet;
 
 union square128 {
     typedef gf2n_long RowType;

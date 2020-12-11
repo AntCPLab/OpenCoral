@@ -11,7 +11,7 @@
 #include "GC/SemiSecret.h"
 #include "GC/SemiPrep.h"
 
-#include "Player-Online.hpp"
+#include "Processor/FieldMachine.hpp"
 #include "Protocols/HemiPrep.hpp"
 #include "Processor/Data_Files.hpp"
 #include "Processor/Instruction.hpp"
@@ -29,5 +29,6 @@
 int main(int argc, const char** argv)
 {
     ez::ezOptionParser opt;
-    spdz_main<SohoShare<gfp>, SohoShare<gf2n_short>>(argc, argv, opt);
+    DishonestMajorityFieldMachine<SohoShare, SohoShare, gf2n_short>(argc, argv,
+            opt);
 }

@@ -171,7 +171,7 @@ public:
     typedef Rectangle Square;
 
     typedef MAC_Check_<Share> MAC_Check;
-    typedef Passing_MAC_Check<Share> Direct_MC;
+    typedef Direct_MAC_Check<Share> Direct_MC;
     typedef ::Input<Share> Input;
     typedef ::PrivateOutput<Share> PrivateOutput;
     typedef SPDZ<Share> Protocol;
@@ -218,7 +218,7 @@ void Share_<T, V>::sub(const Share_<T, V>& S1,const Share_<T, V>& S2)
 template<class T, class V>
 inline void Share_<T, V>::mul(const Share_<T, V>& S,const clear& aa)
 {
-  a.mul(S.a,aa);
+  a = S.a * aa;
   mac = aa * S.mac;
 }
 

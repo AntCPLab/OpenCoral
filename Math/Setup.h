@@ -24,6 +24,7 @@ using namespace std;
 // Create setup file for gfp and gf2n
 template<class T>
 void generate_prime_setup(string dir, int lgp);
+template<class T>
 void generate_online_setup(string dirname, bigint& p, int lgp);
 void write_online_setup(string dirname, const bigint& p);
 
@@ -32,6 +33,7 @@ void write_online_setup(string dirname, const bigint& p);
 bigint SPDZ_Data_Setup_Primes(int lgp);
 void SPDZ_Data_Setup_Primes(bigint& p,int lgp,int& idx,int& m);
 void generate_prime(bigint& p, int lgp, int m);
+bigint generate_prime(int lgp, int m);
 
 template<class T>
 string get_prep_sub_dir(string prep_dir, int nparties, int log2mod)
@@ -63,9 +65,8 @@ template<class T>
 void generate_prime_setup(string dir, int nparties, int lgp)
 {
     bigint p;
-    generate_online_setup(get_prep_sub_dir<T>(dir, nparties, lgp), p, lgp);
+    generate_online_setup<typename T::clear>(
+            get_prep_sub_dir<T>(dir, nparties, lgp), p, lgp);
 }
-
-void init_gf2n(int gf2ndegree);
 
 #endif /* MATH_SETUP_H_ */

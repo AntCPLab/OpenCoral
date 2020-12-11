@@ -17,10 +17,10 @@ GC_SEMI = GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
 OT = $(patsubst %.cpp,%.o,$(wildcard OT/*.cpp))
 OT_EXE = ot.x ot-offline.x
 
-COMMON = $(MATH) $(TOOLS) $(NETWORK) GC/square64.o Processor/OnlineOptions.o
+COMMON = $(MATH) $(TOOLS) $(NETWORK) GC/square64.o Processor/OnlineOptions.o Processor/BaseMachine.o
 COMPLETE = $(COMMON) $(PROCESSOR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(GC) $(OT)
 YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp)) $(OT) BMR/Key.o
-BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp)) $(COMMON) $(PROCESSOR) $(OT)
+BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp))
 VM = $(PROCESSOR) $(COMMON) GC/square64.o OT/OTTripleSetup.o OT/BaseOT.o $(LIBSIMPLEOT)
 
 
@@ -103,7 +103,7 @@ sy: sy-rep-field-party.x sy-rep-ring-party.x sy-shamir-party.x
 ecdsa: $(patsubst ECDSA/%.cpp,%.x,$(wildcard ECDSA/*-ecdsa-party.cpp))
 ecdsa-static: static-dir $(patsubst ECDSA/%.cpp,static/%.x,$(wildcard ECDSA/*-ecdsa-party.cpp))
 
-$(LIBRELEASE): Protocols/MalRepRingOptions.o $(PROCESSOR) $(COMMON) $(BMR) $(GC)
+$(LIBRELEASE): Protocols/MalRepRingOptions.o $(PROCESSOR) $(COMMON) $(OT) $(GC)
 	$(AR) -csr $@ $^
 
 static/%.x: Machines/%.o $(LIBRELEASE) $(LIBSIMPLEOT)
@@ -129,10 +129,10 @@ ot-offline.x: $(OT) $(LIBSIMPLEOT) Machines/TripleMachine.o
 
 gc-emulate.x: $(PROCESSOR) GC/FakeSecret.o GC/square64.o
 
-bmr-%.x: $(BMR) Machines/bmr-%.cpp $(LIBSIMPLEOT)
+bmr-%.x: $(BMR) $(VM) Machines/bmr-%.cpp $(LIBSIMPLEOT)
 	$(CXX) -o $@ $(CFLAGS) $^ $(BOOST) $(LDLIBS)
 
-%-bmr-party.x: Machines/%-bmr-party.o $(BMR) $(LIBSIMPLEOT)
+%-bmr-party.x: Machines/%-bmr-party.o $(BMR) $(VM) $(LIBSIMPLEOT)
 	$(CXX) -o $@ $(CFLAGS) $^ $(BOOST) $(LDLIBS)
 
 bmr-clean:
@@ -202,8 +202,16 @@ semi-ecdsa-party.x: $(OT) $(LIBSIMPLEOT) GC/SemiPrep.o GC/SemiSecret.o
 mascot-ecdsa-party.x: $(OT) $(LIBSIMPLEOT)
 fake-spdz-ecdsa-party.x: $(OT) $(LIBSIMPLEOT)
 emulate.x: GC/FakeSecret.o
-semi-bmr-party.x: GC/SemiPrep.o GC/SemiSecret.o
-paper-example.x: $(VM) $(OT)
+semi-bmr-party.x: GC/SemiPrep.o GC/SemiSecret.o $(OT)
+real-bmr-party.x: $(OT)
+paper-example.x: $(VM) $(OT) $(FHEOFFLINE)
+static/rep-bmr-party.x: $(BMR)
+static/mal-rep-bmr-party.x: $(BMR)
+static/shamir-bmr-party.x: $(BMR)
+static/mal-shamir-bmr-party.x: $(BMR)
+static/semi-bmr-party.x: $(BMR)
+static/real-bmr-party.x: $(BMR)
+static/bmr-program-party.x: $(BMR)
 
 $(LIBSIMPLEOT): SimpleOT/Makefile
 	$(MAKE) -C SimpleOT

@@ -12,24 +12,28 @@
 #include "Tools/WaitQueue.h"
 #include "Tools/time-func.h"
 
+template<class T>
 class Receiver
 {
-    int socket;
+    T socket;
     WaitQueue<octetStream*> in;
     WaitQueue<octetStream*> out;
     pthread_t thread;
 
+    static void* run_thread(void* receiver);
+
     // prevent copying
     Receiver(const Receiver& other);
-
-public:
-    Timer timer;
-
-    Receiver(int socket);
 
     void start();
     void stop();
     void run();
+
+public:
+    Timer timer;
+
+    Receiver(T socket);
+    ~Receiver();
 
     void request(octetStream& os);
     void wait(octetStream& os);

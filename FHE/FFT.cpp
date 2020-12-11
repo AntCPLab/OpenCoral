@@ -2,6 +2,9 @@
 #include "FHE/FFT.h"
 #include "Math/Zp_Data.h"
 
+#include "Math/modp.hpp"
+
+
 /* Computes the FFT via Horner's Rule
    theta is assumed to be an Nth root of unity
 */

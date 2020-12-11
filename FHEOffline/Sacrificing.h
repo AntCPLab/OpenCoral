@@ -9,7 +9,7 @@
 #include "Networking/Player.h"
 #include "Protocols/MAC_Check.h"
 #include "Math/Setup.h"
-#include "Math/gfp.h"
+#include "Math/gfpvar.h"
 
 template <class T>
 class TripleSacriFactory

@@ -19,6 +19,12 @@ Rep4Input<T>::Rep4Input(MAC_Check_Base<T>&, Preprocessing<T>&, Player& P) :
 }
 
 template<class T>
+Rep4Input<T>::~Rep4Input()
+{
+    check();
+}
+
+template<class T>
 void Rep4Input<T>::reset(int player)
 {
     if (player == P.my_num())
@@ -69,10 +75,17 @@ void Rep4Input<T>::exchange()
 {
     P.pass_around(to_send, to_receive[0], -1);
     P.pass_around(to_send, to_receive[1], 1);
+    for (int i = 0; i < 2; i++)
+        hashes[i].update(to_receive[i]);
+}
+
+template<class T>
+void Rep4Input<T>::check()
+{
     octetStream os[2][2];
     for (int i = 0; i < 2; i++)
     {
-        os[0][i] = to_receive[i].hash();
+        hashes[i].final(os[0][i]);
         P.pass_around(os[0][i], os[1][i], 2);
     }
     for (int i = 0; i < 2; i++)

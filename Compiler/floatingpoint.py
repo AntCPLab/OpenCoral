@@ -22,13 +22,7 @@ def two_power(n):
         return res
 
 def shift_two(n, pos):
-    if pos < 63:
-        return n >> pos
-    else:
-        res = (n >> (pos%63))
-        for i in range(pos // 63):
-            res >>= 63
-        return res
+    return n >> pos
 
 
 def maskRing(a, k):
@@ -48,7 +42,9 @@ def maskField(a, k, kappa):
     c = types.cint()
     r = [types.sint() for i in range(k)]
     comparison.PRandM(r_dprime, r_prime, r, k, k, kappa)
-    asm_open(c, a + two_power(k) * r_dprime + r_prime)# + 2**(k-1))
+    # always signed due to usage in equality testing
+    a += two_power(k)
+    asm_open(c, a + two_power(k) * r_dprime + r_prime)
     return c, r
 
 @instructions_base.ret_cisc
@@ -59,14 +55,8 @@ def EQZ(a, k, kappa):
         v = sbitvec(a, k).v
         bit = util.tree_reduce(operator.and_, (~b for b in v))
         return types.sint.conv(bit)
-    if program.Program.prog.options.ring:
-        c, r = maskRing(a, k)
-    else:
-        c, r = maskField(a, k, kappa)
-    d = [None]*k
-    for i,b in enumerate(r[0].bit_decompose_clear(c, k)):
-        d[i] = r[i].bit_xor(b)
-    return 1 - types.sint.conv(KOR(d, kappa))
+    prog.non_linear.check_security(kappa)
+    return prog.non_linear.eqz(a, k)
 
 def bits(a,m):
     """ Get the bits of an int """
@@ -206,7 +196,7 @@ def KOpL(op, a):
         t2 = KOpL(op, a[k//2:])
         return op(t1, t2)
 
-def KORL(a, kappa):
+def KORL(a, kappa=None):
     """ log rounds k-ary OR """
     k = len(a)
     if k == 1:
@@ -254,61 +244,23 @@ def BitAdd(a, b, bits_to_compute=None):
         bits_to_compute = list(range(k))
     d = [None] * k
     for i in range(1,k):
-        #assert(a[i].value == 0 or a[i].value == 1)
-        #assert(b[i].value == 0 or b[i].value == 1)
         t = a[i]*b[i]
         d[i] = (a[i] + b[i] - 2*t, t)
-        #assert(d[i][0].value == 0 or d[i][0].value == 1)
     d[0] = (None, a[0]*b[0])
     pg = PreOpL(carry, d)
     c = [pair[1] for pair in pg]
     
-    # (for testing)
-    def print_state():
-        print('a: ', end=' ')
-        for i in range(k):
-            print('%d ' % a[i].value, end=' ')
-        print('\nb: ', end=' ')
-        for i in range(k):
-            print('%d ' % b[i].value, end=' ')
-        print('\nd: ', end=' ')
-        for i in range(k):
-            print('%d ' % d[i][0].value, end=' ')
-        print('\n   ', end=' ')
-        for i in range(k):
-            print('%d ' % d[i][1].value, end=' ')
-        print('\n\npg:', end=' ')
-        for i in range(k):
-            print('%d ' % pg[i][0].value, end=' ')
-        print('\n    ', end=' ')
-        for i in range(k):
-            print('%d ' % pg[i][1].value, end=' ')
-        print('')
-    
-    for bit in c:
-        pass#assert(bit.value == 0 or bit.value == 1)
     s = [None] * (k+1)
     if 0 in bits_to_compute:
         s[0] = a[0] + b[0] - 2*c[0]
         bits_to_compute.remove(0)
-    #assert(c[0].value == a[0].value*b[0].value)
-    #assert(s[0].value == 0 or s[0].value == 1)
     for i in bits_to_compute:
         s[i] = a[i] + b[i] + c[i-1] - 2*c[i]
-        try:
-            pass#assert(s[i].value == 0 or s[i].value == 1)
-        except AssertionError:
-            print('#assertion failed in BitAdd for s[%d]' % i)
-            print_state()
     s[k] = c[k-1]
-    #print_state()
     return s
 
 def BitDec(a, k, m, kappa, bits_to_compute=None):
-    if program.Program.prog.options.ring:
-        return BitDecRing(a, k, m)
-    else:
-        return BitDecField(a, k, m, kappa, bits_to_compute)
+    return program.Program.prog.non_linear.bit_dec(a, k, m)
 
 def BitDecRing(a, k, m):
     n_shift = int(program.Program.prog.options.ring) - m
@@ -330,7 +282,7 @@ def BitDecRing(a, k, m):
         bits = r_bits[0].bit_adder(r_bits, masked.bit_decompose(m))
         return [types.sint.conv(bit) for bit in bits]
 
-def BitDecField(a, k, m, kappa, bits_to_compute=None):
+def BitDecFieldRaw(a, k, m, kappa, bits_to_compute=None):
     r_dprime = types.sint()
     r_prime = types.sint()
     c = types.cint()
@@ -349,6 +301,10 @@ def BitDecField(a, k, m, kappa, bits_to_compute=None):
         print('a =', a.value)
         print('a mod 2^%d =' % k, (a.value % 2**k))
     res = r[0].bit_adder(r, list(r[0].bit_decompose_clear(c,m)))
+    return res
+
+def BitDecField(a, k, m, kappa, bits_to_compute=None):
+    res = BitDecFieldRaw(a, k, m, kappa, bits_to_compute)
     return [types.sint.conv(bit) for bit in res]
 
 
@@ -536,18 +492,15 @@ def TruncPr(a, k, m, kappa=None, signed=True):
     """ Probabilistic truncation [a/2^m + u]
         where Pr[u = 1] = (a % 2^m) / 2^m
     """
-    if isinstance(a, types.cint):
-        return shift_two(a, m)
-    if program.Program.prog.options.ring:
-        return TruncPrRing(a, k, m, signed=signed)
-    else:
-        return TruncPrField(a, k, m, kappa)
+    nl = program.Program.prog.non_linear
+    nl.check_security(kappa)
+    return nl.trunc_pr(a, k, m, signed)
 
 def TruncPrRing(a, k, m, signed=True):
     if m == 0:
         return a
     n_ring = int(program.Program.prog.options.ring)
-    assert n_ring >= k, '%d too large' % k
+    comparison.require_ring_size(k, 'truncation')
     if k == n_ring:
         program.Program.prog.curr_tape.require_bit_length(1)
         if program.Program.prog.use_edabit():
@@ -652,64 +605,67 @@ def SDiv_mono(a, b, l, kappa):
     y = TruncPr(y, 3 * l, 2 * l, kappa)
     return y
 
+# LT bit comparison on shared bit values
+#  Assumes b has the larger size
+#   - From the paper
+#        Unconditionally Secure Constant-Rounds Multi-party Computation
+#        for Equality, Comparison, Bits and Exponentiation
+def BITLT(a, b, bit_length):
+    sint = types.sint
+    e = [sint(0)]*bit_length
+    g = [sint(0)]*bit_length
+    h = [sint(0)]*bit_length
+    for i in range(bit_length):
+        # Compute the XOR (reverse order of e for PreOpL)
+        e[bit_length-i-1] = a[i].bit_xor(b[i])
+    f = PreOpL(or_op, e)
+    g[bit_length-1] = f[0]
+    for i in range(bit_length-1):
+        # reverse order of f due to PreOpL
+        g[i] = f[bit_length-i-1]-f[bit_length-i-2]
+    ans = 0
+    for i in range(bit_length):
+        h[i] = g[i]*b[i]
+        ans = ans + h[i]
+    return ans
 
-def FPDiv(a, b, k, f, kappa):
-    theta = int(ceil(log(k/3.5)))
-    alpha = types.cint(1 * two_power(2*f))
-
-    w = AppRcr(b, k, f, kappa)
-    x = alpha - b * w
-    y = a * w
-    y = TruncPr(y, 2*k, f, kappa)
-
-    for i in range(theta):
-        y = y * (alpha + x)
-        x = x * x
-        y = TruncPr(y, 2*k, 2*f, kappa)
-        x = TruncPr(x, 2*k, 2*f, kappa)
-
-    y = y * (alpha + x)
-    y = TruncPr(y, 2*k, 2*f, kappa)
-    return y
-
-def AppRcr(b, k, f, kappa):
-    """
-        Approximate reciprocal of [b]:
-        Given [b], compute [1/b]
-    """
-    alpha = types.cint(int(2.9142 * (2**k)))
-    c, v = Norm(b, k, f, kappa)
-    d = alpha - 2 * c
-    w = d * v
-    w = TruncPr(w, 2 * k, 2 * (k - f))
-    return w
-
-def Norm(b, k, f, kappa):
-    """
-        Computes secret integer values [c] and [v_prime] st.
-        2^{k-1} <= c < 2^k and c = b*v_prime
-    """
-    temp = types.sint()
-    comparison.LTZ(temp, b, k, kappa)
-    sign = 1 - 2 * temp # 1 - 2 * [b < 0]
-
-    x = sign * b
-    #x = |b|
-    bits = x.bit_decompose(k)
-    y = PreOR(bits)
-
-    z = [0] * k
-    for i in range(k - 1):
-        z[i] = y[i] - y[i + 1]
-
-    z[k - 1] = y[k - 1]
-    # z[i] = 0 for all i except when bits[i + 1] = first one
-
-    #now reverse bits of z[i]
-    v = types.sint()
-    for i in range(k):
-        v += two_power(k - i - 1) * z[i]
-    c = x * v
-    v_prime = sign * v
-    return c, v_prime
-
+# Exact BitDec with no need for a statistical gap
+#   - From the paper
+#        Multiparty Computation for Interval, Equality, and Comparison without 
+#        Bit-Decomposition Protocol
+def BitDecFull(a):
+    from .library import get_program, do_while, if_, break_point
+    from .types import sint, regint, longint
+    p=int(get_program().options.prime)
+    assert p
+    bit_length = p.bit_length()
+    bbits = [sint(size=a.size) for i in range(bit_length)]
+    tbits = [[sint(size=1) for i in range(bit_length)] for j in range(a.size)]
+    pbits = util.bit_decompose(p)
+    # Loop until we get some random integers less than p
+    done = [regint(0) for i in range(a.size)]
+    @do_while
+    def get_bits_loop():
+        for j in range(a.size):
+            @if_(done[j] == 0)
+            def _():
+                for i in range(bit_length):
+                    tbits[j][i].link(sint.get_random_bit())
+                c = regint(BITLT(tbits[j], pbits, bit_length).reveal())
+                done[j].link(c)
+        return (sum(done) != a.size)
+    for j in range(a.size):
+        for i in range(bit_length):
+            movs(bbits[i][j], tbits[j][i])
+    b = sint.bit_compose(bbits)
+    c = (a-b).reveal()
+    t = (p-c).bit_decompose(bit_length)
+    c = longint(c, bit_length)
+    czero = (c==0)
+    q = 1-BITLT( bbits, t, bit_length)
+    fbar=((1<<bit_length)+c-p).bit_decompose(bit_length)
+    fbard = c.bit_decompose(bit_length)
+    g = [(fbar[i] - fbard[i]) * q + fbard[i] for i in range(bit_length)]
+    h = BitAdd(bbits, g)
+    abits = [(1 - czero) * h[i] + czero * bbits[i] for i in range(bit_length)]
+    return abits

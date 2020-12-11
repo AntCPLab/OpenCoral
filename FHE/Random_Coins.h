@@ -15,6 +15,8 @@ class Int_Random_Coins : public AddableMatrix<fixint<0>>
 
   const FHE_Params* params;
 public:
+  typedef value_type::value_type rand_type;
+
   Int_Random_Coins(const FHE_Params& params) : params(&params)
   { resize(3, params.phi_m()); }
 

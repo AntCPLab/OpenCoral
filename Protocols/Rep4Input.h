@@ -19,9 +19,12 @@ class Rep4Input : public InputBase<T>
 
     array<PointerVector<T>, 4> results;
 
+    array<Hash, 2> hashes;
+
 public:
     Rep4Input(SubProcessor<T>& proc, MAC_Check_Base<T>&);
     Rep4Input(MAC_Check_Base<T>&, Preprocessing<T>&, Player& P);
+    ~Rep4Input();
 
     void reset(int player);
 
@@ -33,6 +36,8 @@ public:
 
     T finalize_mine();
     void finalize_other(int player, T& target, octetStream& o, int n_bits = -1);
+
+    void check();
 };
 
 #endif /* PROTOCOLS_REP4INPUT_H_ */

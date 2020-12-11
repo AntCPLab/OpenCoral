@@ -51,6 +51,12 @@ class Rep4RingOnlyPrep : public virtual Rep4RingPrep<T>,
     }
 
 public:
+    static void edabit_sacrifice_buckets(vector<edabit<T>>&, size_t, bool, int,
+            SubProcessor<T>&, int, int, const void* = 0)
+    {
+        throw runtime_error("no need for sacrifice");
+    }
+
     Rep4RingOnlyPrep(SubProcessor<T>* proc, DataPositions& usage);
 
     void get_dabit_no_count(T& a, typename T::bit_type& b)

@@ -44,6 +44,7 @@ void CowGearPrep<T>::basic_setup(Player& P)
     cerr << "LowGear security parameter: " << options.lowgear_security << endl;
 #endif
     setup.secure_init(P, machine, T::clear::length(), options.lowgear_security);
+    T::clear::template init<typename FD::T>();
 #ifdef VERBOSE
     cerr << T::type_string() << " parameter setup took " << timer.elapsed()
             << " seconds" << endl;
@@ -73,7 +74,7 @@ void CowGearPrep<T>::key_setup(Player& P, mac_key_type alphai)
     setup.set_alphai(alphai);
     Bundle<octetStream> bundle(P);
     diff.pack(bundle.mine);
-    P.Broadcast_Receive(bundle, true);
+    P.unchecked_broadcast(bundle);
     for (int i = 0; i < P.num_players(); i++)
     {
         Plaintext_<FD> mess(setup.FieldD);
@@ -153,8 +154,8 @@ void CowGearPrep<T>::buffer_inputs(int player)
 #endif
 }
 
-template<>
-inline void CowGearPrep<CowGearShare<gfp>>::buffer_bits()
+template<class T>
+inline void CowGearPrep<T>::buffer_bits()
 {
     buffer_bits_from_squares(*this);
 }

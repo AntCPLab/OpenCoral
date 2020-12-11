@@ -80,7 +80,6 @@ void Rep4RingPrep<T>::buffer_bits()
 
     auto& protocol = this->proc->protocol;
 
-    protocol.init_mul();
     vector<typename T::open_type> bits;
     int batch_size = OnlineOptions::singleton.batch_size;
     bits.reserve(batch_size);
@@ -88,28 +87,13 @@ void Rep4RingPrep<T>::buffer_bits()
         bits.push_back(G.get_bit());
 
     protocol.init_mul();
-    for (auto& o : protocol.os)
-        o.reset_write_head();
     protocol.reset_joint_input(batch_size);
-    protocol.prepare_joint_input(0, 1, 3, 2, bits);
-    if (P.my_num() == 0)
-        P.send_relative(-1, protocol.os[0]);
-    if (P.my_num() == 3)
-        P.receive_relative(1, protocol.os[0]);
-    protocol.finalize_joint_input(0, 1, 3, 2);
-    auto a = protocol.results;
-
-    protocol.init_mul();
-    for (auto& o : protocol.os)
-        o.reset_write_head();
-    protocol.reset_joint_input(batch_size);
-    protocol.prepare_joint_input(2, 3, 1, 0, bits);
-    if (P.my_num() == 2)
-        P.send_relative(-1, protocol.os[0]);
-    if (P.my_num() == 1)
-        P.receive_relative(1, protocol.os[0]);
-    protocol.finalize_joint_input(2, 3, 1, 0);
-    auto b = protocol.results;
+    vector<typename Rep4<T>::ResTuple> a(batch_size), b(batch_size);
+    protocol.prepare_joint_input(0, 1, 3, 2, bits, a);
+    protocol.prepare_joint_input(2, 3, 1, 0, bits, b);
+    P.send_receive_all(protocol.channels, protocol.send_os, protocol.receive_os);
+    protocol.finalize_joint_input(0, 1, 3, 2, a);
+    protocol.finalize_joint_input(2, 3, 1, 0, b);
 
     auto results = protocol.results;
     protocol.init_mul();

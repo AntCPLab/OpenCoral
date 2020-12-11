@@ -62,14 +62,16 @@ for dabit in ${dabit:-0 1 2}; do
     test_vm chaigear $run_opts -l 3 -c 2
 done
 
-./compile.py -R 64 -Z 3 tutorial
-test_vm ring $run_opts
+if test $dabit != 0; then
+    ./compile.py -R 64 -Z 3 tutorial
+    test_vm ring $run_opts
 
-./compile.py -R 64 -Z 4 tutorial
-test_vm rep4-ring $run_opts
+    ./compile.py -R 64 -Z 4 tutorial
+    test_vm rep4-ring $run_opts
 
-./compile.py -R 64 -Z 2 tutorial
-test_vm semi2k $run_opts
+    ./compile.py -R 64 -Z 2 tutorial
+    test_vm semi2k $run_opts
+fi
 
 ./compile.py tutorial
 

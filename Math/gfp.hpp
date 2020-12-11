@@ -2,6 +2,7 @@
 #define MATH_GFP_HPP_
 
 #include "Math/gfp.h"
+#include "Math/gfpvar.h"
 #include "Math/Setup.h"
 
 #include "Exceptions/Exceptions.h"
@@ -11,6 +12,10 @@
 
 template<int X, int L>
 const true_type gfp_<X, L>::invertible;
+template<int X, int L>
+const true_type gfp_<X, L>::prime_field;
+template<int X, int L>
+const int gfp_<X, L>::MAX_N_BITS;
 
 template<int X, int L>
 inline void gfp_<X, L>::read_or_generate_setup(string dir,
@@ -47,6 +52,13 @@ template <int X, int L>
 void gfp_<X, L>::init_default(int lgp, bool mont)
 {
   init_field(SPDZ_Data_Setup_Primes(lgp), mont);
+}
+
+template<int X, int L>
+gfp_<X, L>::gfp_(const gfpvar& other)
+{
+  assert(ZpD.pr == other.get_ZpD().pr);
+  a = other.get();
 }
 
 template <int X, int L>

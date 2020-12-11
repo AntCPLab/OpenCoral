@@ -4,32 +4,48 @@
  */
 
 #include "Receiver.h"
+#include "ssl_sockets.h"
 
 #include <iostream>
 using namespace std;
 
-void* run_receiver_thread(void* receiver)
+template<class T>
+void* Receiver<T>::run_thread(void* receiver)
 {
-    ((Receiver*)receiver)->run();
+    ((Receiver<T>*)receiver)->run();
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    OPENSSL_thread_stop();
+#endif
     return 0;
 }
 
-Receiver::Receiver(int socket) : socket(socket), thread(0)
+template<class T>
+Receiver<T>::Receiver(T socket) : socket(socket), thread(0)
 {
+    start();
 }
 
-void Receiver::start()
+template<class T>
+Receiver<T>::~Receiver()
 {
-    pthread_create(&thread, 0, run_receiver_thread, this);
+    stop();
 }
 
-void Receiver::stop()
+template<class T>
+void Receiver<T>::start()
+{
+    pthread_create(&thread, 0, run_thread, this);
+}
+
+template<class T>
+void Receiver<T>::stop()
 {
     in.stop();
     pthread_join(thread, 0);
 }
 
-void Receiver::run()
+template<class T>
+void Receiver<T>::run()
 {
     octetStream* os = 0;
     while (in.pop(os))
@@ -42,15 +58,20 @@ void Receiver::run()
     }
 }
 
-void Receiver::request(octetStream& os)
+template<class T>
+void Receiver<T>::request(octetStream& os)
 {
     in.push(&os);
 }
 
-void Receiver::wait(octetStream& os)
+template<class T>
+void Receiver<T>::wait(octetStream& os)
 {
     octetStream* queued = 0;
     out.pop(queued);
     if (queued != &os)
       throw not_implemented();
 }
+
+template class Receiver<int>;
+template class Receiver<ssl_socket*>;

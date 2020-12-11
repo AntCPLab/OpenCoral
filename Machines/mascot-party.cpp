@@ -1,10 +1,10 @@
 
-#include "Player-Online.hpp"
 #include "Math/gfp.hpp"
 #include "GC/TinierSecret.h"
+#include "Processor/FieldMachine.h"
 
 int main(int argc, const char** argv)
 {
     ez::ezOptionParser opt;
-    return spdz_main<Share<gfp>, Share<gf2n>>(argc, argv, opt);
+    DishonestMajorityFieldMachine<Share>(argc, argv, opt);
 }

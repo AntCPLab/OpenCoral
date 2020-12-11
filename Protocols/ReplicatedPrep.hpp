@@ -1044,7 +1044,7 @@ void BufferPrep<T>::buffer_inputs_as_usual(int player, SubProcessor<T>* proc)
     else
     {
         octetStream os;
-        P.receive_player(player, os, true);
+        P.receive_player(player, os);
         T share;
         for (int i = 0; i < buffer_size; i++)
         {

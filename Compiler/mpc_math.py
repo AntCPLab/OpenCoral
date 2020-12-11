@@ -34,7 +34,12 @@ p_3508 = [1.00000000000000000000, -0.50000000000000000000,
           0.00000000000000000040]
 ##
 # @private
-p_1045 = [math.log(2) ** i / math.factorial(i) for i in range(12)]
+p_1045 = [math.log(2) ** i / math.factorial(i) for i in range(100)]
+
+p_2508 = [-4.585323876456, 18.351352559641, -51.525644374262,
+          111.76784165654, -174.170840774074, 191.731001033848,
+          -145.61191979671, 72.650082977468, -21.447349196774,
+          2.840799797315]
 
 ##
 # @private
@@ -270,6 +275,18 @@ def exp2_fx(a, zero_output=False):
 
     :return: :math:`2^a` if it is within the range. Undefined otherwise
     """
+    def exp_from_parts(whole_exp, frac):
+        class my_fix(type(a)):
+            pass
+        # improve precision
+        my_fix.set_precision(a.k - 2, a.k)
+        n_shift = a.k - 2 - a.f
+        x = my_fix._new(frac.v << n_shift)
+        # evaluates fractional part of a in p_1045
+        e = p_eval(p_1045, x)
+        g = a._new(whole_exp.TruncMul(e.v, 2 * a.k, n_shift,
+                                           nearest=a.round_nearest), a.k, a.f)
+        return g
     if types.program.options.ring:
         sint = types.sint
         intbitint = types.intbitint
@@ -352,8 +369,7 @@ def exp2_fx(a, zero_output=False):
         assert(len(higher_bits) == n_bits - a.f)
         pow2_bits = [sint.conv(x) for x in higher_bits]
         d = floatingpoint.Pow2_from_bits(pow2_bits)
-        e = p_eval(p_1045, c)
-        g = d * e
+        g = exp_from_parts(d, c)
         small_result = types.sfix._new(g.v.round(a.f + 2 ** n_int_bits,
                                             2 ** n_int_bits, signed=False,
                                             nearest=types.sfix.round_nearest),
@@ -371,15 +387,13 @@ def exp2_fx(a, zero_output=False):
         c = a - b
         # squares integer part of a
         d = b.pow2(a.k - a.f)
-        # evaluates fractional part of a in p_1045
-        e = p_eval(p_1045, c)
-        g = d * e
+        g = exp_from_parts(d, c)
         return s.if_else(1 / g, g)
 
 
 @types.vectorize
 @instructions_base.sfix_cisc
-def log2_fx(x):
+def log2_fx(x, use_division=False):
     """
     Returns the result of :math:`\log_2(x)` for any unbounded
     number. This is achieved by changing :py:obj:`x` into
@@ -407,10 +421,14 @@ def log2_fx(x):
     # isolates mantisa of d, now the n can be also substituted by the
     # secret shared p from d in the expresion above.
     # polynomials for the  log_2 evaluation of f are calculated
-    P = p_eval(p_2524, v)
-    Q = p_eval(q_2524, v)
+    if use_division:
+        P = p_eval(p_2524, v)
+        Q = p_eval(q_2524, v)
+        approx = P / Q
+    else:
+        approx = p_eval(p_2508, v)
     # the log is returned by adding the result of the division plus p.
-    a = P / Q + (vlen + p)
+    a = approx + (vlen + p)
     return a  # *(1-(f.z))*(1-f.s)*(1-f.error)
 
 

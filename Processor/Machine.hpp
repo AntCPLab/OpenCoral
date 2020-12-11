@@ -316,7 +316,7 @@ void Machine<sint, sgf2n>::run()
   print_timers();
   cerr << "Data sent = " << data_sent / 1e6 << " MB" << endl;
 
-  PlainPlayer P(N, 0xFFF0);
+  PlainPlayer P(N, 0xFF00);
   Bundle<octetStream> bundle(P);
   bundle.mine.store(data_sent.load());
   P.Broadcast_Receive_no_stats(bundle);
@@ -375,35 +375,7 @@ void Machine<sint, sgf2n>::run()
 
   if (not stats.empty())
     {
-      cerr << "Instruction statistics:" << endl;
-      set<pair<size_t, int>> sorted_stats;
-      for (auto& x : stats)
-        {
-          sorted_stats.insert({x.second, x.first});
-        }
-      for (auto& x : sorted_stats)
-        {
-          auto opcode = x.second;
-          auto calls = x.first;
-          cerr << "\t";
-          int n_fill = 15;
-          switch (opcode)
-          {
-#define X(NAME, PRE, CODE) case NAME: cerr << #NAME; n_fill -= strlen(#NAME); break;
-          ARITHMETIC_INSTRUCTIONS
-#undef X
-#define X(NAME, CODE) case NAME: cerr << #NAME; n_fill -= strlen(#NAME); break;
-          COMBI_INSTRUCTIONS
-#undef X
-          default:
-            cerr << hex << setw(5) << showbase << left << opcode;
-            n_fill -= 5;
-            cerr << setw(0);
-          }
-          for (int i = 0; i < n_fill; i++)
-            cerr << " ";
-          cerr << dec << calls << endl;
-        }
+      stats.print();
     }
 
 #ifndef INSECURE

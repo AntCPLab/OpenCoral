@@ -64,6 +64,7 @@ Programs/Public-Input/*
 *.d
 local/
 *.map
+*.gch
 
 # Packages #
 ############

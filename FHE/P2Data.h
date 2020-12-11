@@ -20,7 +20,7 @@ class P2Data
   public:
   typedef gf2n_short T;
   typedef int S;
-  typedef int poly_type;
+  typedef fixint<0> poly_type;
 
   int num_slots() const { return slots; }
   int degree() const { return A.size() ? A.size() : 0; }
@@ -28,10 +28,8 @@ class P2Data
 
   void check_dimensions() const;
 
-  // Despite only dealing with bits, we still use bigint's so
-  // we can easily dovetail into the FHE code
-  void forward(vector<int>& ans,const vector<gf2n_short>& a) const;
-  void backward(vector<gf2n_short>& ans,const vector<int>& a) const;
+  void forward(vector<poly_type>& ans,const vector<gf2n_short>& a) const;
+  void backward(vector<gf2n_short>& ans,const vector<poly_type>& a) const;
 
   int get_prime() const { return 2; }
 

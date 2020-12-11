@@ -18,10 +18,11 @@ public:
     static const int MAX_EDABITS = 0;
 
     static const false_type characteristic_two;
+    static const false_type prime_field;
 
     template<class T>
     static void init(bool mont = true) { (void) mont; }
-    static void init_default(int l) { (void) l; }
+    static void init_default(int, bool = true) {}
     static void init_field() {}
 
     static void read_or_generate_setup(const string&, const OnlineOptions&) {}

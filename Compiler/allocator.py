@@ -280,11 +280,11 @@ class Merger:
 
         preorder = None
 
-        if len(instructions) > 100000:
+        if len(instructions) > 1000000:
             print("Topological sort ...")
         order = Compiler.graph.topological_sort(G, preorder)
         instructions[:] = [instructions[i] for i in order if instructions[i] is not None]
-        if len(instructions) > 100000:
+        if len(instructions) > 1000000:
             print("Done at", time.asctime())
 
         return len(merges)
@@ -356,14 +356,16 @@ class Merger:
                     addr_i = addr + i
                     handle_mem_access(addr_i, reg_type, last_access_this_kind,
                                       last_access_other_kind)
-                if not warned_about_mem and (instr.get_size() > 100):
+                if block.warn_about_mem and not warned_about_mem and \
+                   (instr.get_size() > 100):
                     print('WARNING: Order of memory instructions ' \
                         'not preserved due to long vector, errors possible')
                     warned_about_mem.append(True)
             else:
                 handle_mem_access(addr, reg_type, last_access_this_kind,
                                   last_access_other_kind)
-            if not warned_about_mem and not isinstance(instr, DirectMemoryInstruction):
+            if block.warn_about_mem and not warned_about_mem and \
+               not isinstance(instr, DirectMemoryInstruction):
                 print('WARNING: Order of memory instructions ' \
                     'not preserved, errors possible')
                 # hack
@@ -477,7 +479,7 @@ class Merger:
             if not G.pred[n]:
                 self.sources.append(n)
 
-            if n % 100000 == 0 and n > 0:
+            if n % 1000000 == 0 and n > 0:
                 print("Processed dependency of %d/%d instructions at" % \
                     (n, len(block.instructions)), time.asctime())
 

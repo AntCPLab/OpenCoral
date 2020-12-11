@@ -3,6 +3,8 @@
 
 #include "FHE/Subroutines.h"
 
+#include "Math/modp.hpp"
+
 
 void FFT_Data::assign(const FFT_Data& FFTD)
 {

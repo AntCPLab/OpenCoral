@@ -546,6 +546,7 @@ int BaseInstruction::get_reg_type() const
     case CONVCBITVEC:
       return INT;
     case PREP:
+    case GPREP:
     case USE_PREP:
     case GUSE_PREP:
     case USE_EDABIT:
@@ -1689,7 +1690,8 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.read_shares_from_file(Proc.read_Ci(r[0]), r[1], start);
         break;        
       case PUBINPUT:
-        Proc.public_input >> Proc.get_Ci_ref(r[0]);
+        Proc.get_Ci_ref(r[0]) = Proc.template get_input<IntInput<long>>(
+            Proc.public_input, Proc.public_input_filename, 0).items[0];
         break;
       case RAWOUTPUT:
         Proc.read_Cp(r[0]).output(Proc.public_output, false);

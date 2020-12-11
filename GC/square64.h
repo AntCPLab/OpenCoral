@@ -8,6 +8,7 @@
 
 #include <immintrin.h>
 #include <string.h>
+#include <cstdint>
 #include "Tools/int.h"
 
 union square64

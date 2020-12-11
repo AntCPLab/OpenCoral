@@ -1,8 +1,10 @@
 #include "Verifier.h"
+#include "FHE/P2Data.h"
 #include "Math/Z2k.hpp"
+#include "Math/modp.hpp"
 
-template <class FD, class S>
-Verifier<FD,S>::Verifier(Proof& proof) : P(proof)
+template <class FD>
+Verifier<FD>::Verifier(Proof& proof) : P(proof)
 {
 #ifdef LESS_ALLOC_MORE_MEM
   z.resize(proof.phim);
@@ -39,8 +41,8 @@ bool Check_Decoding(const vector<S>& AE, bool Diag)
 
 
 
-template <class FD, class S>
-void Verifier<FD,S>::Stage_2(
+template <class FD>
+void Verifier<FD>::Stage_2(
                           AddableVector<Ciphertext>& c,octetStream& ciphertexts,
                           octetStream& cleartexts,
                           const FHE_PK& pk,bool Diag,bool binary)
@@ -95,8 +97,8 @@ void Verifier<FD,S>::Stage_2(
 
 /* This is the non-interactive version using the ROM
 */
-template <class FD, class S>
-void Verifier<FD,S>::NIZKPoK(AddableVector<Ciphertext>& c,
+template <class FD>
+void Verifier<FD>::NIZKPoK(AddableVector<Ciphertext>& c,
                           octetStream& ciphertexts, octetStream& cleartexts,
                           const FHE_PK& pk,bool Diag,
                           bool binary)
@@ -114,5 +116,5 @@ void Verifier<FD,S>::NIZKPoK(AddableVector<Ciphertext>& c,
 }
 
 
-template class Verifier<FFT_Data, fixint<GFP_MOD_SZ>>;
-template class Verifier<P2Data, fixint<GFP_MOD_SZ>>;
+template class Verifier<FFT_Data>;
+template class Verifier<P2Data>;

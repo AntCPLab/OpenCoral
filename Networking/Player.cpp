@@ -6,6 +6,7 @@
 #include "Tools/NetworkOptions.h"
 #include "Networking/Server.h"
 #include "Networking/ServerSocket.h"
+#include "Networking/Exchanger.h"
 
 #include <sys/select.h>
 #include <utility>
@@ -134,9 +135,6 @@ void Names::setup_names(const char *servername, int my_port)
   cerr << "Sent " << player_no << " to " << servername << ":" << pn << endl;
 #endif
 
-  int inst=-1; // wait until instruction to start.
-  while (inst != GO) { receive(socket_num, inst); }
-
   // Send my name
   octet my_name[512];
   memset(my_name,0,512*sizeof(octet));
@@ -155,7 +153,9 @@ void Names::setup_names(const char *servername, int my_port)
 
   // Now get the set of names
   int i;
-  receive(socket_num,nplayers);
+  size_t tmp;
+  receive(socket_num,tmp,4);
+  nplayers = tmp;
 #ifdef VERBOSE
   cerr << nplayers << " players\n";
 #endif
@@ -311,15 +311,13 @@ long MultiPlayer<T>::receive_long(int i) const
 
 
 
-void Player::send_to(int player,const octetStream& o,bool donthash) const
+void Player::send_to(int player,const octetStream& o) const
 {
 #ifdef VERBOSE_COMM
   cerr << "sending to " << player << endl;
 #endif
   TimeScope ts(comm_stats["Sending directly"].add(o));
   send_to_no_stats(player, o);
-  if (!donthash)
-    { hash_update(&ctx,o.get_data(),o.get_length()); }
   sent += o.get_length();
 }
 
@@ -331,16 +329,13 @@ void MultiPlayer<T>::send_to_no_stats(int player,const octetStream& o) const
 }
 
 
-template<class T>
-void MultiPlayer<T>::send_all(const octetStream& o,bool donthash) const
+void Player::send_all(const octetStream& o) const
 {
   TimeScope ts(comm_stats["Sending to all"].add(o));
   for (int i=0; i<nplayers; i++)
      { if (i!=player_no)
-         { o.Send(sockets[i]); }
+         send_to_no_stats(i, o);
      }
-  if (!donthash)
-    { hash_update(&ctx,o.get_data(),o.get_length()); }
   sent += o.get_length() * (num_players() - 1);
 }
 
@@ -349,11 +344,11 @@ void Player::receive_all(vector<octetStream>& os) const
 {
   for (int j = 0; j < num_players(); j++)
     if (j != my_num())
-      receive_player(j, os[j], true);
+      receive_player(j, os[j]);
 }
 
 
-void Player::receive_player(int i,octetStream& o,bool donthash) const
+void Player::receive_player(int i,octetStream& o) const
 {
 #ifdef VERBOSE_COMM
   cerr << "receiving from " << i << endl;
@@ -361,8 +356,6 @@ void Player::receive_player(int i,octetStream& o,bool donthash) const
   TimeScope ts(timer);
   receive_player_no_stats(i, o);
   comm_stats["Receiving directly"].add(o, ts);
-  if (!donthash)
-    { hash_update(&ctx,o.get_data(),o.get_length()); }
 }
 
 template<class T>
@@ -375,7 +368,7 @@ void MultiPlayer<T>::receive_player_no_stats(int i,octetStream& o) const
 void Player::receive_player(int i, FlexBuffer& buffer) const
 {
   octetStream os;
-  receive_player(i, os, true);
+  receive_player(i, os);
   buffer = os;
 }
 
@@ -389,7 +382,7 @@ void Player::send_relative(const vector<octetStream>& os) const
 
 void Player::send_relative(int offset, const octetStream& o) const
 {
-  send_to(positive_modulo(my_num() + offset, num_players()), o, true);
+  send_to(positive_modulo(my_num() + offset, num_players()), o);
 }
 
 void Player::receive_relative(vector<octetStream>& os) const
@@ -401,7 +394,7 @@ void Player::receive_relative(vector<octetStream>& os) const
 
 void Player::receive_relative(int offset, octetStream& o) const
 {
-  receive_player(positive_modulo(my_num() + offset, num_players()), o, true);
+  receive_player(positive_modulo(my_num() + offset, num_players()), o);
 }
 
 template<class T>
@@ -433,7 +426,7 @@ void Player::exchange_relative(int offset, octetStream& o) const
 
 
 template<class T>
-void MultiPlayer<T>::pass_around_no_stats(octetStream& o, octetStream& to_receive, int offset) const
+void MultiPlayer<T>::pass_around_no_stats(const octetStream& o, octetStream& to_receive, int offset) const
 {
   o.exchange(sockets.at(get_player(offset)), sockets.at(get_player(-offset)), to_receive);
 }
@@ -454,24 +447,37 @@ void MultiPlayer<T>::Broadcast_Receive_no_stats(vector<octetStream>& o) const
 {
   if (o.size() != sockets.size())
     throw runtime_error("player numbers don't match");
+
+  vector<Exchanger<T>> exchangers;
   for (int i=1; i<nplayers; i++)
     {
       int send_to = (my_num() + i) % num_players();
       int receive_from = (my_num() + num_players() - i) % num_players();
-      o[my_num()].exchange(sockets[send_to], sockets[receive_from], o[receive_from]);
+      exchangers.push_back({sockets[send_to], o[my_num()], sockets[receive_from], o[receive_from]});
+    }
+
+  int left = 1;
+  while (left > 0)
+    {
+      left = 0;
+      for (auto& exchanger : exchangers)
+        left += exchanger.round(false);
     }
 }
 
-template<class T>
-void MultiPlayer<T>::Broadcast_Receive(vector<octetStream>& o,bool donthash) const
+void Player::unchecked_broadcast(vector<octetStream>& o) const
 {
   TimeScope ts(comm_stats["Broadcasting"].add(o[player_no]));
   Broadcast_Receive_no_stats(o);
-  if (!donthash)
+  sent += o[player_no].get_length() * (num_players() - 1);
+}
+
+void Player::Broadcast_Receive(vector<octetStream>& o) const
+{
+  unchecked_broadcast(o);
     { for (int i=0; i<nplayers; i++)
         { hash_update(&ctx,o[i].get_data(),o[i].get_length()); }
     }
-  sent += o[player_no].get_length() * (num_players() - 1);
 }
 
 
@@ -482,7 +488,7 @@ void Player::Check_Broadcast() const
   vector<octetStream> h(nplayers);
   h[player_no].concat(ctx.final());
 
-  Broadcast_Receive(h,true);
+  unchecked_broadcast(h);
   for (int i=0; i<nplayers; i++)
     { if (i!=player_no)
         { if (!h[i].equals(h[player_no]))
@@ -492,39 +498,56 @@ void Player::Check_Broadcast() const
   ctx.reset();
 }
 
-template<>
-void MultiPlayer<int>::wait_for_available(vector<int>& players, vector<int>& result) const
+void Player::send_receive_all(const vector<octetStream>& to_send,
+    vector<octetStream>& to_receive) const
 {
-  fd_set rfds;
-  FD_ZERO(&rfds);
-  int highest = 0;
-  vector<int>::iterator it;
-  for (it = players.begin(); it != players.end(); it++)
+  send_receive_all(
+      vector<vector<bool>>(num_players(), vector<bool>(num_players(), true)),
+      to_send, to_receive);
+}
+
+void Player::send_receive_all(const vector<bool>& senders,
+    const vector<octetStream>& to_send, vector<octetStream>& to_receive) const
+{
+  vector<vector<bool>> channels;
+  for (int i = 0; i < num_players(); i++)
+    channels.push_back(vector<bool>(num_players(), senders.at(i)));
+  send_receive_all(channels, to_send, to_receive);
+}
+
+void Player::send_receive_all(const vector<vector<bool>>& channels,
+    const vector<octetStream>& to_send,
+    vector<octetStream>& to_receive) const
+{
+  size_t data = 0;
+  for (int i = 0; i < num_players(); i++)
+    if (i != my_num() and channels.at(my_num()).at(i))
+      data += to_send.at(i).get_length();
+  TimeScope ts(comm_stats["Sending/receiving"].add(data));
+  sent += data;
+  send_receive_all_no_stats(channels, to_send, to_receive);
+}
+
+template<class T>
+void MultiPlayer<T>::send_receive_all_no_stats(
+    const vector<vector<bool>>& channels, const vector<octetStream>& to_send,
+    vector<octetStream>& to_receive) const
+{
+  to_receive.resize(num_players());
+  for (int offset = 1; offset < num_players(); offset++)
     {
-      if (*it >= 0)
+      int receive_from = get_player(-offset);
+      int send_to = get_player(offset);
+      bool receive = channels[receive_from][my_num()];
+      if (channels[my_num()][send_to])
         {
-          FD_SET(sockets[*it], &rfds);
-          highest = max(highest, sockets[*it]);
+          if (receive)
+            pass_around_no_stats(to_send[send_to], to_receive[receive_from], offset);
+          else
+            send_to_no_stats(send_to, to_send[send_to]);
         }
-    }
-
-  int res = select(highest + 1, &rfds, 0, 0, 0);
-
-  if (res < 0)
-    error("select()");
-
-  result.clear();
-  result.reserve(res);
-  for (it = players.begin(); it != players.end(); it++)
-    {
-      if (res == 0)
-        break;
-
-      if (*it >= 0 && FD_ISSET(sockets[*it], &rfds))
-        {
-          res--;
-          result.push_back(*it);
-        }
+      else if (receive)
+        receive_player_no_stats(receive_from, to_receive[receive_from]);
     }
 }
 
@@ -533,9 +556,7 @@ ThreadPlayer::ThreadPlayer(const Names& Nms, int id_base) : PlainPlayer(Nms, id_
 {
   for (int i = 0; i < Nms.num_players(); i++)
     {
-      receivers.push_back(new Receiver(sockets[i]));
-      receivers[i]->start();
-
+      receivers.push_back(new Receiver<int>(sockets[i]));
       senders.push_back(new Sender<int>(socket_to_send(i)));
     }
 }
@@ -544,7 +565,6 @@ ThreadPlayer::~ThreadPlayer()
 {
   for (unsigned int i = 0; i < receivers.size(); i++)
     {
-      receivers[i]->stop();
       if (receivers[i]->timer.elapsed() > 0)
         cerr << "Waiting for receiving from " << i << ": " << receivers[i]->timer.elapsed() << endl;
       delete receivers[i];
@@ -563,9 +583,8 @@ void ThreadPlayer::request_receive(int i, octetStream& o) const
   receivers[i]->request(o);
 }
 
-void ThreadPlayer::wait_receive(int i, octetStream& o, bool donthash) const
+void ThreadPlayer::wait_receive(int i, octetStream& o) const
 {
-  (void) donthash;
   receivers[i]->wait(o);
 }
 
@@ -575,15 +594,12 @@ void ThreadPlayer::receive_player_no_stats(int i, octetStream& o) const
   wait_receive(i, o);
 }
 
-void ThreadPlayer::send_all(const octetStream& o,bool donthash) const
+void ThreadPlayer::send_all(const octetStream& o) const
 {
   for (int i=0; i<nplayers; i++)
      { if (i!=player_no)
          senders[i]->request(o);
      }
-
-  if (!donthash)
-    { hash_update(&ctx,o.get_data(),o.get_length()); }
 
   for (int i = 0; i < nplayers; i++)
     if (i != player_no)
@@ -697,10 +713,8 @@ void OffsetPlayer::send_receive_player(vector<octetStream>& o) const
   P.exchange(P.get_player(offset), o[0], o[1]);
 }
 
-void TwoPartyPlayer::Broadcast_Receive(vector<octetStream>& o,
-        bool donthash) const
+void TwoPartyPlayer::Broadcast_Receive(vector<octetStream>& o) const
 {
-  (void) donthash;
   vector<octetStream> os(2);
   os[0] = o[my_num()];
   send_receive_player(os);
@@ -765,4 +779,4 @@ void NamedCommStats::print(bool newline)
 }
 
 template class MultiPlayer<int>;
-template class MultiPlayer<ssl_socket*>;
+template class MultiPlayer<ssl_socket*> ;

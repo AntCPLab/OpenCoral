@@ -16,14 +16,14 @@
 #include "GC/TinyMC.h"
 
 #include "SPDZ.hpp"
-#include "Player-Online.hpp"
 
 #include "Protocols/CowGearPrep.hpp"
+#include "Processor/FieldMachine.hpp"
 #include "Math/gfp.hpp"
 
 int main(int argc, const char** argv)
 {
     ez::ezOptionParser opt;
     CowGearOptions::singleton = CowGearOptions(opt, argc, argv);
-    spdz_main<CowGearShare<gfp>, CowGearShare<gf2n_short>>(argc, argv, opt);
+    DishonestMajorityFieldMachine<CowGearShare, CowGearShare, gf2n_short>(argc, argv, opt);
 }

@@ -37,6 +37,7 @@ class FlexBuffer;
 class octetStream
 {
   friend class FlexBuffer;
+  template<class T> friend class Exchanger;
 
   size_t len,mxlen,ptr;  // len is the "write head", ptr is the "read head"
   octet *data;
@@ -158,8 +159,6 @@ class octetStream
   void Send(T socket_num) const;
   template<class T>
   void Receive(T socket_num);
-  template<class T>
-  void ReceiveExpected(T socket_num, size_t expected);
 
   void input(istream& s);
   void output(ostream& s);
@@ -171,6 +170,17 @@ class octetStream
 
   friend ostream& operator<<(ostream& s,const octetStream& o);
   friend class PRNG;
+};
+
+class Player;
+
+class octetStreams : public vector<octetStream>
+{
+public:
+  octetStreams() {}
+  octetStreams(const Player& P);
+
+  void reset(const Player& P);
 };
 
 
@@ -294,25 +304,6 @@ inline void octetStream::Receive(T socket_num)
 
   receive(socket_num,data,len);
   reset_read_head();
-}
-
-template<class T>
-inline void octetStream::ReceiveExpected(T socket_num, size_t expected)
-{
-  size_t nlen = 0;
-  receive(socket_num, nlen, LENGTH_SIZE);
-
-  if (nlen != expected) {
-      cerr << "octetStream::ReceiveExpected: got " << nlen <<
-              " length, expected " << expected << endl;
-      throw bad_value();
-  }
-
-  len=0;
-  resize(nlen);
-  len=nlen;
-
-  receive(socket_num,data,len);
 }
 
 template<class T>

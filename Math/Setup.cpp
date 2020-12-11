@@ -24,7 +24,7 @@ bigint SPDZ_Data_Setup_Primes(int lgp)
 void SPDZ_Data_Setup_Primes(bigint& p,int lgp,int& idx,int& m)
 {
 #ifdef VERBOSE
-  cout << "Setting up parameters" << endl;
+  cerr << "Setting up parameters" << endl;
 #endif
 
   switch (lgp)
@@ -57,14 +57,21 @@ void SPDZ_Data_Setup_Primes(bigint& p,int lgp,int& idx,int& m)
         m=1;
         idx=0;
 #ifdef VERBOSE
-        cout << "no precomputed parameters, trying anyway" << endl;
+        cerr << "no precomputed parameters, trying anyway" << endl;
 #endif
         break;
     }
 #ifdef VERBOSE
-  cout << "m = " << m << endl;
+  cerr << "m = " << m << endl;
 #endif
   generate_prime(p, lgp, m);
+}
+
+bigint generate_prime(int lgp, int m)
+{
+  bigint p;
+  generate_prime(p, lgp, m);
+  return p;
 }
 
 void generate_prime(bigint& p, int lgp, int m)
@@ -104,19 +111,11 @@ void generate_prime(bigint& p, int lgp, int m)
     }
 
 #ifdef VERBOSE
-  cout << "\t p = " << p << "  u = " << u << "  :   ";
-  cout << lgp << " <= " << numBits(p) << endl;
+  cerr << "\t p = " << p << "  u = " << u << "  :   ";
+  cerr << lgp << " <= " << numBits(p) << endl;
 #endif
 }
 
-
-void generate_online_setup(string dirname, bigint& p, int lgp)
-{
-  int idx, m;
-  SPDZ_Data_Setup_Primes(p, lgp, idx, m);
-  write_online_setup(dirname, p);
-  gfp::init_field(p);
-}
 
 void write_online_setup(string dirname, const bigint& p)
 {
@@ -125,7 +124,7 @@ void write_online_setup(string dirname, const bigint& p)
 
   stringstream ss;
   ss << dirname;
-  cout << "Writing to file in " << ss.str() << endl;
+  cerr << "Writing to file in " << ss.str() << endl;
   // create preprocessing dir. if necessary
   if (mkdir_p(ss.str().c_str()) == -1)
   {
@@ -140,14 +139,4 @@ void write_online_setup(string dirname, const bigint& p)
   outf << p << endl;
   if (!outf.good())
     throw file_error("cannot write to " + ss.str());
-}
-
-void init_gf2n(int lg2)
-{
-  if (lg2 > 64)
-    gf2n_long::init_field(lg2);
-  else if (lg2 == 0)
-    gf2n::init_field(lg2);
-  else
-    gf2n_short::init_field(lg2);
 }

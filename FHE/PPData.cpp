@@ -72,13 +72,13 @@ void PPData::from_eval(vector<modp>& elem) const
 
 void PPData::reset_iteration()
 {
-  pow=1; theta.assign(root); thetaPow=theta; 
+  pow=1; theta = (root); thetaPow=theta;
 }
 
 void PPData::next_iteration()
 {
   do
-    { thetaPow.mul(theta);
+    { thetaPow *= (theta);
       pow++;
     }
   while (gcd(pow,m())!=1);
@@ -91,12 +91,12 @@ gfp PPData::get_evaluation(const vector<bigint>& mess) const
 {
   // Uses Horner's rule
   gfp ans;
-  to_gfp(ans,mess[mess.size()-1]);
+  ans = mess[mess.size()-1];
   gfp coeff;
   for (int j=mess.size()-2; j>=0; j--)
-        { ans.mul(thetaPow);
-          to_gfp(coeff,mess[j]);
-          ans.add(coeff);
+        { ans *= (thetaPow);
+          coeff = mess[j];
+          ans += (coeff);
         }
   return ans;
 }

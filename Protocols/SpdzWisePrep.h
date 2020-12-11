@@ -8,6 +8,8 @@
 
 #include "ReplicatedPrep.h"
 
+template<class T> class MaliciousShamirShare;
+
 template<class T>
 class SpdzWisePrep : public MaliciousRingPrep<T>
 {
@@ -18,6 +20,13 @@ class SpdzWisePrep : public MaliciousRingPrep<T>
     void buffer_inverses();
 
     void buffer_inputs(int player);
+
+    template<int X, int L>
+    void buffer_bits(MaliciousRep3Share<gfp_<X, L>>);
+    template<int X, int L>
+    void buffer_bits(MaliciousShamirShare<gfp_<X, L>>);
+    template<class U>
+    void buffer_bits(U);
 
 public:
     SpdzWisePrep(SubProcessor<T>* proc, DataPositions& usage) :

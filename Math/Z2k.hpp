@@ -57,7 +57,7 @@ Z2<K>::Z2(const bigint& x) : Z2()
 template<int K>
 template<class T>
 Z2<K>::Z2(const IntBase<T>& x) :
-        Z2((uint64_t)x.get())
+        Z2((mp_limb_t)x.get())
 {
 }
 

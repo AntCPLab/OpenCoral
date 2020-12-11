@@ -69,7 +69,7 @@ void Triple_Checking(const Player& P, MAC_Check<T>& MC, int nm,
           Sh_Tau[i].sub(Sh_Tau[i],temp);
           temp.mul(b2[i],PO[2*i]);
           Sh_Tau[i].sub(Sh_Tau[i],temp);
-          te.mul(PO[2*i],PO[2*i+1]);
+          te = (PO[2*i] * PO[2*i+1]);
           Sh_Tau[i].sub(Sh_Tau[i],te,P.my_num(),MC.get_alphai());
         }
       MC.POpen_Begin(Tau,Sh_Tau,P);
@@ -192,7 +192,7 @@ void Square_Checking(const Player& P, MAC_Check<T>& MC, int ns,
 
   T te,t,t2;
   Create_Random(t,P);
-  t2.mul(t,t);
+  t2 = t * t;
   vector<Share<T> > Sh_PO(amortize);
   vector<T> PO(amortize);
   vector<Share<T> > f(amortize),h(amortize),a(amortize),b(amortize);
@@ -259,7 +259,7 @@ void Bit_Checking(const Player& P, MAC_Check<gfp>& MC, int nb,
 
   gfp te,t,t2;
   Create_Random(t,P);
-  t2.mul(t,t);
+  t2 = t * t;
   vector<Share<gfp> > Sh_PO(amortize);
   vector<gfp> PO(amortize);
   vector<Share<gfp> > f(amortize),h(amortize),a(amortize),b(amortize);

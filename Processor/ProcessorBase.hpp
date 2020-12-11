@@ -52,9 +52,9 @@ template<class T>
 T ProcessorBase::get_input(istream& input_file, const string& input_filename, const int* params)
 {
     T res;
-    res.read(input_file, params);
-    if (input_file.eof())
+    if (input_file.peek() == EOF)
         throw IO_Error("not enough inputs in " + input_filename);
+    res.read(input_file, params);
     if (input_file.fail())
     {
         input_file.clear();

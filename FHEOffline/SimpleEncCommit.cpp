@@ -302,9 +302,9 @@ void SummingEncCommit<FD>::create_more()
     preimages.pack(cleartexts);
     this->timers["Verifying"].start();
 #ifdef LESS_ALLOC_MORE_MEM
-    Verifier<FD,S>& verifier = this->verifier;
+    Verifier<FD>& verifier = this->verifier;
 #else
-    Verifier<FD,S> verifier(proof);
+    Verifier<FD> verifier(proof);
 #endif
     verifier.Stage_2(this->c, ciphertexts, cleartexts,
             this->pk, false, false);

@@ -36,9 +36,22 @@ public:
         return super::operator-();
     }
 
-    void generateUniform(PRNG& G, int n_bits)
+    fixint operator^(const fixint& other) const
     {
-        G.get(*this, n_bits);
+        assert(L == 0);
+        return fixint(this->a[0] ^ other.a[0]);
+    }
+
+    void generateUniform(PRNG& G, int n_bits, bool positive = true)
+    {
+        G.get(bigint::tmp, n_bits, positive);
+        *this = bigint::tmp;
+    }
+
+    void randomBnd(PRNG& G, const bigint& bound, bool positive)
+    {
+        G.randomBnd(bigint::tmp, bound, positive);
+        *this = bigint::tmp;
     }
 
     int get_min_alloc() const

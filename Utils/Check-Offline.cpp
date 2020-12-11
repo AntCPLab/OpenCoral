@@ -36,7 +36,7 @@ string PREP_DATA_PREFIX;
 template<class T>
 void check_mult_triples(const typename T::mac_key_type& key,int N,vector<Sub_Data_Files<T>*>& dataF)
 {
-  typename T::clear a,b,c,mac,res;
+  typename T::clear a,b,c,mac;
   vector<T> Sa(N),Sb(N),Sc(N);
   int n = 0;
 
@@ -49,8 +49,7 @@ void check_mult_triples(const typename T::mac_key_type& key,int N,vector<Sub_Dat
           check_share(Sb, b, mac, N, key);
           check_share(Sc, c, mac, N, key);
 
-          res.mul(a, b);
-          if (res != c)
+          if (a * b != c)
             {
               cout << n << ": " << c << " != " << a << " * " << b << endl;
               throw bad_value();
@@ -73,9 +72,7 @@ void check_mult_triples(const typename T::mac_key_type& key,int N,vector<Sub_Dat
 template <class T>
 void check_square(const T& a, const T& b, int n)
 {
-  T res;
-  res.mul(a, a);
-  if (!res.equal(b))
+  if (a * a != b)
     {
       cout << n << ": " << b << " != " << a << "^2" << endl;
       throw bad_value();
@@ -85,9 +82,7 @@ void check_square(const T& a, const T& b, int n)
 template <class T>
 void check_inverse(const T& a, const T& b, int n)
 {
-  T res;
-  res.mul(a, b);
-  if (!res.is_one())
+  if (!(a * b).is_one())
     {
       cout << n << ": " << b << " != " << a << "^-1" << endl;
       throw bad_value();
@@ -178,7 +173,7 @@ void check_inputs(const typename T::mac_key_type& key,int N,vector<Sub_Data_File
               for (int i = 0; i < N; i++)
                   dataF[i]->get_input(Sa[i], x, player);
               check_share(Sa, a, mac, N, key);
-              if (!a.equal(x))
+              if (a != (x))
                   throw bad_value();
               n++;
           }
@@ -223,7 +218,6 @@ void check(int N, bool only_bits = false)
 int main(int argc, const char** argv)
 {
   ez::ezOptionParser opt;
-  gfp::init_field(gfp::pr(), false);
 
   opt.syntax = "./Check-Offline.x <nparties> [OPTIONS]\n";
   opt.example = "./Check-Offline.x 3 -lgp 64 -lg2 128\n";

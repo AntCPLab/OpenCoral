@@ -4,14 +4,13 @@
  */
 
 #include "Protocols/PostSacriRepFieldShare.h"
-#include "Protocols/ReplicatedMachine.hpp"
+#include "Processor/FieldMachine.hpp"
 #include "Machines/Rep.hpp"
+#include "Machines/MalRep.hpp"
 #include "Protocols/PostSacrifice.hpp"
 #include "Math/gfp.hpp"
 
 int main(int argc, const char** argv)
 {
-    ez::ezOptionParser opt;
-    ReplicatedMachine<PostSacriRepFieldShare<gfp>, PostSacriRepFieldShare<gf2n>>(
-            argc, argv, opt);
+    HonestMajorityFieldMachine<PostSacriRepFieldShare>(argc, argv);
 }

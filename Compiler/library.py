@@ -841,7 +841,7 @@ def for_range(start, stop=None, step=None):
     Decorator to execute loop bodies consecutively.  Arguments work as
     in Python :py:func:`range`, but they can by any public
     integer. Information has to be passed out via container types such
-    as :py:class:`Compiler.types.Array` or declaring registers as
+    as :py:class:`~Compiler.types.Array` or declaring registers as
     :py:obj:`global`. Note that changing Python data structures such
     as lists within the loop is not possible, but the compiler cannot
     warn about this.
@@ -1519,49 +1519,36 @@ def approximate_reciprocal(divisor, k, f, theta):
     """
     def twos_complement(x):
         bits = x.bit_decompose(k)[::-1]
-        bit_array = Array(k, cint)
-        bit_array.assign(bits)
 
-        twos_result = MemValue(cint(0))
-        @for_range(k)
-        def block(i):
-            val = twos_result.read()
+        twos_result = cint(0)
+        for i in range(k):
+            val = twos_result
             val <<= 1
-            val += 1 - bit_array[i]
-            twos_result.write(val)
+            val += 1 - bits[i]
+            twos_result = val
 
-        return twos_result.read() + 1
+        return twos_result + 1
 
-    bit_array = Array(k, cint)
     bits = divisor.bit_decompose(k)[::-1]
-    bit_array.assign(bits)
 
-    cnt_leading_zeros = MemValue(regint(0))
+    flag = regint(0)
+    cnt_leading_zeros = regint(0)
+    normalized_divisor = divisor
 
-    flag = MemValue(regint(0))
-    cnt_leading_zeros = MemValue(regint(0))
-    normalized_divisor = MemValue(divisor)
+    for i in range(k):
+        flag = flag | (bits[i] == 1)
+        flag_zero = cint(flag == 0)
+        cnt_leading_zeros += flag_zero
+        normalized_divisor <<= flag_zero
 
-    @for_range(k)
-    def block(i):
-        flag.write(flag.read() | bit_array[i] == 1)
-        @if_(flag.read() == 0)
-        def block():
-            cnt_leading_zeros.write(cnt_leading_zeros.read() + 1)
-            normalized_divisor.write(normalized_divisor << 1)
-
-    q = MemValue(two_power(k))
-    e = MemValue(twos_complement(normalized_divisor.read()))
-
-    qr = q.read()
-    er = e.read()
+    q = two_power(k)
+    e = twos_complement(normalized_divisor)
 
     for i in range(theta):
-        qr = qr + shift_two(qr * er, k)
-        er = shift_two(er * er, k)
+        q += (q * e) >> k
+        e = (e * e) >> k
 
-    q = qr
-    res = q >> (2*k - 2*f - cnt_leading_zeros)
+    res = q >> cint(2*k - 2*f - cnt_leading_zeros)
 
     return res
 
@@ -1583,19 +1570,16 @@ def cint_cint_division(a, b, k, f):
     absolute_b = b * sign_b
     absolute_a = a * sign_a
     w0 = approximate_reciprocal(absolute_b, k, f, theta)
-    A = Array(theta, cint)
-    B = Array(theta, cint)
-    W = Array(theta, cint)
 
-    A[0] = absolute_a
-    B[0] = absolute_b
-    W[0] = w0
+    A = absolute_a
+    B = absolute_b
+    W = w0
+
     for i in range(1, theta):
-        A[i] = shift_two(A[i - 1] * W[i - 1], f)
-        B[i] = shift_two(B[i - 1] * W[i - 1], f)
-        W[i] = two - B[i]
-
-    return (sign_a * sign_b) * A[theta - 1]
+        A = (A * W) >> f
+        B = (B * W) >> f
+        W = two - B
+    return (sign_a * sign_b) * A
 
 from Compiler.program import Program
 def sint_cint_division(a, b, k, f, kappa):
@@ -1610,23 +1594,18 @@ def sint_cint_division(a, b, k, f, kappa):
     absolute_a = a * sign_a
     w0 = approximate_reciprocal(absolute_b, k, f, theta)
 
-    A = Array(theta, sint)
-    B = Array(theta, cint)
-    W = Array(theta, cint)
-
-    A[0] = absolute_a
-    B[0] = absolute_b
-    W[0] = w0
+    A = absolute_a
+    B = absolute_b
+    W = w0
 
 
     @for_range(1, theta)
     def block(i):
-        A[i] = TruncPr(A[i - 1] * W[i - 1], 2*k, f, kappa)
-        temp = shift_two(B[i - 1] * W[i - 1], f)
-        # no reading and writing to the same variable in a for loop.
-        W[i] = two - temp
-        B[i] = temp
-    return (sign_a * sign_b) * A[theta - 1]
+        A.link(TruncPr(A * W, 2*k, f, kappa))
+        temp = (B * W) >> f
+        W.link(two - temp)
+        B.link(temp)
+    return (sign_a * sign_b) * A
 
 def IntDiv(a, b, k, kappa=None):
     return FPDiv(a.extend(2 * k) << k, b.extend(2 * k) << k, 2 * k, k,
@@ -1637,7 +1616,9 @@ def FPDiv(a, b, k, f, kappa, simplex_flag=False, nearest=False):
     """
         Goldschmidt method as presented in Catrina10,
     """
-    if 2 * k == int(get_program().options.ring):
+    prime = get_program().prime
+    if 2 * k == int(get_program().options.ring) or \
+       (prime and 2 * k <= (prime.bit_length() - 1)):
         # not fitting otherwise
         nearest = True
     if get_program().options.binary:

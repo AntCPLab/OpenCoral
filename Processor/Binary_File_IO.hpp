@@ -32,7 +32,7 @@ void Binary_File_IO::read_from_file(const string filename, vector< T >& buffer, 
   int size_in_bytes = T::size() * buffer.size();
   int n_read = 0;
   char * read_buffer = new char[size_in_bytes];
-  inf.seekg(start_posn);
+  inf.seekg(start_posn * T::size());
   do
   {
       inf.read(read_buffer + n_read, size_in_bytes - n_read);
@@ -53,7 +53,8 @@ void Binary_File_IO::read_from_file(const string filename, vector< T >& buffer, 
   }
   while (n_read < size_in_bytes);
 
-  end_posn = inf.tellg();
+  end_posn = inf.tellg() / T::size();
+  assert (end_posn == start_posn + int(buffer.size()));
 
   //Check if at end of file by getting 1 more char.
   inf.get();

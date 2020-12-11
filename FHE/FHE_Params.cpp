@@ -1,7 +1,6 @@
 
 #include "FHE_Params.h"
 #include "FHE/Ring_Element.h"
-#include "Math/gfp.h"
 #include "Exceptions/Exceptions.h"
 
 

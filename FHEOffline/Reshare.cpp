@@ -4,6 +4,8 @@
 #include "FHE/P2Data.h"
 #include "Tools/random.h"
 
+#include "Math/modp.hpp"
+
 template<class T,class FD,class S>
 void Reshare(Plaintext<T,FD,S>& m,Ciphertext& cc,
              const Ciphertext& cm,bool NewCiphertext,

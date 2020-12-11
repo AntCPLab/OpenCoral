@@ -99,6 +99,12 @@ public:
 };
 
 template<class T>
+void BrainPrep<T>::basic_setup(Player&)
+{
+    gfp2::init_default(DIV_CEIL(T::Z_BITS + 3, 8) * 8);
+}
+
+template<class T>
 void BrainPrep<T>::buffer_triples()
 {
     if(gfp2::get_ZpD().pr_bit_length

@@ -3,6 +3,8 @@
 #include "P2Data.h"
 #include "Exceptions/Exceptions.h"
 
+#include "Math/modp.hpp"
+
 Ciphertext::Ciphertext(const FHE_PK& pk) : Ciphertext(pk.get_params())
 {
 }

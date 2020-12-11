@@ -129,6 +129,7 @@ void SpdzWise<T>::check()
 template<class T>
 void SpdzWise<T>::zero_check(check_type t)
 {
+    assert(T::clear::invertible);
     auto r = internal.get_random();
     internal.init_mul();
     internal.prepare_mul(t, r);

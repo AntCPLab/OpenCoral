@@ -23,6 +23,7 @@ protected:
     std::map<int,Timer> timer;
 
     string compiler;
+    string domain;
 
     void print_timers();
 
@@ -43,7 +44,10 @@ public:
 
     static string memory_filename(string type_short, int my_number);
 
+    static string get_domain(string progname);
     static int ring_size_from_schedule(string progname);
+    static int prime_length_from_schedule(string progname);
+    static bigint prime_from_schedule(string progname);
 
     BaseMachine();
     virtual ~BaseMachine() {}

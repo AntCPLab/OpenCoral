@@ -177,4 +177,13 @@ public:
   }
 };
 
+template <class S>
+void FHE_PK::encrypt(Ciphertext& c, const vector<S>& mess,
+    const Random_Coins& rc) const
+{
+  Rq_Element mm((*params).FFTD(),polynomial,polynomial);
+  mm.from(Iterator<S>(mess));
+  quasi_encrypt(c, mm, rc);
+}
+
 #endif

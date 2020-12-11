@@ -7,6 +7,7 @@
 #define GC_INSTRUCTIONS_H_
 
 #include "Tools/callgrind.h"
+#include "Instruction.h"
 
 #define PROC processor
 #define INST instruction

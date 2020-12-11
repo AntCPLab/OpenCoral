@@ -15,7 +15,9 @@ class Rep4 : public ProtocolBase<T>
 
     typedef typename T::open_type open_type;
 
-    array<octetStream, 2> os;
+    octetStreams send_os;
+    octetStreams receive_os;
+    vector<vector<bool>> channels;
     array<array<Hash, 4>, 4> send_hashes, receive_hashes;
 
     array<vector<open_type>, 5> add_shares;
@@ -37,8 +39,12 @@ class Rep4 : public ProtocolBase<T>
     void reset_joint_input(int n_inputs);
     void prepare_joint_input(int sender, int backup, int receiver,
             int outsider, vector<open_type>& inputs);
+    void prepare_joint_input(int sender, int backup, int receiver, int outsider,
+            vector<open_type>& inputs, vector<ResTuple>& results);
     void finalize_joint_input(int sender, int backup, int receiver,
             int outsider);
+    void finalize_joint_input(int sender, int backup, int receiver,
+            int outsider, vector<ResTuple>& results);
 
     int get_player(int offset);
 

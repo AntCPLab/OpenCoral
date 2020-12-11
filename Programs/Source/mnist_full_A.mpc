@@ -64,7 +64,8 @@ elif 'octuple' in program.args:
     sfix.set_precision(128, 255)
     cfix.set_precision(128, 255)
 
-assert sfix.f * 4 == int(program.options.ring)
+if program.options.ring:
+    assert sfix.f * 4 == int(program.options.ring)
 
 debug_ml = ('debug_ml' in program.args) * 2 ** (sfix.f / 2)
 
@@ -81,6 +82,8 @@ layers[-1].cheaper_loss = 'mse' in program.args
 
 if '2dense' in program.args:
     del layers[1]
+
+program.disable_memory_warnings()
 
 layers[-1].Y.input_from(0)
 layers[0].X.input_from(0)

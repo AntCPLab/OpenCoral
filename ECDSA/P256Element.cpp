@@ -73,6 +73,11 @@ P256Element P256Element::operator *(const Scalar& other) const
     return res;
 }
 
+P256Element operator*(const P256Element::Scalar& x, const P256Element& y)
+{
+    return y * x;
+}
+
 P256Element& P256Element::operator +=(const P256Element& other)
 {
     *this = *this + other;

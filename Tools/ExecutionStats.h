@@ -18,6 +18,8 @@ public:
             (*this)[it.first] += it.second;
         return *this;
     }
+
+    void print();
 };
 
 #endif /* TOOLS_EXECUTIONSTATS_H_ */

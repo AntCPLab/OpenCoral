@@ -8,6 +8,8 @@
 #include "Networking/ssl_sockets.h"
 #include "Exceptions/Exceptions.h"
 #include "Networking/data.h"
+#include "Networking/Player.h"
+#include "Networking/Exchanger.h"
 #include "Math/bigint.h"
 #include "Tools/time-func.h"
 #include "Tools/FlexBuffer.h"
@@ -188,79 +190,9 @@ void octetStream::get(bigint& ans)
 template<class T>
 void octetStream::exchange(T send_socket, T receive_socket, octetStream& receive_stream) const
 {
-  send(send_socket, len, LENGTH_SIZE);
-  size_t sent = 0, received = 0;
-  bool length_received = false;
-  size_t new_len = 0;
-#ifdef TIME_ROUNDS
-  Timer recv_timer;
-#endif
-  size_t n_iter = 0, n_send = 0;
-  while (received < new_len or sent < len or not length_received)
-    {
-      n_iter++;
-      if (sent < len)
-        {
-          n_send++;
-          size_t to_send = len - sent;
-          sent += send_non_blocking(send_socket, data + sent, to_send);
-        }
-
-      // avoid extra branching, false before length received
-      if (received < new_len)
-        {
-          // if same buffer for sending and receiving
-          // only receive up to already sent data
-          // or when all is sent
-          size_t to_receive = 0;
-          if (sent == len or this != &receive_stream)
-            to_receive = new_len - received;
-          else if (sent > received)
-            to_receive = sent - received;
-          if (to_receive > 0)
-            {
-#ifdef TIME_ROUNDS
-              TimeScope ts(recv_timer);
-#endif
-              if (sent < len)
-                received += receive_non_blocking(receive_socket,
-                    receive_stream.data + received, to_receive);
-              else
-                {
-                  receive(receive_socket,
-                      receive_stream.data + received, to_receive);
-                  received += to_receive;
-                }
-            }
-        }
-      else if (not length_received)
-        {
-#ifdef TIME_ROUNDS
-          TimeScope ts(recv_timer);
-#endif
-          octet blen[LENGTH_SIZE];
-          size_t tmp = LENGTH_SIZE;
-          if (sent < len)
-            tmp = receive_all_or_nothing(receive_socket, blen, LENGTH_SIZE);
-          else
-            receive(receive_socket, blen, LENGTH_SIZE);
-          if (tmp == LENGTH_SIZE)
-            {
-              new_len=decode_length(blen,sizeof(blen));
-              receive_stream.resize(max(new_len, len));
-              length_received = true;
-            }
-        }
-    }
-
-#ifdef TIME_ROUNDS
-  cout << "Exchange time: " << recv_timer.elapsed() << " seconds and " << n_iter <<
-          " iterations to receive "
-      << 1e-3 * new_len << " KB, " << n_send
-      << " iterations to send " << 1e-3 * len << " KB" << endl;
-#endif
-  receive_stream.len = new_len;
-  receive_stream.reset_read_head();
+  Exchanger<T> exchanger(send_socket, *this, receive_socket, receive_stream);
+  while (exchanger.round())
+    ;
 }
 
 
@@ -293,6 +225,17 @@ ostream& operator<<(ostream& s,const octetStream& o)
   return s;
 }
 
+octetStreams::octetStreams(const Player& P)
+{
+  reset(P);
+}
 
-template void octetStream::exchange(int, int);
-template void octetStream::exchange(ssl_socket*, ssl_socket*);
+void octetStreams::reset(const Player& P)
+{
+  resize(P.num_players());
+  for (auto& o : *this)
+    o.reset_write_head();
+}
+
+template void octetStream::exchange(int, int, octetStream&) const;
+template void octetStream::exchange(ssl_socket*, ssl_socket*, octetStream&) const;

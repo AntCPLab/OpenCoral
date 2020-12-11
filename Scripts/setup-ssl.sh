@@ -3,7 +3,7 @@
 # brew-installed OpenSSL on MacOS
 PATH=/usr/local/opt/openssl/bin:$PATH
 
-n=${1:-3}
+n=${1:-4}
 
 test -e Player-Data || mkdir Player-Data
 

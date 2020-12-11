@@ -9,6 +9,7 @@
 #include "Processor/DummyProtocol.h"
 #include "BMR/Register.h"
 #include "Tools/SwitchableOutput.h"
+#include "Protocols/ShareInterface.h"
 
 class InputArgs;
 class ArithmeticProcessor;
@@ -76,7 +77,7 @@ inline ostream& operator<<(ostream& o, NoValue)
     return o;
 }
 
-class NoShare
+class NoShare : public ShareInterface
 {
 public:
     typedef DummyMC<NoShare> MC;
@@ -92,6 +93,8 @@ public:
     typedef NoShare bit_type;
     typedef NoShare part_type;
     typedef NoShare small_type;
+
+    typedef BlackHole out_type;
 
     static const int default_length = 1;
 
@@ -135,6 +138,7 @@ public:
     }
 
     static void inputb(Processor<NoShare>&, const ArithmeticProcessor&, const vector<int>&) { fail(); }
+    static void inputbvec(Processor<NoShare>&, const ArithmeticProcessor&, const vector<int>&) { fail(); }
     static void reveal_inst(Processor<NoShare>&, const vector<int>&) { fail(); }
     static void xors(Processor<NoShare>&, const vector<int>&) { fail(); }
     static void ands(Processor<NoShare>&, const vector<int>&) { fail(); }
@@ -142,10 +146,6 @@ public:
 
     static void input(Processor<NoShare>&, InputArgs&) { fail(); }
     static void trans(Processor<NoShare>&, Integer, const vector<int>&) { fail(); }
-
-    static void xors(Processor<NoShare>&, vector<int>) { fail(); }
-    static void ands(Processor<NoShare>&, vector<int>) { fail(); }
-    static void andrs(Processor<NoShare>&, vector<int>) { fail(); }
 
     static NoShare constant(const GC::Clear&, int, mac_key_type) { fail(); return {}; }
 

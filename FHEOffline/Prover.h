@@ -14,7 +14,7 @@ class Prover
   AddableVector< Plaintext_<FD> > y;
 
 #ifdef LESS_ALLOC_MORE_MEM
-  AddableVector<fixint<GFP_MOD_SZ>> z;
+  AddableVector<typename Proof::bound_type> z;
   AddableMatrix<Int_Random_Coins::value_type::value_type> t;
 #endif
 

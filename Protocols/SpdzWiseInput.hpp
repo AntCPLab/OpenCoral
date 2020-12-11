@@ -27,6 +27,12 @@ SpdzWiseInput<T>::SpdzWiseInput(SubProcessor<T>& proc, typename T::MAC_Check&) :
 }
 
 template<class T>
+SpdzWiseInput<T>::~SpdzWiseInput()
+{
+    checker.check();
+}
+
+template<class T>
 void SpdzWiseInput<T>::reset(int player)
 {
     part_input.reset(player);

@@ -161,11 +161,11 @@ void MAC_Check_<U>::Check(const Player& P)
           temp = vals[i] * h;
           a.add(a,temp);
 
-          temp.mul(h,macs[i]);
+          temp = h * macs[i];
           gami.add(gami,temp);
         }
 
-      temp.mul(this->alphai,a);
+      temp = this->alphai * a;
       tau[P.my_num()].sub(gami,temp);
 
       //cerr << "\tCommit and Open" << endl;
@@ -294,7 +294,7 @@ void MAC_Check_Z2k<T, U, V, W>::Check(const Player& P)
   U pbar(pj);
   vector<octetStream> pj_stream(P.num_players());
   pj.pack(pj_stream[P.my_num()]);
-  P.Broadcast_Receive(pj_stream, true);
+  P.unchecked_broadcast(pj_stream);
   for (int j=0; j<P.num_players(); j++) {
     if (j!=P.my_num()) {
       pbar += pj_stream[j].consume(U::size());
@@ -350,19 +350,23 @@ void direct_add_openings(vector<T>& values, const PlayerBase& P, vector<octetStr
 }
 
 template<class T>
+void Direct_MAC_Check<T>::pre_exchange(const Player& P)
+{
+  oss.resize(P.num_players());
+  oss[P.my_num()].reset_write_head();
+  oss[P.my_num()].reserve(this->values.size() * T::open_type::size());
+
+  for (auto& x : this->values)
+    x.pack(oss[P.my_num()]);
+}
+
+
+template<class T>
 void Direct_MAC_Check<T>::exchange(const Player& P)
 {
-  this->timers[SEND].start();
-  P.send_all(this->os,true);
-  this->timers[SEND].stop();
+  pre_exchange(P);
+  P.unchecked_broadcast(oss);
 
-  oss.resize(P.num_players());
-
-  this->timers[RECV].start();
-
-  P.receive_all(oss);
-
-  this->timers[RECV].stop();
   open_counter++;
 
   direct_add_openings<open_type>(this->values, P, oss);
@@ -396,14 +400,11 @@ template<class T>
 void Direct_MAC_Check<T>::init_open(const Player& P, int n)
 {
   super::init_open(P, n);
-  this->os.clear();
-  this->os.reserve(n * T::open_type::size());
 }
 
 template<class T>
 void Direct_MAC_Check<T>::prepare_open(const T& secret)
 {
-  secret.get_share().pack(this->os);
   this->values.push_back(secret.get_share());
   this->macs.push_back(secret.get_mac());
 }
@@ -411,6 +412,7 @@ void Direct_MAC_Check<T>::prepare_open(const T& secret)
 template<class T>
 void Passing_MAC_Check<T>::exchange(const Player& P)
 {
+  this->pre_exchange(P);
   for (int i = 0; i < P.num_players() - 1; i++)
     {
       P.pass_around(this->os);

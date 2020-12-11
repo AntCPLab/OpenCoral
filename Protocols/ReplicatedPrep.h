@@ -12,6 +12,7 @@
 #include "Processor/ThreadQueues.h"
 #include "Protocols/ShuffleSacrifice.h"
 #include "Protocols/MAC_Check_Base.h"
+#include "Protocols/ShuffleSacrifice.h"
 #include "edabit.h"
 
 #include <array>
@@ -41,7 +42,7 @@ protected:
 
     SubProcessor<T>* proc;
 
-    virtual void buffer_triples() = 0;
+    virtual void buffer_triples() { throw runtime_error("no triples"); }
     virtual void buffer_squares() { throw runtime_error("no squares"); }
     virtual void buffer_inverses() { throw runtime_error("no inverses"); }
     virtual void buffer_bits() { throw runtime_error("no bits"); }
@@ -74,6 +75,12 @@ public:
     static void basic_setup(Player& P) { (void) P; }
     static void setup(Player& P, typename T::mac_key_type alphai) { (void) P, (void) alphai; }
     static void teardown() {}
+
+    static void edabit_sacrifice_buckets(vector<edabit<T>>&, size_t, bool, int,
+            SubProcessor<T>&, int, int, const void* = 0)
+    {
+        throw runtime_error("sacrifice not available");
+    }
 
     BufferPrep(DataPositions& usage);
     virtual ~BufferPrep();
@@ -149,6 +156,14 @@ protected:
     void sanitize(vector<edabitvec<T>>& edabits, int n_bits);
 
 public:
+    static void edabit_sacrifice_buckets(vector<edabit<T>>& to_check, size_t n_bits,
+            bool strict, int player, SubProcessor<T>& proc, int begin, int end,
+            const void* supply = 0)
+    {
+        ShuffleSacrifice<T>().edabit_sacrifice_buckets(to_check, n_bits, strict,
+                player, proc, begin, end, supply);
+    }
+
     RingPrep(SubProcessor<T>* proc, DataPositions& usage);
     virtual ~RingPrep() {}
 

@@ -3,6 +3,8 @@
 #include "Exceptions/Exceptions.h"
 #include "FHE/FFT.h"
 
+#include "Math/modp.hpp"
+
 void reduce_step(vector<modp>& aa,int i,const FFT_Data& FFTD)
 { modp temp=aa[i];
   for (int j=0; j<FFTD.phi_m(); j++)

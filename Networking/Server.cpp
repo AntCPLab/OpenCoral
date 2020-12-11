@@ -40,8 +40,6 @@ void Server::get_ip(int num)
 
 void Server::get_name(int num)
 {
-  // Now all machines are set up, send GO to start them.
-  send(socket_num[num], GO);
 #ifdef DEBUG_NETWORKING
   cerr << "Player " << num << " started." << endl;
 #endif
@@ -65,7 +63,7 @@ void Server::send_names(int num)
   /* Now send the machine names back to each client 
    * and the number of machines
    */
-  send(socket_num[num],nmachines);
+  send(socket_num[num],nmachines,4);
   for (int i=0; i<nmachines; i++)
     {
       send(socket_num[num],names[i],512);

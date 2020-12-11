@@ -1,4 +1,4 @@
-from path_oram import OptimalORAM
+from oram import OptimalORAM
 
 array = OptimalORAM(10000)
 array[1] = 1

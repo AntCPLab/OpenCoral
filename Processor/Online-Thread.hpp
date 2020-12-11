@@ -75,10 +75,11 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
   typename sgf2n::MAC_Check* MC2;
   typename sint::MAC_Check*  MCp;
 
-  // Use MAC_Check instead for more than 10000 openings at once
   if (machine.direct)
     {
-      cerr << "Using direct communication. If computation stalls, use -m when compiling." << endl;
+#ifdef VERBOSE
+      cerr << "Using direct communication." << endl;
+#endif
       MC2 = new typename sgf2n::Direct_MC(*(tinfo->alpha2i));
       MCp = new typename sint::Direct_MC(*(tinfo->alphapi));
     }
@@ -192,7 +193,7 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
         }
       else if (job.type == EDABIT_SACRIFICE_JOB)
         {
-          ShuffleSacrifice<sint>().edabit_sacrifice_buckets(
+          sint::LivePrep::edabit_sacrifice_buckets(
               *(vector<edabit<sint>>*) job.output, job.length, job.prognum,
               job.arg, Proc.Procp,
               job.begin, job.end, job.supply);

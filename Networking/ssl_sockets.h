@@ -8,6 +8,7 @@
 
 #include "Tools/int.h"
 #include "sockets.h"
+#include "Math/Setup.h"
 
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>

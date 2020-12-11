@@ -1,3 +1,16 @@
+"""
+This module contains an implementation of the tree-based oblivious
+RAM as proposed by `Shi et al. <https://eprint.iacr.org/2011/407>`_ as
+well as the straight-forward construction using linear scanning.
+Unlike :py:class:`~Compiler.types.Array`, this allows access by a
+secret index::
+
+    a = OptimalORAM(1000)
+    i = sint.get_input_from(0)
+    a[i] = sint.get_input_from(1)
+
+"""
+
 import random
 import math
 import collections
@@ -1645,6 +1658,12 @@ class OneLevelORAM(TreeORAM):
     index_structure = BaseORAMIndexStructure
 
 def OptimalORAM(size,*args,**kwargs):
+    """ Create an ORAM instance suitable for the size based on
+    experiments.
+
+    :param size: number of elements
+    :param value_type: :py:class:`sint` (default) / :py:class:`sg2fn`
+    """
     if optimal_threshold is None:
         if n_threads == 1:
             threshold = 2**11

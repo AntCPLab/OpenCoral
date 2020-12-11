@@ -8,6 +8,9 @@
 #include <mpirxx.h>
 
 #include "BitMatrix.h"
+#include "Tools/random.h"
+#include "Tools/BitVector.h"
+#include "Math/Square.h"
 
 union matrix16x8
 {
@@ -274,7 +277,7 @@ void square128::conditional_add(BitVector& conditions, square128& other, int off
 }
 
 template <>
-void Square<gf2n_long>::to(gf2n_long& result)
+void Square<gf2n_long>::to(gf2n_long& result, false_type)
 {
     int128 high, low;
     for (int i = 0; i < 128; i++)

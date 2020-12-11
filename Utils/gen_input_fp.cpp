@@ -91,8 +91,7 @@ int main(int argc, const char** argv) {
 	for (int i = 0; i < n; ++i) {
 		bigint a;
 		*in >> a;
-		gfp b;
-		to_gfp(b, a);
+		gfp b = a;
 		b.output(*out, false);
 	}
 	if (in->fail())

@@ -236,7 +236,7 @@ void EvalRegister::load(vector<GC::ReadAccess<T> >& accesses,
 		}
 	}
 
-	party.P->Broadcast_Receive(keys, true);
+	party.P->unchecked_broadcast(keys);
 
 	int base = 0;
 	for (auto access : accesses)

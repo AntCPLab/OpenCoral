@@ -20,7 +20,7 @@ void MaliciousShamirPO<T>::prepare_sending(const T& secret, int)
 template<class T>
 void MaliciousShamirPO<T>::send(int player)
 {
-    P.send_to(player, to_send, true);
+    P.send_to(player, to_send);
 }
 
 template<class T>
@@ -29,7 +29,7 @@ void MaliciousShamirPO<T>::receive()
     to_receive.resize(P.num_players());
     for (int i = 0; i < P.num_players(); i++)
         if (i != P.my_num())
-            P.receive_player(i, to_receive[i], true);
+            P.receive_player(i, to_receive[i]);
 }
 
 template<class T>

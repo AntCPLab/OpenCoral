@@ -123,7 +123,7 @@ void InputBase<T>::add_from_all(const clear& input)
 template<class T>
 void Input<T>::send_mine()
 {
-    P.send_all(this->os[P.my_num()], true);
+    P.send_all(this->os[P.my_num()]);
 }
 
 template<class T>
@@ -133,7 +133,7 @@ void InputBase<T>::exchange()
         if (i == P->my_num())
             send_mine();
         else
-            P->receive_player(i, os[i], true);
+            P->receive_player(i, os[i]);
 }
 
 template<class T>

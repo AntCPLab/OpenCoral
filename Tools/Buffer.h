@@ -94,9 +94,11 @@ public:
 template<class T, class U>
 inline Buffer<T, U>::~Buffer()
 {
+#ifdef VERBOSE
     if (timer.elapsed() && data_type.size())
         cerr << T::type_string() << " " << data_type << " reading: "
                 << timer.elapsed() << endl;
+#endif
 }
 
 template<class T, class U>

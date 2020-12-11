@@ -10,7 +10,9 @@ Compilation process
 -------------------
 
 After putting your code in ``Program/Source/<progname>.mpc``, run the
-compiler from the root directory as follows::
+compiler from the root directory as follows
+
+.. code-block:: bash
 
   ./compile.py [options] <progname> [args]
 
@@ -25,10 +27,22 @@ The following options influence the computation domain:
 
    Compile for computation modulo a prime and the default integer
    length. This means that secret integers are assumed to have at most
-   said length unless explicitely told otherwise. The compiled output
+   said length unless explicitly told otherwise. The compiled output
    will communicate the minimum length of the prime number to the
    virtual machine, which will fail if this is not met. This is the
-   default with an *integer length* set to 64.
+   default with an *integer length* set to 64. When not specifying the
+   prime, the minimum prime length will be around 40 bits longer than
+   the integer length. Furthermore, the computation will be optimistic
+   in the sense that overflows in the secrets might have security
+   implications.
+
+.. cmdoption:: -P <prime>
+	       --prime=<prime>
+
+   Specify a concrete prime modulus for computation. This can be used
+   together with :option:`-F`, in which case *integer length* has to
+   be at most the prime length minus two. The security implications of
+   overflows in the secrets do not go beyond incorrect results.
 
 .. cmdoption:: -R <ring size>
 	       --ring=<ring size>
@@ -36,18 +50,21 @@ The following options influence the computation domain:
    Compile for computation modulo 2^(*ring size*). This will set the
    assumed length of secret integers to one less because many
    operations require this. The exact ring size will be communicated
-   to the virtual machine, which will fail if it is run for another
-   length.
+   to the virtual machine, which will use it automatically if
+   supported.
 
 .. cmdoption:: -B <integer length>
 	       --binary=<integer length>
 
    Compile for binary computation using *integer length* as default.
 
-For arithmetic computation (``-F`` and ``-R``) you can set the bit
+For arithmetic computation (:option:`-F`, :option:`-P`, and
+:option:`-R`) you can set the bit
 length during execution using ``program.set_bit_length(length)``. For
 binary computation you can do so with ``sint =
 sbitint.get_type(length)``.
+Use :py:func:`sfix.set_precision` to change the range for fixed-point
+numbers.
 
 The following options switch from a single computation domain to
 mixed computation when using in conjunction with arithmetic
@@ -68,7 +85,7 @@ The implementation of both daBits and edaBits are explained in this paper_.
 .. _paper: https://eprint.iacr.org/2020/338
 
 .. cmdoption:: -Z <number of parties>
-	       --split
+	       --split=<number of parties>
 
    Enables mixed computation using local conversion. This has been
    used by `Mohassel and Rindal <https://eprint.iacr.org/2018/403>`_
@@ -100,7 +117,7 @@ computation:
    potentially higher number of communication rounds. For example, the
    compiler by default will try to compute a division and a logarithm
    in parallel if possible. Using this option complex operations such
-   as these will be seperated and only multiple divisions or
+   as these will be separated and only multiple divisions or
    logarithms will be computed in parallel. This speeds up the
    compilation because of reduced complexity.
 
@@ -132,10 +149,11 @@ Reference
 
    Compiler
    instructions
+   low-level
 
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`

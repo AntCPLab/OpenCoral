@@ -50,6 +50,7 @@ void ChaiGearPrep<T>::basic_setup(Player& P)
 #endif
     machine->sec = options.lowgear_security;
     setup.secure_init(P, *machine, T::clear::length(), options.lowgear_security);
+    T::clear::template init<typename FD::T>();
 #ifdef VERBOSE
     cerr << T::type_string() << " parameter setup took " << timer.elapsed()
             << " seconds" << endl;
@@ -71,7 +72,7 @@ void ChaiGearPrep<T>::key_setup(Player& P, mac_key_type alphai)
     setup.alphai = alphai;
     Bundle<octetStream> bundle(P);
     diff.pack(bundle.mine);
-    P.Broadcast_Receive(bundle, true);
+    P.unchecked_broadcast(bundle);
     for (int i = 0; i < P.num_players(); i++)
     {
         Plaintext_<FD> mess(setup.FieldD);
@@ -135,7 +136,7 @@ void ChaiGearPrep<T>::buffer_squares()
     assert(machine);
     square_producer->run(this->proc->P, setup.pk, setup.calpha, generator.EC,
             generator.dd, {});
-    MAC_Check<typename T::clear> MC(this->proc->MC.get_alphai());
+    MAC_Check<typename FD::T> MC(this->proc->MC.get_alphai());
     square_producer->sacrifice(this->proc->P, MC);
     MC.Check(this->proc->P);
     auto& squares = square_producer->tuples;
@@ -173,8 +174,8 @@ void ChaiGearPrep<T>::buffer_inputs(int player)
 #endif
 }
 
-template<>
-inline void ChaiGearPrep<ChaiGearShare<gfp>>::buffer_bits()
+template<class T>
+inline void ChaiGearPrep<T>::buffer_bits()
 {
     buffer_bits_from_squares(*this);
 }

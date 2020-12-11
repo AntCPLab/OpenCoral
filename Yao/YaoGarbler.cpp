@@ -91,9 +91,9 @@ void YaoGarbler::send(Player& P)
 #endif
 	P.send_long(1, YaoCommon::MORE);
 	size_t size = gates.size();
-	P.send_to(1, gates, true);
+	P.send_to(1, gates);
 	gates.allocate(2 * size);
-	P.send_to(1, output_masks, true);
+	P.send_to(1, output_masks);
 }
 
 void YaoGarbler::process_receiver_inputs()

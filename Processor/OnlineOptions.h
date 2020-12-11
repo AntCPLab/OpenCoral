@@ -33,6 +33,9 @@ public:
             int default_batch_size = 0, bool default_live_prep = true,
             bool variable_prime_length = false);
     void finalize(ez::ezOptionParser& opt, int argc, const char** argv);
+
+    int prime_length();
+    int prime_limbs();
 };
 
 #endif /* PROCESSOR_ONLINEOPTIONS_H_ */

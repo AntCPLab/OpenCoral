@@ -21,7 +21,7 @@ void ShamirMC<T>::POpen_Begin(vector<typename T::open_type>& values,
 {
     (void) values;
     prepare(S, P);
-    P.send_all(os->mine, true);
+    P.send_all(os->mine);
 }
 
 template<class T>
@@ -40,7 +40,7 @@ void ShamirMC<T>::init_open(const Player& P, int n)
         os = new Bundle<octetStream>(P);
 
     for (auto& o : *os)
-        o.clear();
+        o.reset_write_head();
     send = P.my_num() <= threshold;
     if (send)
         os->mine.reserve(n * T::size());
@@ -73,19 +73,10 @@ void ShamirMC<T>::POpen(vector<typename T::open_type>& values, const vector<T>& 
 template<class T>
 void ShamirMC<T>::exchange(const Player& P)
 {
-    for (int offset = 1; offset < P.num_players(); offset++)
-    {
-        int send_to = P.get_player(offset);
-        int receive_from = P.get_player(-offset);
-        bool receive = receive_from <= threshold;
-        if (send)
-            if (receive)
-                P.pass_around(os->mine, (*os)[receive_from], offset);
-            else
-                P.send_to(send_to, os->mine, true);
-        else if (receive)
-            P.receive_player(receive_from, (*os)[receive_from], true);
-    }
+    vector<bool> senders(P.num_players());
+    for (int i = 0; i < P.num_players(); i++)
+        senders[i] = i <= threshold;
+    P.partial_broadcast(senders, *os);
 }
 
 template<class T>

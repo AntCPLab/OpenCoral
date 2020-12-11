@@ -4,10 +4,10 @@
 #include "Proof.h"
 
 /* Defines the Verifier */
-template <class FD, class S>
+template <class FD>
 class Verifier
 {
-  AddableVector<S> z;
+  AddableVector<typename Proof::bound_type> z;
   AddableMatrix<Int_Random_Coins::value_type::value_type> t;
 
   Proof& P;

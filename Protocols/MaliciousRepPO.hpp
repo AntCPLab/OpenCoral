@@ -23,9 +23,9 @@ template<class T>
 void MaliciousRepPO<T>::send(int player)
 {
     if (P.get_offset(player) == 2)
-        P.send_to(player, to_send, true);
+        P.send_to(player, to_send);
     else
-        P.send_to(player, to_send.hash(), true);
+        P.send_to(player, to_send.hash());
 }
 
 template<class T>

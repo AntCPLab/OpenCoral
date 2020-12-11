@@ -102,6 +102,7 @@ public:
   PRNG secure_prng;
 
   string private_input_filename;
+  string public_input_filename;
 
   ifstream private_input;
   ifstream public_input;

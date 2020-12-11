@@ -33,7 +33,7 @@ public:
 
     void compare(Player& P)
     {
-        P.Broadcast_Receive(*this, true);
+        P.unchecked_broadcast(*this);
         for (auto& os : *this)
             if (os != mine)
                 throw mismatch_among_parties();

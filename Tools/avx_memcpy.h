@@ -8,6 +8,7 @@
 
 #include <immintrin.h>
 #include <string.h>
+#include <cstdint>
 
 inline void avx_memcpy(void* dest, const void* source, size_t length)
 {

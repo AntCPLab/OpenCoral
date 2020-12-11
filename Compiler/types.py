@@ -142,8 +142,10 @@ def vectorize(operation):
                 raise CompilerError('Different vector sizes of operands: %d/%d'
                                     % (self.size, args[0].size))
         set_global_vector_size(self.size)
-        res = operation(self, *args, **kwargs)
-        reset_global_vector_size()
+        try:
+            res = operation(self, *args, **kwargs)
+        finally:
+            reset_global_vector_size()
         return res
     copy_doc(vectorized_operation, operation)
     return vectorized_operation
@@ -157,8 +159,10 @@ def vectorize_max(operation):
             except AttributeError:
                 pass
         set_global_vector_size(size)
-        res = operation(self, *args, **kwargs)
-        reset_global_vector_size()
+        try:
+            res = operation(self, *args, **kwargs)
+        finally:
+            reset_global_vector_size()
         return res
     copy_doc(vectorized_operation, operation)
     return vectorized_operation
@@ -170,8 +174,10 @@ def vectorized_classmethod(function):
             size = kwargs.pop('size')
         if size:
             set_global_vector_size(size)
-            res = function(cls, *args, **kwargs)
-            reset_global_vector_size()
+            try:
+                res = function(cls, *args, **kwargs)
+            finally:
+                reset_global_vector_size()
         else:
             res = function(cls, *args, **kwargs)
         return res
@@ -191,8 +197,10 @@ def vectorize_init(function):
             size = kwargs['size']
         if size is not None:
             set_global_vector_size(size)
-            res = function(*args, **kwargs)
-            reset_global_vector_size()
+            try:
+                res = function(*args, **kwargs)
+            finally:
+                reset_global_vector_size()
         else:
             res = function(*args, **kwargs)
         return res
@@ -202,8 +210,10 @@ def vectorize_init(function):
 def set_instruction_type(operation):
     def instruction_typed_operation(self, *args, **kwargs):
         set_global_instruction_type(self.instruction_type)
-        res = operation(self, *args, **kwargs)
-        reset_global_instruction_type()
+        try:
+            res = operation(self, *args, **kwargs)
+        finally:
+            reset_global_instruction_type()
         return res
     copy_doc(instruction_typed_operation, operation)
     return instruction_typed_operation
@@ -353,6 +363,11 @@ class _int(object):
 
         :param self/other: 0 or 1 (any compatible type)
         :return: type depends on inputs (secret if any of them is) """
+        if util.is_constant(other):
+            if other:
+                return 1 - self
+            else:
+                return self
         return self + other - 2 * self * other
 
     def bit_and(self, other):
@@ -361,6 +376,10 @@ class _int(object):
         :param self/other: 0 or 1 (any compatible type)
         :rtype: depending on inputs (secret if any of them is) """
         return self * other
+
+    def bit_not(self):
+        """ NOT in arithmetic circuits. """
+        return 1 - self
 
     def half_adder(self, other):
         """ Half adder in arithmetic circuits.
@@ -388,6 +407,10 @@ class _bit(object):
         :rtype: depending on inputs (secret if any of them is) """
         return self & other
 
+    def bit_not(self):
+        """ NOT in binary circuits. """
+        return ~self
+
     def half_adder(self, other):
         """ Half adder in binary circuits.
 
@@ -397,14 +420,14 @@ class _bit(object):
         return self ^ other, self & other
 
 class _gf2n(_bit):
-    """ GF(2^n) functionality. """
+    """ :math:`\mathrm{GF}(2^n)` functionality. """
 
     def if_else(self, a, b):
-        """ MUX in GF(2^n) circuits. Similar to :py:meth:`_int.if_else`. """
+        """ MUX in :math:`\mathrm{GF}(2^n)` circuits. Similar to :py:meth:`_int.if_else`. """
         return b ^ self * self.hard_conv(a ^ b)
 
     def cond_swap(self, a, b, t=None):
-        """ Swapping in GF(2^n). Similar to :py:meth:`_int.if_else`. """
+        """ Swapping in :math:`\mathrm{GF}(2^n)`. Similar to :py:meth:`_int.if_else`. """
         prod = self * self.hard_conv(a ^ b)
         res = a ^ prod, b ^ prod
         if t is None:
@@ -413,11 +436,14 @@ class _gf2n(_bit):
             return tuple(t.conv(r) for r in res)
 
     def bit_xor(self, other):
-        """ XOR in GF(2^n) circuits.
+        """ XOR in :math:`\mathrm{GF}(2^n)` circuits.
 
         :param self/other: 0 or 1 (any compatible type)
         :rtype: depending on inputs (secret if any of them is) """
         return self ^ other
+
+    def bit_not(self):
+        return self ^ 1
 
 class _structure(object):
     """ Interface for type-dependent container types. """
@@ -754,10 +780,6 @@ class cint(_clear, _int):
         else:
             return res
 
-    @vectorize
-    def write_to_socket(self, client_id, message_type=ClientMessageType.NoType):
-        writesocketc(client_id, message_type, self)
-
     @vectorized_classmethod
     def write_to_socket(self, client_id, values, message_type=ClientMessageType.NoType):
         """ Send a list of clear values to socket """
@@ -997,7 +1019,7 @@ class cint(_clear, _int):
 
 class cgf2n(_clear, _gf2n):
     """
-    Clear GF(2^n) value. n is 40 or 128,
+    Clear :math:`\mathrm{GF}(2^n)` value. n is 40 or 128,
     depending on USE_GF2N_LONG compile-time variable.
     """
     __slots__ = []
@@ -1006,7 +1028,7 @@ class cgf2n(_clear, _gf2n):
 
     @classmethod
     def bit_compose(cls, bits, step=None):
-        """ Clear GF(2^n) bit composition.
+        """ Clear :math:`\mathrm{GF}(2^n)` bit composition.
 
         :param bits: list of cgf2n
         :param step: set every :py:obj:`step`-th bit in output (defaults to 1) """
@@ -1056,7 +1078,7 @@ class cgf2n(_clear, _gf2n):
                     sum += chunk
 
     def __mul__(self, other):
-        """ Clear GF(2^n) multiplication.
+        """ Clear :math:`\mathrm{GF}(2^n)` multiplication.
 
         :param other: cgf2n/regint/int """
         return super(cgf2n, self).__mul__(other)
@@ -1100,7 +1122,7 @@ class cgf2n(_clear, _gf2n):
     def bit_decompose(self, bit_length=None, step=None):
         """ Clear bit decomposition.
 
-        :param bit_length: number of bits (defaults to global GF(2^n) bit length)
+        :param bit_length: number of bits (defaults to global :math:`\mathrm{GF}(2^n)` bit length)
         :param step: extract every :py:obj:`step`-th bit (defaults to 1) """
         bit_length = bit_length or program.galois_length
         step = step or 1
@@ -1189,10 +1211,6 @@ class regint(_register, _int):
             return res[0]
         else:
             return res
-
-    @vectorize
-    def write_to_socket(self, client_id, message_type=ClientMessageType.NoType):
-        writesocketint(client_id, message_type, self)
 
     @vectorized_classmethod
     def write_to_socket(self, client_id, values, message_type=ClientMessageType.NoType):
@@ -1456,6 +1474,55 @@ class personal(object):
         self.player = player
         self._v = value
 
+class longint:
+    def __init__(self, value, length=None, n_limbs=None):
+        assert length is None or n_limbs is None
+        if isinstance(value, longint):
+            if n_limbs is None:
+                n_limbs = int(math.ceil(length / 64))
+            assert n_limbs <= len(value.v)
+            self.v = value.v[:n_limbs]
+        elif isinstance(value, list):
+            assert length is None
+            self.v = value[:]
+        else:
+            if length is None:
+                length = 64 * n_limbs
+            if isinstance(value, int):
+                self.v = [(value >> i) for i in range(0, length, 64)]
+            else:
+                self.v = [(value >> i).to_regint(0)
+                          for i in range(0, length, 64)]
+
+    def coerce(self, other):
+        return longint(other, n_limbs=len(self.v))
+
+    def __eq__(self, other):
+        return reduce(operator.mul, (x == y for x, y in
+                                     zip(self.v, self.coerce(other).v)))
+
+    def __add__(self, other):
+        other = self.coerce(other)
+        assert len(self.v) == len(other.v)
+        res = []
+        carry = 0
+        for x, y in zip(self.v, other.v):
+            res.append(x + y + carry)
+            carry = (res[-1] - 2 ** 31) < (x - 2 ** 31)
+        return longint(res)
+
+    __radd__ = __add__
+
+    def __sub__(self, other):
+        return self + -other
+
+    def bit_decompose(self, bit_length):
+        assert bit_length <= 64 * len(self.v)
+        res = []
+        for x in self.v:
+            res += x.bit_decompose(64)
+        return res[:bit_length]
+
 class _secret(_register):
     __slots__ = []
 
@@ -1706,7 +1773,7 @@ class _secret(_register):
         Result written to ``Player-Data/Private-Output-P<player>``
 
         :param player: int
-        :returns: value to be used with :py:func:`Compiler.library.print_ln_to`
+        :returns: value to be used with :py:func:`~Compiler.library.print_ln_to`
         """
         masked = self.__class__()
         res = personal(player, self.clear_type())
@@ -1818,7 +1885,11 @@ class sint(_secret, _int):
 
     @classmethod
     def receive_from_client(cls, n, client_id, message_type=ClientMessageType.NoType):
-        """ Securely obtain shares of n values input by a client """
+        """ Securely obtain shares of values input by a client.
+
+        :param n: number of inputs (int)
+        :param client_id: regint
+        """
         # send shares of a triple to client
         triples = list(itertools.chain(*(sint.get_random_triple() for i in range(n))))
         sint.write_shares_to_socket(client_id, triples, message_type)
@@ -1839,11 +1910,6 @@ class sint(_secret, _int):
         else:
             return res
 
-    @vectorize
-    def write_to_socket(self, client_id, message_type=ClientMessageType.NoType):
-        """ Send share and MAC share to socket """
-        writesockets(client_id, message_type, self)
-
     @vectorized_classmethod
     def write_to_socket(self, client_id, values, message_type=ClientMessageType.NoType):
         """ Send a list of shares and MAC shares to socket """
@@ -1856,7 +1922,11 @@ class sint(_secret, _int):
 
     @vectorized_classmethod
     def write_shares_to_socket(cls, client_id, values, message_type=ClientMessageType.NoType, include_macs=False):
-        """ Send shares of a list of values to a specified client socket """
+        """ Send shares of a list of values to a specified client socket.
+
+        :param client_id: regint
+        :param values: list of sint
+        """
         if include_macs:
             writesockets(client_id, message_type, *values)
         else:
@@ -2126,7 +2196,7 @@ class sint(_secret, _int):
         Result potentially written to ``Player-Data/Private-Output-P<player>.``
 
         :param player: public integer (int/regint/cint):
-        :returns: value to be used with :py:func:`Compiler.library.print_ln_to`
+        :returns: value to be used with :py:func:`~Compiler.library.print_ln_to`
         """
         if not util.is_constant(player) or self.size > 1:
             secret_mask = sint()
@@ -2138,7 +2208,7 @@ class sint(_secret, _int):
             return super(sint, self).reveal_to(player)
 
 class sgf2n(_secret, _gf2n):
-    """ Secret GF(2^n) value. """
+    """ Secret :math:`\mathrm{GF}(2^n)` value. """
     __slots__ = []
     instruction_type = 'gf2n'
     clear_type = cgf2n
@@ -2155,7 +2225,7 @@ class sgf2n(_secret, _gf2n):
         return res
 
     def add(self, other):
-        """ Secret GF(2^n) addition (XOR).
+        """ Secret :math:`\mathrm{GF}(2^n)` addition (XOR).
 
         :param other: sg2fn/cgf2n/regint/int """
         if isinstance(other, sgf2nint):
@@ -2164,7 +2234,7 @@ class sgf2n(_secret, _gf2n):
             return super(sgf2n, self).add(other)
 
     def mul(self, other):
-        """ Secret GF(2^n) multiplication.
+        """ Secret :math:`\mathrm{GF}(2^n)` multiplication.
 
         :param other: sg2fn/cgf2n/regint/int """
         if isinstance(other, (sgf2nint)):
@@ -2236,7 +2306,7 @@ class sgf2n(_secret, _gf2n):
         """ Secret right shift by public value:
 
         :param other: compile-time (int)
-        :param bit_length: number of bits of :py:obj:`self` (defaults to GF(2^n) bit length) """
+        :param bit_length: number of bits of :py:obj:`self` (defaults to :math:`\mathrm{GF}(2^n)` bit length) """
         bits = self.bit_decompose(bit_length)
         return sum(b << i for i,b in enumerate(bits[other:]))
 
@@ -2519,10 +2589,18 @@ class _bitint(object):
             raise CompilerError('Unclear subtraction')
         a = self.bit_decompose()
         b = util.bit_decompose(other, self.n_bits)
-        d = [(reduce(util.bit_xor, (ai, bi, 1)), (1 - ai) * bi)
+        from util import bit_not, bit_and, bit_xor
+        n = 1
+        for x in (a + b):
+            try:
+                n = x.n
+                break
+            except:
+                pass
+        d = [(bit_not(bit_xor(ai, bi), n), bit_and(bit_not(ai, n), bi))
              for (ai,bi) in zip(a,b)]
         borrow = lambda y,x,*args: \
-            (x[0] * y[0], 1 - (1 - x[1]) * (1 - x[0] * y[1]))
+            (bit_and(x[0], y[0]), util.OR(x[1], bit_and(x[0], y[1])))
         borrows = (0,) + list(zip(*floatingpoint.PreOpL(borrow, d)))[1]
         return self.compose(reduce(util.bit_xor, (ai, bi, borrow)) \
                                 for (ai,bi,borrow) in zip(a,b,borrows))
@@ -2597,7 +2675,15 @@ class _bitint(object):
     equal = __eq__
 
     def __neg__(self):
-        return 1 + self.compose(1 ^ b for b in self.bit_decompose())
+        bits = self.bit_decompose()
+        n = 1
+        for b in bits:
+            try:
+                n = x.n
+                break
+            except:
+                pass
+        return 1 + self.compose(util.bit_not(b, n) for b in bits)
 
     def __abs__(self):
         return util.if_else(self.bit_decompose()[-1], -self, self)
@@ -2837,11 +2923,6 @@ class cfix(_number, _structure):
             return cfix._new(cint_inputs)
         else:
             return list(map(cfix, cint_inputs))
-
-    @vectorize
-    def write_to_socket(self, client_id, message_type=ClientMessageType.NoType):
-        """ Send cfix to socket. Value is sent as bit shifted cint. """
-        writesocketc(client_id, message_type, cint(self.v))
         
     @vectorized_classmethod
     def write_to_socket(self, client_id, values, message_type=ClientMessageType.NoType):
@@ -2872,13 +2953,18 @@ class cfix(_number, _structure):
         return res
 
     @staticmethod
-    def int_rep(v, f):
-        v = v * (2 ** f)
+    def int_rep(v, f, k=None):
+        res = v * (2 ** f)
         try:
-            v = int(round(v))
+            res = int(round(res))
+            if k and abs(res) >= 2 ** k:
+                raise CompilerError(
+                    'Value out of fixed-point range (maximum %d). '
+                    'Use `sfix.set_precision(f, k)` with k being at least f+%d'
+                    % (2 ** (k - f), math.ceil(math.log(abs(v), 2)) + 1))
         except TypeError:
             pass
-        return v
+        return res
 
     @vectorize_init
     @read_mem_value
@@ -2889,7 +2975,7 @@ class cfix(_number, _structure):
         self.f = f
         self.k = k
         if isinstance(v, cfix.scalars):
-            v = self.int_rep(v, f)
+            v = self.int_rep(v, f=f, k=k)
             self.v = cint(v, size=size)
         elif isinstance(v, cfix):
             self.v = v.v
@@ -3109,7 +3195,7 @@ class _single(_number, _structure):
     """ Representation as single integer preserving the order """
     """ E.g. fixed-point numbers """
     __slots__ = ['v']
-    kappa = 40
+    kappa = None
     round_nearest = False
 
     @classmethod
@@ -3142,15 +3228,15 @@ class _single(_number, _structure):
 
     @classmethod
     def malloc(cls, size, creator_tape=None):
-        return program.malloc(size, cls.int_type, creator_tape=creator_tape)
+        return cls.int_type.malloc(size, creator_tape=creator_tape)
 
     @classmethod
     def free(cls, addr):
         return cls.int_type.free(addr)
 
-    @staticmethod
-    def n_elements():
-        return 1
+    @classmethod
+    def n_elements(cls):
+        return cls.int_type.n_elements()
 
     @classmethod
     def dot_product(cls, x, y, res_params=None):
@@ -3339,7 +3425,7 @@ class _fix(_single):
         elif isinstance(_v, self.int_type):
             self.load_int(_v)
         elif isinstance(_v, cfix.scalars):
-            self.v = self.int_type(cfix.int_rep(_v, f=f), size=size)
+            self.v = self.int_type(cfix.int_rep(_v, f=f, k=k), size=size)
         elif isinstance(_v, self.float_type):
             p = (f + _v.p)
             b = (p.greater_equal(0, _v.vlen))
@@ -3421,6 +3507,13 @@ class _fix(_single):
         """ Secret fixed-point division.
 
         :param other: sfix/cfix/sint/cint/regint/int """
+        if util.is_constant_float(other):
+            assert other != 0
+            other_length = self.f + math.ceil(math.log(abs(other), 2))
+            if other_length >= self.k:
+                factor = 2 ** (self.k - other_length - 1)
+                self *= factor
+                other *= factor
         other = self.coerce(other)
         assert self.k == other.k
         assert self.f == other.f
@@ -3541,7 +3634,7 @@ class sfix(_fix):
         ``Player-Data/Private-Output-P<player>.``
 
         :param player: public integer (int/regint/cint)
-        :returns: value to be used with :py:func:`Compiler.library.print_ln_to`
+        :returns: value to be used with :py:func:`~Compiler.library.print_ln_to`
         """
         return personal(player, cfix._new(self.v.reveal_to(player)._v,
                                           self.k, self.f))
@@ -3794,7 +3887,7 @@ class sfloat(_number, _structure):
     # single precision
     vlen = 24
     plen = 8
-    kappa = 40
+    kappa = None
     round_nearest = False
 
     @staticmethod
@@ -5115,13 +5208,11 @@ class MemValue(_mem):
         :param value: convertible to relevant basic type """
         self.check()
         if isinstance(value, MemValue):
-            self.register = value.read()
-        elif isinstance(value, int):
-            self.register = self.value_type(value)
-        else:
-            if value.size != self.size:
-                raise CompilerError('size mismatch')
-            self.register = value
+            value = value.read()
+        value = self.value_type.conv(value)
+        if value.size != self.size:
+            raise CompilerError('size mismatch')
+        self.register = value
         if not isinstance(self.register, self.value_type):
             raise CompilerError('Mismatch in register type, cannot write \
                 %s to %s' % (type(self.register), self.value_type))

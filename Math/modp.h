@@ -27,6 +27,9 @@ class modp_
 
   public: 
 
+  static const int MAX_N_BITS = 64 * L;
+  static const int N_LIMBS = L;
+
   // NEXT FUNCTION IS FOR DEBUG PURPOSES ONLY
   mp_limb_t get_limb(int i) const { return x[i]; }
 

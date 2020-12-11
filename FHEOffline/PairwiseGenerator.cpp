@@ -14,7 +14,7 @@
 #include "Protocols/SemiInput.hpp"
 #include "Protocols/ReplicatedInput.hpp"
 #include "Processor/Input.hpp"
-#include "Math/gfp.hpp"
+#include "Math/modp.hpp"
 
 template <class FD>
 PairwiseGenerator<FD>::PairwiseGenerator(int thread_num,

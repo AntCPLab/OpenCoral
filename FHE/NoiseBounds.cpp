@@ -50,7 +50,9 @@ SemiHomomorphicNoiseBounds::SemiHomomorphicNoiseBounds(const bigint& p,
                         * (16 * phi_m * sqrt(n / 2) + 6 * sqrt(phi_m)
                                 + 16 * sqrt(n * h * phi_m))) << slack;
         B_scale = p * sqrt(3 * phi_m) * (1 + 8 * sqrt(n * h) / 3);
+#ifdef VERBOSE
         cout << "log(slack): " << slack << endl;
+#endif
     }
 
     drown = 1 + n * (bigint(1) << sec);

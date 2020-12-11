@@ -65,6 +65,8 @@ public:
     void unpack(octetStream& os);
 };
 
+P256Element operator*(const P256Element::Scalar& x, const P256Element& y);
+
 ostream& operator<<(ostream& s, const P256Element& x);
 
 #endif /* ECDSA_P256ELEMENT_H_ */

@@ -17,7 +17,7 @@ class SpdzWiseRing : public SpdzWise<T>
     typedef PostSacriRepRingShare<T::LENGTH + T::SECURITY, T::SECURITY> zero_check_type;
 
     DataPositions zero_usage;
-    SimplerMalRepRingPrep<zero_check_type> zero_prep;
+    MaliciousBitOnlyRepPrep<zero_check_type> zero_prep;
     typename zero_check_type::MAC_Check zero_output;
     SubProcessor<zero_check_type> zero_proc;
 

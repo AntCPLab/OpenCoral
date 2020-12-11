@@ -7,6 +7,7 @@
 
 #include "BMR/RealProgramParty.hpp"
 #include "Machines/Rep.hpp"
+#include "Machines/MalRep.hpp"
 
 int main(int argc, const char** argv)
 {

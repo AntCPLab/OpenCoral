@@ -120,7 +120,7 @@ def tree_reduce(function, sequence):
         return tree_reduce(function, reduced + sequence[n//2*2:])
 
 def or_op(a, b):
-    return a + b - a * b
+    return a + b - bit_and(a, b)
 
 OR = or_op
 
@@ -132,6 +132,21 @@ def bit_xor(a, b):
             return b.bit_xor(a)
     else:
         return a.bit_xor(b)
+
+def bit_and(a, b):
+    if is_constant(a):
+        if is_constant(b):
+            return a & b
+        else:
+            return b.bit_and(a)
+    else:
+        return a.bit_and(b)
+
+def bit_not(a, n):
+    if is_constant(a):
+        return ~a & (2 ** n - 1)
+    else:
+        return a.bit_not()
 
 def pow2(bits):
     powers = [b.if_else(2**2**i, 1) for i,b in enumerate(bits)]

@@ -11,6 +11,8 @@
 #include <fstream>
 using namespace std;
 
+#include "Math/modp.hpp"
+
 // XXXX File_prefix is only used for active code
 #ifndef file_prefix
 #define file_prefix "/tmp/"

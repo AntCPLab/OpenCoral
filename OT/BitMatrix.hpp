@@ -7,6 +7,7 @@
 #define OT_BITMATRIX_HPP_
 
 #include "BitMatrix.h"
+#include "Tools/BitVector.h"
 
 template <class U>
 size_t Matrix<U>::vertical_size()

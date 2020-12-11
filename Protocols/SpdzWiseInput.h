@@ -28,6 +28,7 @@ public:
     SpdzWiseInput(SubProcessor<T>& proc, Player& P);
     SpdzWiseInput(SubProcessor<T>* proc, Player& P);
     SpdzWiseInput(SubProcessor<T>& proc, typename T::MAC_Check& MC);
+    ~SpdzWiseInput();
 
     void reset(int player);
     void add_mine(const typename T::open_type& input, int n_bits = -1);

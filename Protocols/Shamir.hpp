@@ -22,7 +22,8 @@ typename T::open_type::Scalar Shamir<T>::get_rec_factor(int i, int n)
 }
 
 template<class T>
-Shamir<T>::Shamir(Player& P) : resharing(0), P(P)
+Shamir<T>::Shamir(Player& P) :
+        resharing(0), random_input(0), P(P)
 {
     if (not P.is_encrypted())
         insecure("unencrypted communication");
@@ -35,6 +36,8 @@ Shamir<T>::~Shamir()
 {
     if (resharing != 0)
         delete resharing;
+    if (random_input != 0)
+        delete random_input;
 }
 
 template<class T>
@@ -52,8 +55,7 @@ int Shamir<T>::get_n_relevant_players()
 template<class T>
 void Shamir<T>::reset()
 {
-    os.clear();
-    os.resize(P.num_players());
+    os.reset(P);
 
     if (resharing == 0)
     {
@@ -92,21 +94,10 @@ typename T::clear Shamir<T>::prepare_mul(const T& x, const T& y, int n)
 template<class T>
 void Shamir<T>::exchange()
 {
-    for (int offset = 1; offset < P.num_players(); offset++)
-    {
-        int receive_from = P.get_player(-offset);
-        int send_to = P.get_player(offset);
-        bool receive = receive_from < n_mul_players;
-        if (P.my_num() < n_mul_players)
-        {
-            if (receive)
-                P.pass_around(resharing->os[send_to], os[receive_from], offset);
-            else
-                P.send_to(send_to, resharing->os[send_to], true);
-        }
-        else if (receive)
-            P.receive_player(receive_from, os[receive_from], true);
-    }
+    vector<bool> senders(P.num_players(), false);
+    for (int i = 0; i < n_mul_players; i++)
+        senders[i] = true;
+    P.send_receive_all(senders, resharing->os, os);
 }
 
 template<class T>
@@ -124,7 +115,7 @@ void Shamir<T>::stop_exchange()
     {
         int receive_from = P.get_player(-offset);
         if (receive_from < n_mul_players)
-            P.receive_player(receive_from, os[receive_from], true);
+            P.receive_player(receive_from, os[receive_from]);
     }
 }
 
@@ -207,7 +198,10 @@ void Shamir<T>::buffer_random()
         }
     }
 
-    ShamirInput<T> input(0, P);
+    if (random_input == 0)
+        random_input = new ShamirInput<T>(0, P);
+    auto& input = *random_input;
+    input.reset_all(P);
     int buffer_size = OnlineOptions::singleton.batch_size;
     for (int i = 0; i < buffer_size; i += hyper.size())
         input.add_mine(secure_prng.get<U>());

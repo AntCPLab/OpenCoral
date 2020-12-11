@@ -6,6 +6,8 @@
 #include <FHEOffline/DistKeyGen.h>
 #include "Tools/Subroutines.h"
 
+#include "Math/modp.hpp"
+
 /*
  * This creates the "pseudo-encryption" of the R_q element mess,
  *   - As required for key switching.

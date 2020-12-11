@@ -7,6 +7,7 @@
 #include "SpdzWiseRingPrep.h"
 #include "SpdzWiseRingShare.h"
 #include "MaliciousShamirShare.h"
+#include "SquarePrep.h"
 #include "Math/gfp.h"
 
 #include "ReplicatedPrep.hpp"
@@ -25,11 +26,11 @@ void SpdzWisePrep<T>::buffer_triples()
             OnlineOptions::singleton.batch_size, this->protocol);
 }
 
-template<>
-inline
-void SpdzWisePrep<SpdzWiseShare<MaliciousRep3Share<gfp>>>::buffer_bits()
+template<class T>
+template<int X, int L>
+void SpdzWisePrep<T>::buffer_bits(MaliciousRep3Share<gfp_<X, L>>)
 {
-    MaliciousRingPrep<SpdzWiseShare<MaliciousRep3Share<gfp>>>::buffer_bits();
+    MaliciousRingPrep<T>::buffer_bits();
 }
 
 template<>
@@ -55,7 +56,7 @@ void buffer_bits_from_squares_in_ring(vector<SpdzWiseRingShare<K, S>>& bits,
     typedef SpdzWiseRingShare<K + 2, S> BitShare;
     typename BitShare::MAC_Check MC(proc->MC.get_alphai());
     DataPositions usage;
-    SpdzWisePrep<BitShare> prep(0, usage);
+    SquarePrep<BitShare> prep(usage);
     SubProcessor<BitShare> bit_proc(MC, prep, proc->P, proc->Proc);
     prep.set_proc(&bit_proc);
     bits_from_square_in_ring(bits, OnlineOptions::singleton.batch_size, &prep);
@@ -73,19 +74,19 @@ void SpdzWiseRingPrep<T>::buffer_bits()
 template<class T>
 void SpdzWisePrep<T>::buffer_bits()
 {
-    throw not_implemented();
+    buffer_bits(typename T::share_type());
 }
 
-template<>
-inline
-void SpdzWisePrep<SpdzWiseShare<MaliciousShamirShare<gfp>>>::buffer_bits()
+template<class T>
+template<int X, int L>
+void SpdzWisePrep<T>::buffer_bits(MaliciousShamirShare<gfp_<X, L>>)
 {
     buffer_bits_from_squares(*this);
 }
 
-template<>
-inline
-void SpdzWisePrep<SpdzWiseShare<MaliciousShamirShare<gf2n>>>::buffer_bits()
+template<class T>
+template<class U>
+void SpdzWisePrep<T>::buffer_bits(U)
 {
     super::buffer_bits();
 }

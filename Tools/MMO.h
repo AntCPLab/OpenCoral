@@ -13,9 +13,9 @@
 class MMO
 {
 #ifdef GFP_MOD_SZ
-    static const int N_KEYS = GFP_MOD_SZ;
+    static const int N_KEYS = GFP_MOD_SZ > 8 ? GFP_MOD_SZ : 8;
 #else
-    static const int N_KEYS = 2;
+    static const int N_KEYS = 8;
 #endif
 
     octet IV[N_KEYS][176]  __attribute__((aligned (16)));

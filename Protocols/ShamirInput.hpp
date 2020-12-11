@@ -21,8 +21,7 @@ void IndividualInput<U>::reset(int player)
     {
         this->shares.clear();
         this->i_share = 0;
-        os.clear();
-        os.resize(P.num_players());
+        os.reset(P);
     }
 }
 
@@ -84,7 +83,13 @@ void IndividualInput<U>::send_mine()
 {
     for (int i = 0; i < P.num_players(); i++)
         if (i != P.my_num())
-            P.send_to(i, os[i], true);
+            P.send_to(i, os[i]);
+}
+
+template<class T>
+void IndividualInput<T>::exchange()
+{
+    P.send_receive_all(os, InputBase<T>::os);
 }
 
 template<class T>

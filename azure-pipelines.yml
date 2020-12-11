@@ -16,7 +16,11 @@ steps:
       make mpir
   - script:
       echo USE_NTL=1 >> CONFIG.mine
-  - script: |
+  - script:
+      echo MY_CFLAGS += -DFEWER_PRIMES >> CONFIG.mine
+  - script:
+      echo MY_CFLAGS += -DFEWER_RINGS >> CONFIG.mine
+  - script:
       make
   - script:
       Scripts/setup-ssl.sh 4

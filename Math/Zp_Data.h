@@ -19,8 +19,8 @@
 using namespace std;
 
 #ifndef MAX_MOD_SZ
-   #ifdef LargeM
-     #define MAX_MOD_SZ 20
+   #if defined(GFP_MOD_SZ) and GFP_MOD_SZ > 10
+     #define MAX_MOD_SZ GFP_MOD_SZ
    #else
      #define MAX_MOD_SZ 10
   #endif

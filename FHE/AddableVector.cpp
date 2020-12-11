@@ -37,9 +37,3 @@ AddableVector<T> AddableVector<T>::mul_by_X_i(int j,
 template
 AddableVector<fixint<0>> AddableVector<fixint<0>>::mul_by_X_i(int j,
         const FHE_PK& pk) const;
-template
-AddableVector<fixint<1>> AddableVector<fixint<1>>::mul_by_X_i(int j,
-        const FHE_PK& pk) const;
-template
-AddableVector<fixint<2>> AddableVector<fixint<2>>::mul_by_X_i(int j,
-        const FHE_PK& pk) const;

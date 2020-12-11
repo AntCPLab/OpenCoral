@@ -6,8 +6,6 @@
 */
 
 #include <FHE/Generator.h>
-#include "Math/modp.h"
-#include "Math/gfp.h"
 #include "Tools/random.h"
 #include <vector>
 #include <math.h>

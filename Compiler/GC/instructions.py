@@ -521,7 +521,7 @@ class inputb(base.DoNotEliminateInstruction, base.VarArgsInstruction):
 
 class inputbvec(base.DoNotEliminateInstruction, base.VarArgsInstruction,
                 base.Mergeable):
-    """ Copy private input to secret bit register bit by bit. The input is
+    """ Copy private input to secret bit registers bit by bit. The input is
     read as floating-point number, multiplied by a power of two, rounded to an
     integer, and then decomposed into bits.
 

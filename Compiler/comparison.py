@@ -69,6 +69,11 @@ def divide_by_two(res, x, m=1):
     inv2m(tmp, m)
     mulc(res, x, tmp)
 
+def require_ring_size(k, op):
+    if int(program.options.ring) < k:
+        raise CompilerError('ring size too small for %s, compile '
+                            'with \'-R %d\' or more' % (op, k))
+
 @instructions_base.cisc
 def LTZ(s, a, k, kappa):
     """
@@ -86,7 +91,7 @@ def LTZ(s, a, k, kappa):
         return
     elif program.options.ring:
         from . import floatingpoint
-        assert(int(program.options.ring) >= k)
+        require_ring_size(k, 'comparison')
         m = k - 1
         shift = int(program.options.ring) - k
         r_prime, r_bin = MaskingBitsInRing(k)
@@ -116,7 +121,6 @@ def Trunc(d, a, k, m, kappa, signed):
     m: compile-time integer
     signed: True/False, describes a
     """
-    a_prime = program.curr_block.new_reg('s')
     t = program.curr_block.new_reg('s')
     c = [program.curr_block.new_reg('c') for i in range(3)]
     c2m = program.curr_block.new_reg('c')
@@ -125,10 +129,8 @@ def Trunc(d, a, k, m, kappa, signed):
         return
     elif program.options.ring:
         return TruncRing(d, a, k, m, signed)
-    elif m == 1:
-        Mod2(a_prime, a, k, kappa, signed)
     else:
-        Mod2m(a_prime, a, k, m, kappa, signed)
+        a_prime = program.non_linear.mod2m(a, k, m, signed)
     subs(t, a, a_prime)
     ldi(c[1], 1)
     divide_by_two(c[2], c[1], m)
@@ -218,14 +220,9 @@ def TruncRoundNearest(a, k, m, kappa, signed=False):
     """
     if m == 0:
         return a
-    if k == int(program.options.ring):
-        # cannot work with bit length k+1
-        tmp = TruncRing(None, a, k, m - 1, signed)
-        return TruncRing(None, tmp + 1, k - m + 1, 1, signed)
-    from .types import sint
-    res = sint()
-    Trunc(res, a + (1 << (m - 1)), k + 1, m, kappa, signed)
-    return res
+    nl = program.non_linear
+    nl.check_security(kappa)
+    return program.non_linear.trunc_round_nearest(a, k, m, signed)
 
 @instructions_base.cisc
 def Mod2m(a_prime, a, k, m, kappa, signed):
@@ -236,18 +233,9 @@ def Mod2m(a_prime, a, k, m, kappa, signed):
     m: compile-time integer
     signed: True/False, describes a
     """
-    if not util.is_constant(m):
-        raise CompilerError('m must be a public constant')
-    if m >= k:
-        movs(a_prime, a)
-        return
-    if program.options.ring:
-        return Mod2mRing(a_prime, a, k, m, signed)
-    else:
-        if m == 1:
-            return Mod2(a_prime, a, k, kappa, signed)
-        else:
-            return Mod2mField(a_prime, a, k, m, kappa, signed)
+    nl = program.non_linear
+    nl.check_security(kappa)
+    movs(a_prime, program.non_linear.mod2m(a, k, m, signed))
 
 def Mod2mRing(a_prime, a, k, m, signed):
     assert(int(program.options.ring) >= k)

@@ -3,7 +3,7 @@
 
 #include "Math/modp.h"
 #include "Math/Zp_Data.h"
-#include "Math/gfp.h"
+#include "Math/gfpvar.h"
 #include "Math/fixint.h"
 #include "FHE/Ring.h"
 
@@ -37,7 +37,7 @@ class FFT_Data
   public:
   typedef gfp T;
   typedef bigint S;
-  typedef fixint<GFP_MOD_SZ> poly_type;
+  typedef fixint<gfpvar::N_LIMBS> poly_type;
 
   void init(const Ring& Rg,const Zp_Data& PrD);
 

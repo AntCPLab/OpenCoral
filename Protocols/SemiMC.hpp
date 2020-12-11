@@ -41,7 +41,7 @@ void DirectSemiMC<T>::exchange_(const PlayerBase& P)
     oss.mine.reserve(this->values.size());
     for (auto& x : this->values)
         x.pack(oss.mine);
-    P.Broadcast_Receive(oss, true);
+    P.unchecked_broadcast(oss);
     direct_add_openings<typename T::open_type>(this->values, P, oss);
 }
 
@@ -54,7 +54,7 @@ void DirectSemiMC<T>::POpen_Begin(vector<typename T::open_type>& values,
     octetStream os;
     for (auto& x : values)
         x.pack(os);
-    P.send_all(os, true);
+    P.send_all(os);
 }
 
 template<class T>

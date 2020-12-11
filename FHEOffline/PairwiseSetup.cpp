@@ -11,6 +11,7 @@
 #include "FHEOffline/PairwiseMachine.h"
 #include "Tools/Commit.h"
 #include "Tools/Bundle.h"
+#include "Processor/OnlineOptions.h"
 
 template <class FD>
 void PairwiseSetup<FD>::init(const Player& P, int sec, int plaintext_length,

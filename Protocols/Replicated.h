@@ -130,7 +130,8 @@ public:
     void next_dotprod();
     T finalize_dotprod(int length);
 
-    void trunc_pr(const vector<int>& regs, int size, SubProcessor<T>& proc);
+    template<class U>
+    void trunc_pr(const vector<int>& regs, int size, U& proc);
 
     T get_random();
     void randoms(T& res, int n_bits);

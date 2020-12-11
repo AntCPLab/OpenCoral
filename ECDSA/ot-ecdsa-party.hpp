@@ -110,7 +110,7 @@ void run(int argc, const char** argv)
     pShare sk, __;
     // synchronize
     Bundle<octetStream> bundle(P);
-    P.Broadcast_Receive(bundle, false);
+    P.unchecked_broadcast(bundle);
     Timer timer;
     timer.start();
     auto stats = P.comm_stats;

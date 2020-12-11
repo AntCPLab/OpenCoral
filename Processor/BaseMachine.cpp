@@ -4,10 +4,10 @@
  */
 
 #include "BaseMachine.h"
+#include "Math/Setup.h"
 
 #include <iostream>
 #include <sodium.h>
-#include <regex>
 using namespace std;
 
 BaseMachine* BaseMachine::singleton = 0;
@@ -76,6 +76,7 @@ void BaseMachine::load_schedule(string progname, bool load_bytecode)
 
   inpf.get();
   getline(inpf, compiler);
+  getline(inpf, domain);
   inpf.close();
 }
 
@@ -125,19 +126,40 @@ string BaseMachine::memory_filename(string type_short, int my_number)
   return PREP_DIR "Memory-" + type_short + "-P" + to_string(my_number);
 }
 
-int BaseMachine::ring_size_from_schedule(string progname)
+string BaseMachine::get_domain(string progname)
 {
   assert(not singleton);
   BaseMachine machine;
   singleton = 0;
   machine.load_schedule(progname, false);
-  smatch m;
-  regex e("R ([0-9]+)");
-  regex_search(machine.compiler, m, e);
-  if (m.size() > 1)
+  return machine.domain;
+}
+
+int BaseMachine::ring_size_from_schedule(string progname)
+{
+  string domain = get_domain(progname);
+  if (domain.substr(0, 2).compare("R:") == 0)
   {
-    return stoi(m[1]);
+    return stoi(domain.substr(2));
   }
+  else
+    return 0;
+}
+
+int BaseMachine::prime_length_from_schedule(string progname)
+{
+  string domain = get_domain(progname);
+  if (domain.substr(0, 4).compare("lgp:") == 0)
+    return stoi(domain.substr(4));
+  else
+    return 0;
+}
+
+bigint BaseMachine::prime_from_schedule(string progname)
+{
+  string domain = get_domain(progname);
+  if (domain.substr(0, 2).compare("p:") == 0)
+    return bigint(domain.substr(2));
   else
     return 0;
 }

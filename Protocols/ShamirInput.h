@@ -15,7 +15,7 @@ class IndividualInput : public PrepLessInput<T>
 {
 protected:
     Player& P;
-    vector<octetStream> os;
+    octetStreams os;
 
 public:
     IndividualInput(SubProcessor<T>* proc, Player& P) :
@@ -31,6 +31,7 @@ public:
     void reset(int player);
     void add_other(int player);
     void send_mine();
+    void exchange();
     void finalize_other(int player, T& target, octetStream& o, int n_bits = -1);
 };
 

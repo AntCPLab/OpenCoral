@@ -50,6 +50,8 @@ if 'cisc' in program.args:
 if len(program.args) > 3:
    ml.QuantBase.n_threads = int(program.args[3])
 
+program.disable_memory_warnings()
+
 from ml import *
 
 if network == 'v1_0.25_128':

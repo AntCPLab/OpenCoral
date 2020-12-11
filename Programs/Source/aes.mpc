@@ -376,9 +376,15 @@ resulting cipher
 
 """
 
+test_message = "6bc1bee22e409f96e93d7e117393172a"
+test_key = "2b7e151628aed2a6abf7158809cf4f3c"
+
+def conv(x):
+    return [int(x[i : i + 2], 16) for i in range(0, len(x), 2)]
+
 def single_encryption():
-    key = [sgf2n.get_raw_input_from(0) for _ in range(16)]
-    message = [sgf2n.get_raw_input_from(1) for _ in range(16)]
+    key = [sgf2n(x) for x in conv(test_key)]
+    message = [sgf2n(x) for x in conv(test_message)]
 
     key = [ApplyEmbedding(_) for _ in key]
     expanded_key = expandAESKey(key)

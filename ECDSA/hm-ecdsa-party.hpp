@@ -21,6 +21,7 @@
 #include "Protocols/MaliciousRepMC.hpp"
 #include "Protocols/Beaver.hpp"
 #include "Protocols/fake-stuff.hpp"
+#include "Protocols/MaliciousRepPrep.hpp"
 #include "Processor/Input.hpp"
 #include "Processor/Processor.hpp"
 #include "Processor/Data_Files.hpp"
@@ -48,7 +49,7 @@ void run(int argc, const char** argv)
     OnlineOptions::singleton.batch_size = 1;
     // synchronize
     Bundle<octetStream> bundle(P);
-    P.Broadcast_Receive(bundle, false);
+    P.unchecked_broadcast(bundle);
     Timer timer;
     timer.start();
     auto stats = P.comm_stats;

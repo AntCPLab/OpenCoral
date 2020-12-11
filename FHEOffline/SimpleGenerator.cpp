@@ -9,7 +9,6 @@
 #include "Protocols/MAC_Check.h"
 
 #include "Protocols/MAC_Check.hpp"
-#include "Math/gfp.hpp"
 
 template <template <class> class T, class FD>
 SimpleGenerator<T,FD>::SimpleGenerator(const Names& N, const PartSetup<FD>& setup,

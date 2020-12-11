@@ -1,5 +1,11 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.2.1 (Dec 11, 2020)
+
+- Virtual machines automatically use the modulus used during compilation
+- Non-linear computation modulo a prime without large gap in bit length
+- Fewer communication rounds in several protocols
+
 ## 0.2.0 (Oct 28, 2020)
 
 - Rep4: honest-majority four-party computation with malicious security

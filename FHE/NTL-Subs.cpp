@@ -2,7 +2,7 @@
 #include "FHE/NTL-Subs.h"
 #include "Math/Setup.h"
 
-#include "Math/gfp.h"
+#include "Math/gfpvar.h"
 #include "Math/gf2n.h"
 
 #include "FHE/P2Data.h"

@@ -67,7 +67,7 @@ class gfp_ : public ValueInterface
   // must be negative
   static const int N_BITS = -1;
 
-  static const int MAX_EDABITS = MAX_N_BITS - 40;
+  static const int MAX_EDABITS = 40 > MAX_N_BITS - 40 ? 40 : MAX_N_BITS - 40;
 
   template<class T>
   static void init(bool mont = true)
@@ -102,6 +102,7 @@ class gfp_ : public ValueInterface
   static void specification(octetStream& os);
 
   static const true_type invertible;
+  static const true_type prime_field;
 
   static gfp_ Mul(gfp_ a, gfp_ b) { return a * b; }
 
@@ -145,6 +146,7 @@ class gfp_ : public ValueInterface
   gfp_(const void* buffer) { assign((char*)buffer); }
   template<int Y>
   gfp_(const gfp_<Y, L>& x);
+  gfp_(const gfpvar& other);
   template<int K>
   gfp_(const SignedZ2<K>& other);
   gfp_(GC::NoValue)  { GC::NoValue::fail(); }
@@ -261,9 +263,9 @@ class gfp_ : public ValueInterface
   // Pack and unpack in native format
   //   i.e. Dont care about conversion to human readable form
   void pack(octetStream& o, int n = -1) const
-    { (void) n; a.pack(o,ZpD); }
+    { (void) n; a.pack(o); }
   void unpack(octetStream& o, int n = -1)
-    { (void) n; a.unpack(o,ZpD); }
+    { (void) n; a.unpack(o); }
 
   void convert_destroy(bigint& x) { a.convert_destroy(x, ZpD); }
 
@@ -274,12 +276,8 @@ class gfp_ : public ValueInterface
     { to_modp(ans.a,x,ans.ZpD); }
 };
 
-typedef gfp_<0, GFP_MOD_SZ> gfp;
+typedef gfp_<0, GFP_MOD_SZ> gfp0;
 typedef gfp_<1, GFP_MOD_SZ> gfp1;
-// enough for Brain protocol with 64-bit computation and 40-bit security
-typedef gfp_<2, 4> gfp2;
-// for OT-based ECDSA
-typedef gfp_<3, 4> gfp3;
 
 template<int X, int L>
 Zp_Data gfp_<X, L>::ZpD;
@@ -311,13 +309,13 @@ inline void gfp_<X, L>::zero_overhang()
   a.x[t() - 1] &= ZpD.overhang_mask();
 }
 
-template<int X, int L>
-void to_signed_bigint(bigint& ans, const gfp_<X, L>& x)
+template<class T>
+void to_signed_bigint(bigint& ans, const T& x)
 {
-    to_bigint(ans, x);
+    ans = x;
     // get sign and abs(x)
-    if (mpz_cmp(ans.get_mpz_t(), gfp_<X, L>::get_ZpD().pr_half.get_mpz_t()) > 0)
-        ans -= gfp_<X, L>::pr();
+    if (ans > T::get_ZpD().pr_half)
+        ans -= T::pr();
 }
 
 #endif

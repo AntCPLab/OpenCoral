@@ -27,19 +27,10 @@ using namespace std;
 void error(const char *str1,const char *str2);
 void error(const char *str);
 
-void set_up_server_socket(sockaddr_in& dest,int& consocket,int& main_socket,int Portnum);
-void close_server_socket(int consocket,int main_socket);
-
 void set_up_client_socket(int& mysocket,const char* hostname,int Portnum);
 void close_client_socket(int socket);
 
-/* Send and receive 8 bit integers */
-template<class T>
-void send(T socket,int a);
-template<class T>
-void receive(T socket,int& a);
-
-// same for words
+// send/receive integers
 template<class T>
 void send(T& socket, size_t a, size_t len);
 template<class T>
@@ -49,9 +40,6 @@ template<class T>
 void send(T socket, octet* msg, size_t len);
 template<class T>
 void receive(T socket, octet* msg, size_t len);
-
-void send_ack(int socket);
-int get_ack(int socket);
 
 
 extern unsigned long long sent_amount, sent_counter;

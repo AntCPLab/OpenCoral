@@ -38,6 +38,8 @@
 #include "Math/Setup.h"
 #include "Protocols/fake-stuff.h"
 
+#include "Math/gfp.hpp"
+
 #include <sodium.h>
 #include <iostream>
 #include <sstream>

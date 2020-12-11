@@ -11,7 +11,6 @@
 #include "Math/Z2k.h"
 
 #define TAU(K, S) 2 * K + 4 * S
-#define Y(K, S) X(TAU(K, S), K + S)
 
 template <class U, class V>
 class Rectangle
