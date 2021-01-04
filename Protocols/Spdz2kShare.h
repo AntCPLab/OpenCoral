@@ -35,6 +35,7 @@ public:
     typedef Z2<K + S> open_type;
 
     typedef Spdz2kShare prep_type;
+    typedef Spdz2kShare input_check_type;
     typedef Spdz2kMultiplier<K, S> Multiplier;
     typedef Spdz2kTripleGenerator<Spdz2kShare> TripleGenerator;
     typedef Z2<K + 2 * S> sacri_type;
