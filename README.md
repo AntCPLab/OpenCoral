@@ -478,8 +478,9 @@ argument to change that.
 
 ### Yao's garbled circuits
 
-We use half-gate garbling as described by [Guo et
-al.](https://eprint.iacr.org/2014/756.pdf). Alternatively, you can
+We use half-gate garbling as described by [Zahur et
+al.](https://eprint.iacr.org/2014/756.pdf) and [Guo et
+al.](https://eprint.iacr.org/2019/1168.pdf). Alternatively, you can
 activate the implementation optimized by [Bellare et
 al.](https://eprint.iacr.org/2013/426) by adding `MY_CFLAGS +=
 -DFULL_GATES` to `CONFIG.mine`.
