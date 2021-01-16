@@ -1280,8 +1280,9 @@ def _run_and_link(function, g=None):
     pre = copy.copy(g)
     res = function()
     if g:
+        from .types import _single
         for name, var in pre.items():
-            if isinstance(var, program.Tape.Register):
+            if isinstance(var, (program.Tape.Register, _single)):
                 new_var = g[name]
                 if id(new_var) != id(var):
                     new_var.link(var)

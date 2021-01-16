@@ -3353,6 +3353,9 @@ class _single(_number, _structure):
         op.__doc__ = __eq__.__doc__
     del op
 
+    def link(self, other):
+        self.v.link(other.v)
+
 class _fix(_single):
     """ Secret fixed point type. """
     __slots__ = ['v', 'f', 'k']
