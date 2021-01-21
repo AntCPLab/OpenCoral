@@ -26,6 +26,8 @@ public:
     static const bool expensive = false;
     static const bool expensive_triples = false;
 
+    static const int default_length = 1;
+
     static string type_short() { return "undef"; }
 
     template<class T, class U>

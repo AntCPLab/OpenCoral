@@ -83,42 +83,12 @@ public:
     SemiShare(const clear& other, int my_num, const T& alphai = {})
     {
         (void) alphai;
-        assign(other, my_num);
-    }
-
-    void assign(const clear& other, int my_num, const T& alphai = {})
-    {
-        (void) alphai;
         Protocol::assign(*this, other, my_num);
     }
+
     void assign(const char* buffer)
     {
         super::assign(buffer);
-    }
-
-    void add(const SemiShare& x, const SemiShare& y)
-    {
-        *this = x + y;
-    }
-    void sub(const SemiShare& x, const SemiShare& y)
-    {
-        *this = x - y;
-    }
-
-    void add(const SemiShare& S, const clear aa, int my_num, const T& alphai)
-    {
-        (void) alphai;
-        *this = S + SemiShare(aa, my_num);
-    }
-    void sub(const SemiShare& S, const clear& aa, int my_num, const T& alphai)
-    {
-        (void) alphai;
-        *this = S - SemiShare(aa, my_num);
-    }
-    void sub(const clear& aa, const SemiShare& S, int my_num, const T& alphai)
-    {
-        (void) alphai;
-        *this = SemiShare(aa, my_num) - S;
     }
 
     void pack(octetStream& os, bool full = true) const

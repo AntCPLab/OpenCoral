@@ -1,6 +1,6 @@
 
 #include "FHE/Matrix.h"
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 
 #include "Math/modp.hpp"
 

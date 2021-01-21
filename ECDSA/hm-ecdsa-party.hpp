@@ -59,7 +59,7 @@ void run(int argc, const char** argv)
 
     OnlineOptions::singleton.batch_size = (1 + pShare::Protocol::uses_triples) * n_tuples;
     DataPositions usage;
-    auto& prep = *Preprocessing<pShare>::get_live_prep(0, usage);
+    typename pShare::TriplePrep prep(0, usage);
     typename pShare::MAC_Check MCp;
     ArithmeticProcessor _({}, 0);
     SubProcessor<pShare> proc(_, MCp, prep, P);
@@ -69,6 +69,4 @@ void run(int argc, const char** argv)
     preprocessing(tuples, n_tuples, sk, proc, opts);
 //    check(tuples, sk, {}, P);
     sign_benchmark(tuples, sk, MCp, P, opts, prep_mul ? 0 : &proc);
-
-    delete &prep;
 }

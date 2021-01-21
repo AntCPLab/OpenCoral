@@ -6,6 +6,7 @@
 #include "Protocols/Share.h"
 #include "Tools/ezOptionParser.h"
 #include "Networking/Server.h"
+#include "Networking/CryptoPlayer.h"
 #include <iostream>
 #include <map>
 #include <string>
@@ -210,6 +211,15 @@ void OnlineMachine::start_networking()
         playerNames.init(playerno, pnbase, my_port, hostname.c_str());
       }
     }
+}
+
+inline
+Player* OnlineMachine::new_player(int id_base)
+{
+    if (use_encryption)
+        return new CryptoPlayer(playerNames, id_base);
+    else
+        return new PlainPlayer(playerNames, id_base);
 }
 
 template<class T, class U>

@@ -10,7 +10,6 @@ using namespace std;
 #include "Protocols/Share.h"
 #include "Networking/Player.h"
 #include "Protocols/MAC_Check_Base.h"
-#include "Protocols/RandomPrep.h"
 #include "Tools/time-func.h"
 
 
@@ -58,7 +57,7 @@ public:
 
 
 template<class U>
-class MAC_Check_ : public TreeSum<typename U::open_type>, public MAC_Check_Base<U>
+class Tree_MAC_Check : public TreeSum<typename U::open_type>, public MAC_Check_Base<U>
 {
   typedef typename U::open_type T;
 
@@ -76,19 +75,30 @@ class MAC_Check_ : public TreeSum<typename U::open_type>, public MAC_Check_Base<
 
   public:
 
-  MAC_Check_(const typename U::mac_key_type::Scalar& ai, int opening_sum = 10,
+  Tree_MAC_Check(const typename U::mac_key_type::Scalar& ai, int opening_sum = 10,
       int max_broadcast = 10, int send_player = 0);
-  virtual ~MAC_Check_();
+  virtual ~Tree_MAC_Check();
 
   virtual void init_open(const Player& P, int n = 0);
   virtual void prepare_open(const U& secret);
   virtual void exchange(const Player& P);
 
   virtual void AddToCheck(const U& share, const T& value, const Player& P);
-  virtual void Check(const Player& P);
+  virtual void Check(const Player& P) = 0;
 
   // compatibility
   void set_random_element(const U& random_element) { (void) random_element; }
+};
+
+template<class U>
+class MAC_Check_ : public Tree_MAC_Check<U>
+{
+public:
+  MAC_Check_(const typename U::mac_key_type::Scalar& ai, int opening_sum = 10,
+      int max_broadcast = 10, int send_player = 0);
+  virtual ~MAC_Check_() {}
+
+  virtual void Check(const Player& P);
 };
 
 template<class T>
@@ -99,11 +109,11 @@ template<class T> class Spdz2kPrep;
 template<class T> class MascotPrep;
 
 template<class T, class U, class V, class W>
-class MAC_Check_Z2k : public MAC_Check_<W>
+class MAC_Check_Z2k : public Tree_MAC_Check<W>
 {
 protected:
   vector<T> shares;
-  RandomPrep<W>* prep;
+  Preprocessing<W>* prep;
 
   W get_random_element();
 
@@ -118,7 +128,7 @@ public:
 
   virtual void Check(const Player& P);
   void set_random_element(const W& random_element);
-  void set_prep(RandomPrep<W>& prep);
+  void set_prep(Preprocessing<W>& prep);
   virtual ~MAC_Check_Z2k() {};
 };
 

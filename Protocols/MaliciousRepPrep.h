@@ -47,7 +47,6 @@ class MaliciousRepPrep : public MaliciousBitOnlyRepPrep<T>
 protected:
     void buffer_triples();
     void buffer_squares();
-    void buffer_inverses();
     void buffer_inputs(int player);
 
 public:

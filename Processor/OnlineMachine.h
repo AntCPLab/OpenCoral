@@ -37,6 +37,8 @@ public:
 
     template<class T, class U>
     int run();
+
+    Player* new_player(int id_base = 0);
 };
 
 class DishonestMajorityMachine : public OnlineMachine

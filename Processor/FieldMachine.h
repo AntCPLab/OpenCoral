@@ -7,9 +7,10 @@
 #define PROCESSOR_FIELDMACHINE_H_
 
 #include "RingMachine.h"
+#include "HonestMajorityMachine.h"
 #include "Tools/ezOptionParser.h"
 
-template<template<class T> class U>
+template<template<class T> class U, class V = HonestMajorityMachine>
 class HonestMajorityFieldMachine
 {
 public:
@@ -26,7 +27,8 @@ public:
             OnlineOptions& online_opts, int nplayers = 0);
 };
 
-template<template<class U> class T, template<class U> class V = T, class W = gf2n>
+template<template<class U> class T, template<class U> class V = T,
+        class W = gf2n, class X = DishonestMajorityMachine>
 class DishonestMajorityFieldMachine
 {
 public:
@@ -36,8 +38,7 @@ public:
         OnlineOptions& online_opts = OnlineOptions::singleton;
         online_opts = {opt, argc, argv, 1000, live_prep_default, true};
 
-        FieldMachine<T, V, DishonestMajorityMachine, W>(argc, argv, opt,
-                online_opts);
+        FieldMachine<T, V, X, W>(argc, argv, opt, online_opts);
     }
 };
 

@@ -9,7 +9,7 @@
 #include "MascotPrep.h"
 
 template<class T>
-class MamaPrep : public OTPrep<T>
+class MamaPrep : public OTPrep<T>, public MaliciousRingPrep<T>
 {
 public:
     static void basic_setup(Player&) {};

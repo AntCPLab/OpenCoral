@@ -3,8 +3,9 @@
 
 #include <string.h>
 
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 #include "Tools/avx_memcpy.h"
+#include "Tools/int.h"
 
 #ifdef __APPLE__
 # include <libkern/OSByteOrder.h>
@@ -14,15 +15,6 @@
 
 #ifdef __linux__
 #include <endian.h>
-#endif
-
-typedef unsigned char octet;
-
-// Assumes word is a 64 bit value
-#ifdef WIN32
-  typedef unsigned __int64 word;
-#else
-  typedef unsigned long word;
 #endif
 
 

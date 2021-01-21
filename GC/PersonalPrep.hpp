@@ -27,7 +27,7 @@ void PersonalPrep<T>::buffer_personal_triples()
 template<class T>
 void PersonalPrep<T>::buffer_personal_triples(size_t batch_size, ThreadQueues* queues)
 {
-    ShuffleSacrifice<T> sacri;
+    TripleShuffleSacrifice<T> sacri;
     batch_size = max(batch_size, (size_t)sacri.minimum_n_outputs()) + sacri.C;
     vector<array<T, 3>> triples(batch_size);
 

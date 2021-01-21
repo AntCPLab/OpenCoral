@@ -30,7 +30,7 @@ void ShamirMC<T>::init_open(const Player& P, int n)
     int n_relevant_players = ShamirMachine::s().threshold + 1;
     if (reconstruction.empty())
     {
-        reconstruction.resize(n_relevant_players, 1);
+        reconstruction.resize(n_relevant_players);
         for (int i = 0; i < n_relevant_players; i++)
             reconstruction[i] = Shamir<T>::get_rec_factor(i,
                     n_relevant_players);

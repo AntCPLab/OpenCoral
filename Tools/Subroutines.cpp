@@ -2,7 +2,7 @@
 #include "Tools/Subroutines.h"
 
 #include "Tools/random.h"
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 #include "Tools/Commit.h"
 #include "Math/Z2k.h"
 #include "Math/gfp.h"

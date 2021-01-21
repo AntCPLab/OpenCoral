@@ -31,8 +31,6 @@ class Shamir : public ProtocolBase<T>
 
     SeededPRNG secure_prng;
 
-    vector<T> random;
-
     vector<vector<typename T::clear>> hyper;
 
     typename T::open_type dotprod_share;
@@ -86,8 +84,6 @@ public:
     void prepare_dotprod(const T& x, const T& y);
     void next_dotprod();
     T finalize_dotprod(int length);
-
-    T get_random();
 };
 
 #endif /* PROTOCOLS_SHAMIR_H_ */

@@ -111,13 +111,6 @@ void SohoPrep<T>::buffer_squares()
 }
 
 template<class T>
-void SohoPrep<T>::buffer_inverses()
-{
-    assert(this->proc != 0);
-    ::buffer_inverses(this->inverses, *this, this->proc->MC, this->proc->P);
-}
-
-template<class T>
 void SohoPrep<T>::buffer_bits()
 {
     buffer_bits_from_squares(*this);

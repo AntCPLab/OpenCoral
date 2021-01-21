@@ -43,9 +43,9 @@ public:
         BufferPrep<SemiSecret>::get(type, data);
     }
 
-    array<SemiSecret, 3> get_triple(int n_bits)
+    array<SemiSecret, 3> get_triple_no_count(int n_bits)
     {
-        return ShiftableTripleBuffer<SemiSecret>::get_triple(n_bits);
+        return ShiftableTripleBuffer<SemiSecret>::get_triple_no_count(n_bits);
     }
 
     void buffer_personal_triples(vector<array<SemiSecret, 3>>&, size_t, size_t)

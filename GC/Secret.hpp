@@ -183,7 +183,7 @@ void Secret<T>::load(vector<ReadAccess <V> >& accesses, const U& mem)
 }
 
 template <class T>
-Secret<T> Secret<T>::operator<<(int i)
+Secret<T> Secret<T>::operator<<(int i) const
 {
     Secret<T> res;
     for (int j = 0; j < i; j++)
@@ -194,7 +194,7 @@ Secret<T> Secret<T>::operator<<(int i)
 }
 
 template <class T>
-Secret<T> Secret<T>::operator>>(int i)
+Secret<T> Secret<T>::operator>>(int i) const
 {
     Secret<T> res;
     res.registers.insert(res.registers.end(), registers.begin() + i, registers.end());
@@ -219,10 +219,8 @@ template <class U>
 void Secret<T>::bitdec(Memory<U>& S, const vector<int>& regs) const
 {
     if (regs.size() > registers.size())
-        throw out_of_range(
-                "not enough bits for bit decomposition: "
-                        + to_string(regs.size()) + " > "
-                        + to_string(registers.size()));
+        throw overflow("not enough bits for bit decomposition", regs.size(),
+            registers.size());
     for (unsigned int i = 0; i < regs.size(); i++)
     {
         Secret& secret = S[regs[i]];

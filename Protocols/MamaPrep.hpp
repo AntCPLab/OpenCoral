@@ -10,7 +10,8 @@
 template<class T>
 MamaPrep<T>::MamaPrep(SubProcessor<T>* proc, DataPositions& usage) :
         BufferPrep<T>(usage), BitPrep<T>(proc, usage),
-        OTPrep<T>(proc, usage)
+        RingPrep<T>(proc, usage), OTPrep<T>(proc, usage),
+        MaliciousRingPrep<T>(proc, usage)
 {
     this->params.amplify = true;
     this->params.generateMACs = true;
@@ -37,7 +38,7 @@ void MamaPrep<T>::buffer_triples()
     assert(this->proc != 0);
     this->params.generateBits = false;
     vector<array<T, 3>> triples;
-    ShuffleSacrifice<T> sacrifice;
+    TripleShuffleSacrifice<T> sacrifice;
     size_t required = OnlineOptions::singleton.batch_size;
 
     // prefer shuffling if not loosing much security and bucket size is smaller

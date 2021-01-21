@@ -12,10 +12,34 @@ const char* DataPositions::field_names[] = { "int", "gf2n", "bit" };
 
 const int DataPositions::tuple_size[N_DTYPE] = { 3, 2, 1, 2, 3, 3 };
 
+DataPositions::DataPositions(int num_players)
+{
+  set_num_players(num_players);
+}
+
+DataPositions::~DataPositions()
+{
+}
+
+void DataPositions::reset()
+{
+  *this = DataPositions(num_players());
+}
+
 void DataPositions::set_num_players(int num_players)
 {
   files = {};
   inputs.resize(num_players, {});
+}
+
+void DataPositions::count(DataFieldType type, DataTag tag, int n)
+{
+  extended[type][tag] += n;
+}
+
+void DataPositions::count_edabit(bool strict, int n_bits)
+{
+  edabits[{strict, n_bits}]++;
 }
 
 void DataPositions::increase(const DataPositions& delta)
@@ -164,4 +188,36 @@ bool DataPositions::empty() const
     return false;
 
   return true;
+}
+
+bool DataPositions::any_more(const DataPositions& other) const
+{
+  for (unsigned int field_type = 0; field_type < N_DATA_FIELD_TYPE;
+      field_type++)
+    {
+      for (unsigned int dtype = 0; dtype < N_DTYPE; dtype++)
+        if (files[field_type][dtype] > other.files[field_type][dtype])
+          return true;
+      for (unsigned int j = 0; j < min(inputs.size(), other.inputs.size()); j++)
+        if (inputs[j][field_type] > other.inputs[j][field_type])
+          return true;
+
+      auto& ext = extended[field_type];
+      auto& other_ext = other.extended[field_type];
+      for (auto it = ext.begin(); it != ext.end(); it++)
+        {
+          auto x = other_ext.find(it->first);
+          if (x == other_ext.end() or it->second > x->second)
+            return true;
+        }
+    }
+
+  for (auto it = edabits.begin(); it != edabits.end(); it++)
+    {
+      auto x = other.edabits.find(it->first);
+      if (x == other.edabits.end() or it->second > x->second)
+        return true;
+    }
+
+  return false;
 }

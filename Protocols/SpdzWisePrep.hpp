@@ -92,15 +92,6 @@ void SpdzWisePrep<T>::buffer_bits(U)
 }
 
 template<class T>
-void SpdzWisePrep<T>::buffer_inverses()
-{
-    auto protocol = this->protocol;
-    assert(protocol != 0);
-    assert(this->proc != 0);
-    ::buffer_inverses(this->inverses, *this, this->proc->MC, protocol->P);
-}
-
-template<class T>
 void SpdzWisePrep<T>::buffer_inputs(int player)
 {
     assert(this->proc != 0);

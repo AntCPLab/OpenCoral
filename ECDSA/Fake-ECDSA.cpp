@@ -10,6 +10,7 @@
 #include "Protocols/fake-stuff.hpp"
 #include "Protocols/Share.hpp"
 #include "Processor/Data_Files.hpp"
+#include "Math/gfp.hpp"
 
 int main()
 {

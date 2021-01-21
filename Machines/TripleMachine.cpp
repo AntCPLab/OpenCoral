@@ -13,8 +13,10 @@
 #include "Math/Setup.h"
 #include "Protocols/fake-stuff.h"
 #include "Math/BitVec.h"
+#include "GC/TinierSecret.h"
 
 #include "Protocols/fake-stuff.hpp"
+#include "Protocols/MascotPrep.hpp"
 #include "Math/Z2k.hpp"
 #include "Math/gfp.hpp"
 #include "OT/NPartyTripleGenerator.hpp"

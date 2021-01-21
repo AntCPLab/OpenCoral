@@ -18,6 +18,7 @@ using namespace std;
 
 #include "GC/Machine.hpp"
 #include "Processor/ProcessorBase.hpp"
+#include "Math/bigint.hpp"
 
 namespace GC
 {

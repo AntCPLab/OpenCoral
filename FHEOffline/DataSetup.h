@@ -38,8 +38,10 @@ public:
   void generate_setup(int n_parties, int plaintext_length, int sec, int slack,
       bool round_up);
 
-  void fake(vector<FHE_SK>& sks, vector<T>& alphais, int nplayers, bool distributed = true);
-  void fake(vector<PartSetup<FD> >& setups, int nplayers, bool distributed = true);
+  void fake(vector<FHE_SK>& sks, vector<T>& alphais, int nplayers,
+      bool distributed = true, bool check_security = true);
+  void fake(vector<PartSetup<FD> >& setups, int nplayers,
+      bool distributed = true, bool check_security = true);
   void insecure_debug_keys(vector<PartSetup<FD> >& setups, int nplayers, bool simple_pk);
 
   void pack(octetStream& os);

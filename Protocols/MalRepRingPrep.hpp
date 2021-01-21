@@ -99,7 +99,7 @@ void shuffle_triple_generation(vector<array<T, 3>>& triples, Player& P,
         typename T::MAC_Check& MC, int n_bits = -1, ThreadQueues* queues = 0)
 {
     RunningTimer timer;
-    ShuffleSacrifice<T> sacrifice;
+    TripleShuffleSacrifice<T> sacrifice;
     vector<array<T, 3>> check_triples;
     int buffer_size = sacrifice.minimum_n_inputs(OnlineOptions::singleton.batch_size);
 
@@ -120,9 +120,8 @@ void shuffle_triple_generation(vector<array<T, 3>>& triples, Player& P,
 #endif
 }
 
-template<class T>
 template<class U>
-void ShuffleSacrifice<T>::shuffle(vector<U>& check_triples, Player& P)
+void ShuffleSacrifice::shuffle(vector<U>& check_triples, Player& P)
 {
     int buffer_size = check_triples.size();
     assert(buffer_size >= minimum_n_inputs());
@@ -138,7 +137,7 @@ void ShuffleSacrifice<T>::shuffle(vector<U>& check_triples, Player& P)
 }
 
 template<class T>
-void ShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
+void TripleShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
         vector<array<T, 3>>& check_triples, Player& P,
         typename T::MAC_Check& MC, ThreadQueues* queues)
 {
@@ -175,7 +174,7 @@ void ShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
 }
 
 template<class T>
-void ShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
+void TripleShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
         vector<array<T, 3>>& check_triples, Player& P,
         typename T::MAC_Check& MC, int begin, int end)
 {

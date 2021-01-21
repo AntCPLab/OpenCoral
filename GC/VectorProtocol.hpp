@@ -33,7 +33,7 @@ typename T::clear VectorProtocol<T>::prepare_mul(const T& x,
         const T& y, int n)
 {
     for (int i = 0; i < n; i++)
-        part_protocol.prepare_mul(x.get_reg(i), y.get_reg(i));
+        part_protocol.prepare_mul(x.get_reg(i), y.get_reg(i), 1);
     return {};
 }
 
@@ -49,7 +49,7 @@ T VectorProtocol<T>::finalize_mul(int n)
     T res;
     res.resize_regs(n);
     for (int i = 0; i < n; i++)
-        res.get_reg(i) = part_protocol.finalize_mul();
+        res.get_reg(i) = part_protocol.finalize_mul(1);
     return res;
 }
 

@@ -29,10 +29,3 @@ void SemiPrep<T>::buffer_triples()
     }
     this->triple_generator->unlock();
 }
-
-template<class T>
-void SemiPrep<T>::buffer_inverses()
-{
-    assert(this->proc != 0);
-    ::buffer_inverses(this->inverses, *this, this->proc->MC, this->proc->P);
-}

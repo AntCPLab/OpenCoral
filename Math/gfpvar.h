@@ -8,6 +8,7 @@
 
 #include "modp.h"
 #include "Zp_Data.h"
+#include "Setup.h"
 
 class FFT_Data;
 
@@ -52,6 +53,13 @@ public:
 
     template<class T>
     static void generate_setup(string prep_data_prefix, int nplayers, int lgp);
+    static void check_setup(string dir);
+    static void write_setup(string dir);
+    template<class T>
+    static void write_setup(int nplayers)
+    {
+        write_setup(get_prep_sub_dir<T>(nplayers));
+    }
 
     gfpvar();
     gfpvar(int other);
@@ -91,7 +99,7 @@ public:
 
     void negate();
 
-    void invert(const gfpvar& other);
+    gfpvar invert() const;
 
     gfpvar sqrRoot() const;
 

@@ -6,7 +6,7 @@
 #ifndef MATH_VALUEINTERFACE_H_
 #define MATH_VALUEINTERFACE_H_
 
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 
 class OnlineOptions;
 class bigint;
@@ -19,6 +19,7 @@ public:
 
     static const false_type characteristic_two;
     static const false_type prime_field;
+    static const false_type invertible;
 
     template<class T>
     static void init(bool mont = true) { (void) mont; }
@@ -28,10 +29,12 @@ public:
     static void read_or_generate_setup(const string&, const OnlineOptions&) {}
     template<class T>
     static void generate_setup(string, int, int) {}
+    template<class T>
+    static void write_setup(int) {}
+    static void write_setup(string) {}
+    static void check_setup(string) {}
 
     static bigint pr() { throw runtime_error("no prime modulus"); }
-
-    static int power_of_two(bool, int) { throw not_implemented(); }
 
     void normalize() {}
 

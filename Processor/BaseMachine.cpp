@@ -13,6 +13,12 @@ using namespace std;
 BaseMachine* BaseMachine::singleton = 0;
 thread_local int BaseMachine::thread_num;
 
+void print_usage(ostream& o, const char* name, size_t capacity)
+{
+  if (capacity)
+    o << name << "=" << capacity << " ";
+}
+
 BaseMachine& BaseMachine::s()
 {
   if (singleton)
@@ -29,7 +35,7 @@ BaseMachine::BaseMachine() : nthreads(0)
     singleton = this;
 }
 
-void BaseMachine::load_schedule(string progname, bool load_bytecode)
+void BaseMachine::load_schedule(const string& progname, bool load_bytecode)
 {
   this->progname = progname;
   string fname = "Programs/Schedules/" + progname + ".sch";
@@ -56,9 +62,10 @@ void BaseMachine::load_schedule(string progname, bool load_bytecode)
   string threadname;
   for (int i=0; i<nprogs; i++)
     { inpf >> threadname;
+      string filename = "Programs/Bytecode/" + threadname + ".bc";
+      bc_filenames.push_back(filename);
       if (load_bytecode)
         {
-          string filename = "Programs/Bytecode/" + threadname + ".bc";
 #ifdef DEBUG_FILES
           cerr << "Loading program " << i << " from " << filename << endl;
 #endif
@@ -88,7 +95,7 @@ void BaseMachine::print_compiler()
 #endif
 }
 
-void BaseMachine::load_program(string threadname, string filename)
+void BaseMachine::load_program(const string& threadname, const string& filename)
 {
   (void)threadname;
   (void)filename;
@@ -121,7 +128,7 @@ void BaseMachine::print_timers()
     cerr << "Time" << it->first << " = " << it->second.elapsed() << " seconds " << endl;
 }
 
-string BaseMachine::memory_filename(string type_short, int my_number)
+string BaseMachine::memory_filename(const string& type_short, int my_number)
 {
   return PREP_DIR "Memory-" + type_short + "-P" + to_string(my_number);
 }

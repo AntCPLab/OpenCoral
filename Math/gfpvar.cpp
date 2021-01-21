@@ -50,8 +50,7 @@ void gfpvar::init_field(bigint prime, bool montgomery)
 {
     ZpD.init(prime, montgomery);
     if (ZpD.get_t() > N_LIMBS)
-        throw wrong_gfp_size("gfpvar too small for modulus. "
-            "Maybe change MAX_MOD_SZ to " + to_string(ZpD.get_t() * 2));
+        throw wrong_gfp_size("gfpvar", prime, "MAX_MOD_SZ", ZpD.get_t() * 2);
 }
 
 void gfpvar::init_default(int lgp, bool montgomery)
@@ -74,6 +73,16 @@ void gfpvar::generate_setup<Share<gfpvar>>(string prep_data_prefix,
     int nplayers, int lgp)
 {
     generate_prime_setup<Share<gfpvar>>(prep_data_prefix, nplayers, lgp);
+}
+
+void gfpvar::check_setup(string dir)
+{
+    ::check_setup(dir, pr());
+}
+
+void gfpvar::write_setup(string dir)
+{
+    write_online_setup(dir, pr());
 }
 
 gfpvar::gfpvar()
@@ -148,9 +157,7 @@ gfpvar gfpvar::operator *(const gfpvar& other) const
 
 gfpvar gfpvar::operator /(const gfpvar& other) const
 {
-    gfpvar tmp;
-    tmp.invert(other);
-    return *this * tmp;
+    return *this * other.invert();
 }
 
 gfpvar& gfpvar::operator +=(const gfpvar& other)
@@ -191,9 +198,11 @@ void gfpvar::negate()
     *this = gfpvar() - *this;
 }
 
-void gfpvar::invert(const gfpvar& other)
+gfpvar gfpvar::invert() const
 {
-    Inv(a, other.a, ZpD);
+    gfpvar res;
+    Inv(res.a, a, ZpD);
+    return res;
 }
 
 gfpvar gfpvar::sqrRoot() const

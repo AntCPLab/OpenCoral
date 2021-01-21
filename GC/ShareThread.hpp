@@ -8,6 +8,7 @@
 
 #include <GC/ShareThread.h>
 #include "GC/ShareParty.h"
+#include "BitPrepFiles.h"
 #include "Math/Setup.h"
 
 #include "Processor/Data_Files.hpp"
@@ -27,7 +28,7 @@ ShareThread<T>::ShareThread(const Names& N, OnlineOptions& opts, DataPositions& 
                 opts.live_prep ?
                         *static_cast<Preprocessing<T>*>(new typename T::LivePrep(
                                 usage, *this)) :
-                        *static_cast<Preprocessing<T>*>(new Sub_Data_Files<T>(N,
+                        *static_cast<Preprocessing<T>*>(new BitPrepFiles<T>(N,
                                 get_prep_sub_dir<T>(PREP_DIR, N.num_players()), usage)))
 {
 }

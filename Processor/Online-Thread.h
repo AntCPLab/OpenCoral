@@ -29,7 +29,8 @@ class thread_info
   static void purge_preprocessing(Machine<sint, sgf2n>& machine);
 
   template<class T>
-  static void print_usage(ostream& o, const vector<T>& regs, string name);
+  static void print_usage(ostream& o, const vector<T>& regs,
+      const char* name);
 
   void Sub_Main_Func();
 };

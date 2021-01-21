@@ -10,6 +10,7 @@
 #include "Program.h"
 
 #include "Networking/CryptoPlayer.h"
+#include "Processor/Processor.h"
 
 #include "Processor.hpp"
 

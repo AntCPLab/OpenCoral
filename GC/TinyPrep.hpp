@@ -68,7 +68,6 @@ void TinyOnlyPrep<T>::set_protocol(Beaver<T>& protocol)
             OnlineOptions::singleton.batch_size, 1, this->params,
             this->thread.MC->get_alphai(), &protocol.P);
     input_generator->multi_threaded = false;
-    this->thread.MC->get_part_MC().set_prep(*this);
 }
 
 template<class T>
@@ -78,7 +77,7 @@ void TinyPrep<T>::buffer_triples()
     assert(triple_generator != 0);
     params.generateBits = false;
     vector<array<typename T::check_type, 3>> triples;
-    ShuffleSacrifice<typename T::check_type> sacrifice;
+    TripleShuffleSacrifice<typename T::check_type> sacrifice;
     size_t required;
     if (amplify)
         required = sacrifice.minimum_n_inputs_with_combining();
@@ -169,15 +168,7 @@ void TinyPrep<T>::buffer_inputs_(int player, typename T::InputGenerator* input_g
 }
 
 template<class T>
-typename T::part_type::super GC::TinyPrep<T>::get_random()
-{
-    T tmp;
-    this->get_one(DATA_BIT, tmp);
-    return tmp.get_reg(0);
-}
-
-template<class T>
-array<T, 3> TinyPrep<T>::get_triple(int n_bits)
+array<T, 3> TinyPrep<T>::get_triple_no_count(int n_bits)
 {
     assert(n_bits > 0);
     while ((unsigned)n_bits > triple_buffer.size())

@@ -6,10 +6,7 @@
 #include "Protocols/dabit.h"
 #include "Math/Setup.h"
 
-template<class T>
-Lock Sub_Data_Files<T>::tuple_lengths_lock;
-template<class T>
-map<DataTag, int> Sub_Data_Files<T>::tuple_lengths;
+#include "Protocols/MascotPrep.hpp"
 
 template<class T>
 Preprocessing<T>* Preprocessing<T>::get_live_prep(SubProcessor<T>* proc,
@@ -39,17 +36,28 @@ int Sub_Data_Files<T>::tuple_length(int dtype)
 }
 
 template<class T>
-string Sub_Data_Files<T>::get_suffix(int thread_num)
+string Sub_Data_Files<T>::get_filename(const Names& N, Dtype type,
+    int thread_num)
 {
-#ifdef INSECURE
-  (void) thread_num;
-  return "";
-#else
-  if (thread_num >= 0)
-    return "-T" + to_string(thread_num);
-  else
-    return "";
-#endif
+  return PrepBase::get_filename(get_prep_sub_dir<T>(N.num_players()),
+      type, T::type_short(), N.my_num(), thread_num);
+}
+
+template<class T>
+string Sub_Data_Files<T>::get_input_filename(const Names& N, int input_player,
+    int thread_num)
+{
+  return PrepBase::get_input_filename(
+      get_prep_sub_dir<T>(N.num_players()), T::type_short(), input_player,
+      N.my_num(), thread_num);
+}
+
+template<class T>
+string Sub_Data_Files<T>::get_edabit_filename(const Names& N, int n_bits,
+    int thread_num)
+{
+  return PrepBase::get_edabit_filename(
+      get_prep_sub_dir<T>(N.num_players()), n_bits, N.my_num(), thread_num);
 }
 
 template<class T>
@@ -62,35 +70,37 @@ Sub_Data_Files<T>::Sub_Data_Files(int my_num, int num_players,
 #ifdef DEBUG_FILES
   cerr << "Setting up Data_Files in: " << prep_data_dir << endl;
 #endif
-  char filename[1024];
-  string suffix = get_suffix(thread_num);
+  T::clear::check_setup(prep_data_dir);
+  string type_short = T::type_short();
+  string type_string = T::type_string();
+
   for (int dtype = 0; dtype < N_DTYPE; dtype++)
     {
       if (T::clear::allows(Dtype(dtype)))
         {
-          sprintf(filename,(prep_data_dir + "%s-%s-P%d%s").c_str(),DataPositions::dtype_names[dtype],
-              (T::type_short()).c_str(),my_num,suffix.c_str());
-          buffers[dtype].setup(filename,
-              tuple_length(dtype), DataPositions::dtype_names[dtype]);
+          buffers[dtype].setup(
+              PrepBase::get_filename(prep_data_dir, Dtype(dtype), type_short,
+                  my_num, thread_num), tuple_length(dtype), type_string,
+              DataPositions::dtype_names[dtype]);
         }
     }
 
-  sprintf(filename, (prep_data_dir + "%s-%s-P%d%s").c_str(),
-      DataPositions::dtype_names[DATA_DABIT], (T::type_short()).c_str(), my_num,
-      suffix.c_str());
-  dabit_buffer.setup(filename, 1, DataPositions::dtype_names[DATA_DABIT]);
+  dabit_buffer.setup(
+      PrepBase::get_filename(prep_data_dir, DATA_DABIT,
+          type_short, my_num, thread_num), 1, type_string,
+      DataPositions::dtype_names[DATA_DABIT]);
 
   input_buffers.resize(num_players);
   for (int i=0; i<num_players; i++)
     {
-      sprintf(filename,(prep_data_dir + "Inputs-%s-P%d-%d%s").c_str(),
-          (T::type_short()).c_str(),my_num,i,suffix.c_str());
+      string filename = PrepBase::get_input_filename(prep_data_dir,
+          type_short, i, my_num, thread_num);
       if (i == my_num)
         my_input_buffers.setup(filename,
-            T::size() * 3 / 2);
+            T::size() * 3 / 2, type_string);
       else
         input_buffers[i].setup(filename,
-            T::size());
+            T::size(), type_string);
     }
 
 #ifdef DEBUG_FILES
@@ -127,18 +137,8 @@ Data_Files<sint, sgf2n>::~Data_Files()
 template<class T>
 Sub_Data_Files<T>::~Sub_Data_Files()
 {
-  for (int i = 0; i < N_DTYPE; i++)
-    buffers[i].close();
-  for (int i = 0; i < num_players; i++)
-    input_buffers[i].close();
-  my_input_buffers.close();
-  for (auto it =
-      extended.begin(); it != extended.end(); it++)
-    it->second.close();
-  dabit_buffer.close();
   for (auto& x: edabit_buffers)
     {
-      x.second->close();
       delete x.second;
     }
   if (part != 0)
@@ -216,31 +216,17 @@ void Sub_Data_Files<T>::purge()
 template<class T>
 void Sub_Data_Files<T>::setup_extended(const DataTag& tag, int tuple_size)
 {
-  BufferBase& buffer = extended[tag];
-  tuple_lengths_lock.lock();
-  int tuple_length = tuple_lengths[tag];
-  int my_tuple_length = tuple_size * T::size();
-  if (tuple_length > 0)
-    {
-      if (tuple_size > 0 && my_tuple_length != tuple_length)
-        {
-          stringstream ss;
-          ss << "Inconsistent size of " << T::type_string() << " "
-              << tag.get_string() << ": " << my_tuple_length << " vs "
-              << tuple_length;
-          throw Processor_Error(ss.str());
-        }
-    }
-  else
-    tuple_lengths[tag] = my_tuple_length;
-  tuple_lengths_lock.unlock();
+  auto& buffer = extended[tag];
+  int tuple_length = tuple_size * T::size();
 
   if (!buffer.is_up())
     {
       stringstream ss;
       ss << prep_data_dir << tag.get_string() << "-" << T::type_short() << "-P" << my_num;
-      extended[tag].setup(ss.str(), tuple_length);
+      buffer.setup(ss.str(), tuple_length);
     }
+
+  buffer.check_tuple_length(tuple_length);
 }
 
 template<class T>
@@ -262,15 +248,17 @@ void Sub_Data_Files<T>::get_dabit_no_count(T& a, typename T::bit_type& b)
 }
 
 template<class T>
-void Sub_Data_Files<T>::buffer_edabits_with_queues(bool strict, int n_bits)
+template<int>
+void Sub_Data_Files<T>::buffer_edabits_with_queues(bool strict, int n_bits,
+        false_type)
 {
 #ifndef INSECURE
   throw runtime_error("no secure implementation of reading edaBits from files");
 #endif
   if (edabit_buffers.find(n_bits) == edabit_buffers.end())
     {
-      string filename = prep_data_dir + "edaBits-" + to_string(n_bits) + "-P"
-          + to_string(my_num);
+      string filename = PrepBase::get_edabit_filename(prep_data_dir,
+          n_bits, my_num, thread_num);
       ifstream* f = new ifstream(filename);
       if (f->fail())
         throw runtime_error("cannot open " + filename);

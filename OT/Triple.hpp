@@ -142,7 +142,7 @@ public:
             {
                 typename U::share_type value = triple.byIndex(l,j);
                 typename U::mac_type mac;
-                mac.mul(value, generator.get_mac_key());
+                mac = (value * generator.get_mac_key());
                 for (int i = 0; i < generator.nparties-1; i++)
                     mac += generator.ot_multipliers[i]->macs.at(l).at(iTriple * repeat + j);
                 U& share = this->byIndex(l,j);

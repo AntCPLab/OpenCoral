@@ -1,5 +1,14 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.2.2 (Jan 21, 2020)
+
+- Infrastructure for random element generation
+- Programs generating as much preprocessing data as required by a particular high-level program
+- Smaller binaries
+- Cleaning up code
+- Removing unused virtual machine instructions
+- Fixed security bug: wrong MAC check in SPDZ2k input tuple generation
+
 ## 0.2.1 (Dec 11, 2020)
 
 - Virtual machines automatically use the modulus used during compilation
@@ -14,9 +23,9 @@ The changelog explains changes pulled through from the private development repos
 - Training and inference for multi-class classification
 - Local share conversion for semi-honest protocols based on additive secret sharing modulo a power of two
 - edaBit generation based on local share conversion
-- Optimize exponentation with local share conversion
+- Optimize exponentiation with local share conversion
 - Optimize Shamir pseudo-random secret sharing using a hyper-invertible matrix
-- Mathematical functions (exponentation, logarithm, square root, and trigonometric functions) with binary circuits
+- Mathematical functions (exponentiation, logarithm, square root, and trigonometric functions) with binary circuits
 - Direct construction of fixed-point values from any type, breaking `sfix(x)` where `x` is the integer representation of a fixed-point number. Use `sfix._new(x)` instead.
 - Optimized dot product for `sfix`
 - Matrix multiplication via operator overloading uses VM-optimized multiplication.
@@ -70,7 +79,7 @@ The changelog explains changes pulled through from the private development repos
 - Mixed circuit computation with secret sharing
 - Binary computation for dishonest majority using secret sharing as in [FKOS15](https://eprint.iacr.org/2015/901)
 - Fixed security bug: insufficient OT correlation check in SPDZ2k
-- This version breaks bytecode compatibilty.
+- This version breaks bytecode compatibility.
 
 ## 0.1.3 (Nov 21, 2019)
 
@@ -133,7 +142,7 @@ The changelog explains changes pulled through from the private development repos
 ## 0.0.4 (Oct 11, 2018)
 
 - Added BMR, Yao's garbled circuits, and semi-honest 3-party replicated secret sharing for arithmetic and binary circuits.
-- Use inline assembly instead of MPIR for arithmetic modulo primes up length upt to 128 bit.
+- Use inline assembly instead of MPIR for arithmetic modulo primes up length up to 128 bit.
 - Added a secure multiplication instruction to the instruction set in order to accommodate protocols that don't use Beaver randomization.
 
 ## 0.0.3 (Mar 2, 2018)

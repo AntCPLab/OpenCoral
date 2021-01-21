@@ -17,7 +17,6 @@ using namespace std;
 #include "Tools/random.h"
 #include "Math/field_types.h"
 #include "Math/bigint.h"
-#include "Math/Bit.h"
 
 
 class int128
@@ -59,7 +58,6 @@ public:
 
     friend ostream& operator<<(ostream& s, const int128& a);
 
-    static int128 ones(int n);
     bool get_bit(int i) const;
 };
 
@@ -108,8 +106,6 @@ class gf2n_long : public ValueInterface
   const static int MAX_N_BITS = 128;
   const static int N_BYTES = sizeof(a);
 
-  static const int N_BITS = -1;
-
   typedef gf2n_long Scalar;
 
   void reduce(int128 xh,int128 xl)
@@ -139,9 +135,6 @@ class gf2n_long : public ValueInterface
 
   static int size() { return sizeof(a); }
   static int size_in_bits() { return sizeof(a) * 8; }
-  static int t()    { return 0; }
-
-  static int default_length() { return 128; }
 
   static bool allows(Dtype type) { (void) type; return true; }
 
@@ -157,39 +150,19 @@ class gf2n_long : public ValueInterface
 
   const void* get_ptr() const { return &a.a; }
 
-  void assign(const gf2n_long& g)     { a=g.a; }
-
   void assign_zero()             { a=_mm_setzero_si128(); }
   void assign_one()              { a=int128(0,1); }
   void assign_x()                { a=int128(0,2); }
-  void assign(int128 aa)           { a=aa&mask; }
-  void assign(int aa)            { a=int128(static_cast<unsigned int>(aa))&mask; }
   void assign(const void* buffer) { a = _mm_loadu_si128((__m128i*)buffer); }
-
-  void normalize() {}
 
   int get_bit(int i) const
     { return ((a>>i)&1).get_lower(); }
-  void set_bit(int i,unsigned int b)
-  { if (b==1)
-      { a |= (1UL<<i); }
-    else
-      { a &= ~(1UL<<i); }
-  }
 
   gf2n_long()              { assign_zero(); }
-  gf2n_long(const gf2n_long& g) { assign(g); }
-  gf2n_long(const int128& g)    { assign(g); }
-  gf2n_long(int g)         { assign(g); }
+  gf2n_long(const int128& g) : a(g & mask) {}
+  gf2n_long(int g) : gf2n_long(int128(unsigned(g))) {}
   template<class T>
-  gf2n_long(IntBase<T> g)       { assign(g.get()); }
-  gf2n_long(const char* buffer) { assign(buffer); }
-  gf2n_long(GC::NoValue);
-
-  gf2n_long& operator=(const gf2n_long& g)
-    { if (&g!=this) { assign(g); }
-      return *this;
-    }
+  gf2n_long(IntBase<T> g) : a(g.get()) {}
 
   int is_zero() const            { return a==int128(0); }
   int is_one()  const            { return a==int128(1); }
@@ -200,19 +173,14 @@ class gf2n_long : public ValueInterface
   // x+y
   void add(const gf2n_long& x,const gf2n_long& y)
     { a=x.a^y.a; }
-  void add(const gf2n_long& x)
-    { a^=x.a; }
   void add(octet* x)
     { a^=int128(_mm_loadu_si128((__m128i*)x)); }
   void add(octetStream& os)
     { add(os.consume(size())); }
   void sub(const gf2n_long& x,const gf2n_long& y)
     { a=x.a^y.a; }
-  void sub(const gf2n_long& x)
-    { a^=x.a; }
   // = x * y
   gf2n_long& mul(const gf2n_long& x,const gf2n_long& y);
-  void mul(const gf2n_long& x) { mul(*this,x); }
   // x * y when one of x,y is a bit
   void mul_by_bit(const gf2n_long& x, const gf2n_long& y)   { a = x.a.a * y.a.a; }
 
@@ -221,40 +189,27 @@ class gf2n_long : public ValueInterface
 
   gf2n_long operator+(const gf2n_long& x) const { gf2n_long res; res.add(*this, x); return res; }
   gf2n_long operator*(const gf2n_long& x) const { gf2n_long res; res.mul(*this, x); return res; }
-  gf2n_long& operator+=(const gf2n_long& x) { add(x); return *this; }
-  gf2n_long& operator*=(const gf2n_long& x) { mul(x); return *this; }
+  gf2n_long& operator+=(const gf2n_long& x) { add(*this, x); return *this; }
+  gf2n_long& operator*=(const gf2n_long& x) { mul(*this, x); return *this; }
   gf2n_long operator-(const gf2n_long& x) const { gf2n_long res; res.add(*this, x); return res; }
-  gf2n_long& operator-=(const gf2n_long& x) { sub(x); return *this; }
-  gf2n_long operator/(const gf2n_long& x) const { gf2n_long tmp; tmp.invert(x); return *this * tmp; }
+  gf2n_long& operator-=(const gf2n_long& x) { sub(*this, x); return *this; }
+  gf2n_long operator/(const gf2n_long& x) const { return *this * x.invert(); }
 
-  void square();
-  void square(const gf2n_long& aa);
-  void invert();
-  void invert(const gf2n_long& aa)
-    { *this=aa; invert(); }
+  gf2n_long invert() const;
   void negate() { return; }
-  void power(long i);
 
   /* Bitwise Ops */
-  void AND(const gf2n_long& x,const gf2n_long& y) { a=x.a&y.a; }
-  void XOR(const gf2n_long& x,const gf2n_long& y) { a=x.a^y.a; }
-  void OR(const gf2n_long& x,const gf2n_long& y)  { a=x.a|y.a; }
-  void NOT(const gf2n_long& x)               { a=(~x.a)&mask; }
-  void SHL(const gf2n_long& x,int n)         { a=(x.a<<n)&mask; }
-  void SHR(const gf2n_long& x,int n)         { a=x.a>>n; }
+  gf2n_long operator&(const gf2n_long& x) const { return a & x.a; }
+  gf2n_long operator^(const gf2n_long& x) const { return a ^ x.a; }
+  gf2n_long operator|(const gf2n_long& x) const { return a | x.a; }
+  gf2n_long operator~() const { return ~a; }
+  gf2n_long operator<<(int i) const { return a << i; }
+  gf2n_long operator>>(int i) const { return a >> i; }
 
-  gf2n_long operator&(const gf2n_long& x) const { gf2n_long res; res.AND(*this, x); return res; }
-  gf2n_long operator^(const gf2n_long& x) const { gf2n_long res; res.XOR(*this, x); return res; }
-  gf2n_long operator|(const gf2n_long& x) const { gf2n_long res; res.OR(*this, x); return res; }
-  gf2n_long operator!() const { gf2n_long res; res.NOT(*this); return res; }
-  gf2n_long operator<<(int i) const { gf2n_long res; res.SHL(*this, i); return res; }
-  gf2n_long operator>>(int i) const { gf2n_long res; res.SHR(*this, i); return res; }
-
-  gf2n_long& operator&=(const gf2n_long& x) { AND(*this, x); return *this; }
-  gf2n_long& operator>>=(int i) { SHR(*this, i); return *this; }
-  gf2n_long& operator<<=(int i) { SHL(*this, i); return *this; }
-
-  bool operator<(gf2n_long) const { return false; }
+  gf2n_long& operator&=(const gf2n_long& x) { *this = *this & x; return *this; }
+  gf2n_long& operator^=(const gf2n_long& x) { *this = *this ^ x; return *this; }
+  gf2n_long& operator>>=(int i) { *this = *this >> i; return *this; }
+  gf2n_long& operator<<=(int i) { *this = *this << i; return *this; }
 
   /* Crap RNG */
   void randomize(PRNG& G, int n = -1);
@@ -262,9 +217,6 @@ class gf2n_long : public ValueInterface
   void almost_randomize(PRNG& G)        { randomize(G); }
 
   void force_to_bit() { a &= 1; }
-
-  template<class T>
-  T convert() const { return *this; }
 
   void output(ostream& s,bool human) const;
   void input(istream& s,bool human);
@@ -277,7 +229,10 @@ class gf2n_long : public ValueInterface
     { bigint tmp;
       s >> hex >> tmp >> dec;
       x.a = 0;
-      mpn_copyi((word*)&x.a.a, tmp.get_mpz_t()->_mp_d, tmp.get_mpz_t()->_mp_size);
+      auto size = tmp.get_mpz_t()->_mp_size;
+      assert(size >= 0);
+      assert(size <= 2);
+      mpn_copyi((mp_limb_t*)&x.a.a, tmp.get_mpz_t()->_mp_d, size);
       return s;
     }
 
@@ -355,14 +310,6 @@ inline void mul128(__m128i a, __m128i b, __m128i *res1, __m128i *res2)
     // initial mul now in tmp3, tmp6
     *res1 = tmp3;
     *res2 = tmp6;
-}
-
-inline int128 int128::ones(int n)
-{
-    if (n < 64)
-        return int128(0, (1ULL << n) - 1);
-    else
-        return int128((1ULL << (n - 64)) - 1, -1);
 }
 
 inline bool int128::get_bit(int i) const

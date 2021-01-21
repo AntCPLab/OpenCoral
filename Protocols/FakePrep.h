@@ -57,9 +57,7 @@ public:
         for (int i = 0; i < 1000; i++)
         {
             auto a = G.get<T>();
-            T aa;
-            aa.invert(a);
-            this->inverses.push_back({{a, aa}});
+            this->inverses.push_back({{a, a.invert()}});
         }
     }
 

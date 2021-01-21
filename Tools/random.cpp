@@ -72,7 +72,7 @@ void PRNG::InitSeed()
   #else
      memcpy(state,seed,SEED_SIZE*sizeof(octet));
   #endif
-  next(); 
+  hash();
   //cout << "SetSeed : "; print_state(); cout << endl;
 }
 

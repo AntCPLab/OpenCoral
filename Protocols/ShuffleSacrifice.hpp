@@ -13,14 +13,14 @@
 #include "MalRepRingPrep.hpp"
 #include "LimitedPrep.hpp"
 
-template<class T>
-ShuffleSacrifice<T>::ShuffleSacrifice() :
+inline
+ShuffleSacrifice::ShuffleSacrifice() :
         B(OnlineOptions::singleton.bucket_size), C(this->B)
 {
 }
 
 template<class T>
-inline void ShuffleSacrifice<T>::triple_combine(vector<array<T, 3> >& triples,
+void TripleShuffleSacrifice<T>::triple_combine(vector<array<T, 3> >& triples,
         vector<array<T, 3> >& to_combine, Player& P,
         typename T::MAC_Check& MC)
 {
@@ -62,7 +62,7 @@ inline void ShuffleSacrifice<T>::triple_combine(vector<array<T, 3> >& triples,
 }
 
 template<class T>
-void ShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
+void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
         vector<T>& wholes, vector<vector<typename T::bit_type::part_type>>& parts,
         size_t n_bits, SubProcessor<T>& proc, bool strict, int player,
         ThreadQueues* queues)
@@ -232,7 +232,7 @@ void ShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
 }
 
 template<class T>
-void ShuffleSacrifice<T>::edabit_sacrifice_buckets(vector<edabit<T>>& to_check,
+void EdabitShuffleSacrifice<T>::edabit_sacrifice_buckets(vector<edabit<T>>& to_check,
         size_t n_bits, bool strict, int player, SubProcessor<T>& proc, int begin,
         int end, const void* supply)
 {
@@ -242,7 +242,7 @@ void ShuffleSacrifice<T>::edabit_sacrifice_buckets(vector<edabit<T>>& to_check,
 }
 
 template<class T>
-void ShuffleSacrifice<T>::edabit_sacrifice_buckets(vector<edabit<T>>& to_check,
+void EdabitShuffleSacrifice<T>::edabit_sacrifice_buckets(vector<edabit<T>>& to_check,
         size_t n_bits, bool strict, int player, SubProcessor<T>& proc, int begin,
         int end, LimitedPrep<BT>& personal_prep, const void* supply)
 {
@@ -365,7 +365,8 @@ void ShuffleSacrifice<T>::edabit_sacrifice_buckets(vector<edabit<T>>& to_check,
 
     if (strict)
     {
-        (dynamic_cast<RingPrep<T>*>(&proc.DataF))->sanitize(to_sanitize,
+        (dynamic_cast<RingPrep<T>*>(&proc.DataF))->template
+                sanitize<0>(to_sanitize,
                 n_bits, player, queues);
         shares.reserve((B - 1) * N);
         bit_shares.reserve((B - 1) * N * (n_bits + 2));

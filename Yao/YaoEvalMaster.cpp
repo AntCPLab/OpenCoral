@@ -6,7 +6,6 @@
 #include "YaoEvalMaster.h"
 #include "YaoEvaluator.h"
 
-#include "GC/Instruction.hpp"
 #include "GC/Machine.hpp"
 #include "GC/Program.hpp"
 #include "GC/Processor.hpp"

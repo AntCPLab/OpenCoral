@@ -22,14 +22,12 @@
 namespace GC
 {
 
-inline
 Instruction::Instruction() :
         BaseInstruction()
 {
     size = 1;
 }
 
-inline
 bool Instruction::get_offline_data_usage(int& usage)
 {
     switch (opcode)
@@ -42,7 +40,6 @@ bool Instruction::get_offline_data_usage(int& usage)
     }
 }
 
-inline
 unsigned Instruction::get_mem(RegType reg_type) const
 {
     unsigned m = n + 1;
@@ -73,7 +70,6 @@ unsigned Instruction::get_mem(RegType reg_type) const
     return 0;
 }
 
-inline
 void Instruction::parse(istream& s, int pos)
 {
     BaseInstruction::parse(s, pos);

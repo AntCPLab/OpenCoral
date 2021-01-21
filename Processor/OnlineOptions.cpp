@@ -262,7 +262,8 @@ void OnlineOptions::finalize(ez::ezOptionParser& opt, int argc,
                     << "' or compile with '--prime " << prime << "'." << endl;
             exit(1);
         }
-        prime = schedule_prime;
+        if (schedule_prime != 0)
+            prime = schedule_prime;
     }
 
     if (opt.get("-lgp") and not opt.isSet("-lgp"))

@@ -39,7 +39,9 @@ public:
     typedef ReplicatedRingPrep<ShamirShare> TriplePrep;
     typedef ShamirShare Honest;
 
+#ifndef NO_MIXED_CIRCUITS
     typedef GC::CcdSecret<gf2n_short> bit_type;
+#endif
 
     const static bool needs_ot = false;
     const static bool dishonest_majority = false;

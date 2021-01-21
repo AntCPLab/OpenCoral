@@ -288,18 +288,8 @@ def BitDecFieldRaw(a, k, m, kappa, bits_to_compute=None):
     c = types.cint()
     r = [types.sint() for i in range(m)]
     comparison.PRandM(r_dprime, r_prime, r, k, m, kappa)
-    #assert(r_prime.value == sum(r[i].value*2**i for i in range(m)) % comparison.program.P)
     pow2 = two_power(k + kappa)
     asm_open(c, pow2 + two_power(k) + a - two_power(m)*r_dprime - r_prime)
-    #rval = 2**m*r_dprime.value + r_prime.value
-    #assert(rval % 2**m == r_prime.value)
-    #assert(rval == (2**m*r_dprime.value + sum(r[i].value*2**i for i in range(m)) % comparison.program.P ))
-    try:
-        pass#assert(c.value == (2**(k + kappa) + 2**k + (a.value%2**k) - rval) % comparison.program.P)
-    except AssertionError:
-        print('BitDec assertion failed')
-        print('a =', a.value)
-        print('a mod 2^%d =' % k, (a.value % 2**k))
     res = r[0].bit_adder(r, list(r[0].bit_decompose_clear(c,m)))
     return res
 
@@ -328,7 +318,6 @@ def B2U(a, l, kappa):
     return B2U_from_Pow2(pow2a, l, kappa), pow2a
 
 def B2U_from_Pow2(pow2a, l, kappa):
-    #assert(pow2a.value == 2**a.value)
     r = [types.sint() for i in range(l)]
     t = types.sint()
     c = types.cint()
@@ -354,8 +343,10 @@ def B2U_from_Pow2(pow2a, l, kappa):
     #print ' '.join(str(b.value) for b in y)
     return [types.sint.conv(1 - y[i]) for i in range(l)]
 
-def Trunc(a, l, m, kappa, compute_modulo=False, signed=False):
+def Trunc(a, l, m, kappa=None, compute_modulo=False, signed=False):
     """ Oblivious truncation by secret m """
+    prog = program.Program.prog
+    kappa = kappa or prog.security
     if util.is_constant(m) and not compute_modulo:
         # cheaper
         res = type(a)(size=a.size)
@@ -376,28 +367,22 @@ def Trunc(a, l, m, kappa, compute_modulo=False, signed=False):
     ci = [types.cint() for i in range(l)]
     d = types.sint()
     x, pow2m = B2U(m, l, kappa)
-    #assert(pow2m.value == 2**m.value)
-    #assert(sum(b.value for b in x) == m.value)
     for i in range(l):
         bit(r[i])
         t1 = two_power(i) * r[i]
         t2 = t1*x[i]
         r_prime += t2
         r_dprime += t1 - t2
-    #assert(r_prime.value == (sum(2**i*x[i].value*r[i].value for i in range(l)) % comparison.program.P))
     if program.Program.prog.options.ring:
         n_shift = int(program.Program.prog.options.ring) - l
         c = ((a + r_dprime + r_prime) << n_shift).reveal() >> n_shift
     else:
         comparison.PRandInt(rk, kappa)
         r_dprime += two_power(l) * rk
-        #assert(r_dprime.value == (2**l * rk.value + sum(2**i*(1 - x[i].value)*r[i].value for i in range(l)) % comparison.program.P))
         asm_open(c, a + r_dprime + r_prime)
     for i in range(1,l):
         ci[i] = c % two_power(i)
-        #assert(ci[i].value == c.value % 2**i)
     c_dprime = sum(ci[i]*(x[i-1] - x[i]) for i in range(1,l))
-    #assert(c_dprime.value == (sum(ci[i].value*(x[i-1].value - x[i].value) for i in range(1,l)) % comparison.program.P))
     lts(d, c_dprime, r_prime, l, kappa)
     if compute_modulo:
         b = c_dprime - r_prime + pow2m * d
@@ -408,7 +393,6 @@ def Trunc(a, l, m, kappa, compute_modulo=False, signed=False):
             shifted = TruncInRing(to_shift, l, pow2m)
         else:
             pow2inv = Inv(pow2m)
-            #assert(pow2inv.value * pow2m.value % comparison.program.P == 1)
             shifted = to_shift * pow2inv
         b = shifted - d
     return b

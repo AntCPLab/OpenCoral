@@ -58,9 +58,10 @@ for op in graph.get_operations():
     else:
         shape = None
     t = op.type
-    if t in ('VariableV2', 'Const'):
-        pass
-    elif t in ('Reshape', 'Squeeze'):
+    if t in ('VariableV2', 'Const', 'Assign', 'NoOp', 'Fill', 'VarHandleOp'):
+        source(op)
+    elif t in ('Reshape', 'Squeeze', 'Identity', 'VarIsInitializedOp', 'ReadVariableOp',
+               'AssignVariableOp'):
         link(op, op.inputs[0].op)
     elif t == 'Placeholder':
         source(op)
@@ -95,7 +96,7 @@ for op in graph.get_operations():
                'inputs=[named["%s"]])' % \
                (input_shape, tuple(window), (window[3],), output_shape, strides,
                 repr(padding), op.inputs[0].op.name))
-    elif t == 'Add' and op.inputs[1].op.type != 'VariableV2':
+    elif t in ('Add', 'AddV2') and op.inputs[1].op.type != 'VariableV2':
         output(op, 'ml.Add([%s])' % ','.join('named["%s"]' % x.op.name
                                              for x in op.inputs), False)
     elif t in ('Add', 'BiasAdd'):
@@ -147,7 +148,7 @@ for op in graph.get_operations():
         output(op, 'ml.Concat([%s], %s)' % (
             ','.join('named["%s"]' % x.name[:-2] for x in op.inputs[:2]), dim),
                prev_input=False)
-    elif t == 'FusedBatchNorm':
+    elif t in ('FusedBatchNorm', 'FusedBatchNormV3'):
         output(op, 'ml.FusedBatchNorm(%s, inputs=[named["%s"]])' %
                (get_shape(op.inputs[0].shape), op.inputs[0].op.name))
     elif t == 'Pad':

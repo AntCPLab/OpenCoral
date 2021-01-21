@@ -115,7 +115,8 @@ or generates a fresh one otherwise.
 
     // global OT setup
     BaseMachine machine;
-    machine.ot_setups.push_back({P});
+    if (T::needs_ot)
+        machine.ot_setups.push_back({P});
 
 Many protocols for a dishonest majority use oblivious transfer. This
 block runs a few instances to seed the oblivious transfer
@@ -143,8 +144,9 @@ variable that will store the usage.
     GC::ShareThread<typename T::bit_type> thread(N,
             OnlineOptions::singleton, P, binary_mac_key, usage);
 
-While this example only uses arithmetic computation, we initialize the
-binary computation as well because the code might not work without.
+While this example only uses arithmetic computation, you need to
+initialize binary computation as well unless you use the compile-time
+option ``NO_MIXED_CIRCUITS``.
 
 .. code-block:: cpp
 
@@ -246,3 +248,10 @@ separates dot products in the data preparation phase.
 
 The output protocol follows the same blueprint except that it is
 necessary to call the checking in order to verify the outputs.
+
+.. code-block:: cpp
+
+    T::LivePrep::teardown();
+
+This frees the memory used for global key material when using homomorphic
+encryption. Otherwise, this does not do anything.

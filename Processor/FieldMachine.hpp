@@ -12,20 +12,20 @@
 #include "OnlineMachine.hpp"
 
 
-template<template<class U> class T>
-HonestMajorityFieldMachine<T>::HonestMajorityFieldMachine(int argc,
+template<template<class U> class T, class V>
+HonestMajorityFieldMachine<T, V>::HonestMajorityFieldMachine(int argc,
         const char **argv)
 {
     ez::ezOptionParser opt;
     HonestMajorityFieldMachine<T>(argc, argv, opt);
 }
 
-template<template<class U> class T>
-HonestMajorityFieldMachine<T>::HonestMajorityFieldMachine(int argc,
+template<template<class U> class T, class V>
+HonestMajorityFieldMachine<T, V>::HonestMajorityFieldMachine(int argc,
         const char **argv, ez::ezOptionParser& opt, int nplayers)
 {
     OnlineOptions online_opts(opt, argc, argv, 0, true, true);
-    FieldMachine<T, T, HonestMajorityMachine>(argc, argv, opt, online_opts,
+    FieldMachine<T, T, V>(argc, argv, opt, online_opts,
             nplayers);
 }
 

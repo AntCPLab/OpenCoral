@@ -23,6 +23,12 @@ TinierSharePrep<T>::TinierSharePrep(DataPositions& usage, int input_player) :
 }
 
 template<class T>
+TinierSharePrep<T>::TinierSharePrep(SubProcessor<T>*, DataPositions& usage) :
+        TinierSharePrep(usage)
+{
+}
+
+template<class T>
 TinierSharePrep<T>::~TinierSharePrep()
 {
     if (triple_generator)

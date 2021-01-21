@@ -6,7 +6,7 @@
 #include "gf2nlong.h"
 #include "gf2n.h"
 
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 
 #include <stdint.h>
 #include <wmmintrin.h>
@@ -66,7 +66,7 @@ void gf2n_long::init_field(int nn)
 {
   if (nn == 0)
     {
-      nn = default_length();
+      nn = MAX_N_BITS;
 #ifdef VERBOSE
       cerr << "Using GF(2^" << nn << ")" << endl;
 #endif
@@ -201,9 +201,9 @@ public:
         { s << a.msb << a.lower; return s; }
 };
 
-void gf2n_long::invert()
+gf2n_long gf2n_long::invert() const
 {
-  if (is_one())  { return; }
+  if (is_one())  { return *this; }
   if (is_zero()) { throw division_by_zero(); }
 
   int129 u,v=a,B=0,D=1,mod=1;
@@ -232,7 +232,7 @@ void gf2n_long::invert()
       else      { v=v^u; D=D^B; }
    }
 
-  a=D.get_lower();
+  return D.get_lower();
 }
 
 

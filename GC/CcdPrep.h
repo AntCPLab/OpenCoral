@@ -29,6 +29,11 @@ public:
     {
     }
 
+    CcdPrep(SubProcessor<T>*, DataPositions& usage) :
+            CcdPrep(usage, ShareThread<T>::s())
+    {
+    }
+
     ~CcdPrep()
     {
         if (part_proc)

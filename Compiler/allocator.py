@@ -483,10 +483,6 @@ class Merger:
                 print("Processed dependency of %d/%d instructions at" % \
                     (n, len(block.instructions)), time.asctime())
 
-        if len(open_nodes) > 1000 and self.block.parent.program.verbose:
-            print("Basic block has %d %s instructions" %
-                  (len(open_nodes), merge_classes))
-
     def merge_nodes(self, i, j):
         """ Merge node j into i, removing node j """
         G = self.G

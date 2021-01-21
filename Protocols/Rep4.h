@@ -48,6 +48,13 @@ class Rep4 : public ProtocolBase<T>
 
     int get_player(int offset);
 
+    template<int>
+    void trunc_pr(const vector<int>& regs, int size, SubProcessor<T>& proc,
+            true_type);
+    template<int>
+    void trunc_pr(const vector<int>& regs, int size, SubProcessor<T>& proc,
+            false_type);
+
 public:
     array<ElementPRNG<typename T::open_type>, 3> rep_prngs;
     Player& P;

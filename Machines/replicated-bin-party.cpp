@@ -7,7 +7,6 @@
 
 #include "GC/ShareParty.hpp"
 #include "GC/ShareSecret.hpp"
-#include "GC/Instruction.hpp"
 #include "GC/Machine.hpp"
 #include "GC/Processor.hpp"
 #include "GC/Program.hpp"

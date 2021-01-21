@@ -56,7 +56,7 @@ public:
         return res;
     }
 
-    FixedVec<T, L>(const T& other = 0)
+    FixedVec<T, L>(const T& other = {})
     {
         for (auto& x : v)
             x = other;
@@ -128,12 +128,7 @@ public:
     void mul(const FixedVec<T, L>& x, const FixedVec<T, L>& y)
     {
         for (int i = 0; i < L; i++)
-            v[i].mul(x.v[i], y.v[i]);
-    }
-
-    void add(const FixedVec<T, L>& x)
-    {
-        add(*this, x);
+            v[i] = (x.v[i] * y.v[i]);
     }
 
     void add(octetStream& os)
@@ -225,7 +220,7 @@ public:
 
     FixedVec<T, L>& operator+=(const FixedVec<T, L>& other)
     {
-        add(other);
+        add(*this, other);
         return *this;
     }
 

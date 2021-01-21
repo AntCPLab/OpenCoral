@@ -15,7 +15,6 @@ public:
     SemiPrep(SubProcessor<T>* proc, DataPositions& usage);
 
     void buffer_triples();
-    void buffer_inverses();
 };
 
 #endif /* PROTOCOLS_SEMIPREP_H_ */

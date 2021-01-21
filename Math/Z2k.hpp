@@ -71,7 +71,23 @@ template<int K>
 Z2<K> Z2<K>::operator&(const Z2<K>& other) const
 {
     Z2<K> res;
-    res.AND(*this, other);
+    mpn_and_n(res.a, a, other.a, N_WORDS);
+    return res;
+}
+
+template<int K>
+Z2<K> Z2<K>::operator^(const Z2<K>& other) const
+{
+    Z2<K> res;
+	mpn_xor_n(res.a, a, other.a, N_WORDS);
+    return res;
+}
+
+template<int K>
+Z2<K> Z2<K>::operator|(const Z2<K>& other) const
+{
+    Z2<K> res;
+	mpn_ior_n(res.a, a, other.a, N_WORDS);
     return res;
 }
 
@@ -86,7 +102,7 @@ bool Z2<K>::operator==(const Z2<K>& other) const
 }
 
 template<int K>
-Z2<K>& Z2<K>::invert()
+Z2<K> Z2<K>::invert() const
 {
     if (get_bit(0) != 1)
         throw division_by_zero();
@@ -96,8 +112,7 @@ Z2<K>& Z2<K>::invert()
     {
         res += Z2<K>((Z2<K>(1) - Z2<K>::Mul(*this, res)).get_bit(i)) << i;
     }
-    *this = res;
-    return *this;
+    return res;
 }
 
 template<int K>
@@ -113,24 +128,6 @@ Z2<K> Z2<K>::sqrRoot()
 #endif
 	}
 	return res;
-}
-
-template<int K>
-void Z2<K>::AND(const Z2<K>& x, const Z2<K>& y)
-{
-	mpn_and_n(a, x.a, y.a, N_WORDS);
-}
-
-template<int K>
-void Z2<K>::OR(const Z2<K>& x, const Z2<K>& y)
-{
-	mpn_ior_n(a, x.a, y.a, N_WORDS);
-}
-
-template<int K>
-void Z2<K>::XOR(const Z2<K>& x, const Z2<K>& y)
-{
-	mpn_xor_n(a, x.a, y.a, N_WORDS);
 }
 
 template<int K>

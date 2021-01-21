@@ -163,13 +163,6 @@ void MaliciousRepPrep<T>::buffer_squares()
 }
 
 template<class T>
-void MaliciousRepPrep<T>::buffer_inverses()
-{
-    assert(this->honest_proc);
-    ::buffer_inverses(this->inverses, *this, this->MC, this->honest_proc->P);
-}
-
-template<class T>
 void MaliciousBitOnlyRepPrep<T>::buffer_bits()
 {
     vector<T> masked;

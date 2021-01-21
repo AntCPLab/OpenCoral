@@ -35,7 +35,6 @@ public:
     }
 
     void buffer_triples();
-    void buffer_inverses();
 };
 
 #endif /* PROTOCOLS_HEMIPREP_H_ */

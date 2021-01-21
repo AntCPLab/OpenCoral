@@ -40,7 +40,6 @@ public:
 
     void buffer_triples();
     void buffer_squares();
-    void buffer_inverses();
     void buffer_bits();
     void buffer_inputs(int player);
 };

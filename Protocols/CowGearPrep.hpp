@@ -133,13 +133,6 @@ void CowGearPrep<T>::buffer_triples()
 }
 
 template<class T>
-void CowGearPrep<T>::buffer_inverses()
-{
-    assert(this->proc != 0);
-    ::buffer_inverses(this->inverses, *this, this->proc->MC, this->proc->P);
-}
-
-template<class T>
 void CowGearPrep<T>::buffer_inputs(int player)
 {
     auto& generator = get_generator();

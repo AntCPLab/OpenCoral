@@ -78,11 +78,4 @@ void HemiPrep<T>::buffer_triples()
         {{ a.element(i), b.element(i), c.element(i) }});
 }
 
-template<class T>
-void HemiPrep<T>::buffer_inverses()
-{
-    assert(this->proc != 0);
-    ::buffer_inverses(this->inverses, *this, this->proc->MC, this->proc->P);
-}
-
 #endif

@@ -27,6 +27,7 @@ void generate_prime_setup(string dir, int lgp);
 template<class T>
 void generate_online_setup(string dirname, bigint& p, int lgp);
 void write_online_setup(string dirname, const bigint& p);
+void check_setup(string dirname, bigint p);
 
 // Setup primes only
 // Chooses a p of at least lgp bits
@@ -35,22 +36,19 @@ void SPDZ_Data_Setup_Primes(bigint& p,int lgp,int& idx,int& m);
 void generate_prime(bigint& p, int lgp, int m);
 bigint generate_prime(int lgp, int m);
 
+string get_prep_sub_dir(const string& prep_dir, int nparties, int log2mod,
+        const string& type_short);
+
 template<class T>
-string get_prep_sub_dir(string prep_dir, int nparties, int log2mod)
+string get_prep_sub_dir(const string& prep_dir, int nparties, int log2mod)
 {
-    string res = prep_dir + "/" + to_string(nparties) + "-" + T::type_short();
     if (T::clear::length() > 1)
         log2mod = T::clear::length();
-    if (log2mod > 1)
-        res += "-" + to_string(log2mod);
-    res += "/";
-    if (mkdir_p(res.c_str()) < 0)
-        throw file_error(res);
-    return res;
+    return get_prep_sub_dir(prep_dir, nparties, log2mod, T::type_short());
 }
 
 template<class T>
-string get_prep_sub_dir(string prep_dir, int nparties)
+string get_prep_sub_dir(const string& prep_dir, int nparties)
 {
     return get_prep_sub_dir<T>(prep_dir, nparties, T::clear::length());
 }

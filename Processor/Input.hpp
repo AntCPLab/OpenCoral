@@ -327,7 +327,7 @@ void InputBase<T>::input_mixed(SubProcessor<T>& Proc, const vector<int>& args,
         X(IntInput<typename T::clear>) X(FixInput) X(FloatInput)
 #undef X
         default:
-            throw runtime_error("unknown input type: " + to_string(type));
+            throw unknown_input_type(type);
         }
         i += n_arg_tuple;
         last_type = type;
@@ -351,7 +351,7 @@ void InputBase<T>::input_mixed(SubProcessor<T>& Proc, const vector<int>& args,
         X(IntInput<typename T::clear>) X(FixInput) X(FloatInput)
 #undef X
         default:
-            throw runtime_error("unknown input type: " + to_string(type));
+            throw unknown_input_type(type);
         }
         i += n_arg_tuple;
     }

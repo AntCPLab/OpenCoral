@@ -141,7 +141,7 @@ public:
 
     void reveal(int n_bits, Clear& x) { (void) n_bits; x = a; }
 
-    void invert(FakeSecret) { throw not_implemented(); }
+    FakeSecret invert() const { throw not_implemented(); }
 
     void input(istream&, bool) { throw not_implemented(); }
 

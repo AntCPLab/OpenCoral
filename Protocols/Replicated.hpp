@@ -127,7 +127,10 @@ template<class T>
 T ProtocolBase<T>::get_random()
 {
     if (random.empty())
+    {
         buffer_random();
+        assert(not random.empty());
+    }
 
     auto res = random.back();
     random.pop_back();
@@ -151,7 +154,6 @@ void Replicated<T>::init_mul(Preprocessing<T>& prep, typename T::MAC_Check& MC)
 template<class T>
 void Replicated<T>::init_mul()
 {
-    os.resize(2);
     for (auto& o : os)
         o.reset_write_head();
     add_shares.clear();

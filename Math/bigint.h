@@ -7,7 +7,7 @@ using namespace std;
 #include <stddef.h>
 #include <mpirxx.h>
 
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 #include "Tools/int.h"
 #include "Tools/random.h"
 #include "Tools/octetStream.h"
@@ -69,11 +69,13 @@ public:
   bigint& operator=(word n);
   template<int X, int L>
   bigint& operator=(const gfp_<X, L>& other);
+  template<int K>
+  bigint& operator=(const Z2<K>& x);
+  template<int K>
+  bigint& operator=(const SignedZ2<K>& x);
 
   void allocate_slots(const bigint& x) { *this = x; }
   int get_min_alloc() { return get_mpz_t()->_mp_alloc; }
-
-  void negate() { mpz_neg(get_mpz_t(), get_mpz_t()); }
 
   void mul(const bigint& x, const bigint& y) { *this = x * y; }
 
@@ -139,11 +141,24 @@ inline bigint& bigint::operator=(word n)
 template<int K>
 bigint::bigint(const Z2<K>& x)
 {
+  *this = x;
+}
+
+template<int K>
+bigint& bigint::operator=(const Z2<K>& x)
+{
   mpz_import(get_mpz_t(), Z2<K>::N_WORDS, -1, sizeof(mp_limb_t), 0, 0, x.get_ptr());
+  return *this;
 }
 
 template<int K>
 bigint::bigint(const SignedZ2<K>& x)
+{
+  *this = x;
+}
+
+template<int K>
+bigint& bigint::operator=(const SignedZ2<K>& x)
 {
   mpz_import(get_mpz_t(), Z2<K>::N_WORDS, -1, sizeof(mp_limb_t), 0, 0, x.get_ptr());
   if (x.negative())
@@ -152,6 +167,7 @@ bigint::bigint(const SignedZ2<K>& x)
     bigint::tmp <<= K;
     *this -= bigint::tmp;
   }
+  return *this;
 }
 
 template<int X, int L>
@@ -167,6 +183,7 @@ bigint& bigint::operator=(const gfp_<X, L>& x)
   return *this;
 }
 
+string to_string(const bigint& x);
 
 /**********************************
  *       Utility Functions        *

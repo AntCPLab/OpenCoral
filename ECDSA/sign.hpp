@@ -103,11 +103,9 @@ EcSignature sign(const unsigned char* message, size_t length, P256Element::Scala
 {
     EcSignature signature;
     auto k = SeededPRNG().get<P256Element::Scalar>();
-    auto inv_k = k;
-    inv_k.invert();
     signature.R = k;
     auto rx = signature.R.x();
-    signature.s = inv_k * (hash_to_scalar(message, length) + rx * sk);
+    signature.s = k.invert() * (hash_to_scalar(message, length) + rx * sk);
     return signature;
 }
 
@@ -119,8 +117,7 @@ void check(EcSignature signature, const unsigned char* message, size_t length,
     timer.start();
     signature.s.check();
     signature.R.check();
-    P256Element::Scalar w;
-    w.invert(signature.s);
+    auto w = signature.s.invert();
     auto u1 = hash_to_scalar(message, length) * w;
     auto u2 = signature.R.x() * w;
     assert(P256Element(u1) + pk * u2 == signature.R);

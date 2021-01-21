@@ -27,7 +27,6 @@ public:
     FD FieldD;
     typename FD::T alphai;
     Plaintext_<FD> alpha;
-    string dirname;
 
     static string name()
     {

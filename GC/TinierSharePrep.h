@@ -35,6 +35,7 @@ class TinierSharePrep : public PersonalPrep<T>
 public:
     TinierSharePrep(DataPositions& usage, int input_player =
             PersonalPrep<T>::SECURE);
+    TinierSharePrep(SubProcessor<T>*, DataPositions& usage);
     ~TinierSharePrep();
 
     void set_protocol(typename T::Protocol& protocol);

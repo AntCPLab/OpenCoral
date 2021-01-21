@@ -10,6 +10,7 @@
 #include "Protocols/LimitedPrep.h"
 
 #include "Processor/Processor.hpp"
+#include "Processor/Instruction.hpp"
 #include "Processor/Input.hpp"
 #include "Protocols/LimitedPrep.hpp"
 #include "GC/BitAdder.hpp"
@@ -23,10 +24,9 @@ using namespace std;
 template<class sint, class sgf2n>
 template<class T>
 void thread_info<sint, sgf2n>::print_usage(ostream &o,
-        const vector<T>& regs, string name)
+        const vector<T>& regs, const char* name)
 {
-    if (regs.capacity())
-        o << name << "=" << regs.capacity() << " ";
+  ::print_usage(o, name, regs.capacity());
 }
 
 template<class sint, class sgf2n>
@@ -50,21 +50,23 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
   Player* player;
   if (machine.use_encryption)
     {
-#ifdef VERBOSE
+#ifdef VERBOSE_OPTIONS
       cerr << "Using encrypted single-threaded communication" << endl;
 #endif
       player = new CryptoPlayer(*(tinfo->Nms), num << 16);
     }
   else if (!machine.receive_threads or machine.direct)
     {
-#ifdef VERBOSE
+#ifdef VERBOSE_OPTIONS
       cerr << "Using single-threaded receiving" << endl;
 #endif
       player = new PlainPlayer(*(tinfo->Nms), num << 16);
     }
   else
     {
+#ifdef VERBOSE_OPTIONS
       cerr << "Using player-specific threads for receiving" << endl;
+#endif
       player = new ThreadPlayer(*(tinfo->Nms), num << 16);
     }
   Player& P = *player;
@@ -77,7 +79,7 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
 
   if (machine.direct)
     {
-#ifdef VERBOSE
+#ifdef VERBOSE_OPTIONS
       cerr << "Using direct communication." << endl;
 #endif
       MC2 = new typename sgf2n::Direct_MC(*(tinfo->alpha2i));
@@ -85,7 +87,7 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
     }
   else
     {
-#ifdef VERBOSE
+#ifdef VERBOSE_OPTIONS
       cerr << "Using indirect communication." << endl;
 #endif
       MC2 = new typename sgf2n::MAC_Check(*(tinfo->alpha2i), machine.opening_sum, machine.max_broadcast);
@@ -154,7 +156,8 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
         }
       else if (job.type == DABIT_JOB)
         {
-          dynamic_cast<RingPrep<sint>&>(Proc.DataF.DataFp).buffer_dabits_without_check(
+          dynamic_cast<RingPrep<sint>&>(Proc.DataF.DataFp).template
+                  buffer_dabits_without_check<0>(
               *(vector<dabit<sint>>*) job.output, job.begin, job.end,
               Proc.Procp.bit_prep);
           queues->finished(job);
@@ -168,7 +171,8 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
         }
       else if (job.type == EDABIT_JOB)
         {
-          dynamic_cast<RingPrep<sint>&>(Proc.DataF.DataFp).buffer_edabits_without_check(
+          dynamic_cast<RingPrep<sint>&>(Proc.DataF.DataFp).template
+                  buffer_edabits_without_check<0>(
               job.length, *(vector<sint>*) job.output,
               *(vector<vector<BT>>*) job.output2, job.begin, job.end);
           queues->finished(job);
@@ -178,7 +182,8 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
           auto &party = GC::ShareThread<typename sint::bit_type>::s();
           SubProcessor<BT> bit_proc(party.MC->get_part_MC(),
               Proc.Procp.bit_prep, P);
-          dynamic_cast<RingPrep<sint>&>(Proc.DataF.DataFp).buffer_personal_edabits_without_check(
+          dynamic_cast<RingPrep<sint>&>(Proc.DataF.DataFp).template
+                  buffer_personal_edabits_without_check<0>(
               job.length, *(vector<sint>*) job.output,
               *(vector<vector<BT>>*) job.output2, bit_proc,
               job.arg, job.begin, job.end);
@@ -186,7 +191,8 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
         }
       else if (job.type == SANITIZE_JOB)
         {
-          dynamic_cast<RingPrep<sint>&>(Proc.DataF.DataFp).sanitize(
+          dynamic_cast<RingPrep<sint>&>(Proc.DataF.DataFp).template
+                  sanitize<0>(
               *(vector<edabit<sint>>*) job.output, job.length, job.arg,
               job.begin, job.end);
           queues->finished(job);
@@ -212,7 +218,7 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
         {
           typedef typename sint::bit_type B;
           auto &party = GC::ShareThread<B>::s();
-          ShuffleSacrifice<B>().triple_sacrifice(
+          TripleShuffleSacrifice<B>().triple_sacrifice(
               *(vector<array<B, 3>>*) job.output,
               *(vector<array<B, 3>>*) job.input, *party.P, *party.MC, job.begin,
               job.end);

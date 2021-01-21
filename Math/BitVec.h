@@ -24,6 +24,9 @@ public:
 
     static const int n_bits = sizeof(T) * 8;
 
+    static const false_type invertible;
+    static const true_type characteristic_two;
+
     static char type_char() { return 'B'; }
     static string type_short() { return "B"; }
     static DataFieldType field_type() { return DATA_GF2; }
@@ -72,5 +75,10 @@ public:
 };
 
 typedef BitVec_<long> BitVec;
+
+template<class T>
+const false_type BitVec_<T>::invertible;
+template<class T>
+const true_type BitVec_<T>::characteristic_two;
 
 #endif /* MATH_BITVEC_H_ */

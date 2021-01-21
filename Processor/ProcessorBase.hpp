@@ -10,7 +10,7 @@
 #include "IntInput.h"
 #include "FixInput.h"
 #include "FloatInput.h"
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 
 #include <iostream>
 
@@ -22,21 +22,6 @@ void ProcessorBase::open_input_file(const string& name)
 #endif
     input_file.open(name);
     input_filename = name;
-}
-
-inline
-string ProcessorBase::get_parameterized_filename(int my_num, int thread_num, string prefix)
-{
-    string filename = prefix + "-P" + to_string(my_num) + "-" + to_string(thread_num);
-    return filename;
-}
-inline
-void ProcessorBase::open_input_file(int my_num, int thread_num, string prefix)
-{
-    if (prefix.empty())
-        prefix = "Player-Data/Input";
-
-    open_input_file(get_parameterized_filename(my_num, thread_num, prefix));
 }
 
 template<class T>
@@ -57,12 +42,7 @@ T ProcessorBase::get_input(istream& input_file, const string& input_filename, co
     res.read(input_file, params);
     if (input_file.fail())
     {
-        input_file.clear();
-        string token;
-        input_file >> token;
-        throw IO_Error(
-                string() + "cannot read " + T::NAME + " from " + input_filename
-                        + ", problem with '" + token + "'");
+        throw input_error(T::NAME, input_filename, input_file);
     }
     return res;
 }

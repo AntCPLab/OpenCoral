@@ -14,6 +14,20 @@
 template<class T>
 void MaliciousRingPrep<T>::buffer_dabits(ThreadQueues* queues)
 {
+    buffer_dabits<0>(queues, T::clear::characteristic_two);
+}
+
+template<class T>
+template<int>
+void MaliciousRingPrep<T>::buffer_dabits(ThreadQueues*, true_type)
+{
+    throw runtime_error("only implemented for integer-like domains");
+}
+
+template<class T>
+template<int>
+void MaliciousRingPrep<T>::buffer_dabits(ThreadQueues* queues, false_type)
+{
     assert(this->proc != 0);
     vector<dabit<T>> check_dabits;
     DabitSacrifice<T> dabit_sacrifice;

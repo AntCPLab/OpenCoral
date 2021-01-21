@@ -35,7 +35,7 @@ Machine<T>::~Machine()
 }
 
 template<class T>
-void Machine<T>::load_program(string threadname, string filename)
+void Machine<T>::load_program(const string& threadname, const string& filename)
 {
     (void)threadname;
     progs.push_back({});
@@ -44,7 +44,7 @@ void Machine<T>::load_program(string threadname, string filename)
 }
 
 template<class T>
-void Machine<T>::load_schedule(string progname)
+void Machine<T>::load_schedule(const string& progname)
 {
     BaseMachine::load_schedule(progname);
     print_compiler();

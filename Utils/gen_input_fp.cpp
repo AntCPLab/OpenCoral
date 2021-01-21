@@ -56,7 +56,26 @@ int main(int argc, const char** argv) {
                 "-o", // Flag token.
                 "--output" // Flag token.
     	);
+
+    opt.add(
+        "", // Default.
+        0, // Required?
+        0, // Number of args expected.
+        0, // Delimiter if expecting multiple args.
+        "This message.", // Help description.
+        "-h", // Flag token.
+        "--help" // Flag token.
+    );
+
     opt.parse(argc, argv);
+    if (opt.get("-h")->isSet)
+    {
+        string help;
+        opt.getUsage(help);
+        cerr << help;
+        exit(0);
+    }
+
     int nparties, lgp, lg2;
     opt.get("-N")->getInt(nparties);
     opt.get("-lgp")->getInt(lgp);

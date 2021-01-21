@@ -86,9 +86,7 @@ P256Element& P256Element::operator +=(const P256Element& other)
 
 P256Element& P256Element::operator /=(const Scalar& other)
 {
-    auto tmp = other;
-    tmp.invert();
-    *this = *this * tmp;
+    *this = *this * other.invert();
     return *this;
 }
 

@@ -46,8 +46,8 @@ public:
     Machine();
     ~Machine();
 
-    void load_schedule(string progname);
-    void load_program(string threadname, string filename);
+    void load_schedule(const string& progname);
+    void load_program(const string& threadname, const string& filename);
 
     template<class U>
     void reset(const U& program);

@@ -31,7 +31,6 @@ public:
     typedef SignedZ2<K> clear;
 
     typedef Z2<S> mac_key_type;
-    typedef Z2<K + S> mac_type;
     typedef Z2<K + S> open_type;
 
     typedef Spdz2kShare prep_type;
@@ -48,10 +47,12 @@ public:
     typedef SPDZ<Spdz2kShare> Protocol;
     typedef Spdz2kPrep<Spdz2kShare> LivePrep;
 
+#ifndef NO_MIXED_CIRCUITS
 #ifdef SPDZ2K_BIT
     typedef GC::TinySecret<S> bit_type;
 #else
     typedef GC::TinierSecret<gf2n_short> bit_type;
+#endif
 #endif
 
     const static int k = K;

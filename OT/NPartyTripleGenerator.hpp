@@ -5,7 +5,6 @@
 
 #include "OT/OTExtensionWithMatrix.h"
 #include "OT/OTMultiplier.h"
-#include "Math/operators.h"
 #include "Tools/Subroutines.h"
 #include "Protocols/MAC_Check.h"
 #include "GC/SemiSecret.h"
@@ -322,7 +321,7 @@ void MascotTripleGenerator<T>::generateBitsGf2n()
             r.randomize(G);
             check_sum += r * bits[j];
         }
-        bits.resize(this->nTriplesPerLoop);
+        bits.resize(nTriplesPerLoop);
 
         to_open[0] = check_sum;
         MC.POpen_Begin(opened, to_open, globalPlayer);
@@ -446,7 +445,7 @@ void Spdz2kTripleGenerator<T>::generateTriples()
 		// get piggy-backed random value
 		Z2<K + 2 * S> r_share = b_padded_bits.get_ptr_to_byte(nTriplesPerLoop, Z2<K + 2 * S>::N_BYTES);
 		Z2<K + 2 * S> r_mac;
-		r_mac.mul(r_share, this->get_mac_key());
+		r_mac = (r_share * this->get_mac_key());
 		for (int i = 0; i < this->nparties-1; i++)
 			r_mac += (ot_multipliers[i])->macs.at(1).at(nTriplesPerLoop);
 		Share<Z2<K + 2 * S>> r;

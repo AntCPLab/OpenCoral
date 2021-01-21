@@ -154,7 +154,6 @@ void Server::start()
 void* Server::start_in_thread(void* server)
 {
   ((Server*)server)->start();
-  pthread_detach(pthread_self());
   return 0;
 }
 
@@ -168,12 +167,17 @@ Server* Server::start_networking(Names& N, int my_num, int nplayers,
   assert(my_num >= 0);
   assert(my_num < nplayers);
   Server* server = 0;
+  pthread_t thread;
   if (my_num == 0)
     {
-      pthread_t thread;
       pthread_create(&thread, 0, Server::start_in_thread,
           server = new Server(nplayers, portnum));
     }
   N.init(my_num, portnum, Names::DEFAULT_PORT, hostname.c_str());
-  return server;
+  if (my_num == 0)
+    {
+      pthread_join(thread, 0);
+      delete server;
+    }
+  return 0;
 }

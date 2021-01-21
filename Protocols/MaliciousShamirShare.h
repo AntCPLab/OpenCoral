@@ -36,7 +36,9 @@ public:
     typedef MaliciousRepPrep<MaliciousShamirShare> TriplePrep;
     typedef T random_type;
 
+#ifndef NO_MIXED_CIRCUITS
     typedef GC::MaliciousCcdSecret<gf2n_short> bit_type;
+#endif
 
     static string type_short()
     {

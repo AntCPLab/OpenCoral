@@ -98,17 +98,8 @@ void ThreadMaster<T>::run()
 
     delete P;
 
-    for (auto it : exe_stats)
-        switch (it.first)
-        {
-#define X(NAME, CODE) case NAME: cerr << it.second << " " #NAME << endl; break;
-        INSTRUCTIONS
-#undef X
-        }
-
-    for (auto it = stats.begin(); it != stats.end(); it++)
-        if (it->second.data > 0)
-            cerr << it->first << " " << 1e-6 * it->second.data << " MB" << endl;
+    exe_stats.print();
+    stats.print();
 
     cerr << "Time = " << timer.elapsed() << " seconds" << endl;
     cerr << "Data sent = " << data_sent * 1e-6 << " MB" << endl;

@@ -24,6 +24,7 @@ class NoValue : public ValueInterface
 {
 public:
     typedef NoValue Scalar;
+    typedef NoValue next;
 
     const static int n_bits = 0;
     const static int MAX_N_BITS = 0;
@@ -44,6 +45,11 @@ public:
     }
 
     static string type_string()
+    {
+        return "no";
+    }
+
+    static string type_short()
     {
         return "no";
     }
@@ -70,6 +76,11 @@ public:
     void randomize(PRNG&) { fail(); }
 
     void invert() { fail(); }
+
+    void mask(int) { fail(); }
+
+    void input(istream&, bool) { fail(); }
+    void output(ostream&, bool) { fail(); }
 };
 
 inline ostream& operator<<(ostream& o, NoValue)
@@ -176,12 +187,17 @@ public:
     NoShare operator&(int) const { fail(); return {}; }
     NoShare operator>>(int) const { fail(); return {}; }
 
+    NoShare& operator+=(const NoShare&) { fail(); return *this; }
+
     NoShare lsb() const { fail(); return {}; }
     NoShare get_bit(int) const { fail(); return {}; }
 
     void invert(int, NoShare) { fail(); }
 
+    NoShare mask(int) const { fail(); return {}; }
+
     void input(istream&, bool) { fail(); }
+    void output(ostream&, bool) { fail(); }
 };
 
 } /* namespace GC */

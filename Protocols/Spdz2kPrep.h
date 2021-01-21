@@ -21,7 +21,6 @@ class Spdz2kPrep : public virtual MascotPrep<T>, public virtual RingOnlyPrep<T>
     MascotTriplePrep<BitShare>* bit_prep;
     SubProcessor<BitShare>* bit_proc;
     typename BitShare::MAC_Check* bit_MC;
-    Sub_Data_Files<BitShare>* bit_DataF;
     typename BitShare::Protocol* bit_protocol;
 
 public:

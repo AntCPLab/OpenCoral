@@ -44,7 +44,7 @@ public:
 template <class T>
 class ProtocolBase
 {
-    virtual void buffer_random() { not_implemented(); }
+    virtual void buffer_random() { throw not_implemented(); }
 
 protected:
     vector<T> random;
@@ -93,7 +93,7 @@ public:
 template <class T>
 class Replicated : public ReplicatedBase, public ProtocolBase<T>
 {
-    vector<octetStream> os;
+    array<octetStream, 2> os;
     PointerVector<typename T::clear> add_shares;
     typename T::clear dotprod_share;
 

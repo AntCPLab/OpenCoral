@@ -58,11 +58,6 @@ public:
     {
     }
 
-    void assign(T value, int = 0, T = 0)
-    {
-        *this = value;
-    }
-
     void add(T a, T b, int = 0, T = {})
     {
         *this = a + b;

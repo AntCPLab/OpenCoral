@@ -14,7 +14,7 @@
 #include "Protocols/SpdzWiseShare.h"
 #include "Protocols/Rep4Share2k.h"
 #include "Protocols/fake-stuff.h"
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 #include "GC/MaliciousRepSecret.h"
 #include "GC/SemiSecret.h"
 #include "GC/TinySecret.h"
@@ -96,12 +96,12 @@ void make_bit_triples(const gf2n& key,int N,int ntrip,Dtype dtype,bool zero)
     {
       if (!zero)
         a.randomize(G);
-      a.AND(a, one);
+      a &= one;
       make_share(Sa,a,N,key,G);
       if (!zero)
         b.randomize(G);
       if (dtype == DATA_BITTRIPLE)
-        b.AND(b, one);
+        b &= (one);
       make_share(Sb,b,N,key,G);
       c.mul(a,b);
       make_share(Sc,c,N,key,G);
@@ -311,7 +311,7 @@ void make_PreMulC(const typename T::mac_type& key, int N, int ntrip, bool zero)
           a.randomize(G);
         while (a.is_zero());
       files.output_shares(a);
-      b.invert(a);
+      b = a.invert();
       files.output_shares(b);
       files.output_shares(a * c);
       c = b;

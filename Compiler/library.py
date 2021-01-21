@@ -1511,7 +1511,7 @@ def break_point(name=''):
 # Fixed point ops
 
 from math import ceil, log
-from .floatingpoint import PreOR, TruncPr, two_power, shift_two
+from .floatingpoint import PreOR, TruncPr, two_power
 
 def approximate_reciprocal(divisor, k, f, theta):
     """
@@ -1598,7 +1598,6 @@ def sint_cint_division(a, b, k, f, kappa):
     A = absolute_a
     B = absolute_b
     W = w0
-
 
     @for_range(1, theta)
     def block(i):

@@ -81,12 +81,10 @@ class Zp_Data
   void Sub(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const;
   void Sub(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const;
 
-  __m128i get_random128(PRNG& G);
-
   bool operator!=(const Zp_Data& other) const;
 
    template<int L> friend void to_modp(modp_<L>& ans,int x,const Zp_Data& ZpD);
-   template<int L> friend void to_modp(modp_<L>& ans,const bigint& x,const Zp_Data& ZpD);
+   template<int L> friend void to_modp(modp_<L>& ans,const mpz_class& x,const Zp_Data& ZpD);
 
    template<int L> friend void Add(modp_<L>& ans,const modp_<L>& x,const modp_<L>& y,const Zp_Data& ZpD);
    template<int L> friend void Sub(modp_<L>& ans,const modp_<L>& x,const modp_<L>& y,const Zp_Data& ZpD);
@@ -262,6 +260,13 @@ inline void Zp_Data::Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* 
   CASE(3)
   CASE(4)
   CASE(5)
+#endif
+#if MAX_MOD_SZ >= 10
+  CASE(6)
+  CASE(7)
+  CASE(8)
+  CASE(9)
+  CASE(10)
 #endif
 #undef CASE
 #endif

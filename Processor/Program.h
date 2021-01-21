@@ -35,6 +35,7 @@ class Program
     { compute_constants(); }
 
   // Read in a program
+  void parse(string filename);
   void parse(istream& s);
 
   DataPositions get_offline_data_used() const { return offline_data_used; }

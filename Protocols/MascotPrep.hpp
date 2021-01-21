@@ -66,13 +66,6 @@ void MascotTriplePrep<T>::buffer_triples()
 }
 
 template<class T>
-void MascotFieldPrep<T>::buffer_inverses()
-{
-    assert(this->proc != 0);
-    ::buffer_inverses(this->inverses, *this, this->proc->MC, this->proc->P);
-}
-
-template<class T>
 void MascotFieldPrep<T>::buffer_bits()
 {
     this->params.generateBits = true;
@@ -82,21 +75,6 @@ void MascotFieldPrep<T>::buffer_bits()
     assert(triple_generator->bits.size() != 0);
     for (auto& bit : triple_generator->bits)
         this->bits.push_back(bit);
-}
-
-template<class T>
-void MascotPrep<T>::buffer_dabits(ThreadQueues* queues)
-{
-    assert(this->proc != 0);
-    DabitSacrifice<T> dabit_sacrifice;
-    vector<dabit<T>> check_dabits;
-#ifdef VERBOSE_DABIT
-    cerr << "Generate daBits to sacrifice" << endl;
-#endif
-    this->buffer_dabits_without_check(check_dabits,
-            dabit_sacrifice.minimum_n_inputs(), queues);
-    dabit_sacrifice.sacrifice_and_check_bits(this->dabits, check_dabits,
-            *this->proc, queues);
 }
 
 template<class T>
@@ -112,14 +90,7 @@ void MascotTriplePrep<T>::buffer_inputs(int player)
 }
 
 template<class T>
-T MascotTriplePrep<T>::get_random()
-{
-    assert(this->proc);
-    return BufferPrep<T>::get_random_from_inputs(this->proc->P.num_players());
-}
-
-template<class T>
-T BufferPrep<T>::get_random_from_inputs(int nplayers)
+T Preprocessing<T>::get_random_from_inputs(int nplayers)
 {
     T res;
     for (int j = 0; j < nplayers; j++)

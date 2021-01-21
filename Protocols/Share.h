@@ -41,7 +41,7 @@ class Share_ : public ShareInterface
 
    public:
 
-   typedef T part_type;
+   typedef GC::NoShare part_type;
    typedef V mac_key_type;
    typedef V mac_type;
    typedef T share_type;
@@ -49,7 +49,9 @@ class Share_ : public ShareInterface
    typedef typename T::open_type open_type;
    typedef typename T::clear clear;
 
+#ifndef NO_MIXED_CIRCUITS
    typedef GC::TinierSecret<gf2n_short> bit_type;
+#endif
 
    const static bool needs_ot = T::needs_ot;
    const static bool dishonest_majority = T::dishonest_majority;
@@ -100,18 +102,8 @@ class Share_ : public ShareInterface
    /* Arithmetic Routines */
    void mul(const Share_<T, V>& S,const clear& aa);
    void mul_by_bit(const Share_<T, V>& S,const clear& aa);
-   void add(const Share_<T, V>& S,const clear& aa,int my_num,const V& alphai);
-   void negate() { a.negate(); mac.negate(); }
-   void sub(const Share_<T, V>& S,const clear& aa,int my_num,const V& alphai);
-   void sub(const clear& aa,const Share_<T, V>& S,int my_num,const V& alphai);
    void add(const Share_<T, V>& S1,const Share_<T, V>& S2);
    void sub(const Share_<T, V>& S1,const Share_<T, V>& S2);
-   void add(const Share_<T, V>& S1) { add(*this,S1); }
-
-   // obsolete interface
-   void add(const Share_<T, V>& S,const clear& aa,bool playerone,const T& alphai);
-   void sub(const Share_<T, V>& S,const clear& aa,bool playerone,const T& alphai);
-   void sub(const clear& aa,const Share_<T, V>& S,bool playerone,const T& alphai);
 
    Share_<T, V> operator+(const Share_<T, V>& x) const
    { Share_<T, V> res; res.add(*this, x); return res; }
@@ -123,10 +115,12 @@ class Share_ : public ShareInterface
    Share_<T, V> operator/(const T& x) const
    { Share_<T, V> res; res.set_share(a / x); res.set_mac(mac / x); return res; }
 
-   Share_<T, V>& operator+=(const Share_<T, V>& x) { add(x); return *this; }
+   Share_<T, V>& operator+=(const Share_<T, V>& x) { add(*this, x); return *this; }
    Share_<T, V>& operator-=(const Share_<T, V>& x) { sub(*this, x); return *this; }
    template <class U>
    Share_<T, V>& operator*=(const U& x) { mul(*this, x); return *this; }
+   template <class U>
+   Share_<T, V>& operator/=(const U& x) { *this = *this / x; return *this; }
 
    Share_<T, V> operator<<(int i) { return this->operator*(clear(1) << i); }
    Share_<T, V>& operator<<=(int i) { return *this = *this << i; }
@@ -160,6 +154,7 @@ public:
     typedef Share_<SemiShare<T>, SemiShare<T>> super;
 
     typedef T mac_key_type;
+    typedef T mac_type;
 
     typedef Share<typename T::next> prep_type;
     typedef Share input_check_type;
@@ -204,15 +199,15 @@ Share_<T, V> operator*(const typename T::clear& y, const Share_<T, V>& x) { Shar
 template<class T, class V>
 inline void Share_<T, V>::add(const Share_<T, V>& S1,const Share_<T, V>& S2)
 {
-  a.add(S1.a,S2.a);
-  mac.add(S1.mac,S2.mac);
+  a = (S1.a + S2.a);
+  mac = (S1.mac + S2.mac);
 }
 
 template<class T, class V>
 void Share_<T, V>::sub(const Share_<T, V>& S1,const Share_<T, V>& S2)
 {
-  a.sub(S1.a,S2.a);
-  mac.sub(S1.mac,S2.mac);
+  a = (S1.a - S2.a);
+  mac = (S1.mac - S2.mac);
 }
 
 template<class T, class V>
@@ -220,24 +215,6 @@ inline void Share_<T, V>::mul(const Share_<T, V>& S,const clear& aa)
 {
   a = S.a * aa;
   mac = aa * S.mac;
-}
-
-template<class T, class V>
-inline void Share_<T, V>::add(const Share_<T, V>& S,const clear& aa,int my_num,const V& alphai)
-{
-  *this = S + Share_<T, V>(aa, my_num, alphai);
-}
-
-template<class T, class V>
-inline void Share_<T, V>::sub(const Share_<T, V>& S,const clear& aa,int my_num,const V& alphai)
-{
-  *this = S - Share_<T, V>(aa, my_num, alphai);
-}
-
-template<class T, class V>
-inline void Share_<T, V>::sub(const clear& aa,const Share_<T, V>& S,int my_num,const V& alphai)
-{
-  *this = Share_<T, V>(aa, my_num, alphai) - S;
 }
 
 template<class T, class V>

@@ -5,8 +5,12 @@
  *
  */
 
+#define NO_MIXED_CIRCUITS
+
 #include "Math/gfp.hpp"
 #include "Machines/SPDZ.hpp"
+#include "Machines/MalRep.hpp"
+#include "Machines/ShamirMachine.hpp"
 #include "Protocols/CowGearShare.h"
 #include "Protocols/CowGearPrep.hpp"
 
@@ -24,7 +28,7 @@ int main(int argc, char** argv)
     // need player number and number of players
     if (argc < 3)
     {
-        cerr << "Usage: " << argv[0] << "<my number: 0/1/...> <total number of players> [protocol]" << endl;
+        cerr << "Usage: " << argv[0] << "<my number: 0/1/...> <total number of players> [protocol [threshold]]" << endl;
         exit(1);
     }
 
@@ -38,6 +42,21 @@ int main(int argc, char** argv)
         run<CowGearShare<gfp_<0, n_limbs>>>(argv, prime_length);
     else if (protocol == "SPDZ2k")
         run<Spdz2kShare<64, 64>>(argv, 0);
+    else if (protocol == "Shamir" or protocol == "MalShamir")
+    {
+        int nparties = (atoi(argv[2]));
+        int threshold = (nparties - 1) / 2;
+        if (argc > 4)
+            threshold = atoi(argv[4]);
+        assert(2 * threshold < nparties);
+        ShamirOptions::s().threshold = threshold;
+        ShamirOptions::s().nparties = nparties;
+
+        if (protocol == "Shamir")
+            run<ShamirShare<gfp_<0, n_limbs>>>(argv, prime_length);
+        else
+            run<MaliciousShamirShare<gfp_<0, n_limbs>>>(argv, prime_length);
+    }
     else
     {
         cerr << "Unknown protocol: " << protocol << endl;
@@ -66,18 +85,12 @@ void run(char** argv, int prime_length)
 
     // global OT setup
     BaseMachine machine;
-    machine.ot_setups.push_back({P});
+    if (T::needs_ot)
+        machine.ot_setups.push_back({P});
 
     // keeps tracks of preprocessing usage (triples etc)
     DataPositions usage;
     usage.set_num_players(P.num_players());
-
-    // initialize binary computation
-    T::bit_type::mac_key_type::init_field();
-    typename T::bit_type::mac_key_type binary_mac_key;
-    T::bit_type::part_type::read_or_generate_mac_key("", P, binary_mac_key);
-    GC::ShareThread<typename T::bit_type> thread(N,
-            OnlineOptions::singleton, P, binary_mac_key, usage);
 
     // output protocol
     typename T::MAC_Check output(mac_key);
@@ -120,4 +133,6 @@ void run(char** argv, int prime_length)
 
     cout << "result: " << result << endl;
     output.Check(P);
+
+    T::LivePrep::teardown();
 }

@@ -16,13 +16,6 @@ Rep4RingPrep<T>::Rep4RingPrep(SubProcessor<T>* proc, DataPositions& usage) :
 }
 
 template<class T>
-Rep4Prep<T>::Rep4Prep(SubProcessor<T>* proc, DataPositions& usage) :
-        BufferPrep<T>(usage), BitPrep<T>(proc, usage),
-        RingPrep<T>(proc, usage), Rep4RingPrep<T>(proc, usage)
-{
-}
-
-template<class T>
 Rep4RingOnlyPrep<T>::Rep4RingOnlyPrep(SubProcessor<T>* proc,
         DataPositions& usage) :
         BufferPrep<T>(usage), BitPrep<T>(proc, usage),
@@ -105,13 +98,6 @@ void Rep4RingPrep<T>::buffer_bits()
     for (int i = 0; i < batch_size; i++)
         this->bits.push_back(
                 a[i].res + b[i].res - two * protocol.finalize_mul());
-}
-
-template<class T>
-void Rep4Prep<T>::buffer_inverses()
-{
-    assert(this->proc != 0);
-    ::buffer_inverses(this->inverses, *this, this->proc->MC, this->proc->P);
 }
 
 #endif /* PROTOCOLS_REP4PREP_HPP_ */

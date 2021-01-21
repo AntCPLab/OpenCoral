@@ -21,6 +21,11 @@ public:
     {
     }
 
+    TinierPrep(SubProcessor<T>*, DataPositions& usage) :
+            TinierPrep(usage, ShareThread<T>::s())
+    {
+    }
+
     void buffer_inputs(int player)
     {
         this->buffer_inputs_(player, this->triple_generator);

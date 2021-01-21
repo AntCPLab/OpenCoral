@@ -23,7 +23,6 @@ Spdz2kPrep<T>::Spdz2kPrep(SubProcessor<T>* proc, DataPositions& usage) :
 {
     this->params.amplify = false;
     bit_MC = 0;
-    bit_DataF = 0;
     bit_proc = 0;
     bit_prep = 0;
     bit_protocol = 0;
@@ -36,7 +35,6 @@ Spdz2kPrep<T>::~Spdz2kPrep()
     {
         delete bit_prep;
         delete bit_proc;
-        delete bit_DataF;
         delete bit_MC;
         delete bit_protocol;
     }
@@ -51,9 +49,8 @@ void Spdz2kPrep<T>::set_protocol(typename T::Protocol& protocol)
     bit_MC = new typename BitShare::MAC_Check(proc->MC.get_alphai());
     // just dummies
     bit_pos = DataPositions(proc->P.num_players());
-    bit_DataF = new Sub_Data_Files<BitShare>(0, 0, "", bit_pos, 0);
-    bit_proc = new SubProcessor<BitShare>(*bit_MC, *bit_DataF, proc->P);
     bit_prep = new MascotTriplePrep<BitShare>(bit_proc, bit_pos);
+    bit_proc = new SubProcessor<BitShare>(*bit_MC, *bit_prep, proc->P);
     bit_prep->params.amplify = false;
     bit_protocol = new typename BitShare::Protocol(proc->P);
     bit_prep->set_protocol(*bit_protocol);
@@ -158,6 +155,23 @@ template<class T>
 void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
         ThreadQueues* queues)
 {
+    buffer_edabits_from_personal<0>(strict, n_bits, queues,
+            T::clear::characteristic_two);
+}
+
+template<class T>
+template<int>
+void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool, int,
+        ThreadQueues*, true_type)
+{
+    throw runtime_error("only implemented for integer-like domains");
+}
+
+template<class T>
+template<int>
+void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
+        ThreadQueues* queues, false_type)
+{
     assert(this->proc != 0);
     typedef typename T::bit_type::part_type bit_type;
     vector<vector<bit_type>> bits;
@@ -209,7 +223,7 @@ void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
     bits.clear();
     bits.shrink_to_fit();
     if (strict)
-        this->sanitize(checked, n_bits, -1, queues);
+        this->template sanitize<0>(checked, n_bits, -1, queues);
     auto& output = this->edabits[{strict, n_bits}];
     for (auto& x : checked)
     {

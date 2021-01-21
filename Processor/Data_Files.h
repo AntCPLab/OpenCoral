@@ -11,6 +11,7 @@
 #include "Tools/Lock.h"
 #include "Networking/Player.h"
 #include "Protocols/edabit.h"
+#include "PrepBase.h"
 
 #include <fstream>
 #include <map>
@@ -58,15 +59,22 @@ public:
   array<map<DataTag, long long>, N_DATA_FIELD_TYPE> extended;
   map<pair<bool, int>, long long> edabits;
 
-  DataPositions(int num_players = 0) { set_num_players(num_players); }
-  void reset() { *this = DataPositions(inputs.size()); }
+  DataPositions(int num_players = 0);
+  ~DataPositions();
+
+  void reset();
   void set_num_players(int num_players);
   int num_players() { return inputs.size(); }
+
+  void count(DataFieldType type, DataTag tag, int n = 1);
+  void count_edabit(bool strict, int n_bits);
+
   void increase(const DataPositions& delta);
   DataPositions& operator-=(const DataPositions& delta);
   DataPositions operator-(const DataPositions& delta) const;
   void print_cost() const;
   bool empty() const;
+  bool any_more(const DataPositions& other) const;
 };
 
 template<class sint, class sgf2n> class Processor;
@@ -75,7 +83,7 @@ template<class sint, class sgf2n> class Machine;
 template<class T> class SubProcessor;
 
 template<class T>
-class Preprocessing
+class Preprocessing : public PrepBase
 {
 protected:
   DataPositions& usage;
@@ -83,10 +91,20 @@ protected:
   map<pair<bool, int>, vector<edabitvec<T>>> edabits;
   map<pair<bool, int>, edabitvec<T>> my_edabits;
 
-  void count(Dtype dtype) { usage.files[T::field_type()][dtype]++; }
-  void count(DataTag tag, int n = 1) { usage.extended[T::field_type()][tag] += n; }
-  void count_input(int player) { usage.inputs[player][T::field_type()]++; }
-  void count_edabit(bool strict, int n_bits) { usage.edabits[{strict, n_bits}]++; }
+  bool do_count;
+
+  void count(Dtype dtype, int n = 1) { usage.files[T::field_type()][dtype] += do_count * n; }
+  void count_input(int player) { usage.inputs[player][T::field_type()] += do_count; }
+
+  template<int>
+  void get_edabits(bool strict, size_t size, T* a,
+      vector<typename T::bit_type>& Sb, const vector<int>& regs, false_type);
+  template<int>
+  void get_edabits(bool, size_t, T*, vector<typename T::bit_type>&,
+      const vector<int>&, true_type)
+  { throw not_implemented(); }
+
+  T get_random_from_inputs(int nplayers);
 
 public:
   template<class U, class V>
@@ -95,7 +113,7 @@ public:
   static Preprocessing<T>* get_live_prep(SubProcessor<T>* proc,
       DataPositions& usage);
 
-  Preprocessing(DataPositions& usage) : usage(usage) {}
+  Preprocessing(DataPositions& usage) : usage(usage), do_count(true) {}
   virtual ~Preprocessing() {}
 
   virtual void set_protocol(typename T::Protocol& protocol) = 0;
@@ -123,12 +141,18 @@ public:
   void get(vector<T>& S, DataTag tag, const vector<int>& regs, int vector_size);
 
   virtual array<T, 3> get_triple(int n_bits);
+  virtual array<T, 3> get_triple_no_count(int n_bits);
   virtual T get_bit();
+  virtual T get_random();
   virtual void get_dabit(T&, typename T::bit_type&);
   virtual void get_dabit_no_count(T&, typename T::bit_type&) { throw runtime_error("no daBit"); }
   virtual void get_edabits(bool strict, size_t size, T* a,
-          vector<typename T::bit_type>& Sb, const vector<int>& regs);
-  virtual void get_edabit_no_count(bool, int n_bits, edabit<T>& eb);
+          vector<typename T::bit_type>& Sb, const vector<int>& regs)
+  { get_edabits<0>(strict, size, a, Sb, regs, T::clear::characteristic_two); }
+  template<int>
+  void get_edabit_no_count(bool, int n_bits, edabit<T>& eb);
+  template<int>
+  edabitvec<T> get_edabitvec(bool strict, int n_bits);
   virtual void buffer_edabits_with_queues(bool, int) { throw runtime_error("no edaBits"); }
 
   virtual void push_triples(const vector<array<T, 3>>&)
@@ -144,9 +168,6 @@ template<class T>
 class Sub_Data_Files : public Preprocessing<T>
 {
   template<class U> friend class Sub_Data_Files;
-
-  static map<DataTag, int> tuple_lengths;
-  static Lock tuple_lengths_lock;
 
   static int tuple_length(int dtype);
 
@@ -164,10 +185,20 @@ class Sub_Data_Files : public Preprocessing<T>
 
   Sub_Data_Files<typename T::part_type>* part;
 
-  void buffer_edabits_with_queues(bool stric, int n_bits);
+  void buffer_edabits_with_queues(bool strict, int n_bits)
+  { buffer_edabits_with_queues<0>(strict, n_bits, T::clear::characteristic_two); }
+  template<int>
+  void buffer_edabits_with_queues(bool strict, int n_bits, false_type);
+  template<int>
+  void buffer_edabits_with_queues(bool, int, true_type)
+  { throw not_implemented(); }
 
 public:
-  static string get_suffix(int thread_num);
+  static string get_filename(const Names& N, Dtype type, int thread_num = 0);
+  static string get_input_filename(const Names& N, int input_player,
+      int thread_num = 0);
+  static string get_edabit_filename(const Names& N, int n_bits,
+      int thread_num = 0);
 
   Sub_Data_Files(int my_num, int num_players, const string& prep_data_dir,
       DataPositions& usage, int thread_num = -1);
@@ -298,7 +329,9 @@ inline void Preprocessing<T>::get(Dtype dtype, T* a)
 template<class T>
 inline void Preprocessing<T>::get_three(Dtype dtype, T& a, T& b, T& c)
 {
-  count(dtype);
+  // count bit triples in get_triple()
+  if (T::field_type() != DATA_GF2)
+    count(dtype);
   get_three_no_count(dtype, a, b, c);
 }
 
@@ -327,14 +360,23 @@ template<class T>
 inline void Preprocessing<T>::get(vector<T>& S, DataTag tag,
     const vector<int>& regs, int vector_size)
 {
-  count(tag, vector_size);
+  usage.count(T::field_type(), tag, vector_size);
   get_no_count(S, tag, regs, vector_size);
 }
 
 template<class T>
 array<T, 3> Preprocessing<T>::get_triple(int n_bits)
 {
-  (void) n_bits;
+  if (T::field_type() == DATA_GF2)
+    count(DATA_TRIPLE, n_bits);
+  return get_triple_no_count(n_bits);
+}
+
+template<class T>
+array<T, 3> Preprocessing<T>::get_triple_no_count(int n_bits)
+{
+  assert(T::field_type() != DATA_GF2 or T::default_length == 1 or
+      T::default_length == n_bits or not do_count);
   array<T, 3> res;
   get(DATA_TRIPLE, res.data());
   return res;
@@ -346,6 +388,12 @@ T Preprocessing<T>::get_bit()
   T res;
   get_one(DATA_BIT, res);
   return res;
+}
+
+template<class T>
+T Preprocessing<T>::get_random()
+{
+  return get_random_from_inputs(usage.inputs.size());
 }
 
 template<class sint, class sgf2n>

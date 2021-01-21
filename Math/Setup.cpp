@@ -140,3 +140,24 @@ void write_online_setup(string dirname, const bigint& p)
   if (!outf.good())
     throw file_error("cannot write to " + ss.str());
 }
+
+void check_setup(string dir, bigint pr)
+{
+  bigint p;
+  string filename = dir + "Params-Data";
+  ifstream(filename) >> p;
+  if (p != pr)
+    throw runtime_error("wrong modulus in " + dir);
+}
+
+string get_prep_sub_dir(const string& prep_dir, int nparties, int log2mod,
+        const string& type_short)
+{
+  string res = prep_dir + "/" + to_string(nparties) + "-" + type_short;
+  if (log2mod > 1)
+    res += "-" + to_string(log2mod);
+  res += "/";
+  if (mkdir_p(res.c_str()) < 0)
+    throw file_error(res);
+  return res;
+}

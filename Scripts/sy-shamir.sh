@@ -3,7 +3,7 @@
 HERE=$(cd `dirname $0`; pwd)
 SPDZROOT=$HERE/..
 
-export PLAYERS=3
+export PLAYERS=${PLAYERS:-3}
 
 . $HERE/run-common.sh
 

@@ -10,7 +10,7 @@
 #include "Protocols/MAC_Check.h"
 #include "Protocols/Rep3Share.h"
 #include "Tools/ezOptionParser.h"
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 #include "GC/MaliciousRepSecret.h"
 #include "GC/TinierSecret.h"
 #include "GC/TinyMC.h"

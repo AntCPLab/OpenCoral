@@ -1,6 +1,6 @@
 
 #include "Ring.h"
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 
 void Ring::pack(octetStream& o) const
 {

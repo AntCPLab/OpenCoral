@@ -116,6 +116,15 @@ public:
             b.push_back(x);
         }
     }
+
+    void output(int length, ofstream& s)
+    {
+        assert(size() == MAX_SIZE);
+        for (auto& x : a)
+            x.output(s, false);
+        for (int i = 0; i < length; i++)
+            b[i].output(s, false);
+    }
 };
 
 #endif /* PROTOCOLS_EDABIT_H_ */

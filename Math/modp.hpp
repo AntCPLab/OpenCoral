@@ -2,7 +2,7 @@
 #include "modp.h"
 #include "Z2k.hpp"
 
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 
 /***********************************************************************
  *  The following functions remain the same in Real and Montgomery rep *
@@ -161,7 +161,7 @@ void to_modp(modp_<L>& ans,int x,const Zp_Data& ZpD)
 
 
 template<int L>
-void to_modp(modp_<L>& ans,const bigint& x,const Zp_Data& ZpD)
+void to_modp(modp_<L>& ans,const mpz_class& x,const Zp_Data& ZpD)
 {
   if (x == 0)
   {

@@ -6,6 +6,8 @@
 #ifndef PROCESSOR_THREADQUEUE_H_
 #define PROCESSOR_THREADQUEUE_H_
 
+#include "ThreadJob.h"
+
 class ThreadQueue
 {
     WaitQueue<ThreadJob> in, out;
@@ -23,38 +25,10 @@ public:
         return left == 0;
     }
 
-    void schedule(ThreadJob job)
-    {
-        lock.lock();
-        left++;
-#ifdef DEBUG_THREAD_QUEUE
-        cerr << this << ": " << left << " left" << endl;
-#endif
-        lock.unlock();
-        in.push(job);
-    }
-
-    ThreadJob next()
-    {
-        return in.pop();
-    }
-
-    void finished(ThreadJob job)
-    {
-        out.push(job);
-    }
-
-    ThreadJob result()
-    {
-        auto res = out.pop();
-        lock.lock();
-        left--;
-#ifdef DEBUG_THREAD_QUEUE
-        cerr << this << ": " << left << " left" << endl;
-#endif
-        lock.unlock();
-        return res;
-    }
+    void schedule(const ThreadJob& job);
+    ThreadJob next();
+    void finished(const ThreadJob& job);
+    ThreadJob result();
 };
 
 #endif /* PROCESSOR_THREADQUEUE_H_ */

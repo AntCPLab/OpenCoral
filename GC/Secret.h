@@ -127,8 +127,8 @@ public:
     void load_clear(int n, const Integer& x);
     void operator=(const Integer& x) { load_clear(default_length, x); }
 
-    Secret<T> operator<<(int i);
-    Secret<T> operator>>(int i);
+    Secret<T> operator<<(int i) const;
+    Secret<T> operator>>(int i) const;
 
     template<class U>
     void bitcom(Memory<U>& S, const vector<int>& regs);

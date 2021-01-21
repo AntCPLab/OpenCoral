@@ -121,8 +121,7 @@ void check(vector<EcTuple<T>>& tuples, T<P256Element::Scalar> sk,
     for (auto& tuple : tuples)
     {
         auto inv_k = MC.open(tuple.a, P);
-        auto k = inv_k;
-        k.invert();
+        auto k = inv_k.invert();
         assert(open_sk * inv_k == MC.open(tuple.b, P));
         assert(tuple.R == k);
     }

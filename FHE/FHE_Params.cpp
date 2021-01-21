@@ -1,7 +1,7 @@
 
 #include "FHE_Params.h"
 #include "FHE/Ring_Element.h"
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 
 
 void FHE_Params::set(const Ring& R,

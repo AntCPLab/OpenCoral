@@ -7,12 +7,12 @@
 #define GC_PROGRAM_HPP_
 
 #include <GC/Program.h>
+#include "Instruction_inline.h"
+#include "instructions.h"
 
 #include "config.h"
 
 #include "Tools/callgrind.h"
-
-#include "Instruction.hpp"
 
 namespace GC
 {
@@ -82,7 +82,6 @@ void Program::parse(istream& s)
 }
 
 template <class T, class U>
-__attribute__((flatten))
 BreakType Program::execute(Processor<T>& Proc, U& dynamic_memory,
         int PC) const
 {
@@ -95,6 +94,8 @@ BreakType Program::execute(Processor<T>& Proc, U& dynamic_memory,
     unsigned int size = p.size();
     size_t time = Proc.time;
     Proc.complexity = 0;
+    auto& Ci = Proc.I;
+    auto& processor = Proc;
     do
     {
 #ifdef DEBUG_EXE
@@ -109,7 +110,15 @@ BreakType Program::execute(Processor<T>& Proc, U& dynamic_memory,
 #ifdef COUNT_INSTRUCTIONS
         Proc.stats[p[Proc.PC].get_opcode()]++;
 #endif
-        p[Proc.PC++].execute(Proc, dynamic_memory);
+        auto& instruction = p[Proc.PC++];
+        switch (instruction.get_opcode())
+        {
+#define X(NAME, CODE) case NAME: CODE; break;
+        INSTRUCTIONS
+#undef X
+        default:
+            fallback_code(instruction, processor);
+        }
         time++;
 #ifdef DEBUG_COMPLEXITY
         cout << "complexity at " << time << ": " << Proc.complexity << endl;

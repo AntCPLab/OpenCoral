@@ -21,7 +21,7 @@ COMMON = $(MATH) $(TOOLS) $(NETWORK) GC/square64.o Processor/OnlineOptions.o Pro
 COMPLETE = $(COMMON) $(PROCESSOR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(GC) $(OT)
 YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp)) $(OT) BMR/Key.o
 BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp))
-VM = $(PROCESSOR) $(COMMON) GC/square64.o OT/OTTripleSetup.o OT/BaseOT.o $(LIBSIMPLEOT)
+VM = $(PROCESSOR) $(COMMON) GC/square64.o GC/Instruction.o OT/OTTripleSetup.o OT/BaseOT.o $(LIBSIMPLEOT)
 
 
 LIB = libSPDZ.a
@@ -29,14 +29,14 @@ LIBRELEASE = librelease.a
 LIBSIMPLEOT = SimpleOT/libsimpleot.a
 
 # used for dependency generation
-OBJS = $(BMR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(YAO) $(COMPLETE) $(patsubst %.cpp,%.o,$(wildcard Machines/*.cpp))
+OBJS = $(BMR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(YAO) $(COMPLETE) $(patsubst %.cpp,%.o,$(wildcard Machines/*.cpp Utils/*.cpp))
 DEPS := $(wildcard */*.d */*/*.d)
 
 # never delete
 .SECONDARY: $(OBJS)
 
 
-all: arithmetic binary gen_input online offline externalIO bmr doc
+all: arithmetic binary gen_input online offline externalIO bmr ecdsa doc
 
 .PHONY: doc
 doc:
@@ -59,7 +59,7 @@ include $(wildcard *.d static/*.d)
 
 online: Fake-Offline.x Server.x Player-Online.x Check-Offline.x emulate.x
 
-offline: $(OT_EXE) Check-Offline.x
+offline: $(OT_EXE) Check-Offline.x mascot-offline.x cowgear-offline.x mal-shamir-offline.x
 
 gen_input: gen_input_f2n.x gen_input_fp.x
 
@@ -100,7 +100,7 @@ shamir: shamir-party.x malicious-shamir-party.x galois-degree.x
 
 sy: sy-rep-field-party.x sy-rep-ring-party.x sy-shamir-party.x
 
-ecdsa: $(patsubst ECDSA/%.cpp,%.x,$(wildcard ECDSA/*-ecdsa-party.cpp))
+ecdsa: $(patsubst ECDSA/%.cpp,%.x,$(wildcard ECDSA/*-ecdsa-party.cpp)) Fake-ECDSA.x
 ecdsa-static: static-dir $(patsubst ECDSA/%.cpp,static/%.x,$(wildcard ECDSA/*-ecdsa-party.cpp))
 
 $(LIBRELEASE): Protocols/MalRepRingOptions.o $(PROCESSOR) $(COMMON) $(OT) $(GC)
@@ -115,9 +115,9 @@ static/%.x: ECDSA/%.o ECDSA/P256Element.o $(VM) $(OT) $(LIBSIMPLEOT)
 static-dir:
 	@ mkdir static 2> /dev/null; true
 
-static-release: static-dir $(patsubst Machines/%.cpp, static/%.x, $(wildcard Machines/*-party.cpp))
+static-release: static-dir $(patsubst Machines/%.cpp, static/%.x, $(wildcard Machines/*-party.cpp)) static/emulate.x
 
-Fake-ECDSA.x: ECDSA/Fake-ECDSA.cpp ECDSA/P256Element.o $(COMMON)
+Fake-ECDSA.x: ECDSA/Fake-ECDSA.cpp ECDSA/P256Element.o $(COMMON) Processor/PrepBase.o
 	$(CXX) -o $@ $^ $(CFLAGS) $(LDLIBS) $(ECLIB)
 
 Check-Offline.x: $(PROCESSOR)
@@ -127,7 +127,7 @@ ot.x: $(OT) $(COMMON) Machines/OText_main.o Machines/OTMachine.o $(LIBSIMPLEOT)
 
 ot-offline.x: $(OT) $(LIBSIMPLEOT) Machines/TripleMachine.o
 
-gc-emulate.x: $(PROCESSOR) GC/FakeSecret.o GC/square64.o
+gc-emulate.x: $(VM) GC/FakeSecret.o GC/square64.o
 
 bmr-%.x: $(BMR) $(VM) Machines/bmr-%.cpp $(LIBSIMPLEOT)
 	$(CXX) -o $@ $(CFLAGS) $^ $(BOOST) $(LDLIBS)
@@ -205,6 +205,9 @@ emulate.x: GC/FakeSecret.o
 semi-bmr-party.x: GC/SemiPrep.o GC/SemiSecret.o $(OT)
 real-bmr-party.x: $(OT)
 paper-example.x: $(VM) $(OT) $(FHEOFFLINE)
+mascot-offline.x: $(VM) $(OT)
+cowgear-offline.x: $(OT) $(FHEOFFLINE)
+Fake-Offline.x: $(VM)
 static/rep-bmr-party.x: $(BMR)
 static/mal-rep-bmr-party.x: $(BMR)
 static/shamir-bmr-party.x: $(BMR)

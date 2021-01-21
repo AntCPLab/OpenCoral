@@ -49,12 +49,10 @@ class invalid_commitment: public exception
         { return "Invalid Commitment"; }
     };
 class IO_Error: public exception
-    { string msg, ans;
+    {
+      string ans;
       public:
-      IO_Error(string m) : msg(m)
-        { ans="IO-Error : ";
-          ans+=msg;
-        }
+      IO_Error(const string& m);
       ~IO_Error()throw() { }
       virtual const char* what() const throw()
         {
@@ -103,13 +101,10 @@ class invalid_program:  public exception
         { return "Invalid Program"; }
     };
 class file_error:  public exception
-    { string filename, ans;
+    {
+      string ans;
       public:
-      file_error(string m) : filename(m)
-        {
-          ans="File Error : ";
-          ans+=filename;
-        }
+      file_error(const string& m);
       ~file_error()throw() { }
       virtual const char* what() const throw()
         {
@@ -153,10 +148,8 @@ class file_missing:  public exception
 class Processor_Error: public exception
     { string msg;
       public:
-      Processor_Error(string m)
-        {
-          msg = "Processor-Error : " + m;
-        }
+      Processor_Error(const string& m);
+      Processor_Error(const char* m);
       ~Processor_Error()throw() { }
       virtual const char* what() const throw()
         {
@@ -230,13 +223,13 @@ class ran_out
     }
 };
 
+class bigint;
+
 class wrong_gfp_size : public runtime_error
 {
 public:
-    wrong_gfp_size(string msg) :
-            runtime_error(msg)
-    {
-    }
+    wrong_gfp_size(const char* name, const bigint& p, const char* symbol,
+            int n_limbs);
 };
 
 class mac_key_error: public runtime_error
@@ -245,6 +238,38 @@ public:
     mac_key_error(string filename) :
             runtime_error("error loading MAC key from " + filename)
     {
+    }
+};
+
+class overflow : public runtime_error
+{
+public:
+    overflow(const char* name, size_t i, size_t n);
+};
+
+class unknown_input_type : public runtime_error
+{
+public:
+    unknown_input_type(int type);
+};
+
+class invalid_opcode : public runtime_error
+{
+public:
+    invalid_opcode(int opcode);
+};
+
+class input_error : public exception
+{
+    string msg;
+
+public:
+    input_error(const char* name, const string& filename,
+            istream& input_file);
+
+    const char* what() const throw()
+    {
+        return msg.c_str();
     }
 };
 

@@ -70,7 +70,7 @@ void Triple_Checking(const Player& P, MAC_Check<T>& MC, int nm,
           temp.mul(b2[i],PO[2*i]);
           Sh_Tau[i].sub(Sh_Tau[i],temp);
           te = (PO[2*i] * PO[2*i+1]);
-          Sh_Tau[i].sub(Sh_Tau[i],te,P.my_num(),MC.get_alphai());
+          Sh_Tau[i].sub(Sh_Tau[i], Share<T>::constant(te,P.my_num(),MC.get_alphai()));
         }
       MC.POpen_Begin(Tau,Sh_Tau,P);
       MC.POpen_End(Tau,Sh_Tau,P);
@@ -148,9 +148,11 @@ void Inverse_Checking(const Player& P, MAC_Check<T>& MC, int nr,
       MC.POpen_Begin(PO,Sh_PO,P);
       MC.POpen_End(PO,Sh_PO,P);
 
+      auto t_shared = Share<T>::constant(t, P.my_num(), MC.get_alphai());
+
       for (int i=0; i<this_loop; i++)
         {
-          Sh_Tau[i].sub(c2[i],t,P.my_num(),MC.get_alphai());
+          Sh_Tau[i].sub(c2[i],t_shared);
           temp.mul(a2[i],PO[2*i+1]);
           Sh_Tau[i].add(Sh_Tau[i],temp);
           temp.mul(b1[i],PO[2*i]);

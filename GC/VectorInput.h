@@ -24,6 +24,11 @@ public:
         part_input.reset_all(P);
     }
 
+    VectorInput(SubProcessor<T>& proc, typename T::MAC_Check&) :
+            VectorInput(proc.MC, proc.DataF, proc.P)
+    {
+    }
+
     void reset(int player)
     {
         part_input.reset(player);

@@ -41,9 +41,9 @@ public:
         BufferPrep<T>::get(type, data);
     }
 
-    array<T, 3> get_triple(int n_bits)
+    array<T, 3> get_triple_no_count(int n_bits)
     {
-        return ShiftableTripleBuffer<T>::get_triple(n_bits);
+        return ShiftableTripleBuffer<T>::get_triple_no_count(n_bits);
     }
 };
 

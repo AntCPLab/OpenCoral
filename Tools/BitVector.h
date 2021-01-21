@@ -10,7 +10,7 @@ using namespace std;
 #include <pmmintrin.h>
 #include <assert.h>
 
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 #include "Networking/data.h"
 // just for util functions
 #include "Math/gf2nlong.h"
@@ -198,7 +198,7 @@ class BitVector
     void set_bit(int i,unsigned int a)
     {
         if ((size_t)i >= nbits)
-            throw overflow_error("BitVector " + to_string(i) + "/" + to_string(nbits));
+            throw overflow("BitVector", i, nbits);
         int j = i/8, k = i&7;
         if (a==1)
           { bytes[j] |= (octet)(1UL<<k); }
@@ -274,7 +274,11 @@ T inline BitVector::get_portion(int i) const
     if (T::size_in_bits() == 1)
         return get_bit(i);
     else
-        return (char*)&bytes[T::size() * i];
+    {
+        T res;
+        res.assign(&bytes[T::size() * i]);
+        return res;
+    }
 }
 
 template <class T>

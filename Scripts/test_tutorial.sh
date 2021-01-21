@@ -25,8 +25,9 @@ function test_vm
     ulimit -c unlimited
     vm=$1
     shift
-    if ! Scripts/$vm.sh tutorial $* | grep 'weighted average: 2.333'; then
-	for i in 0 1 2; do
+    if ! Scripts/$vm.sh tutorial $* > /dev/null ||
+	    ! grep 'weighted average: 2.333' logs/tutorial-0; then
+	for i in $(seq 4 -1 0); do
 	    echo == Party $i
 	    cat logs/tutorial-$i
 	done
@@ -69,7 +70,7 @@ if test $dabit != 0; then
     ./compile.py -R 64 -Z 4 tutorial
     test_vm rep4-ring $run_opts
 
-    ./compile.py -R 64 -Z 2 tutorial
+    ./compile.py -R 64 -Z ${PLAYERS:-2} tutorial
     test_vm semi2k $run_opts
 fi
 

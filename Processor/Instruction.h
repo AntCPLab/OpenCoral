@@ -13,6 +13,7 @@ using namespace std;
 
 template<class sint, class sgf2n> class Machine;
 template<class sint, class sgf2n> class Processor;
+class ArithmeticProcessor;
 
 /* 
  * Opcode constants
@@ -112,6 +113,7 @@ enum
     EDABIT = 0x59,
     SEDABIT = 0x5A,
     RANDOMS = 0x5B,
+    RANDOMFULLS = 0x5D,
     // Input
     INPUT = 0x60,
     INPUTFIX = 0xF0,
@@ -311,19 +313,6 @@ struct TempVars {
   sint Sansp;
   bigint aa,aa2;
   typename sint::open_type rrp, xip;
-  // assign without allocation
-  void assign_ansp(unsigned int n)
-  {
-    ansp = int(n);
-  }
-  void assign_ansp(int n)
-  {
-    ansp = n;
-  }
-  void assign_ansp(long n)
-  {
-    ansp = n;
-  }
 };
 
 
@@ -378,6 +367,20 @@ public:
   // and streams pointing to the triples etc
   template<class sint, class sgf2n>
   void execute(Processor<sint, sgf2n>& Proc) const;
+
+  template<class cgf2n>
+  void execute_clear_gf2n(vector<cgf2n>& registers, vector<cgf2n>& memory,
+      ArithmeticProcessor& Proc) const;
+
+  template<class cgf2n>
+  void gbitdec(vector<cgf2n>& registers) const;
+  template<class cgf2n>
+  void gbitcom(vector<cgf2n>& registers) const;
+
+  void execute_regint(ArithmeticProcessor& Proc, vector<Integer>& Mi) const;
+
+  void shuffle(ArithmeticProcessor& Proc) const;
+  void bitdecint(ArithmeticProcessor& Proc) const;
 };
 
 #endif

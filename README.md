@@ -47,6 +47,9 @@ It will execute [the
 tutorial](Programs/Source/tutorial.mpc) with two parties and malicious
 security.
 
+Note that this only works with a git clone but not with a binary
+release.
+
 ```
 make -j 8 tldr
 ./compile.py tutorial
@@ -148,7 +151,7 @@ phase outputs the amount of offline material required, which allows to
 compute the preprocessing time for a particular computation.
 
 #### Requirements
- - GCC 5 or later (tested with up to 10) or LLVM/clang 5 or later (tested with up to 10). We recommend clang because it performs better.
+ - GCC 5 or later (tested with up to 10) or LLVM/clang 5 or later (tested with up to 11). We recommend clang because it performs better.
  - MPIR library, compiled with C++ support (use flag `--enable-cxx` when running configure). You can use `make -j8 tldr` to install it locally.
  - libsodium library, tested against 1.0.16
  - OpenSSL, tested against 1.1.1
@@ -663,9 +666,13 @@ script, the inputs are read from `Player-Data/Input-P<playerno>-0`.
 
 In this section we show how to benchmark purely the data-dependent
 (often called online) phase of some protocols. This requires to
-generate the output of a previous phase insecurely. You will have to
-(re)compile the software after adding `MY_CFLAGS = -DINSECURE` to
-`CONFIG.mine` in order to run this insecure generation.
+generate the output of a previous phase. There are two options to do
+that:
+1. For select protocols, you can run [preprocessing as
+   required](#preprocessing-as-required).
+2. You can run insecure preprocessing. For this, you will have to
+   (re)compile the software after adding `MY_CFLAGS = -DINSECURE` to
+   `CONFIG.mine` in order to run this insecure generation.
 
 ### SPDZ
 
@@ -786,6 +793,30 @@ Circuit ORAM or linear scan without ORAM.
 compiler to remove dead code. This is useful for more complex programs
 such as this one.
 3) Run `gc_oram` in the virtual machines as explained above.
+
+## Preprocessing as required
+
+For select protocols, you can run all required preprocessing but not
+the actual computation. First, compile the binary:
+
+`make <protocol>-offline.x`
+
+At the time of writing the supported protocols are `mascot`,
+`cowgear`, and `mal-shamir`.
+
+If you have not done so already, then compile your high-level program:
+
+`./compile.py <program>`
+
+Finally, run the parties as follows:
+
+`./<protocol>-offline.x -p 0 & ./<protocol>-offline.x -p 1 & ...`
+
+The options for the network setup are the same as for the complete
+computation above.
+
+If you run the preprocessing on different hosts, make sure to use the
+same player number in the preprocessing and the online phase.
 
 ## Benchmarking offline phases
 

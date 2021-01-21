@@ -112,6 +112,7 @@ opcodes = dict(
     EDABIT = 0x59,
     SEDABIT = 0x5A,
     RANDOMS = 0x5B,
+    RANDOMFULLS = 0x5D,
     # Input
     INPUT = 0x60,
     INPUTFIX = 0xF0,

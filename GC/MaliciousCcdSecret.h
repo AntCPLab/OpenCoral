@@ -48,7 +48,7 @@ public:
     {
     }
 
-    MaliciousCcdSecret(const super& other) :
+    MaliciousCcdSecret(const typename super::super& other) :
             super(other)
     {
     }

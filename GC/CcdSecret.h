@@ -51,7 +51,7 @@ public:
     {
     }
 
-    CcdSecret(const super& other) :
+    CcdSecret(const typename super::super& other) :
             super(other)
     {
     }

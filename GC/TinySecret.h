@@ -60,9 +60,10 @@ public:
         return part_type::size() * default_length;
     }
 
-    template<class U>
-    static void generate_mac_key(mac_key_type&, const U&)
+    static void read_or_generate_mac_key(string directory, const Player& P,
+            mac_key_type& key)
     {
+        T::read_or_generate_mac_key(directory, P, key);
     }
 
     template<class U>
@@ -218,7 +219,7 @@ public:
     TinySecret()
     {
     }
-    TinySecret(const super& other) :
+    TinySecret(const typename super::super& other) :
             super(other)
     {
     }

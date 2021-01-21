@@ -2,7 +2,7 @@
 #include "Math/gf2n.h"
 #include "Math/Bit.h"
 
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 
 #include <stdint.h>
 #include <wmmintrin.h>
@@ -58,7 +58,7 @@ void gf2n_short::init_field(int nn)
 {
   if (nn == 0)
     {
-      nn = default_length();
+      nn = DEFAULT_LENGTH;
 #ifdef VERBOSE
       cerr << "Using GF(2^" << nn << ")" << endl;
 #endif
@@ -133,19 +133,6 @@ inline word mul16(word x,word y)
   ans^=gf2n_short_table[a1][b2]^gf2n_short_table[a2][b1];
   ans<<=8;
   ans^=gf2n_short_table[a1][b1];
-
-  return ans;
-}
-
-
-
-/* Takes 16 bit x the 32 bit square */
-inline word sqr16(word x)
-{
-  word a1=x&(0xFF),a2=x>>8;
-
-  word ans=gf2n_short_table[a2][a2]<<16;
-  ans^=gf2n_short_table[a1][a1];
 
   return ans;
 }
@@ -261,39 +248,9 @@ gf2n_short gf2n_short::operator*(const Bit& x) const
 }
 
 
-
-
-inline void sqr32(word x,word& ans)
+gf2n_short gf2n_short::invert() const
 {
-  word a1=x&(0xFFFF),a2=x>>16;
-  ans=sqr16(a1)^(sqr16(a2)<<32);
-}
-
-void gf2n_short::square()
-{
-  word xh,xl;
-  sqr32(a&0xFFFFFFFF,xl);
-  sqr32(a>>32,xh);
-  reduce(xh,xl);
-}
-
-
-void gf2n_short::square(const gf2n_short& bb)
-{
-  word xh,xl;
-  sqr32(bb.a&0xFFFFFFFF,xl);
-  sqr32(bb.a>>32,xh);
-  reduce(xh,xl);
-}
-
-
-
-
-
-
-void gf2n_short::invert()
-{
-  if (is_one())  { return; }
+  if (is_one())  { return *this; }
   if (is_zero()) { throw division_by_zero(); }
 
   word u,v=a,B=0,D=1,mod=1;
@@ -322,22 +279,7 @@ void gf2n_short::invert()
 	  else      { v=v^u; D=D^B; }
    }
 
-  a=D;
-}
-
-
-void gf2n_short::power(long i)
-{ 
-  long n=i;
-  if (n<0) { invert(); n=-n; }
-
-  gf2n_short T=*this;
-  assign_one();
-  while (n!=0)
-    { if ((n&1)!=0) { mul(*this,T); }
-       n>>=1;
-       T.square();
-    }
+  return D;
 }
 
 
@@ -380,14 +322,14 @@ void gf2n_short::input(istream& s,bool human)
 void expand_byte(gf2n_short& a,int b)
 {
   gf2n_short x,xp;
-  x.assign(32+1);
+  x = (32+1);
   xp.assign_one();
   a.assign_zero();
 
   while (b!=0)
     { if ((b&1)==1)
         { a.add(a,xp); }
-      xp.mul(x);
+      xp *= (x);
       b>>=1;
     }
 }

@@ -30,10 +30,6 @@ public:
 
     // Returns the memory size used if applicable and known
     unsigned get_mem(RegType reg_type) const;
-
-    // Execute this instruction
-    template<class T, class U>
-    bool execute(Processor<T>& processor, U& dynamic_memory) const;
 };
 
 } /* namespace GC */

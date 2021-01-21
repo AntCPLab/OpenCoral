@@ -170,16 +170,6 @@ T Shamir<T>::finalize_dotprod(int)
 }
 
 template<class T>
-T Shamir<T>::get_random()
-{
-    if (random.empty())
-        buffer_random();
-    auto res = random.back();
-    random.pop_back();
-    return res;
-}
-
-template<class T>
 void Shamir<T>::buffer_random()
 {
     if (hyper.empty())
@@ -207,6 +197,7 @@ void Shamir<T>::buffer_random()
         input.add_mine(secure_prng.get<U>());
     input.exchange();
     vector<U> inputs;
+    auto& random = this->random;
     for (int i = 0; i < buffer_size; i += hyper.size())
     {
         inputs.clear();

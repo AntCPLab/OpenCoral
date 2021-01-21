@@ -57,7 +57,7 @@ void Plaintext<gfp,PPData,bigint>::from_poly() const
   if (type!=Polynomial) { return; }
   vector<modp> aa((*Field_Data).phi_m());
   for (unsigned int i=0; i<aa.size(); i++)
-    { to_modp(aa[i],b[i],(*Field_Data).prData); }
+    { to_modp(aa[i], bigint::tmp = b[i], (*Field_Data).prData); }
   (*Field_Data).to_eval(aa);
   a.resize(n_slots);
   for (unsigned int i=0; i<aa.size(); i++)

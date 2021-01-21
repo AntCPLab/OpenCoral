@@ -7,7 +7,6 @@
 #include "YaoGate.h"
 
 #include "GC/ThreadMaster.hpp"
-#include "GC/Instruction.hpp"
 #include "GC/Processor.hpp"
 #include "GC/Program.hpp"
 #include "GC/Machine.hpp"

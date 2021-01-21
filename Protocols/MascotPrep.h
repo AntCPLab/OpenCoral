@@ -7,7 +7,6 @@
 #define PROTOCOLS_MASCOTPREP_H_
 
 #include "ReplicatedPrep.h"
-#include "RandomPrep.h"
 #include "OT/MascotParams.h"
 
 template<class T>
@@ -28,7 +27,7 @@ public:
 };
 
 template<class T>
-class MascotTriplePrep : public OTPrep<T>, public RandomPrep<T>
+class MascotTriplePrep : public OTPrep<T>
 {
 public:
     MascotTriplePrep(SubProcessor<T> *proc, DataPositions &usage) :
@@ -39,8 +38,6 @@ public:
 
     void buffer_triples();
     void buffer_inputs(int player);
-
-    T get_random();
 };
 
 template<class T>
@@ -60,14 +57,12 @@ public:
     }
 
     void buffer_bits() { throw runtime_error("use subclass"); }
-    virtual void buffer_dabits(ThreadQueues* queues);
     void buffer_edabits(bool strict, int n_bits, ThreadQueues* queues);
 };
 
 template<class T>
 class MascotFieldPrep : public MascotPrep<T>
 {
-    void buffer_inverses();
     void buffer_bits();
 
 public:

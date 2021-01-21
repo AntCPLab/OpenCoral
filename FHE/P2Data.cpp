@@ -42,7 +42,7 @@ void P2Data::backward(vector<gf2n_short>& ans,const vector<poly_type>& a) const
           int ii = i * n + n - 1 - j;
           y ^= (Ai[ii] & bv).parity();
         }
-      ans[i].assign(y);
+      ans[i] = (y);
     }
 }
 

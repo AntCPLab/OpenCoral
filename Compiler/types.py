@@ -614,12 +614,6 @@ class _clear(_register):
     __slots__ = []
     mov = staticmethod(movc)
 
-    @vectorized_classmethod
-    @set_instruction_type
-    def protect_memory(cls, start, end):
-        program.curr_tape.start_new_basicblock(name='protect-memory')
-        protectmemc(regint(start), regint(end))
-
     @set_instruction_type
     @vectorize
     def load_other(self, val):
@@ -1140,11 +1134,6 @@ class regint(_register, _int):
     instruction_type = 'modp'
     mov = staticmethod(movint)
 
-    @classmethod
-    def protect_memory(cls, start, end):
-        program.curr_tape.start_new_basicblock(name='protect-memory')
-        protectmemint(regint(start), regint(end))
-
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
         """ Load from memory by public address. """
@@ -1532,12 +1521,6 @@ class _secret(_register):
 
     @vectorized_classmethod
     @set_instruction_type
-    def protect_memory(cls, start, end):
-        program.curr_tape.start_new_basicblock(name='protect-memory')
-        protectmems(regint(start), regint(end))
-
-    @vectorized_classmethod
-    @set_instruction_type
     def get_input_from(cls, player):
         """ Secret input from player.
 
@@ -1829,6 +1812,13 @@ class sint(_secret, _int):
             return tmp - (overflow << bits)
         res = sint()
         comparison.PRandInt(res, bits)
+        return res
+
+    @vectorized_classmethod
+    def get_random(cls):
+        """ Secret random ring element according to security model. """
+        res = sint()
+        randomfulls(res)
         return res
 
     @vectorized_classmethod
@@ -3197,6 +3187,8 @@ class _single(_number, _structure):
     __slots__ = ['v']
     kappa = None
     round_nearest = False
+    """ Whether to round deterministically to nearest instead of
+    probabilistically, e.g. after fixed-point multiplication. """
 
     @classmethod
     def receive_from_client(cls, n, client_id, message_type=ClientMessageType.NoType):

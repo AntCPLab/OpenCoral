@@ -41,6 +41,12 @@ public:
         this->first.assign(buffer);
         this->second.assign(buffer + T::size());
     }
+
+    void output(ostream& out, bool human)
+    {
+        this->first.output(out, human);
+        this->second.output(out, human);
+    }
 };
 
 #endif /* PROTOCOLS_DABIT_H_ */

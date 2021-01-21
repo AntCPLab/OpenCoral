@@ -5,7 +5,7 @@
 
 template<class T>
 void Memory<T>::minimum_size(RegType secret_type, RegType clear_type,
-    const Program &program, string threadname)
+    const Program &program, const string& threadname)
 {
   (void) threadname;
   unsigned sizes[MAX_SECRECY_TYPE];
@@ -28,40 +28,6 @@ void Memory<T>::minimum_size(RegType secret_type, RegType clear_type,
       resize_c(sizes[CLEAR]);
     }
 }
-
-#ifdef MEMPROTECT
-template<class T>
-void Memory<T>::protect_s(unsigned int start, unsigned int end)
-{
-  protected_s.insert(pair<unsigned int,unsigned int>(start, end));
-}
-
-template<class T>
-void Memory<T>::protect_c(unsigned int start, unsigned int end)
-{
-  protected_c.insert(pair<unsigned int,unsigned int>(start, end));
-}
-
-template<class T>
-bool Memory<T>::is_protected_s(unsigned int index)
-{
-  for (set< pair<unsigned int,unsigned int> >::iterator it = protected_s.begin();
-      it != protected_s.end(); it++)
-      if (it->first <= index and it->second > index)
-        return true;
-  return false;
-}
-
-template<class T>
-bool Memory<T>::is_protected_c(unsigned int index)
-{
-  for (set< pair<unsigned int,unsigned int> >::iterator it = protected_c.begin();
-      it != protected_c.end(); it++)
-      if (it->first <= index and it->second > index)
-        return true;
-  return false;
-}
-#endif
 
 
 template<class T>

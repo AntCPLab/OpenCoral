@@ -18,11 +18,9 @@ class Player;
 
 template<class T> class LimitedPrep;
 
-template<class T>
 class ShuffleSacrifice
 {
-    typedef typename T::bit_type::part_type BT;
-
+protected:
     const int B;
 
 public:
@@ -52,7 +50,12 @@ public:
 
     template<class U>
     void shuffle(vector<U>& items, Player& P);
+};
 
+template<class T>
+class TripleShuffleSacrifice : public ShuffleSacrifice
+{
+public:
     void triple_sacrifice(vector<array<T, 3>>& triples,
             vector<array<T, 3>>& check_triples, Player& P,
             typename T::MAC_Check& MC, ThreadQueues* queues = 0);
@@ -63,7 +66,14 @@ public:
     void triple_combine(vector<array<T, 3>>& triples,
             vector<array<T, 3>>& to_combine, Player& P,
             typename T::MAC_Check& MC);
+};
 
+template<class T>
+class EdabitShuffleSacrifice : public ShuffleSacrifice
+{
+  typedef typename T::bit_type::part_type BT;
+
+public:
     void edabit_sacrifice(vector<edabit<T>>& output, vector<T>& sums,
             vector<vector<typename T::bit_type::part_type>>& bits, size_t n_bits,
             SubProcessor<T>& proc, bool strict = false, int player = -1,

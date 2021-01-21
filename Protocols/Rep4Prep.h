@@ -23,15 +23,6 @@ public:
 };
 
 template<class T>
-class Rep4Prep : public Rep4RingPrep<T>
-{
-    void buffer_inverses();
-
-public:
-    Rep4Prep(SubProcessor<T>* proc, DataPositions& usage);
-};
-
-template<class T>
 class Rep4RingOnlyPrep : public virtual Rep4RingPrep<T>,
         public virtual RepRingOnlyEdabitPrep<T>
 {

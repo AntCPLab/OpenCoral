@@ -393,7 +393,7 @@ def exp2_fx(a, zero_output=False):
 
 @types.vectorize
 @instructions_base.sfix_cisc
-def log2_fx(x, use_division=False):
+def log2_fx(x, use_division=True):
     """
     Returns the result of :math:`\log_2(x)` for any unbounded
     number. This is achieved by changing :py:obj:`x` into

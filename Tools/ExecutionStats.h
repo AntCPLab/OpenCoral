@@ -12,12 +12,7 @@ using namespace std;
 class ExecutionStats : public map<int, size_t>
 {
 public:
-    ExecutionStats& operator+=(const ExecutionStats& other)
-    {
-        for (auto it : other)
-            (*this)[it.first] += it.second;
-        return *this;
-    }
+    ExecutionStats& operator+=(const ExecutionStats& other);
 
     void print();
 };

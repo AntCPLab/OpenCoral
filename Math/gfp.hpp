@@ -5,7 +5,7 @@
 #include "Math/gfpvar.h"
 #include "Math/Setup.h"
 
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 
 #include "Math/bigint.hpp"
 #include "Math/Setup.hpp"
@@ -28,21 +28,25 @@ inline void gfp_<X, L>::read_or_generate_setup(string dir,
 }
 
 template<int X, int L>
+void gfp_<X, L>::check_setup(string dir)
+{
+  ::check_setup(dir, pr());
+}
+
+template<int X, int L>
 void gfp_<X, L>::init_field(const bigint& p, bool mont)
 {
   ZpD.init(p, mont);
-  string name = "gfp<" + to_string(X) + ", " + to_string(L) + ">";
+  char name[100];
+  snprintf(name, 100, "gfp_<%d, %d>", X, L);
   if (ZpD.get_t() > L)
     {
-      cout << "modulus is " << p << endl;
-      throw wrong_gfp_size(name + " too small for modulus. "
-              "Maybe change GFP_MOD_SZ to " + to_string(ZpD.get_t()));
+      throw wrong_gfp_size(name, p, "GFP_MOD_SZ", ZpD.get_t());
     }
   if (ZpD.get_t() < L)
     {
       if (mont)
-        throw wrong_gfp_size(name + " too large for modulus. "
-            "Maybe change GFP_MOD_SZ to " + to_string(ZpD.get_t()));
+        throw wrong_gfp_size(name, p, "GFP_MOD_SZ", ZpD.get_t());
       else
         cerr << name << " larger than necessary for modulus " << p << endl;
     }
@@ -74,120 +78,68 @@ void gfp_<X, L>::almost_randomize(PRNG& G)
   a.x[t()-1]&=ZpD.mask;
 }
 
-template <int X, int L>
-void gfp_<X, L>::AND(const gfp_& x,const gfp_& y)
-{
-  bigint bi1,bi2;
-  to_bigint(bi1,x);
-  to_bigint(bi2,y);
-  mpz_and(bi1.get_mpz_t(), bi1.get_mpz_t(), bi2.get_mpz_t());
-  convert_destroy(bi1);
-}
-
-template <int X, int L>
-void gfp_<X, L>::OR(const gfp_& x,const gfp_& y)
-{
-  bigint bi1,bi2;
-  to_bigint(bi1,x);
-  to_bigint(bi2,y);
-  mpz_ior(bi1.get_mpz_t(), bi1.get_mpz_t(), bi2.get_mpz_t());
-  convert_destroy(bi1);
-}
-
-template <int X, int L>
-void gfp_<X, L>::XOR(const gfp_& x,const gfp_& y)
-{
-  bigint bi1,bi2;
-  to_bigint(bi1,x);
-  to_bigint(bi2,y);
-  mpz_xor(bi1.get_mpz_t(), bi1.get_mpz_t(), bi2.get_mpz_t());
-  convert_destroy(bi1);
-}
-
-template <int X, int L>
-void gfp_<X, L>::AND(const gfp_& x,const bigint& y)
-{
-  bigint bi;
-  to_bigint(bi,x);
-  mpz_and(bi.get_mpz_t(), bi.get_mpz_t(), y.get_mpz_t());
-  convert_destroy(bi);
-}
-
-template <int X, int L>
-void gfp_<X, L>::OR(const gfp_& x,const bigint& y)
-{
-  bigint bi;
-  to_bigint(bi,x);
-  mpz_ior(bi.get_mpz_t(), bi.get_mpz_t(), y.get_mpz_t());
-  convert_destroy(bi);
-}
-
-template <int X, int L>
-void gfp_<X, L>::XOR(const gfp_& x,const bigint& y)
-{
-  bigint bi;
-  to_bigint(bi,x);
-  mpz_xor(bi.get_mpz_t(), bi.get_mpz_t(), y.get_mpz_t());
-  convert_destroy(bi);
-}
-
 
 
 
 template <int X, int L>
-void gfp_<X, L>::SHL(const gfp_& x,int n)
+gfp_<X, L> gfp_<X, L>::operator<<(int n) const
 {
-  if (!x.is_zero())
+  if (!is_zero())
     {
       if (n != 0)
         {
-          *this = x * power_of_two(1, n);
+          return *this * power_of_two(1, n);
         }
       else
-        assign(x);
+        return *this;
     }
   else
     {
-      assign_zero();
+      return {};
     }
 }
 
 
 template <int X, int L>
-void gfp_<X, L>::SHR(const gfp_& x,int n)
+gfp_<X, L> gfp_<X, L>::operator>>(int n) const
 {
-  if (!x.is_zero())
+  if (!is_zero())
     {
       if (n != 0)
         {
-          bigint& bi = bigint::tmp;
-          to_bigint(bi,x);
-          bi >>= n;
-          convert_destroy(bi);
+          return (bigint::tmp = *this) >>= n;
         }
       else
-        assign(x);
+        return *this;
     }
   else
     {
-      assign_zero();
+      return {};
     }
 }
 
 
 template <int X, int L>
-void gfp_<X, L>::SHL(const gfp_& x,const bigint& n)
+gfp_<X, L> gfp_<X, L>::operator<<(const gfp_& i) const
 {
-  SHL(x,mpz_get_si(n.get_mpz_t()));
+    return *this << (bigint::tmp = i).get_ui();
 }
 
 
 template <int X, int L>
-void gfp_<X, L>::SHR(const gfp_& x,const bigint& n)
+gfp_<X, L> gfp_<X, L>::operator>>(const gfp_& i) const
 {
-  SHR(x,mpz_get_si(n.get_mpz_t()));
+    return *this >> (bigint::tmp = i).get_ui();
 }
 
+
+template<int X, int L>
+gfp_<X, L> gfp_<X, L>::invert() const
+{
+    gfp_ res;
+    Inv(res.a, a, ZpD);
+    return res;
+}
 
 template<int X, int L>
 gfp_<X, L> gfp_<X, L>::sqrRoot()

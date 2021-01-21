@@ -16,13 +16,35 @@ template<class T> class MamaMultiplier;
 template<class T> class SimpleMascotTripleGenerator;
 
 template<class T, int N>
-class MamaShare : public Share_<SemiShare<T>, FixedVec<SemiShare<T>, N>>
+class MamaMac : public FixedVec<SemiShare<T>, N>
+{
+    typedef FixedVec<SemiShare<T>, N> super;
+
+public:
+    static const true_type invertible;
+
+    MamaMac()
+    {
+    }
+
+    template<class U>
+    MamaMac(const U& other) :
+            super(other)
+    {
+    }
+};
+
+template<class T, int N>
+const true_type MamaMac<T, N>::invertible;
+
+template<class T, int N>
+class MamaShare : public Share_<SemiShare<T>, MamaMac<T, N>>
 {
     typedef MamaShare This;
 
 public:
     typedef FixedVec<SemiShare<T>, N> mac_key_type;
-    typedef Share_<SemiShare<T>, mac_key_type> super;
+    typedef Share_<SemiShare<T>, MamaMac<T, N>> super;
 
     typedef Beaver<This> Protocol;
     typedef MAC_Check_<This> MAC_Check;

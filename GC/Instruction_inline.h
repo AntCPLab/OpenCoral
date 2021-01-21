@@ -27,32 +27,6 @@ inline bool fallback_code(const Instruction& instruction, Processor<T>& processo
     return true;
 }
 
-template <class T, class U>
-MAYBE_INLINE bool Instruction::execute(Processor<T>& processor,
-        U& dynamic_memory) const
-{
-#ifdef DEBUG_OPS
-    cout << typeid(T).name() << " ";
-    cout << "pc " << processor.PC << " op " << hex << showbase << opcode << " "
-            << dec << noshowbase << r[0];
-    if (CommonParty::singleton)
-        cout << ", " << CommonParty::s().get_reg_size() << " regs ";
-    if (ProgramParty::singleton)
-        ProgramParty::s().print_input_size<T>();
-    cout << endl;
-#endif
-    const Instruction& instruction = *this;
-    auto& Ci = processor.I;
-    switch (opcode)
-    {
-#define X(NAME, CODE) case NAME: CODE; return true;
-    INSTRUCTIONS
-#undef X
-    default:
-        return fallback_code(*this, processor);
-    }
-}
-
 } /* namespace GC */
 
 #endif /* GC_INSTRUCTION_INLINE_H_ */

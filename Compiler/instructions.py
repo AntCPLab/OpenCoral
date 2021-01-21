@@ -258,27 +258,6 @@ class gstmsi(base.WriteMemoryInstruction, base.IndirectMemoryInstruction):
 
 @base.gf2n
 @base.vectorize
-class protectmems(base.Instruction):
-    r""" Protects secret memory range $[ci_i,ci_j)$. """
-    code = base.opcodes['PROTECTMEMS']
-    arg_format = ['ci','ci']
-
-@base.gf2n
-@base.vectorize
-class protectmemc(base.Instruction):
-    r""" Protects clear memory range $[ci_i,ci_j)$. """
-    code = base.opcodes['PROTECTMEMC']
-    arg_format = ['ci','ci']
-
-@base.gf2n
-@base.vectorize
-class protectmemint(base.Instruction):
-    r""" Protects integer memory range $[ci_i,ci_j)$. """
-    code = base.opcodes['PROTECTMEMINT']
-    arg_format = ['ci','ci']
-
-@base.gf2n
-@base.vectorize
 class movc(base.Instruction):
     """ Copy clear register (vector).
 
@@ -1177,6 +1156,18 @@ class randoms(base.Instruction):
     arg_format = ['sw','int']
     field_type = 'modp'
 
+@base.vectorize
+class randomfulls(base.Instruction):
+    """ Store share(s) of a fresh secret random element in secret
+    register (vectors).
+
+    :param: destination (sint)
+    """
+    __slots__ = []
+    code = base.opcodes['RANDOMFULLS']
+    arg_format = ['sw']
+    field_type = 'modp'
+
 @base.gf2n
 @base.vectorize
 class square(base.DataInstruction):
@@ -1417,14 +1408,6 @@ class rawinput(base.RawInputInstruction, base.Mergeable):
 
 @base.gf2n
 @base.vectorize
-class print_mem(base.IOInstruction):
-    r""" Print value in clear memory \verb|C[ci]| to stdout. """
-    __slots__ = []
-    code = base.opcodes['PRINTMEM']
-    arg_format = ['c']
-
-@base.gf2n
-@base.vectorize
 class print_reg(base.IOInstruction):
     """ Debugging output of clear register (vector).
 
@@ -1526,18 +1509,6 @@ class cond_print_str(base.IOInstruction):
 
     def __init__(self, cond, val):
         super(cond_print_str, self).__init__(cond, self.str_to_int(val))
-
-@base.vectorize
-class print_char_regint(base.IOInstruction):
-    r""" Print register $ci_i$ as a single character to stdout. """
-    code = base.opcodes['PRINTCHRINT']
-    arg_format = ['ci']
-
-@base.vectorize
-class print_char4_regint(base.IOInstruction):
-    r""" Print register $ci_i$ as a four character string to stdout. """
-    code = base.opcodes['PRINTSTRINT']
-    arg_format = ['ci']
 
 @base.vectorize
 class pubinput(base.PublicFileIOInstruction):
@@ -1717,6 +1688,11 @@ class startprivateoutput(base.Instruction):
     __slots__ = []
     code = base.opcodes['STARTPRIVATEOUTPUT']
     arg_format = ['sw','s','p']
+    field_type = 'modp'
+
+    def add_usage(self, req_node):
+        req_node.increment((self.field_type, 'input', self.args[2]), \
+                               self.get_size())
 
 @base.gf2n
 @base.vectorize

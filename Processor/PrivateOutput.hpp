@@ -24,7 +24,7 @@ void PrivateOutput<T>::stop(int player, int dest, int source)
     if (player == proc.P.my_num() and proc.Proc)
     {
         auto& value = proc.get_C_ref(dest);
-        value.sub(proc.get_C_ref(source), masks.front());
+        value = (proc.get_C_ref(source) - masks.front());
         value.output(proc.Proc->private_output, false);
         masks.pop_front();
     }

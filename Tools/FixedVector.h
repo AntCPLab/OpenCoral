@@ -34,7 +34,7 @@ public:
     void reserve(size_t size)
     {
         if (size > L)
-            throw runtime_error("too large: " + to_string(size));
+            throw overflow("FixedVector", size, L);
     }
 
     void push_back(const T& x)

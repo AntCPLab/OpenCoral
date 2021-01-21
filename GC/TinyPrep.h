@@ -10,13 +10,12 @@
 #include "OT/MascotParams.h"
 #include "Protocols/Beaver.h"
 #include "Protocols/ReplicatedPrep.h"
-#include "Protocols/RandomPrep.h"
 
 namespace GC
 {
 
 template<class T>
-class TinyPrep : public BufferPrep<T>, public RandomPrep<typename T::part_type::super>
+class TinyPrep : public BufferPrep<T>
 {
 protected:
     ShareThread<T>& thread;
@@ -43,9 +42,7 @@ public:
 
     void buffer_inputs_(int player, typename T::InputGenerator* input_generator);
 
-    typename T::part_type::super get_random();
-
-    array<T, 3> get_triple(int n_bits);
+    array<T, 3> get_triple_no_count(int n_bits);
 
     size_t data_sent();
 };

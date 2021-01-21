@@ -17,7 +17,6 @@ class SpdzWisePrep : public MaliciousRingPrep<T>
 
     void buffer_triples();
     void buffer_bits();
-    void buffer_inverses();
 
     void buffer_inputs(int player);
 

@@ -1,5 +1,5 @@
 #include "OT/Row.h"
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 
 template<class T>
 bool Row<T>::operator ==(const Row<T>& other) const

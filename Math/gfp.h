@@ -9,6 +9,7 @@ using namespace std;
 #include "Math/Zp_Data.h"
 #include "Math/field_types.h"
 #include "Math/Bit.h"
+#include "Math/Setup.h"
 #include "Tools/random.h"
 #include "GC/NoShare.h"
 #include "Processor/OnlineOptions.h"
@@ -78,8 +79,14 @@ class gfp_ : public ValueInterface
   template<class T>
   static void generate_setup(string dir, int nplayers, int lgp)
     { generate_prime_setup<T>(dir, nplayers, lgp); }
+  template<class T>
+  static void write_setup(int nplayers)
+    { write_setup(get_prep_sub_dir<T>(nplayers)); }
+  static void write_setup(string dir)
+    { write_online_setup(dir, pr()); }
+  static void check_setup(string dir);
 
-  static bigint pr()   
+  static const bigint& pr()
     { return ZpD.pr; }
   static int t()
     { return L;  }
@@ -108,19 +115,9 @@ class gfp_ : public ValueInterface
 
   static gfp_ power_of_two(bool bit, int exp);
 
-  void assign(const gfp_& g) { a=g.a; }
   void assign_zero()        { assignZero(a,ZpD); }
   void assign_one()         { assignOne(a,ZpD); } 
-  void assign(word aa)      { bigint::tmp=aa; to_gfp(*this,bigint::tmp); }
-  void assign(long aa)
-  {
-    if (aa == 0)
-      assignZero(a, ZpD);
-    else
-      to_gfp(*this, bigint::tmp = aa);
-  }
-  void assign(int aa)       { assign(long(aa)); }
-  void assign(const char* buffer) { a.assign(buffer, ZpD.get_t()); }
+  void assign(const void* buffer) { a.assign(buffer, ZpD.get_t()); }
 
   modp_type get() const           { return a; }
 
@@ -129,33 +126,20 @@ class gfp_ : public ValueInterface
   const void* get_ptr() const { return &a.x; }
   void* get_ptr()             { return &a.x; }
 
-  // Assumes prD behind x is equal to ZpD
-  void assign(modp_<L>& x) { a=x; }
-  
   gfp_()              { assignZero(a,ZpD); }
   template<int LL>
   gfp_(const modp_<LL>& g) { a=g; }
-  gfp_(const __m128i& x) { *this=x; }
-  gfp_(const int128& x) { *this=x.a; }
-  gfp_(const bigint& x) { to_modp(a, x, ZpD); }
-  gfp_(int x)           { assign(x); }
-  gfp_(long x)          { assign(x); }
-  gfp_(word x)          { assign(x); }
+  gfp_(const mpz_class& x) { to_modp(a, x, ZpD); }
+  gfp_(int x) : gfp_(long(x)) {}
+  gfp_(long x);
+  gfp_(word x) : gfp_(bigint::tmp = x) {}
   template<class T>
-  gfp_(IntBase<T> x)    { assign(x.get()); }
-  gfp_(const void* buffer) { assign((char*)buffer); }
+  gfp_(IntBase<T> x) : gfp_(x.get()) {}
   template<int Y>
   gfp_(const gfp_<Y, L>& x);
   gfp_(const gfpvar& other);
   template<int K>
   gfp_(const SignedZ2<K>& other);
-  gfp_(GC::NoValue)  { GC::NoValue::fail(); }
-
-  gfp_& operator=(const __m128i other)
-    {
-      memcpy(a.x, &other, sizeof(other));
-      return *this;
-    }
 
   void zero_overhang();
   void check();
@@ -172,19 +156,13 @@ class gfp_ : public ValueInterface
     { add(os.consume(size())); }
   void add(const gfp_& x,const gfp_& y)
     { ZpD.Add<L>(a.x,x.a.x,y.a.x); }
-  void add(const gfp_& x)
-    { ZpD.Add<L>(a.x,a.x,x.a.x); }
   void add(void* x)
     { ZpD.Add<L>(a.x,a.x,(mp_limb_t*)x); }
   void sub(const gfp_& x,const gfp_& y)
     { Sub(a,x.a,y.a,ZpD); }
-  void sub(const gfp_& x)
-    { Sub(a,a,x.a,ZpD); }
   // = x * y
   void mul(const gfp_& x,const gfp_& y)
     { a.template mul<L>(x.a,y.a,ZpD); }
-  void mul(const gfp_& x)
-    { a.template mul<L>(a,x.a,ZpD); }
 
   gfp_ lazy_add(const gfp_& x) const { return *this + x; }
   gfp_ lazy_mul(const gfp_& x) const { return *this * x; }
@@ -192,25 +170,16 @@ class gfp_ : public ValueInterface
   gfp_ operator+(const gfp_& x) const { gfp_ res; res.add(*this, x); return res; }
   gfp_ operator-(const gfp_& x) const { gfp_ res; res.sub(*this, x); return res; }
   gfp_ operator*(const gfp_& x) const { gfp_ res; res.mul(*this, x); return res; }
-  gfp_ operator/(const gfp_& x) const { gfp_ tmp; tmp.invert(x); return *this * tmp; }
-  gfp_& operator+=(const gfp_& x) { add(x); return *this; }
-  gfp_& operator-=(const gfp_& x) { sub(x); return *this; }
-  gfp_& operator*=(const gfp_& x) { mul(x); return *this; }
+  gfp_ operator/(const gfp_& x) const { return *this * x.invert(); }
+  gfp_& operator+=(const gfp_& x) { add(*this, x); return *this; }
+  gfp_& operator-=(const gfp_& x) { sub(*this, x); return *this; }
+  gfp_& operator*=(const gfp_& x) { mul(*this, x); return *this; }
 
   gfp_ operator-() { gfp_ res = *this; res.negate(); return res; }
 
-  void square(const gfp_& aa)
-    { Sqr(a,aa.a,ZpD); }
-  void square()
-    { Sqr(a,a,ZpD); }
-  void invert()
-    { Inv(a,a,ZpD); }
-  void invert(const gfp_& aa)
-    { Inv(a,aa.a,ZpD); }
+  gfp_ invert() const;
   void negate() 
     { Negate(a,a,ZpD); }
-  void power(long i)
-    { Power(a,a,i,ZpD); }
 
   // deterministic square root
   gfp_ sqrRoot();
@@ -237,26 +206,17 @@ class gfp_ : public ValueInterface
   /* Bitwise Ops 
    *   - Converts gfp args to bigints and then converts answer back to gfp
    */
-  void AND(const gfp_& x,const gfp_& y);
-  void XOR(const gfp_& x,const gfp_& y);
-  void OR(const gfp_& x,const gfp_& y);
-  void AND(const gfp_& x,const bigint& y);
-  void XOR(const gfp_& x,const bigint& y);
-  void OR(const gfp_& x,const bigint& y);
-  void SHL(const gfp_& x,int n);
-  void SHR(const gfp_& x,int n);
-  void SHL(const gfp_& x,const bigint& n);
-  void SHR(const gfp_& x,const bigint& n);
+  gfp_ operator&(const gfp_& x) { return (bigint::tmp = *this) &= bigint(x); }
+  gfp_ operator^(const gfp_& x) { return (bigint::tmp = *this) ^= bigint(x); }
+  gfp_ operator|(const gfp_& x) { return (bigint::tmp = *this) |= bigint(x); }
+  gfp_ operator<<(int i) const;
+  gfp_ operator>>(int i) const;
+  gfp_ operator<<(const gfp_& i) const;
+  gfp_ operator>>(const gfp_& i) const;
 
-  gfp_ operator&(const gfp_& x) { gfp_ res; res.AND(*this, x); return res; }
-  gfp_ operator^(const gfp_& x) { gfp_ res; res.XOR(*this, x); return res; }
-  gfp_ operator|(const gfp_& x) { gfp_ res; res.OR(*this, x); return res; }
-  gfp_ operator<<(int i) const { gfp_ res; res.SHL(*this, i); return res; }
-  gfp_ operator>>(int i) const { gfp_ res; res.SHR(*this, i); return res; }
-
-  gfp_& operator&=(const gfp_& x) { AND(*this, x); return *this; }
-  gfp_& operator<<=(int i) { SHL(*this, i); return *this; }
-  gfp_& operator>>=(int i) { SHR(*this, i); return *this; }
+  gfp_& operator&=(const gfp_& x) { *this = *this & x; return *this; }
+  gfp_& operator<<=(int i) { *this << i; return *this; }
+  gfp_& operator>>=(int i) { *this >> i; return *this; }
 
   void force_to_bit() { throw runtime_error("impossible"); }
 
@@ -284,6 +244,15 @@ Zp_Data gfp_<X, L>::ZpD;
 
 template<int X, int L>
 thread_local vector<gfp_<X, L>> gfp_<X, L>::powers;
+
+template<int X, int L>
+gfp_<X, L>::gfp_(long x)
+{
+  if (x == 0)
+    assign_zero();
+  else
+    *this = bigint::tmp = x;
+}
 
 template<int X, int L>
 template<int Y>

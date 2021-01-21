@@ -34,6 +34,11 @@ public:
 
     static const int default_length = 1;
 
+    static DataFieldType field_type()
+    {
+        return DATA_GF2;
+    }
+
     static string name()
     {
         return "CCD";

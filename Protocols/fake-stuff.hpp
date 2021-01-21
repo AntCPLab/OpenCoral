@@ -268,6 +268,13 @@ void write_mac_key(const string& directory, int i, int nplayers, U key)
 }
 
 template <class T>
+void write_mac_key(const Names& N, typename T::mac_key_type key)
+{
+  write_mac_key(get_prep_sub_dir<T>(N.num_players()), N.my_num(),
+      N.num_players(), key);
+}
+
+template <class T>
 void read_mac_key(const string& directory, const Names& N, T& key)
 {
   read_mac_key(directory, N.my_num(), N.num_players(), key);
@@ -304,6 +311,27 @@ void read_mac_key(const string& directory, int player_num, int nplayers, U& key)
       throw mac_key_error(filename);
 
   inpf.close();
+}
+
+template<class T>
+inline typename T::mac_key_type read_generate_write_mac_key(const Player& P,
+        string directory)
+{
+  if (directory == "")
+    directory = get_prep_sub_dir<T>(P.num_players());
+  typename T::mac_key_type res;
+
+  try
+  {
+      read_mac_key(directory, P.my_num(), P.num_players(), res);
+  }
+  catch (mac_key_error&)
+  {
+      T::read_or_generate_mac_key(directory, P, res);
+      write_mac_key(directory, P.my_num(), P.num_players(), res);
+  }
+
+  return res;
 }
 
 template <class U>
@@ -451,6 +479,8 @@ template<class T>
 void make_mult_triples(const typename T::mac_type& key, int N, int ntrip,
     bool zero, string prep_data_prefix, int thread_num = -1)
 {
+  T::clear::write_setup(get_prep_sub_dir<T>(prep_data_prefix, N));
+
   PRNG G;
   G.ReSeed();
 
@@ -459,12 +489,13 @@ void make_mult_triples(const typename T::mac_type& key, int N, int ntrip,
   vector<T> Sa(N),Sb(N),Sc(N);
   /* Generate Triples */
   for (int i=0; i<N; i++)
-    { stringstream filename;
-      filename << get_prep_sub_dir<T>(prep_data_prefix, N) << "Triples-" << T::type_short() << "-P" << i
-          << Sub_Data_Files<T>::get_suffix(thread_num);
-      cout << "Opening " << filename.str() << endl;
-      outf[i].open(filename.str().c_str(),ios::out | ios::binary);
-      if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
+    {
+      string filename = PrepBase::get_filename(
+          get_prep_sub_dir<T>(prep_data_prefix, N), DATA_TRIPLE,
+          T::type_short(), i, thread_num);
+      cout << "Opening " << filename << endl;
+      outf[i].open(filename,ios::out | ios::binary);
+      if (outf[i].fail()) { throw file_error(filename); }
     }
   for (int i=0; i<ntrip; i++)
     {
@@ -520,8 +551,7 @@ void make_inverse(const typename T::mac_type& key, int N, int ntrip, bool zero,
           a.randomize(G);
         while (a.is_zero());
       make_share(Sa,a,N,key,G);
-      b.invert(a);
-      make_share(Sb,b,N,key,G);
+      make_share(Sb,a.invert(),N,key,G);
       for (int j=0; j<N; j++)
         { Sa[j].output(outf[j],false);
           Sb[j].output(outf[j],false);

@@ -11,6 +11,13 @@
 #include <iomanip>
 #include <set>
 
+ExecutionStats& ExecutionStats::operator+=(const ExecutionStats& other)
+{
+    for (auto it : other)
+        (*this)[it.first] += it.second;
+    return *this;
+}
+
 void ExecutionStats::print()
 {
     cerr << "Instruction statistics:" << endl;

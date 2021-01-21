@@ -5,7 +5,7 @@
 
 #include <Networking/ServerSocket.h>
 #include <Networking/sockets.h>
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 
 #include <netinet/ip.h>
 #include <netinet/tcp.h>

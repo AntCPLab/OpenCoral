@@ -45,7 +45,7 @@ class Machine : public BaseMachine
   // Keep record of used offline data
   DataPositions pos;
 
-  void load_program(string threadname, string filename);
+  void load_program(const string& threadname, const string& filename);
 
   public:
 
@@ -71,8 +71,8 @@ class Machine : public BaseMachine
   atomic<size_t> data_sent;
   ExecutionStats stats;
 
-  Machine(int my_number, Names& playerNames, string progname,
-      string memtype, int lg2, bool direct, int opening_sum,
+  Machine(int my_number, Names& playerNames, const string& progname,
+      const string& memtype, int lg2, bool direct, int opening_sum,
       bool receive_threads, int max_broadcast, bool use_encryption, bool live_prep,
       OnlineOptions opts);
 

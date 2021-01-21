@@ -60,18 +60,6 @@ void Zp_Data::init(const bigint& p,bool mont)
 }
 
 
-__m128i Zp_Data::get_random128(PRNG& G)
-{
-  assert(t == 2);
-  while (true)
-    {
-      __m128i res = G.get_doubleword();
-      if (__uint128_t(res) < __uint128_t(int128(prA[1], prA[0]).a))
-        return res;
-    }
-}
-
-
 #include <stdlib.h>
 
 void Zp_Data::Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y,int t) const

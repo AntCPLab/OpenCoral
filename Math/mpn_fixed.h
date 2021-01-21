@@ -54,9 +54,6 @@ template <>
 inline void mpn_add_fixed_n<2>(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y)
 {
     memcpy(res, y, 2 * sizeof(mp_limb_t));
-    debug_print("x", x, 2);
-    debug_print("y", y, 2);
-    debug_print("res", res, 2);
     __asm__ (
             "add %2, %0 \n"
             "adc %3, %1 \n"
@@ -64,16 +61,12 @@ inline void mpn_add_fixed_n<2>(mp_limb_t* res, const mp_limb_t* x, const mp_limb
             : "rm"(x[0]), "rm"(x[1])
             : "cc"
     );
-    debug_print("res", res, 2);
 }
 
 template <>
 inline void mpn_add_fixed_n<3>(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y)
 {
     memcpy(res, y, 3 * sizeof(mp_limb_t));
-    debug_print("x", x, 3);
-    debug_print("y", y, 3);
-    debug_print("res", res, 3);
     __asm__ (
             "add %3, %0 \n"
             "adc %4, %1 \n"
@@ -82,7 +75,6 @@ inline void mpn_add_fixed_n<3>(mp_limb_t* res, const mp_limb_t* x, const mp_limb
             : "rm"(x[0]), "rm"(x[1]), "rm"(x[2])
             : "cc"
     );
-    debug_print("res", res, 3);
 }
 
 template <>
@@ -100,6 +92,15 @@ inline void mpn_add_fixed_n<4>(mp_limb_t* res, const mp_limb_t* x, const mp_limb
     );
 }
 
+#ifdef __clang__
+inline char clang_add_carry(char carryin, unsigned long x, unsigned long y, unsigned long& res)
+{
+	unsigned long carryout;
+	res = __builtin_addcl(x, y, carryin, &carryout);
+	return carryout;
+}
+#endif
+
 inline mp_limb_t mpn_add_n_with_carry(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y, int n)
 {
     // This is complicated because we want to use adc(x) whenever possible.
@@ -109,14 +110,10 @@ inline mp_limb_t mpn_add_n_with_carry(mp_limb_t* res, const mp_limb_t* x, const 
     {
         char carry = 0;
         for (int i = 0; i < n; i++)
-#if defined(__clang__)
-#if __has_builtin(__builtin_ia32_addcarryx_u64) && defined(__ADX__)
-            carry = __builtin_ia32_addcarryx_u64(carry, x[i], y[i], (unsigned long long*)&res[i]);
-#else
-            carry = __builtin_ia32_addcarry_u64(carry, x[i], y[i], (unsigned long long*)&res[i]);
-#endif
-#else
+#if defined(__ADX__)
             carry = _addcarryx_u64(carry, x[i], y[i], (unsigned long long*)&res[i]);
+#else
+            carry = clang_add_carry(carry, x[i], y[i], res[i]);
 #endif
         return carry;
     }
@@ -267,16 +264,11 @@ inline void mpn_addmul_1_fixed__(mp_limb_t* res, const mp_limb_t* y, mp_limb_t x
     higher[L - 1] = 0;
     for (int j = 0; j < M; j++)
         lower[j] = _mulx_u64(x, y[j], (long long unsigned*)higher + j);
-    debug_print("lower", lower, L);
-    debug_print("higher", higher, L);
-    debug_print("before add", res, L + 1);
     if (ADD)
         mpn_add_fixed_n<L>(res, lower, res);
     else
         inline_mpn_copyi(res, lower, L);
-    debug_print("first add", res, L + 1);
     mpn_add_fixed_n<L - 1>(res + 1, higher, res + 1);
-    debug_print("second add", res, L + 1);
 }
 
 template <int L, int M>

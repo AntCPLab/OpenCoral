@@ -1,6 +1,6 @@
 
 #include "FHE/Ring_Element.h"
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 #include "FHE/FFT.h"
 
 #include "Math/modp.hpp"

@@ -6,7 +6,7 @@
  */
 
 #include "Math/Integer.h"
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 #include "Networking/Player.h"
 #include "Data_Files.h"
 #include "Input.h"
@@ -100,6 +100,7 @@ public:
   int thread_num;
 
   PRNG secure_prng;
+  PRNG shared_prng;
 
   string private_input_filename;
   string public_input_filename;
@@ -108,11 +109,12 @@ public:
   ifstream public_input;
   ofstream public_output;
   ofstream private_output;
-  ofstream stdout_redirect_file;
 
   int sent, rounds;
 
   OnlineOptions opts;
+
+  SwitchableOutput out;
 
   ArithmeticProcessor() :
       ArithmeticProcessor(OnlineOptions::singleton, BaseMachine::thread_num)
@@ -126,6 +128,11 @@ public:
     return thread_num == 0 and opts.interactive;
   }
 
+  int get_thread_num()
+  {
+    return thread_num;
+  }
+
   const long& read_Ci(int i) const
     { return Ci[i]; }
   long& get_Ci_ref(int i)
@@ -134,15 +141,21 @@ public:
     { Ci[i]=x; }
   CheckVector<long>& get_Ci()
     { return Ci; }
+
+  void shuffle(const Instruction& instruction);
+  void bitdecint(const Instruction& instruction);
 };
 
 template<class sint, class sgf2n>
 class Processor : public ArithmeticProcessor
 {
-  int reg_max2, reg_maxi;
+  typedef typename sint::clear cint;
 
   // Data structure used for reading/writing data to/from a socket (i.e. an external party to SPDZ)
   octetStream socket_stream;
+
+  // avoid re-computation of expensive division
+  vector<cint> inverses2m;
 
   public:
   Data_Files<sint, sgf2n> DataF;
@@ -162,15 +175,8 @@ class Processor : public ArithmeticProcessor
   unsigned int PC;
   TempVars<sint, sgf2n> temp;
 
-  PRNG shared_prng;
-
   ExternalClients external_clients;
   Binary_File_IO binary_file_io;
-  
-  // avoid re-computation of expensive division
-  map<int, typename sint::clear> inverses2m;
-
-  SwitchableOutput out;
 
   void reset(const Program& program,int arg); // Reset the state of the processor
   string get_filename(const char* basename, bool use_number);
@@ -181,10 +187,6 @@ class Processor : public ArithmeticProcessor
           const Program& program);
   ~Processor();
 
-  int get_thread_num()
-    {
-      return thread_num;
-    }
     const typename sgf2n::clear& read_C2(int i) const
       { return Proc2.C[i]; }
     const sgf2n& read_S2(int i) const
@@ -232,6 +234,8 @@ class Processor : public ArithmeticProcessor
   void read_shares_from_file(int start_file_pos, int end_file_pos_register, const vector<int>& data_registers);
   void write_shares_to_file(const vector<int>& data_registers);
   
+  cint get_inverse2(unsigned m);
+
   // Print the processor state
   template<class T, class U>
   friend ostream& operator<<(ostream& s,const Processor<T, U>& P);

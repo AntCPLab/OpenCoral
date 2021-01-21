@@ -26,6 +26,14 @@ void Program::compute_constants()
     }
 }
 
+void Program::parse(string filename)
+{
+  ifstream pinp(filename);
+  if (pinp.fail())
+    throw file_error(filename);
+  parse(pinp);
+}
+
 void Program::parse(istream& s)
 {
   p.resize(0);

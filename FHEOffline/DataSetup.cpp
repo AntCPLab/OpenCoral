@@ -50,9 +50,10 @@ void PartSetup<FD>::generate_setup(int n_parties, int plaintext_length, int sec,
 
 template <class FD>
 void PartSetup<FD>::fake(vector<FHE_SK>& sks, vector<T>& alphais,
-        int nplayers, bool distributed)
+        int nplayers, bool distributed, bool check_security)
 {
-  insecure("global key generation");
+  if (check_security)
+    insecure("global key generation");
   if (distributed)
       cout << "Faking distributed key generation" << endl;
   else
@@ -91,11 +92,11 @@ void PartSetup<FD>::fake(vector<FHE_SK>& sks, vector<T>& alphais,
 
 template <class FD>
 void PartSetup<FD>::fake(vector<PartSetup<FD> >& setups, int nplayers,
-        bool distributed)
+        bool distributed, bool check_security)
 {
     vector<FHE_SK> sks;
     vector<T> alphais;
-    fake(sks, alphais, nplayers, distributed);
+    fake(sks, alphais, nplayers, distributed, check_security);
     setups.clear();
     setups.resize(nplayers, *this);
     for (int i = 0; i < nplayers; i++)

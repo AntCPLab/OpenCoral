@@ -150,9 +150,6 @@ class Integer : public IntBase<long>
 
   void mul(const Integer& x) { *this = *this * x; }
 
-  void invert() { throw runtime_error("cannot invert integer"); }
-  void invert(const Integer& _) { (void)_; invert(); }
-
   void AND(const Integer& x, const Integer& y) { *this = x & y; }
   void OR(const Integer& x, const Integer& y) { *this = x | y; }
   void XOR(const Integer& x, const Integer& y) { *this = x ^ y; }

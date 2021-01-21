@@ -14,6 +14,8 @@
 #include "Protocols/fake-stuff.h"
 
 #include "Protocols/fake-stuff.hpp"
+#include "Protocols/mac_key.hpp"
+#include "Protocols/Share.hpp"
 #include "Math/modp.hpp"
 
 void* run_generator(void* generator)
@@ -237,6 +239,13 @@ void MultiplicativeMachine::fake_keys(int slack)
     }
     part_setup.unpack(os);
     part_setup.check(drown_sec);
+
+    part_setup.alphai = read_or_generate_mac_key<Share<typename FD::T>>(P);
+    Plaintext_<FD> m(part_setup.FieldD);
+    m.assign_constant(part_setup.alphai);
+    vector<Ciphertext> C({part_setup.pk.encrypt(m)});
+    TreeSum<Ciphertext>().run(C, P);
+    part_setup.calpha = C[0];
 
     if (output)
         part_setup.output(N);

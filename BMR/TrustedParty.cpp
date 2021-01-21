@@ -28,7 +28,6 @@
 #include "GC/Thread.hpp"
 #include "GC/ThreadMaster.hpp"
 #include "GC/Program.hpp"
-#include "GC/Instruction.hpp"
 #include "GC/ShareSecret.hpp"
 #include "Processor/Instruction.hpp"
 #include "Protocols/Share.hpp"

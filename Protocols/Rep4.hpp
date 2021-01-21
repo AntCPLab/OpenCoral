@@ -280,7 +280,22 @@ void Rep4<T>::randoms(T& res, int n_bits)
 
 template<class T>
 void Rep4<T>::trunc_pr(const vector<int>& regs, int size,
-		SubProcessor<T>& proc)
+        SubProcessor<T>& proc)
+{
+    trunc_pr<0>(regs, size, proc, T::clear::characteristic_two);
+}
+
+template<class T>
+template<int>
+void Rep4<T>::trunc_pr(const vector<int>&, int, SubProcessor<T>&, true_type)
+{
+    throw runtime_error("only implemented for integer-like domains");
+}
+
+template<class T>
+template<int>
+void Rep4<T>::trunc_pr(const vector<int>& regs, int size,
+		SubProcessor<T>& proc, false_type)
 {
     assert(regs.size() % 4 == 0);
     typedef typename T::open_type open_type;

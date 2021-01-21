@@ -11,7 +11,7 @@
 #include <vector>
 #include <array>
 
-#include "Exceptions/Exceptions.h"
+#include "Tools/Exceptions.h"
 #include "GC/RuntimeBranching.h"
 #include "GC/ThreadMaster.h"
 #include "YaoAndJob.h"

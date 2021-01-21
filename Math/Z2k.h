@@ -35,20 +35,7 @@ protected:
 
 
 public:
-	typedef void Inp;
-	typedef void PO;
 	typedef void Square;
-
-	class DummyZ2kProtocol
-	{
-	public:
-	    static void assign(Z2& _,  const Z2& __, int& ___)
-        {
-            (void) _, (void) __, (void) ___;
-            throw not_implemented();
-        }
-	};
-	typedef DummyZ2kProtocol Protocol;
 
 	static const int N_BITS = K;
 	static const int MAX_EDABITS = K;
@@ -109,10 +96,6 @@ public:
 	const mp_limb_t* get() const { return a; }
 
 	void convert_destroy(bigint& a) { *this = a; }
-
-	void negate() { 
-		throw not_implemented();
-	}
 	
 	Z2<K> operator+(const Z2<K>& other) const;
 	Z2<K> operator-(const Z2<K>& other) const;
@@ -126,53 +109,36 @@ public:
 	Z2<K> operator/(const Z2& other) const { (void) other; throw division_by_zero(); }
 
 	Z2<K> operator&(const Z2& other) const;
+	Z2<K> operator^(const Z2& other) const;
+	Z2<K> operator|(const Z2& other) const;
 
 	Z2<K>& operator+=(const Z2<K>& other);
 	Z2<K>& operator-=(const Z2<K>& other);
+        Z2<K>& operator*=(const Z2<K>& other);
 	Z2<K>& operator&=(const Z2<K>& other);
 	Z2<K>& operator<<=(int other);
 	Z2<K>& operator>>=(int other);
 
 	Z2<K> operator<<(int i) const;
 	Z2<K> operator>>(int i) const;
+	Z2<K> operator<<(const Z2<K>& i) const { return *this << i.a[0]; }
+	Z2<K> operator>>(const Z2<K>& i) const { return *this >> i.a[0]; }
 
 	bool operator==(const Z2<K>& other) const;
 	bool operator!=(const Z2<K>& other) const { return not (*this == other); }
 
-	void add(const Z2<K>& a, const Z2<K>& b) { *this = a + b; }
-	void add(const Z2<K>& a) { *this += a; }
-	void sub(const Z2<K>& a, const Z2<K>& b) { *this = a - b; }
-
-	template <int M, int L>
-	void mul(const Z2<M>& a, const Z2<L>& b) { *this = Z2<K>::Mul(a, b); }
-	template <int L>
-	void mul(const Integer& a, const Z2<L>& b) { *this = Z2<K>::Mul(Z2<64>(a), b); }
-
-	void mul(const Z2& a) { *this = Z2::Mul(*this, a); }
-
-	void add(octetStream& os) { add(os.consume(size())); }
+	void add(octetStream& os) { *this += (os.consume(size())); }
 
 	Z2 lazy_add(const Z2& x) const;
 	Z2 lazy_mul(const Z2& x) const;
 
-	Z2& invert();
-	void invert(const Z2& a) { *this = a; invert(); }
+	Z2 invert() const;
 
 	Z2 sqrRoot();
 
 	bool is_zero() const { return *this == Z2<K>(); }
 	bool is_one() const { return *this == 1; }
 	bool is_bit() const { return is_zero() or is_one(); }
-
-	void SHL(const Z2& a, const bigint& i) { *this = a << i.get_ui(); }
-	void SHR(const Z2& a, const bigint& i) { *this = a >> i.get_ui(); }
-
-	void SHL(const Z2& a, int i) { *this = a << i; }
-	void SHR(const Z2& a, int i) { *this = a >> i; }
-
-	void AND(const Z2& a, const Z2& b);
-	void OR(const Z2& a, const Z2& b);
-	void XOR(const Z2& a, const Z2& b);
 
 	void randomize(PRNG& G, int n = -1);
 	void randomize_part(PRNG& G, int n);
@@ -319,6 +285,13 @@ Z2<K>& Z2<K>::operator-=(const Z2<K>& other)
 {
 	*this = *this - other;
 	return *this;
+}
+
+template <int K>
+Z2<K>& Z2<K>::operator*=(const Z2<K>& other)
+{
+        *this = *this * other;
+        return *this;
 }
 
 template <int K>
