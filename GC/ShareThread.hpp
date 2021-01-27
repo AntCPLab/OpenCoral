@@ -73,6 +73,7 @@ void StandaloneShareThread<T>::pre_run()
 template<class T>
 void ShareThread<T>::post_run()
 {
+    protocol->check();
     MC->Check(*this->P);
 #ifndef INSECURE
 #ifdef VERBOSE

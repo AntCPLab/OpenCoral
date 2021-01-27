@@ -88,7 +88,7 @@ void Rep4<T>::prepare_joint_input(int sender, int backup, int receiver,
 
     if (P.my_num() == backup)
     {
-        send_hashes[sender][receiver].update(inputs);
+        send_hashes[sender][receiver].update(inputs, bit_lengths);
     }
 
     if (sender == P.my_num())
@@ -126,31 +126,30 @@ void Rep4<T>::finalize_joint_input(int sender, int backup, int receiver,
         assert(results.size() == bit_lengths.size());
         T res;
         size_t n_results = results.size();
+        octetStream* os;
+        int index;
         switch (P.get_offset(backup))
         {
         case 2:
-            receive_hashes[sender][backup].update(
-                    receive_os[get_player(1)].get_data_ptr(),
-                    results.size() * open_type::size());
-            for (size_t i = 0; i < n_results; i++)
-            {
-                auto& x = results[i];
-                res[2].unpack(receive_os[get_player(1)], bit_lengths[i]);
-                x.res[2] += res[2];
-            }
+            os = &receive_os[get_player(1)];
+            index = 2;
             break;
         default:
-            auto& os = receive_os[3 - P.my_num()];
-            receive_hashes[sender][backup].update(os.get_data_ptr(),
-                    results.size() * open_type::size());
-            for (size_t i = 0; i < n_results; i++)
-            {
-                auto& x = results[i];
-                res[1].unpack(os, bit_lengths[i]);
-                x.res[1] += res[1];
-            }
+            os = &receive_os[3 - P.my_num()];
+            index = 1;
             break;
         }
+
+        auto start = os->get_data_ptr();
+        for (size_t i = 0; i < n_results; i++)
+        {
+            auto& x = results[i];
+            res[1].unpack(*os, bit_lengths[i]);
+            x.res[index] += res[1];
+        }
+
+        receive_hashes[sender][backup].update(start,
+                os->get_data_ptr() - start);
     }
 }
 
