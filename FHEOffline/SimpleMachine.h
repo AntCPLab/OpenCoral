@@ -52,6 +52,11 @@ public:
     string tradeoff();
 
     void mult_performance();
+
+    void pack(octetStream&) const {}
+    void unpack(octetStream&) {}
+
+    void check(Player&) const {}
 };
 
 class MultiplicativeMachine : public MachineBase

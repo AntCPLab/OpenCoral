@@ -147,7 +147,7 @@ class octetStream
   template <class T>
   void store(const vector<T>& v);
   template <class T>
-  void get(vector<T>& v);
+  void get(vector<T>& v, const T& init = {});
 
   void consume(octetStream& s,size_t l)
     { s.resize(l);
@@ -341,11 +341,11 @@ void octetStream::store(const vector<T>& v)
 }
 
 template<class T>
-void octetStream::get(vector<T>& v)
+void octetStream::get(vector<T>& v, const T& init)
 {
   size_t size;
   get(size);
-  v.resize(size);
+  v.resize(size, init);
   for (auto& x : v)
     get(x);
 }

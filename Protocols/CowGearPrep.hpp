@@ -66,8 +66,8 @@ void CowGearPrep<T>::key_setup(Player& P, mac_key_type alphai)
     auto& machine = *pairwise_machine;
     auto& setup = machine.setup<FD>();
     auto& options = CowGearOptions::singleton;
-    setup.covert_key_generation(P, machine, options.covert_security);
-    setup.covert_mac_generation(P, machine, options.covert_security);
+    read_or_generate_covert_secrets(setup, P, machine,
+            options.covert_security);
 
     // adjust mac key
     mac_key_type diff = alphai - setup.alphai;

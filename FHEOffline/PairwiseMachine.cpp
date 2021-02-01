@@ -111,5 +111,35 @@ void PairwiseMachine::set_mac_key(T alphai)
                 << endl;
 }
 
+void PairwiseMachine::pack(octetStream& os) const
+{
+    os.store(other_pks);
+    os.store(enc_alphas);
+    sk.pack(os);
+}
+
+void PairwiseMachine::unpack(octetStream& os)
+{
+    os.get(other_pks, {setup_p.params, 0});
+    os.get(enc_alphas, {pk});
+    sk.unpack(os);
+}
+
+void PairwiseMachine::check(Player& P) const
+{
+    Bundle<octetStream> bundle(P);
+
+    try
+    {
+        bundle.mine.store(other_pks);
+        bundle.mine.store(enc_alphas);
+    }
+    catch (exception&)
+    {
+    }
+
+    bundle.compare(P);
+}
+
 template void PairwiseMachine::setup_keys<FFT_Data>();
 template void PairwiseMachine::setup_keys<P2Data>();

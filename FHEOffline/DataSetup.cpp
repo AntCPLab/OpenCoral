@@ -12,6 +12,7 @@
 #include "PairwiseSetup.h"
 #include "Proof.h"
 #include "SimpleMachine.h"
+#include "PairwiseMachine.h"
 
 #include <iostream>
 using namespace std;
@@ -227,13 +228,13 @@ void PartSetup<FD>::check(Player& P, MachineBase& machine)
 }
 
 template<class FD>
-void PartSetup<FD>::covert_key_generation(Player& P, int num_runs)
+void PartSetup<FD>::covert_key_generation(Player& P, MachineBase&, int num_runs)
 {
     Run_Gen_Protocol(pk, sk, P, num_runs, false);
 }
 
 template<class FD>
-void PartSetup<FD>::covert_mac_generation(Player& P, int num_runs)
+void PartSetup<FD>::covert_mac_generation(Player& P, MachineBase&, int num_runs)
 {
     generate_mac_key(alphai, calpha, FieldD, pk, P,
             num_runs);
@@ -243,10 +244,18 @@ template<class FD>
 void PartSetup<FD>::covert_secrets_generation(Player& P, MachineBase& machine,
         int num_runs)
 {
+    read_or_generate_covert_secrets(*this, P, machine, num_runs);
+}
+
+template<class T, class U>
+void read_or_generate_covert_secrets(T& setup, Player& P, U& machine,
+        int num_runs)
+{
     octetStream os;
-    params.pack(os);
-    FieldD.pack(os);
-    string filename = PREP_DIR "ChaiGear-Secrets-" + to_string(num_runs) + "-"
+    setup.params.pack(os);
+    setup.FieldD.pack(os);
+    string filename = PREP_DIR + setup.covert_name() + "-Secrets-"
+            + to_string(num_runs) + "-"
             + os.check_sum(20).get_str(16) + "-P" + to_string(P.my_num()) + "-"
             + to_string(P.num_players());
 
@@ -256,7 +265,8 @@ void PartSetup<FD>::covert_secrets_generation(Player& P, MachineBase& machine,
     {
         ifstream input(filename);
         os.input(input);
-        unpack(os);
+        setup.unpack(os);
+        machine.unpack(os);
     }
     catch (exception& e)
     {
@@ -265,7 +275,8 @@ void PartSetup<FD>::covert_secrets_generation(Player& P, MachineBase& machine,
 
     try
     {
-        check(P, machine);
+        setup.check(P, machine);
+        machine.check(P);
     }
     catch (mismatch_among_parties& e)
     {
@@ -275,14 +286,22 @@ void PartSetup<FD>::covert_secrets_generation(Player& P, MachineBase& machine,
     if (not error.empty())
     {
         cerr << "Running secrets generation because " << error << endl;
-        covert_key_generation(P, num_runs);
-        covert_mac_generation(P, num_runs);
+        setup.covert_key_generation(P, machine, num_runs);
+        setup.covert_mac_generation(P, machine, num_runs);
         ofstream output(filename);
         octetStream os;
-        pack(os);
+        setup.pack(os);
+        machine.pack(os);
         os.output(output);
     }
 }
 
 template class PartSetup<FFT_Data>;
 template class PartSetup<P2Data>;
+
+template void read_or_generate_covert_secrets<PairwiseSetup<FFT_Data>,
+        PairwiseMachine>(PairwiseSetup<FFT_Data>&, Player&, PairwiseMachine&,
+        int);
+template void read_or_generate_covert_secrets<PairwiseSetup<P2Data>,
+        PairwiseMachine>(PairwiseSetup<P2Data>&, Player&, PairwiseMachine&,
+        int);

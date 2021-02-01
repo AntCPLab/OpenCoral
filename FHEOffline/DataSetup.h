@@ -16,6 +16,10 @@ class DataSetup;
 class MachineBase;
 class MultiplicativeMachine;
 
+template<class T, class U>
+void read_or_generate_covert_secrets(T& setup, Player& P, U& machine,
+        int num_runs);
+
 template <class FD>
 class PartSetup
 {
@@ -32,6 +36,11 @@ public:
   static string name()
   {
     return "GlobalParams-" + T::type_string();
+  }
+
+  static string covert_name()
+  {
+    return "ChaiGear";
   }
 
   PartSetup();
@@ -58,8 +67,8 @@ public:
       int sec);
   void check(Player& P, MachineBase& machine);
 
-  void covert_key_generation(Player& P, int num_runs);
-  void covert_mac_generation(Player& P, int num_runs);
+  void covert_key_generation(Player& P, MachineBase&, int num_runs);
+  void covert_mac_generation(Player& P, MachineBase&, int num_runs);
   void covert_secrets_generation(Player& P, MachineBase& machine, int num_runs);
 
   void output(Names& N);

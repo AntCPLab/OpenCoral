@@ -35,6 +35,11 @@ public:
 
     template <class FD>
     PairwiseSetup<FD>& setup();
+
+    void pack(octetStream& os) const;
+    void unpack(octetStream& os);
+
+    void check(Player& P) const;
 };
 
 #endif /* FHEOFFLINE_PAIRWISEMACHINE_H_ */

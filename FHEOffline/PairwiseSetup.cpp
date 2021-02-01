@@ -56,8 +56,8 @@ void PairwiseSetup<FD>::secure_init(Player& P, PairwiseMachine& machine, int pla
     alpha = FieldD;
 }
 
-template <class T>
-void secure_init(T& setup, Player& P, MachineBase& machine,
+template <class T, class U>
+void secure_init(T& setup, Player& P, U& machine,
         int plaintext_length, int sec)
 {
     machine.sec = sec;
@@ -104,6 +104,8 @@ void PairwiseSetup<FD>::pack(octetStream& os) const
 {
     params.pack(os);
     FieldD.pack(os);
+    alpha.pack(os);
+    alphai.pack(os);
 }
 
 template<class FD>
@@ -112,10 +114,12 @@ void PairwiseSetup<FD>::unpack(octetStream& os)
     params.unpack(os);
     FieldD.unpack(os);
     FieldD.init_field();
+    alpha.unpack(os);
+    alphai.unpack(os);
 }
 
 template <class FD>
-void PairwiseSetup<FD>::check(Player& P, MachineBase& machine)
+void PairwiseSetup<FD>::check(Player& P, PairwiseMachine& machine)
 {
     Bundle<octetStream> bundle(P);
     bundle.mine.store(machine.extra_slack);
