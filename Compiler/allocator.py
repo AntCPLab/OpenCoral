@@ -460,6 +460,14 @@ class Merger:
                         add_edge(i, n)
                 else:
                     mem_access(n, instr, last_mem_write_of, last_mem_read_of)
+            elif isinstance(instr, matmulsm):
+                if options.preserve_mem_order:
+                    for i in last_mem_write:
+                        add_edge(i, n)
+                else:
+                    for i in last_mem_write_of.values():
+                        for j in i:
+                            add_edge(j, n)
             # keep I/O instructions in order
             elif isinstance(instr, IOInstruction):
                 if last_print_str is not None:
