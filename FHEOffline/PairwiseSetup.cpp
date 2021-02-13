@@ -54,6 +54,9 @@ void PairwiseSetup<FD>::secure_init(Player& P, PairwiseMachine& machine, int pla
 {
     ::secure_init(*this, P, machine, plaintext_length, sec);
     alpha = FieldD;
+    machine.sk = FHE_SK(params, FieldD.get_prime());
+    for (auto& pk : machine.other_pks)
+        pk = FHE_PK(params, FieldD.get_prime());
 }
 
 template <class T, class U>
