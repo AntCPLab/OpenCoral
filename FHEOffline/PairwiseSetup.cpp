@@ -84,6 +84,7 @@ void secure_init(T& setup, Player& P, U& machine,
     {
         cout << "Finding parameters for security " << sec << " and field size ~2^"
                 << plaintext_length << endl;
+        setup.params = setup.params.n_mults();
         setup.generate(P, machine, plaintext_length, sec);
         setup.check(P, machine);
         octetStream os;

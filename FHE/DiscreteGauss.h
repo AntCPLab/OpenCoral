@@ -50,9 +50,10 @@ class RandomVectors
   void set(int nn,int hh,double R);  // R is input STANDARD DEVIATION
 
   void pack(octetStream& o) const { o.store(n); o.store(h); DG.pack(o); }
-  void unpack(octetStream& o) { o.get(n); o.get(h); DG.unpack(o); }
+  void unpack(octetStream& o)
+  { o.get(n); o.get(h); DG.unpack(o); if(h <= 0) throw exception(); }
 
-  RandomVectors(int h, double R) : n(0), h(h), DG(R) {}
+  RandomVectors(int h, double R) : RandomVectors(0, h, R) {}
   RandomVectors(int nn,int hh,double R) : DG(R) { set(nn,hh,R);  }
   ~RandomVectors()        { ; }
 
