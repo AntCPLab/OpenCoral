@@ -279,7 +279,13 @@ class _number(object):
                     res *= self
             return res
         else:
-            return NotImplemented
+            bits = exp.bit_decompose()
+            powers = [self]
+            while len(powers) < len(bits):
+                powers.append(powers[-1] ** 2)
+            multiplicands = [b.if_else(p, 1) for b, p in zip(bits, powers)]
+            res = util.tree_reduce(operator.mul, multiplicands)
+            return res
 
     def mul_no_reduce(self, other, res_params=None):
         return self * other
