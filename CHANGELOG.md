@@ -6,7 +6,7 @@ The changelog explains changes pulled through from the private development repos
 - Homomorphic encryption parameters more similar to SCALE-MAMBA
 - Fixed security bug: all-zero secret keys in homomorphic encryption
 - Fixed security bug: missing check in binary Rep4
-- Fixed security bug: insufficient "blaming" (covert security) in CowGear and HighGear due to low default security parameter
+- Fixed security bug: insufficient "blaming" (covert security) in CowGear and ChaiGear due to low default security parameter
 
 ## 0.2.2 (Jan 21, 2021)
 
