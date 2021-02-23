@@ -16,9 +16,9 @@ template<class T>
 Spdz2kPrep<T>::Spdz2kPrep(SubProcessor<T>* proc, DataPositions& usage) :
         BufferPrep<T>(usage),
         BitPrep<T>(proc, usage), RingPrep<T>(proc, usage),
+        MaliciousDabitOnlyPrep<T>(proc, usage),
         MaliciousRingPrep<T>(proc, usage),
         MascotTriplePrep<T>(proc, usage),
-        MascotPrep<T>(proc, usage),
         RingOnlyPrep<T>(proc, usage)
 {
     this->params.amplify = false;
@@ -43,7 +43,7 @@ Spdz2kPrep<T>::~Spdz2kPrep()
 template<class T>
 void Spdz2kPrep<T>::set_protocol(typename T::Protocol& protocol)
 {
-    MascotPrep<T>::set_protocol(protocol);
+    OTPrep<T>::set_protocol(protocol);
     assert(this->proc != 0);
     auto& proc = this->proc;
     bit_MC = new typename BitShare::MAC_Check(proc->MC.get_alphai());
@@ -240,7 +240,7 @@ void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
 template<class T>
 size_t Spdz2kPrep<T>::data_sent()
 {
-    size_t res = MascotPrep<T>::data_sent();
+    size_t res = OTPrep<T>::data_sent();
     if (bit_prep)
         res += bit_prep->data_sent();
     return res;

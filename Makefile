@@ -47,7 +47,7 @@ binary: rep-bin yao semi-bin-party.x tinier-party.x tiny-party.x ccd-party.x mal
 
 ifeq ($(USE_NTL),1)
 all: overdrive she-offline
-gear: cowgear-party.x chaigear-party.x
+gear: cowgear-party.x chaigear-party.x lowgear-party.x highgear-party.x
 arithmetic: hemi-party.x soho-party.x gear
 endif
 
@@ -186,10 +186,14 @@ hemi-party.x: $(FHEOFFLINE) $(GC_SEMI) $(OT)
 soho-party.x: $(FHEOFFLINE) $(GC_SEMI) $(OT)
 cowgear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o $(OT)
 chaigear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o $(OT)
+lowgear-party.x: $(FHEOFFLINE) $(OT) Protocols/CowGearOptions.o Protocols/LowGearKeyGen.o
+highgear-party.x: $(FHEOFFLINE) $(OT) Protocols/CowGearOptions.o Protocols/HighGearKeyGen.o
 static/hemi-party.x: $(FHEOFFLINE)
 static/soho-party.x: $(FHEOFFLINE)
 static/cowgear-party.x: $(FHEOFFLINE)
 static/chaigear-party.x: $(FHEOFFLINE)
+static/lowgear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o Protocols/LowGearKeyGen.o
+static/highgear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o Protocols/HighGearKeyGen.o
 mascot-party.x: Machines/SPDZ.o $(OT)
 static/mascot-party.x: Machines/SPDZ.o
 Player-Online.x: Machines/SPDZ.o $(OT)

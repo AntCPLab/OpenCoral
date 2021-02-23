@@ -12,20 +12,24 @@ class CowGearOptions
 {
     bool use_top_gear;
 
-    void lowgear_from_covert();
-
 public:
     static CowGearOptions singleton;
 
     int covert_security;
     int lowgear_security;
 
-    CowGearOptions();
-    CowGearOptions(ez::ezOptionParser& opt, int argc, const char** argv);
+    CowGearOptions(bool covert = true);
+    CowGearOptions(ez::ezOptionParser& opt, int argc, const char** argv,
+            bool covert = true);
 
     bool top_gear()
     {
         return use_top_gear;
+    }
+
+    void set_top_gear(bool use)
+    {
+        use_top_gear = use;
     }
 };
 

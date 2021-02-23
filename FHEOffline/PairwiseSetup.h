@@ -33,9 +33,12 @@ public:
         return "PairwiseParams-" + FD::T::type_string();
     }
 
-    static string covert_name()
+    static string protocol_name(bool covert)
     {
-        return "CowGear";
+        if (covert)
+            return "CowGear";
+        else
+            return "LowGear";
     }
 
     PairwiseSetup() : params(0), alpha(FieldD) {}
@@ -47,6 +50,11 @@ public:
     void check(Player& P, PairwiseMachine& machine);
     void covert_key_generation(Player& P, PairwiseMachine& machine, int num_runs);
     void covert_mac_generation(Player& P, PairwiseMachine& machine, int num_runs);
+
+    void key_and_mac_generation(Player& P, PairwiseMachine& machine,
+            int num_runs, false_type);
+    void key_and_mac_generation(Player& P, PairwiseMachine& machine,
+            int num_runs, true_type);
 
     void pack(octetStream& os) const;
     void unpack(octetStream& os);

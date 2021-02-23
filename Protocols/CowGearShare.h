@@ -26,6 +26,8 @@ public:
 
     const static bool needs_ot = false;
 
+    const static true_type covert;
+
     CowGearShare()
     {
     }
@@ -36,5 +38,8 @@ public:
     }
 
 };
+
+template<class T>
+const true_type CowGearShare<T>::covert;
 
 #endif /* PROTOCOLS_COWGEARSHARE_H_ */

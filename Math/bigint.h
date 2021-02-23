@@ -67,6 +67,7 @@ public:
   bigint& operator=(int n);
   bigint& operator=(long n);
   bigint& operator=(word n);
+  bigint& operator=(double f);
   template<int X, int L>
   bigint& operator=(const gfp_<X, L>& other);
   template<int K>
@@ -135,6 +136,12 @@ inline bigint& bigint::operator=(long n)
 inline bigint& bigint::operator=(word n)
 {
   mpz_class::operator=(n);
+  return *this;
+}
+
+inline bigint& bigint::operator=(double f)
+{
+  mpz_class::operator=(f);
   return *this;
 }
 

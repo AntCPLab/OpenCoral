@@ -55,13 +55,14 @@ public:
     }
 
     template<class U>
-    static void split(vector<U>& dest, const vector<int>& regs,
-            int n_bits, const SpdzWiseRingShare* source, int n_inputs, Player& P)
+    static void split(vector<U>& dest, const vector<int>& regs, int n_bits,
+            const SpdzWiseRingShare* source, int n_inputs,
+            typename U::Protocol& protocol)
     {
         vector<Rep3Share2<K>> shares(n_inputs);
         for (int i = 0; i < n_inputs; i++)
             shares[i] = source[i].get_share();
-        Rep3Share2<K>::split(dest, regs, n_bits, shares.data(), n_inputs, P);
+        Rep3Share2<K>::split(dest, regs, n_bits, shares.data(), n_inputs, protocol);
     }
 
     static void shrsi(SubProcessor<This>& proc, const Instruction& inst)

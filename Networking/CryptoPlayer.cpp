@@ -155,25 +155,28 @@ void CryptoPlayer::send_receive_all_no_stats(const vector<vector<bool>>& channel
     }
 }
 
-void CryptoPlayer::partial_broadcast(const vector<bool>& senders,
+void CryptoPlayer::partial_broadcast(const vector<bool>& my_senders,
+        const vector<bool>& my_receivers,
         vector<octetStream>& os) const
 {
     TimeScope ts(comm_stats["Partial broadcasting"].add(os[my_num()]));
-    sent += os[my_num()].get_length() * (num_players() - 1);
     for (int offset = 1; offset < num_players(); offset++)
     {
         int other = get_player(offset);
-        bool receive = senders[other];
-        if (senders[my_num()])
+        bool receive = my_senders[other];
+        if (my_receivers[other])
+        {
             this->senders[other]->request(os[my_num()]);
+            sent += os[my_num()].get_length();
+        }
         if (receive)
             this->receivers[other]->request(os[other]);
     }
     for (int offset = 1; offset < num_players(); offset++)
     {
         int other = get_player(offset);
-        bool receive = senders[other];
-        if (senders[my_num()])
+        bool receive = my_senders[other];
+        if (my_receivers[other])
             this->senders[other]->wait(os[my_num()]);
         if (receive)
             this->receivers[other]->wait(os[other]);

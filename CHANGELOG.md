@@ -1,6 +1,14 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
-## 0.2.2 (Jan 21, 2020)
+## 0.2.3 (Feb 23, 2021)
+
+- Distributed key generation for homomorphic encryption with active security similar to [Rotaru et al.](https://eprint.iacr.org/2019/1300)
+- Homomorphic encryption parameters more similar to SCALE-MAMBA
+- Fixed security bug: all-zero secret keys in homomorphic encryption
+- Fixed security bug: missing check in binary Rep4
+- Fixed security bug: insufficient "blaming" (covert security) in CowGear and HighGear due to low default security parameter
+
+## 0.2.2 (Jan 21, 2021)
 
 - Infrastructure for random element generation
 - Programs generating as much preprocessing data as required by a particular high-level program

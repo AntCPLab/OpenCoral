@@ -24,6 +24,9 @@ public:
 
     void start(int player, int target, int source);
     void stop(int player, int dest, int source);
+
+    T start(int player, const T& source);
+    typename T::clear stop(int player, const typename T::clear& masked);
 };
 
 #endif /* PROCESSOR_PRIVATEOUTPUT_H_ */

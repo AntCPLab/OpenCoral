@@ -19,6 +19,12 @@ PostSacrifice<T>::~PostSacrifice()
 }
 
 template<class T>
+Player& PostSacrifice<T>::branch()
+{
+    return P;
+}
+
+template<class T>
 void PostSacrifice<T>::init_mul(SubProcessor<T>* proc)
 {
     (void) proc;

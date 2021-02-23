@@ -56,13 +56,14 @@ public:
     }
 
     template<class U>
-    static void split(vector<U>& dest, const vector<int>& regs,
-            int n_bits, const super* source, int n_inputs, Player& P)
+    static void split(vector<U>& dest, const vector<int>& regs, int n_bits,
+            const super* source, int n_inputs,
+            typename bit_type::Protocol& protocol)
     {
         if (regs.size() / n_bits != 3)
             throw runtime_error("only secure with three-way split");
 
-        super::split(dest, regs, n_bits, source, n_inputs, P);
+        super::split(dest, regs, n_bits, source, n_inputs, protocol);
     }
 };
 

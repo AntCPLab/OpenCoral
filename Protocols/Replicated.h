@@ -49,6 +49,8 @@ class ProtocolBase
 protected:
     vector<T> random;
 
+    int trunc_pr_counter;
+
 public:
     typedef T share_type;
 

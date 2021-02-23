@@ -8,52 +8,51 @@
 #include "Protocols/CowGearOptions.h"
 #include <math.h>
 
-
 SemiHomomorphicNoiseBounds::SemiHomomorphicNoiseBounds(const bigint& p,
-        int phi_m, int n, int sec, int slack_param, bool extra_h, double sigma, int h) :
+        int phi_m, int n, int sec, int slack_param, bool extra_h,
+        const FHE_Params& params) :
         p(p), phi_m(phi_m), n(n), sec(sec),
-        slack(numBits(Proof::slack(slack_param, sec, phi_m))), sigma(sigma), h(h)
+        slack(numBits(Proof::slack(slack_param, sec, phi_m))),
+        sigma(params.get_R()), h(params.get_h())
 {
     if (sigma <= 0)
         this->sigma = sigma = FHE_Params().get_R();
 #ifdef VERBOSE
     cerr << "Standard deviation: " << this->sigma << endl;
 #endif
-    h += extra_h * sec;
+    if (h > 0)
+        h += extra_h * sec;
+    else if (extra_h)
+    {
+        sigma *= 1.4;
+        params.set_R(params.get_R() * 1.4);
+    }
+
     produce_epsilon_constants();
 
-    if (CowGearOptions::singleton.top_gear())
-    {
-        // according to documentation of SCALE-MAMBA 1.7
-        // excluding a factor of n because we don't always add up n ciphertexts
-        B_clean = (bigint(phi_m) << (sec + 2)) * p
-                * (20.5 + c1 * sigma * sqrt(phi_m) + 20 * c1 * sqrt(h));
-        mpf_class V_s;
-        if (h > 0)
-            V_s = sqrt(h);
-        else
-            V_s = sigma * sqrt(phi_m);
-        B_scale = (c1 + c2 * V_s) * p * sqrt(phi_m / 12.0);
-#ifdef NOISY
-        cout << "p * sqrt(phi(m) / 12): " << p * sqrt(phi_m / 12.0) << endl;
-        cout << "V_s: " << V_s << endl;
-        cout << "c1: " << c1 << endl;
-        cout << "c2: " << c2 << endl;
-        cout << "c1 + c2 * V_s: " << c1 + c2 * V_s << endl;
-        cout << "B_scale: " << B_scale << endl;
-#endif
-    }
+    // according to documentation of SCALE-MAMBA 1.7
+    // excluding a factor of n because we don't always add up n ciphertexts
+    if (h > 0)
+        V_s = sqrt(h);
     else
-    {
-        B_clean = (phi_m * p / 2
-                + p * sigma
-                        * (16 * phi_m * sqrt(n / 2) + 6 * sqrt(phi_m)
-                                + 16 * sqrt(n * h * phi_m))) << slack;
-        B_scale = p * sqrt(3 * phi_m) * (1 + 8 * sqrt(n * h) / 3);
-#ifdef VERBOSE
-        cout << "log(slack): " << slack << endl;
+        V_s = sigma * sqrt(phi_m);
+    B_clean = (bigint(phi_m) << (sec + 1)) * p
+            * (20.5 + c1 * sigma * sqrt(phi_m) + 20 * c1 * V_s);
+    // unify parameters by taking maximum over TopGear or not
+    bigint B_clean_top_gear = B_clean * 2;
+    bigint B_clean_not_top_gear = B_clean << int(ceil(sec / 2.));
+    B_clean = max(B_clean_not_top_gear, B_clean_top_gear);
+    B_scale = (c1 + c2 * V_s) * p * sqrt(phi_m / 12.0);
+#ifdef NOISY
+    cout << "p * sqrt(phi(m) / 12): " << p * sqrt(phi_m / 12.0) << endl;
+    cout << "V_s: " << V_s << endl;
+    cout << "c1: " << c1 << endl;
+    cout << "c2: " << c2 << endl;
+    cout << "c1 + c2 * V_s: " << c1 + c2 * V_s << endl;
+    cout << "log(slack): " << slack << endl;
+    cout << "B_clean: " << B_clean << endl;
+    cout << "B_scale: " << B_scale << endl;
 #endif
-    }
 
     drown = 1 + n * (bigint(1) << sec);
 }
@@ -75,6 +74,11 @@ double SemiHomomorphicNoiseBounds::min_phi_m(int log_q, double sigma)
         sigma = FHE_Params().get_R();
     // the constant was updated using Martin Albrecht's LWE estimator in Sep 2019
     return 37.8 * (log_q - log2(sigma));
+}
+
+double SemiHomomorphicNoiseBounds::min_phi_m(int log_q, const FHE_Params& params)
+{
+    return min_phi_m(log_q, params.get_R());
 }
 
 void SemiHomomorphicNoiseBounds::produce_epsilon_constants()
@@ -104,21 +108,10 @@ void SemiHomomorphicNoiseBounds::produce_epsilon_constants()
 }
 
 NoiseBounds::NoiseBounds(const bigint& p, int phi_m, int n, int sec, int slack,
-        double sigma, int h) :
-        SemiHomomorphicNoiseBounds(p, phi_m, n, sec, slack, false, sigma, h)
+        const FHE_Params& params) :
+        SemiHomomorphicNoiseBounds(p, phi_m, n, sec, slack, false, params)
 {
-    if (CowGearOptions::singleton.top_gear())
-    {
-        B_KS = p * c2 * this->sigma * phi_m / sqrt(12);
-    }
-    else
-    {
-        B_KS = p * phi_m * mpf_class(this->sigma)
-                * (pow(n, 2.5) * (1.49 * sqrt(h * phi_m) + 2.11 * h)
-                        + 2.77 * n * n * sqrt(h)
-                        + pow(n, 1.5) * (1.96 * sqrt(phi_m) * 2.77 * sqrt(h))
-                        + 4.62 * n);
-    }
+    B_KS = p * c2 * this->sigma * phi_m / sqrt(12);
 #ifdef NOISY
     cout << "p size: " << numBits(p) << endl;
     cout << "phi(m): " << phi_m << endl;
@@ -197,5 +190,5 @@ double NoiseBounds::optimize(int& lg2p0, int& lg2p1)
       }
     lg2p1 = numBits(min_p1);
     lg2p0 = numBits(min_p0);
-    return min_phi_m(lg2p0 + lg2p1);
+    return min_phi_m(lg2p0 + lg2p1, sigma.get_d());
 }

@@ -27,50 +27,88 @@ public:
 };
 
 template<class T>
-class MascotTriplePrep : public OTPrep<T>
+class MascotInputPrep : public OTPrep<T>
 {
+    void buffer_inputs(int player);
+
 public:
-    MascotTriplePrep(SubProcessor<T> *proc, DataPositions &usage) :
+    MascotInputPrep(SubProcessor<T> *proc, DataPositions &usage) :
             BufferPrep<T>(usage), BitPrep<T>(proc, usage),
             OTPrep<T>(proc, usage)
     {
     }
-
-    void buffer_triples();
-    void buffer_inputs(int player);
 };
 
 template<class T>
-class MascotPrep: public virtual MaliciousRingPrep<T>,
+class MascotTriplePrep : public MascotInputPrep<T>
+{
+public:
+    MascotTriplePrep(SubProcessor<T> *proc, DataPositions &usage) :
+            BufferPrep<T>(usage), BitPrep<T>(proc, usage),
+            MascotInputPrep<T>(proc, usage)
+    {
+    }
+
+    void buffer_triples();
+};
+
+template<class T>
+class MascotDabitOnlyPrep : public virtual MaliciousDabitOnlyPrep<T>,
         public virtual MascotTriplePrep<T>
+{
+public:
+    MascotDabitOnlyPrep(SubProcessor<T>* proc, DataPositions& usage) :
+            BufferPrep<T>(usage), BitPrep<T>(proc, usage),
+            RingPrep<T>(proc, usage),
+            MaliciousDabitOnlyPrep<T>(proc, usage),
+            MascotTriplePrep<T>(proc, usage)
+    {
+    }
+    virtual ~MascotDabitOnlyPrep()
+    {
+    }
+
+    virtual void buffer_bits();
+};
+
+template<class T>
+class MascotPrep : public virtual MaliciousRingPrep<T>,
+        public virtual MascotDabitOnlyPrep<T>
 {
 public:
     MascotPrep(SubProcessor<T>* proc, DataPositions& usage) :
             BufferPrep<T>(usage), BitPrep<T>(proc, usage),
             RingPrep<T>(proc, usage),
+            MaliciousDabitOnlyPrep<T>(proc, usage),
             MaliciousRingPrep<T>(proc, usage),
-            MascotTriplePrep<T>(proc, usage)
+            MascotTriplePrep<T>(proc, usage),
+            MascotDabitOnlyPrep<T>(proc, usage)
     {
     }
     virtual ~MascotPrep()
     {
     }
 
-    void buffer_bits() { throw runtime_error("use subclass"); }
+    virtual void buffer_bits()
+    {
+        MascotDabitOnlyPrep<T>::buffer_bits();
+    }
+
     void buffer_edabits(bool strict, int n_bits, ThreadQueues* queues);
 };
 
 template<class T>
-class MascotFieldPrep : public MascotPrep<T>
+class MascotFieldPrep : public virtual MascotPrep<T>
 {
-    void buffer_bits();
-
 public:
     MascotFieldPrep<T>(SubProcessor<T>* proc, DataPositions& usage) :
             BufferPrep<T>(usage),
             BitPrep<T>(proc, usage), RingPrep<T>(proc, usage),
+            MaliciousDabitOnlyPrep<T>(proc, usage),
             MaliciousRingPrep<T>(proc, usage),
-            MascotTriplePrep<T>(proc, usage), MascotPrep<T>(proc, usage)
+            MascotTriplePrep<T>(proc, usage),
+            MascotDabitOnlyPrep<T>(proc, usage),
+            MascotPrep<T>(proc, usage)
     {
     }
 };

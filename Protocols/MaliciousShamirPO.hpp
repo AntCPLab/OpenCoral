@@ -9,6 +9,7 @@ template<class T>
 MaliciousShamirPO<T>::MaliciousShamirPO(Player& P) :
         P(P), shares(P.num_players())
 {
+    MC.init_open(P);
 }
 
 template<class T>

@@ -66,11 +66,23 @@ protected:
   Rq_Element(const Ring_Element& b0,const Ring_Element& b1) :
     a({b0, b1}), lev(n_mults()) {}
 
+  Rq_Element(const Ring_Element& b0) :
+    a({b0}), lev(n_mults()) {}
+
   template<class T, class FD, class S>
   Rq_Element(const FHE_Params& params, const Plaintext<T, FD, S>& plaintext) :
       Rq_Element(params)
   {
     from(plaintext.get_iterator());
+  }
+
+  template<class U, class V>
+  Rq_Element(const vector<FFT_Data>& prd, const vector<U>& b0,
+      const vector<V>& b1, RepType r = evaluation) :
+      Rq_Element(prd, r, r)
+  {
+    a[0] = Ring_Element(prd[0], r, b0);
+    a[1] = Ring_Element(prd[1], r, b1);
   }
 
   // Destructor
@@ -107,6 +119,7 @@ protected:
   void Scale(const bigint& p);
 
   bool equals(const Rq_Element& a) const;
+  bool operator==(const Rq_Element& a) const { return equals(a); }
   bool operator!=(const Rq_Element& a) const { return !equals(a); }
 
   int level() const { return lev; }

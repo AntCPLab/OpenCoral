@@ -10,7 +10,7 @@
 template<class T>
 void FakeShare<T>::split(vector<bit_type>& dest,
         const vector<int>& regs, int n_bits, const This* source, int n_inputs,
-        Player&)
+        GC::FakeSecret::Protocol&)
 {
     assert(n_bits <= 64);
     int unit = GC::Clear::N_BITS;

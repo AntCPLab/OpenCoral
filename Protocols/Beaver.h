@@ -35,6 +35,8 @@ public:
 
     Beaver(Player& P) : prep(0), MC(0), P(P) {}
 
+    Player& branch();
+
     void init_mul(SubProcessor<T>* proc);
     void init_mul(Preprocessing<T>& prep, typename T::MAC_Check& MC);
     typename T::clear prepare_mul(const T& x, const T& y, int n = -1);

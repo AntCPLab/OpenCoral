@@ -194,7 +194,9 @@ void OnlineMachine::start_networking()
     if (ipFileName.size() > 0) {
       if (my_port != Names::DEFAULT_PORT)
         throw runtime_error("cannot set port number when using IP file");
-      playerNames.init(playerno, pnbase, ipFileName);
+      if (nplayers == 0 and opt.isSet("-N"))
+        opt.get("-N")->getInt(nplayers);
+      playerNames.init(playerno, pnbase, ipFileName, nplayers);
     } else {
       if (not opt.get("-ext-server")->isSet)
       {

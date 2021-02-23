@@ -26,6 +26,8 @@ public:
 
     const static bool needs_ot = false;
 
+    const static true_type covert;
+
     ChaiGearShare()
     {
     }
@@ -37,5 +39,7 @@ public:
     }
 };
 
+template<class T>
+const true_type ChaiGearShare<T>::covert;
 
 #endif /* PROTOCOLS_CHAIGEARSHARE_H_ */

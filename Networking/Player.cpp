@@ -522,10 +522,22 @@ void Player::send_receive_all(const vector<vector<bool>>& channels,
   size_t data = 0;
   for (int i = 0; i < num_players(); i++)
     if (i != my_num() and channels.at(my_num()).at(i))
-      data += to_send.at(i).get_length();
+      {
+        data += to_send.at(i).get_length();
+#ifdef VERBOSE_COMM
+        cerr << "Send " << to_send.at(i).get_length() << " to " << i << endl;
+#endif
+      }
   TimeScope ts(comm_stats["Sending/receiving"].add(data));
   sent += data;
   send_receive_all_no_stats(channels, to_send, to_receive);
+}
+
+void Player::partial_broadcast(const vector<bool>& senders,
+    vector<octetStream>& os) const
+{
+  partial_broadcast(senders, vector<bool>(num_players(), senders[my_num()]),
+      os);
 }
 
 template<class T>

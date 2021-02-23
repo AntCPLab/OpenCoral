@@ -10,7 +10,9 @@
 template<class T>
 MamaPrep<T>::MamaPrep(SubProcessor<T>* proc, DataPositions& usage) :
         BufferPrep<T>(usage), BitPrep<T>(proc, usage),
-        RingPrep<T>(proc, usage), OTPrep<T>(proc, usage),
+        RingPrep<T>(proc, usage),
+        MaliciousDabitOnlyPrep<T>(proc, usage),
+        OTPrep<T>(proc, usage),
         MaliciousRingPrep<T>(proc, usage)
 {
     this->params.amplify = true;

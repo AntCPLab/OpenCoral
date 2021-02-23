@@ -11,7 +11,9 @@
 template<class T>
 Rep4RingPrep<T>::Rep4RingPrep(SubProcessor<T>* proc, DataPositions& usage) :
         BufferPrep<T>(usage), BitPrep<T>(proc, usage),
-        RingPrep<T>(proc, usage), MaliciousRingPrep<T>(proc, usage)
+        RingPrep<T>(proc, usage),
+        MaliciousDabitOnlyPrep<T>(proc, usage),
+        MaliciousRingPrep<T>(proc, usage)
 {
 }
 
@@ -19,7 +21,9 @@ template<class T>
 Rep4RingOnlyPrep<T>::Rep4RingOnlyPrep(SubProcessor<T>* proc,
         DataPositions& usage) :
         BufferPrep<T>(usage), BitPrep<T>(proc, usage),
-        RingPrep<T>(proc, usage), Rep4RingPrep<T>(proc, usage),
+        RingPrep<T>(proc, usage),
+        MaliciousDabitOnlyPrep<T>(proc, usage),
+        Rep4RingPrep<T>(proc, usage),
         RepRingOnlyEdabitPrep<T>(proc, usage)
 {
 }

@@ -490,6 +490,9 @@ class bitb(NonVectorInstruction):
     code = opcodes['BITB']
     arg_format = ['sbw']
 
+    def add_usage(self, req_node):
+        req_node.increment(('bit', 'bit'), 1)
+
 class reveal(BinaryVectorInstruction, base.VarArgsInstruction, base.Mergeable):
     """ Reveal secret bit register vectors and copy result to clear bit
     register vectors.
@@ -519,6 +522,10 @@ class inputb(base.DoNotEliminateInstruction, base.VarArgsInstruction):
     arg_format = tools.cycle(['p','int','int','sbw'])
     is_vec = lambda self: True
 
+    def add_usage(self, req_node):
+        for i in range(0, len(self.args), 4):
+            req_node.increment(('bit', 'input', self.args[0]), self.args[1])
+
 class inputbvec(base.DoNotEliminateInstruction, base.VarArgsInstruction,
                 base.Mergeable):
     """ Copy private input to secret bit registers bit by bit. The input is
@@ -538,16 +545,25 @@ class inputbvec(base.DoNotEliminateInstruction, base.VarArgsInstruction,
 
     def __init__(self, *args, **kwargs):
         self.arg_format = []
+        for x in self.get_arg_tuples(args):
+            self.arg_format += ['int', 'int', 'p'] + ['sbw'] * (x[0]  - 3)
+        super(inputbvec, self).__init__(*args, **kwargs)
+
+    @staticmethod
+    def get_arg_tuples(args):
         i = 0
         while i < len(args):
-            self.arg_format += ['int', 'int', 'p'] + ['sbw'] * (args[i]  - 3)
+            yield args[i:i+args[i]]
             i += args[i]
         assert i == len(args)
-        super(inputbvec, self).__init__(*args, **kwargs)
 
     def merge(self, other):
         self.args += other.args
         self.arg_format += other.arg_format
+
+    def add_usage(self, req_node):
+        for x in self.get_arg_tuples(self.args):
+            req_node.increment(('bit', 'input', x[2]), x[0] - 3)
 
 class print_regb(base.VectorInstruction, base.IOInstruction):
     """ Debug output of clear bit register.

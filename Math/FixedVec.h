@@ -34,6 +34,11 @@ public:
     {
         return L * T::size();
     }
+    static int size_in_bits()
+    {
+        return L * T::size_in_bits();
+    }
+
     static string type_string()
     {
         return T::type_string() + "^" + to_string(L);

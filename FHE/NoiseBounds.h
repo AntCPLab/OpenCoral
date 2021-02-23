@@ -9,6 +9,7 @@
 #include "Math/bigint.h"
 
 int phi_N(int N);
+class FHE_Params;
 
 class SemiHomomorphicNoiseBounds
 {
@@ -21,25 +22,27 @@ protected:
     const int sec;
     int slack;
     mpf_class sigma;
-    const int h;
+    int h;
 
     bigint B_clean;
     bigint B_scale;
     bigint drown;
 
     mpf_class c1, c2;
+    mpf_class V_s;
 
     void produce_epsilon_constants();
 
 public:
     SemiHomomorphicNoiseBounds(const bigint& p, int phi_m, int n, int sec,
-            int slack, bool extra_h = false, double sigma = -1, int h = 64);
+            int slack, bool extra_h, const FHE_Params& params);
     // with scaling
     bigint min_p0(const bigint& p1);
     // without scaling
     bigint min_p0();
     bigint min_p0(bool scale, const bigint& p1) { return scale ? min_p0(p1) : min_p0(); }
-    static double min_phi_m(int log_q, double sigma = -1);
+    static double min_phi_m(int log_q, double sigma);
+    static double min_phi_m(int log_q, const FHE_Params& params);
 };
 
 // as per ePrint 2012:642 for slack = 0
@@ -49,7 +52,7 @@ class NoiseBounds : public SemiHomomorphicNoiseBounds
 
 public:
     NoiseBounds(const bigint& p, int phi_m, int n, int sec, int slack,
-            double sigma = -1, int h = 64);
+            const FHE_Params& params);
     bigint U1(const bigint& p0, const bigint& p1);
     bigint U2(const bigint& p0, const bigint& p1);
     bigint min_p0(const bigint& p0, const bigint& p1);

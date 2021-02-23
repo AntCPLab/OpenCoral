@@ -16,7 +16,13 @@ void FixInput_<Integer>::read(std::istream& in, const int* params)
 template<>
 void FixInput_<bigint>::read(std::istream& in, const int* params)
 {
+#ifdef HIGH_PREC_INPUT
     mpf_class x;
     in >> x;
     items[0] = x << *params;
+#else
+    double x;
+    in >> x;
+    items[0] = x * (1 << *params);
+#endif
 }

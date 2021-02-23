@@ -11,7 +11,15 @@
 template<int L>
 void modp_<L>::randomize(PRNG& G, const Zp_Data& ZpD)
 {
-  G.randomBnd(x, ZpD.get_prA(), ZpD.pr_byte_length, ZpD.overhang_mask());
+  const int M = sizeof(mp_limb_t) * L;
+  switch (ZpD.pr_byte_length)
+  {
+#define X(LL) case LL: G.randomBnd<LL>(x, ZpD.get_prA(), ZpD.overhang_mask()); break;
+  X(M) X(M-1) X(M-2) X(M-3) X(M-4) X(M-5) X(M-6) X(M-7)
+#undef X
+  default:
+    G.randomBnd(x, ZpD.get_prA(), ZpD.pr_byte_length, ZpD.overhang_mask());
+  }
 }
 
 template<int L>

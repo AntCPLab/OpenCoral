@@ -267,7 +267,7 @@ class _number(object):
     def __pow__(self, exp):
         """ Exponentation through square-and-multiply.
 
-        :param exp: compile-time (int) """
+        :param exp: any type allowing bit decomposition """
         if isinstance(exp, int) and exp >= 0:
             if exp == 0:
                 return self.__class__(1)
@@ -424,6 +424,10 @@ class _bit(object):
         :return: binary sum, carry
         :rtype: depending on inputs (secret if any of them is) """
         return self ^ other, self & other
+
+    def carry_out(self, a, b):
+        s = a ^ b
+        return a ^ (s & (self ^ a))
 
 class _gf2n(_bit):
     """ :math:`\mathrm{GF}(2^n)` functionality. """
@@ -5247,6 +5251,7 @@ class MemValue(_mem):
     bit_decompose = lambda self,*args,**kwargs: self.read().bit_decompose(*args, **kwargs)
 
     if_else = lambda self,*args,**kwargs: self.read().if_else(*args, **kwargs)
+    bit_and = lambda self,other: self.read().bit_and(other)
 
     def expand_to_vector(self, size=None):
         if program.curr_block == self.last_write_block:

@@ -1,3 +1,5 @@
+#ifndef PROTOCOLS_SHARE_H_
+#define PROTOCOLS_SHARE_H_
 
 #include "Share.h"
 
@@ -53,3 +55,5 @@ inline void Share_<T, V>::unpack(octetStream& os, bool full)
   if (full)
     mac.unpack(os);
 }
+
+#endif

@@ -12,6 +12,11 @@
 
 #include <array>
 
+template<class T>
+Player& Beaver<T>::branch()
+{
+    return P;
+}
 
 template<class T>
 void Beaver<T>::init_mul(SubProcessor<T>* proc)

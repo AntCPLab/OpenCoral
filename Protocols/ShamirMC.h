@@ -16,18 +16,17 @@ class ShamirMC : public MAC_Check_Base<T>
 {
     vector<typename T::open_type::Scalar> reconstruction;
 
-    bool send;
-
     void finalize(vector<typename T::open_type>& values, const vector<T>& S);
 
 protected:
     Bundle<octetStream>* os;
+    const Player* player;
     int threshold;
 
     void prepare(const vector<T>& S, const Player& P);
 
 public:
-    ShamirMC() : send(false), os(0), threshold(ShamirMachine::s().threshold) {}
+    ShamirMC() : os(0), player(0), threshold(ShamirMachine::s().threshold) {}
 
     // emulate MAC_Check
     ShamirMC(const typename T::mac_key_type& _, int __ = 0, int ___ = 0) : ShamirMC()

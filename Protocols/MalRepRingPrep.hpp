@@ -40,6 +40,7 @@ MalRepRingPrepWithBits<T>::MalRepRingPrepWithBits(SubProcessor<T>* proc,
         DataPositions& usage) :
         BufferPrep<T>(usage), BitPrep<T>(proc, usage),
         RingPrep<T>(proc, usage),
+        MaliciousDabitOnlyPrep<T>(proc, usage),
         MaliciousRingPrep<T>(proc, usage), MalRepRingPrep<T>(proc, usage),
         RingOnlyBitsFromSquaresPrep<T>(proc, usage),
         SimplerMalRepRingPrep<T>(proc, usage)

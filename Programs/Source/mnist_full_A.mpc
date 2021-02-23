@@ -85,13 +85,14 @@ if '2dense' in program.args:
 
 program.disable_memory_warnings()
 
-layers[-1].Y.input_from(0)
-layers[0].X.input_from(0)
-
 Y = sint.Matrix(n_test, 10)
 X = sfix.Matrix(n_test, n_features)
-Y.input_from(0)
-X.input_from(0)
+
+if not ('no_acc' in program.args and 'no_loss' in program.args):
+    layers[-1].Y.input_from(0)
+    layers[0].X.input_from(0)
+    Y.input_from(0)
+    X.input_from(0)
 
 if 'always_acc' in program.args:
     n_part_epochs = 1

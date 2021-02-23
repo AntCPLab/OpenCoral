@@ -56,11 +56,13 @@ for dabit in ${dabit:-0 1 2}; do
 
     for i in rep-field shamir mal-rep-field ps-rep-field sy-rep-field \
 		       mal-shamir sy-shamir hemi semi \
-		       soho cowgear mascot; do
+		       soho mascot; do
 	test_vm $i $run_opts
     done
 
-    test_vm chaigear $run_opts -l 3 -c 2
+    for i in cowgear chaigear; do
+	test_vm $i $run_opts -l 3 -c 2
+    done
 done
 
 if test $dabit != 0; then
@@ -76,8 +78,9 @@ fi
 
 ./compile.py tutorial
 
-test_vm cowgear $run_opts -T
-test_vm chaigear $run_opts -T -l 3 -c 2
+for i in cowgear chaigear; do
+    test_vm $i $run_opts -l 3 -c 2 -T
+done
 
 if test $skip_binary; then
    exit

@@ -20,7 +20,8 @@
 #include "Math/Z2k.hpp"
 
 template<class T>
-ProtocolBase<T>::ProtocolBase() : counter(0)
+ProtocolBase<T>::ProtocolBase() :
+        trunc_pr_counter(0), counter(0)
 {
 }
 
@@ -68,6 +69,8 @@ ProtocolBase<T>::~ProtocolBase()
 #ifdef VERBOSE_COUNT
     if (counter)
         cerr << "Number of " << T::type_string() << " multiplications: " << counter << endl;
+    if (trunc_pr_counter)
+        cerr << "Number of probabilistic truncations: " << trunc_pr_counter << endl;
 #endif
 }
 

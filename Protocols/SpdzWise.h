@@ -35,6 +35,8 @@ public:
     SpdzWise(Player& P);
     virtual ~SpdzWise();
 
+    Player& branch();
+
     void init(SubProcessor<T>* proc);
 
     void init_mul(SubProcessor<T>* proc);

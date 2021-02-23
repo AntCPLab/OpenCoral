@@ -10,6 +10,8 @@
 #include "FHEOffline/SimpleMachine.h"
 #include "FHEOffline/Producer.h"
 
+#include "FHEOffline/DataSetup.hpp"
+
 template<class T>
 MultiplicativeMachine* ChaiGearPrep<T>::machine = 0;
 template<class T>
@@ -65,7 +67,8 @@ void ChaiGearPrep<T>::key_setup(Player& P, mac_key_type alphai)
     assert(machine);
     auto& setup = machine->setup.part<FD>();
     auto& options = CowGearOptions::singleton;
-    setup.covert_secrets_generation(P, *machine, options.covert_security);
+    read_or_generate_secrets(setup, P, *machine, options.covert_security,
+            T::covert);
 
     // adjust mac key
     mac_key_type diff = alphai - setup.alphai;
@@ -170,13 +173,21 @@ void ChaiGearPrep<T>::buffer_inputs(int player)
 template<class T>
 inline void ChaiGearPrep<T>::buffer_bits()
 {
+    buffer_bits<0>(T::clear::characteristic_two);
+}
+
+template<class T>
+template<int>
+void ChaiGearPrep<T>::buffer_bits(false_type)
+{
     buffer_bits_from_squares(*this);
 }
 
-template<>
-inline void ChaiGearPrep<ChaiGearShare<gf2n_short>>::buffer_bits()
+template<class T>
+template<int>
+void ChaiGearPrep<T>::buffer_bits(true_type)
 {
-    buffer_bits_without_check();
+    this->buffer_bits_without_check();
     assert(not this->bits.empty());
     for (auto& bit : this->bits)
         bit.force_to_bit();

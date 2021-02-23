@@ -13,12 +13,16 @@ FHE_SK::FHE_SK(const FHE_PK& pk) : FHE_SK(pk.get_params(), pk.p())
 }
 
 
-void add(FHE_SK& a,const FHE_SK& b,const FHE_SK& c)
+FHE_SK& FHE_SK::operator+=(const FHE_SK& c)
 { 
-  if (a.params!=b.params) { throw params_mismatch(); }
+  auto& a = *this;
+  auto& b = *this;
+
   if (a.params!=c.params) { throw params_mismatch(); }
 
-  add(a.sk,b.sk,c.sk); 
+  ::add(a.sk,b.sk,c.sk);
+
+  return *this;
 }
 
 
@@ -84,7 +88,7 @@ void FHE_PK::KeyGen(Rq_Element& sk, PRNG& G, int noise_boost)
     }
 }
 
-void FHE_PK::check_noise(const FHE_SK& SK)
+void FHE_PK::check_noise(const FHE_SK& SK) const
 {
   Rq_Element sk = SK.s();
   if (params->n_mults() > 0)
@@ -92,7 +96,7 @@ void FHE_PK::check_noise(const FHE_SK& SK)
   check_noise(b0 - a0 * sk);
 }
 
-void FHE_PK::check_noise(const Rq_Element& x, bool check_modulo)
+void FHE_PK::check_noise(const Rq_Element& x, bool check_modulo) const
 {
   assert(pr != 0);
   vector<bigint> noise = x.to_vec_bigint();
@@ -162,6 +166,7 @@ void FHE_PK::quasi_encrypt(Ciphertext& c,
 {
   if (&c.get_params()!=params)  { throw params_mismatch(); }
   if (&rc.get_params()!=params) { throw params_mismatch(); }
+  assert(pr != 0);
 
   Rq_Element ed,edd,c0,c1,aa;
 
@@ -332,8 +337,11 @@ void FHE_PK::pack(octetStream& o) const
   o.append((octet*) "PKPKPKPK", 8);
   a0.pack(o);
   b0.pack(o);
-  Sw_a.pack(o);
-  Sw_b.pack(o);
+  if (params->n_mults() > 0)
+    {
+      Sw_a.pack(o);
+      Sw_b.pack(o);
+    }
   pr.pack(o);
 }
 
@@ -345,8 +353,11 @@ void FHE_PK::unpack(octetStream& o)
     throw runtime_error("invalid serialization of public key");
   a0.unpack(o);
   b0.unpack(o);
-  Sw_a.unpack(o);
-  Sw_b.unpack(o);
+  if (params->n_mults() > 0)
+    {
+      Sw_a.unpack(o);
+      Sw_b.unpack(o);
+    }
   pr.unpack(o);
 }
 
@@ -376,14 +387,30 @@ void FHE_SK::check(const FHE_Params& params, const FHE_PK& pk,
 }
 
 
+template<class FD>
+void FHE_SK::check(const FHE_PK& pk, const FD& FieldD)
+{
+  check(*params, pk, pr);
+  pk.check_noise(*this);
+  if (decrypt(pk.encrypt(Plaintext_<FD>(FieldD)), FieldD) !=
+      Plaintext_<FD>(FieldD))
+    throw runtime_error("incorrect key pair");
+}
+
+
+
 void FHE_PK::check(const FHE_Params& params, const bigint& pr) const
 {
   if (this->pr != pr)
     throw pr_mismatch();
   a0.check(params);
   b0.check(params);
-  Sw_a.check(params);
-  Sw_b.check(params);
+
+  if (params.n_mults() > 0)
+    {
+      Sw_a.check(params);
+      Sw_b.check(params);
+    }
 }
 
 
@@ -402,3 +429,6 @@ template void FHE_SK::decrypt_any(Plaintext_<FFT_Data>& res,
         const Ciphertext& c);
 template void FHE_SK::decrypt_any(Plaintext_<P2Data>& res,
         const Ciphertext& c);
+
+template void FHE_SK::check(const FHE_PK& pk, const FFT_Data&);
+template void FHE_SK::check(const FHE_PK& pk, const P2Data&);

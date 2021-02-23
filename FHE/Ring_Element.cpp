@@ -222,10 +222,7 @@ void Ring_Element::change_rep(RepType r)
 	}
       else
         { // Non m power of two variant and FFT enabled
-          vector<modp> fft((*FFTD).m());
-          BFFT(fft,element,*FFTD);
-          for (int i=0; i<(*FFTD).phi_m(); i++)
-	    { element[i]=fft[(*FFTD).p(i)]; }
+          FFT_non_power_of_two(element, element, *FFTD);
 	}
     }
   else

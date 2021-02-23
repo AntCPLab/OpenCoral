@@ -32,8 +32,8 @@ void ShamirMC<T>::init_open(const Player& P, int n)
     {
         reconstruction.resize(n_relevant_players);
         for (int i = 0; i < n_relevant_players; i++)
-            reconstruction[i] = Shamir<T>::get_rec_factor(i,
-                    n_relevant_players);
+            reconstruction[i] = Shamir<T>::get_rec_factor(P.get_player(i),
+                    P.num_players(), P.my_num(), n_relevant_players);
     }
 
     if (not os)
@@ -41,9 +41,8 @@ void ShamirMC<T>::init_open(const Player& P, int n)
 
     for (auto& o : *os)
         o.reset_write_head();
-    send = P.my_num() <= threshold;
-    if (send)
-        os->mine.reserve(n * T::size());
+    os->mine.reserve(n * T::size());
+    this->player = &P;
 }
 
 template<class T>
@@ -57,8 +56,7 @@ void ShamirMC<T>::prepare(const vector<T>& S, const Player& P)
 template<class T>
 void ShamirMC<T>::prepare_open(const T& share)
 {
-    if (send)
-        share.pack(os->mine);
+    share.pack(os->mine);
 }
 
 template<class T>
@@ -73,10 +71,13 @@ void ShamirMC<T>::POpen(vector<typename T::open_type>& values, const vector<T>& 
 template<class T>
 void ShamirMC<T>::exchange(const Player& P)
 {
-    vector<bool> senders(P.num_players());
+    vector<bool> my_senders(P.num_players()), my_receivers(P.num_players());
     for (int i = 0; i < P.num_players(); i++)
-        senders[i] = i <= threshold;
-    P.partial_broadcast(senders, *os);
+    {
+        my_senders[i] = P.get_offset(i) <= threshold;
+        my_receivers[i] = P.get_offset(i) >= P.num_players() - threshold;
+    }
+    P.partial_broadcast(my_senders, my_receivers, *os);
 }
 
 template<class T>
@@ -103,7 +104,9 @@ typename T::open_type ShamirMC<T>::finalize_open()
     typename T::open_type res;
     for (size_t j = 0; j < reconstruction.size(); j++)
     {
-        res += (*os)[j].template get<typename T::open_type>() * reconstruction[j];
+        res +=
+                (*os)[player->get_player(j)].template get<typename T::open_type>()
+                        * reconstruction[j];
     }
 
     return res;

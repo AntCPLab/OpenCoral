@@ -24,6 +24,8 @@ class Proof
 {
   unsigned int sec;
 
+  bool diagonal;
+
   Proof();   // Private to avoid default 
 
   public:
@@ -72,7 +74,8 @@ class Proof
     typedef AddableMatrix<typename Int_Random_Coins::rand_type> X;
 
     Proof(int sc, const bigint& Tau, const bigint& Rho, const FHE_PK& pk,
-            int n_proofs = 1) :
+            int n_proofs = 1, bool diagonal = false) :
+              diagonal(diagonal),
               B_plain_length(0), B_rand_length(0), pk(&pk), n_proofs(n_proofs)
     { sec=sc;
       tau=Tau; rho=Rho;
@@ -95,19 +98,25 @@ class Proof
         }
     }
 
-  Proof(int sec, const FHE_PK& pk, int n_proofs = 1) :
+  Proof(int sec, const FHE_PK& pk, int n_proofs = 1, bool diagonal = false) :
       Proof(sec, pk.p() / 2,
           pk.get_params().get_DG().get_NewHopeB(), pk,
-          n_proofs) {}
+          n_proofs, diagonal) {}
 
   virtual ~Proof() {}
 
   public:
   static bigint slack(int slack, int sec, int phim);
 
-  static bool use_top_gear(const FHE_PK& pk)
+  bool use_top_gear(const FHE_PK& pk)
   {
-    return CowGearOptions::singleton.top_gear() and pk.p() > 2;
+    return CowGearOptions::singleton.top_gear() and pk.p() > 2 and
+        not diagonal;
+  }
+
+  bool get_diagonal() const
+  {
+    return diagonal;
   }
 
   static int n_ciphertext_per_proof(int sec, const FHE_PK& pk)
@@ -147,8 +156,8 @@ public:
   { return bigint(phim * sec * sec) << (sec / 2 + 8); }
 
   NonInteractiveProof(int sec, const FHE_PK& pk,
-      int extra_slack) :
-      Proof(sec, pk, 1)
+      int extra_slack, bool diagonal = false) :
+      Proof(sec, pk, 1, diagonal)
   {
     bigint B;
     B=128*sec*sec;
@@ -167,8 +176,8 @@ public:
   { (void)phim; return pow(2, 1.5 * sec + 1); }
 
   InteractiveProof(int sec, const FHE_PK& pk,
-      int n_proofs = 1) :
-      Proof(sec, pk, n_proofs)
+      int n_proofs = 1, bool diagonal = false) :
+      Proof(sec, pk, n_proofs, diagonal)
   {
     bigint B;
     B = bigint(1) << sec;

@@ -48,10 +48,11 @@ class RandomVectors
   public:
 
   void set(int nn,int hh,double R);  // R is input STANDARD DEVIATION
+  void set_n(int nn);
 
   void pack(octetStream& o) const { o.store(n); o.store(h); DG.pack(o); }
   void unpack(octetStream& o)
-  { o.get(n); o.get(h); DG.unpack(o); if(h <= 0) throw exception(); }
+  { o.get(n); o.get(h); DG.unpack(o); }
 
   RandomVectors(int h, double R) : RandomVectors(0, h, R) {}
   RandomVectors(int nn,int hh,double R) : DG(R) { set(nn,hh,R);  }
@@ -61,6 +62,7 @@ class RandomVectors
 
   double get_R() const { return DG.get_R(); }
   DiscreteGauss get_DG() const { return DG; }
+  int get_h() const { return h; }
   
   // Sample from Discrete Gauss distribution
   vector<bigint> sample_Gauss(PRNG& G, int stretch = 1) const;

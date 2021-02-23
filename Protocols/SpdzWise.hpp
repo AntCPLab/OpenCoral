@@ -19,6 +19,12 @@ SpdzWise<T>::~SpdzWise()
 }
 
 template<class T>
+Player& SpdzWise<T>::branch()
+{
+    return P;
+}
+
+template<class T>
 void SpdzWise<T>::init(SubProcessor<T>* proc)
 {
     assert(proc != 0);

@@ -70,6 +70,16 @@ class Ring_Element
 
   Ring_Element(const FFT_Data& prd,RepType r=polynomial);
 
+  template<class T>
+  Ring_Element(const FFT_Data& prd, RepType r, const vector<T>& other)
+    {
+      assert(size_t(prd.num_slots()) == other.size());
+      FFTD = &prd;
+      rep = r;
+      for (auto& x : other)
+        element.push_back(x);
+    }
+
   // Copy Constructor
   Ring_Element(const Ring_Element& e)  
      { assign(e);      }

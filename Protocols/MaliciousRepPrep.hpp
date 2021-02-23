@@ -32,6 +32,7 @@ MaliciousRepPrepWithBits<T>::MaliciousRepPrepWithBits(SubProcessor<T>* proc,
         DataPositions& usage) :
         BufferPrep<T>(usage), MaliciousRepPrep<T>(proc, usage),
         BitPrep<T>(proc, usage), RingPrep<T>(proc, usage),
+        MaliciousDabitOnlyPrep<T>(proc, usage),
         MaliciousRingPrep<T>(proc, usage)
 {
 }
@@ -173,6 +174,7 @@ void MaliciousBitOnlyRepPrep<T>::buffer_bits()
     auto buffer_size = this->buffer_size;
     assert(honest_proc);
     Player& P = honest_proc->P;
+    honest_prep.buffer_size = buffer_size;
     bits.clear();
     for (int i = 0; i < buffer_size; i++)
     {

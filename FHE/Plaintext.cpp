@@ -286,15 +286,21 @@ void Plaintext_<FFT_Data>::randomize(PRNG& G, bigint B, bool Diag, bool binary, 
 template<class T,class FD,class S>
 void Plaintext<T,FD,S>::randomize(PRNG& G, int n_bits, bool Diag, bool binary, PT_Type t)
 {
-  if (Diag or binary)
+  if (binary)
     throw not_implemented();
 
   allocate(t);
   switch(t)
   {
     case Polynomial:
-      for (int i = 0; i < n_slots; i++)
-        b[i].generateUniform(G, n_bits, false);
+      if (Diag)
+        {
+          assign_zero(t);
+          b[0].generateUniform(G, n_bits, false);
+        }
+      else
+        for (int i = 0; i < n_slots; i++)
+          b[i].generateUniform(G, n_bits, false);
       break;
     default:
       throw not_implemented();
@@ -635,6 +641,41 @@ bool Plaintext<T,FD,S>::equals(const Plaintext& x) const
     { for (unsigned int i=0; i<b.size(); i++)
        { if (b[i]!=x.b[i]) { return false; } }
     }
+  return true;
+}
+
+template<>
+bool Plaintext<gfp, FFT_Data, bigint>::is_diagonal() const
+{
+  if (type != Evaluation)
+    {
+      for (size_t i = 1; i < b.size(); i++)
+        if (b[i] != 0)
+          return false;
+    }
+
+  if (type != Polynomial)
+    {
+      auto first = a[0];
+      for (auto& x : a)
+        if (x != first)
+          return false;
+    }
+
+  return true;
+}
+
+template<>
+bool Plaintext<gf2n_short, P2Data, int>::is_diagonal() const
+{
+  if (type == Polynomial)
+    from_poly();
+
+  auto first = a[0];
+  for (auto& x : a)
+    if (x != first)
+      return false;
+
   return true;
 }
 

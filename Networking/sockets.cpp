@@ -113,7 +113,8 @@ void set_up_client_socket(int& mysocket,const char* hostname,int Portnum)
 
    if (fl < 0)
      {
-       cout << attempts << " attempts" << endl;
+       cout << attempts << " attempts to " << hostname << ":" << Portnum
+           << endl;
        error("set_up_socket:connect:", hostname);
      }
 

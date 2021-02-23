@@ -209,7 +209,7 @@ void Machine<sint, sgf2n>::fill_buffers(int thread_number, int tape_number,
               dynamic_cast<BufferPrep<bit_type>&>(tinfo[thread_number].processor->share_thread.DataF);
           for (int i = 0; i < DIV_CEIL(usage.files[DATA_GF2][DATA_TRIPLE],
                                         bit_type::default_length); i++)
-            dest.push_triple(source.get_triple(bit_type::default_length));
+            dest.push_triple(source.get_triple_no_count(bit_type::default_length));
       }
       catch (bad_cast& e)
       {

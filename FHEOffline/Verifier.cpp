@@ -4,7 +4,8 @@
 #include "Math/modp.hpp"
 
 template <class FD>
-Verifier<FD>::Verifier(Proof& proof) : P(proof)
+Verifier<FD>::Verifier(Proof& proof, const FD& FieldD) :
+    P(proof), FieldD(FieldD)
 {
 #ifdef LESS_ALLOC_MORE_MEM
   z.resize(proof.phim);
@@ -30,12 +31,28 @@ bool Check_Decoding(const Plaintext<T,FD,S>& AE,bool Diag)
   return true;
 }
 
-template <class S>
-bool Check_Decoding(const vector<S>& AE, bool Diag)
+template <>
+bool Check_Decoding(const vector<Proof::bound_type>& AE, bool Diag, const FFT_Data&)
 {
-  (void)AE;
   if (Diag)
-    throw not_implemented();
+    {
+      for (size_t i = 1; i < AE.size(); i++)
+        if (AE[i] != 0)
+          return false;
+    }
+  return true;
+}
+
+template <>
+bool Check_Decoding(const vector<Proof::bound_type>& AE, bool Diag, const P2Data& p2d)
+{
+  if (Diag)
+    {
+      Plaintext_<P2Data> tmp(p2d);
+      for (size_t i = 0; i < AE.size(); i++)
+        tmp.set_coeff(i, AE[i].get_limb(0) % 2);
+      return tmp.is_diagonal();
+    }
   return true;
 }
 
@@ -45,7 +62,7 @@ template <class FD>
 void Verifier<FD>::Stage_2(
                           AddableVector<Ciphertext>& c,octetStream& ciphertexts,
                           octetStream& cleartexts,
-                          const FHE_PK& pk,bool Diag,bool binary)
+                          const FHE_PK& pk,bool binary)
 {
   unsigned int i, V;
 
@@ -76,12 +93,7 @@ void Verifier<FD>::Stage_2(
         { cout << "Fail Check 6 " << i << endl; 
           throw runtime_error("ciphertexts don't match");
         }
-    }
-
-  // Now check decoding z[i]
-  for (i=0; i<V; i++)
-    {
-      if (!Check_Decoding(z,Diag))
+      if (!Check_Decoding(z,P.get_diagonal(),FieldD))
          { cout << "\tCheck : " << i << endl; 
            throw runtime_error("cleartext isn't diagonal");
          }
@@ -100,16 +112,16 @@ void Verifier<FD>::Stage_2(
 template <class FD>
 void Verifier<FD>::NIZKPoK(AddableVector<Ciphertext>& c,
                           octetStream& ciphertexts, octetStream& cleartexts,
-                          const FHE_PK& pk,bool Diag,
+                          const FHE_PK& pk,
                           bool binary)
 {
   P.set_challenge(ciphertexts);
 
-  Stage_2(c,ciphertexts,cleartexts,pk,Diag,binary);
+  Stage_2(c,ciphertexts,cleartexts,pk,binary);
 
   if (P.top_gear)
     {
-      assert(not Diag);
+      assert(not P.get_diagonal());
       assert(not binary);
       c += c;
     }

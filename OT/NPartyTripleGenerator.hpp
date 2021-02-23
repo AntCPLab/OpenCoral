@@ -261,7 +261,7 @@ void NPartyTripleGenerator<W>::generateInputs(int player)
             mac_sum = (ot_multipliers[i_thread])->input_macs[j];
         }
         inputs[j] = {{share, mac_sum}, secrets[j]};
-        auto r = G.get<typename W::mac_key_type>();
+        auto r = G.get<typename W::input_check_type::share_type>();
         check_sum += typename W::input_check_type(r * share, r * mac_sum);
     }
     inputs.resize(nTriplesPerLoop);

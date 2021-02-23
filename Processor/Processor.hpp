@@ -39,6 +39,8 @@ SubProcessor<T>::SubProcessor(typename T::MAC_Check& MC,
 template<class T>
 SubProcessor<T>::~SubProcessor()
 {
+  protocol.check();
+
   for (size_t i = 0; i < personal_bit_preps.size(); i++)
     {
       auto& x = personal_bit_preps[i];
@@ -225,8 +227,9 @@ void Processor<sint, sgf2n>::split(const Instruction& instruction)
   assert(unit == 64);
   int n_inputs = instruction.get_size();
   int n_bits = instruction.get_start().size() / n;
+  assert(share_thread.protocol != 0);
   sint::split(Procb.S, instruction.get_start(), n_bits,
-      &read_Sp(instruction.get_r(0)), n_inputs, P);
+      &read_Sp(instruction.get_r(0)), n_inputs, *share_thread.protocol);
 }
 
 

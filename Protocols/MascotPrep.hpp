@@ -36,6 +36,10 @@ void OTPrep<T>::set_protocol(typename T::Protocol& protocol)
     BitPrep<T>::set_protocol(protocol);
     SubProcessor<T>* proc = this->proc;
     assert(proc != 0);
+
+    // make sure not to use Montgomery multiplication
+    T::open_type::next::template init<typename T::open_type>(false);
+
     triple_generator = new typename T::TripleGenerator(
             BaseMachine::s().fresh_ot_setup(),
             proc->P.N, -1,
@@ -66,7 +70,7 @@ void MascotTriplePrep<T>::buffer_triples()
 }
 
 template<class T>
-void MascotFieldPrep<T>::buffer_bits()
+void MascotDabitOnlyPrep<T>::buffer_bits()
 {
     this->params.generateBits = true;
     auto& triple_generator = this->triple_generator;
@@ -78,7 +82,7 @@ void MascotFieldPrep<T>::buffer_bits()
 }
 
 template<class T>
-void MascotTriplePrep<T>::buffer_inputs(int player)
+void MascotInputPrep<T>::buffer_inputs(int player)
 {
     auto& triple_generator = this->triple_generator;
     assert(triple_generator);

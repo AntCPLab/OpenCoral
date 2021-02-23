@@ -25,6 +25,8 @@ public:
     PostSacrifice(Player& P);
     ~PostSacrifice();
 
+    Player& branch();
+
     void init_mul(SubProcessor<T>* proc);
     typename T::clear prepare_mul(const T& x, const T& y, int n = -1);
     void exchange() { internal.exchange(); }

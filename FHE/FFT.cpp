@@ -191,6 +191,13 @@ void FFT2(vector<modp>& a, int N, const modp& alpha, const Zp_Data& PrD)
 }
 
 
+void FFT_non_power_of_two(vector<modp>& res, const vector<modp>& input, const FFT_Data& FFTD)
+{
+    vector<modp> tmp(FFTD.m());
+    BFFT(tmp, input, FFTD);
+    for (int i = 0; i < (FFTD).phi_m(); i++)
+        res[i] = tmp[(FFTD).p(i)];
+}
 
 void BFFT(vector<modp>& ans,const vector<modp>& a,const FFT_Data& FFTD,bool forward)
 {

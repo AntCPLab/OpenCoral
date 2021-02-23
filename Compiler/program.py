@@ -150,6 +150,7 @@ class Program(object):
             self.use_split(int(options.split))
         self._square = False
         self._always_raw = False
+        self._linear_rounds = False
         self.warn_about_mem = [True]
         Program.prog = self
         from . import instructions_base, instructions, types, comparison
@@ -461,6 +462,12 @@ class Program(object):
         else:
             self._always_raw = change
 
+    def linear_rounds(self, change=None):
+        if change is None:
+            return self._linear_rounds
+        else:
+            self._linear_rounds = change
+
     def options_from_args(self):
         """ Set a number of options from the command-line arguments. """
         if 'trunc_pr' in self.args:
@@ -475,6 +482,8 @@ class Program(object):
             self.always_raw(True)
         if 'edabit' in self.args:
             self.use_edabit(True)
+        if 'linear_rounds' in self.args:
+            self.linear_rounds(True)
 
     def disable_memory_warnings(self):
         self.warn_about_mem.append(False)
@@ -855,7 +864,9 @@ class Tape:
             filename = self.program.programs_dir + '/Bytecode/' + filename
         print('Writing to', filename)
         f = open(filename, 'wb')
-        f.write(self.get_bytes())
+        for i in self._get_instructions():
+            if i is not None:
+                f.write(i.get_bytes())
         f.close()
     
     def new_reg(self, reg_type, size=None):

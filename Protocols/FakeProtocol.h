@@ -47,6 +47,11 @@ public:
     }
 #endif
 
+    FakeProtocol branch()
+    {
+        return P;
+    }
+
     void init_mul(SubProcessor<T>*)
     {
         results.clear();

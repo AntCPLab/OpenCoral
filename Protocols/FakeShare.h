@@ -68,8 +68,9 @@ public:
         *this = a - b;
     }
 
-    static void split(vector<bit_type>& dest, const vector<int>& regs, int n_bits,
-            const This* source, int n_inputs, Player& P);
+    static void split(vector<bit_type>& dest, const vector<int>& regs,
+            int n_bits, const This* source, int n_inputs,
+            GC::FakeSecret::Protocol& protocol);
 };
 
 #endif /* PROTOCOLS_FAKESHARE_H_ */

@@ -12,6 +12,7 @@
 #include "Tools/Commit.h"
 #include "Tools/Bundle.h"
 #include "Processor/OnlineOptions.h"
+#include "Protocols/LowGearKeyGen.h"
 
 #include "Protocols/Share.hpp"
 #include "Protocols/mac_key.hpp"
@@ -187,6 +188,14 @@ void PairwiseSetup<FD>::covert_mac_generation(Player& P,
         pks.push_back(&pk);
     covert_generation(alpha, machine.enc_alphas, pks, &P, num_runs, Diagonal);
     alphai = alpha.element(0);
+}
+
+template <class FD>
+void PairwiseSetup<FD>::key_and_mac_generation(Player& P,
+        PairwiseMachine& machine, int num_runs, true_type)
+{
+    covert_key_generation(P, machine, num_runs);
+    covert_mac_generation(P, machine, num_runs);
 }
 
 template <class FD>

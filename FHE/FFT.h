@@ -50,6 +50,8 @@ void FFT_Iter2(vector<modp>& a,int N,const modp& theta,const Zp_Data& PrD);
 
 void BFFT(vector<modp>& ans,const vector<modp>& a,const FFT_Data& FFTD,bool forward=true);
 
+void FFT_non_power_of_two(vector<modp>& res, const vector<modp>& input,
+        const FFT_Data& FFTD);
 
 /* Computes the FFT via Horner's Rule
    theta is assumed to be an Nth root of unity

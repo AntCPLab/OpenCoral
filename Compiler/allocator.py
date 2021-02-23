@@ -371,6 +371,14 @@ class Merger:
                 # hack
                 warned_about_mem.append(True)
 
+        def strict_mem_access(n, last_this_kind, last_other_kind):
+            if last_other_kind and last_this_kind and \
+               last_other_kind[-1] > last_this_kind[-1]:
+                last_this_kind[:] = []
+            last_this_kind.append(n)
+            for i in last_other_kind:
+                add_edge(i, n)
+
         def keep_order(instr, n, t, arg_index=None):
             if arg_index is None:
                 player = None
@@ -444,26 +452,17 @@ class Merger:
 
             if isinstance(instr, ReadMemoryInstruction):
                 if options.preserve_mem_order:
-                    if last_mem_write and last_mem_read and last_mem_write[-1] > last_mem_read[-1]:
-                        last_mem_read[:] = []
-                    last_mem_read.append(n)
-                    for i in last_mem_write:
-                        add_edge(i, n)
+                    strict_mem_access(n, last_mem_read, last_mem_write)
                 else:
                     mem_access(n, instr, last_mem_read_of, last_mem_write_of)
             elif isinstance(instr, WriteMemoryInstruction):
                 if options.preserve_mem_order:
-                    if last_mem_write and last_mem_read and last_mem_write[-1] < last_mem_read[-1]:
-                        last_mem_write[:] = []
-                    last_mem_write.append(n)
-                    for i in last_mem_read:
-                        add_edge(i, n)
+                    strict_mem_access(n, last_mem_write, last_mem_read)
                 else:
                     mem_access(n, instr, last_mem_write_of, last_mem_read_of)
             elif isinstance(instr, matmulsm):
                 if options.preserve_mem_order:
-                    for i in last_mem_write:
-                        add_edge(i, n)
+                    strict_mem_access(n, last_mem_read, last_mem_write)
                 else:
                     for i in last_mem_write_of.values():
                         for j in i:

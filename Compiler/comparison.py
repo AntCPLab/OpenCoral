@@ -452,6 +452,11 @@ def CarryOutRaw(a, b, c=0):
     assert len(a) == len(b)
     k = len(a)
     from . import types
+    if program.linear_rounds():
+        carry = 0
+        for (ai, bi) in zip(a, b):
+            carry = bi.carry_out(ai, carry)
+        return carry
     d = [program.curr_block.new_reg('s') for i in range(k)]
     s = [program.curr_block.new_reg('s') for i in range(3)]
     for i in range(k):

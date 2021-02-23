@@ -27,7 +27,23 @@ template<class T> class OTTripleGenerator;
 namespace GC
 {
 class SemiSecret;
+class NoValue;
 }
+
+template<class T>
+class BasicSemiShare : public T
+{
+public:
+    typedef T open_type;
+    typedef T clear;
+
+    typedef GC::NoValue mac_key_type;
+
+    template<class U>
+    BasicSemiShare(const U& other) : T(other)
+    {
+    }
+};
 
 template<class T>
 class SemiShare : public T, public ShareInterface

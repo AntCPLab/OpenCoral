@@ -21,7 +21,7 @@ void SohoPrep<T>::basic_setup(Player& P)
     setup = new PartSetup<FD>;
     MachineBase machine;
     setup->secure_init(P, machine, T::clear::length(), 0);
-    setup->covert_secrets_generation(P, machine, 1);
+    setup->key_and_mac_generation(P, machine, 1, true_type());
     T::clear::template init<typename FD::T>();
 }
 

@@ -45,6 +45,14 @@ class modp_
         inline_mpn_zero(x + M, L - M);
     }
 
+  template<int X, int M>
+  modp_(const gfp_<X, M>& other) :
+      modp_()
+    {
+      assert(M <= L);
+      inline_mpn_copyi(x, other.get().get(), M);
+    }
+
   const mp_limb_t* get() const { return x; }
 
   void assign(const void* buffer, int t) { memcpy(x, buffer, t * sizeof(mp_limb_t)); }

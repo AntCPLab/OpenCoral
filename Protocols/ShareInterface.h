@@ -31,7 +31,8 @@ public:
     static string type_short() { return "undef"; }
 
     template<class T, class U>
-    static void split(vector<U>, vector<int>, int, T*, int, Player&)
+    static void split(vector<U>, vector<int>, int, T*, int,
+            typename U::Protocol&)
     { throw runtime_error("split not implemented"); }
 
     template<class T>

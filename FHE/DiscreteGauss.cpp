@@ -35,13 +35,14 @@ int DiscreteGauss::sample(PRNG &G, int stretch) const
 void RandomVectors::set(int nn,int hh,double R)
 {
   n=nn;
-  if (hh > 0)
-    h=hh;
+  h=hh;
   DG.set(R);
-  assert(h > 0);
 }
 
-
+void RandomVectors::set_n(int nn)
+{
+  n = nn;
+}
  
 vector<bigint> RandomVectors::sample_Gauss(PRNG& G, int stretch) const
 {
@@ -54,8 +55,7 @@ vector<bigint> RandomVectors::sample_Gauss(PRNG& G, int stretch) const
 
 vector<bigint> RandomVectors::sample_Hwt(PRNG& G) const
 {
-  assert(h > 0);
-  if (h>n/2) { return sample_Gauss(G); }
+  if (h > n/2 or h <= 0) { return sample_Gauss(G); }
   vector<bigint> ans(n);
   for (int i=0; i<n; i++) { ans[i]=0; }
   int cnt=0,j=0;

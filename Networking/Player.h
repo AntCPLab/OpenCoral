@@ -218,7 +218,9 @@ public:
       const vector<octetStream>& to_send,
       vector<octetStream>& to_receive) const = 0;
 
-  virtual void partial_broadcast(const vector<bool>&,
+  virtual void partial_broadcast(const vector<bool>& senders,
+      vector<octetStream>& os) const;
+  virtual void partial_broadcast(const vector<bool>&, const vector<bool>&,
       vector<octetStream>& os) const { unchecked_broadcast(os); }
 
   // dummy functions for compatibility

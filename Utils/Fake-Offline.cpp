@@ -481,6 +481,15 @@ int main(int argc, const char** argv)
         "--lgp" // Flag token.
   );
   opt.add(
+          "", // Default.
+          0, // Required?
+          1, // Number of args expected.
+          0, // Delimiter if expecting multiple args.
+          "Prime for GF(p) field (default: generated from -lgp argument)", // Help description.
+          "-P", // Flag token.
+          "--prime" // Flag token.
+  );
+  opt.add(
         to_string(gf2n::default_degree()).c_str(), // Default.
         0, // Required?
         1, // Number of args expected.
@@ -724,8 +733,18 @@ int FakeParams::generate()
   G.ReSeed();
   prep_data_prefix = PREP_DIR;
   // Set up the fields
-  T::clear::template generate_setup<T>(prep_data_prefix, nplayers, lgp);
-  T::clear::init_default(lgp);
+  if (opt.isSet("--prime"))
+  {
+    string p;
+    opt.get("--prime")->getString(p);
+    T::clear::init_field(p);
+    T::clear::template write_setup<T>(nplayers);
+  }
+  else
+  {
+    T::clear::template generate_setup<T>(prep_data_prefix, nplayers, lgp);
+    T::clear::init_default(lgp);
+  }
 
   /* Find number players and MAC keys etc*/
   typename T::mac_type::Scalar keyp;

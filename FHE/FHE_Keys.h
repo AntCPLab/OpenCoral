@@ -20,6 +20,8 @@ class FHE_SK
 
   public:
 
+  static int size() { return 0; }
+
   const FHE_Params& get_params() const { return *params; }
 
   bigint p() const { return pr; }
@@ -63,18 +65,24 @@ class FHE_SK
 
   friend void KeyGen(FHE_PK& PK,FHE_SK& SK,PRNG& G);
   
-  /* Add secret key onto the existing one
+  /* Add secret keys
    *   Used for adding distributed keys together
    *   a,b,c must have same params otherwise an error
    */
-  friend void add(FHE_SK& a,const FHE_SK& b,const FHE_SK& c);
 
-  FHE_SK operator+(const FHE_SK& x) { FHE_SK res(*params, pr); add(res, *this, x); return res; }
-  FHE_SK& operator+=(const FHE_SK& x) { add(*this, *this, x); return *this; }
+  FHE_SK operator+(const FHE_SK& x) const { FHE_SK res = *this; res += x; return res; }
+  FHE_SK& operator+=(const FHE_SK& x);
 
-  bool operator!=(const FHE_SK& x) { return pr != x.pr or sk != x.sk; }
+  bool operator!=(const FHE_SK& x) const { return pr != x.pr or sk != x.sk; }
+
+  void add(octetStream& os) { FHE_SK tmp(*this); tmp.unpack(os); *this += tmp; }
 
   void check(const FHE_Params& params, const FHE_PK& pk, const bigint& pr) const;
+
+  template<class FD>
+  void check(const FHE_PK& pk, const FD& FieldD);
+
+  friend ostream& operator<<(ostream& o, const FHE_SK&) { throw not_implemented(); return o; }
 };
 
 
@@ -92,7 +100,7 @@ class FHE_PK
   bigint p() const { return pr; }
 
   void assign(const Rq_Element& a,const Rq_Element& b,
-              const Rq_Element& sa,const Rq_Element& sb
+              const Rq_Element& sa = {},const Rq_Element& sb = {}
              )
 	{ a0=a; b0=b; Sw_a=sa; Sw_b=sb; }
 
@@ -143,8 +151,8 @@ class FHE_PK
   Rq_Element sample_secret_key(PRNG& G);
   void KeyGen(Rq_Element& sk, PRNG& G, int noise_boost = 1);
 
-  void check_noise(const FHE_SK& sk);
-  void check_noise(const Rq_Element& x, bool check_modulo = false);
+  void check_noise(const FHE_SK& sk) const;
+  void check_noise(const Rq_Element& x, bool check_modulo = false) const;
 
   // params setting is done out of these IO/pack/unpack functions
   void pack(octetStream& o) const;

@@ -126,6 +126,7 @@ protected:
 
 public:
     BitPrep(SubProcessor<T>* proc, DataPositions& usage);
+    ~BitPrep();
 
     void set_protocol(typename T::Protocol& protocol);
 
@@ -224,7 +225,26 @@ public:
 };
 
 template<class T>
-class MaliciousRingPrep : public virtual RingPrep<T>
+class MaliciousDabitOnlyPrep : public virtual RingPrep<T>
+{
+    template<int>
+    void buffer_dabits(ThreadQueues* queues, true_type);
+    template<int>
+    void buffer_dabits(ThreadQueues* queues, false_type);
+
+public:
+    MaliciousDabitOnlyPrep(SubProcessor<T>* proc, DataPositions& usage) :
+            BufferPrep<T>(usage), BitPrep<T>(proc, usage),
+            RingPrep<T>(proc, usage)
+    {
+    }
+    virtual ~MaliciousDabitOnlyPrep() {}
+
+    virtual void buffer_dabits(ThreadQueues* queues);
+};
+
+template<class T>
+class MaliciousRingPrep : public virtual MaliciousDabitOnlyPrep<T>
 {
     typedef typename T::bit_type::part_type BT;
 
@@ -246,11 +266,6 @@ protected:
     void buffer_personal_dabits(int input_player, true_type);
     void buffer_personal_dabits(int input_player, false_type);
 
-    template<int>
-    void buffer_dabits(ThreadQueues* queues, true_type);
-    template<int>
-    void buffer_dabits(ThreadQueues* queues, false_type);
-
 public:
     static void edabit_sacrifice_buckets(vector<edabit<T>>& to_check, size_t n_bits,
             bool strict, int player, SubProcessor<T>& proc, int begin, int end,
@@ -262,13 +277,12 @@ public:
 
     MaliciousRingPrep(SubProcessor<T>* proc, DataPositions& usage) :
             BufferPrep<T>(usage), BitPrep<T>(proc, usage),
-            RingPrep<T>(proc, usage)
+            RingPrep<T>(proc, usage), MaliciousDabitOnlyPrep<T>(proc, usage)
     {
     }
     virtual ~MaliciousRingPrep() {}
 
     virtual void buffer_bits();
-    virtual void buffer_dabits(ThreadQueues* queues);
     virtual void buffer_edabits(bool strict, int n_bits, ThreadQueues* queues);
 };
 

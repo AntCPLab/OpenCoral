@@ -146,8 +146,10 @@ void check_setup(string dir, bigint pr)
   bigint p;
   string filename = dir + "Params-Data";
   ifstream(filename) >> p;
+  if (p == 0)
+    throw runtime_error("no modulus in " + filename);
   if (p != pr)
-    throw runtime_error("wrong modulus in " + dir);
+    throw runtime_error("wrong modulus in " + filename);
 }
 
 string get_prep_sub_dir(const string& prep_dir, int nparties, int log2mod,

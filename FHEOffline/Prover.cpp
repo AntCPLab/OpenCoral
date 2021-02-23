@@ -1,5 +1,6 @@
 
 #include "Prover.h"
+#include "Verifier.h"
 
 #include "FHE/P2Data.h"
 #include "Tools/random.h"
@@ -27,7 +28,7 @@ Prover<FD,U>::Prover(Proof& proof, const FD& FieldD) :
 template <class FD, class U>
 void Prover<FD,U>::Stage_1(const Proof& P, octetStream& ciphertexts,
     const AddableVector<Ciphertext>& c,
-    const FHE_PK& pk, bool Diag, bool binary)
+    const FHE_PK& pk, bool binary)
 {
   size_t allocate = 3 * c.size() * c[0].report_size(USED);
   ciphertexts.resize_precise(allocate);
@@ -50,7 +51,9 @@ void Prover<FD,U>::Stage_1(const Proof& P, octetStream& ciphertexts,
 //      AE.randomize(Diag,binary);
 //      rd=RandPoly(phim,bd<<1);
 //      y[i]=AE.plaintext()+pr*rd;
-      y[i].randomize(G, P.B_plain_length, Diag, binary);
+      y[i].randomize(G, P.B_plain_length, P.get_diagonal(), binary);
+      if (P.get_diagonal())
+        assert(y[i].is_diagonal());
       s[i].resize(3, P.phim);
       s[i].generateUniform(G, P.B_rand_length);
       rc.assign(s[i][0], s[i][1], s[i][2]);
@@ -78,10 +81,14 @@ bool Prover<FD,U>::Stage_2(Proof& P, octetStream& cleartexts,
 #endif
   cleartexts.reset_write_head();
   cleartexts.store(P.V);
+  if (P.get_diagonal())
+    for (auto& xx : x)
+      assert(xx.is_diagonal());
   for (i=0; i<P.V; i++)
     { z=y[i];
       t=s[i];
       P.apply_challenge(i, z, x, pk);
+      Check_Decoding(z, P.get_diagonal(), x[0].get_field());
       P.apply_challenge(i, t, r, pk);
       if (not P.check_bounds(z, t, i))
           return false;
@@ -108,7 +115,7 @@ size_t Prover<FD,U>::NIZKPoK(Proof& P, octetStream& ciphertexts, octetStream& cl
                         const AddableVector<Ciphertext>& c,
                         const vector<U>& x,
                         const Proof::Randomness& r,
-                        bool Diag,bool binary)
+                        bool binary)
 {
 //  AElement<T> AE;
 //  for (i=0; i<P.sec; i++)
@@ -123,7 +130,7 @@ size_t Prover<FD,U>::NIZKPoK(Proof& P, octetStream& ciphertexts, octetStream& cl
   int cnt=0;
   while (!ok)
     { cnt++;
-      Stage_1(P,ciphertexts,c,pk,Diag,binary);
+      Stage_1(P,ciphertexts,c,pk,binary);
       P.set_challenge(ciphertexts);
       // Check check whether we are OK, or whether we should abort
       ok = Stage_2(P,cleartexts,x,r,pk);

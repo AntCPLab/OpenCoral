@@ -35,14 +35,15 @@ public:
   template<class FD>
   void generate_setup(FHE_Params& params, FD& FTD)
   {
-    SPDZ_Data_Setup(FTD);
+    SPDZ_Data_Setup(params, FTD);
     params.set(R, {pr0, pr1});
   }
 
   template<class FD>
-  void SPDZ_Data_Setup(FD& FTD);
+  void SPDZ_Data_Setup(FHE_Params& params, FD& FTD);
 
-  int SPDZ_Data_Setup_Char_p_Sub(int idx, int& m, bigint& p);
+  int SPDZ_Data_Setup_Char_p_Sub(int idx, int& m, bigint& p,
+      FHE_Params& params);
 
 };
 
@@ -65,7 +66,7 @@ void init(P2Data& P2D,const Ring& Rg);
 
 // For use when we want p to be a specific value 
 void SPDZ_Data_Setup_Char_p_General(Ring& R, PPData& PPD, bigint& pr0,
-    bigint& pr1, int n, int sec, bigint& p);
+    bigint& pr1, int n, int sec, bigint& p, FHE_Params& params);
 
 // generate moduli according to lengths and other parameters
 void generate_moduli(bigint& pr0, bigint& pr1, const int m,

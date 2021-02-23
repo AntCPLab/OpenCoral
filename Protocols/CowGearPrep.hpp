@@ -8,6 +8,7 @@
 #include "Tools/Bundle.h"
 
 #include "Protocols/ReplicatedPrep.hpp"
+#include "FHEOffline/DataSetup.hpp"
 
 template<class T>
 PairwiseMachine* CowGearPrep<T>::pairwise_machine = 0;
@@ -39,8 +40,9 @@ void CowGearPrep<T>::basic_setup(Player& P)
     auto& setup = machine.setup<FD>();
     auto& options = CowGearOptions::singleton;
 #ifdef VERBOSE
-    cerr << "Covert security parameter for key and MAC generation: "
-            << options.covert_security << endl;
+    if (T::covert)
+        cerr << "Covert security parameter for key and MAC generation: "
+                << options.covert_security << endl;
     cerr << "LowGear security parameter: " << options.lowgear_security << endl;
 #endif
     setup.secure_init(P, machine, T::clear::length(), options.lowgear_security);
@@ -66,8 +68,8 @@ void CowGearPrep<T>::key_setup(Player& P, mac_key_type alphai)
     auto& machine = *pairwise_machine;
     auto& setup = machine.setup<FD>();
     auto& options = CowGearOptions::singleton;
-    read_or_generate_covert_secrets(setup, P, machine,
-            options.covert_security);
+    read_or_generate_secrets(setup, P, machine,
+            options.covert_security, T::covert);
 
     // adjust mac key
     mac_key_type diff = alphai - setup.alphai;
@@ -150,13 +152,21 @@ void CowGearPrep<T>::buffer_inputs(int player)
 template<class T>
 inline void CowGearPrep<T>::buffer_bits()
 {
+    buffer_bits<0>(T::clear::characteristic_two);
+}
+
+template<class T>
+template<int>
+void CowGearPrep<T>::buffer_bits(false_type)
+{
     buffer_bits_from_squares(*this);
 }
 
-template<>
-inline void CowGearPrep<CowGearShare<gf2n_short>>::buffer_bits()
+template<class T>
+template<int>
+void CowGearPrep<T>::buffer_bits(true_type)
 {
-    buffer_bits_without_check();
+    this->buffer_bits_without_check();
     assert(not this->bits.empty());
     for (auto& bit : this->bits)
         bit.force_to_bit();

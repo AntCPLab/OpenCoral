@@ -51,9 +51,11 @@ public:
     }
 
     template<class U>
-    static void split(vector<U>& dest, const vector<int>& regs,
-            int n_bits, const Semi2kShare* source, int n_inputs, Player& P)
+    static void split(vector<U>& dest, const vector<int>& regs, int n_bits,
+            const Semi2kShare* source, int n_inputs,
+            typename U::Protocol& protocol)
     {
+        auto& P = protocol.P;
         int my_num = P.my_num();
         assert(n_bits <= 64);
         int unit = GC::Clear::N_BITS;

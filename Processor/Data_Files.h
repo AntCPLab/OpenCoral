@@ -60,6 +60,7 @@ public:
   map<pair<bool, int>, long long> edabits;
 
   DataPositions(int num_players = 0);
+  DataPositions(const Player& P) : DataPositions(P.num_players()) {}
   ~DataPositions();
 
   void reset();

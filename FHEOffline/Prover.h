@@ -24,7 +24,7 @@ public:
   Prover(Proof& proof, const FD& FieldD);
 
   void Stage_1(const Proof& P, octetStream& ciphertexts, const AddableVector<Ciphertext>& c,
-      const FHE_PK& pk, bool Diag,
+      const FHE_PK& pk,
       bool binary = false);
 
   bool Stage_2(Proof& P, octetStream& cleartexts,
@@ -41,7 +41,7 @@ public:
                const AddableVector<Ciphertext>& c,
                const vector<U>& x,
                const Proof::Randomness& r,
-               bool Diag,bool binary=false);
+               bool binary=false);
 
   size_t report_size(ReportType type);
   void report_size(ReportType type, MemoryUsage& res);

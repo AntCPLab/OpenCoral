@@ -627,15 +627,14 @@ class Dense(DenseBase):
     :param d_out: output dimension
     """
     def __init__(self, N, d_in, d_out, d=1, activation='id', debug=False):
-        self.activation = activation
         if activation == 'id':
-            self.f = lambda x: x
+            self.activation_layer = None
         elif activation == 'relu':
-            self.f = relu
-            self.f_prime = relu_prime
-        elif activation == 'sigmoid':
-            self.f = sigmoid
-            self.f_prime = sigmoid_prime
+            self.activation_layer = Relu([N, d, d_out])
+        elif activation == 'square':
+            self.activation_layer = Square([N, d, d_out])
+        else:
+            raise CompilerError('activation not supported: %s', activation)
 
         self.N = N
         self.d_in = d_in
@@ -652,9 +651,15 @@ class Dense(DenseBase):
         self.nabla_W = sfix.Matrix(d_in, d_out)
         self.nabla_b = sfix.Array(d_out)
 
-        self.f_input = MultiArray([N, d, d_out], sfix)
-
         self.debug = debug
+
+        l = self.activation_layer
+        if l:
+            self.f_input = l.X
+            l.Y = self.Y
+            l.nabla_Y = self.nabla_Y
+        else:
+            self.f_input = self.Y
 
     def reset(self):
         d_in = self.d_in
@@ -699,10 +704,8 @@ class Dense(DenseBase):
 
     def forward(self, batch=None):
         self.compute_f_input(batch=batch)
-        @multithread(self.n_threads, len(batch), 128)
-        def _(base, size):
-            self.Y.assign_part_vector(self.f(
-                self.f_input.get_part_vector(base, size)), base)
+        if self.activation_layer:
+            self.activation_layer.forward(batch)
         if self.debug:
             limit = self.debug
             @for_range_opt(len(batch))
@@ -731,26 +734,11 @@ class Dense(DenseBase):
         nabla_W = self.nabla_W
         nabla_b = self.nabla_b
 
-        if self.activation == 'id':
-            f_schur_Y = nabla_Y
+        if self.activation_layer:
+            self.activation_layer.backward(batch)
+            f_schur_Y = self.activation_layer.nabla_X
         else:
-            f_prime_bit = MultiArray([N, d, d_out], sint)
-            f_schur_Y = MultiArray([N, d, d_out], sfix)
-
-            @multithread(self.n_threads, f_prime_bit.total_size())
-            def _(base, size):
-                f_prime_bit.assign_vector(
-                    self.f_prime(self.f_input.get_vector(base, size)), base)
-
-            progress('f prime')
-
-            @multithread(self.n_threads, f_prime_bit.total_size())
-            def _(base, size):
-                f_schur_Y.assign_vector(nabla_Y.get_vector(base, size) *
-                                        f_prime_bit.get_vector(base, size),
-                                        base)
-
-            progress('f prime schur Y')
+            f_schur_Y = nabla_Y
 
         if compute_nabla_X:
             @multithread(self.n_threads, N)
@@ -841,35 +829,55 @@ class Dropout:
     def backward(self):
         self.nabla_X = self.nabla_Y.schur(self.B)
 
-class Relu(NoVariableLayer):
+class ElementWiseLayer(NoVariableLayer):
+    def __init__(self, shape, inputs=None):
+        self.X = Tensor(shape, sfix)
+        self.Y = Tensor(shape, sfix)
+        self.nabla_X = Tensor(shape, sfix)
+        self.nabla_Y = Tensor(shape, sfix)
+        self.inputs = inputs
+
+    def forward(self, batch=[0]):
+        @multithread(self.n_threads, len(batch), 128)
+        def _(base, size):
+            self.Y.assign_part_vector(self.f(
+                self.X.get_part_vector(base, size)), base)
+
+    def backward(self, batch):
+        f_prime_bit = MultiArray(self.X.sizes, self.prime_type)
+
+        @multithread(self.n_threads, f_prime_bit.total_size())
+        def _(base, size):
+            f_prime_bit.assign_vector(
+                self.f_prime(self.X.get_vector(base, size)), base)
+
+        progress('f prime')
+
+        @multithread(self.n_threads, f_prime_bit.total_size())
+        def _(base, size):
+            self.nabla_X.assign_vector(self.nabla_Y.get_vector(base, size) *
+                                       f_prime_bit.get_vector(base, size),
+                                       base)
+
+        progress('f prime schur Y')
+
+class Relu(ElementWiseLayer):
     """ Fixed-point ReLU layer.
 
     :param shape: input/output shape (tuple/list of int)
     """
-    def __init__(self, shape, inputs=None):
-        self.X = Tensor(shape, sfix)
-        self.Y = Tensor(shape, sfix)
-        self.inputs = inputs
+    f = staticmethod(relu)
+    f_prime = staticmethod(relu_prime)
+    prime_type = sint
 
-    def forward(self, batch=[0]):
-        assert len(batch) == 1
-        @multithread(self.n_threads, self.X[batch[0]].total_size())
-        def _(base, size):
-            tmp = relu(self.X[batch[0]].get_vector(base, size))
-            self.Y[batch[0]].assign_vector(tmp, base)
-
-class Square(NoVariableLayer):
+class Square(ElementWiseLayer):
     """ Fixed-point square layer.
 
     :param shape: input/output shape (tuple/list of int)
     """
-    def __init__(self, shape):
-        self.X = MultiArray(shape, sfix)
-        self.Y = MultiArray(shape, sfix)
-
-    def forward(self, batch=[0]):
-        assert len(batch) == 1
-        self.Y.assign_vector(self.X.get_part_vector(batch[0]) ** 2)
+    f = staticmethod(lambda x: x ** 2)
+    f_prime = staticmethod(lambda x: cfix(2, size=x.size) * x)
+    prime_type = sfix
 
 class MaxPool(NoVariableLayer):
     """ Fixed-point MaxPool layer.

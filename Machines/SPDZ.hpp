@@ -9,6 +9,8 @@
 #include "Processor/Data_Files.hpp"
 #include "Processor/Instruction.hpp"
 #include "Processor/Machine.hpp"
+#include "Processor/FieldMachine.hpp"
+
 #include "Protocols/MAC_Check.hpp"
 #include "Protocols/fake-stuff.hpp"
 #include "Protocols/Beaver.hpp"
@@ -25,5 +27,7 @@
 #include "GC/TinyPrep.hpp"
 #include "GC/ShareSecret.hpp"
 #include "GC/TinierSharePrep.hpp"
+
+#include "Math/gfp.hpp"
 
 #endif /* MACHINES_SPDZ_HPP_ */

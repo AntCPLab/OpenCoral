@@ -58,6 +58,7 @@ public:
     typedef MascotMultiplier<This> Multiplier;
     typedef FixedVec<T, N> sacri_type;
     typedef This input_type;
+    typedef This input_check_type;
     typedef MamaRectangle<T, N> Square;
     typedef typename T::Square Rectangle;
 
@@ -93,6 +94,12 @@ public:
     template<class U>
     MamaShare(const MamaShare<U, N>& other) :
         super(other.get_share(), other.get_mac())
+    {
+    }
+
+    template<class U, class V>
+    MamaShare(const U& share, const V& mac) :
+        super(share, mac)
     {
     }
 };

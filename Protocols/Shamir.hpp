@@ -14,10 +14,20 @@
 template<class T>
 typename T::open_type::Scalar Shamir<T>::get_rec_factor(int i, int n)
 {
+    return get_rec_factor(i, n, 0, n);
+}
+
+template<class T>
+typename T::open_type::Scalar Shamir<T>::get_rec_factor(int i, int n_total,
+        int start, int n_points)
+{
     U res = 1;
-    for (int j = 0; j < n; j++)
-        if (i != j)
-            res *= U(j + 1) / (U(j + 1) - U(i + 1));
+    for (int j = 0; j < n_points; j++)
+    {
+        int other = positive_modulo(start + j, n_total);
+        if (i != other)
+            res *= U(other + 1) / (U(other + 1) - U(i + 1));
+    }
     return res;
 }
 

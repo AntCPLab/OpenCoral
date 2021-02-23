@@ -27,7 +27,8 @@ void RepRingOnlyEdabitPrep<T>::buffer_edabits(int n_bits, ThreadQueues*)
         regs[i] = i * buffer_size / dl;
     typedef typename T::bit_type bt;
     vector<bt> bits(n_bits * P.num_players() * buffer_size);
-    T::split(bits, regs, n_bits, wholes.data(), wholes.size(), this->proc->P);
+    T::split(bits, regs, n_bits, wholes.data(), wholes.size(),
+            *GC::ShareThread < bt > ::s().protocol);
 
     BitAdder bit_adder;
     vector<vector<vector<bt>>> summands;

@@ -176,7 +176,7 @@ class Plaintext
   bool equals(const Plaintext& x) const;
   bool operator!=(const Plaintext& x) { return !equals(x); }
 
-  bool is_diagonal() const { throw not_implemented(); }
+  bool is_diagonal() const;
   bool is_binary() const { throw not_implemented(); }
 
   /* Pack and unpack into an octetStream 

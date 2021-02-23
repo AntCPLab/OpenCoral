@@ -24,7 +24,8 @@ void MaliciousShamirMC<T>::init_open(const Player& P, int n)
             reconstructions[i].resize(i);
             for (int j = 0; j < i; j++)
                 reconstructions[i][j] =
-                        Shamir<T>::get_rec_factor(j, i);
+                        Shamir<T>::get_rec_factor(P.get_player(j),
+                        P.num_players(), P.my_num(), i);
         }
     }
 
@@ -37,7 +38,7 @@ typename T::open_type MaliciousShamirMC<T>::finalize_open()
     int threshold = ShamirMachine::s().threshold;
     shares.resize(2 * threshold + 1);
     for (size_t j = 0; j < shares.size(); j++)
-        shares[j].unpack((*this->os)[j]);
+        shares[j].unpack((*this->os)[this->player->get_player(j)]);
     return reconstruct(shares);
 }
 

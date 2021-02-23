@@ -120,7 +120,7 @@ void PairwiseMachine::pack(octetStream& os) const
 
 void PairwiseMachine::unpack(octetStream& os)
 {
-    os.get(other_pks, {setup_p.params, 0});
+    os.get_no_resize(other_pks);
     os.get(enc_alphas, {pk});
     sk.unpack(os);
 }

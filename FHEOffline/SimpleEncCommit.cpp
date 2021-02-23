@@ -22,8 +22,9 @@ SimpleEncCommitBase<T, FD, S>::SimpleEncCommitBase(const MachineBase& machine) :
 template<class T,class FD,class S>
 SimpleEncCommit<T, FD, S>::SimpleEncCommit(const PlayerBase& P, const FHE_PK& pk,
         const FD& FTD, map<string, Timer>& timers, const MachineBase& machine,
-        int thread_num) :
-    NonInteractiveProofSimpleEncCommit<FD>(P, pk, FTD, timers, machine),
+        int thread_num, bool diagonal) :
+    NonInteractiveProofSimpleEncCommit<FD>(P, pk, FTD, timers, machine,
+            diagonal),
     SimpleEncCommitFactory<FD>(pk, FTD, machine)
 {
     (void)thread_num;
@@ -32,13 +33,14 @@ SimpleEncCommit<T, FD, S>::SimpleEncCommit(const PlayerBase& P, const FHE_PK& pk
 template <class FD>
 NonInteractiveProofSimpleEncCommit<FD>::NonInteractiveProofSimpleEncCommit(
         const PlayerBase& P, const FHE_PK& pk, const FD& FTD,
-        map<string, Timer>& timers, const MachineBase& machine) :
+        map<string, Timer>& timers, const MachineBase& machine,
+        bool diagonal) :
         SimpleEncCommitBase_<FD>(machine),
         P(P), pk(pk), FTD(FTD),
-        proof(machine.sec, pk, machine.extra_slack),
+        proof(machine.sec, pk, machine.extra_slack, diagonal),
 #ifdef LESS_ALLOC_MORE_MEM
                 r(proof.U, this->pk.get_params()), prover(proof, FTD),
-                verifier(proof),
+                verifier(proof, FTD),
 #endif
                 timers(timers)
 {
@@ -72,7 +74,7 @@ void SimpleEncCommitFactory<FD>::next(Plaintext_<FD>& mess, Ciphertext& C)
     mess = m[cnt];
     C = c[cnt];
 
-    if (Proof::use_top_gear(pk))
+    if (get_proof().use_top_gear(pk))
     {
         mess = mess + mess;
         C = C + C;
@@ -86,7 +88,10 @@ template <class FD>
 void SimpleEncCommitFactory<FD>::prepare_plaintext(PRNG& G)
 {
     for (auto& mess : m)
-        mess.randomize(G);
+        if (get_proof().get_diagonal())
+            mess.randomize(G, Diagonal);
+        else
+            mess.randomize(G);
 }
 
 template<class T,class FD,class S>
@@ -126,7 +131,7 @@ size_t NonInteractiveProofSimpleEncCommit<FD>::generate_proof(AddableVector<Ciph
     Prover<FD, Plaintext_<FD> > prover(proof, FTD);
 #endif
     size_t prover_memory = prover.NIZKPoK(proof, ciphertexts, cleartexts,
-            pk, c, m, r, false, false);
+            pk, c, m, r, false);
     timers["Proving"].stop();
 
     if (proof.top_gear)
@@ -187,7 +192,7 @@ size_t NonInteractiveProofSimpleEncCommit<FD>::create_more(octetStream& cipherte
 #endif
         timers["Verifying"].start();
         verifier.NIZKPoK(others_ciphertexts, ciphertexts,
-                cleartexts, get_pk_for_verification(i), false, false);
+                cleartexts, get_pk_for_verification(i), false);
         timers["Verifying"].stop();
         add_ciphertexts(others_ciphertexts, i);
         this->memory_usage.update("verifier", verifier.report_size(CAPACITY));
@@ -214,12 +219,12 @@ void SimpleEncCommit<T, FD, S>::add_ciphertexts(
 template<class FD>
 SummingEncCommit<FD>::SummingEncCommit(const Player& P, const FHE_PK& pk,
         const FD& FTD, map<string, Timer>& timers, const MachineBase& machine,
-        int thread_num) :
+        int thread_num, bool diagonal) :
         SimpleEncCommitFactory<FD>(pk, FTD, machine), SimpleEncCommitBase_<FD>(
-                machine), proof(machine.sec, pk, P.num_players()), pk(pk), FTD(
+                machine), proof(machine.sec, pk, P.num_players(), diagonal), pk(pk), FTD(
                 FTD), P(P), thread_num(thread_num),
 #ifdef LESS_ALLOC_MORE_MEM
-                prover(proof, FTD), verifier(proof), preimages(proof.V,
+                prover(proof, FTD), verifier(proof, FTD), preimages(proof.V,
                         this->pk, FTD.get_prime(), P.num_players()),
 #endif
                 timers(timers)
@@ -246,7 +251,7 @@ void SummingEncCommit<FD>::create_more()
 #endif
         this->generate_ciphertexts(this->c, this->m, r, pk, timers, proof);
         this->timers["Stage 1 of proof"].start();
-        prover.Stage_1(proof, ciphertexts, this->c, this->pk, false, false);
+        prover.Stage_1(proof, ciphertexts, this->c, this->pk, false);
         this->timers["Stage 1 of proof"].stop();
 
         this->c.unpack(ciphertexts, this->pk);
@@ -307,7 +312,7 @@ void SummingEncCommit<FD>::create_more()
     Verifier<FD> verifier(proof);
 #endif
     verifier.Stage_2(this->c, ciphertexts, cleartexts,
-            this->pk, false, false);
+            this->pk, false);
     this->timers["Verifying"].stop();
     this->cnt = proof.U - 1;
 
@@ -362,9 +367,9 @@ size_t SummingEncCommit<FD>::report_size(ReportType type)
 template <class FD>
 MultiEncCommit<FD>::MultiEncCommit(const Player& P, const vector<FHE_PK>& pks,
         const FD& FTD, map<string, Timer>& timers, MachineBase& machine,
-        PairwiseGenerator<FD>& generator) :
+        PairwiseGenerator<FD>& generator, bool diagonal) :
         NonInteractiveProofSimpleEncCommit<FD>(P, pks[P.my_real_num()], FTD,
-                timers, machine), pks(pks), P(P), generator(generator)
+                timers, machine, diagonal), pks(pks), P(P), generator(generator)
 {
 }
 

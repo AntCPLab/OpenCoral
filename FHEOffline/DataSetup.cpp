@@ -241,67 +241,12 @@ void PartSetup<FD>::covert_mac_generation(Player& P, MachineBase&, int num_runs)
 }
 
 template<class FD>
-void PartSetup<FD>::covert_secrets_generation(Player& P, MachineBase& machine,
-        int num_runs)
+void PartSetup<FD>::key_and_mac_generation(Player& P,
+        MachineBase& machine, int num_runs, true_type)
 {
-    read_or_generate_covert_secrets(*this, P, machine, num_runs);
-}
-
-template<class T, class U>
-void read_or_generate_covert_secrets(T& setup, Player& P, U& machine,
-        int num_runs)
-{
-    octetStream os;
-    setup.params.pack(os);
-    setup.FieldD.pack(os);
-    string filename = PREP_DIR + setup.covert_name() + "-Secrets-"
-            + to_string(num_runs) + "-"
-            + os.check_sum(20).get_str(16) + "-P" + to_string(P.my_num()) + "-"
-            + to_string(P.num_players());
-
-    string error;
-
-    try
-    {
-        ifstream input(filename);
-        os.input(input);
-        setup.unpack(os);
-        machine.unpack(os);
-    }
-    catch (exception& e)
-    {
-        error = e.what();
-    }
-
-    try
-    {
-        setup.check(P, machine);
-        machine.check(P);
-    }
-    catch (mismatch_among_parties& e)
-    {
-        error = e.what();
-    }
-
-    if (not error.empty())
-    {
-        cerr << "Running secrets generation because " << error << endl;
-        setup.covert_key_generation(P, machine, num_runs);
-        setup.covert_mac_generation(P, machine, num_runs);
-        ofstream output(filename);
-        octetStream os;
-        setup.pack(os);
-        machine.pack(os);
-        os.output(output);
-    }
+    covert_key_generation(P, machine, num_runs);
+    covert_mac_generation(P, machine, num_runs);
 }
 
 template class PartSetup<FFT_Data>;
 template class PartSetup<P2Data>;
-
-template void read_or_generate_covert_secrets<PairwiseSetup<FFT_Data>,
-        PairwiseMachine>(PairwiseSetup<FFT_Data>&, Player&, PairwiseMachine&,
-        int);
-template void read_or_generate_covert_secrets<PairwiseSetup<P2Data>,
-        PairwiseMachine>(PairwiseSetup<P2Data>&, Player&, PairwiseMachine&,
-        int);

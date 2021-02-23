@@ -203,4 +203,16 @@ inline void PRNG::get_octets(octet* ans)
      get_octets(ans, L);
 }
 
+template<int N_BYTES>
+inline void PRNG::randomBnd(mp_limb_t* res, const mp_limb_t* B, mp_limb_t mask)
+{
+  size_t n_limbs = (N_BYTES + sizeof(mp_limb_t) - 1) / sizeof(mp_limb_t);
+  do
+    {
+      get_octets<N_BYTES>((octet*) res);
+      res[n_limbs - 1] &= mask;
+    }
+  while (mpn_cmp(res, B, n_limbs) >= 0);
+}
+
 #endif

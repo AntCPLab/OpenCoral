@@ -189,6 +189,28 @@ public:
             super(share, mac) {}
 };
 
+template<class T>
+class ArithmeticOnlyMascotShare : public Share<T>
+{
+    typedef ArithmeticOnlyMascotShare This;
+    typedef Share<T> super;
+
+public:
+    typedef GC::NoShare bit_type;
+
+    typedef MAC_Check_<This> MAC_Check;
+    typedef ::Input<This> Input;
+    typedef ::PrivateOutput<This> PrivateOutput;
+    typedef SPDZ<This> Protocol;
+
+    ArithmeticOnlyMascotShare() {}
+    template<class U>
+    ArithmeticOnlyMascotShare(const U& other) : super(other) {}
+    ArithmeticOnlyMascotShare(const SemiShare<T>& share,
+            const SemiShare<T>& mac) :
+            super(share, mac) {}
+};
+
 // specialized mul by bit for gf2n
 template <>
 void Share_<SemiShare<gf2n>, SemiShare<gf2n>>::mul_by_bit(const Share_<SemiShare<gf2n>, SemiShare<gf2n>>& S,const gf2n& aa);

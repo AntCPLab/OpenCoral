@@ -54,9 +54,12 @@ BufferPrep<T>::~BufferPrep()
         cerr << n_bit_rounds << " rounds of random " << type_string
                 << " bit generation" << endl;
 
+    this->print_left("triples", triples.size() * T::default_length,
+            type_string);
+
 #define X(KIND) \
     this->print_left(#KIND, KIND.size(), type_string);
-    X(triples) X(squares) X(inverses) X(bits) X(dabits)
+    X(squares) X(inverses) X(bits) X(dabits)
 #undef X
 
     for (auto& x : this->edabits)
@@ -83,10 +86,20 @@ RingPrep<T>::RingPrep(SubProcessor<T>* proc, DataPositions& usage) :
 template<class T>
 void BitPrep<T>::set_protocol(typename T::Protocol& protocol)
 {
-    this->protocol = &protocol;
+    this->protocol = new typename T::Protocol(protocol.branch());
     auto proc = this->proc;
     if (proc and proc->Proc)
         this->base_player = proc->Proc->thread_num;
+}
+
+template<class T>
+BitPrep<T>::~BitPrep()
+{
+    if (protocol)
+    {
+        protocol->check();
+        delete protocol;
+    }
 }
 
 template<class T>
@@ -323,8 +336,7 @@ template<class T>
 void BitPrep<T>::buffer_bits_without_check()
 {
     SeededPRNG G;
-    buffer_ring_bits_without_check(this->bits, G,
-            OnlineOptions::singleton.batch_size);
+    buffer_ring_bits_without_check(this->bits, G, this->buffer_size);
 }
 
 template<class T>

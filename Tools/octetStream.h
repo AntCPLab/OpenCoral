@@ -148,6 +148,8 @@ class octetStream
   void store(const vector<T>& v);
   template <class T>
   void get(vector<T>& v, const T& init = {});
+  template <class T>
+  void get_no_resize(vector<T>& v);
 
   void consume(octetStream& s,size_t l)
     { s.resize(l);
@@ -346,6 +348,17 @@ void octetStream::get(vector<T>& v, const T& init)
   size_t size;
   get(size);
   v.resize(size, init);
+  for (auto& x : v)
+    get(x);
+}
+
+template<class T>
+void octetStream::get_no_resize(vector<T>& v)
+{
+  size_t size;
+  get(size);
+  if (size != v.size())
+    throw runtime_error("wrong vector length");
   for (auto& x : v)
     get(x);
 }

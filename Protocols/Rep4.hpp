@@ -25,6 +25,40 @@ Rep4<T>::Rep4(Player& P) :
 }
 
 template<class T>
+Rep4<T>::Rep4(Player& P, prngs_type& prngs) :
+        my_num(P.my_num()), P(P)
+{
+    for (int i = 0; i < 3; i++)
+        rep_prngs[i].SetSeed(prngs[i]);
+}
+
+template<class T>
+Rep4<T>::~Rep4()
+{
+    for (auto& x : receive_hashes)
+        for (auto& y : x)
+            if (y.size > 0)
+            {
+                check();
+                return;
+            }
+
+    for (auto& x : send_hashes)
+        for (auto& y : x)
+            if (y.size > 0)
+            {
+                check();
+                return;
+            }
+}
+
+template<class T>
+Rep4<T> Rep4<T>::branch()
+{
+    return {P, rep_prngs};
+}
+
+template<class T>
 void Rep4<T>::init_mul(SubProcessor<T>*)
 {
     for (auto& x : add_shares)
@@ -184,7 +218,7 @@ template<class T>
 void Rep4<T>::init_dotprod(SubProcessor<T>*)
 {
     init_mul();
-    next_dotprod();
+    dotprod_shares = {};
 }
 
 template<class T>
@@ -192,15 +226,16 @@ void Rep4<T>::prepare_dotprod(const T& x, const T& y)
 {
     auto a = get_addshares(x, y);
     for (int i = 0; i < 5; i++)
-        add_shares[i].back() += a[i];
+        dotprod_shares[i] += a[i];
 }
 
 template<class T>
 void Rep4<T>::next_dotprod()
 {
-    for (auto& a : add_shares)
-        a.push_back({});
+    for (int i = 0; i < 5; i++)
+        add_shares[i].push_back(dotprod_shares[i]);
     bit_lengths.push_back(-1);
+    dotprod_shares = {};
 }
 
 template<class T>
@@ -234,7 +269,6 @@ T Rep4<T>::finalize_mul(int)
 template<class T>
 T Rep4<T>::finalize_dotprod(int)
 {
-    this->counter++;
     return finalize_mul();
 }
 
@@ -297,6 +331,7 @@ void Rep4<T>::trunc_pr(const vector<int>& regs, int size,
 		SubProcessor<T>& proc, false_type)
 {
     assert(regs.size() % 4 == 0);
+    this->trunc_pr_counter += size * regs.size() / 4;
     typedef typename T::open_type open_type;
 
     vector<TruncPrTupleWithGap<open_type>> infos;
@@ -418,4 +453,77 @@ void Rep4<T>::trunc_pr(const vector<int>& regs, int size,
                         - gen_results.next().res + (b << (info.k - info.m));
             }
         }
+}
+
+template<class T>
+template<class U>
+void Rep4<T>::split(vector<T>& dest, const vector<int>& regs, int n_bits,
+        const U* source, int n_inputs)
+{
+    assert(regs.size() / n_bits == 2);
+    assert(n_bits <= 64);
+    int unit = GC::Clear::N_BITS;
+    int my_num = P.my_num();
+    int i0 = -1;
+
+    switch (my_num)
+    {
+    case 0:
+        i0 = 1;
+        break;
+    case 1:
+        i0 = 0;
+        break;
+    case 2:
+        i0 = 1;
+        break;
+    case 3:
+        i0 = 0;
+        break;
+    }
+
+    vector<BitVec> to_share;
+    init_mul();
+
+    for (int k = 0; k < DIV_CEIL(n_inputs, unit); k++)
+    {
+        int start = k * unit;
+        int m = min(unit, n_inputs - start);
+
+        square64 square;
+
+        for (int j = 0; j < m; j++)
+        {
+            auto& input_share = source[j + start];
+            auto input_value = input_share[i0] + input_share[i0 + 1];
+            square.rows[j] = Integer(input_value).get();
+        }
+
+        square.transpose(m, n_bits);
+
+        for (int j = 0; j < n_bits; j++)
+        {
+            to_share.push_back(square.rows[j]);
+            bit_lengths.push_back(m);
+        }
+    }
+
+    array<PointerVector<ResTuple>, 2> results;
+    for (auto& x : results)
+        x.resize(to_share.size());
+    prepare_joint_input(0, 1, 3, 2, to_share, results[0]);
+    prepare_joint_input(2, 3, 1, 0, to_share, results[1]);
+    P.send_receive_all(channels, send_os, receive_os);
+    finalize_joint_input(0, 1, 3, 2, results[0]);
+    finalize_joint_input(2, 3, 1, 0, results[1]);
+
+    for (int k = 0; k < DIV_CEIL(n_inputs, unit); k++)
+    {
+        for (int j = 0; j < n_bits; j++)
+            for (int i = 0; i < 2; i++)
+            {
+                auto res = results[i].next().res;
+                dest.at(regs.at(2 * j + i) + k) = res;
+            }
+    }
 }

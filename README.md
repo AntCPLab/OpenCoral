@@ -74,7 +74,7 @@ The following table lists all protocols that are fully supported.
 
 | Security model | Mod prime / GF(2^n) | Mod 2^k | Bin. SS | Garbling |
 | --- | --- | --- | --- | --- |
-| Malicious, dishonest majority | [MASCOT](#secret-sharing) | [SPDZ2k](#secret-sharing) | [Tiny / Tinier](#secret-sharing) | [BMR](#bmr) |
+| Malicious, dishonest majority | [MASCOT / LowGear / HighGear](#secret-sharing) | [SPDZ2k](#secret-sharing) | [Tiny / Tinier](#secret-sharing) | [BMR](#bmr) |
 | Covert, dishonest majority | [CowGear / ChaiGear](#secret-sharing) | N/A | N/A | N/A |
 | Semi-honest, dishonest majority | [Semi / Hemi / Soho](#secret-sharing) | [Semi2k](#secret-sharing) | [SemiBin](#secret-sharing) | [Yao's GC](#yaos-garbled-circuits) / [BMR](#bmr) |
 | Malicious, honest majority | [Shamir / Rep3 / PS / SY](#honest-majority) | [Brain / Rep[34] / PS / SY](#honest-majority) | [Rep3 / CCD](#honest-majority) | [BMR](#bmr) |
@@ -399,6 +399,8 @@ The following table shows all programs for dishonest-majority computation using 
 | `spdz2k-party.x` | [SPDZ2k](https://eprint.iacr.org/2018/482) | Mod 2^k | Malicious | `spdz2k.sh` |
 | `semi-party.x` | OT-based | Mod prime | Semi-honest | `semi.sh` |
 | `semi2k-party.x` | OT-based | Mod 2^k | Semi-honest | `semi2k.sh` |
+| `lowgear-party.x` | [LowGear](https://eprint.iacr.org/2017/1230) | Mod prime | Malicious | `lowgear.sh` |
+| `highgear-party.x` | [HighGear](https://eprint.iacr.org/2017/1230) | Mod prime | Malicious | `highgear.sh` |
 | `cowgear-party.x` | Adapted [LowGear](https://eprint.iacr.org/2017/1230) | Mod prime | Covert | `cowgear.sh` |
 | `chaigear-party.x` | Adapted [HighGear](https://eprint.iacr.org/2017/1230) | Mod prime | Covert | `chaigear.sh` |
 | `hemi-party.x` | Semi-homomorphic encryption | Mod prime | Semi-honest | `hemi.sh` |
@@ -427,13 +429,13 @@ particular, the SPDZ2k sacrifice does not work for bits, so we replace
 it by cut-and-choose according to [Furukawa et
 al.](https://eprint.iacr.org/2016/944)
 
-CowGear denotes a covertly secure version of LowGear. The reason for
-this is the key generation that only achieves covert security. It is
-possible however to run full LowGear for the offline phase by using
-`-s` with the desired security parameter. The same holds for ChaiGear,
-an adapted version of HighGear. Option `-T` activates
-[TopGear](https://eprint.iacr.org/2019/035) zero-knowledge proofs in
-both.
+The virtual machines for LowGear and HighGear run a key generation
+similar to the one by [Rotaru et
+al.](https://eprint.iacr.org/2019/1300). The main difference is using
+daBits to generate maBits. CowGear and ChaiGear denote covertly
+secure versions of LowGear and HighGear. In all relevant programs,
+option `-T` activates [TopGear](https://eprint.iacr.org/2019/035)
+zero-knowledge proofs in both.
 
 Hemi and Soho denote the stripped version version of LowGear and
 HighGear, respectively, for semi-honest
