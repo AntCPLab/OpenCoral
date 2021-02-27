@@ -30,17 +30,6 @@ void error(const char *str1,const char *str2)
 
 void set_up_client_socket(int& mysocket,const char* hostname,int Portnum)
 {
-   mysocket = socket(AF_INET, SOCK_STREAM, 0);
-   if (mysocket<0) { error("set_up_socket:socket");  }
-
-  /* disable Nagle's algorithm */
-  int one=1;
-  int fl= setsockopt(mysocket, IPPROTO_TCP, TCP_NODELAY, (char*)&one, sizeof(int));
-  if (fl<0) { error("set_up_socket:setsockopt");  }
-
-  fl=setsockopt(mysocket, SOL_SOCKET, SO_REUSEADDR, (char*)&one, sizeof(int));
-  if (fl<0) { error("set_up_socket:setsockopt"); }
-
    struct addrinfo hints, *ai=NULL,*rp;
    memset (&hints, 0, sizeof(hints));
    hints.ai_family = AF_INET;
@@ -98,14 +87,27 @@ void set_up_client_socket(int& mysocket,const char* hostname,int Portnum)
 
    int attempts = 0;
    long wait = 1;
+   int fl;
    do
    {  fl=1;
       while (fl==1 || errno==EINPROGRESS)
         {
+          mysocket = socket(AF_INET, SOCK_STREAM, 0);
+          if (mysocket < 0)
+            error("set_up_socket:socket");
+
           fl=connect(mysocket, addr, len);
           attempts++;
           if (fl != 0)
-            usleep(wait *= 2);
+            {
+              close(mysocket);
+              usleep(wait *= 2);
+#ifdef DEBUG_NETWORKING
+              string msg = "Connecting to " + string(hostname) + ":" +
+                  to_string(Portnum) + " failed";
+              perror(msg.c_str());
+#endif
+            }
         }
    }
    while (fl == -1 && (errno == ECONNREFUSED || errno == ETIMEDOUT)
@@ -119,6 +121,14 @@ void set_up_client_socket(int& mysocket,const char* hostname,int Portnum)
      }
 
    freeaddrinfo(ai);
+
+  /* disable Nagle's algorithm */
+  int one=1;
+  fl= setsockopt(mysocket, IPPROTO_TCP, TCP_NODELAY, (char*)&one, sizeof(int));
+  if (fl<0) { error("set_up_socket:setsockopt");  }
+
+  fl=setsockopt(mysocket, SOL_SOCKET, SO_REUSEADDR, (char*)&one, sizeof(int));
+  if (fl<0) { error("set_up_socket:setsockopt"); }
 
 #ifdef __APPLE__
   int flags = fcntl(mysocket, F_GETFL, 0);
