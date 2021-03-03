@@ -15,7 +15,7 @@ make bankers-bonus-client.x
 Scripts/setup-ssl.sh <nparties>
 Scripts/setup-clients.sh 3
 Scripts/<protocol>.sh &
-./bankers-bonus-client.x 0 <nparties 100 0 &
+./bankers-bonus-client.x 0 <nparties> 100 0 &
 ./bankers-bonus-client.x 1 <nparties> 200 0 &
 ./bankers-bonus-client.x 2 <nparties> 50 1
 ```
