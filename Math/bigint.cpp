@@ -21,6 +21,7 @@ public:
 };
 
 thread_local bigint bigint::tmp = 0;
+thread_local bigint bigint::tmp2 = 0;
 thread_local gmp_random bigint::random;
 
 bigint sqrRootMod(const bigint& a,const bigint& p)

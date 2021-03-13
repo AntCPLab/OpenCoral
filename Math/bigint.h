@@ -38,11 +38,11 @@ namespace GC
 class bigint : public mpz_class
 {
 public:
-  static thread_local bigint tmp;
+  static thread_local bigint tmp, tmp2;
   static thread_local gmp_random random;
 
   // workaround for GCC not always initializing thread_local variables
-  static void init_thread() { tmp = 0; }
+  static void init_thread() { tmp = 0; tmp2 = 0; }
 
   template<class T>
   static mpf_class get_float(T v, T p, T z, T s);
@@ -170,9 +170,9 @@ bigint& bigint::operator=(const SignedZ2<K>& x)
   mpz_import(get_mpz_t(), Z2<K>::N_WORDS, -1, sizeof(mp_limb_t), 0, 0, x.get_ptr());
   if (x.negative())
   {
-    bigint::tmp = 1;
-    bigint::tmp <<= K;
-    *this -= bigint::tmp;
+    bigint::tmp2 = 1;
+    bigint::tmp2 <<= K;
+    *this -= bigint::tmp2;
   }
   return *this;
 }
