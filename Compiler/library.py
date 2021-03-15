@@ -484,8 +484,9 @@ def odd_even_merge_sort(a):
         raise CompilerError('Length of list must be power of two')
 
 def chunky_odd_even_merge_sort(a):
+    tmp = a[0].Array(len(a))
     for i,j in enumerate(a):
-        j.store_in_mem(i * j.sizeof())
+        tmp[i] = j
     l = 1
     while l < len(a):
         l *= 2
@@ -494,7 +495,7 @@ def chunky_odd_even_merge_sort(a):
             k *= 2
             def round():
                 for i in range(len(a)):
-                    a[i] = type(a[i]).load_mem(i * a[i].sizeof())
+                    a[i] = tmp[i]
                 for i in range(len(a) // l):
                     for j in range(l // k):
                         base = i * l + j
@@ -506,13 +507,13 @@ def chunky_odd_even_merge_sort(a):
                             for m in range(base + step, base + (k - 1) * step, 2 * step):
                                 a[m], a[m+step] = cond_swap(a[m], a[m+step])
                 for i in range(len(a)):
-                    a[i].store_in_mem(i * a[i].sizeof())
+                    tmp[i] = a[i]
             chunk = MPCThread(round, 'sort-%d-%d' % (l,k), single_thread=True)
             chunk.start()
             chunk.join()
             #round()
     for i in range(len(a)):
-        a[i] = type(a[i]).load_mem(i * a[i].sizeof())
+        a[i] = tmp[i]
 
 def chunkier_odd_even_merge_sort(a, n=None, max_chunk_size=512, n_threads=7, use_chunk_wraps=False):
     if n is None:
