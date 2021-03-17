@@ -649,8 +649,9 @@ void EvalInputter::exchange()
 	party.P->unchecked_broadcast(oss);
 }
 
-void EvalRegister::finalize_input(EvalInputter& inputter, int, int)
+void EvalRegister::finalize_input(EvalInputter& inputter, int from, int)
 {
+	(void) from;
 	auto& party = inputter.party;
 	size_t id = party.get_id() - 1;
 	for (size_t i = 0; i < (size_t)party.get_n_parties(); i++)

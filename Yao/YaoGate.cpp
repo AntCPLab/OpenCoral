@@ -38,6 +38,6 @@ void YaoFullGate::eval(YaoEvalWire& out, const YaoEvalWire& left, const YaoEvalW
 #ifdef DEBUG
 	cout << "external " << left.external() << " " << right.external() << endl;
 	cout << "entry " << get_entry(left.external(), right.external()) << endl;
-	cout << "out " << out.key << endl;
+	cout << "out " << out.key() << endl;
 #endif
 }
