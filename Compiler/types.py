@@ -3183,7 +3183,7 @@ class cfix(_number, _structure):
     def print_plain(self):
         """ Clear fixed-point output. """
         if self.k > 64:
-            sign = (((self.v + (1 << (self.k - 1))) >> self.k) & 1)
+            sign = 1 - (((self.v + (1 << (self.k - 1))) >> (self.k - 1)) & 1)
         else:
             tmp = regint()
             convmodp(tmp, self.v, bitlength=self.k)
