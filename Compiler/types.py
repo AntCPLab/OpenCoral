@@ -487,6 +487,10 @@ class _structure(object):
                                         res_params) \
                    for k in range(len(row))).reduce_after_mul()
 
+    @staticmethod
+    def mem_size():
+        return 1
+
 class _vec(object):
     pass
 
@@ -3241,6 +3245,10 @@ class _single(_number, _structure):
         return cls.int_type.n_elements()
 
     @classmethod
+    def mem_size(cls):
+        return cls.int_type.mem_size()
+
+    @classmethod
     def dot_product(cls, x, y, res_params=None):
         """ Secret dot product.
 
@@ -4373,7 +4381,7 @@ class Array(object):
             if n == 1:
                 # length can be None for single-element arrays
                 length = 0
-            base = self.address + index
+            base = self.address + index * self.value_type.mem_size()
             self.address_cache[program.curr_block, key] = \
                 util.untuplify([base + i * length \
                                 for i in range(n)])
