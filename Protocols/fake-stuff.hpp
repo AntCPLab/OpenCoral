@@ -187,7 +187,7 @@ void make_share(ShamirShare<T>* Sa, const V& a, int N,
   {
       auto& share = Sa[i];
       share = a;
-      for (int j = 0; j < (N - 1) / 2; j++)
+      for (int j = 0; j < ShamirOptions::singleton.threshold; j++)
           share += vandermonde[i][j] * randomness[j];
   }
 }

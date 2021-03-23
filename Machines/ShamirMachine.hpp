@@ -39,8 +39,8 @@ ShamirOptions& ShamirOptions::s()
     return singleton;
 }
 
-ShamirOptions::ShamirOptions() :
-        nparties(3), threshold(1)
+ShamirOptions::ShamirOptions(int nparties, int threshold) :
+        nparties(nparties), threshold(threshold)
 {
 }
 
@@ -66,6 +66,12 @@ ShamirOptions::ShamirOptions(ez::ezOptionParser& opt, int argc, const char** arg
     );
     opt.parse(argc, argv);
     opt.get("-N")->getInt(nparties);
+    set_threshold(opt);
+    opt.resetArgs();
+}
+
+void ShamirOptions::set_threshold(ez::ezOptionParser& opt)
+{
     if (opt.isSet("-T"))
         opt.get("-T")->getInt(threshold);
     else
@@ -80,7 +86,6 @@ ShamirOptions::ShamirOptions(ez::ezOptionParser& opt, int argc, const char** arg
         cerr << "Threshold has to be positive" << endl;
         exit(1);
     }
-    opt.resetArgs();
 }
 
 template<template<class U> class T>

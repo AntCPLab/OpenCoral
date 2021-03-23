@@ -50,7 +50,11 @@ public:
 
     static string type_short()
     {
-        return "S" + string(1, clear::type_char());
+        auto res = "S" + string(1, clear::type_char());
+        auto opts = ShamirOptions::singleton;
+        if (opts.threshold != (opts.nparties - 1) / 2)
+            res += "T" + to_string(opts.threshold);
+        return res;
     }
     static string type_string()
     {

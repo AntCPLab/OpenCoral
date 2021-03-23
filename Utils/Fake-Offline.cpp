@@ -34,6 +34,7 @@
 #include "Math/Z2k.hpp"
 #include "Math/gfp.hpp"
 #include "GC/Secret.hpp"
+#include "Machines/ShamirMachine.hpp"
 
 #include <sstream>
 #include <fstream>
@@ -615,6 +616,16 @@ int main(int argc, const char** argv)
         "-s", // Flag token.
         "--special" // Flag token.
   );
+  opt.add(
+          "", // Default.
+          0, // Required?
+          1, // Number of args expected.
+          0, // Delimiter if expecting multiple args.
+          "Number of corrupted parties for Shamir secret sharing "
+          "(default: just below half)", // Help description.
+          "-T", // Flag token.
+          "--threshold" // Flag token.
+  );
   opt.parse(argc, argv);
 
   int lgp;
@@ -678,6 +689,12 @@ int FakeParams::generate()
     opt.getUsage(usage);
     cout << usage;
     return 1;
+  }
+
+  if (nplayers > 2)
+  {
+    ShamirOptions::singleton.nparties = nplayers;
+    ShamirOptions::singleton.set_threshold(opt);
   }
 
   int ntrip2=0, ntripp=0, nbits2=0,nbitsp=0,nsqr2=0,nsqrp=0,ninp2=0,ninpp=0,ninv=0, nbittrip=0, nbitgf2ntrip=0;

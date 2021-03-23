@@ -17,8 +17,10 @@ public:
     int nparties;
     int threshold;
 
-    ShamirOptions();
+    ShamirOptions(int nparties = 3, int threshold = 1);
     ShamirOptions(ez::ezOptionParser& opt, int argc, const char** argv);
+
+    void set_threshold(ez::ezOptionParser& opt);
 };
 
 class ShamirMachine : public ShamirOptions
