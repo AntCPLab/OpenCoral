@@ -205,7 +205,7 @@ def runtime_error(msg='', *args):
 
 def public_input():
     """ Public input read from ``Programs/Public-Input/<progname>``. """
-    res = regint()
+    res = cint()
     pubinput(res)
     return res
 

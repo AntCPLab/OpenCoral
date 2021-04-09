@@ -1512,13 +1512,13 @@ class cond_print_str(base.IOInstruction):
 
 @base.vectorize
 class pubinput(base.PublicFileIOInstruction):
-    """ Store public input in clear integer register (vector).
+    """ Store public input in clear register (vector).
 
-    :param: destination (regint)
+    :param: destination (cint)
     """
     __slots__ = []
     code = base.opcodes['PUBINPUT']
-    arg_format = ['ciw']
+    arg_format = ['cw']
 
 @base.vectorize
 class readsocketc(base.IOInstruction):
