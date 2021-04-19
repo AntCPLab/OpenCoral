@@ -18,7 +18,6 @@ template<class T> class Share;
 
 template<class T> class MAC_Check_;
 template<class T> class Direct_MAC_Check;
-template<class T> class Passing_MAC_Check;
 template<class T> class MascotMultiplier;
 template<class T> class MascotFieldPrep;
 template<class T> class MascotTripleGenerator;

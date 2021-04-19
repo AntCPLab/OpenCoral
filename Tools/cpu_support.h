@@ -41,13 +41,14 @@ inline bool cpu_has_avx2()
 #endif
 }
 
-inline bool cpu_has_avx()
+inline bool cpu_has_avx(bool force = false)
 {
-#ifdef CHECK_AVX
-    return check_cpu(1, true, 28);
-#else
-    return true;
+    (void) force;
+#ifndef CHECK_AVX
+    if (force)
 #endif
+        return check_cpu(1, true, 28);
+    return true;
 }
 
 inline bool cpu_has_pclmul()

@@ -39,7 +39,7 @@ parties and malicious security.
 On Linux, this requires a working toolchain and [all
 requirements](#requirements). On Ubuntu, the following might suffice:
 ```
-apt-get install automake build-essential git libboost-dev libboost-thread-dev libsodium-dev libssl-dev libtool m4 python texinfo yasm
+apt-get install automake build-essential git libboost-dev libboost-thread-dev libntl-dev libsodium-dev libssl-dev libtool m4 python3 texinfo yasm
 ```
 On MacOS, this requires [brew](https://brew.sh) to be installed,
 which will be used for all dependencies.
@@ -77,12 +77,73 @@ The following table lists all protocols that are fully supported.
 | Malicious, dishonest majority | [MASCOT / LowGear / HighGear](#secret-sharing) | [SPDZ2k](#secret-sharing) | [Tiny / Tinier](#secret-sharing) | [BMR](#bmr) |
 | Covert, dishonest majority | [CowGear / ChaiGear](#secret-sharing) | N/A | N/A | N/A |
 | Semi-honest, dishonest majority | [Semi / Hemi / Soho](#secret-sharing) | [Semi2k](#secret-sharing) | [SemiBin](#secret-sharing) | [Yao's GC](#yaos-garbled-circuits) / [BMR](#bmr) |
-| Malicious, honest majority | [Shamir / Rep3 / PS / SY](#honest-majority) | [Brain / Rep[34] / PS / SY](#honest-majority) | [Rep3 / CCD](#honest-majority) | [BMR](#bmr) |
+| Malicious, honest majority | [Shamir / Rep3 / PS / SY](#honest-majority) | [Brain / Rep[34] / PS / SY](#honest-majority) | [Rep3 / CCD / PS](#honest-majority) | [BMR](#bmr) |
 | Semi-honest, honest majority | [Shamir / Rep3](#honest-majority) | [Rep3](#honest-majority) | [Rep3 / CCD](#honest-majority) | [BMR](#bmr) |
 
 See [this paper](https://eprint.iacr.org/2020/300) for an explanation
 of the various security models and high-level introduction to
 multi-party computation.
+
+##### Finding the most efficient protocol
+
+Lower security requirements generally allow for more efficient
+protocols. Within the same security model (line in the table above),
+there are a few things to consider:
+
+- Computation domain: Arithmetic protocols (modulo prime or power of
+  two) are preferable for many applications because they offer integer
+  addition and multiplication at low cost. However, binary circuits
+  might a better option if there is very little integer
+  computation. [See below](#finding-the-most-efficient-variant) to
+  find the most efficient mixed-circuit variant.  Furthermore, local
+  computation modulo a power of two is cheaper, but MP-SPDZ does not
+  offer this domain with homomorphic encryption.
+
+- Secret sharing vs garbled circuits: Computation using secret sharing
+  requires a number of communication rounds that grows depending on
+  the computation, which is not the case for garbled
+  circuits. However, the cost of integer computation as a binary
+  circuit often offset this. MP-SPDZ only offers garbled circuit
+  with binary computation.
+
+- Underlying technology for dishonest majority: While secret sharing
+  alone suffice honest-majority computation, dishonest majority
+  requires either homomorphic encryption (HE) or oblivious transfer
+  (OT). The two options offer a computation-communication trade-off:
+  While OT is easier to compute, HE requires less
+  communication. Furthermore, the latter requires a certain of
+  batching to be efficient, which makes OT preferable for smaller
+  tasks.
+
+- Malicious, honest-majority three-party computation: A number of
+  protocols are available for this setting, but SY/SPDZ-wise is the
+  most efficient one for a number of reasons: It requires the lowest
+  communication, and it is the only one offering constant-communication
+  dot products.
+
+- Minor variants: Some command-line options change aspects of the
+  protocols such as:
+
+  - `--bucket-size`: In some malicious binary computation and
+    malicious edaBit generation, a smaller bucket size allows
+    preprocessing in smaller batches at a higher asymptotic cost.
+
+  - `--batch-size`: Preprocessing in smaller batches avoids generating
+    too much but larger batches save communication rounds.
+
+  - `--direct`: In dishonest-majority protocols, direct communication
+    instead of star-shaped saves communication rounds at the expense
+    of a quadratic amount. This might be beneficial with a small
+    number of parties.
+
+  - `--bits-from-squares`: In some protocols computing modulo a prime
+    (Shamir, Rep3, SPDZ-wise), this switches from generating random
+    bits via XOR of parties' inputs to generation using the root of a
+    random square.
+
+  - `--top-gear`: In protocols with malicious security using
+    homomorphic encryption, this reduces the memory usage and batch
+    size for preprocessing.
 
 #### Paper and Citation
 
@@ -151,13 +212,16 @@ phase outputs the amount of offline material required, which allows to
 compute the preprocessing time for a particular computation.
 
 #### Requirements
- - GCC 5 or later (tested with up to 10) or LLVM/clang 5 or later (tested with up to 11). We recommend clang because it performs better.
+
+ - GCC 5 or later (tested with up to 10) or LLVM/clang 5 or later
+   (only x86; tested with up to 11). For x86, we recommend clang
+   because it performs better.
  - MPIR library, compiled with C++ support (use flag `--enable-cxx` when running configure). You can use `make -j8 tldr` to install it locally.
  - libsodium library, tested against 1.0.16
  - OpenSSL, tested against 1.1.1
  - Boost.Asio with SSL support (`libboost-dev` on Ubuntu), tested against 1.65
  - Boost.Thread for BMR (`libboost-thread-dev` on Ubuntu), tested against 1.65
- - 64-bit CPU
+ - x86 or ARM 64-bit CPU (the latter tested with AWS Gravitron)
  - Python 3.5 or later
  - NTL library for homomorphic encryption (optional; tested with NTL 10.5)
  - If using macOS, Sierra or later
@@ -168,13 +232,14 @@ compute the preprocessing time for a particular computation.
 
  - By default, the binaries are optimized for the CPU you are
    compiling on.
-   For all optimizations, a CPU supporting AES-NI, PCLMUL, AVX2, BMI2, ADX is
+   For all optimizations on x86, a CPU supporting AES-NI, PCLMUL, AVX2, BMI2, ADX is
    required. This includes mainstream processors released 2014 or later.
    If you intend to run on a different CPU than compiling, you might
    need to change the `ARCH` variable in `CONFIG` or `CONFIG.mine` to
    `-march=<cpu>`. See the [GCC
    documentation](https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html)
-   for the possible options.
+   for the possible options. To run OT-based protocols on x86 without AVX,
+   add `AVX_OT = 0` in addition.
  - To benchmark online-only protocols or Overdrive offline phases, add the following line at the top: `MY_CFLAGS = -DINSECURE`
  - `PREP_DIR` should point to a local, unversioned directory to store preprocessing data (the default is `Player-Data` in the current directory).
  - For homomorphic encryption, set `USE_NTL = 1`.
@@ -299,6 +364,19 @@ compiler where `n` is the number of parties for the standard variant
 and 2 for the special
 variant by Mohassel and Rindal (available in Rep3 only).
 
+##### Finding the most efficient variant
+
+Where available, local share conversion is likely the most efficient
+variant. Protocols based on Shamir secret sharing are unlikely to
+benefit from mixed-circuit computation because they use an extension
+field for binary computation. Otherwise, edaBits likely offer an
+asymptotic benefit. However, malicious protocols by default generate
+large batches of edaBits (more than one million at once), which is
+only worthwhile for accordingly large computation. For smaller
+computation, try running the virtual machines with `-B 4` or `-B 5`,
+which reduces the batch size to ~10,000 and ~1,000, respectively, at a
+higher asymptotic cost.
+
 #### Bristol Fashion circuits
 
 Bristol Fashion is the name of a description format of binary circuits
@@ -386,7 +464,8 @@ This runs the compiled bytecode in cleartext computation.
 
 Some full implementations require oblivious transfer, which is
 implemented as OT extension based on
-https://github.com/mkskeller/SimpleOT.
+https://github.com/mkskeller/SimpleOT or OpenSSL (activate the
+latter with `AVX_OT = 0` in `CONFIG` or `CONFIG.mine`).
 
 ### Secret sharing
 
@@ -524,6 +603,7 @@ The following table shows all programs for honest-majority computation:
 | `rep4-ring-party.x` | Replicated | Mod 2^k | Y | 4 | `rep4-ring.sh` |
 | `replicated-bin-party.x` | Replicated | Binary | N | 3 | `replicated.sh` |
 | `malicious-rep-bin-party.x` | Replicated | Binary | Y | 3 | `mal-rep-bin.sh` |
+| `ps-rep-bin-party.x` | Replicated | Binary | Y | 3 | `ps-rep-bin.sh` |
 | `replicated-field-party.x` | Replicated | Mod prime | N | 3 | `rep-field.sh` |
 | `ps-rep-field-party.x` | Replicated | Mod prime | Y | 3 | `ps-rep-field.sh` |
 | `sy-rep-field-party.x` | SPDZ-wise replicated | Mod prime | Y | 3 | `sy-rep-field.sh` |
@@ -537,7 +617,7 @@ The following table shows all programs for honest-majority computation:
 We use the "generate random triple optimistically/sacrifice/Beaver"
 methodology described by [Lindell and
 Nof](https://eprint.iacr.org/2017/816) to achieve malicious
-security with plain replicated secret sharing,
+security with plain arithmetic replicated secret sharing,
 except for the "PS" (post-sacrifice) protocols where the
 actual multiplication is executed optimistically and checked later as
 also described by Lindell and Nof.
@@ -563,6 +643,13 @@ secret value and information-theoretic tag similar to SPDZ but not
 with additive secret sharing, hence the name.
 Rep4 refers to the four-party protocol by [Dalskov et
 al.](https://eprint.iacr.org/2020/1330).
+`malicious-rep-bin-party.x` is based on cut-and-choose triple
+generation by [Furukawa et al.](https://eprint.iacr.org/2016/944) but
+using Beaver multiplication instead of their post-sacrifice
+approach. `ps-rep-bin-party.x` is based on the post-sacrifice approach
+by [Araki et
+al.](https://www.ieee-security.org/TC/SP2017/papers/96.pdf) but
+without using their cache optimization.
 
 All protocols in this section require encrypted channels because the
 information received by the honest majority suffices the reconstruct

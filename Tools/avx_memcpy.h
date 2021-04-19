@@ -6,9 +6,10 @@
 #ifndef TOOLS_AVX_MEMCPY_H_
 #define TOOLS_AVX_MEMCPY_H_
 
-#include <immintrin.h>
 #include <string.h>
 #include <cstdint>
+
+#include "intrinsics.h"
 
 inline void avx_memcpy(void* dest, const void* source, size_t length)
 {

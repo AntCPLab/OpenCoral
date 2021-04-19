@@ -27,6 +27,7 @@ public:
     const int C;
 
     ShuffleSacrifice();
+    ShuffleSacrifice(int B, int C);
 
     int minimum_n_inputs(int n_outputs = 1)
     {
@@ -56,6 +57,9 @@ template<class T>
 class TripleShuffleSacrifice : public ShuffleSacrifice
 {
 public:
+    TripleShuffleSacrifice();
+    TripleShuffleSacrifice(int B, int C);
+
     void triple_sacrifice(vector<array<T, 3>>& triples,
             vector<array<T, 3>>& check_triples, Player& P,
             typename T::MAC_Check& MC, ThreadQueues* queues = 0);

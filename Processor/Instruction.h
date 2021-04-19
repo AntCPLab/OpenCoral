@@ -287,7 +287,6 @@ enum
 
 // Register types
 enum RegType {
-  MODP,
   INT,
   SBIT,
   CBIT,

@@ -16,7 +16,7 @@
   #define SEED_SIZE   randombytes_SEEDBYTES
   #define RAND_SIZE   480
 #else
-#ifdef __AES__
+#if defined(__AES__) || !defined(__x86_64__)
   #define PIPELINES   8
 #else
   #define PIPELINES   1
@@ -44,7 +44,7 @@ class PRNG
    octet random[RAND_SIZE] __attribute__((aligned (16)));
 
    #ifdef USE_AES
-#ifdef __AES__
+#if defined(__AES__) || !defined(__x86_64__)
      bool useC;
 #else
      const static bool useC = true;

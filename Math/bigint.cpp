@@ -153,6 +153,11 @@ bigint::bigint(const gfpvar& other)
   to_bigint(*this, other.get(), other.get_ZpD());
 }
 
+bigint::bigint(const mp_limb_t* data, size_t n_limbs)
+{
+  mpz_import(get_mpz_t(), n_limbs, -1, 8, -1, 0, data);
+}
+
 string to_string(const bigint& x)
 {
   stringstream ss;

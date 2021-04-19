@@ -6,10 +6,10 @@
 #ifndef GC_SQUARE64_H_
 #define GC_SQUARE64_H_
 
-#include <immintrin.h>
 #include <string.h>
 #include <cstdint>
 #include "Tools/int.h"
+#include "Tools/intrinsics.h"
 
 union square64
 {

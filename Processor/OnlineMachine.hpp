@@ -200,12 +200,10 @@ void OnlineMachine::start_networking()
     } else {
       if (not opt.get("-ext-server")->isSet)
       {
-        if (my_port != Names::DEFAULT_PORT)
-          throw runtime_error("cannot set port number when not using Server.x");
         if (nplayers == 0)
           opt.get("-N")->getInt(nplayers);
         server = Server::start_networking(playerNames, mynum, nplayers,
-            hostname, pnbase);
+            hostname, pnbase, my_port);
       }
       else
       {

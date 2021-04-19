@@ -114,7 +114,9 @@ void FHE_PK::check_noise(const Rq_Element& x, bool check_modulo) const
       noise[i] /= pr;
       m = m > noise[i] ? m : noise[i];
     }
+#ifdef VERBOSE_KEYGEN
   cerr << "max noise: " << m << endl;
+#endif
 }
 
 

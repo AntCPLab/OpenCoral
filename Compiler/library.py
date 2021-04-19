@@ -1062,14 +1062,14 @@ def for_range_opt_multithread(n_threads, n_loops):
     """
     return for_range_multithread(n_threads, None, n_loops)
 
-def multithread(n_threads, n_items, max_size=None):
+def multithread(n_threads, n_items=None, max_size=None):
     """
     Distribute the computation of :py:obj:`n_items` to
     :py:obj:`n_threads` threads, but leave the in-thread repetition up
     to the user.
 
     :param n_threads: compile-time (int)
-    :param n_items: regint/cint/int
+    :param n_items: regint/cint/int (default: :py:obj:`n_threads`)
 
     The following executes ``f(0, 8)``, ``f(8, 8)``, and
     ``f(16, 9)`` in three different threads:
@@ -1080,6 +1080,8 @@ def multithread(n_threads, n_items, max_size=None):
         def f(base, size):
             ...
     """
+    if n_items is None:
+        n_items = n_threads
     if max_size is None:
         return map_reduce(n_threads, None, n_items, initializer=lambda: [],
                           reducer=None, looping=False)

@@ -20,5 +20,5 @@
 
 int main(int argc, const char** argv)
 {
-    GC::ShareParty<GC::SemiHonestRepSecret>(argc, argv);
+    GC::simple_binary_main<GC::SemiHonestRepSecret>(argc, argv);
 }

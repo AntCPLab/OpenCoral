@@ -241,7 +241,7 @@ void Processor<sint, sgf2n>::split(const Instruction& instruction)
 // If message_type is > 0, send message_type in bytes 0 - 3, to allow an external client to
 //  determine the data structure being sent in a message.
 template<class sint, class sgf2n>
-void Processor<sint, sgf2n>::write_socket(const RegType reg_type, const SecrecyType secrecy_type, const bool send_macs,
+void Processor<sint, sgf2n>::write_socket(const RegType reg_type,
                              int socket_id, int message_type, const vector<int>& registers)
 {
   int m = registers.size();
@@ -254,26 +254,23 @@ void Processor<sint, sgf2n>::write_socket(const RegType reg_type, const SecrecyT
 
   for (int i = 0; i < m; i++)
   {
-    if (reg_type == MODP && secrecy_type == SECRET) {
-      // Send vector of secret shares and optionally macs
-      if (send_macs)
-        get_Sp_ref(registers[i]).pack(socket_stream);
-      else
-        get_Sp_ref(registers[i]).pack(socket_stream,
-            sint::get_rec_factor(P.my_num(), P.num_players()));
+    if (reg_type == SINT) {
+      // Send vector of secret shares
+      get_Sp_ref(registers[i]).pack(socket_stream,
+          sint::get_rec_factor(P.my_num(), P.num_players()));
     }
-    else if (reg_type == MODP && secrecy_type == CLEAR) {
+    else if (reg_type == CINT) {
       // Send vector of clear public field elements
       get_Cp_ref(registers[i]).pack(socket_stream);
     }
-    else if (reg_type == INT && secrecy_type == CLEAR) {
+    else if (reg_type == INT) {
       // Send vector of 32-bit clear ints
       socket_stream.store((int&)get_Ci_ref(registers[i]));
     } 
     else {
       stringstream ss;
       ss << "Write socket instruction with unknown reg type " << reg_type << 
-        " and secrecy type " << secrecy_type << "." << endl;      
+        "." << endl;
       throw Processor_Error(ss.str());
     }
   }

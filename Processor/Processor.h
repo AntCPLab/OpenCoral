@@ -224,7 +224,7 @@ class Processor : public ArithmeticProcessor
   // Access to external client sockets for reading clear/shared data
   void read_socket_ints(int client_id, const vector<int>& registers);
   
-  void write_socket(const RegType reg_type, const SecrecyType secrecy_type, const bool send_macs,
+  void write_socket(const RegType reg_type,
                              int socket_id, int message_type, const vector<int>& registers);
 
   void read_socket_vector(int client_id, const vector<int>& registers);

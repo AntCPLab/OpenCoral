@@ -7,7 +7,6 @@
 #include <vector>
 using namespace std;
 #include <stdlib.h>
-#include <pmmintrin.h>
 #include <assert.h>
 
 #include "Tools/Exceptions.h"
@@ -15,6 +14,7 @@ using namespace std;
 // just for util functions
 #include "Math/gf2nlong.h"
 #include "Math/FixedVec.h"
+#include "Tools/intrinsics.h"
 
 class PRNG;
 class octetStream;
@@ -137,6 +137,8 @@ class BitVector
         return *this;
     }
 
+    BitVector& operator=(const octetStream other);
+
     void swap(BitVector& other)
     {
         std::swap(nbits, other.nbits);
@@ -156,7 +158,7 @@ class BitVector
         void operator=(const Access& other) { *this = other.get(); }
         void operator^=(const Access& other) { *this = get() ^ other.get(); }
         bool operator==(const Access& other) const { return get() == other.get(); }
-        bool operator==(bool b) const { return get() == b; }
+        operator bool() const { return get(); }
     };
 
     bool operator[](int i) const { return get_bit(i); }
@@ -240,6 +242,11 @@ class BitVector
         for (unsigned int i = 0; i < nbytes; i++)
           { if (bytes[i] != K.bytes[i]) { return false; } }
         return true;
+    }
+
+    bool operator==(const BitVector& other)
+    {
+        return equals(other);
     }
 
     void append(const BitVector& other, size_t length);

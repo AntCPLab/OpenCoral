@@ -109,7 +109,6 @@ DistKeyGen::DistKeyGen(const FHE_Params& params, const bigint& p) :
  */
 void DistKeyGen::Gen_Random_Data(PRNG& G)
 {
-    cout << "In Gen Random Data " << endl;
     secret.from_vec(params.sampleHwt(G));
     rc1.generate(G);
     rc2.generate(G);
@@ -228,7 +227,9 @@ void check_randomness(vector<octetStream>& seeds,
     // Re-create the randomness from these seeds
     for (int i = 0; i < num_players; i++)
       { G.SetSeed(seeds[i].get_data());
+#ifdef VERBOSE_KEYGEN
         cout << "\tSeed for player " << i << " is..." << seeds[i] << endl;
+#endif
         playerKeys[i].Gen_Random_Data(G);
         globalKey += playerKeys[i];
       }
@@ -292,22 +293,27 @@ void Run_Gen_Protocol(FHE_PK& pk,FHE_SK& sk,const Player& P,int num_runs,
 {
   const FHE_Params& params=pk.get_params();
 
+#ifdef VERBOSE_KEYGEN
   double start,stop;
   /***********************
    *       Step 1        *
    ***********************/
   start=clock();
+#endif
 
   // First compute and commit to the challenge value
   vector<unsigned int> e(P.num_players());
   vector<octetStream> Comm_e(P.num_players());
   vector<octetStream> Open_e(P.num_players());
   Commit_To_Challenge(e,Comm_e,Open_e,P,num_runs);
+
+#ifdef VERBOSE_KEYGEN
   cout << "Done Step 1 " << endl;
 
   stop=clock();
   cout << "\t\tTime = " << (stop-start)/CLOCKS_PER_SEC << " seconds " << endl;
   start=clock();
+#endif
 
   /***********************
    *       Step 2        *
@@ -319,11 +325,13 @@ void Run_Gen_Protocol(FHE_PK& pk,FHE_SK& sk,const Player& P,int num_runs,
   vector<PRNG> G(num_runs);
   Commit_To_Seeds(G,seeds,Comm_seeds,Open_seeds,P,num_runs);
 
+#ifdef VERBOSE_KEYGEN
   cout << "Done Step 2 " << endl;
 
   stop=clock();
   cout << "\t\tTime = " << (stop-start)/CLOCKS_PER_SEC << " seconds " << endl;
   start=clock();
+#endif
 
   /***********************
    *       Step 2.5      *
@@ -340,28 +348,27 @@ void Run_Gen_Protocol(FHE_PK& pk,FHE_SK& sk,const Player& P,int num_runs,
       keys[i].Gen_Random_Data(G[i]);
       a[i][P.my_num()] = keys[i].a;
     }
-  cout << "Generated Random Vals" << endl;
 
   if (commit)
     {
       // Do Commit and Open to Get a
       Commit_And_Open(a,P,num_runs);
-      cout << "Finished Commit and Open" << endl;
     }
   else
     {
       Transmit_Data(a,P,num_runs);
-      cout << "Finished open" << endl;
     }
   for (int i=0; i<num_runs; i++)
     keys[i].sum_a(a[i]);
 
   a.clear();
+#ifdef VERBOSE_KEYGEN
   cout << "Done Step 2.5 " << endl;
 
   stop=clock();
   cout << "\t\tTime = " << (stop-start)/CLOCKS_PER_SEC << " seconds " << endl;
   start=clock();
+#endif
 
   /***********************
    *       Step 3        *
@@ -373,11 +380,13 @@ void Run_Gen_Protocol(FHE_PK& pk,FHE_SK& sk,const Player& P,int num_runs,
       b[i][P.my_num()] = keys[i].b;
     }
 
+#ifdef VERBOSE_KEYGEN
   cout << "Done Step 3 " << endl;
 
   stop=clock();
   cout << "\t\tTime = " << (stop-start)/CLOCKS_PER_SEC << " seconds " << endl;
   start=clock();
+#endif
 
   /***********************
    *       Step 4        *
@@ -387,11 +396,13 @@ void Run_Gen_Protocol(FHE_PK& pk,FHE_SK& sk,const Player& P,int num_runs,
   else
     Transmit_Data(b,P,num_runs);
 
+#ifdef VERBOSE_KEYGEN
   cout << "Done Step 4 " << endl;
 
   stop=clock();
   cout << "\t\tTime = " << (stop-start)/CLOCKS_PER_SEC << " seconds " << endl;
   start=clock();
+#endif
 
   /***********************
    *     Step 5/6        *
@@ -404,11 +415,13 @@ void Run_Gen_Protocol(FHE_PK& pk,FHE_SK& sk,const Player& P,int num_runs,
     }
 
   b.clear();
+#ifdef VERBOSE_KEYGEN
   cout << "Done Step 5/6 " << endl;
 
   stop=clock();
   cout << "\t\tTime = " << (stop-start)/CLOCKS_PER_SEC << " seconds " << endl;
   start=clock();
+#endif
 
   /***********************
    *       Step 7        *
@@ -418,11 +431,13 @@ void Run_Gen_Protocol(FHE_PK& pk,FHE_SK& sk,const Player& P,int num_runs,
   else
     Transmit_Data(enc_dash,P,num_runs);
 
+#ifdef VERBOSE_KEYGEN
   cout << "Done Step 7 " << endl;
 
   stop=clock();
   cout << "\t\tTime = " << (stop-start)/CLOCKS_PER_SEC << " seconds " << endl;
   start=clock();
+#endif
 
   /***********************
    *    Step 8/9/10      *
@@ -434,11 +449,13 @@ void Run_Gen_Protocol(FHE_PK& pk,FHE_SK& sk,const Player& P,int num_runs,
       enc[i][P.my_num()] = keys[i].enc;
    }
 
+#ifdef VERBOSE_KEYGEN
   cout << "Done Step 8/9/10 " << endl;
 
   stop=clock();
   cout << "\t\tTime = " << (stop-start)/CLOCKS_PER_SEC << " seconds " << endl;
   start=clock();
+#endif
 
   /***********************
    *       Step 11       *
@@ -448,11 +465,13 @@ void Run_Gen_Protocol(FHE_PK& pk,FHE_SK& sk,const Player& P,int num_runs,
   else
     Transmit_Data(enc,P,num_runs);
 
+#ifdef VERBOSE_KEYGEN
   cout << "Done Step 11 " << endl;
 
   stop=clock();
   cout << "\t\tTime = " << (stop-start)/CLOCKS_PER_SEC << " seconds " << endl;
   start=clock();
+#endif
 
   /***********************
    *      Step 12        *
@@ -460,11 +479,13 @@ void Run_Gen_Protocol(FHE_PK& pk,FHE_SK& sk,const Player& P,int num_runs,
   for (int i=0; i<num_runs; i++)
     keys[i].sum_enc(enc[i]);
 
+#ifdef VERBOSE_KEYGEN
   cout << "Done Step 12 " << endl;
 
   stop=clock();
   cout << "\t\tTime = " << (stop-start)/CLOCKS_PER_SEC << " seconds " << endl;
   start=clock();
+#endif
 
   /***********************
    *     Step 13/14      *
@@ -472,11 +493,13 @@ void Run_Gen_Protocol(FHE_PK& pk,FHE_SK& sk,const Player& P,int num_runs,
 
   int challenge=Open_Challenge(e,Open_e,Comm_e,P,num_runs);
 
+#ifdef VERBOSE_KEYGEN
   cout << "Done Step 13/14 " << endl;
 
   stop=clock();
   cout << "\t\tTime = " << (stop-start)/CLOCKS_PER_SEC << " seconds " << endl;
   start=clock();
+#endif
 
   /***********************
    *       Step 15       *
@@ -489,7 +512,10 @@ void Run_Gen_Protocol(FHE_PK& pk,FHE_SK& sk,const Player& P,int num_runs,
   /* Now Open All Bar The Challenge Run */
   for (int i = 0; i < num_runs; i++)
     { if (i != challenge)
-        { cout << "Checking run " << i << endl;
+        {
+#ifdef VERBOSE_KEYGEN
+          cout << "Checking run " << i << endl;
+#endif
           check_randomness(seeds[i], keys[i].enc, keys[i].pk, keys[i].enc_dash, P.num_players());
         }
     }
@@ -497,15 +523,19 @@ void Run_Gen_Protocol(FHE_PK& pk,FHE_SK& sk,const Player& P,int num_runs,
   // Set the key to the chosen run's output
   keys[challenge].finalize(pk, sk);
 
+#ifdef VERBOSE_KEYGEN
   cout << "Done Step 15 " << endl;
 
   stop=clock();
   cout << "\t\tTime = " << (stop-start)/CLOCKS_PER_SEC << " seconds " << endl;
   start=clock();
+#endif
 
   P.Check_Broadcast();
+#ifdef VERBOSE_KEYGEN
   cout << "Broadcast check all passed" << endl;
 
   stop=clock();
   cout << "\t\tTime = " << (stop-start)/CLOCKS_PER_SEC << " seconds " << endl;
+#endif
 }

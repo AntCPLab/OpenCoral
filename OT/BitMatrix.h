@@ -6,9 +6,9 @@
 #ifndef OT_BITMATRIX_H_
 #define OT_BITMATRIX_H_
 
+#include "Tools/intrinsics.h"
+
 #include <vector>
-#include <emmintrin.h>
-#include <immintrin.h>
 #include <iostream>
 
 using namespace std;

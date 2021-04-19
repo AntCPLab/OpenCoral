@@ -14,6 +14,8 @@
 
 #include "Tools/callgrind.h"
 
+#include "Processor/Instruction.hpp"
+
 namespace GC
 {
 

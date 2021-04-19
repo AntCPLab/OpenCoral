@@ -9,6 +9,9 @@
 
 #include "gfp.hpp"
 
+const true_type gfpvar::invertible;
+const true_type gfpvar::prime_field;
+
 Zp_Data gfpvar::ZpD;
 
 string gfpvar::type_string()

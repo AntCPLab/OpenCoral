@@ -7,11 +7,10 @@
 #define COMMON_INC_KEY_H_
 
 #include <iostream>
-#include <emmintrin.h>
-#include <smmintrin.h>
 #include <string.h>
 
 #include "Tools/FlexBuffer.h"
+#include "Tools/intrinsics.h"
 #include "Math/gf2nlong.h"
 
 using namespace std;

@@ -7,6 +7,8 @@ while getopts XYC opt; do
 	   ;;
 	Y) dabit=2
 	   ;;
+	C) cont=1
+	   ;;
     esac
 done
 
@@ -31,7 +33,7 @@ function test_vm
 	    echo == Party $i
 	    cat logs/tutorial-$i
 	done
-	exit 1
+	test -z $cont && exit 1
     fi
 }
 
@@ -88,7 +90,7 @@ fi
 
 ./compile.py -B 16  $compile_opts tutorial
 
-for i in replicated mal-rep-bin semi-bin ccd mal-ccd; do
+for i in replicated mal-rep-bin ps-rep-bin semi-bin ccd mal-ccd; do
     test_vm $i $run_opts
 done
 

@@ -9,12 +9,27 @@
 #include "bigint.h"
 #include "Integer.h"
 
+template<int X, int L>
+bigint& bigint::from_signed(const gfp_<X, L>& other)
+{
+    to_signed_bigint(*this, other);
+    return *this;
+}
+
+template<class T>
+bigint& bigint::from_signed(const T& other)
+{
+    *this = other;
+    return *this;
+}
+
 template<class T>
 mpf_class bigint::get_float(T v, T p, T z, T s)
 {
     // MPIR can't handle more precision in exponent
     Integer exp = Integer(p, 31).get();
-    bigint tmp = v;
+    bigint tmp;
+    tmp.from_signed(v);
     mpf_class res = tmp;
     if (exp > 0)
         mpf_mul_2exp(res.get_mpf_t(), res.get_mpf_t(), exp.get());

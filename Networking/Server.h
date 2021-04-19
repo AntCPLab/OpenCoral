@@ -26,7 +26,8 @@ class Server
 public:
     static void* start_in_thread(void* server);
     static Server* start_networking(Names& N, int my_num, int nplayers,
-            string hostname = "localhost", int portnum = 9000);
+            string hostname = "localhost", int portnum = 9000, int my_port =
+                    Names::DEFAULT_PORT);
 
     Server(int argc, char** argv);
     Server(int nmachines, int PortnumBase);

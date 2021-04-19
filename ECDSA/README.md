@@ -5,9 +5,6 @@ in `preprocessing.hpp` and `sign.hpp`, respectively.
 
 #### Compilation
 
-- Add either `CXX = clang++` or `OPTIM = -O2` because GCC 8 or later with `-O3` will produce a segfault when using `mascot-ecdsa-party.x`
-- For older hardware, also add `ARCH = -march=native`
-- Install [Crypto++](https://www.cryptopp.com) (`libcrypto++-dev` on Ubuntu). We used version 5.6.4, which is the default on Ubuntu 18.04.
 - Compile the binaries: `make -j8 ecdsa`
 - Or compile the static binaries: `make -j8 ecdsa-static`
 

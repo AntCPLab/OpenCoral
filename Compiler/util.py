@@ -40,6 +40,12 @@ def mod2m(a, b, bits, signed):
     else:
         return a.mod2m(b, bits, signed=signed)
 
+def trunc_zeros(a, n_zeros, bit_length=None):
+    if isinstance(a, int):
+        return a >> n_zeros
+    else:
+        return a.trunc_zeros(n_zeros, bit_length)
+
 def right_shift(a, b, bits):
     if isinstance(a, int):
         return a >> b

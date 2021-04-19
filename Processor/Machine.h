@@ -45,6 +45,8 @@ class Machine : public BaseMachine
   // Keep record of used offline data
   DataPositions pos;
 
+  Player* P;
+
   void load_program(const string& threadname, const string& filename);
 
   public:
@@ -75,6 +77,7 @@ class Machine : public BaseMachine
       const string& memtype, int lg2, bool direct, int opening_sum,
       bool receive_threads, int max_broadcast, bool use_encryption, bool live_prep,
       OnlineOptions opts);
+  ~Machine();
 
   const Names& get_N() { return N; }
 

@@ -23,5 +23,5 @@
 
 int main(int argc, const char** argv)
 {
-    GC::ShareParty<GC::SemiSecret>(argc, argv);
+    GC::simple_binary_main<GC::SemiSecret>(argc, argv);
 }

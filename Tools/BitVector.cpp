@@ -41,7 +41,7 @@ BitVector BitVector::operator &(const BitVector& other) const
 
 bool BitVector::parity() const
 {
-#if defined(__SSE4_2__) or not defined(__clang__)
+#if (defined(__SSE4_2__) or not defined(__clang__)) and defined(__x86_64__)
     bool res = 0;
     for (size_t i = 0; i < size_bytes() / 8; i++)
         res ^= _popcnt64(((word*)bytes)[i]) & 1;
@@ -49,7 +49,17 @@ bool BitVector::parity() const
         res ^= _popcnt32(bytes[i]) & 1;
     return res;
 #else
-    throw runtime_error("need to compile with SSE4.2 support or GCC");
+    bool res = 0;
+    for (size_t i = 0; i < size_bytes() / 8; i++)
+    {
+        word x = ((word*)bytes)[i];
+        for (int i = 5; i >= 0; i--)
+            x ^= (x >> (1 << i));
+        res ^= (x & 1);
+    }
+    for (size_t i = size_bytes() / 8 * 8; i < size_bytes(); i++)
+        res ^= (*this)[i];
+    return res;
 #endif
 }
 
@@ -131,12 +141,19 @@ void BitVector::input(istream& s,bool human)
 
 void BitVector::pack(octetStream& o) const
 {
-    o.store(nbytes);
+    o.store_int(nbits, 8);
     o.append((octet*)bytes, nbytes);
 }
 
 void BitVector::unpack(octetStream& o)
 {
-    o.get(nbytes);
+    resize(o.get_int(8));
     o.consume((octet*)bytes, nbytes);
+}
+
+BitVector& BitVector::operator =(const octetStream other)
+{
+    resize(other.get_length() * 8);
+    memcpy(bytes, other.get_data(), nbytes);
+    return *this;
 }

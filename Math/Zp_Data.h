@@ -13,8 +13,8 @@
 #include "Math/bigint.h"
 #include "Math/mpn_fixed.h"
 #include "Tools/random.h"
+#include "Tools/intrinsics.h"
 
-#include <smmintrin.h>
 #include <iostream>
 using namespace std;
 
@@ -43,6 +43,8 @@ class Zp_Data
   void Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y, int t) const;
   void Mont_Mult_variable(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const
   { Mont_Mult(z, x, y, t); }
+  void Mont_Mult_max(mp_limb_t* z, const mp_limb_t* x, const mp_limb_t* y,
+      int max_t) const;
 
   public:
 
@@ -125,7 +127,7 @@ inline void Zp_Data::Add<0>(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y
 template<>
 inline void Zp_Data::Add<1>(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const
 {
-#ifdef __clang__
+#if defined(__clang__) || !defined(__x86_64__)
   Add<0>(ans, x, y);
 #else
   *ans = *x + *y;
@@ -139,7 +141,7 @@ inline void Zp_Data::Add<1>(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y
 template<>
 inline void Zp_Data::Add<2>(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const
 {
-#ifdef __clang__
+#if defined(__clang__) || !defined(__x86_64__)
   Add<0>(ans, x, y);
 #else
   __uint128_t a, b, p;
@@ -229,7 +231,7 @@ inline void Zp_Data::Mont_Mult_(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t*
     { // u=(ans0+xi*y0)*pd
       u=(ans[i]+x[i]*y[0])*pi;
       // ans=ans+xi*y+u*pr
-      mpn_addmul_1_fixed_<T + 1, T>(ans+i,y,x[i]);
+      mpn_addmul_1_fixed_<T + 2, T>(ans+i,y,x[i]);
       mpn_addmul_1_fixed_<T + 2, T + 1>(ans+i,prA,u);
     }
   // if (ans>=pr) { ans=z-pr; }
@@ -274,6 +276,13 @@ inline void Zp_Data::Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* 
     Mont_Mult_variable(z, x, y);
     break;
   }
+}
+
+inline void Zp_Data::Mont_Mult_max(mp_limb_t* z, const mp_limb_t* x,
+    const mp_limb_t* y, int max_t) const
+{
+  assert(t <= max_t);
+  Mont_Mult(z, x, y);
 }
 
 #endif

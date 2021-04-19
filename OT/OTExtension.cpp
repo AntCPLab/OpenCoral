@@ -5,8 +5,7 @@
 #include "Math/gf2n.h"
 #include "Tools/aes.h"
 #include "Tools/MMO.h"
-#include <wmmintrin.h>
-#include <emmintrin.h>
+#include "Tools/intrinsics.h"
 
 
 OTExtension::OTExtension(const BaseOT& baseOT, TwoPartyPlayer* player,

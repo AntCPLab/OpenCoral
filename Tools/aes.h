@@ -1,10 +1,9 @@
 #ifndef __AES_H
 #define __AES_H
 
-#include <wmmintrin.h>
-
 #include "Networking/data.h"
 #include "cpu_support.h"
+#include "intrinsics.h"
 
 typedef unsigned int  uint;
 
@@ -54,7 +53,7 @@ __attribute__((optimize("unroll-loops")))
 #endif
 inline __m128i aes_128_encrypt(__m128i in, const octet* key)
 {
-#ifdef __AES__
+#if defined(__AES__) || !defined(__x86_64__)
     if (cpu_has_aes())
     {
         __m128i& tmp = in;
@@ -87,7 +86,7 @@ __attribute__((optimize("unroll-loops")))
 #endif
 inline void ecb_aes_128_encrypt(__m128i* out, const __m128i* in, const octet* key)
 {
-#ifdef __AES__
+#if defined(__AES__) || !defined(__x86_64__)
     if (cpu_has_aes())
     {
         __m128i tmp[N];

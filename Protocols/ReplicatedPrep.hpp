@@ -326,7 +326,8 @@ void buffer_bits_spec(ReplicatedPrep<T<gfp_<X, L>>>& prep, vector<T<gfp_<X, L>>>
     typename T<gfp_<X, L>>::Protocol& prot)
 {
     (void) bits, (void) prot;
-    if (prot.get_n_relevant_players() > 10)
+    if (prot.get_n_relevant_players() > 10
+            or OnlineOptions::singleton.bits_from_squares)
         buffer_bits_from_squares(prep);
     else
         prep.ReplicatedRingPrep<T<gfp_<X, L>>>::buffer_bits();

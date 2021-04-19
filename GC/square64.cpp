@@ -25,7 +25,7 @@ union matrix32x8
 
     void transpose(square64& output, int x, int y)
     {
-#ifdef __AVX2__
+#if defined(__AVX2__) || !defined(__x86_64__)
         if (cpu_has_avx2())
         {
             for (int j = 0; j < 8; j++)
@@ -66,7 +66,7 @@ case I: \
 void zip(int chunk_size, __m256i& lows, __m256i& highs,
         const __m256i& a, const __m256i& b)
 {
-#ifdef __AVX2__
+#if defined(__AVX2__) || !defined(__x86_64__)
     if (cpu_has_avx2())
     {
         switch (chunk_size)

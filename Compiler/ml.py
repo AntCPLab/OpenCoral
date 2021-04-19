@@ -703,6 +703,9 @@ class Dense(DenseBase):
         progress('f input')
 
     def forward(self, batch=None):
+        if batch is None:
+            batch = regint.Array(self.N)
+            batch.assign(regint.inc(self.N))
         self.compute_f_input(batch=batch)
         if self.activation_layer:
             self.activation_layer.forward(batch)

@@ -49,7 +49,6 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   // make directory for outputs if necessary
   mkdir_p(PREP_DIR);
 
-  Player* P;
   if (use_encryption)
     P = new CryptoPlayer(N, 0xF00);
   else
@@ -103,8 +102,6 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
       ot_setups.push_back({ *P, true });
   }
 
-  delete P;
-
   /* Set up the threads */
   tinfo.resize(nthreads);
   threads.resize(nthreads);
@@ -129,6 +126,12 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
     {
       queues[i]->result();
     }
+}
+
+template<class sint, class sgf2n>
+Machine<sint, sgf2n>::~Machine()
+{
+  delete P;
 }
 
 template<class sint, class sgf2n>
@@ -318,7 +321,7 @@ void Machine<sint, sgf2n>::run()
   print_timers();
   cerr << "Data sent = " << data_sent / 1e6 << " MB" << endl;
 
-  PlainPlayer P(N, 0xFF00);
+  auto& P = *this->P;
   Bundle<octetStream> bundle(P);
   bundle.mine.store(data_sent.load());
   P.Broadcast_Receive_no_stats(bundle);

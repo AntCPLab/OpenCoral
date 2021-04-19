@@ -299,12 +299,6 @@ void MachineBase::run()
             << timer.elapsed() << " seconds" << endl;
     cout << "CPU time: " << cpu_timer.elapsed() << endl;
 
-    extern unsigned long long sent_amount, sent_counter;
-    cout << "Data sent = " << sent_amount << " bytes in " << sent_counter
-            << " calls, ";
-    cout << sent_amount / sent_counter / N.num_players() << " bytes per call"
-            << endl;
-
     cout << "Time: " << timer.elapsed() << endl;
     cout << "Throughput: " << total / timer.elapsed() << endl;
     mult_performance();

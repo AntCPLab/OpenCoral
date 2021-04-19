@@ -1578,19 +1578,6 @@ class writesocketc(base.IOInstruction):
         return True
 
 @base.vectorize
-class writesockets(base.IOInstruction):
-    """
-    Write a variable number of secret shares + MACs from registers into a socket
-    for a specified client id, message_type
-    """
-    __slots__ = []
-    code = base.opcodes['WRITESOCKETS']
-    arg_format = tools.chain(['ci', 'int'], itertools.repeat('s'))
-
-    def has_var_args(self):
-        return True
-
-@base.vectorize
 class writesocketshare(base.IOInstruction):
     """ Write a variable number of shares (without MACs) from secret
     registers into socket for a specified client id.

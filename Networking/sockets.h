@@ -24,7 +24,6 @@
 using namespace std;
 
 
-void error(const char *str1,const char *str2);
 void error(const char *str);
 
 void set_up_client_socket(int& mysocket,const char* hostname,int Portnum);
@@ -40,9 +39,6 @@ template<class T>
 void send(T socket, octet* msg, size_t len);
 template<class T>
 void receive(T socket, octet* msg, size_t len);
-
-
-extern unsigned long long sent_amount, sent_counter;
 
 
 inline size_t send_non_blocking(int socket, octet* msg, size_t len)
@@ -66,9 +62,6 @@ inline void send(int socket,octet *msg,size_t len)
     {
       i += send_non_blocking(socket, msg + i, len - i);
     }
-
-  sent_amount += len;
-  sent_counter++;
 }
 
 template<class T>

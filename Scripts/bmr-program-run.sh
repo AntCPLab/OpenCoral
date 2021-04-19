@@ -35,5 +35,7 @@ done
 $prefix ./bmr-program-tparty.x $prog $netmap 2>&1 &> bmr-log/t &
 for i in $(seq $[n_players-1]); do
     $prefix ./bmr-program-party.x $i $prog $netmap $threshold 2>&1 &> bmr-log/$i &
+    id=$!
 done
 $prefix ./bmr-program-party.x $n_players $prog $netmap $threshold 2>&1 | tee bmr-log/$n_players
+wait $id

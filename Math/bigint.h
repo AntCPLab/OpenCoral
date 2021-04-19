@@ -63,6 +63,7 @@ public:
   bigint(const fixint<L>& x) : bigint(typename fixint<L>::super(x)) {}
   bigint(const Integer& x);
   bigint(const GC::Clear& x);
+  bigint(const mp_limb_t* data, size_t n_limbs);
 
   bigint& operator=(int n);
   bigint& operator=(long n);
@@ -74,6 +75,11 @@ public:
   bigint& operator=(const Z2<K>& x);
   template<int K>
   bigint& operator=(const SignedZ2<K>& x);
+
+  template<int X, int L>
+  bigint& from_signed(const gfp_<X, L>& other);
+  template<class T>
+  bigint& from_signed(const T& other);
 
   void allocate_slots(const bigint& x) { *this = x; }
   int get_min_alloc() { return get_mpz_t()->_mp_alloc; }

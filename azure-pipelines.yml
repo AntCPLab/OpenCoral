@@ -11,7 +11,7 @@ pool:
 
 steps:
   - script: |
-      bash -c "sudo apt-get update && sudo apt-get install libsodium-dev libntl-dev yasm texinfo libboost-dev libboost-thread-dev python3-gmpy2 libcrypto++-dev python-networkx python3-networkx python3-sphinx"
+      bash -c "sudo apt-get update && sudo apt-get install libsodium-dev libntl-dev yasm texinfo libboost-dev libboost-thread-dev python3-gmpy2 python3-networkx python3-sphinx"
   - script: |
       make mpir
   - script:

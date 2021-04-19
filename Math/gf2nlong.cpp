@@ -6,12 +6,10 @@
 #include "gf2nlong.h"
 #include "gf2n.h"
 
+#include "Tools/intrinsics.h"
 #include "Tools/Exceptions.h"
 
 #include <stdint.h>
-#include <wmmintrin.h>
-#include <xmmintrin.h>
-#include <emmintrin.h>
 
 
 bool is_ge(__m128i a, __m128i b)

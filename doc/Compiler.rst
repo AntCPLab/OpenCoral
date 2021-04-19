@@ -20,11 +20,8 @@ Compiler.types module
 		     ClientMessageType, __weakref__, __repr__,
 		     reg_type, int_type, clear_type, float_type, basic_type,
 		     default_type, unreduced_type, bit_type, dynamic_array,
-		     squant, mov, load_mem, store_in_mem, receive_from_client,
-		     read_from_socket, write_to_socket, init_secure_socket,
-		     read_client_public_key, resp_secure_socket,
-		     resp_secure_socket, write_share_to_socket,
-		     write_shares_to_socket
+		     squant, mov, load_mem, store_in_mem,
+		     write_share_to_socket,
 
 Compiler.GC.types module
 ------------------------

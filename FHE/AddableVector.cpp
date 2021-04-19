@@ -35,5 +35,5 @@ AddableVector<T> AddableVector<T>::mul_by_X_i(int j,
 }
 
 template
-AddableVector<fixint<0>> AddableVector<fixint<0>>::mul_by_X_i(int j,
-        const FHE_PK& pk) const;
+AddableVector<Int_Random_Coins::rand_type> AddableVector<
+        Int_Random_Coins::rand_type>::mul_by_X_i(int j, const FHE_PK& pk) const;

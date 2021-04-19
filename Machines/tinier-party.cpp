@@ -27,5 +27,5 @@
 int main(int argc, const char** argv)
 {
     gf2n_short::init_field(40);
-    GC::ShareParty<GC::TinierSecret<gf2n_short>>(argc, argv, 1000);
+    GC::simple_binary_main<GC::TinierSecret<gf2n_short>>(argc, argv, 1000);
 }

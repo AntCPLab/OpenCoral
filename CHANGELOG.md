@@ -1,5 +1,14 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.2.4 (Apr 19, 2021)
+
+- ARM support
+- Base OTs optionally without SimpleOT/AVX
+- Use OpenSSL instead of Crypto++ for elliptic curves
+- Post-sacrifice binary computation with replicated secret sharing similar
+  to [Araki et al.](https://www.ieee-security.org/TC/SP2017/papers/96.pdf)
+- More flexible multithreading
+
 ## 0.2.3 (Feb 23, 2021)
 
 - Distributed key generation for homomorphic encryption with active security similar to [Rotaru et al.](https://eprint.iacr.org/2019/1300)

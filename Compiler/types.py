@@ -21,7 +21,13 @@ Basic types
 -----------
 
 Basic types contain many special methods such as :py:func:`__add__`. This is
-used for operator overloading in Python. In some operations such as
+used for operator overloading in Python. It is not recommend to use
+them, use the plain operators instead, such as ``+`` instead of
+:py:func:`__add__`. See
+https://docs.python.org/3/reference/datamodel.html#special-method-names
+for a translation to operators.
+
+In some operations such as
 secure comparison, the secure computation protocols allows for more
 parameters than just the operands which influence the performance. In
 this case, we provide an alias for better code readability. For
@@ -780,7 +786,12 @@ class cint(_clear, _int):
 
     @vectorized_classmethod
     def read_from_socket(cls, client_id, n=1):
-        """ Read a list of clear values from socket. """
+        """ Receive clear value(s) from client.
+
+        :param client_id: Client id (regint)
+        :param n: number of values (default 1)
+        :returns: cint (if n=1) or list of cint
+        """
         res = [cls() for i in range(n)]
         readsocketc(client_id, *res)
         if n == 1:
@@ -790,7 +801,11 @@ class cint(_clear, _int):
 
     @vectorized_classmethod
     def write_to_socket(self, client_id, values, message_type=ClientMessageType.NoType):
-        """ Send a list of clear values to socket """
+        """ Send a list of clear values to a client.
+
+        :param client_id: Client id (regint)
+        :param values: list of cint
+        """
         writesocketc(client_id, message_type, *values)
 
     @vectorized_classmethod
@@ -1207,7 +1222,12 @@ class regint(_register, _int):
 
     @vectorized_classmethod
     def read_from_socket(cls, client_id, n=1):
-        """ Receive n register values from socket """
+        """ Receive clear integer value(s) from client.
+
+        :param client_id: Client id (regint)
+        :param n: number of values (default 1)
+        :returns: regint (if n=1) or list of regint
+        """
         res = [cls() for i in range(n)]
         readsocketint(client_id, *res)
         if n == 1:
@@ -1217,7 +1237,11 @@ class regint(_register, _int):
 
     @vectorized_classmethod
     def write_to_socket(self, client_id, values, message_type=ClientMessageType.NoType):
-        """ Send a list of integers to socket """
+        """ Send a list of clear integers to a client.
+
+        :param client_id: Client id (regint)
+        :param values: list of regint
+        """
         writesocketint(client_id, message_type, *values)
 
     @vectorize_init
@@ -1805,6 +1829,14 @@ class sint(_secret, _int):
     PreOR = staticmethod(floatingpoint.PreOR)
     get_type = staticmethod(lambda n: sint)
 
+    @staticmethod
+    def require_bit_length(n_bits):
+        if program.options.ring:
+            if int(program.options.ring) < n_bits:
+                raise CompilerError('computation modulus too small')
+        else:
+            program.curr_tape.require_bit_length(n_bits)
+
     @vectorized_classmethod
     def get_random_int(cls, bits):
         """ Secret random n-bit number according to security model.
@@ -1906,7 +1938,12 @@ class sint(_secret, _int):
 
     @vectorized_classmethod
     def read_from_socket(cls, client_id, n=1):
-        """ Receive n shares and MAC shares from socket """
+        """ Receive secret-shared value(s) from client.
+
+        :param client_id: Client id (regint)
+        :param n: number of values (default 1)
+        :returns: sint (if n=1) or list of sint
+        """
         res = [cls() for i in range(n)]
         readsockets(client_id, *res)
         if n == 1:
@@ -1914,27 +1951,46 @@ class sint(_secret, _int):
         else:
             return res
 
-    @vectorized_classmethod
-    def write_to_socket(self, client_id, values, message_type=ClientMessageType.NoType):
-        """ Send a list of shares and MAC shares to socket """
-        writesockets(client_id, message_type, *values)
-
     @vectorize
     def write_share_to_socket(self, client_id, message_type=ClientMessageType.NoType):
         """ Send only share to socket """
         writesocketshare(client_id, message_type, self)
 
     @vectorized_classmethod
-    def write_shares_to_socket(cls, client_id, values, message_type=ClientMessageType.NoType, include_macs=False):
+    def write_shares_to_socket(cls, client_id, values,
+                               message_type=ClientMessageType.NoType):
         """ Send shares of a list of values to a specified client socket.
 
         :param client_id: regint
         :param values: list of sint
         """
-        if include_macs:
-            writesockets(client_id, message_type, *values)
-        else:
-            writesocketshare(client_id, message_type, *values)
+        writesocketshare(client_id, message_type, *values)
+
+    @classmethod
+    def read_from_file(cls, start, n_items):
+        """ Read shares from ``Persistence/Transactions-P<playerno>.data``.
+
+        :param start: starting position in number of shares from beginning (int/regint/cint)
+        :param n_items: number of items (int)
+        :returns: destination for final position, -1 for eof reached, or -2 for file not found (regint)
+        :returns: list of shares
+        """
+        shares = [cls(size=1) for i in range(n_items)]
+        stop = regint()
+        readsharesfromfile(regint.conv(start), stop, *shares)
+        return stop, shares
+
+    @staticmethod
+    def write_to_file(shares):
+        """ Write shares to ``Persistence/Transactions-P<playerno>.data``
+        (appending at the end).
+
+        :param: shares (list or iterable of sint)
+        """
+        for share in shares:
+            assert isinstance(share, sint)
+            assert share.size == 1
+        writesharestofile(*shares)
 
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
@@ -2920,8 +2976,14 @@ class cfix(_number, _structure):
 
     @vectorized_classmethod
     def read_from_socket(cls, client_id, n=1):
-        """ Read one or more cfix values from a socket. 
-            Sender will have already bit shifted and sent as cints."""
+        """
+        Receive clear fixed-point value(s) from client. The client needs
+        to convert the values to the right integer representation.
+
+        :param client_id: Client id (regint)
+        :param n: number of values (default 1)
+        :returns: cfix (if n=1) or list of cfix
+        """
         cint_input = cint.read_from_socket(client_id, n)
         if n == 1:
             return cfix._new(cint_inputs)
@@ -2930,7 +2992,12 @@ class cfix(_number, _structure):
         
     @vectorized_classmethod
     def write_to_socket(self, client_id, values, message_type=ClientMessageType.NoType):
-        """ Send a list of cfix values to socket. Values are sent as bit shifted cints. """
+        """ Send a list of clear fixed-point values to a client
+        (represented as clear integers).
+
+        :param client_id: Client id (regint)
+        :param values: list of cint
+        """
         def cfix_to_cint(fix_val):
             return cint(fix_val.v)
         cint_values = list(map(cfix_to_cint, values))
@@ -3182,15 +3249,8 @@ class cfix(_number, _structure):
 
     def print_plain(self):
         """ Clear fixed-point output. """
-        if self.k > 64:
-            sign = 1 - (((self.v + (1 << (self.k - 1))) >> (self.k - 1)) & 1)
-        else:
-            tmp = regint()
-            convmodp(tmp, self.v, bitlength=self.k)
-            sign = cint(tmp < 0)
-        abs_v = sign.if_else(-self.v, self.v)
-        print_float_plain(cint(abs_v), cint(-self.f), \
-                          cint(0), cint(sign), cint(0))
+        print_float_plain(cint.conv(self.v), cint(-self.f), \
+                          cint(0), cint(0), cint(0))
 
     def output_if(self, cond):
         cond_print_plain(cond, self.v, cint(-self.f))
@@ -3206,8 +3266,14 @@ class _single(_number, _structure):
 
     @classmethod
     def receive_from_client(cls, n, client_id, message_type=ClientMessageType.NoType):
-        """ Securely obtain shares of n values input by a client.
-            Assumes client has already run bit shift to convert fixed point to integer."""
+        """
+        Securely obtain shares of values input by a client. Assumes client
+        has already converted values to integer representation.
+
+        :param n: number of inputs (int)
+        :param client_id: regint
+
+        """
         sint_inputs = cls.int_type.receive_from_client(n, client_id, ClientMessageType.TripleShares)
         return list(map(cls, sint_inputs))
 
@@ -3574,6 +3640,7 @@ class sfix(_fix):
         """ Secret fixed-point input.
 
         :param player: public (regint/cint/int) """
+        cls.int_type.require_bit_length(cls.k)
         v = cls.int_type()
         inputmixed('fix', v, cls.f, player)
         return cls._new(v)
@@ -4486,7 +4553,7 @@ class Array(object):
                 raise CompilerError('cannot assign vector to all elements')
         mem_value = MemValue(value)
         self.address = MemValue.if_necessary(self.address)
-        n_threads = 8 if use_threads and len(self) > 2**20 else 1
+        n_threads = 8 if use_threads and len(self) > 2**20 else None
         @library.for_range_multithread(n_threads, 1024, len(self))
         def f(i):
             self[i] = mem_value

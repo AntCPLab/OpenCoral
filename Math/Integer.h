@@ -143,19 +143,6 @@ class Integer : public IntBase<long>
   friend unsigned int& operator+=(unsigned int& x, const Integer& other) { return x += other.a; }
 
   long operator-() const { return -a; }
-
-  void add(const Integer& x, const Integer& y) { *this = x + y; }
-  void sub(const Integer& x, const Integer& y) { *this = x - y; }
-  void mul(const Integer& x, const Integer& y) { *this = x * y; }
-
-  void mul(const Integer& x) { *this = *this * x; }
-
-  void AND(const Integer& x, const Integer& y) { *this = x & y; }
-  void OR(const Integer& x, const Integer& y) { *this = x | y; }
-  void XOR(const Integer& x, const Integer& y) { *this = x ^ y; }
-  void SHL(const Integer& x, const Integer& y) { *this = x << y; }
-  // unsigned shift for Mod2m
-  void SHR(const Integer& x, const Integer& y) { *this = (unsigned long)x.a >> y.a; }
 };
 
 inline string to_string(const Integer& x)

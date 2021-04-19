@@ -101,15 +101,6 @@ public:
         T::assign(buffer);
     }
 
-    void add(const ShamirShare& x, const ShamirShare& y)
-    {
-        *this = x + y;
-    }
-    void sub(const ShamirShare& x, const ShamirShare& y)
-    {
-        *this = x - y;
-    }
-
     void add(const ShamirShare& S, const clear aa, int my_num,
             const T& alphai)
     {

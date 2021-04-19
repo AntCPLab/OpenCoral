@@ -19,6 +19,12 @@ ShuffleSacrifice::ShuffleSacrifice() :
 {
 }
 
+inline
+ShuffleSacrifice::ShuffleSacrifice(int B, int C) :
+        B(B), C(C)
+{
+}
+
 template<class T>
 void TripleShuffleSacrifice<T>::triple_combine(vector<array<T, 3> >& triples,
         vector<array<T, 3> >& to_combine, Player& P,

@@ -34,6 +34,8 @@ template<class W>
 template<class T, class U>
 int OfflineMachine<W>::run()
 {
+    T::clear::init_default(this->online_opts.prime_length());
+    U::clear::init_field(U::clear::default_degree());
     T::bit_type::mac_key_type::init_field();
     auto binary_mac_key = read_generate_write_mac_key<typename T::bit_type>(P);
     GC::ShareThread<typename T::bit_type> thread(playerNames,
@@ -52,7 +54,6 @@ template<class W>
 template<class T>
 void OfflineMachine<W>::generate()
 {
-    T::clear::init_default(this->online_opts.prime_length());
     T::clear::next::template init<typename T::clear>(false);
     T::clear::template write_setup<T>(P.num_players());
     auto mac_key = read_generate_write_mac_key<T>(P);

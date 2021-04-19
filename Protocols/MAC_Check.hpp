@@ -391,25 +391,6 @@ void Direct_MAC_Check<T>::exchange(const Player& P)
 }
 
 template<class T>
-Passing_MAC_Check<T>::Passing_MAC_Check(const typename T::mac_key_type::Scalar& ai) :
-    Direct_MAC_Check<T>(ai)
-{
-}
-
-template<class T>
-void passing_add_openings(vector<T>& values, octetStream& os)
-{
-  octetStream new_os;
-  for (unsigned int i=0; i<values.size(); i++)
-    {
-      T tmp;
-      tmp.unpack(os);
-      (tmp + values[i]).pack(new_os);
-    }
-  os = new_os;
-}
-
-template<class T>
 void Direct_MAC_Check<T>::init_open(const Player& P, int n)
 {
   super::init_open(P, n);
@@ -420,22 +401,6 @@ void Direct_MAC_Check<T>::prepare_open(const T& secret)
 {
   this->values.push_back(secret.get_share());
   this->macs.push_back(secret.get_mac());
-}
-
-template<class T>
-void Passing_MAC_Check<T>::exchange(const Player& P)
-{
-  this->pre_exchange(P);
-  for (int i = 0; i < P.num_players() - 1; i++)
-    {
-      P.pass_around(this->os);
-      passing_add_openings(this->values, this->os);
-    }
-  for (auto& x : this->values)
-    x.unpack(this->os);
-  this->AddToValues(this->values);
-  this->popen_cnt += this->values.size();
-  this->CheckIfNeeded(P);
 }
 
 #endif

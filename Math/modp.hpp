@@ -253,7 +253,7 @@ void Inv(modp_<L>& ans,const modp_<L>& x,const Zp_Data& ZpD)
   else
     { for (int i=sz; i<ZpD.t; i++) { ans.x[i]=0; } }
   if (ZpD.montgomery)
-    { ZpD.Mont_Mult(ans.x,ans.x,ZpD.R3); }
+    { ZpD.Mont_Mult_max(ans.x,ans.x,ZpD.R3,L); }
 }
 
 

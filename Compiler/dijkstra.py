@@ -103,7 +103,7 @@ class HeapQ(object):
         childpos = MemValue(start * shift)
         @for_range(self.levels - 1)
         def f(i):
-            parentpos = childpos.right_shift(1, self.levels)
+            parentpos = childpos.right_shift(1, self.levels + 1)
             parent, parent_state = self.heap.read_and_maybe_remove(parentpos)
             child, child_state = self.heap.read_and_maybe_remove(childpos)
             swap = parent > child

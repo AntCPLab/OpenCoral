@@ -118,7 +118,6 @@ class Program(object):
         self.req_num = None
         self.tape_stack = []
         self.n_threads = 1
-        self.free_threads = set()
         self.public_input_file = None
         self.types = {}
         self.budget = int(self.options.budget)
@@ -206,6 +205,28 @@ class Program(object):
         self.progname = progname
 
     def new_tape(self, function, args=[], name=None, single_thread=False):
+        """
+        Create a new tape from a function. See
+        :py:func:`~Compiler.library.multithread` and
+        :py:func:`~Compiler.library.for_range_opt_multithread` for
+        easier-to-use higher-level functionality. The following runs
+        two threads defined by two different functions::
+
+            def f():
+                ...
+            def g():
+                ...
+            tapes = [program.new_tape(x) for x in (f, g)]
+            thread_numbers = program.run_tapes(tapes)
+            program.join_tapes(threads_numbers)
+
+        :param function: Python function defining the thread
+        :param args: arguments to the function
+        :param name: name used for files
+        :param single_thread: Boolean indicating whether tape will never be run in parallel to itself
+        :returns: tape handle
+
+        """
         if name is None:
             name = function.__name__
         name = "%s-%s" % (self.name, name)
@@ -214,7 +235,7 @@ class Program(object):
         tape_index = len(self.tapes)
         self.tape_stack.append(self.curr_tape)
         self.curr_tape = Tape(name, self)
-        self.curr_tape.prevent_direct_memory_write = not single_thread
+        self.curr_tape.singular = single_thread
         self.tapes.append(self.curr_tape)
         function(*args)
         self.finalize_tape(self.curr_tape)
@@ -226,14 +247,31 @@ class Program(object):
         return self.run_tapes([[tape_index, arg]])[0]
 
     def run_tapes(self, args):
-        if self.curr_tape is not self.tapes[0]:
+        """ Run tapes in parallel. See :py:func:`new_tape` for an example.
+
+        :param args: list of tape handles or tuples of tape handle and extra argument (for :py:func:`~Compiler.library.get_arg`)
+        :returns: list of thread numbers
+        """
+        if not self.curr_tape.singular:
             raise CompilerError('Compiler does not support ' \
                                     'recursive spawning of threads')
+        args = [list(util.tuplify(arg)) for arg in args]
+        singular_tapes = set()
+        for arg in args:
+            if self.tapes[arg[0]].singular:
+                if arg[0] in singular_tapes:
+                    raise CompilerError('cannot run singular tape in parallel')
+                singular_tapes.add(arg[0])
+            assert len(arg)
+            assert len(arg) <= 2
+            if len(arg) == 1:
+                arg += [0]
         thread_numbers = []
         while len(thread_numbers) < len(args):
-            if self.free_threads:
-                thread_numbers.append(min(self.free_threads))
-                self.free_threads.remove(thread_numbers[-1])
+            free_threads = self.curr_tape.free_threads
+            if free_threads:
+                thread_numbers.append(min(free_threads))
+                free_threads.remove(thread_numbers[-1])
             else:
                 thread_numbers.append(self.n_threads)
                 self.n_threads += 1
@@ -247,10 +285,18 @@ class Program(object):
         return thread_numbers
 
     def join_tape(self, thread_number):
+        self.join_tapes([thread_number])
+
+    def join_tapes(self, thread_numbers):
+        """ Wait for completion of tapes.  See :py:func:`new_tape` for an example.
+
+        :param thread_numbers: list of thread numbers
+        """
         self.curr_tape.start_new_basicblock(name='pre-join_tape')
-        Compiler.instructions.join_tape(thread_number)
+        for thread_number in thread_numbers:
+            Compiler.instructions.join_tape(thread_number)
+            self.curr_tape.free_threads.add(thread_number)
         self.curr_tape.start_new_basicblock(name='post-join_tape')
-        self.free_threads.add(thread_number)
 
     def update_req(self, tape):
         if self.req_num is None:
@@ -259,6 +305,7 @@ class Program(object):
             self.req_num += tape.req_num
     
     def write_bytes(self):
+
         """ Write all non-empty threads and schedule to files. """
 
         nonempty_tapes = [t for t in self.tapes]
@@ -312,7 +359,7 @@ class Program(object):
         """ Allocate memory from the top """
         if not isinstance(size, int):
             raise CompilerError('size must be known at compile time')
-        if (creator_tape or self.curr_tape) != self.tapes[0]:
+        if not (creator_tape or self.curr_tape).singular:
             raise CompilerError('cannot allocate memory outside main thread')
         if size == 0:
             return
@@ -510,7 +557,8 @@ class Tape:
         self.req_bit_length = defaultdict(lambda: 0)
         self.function_basicblocks = {}
         self.functions = []
-        self.prevent_direct_memory_write = False
+        self.singular = True
+        self.free_threads = set()
 
     class BasicBlock(object):
         def __init__(self, parent, name, scope, exit_condition=None):

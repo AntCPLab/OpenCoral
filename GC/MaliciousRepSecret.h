@@ -52,45 +52,58 @@ public:
     }
 };
 
-class MaliciousRepSecret : public ReplicatedSecret<MaliciousRepSecret>
+template<class U>
+class MalRepSecretBase : public ReplicatedSecret<U>
 {
-    typedef ReplicatedSecret<MaliciousRepSecret> super;
+    typedef ReplicatedSecret<U> super;
 
 public:
-    typedef Memory<MaliciousRepSecret> DynamicMemory;
+    typedef Memory<U> DynamicMemory;
 
-    typedef MaliciousRepMC<MaliciousRepSecret> MC;
+    typedef MaliciousRepMC<U> MC;
     typedef MC MAC_Check;
 
-    typedef Beaver<MaliciousRepSecret> Protocol;
-    typedef ReplicatedInput<MaliciousRepSecret> Input;
-    typedef RepPrep<MaliciousRepSecret> LivePrep;
+    typedef ReplicatedInput<U> Input;
+    typedef RepPrep<U> LivePrep;
 
-    typedef MaliciousRepSecret part_type;
-    typedef MaliciousRepSecret whole_type;
-
-    typedef SmallMalRepSecret small_type;
+    typedef U part_type;
+    typedef U whole_type;
 
     static const bool expensive_triples = true;
 
-    static MC* new_mc(mac_key_type)
+    static MC* new_mc(BitVec)
     {
         try
         {
-            if (ThreadMaster<MaliciousRepSecret>::s().machine.more_comm_less_comp)
-                return new CommMaliciousRepMC<MaliciousRepSecret>;
+            if (ThreadMaster<U>::s().machine.more_comm_less_comp)
+                return new CommMaliciousRepMC<U>;
         }
         catch(no_singleton& e)
         {
         }
-        return new HashMaliciousRepMC<MaliciousRepSecret>;
+        return new HashMaliciousRepMC<U>;
     }
 
-    static MaliciousRepSecret constant(const BitVec& other, int my_num, const BitVec& alphai)
+    static U constant(const BitVec& other, int my_num, const BitVec& alphai)
     {
         (void) my_num, (void) alphai;
         return other;
     }
+
+    MalRepSecretBase() {}
+    template<class T>
+    MalRepSecretBase(const T& other) : super(other) {}
+};
+
+class MaliciousRepSecret : public MalRepSecretBase<MaliciousRepSecret>
+{
+    typedef MaliciousRepSecret This;
+    typedef MalRepSecretBase<This> super;
+
+public:
+    typedef Beaver<MaliciousRepSecret> Protocol;
+
+    typedef SmallMalRepSecret small_type;
 
     MaliciousRepSecret() {}
     template<class T>

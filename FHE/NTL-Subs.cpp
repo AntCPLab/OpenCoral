@@ -516,7 +516,9 @@ void init(P2Data& P2D,const Ring& Rg)
   
   imatrix A;
   A.resize(Rg.phi_m(), imatrix::value_type(Gord*gf2n_short::degree()));
-  P2D.A.resize(A[0].size(), imatrix::value_type(A.size()));
+  P2D.A.resize(A[0].size());
+  for (auto& x : P2D.A)
+    x.resize(A.size());
   for (int slot=0; slot<Gord; slot++)
     { for (int co=0; co<gf2n_short::degree(); co++)
         { // Work out how x^co in given slot maps to plaintext vector

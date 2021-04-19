@@ -58,16 +58,6 @@ public:
     {
     }
 
-    void add(T a, T b, int = 0, T = {})
-    {
-        *this = a + b;
-    }
-
-    void sub(T a, T b, int = 0, T = {})
-    {
-        *this = a - b;
-    }
-
     static void split(vector<bit_type>& dest, const vector<int>& regs,
             int n_bits, const This* source, int n_inputs,
             GC::FakeSecret::Protocol& protocol);

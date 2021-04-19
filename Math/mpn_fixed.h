@@ -9,10 +9,10 @@
 #include <mpir.h>
 #include <string.h>
 #include <assert.h>
-#include <x86intrin.h>
 
 #include "Tools/avx_memcpy.h"
 #include "Tools/cpu_support.h"
+#include "Tools/intrinsics.h"
 
 inline void inline_mpn_zero(mp_limb_t* x, mp_size_t size)
 {
@@ -50,6 +50,7 @@ inline void mpn_add_fixed_n<1>(mp_limb_t* res, const mp_limb_t* x, const mp_limb
     *res = *x + *y;
 }
 
+#ifdef __x86_64__
 template <>
 inline void mpn_add_fixed_n<2>(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y)
 {
@@ -91,6 +92,7 @@ inline void mpn_add_fixed_n<4>(mp_limb_t* res, const mp_limb_t* x, const mp_limb
             : "cc"
     );
 }
+#endif
 
 #ifdef __clang__
 inline char clang_add_carry(char carryin, unsigned long x, unsigned long y, unsigned long& res)
@@ -133,16 +135,15 @@ mp_limb_t mpn_add_fixed_n_with_carry(mp_limb_t* res, const mp_limb_t* x, const m
 
 inline mp_limb_t mpn_sub_n_borrow(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y, int n)
 {
-#ifndef __clang__
-#if __GNUC__ < 7
+#if !defined(__clang__) || (__GNUC__ < 7) || !defined(__x86_64__)
     // GCC 6 can't handle the code below
     return mpn_sub_n(res, x, y, n);
-#endif
-#endif
+#else
     char borrow = 0;
     for (int i = 0; i < n; i++)
         borrow = _subborrow_u64(borrow, x[i], y[i], (unsigned long long*)&res[i]);
     return borrow;
+#endif
 }
 
 template <int N>
@@ -163,6 +164,7 @@ inline void mpn_sub_fixed_n<1>(mp_limb_t* res, const mp_limb_t* x, const mp_limb
     *res = *x - *y;
 }
 
+#ifdef __x86_64__
 template <>
 inline mp_limb_t mpn_sub_fixed_n_borrow<1>(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y)
 {
@@ -235,6 +237,7 @@ inline void mpn_sub_fixed_n<4>(mp_limb_t* res, const mp_limb_t* x, const mp_limb
             : "cc"
     );
 }
+#endif
 
 inline void mpn_add_n_use_fixed(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y, mp_size_t n)
 {
@@ -260,8 +263,8 @@ template <int L, int M, bool ADD>
 inline void mpn_addmul_1_fixed__(mp_limb_t* res, const mp_limb_t* y, mp_limb_t x)
 {
     mp_limb_t lower[L], higher[L];
-    lower[L - 1] = 0;
-    higher[L - 1] = 0;
+    inline_mpn_zero(higher + M, L - M);
+    inline_mpn_zero(lower + M, L - M);
     for (int j = 0; j < M; j++)
         lower[j] = _mulx_u64(x, y[j], (long long unsigned*)higher + j);
     if (ADD)

@@ -9,23 +9,12 @@ using namespace std;
 
 void error(const char *str)
 {
+  int old_errno = errno;
   char err[1000];
   gethostname(err,1000);
   strcat(err," : ");
   strcat(err,str);
-  perror(err);
-  throw bad_value();
-}
-
-void error(const char *str1,const char *str2)
-{
-  char err[1000];
-  gethostname(err,1000);
-  strcat(err," : ");
-  strcat(err,str1);
-  strcat(err,str2);
-  perror(err);
-  throw bad_value();
+  throw runtime_error(string() + err + " : " + strerror(old_errno));
 }
 
 void set_up_client_socket(int& mysocket,const char* hostname,int Portnum)
@@ -35,7 +24,7 @@ void set_up_client_socket(int& mysocket,const char* hostname,int Portnum)
    hints.ai_family = AF_INET;
    hints.ai_flags = AI_CANONNAME;
 
-   octet my_name[512];
+   char my_name[512];
    memset(my_name,0,512*sizeof(octet));
    gethostname((char*)my_name,512);
 
@@ -88,36 +77,39 @@ void set_up_client_socket(int& mysocket,const char* hostname,int Portnum)
    int attempts = 0;
    long wait = 1;
    int fl;
+   int connect_errno;
    do
-   {  fl=1;
-      while (fl==1 || errno==EINPROGRESS)
-        {
-          mysocket = socket(AF_INET, SOCK_STREAM, 0);
-          if (mysocket < 0)
-            error("set_up_socket:socket");
+   {
+       mysocket = socket(AF_INET, SOCK_STREAM, 0);
+       if (mysocket < 0)
+         error("set_up_socket:socket");
 
-          fl=connect(mysocket, addr, len);
-          attempts++;
-          if (fl != 0)
-            {
-              close(mysocket);
-              usleep(wait *= 2);
+       fl = connect(mysocket, addr, len);
+       connect_errno = errno;
+       attempts++;
+       if (fl != 0)
+         {
+           close(mysocket);
+           usleep(wait *= 2);
 #ifdef DEBUG_NETWORKING
-              string msg = "Connecting to " + string(hostname) + ":" +
-                  to_string(Portnum) + " failed";
-              perror(msg.c_str());
+           string msg = "Connecting to " + string(hostname) + ":" +
+               to_string(Portnum) + " failed";
+           errno = connect_errno;
+           perror(msg.c_str());
 #endif
-            }
-        }
+         }
+       errno = connect_errno;
    }
-   while (fl == -1 && (errno == ECONNREFUSED || errno == ETIMEDOUT)
-            && timer.elapsed() < 60);
+   while (fl == -1
+       && (errno == ECONNREFUSED || errno == ETIMEDOUT || errno == EINPROGRESS)
+       && timer.elapsed() < 60);
 
    if (fl < 0)
      {
-       cout << attempts << " attempts to " << hostname << ":" << Portnum
-           << endl;
-       error("set_up_socket:connect:", hostname);
+       throw runtime_error(
+           string() + "cannot connect from " + my_name + " to " + hostname + ":"
+               + to_string(Portnum) + " after " + to_string(attempts)
+               + " attempts in one minute because " + strerror(connect_errno));
      }
 
    freeaddrinfo(ai);
@@ -126,9 +118,6 @@ void set_up_client_socket(int& mysocket,const char* hostname,int Portnum)
   int one=1;
   fl= setsockopt(mysocket, IPPROTO_TCP, TCP_NODELAY, (char*)&one, sizeof(int));
   if (fl<0) { error("set_up_socket:setsockopt");  }
-
-  fl=setsockopt(mysocket, SOL_SOCKET, SO_REUSEADDR, (char*)&one, sizeof(int));
-  if (fl<0) { error("set_up_socket:setsockopt"); }
 
 #ifdef __APPLE__
   int flags = fcntl(mysocket, F_GETFL, 0);
@@ -147,5 +136,3 @@ void close_client_socket(int socket)
       error(tmp);
     }
 }
-
-unsigned long long sent_amount = 0, sent_counter = 0;

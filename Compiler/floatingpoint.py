@@ -1,3 +1,4 @@
+import math
 from math import log, floor, ceil
 from Compiler.instructions import *
 from . import types
@@ -411,6 +412,8 @@ def TruncInRing(to_shift, l, pow2m):
     return types.sint.bit_compose(reversed(bits))
 
 def SplitInRing(a, l, m):
+    if l == 1:
+        return m.if_else(a, 0), m.if_else(0, a), 1
     pow2m = Pow2(m, l, None)
     upper = TruncInRing(a, l, pow2m)
     lower = a - upper * pow2m
@@ -620,27 +623,36 @@ def BITLT(a, b, bit_length):
 def BitDecFull(a):
     from .library import get_program, do_while, if_, break_point
     from .types import sint, regint, longint
-    p=int(get_program().options.prime)
+    p = get_program().prime
     assert p
     bit_length = p.bit_length()
-    bbits = [sint(size=a.size) for i in range(bit_length)]
-    tbits = [[sint(size=1) for i in range(bit_length)] for j in range(a.size)]
-    pbits = util.bit_decompose(p)
-    # Loop until we get some random integers less than p
-    done = [regint(0) for i in range(a.size)]
-    @do_while
-    def get_bits_loop():
+    logp = int(round(math.log(p, 2)))
+    if abs(p - 2 ** logp) / p < 2 ** -get_program().security:
+        # inspired by Rabbit (https://eprint.iacr.org/2021/119)
+        # no need for exact randomness generation
+        # if modulo a power of two is close enough
+        bbits = [sint.get_random_bit(size=a.size) for i in range(logp)]
+        if logp != bit_length:
+            bbits += [sint(0, size=a.size)]
+    else:
+        bbits = [sint(size=a.size) for i in range(bit_length)]
+        tbits = [[sint(size=1) for i in range(bit_length)] for j in range(a.size)]
+        pbits = util.bit_decompose(p)
+        # Loop until we get some random integers less than p
+        done = [regint(0) for i in range(a.size)]
+        @do_while
+        def get_bits_loop():
+            for j in range(a.size):
+                @if_(done[j] == 0)
+                def _():
+                    for i in range(bit_length):
+                        tbits[j][i].link(sint.get_random_bit())
+                    c = regint(BITLT(tbits[j], pbits, bit_length).reveal())
+                    done[j].link(c)
+            return (sum(done) != a.size)
         for j in range(a.size):
-            @if_(done[j] == 0)
-            def _():
-                for i in range(bit_length):
-                    tbits[j][i].link(sint.get_random_bit())
-                c = regint(BITLT(tbits[j], pbits, bit_length).reveal())
-                done[j].link(c)
-        return (sum(done) != a.size)
-    for j in range(a.size):
-        for i in range(bit_length):
-            movs(bbits[i][j], tbits[j][i])
+            for i in range(bit_length):
+                movs(bbits[i][j], tbits[j][i])
     b = sint.bit_compose(bbits)
     c = (a-b).reveal()
     t = (p-c).bit_decompose(bit_length)

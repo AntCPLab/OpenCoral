@@ -18,5 +18,7 @@
 int main(int argc, const char** argv)
 {
     gf2n_short::init_field(40);
-    GC::ShareParty<GC::MaliciousCcdSecret<gf2n_short>>(argc, argv);
+    ez::ezOptionParser opt;
+    ShamirOptions::singleton = {opt, argc, argv};
+    GC::ShareParty<GC::MaliciousCcdSecret<gf2n_short>>(argc, argv, opt);
 }

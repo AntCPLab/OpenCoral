@@ -11,7 +11,7 @@
 template<int L>
 class fixint : public SignedZ2<64 * (L + 1)>
 {
-    static const int OVERFLOW = 60;
+    static const int N_OVERFLOW = 60;
 
 public:
     typedef SignedZ2<64 * (L + 1)> super;
@@ -24,7 +24,7 @@ public:
     fixint(const T& other) :
             super(other)
     {
-        auto check = mp_limb_signed_t(this->a[this->N_WORDS - 1]) >> OVERFLOW;
+        auto check = mp_limb_signed_t(this->a[this->N_WORDS - 1]) >> N_OVERFLOW;
         assert(check == 0 or check == -1);
     }
 
@@ -70,10 +70,10 @@ public:
     void allocate_slots(const T& limit)
     {
         int n_bits = this->size_in_bits();
-        if (numBits(limit) - OVERFLOW > n_bits)
+        if (numBits(limit) - N_OVERFLOW > n_bits)
         {
-        cerr << "cannot hold " << numBits(limit) << " bits, " << n_bits
-                << " available" << endl;
+            cerr << "maybe change N_LIMBS_RAND to at least "
+                    << ((numBits(limit) - N_OVERFLOW) / 64) << endl;
             throw runtime_error("fixed-length integer too small");
         }
     }

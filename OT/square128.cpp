@@ -3,13 +3,12 @@
  *
  */
 
-#include <smmintrin.h>
-#include <immintrin.h>
 #include <mpirxx.h>
 
 #include "BitMatrix.h"
 #include "Tools/random.h"
 #include "Tools/BitVector.h"
+#include "Tools/intrinsics.h"
 #include "Math/Square.h"
 
 union matrix16x8

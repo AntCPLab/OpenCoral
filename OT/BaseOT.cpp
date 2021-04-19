@@ -7,10 +7,18 @@
 #include <fstream>
 #include <pthread.h>
 
+#ifndef NO_AVX_OT
 extern "C" {
 #include "SimpleOT/ot_sender.h"
 #include "SimpleOT/ot_receiver.h"
 }
+#endif
+
+#include "ECDSA/P256Element.h"
+
+#ifdef USE_RISTRETTO
+#include "ECDSA/CurveElement.h"
+#endif
 
 using namespace std;
 
@@ -70,7 +78,57 @@ void send_if_ot_receiver(TwoPartyPlayer* P, vector<octetStream>& os, OT_ROLE rol
 
 void BaseOT::exec_base(bool new_receiver_inputs)
 {
-    if (not cpu_has_avx())
+#ifdef NO_AVX_OT
+#ifdef USE_RISTRETTO
+    typedef CurveElement Element;
+#else
+    typedef P256Element Element;
+#endif
+
+    Element::init();
+
+    vector<Element::Scalar> as, bs;
+    vector<Element> As;
+    SeededPRNG G;
+    vector<octetStream> os(2);
+
+    if (ot_role & SENDER)
+        for (int i = 0; i < nOT; i++)
+        {
+            as.push_back(G.get<Element::Scalar>());
+            As.push_back(as.back());
+            As.back().pack(os[0]);
+        }
+
+    send_if_ot_sender(P, os, ot_role);
+    os[0].reset_write_head();
+
+    if (ot_role & RECEIVER)
+        for (int i = 0; i < nOT; i++)
+        {
+            if (new_receiver_inputs)
+                receiver_inputs[i] = G.get_bit();
+            auto b = G.get<Element::Scalar>();
+            Element B = b;
+            auto A = os[1].get<Element>();
+            if (receiver_inputs[i])
+                B += A;
+            B.pack(os[0]);
+            receiver_outputs[i] = (A * b).hash(AES_BLK_SIZE);
+        }
+
+    send_if_ot_receiver(P, os, ot_role);
+
+    if (ot_role & SENDER)
+        for (int i = 0; i < nOT; i++)
+        {
+            auto B = os[1].get<Element>();
+            sender_inputs.at(i).at(0) = (B * as[i]).hash(AES_BLK_SIZE);
+            sender_inputs.at(i).at(1) = ((B - As[i]) * as[i]).hash(AES_BLK_SIZE);
+        }
+
+#else
+    if (not cpu_has_avx(true))
         throw runtime_error("SimpleOT needs AVX support");
 
     int i, j, k;
@@ -179,6 +237,7 @@ void BaseOT::exec_base(bool new_receiver_inputs)
         printf("\n");
         #endif
     }
+#endif
 
     for (int i = 0; i < nOT; i++)
     {

@@ -284,7 +284,7 @@ class sbits(bits):
     Instances can be also be initalized from :py:obj:`~Compiler.types.regint`
     and :py:obj:`~Compiler.types.sint`.
     """
-    max_length = 128
+    max_length = 64
     reg_type = 'sb'
     is_clear = False
     clear_type = cbits

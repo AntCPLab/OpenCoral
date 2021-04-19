@@ -91,7 +91,11 @@ class intBlock(Block):
             for length,start in zip(self.lengths[:-1],series(self.lengths)):
                 res.append(remainder.mod2m(length, total_length - start, False))
                 remainder -= res[-1]
-                remainder /= floatingpoint.two_power(length)
+                if Program.prog.options.ring:
+                    remainder = remainder.trunc_zeros(length,
+                                                      total_length - start, False)
+                else:
+                    remainder /= floatingpoint.two_power(length)
             res.append(remainder)
             return res
     def set_slice(self, value):
@@ -1498,12 +1502,12 @@ class PackedIndexStructure(object):
             rem = mod2m(index, self.log_entries_per_block, log2(self.size), False)
             c = mod2m(rem, self.log_entries_per_element, \
                           self.log_entries_per_block, False)
-            b = (rem - c).trunc_zeros(self.log_entries_per_element,
+            b = trunc_zeros(rem - c, self.log_entries_per_element,
                                       self.log_entries_per_block)
             if self.small:
                 return 0, b, c
             else:
-                return (index - rem).trunc_zeros(self.log_entries_per_block,
+                return trunc_zeros(index - rem, self.log_entries_per_block,
                                                  log2(self.size)), b, c
         else:
             index_bits = bit_decompose(index, log2(self.size))

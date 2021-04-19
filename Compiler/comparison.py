@@ -190,6 +190,8 @@ def TruncLeakyInRing(a, k, m, signed):
     Returns a >> m.
     Requires a < 2^k and leaks a % 2^m (needs to be constant or random).
     """
+    if k == m:
+        return 0
     assert k > m
     assert int(program.options.ring) >= k
     from .types import sint, intbitint, cint, cgf2n

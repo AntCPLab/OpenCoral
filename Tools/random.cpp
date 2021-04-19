@@ -15,7 +15,7 @@ using namespace std;
 PRNG::PRNG() :
     cnt(0), n_cached_bits(0), cached_bits(0)
 {
-#ifdef __AES__
+#if defined(__AES__) || !defined(__x86_64__)
   #ifdef USE_AES
     useC=(Check_CPU_support_AES()==0);
   #endif

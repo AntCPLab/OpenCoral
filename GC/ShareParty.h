@@ -22,7 +22,7 @@ class ShareParty : public ThreadMaster<T>
 {
     static ShareParty<T>* singleton;
 
-    ez::ezOptionParser opt;
+    ez::ezOptionParser& opt;
     OnlineOptions online_opts;
 
 public:
@@ -30,7 +30,8 @@ public:
 
     typename T::mac_key_type mac_key;
 
-    ShareParty(int argc, const char** argv, int default_batch_size = 0);
+    ShareParty(int argc, const char** argv, ez::ezOptionParser& opt,
+            int default_batch_size = 0);
 
     Thread<T>* new_thread(int i);
 

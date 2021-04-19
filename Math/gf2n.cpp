@@ -2,12 +2,10 @@
 #include "Math/gf2n.h"
 #include "Math/Bit.h"
 
+#include "Tools/intrinsics.h"
 #include "Tools/Exceptions.h"
 
 #include <stdint.h>
-#include <wmmintrin.h>
-#include <xmmintrin.h>
-#include <emmintrin.h>
 
 const false_type ValueInterface::characteristic_two;
 const false_type ValueInterface::prime_field;
@@ -15,6 +13,9 @@ const false_type ValueInterface::invertible;
 
 const true_type gf2n_short::characteristic_two;
 const true_type gf2n_long::characteristic_two;
+
+const true_type gf2n_short::invertible;
+const true_type gf2n_long::invertible;
 
 int gf2n_short::n = 0;
 int gf2n_short::t1;

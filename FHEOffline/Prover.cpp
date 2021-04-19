@@ -15,13 +15,13 @@ Prover<FD,U>::Prover(Proof& proof, const FD& FieldD) :
   s.resize(proof.V, proof.pk->get_params());
   y.resize(proof.V, FieldD);
 #ifdef LESS_ALLOC_MORE_MEM
-  s.allocate_slots(bigint(1) << proof.B_rand_length);
-  y.allocate_slots(bigint(1) << proof.B_plain_length);
   t = s[0];
   z = y[0];
   // extra limb to prevent reallocation
   t.allocate_slots(bigint(1) << (proof.B_rand_length + 64));
   z.allocate_slots(bigint(1) << (proof.B_plain_length + 64));
+  s.allocate_slots(bigint(1) << proof.B_rand_length);
+  y.allocate_slots(bigint(1) << proof.B_plain_length);
 #endif
 }
 

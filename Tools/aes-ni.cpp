@@ -21,7 +21,7 @@ inline __m128i AES_128_ASSIST (__m128i temp1, __m128i temp2)
 
 void aes_128_schedule( octet* key, const octet* userkey )
 {
-#ifdef __AES__
+#if defined(__AES__) || !defined(__x86_64__)
   if (cpu_has_aes())
   {
     __m128i temp1, temp2;
@@ -64,7 +64,7 @@ void aes_128_schedule( octet* key, const octet* userkey )
     aes_128_schedule((uint*) key, userkey);
 }
 
-#ifdef __AES__
+#if defined(__AES__) || !defined(__x86_64__)
 inline void KEY_192_ASSIST(__m128i* temp1, __m128i * temp2, __m128i * temp3)
 { __m128i temp4;
   *temp2 = _mm_shuffle_epi32 (*temp2, 0x55);

@@ -26,7 +26,12 @@ VM = $(PROCESSOR) $(COMMON) GC/square64.o GC/Instruction.o OT/OTTripleSetup.o OT
 
 LIB = libSPDZ.a
 LIBRELEASE = librelease.a
+
+ifeq ($(AVX_OT), 0)
+LIBSIMPLEOT = ECDSA/P256Element.o
+else
 LIBSIMPLEOT = SimpleOT/libsimpleot.a
+endif
 
 # used for dependency generation
 OBJS = $(BMR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(YAO) $(COMPLETE) $(patsubst %.cpp,%.o,$(wildcard Machines/*.cpp Utils/*.cpp))
@@ -47,7 +52,6 @@ binary: rep-bin yao semi-bin-party.x tinier-party.x tiny-party.x ccd-party.x mal
 
 ifeq ($(USE_NTL),1)
 all: overdrive she-offline
-gear: cowgear-party.x chaigear-party.x lowgear-party.x highgear-party.x
 arithmetic: hemi-party.x soho-party.x gear
 endif
 
@@ -73,13 +77,14 @@ yao: yao-party.x
 
 she-offline: Check-Offline.x spdz2-offline.x
 
-overdrive: simple-offline.x pairwise-offline.x cnc-offline.x
+overdrive: simple-offline.x pairwise-offline.x cnc-offline.x gear
+gear: cowgear-party.x chaigear-party.x lowgear-party.x highgear-party.x
 
 rep-field: malicious-rep-field-party.x replicated-field-party.x ps-rep-field-party.x
 
 rep-ring: replicated-ring-party.x brain-party.x malicious-rep-ring-party.x ps-rep-ring-party.x rep4-ring-party.x
 
-rep-bin: replicated-bin-party.x malicious-rep-bin-party.x Fake-Offline.x
+rep-bin: replicated-bin-party.x malicious-rep-bin-party.x ps-rep-bin-party.x Fake-Offline.x
 
 replicated: rep-field rep-ring rep-bin
 
@@ -96,6 +101,10 @@ else
 tldr: mpir
 endif
 
+ifeq ($(MACHINE), aarch64)
+tldr: simde/simde
+endif
+
 shamir: shamir-party.x malicious-shamir-party.x galois-degree.x
 
 sy: sy-rep-field-party.x sy-rep-ring-party.x sy-shamir-party.x
@@ -107,10 +116,10 @@ $(LIBRELEASE): Protocols/MalRepRingOptions.o $(PROCESSOR) $(COMMON) $(OT) $(GC)
 	$(AR) -csr $@ $^
 
 static/%.x: Machines/%.o $(LIBRELEASE) $(LIBSIMPLEOT)
-	$(CXX) $(CFLAGS) -o $@ $^ $(LIBRELEASE) $(LIBSIMPLEOT) -Wl,-Map=$<.map -Wl,-Bstatic -static-libgcc -static-libstdc++ $(BOOST) $(LDLIBS) -Wl,-Bdynamic -ldl
+	$(CXX) $(CFLAGS) -o $@ $^ -Wl,-Map=$<.map -Wl,-Bstatic -static-libgcc -static-libstdc++  $(LIBRELEASE) $(LIBSIMPLEOT) $(BOOST) $(LDLIBS) -Wl,-Bdynamic -ldl
 
 static/%.x: ECDSA/%.o ECDSA/P256Element.o $(VM) $(OT) $(LIBSIMPLEOT)
-	$(CXX) $(CFLAGS) -o $@ $^ -Wl,-Map=$<.map -Wl,-Bstatic -static-libgcc -static-libstdc++ $(BOOST) $(LDLIBS) $(ECLIB) -Wl,-Bdynamic -ldl
+	$(CXX) $(CFLAGS) -o $@ $^ -Wl,-Map=$<.map -Wl,-Bstatic -static-libgcc -static-libstdc++ $(BOOST) $(LDLIBS) -Wl,-Bdynamic -ldl
 
 static-dir:
 	@ mkdir static 2> /dev/null; true
@@ -118,7 +127,7 @@ static-dir:
 static-release: static-dir $(patsubst Machines/%.cpp, static/%.x, $(wildcard Machines/*-party.cpp)) static/emulate.x
 
 Fake-ECDSA.x: ECDSA/Fake-ECDSA.cpp ECDSA/P256Element.o $(COMMON) Processor/PrepBase.o
-	$(CXX) -o $@ $^ $(CFLAGS) $(LDLIBS) $(ECLIB)
+	$(CXX) -o $@ $^ $(CFLAGS) $(LDLIBS)
 
 Check-Offline.x: $(PROCESSOR)
 
@@ -167,14 +176,24 @@ secure.x: Utils/secure.o
 %.x: Machines/%.o $(VM) OT/OTTripleSetup.o OT/BaseOT.o $(LIBSIMPLEOT)
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
 
+%gear-party.x: Machines/%gear-party.o $(VM) OT/OTTripleSetup.o OT/BaseOT.o $(LIBSIMPLEOT)
+	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS) -lntl
+
+hemi-party.x: Machines/hemi-party.o $(VM)
+	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS) -lntl
+
+soho-party.x: Machines/soho-party.o $(VM)
+	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS) -lntl
+
 %-ecdsa-party.x: ECDSA/%-ecdsa-party.o ECDSA/P256Element.o $(VM)
-	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS) $(ECLIB)
+	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
 
 replicated-bin-party.x: GC/square64.o
 replicated-ring-party.x: GC/square64.o
 replicated-field-party.x: GC/square64.o
 brain-party.x: GC/square64.o
 malicious-rep-bin-party.x: GC/square64.o
+ps-rep-bin-party.x: GC/PostSacriBin.o
 semi-bin-party.x: $(VM) $(OT) GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
 tiny-party.x: $(OT)
 tinier-party.x: $(OT)
@@ -220,6 +239,7 @@ static/semi-bmr-party.x: $(BMR)
 static/real-bmr-party.x: $(BMR)
 static/bmr-program-party.x: $(BMR)
 
+ifeq ($(AVX_OT), 1)
 $(LIBSIMPLEOT): SimpleOT/Makefile
 	$(MAKE) -C SimpleOT
 
@@ -227,6 +247,7 @@ OT/BaseOT.o: SimpleOT/Makefile
 
 SimpleOT/Makefile:
 	git submodule update --init SimpleOT
+endif
 
 .PHONY: Programs/Circuits
 Programs/Circuits:
@@ -258,6 +279,9 @@ mac-setup:
 	-echo MY_CFLAGS += -I/usr/local/opt/openssl/include >> CONFIG.mine
 	-echo MY_LDLIBS += -L/usr/local/opt/openssl/lib >> CONFIG.mine
 	-echo USE_NTL = 1 >> CONFIG.mine
+
+simde/simde:
+	git submodule update --init simde
 
 clean:
 	-rm -f */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o static/*.x

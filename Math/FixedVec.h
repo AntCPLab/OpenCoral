@@ -277,6 +277,12 @@ public:
         return res;
     }
 
+    FixedVec<T, L>& operator<<=(int i)
+    {
+        *this = *this << i;
+        return *this;
+    }
+
     FixedVec<T, L>& operator>>=(int i)
     {
         *this = *this >> i;

@@ -158,7 +158,7 @@ void* Server::start_in_thread(void* server)
 }
 
 Server* Server::start_networking(Names& N, int my_num, int nplayers,
-        string hostname, int portnum)
+        string hostname, int portnum, int my_port)
 {
 #ifdef DEBUG_NETWORKING
   cerr << "Starting networking for " << my_num << "/" << nplayers
@@ -173,7 +173,7 @@ Server* Server::start_networking(Names& N, int my_num, int nplayers,
       pthread_create(&thread, 0, Server::start_in_thread,
           server = new Server(nplayers, portnum));
     }
-  N.init(my_num, portnum, Names::DEFAULT_PORT, hostname.c_str());
+  N.init(my_num, portnum, my_port, hostname.c_str());
   if (my_num == 0)
     {
       pthread_join(thread, 0);

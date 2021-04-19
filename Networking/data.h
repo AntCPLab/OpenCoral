@@ -18,6 +18,18 @@
 #endif
 
 
+inline void short_memcpy(void* out, void* in, size_t n_bytes)
+{
+    switch (n_bytes)
+    {
+#define X(N) case N: avx_memcpy<N>(out, in); break;
+    X(1) X(2) X(3) X(4) X(5) X(6) X(7) X(8)
+#undef X
+    default:
+        throw invalid_length("length outside range");
+    }
+}
+
 inline void encode_length(octet *buff, size_t len, size_t n_bytes)
 {
     if (n_bytes > 8)
@@ -31,7 +43,7 @@ inline void encode_length(octet *buff, size_t len, size_t n_bytes)
     }
     // use little-endian for optimization
     uint64_t tmp = htole64(len);
-    avx_memcpy(buff, (void*)&tmp, n_bytes);
+    short_memcpy(buff, (void*)&tmp, n_bytes);
 }
 
 inline size_t decode_length(octet *buff, size_t n_bytes)
@@ -39,7 +51,7 @@ inline size_t decode_length(octet *buff, size_t n_bytes)
     if (n_bytes > 8)
         throw invalid_length("length field cannot be more than 64 bits");
     uint64_t tmp = 0;
-    avx_memcpy((void*)&tmp, buff, n_bytes);
+    short_memcpy((void*)&tmp, buff, n_bytes);
     return le64toh(tmp);
 }
 

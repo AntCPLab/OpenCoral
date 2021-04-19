@@ -151,7 +151,7 @@ template<int L>
 inline void Mul(modp_<L>& ans,const modp_<L>& x,const modp_<L>& y,const Zp_Data& ZpD)
 {
   if (ZpD.montgomery)
-    { ZpD.Mont_Mult(ans.x,x.x,y.x); }
+    { ZpD.Mont_Mult_max(ans.x,x.x,y.x,L); }
   else
     { //ans.x=(x.x*y.x)%ZpD.pr;
       mp_limb_t aa[2*L],q[2*L];

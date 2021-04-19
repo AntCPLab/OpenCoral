@@ -903,7 +903,7 @@ class DirectMemoryWriteInstruction(DirectMemoryInstruction, \
                                        WriteMemoryInstruction):
     __slots__ = []
     def __init__(self, *args, **kwargs):
-        if program.curr_tape.prevent_direct_memory_write:
+        if not program.curr_tape.singular:
             raise CompilerError('Direct memory writing prevented in threads')
         super(DirectMemoryWriteInstruction, self).__init__(*args, **kwargs)
 

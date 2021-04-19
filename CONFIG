@@ -3,7 +3,6 @@ ROOT = .
 OPTIM= -O3
 #PROF = -pg
 #DEBUG = -DDEBUG
-#MEMPROTECT = -DMEMPROTECT
 GDEBUG = -g
 
 # set this to your preferred local storage directory
@@ -12,8 +11,8 @@ PREP_DIR = '-DPREP_DIR="Player-Data/"'
 # set for SHE preprocessing (SPDZ and Overdrive)
 USE_NTL = 0
 
-# set for using GF(2^128) online phase, OT, MASCOT, or BMR
-# unset for GF(2^40) online and offline phase
+# set for using GF(2^128)
+# unset for GF(2^40)
 USE_GF2N_LONG = 1
 
 # set to -march=<architecture> for optimization
@@ -28,6 +27,24 @@ USE_GF2N_LONG = 1
 ARCH = -mtune=native -msse4.1 -msse4.2 -maes -mpclmul -mavx -mavx2 -mbmi2 -madx
 ARCH = -march=native
 
+MACHINE := $(shell uname -m)
+OS := $(shell uname -s)
+ifeq ($(MACHINE), x86_64)
+# set this to 0 to avoid using AVX for OT
+ifeq ($(OS), Linux)
+CHECK_AVX := $(shell grep -q avx /proc/cpuinfo; echo $$?)
+ifeq ($(CHECK_AVX), 0)
+AVX_OT = 1
+else
+AVX_OT = 0
+endif
+else
+AVX_OT = 1
+endif
+else
+AVX_OT = 0
+endif
+
 # allow to set compiler in CONFIG.mine
 CXX = g++
 
@@ -36,6 +53,10 @@ CXX = g++
 
 ifeq ($(USE_GF2N_LONG),1)
 GF2N_LONG = -DUSE_GF2N_LONG
+endif
+
+ifeq ($(AVX_OT), 0)
+CFLAGS += -DNO_AVX_OT
 endif
 
 # MAX_MOD_SZ (for FHE) must be least and GFP_MOD_SZ (for computation)
@@ -51,7 +72,6 @@ ifeq ($(USE_NTL),1)
 LDLIBS := -lntl $(LDLIBS)
 endif
 
-OS := $(shell uname -s)
 ifeq ($(OS), Linux)
 LDLIBS += -lrt
 endif
@@ -62,11 +82,9 @@ else
 BOOST = -lboost_thread $(MY_BOOST)
 endif
 
-CFLAGS += $(ARCH) $(MY_CFLAGS) $(GDEBUG) -Wextra -Wall $(OPTIM) -I$(ROOT) -pthread $(PROF) $(DEBUG) $(MOD) $(MEMPROTECT) $(GF2N_LONG) $(PREP_DIR) $(SECURE) -std=c++11 -Werror
+CFLAGS += $(ARCH) $(MY_CFLAGS) $(GDEBUG) -Wextra -Wall $(OPTIM) -I$(ROOT) -pthread $(PROF) $(DEBUG) $(MOD) $(GF2N_LONG) $(PREP_DIR) $(SECURE) -std=c++11 -Werror
 CPPFLAGS = $(CFLAGS)
 LD = $(CXX)
-
-ECLIB = -lcryptopp
 
 ifeq ($(OS), Darwin)
 ifeq ($(USE_NTL),1)

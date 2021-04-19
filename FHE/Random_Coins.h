@@ -9,7 +9,11 @@
 
 class FHE_PK;
 
-class Int_Random_Coins : public AddableMatrix<fixint<0>>
+#ifndef N_LIMBS_RAND
+#define N_LIMBS_RAND 0
+#endif
+
+class Int_Random_Coins : public AddableMatrix<fixint<N_LIMBS_RAND>>
 {
   typedef value_type::value_type T;
 

@@ -7,3 +7,6 @@
 [submodule "Programs/Circuits"]
 	path = Programs/Circuits
 	url = https://github.com/mkskeller/bristol-fashion
+[submodule "simde"]
+	path = simde
+	url = https://github.com/simd-everywhere/simde

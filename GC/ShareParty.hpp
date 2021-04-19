@@ -17,6 +17,10 @@
 
 #include "ShareThread.hpp"
 #include "RepPrep.hpp"
+#include "ThreadMaster.hpp"
+#include "Thread.hpp"
+#include "ShareSecret.hpp"
+
 #include "Protocols/Replicated.hpp"
 #include "Protocols/ReplicatedPrep.hpp"
 #include "Protocols/MaliciousRepMC.hpp"
@@ -29,16 +33,31 @@ template<class T>
 ShareParty<T>* ShareParty<T>::singleton = 0;
 
 template<class T>
-ShareParty<T>::ShareParty(int argc, const char** argv, int default_batch_size) :
-        ThreadMaster<T>(online_opts), online_opts(opt, argc, argv,
+void simple_binary_main(int argc, const char** argv, int default_batch_size = 0)
+{
+    ez::ezOptionParser opt;
+    ShareParty<T>(argc, argv, opt, default_batch_size);
+}
+
+template<class T>
+ShareParty<T>::ShareParty(int argc, const char** argv, ez::ezOptionParser& opt,
+        int default_batch_size) :
+        ThreadMaster<T>(online_opts), opt(opt),
+        online_opts(this->opt, argc, argv,
                 default_batch_size)
 {
     if (singleton)
         throw runtime_error("there can only be one");
     singleton = this;
 
+    int nplayers = 0;
+    opt.parse(argc, argv);
+    if (opt.get("-N"))
+        opt.get("-N")->getInt(nplayers);
+    opt.resetArgs();
     NetworkOptionsWithNumber network_opts(opt, argc, argv,
-            T::dishonest_majority ? 2 : 3, T::variable_players);
+            nplayers > 0 ? nplayers : (T::dishonest_majority ? 2 : 3),
+            T::variable_players and nplayers == 0);
     if (T::dishonest_majority)
         opt.add(
                 "", // Default.

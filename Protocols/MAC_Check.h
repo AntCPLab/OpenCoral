@@ -161,15 +161,6 @@ public:
   void exchange(const Player& P);
 };
 
-template <class T>
-class Passing_MAC_Check : public Direct_MAC_Check<T>
-{
-public:
-  Passing_MAC_Check(const typename T::mac_key_type::Scalar& ai);
-
-  void exchange(const Player& P);
-};
-
 
 enum mc_timer { SEND, RECV_ADD, BCAST, RECV_SUM, SEED, COMMIT, WAIT_SUMMER, RECV, SUM, SELECT, MAX_TIMER };
 
