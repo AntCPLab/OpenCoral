@@ -119,9 +119,10 @@ class Proof
     return diagonal;
   }
 
-  static int n_ciphertext_per_proof(int sec, const FHE_PK& pk)
+  static int n_ciphertext_per_proof(int sec, const FHE_PK& pk, bool diagonal =
+      false)
   {
-    return Proof(sec, pk, 1).U;
+    return Proof(sec, pk, 1, diagonal).U;
   }
 
   void set_challenge(const octetStream& ciphertexts);

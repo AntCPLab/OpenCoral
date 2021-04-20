@@ -92,7 +92,8 @@ protected:
     virtual void create_more() = 0;
 
 public:
-    SimpleEncCommitFactory(const FHE_PK& pk, const FD& FTD, const MachineBase& machine);
+    SimpleEncCommitFactory(const FHE_PK& pk, const FD& FTD,
+            const MachineBase& machine, bool diagonal = false);
     virtual ~SimpleEncCommitFactory();
     bool has_left() { return cnt >= 0; }
     void next(Plaintext_<FD>& mess, Ciphertext& C);
