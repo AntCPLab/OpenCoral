@@ -195,11 +195,11 @@ class Sub_Data_Files : public Preprocessing<T>
   { throw not_implemented(); }
 
 public:
-  static string get_filename(const Names& N, Dtype type, int thread_num = 0);
+  static string get_filename(const Names& N, Dtype type, int thread_num = -1);
   static string get_input_filename(const Names& N, int input_player,
-      int thread_num = 0);
+      int thread_num = -1);
   static string get_edabit_filename(const Names& N, int n_bits,
-      int thread_num = 0);
+      int thread_num = -1);
 
   Sub_Data_Files(int my_num, int num_players, const string& prep_data_dir,
       DataPositions& usage, int thread_num = -1);
