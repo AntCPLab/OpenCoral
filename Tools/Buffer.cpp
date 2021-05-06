@@ -54,7 +54,9 @@ void BufferBase::try_rewind()
 
 void BufferBase::prune()
 {
-    if (file and file->tellg() != 0)
+    if (file and not file->good())
+        purge();
+    else if (file and file->tellg() != 0)
     {
         cerr << "Pruning " << filename << endl;
         string tmp_name = filename + ".new";
