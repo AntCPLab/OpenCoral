@@ -1535,7 +1535,8 @@ class longint:
         carry = 0
         for x, y in zip(self.v, other.v):
             res.append(x + y + carry)
-            carry = (res[-1] - 2 ** 31) < (x - 2 ** 31)
+            carry = util.if_else(carry, (res[-1] + 2 ** 63) <= (x + 2 ** 63),
+                                 (res[-1] + 2 ** 63) < (x + 2 ** 63))
         return longint(res)
 
     __radd__ = __add__
