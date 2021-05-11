@@ -49,10 +49,20 @@ int ExternalClients::get_client_connection(int portnum_base)
     ctx = new ssl_ctx("P" + to_string(get_party_num()));
   external_client_sockets[client_id] = new ssl_socket(io_service, *ctx, socket,
       "C" + to_string(client_id), "P" + to_string(get_party_num()), false);
+  client_ports[client_id] = portnum_base;
   cerr << "Party " << get_party_num() << " received external client connection from client id: " << dec << client_id << endl;
   return client_id;
 }
 
+void ExternalClients::close_connection(int client_id)
+{
+  auto it = external_client_sockets.find(client_id);
+  if (it == external_client_sockets.end())
+    throw runtime_error("client id not active: " + to_string(client_id));
+  delete external_client_sockets[client_id];
+  external_client_sockets.erase(client_id);
+  client_connection_servers[client_ports[client_id]]->remove_client(client_id);
+}
 
 int ExternalClients::get_party_num() 
 {

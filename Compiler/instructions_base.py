@@ -131,7 +131,7 @@ opcodes = dict(
     WRITESOCKETSHARE = 0x6b,
     LISTEN = 0x6c,
     ACCEPTCLIENTCONNECTION = 0x6d,
-    CONNECTIPV4 = 0x6e,
+    CLOSECLIENTCONNECTION = 0x6e,
     READCLIENTPUBLICKEY = 0x6f,
     # Bitwise logic
     ANDC = 0x70,

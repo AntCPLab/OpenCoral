@@ -31,6 +31,11 @@ def accept_client():
     last = regint.read_from_socket(client_socket_id)
     return client_socket_id, last
 
+def close_connections(number_clients):
+    @for_range(number_clients)
+    def _(i):
+        closeclientconnection(i)
+
 def client_input(client_socket_id):
     """
     Send share of random value, receive input and deduce share.
@@ -121,6 +126,8 @@ def main():
         # print_ln('Found winner, index: %s.', winning_client_id.reveal())
 
         write_winner_to_clients(client_sockets, number_clients, winning_client_id)
+
+        close_connections(number_clients)
 
         return True
 

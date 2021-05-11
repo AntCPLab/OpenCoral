@@ -70,6 +70,8 @@ public:
 
     // Get socket and id for the last client who connected
     int get_connection_socket(int& client_id);
+
+    void remove_client(int client_id);
 };
 
 #endif /* NETWORKING_SERVERSOCKET_H_ */
