@@ -166,6 +166,12 @@ public:
     }
 
     template <class U>
+    void other_input(U& inputter, int from, int)
+    {
+        inputter.add_other(from);
+    }
+
+    template <class U>
     void finalize_input(U& inputter, int from, int n_bits)
     {
         *this = inputter.finalize(from, n_bits).mask(n_bits);
