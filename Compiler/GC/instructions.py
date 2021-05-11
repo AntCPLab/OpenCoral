@@ -524,7 +524,7 @@ class inputb(base.DoNotEliminateInstruction, base.VarArgsInstruction):
 
     def add_usage(self, req_node):
         for i in range(0, len(self.args), 4):
-            req_node.increment(('bit', 'input', self.args[0]), self.args[1])
+            req_node.increment(('bit', 'input', self.args[i]), self.args[i + 1])
 
 class inputbvec(base.DoNotEliminateInstruction, base.VarArgsInstruction,
                 base.Mergeable):
