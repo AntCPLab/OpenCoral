@@ -1,4 +1,4 @@
-from random import randint
+from random import Random
 import math
 
 #import sys
@@ -11,6 +11,7 @@ if '_Array' not in dir():
     _Array = Array
 
 SORT_BITS = []
+insecure_random = Random(0)
 
 def predefined_comparator(x, y):
     """ Assumes SORT_BITS is populated with the required sorting network bits """
@@ -139,7 +140,7 @@ def random_perm(n):
                             'use --insecure to activate')
     a = list(range(n))
     for i in range(n-1, 0, -1):
-        j = randint(0, i)
+        j = insecure_random.randint(0, i)
         t = a[i]
         a[i] = a[j]
         a[j] = t
