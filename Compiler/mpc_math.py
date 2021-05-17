@@ -800,9 +800,10 @@ def atan(x):
     v_2 =v*v
 
     # range of polynomial coefficients
-    assert x.k - x.f >= 19
-    P = p_eval(p_5102, v_2)
-    Q = p_eval(q_5102, v_2)
+    m = max(sum(p_5102), sum(q_5102))
+    scale = m / (2 ** (x.k - x.f - 1) - 1)
+    P = p_eval([c / scale for c in p_5102], v_2)
+    Q = p_eval([c / scale for c in q_5102], v_2)
 
     # padding
     y = v * (P / Q)
