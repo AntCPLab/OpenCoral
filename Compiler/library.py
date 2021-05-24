@@ -170,7 +170,7 @@ def print_ln_to(player, ss, *args):
 
     Example::
 
-        print_ln_to(player, 'output for %s: %s', player, x.reveal_to(player))
+        print_ln_to(player, 'output for %s: %s', x.reveal_to(player))
     """
     cond = player == get_player_id()
     new_args = []
