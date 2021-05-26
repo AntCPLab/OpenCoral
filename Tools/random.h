@@ -153,7 +153,7 @@ inline bool PRNG::get_bit()
       n_cached_bits = 64;
     }
   n_cached_bits--;
-  return (cached_bits >>= 1) & 1;
+  return (cached_bits >> n_cached_bits) & 1;
 }
 
 inline unsigned char PRNG::get_uchar()
