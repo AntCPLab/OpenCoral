@@ -382,6 +382,18 @@ class _int(object):
                 return self
         return self + other - 2 * self * other
 
+    def bit_or(self, other):
+        """ OR in arithmetic circuits.
+
+        :param self/other: 0 or 1 (any compatible type)
+        :return: type depends on inputs (secret if any of them is) """
+        if util.is_constant(other):
+            if other:
+                return self
+            else:
+                return 0
+        return self + other - self * other
+
     def bit_and(self, other):
         """ AND in arithmetic circuits.
 
@@ -418,6 +430,13 @@ class _bit(object):
         :param self/other: 0 or 1 (any compatible type)
         :rtype: depending on inputs (secret if any of them is) """
         return self & other
+
+    def bit_or(self, other):
+        """ OR in binary circuits.
+
+        :param self/other: 0 or 1 (any compatible type)
+        :return: type depends on inputs (secret if any of them is) """
+        return self ^ other - self & other
 
     def bit_not(self):
         """ NOT in binary circuits. """
