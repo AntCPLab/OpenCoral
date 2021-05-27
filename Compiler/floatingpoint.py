@@ -92,7 +92,7 @@ def carry(b, a, compute_p=True):
     return (t1, t2)
 
 def or_op(a, b, void=None):
-    return a.bit_or(b)
+    return util.or_op(a, b)
 
 def mul_op(a, b, void=None):
     return a * b
