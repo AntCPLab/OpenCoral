@@ -619,6 +619,10 @@ def sqrt_simplified_fx(x):
     r = (3 / 2.0) - gh
     h = h * r
     H = 4 * (h * h)
+
+    if not x.round_nearest or (2 * f < k - 1):
+        H = (h < 2 ** (-x.f / 2) / 2).if_else(0, H)
+
     H = H * x
     H = (3) - H
     H = h * H
