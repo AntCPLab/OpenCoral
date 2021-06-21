@@ -406,6 +406,7 @@ void RingPrep<T>::buffer_personal_edabits_without_check(int n_bits,
 #ifdef VERBOSE_EDA
     fprintf(stderr, "generate personal edaBits %d to %d\n", begin, end);
 #endif
+    InScope in_scope(this->do_count, false);
     assert(this->proc != 0);
     auto& P = proc.P;
     typename T::Input input(*this->proc, this->proc->MC);
@@ -978,7 +979,10 @@ void BufferPrep<T>::get_personal_dabit(int player, T& a, typename T::bit_type& b
 {
     auto& buffer = personal_dabits[player];
     if (buffer.empty())
+    {
+        InScope in_scope(this->do_count, false);
         buffer_personal_dabits(player);
+    }
     a = buffer.back().first;
     b = buffer.back().second;
     buffer.pop_back();
