@@ -134,8 +134,8 @@ def sha3_256(x):
     This should output the first two test vectors of SHA3-256 in
     byte-reversed order::
 
-        0x5375f6fb6aa989b0c287a923afe81e79ff875921cacc956666d71ebff8c6ffa7
-        0x17c7e0d65c285af8406d4f21c071851a312b739a8ecdf25c1270d31c39357067
+        0x4a43f8804b0ad882fa493be44dff80f562d661a05647c15166d71ebff8c6ffa7
+        0xf0d7aa0ab2d92d580bb080e17cbb52627932ba37f085d3931270d31c39357067
 
     Note that :py:obj:`sint` to :py:obj:`sbitvec` conversion is only
     implemented for computation modulo a power of two.
@@ -185,7 +185,7 @@ def sha3_256(x):
         for y in range(5):
             for x in range(5):
                 for i in range(w):
-                    j = (5 * y + x) * w + i // 8 * 8 + 7 - i % 8
+                    j = (5 * x + y) * w + i // 8 * 8 + 7 - i % 8
                     res[x][y][i] = S_flat[1600 - 1 -j]
         return res
 
