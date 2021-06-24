@@ -1915,6 +1915,7 @@ class sint(_secret, _int):
             else:
                 a = [sint.get_random_bit() for i in range(n_bits)]
                 return sint.bit_compose(a), a
+        program.curr_tape.require_bit_length(n_bits)
         whole = cls()
         size = get_global_vector_size()
         from Compiler.GC.types import sbits, sbitvec
