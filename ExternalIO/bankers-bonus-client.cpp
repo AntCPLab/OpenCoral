@@ -144,11 +144,10 @@ int main(int argc, char** argv)
     int salary_value;
     int finish;
     int port_base = 14000;
-    string host_name = "localhost";
 
     if (argc < 5) {
         cout << "Usage is bankers-bonus-client <client identifier> <number of spdz parties> "
-           << "<salary to compare> <finish (0 false, 1 true)> <optional host name, default localhost> "
+           << "<salary to compare> <finish (0 false, 1 true)> <optional host names..., default localhost> "
            << "<optional spdz party port base number, default 14000>" << endl;
         exit(0);
     }
@@ -157,10 +156,22 @@ int main(int argc, char** argv)
     nparties = atoi(argv[2]);
     salary_value = atoi(argv[3]);
     finish = atoi(argv[4]);
+    vector<const char*> hostnames(nparties, "localhost");
+
     if (argc > 5)
-        host_name = argv[5];
-    if (argc > 6)
-        port_base = atoi(argv[6]);
+    {
+        if (argc < 5 + nparties)
+        {
+            cerr << "Not enough hostnames specified";
+            exit(1);
+        }
+
+        for (int i = 0; i < nparties; i++)
+            hostnames[i] = argv[5 + i];
+    }
+
+    if (argc > 5 + nparties)
+        port_base = atoi(argv[5 + nparties]);
 
     bigint::init_thread();
 
@@ -172,7 +183,7 @@ int main(int argc, char** argv)
     octetStream specification;
     for (int i = 0; i < nparties; i++)
     {
-        set_up_client_socket(plain_sockets[i], host_name.c_str(), port_base + i);
+        set_up_client_socket(plain_sockets[i], hostnames[i], port_base + i);
         send(plain_sockets[i], (octet*) &my_client_id, sizeof(int));
         sockets[i] = new ssl_socket(io_service, ctx, plain_sockets[i],
                 "P" + to_string(i), "C" + to_string(my_client_id), true);
