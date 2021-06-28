@@ -218,8 +218,11 @@ class cbits(bits):
               self.clear_op(other, inst.addcb, inst.addcbi, operator.add)
     __sub__ = lambda self, other: \
               self.clear_op(-other, inst.addcb, inst.addcbi, operator.add)
-    __xor__ = lambda self, other: \
-              self.clear_op(other, inst.xorcb, inst.xorcbi, operator.xor)
+    def __xor__(self, other):
+        if isinstance(other, (sbits, sbitvec)):
+            return NotImplemented
+        else:
+            self.clear_op(other, inst.xorcb, inst.xorcbi, operator.xor)
     __radd__ = __add__
     __rxor__ = __xor__
     def __mul__(self, other):
