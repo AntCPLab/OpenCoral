@@ -413,8 +413,8 @@ class run_tape(base.Instruction):
     """ Start tape/bytecode file in another thread.
 
     :param: number of arguments to follow (multiple of three)
-    :param: tape number (int)
     :param: virtual machine thread number (int)
+    :param: tape number (int)
     :param: tape argument (int)
     :param: (repeat the last three)...
     """
