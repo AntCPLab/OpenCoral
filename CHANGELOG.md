@@ -9,6 +9,7 @@ The changelog explains changes pulled through from the private development repos
 - Binary operators for comparison results
 - Faster compilation for emulation
 - More documentation
+- Fixed bug in dense layer back-propagation
 - Fixed security bug: insufficient LowGear secret key randomness
 - Fixed security bug: skewed random bit generation
 
