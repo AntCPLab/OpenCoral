@@ -49,7 +49,8 @@ void read_or_generate_secrets(T& setup, Player& P, U& machine,
 
     if (not error.empty())
     {
-        cerr << "Running secrets generation because " << error << endl;
+        cerr << "Running secrets generation because no suitable material "
+                "from a previous run was found (" << error << ")" << endl;
         setup.key_and_mac_generation(P, machine, num_runs, V());
 
         ofstream output(filename);

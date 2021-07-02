@@ -12,7 +12,6 @@
 #include "FHE/NTL-Subs.h"
 
 #include "GC/TinierSecret.h"
-#include "GC/TinierPrep.h"
 #include "GC/TinyMC.h"
 
 #include "SPDZ.hpp"

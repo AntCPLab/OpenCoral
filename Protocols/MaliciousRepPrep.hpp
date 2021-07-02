@@ -28,6 +28,14 @@ MaliciousRepPrep<T>::MaliciousRepPrep(DataPositions& usage, int) :
 }
 
 template<class T>
+template<class V>
+MaliciousRepPrep<T>::MaliciousRepPrep(DataPositions& usage,
+        GC::ShareThread<V>&, int) :
+        MaliciousRepPrep<T>(0, usage)
+{
+}
+
+template<class T>
 MaliciousRepPrepWithBits<T>::MaliciousRepPrepWithBits(SubProcessor<T>* proc,
         DataPositions& usage) :
         BufferPrep<T>(usage), MaliciousRepPrep<T>(proc, usage),

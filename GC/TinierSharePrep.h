@@ -21,18 +21,26 @@ template<class T>
 class TinierSharePrep : public PersonalPrep<T>
 {
     typename T::TripleGenerator* triple_generator;
+    typename T::whole_type::TripleGenerator* real_triple_generator;
     MascotParams params;
 
-    TinierPrep<TinierSecret<typename T::mac_key_type>> whole_prep;
+    typedef typename T::whole_type secret_type;
+    ShareThread<secret_type>& thread;
 
     void buffer_triples();
     void buffer_squares() { throw not_implemented(); }
-    void buffer_bits() { throw not_implemented(); }
+    void buffer_bits();
     void buffer_inverses() { throw not_implemented(); }
 
     void buffer_inputs(int player);
 
+    void buffer_secret_triples();
+
+    void init_real(Player& P);
+
 public:
+    TinierSharePrep(DataPositions& usage, ShareThread<secret_type>& thread,
+            int input_player = PersonalPrep<T>::SECURE);
     TinierSharePrep(DataPositions& usage, int input_player =
             PersonalPrep<T>::SECURE);
     TinierSharePrep(SubProcessor<T>*, DataPositions& usage);

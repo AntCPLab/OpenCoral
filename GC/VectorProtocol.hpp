@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef GC_VECTORPROTOCOL_HPP_
+#define GC_VECTORPROTOCOL_HPP_
+
 #include "VectorProtocol.h"
 
 namespace GC
@@ -10,7 +13,7 @@ namespace GC
 
 template<class T>
 VectorProtocol<T>::VectorProtocol(Player& P) :
-        part_protocol(P)
+        part_protocol(P), P(P)
 {
 }
 
@@ -54,3 +57,5 @@ T VectorProtocol<T>::finalize_mul(int n)
 }
 
 } /* namespace GC */
+
+#endif

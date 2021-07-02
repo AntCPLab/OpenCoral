@@ -149,11 +149,6 @@ public:
         return res;
     }
 
-    bool is_binary() const
-    {
-        throw not_implemented();
-    }
-
     size_t report_size(ReportType type)
     {
 	size_t res = 4;

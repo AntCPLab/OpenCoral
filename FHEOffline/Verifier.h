@@ -21,14 +21,14 @@ public:
 
   void Stage_2(
       AddableVector<Ciphertext>& c, octetStream& ciphertexts,
-      octetStream& cleartexts,const FHE_PK& pk,bool binary=false);
+      octetStream& cleartexts,const FHE_PK& pk);
 
   /* This is the non-interactive version using the ROM
       - Creates space for all output values
       - Diag flag mirrors that in Prover
   */
   void NIZKPoK(AddableVector<Ciphertext>& c,octetStream& ciphertexts,octetStream& cleartexts,
-               const FHE_PK& pk,bool binary=false);
+               const FHE_PK& pk);
 
   size_t report_size(ReportType type) { return z.report_size(type) + t.report_size(type); }
 };

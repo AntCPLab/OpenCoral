@@ -14,16 +14,8 @@
 #include "GC/Instruction.h"
 #include "GC/instructions.h"
 
-//#include "Processor/Processor.hpp"
 #include "Processor/Binary_File_IO.hpp"
 #include "Processor/PrivateOutput.hpp"
-//#include "Processor/Input.hpp"
-//#include "Processor/Beaver.hpp"
-//#include "Protocols/Shamir.hpp"
-//#include "Protocols/ShamirInput.hpp"
-//#include "Protocols/Replicated.hpp"
-//#include "Protocols/MaliciousRepMC.hpp"
-//#include "Protocols/ShamirMC.hpp"
 #include "Math/bigint.hpp"
 
 #include <stdlib.h>
@@ -73,7 +65,6 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case TRIPLE:
       case ANDC:
       case XORC:
-      case XORCB:
       case ORC:
       case SHLC:
       case SHRC:
@@ -88,13 +79,9 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case GMULM:
       case GDIVC:
       case GTRIPLE:
-      case GBITTRIPLE:
-      case GBITGF2NTRIPLE:
       case GANDC:
       case GXORC:
       case GORC:
-      case GMULBITC:
-      case GMULBITM:
       case LTC:
       case GTC:
       case EQC:
@@ -168,12 +155,6 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case PLAYERID:
       case CLOSECLIENTCONNECTION:
         r[0]=get_int(s);
-        break;
-      // instructions with 3 registers + 1 integer operand
-        r[0]=get_int(s);
-        r[1]=get_int(s);
-        r[2]=get_int(s);
-        n = get_int(s);
         break;
       // instructions with 2 registers + 1 integer operand
       case ADDCI:
@@ -275,6 +256,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case CRASH:
       case STARTGRIND:
       case STOPGRIND:
+      case CHECK:
         break;
       // instructions with 5 register operands
       case PRINTFLOATPLAIN:
@@ -320,7 +302,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
         break;
       case CONV2DS:
         get_ints(r, s, 3);
-        get_vector(11, start, s);
+        get_vector(12, start, s);
         break;
 
       // read from file, input is opcode num_args, 
@@ -374,6 +356,11 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case GPROTECTMEMC:
       case PROTECTMEMINT:
         throw runtime_error("memory protection not supported any more");
+      case GBITTRIPLE:
+      case GBITGF2NTRIPLE:
+      case GMULBITC:
+      case GMULBITM:
+        throw runtime_error("GF(2^n) bit operations not supported any more");
       case GBITDEC:
       case GBITCOM:
         num_var_args = get_int(s) - 2;
@@ -390,6 +377,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
           break;
       case PREP:
       case GPREP:
+      case CISC:
         // subtract extra argument
         num_var_args = get_int(s) - 1;
         s.read((char*)r, sizeof(r));
@@ -417,6 +405,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
         break;
       case XORM:
       case ANDM:
+      case XORCB:
         n = get_int(s);
         get_ints(r, s, 3);
         break;
@@ -555,6 +544,7 @@ int BaseInstruction::get_reg_type() const
     case GUSE_PREP:
     case USE_EDABIT:
     case RUN_TAPE:
+    case CISC:
       // those use r[] not for registers
       return NONE;
     case LDI:
@@ -667,7 +657,7 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
   case MATMULSM:
       return r[0] + start[0] * start[2];
   case CONV2DS:
-      return r[0] + start[0] * start[1];
+      return r[0] + start[0] * start[1] * start[11];
   case OPEN:
       skip = 2;
       break;
@@ -901,18 +891,6 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         to_gfp(Proc.temp.ansp, Proc.temp.aa2 = mpz_fdiv_ui(Proc.temp.aa.get_mpz_t(), n));
         Proc.write_Cp(r[0],Proc.temp.ansp);
         break;
-      case GMULBITC:
-          Proc.get_C2_ref(r[0]).mul_by_bit(Proc.read_C2(r[1]),Proc.read_C2(r[2]));
-        break;
-      case GMULBITM:
-          Proc.get_S2_ref(r[0]).mul_by_bit(Proc.read_S2(r[1]),Proc.read_C2(r[2]));
-        break;
-      case GBITTRIPLE:
-        Proc2.DataF.get_three(DATA_BITTRIPLE, Proc.get_S2_ref(r[0]),Proc.get_S2_ref(r[1]),Proc.get_S2_ref(r[2]));
-        break;
-      case GBITGF2NTRIPLE:
-        Proc2.DataF.get_three(DATA_BITGF2NTRIPLE, Proc.get_S2_ref(r[0]),Proc.get_S2_ref(r[1]),Proc.get_S2_ref(r[2]));
-        break;
       case SQUARE:
         Procp.DataF.get_two(DATA_SQUARE, Proc.get_Sp_ref(r[0]),Proc.get_Sp_ref(r[1]));
         break;
@@ -1016,6 +994,16 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       case TRUNC_PR:
         Proc.Procp.protocol.trunc_pr(start, size, Proc.Procp);
         return;
+      case CHECK:
+        {
+          CheckJob job;
+          if (BaseMachine::thread_num == 0)
+            BaseMachine::s().queues.distribute(job, 0);
+          Proc.check();
+          if (BaseMachine::thread_num == 0)
+            BaseMachine::s().queues.wrap_up(job);
+          return;
+        }
       case JMP:
         Proc.PC += (signed int) n;
         break;
@@ -1130,7 +1118,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         {
           octetStream os;
           os.store(int(sint::open_type::type_char()));
-          sint::open_type::specification(os);
+          sint::specification(os);
           os.Send(Proc.external_clients.get_socket(client_handle));
         }
         Proc.write_Ci(r[0], client_handle);
@@ -1193,6 +1181,9 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         return;
       case GPREP:
         Proc2.DataF.get(Proc.Proc2.get_S(), r, start, size);
+        return;
+      case CISC:
+        Procp.protocol.cisc(Procp, *this);
         return;
       default:
         printf("Case of opcode=0x%x not implemented yet\n",opcode);

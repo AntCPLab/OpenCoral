@@ -13,29 +13,24 @@ SemiHomomorphicNoiseBounds::SemiHomomorphicNoiseBounds(const bigint& p,
         const FHE_Params& params) :
         p(p), phi_m(phi_m), n(n), sec(sec),
         slack(numBits(Proof::slack(slack_param, sec, phi_m))),
-        sigma(params.get_R()), h(params.get_h())
+        sigma(params.get_R())
 {
     if (sigma <= 0)
         this->sigma = sigma = FHE_Params().get_R();
-#ifdef VERBOSE
-    cerr << "Standard deviation: " << this->sigma << endl;
-#endif
-    if (h > 0)
-        h += extra_h * sec;
-    else if (extra_h)
+    if (extra_h)
     {
         sigma *= 1.4;
         params.set_R(params.get_R() * 1.4);
     }
+#ifdef VERBOSE
+    cerr << "Standard deviation: " << this->sigma << endl;
+#endif
 
     produce_epsilon_constants();
 
     // according to documentation of SCALE-MAMBA 1.7
     // excluding a factor of n because we don't always add up n ciphertexts
-    if (h > 0)
-        V_s = sqrt(h);
-    else
-        V_s = sigma * sqrt(phi_m);
+    V_s = sigma * sqrt(phi_m);
     B_clean = (bigint(phi_m) << (sec + 1)) * p
             * (20.5 + c1 * sigma * sqrt(phi_m) + 20 * c1 * V_s);
     // unify parameters by taking maximum over TopGear or not

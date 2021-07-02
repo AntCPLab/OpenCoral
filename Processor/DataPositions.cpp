@@ -10,7 +10,7 @@
 
 const char* DataPositions::field_names[] = { "int", "gf2n", "bit" };
 
-const int DataPositions::tuple_size[N_DTYPE] = { 3, 2, 1, 2, 3, 3 };
+const int DataPositions::tuple_size[N_DTYPE] = { 3, 2, 1, 2 };
 
 DataPositions::DataPositions(int num_players)
 {

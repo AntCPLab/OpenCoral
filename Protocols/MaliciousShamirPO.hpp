@@ -39,9 +39,9 @@ typename T::clear MaliciousShamirPO<T>::finalize(const T& secret)
     for (int i = 0; i < P.num_players(); i++)
     {
         if (i == P.my_num())
-            shares[i] = secret;
+            shares[0] = secret;
         else
-            shares[i].unpack(to_receive[i]);
+            shares[P.get_offset(i)].unpack(to_receive[i]);
     }
 
     return MC.reconstruct(shares);

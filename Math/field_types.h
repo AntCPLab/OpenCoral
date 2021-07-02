@@ -15,8 +15,6 @@ enum Dtype
     DATA_SQUARE,
     DATA_BIT,
     DATA_INVERSE,
-    DATA_BITTRIPLE,
-    DATA_BITGF2NTRIPLE,
     DATA_DABIT,
     N_DTYPE
 };

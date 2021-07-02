@@ -78,8 +78,6 @@ private:
 	std::map<struct sockaddr_in*,int> _clientsmap;
 	bool* _clients_connected;
 	NodeUpdatable* _updatable;
-
-	char id_msg[strlen(ID_HDR)+sizeof(_id)];
 };
 
 #endif /* NETWORK_NODE_H_ */

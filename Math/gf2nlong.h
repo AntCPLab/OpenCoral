@@ -180,8 +180,6 @@ class gf2n_long : public ValueInterface
     { a=x.a^y.a; }
   // = x * y
   gf2n_long& mul(const gf2n_long& x,const gf2n_long& y);
-  // x * y when one of x,y is a bit
-  void mul_by_bit(const gf2n_long& x, const gf2n_long& y)   { a = x.a.a * y.a.a; }
 
   gf2n_long lazy_add(const gf2n_long& x) const { return *this + x; }
   gf2n_long lazy_mul(const gf2n_long& x) const { return *this * x; }

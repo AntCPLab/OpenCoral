@@ -846,3 +846,54 @@ def acos(x):
     """
     y = asin(x)
     return pi_over_2 - y
+
+
+def tanh(x):
+    """
+    Hyperbolic tangent. For efficiency, accuracy is diminished
+    around :math:`\pm \log(k - f - 2) / 2` where :math:`k` and
+    :math:`f` denote the fixed-point parameters.
+    """
+    limit = math.log(2 ** (x.k - x.f - 2)) / 2
+    s = x < -limit
+    t = x > limit
+    y = pow_fx(math.e, 2 * x)
+    return s.if_else(-1, t.if_else(1, (y - 1) / (y + 1)))
+
+
+# next functions due to https://dl.acm.org/doi/10.1145/3411501.3419427
+
+def Sep(x):
+    b = floatingpoint.PreOR(list(reversed(x.v.bit_decompose(x.k, maybe_mixed=True))))
+    t = x.v * (1 + x.v.bit_compose(b_i.bit_not() for b_i in b[-2 * x.f + 1:]))
+    u = types.sfix._new(t.right_shift(x.f, 2 * x.k, signed=False))
+    b += [b[0].long_one()]
+    return u, [b[i + 1] - b[i] for i in reversed(range(x.k))]
+
+def SqrtComp(z, old=False):
+    f = types.sfix.f
+    k = len(z)
+    if isinstance(z[0], types.sint):
+        return types.sfix._new(sum(z[i] * types.cfix(
+            2 ** (-(i - f + 1) / 2)).v for i in range(k)))
+    k_prime = k // 2
+    f_prime = f // 2
+    c1 = types.sfix(2 ** ((f + 1) / 2 + 1))
+    c0 = types.sfix(2 ** (f / 2 + 1))
+    a = [z[2 * i].bit_or(z[2 * i + 1]) for i in range(k_prime)]
+    tmp = types.sfix._new(types.sint.bit_compose(reversed(a[:2 * f_prime])))
+    if old:
+        b = sum(types.sint.conv(zi).if_else(i, 0) for i, zi in enumerate(z)) % 2
+    else:
+        b = util.tree_reduce(lambda x, y: x.bit_xor(y), z[::2])
+    return types.sint.conv(b).if_else(c1, c0) * tmp
+
+@types.vectorize
+def InvertSqrt(x, old=False):
+    """
+    Reciprocal square root approximation by `Lu et al.
+    <https://dl.acm.org/doi/10.1145/3411501.3419427>`_
+    """
+    u, z = Sep(x)
+    c = 3.14736 + u * (4.63887 * u - 5.77789)
+    return c * SqrtComp(z, old=old)

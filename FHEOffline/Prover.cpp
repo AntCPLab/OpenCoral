@@ -6,6 +6,7 @@
 #include "Tools/random.h"
 #include "Math/Z2k.hpp"
 #include "Math/modp.hpp"
+#include "FHE/AddableVector.hpp"
 
 
 template <class FD, class U>
@@ -28,7 +29,7 @@ Prover<FD,U>::Prover(Proof& proof, const FD& FieldD) :
 template <class FD, class U>
 void Prover<FD,U>::Stage_1(const Proof& P, octetStream& ciphertexts,
     const AddableVector<Ciphertext>& c,
-    const FHE_PK& pk, bool binary)
+    const FHE_PK& pk)
 {
   size_t allocate = 3 * c.size() * c[0].report_size(USED);
   ciphertexts.resize_precise(allocate);
@@ -51,7 +52,7 @@ void Prover<FD,U>::Stage_1(const Proof& P, octetStream& ciphertexts,
 //      AE.randomize(Diag,binary);
 //      rd=RandPoly(phim,bd<<1);
 //      y[i]=AE.plaintext()+pr*rd;
-      y[i].randomize(G, P.B_plain_length, P.get_diagonal(), binary);
+      y[i].randomize(G, P.B_plain_length, P.get_diagonal());
       if (P.get_diagonal())
         assert(y[i].is_diagonal());
       s[i].resize(3, P.phim);
@@ -114,8 +115,7 @@ size_t Prover<FD,U>::NIZKPoK(Proof& P, octetStream& ciphertexts, octetStream& cl
                         const FHE_PK& pk,
                         const AddableVector<Ciphertext>& c,
                         const vector<U>& x,
-                        const Proof::Randomness& r,
-                        bool binary)
+                        const Proof::Randomness& r)
 {
 //  AElement<T> AE;
 //  for (i=0; i<P.sec; i++)
@@ -130,13 +130,15 @@ size_t Prover<FD,U>::NIZKPoK(Proof& P, octetStream& ciphertexts, octetStream& cl
   int cnt=0;
   while (!ok)
     { cnt++;
-      Stage_1(P,ciphertexts,c,pk,binary);
+      Stage_1(P,ciphertexts,c,pk);
       P.set_challenge(ciphertexts);
       // Check check whether we are OK, or whether we should abort
       ok = Stage_2(P,cleartexts,x,r,pk);
     }
+#ifdef VERBOSE
   if (cnt > 1)
       cout << "\t\tNumber iterations of prover = " << cnt << endl;
+#endif
   return report_size(CAPACITY) + volatile_memory;
 }
 

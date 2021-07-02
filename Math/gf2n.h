@@ -144,8 +144,6 @@ class gf2n_short : public ValueInterface
     { a=x.a^y.a; }
   // = x * y
   void mul(const gf2n_short& x,const gf2n_short& y);
-  // x * y when one of x,y is a bit
-  void mul_by_bit(const gf2n_short& x, const gf2n_short& y)   { a = x.a * y.a; }
 
   gf2n_short lazy_add(const gf2n_short& x) const { return *this + x; }
   gf2n_short lazy_mul(const gf2n_short& x) const { return *this * x; }

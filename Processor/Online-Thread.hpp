@@ -8,6 +8,7 @@
 #include "Networking/CryptoPlayer.h"
 #include "Protocols/ShuffleSacrifice.h"
 #include "Protocols/LimitedPrep.h"
+#include "FHE/FFT.h"
 
 #include "Processor/Processor.hpp"
 #include "Processor/Instruction.hpp"
@@ -95,7 +96,7 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
     }
 
   // Allocate memory for first program before starting the clock
-  processor = new Processor<sint, sgf2n>(tinfo->thread_num,P,*MC2,*MCp,machine,progs[0]);
+  processor = new Processor<sint, sgf2n>(tinfo->thread_num,P,*MC2,*MCp,machine,progs.at(thread_num > 0));
   auto& Proc = *processor;
 
   bool flag=true;
@@ -224,6 +225,19 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
               job.end);
           queues->finished(job);
         }
+      else if (job.type == CHECK_JOB)
+        {
+          Proc.check();
+          queues->finished(job);
+        }
+      else if (job.type == FFT_JOB)
+        {
+          for (int i = job.begin; i < job.end; i++)
+            FFT_Iter2_body(*(vector<modp>*) job.output,
+                *(vector<modp>*) job.input, i, job.length,
+                *(Zp_Data*) job.supply);
+          queues->finished(job);
+        }
       else
         { // RUN PROGRAM
 #ifdef DEBUG_THREADS
@@ -239,6 +253,9 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
           //printf("\tExecuting program");
           // Execute the program
           progs[program].execute(Proc);
+
+          // prevent mangled output
+          cout.flush();
 
           actual_usage.increase(Proc.DataF.get_usage());
 
@@ -256,18 +273,8 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
        }  
     }
 
-  // protocol check before last MAC check
-  Proc.Procp.protocol.check();
-  Proc.Proc2.protocol.check();
-
-  // MACCheck
-  MC2->Check(P);
-  MCp->Check(P);
-  Proc.share_thread.MC->Check(P);
-
-  //cout << num << " : Checking broadcast" << endl;
-  P.Check_Broadcast();
-  //cout << num << " : Broadcast checked "<< endl;
+  // final check
+  Proc.check();
 
   wait_timer.start();
   queues->next();
@@ -320,31 +327,35 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
 template<class sint, class sgf2n>
 void* thread_info<sint, sgf2n>::Main_Func(void* ptr)
 {
-#ifndef INSECURE
-  try
-#endif
-  {
-      ((thread_info<sint, sgf2n>*)ptr)->Sub_Main_Func();
-  }
-#ifndef INSECURE
-  catch (...)
-  {
+  auto& ti = *(thread_info<sint, sgf2n>*)(ptr);
+#ifdef INSECURE
+  ti.Sub_Main_Func();
+#else
+  if (ti.machine->opts.live_prep)
+    ti.Sub_Main_Func();
+  else
+    try
+    {
+      ti.Sub_Main_Func();
+    }
+    catch (...)
+    {
       thread_info<sint, sgf2n>* ti = (thread_info<sint, sgf2n>*)ptr;
-      ti->purge_preprocessing(*ti->machine);
+      ti->purge_preprocessing(ti->machine->get_N());
       throw;
-  }
+    }
 #endif
   return 0;
 }
 
 
 template<class sint, class sgf2n>
-void thread_info<sint, sgf2n>::purge_preprocessing(Machine<sint, sgf2n>& machine)
+void thread_info<sint, sgf2n>::purge_preprocessing(const Names& N)
 {
   cerr << "Purging preprocessed data because something is wrong" << endl;
   try
   {
-      Data_Files<sint, sgf2n> df(machine);
+      Data_Files<sint, sgf2n> df(N);
       df.purge();
   }
   catch(...)

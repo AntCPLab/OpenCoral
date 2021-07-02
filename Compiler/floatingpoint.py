@@ -55,7 +55,7 @@ def EQZ(a, k, kappa):
         from GC.types import sbitvec
         v = sbitvec(a, k).v
         bit = util.tree_reduce(operator.and_, (~b for b in v))
-        return types.sint.conv(bit)
+        return types.sintbit.conv(bit)
     prog.non_linear.check_security(kappa)
     return prog.non_linear.eqz(a, k)
 
@@ -263,16 +263,17 @@ def BitAdd(a, b, bits_to_compute=None):
 def BitDec(a, k, m, kappa, bits_to_compute=None):
     return program.Program.prog.non_linear.bit_dec(a, k, m)
 
-def BitDecRing(a, k, m):
+def BitDecRingRaw(a, k, m):
     n_shift = int(program.Program.prog.options.ring) - m
     assert(n_shift >= 0)
     if program.Program.prog.use_split():
         x = a.split_to_two_summands(m)
         bits = types._bitint.carry_lookahead_adder(x[0], x[1], fewer_inv=False)
-        # reversing to reduce number of rounds
-        return [types.sint.conv(bit) for bit in reversed(bits)][::-1]
+        return bits[:m]
     else:
-        if program.Program.prog.use_dabit:
+        if program.Program.prog.use_edabit():
+            r, r_bits = types.sint.get_edabit(m, strict=False)
+        elif program.Program.prog.use_dabit:
             r, r_bits = zip(*(types.sint.get_dabit() for i in range(m)))
             r = types.sint.bit_compose(r)
         else:
@@ -281,7 +282,12 @@ def BitDecRing(a, k, m):
         shifted = ((a - r) << n_shift).reveal()
         masked = shifted >> n_shift
         bits = r_bits[0].bit_adder(r_bits, masked.bit_decompose(m))
-        return [types.sint.conv(bit) for bit in bits]
+        return bits
+
+def BitDecRing(a, k, m):
+    bits = BitDecRingRaw(a, k, m)
+    # reversing to reduce number of rounds
+    return [types.sint.conv(bit) for bit in reversed(bits)][::-1]
 
 def BitDecFieldRaw(a, k, m, kappa, bits_to_compute=None):
     r_dprime = types.sint()
@@ -429,7 +435,7 @@ def TruncRoundNearestAdjustOverflow(a, length, target_length, kappa):
         s = (1 - overflow) * t + overflow * t / 2
     return s, overflow
 
-def Int2FL(a, gamma, l, kappa):
+def Int2FL(a, gamma, l, kappa=None):
     lam = gamma - 1
     s = a.less_than(0, gamma, security=kappa)
     z = a.equal(0, gamma, security=kappa)
@@ -598,13 +604,13 @@ def SDiv_mono(a, b, l, kappa):
 #        Unconditionally Secure Constant-Rounds Multi-party Computation
 #        for Equality, Comparison, Bits and Exponentiation
 def BITLT(a, b, bit_length):
-    sint = types.sint
-    e = [sint(0)]*bit_length
-    g = [sint(0)]*bit_length
-    h = [sint(0)]*bit_length
+    from .types import sint, regint, longint, cint
+    e = [None]*bit_length
+    g = [None]*bit_length
+    h = [None]*bit_length
     for i in range(bit_length):
         # Compute the XOR (reverse order of e for PreOpL)
-        e[bit_length-i-1] = a[i].bit_xor(b[i])
+        e[bit_length-i-1] = util.bit_xor(a[i], b[i])
     f = PreOpL(or_op, e)
     g[bit_length-1] = f[0]
     for i in range(bit_length-1):
@@ -612,7 +618,7 @@ def BITLT(a, b, bit_length):
         g[i] = f[bit_length-i-1]-f[bit_length-i-2]
     ans = 0
     for i in range(bit_length):
-        h[i] = g[i]*b[i]
+        h[i] = g[i].bit_and(b[i])
         ans = ans + h[i]
     return ans
 
@@ -620,9 +626,9 @@ def BITLT(a, b, bit_length):
 #   - From the paper
 #        Multiparty Computation for Interval, Equality, and Comparison without 
 #        Bit-Decomposition Protocol
-def BitDecFull(a):
+def BitDecFull(a, maybe_mixed=False):
     from .library import get_program, do_while, if_, break_point
-    from .types import sint, regint, longint
+    from .types import sint, regint, longint, cint
     p = get_program().prime
     assert p
     bit_length = p.bit_length()
@@ -631,9 +637,16 @@ def BitDecFull(a):
         # inspired by Rabbit (https://eprint.iacr.org/2021/119)
         # no need for exact randomness generation
         # if modulo a power of two is close enough
-        bbits = [sint.get_random_bit(size=a.size) for i in range(logp)]
-        if logp != bit_length:
-            bbits += [sint(0, size=a.size)]
+        if get_program().use_edabit():
+            b, bbits = sint.get_edabit(logp, True, size=a.size)
+            if logp != bit_length:
+                from .GC.types import sbits
+                bbits += [sbits.get_type(a.size)(0)]
+        else:
+            bbits = [sint.get_random_bit(size=a.size) for i in range(logp)]
+            b = sint.bit_compose(bbits)
+            if logp != bit_length:
+                bbits += [sint(0, size=a.size)]
     else:
         bbits = [sint(size=a.size) for i in range(bit_length)]
         tbits = [[sint(size=1) for i in range(bit_length)] for j in range(a.size)]
@@ -653,15 +666,21 @@ def BitDecFull(a):
         for j in range(a.size):
             for i in range(bit_length):
                 movs(bbits[i][j], tbits[j][i])
-    b = sint.bit_compose(bbits)
+        b = sint.bit_compose(bbits)
     c = (a-b).reveal()
-    t = (p-c).bit_decompose(bit_length)
+    cmodp = c
+    t = bbits[0].bit_decompose_clear(p - c, bit_length)
     c = longint(c, bit_length)
     czero = (c==0)
-    q = 1-BITLT( bbits, t, bit_length)
-    fbar=((1<<bit_length)+c-p).bit_decompose(bit_length)
-    fbard = c.bit_decompose(bit_length)
-    g = [(fbar[i] - fbard[i]) * q + fbard[i] for i in range(bit_length)]
-    h = BitAdd(bbits, g)
-    abits = [(1 - czero) * h[i] + czero * bbits[i] for i in range(bit_length)]
-    return abits
+    q = bbits[0].long_one() - BITLT(bbits, t, bit_length)
+    fbar = [bbits[0].clear_type.conv(cint(x))
+            for x in ((1<<bit_length)+c-p).bit_decompose(bit_length)]
+    fbard = bbits[0].bit_decompose_clear(cmodp, bit_length)
+    g = [q.if_else(fbar[i], fbard[i]) for i in range(bit_length)]
+    h = bbits[0].bit_adder(bbits, g)
+    abits = [bbits[0].clear_type(cint(czero)).if_else(bbits[i], h[i])
+             for i in range(bit_length)]
+    if maybe_mixed:
+        return abits
+    else:
+        return [sint.conv(bit) for bit in abits]

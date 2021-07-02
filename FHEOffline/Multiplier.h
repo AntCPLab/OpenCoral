@@ -36,6 +36,8 @@ class Multiplier
     size_t volatile_capacity;
     MemoryUsage memory_usage;
 
+    octetStream o;
+
 public:
     Multiplier(int offset, PairwiseGenerator<FD>& generator);
     Multiplier(int offset, PairwiseMachine& machine, Player& P,

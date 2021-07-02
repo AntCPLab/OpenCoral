@@ -46,8 +46,6 @@ public:
     template<class T>
     void binomial(vector_type& shares, T& prep);
     template<class T>
-    void hamming(vector_type& shares, T& prep);
-    template<class T>
     void secret_key(vector_type& shares, T& prep);
     vector_type schur_product(const vector_type& x, const vector_type& y);
     void output_to(int player, vector<open_type>& opened,

@@ -15,6 +15,9 @@ namespace GC
 {
 
 template<class T> class TinierPrep;
+template<class T> class VectorProtocol;
+template<class T> class CcdPrep;
+template<class T> class VectorInput;
 
 template<class T>
 class TinierSecret : public VectorSecret<TinierShare<T>>
@@ -25,9 +28,9 @@ class TinierSecret : public VectorSecret<TinierShare<T>>
 public:
     typedef TinyMC<This> MC;
     typedef MC MAC_Check;
-    typedef Beaver<This> Protocol;
-    typedef ::Input<This> Input;
-    typedef TinierPrep<This> LivePrep;
+    typedef VectorProtocol<This> Protocol;
+    typedef VectorInput<This> Input;
+    typedef CcdPrep<This> LivePrep;
     typedef Memory<This> DynamicMemory;
 
     typedef NPartyTripleGenerator<This> TripleGenerator;

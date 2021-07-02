@@ -44,7 +44,6 @@ protected:
   void assign_zero(const vector<FFT_Data>& prd);
   void assign_zero(); 
   void assign_one(); 
-  void assign(const Rq_Element& e);
   void partial_assign(const Rq_Element& e);
 
   // Must be careful not to call by mistake
@@ -84,10 +83,6 @@ protected:
     a[0] = Ring_Element(prd[0], r, b0);
     a[1] = Ring_Element(prd[1], r, b1);
   }
-
-  // Destructor
-  ~Rq_Element()
-     { ; }
 
   const Ring_Element& get(int i) const { return a[i]; }
 
@@ -131,8 +126,6 @@ protected:
   void partial_assign(const Rq_Element& a, const Rq_Element& b);
 
   // Converting to and from a vector of bigint's Again I/O is in poly rep
-  void from_vec(const vector<bigint>& v,int level=-1);
-  void from_vec(const vector<int>& v,int level=-1);
   vector<bigint>  to_vec_bigint() const;
   void to_vec_bigint(vector<bigint>& v) const;
 

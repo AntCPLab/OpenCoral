@@ -117,7 +117,7 @@ class xorm(NonVectorInstruction):
     code = opcodes['XORM']
     arg_format = ['int','sbw','sb','cb']
 
-class xorcb(NonVectorInstruction):
+class xorcb(BinaryVectorInstruction):
     """ Bitwise XOR of two single clear bit registers.
 
     :param: result (cbit)
@@ -125,7 +125,7 @@ class xorcb(NonVectorInstruction):
     :param: operand (cbit)
     """
     code = opcodes['XORCB']
-    arg_format = ['cbw','cb','cb']
+    arg_format = ['int','cbw','cb','cb']
 
 class xorcbi(NonVectorInstruction):
     """ Bitwise XOR of single clear bit register and immediate.

@@ -11,6 +11,7 @@
 #include "Protocols/MAC_Check.h"
 
 #include "Protocols/MAC_Check.hpp"
+#include "Math/modp.hpp"
 
 template<class T, class FD, class S>
 SimpleEncCommitBase<T, FD, S>::SimpleEncCommitBase(const MachineBase& machine) :
@@ -63,7 +64,10 @@ SimpleEncCommitFactory<FD>::SimpleEncCommitFactory(const FHE_PK& pk,
 template <class FD>
 SimpleEncCommitFactory<FD>::~SimpleEncCommitFactory()
 {
-    cout << "EncCommit called " << n_calls << " times" << endl;
+#ifdef VERBOSE_HE
+    if (n_calls > 0)
+        cout << "EncCommit called " << n_calls << " times" << endl;
+#endif
 }
 
 template<class FD>
@@ -131,7 +135,7 @@ size_t NonInteractiveProofSimpleEncCommit<FD>::generate_proof(AddableVector<Ciph
     Prover<FD, Plaintext_<FD> > prover(proof, FTD);
 #endif
     size_t prover_memory = prover.NIZKPoK(proof, ciphertexts, cleartexts,
-            pk, c, m, r, false);
+            pk, c, m, r);
     timers["Proving"].stop();
 
     if (proof.top_gear)
@@ -192,7 +196,7 @@ size_t NonInteractiveProofSimpleEncCommit<FD>::create_more(octetStream& cipherte
 #endif
         timers["Verifying"].start();
         verifier.NIZKPoK(others_ciphertexts, ciphertexts,
-                cleartexts, get_pk_for_verification(i), false);
+                cleartexts, get_pk_for_verification(i));
         timers["Verifying"].stop();
         add_ciphertexts(others_ciphertexts, i);
         this->memory_usage.update("verifier", verifier.report_size(CAPACITY));
@@ -251,7 +255,7 @@ void SummingEncCommit<FD>::create_more()
 #endif
         this->generate_ciphertexts(this->c, this->m, r, pk, timers, proof);
         this->timers["Stage 1 of proof"].start();
-        prover.Stage_1(proof, ciphertexts, this->c, this->pk, false);
+        prover.Stage_1(proof, ciphertexts, this->c, this->pk);
         this->timers["Stage 1 of proof"].stop();
 
         this->c.unpack(ciphertexts, this->pk);
@@ -291,8 +295,10 @@ void SummingEncCommit<FD>::create_more()
 
     for (int i = 1; i < P.num_players(); i++)
     {
+#ifdef VERBOSE_HE
         cout << "Sending cleartexts with " << 1e-9 * cleartexts.get_length()
                 << " GB in round " << i << endl;
+#endif
         TimeScope(this->timers["Exchanging cleartexts"]);
         P.pass_around(cleartexts);
         preimages.add(cleartexts);
@@ -312,7 +318,7 @@ void SummingEncCommit<FD>::create_more()
     Verifier<FD> verifier(proof);
 #endif
     verifier.Stage_2(this->c, ciphertexts, cleartexts,
-            this->pk, false);
+            this->pk);
     this->timers["Verifying"].stop();
     this->cnt = proof.U - 1;
 

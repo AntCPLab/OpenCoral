@@ -31,7 +31,7 @@ def f(_):
 
     for i in range(n_inputs):
         # i * 10 because inputs are all zero by default
-        bids[i] = Bid(i, value_type.get_raw_input_from(i % n_parties) + i * 10)
+        bids[i] = Bid(i, value_type.get_input_from(i % n_parties) + i * 10)
         #bids = [Bid(i, value_type(i * 10)) for i in range(n_parties)]
 
     def bid_sort(a, b):

@@ -9,6 +9,30 @@
  ***********************************************************************/
 
 template<int L>
+modp_<L> modp_<L>::add(const modp_& other, const Zp_Data& ZpD) const
+{
+  modp_ res;
+  Add(res, *this, other, ZpD);
+  return res;
+}
+
+template<int L>
+modp_<L> modp_<L>::sub(const modp_& other, const Zp_Data& ZpD) const
+{
+  modp_ res;
+  Sub(res, *this, other, ZpD);
+  return res;
+}
+
+template<int L>
+modp_<L> modp_<L>::mul(const modp_& other, const Zp_Data& ZpD) const
+{
+  modp_ res;
+  Mul(res, *this, other, ZpD);
+  return res;
+}
+
+template<int L>
 void modp_<L>::randomize(PRNG& G, const Zp_Data& ZpD)
 {
   const int M = sizeof(mp_limb_t) * L;

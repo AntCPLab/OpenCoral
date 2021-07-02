@@ -73,7 +73,7 @@ void ShamirInput<T>::add_mine(const typename T::open_type& input, int n_bits)
 }
 
 template<class U>
-void IndividualInput<U>::add_other(int player)
+void IndividualInput<U>::add_other(int player, int)
 {
     (void) player;
 }

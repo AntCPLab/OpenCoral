@@ -20,6 +20,11 @@
 template<class T>
 void bits_from_random(vector<T>& bits, typename T::Protocol& protocol);
 
+namespace GC
+{
+template<class T> class ShareThread;
+}
+
 template<class T>
 class BufferPrep : public Preprocessing<T>
 {
@@ -318,6 +323,12 @@ public:
     }
 
     ReplicatedPrep(DataPositions& usage, int = 0) :
+            ReplicatedPrep(0, usage)
+    {
+    }
+
+    template<class U>
+    ReplicatedPrep(DataPositions& usage, GC::ShareThread<U>&, int = 0) :
             ReplicatedPrep(0, usage)
     {
     }

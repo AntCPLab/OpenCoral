@@ -5,6 +5,7 @@
 #include "FHE/P2Data.h"
 #include "FHE/Rq_Element.h"
 #include "FHE_Keys.h"
+#include "FHE/AddableVector.hpp"
 #include "Math/Z2k.hpp"
 #include "Math/modp.hpp"
 
@@ -258,37 +259,9 @@ void Plaintext<T,FD,S>::randomize(PRNG& G,condition cond)
 }
 
 
-template<>
-void Plaintext_<FFT_Data>::randomize(PRNG& G, bigint B, bool Diag, bool binary, PT_Type t)
-{
-  if (Diag or binary)
-    throw not_implemented();
-  if (B == 0)
-    throw runtime_error("cannot randomize modulo 0");
-
-  allocate(t);
-  switch (t)
-  {
-    case Polynomial:
-      rand_poly(b, G, B, false);
-      break;
-    case Evaluation:
-      for (int i = 0; i < n_slots; i++)
-        a[i] = G.randomBnd(B);
-      break;
-    default:
-      throw runtime_error("wrong type for randomization with bound");
-      break;
-  }
-}
-
-
 template<class T,class FD,class S>
-void Plaintext<T,FD,S>::randomize(PRNG& G, int n_bits, bool Diag, bool binary, PT_Type t)
+void Plaintext<T,FD,S>::randomize(PRNG& G, int n_bits, bool Diag, PT_Type t)
 {
-  if (binary)
-    throw not_implemented();
-
   allocate(t);
   switch(t)
   {
@@ -614,10 +587,11 @@ void Plaintext<gf2n_short,P2Data,int>::negate()
 
 
 
-template<class T, class FD, class S>
-Rq_Element Plaintext<T, FD, S>::mul_by_X_i(int i, const FHE_PK& pk) const
+template<class T, class FD, class _>
+AddableVector<typename FD::poly_type> Plaintext<T, FD, _>::mul_by_X_i(int i,
+    const FHE_PK& pk) const
 {
-  return Rq_Element(pk.get_params(), *this).mul_by_X_i(i);
+  return AddableVector<S>(get_poly()).mul_by_X_i(i, pk);
 }
 
 

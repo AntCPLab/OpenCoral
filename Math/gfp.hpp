@@ -171,16 +171,9 @@ void gfp_<X, L>::reqbl(int n)
 }
 
 template<int X, int L>
-bool gfp_<X, L>::allows(Dtype type)
+bool gfp_<X, L>::allows(Dtype)
 {
-    switch(type)
-    {
-    case DATA_BITGF2NTRIPLE:
-    case DATA_BITTRIPLE:
-        return false;
-    default:
-        return true;
-    }
+    return true;
 }
 
 template<int X, int L>

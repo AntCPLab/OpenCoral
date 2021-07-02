@@ -94,6 +94,10 @@ class modp_
   template<int M> friend void to_modp(modp_<M>& ans,int x,const Zp_Data& ZpD);
   template<int M> friend void to_modp(modp_<M>& ans,const mpz_class& x,const Zp_Data& ZpD);
 
+  modp_ add(const modp_& other, const Zp_Data& ZpD) const;
+  modp_ sub(const modp_& other, const Zp_Data& ZpD) const;
+  modp_ mul(const modp_& other, const Zp_Data& ZpD) const;
+
   friend void Add(modp_& ans,const modp_& x,const modp_& y,const Zp_Data& ZpD)
     { ZpD.Add(ans.x, x.x, y.x); }
   template<int M> friend void Sub(modp_<M>& ans,const modp_<M>& x,const modp_<M>& y,const Zp_Data& ZpD);

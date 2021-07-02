@@ -29,7 +29,7 @@ public:
     }
 
     void reset(int player);
-    void add_other(int player);
+    void add_other(int player, int n_bits = -1);
     void send_mine();
     void exchange();
     void finalize_other(int player, T& target, octetStream& o, int n_bits = -1);
@@ -58,6 +58,11 @@ public:
 
     ShamirInput(SubProcessor<T>* proc, Player& P) :
             IndividualInput<T>(proc, P)
+    {
+    }
+
+    ShamirInput(ShamirMC<T>&, Preprocessing<T>&, Player& P) :
+            IndividualInput<T>(0, P)
     {
     }
 

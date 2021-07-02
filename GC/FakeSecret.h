@@ -70,8 +70,6 @@ public:
     static const true_type invertible;
     static const true_type characteristic_two;
 
-    static DataFieldType field_type() { return DATA_GF2; }
-
     static MC* new_mc(mac_key_type key) { return new MC(key); }
 
     static void store_clear_in_dynamic(Memory<DynamicType>& mem,

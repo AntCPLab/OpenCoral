@@ -7,9 +7,15 @@
 #define PROTOCOLS_SHAREINTERFACE_H_
 
 #include <vector>
+#include <string>
+#include <stdexcept>
 using namespace std;
 
+#include "Tools/Exceptions.h"
+
 class Player;
+class Instruction;
+class ValueInterface;
 
 namespace GC
 {

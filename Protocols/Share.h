@@ -62,15 +62,15 @@ class Share_ : public ShareInterface
    static char type_char()
      { return T::type_char(); }
 
-   static DataFieldType field_type()
-     { return T::field_type(); }
-
    static int threshold(int nplayers)
      { return T::threshold(nplayers); }
 
    template<class U>
    static void read_or_generate_mac_key(string directory, const Player& P,
            U& key);
+
+   static void specification(octetStream& os)
+     { T::specification(os); }
 
    static Share_ constant(const clear& aa, int my_num, const typename V::Scalar& alphai)
      { return Share_(aa, my_num, alphai); }
@@ -100,7 +100,6 @@ class Share_ : public ShareInterface
 
    /* Arithmetic Routines */
    void mul(const Share_<T, V>& S,const clear& aa);
-   void mul_by_bit(const Share_<T, V>& S,const clear& aa);
    void add(const Share_<T, V>& S1,const Share_<T, V>& S2);
    void sub(const Share_<T, V>& S1,const Share_<T, V>& S2);
 
@@ -209,10 +208,6 @@ public:
             const SemiShare<T>& mac) :
             super(share, mac) {}
 };
-
-// specialized mul by bit for gf2n
-template <>
-void Share_<SemiShare<gf2n>, SemiShare<gf2n>>::mul_by_bit(const Share_<SemiShare<gf2n>, SemiShare<gf2n>>& S,const gf2n& aa);
 
 template <class T, class V>
 Share_<T, V> operator*(const typename T::clear& y, const Share_<T, V>& x) { Share_<T, V> res; res.mul(x, y); return res; }

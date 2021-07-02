@@ -52,10 +52,12 @@ int generate_semi_setup(int plaintext_length, int sec,
   bigint p;
   generate_prime(p, lgp, m);
   int lgp0, lgp1;
+  FHE_Params tmp_params;
   while (true)
     {
+      tmp_params = params;
       SemiHomomorphicNoiseBounds nb(p, phi_N(m), 1, sec,
-          numBits(NonInteractiveProof::slack(sec, phi_N(m))), true, params);
+          numBits(NonInteractiveProof::slack(sec, phi_N(m))), true, tmp_params);
       bigint p1 = 2 * p * m, p0 = p;
       while (nb.min_p0(params.n_mults() > 0, p1) > p0)
         {
@@ -75,6 +77,7 @@ int generate_semi_setup(int plaintext_length, int sec,
         }
     }
 
+  params = tmp_params;
   int extra_slack = common_semi_setup(params, m, p, lgp0, lgp1, round_up);
 
   FTD.init(params.get_ring(), p);

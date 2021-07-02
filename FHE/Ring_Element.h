@@ -41,12 +41,6 @@ class Ring_Element
 
   vector<modp> element; 
 
-  // Define a copy
-  void assign(const Ring_Element& e)
-    { rep=e.rep; FFTD=e.FFTD;
-      element=e.element;
-    }
-
   public:
 
   // Used to basically make sure *this is able to cope
@@ -56,6 +50,10 @@ class Ring_Element
       if (FFTD)
         element.resize((*FFTD).phi_m());
     }
+
+  void prepare(const Ring_Element& e);
+  void prepare_push();
+  void allocate();
 
   void set_data(const FFT_Data& prd)   { FFTD=&prd; }
   const FFT_Data& get_FFTD() const     { return *FFTD; }
@@ -80,19 +78,6 @@ class Ring_Element
         element.push_back(x);
     }
 
-  // Copy Constructor
-  Ring_Element(const Ring_Element& e)  
-     { assign(e);      }
-
-  // Destructor
-  ~Ring_Element()                      { ; }
-
-  // Copy Assignment
-  Ring_Element& operator=(const Ring_Element& e)
-    { if (this!=&e) { assign(e); }
-      return *this;
-    }
-
   /* Functional Operators */
   void negate();
   friend void add(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b);
@@ -101,6 +86,11 @@ class Ring_Element
   friend void mul(Ring_Element& ans,const Ring_Element& a,const modp& b);
 
   Ring_Element mul_by_X_i(int i) const;
+
+  Ring_Element& operator+=(const Ring_Element& other);
+  Ring_Element& operator-=(const Ring_Element& other);
+  Ring_Element& operator*=(const Ring_Element& other);
+  Ring_Element& operator*=(const modp& other);
 
   void randomize(PRNG& G,bool Diag=false);
 
@@ -112,8 +102,6 @@ class Ring_Element
   // Converting to and from a vector of bigint/int's 
   // I/O is assumed to be in poly rep, so from_vec it internally alters
   // the representation to the current representation
-  void from_vec(const vector<bigint>& v);
-  void from_vec(const vector<int>& v);
   vector<bigint>  to_vec_bigint() const;
   void to_vec_bigint(vector<bigint>& v) const;
 
@@ -136,8 +124,18 @@ class Ring_Element
 
   // This gets the constant term of the poly rep as a modp element
   modp get_constant() const;
-  modp get_element(int i) const { return element[i]; }
-  void set_element(int i,const modp& a) { element[i]=a; }
+  modp get_element(int i) const
+  {
+    if (element.empty())
+      return {};
+    else
+      return element[i];
+  }
+  void set_element(int i,const modp& a)
+  {
+    allocate();
+    element[i] = a;
+  }
 
   /* Pack and unpack into an octetStream 
    *   For unpack we assume the FFTD has been assigned correctly already
@@ -164,7 +162,11 @@ class RingWriteIterator : public WriteConversionIterator
 public:
   RingWriteIterator(Ring_Element& element) :
     WriteConversionIterator(element.element, element.FFTD->get_prD()),
-    element(element), rep(element.rep) { element.rep = polynomial; }
+    element(element), rep(element.rep)
+  {
+    element.rep = polynomial;
+    element.allocate();
+  }
   ~RingWriteIterator() { element.change_rep(rep); }
 };
 
@@ -175,7 +177,11 @@ class RingReadIterator : public ConversionIterator
 public:
   RingReadIterator(const Ring_Element& element) :
     ConversionIterator(this->element.element, element.FFTD->get_prD()),
-    element(element) { this->element.change_rep(polynomial); }
+    element(element)
+  {
+    this->element.change_rep(polynomial);
+    this->element.allocate();
+  }
 };
 
 
@@ -189,10 +195,13 @@ void Ring_Element::from(const Generator<T>& generator)
   RepType t=rep;
   rep=polynomial;
   T tmp;
+  modp tmp2;
+  prepare_push();
   for (int i=0; i<(*FFTD).phi_m(); i++)
     {
       generator.get(tmp);
-      element[i].convert_destroy(tmp, (*FFTD).get_prD());
+      tmp2.convert_destroy(tmp, (*FFTD).get_prD());
+      element.push_back(tmp2);
     }
   change_rep(t);
 }

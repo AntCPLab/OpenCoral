@@ -135,7 +135,7 @@ mp_limb_t mpn_add_fixed_n_with_carry(mp_limb_t* res, const mp_limb_t* x, const m
 
 inline mp_limb_t mpn_sub_n_borrow(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y, int n)
 {
-#if !defined(__clang__) || (__GNUC__ < 7) || !defined(__x86_64__)
+#if (!defined(__clang__) && (__GNUC__ < 7)) || !defined(__x86_64__)
     // GCC 6 can't handle the code below
     return mpn_sub_n(res, x, y, n);
 #else

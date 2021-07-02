@@ -132,6 +132,10 @@ public:
   virtual ~MAC_Check_Z2k() {};
 };
 
+template<class W>
+using MAC_Check_Z2k_ = MAC_Check_Z2k<typename W::open_type,
+        typename W::mac_key_type, typename W::open_type, W>;
+
 
 template<class T>
   void add_openings(vector<T>& values, const Player& P, int sum_players, int last_sum_players, int send_player, TreeSum<T>& MC);

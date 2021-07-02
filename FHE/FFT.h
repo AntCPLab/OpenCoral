@@ -30,8 +30,29 @@ void FFT2(vector<modp>& a,int N,const modp& theta,const Zp_Data& PrD);
 template <class T,class P>
 void FFT_Iter(vector<T>& a,int N,const T& theta,const P& PrD);
 
+void FFT_Iter(vector<modp>& a, int N, const modp& theta, const Zp_Data& PrD,
+        bool start_with_one = true);
 void FFT_Iter2(vector<modp>& a,int N,const modp& theta,const Zp_Data& PrD);
 
+// variants with precomputed roots
+
+void FFT_Iter(vector<modp>& a, int N, const vector<modp>& theta,
+        const Zp_Data& PrD, bool start_with_one = true);
+void FFT_Iter2(vector<modp>& a, int N, const vector<modp>& theta,
+        const Zp_Data& PrD);
+
+inline void FFT_Iter2_body(vector<modp>& ioput, const vector<modp>& alpha2, int i,
+        int m, const Zp_Data& PrD)
+{
+    int j = i % (m / 2);
+    int kk = i / (m / 2);
+    int k = j + kk * m;
+    modp t, u;
+    Mul(t, alpha2[j], ioput[k + m / 2], PrD);
+    u = ioput[k];
+    Add(ioput[k], u, t, PrD);
+    Sub(ioput[k + m / 2], u, t, PrD);
+}
 
 /* BFFT perform FFT and inverse FFT  mod PrD for non power of two cyclotomics.  
  * The modulus in PrD (contained in FFT_Data) must be set up

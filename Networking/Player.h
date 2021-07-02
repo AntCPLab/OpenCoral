@@ -69,7 +69,7 @@ class Names
   Names(ez::ezOptionParser& opt, int argc, const char** argv,
       int default_nplayers = 2);
 
-  Names() : nplayers(-1), portnum_base(-1), player_no(-1), global_server(0), server(0) { ; }
+  Names() : nplayers(1), portnum_base(-1), player_no(0), global_server(0), server(0) { ; }
   Names(const Names& other);
   ~Names();
 
@@ -170,25 +170,39 @@ public:
   virtual void send_long(int i, long a) const = 0;
   virtual long receive_long(int i) const = 0;
 
+  // The following functions generally update the statistics
+  // and then call the *_no_stats equivalent specified by a subclass.
+
+  // send the same to all other players
   virtual void send_all(const octetStream& o) const;
+  // send to a specific player
   void send_to(int player,const octetStream& o) const;
   virtual void send_to_no_stats(int player,const octetStream& o) const = 0;
+  // receive from all other players
   void receive_all(vector<octetStream>& os) const;
+  // receive from a specific player
   void receive_player(int i,octetStream& o) const;
   virtual void receive_player_no_stats(int i,octetStream& o) const = 0;
   virtual void receive_player(int i,FlexBuffer& buffer) const;
 
   // Communication relative to my number
+  // send to all other players by offset
   void send_relative(const vector<octetStream>& o) const;
+  // send to other player specified by offset
   void send_relative(int offset, const octetStream& o) const;
+  // receive from all other players by offset
   void receive_relative(vector<octetStream>& o) const;
+  // receive from other palyer specified by offset
   void receive_relative(int offset, octetStream& o) const;
 
   // exchange data with minimal memory usage
+  // exchange information with one other party
   void exchange(int other, const octetStream& to_send, octetStream& ot_receive) const;
   virtual void exchange_no_stats(int other, const octetStream& to_send, octetStream& ot_receive) const = 0;
   void exchange(int other, octetStream& o) const;
+  // exchange with one other partiy specified by offset
   void exchange_relative(int offset, octetStream& o) const;
+  // send information to party while receiving from another by offset
   void pass_around(octetStream& o, int offset = 1) const { pass_around(o, o, offset); }
   void pass_around(octetStream& to_send, octetStream& to_receive, int offset) const;
   virtual void pass_around_no_stats(const octetStream& to_send,
@@ -198,6 +212,7 @@ public:
    *  - Assumes o[player_no] contains the thing broadcast by me
    */
   virtual void unchecked_broadcast(vector<octetStream>& o) const;
+  // broadcast with eventual verification
   virtual void Broadcast_Receive(vector<octetStream>& o) const;
   virtual void Broadcast_Receive_no_stats(vector<octetStream>& o) const = 0;
 
@@ -209,8 +224,10 @@ public:
   // send something different to all
   void send_receive_all(const vector<octetStream>& to_send,
       vector<octetStream>& to_receive) const;
+  // specified senders only send something different to all
   void send_receive_all(const vector<bool>& senders,
       const vector<octetStream>& to_send, vector<octetStream>& to_receive) const;
+  // send something different only one specified channels
   void send_receive_all(const vector<vector<bool>>& channels,
       const vector<octetStream>& to_send,
       vector<octetStream>& to_receive) const;
@@ -218,6 +235,7 @@ public:
       const vector<octetStream>& to_send,
       vector<octetStream>& to_receive) const = 0;
 
+  // specified senders broadcast information
   virtual void partial_broadcast(const vector<bool>& senders,
       vector<octetStream>& os) const;
   virtual void partial_broadcast(const vector<bool>&, const vector<bool>&,
@@ -237,8 +255,6 @@ protected:
   T send_to_self_socket;
 
   void setup_sockets(const vector<string>& names,const vector<int>& ports,int id_base,ServerSocket& server);
-
-  map<T,int> socket_players;
 
   T socket_to_send(int player) const { return player == player_no ? send_to_self_socket : sockets[player]; }
 

@@ -95,9 +95,6 @@ class Machine : public BaseMachine
   template<class T>
   string prep_dir_prefix();
 
-  // Only for Player-Demo.cpp
-  Machine(Names& N = *(new Names())): N(N) {}
-
   void reqbl(int n);
 
   typename sint::bit_type::mac_key_type get_bit_mac_key() { return alphabi; }

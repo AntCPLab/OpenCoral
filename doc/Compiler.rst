@@ -20,7 +20,7 @@ Compiler.types module
 		     ClientMessageType, __weakref__, __repr__,
 		     reg_type, int_type, clear_type, float_type, basic_type,
 		     default_type, unreduced_type, bit_type, dynamic_array,
-		     squant, mov, load_mem, store_in_mem,
+		     squant, mov,
 		     write_share_to_socket,
 
 Compiler.GC.types module
@@ -55,12 +55,14 @@ Compiler.mpc\_math module
 .. autofunction:: asin
 .. autofunction:: cos
 .. autofunction:: exp2_fx
+.. autofunction:: InvertSqrt
 .. autofunction:: log2_fx
 .. autofunction:: log_fx
 .. autofunction:: pow_fx
 .. autofunction:: sin
 .. autofunction:: sqrt
 .. autofunction:: tan
+.. autofunction:: tanh
 
 Compiler.ml module
 -------------------------

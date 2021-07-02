@@ -18,14 +18,14 @@ class VectorInput : public InputBase<T>
     deque<int> input_lengths;
 
 public:
-    VectorInput(typename T::MAC_Check&, Preprocessing<T>&, Player& P) :
-            part_input(0, P)
+    VectorInput(typename T::MAC_Check& MC, Preprocessing<T>& prep, Player& P) :
+            part_input(MC.get_part_MC(), prep.get_part(), P)
     {
         part_input.reset_all(P);
     }
 
     VectorInput(SubProcessor<T>& proc, typename T::MAC_Check&) :
-            VectorInput(proc.MC, proc.DataF, proc.P)
+            part_input(proc.MC, proc.DataF, proc.P)
     {
     }
 
@@ -41,8 +41,10 @@ public:
         input_lengths.push_back(n_bits);
     }
 
-    void add_other(int)
+    void add_other(int player, int n_bits)
     {
+        for (int i = 0; i < n_bits; i++)
+            part_input.add_other(player);
     }
 
     void send_mine()

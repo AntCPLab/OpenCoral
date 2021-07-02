@@ -58,7 +58,9 @@ void BufferBase::prune()
         purge();
     else if (file and file->tellg() != 0)
     {
+#ifdef VERBOSE
         cerr << "Pruning " << filename << endl;
+#endif
         string tmp_name = filename + ".new";
         ofstream tmp(tmp_name.c_str());
         tmp << file->rdbuf();
@@ -75,7 +77,9 @@ void BufferBase::purge()
 {
     if (file)
     {
+#ifdef VERBOSE
         cerr << "Removing " << filename << endl;
+#endif
         unlink(filename.c_str());
         file->close();
         file = 0;

@@ -40,7 +40,7 @@ inline void ReplicatedInput<T>::add_mine(const typename T::open_type& input, int
 }
 
 template<class T>
-void ReplicatedInput<T>::add_other(int player)
+void ReplicatedInput<T>::add_other(int player, int)
 {
     expect[player] = true;
 }

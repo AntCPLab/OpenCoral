@@ -12,6 +12,7 @@
 #include "GC/ShareSecret.hpp"
 #include "GC/ThreadMaster.hpp"
 #include "GC/Secret.hpp"
+#include "GC/CcdPrep.hpp"
 #include "Machines/ShamirMachine.hpp"
 #include "Machines/MalRep.hpp"
 

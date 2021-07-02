@@ -25,6 +25,7 @@ using namespace std;
 
 class FHE_PK;
 class Rq_Element;
+template<class T> class AddableVector;
 
 // Forward declaration as apparently this is needed for friends in templates
 template<class T,class FD,class S> class Plaintext;
@@ -63,13 +64,6 @@ class Plaintext
   
   const FD& get_field() const { return *Field_Data; }
   unsigned int num_slots() const { return n_slots; }
-
-  void assign(const Plaintext& p)
-    { Field_Data=p.Field_Data;
-      a=p.a; b=p.b; type=p.type;
-      n_slots = p.n_slots;
-      degree = p.degree;
-    }
 
   Plaintext(const FD& FieldD, PT_Type type = Polynomial)
   { Field_Data=&FieldD; set_sizes(); allocate(type); }
@@ -142,8 +136,7 @@ class Plaintext
   void to_poly() const;
 
   void randomize(PRNG& G,condition cond=Full);
-  void randomize(PRNG& G, bigint B, bool Diag=false, bool binary=false, PT_Type type=Polynomial);
-  void randomize(PRNG& G, int n_bits, bool Diag=false, bool binary=false, PT_Type type=Polynomial);
+  void randomize(PRNG& G, int n_bits, bool Diag=false, PT_Type type=Polynomial);
 
   void assign_zero(PT_Type t = Evaluation);
   void assign_one(PT_Type t = Evaluation);
@@ -171,13 +164,12 @@ class Plaintext
 
   void negate();
 
-  Rq_Element mul_by_X_i(int i, const FHE_PK& pk) const;
+  AddableVector<S> mul_by_X_i(int i, const FHE_PK& pk) const;
 
   bool equals(const Plaintext& x) const;
   bool operator!=(const Plaintext& x) { return !equals(x); }
 
   bool is_diagonal() const;
-  bool is_binary() const { throw not_implemented(); }
 
   /* Pack and unpack into an octetStream 
    *   For unpack we assume the FFTD has been assigned correctly already

@@ -47,7 +47,6 @@ public:
     {
         auto& P = protocol.P;
         int my_num = P.my_num();
-        assert(n_bits <= 64);
         int unit = GC::Clear::N_BITS;
         for (int k = 0; k < DIV_CEIL(n_inputs, unit); k++)
         {
@@ -57,29 +56,37 @@ public:
             switch (regs.size() / n_bits)
             {
             case 3:
-                for (int i = 0; i < n_bits; i++)
-                    dest.at(regs.at(3 * i + my_num) + k) = {};
-
-                for (int i = 0; i < 2; i++)
+                for (int l = 0; l < n_bits; l += unit)
                 {
-                    square64 square;
+                    int base = l;
+                    int n_left = min(n_bits - base, unit);
+                    for (int i = base; i < base + n_left; i++)
+                        dest.at(regs.at(3 * i + my_num) + k) = {};
 
-                    for (int j = 0; j < m; j++)
-                        square.rows[j] = Integer(source[j + start][i]).get();
-
-                    square.transpose(m, n_bits);
-
-                    for (int j = 0; j < n_bits; j++)
+                    for (int i = 0; i < 2; i++)
                     {
-                        auto &dest_reg = dest.at(
-                                regs.at(3 * j + ((my_num + 2 - i) % 3)) + k);
-                        dest_reg[1 - i] = 0;
-                        dest_reg[i] = square.rows[j];
+                        square64 square;
+
+                        for (int j = 0; j < m; j++)
+                            square.rows[j] = source[j + start][i].get_limb(
+                                    l / unit);
+
+                        square.transpose(m, n_left);
+
+                        for (int j = 0; j < n_left; j++)
+                        {
+                            auto& dest_reg = dest.at(
+                                    regs.at(3 * (base + j) + ((my_num + 2 - i) % 3))
+                                            + k);
+                            dest_reg[1 - i] = 0;
+                            dest_reg[i] = square.rows[j];
+                        }
                     }
                 }
                 break;
             case 2:
             {
+                assert(n_bits <= 64);
                 ReplicatedInput<U> input(P);
                 input.reset_all(P);
                 if (P.my_num() == 0)

@@ -44,7 +44,7 @@ class Masking(NonLinear):
         d = [None]*k
         for i,b in enumerate(r[0].bit_decompose_clear(c, k)):
             d[i] = r[i].bit_xor(b)
-        return 1 - types.sint.conv(self.kor(d))
+        return 1 - types.sintbit.conv(self.kor(d))
 
 class Prime(Masking):
     """ Non-linear functionality modulo a prime with statistical masking. """
@@ -71,8 +71,11 @@ class Prime(Masking):
     def _trunc_pr(self, a, k, m, signed=None):
         return TruncPrField(a, k, m, self.kappa)
 
-    def bit_dec(self, a, k, m):
-        return BitDecField(a, k, m, self.kappa)
+    def bit_dec(self, a, k, m, maybe_mixed=False):
+        if maybe_mixed:
+            return BitDecFieldRaw(a, k, m, self.kappa)
+        else:
+            return BitDecField(a, k, m, self.kappa)
 
     def kor(self, d):
         return KOR(d, self.kappa)
@@ -85,7 +88,7 @@ class KnownPrime(NonLinear):
     def _mod2m(self, a, k, m, signed):
         if signed:
             a += cint(1) << (k - 1)
-        return sint.bit_compose(self.bit_dec(a, k, k)[:m])
+        return sint.bit_compose(self.bit_dec(a, k, k, True)[:m])
 
     def _trunc_pr(self, a, k, m, signed):
         # nearest truncation
@@ -96,14 +99,14 @@ class KnownPrime(NonLinear):
         if signed:
             a += cint(1) << (k - 1)
             k += 1
-        res = sint.bit_compose(self.bit_dec(a, k, k)[m:])
+        res = sint.bit_compose(self.bit_dec(a, k, k, True)[m:])
         if signed:
             res -= cint(1) << (k - m - 2)
         return res
 
-    def bit_dec(self, a, k, m):
+    def bit_dec(self, a, k, m, maybe_mixed=False):
         assert k < self.prime.bit_length()
-        bits = BitDecFull(a)
+        bits = BitDecFull(a, maybe_mixed=maybe_mixed)
         if len(bits) < m:
             raise CompilerError('%d has fewer than %d bits' % (self.prime, m))
         return bits[:m]
@@ -111,7 +114,7 @@ class KnownPrime(NonLinear):
     def eqz(self, a, k):
         # always signed
         a += two_power(k)
-        return 1 - KORL(self.bit_dec(a, k, k))
+        return 1 - types.sintbit.conv(KORL(self.bit_dec(a, k, k, True)))
 
 class Ring(Masking):
     """ Non-linear functionality modulo a power of two known at compile time.
@@ -130,8 +133,11 @@ class Ring(Masking):
     def _trunc_pr(self, a, k, m, signed):
         return TruncPrRing(a, k, m, signed=signed)
 
-    def bit_dec(self, a, k, m):
-        return BitDecRing(a, k, m)
+    def bit_dec(self, a, k, m, maybe_mixed=False):
+        if maybe_mixed:
+            return BitDecRingRaw(a, k, m)
+        else:
+            return BitDecRing(a, k, m)
 
     def kor(self, d):
         return KORL(d)

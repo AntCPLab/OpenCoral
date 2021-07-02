@@ -7,7 +7,6 @@
 #define PROTOCOLS_REP4SHARE_H_
 
 #include "Rep3Share.h"
-#include "Processor/NoLivePrep.h"
 
 template<class T> class Rep4MC;
 template<class T> class Rep4;

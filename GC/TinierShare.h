@@ -9,12 +9,12 @@
 #include "Processor/DummyProtocol.h"
 #include "Protocols/Share.h"
 #include "Math/Bit.h"
-#include "TinierSharePrep.h"
 
 namespace GC
 {
 
 template<class T> class TinierSecret;
+template<class T> class TinierSharePrep;
 
 template<class T>
 class TinierShare: public Share_<SemiShare<Bit>, SemiShare<T>>,
@@ -53,6 +53,11 @@ public:
     static string type_string()
     {
         return "Tinier";
+    }
+
+    static string type_short()
+    {
+        return "TT";
     }
 
     static ShareThread<TinierSecret<T>>& get_party()
@@ -103,9 +108,7 @@ public:
 
     void random()
     {
-        TinierSecret<T> tmp;
-        get_party().DataF.get_one(DATA_BIT, tmp);
-        *this = tmp.get_reg(0);
+        *this = get_party().DataF.get_part().get_bit();
     }
 
     This lsb() const

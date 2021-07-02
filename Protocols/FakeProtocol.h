@@ -8,6 +8,7 @@
 
 #include "Replicated.h"
 #include "Math/Z2k.h"
+#include "Processor/Instruction.h"
 
 template<class T>
 class FakeProtocol : public ProtocolBase<T>
@@ -157,11 +158,52 @@ public:
                     res = ((source + r) >> n_shift) - (r >> n_shift);
 #else
                 T r;
-                r.randomize_part(G, n_shift - 1);
+                r.randomize_part(G, n_shift);
                 res = (source + r) >> n_shift;
 #endif
 #endif
             }
+    }
+
+    void cisc(SubProcessor<T>& processor, const Instruction& instruction)
+    {
+        int r0 = instruction.get_r(0);
+        string tag((char*)&r0, 4);
+        auto& args = instruction.get_start();
+        if (tag == string("LTZ\0", 4))
+        {
+            for (size_t i = 0; i < args.size(); i += args[i])
+            {
+                assert(i + args[i] <= args.size());
+                assert(args[i] == 6);
+                for (int j = 0; j < args[i + 1]; j++)
+                {
+                    auto& res = processor.get_S()[args[i + 2] + j];
+                    res = T(processor.get_S()[args[i + 3] + j]).get_bit(
+                            args[i + 4] - 1);
+                }
+            }
+        }
+        else if (tag == "Trun")
+        {
+            for (size_t i = 0; i < args.size(); i += args[i])
+            {
+                assert(i + args[i] <= args.size());
+                assert(args[i] == 8);
+                int k = args[i + 4];
+                int m = args[i + 5];
+                int s = args[i + 7];
+                assert((s == 0) or (s == 1));
+                for (int j = 0; j < args[i + 1]; j++)
+                {
+                    auto& res = processor.get_S()[args[i + 2] + j];
+                    res = ((T(processor.get_S()[args[i + 3] + j])
+                            + (T(s) << (k - 1))) >> m) - (T(s) << (k - m - 1));
+                }
+            }
+        }
+        else
+            throw runtime_error("unknown CISC instruction: " + tag);
     }
 };
 

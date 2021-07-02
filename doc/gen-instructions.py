@@ -31,3 +31,5 @@ for name, opcode in sorted(items, key=lambda x: x[1]):
         d = d.replace('\n', '')
         d = d.strip()
         out.writerow([':py:class:`%s <%s>`' % (name, n), hex(opcode), d])
+
+del out

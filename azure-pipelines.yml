@@ -5,6 +5,7 @@
 
 trigger:
 - master
+- cnn
 
 pool:
   vmImage: 'ubuntu-18.04'

@@ -6,24 +6,6 @@
 #include "Math/modp.hpp"
 
 
-void FFT_Data::assign(const FFT_Data& FFTD)
-{
-  prData=FFTD.prData;
-  R=FFTD.R;
-
-  root=FFTD.root;
-  twop=FFTD.twop;
-
-  two_root=FFTD.two_root;
-  powers=FFTD.powers;
-  powers_i=FFTD.powers_i;
-  b=FFTD.b;
-
-  iphi=FFTD.iphi;
-
-}
-
-
 
 void FFT_Data::init(const Ring& Rg,const Zp_Data& PrD)
 {
@@ -49,6 +31,7 @@ void FFT_Data::init(const Ring& Rg,const Zp_Data& PrD)
           Inv(root[1],root[0],PrD);
           to_modp(iphi,Rg.phi_m(),PrD);
           Inv(iphi,iphi,PrD);
+          compute_roots(Rg.m());
         }
     }
   else 
@@ -57,6 +40,7 @@ void FFT_Data::init(const Ring& Rg,const Zp_Data& PrD)
 	{ throw invalid_params(); }
       root[0]=Find_Primitive_Root_2m(Rg.m(),Rg.Phi(),PrD);
       Inv(root[1],root[0],PrD); 
+      compute_roots(2 * Rg.m());
 
       int ptwop=twop; if (twop<0) { ptwop=-twop; }
 
@@ -97,6 +81,14 @@ void FFT_Data::init(const Ring& Rg,const Zp_Data& PrD)
     }
 }
 
+void FFT_Data::compute_roots(int n)
+{
+  roots.resize(n + 1);
+  assignOne(roots[0], prData);
+  for (int i = 1; i < n + 1; i++)
+    Mul(roots[i], roots[i - 1], root[0], prData);
+}
+
 
 void FFT_Data::hash(octetStream& o) const
 {
@@ -111,6 +103,7 @@ void FFT_Data::pack(octetStream& o) const
   R.pack(o);
   prData.pack(o);
   o.store(root);
+  o.store(roots);
   o.store(twop);
   o.store(two_root);
   o.store(b);
@@ -125,6 +118,7 @@ void FFT_Data::unpack(octetStream& o)
   R.unpack(o);
   prData.unpack(o);
   o.get(root);
+  o.get(roots);
   o.get(twop);
   o.get(two_root);
   o.get(b);
@@ -132,7 +126,6 @@ void FFT_Data::unpack(octetStream& o)
   o.get(powers);
   o.get(powers_i);
 }
-
 
 bool FFT_Data::operator!=(const FFT_Data& other) const
 {

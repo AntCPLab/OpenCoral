@@ -216,17 +216,23 @@ template<class T>
 MultiPlayer<T>::MultiPlayer(const Names& Nms, int id) :
         Player(Nms), send_to_self_socket(0)
 {
-  setup_sockets(Nms.names, Nms.ports, id, *Nms.server);
+  if (Nms.num_players() > 1)
+    setup_sockets(Nms.names, Nms.ports, id, *Nms.server);
+  else
+    sockets.resize(Nms.num_players());
 }
 
 
 template<>
 MultiPlayer<int>::~MultiPlayer()
 {
-  /* Close down the sockets */
-  for (auto socket : sockets)
-    close_client_socket(socket);
-  close_client_socket(send_to_self_socket);
+  if (num_players() > 1)
+    {
+      /* Close down the sockets */
+      for (auto socket : sockets)
+        close_client_socket(socket);
+      close_client_socket(send_to_self_socket);
+    }
 }
 
 template<class T>
@@ -290,7 +296,6 @@ void MultiPlayer<int>::setup_sockets(const vector<string>& names,const vector<in
         tv.tv_usec = 0;
         int fl = setsockopt(sockets[i], SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(struct timeval));
         if (fl<0) { error("set_up_socket:setsockopt");  }
-        socket_players[sockets[i]] = i;
     }
 }
 

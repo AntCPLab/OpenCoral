@@ -198,6 +198,11 @@ public:
         extend(other);
     }
 
+    void to(bigint& res) const
+    {
+        res = *this;
+    }
+
     bool negative() const
     {
         return this->a[this->N_WORDS - 1] & 1ll << ((K - 1) % (8 * sizeof(mp_limb_t)));
@@ -402,12 +407,6 @@ void Z2<K>::unpack(octetStream& o, int n)
 }
 
 template<int K>
-void to_gfp(Z2<K>& res, const bigint& a)
-{
-	res = a;
-}
-
-template<int K>
 SignedZ2<K> abs(const SignedZ2<K>& x)
 {
     if (x.negative())
@@ -433,12 +432,6 @@ ostream& operator<<(ostream& o, const SignedZ2<K>& x)
 {
     x.output(o, true);
     return o;
-}
-
-template<int K>
-void to_bigint(bigint& res, const SignedZ2<K>& a)
-{
-    res = a;
 }
 
 #endif /* MATH_Z2K_H_ */

@@ -8,7 +8,6 @@
 
 #include "GC/FakeSecret.h"
 #include "ShareInterface.h"
-#include "Processor/NoLivePrep.h"
 #include "FakeMC.h"
 #include "FakeProtocol.h"
 #include "FakePrep.h"

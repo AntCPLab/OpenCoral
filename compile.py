@@ -78,6 +78,8 @@ def main():
                       "(number of parties as argument)")
     parser.add_option("-C", "--CISC", action="store_true", dest="cisc",
                       help="faster CISC compilation mode")
+    parser.add_option("-K", "--keep-cisc", action="store_true", dest="keep_cisc",
+                      help="don't translate CISC instructions")
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
                       help="more verbose output")
     options,args = parser.parse_args()

@@ -52,6 +52,8 @@ protected:
 public:
     MaliciousRepPrep(SubProcessor<T>* proc, DataPositions& usage);
     MaliciousRepPrep(DataPositions& usage, int = 0);
+    template<class V>
+    MaliciousRepPrep(DataPositions& usage, GC::ShareThread<V>&, int = 0);
 };
 
 template<class T>

@@ -19,6 +19,8 @@
 #include "Processor/Data_Files.hpp"
 #include "Processor/Input.hpp"
 #include "GC/TinyPrep.hpp"
+#include "GC/VectorProtocol.hpp"
+#include "GC/CcdPrep.hpp"
 
 #include <assert.h>
 

@@ -12,7 +12,6 @@
 #include "Math/gfp.h"
 #include "Math/gf2n.h"
 #include "Tools/ezOptionParser.h"
-#include "Processor/NoLivePrep.h"
 #include "GC/MaliciousCcdSecret.h"
 
 #include "Processor/FieldMachine.hpp"

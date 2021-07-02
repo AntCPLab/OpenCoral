@@ -17,6 +17,8 @@ class VectorProtocol : public ProtocolBase<T>
     typename T::part_type::Protocol part_protocol;
 
 public:
+    Player& P;
+
     VectorProtocol(Player& P);
 
     void init_mul(SubProcessor<T>* proc);

@@ -25,7 +25,7 @@ public:
     virtual void reset(int player) = 0;
     virtual void add_mine(const typename T::open_type& input,
             int n_bits = -1) = 0;
-    virtual void add_other(int player) = 0;
+    virtual void add_other(int player, int n_bits = - 1) = 0;
     virtual void send_mine() = 0;
     virtual void finalize_other(int player, T& target, octetStream& o,
             int n_bits = -1) = 0;
@@ -73,7 +73,7 @@ public:
 
     void reset(int player);
     void add_mine(const typename T::open_type& input, int n_bits = -1);
-    void add_other(int player);
+    void add_other(int player, int n_bits = -1);
     void send_mine();
     void exchange();
     void finalize_other(int player, T& target, octetStream& o, int n_bits = -1);

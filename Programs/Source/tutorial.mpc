@@ -27,9 +27,9 @@ test(a - b, -1)
 # Division can mean different things in different domains
 # and there has be a specified bit length in some,
 # so we use int_div() for integer division.
-# k-bit division requires 4k-bit computation.
+# k-bit division requires (4k+1)-bit computation.
 
-test(b.int_div(a, 16), 2)
+test(b.int_div(a, 15), 2)
 
 # comparisons produce 1 for true and 0 for false
 
@@ -65,7 +65,7 @@ test(a[99], 99 * 98)
 
 # set the precision after the dot and in total
 
-sfix.set_precision(16, 32)
+sfix.set_precision(16, 31)
 
 # and the output precision in decimal digits
 

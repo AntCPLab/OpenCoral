@@ -36,6 +36,7 @@ class bits(Tape.Register, _structure, _bit):
             class bitsn(cls):
                 n = length
             cls.types[length] = bitsn
+            bitsn.clear_type = cbits.get_type(length)
             bitsn.__name__ = cls.__name__ + str(length)
         return cls.types[length]
     @classmethod
@@ -115,7 +116,11 @@ class bits(Tape.Register, _structure, _bit):
             return res
     def store_in_mem(self, address):
         self.store_inst[isinstance(address, int)](self, address)
+    @classmethod
+    def new(cls, value=None, n=None):
+        return cls.get_type(n)(value)
     def __init__(self, value=None, n=None, size=None):
+        assert n == self.n or n is None
         if size != 1 and size is not None:
             raise Exception('invalid size for bit type: %s' % size)
         self.n = n or self.n
@@ -125,7 +130,7 @@ class bits(Tape.Register, _structure, _bit):
         if value is not None:
             self.load_other(value)
     def copy(self):
-        return type(self)(n=instructions_base.get_global_vector_size())
+        return type(self).new(n=instructions_base.get_global_vector_size())
     def set_length(self, n):
         if n > self.n:
             raise Exception('too long: %d/%d' % (n, self.n))
@@ -154,6 +159,8 @@ class bits(Tape.Register, _structure, _bit):
                 bits = other.bit_decompose()
                 bits = bits[:self.n] + [sbit(0)] * (self.n - len(bits))
                 other = self.bit_compose(bits)
+                assert(isinstance(other, type(self)))
+                assert(other.n == self.n)
                 self.load_other(other)
             except:
                 raise CompilerError('cannot convert %s/%s from %s to %s' % \
@@ -176,6 +183,16 @@ class bits(Tape.Register, _structure, _bit):
         res.i = i
         res.program = self.program
         return res
+    def if_else(self, x, y):
+        """
+        Vectorized oblivious selection::
+
+            sb32 = sbits.get_type(32)
+            print_ln('%s', sb32(3).if_else(sb32(5), sb32(2)).reveal())
+
+        This will output 1.
+        """
+        return result_conv(x, y)(self & (x ^ y) ^ y)
 
 class cbits(bits):
     """ Clear bits register. Helper type with limited functionality. """
@@ -202,14 +219,16 @@ class cbits(bits):
         inst.stmsdci(self, cbits.conv(address))
     def clear_op(self, other, c_inst, ci_inst, op):
         if isinstance(other, cbits):
-            res = cbits(n=max(self.n, other.n))
+            res = cbits.get_type(max(self.n, other.n))()
             c_inst(res, self, other)
             return res
+        elif isinstance(other, sbits):
+            return NotImplemented
         else:
             if util.is_constant(other):
                 if other >= 2**31 or other < -2**31:
                     return op(self, cbits(other))
-                res = cbits(n=max(self.n, len(bin(other)) - 2))
+                res = cbits.get_type(max(self.n, len(bin(other)) - 2))()
                 ci_inst(res, self, other)
                 return res
             else:
@@ -221,8 +240,14 @@ class cbits(bits):
     def __xor__(self, other):
         if isinstance(other, (sbits, sbitvec)):
             return NotImplemented
+        elif isinstance(other, cbits):
+            res = cbits.get_type(max(self.n, other.n))()
+            assert res.size == self.size
+            assert res.size == other.size
+            inst.xorcb(res.n, res, self, other)
+            return res
         else:
-            self.clear_op(other, inst.xorcb, inst.xorcbi, operator.xor)
+            return self.clear_op(other, None, inst.xorcbi, operator.xor)
     __radd__ = __add__
     __rxor__ = __xor__
     def __mul__(self, other):
@@ -230,17 +255,18 @@ class cbits(bits):
             return NotImplemented
         else:
             try:
-                res = cbits(n=min(self.max_length, self.n+util.int_len(other)))
+                res = cbits.get_type(min(self.max_length,
+                                         self.n+util.int_len(other)))()
                 inst.mulcbi(res, self, other)
                 return res
             except TypeError:
                 return NotImplemented
     def __rshift__(self, other):
-        res = cbits(n=self.n-other)
+        res = cbits.new(n=self.n-other)
         inst.shrcbi(res, self, other)
         return res
     def __lshift__(self, other):
-        res = cbits(n=self.n+other)
+        res = cbits.get_type(self.n+other)()
         inst.shlcbi(res, self, other)
         return res
     def print_reg(self, desc=''):
@@ -504,16 +530,6 @@ class sbits(bits):
             res = [cls.new(n=len(rows)) for i in range(n_columns)]
             inst.trans(len(res), *(res + rows))
             return res
-    def if_else(self, x, y):
-        """
-        Vectorized oblivious selection::
-
-            sb32 = sbits.get_type(32)
-            print_ln('%s', sb32(3).if_else(sb32(5), sb32(2)).reveal())
-
-        This will output 1.
-        """
-        return result_conv(x, y)(self & (x ^ y) ^ y)
     @staticmethod
     def bit_adder(*args, **kwargs):
         return sbitint.bit_adder(*args, **kwargs)
@@ -610,7 +626,7 @@ class sbitvec(_vec):
                     elif isinstance(other, (list, tuple)):
                         self.v = self.bit_extend(sbitvec(other).v, n)
                     else:
-                        self.v = sbits(other, n=n).bit_decompose(n)
+                        self.v = sbits.get_type(n)(other).bit_decompose()
                     assert len(self.v) == n
             @classmethod
             def load_mem(cls, address):
@@ -630,6 +646,8 @@ class sbitvec(_vec):
                     for i in range(n):
                         v[i].store_in_mem(address + i)
             def reveal(self):
+                if len(self) > cbits.unit:
+                    return self.elements()[0].reveal()
                 revealed = [cbit() for i in range(len(self))]
                 for i in range(len(self)):
                     try:
@@ -784,15 +802,23 @@ class bit(object):
     
 def result_conv(x, y):
     try:
+        def f(res):
+            try:
+                return t.conv(res)
+            except:
+                return res
         if util.is_constant(x):
             if util.is_constant(y):
                 return lambda x: x
             else:
-                return type(y).conv
+                t = type(y)
+                return f
         if util.is_constant(y):
-            return type(x).conv
+            t = type(x)
+            return f
         if type(x) is type(y):
-            return type(x).conv
+            t = type(x)
+            return f
     except AttributeError:
         pass
     return lambda x: x
@@ -807,13 +833,19 @@ class sbit(bit, sbits):
 
         This will output 5.
         """
-        return result_conv(x, y)(self * (x ^ y) ^ y)
+        assert self.n == 1
+        diff = x ^ y
+        if isinstance(diff, cbits):
+            return result_conv(x, y)(self & (diff) ^ y)
+        else:
+            return result_conv(x, y)(self * (diff) ^ y)
 
 class cbit(bit, cbits):
     pass
 
 sbits.bit_type = sbit
 cbits.bit_type = cbit
+sbit.clear_type = cbit
 
 class bitsBlock(oram.Block):
     value_type = sbits
@@ -881,7 +913,7 @@ class _sbitintbase:
         return self.get_type(k - m).compose(res_bits)
     def int_div(self, other, bit_length=None):
         k = bit_length or max(self.n, other.n)
-        return (library.IntDiv(self.extend(k), other.extend(k), k) >> k).cast(k)
+        return (library.IntDiv(self.cast(k), other.cast(k), k) >> k).cast(k)
     def Norm(self, k, f, kappa=None, simplex_flag=False):
         absolute_val = abs(self)
         #next 2 lines actually compute the SufOR for little indian encoding
@@ -1100,7 +1132,8 @@ class cbitfix(object):
             bits = self.v.bit_decompose(self.k)
             sign = bits[-1]
             v += (sign << (self.k)) * -1
-        inst.print_float_plainb(v, cbits(-self.f, n=32), cbits(0), cbits(0), cbits(0))
+        inst.print_float_plainb(v, cbits.get_type(32)(-self.f), cbits(0),
+                                cbits(0), cbits(0))
 
 class sbitfix(_fix):
     """ Secret signed integer in one binary register.

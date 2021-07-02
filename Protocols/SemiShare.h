@@ -8,7 +8,6 @@
 
 #include "Protocols/Beaver.h"
 #include "Processor/DummyProtocol.h"
-#include "Processor/NoLivePrep.h"
 #include "ShareInterface.h"
 
 #include <string>

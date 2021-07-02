@@ -119,7 +119,9 @@ ShareParty<T>::ShareParty(int argc, const char** argv, ez::ezOptionParser& opt,
 
     try
     {
-        read_mac_key(get_prep_sub_dir<T>(PREP_DIR, network_opts.nplayers), this->N,
+        read_mac_key(
+                get_prep_sub_dir<typename T::part_type>(PREP_DIR, network_opts.nplayers),
+                this->N,
                 this->mac_key);
     }
     catch (exception& e)

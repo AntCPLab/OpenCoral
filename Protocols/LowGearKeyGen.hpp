@@ -103,56 +103,11 @@ void KeyGenProtocol<X, L>::binomial(vector_type& shares, T& prep)
 
 template<int X, int L>
 template<class T>
-void KeyGenProtocol<X, L>::hamming(vector_type& shares, T& prep)
-{
-    shares.resize(params.phi_m());
-    int h = params.get_h();
-    assert(h > 0);
-    assert(shares.size() / h * h == shares.size());
-    int n_bits = log(shares.size() / h) / log(2);
-//    assert(size_t(h << n_bits) == shares.size());
-
-    for (auto& share : shares)
-        share = prep.get_bit();
-
-    auto& protocol = proc->protocol;
-    for (int i = 0; i < n_bits - 1; i++)
-    {
-        protocol.init_mul(proc);
-        for (auto& share : shares)
-            protocol.prepare_mul(share, prep.get_bit());
-        protocol.exchange();
-        for (auto& share : shares)
-            share = protocol.finalize_mul();
-    }
-
-    protocol.init_mul(proc);
-    auto one = share_type::constant(1, P.my_num(), MC->get_alphai());
-    for (auto& share : shares)
-        protocol.prepare_mul(share, prep.get_bit() * 2 - one);
-    protocol.exchange();
-    for (auto& share : shares)
-        share = protocol.finalize_mul();
-
-    shares.fft(fftd);
-}
-
-template<int X, int L>
-template<class T>
 void KeyGenProtocol<X, L>::secret_key(vector_type& shares, T& prep)
 {
-    assert(params.get_h() != 0);
     cerr << "Generate secret key by ";
-    if (params.get_h() > 0)
-    {
-        cerr << "Hamming weight"  << endl;
-        hamming(shares, prep);
-    }
-    else
-    {
-        cerr << "binomial" << endl;
-        binomial(shares, prep);
-    }
+    cerr << "binomial" << endl;
+    binomial(shares, prep);
 }
 
 template<int X, int L>
@@ -246,7 +201,7 @@ void LowGearKeyGen<L>::run(PairwiseSetup<FD>& setup)
     others_ciphertexts.resize(EC.proof.U, machine.pk.get_params());
     Verifier<FD> verifier(EC.proof, setup.FieldD);
     verifier.NIZKPoK(others_ciphertexts, ciphertexts,
-            cleartexts, machine.pk, false);
+            cleartexts, machine.pk);
 
     machine.enc_alphas.clear();
     for (int i = 0; i < P.num_players(); i++)
@@ -268,7 +223,7 @@ void LowGearKeyGen<L>::run(PairwiseSetup<FD>& setup)
 #endif
         timers["Verifying"].start();
         verifier.NIZKPoK(others_ciphertexts, ciphertexts,
-                cleartexts, machine.other_pks[player], false);
+                cleartexts, machine.other_pks[player]);
         timers["Verifying"].stop();
         machine.enc_alphas.at(player) = others_ciphertexts.at(0);
     }

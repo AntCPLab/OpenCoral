@@ -33,7 +33,7 @@ public:
         results.push_back(x);
     }
 
-    void add_other(int)
+    void add_other(int, int = -1)
     {
     }
 

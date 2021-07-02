@@ -8,9 +8,8 @@
 
 #include "GC/TinySecret.h"
 #include "GC/TinyMC.h"
-#include "GC/TinyPrep.h"
-#include "GC/TinierPrep.h"
 #include "GC/TinierSecret.h"
+#include "GC/VectorInput.h"
 
 #include "Processor/Data_Files.hpp"
 #include "Processor/Instruction.hpp"
@@ -29,3 +28,4 @@
 #include "GC/Secret.hpp"
 #include "GC/TinyPrep.hpp"
 #include "GC/TinierSharePrep.hpp"
+#include "GC/CcdPrep.hpp"

@@ -29,7 +29,8 @@ ShareThread<T>::ShareThread(const Names& N, OnlineOptions& opts, DataPositions& 
                         *static_cast<Preprocessing<T>*>(new typename T::LivePrep(
                                 usage, *this)) :
                         *static_cast<Preprocessing<T>*>(new BitPrepFiles<T>(N,
-                                get_prep_sub_dir<T>(PREP_DIR, N.num_players()), usage)))
+                                get_prep_sub_dir<T>(PREP_DIR, N.num_players()),
+                                usage, BaseMachine::thread_num)))
 {
 }
 

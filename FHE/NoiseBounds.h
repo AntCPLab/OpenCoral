@@ -22,7 +22,6 @@ protected:
     const int sec;
     int slack;
     mpf_class sigma;
-    int h;
 
     bigint B_clean;
     bigint B_scale;

@@ -13,7 +13,6 @@
 #include "Protocols/MaliciousShamirShare.h"
 #include "Protocols/Rep3Share.h"
 #include "GC/TinierSecret.h"
-#include "GC/TinierPrep.h"
 #include "GC/MaliciousCcdSecret.h"
 #include "GC/TinyMC.h"
 
@@ -126,18 +125,6 @@ void check(vector<EcTuple<T>>& tuples, T<P256Element::Scalar> sk,
         assert(tuple.R == k);
     }
     MC.Check(P);
-}
-
-template<>
-void ReplicatedPrep<Rep3Share<P256Element::Scalar>>::buffer_bits()
-{
-    throw not_implemented();
-}
-
-template<>
-void ReplicatedPrep<ShamirShare<P256Element::Scalar>>::buffer_bits()
-{
-    throw not_implemented();
 }
 
 #endif /* ECDSA_PREPROCESSING_HPP_ */

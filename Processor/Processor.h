@@ -213,6 +213,8 @@ class Processor : public ArithmeticProcessor
     void write_Sp(int i,const sint & x)
       { Procp.S[i]=x; }
 
+  void check();
+
   void dabit(const Instruction& instruction);
   void edabit(const Instruction& instruction, bool strict = false);
 

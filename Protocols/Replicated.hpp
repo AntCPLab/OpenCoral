@@ -21,7 +21,7 @@
 
 template<class T>
 ProtocolBase<T>::ProtocolBase() :
-        trunc_pr_counter(0), counter(0)
+        trunc_pr_counter(0), rounds(0), trunc_rounds(0), counter(0)
 {
 }
 
@@ -67,10 +67,10 @@ template<class T>
 ProtocolBase<T>::~ProtocolBase()
 {
 #ifdef VERBOSE_COUNT
-    if (counter)
-        cerr << "Number of " << T::type_string() << " multiplications: " << counter << endl;
-    if (trunc_pr_counter)
-        cerr << "Number of probabilistic truncations: " << trunc_pr_counter << endl;
+    if (counter or rounds)
+        cerr << "Number of " << T::type_string() << " multiplications: " << counter << " in " << rounds << " rounds" << endl;
+    if (trunc_pr_counter or trunc_rounds)
+        cerr << "Number of probabilistic truncations: " << trunc_pr_counter << " in " << trunc_rounds << " rounds" << endl;
 #endif
 }
 
@@ -189,12 +189,14 @@ void Replicated<T>::exchange()
 {
     if (os[0].get_length() > 0)
         P.pass_around(os[0], os[1], 1);
+    this->rounds++;
 }
 
 template<class T>
 void Replicated<T>::start_exchange()
 {
     P.send_relative(1, os[0]);
+    this->rounds++;
 }
 
 template<class T>
@@ -381,6 +383,7 @@ template<class U>
 void Replicated<T>::trunc_pr(const vector<int>& regs, int size,
         U& proc)
 {
+    this->trunc_rounds++;
     ::trunc_pr(regs, size, proc);
 }
 

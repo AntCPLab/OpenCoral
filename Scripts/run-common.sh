@@ -27,20 +27,24 @@ run_player() {
     port=$((RANDOM%10000+10000))
     bin=$1
     shift
+    prog=$1
+    prog=${prog##*/}
+    prog=${prog%.sch}
+    shift
     if ! test -e $SPDZROOT/logs; then
         mkdir $SPDZROOT/logs
     fi
     if [[ $bin = Player-Online.x || $bin =~ 'party.x' ]]; then
-	params="$* -pn $port -h localhost"
+	params="$prog $* -pn $port -h localhost"
 	if [[ ! ($bin =~ 'rep' || $bin =~ 'brain') ]]; then
 	    params="$params -N $players"
 	fi
     else
-	params="$port localhost $*"
+	params="$port localhost $prog $*"
     fi
     rem=$(($players - 2))
-    if test "$1"; then
-	log_prefix=$1-
+    if test "$prog"; then
+	log_prefix=$prog-
     fi
     for i in $(seq 0 $rem); do
       >&2 echo Running $prefix $SPDZROOT/$bin $i $params

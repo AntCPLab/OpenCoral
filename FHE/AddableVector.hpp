@@ -6,6 +6,7 @@
 #include "AddableVector.h"
 #include "Rq_Element.h"
 #include "FHE_Keys.h"
+#include "P2Data.h"
 
 template<class T>
 AddableVector<T> AddableVector<T>::mul_by_X_i(int j,
@@ -33,7 +34,3 @@ AddableVector<T> AddableVector<T>::mul_by_X_i(int j,
     }
     return res;
 }
-
-template
-AddableVector<Int_Random_Coins::rand_type> AddableVector<
-        Int_Random_Coins::rand_type>::mul_by_X_i(int j, const FHE_PK& pk) const;

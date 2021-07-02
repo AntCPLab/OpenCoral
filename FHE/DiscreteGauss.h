@@ -25,7 +25,6 @@ class DiscreteGauss
   void unpack(octetStream& o) { o.unserialize(NewHopeB); }
 
   DiscreteGauss(double R) { set(R); }
-  ~DiscreteGauss()        { ; }
 
   // Rely on default copy constructor/assignment
   
@@ -34,50 +33,6 @@ class DiscreteGauss
   int get_NewHopeB() const { return NewHopeB; }
 
   bool operator!=(const DiscreteGauss& other) const;
-};
-
-
-/* Sample from integer lattice of dimension n 
- * with standard deviation R
- */
-class RandomVectors
-{
-  int n,h;
-  DiscreteGauss DG;  // This generates the main distribution
-
-  public:
-
-  void set(int nn,int hh,double R);  // R is input STANDARD DEVIATION
-  void set_n(int nn);
-
-  void pack(octetStream& o) const { o.store(n); o.store(h); DG.pack(o); }
-  void unpack(octetStream& o)
-  { o.get(n); o.get(h); DG.unpack(o); }
-
-  RandomVectors(int h, double R) : RandomVectors(0, h, R) {}
-  RandomVectors(int nn,int hh,double R) : DG(R) { set(nn,hh,R);  }
-  ~RandomVectors()        { ; }
-
-  // Rely on default copy constructor/assignment
-
-  double get_R() const { return DG.get_R(); }
-  DiscreteGauss get_DG() const { return DG; }
-  int get_h() const { return h; }
-  
-  // Sample from Discrete Gauss distribution
-  vector<bigint> sample_Gauss(PRNG& G, int stretch = 1) const;
-
-  // Next samples from Hwt distribution unless hwt>n/2 in which 
-  // case it uses Gauss
-  vector<bigint> sample_Hwt(PRNG& G) const;
-
-  // Sample from {-1,0,1} with Pr(-1)=Pr(1)=1/4 and Pr(0)=1/2
-  vector<bigint> sample_Half(PRNG& G) const;
-
-  // Sample from (-B,0,B) with uniform prob
-  vector<bigint> sample_Uniform(PRNG& G,const bigint& B) const;
-
-  bool operator!=(const RandomVectors& other) const;
 };
 
 template<class T>
@@ -103,7 +58,7 @@ public:
   void get(T& x) const  { this->G.get(x, n_bits, positive); }
 };
 
-template<class T>
+template<class T = bigint>
 class GaussianGenerator : public RandomGenerator<T>
 {
   DiscreteGauss DG;

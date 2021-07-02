@@ -15,10 +15,16 @@ namespace GC
 
 template<class T>
 TinierSharePrep<T>::TinierSharePrep(DataPositions& usage, int input_player) :
+        TinierSharePrep<T>(usage, ShareThread<secret_type>::s(), input_player)
+{
+}
+
+template<class T>
+TinierSharePrep<T>::TinierSharePrep(DataPositions& usage,
+        ShareThread<secret_type>& thread, int input_player) :
         PersonalPrep<T>(usage, input_player), triple_generator(0),
-        whole_prep(usage,
-                ShareThread<TinierSecret<typename T::mac_key_type>>::s(),
-                input_player == PersonalPrep<T>::SECURE)
+        real_triple_generator(0),
+        thread(thread)
 {
 }
 
@@ -33,6 +39,8 @@ TinierSharePrep<T>::~TinierSharePrep()
 {
     if (triple_generator)
         delete triple_generator;
+    if (real_triple_generator)
+        delete real_triple_generator;
 }
 
 template<class T>
@@ -44,15 +52,14 @@ void TinierSharePrep<T>::set_protocol(typename T::Protocol& protocol)
     params.generateMACs = true;
     params.amplify = false;
     params.check = false;
-    auto& thread = ShareThread<TinierSecret<typename T::mac_key_type>>::s();
+    auto& thread = ShareThread<typename T::whole_type>::s();
     triple_generator = new typename T::TripleGenerator(
             BaseMachine::s().fresh_ot_setup(), protocol.P.N, -1,
-            OnlineOptions::singleton.batch_size
-                    * TinierSecret<typename T::mac_key_type>::default_length, 1,
+            OnlineOptions::singleton.batch_size, 1,
             params, thread.MC->get_alphai(), &protocol.P);
     triple_generator->multi_threaded = false;
     this->inputs.resize(thread.P->num_players());
-    whole_prep.init(*thread.P);
+    init_real(protocol.P);
 }
 
 template<class T>
@@ -63,12 +70,8 @@ void TinierSharePrep<T>::buffer_triples()
         this->buffer_personal_triples();
         return;
     }
-
-    array<TinierSecret<typename T::mac_key_type>, 3> whole;
-    whole_prep.get(DATA_TRIPLE, whole.data());
-    for (size_t i = 0; i < whole[0].get_regs().size(); i++)
-        this->triples.push_back(
-        {{ whole[0].get_reg(i), whole[1].get_reg(i), whole[2].get_reg(i) }});
+    else
+        buffer_secret_triples();
 }
 
 template<class T>
@@ -82,11 +85,20 @@ void TinierSharePrep<T>::buffer_inputs(int player)
 }
 
 template<class T>
+void GC::TinierSharePrep<T>::buffer_bits()
+{
+    this->bits.push_back(
+            BufferPrep<T>::get_random_from_inputs(thread.P->num_players()));
+}
+
+template<class T>
 size_t TinierSharePrep<T>::data_sent()
 {
-    size_t res = whole_prep.data_sent();
+    size_t res = 0;
     if (triple_generator)
         res += triple_generator->data_sent();
+    if (real_triple_generator)
+        res += real_triple_generator->data_sent();
     return res;
 }
 

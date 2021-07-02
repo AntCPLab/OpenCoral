@@ -85,6 +85,7 @@ public:
   T& operator&=(const IntBase& other) { return a &= other.a; }
 
   friend ostream& operator<<(ostream& s, const IntBase& x) { x.output(s, true); return s; }
+  friend istream& operator>>(istream& s, IntBase& x) { x.input(s, true); return s; }
 
   void randomize(PRNG& G);
   void almost_randomize(PRNG& G) { randomize(G); }

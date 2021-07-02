@@ -47,10 +47,6 @@ public:
     {
         return string(1, T::type_char());
     }
-    static DataFieldType field_type()
-    {
-        return T::field_type();
-    }
 
     template<class U, class V>
     static FixedVec Mul(const FixedVec<U, L>& a, const V& b)

@@ -28,6 +28,15 @@ Preprocessing<T>* Preprocessing<T>::get_new(
         machine.template prep_dir_prefix<T>(), usage);
 }
 
+template<class T>
+Sub_Data_Files<T>::Sub_Data_Files(const Names& N, DataPositions& usage,
+    int thread_num) :
+    Sub_Data_Files(N,
+        OnlineOptions::singleton.prep_dir_prefix<T>(N.num_players()), usage,
+        thread_num)
+{
+}
+
 
 template<class T>
 int Sub_Data_Files<T>::tuple_length(int dtype)
@@ -118,6 +127,15 @@ Data_Files<sint, sgf2n>::Data_Files(Machine<sint, sgf2n>& machine, SubProcessor<
 }
 
 template<class sint, class sgf2n>
+Data_Files<sint, sgf2n>::Data_Files(const Names& N) :
+    usage(N.num_players()),
+    DataFp(*new Sub_Data_Files<sint>(N, usage)),
+    DataF2(*new Sub_Data_Files<sgf2n>(N, usage))
+{
+}
+
+
+template<class sint, class sgf2n>
 Data_Files<sint, sgf2n>::~Data_Files()
 {
 #ifdef VERBOSE
@@ -148,7 +166,7 @@ Sub_Data_Files<T>::~Sub_Data_Files()
 template<class T>
 void Sub_Data_Files<T>::seekg(DataPositions& pos)
 {
-  DataFieldType field_type = T::field_type();
+  DataFieldType field_type = T::clear::field_type();
   for (int dtype = 0; dtype < N_DTYPE; dtype++)
     if (T::clear::allows(Dtype(dtype)))
       buffers[dtype].seekg(pos.files[field_type][dtype]);

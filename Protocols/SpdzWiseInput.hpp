@@ -47,9 +47,9 @@ void SpdzWiseInput<T>::add_mine(const typename T::open_type& input, int n_bits)
 }
 
 template<class T>
-void SpdzWiseInput<T>::add_other(int player)
+void SpdzWiseInput<T>::add_other(int player, int n_bits)
 {
-    part_input.add_other(player);
+    part_input.add_other(player, n_bits);
     counters[player]++;
 }
 

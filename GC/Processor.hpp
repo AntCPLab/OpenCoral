@@ -18,6 +18,7 @@ using namespace std;
 
 #include "GC/Machine.hpp"
 #include "Processor/ProcessorBase.hpp"
+#include "Processor/IntInput.hpp"
 #include "Math/bigint.hpp"
 
 namespace GC
@@ -82,8 +83,12 @@ U GC::Processor<T>::get_long_input(const int* params,
 {
     if (not T::actual_inputs)
         return {};
-    U res = input_proc.get_input<FixInput_<U>>(interactive,
-            &params[1]).items[0];
+    U res;
+    if (params[1] == 0)
+        res = input_proc.get_input<IntInput<U>>(interactive, 0).items[0];
+    else
+        res = input_proc.get_input<FixInput_<U>>(interactive,
+                &params[1]).items[0];
     int n_bits = *params;
     check_input(res, n_bits);
     return res;
@@ -226,6 +231,18 @@ void Processor<T>::xors(const vector<int>& args, size_t start, size_t end)
                         S[*(it + 3) + j]);
             }
         }
+    }
+}
+
+template<class T>
+void Processor<T>::xorc(const ::BaseInstruction& instruction)
+{
+    int total = instruction.get_n();
+    for (int i = 0; i < DIV_CEIL(total, T::default_length); i++)
+    {
+        int n = min(T::default_length, total - i * T::default_length);
+        C[instruction.get_r(0) + i] = BitVec(C[instruction.get_r(1) + i]).mask(n)
+                ^ BitVec(C[instruction.get_r(2) + i]).mask(n);
     }
 }
 

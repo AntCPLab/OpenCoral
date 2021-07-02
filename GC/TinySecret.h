@@ -21,6 +21,9 @@ namespace GC
 
 template<class T> class TinyOnlyPrep;
 template<class T> class TinyMC;
+template<class T> class VectorProtocol;
+template<class T> class VectorInput;
+template<class T> class CcdPrep;
 
 template<class T>
 class VectorSecret : public Secret<T>
@@ -49,11 +52,6 @@ public:
     static const bool expensive_triples = false;
 
     static const int default_length = 64;
-
-    static DataFieldType field_type()
-    {
-        return BitVec::field_type();
-    }
 
     static int size()
     {
@@ -166,9 +164,9 @@ public:
     }
 
     template <class U>
-    void other_input(U& inputter, int from, int)
+    void other_input(U& inputter, int from, int n_bits)
     {
-        inputter.add_other(from);
+        inputter.add_other(from, n_bits);
     }
 
     template <class U>
@@ -187,9 +185,9 @@ class TinySecret : public VectorSecret<TinyShare<S>>
 public:
     typedef TinyMC<This> MC;
     typedef MC MAC_Check;
-    typedef Beaver<This> Protocol;
-    typedef ::Input<This> Input;
-    typedef TinyOnlyPrep<This> LivePrep;
+    typedef VectorProtocol<This> Protocol;
+    typedef VectorInput<This> Input;
+    typedef CcdPrep<This> LivePrep;
     typedef Memory<This> DynamicMemory;
 
     typedef OTTripleGenerator<This> TripleGenerator;

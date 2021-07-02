@@ -14,7 +14,7 @@ namespace GC
 template<class T>
 class TinyMC : public MAC_Check_Base<T>
 {
-    typename T::check_type::MAC_Check part_MC;
+    typename T::part_type::MAC_Check part_MC;
     PointerVector<int> sizes;
 
 public:

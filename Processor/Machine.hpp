@@ -62,7 +62,7 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   sint::read_or_generate_mac_key(prep_dir_prefix<sint>(), *P, alphapi);
   sgf2n::read_or_generate_mac_key(prep_dir_prefix<sgf2n>(), *P, alpha2i);
   sint::bit_type::part_type::read_or_generate_mac_key(
-      prep_dir_prefix<typename sint::bit_type>(), *P, alphabi);
+      prep_dir_prefix<typename sint::bit_type::part_type>(), *P, alphabi);
 
 #ifdef DEBUG_MAC
   cerr << "MAC Key p = " << alphapi << endl;
@@ -411,10 +411,7 @@ template<class sint, class sgf2n>
 template<class T>
 string Machine<sint, sgf2n>::prep_dir_prefix()
 {
-  int lgp = opts.lgp;
-  if (opts.prime)
-    lgp = numBits(opts.prime);
-  return get_prep_sub_dir<T>(PREP_DIR, N.num_players(), lgp);
+  return opts.prep_dir_prefix<T>(N.num_players());
 }
 
 template<class sint, class sgf2n>

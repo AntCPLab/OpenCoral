@@ -19,6 +19,7 @@ class FFT_Data
   Zp_Data prData;
 
   vector<modp> root;     // 2m'th Root of Unity mod pr and it's inverse
+  vector<modp> roots;    // precomputed powers of root
 
   // When twop is equal to zero, m is a power of two
   // When twop is positive it is equal to 2^e where 2^e>2*m and 2^e divides p-1
@@ -34,6 +35,8 @@ class FFT_Data
   modp iphi;    // 1/phi_m mod pr
   vector< vector<modp> > powers,powers_i;
 
+  void compute_roots(int n);
+
   public:
   typedef gfp T;
   typedef bigint S;
@@ -47,17 +50,9 @@ class FFT_Data
   void pack(octetStream& o) const;
   void unpack(octetStream& o);
 
-  void assign(const FFT_Data& FFTD);
-
   FFT_Data() { ; }
-  FFT_Data(const FFT_Data& FFTD)
-    { assign(FFTD); }
   FFT_Data(const Ring& Rg,const Zp_Data& PrD)
     { init(Rg,PrD); }
-  FFT_Data& operator=(const FFT_Data& FFTD)
-    { if (this!=&FFTD) { assign(FFTD); }
-      return *this;
-    }
 
   const Zp_Data& get_prD() const        { return prData; }
   const bigint&  get_prime() const      { return prData.pr; }
@@ -72,6 +67,7 @@ class FFT_Data
   int get_twop() const           { return twop;       }
   modp get_root(int i) const     { return root[i];    }
   modp get_iphi() const          { return iphi;       }
+  const vector<modp>& get_roots() const { return roots; }
 
   const Ring& get_R() const      { return R; }
 

@@ -33,17 +33,36 @@ Ring_Element::Ring_Element(const FFT_Data& fftd,RepType r)
 }
 
 
+void Ring_Element::prepare(const Ring_Element& other)
+{
+  assert(this != &other);
+  FFTD = other.FFTD;
+  rep = other.rep;
+  prepare_push();
+}
+
+void Ring_Element::prepare_push()
+{
+  element.clear();
+  element.reserve(FFTD->phi_m());
+}
+
+
+void Ring_Element::allocate()
+{
+  element.resize(FFTD->phi_m());
+}
+
+
 void Ring_Element::assign_zero()
 {
-  element.resize((*FFTD).phi_m());
-  for (int i=0; i<(*FFTD).phi_m(); i++)
-    { assignZero(element[i],(*FFTD).get_prD()); }
+  element.clear();
 }
 
 
 void Ring_Element::assign_one()
 {
-  element.resize((*FFTD).phi_m());
+  allocate();
   modp fill;
   if (rep==polynomial) { assignZero(fill,(*FFTD).get_prD()); }
   else                 { assignOne(fill,(*FFTD).get_prD()); }
@@ -56,6 +75,9 @@ void Ring_Element::assign_one()
 
 void Ring_Element::negate()
 {
+  if (element.empty())
+    return;
+
   for (int i=0; i<(*FFTD).phi_m(); i++)
     { Negate(element[i],element[i],(*FFTD).get_prD()); }
 }
@@ -66,20 +88,58 @@ void add(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b)
 {
   if (a.rep!=b.rep)   { throw rep_mismatch(); }
   if (a.FFTD!=b.FFTD) { throw pr_mismatch();  }  
-  ans.partial_assign(a);
+  if (a.element.empty())
+    {
+      ans = b;
+      return;
+    }
+  else if (b.element.empty())
+    {
+      ans = a;
+      return;
+    }
+
+  if (&ans == &a)
+    {
+      ans += b;
+      return;
+    }
+  else if (&ans == &b)
+    {
+      ans += a;
+      return;
+    }
+
+  ans.prepare(a);
   for (int i=0; i<(*ans.FFTD).phi_m(); i++)
-    { Add(ans.element[i],a.element[i],b.element[i],(*a.FFTD).get_prD()); }
+    ans.element.push_back(a.element[i].add(b.element[i], a.FFTD->get_prD()));
 }
-
-
 
 void sub(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b)
 {
   if (a.rep!=b.rep)   { throw rep_mismatch(); }
   if (a.FFTD!=b.FFTD) { throw pr_mismatch();  }
-  ans.partial_assign(a);
+  if (a.element.empty())
+    {
+      ans = b;
+      ans.negate();
+      return;
+    }
+  else if (b.element.empty())
+    {
+      ans = a;
+      return;
+    }
+
+  if (&ans == &a)
+    {
+      ans -= b;
+      return;
+    }
+
+  ans.prepare(a);
   for (int i=0; i<(*ans.FFTD).phi_m(); i++)
-    { Sub(ans.element[i],a.element[i],b.element[i],(*a.FFTD).get_prD()); }
+    ans.element.push_back(a.element[i].sub(b.element[i], a.FFTD->get_prD()));
 }
 
 
@@ -88,13 +148,29 @@ void mul(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b)
 {
   if (a.rep!=b.rep)   { throw rep_mismatch(); }
   if (a.FFTD!=b.FFTD) { throw pr_mismatch();  }
-  ans.partial_assign(a);
-  if (ans.rep==evaluation)
-    { // In evaluation representation, so we can just multiply componentwise
-      for (int i=0; i<(*ans.FFTD).phi_m(); i++)
-        { Mul(ans.element[i],a.element[i],b.element[i],(*a.FFTD).get_prD()); }
+  if (a.element.empty() or b.element.empty())
+    {
+      ans = Ring_Element(*a.FFTD, a.rep);
+      return;
     }
-  else if ((*ans.FFTD).get_twop()!=0)
+
+  if (a.rep==evaluation)
+    { // In evaluation representation, so we can just multiply componentwise
+      if (&ans == &a)
+        {
+          ans *= b;
+          return;
+        }
+      else if (&ans == &b)
+        {
+          ans *= a;
+          return;
+        }
+      ans.prepare(a);
+      for (int i=0; i<(*ans.FFTD).phi_m(); i++)
+        ans.element.push_back(a.element[i].mul(b.element[i], a.FFTD->get_prD()));
+    }
+  else if ((*a.FFTD).get_twop()!=0)
     { // This is the case where m is not a power of two
 
       // Here we have to do a poly mult followed by a reduction
@@ -116,11 +192,13 @@ void mul(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b)
       // Now apply reduction, assumes Ring.poly is monic
       reduce(aa, 2*(*a.FFTD).phi_m(), (*a.FFTD).phi_m(), *a.FFTD);
      // Now stick into answer
+     ans.partial_assign(a);
      for (int i=0; i<(*ans.FFTD).phi_m(); i++)
        { ans.element[i]=aa[i]; }
     }
-  else if ((*ans.FFTD).get_twop()==0)
+  else if ((*a.FFTD).get_twop()==0)
     { // m a power of two case
+      ans.partial_assign(a);
       Ring_Element aa(*ans.FFTD,ans.rep);
       modp temp;
       for (int i=0; i<(*ans.FFTD).phi_m(); i++)
@@ -143,31 +221,89 @@ void mul(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b)
 
 void mul(Ring_Element& ans,const Ring_Element& a,const modp& b)
 {
-  ans.partial_assign(a);
+  if (&ans == &a)
+    {
+      ans *= b;
+      return;
+    }
+
+  ans.prepare(a);
+  if (a.element.empty())
+    return;
+
   for (int i=0; i<(*ans.FFTD).phi_m(); i++)
-    { Mul(ans.element[i],a.element[i],b,(*a.FFTD).get_prD()); }
+    ans.element.push_back(a.element[i].mul(b, a.FFTD->get_prD()));
+}
+
+
+Ring_Element& Ring_Element::operator +=(const Ring_Element& other)
+{
+  assert(element.size() == other.element.size());
+  assert(FFTD == other.FFTD);
+  assert(rep == other.rep);
+  for (size_t i = 0; i < element.size(); i++)
+    element[i] = element[i].add(other.element[i], FFTD->get_prD());
+  return *this;
+}
+
+
+Ring_Element& Ring_Element::operator -=(const Ring_Element& other)
+{
+  assert(element.size() == other.element.size());
+  assert(FFTD == other.FFTD);
+  assert(rep == other.rep);
+  for (size_t i = 0; i < element.size(); i++)
+    element[i] = element[i].sub(other.element[i], FFTD->get_prD());
+  return *this;
+}
+
+
+Ring_Element& Ring_Element::operator *=(const Ring_Element& other)
+{
+  assert(element.size() == other.element.size());
+  assert(FFTD == other.FFTD);
+  assert(rep == other.rep);
+  assert(rep == evaluation);
+  for (size_t i = 0; i < element.size(); i++)
+    element[i] = element[i].mul(other.element[i], FFTD->get_prD());
+  return *this;
+}
+
+
+Ring_Element& Ring_Element::operator *=(const modp& other)
+{
+  for (size_t i = 0; i < element.size(); i++)
+    element[i] = element[i].mul(other, FFTD->get_prD());
+  return *this;
 }
 
 
 Ring_Element Ring_Element::mul_by_X_i(int j) const
 {
   Ring_Element ans;
+  ans.prepare(*this);
+  if (element.empty())
+    return ans;
+
   auto& a = *this;
-  ans.partial_assign(a);
   if (ans.rep == evaluation)
     {
       modp xj, xj2;
       Power(xj, (*ans.FFTD).get_root(0), j, (*a.FFTD).get_prD());
       Sqr(xj2, xj, (*a.FFTD).get_prD());
+      ans.prepare_push();
+      modp tmp;
       for (int i= 0; i < (*ans.FFTD).phi_m(); i++)
         {
-          Mul(ans.element[i], a.element[i], xj, (*a.FFTD).get_prD());
+          Mul(tmp, a.element[i], xj, (*a.FFTD).get_prD());
+          ans.element.push_back(tmp);
           Mul(xj, xj, xj2, (*a.FFTD).get_prD());
         }
     }
   else
     {
       Ring_Element aa(*ans.FFTD, ans.rep);
+      aa.allocate();
       for (int i= 0; i < (*ans.FFTD).phi_m(); i++)
         {
           int k= j + i, s= 1;
@@ -193,6 +329,7 @@ Ring_Element Ring_Element::mul_by_X_i(int j) const
 
 void Ring_Element::randomize(PRNG& G,bool Diag)
 {
+  allocate();
   if (Diag==false)
     { for (int i=0; i<(*FFTD).phi_m(); i++) 
        { element[i].randomize(G,(*FFTD).get_prD()); }
@@ -213,12 +350,18 @@ void Ring_Element::randomize(PRNG& G,bool Diag)
 
 void Ring_Element::change_rep(RepType r)
 { 
+  if (element.empty())
+    {
+      rep = r;
+      return;
+    }
+
   if (rep==r) { return; }
   if (r==evaluation)
     { rep=evaluation;
       if ((*FFTD).get_twop()==0)
         { // m a power of two variant
-          FFT_Iter2(element,(*FFTD).phi_m(),(*FFTD).get_root(0),(*FFTD).get_prD());
+          FFT_Iter2(element,(*FFTD).phi_m(),(*FFTD).get_roots(),(*FFTD).get_prD());
 	}
       else
         { // Non m power of two variant and FFT enabled
@@ -258,6 +401,11 @@ void Ring_Element::change_rep(RepType r)
 
 bool Ring_Element::equals(const Ring_Element& a) const
 {
+  if (element.empty() and a.element.empty())
+    return true;
+  else if (element.empty() or a.element.empty())
+    throw not_implemented();
+
   if (rep!=a.rep)   { throw rep_mismatch(); }
   if (*FFTD!=*a.FFTD) { throw pr_mismatch();  }
   for (int i=0; i<(*FFTD).phi_m(); i++)
@@ -266,34 +414,11 @@ bool Ring_Element::equals(const Ring_Element& a) const
 }
 
 
-void Ring_Element::from_vec(const vector<bigint>& v)
-{
-  RepType t=rep;
-  rep=polynomial;
-  bigint tmp;
-  for (int i=0; i<(*FFTD).phi_m(); i++)
-    {
-      tmp = v[i];
-      element[i].convert_destroy(tmp, FFTD->get_prD());
-    }
-  change_rep(t);
-//  cout << "RE:from_vec<bigint>:: " << *this << endl;
-}
-
-void Ring_Element::from_vec(const vector<int>& v)
-{
-  RepType t=rep;
-  rep=polynomial;
-  for (int i=0; i<(*FFTD).phi_m(); i++)
-    { to_modp(element[i],v[i],(*FFTD).get_prD()); }
-  change_rep(t);
-//  cout << "RE:from_vec<int>:: " << *this << endl;
-}
-
 ConversionIterator Ring_Element::get_iterator() const
 {
   if (rep != polynomial)
     throw runtime_error("simple iterator only available in polynomial represention");
+  assert(not element.empty());
   return {element, (*FFTD).get_prD()};
 }
 
@@ -318,6 +443,9 @@ vector<bigint>  Ring_Element::to_vec_bigint() const
 void Ring_Element::to_vec_bigint(vector<bigint>& v) const
 {
   v.resize(FFTD->phi_m());
+  if (element.empty())
+    return;
+
   if (rep==polynomial)
      { for (int i=0; i<(*FFTD).phi_m(); i++)
          { to_bigint(v[i],element[i],(*FFTD).get_prD()); }
@@ -336,11 +464,10 @@ void Ring_Element::to_vec_bigint(vector<bigint>& v) const
 
 modp Ring_Element::get_constant() const
 {
-  if (rep==polynomial)
-     { return element[0]; }
-  Ring_Element a=*this;
-  a.change_rep(polynomial);
-  return a.element[0]; 
+  if (element.empty())
+    return {};
+  else
+    return element[0];
 }
 
 
@@ -364,9 +491,14 @@ void get(octetStream& o,vector<modp>& v,const Zp_Data& ZpD)
             + to_string(ZpD.pr_bit_length));
   unsigned int length;
   o.get(length);
-  v.resize(length);
+  v.clear();
+  v.reserve(length);
+  modp tmp;
   for (unsigned int i=0; i<length; i++)
-    { v[i].unpack(o,ZpD); }
+    {
+      tmp.unpack(o,ZpD);
+      v.push_back(tmp);
+    }
 }
 
 
@@ -398,7 +530,7 @@ void Ring_Element::check_rep()
 
 void Ring_Element::check_size() const
 {
-  if ((int)element.size() != FFTD->phi_m())
+  if (not element.empty() and (int)element.size() != FFTD->phi_m())
     throw runtime_error("invalid element size");
 }
 

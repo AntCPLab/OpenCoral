@@ -52,8 +52,6 @@ class Random_Coins
       { params=&p; }
 
   Random_Coins(const FHE_PK& pk);
-
-  ~Random_Coins() { ; }
   
   // Rely on default copy assignment/constructor
 

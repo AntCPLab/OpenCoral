@@ -40,7 +40,7 @@
 
 #define BIT_INSTRUCTIONS \
     X(XORS, T::xors(PROC, EXTRA)) \
-    X(XORCB, C0.xor_(PC1, PC2)) \
+    X(XORCB, processor.xorc(instruction)) \
     X(XORCBI, C0.xor_(PC1, IMM)) \
     X(NOTS, processor.nots(INST)) \
     X(ANDRS, T::andrs(PROC, EXTRA)) \

@@ -249,9 +249,8 @@ int OnlineMachine::run()
 #ifndef INSECURE
     catch(...)
     {
-        Machine<T, U> machine(playerNames);
-        machine.live_prep = false;
-        thread_info<T, U>::purge_preprocessing(machine);
+        if (not online_opts.live_prep)
+            thread_info<T, U>::purge_preprocessing(playerNames);
         throw;
     }
 #endif

@@ -49,7 +49,7 @@ public:
     void reset_all(Player& P);
 
     virtual void add_mine(const typename T::open_type& input, int n_bits = -1) = 0;
-    virtual void add_other(int player) = 0;
+    virtual void add_other(int player, int n_bits = -1) = 0;
     void add_from_all(const clear& input);
 
     virtual void send_mine() = 0;
@@ -85,7 +85,7 @@ public:
     void reset(int player);
 
     void add_mine(const open_type& input, int n_bits = -1);
-    void add_other(int player);
+    void add_other(int player, int n_bits = -1);
 
     void send_mine();
 

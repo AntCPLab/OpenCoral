@@ -68,7 +68,7 @@ class gfp_ : public ValueInterface
   // must be negative
   static const int N_BITS = -1;
 
-  static const int MAX_EDABITS = 40 > MAX_N_BITS - 40 ? 40 : MAX_N_BITS - 40;
+  static const int MAX_EDABITS = MAX_N_BITS;
 
   template<class T>
   static void init(bool mont = true)
@@ -228,6 +228,11 @@ class gfp_ : public ValueInterface
     { (void) n; a.unpack(o); }
 
   void convert_destroy(bigint& x) { a.convert_destroy(x, ZpD); }
+
+  void to(bigint& res) const
+  {
+    res = *this;
+  }
 
   // Convert representation to and from a bigint number
   friend void to_bigint(bigint& ans,const gfp_& x,bool reduce=true)

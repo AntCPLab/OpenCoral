@@ -94,8 +94,10 @@ protected:
 
   bool do_count;
 
-  void count(Dtype dtype, int n = 1) { usage.files[T::field_type()][dtype] += do_count * n; }
-  void count_input(int player) { usage.inputs[player][T::field_type()] += do_count; }
+  void count(Dtype dtype, int n = 1)
+  { usage.files[T::clear::field_type()][dtype] += do_count * n; }
+  void count_input(int player)
+  { usage.inputs[player][T::clear::field_type()] += do_count; }
 
   template<int>
   void get_edabits(bool strict, size_t size, T* a,
@@ -203,6 +205,7 @@ public:
 
   Sub_Data_Files(int my_num, int num_players, const string& prep_data_dir,
       DataPositions& usage, int thread_num = -1);
+  Sub_Data_Files(const Names& N, DataPositions& usage, int thread_num = -1);
   Sub_Data_Files(const Names& N, const string& prep_data_dir,
       DataPositions& usage, int thread_num = -1) :
       Sub_Data_Files(N.my_num(), N.num_players(), prep_data_dir, usage, thread_num)
@@ -269,6 +272,7 @@ class Data_Files
 
   Data_Files(Machine<sint, sgf2n>& machine, SubProcessor<sint>* procp = 0,
       SubProcessor<sgf2n>* proc2 = 0);
+  Data_Files(const Names& N);
   ~Data_Files();
 
   DataPositions tellg();
@@ -331,7 +335,7 @@ template<class T>
 inline void Preprocessing<T>::get_three(Dtype dtype, T& a, T& b, T& c)
 {
   // count bit triples in get_triple()
-  if (T::field_type() != DATA_GF2)
+  if (T::clear::field_type() != DATA_GF2)
     count(dtype);
   get_three_no_count(dtype, a, b, c);
 }
@@ -361,14 +365,14 @@ template<class T>
 inline void Preprocessing<T>::get(vector<T>& S, DataTag tag,
     const vector<int>& regs, int vector_size)
 {
-  usage.count(T::field_type(), tag, vector_size);
+  usage.count(T::clear::field_type(), tag, vector_size);
   get_no_count(S, tag, regs, vector_size);
 }
 
 template<class T>
 array<T, 3> Preprocessing<T>::get_triple(int n_bits)
 {
-  if (T::field_type() == DATA_GF2)
+  if (T::clear::field_type() == DATA_GF2)
     count(DATA_TRIPLE, n_bits);
   return get_triple_no_count(n_bits);
 }
@@ -376,7 +380,7 @@ array<T, 3> Preprocessing<T>::get_triple(int n_bits)
 template<class T>
 array<T, 3> Preprocessing<T>::get_triple_no_count(int n_bits)
 {
-  assert(T::field_type() != DATA_GF2 or T::default_length == 1 or
+  assert(T::clear::field_type() != DATA_GF2 or T::default_length == 1 or
       T::default_length == n_bits or not do_count);
   array<T, 3> res;
   get(DATA_TRIPLE, res.data());

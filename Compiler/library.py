@@ -170,7 +170,7 @@ def print_ln_to(player, ss, *args):
 
     Example::
 
-        print_ln_to(player, 'output for %s: %s', x.reveal_to(player))
+        print_ln_to(player, 'output for %s: %s', player, x.reveal_to(player))
     """
     cond = player == get_player_id()
     new_args = []
@@ -293,7 +293,9 @@ class Function:
         self.compile_args = compile_args
     def __call__(self, *args):
         args = tuple(arg.read() if isinstance(arg, MemValue) else arg for arg in args)
-        get_reg_type = lambda x: regint if isinstance(x, int) else type(x)
+        from .types import _types
+        get_reg_type = lambda x: \
+            regint if isinstance(x, int) else _types.get(x.reg_type, type(x))
         if len(args) not in self.type_args:
             # first call
             type_args = collections.defaultdict(list)
@@ -324,7 +326,8 @@ class Function:
             j = 0
             for i_arg in type_args[reg_type]:
                 if get_reg_type(args[i_arg]) != reg_type:
-                    raise CompilerError('type mismatch')
+                    raise CompilerError('type mismatch: "%s" not of type "%s"' %
+                                        (args[i_arg], reg_type))
                 store_in_mem(args[i_arg], bases[reg_type] + j)
                 j += util.mem_size(reg_type)
         return self.on_call(base, bases)
@@ -371,7 +374,7 @@ class FunctionBlock(Function):
         parent_node = get_tape().req_node
         get_tape().open_scope(lambda x: x[0], None, 'begin-' + self.name)
         block = get_tape().active_basicblock
-        block.alloc_pool = defaultdict(set)
+        block.alloc_pool = defaultdict(list)
         del parent_node.children[-1]
         self.node = get_tape().req_node
         if get_program().verbose:
@@ -763,22 +766,34 @@ def loopy_odd_even_merge_sort(a, sorted_length=1, n_parallel=32,
                 @function_block
                 def step(l):
                     l = MemValue(l)
-                    @for_range_opt_multithread(n_threads, len(a) // k)
+                    m = 2 ** int(math.ceil(math.log(len(a), 2)))
+                    @for_range_opt_multithread(n_threads, m // k)
                     def _(i):
                         n_inner = l // k
                         j = i % n_inner
                         i //= n_inner
                         base = i*l + j
                         step = l//k
+                        def swap(base, step):
+                            if m == len(a):
+                                a[base], a[base + step] = \
+                                    cond_swap(a[base], a[base + step])
+                            else:
+                                # ignore values outside range
+                                go = base + step < len(a)
+                                x = a.maybe_get(go, base)
+                                y = a.maybe_get(go, base + step)
+                                tmp = cond_swap(x, y)
+                                for i, idx in enumerate((base, base + step)):
+                                    a.maybe_set(go, idx, tmp[i])
                         if k == 2:
-                            a[base], a[base+step] = \
-                                                cond_swap(a[base], a[base+step])
+                            swap(base, step)
                         else:
                             @for_range_opt(n_innermost)
                             def f(i):
                                 m1 = step + i * 2 * step
                                 m2 = m1 + base
-                                a[m2], a[m2+step] = cond_swap(a[m2], a[m2+step])
+                                swap(m2, step)
                 steps[key] = step
             steps[key](l)
 
@@ -870,6 +885,8 @@ def for_range_parallel(n_parallel, n_loops):
     """
     Decorator to execute a loop :py:obj:`n_loops` up to
     :py:obj:`n_parallel` loop bodies in parallel.
+    Using any other control flow instruction inside the loop breaks
+    the optimization.
 
     :param n_parallel: compile-time (int)
     :param n_loops: regint/cint/int
@@ -887,9 +904,12 @@ def for_range_parallel(n_parallel, n_loops):
 def for_range_opt(n_loops, budget=None):
     """ Execute loop bodies in parallel up to an optimization budget.
     This prevents excessive loop unrolling. The budget is respected
-    even with nested loops. Note that optimization is rather
+    even with nested loops. Note that the optimization is rather
     rudimentary for runtime :py:obj:`n_loops` (regint/cint). Consider
     using :py:func:`for_range_parallel` in this case.
+    Using further control flow constructions inside other than
+    :py:func:`for_range_opt` (e.g, :py:func:`for_range`) breaks the
+    optimization.
 
     :param n_loops: int/regint/cint
     :param budget: number of instructions after which to start optimization (default is 100,000)
@@ -1082,18 +1102,19 @@ def multithread(n_threads, n_items=None, max_size=None):
     """
     if n_items is None:
         n_items = n_threads
-    if max_size is None:
+    if max_size is None or n_items <= max_size:
         return map_reduce(n_threads, None, n_items, initializer=lambda: [],
                           reducer=None, looping=False)
     else:
         def wrapper(function):
             @multithread(n_threads, n_items)
             def new_function(base, size):
-                for i in range(0, size, max_size):
-                    part_base = base + i
-                    part_size = min(max_size, size - i)
-                    function(part_base, part_size)
-                    break_point()
+                @for_range(size // max_size)
+                def _(i):
+                    function(base + i * max_size, max_size)
+                rem = size % max_size
+                if rem:
+                    function(base + size - rem, rem)
         return wrapper
 
 def map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, \
@@ -1199,6 +1220,23 @@ def map_sum(n_threads, n_parallel, n_loops, n_items, value_types):
     def summer(x,y):
         return tuple(a + b for a,b in zip(x,y))
     return map_reduce(n_threads, n_parallel, n_loops, initializer, summer)
+
+def tree_reduce_multithread(n_threads, function, vector):
+    inputs = vector.Array(len(vector))
+    inputs.assign_vector(vector)
+    outputs = vector.Array(len(vector) // 2)
+    left = len(vector)
+    while left > 1:
+        @multithread(n_threads, left // 2)
+        def _(base, size):
+            outputs.assign_vector(
+                function(inputs.get_vector(2 * base, size),
+                         inputs.get_vector(2 * base + size, size)), base)
+        inputs.assign_vector(outputs.get_vector(0, left // 2))
+        if left % 2 == 1:
+            inputs[left // 2] = inputs[left - 1]
+        left = (left + 1) // 2
+    return inputs[0]
 
 def foreach_enumerate(a):
     """ Run-time loop over public data. This uses
@@ -1511,6 +1549,15 @@ def break_point(name=''):
     """
     get_tape().start_new_basicblock(name=name)
 
+def check_point():
+    """
+    Force MAC checks in current thread and all idle threads if the
+    current thread is the main thread. This implies a break point.
+    """
+    break_point('pre-check')
+    check()
+    break_point('post-check')
+
 # Fixed point ops
 
 from math import ceil, log
@@ -1566,6 +1613,9 @@ def cint_cint_division(a, b, k, f):
     # theta can be replaced with something smaller
     # for safety we assume that is the same theta from previous GS method
 
+    if get_program().options.ring:
+        assert 2 * f < int(get_program().options.ring)
+
     theta = int(ceil(log(k/3.5) / log(2)))
     two = cint(2) * two_power(f)
 
@@ -1579,9 +1629,11 @@ def cint_cint_division(a, b, k, f):
     B = absolute_b
     W = w0
 
-    for i in range(1, theta):
-        A = (A * W) >> f
-        B = (B * W) >> f
+    corr = cint(1) << (f - 1)
+
+    for i in range(theta):
+        A = (A * W + corr) >> f
+        B = (B * W + corr) >> f
         W = two - B
     return (sign_a * sign_b) * A
 
@@ -1592,7 +1644,7 @@ def sint_cint_division(a, b, k, f, kappa):
     """
     theta = int(ceil(log(k/3.5) / log(2)))
     two = cint(2) * two_power(f)
-    sign_b = cint(1) - 2 * cint(b < 0)
+    sign_b = cint(1) - 2 * cint(b.less_than(0, k))
     sign_a = sint(1) - 2 * comparison.LessThanZero(a, k, kappa)
     absolute_b = b * sign_b
     absolute_a = a * sign_a
@@ -1652,7 +1704,8 @@ def FPDiv(a, b, k, f, kappa, simplex_flag=False, nearest=False):
     y = y.extend(2 * k) * (alpha + x).extend(2 * k)
     y = y.round(k + 3 * f - res_f, 3 * f - res_f, kappa, nearest, signed=True)
     return y
-def AppRcr(b, k, f, kappa, simplex_flag=False, nearest=False):
+
+def AppRcr(b, k, f, kappa=None, simplex_flag=False, nearest=False):
     """
         Approximate reciprocal of [b]:
         Given [b], compute [1/b]
@@ -1662,7 +1715,7 @@ def AppRcr(b, k, f, kappa, simplex_flag=False, nearest=False):
     #v should be 2**{k - m} where m is the length of the bitwise repr of [b]
     d = alpha - 2 * c
     w = d * v
-    w = w.round(2 * k, 2 * (k - f), kappa, nearest, signed=True)
+    w = w.round(2 * k + 1, 2 * (k - f), kappa, nearest, signed=True)
     # now w * 2 ^ {-f} should be an initial approximation of 1/b
     return w
 
@@ -1674,7 +1727,7 @@ def Norm(b, k, f, kappa, simplex_flag=False):
     # For simplex, we can get rid of computing abs(b)
     temp = None
     if simplex_flag == False:
-        temp = comparison.LessThanZero(b, 2 * k, kappa)
+        temp = comparison.LessThanZero(b, k, kappa)
     elif simplex_flag == True:
         temp = cint(0)
 
@@ -1682,7 +1735,7 @@ def Norm(b, k, f, kappa, simplex_flag=False):
     absolute_val = sign * b
 
     #next 2 lines actually compute the SufOR for little indian encoding
-    bits = absolute_val.bit_decompose(k, kappa)[::-1]
+    bits = absolute_val.bit_decompose(k, kappa, maybe_mixed=True)[::-1]
     suffixes = PreOR(bits, kappa)[::-1]
 
     z = [0] * k
@@ -1690,10 +1743,7 @@ def Norm(b, k, f, kappa, simplex_flag=False):
         z[i] = suffixes[i] - suffixes[i+1]
     z[k - 1] = suffixes[k-1]
 
-    #doing complicated stuff to compute v = 2^{k-m}
-    acc = cint(0)
-    for i in range(k):
-        acc += two_power(k-i-1) * z[i]
+    acc = sint.bit_compose(reversed(z))
 
     part_reciprocal = absolute_val * acc
     signed_acc = sign * acc

@@ -38,6 +38,8 @@ template<class U>
 class ShareSecret
 {
 public:
+    typedef U whole_type;
+
     typedef Memory<U> DynamicMemory;
     typedef SwitchableOutput out_type;
 

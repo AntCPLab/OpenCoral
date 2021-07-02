@@ -48,15 +48,6 @@ void Rq_Element::partial_assign(const Rq_Element& other)
 {
 	lev=other.lev;
 	a.resize(other.a.size());
-	for (size_t i = 0; i < a.size(); i++)
-	  a[i].partial_assign(other.a[i]);
-}
-
-void Rq_Element::assign(const Rq_Element& other)
-{
-        partial_assign(other);
-	for (int i=0; i<=lev; ++i)
-		a[i] = other.a[i];
 }
 
 void Rq_Element::negate()
@@ -133,20 +124,6 @@ bool Rq_Element::equals(const Rq_Element& other) const
   return true;
 }
 
-
-void Rq_Element::from_vec(const vector<bigint>& v,int level)
-{
-  set_level(level);
-  for (int i=0;i<=lev;++i)
-	  a[i].from_vec(v);
-}
-
-void Rq_Element::from_vec(const vector<int>& v,int level)
-{
-  set_level(level);
-  for (int i=0;i<=lev;++i)
-	  a[i].from_vec(v);
-}
 
 vector<bigint> Rq_Element::to_vec_bigint() const
 {

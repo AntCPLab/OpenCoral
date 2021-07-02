@@ -2219,22 +2219,23 @@ class conv2ds(base.DataInstruction):
     :param: number of channels (int)
     :param: padding height (int)
     :param: padding width (int)
+    :param: batch size (int)
     """
     code = base.opcodes['CONV2DS']
     arg_format = ['sw','s','s','int','int','int','int','int','int','int','int',
-                  'int','int','int']
+                  'int','int','int','int']
     data_type = 'triple'
     is_vec = lambda self: True
 
     def __init__(self, *args, **kwargs):
         super(conv2ds, self).__init__(*args, **kwargs)
-        assert args[0].size == args[3] * args[4]
-        assert args[1].size == args[5] * args[6] * args[11]
+        assert args[0].size == args[3] * args[4] * args[14]
+        assert args[1].size == args[5] * args[6] * args[11] * args[14]
         assert args[2].size == args[7] * args[8] * args[11]
 
     def get_repeat(self):
         return self.args[3] * self.args[4] * self.args[7] * self.args[8] * \
-            self.args[11]
+            self.args[11] * self.args[14]
 
 @base.vectorize
 class trunc_pr(base.VarArgsInstruction):
@@ -2249,6 +2250,15 @@ class trunc_pr(base.VarArgsInstruction):
     __slots__ = []
     code = base.opcodes['TRUNC_PR']
     arg_format = tools.cycle(['sw','s','int','int'])
+
+class check(base.Instruction):
+    """
+    Force MAC check in current thread and all idle thread if current
+    thread is the main thread.
+    """
+    __slots__ = []
+    code = base.opcodes['CHECK']
+    arg_format = []
 
 ###
 ### CISC-style instructions
@@ -2288,48 +2298,6 @@ class lts(base.CISC):
         a = sint()
         subs(a, self.args[1], self.args[2])
         comparison.LTZ(self.args[0], a, self.args[3], self.args[4])
-
-@base.vectorize
-class g2muls(base.CISC):
-    r""" Secret GF(2) multiplication """
-    __slots__ = []
-    arg_format = ['sgw','sg','sg']
-
-    def expand(self):
-        s = [program.curr_block.new_reg('sg') for i in range(9)]
-        c = [program.curr_block.new_reg('cg') for i in range(3)]
-        gbittriple(s[0], s[1], s[2])
-        gsubs(s[3], self.args[1], s[0])
-        gsubs(s[4], self.args[2], s[1])
-        gasm_open(c[0], s[3])
-        gasm_open(c[1], s[4])
-        gmulbitm(s[5], s[1], c[0])
-        gmulbitm(s[6], s[0], c[1])
-        gmulbitc(c[2], c[0], c[1])
-        gadds(s[7], s[2], s[5])
-        gadds(s[8], s[7], s[6])
-        gaddm(self.args[0], s[8], c[2])
-
-#@base.vectorize
-#class gmulbits(base.CISC):
-#    r""" Secret $GF(2^n) \times GF(2)$ multiplication """
-#    __slots__ = []
-#    arg_format = ['sgw','sg','sg']
-#
-#    def expand(self):
-#        s = [program.curr_block.new_reg('s') for i in range(9)]
-#        c = [program.curr_block.new_reg('c') for i in range(3)]
-#        g2ntriple(s[0], s[1], s[2])
-#        subs(s[3], self.args[1], s[0])
-#        subs(s[4], self.args[2], s[1])
-#        startopen(s[3], s[4])
-#        stopopen(c[0], c[1])
-#        mulm(s[5], s[1], c[0])
-#        mulm(s[6], s[0], c[1])
-#        mulc(c[2], c[0], c[1])
-#        adds(s[7], s[2], s[5])
-#        adds(s[8], s[7], s[6])
-#        addm(self.args[0], s[8], c[2])
 
 # hack for circular dependency
 from Compiler import comparison

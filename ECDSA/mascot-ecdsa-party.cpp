@@ -5,6 +5,7 @@
 
 #include "GC/TinierSecret.h"
 #include "GC/TinyMC.h"
+#include "GC/VectorInput.h"
 
 #include "Protocols/Share.hpp"
 #include "Protocols/MAC_Check.hpp"

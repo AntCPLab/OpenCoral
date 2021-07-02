@@ -109,11 +109,11 @@ DistKeyGen::DistKeyGen(const FHE_Params& params, const bigint& p) :
  */
 void DistKeyGen::Gen_Random_Data(PRNG& G)
 {
-    secret.from_vec(params.sampleHwt(G));
+    secret.from(GaussianGenerator<bigint>(params.get_DG(), G));
     rc1.generate(G);
     rc2.generate(G);
     a.randomize(G);
-    e.from_vec(params.sampleGaussian(G));
+    e.from(GaussianGenerator<bigint>(params.get_DG(), G));
 }
 
 DistKeyGen& DistKeyGen::operator+=(const DistKeyGen& other)

@@ -89,7 +89,6 @@ public:
 
     void init_mul(SubProcessor<T>* = 0)
     {
-        throw not_implemented();
     }
     typename T::clear prepare_mul(const T&, const T&, int = 0)
     {
@@ -221,9 +220,6 @@ public:
         throw not_implemented();
     }
     static void input_mixed(SubProcessor<V>, vector<int>, int, int)
-    {
-    }
-    static void raw_input(SubProcessor<V>, vector<int>, int)
     {
     }
     void reset_all(Player& P)

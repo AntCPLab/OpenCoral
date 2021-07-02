@@ -73,6 +73,7 @@ def require_ring_size(k, op):
     if int(program.options.ring) < k:
         raise CompilerError('ring size too small for %s, compile '
                             'with \'-R %d\' or more' % (op, k))
+    program.curr_tape.require_bit_length(k)
 
 @instructions_base.cisc
 def LTZ(s, a, k, kappa):

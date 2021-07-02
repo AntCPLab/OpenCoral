@@ -17,7 +17,7 @@ GC_SEMI = GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
 OT = $(patsubst %.cpp,%.o,$(wildcard OT/*.cpp))
 OT_EXE = ot.x ot-offline.x
 
-COMMON = $(MATH) $(TOOLS) $(NETWORK) GC/square64.o Processor/OnlineOptions.o Processor/BaseMachine.o
+COMMON = $(MATH) $(TOOLS) $(NETWORK) GC/square64.o Processor/OnlineOptions.o Processor/BaseMachine.o Processor/DataPositions.o Processor/ThreadQueues.o Processor/ThreadQueue.o
 COMPLETE = $(COMMON) $(PROCESSOR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(GC) $(OT)
 YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp)) $(OT) BMR/Key.o
 BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp))
@@ -221,6 +221,7 @@ ps-rep-ring-party.x: Protocols/MalRepRingOptions.o
 malicious-rep-ring-party.x: Protocols/MalRepRingOptions.o
 sy-rep-ring-party.x: Protocols/MalRepRingOptions.o
 rep4-ring-party.x: GC/Rep4Secret.o
+no-party.x: Protocols/ShareInterface.o
 semi-ecdsa-party.x: $(OT) $(LIBSIMPLEOT) GC/SemiPrep.o GC/SemiSecret.o
 mascot-ecdsa-party.x: $(OT) $(LIBSIMPLEOT)
 fake-spdz-ecdsa-party.x: $(OT) $(LIBSIMPLEOT)
@@ -238,6 +239,7 @@ static/mal-shamir-bmr-party.x: $(BMR)
 static/semi-bmr-party.x: $(BMR)
 static/real-bmr-party.x: $(BMR)
 static/bmr-program-party.x: $(BMR)
+static/no-party.x: Protocols/ShareInterface.o
 
 ifeq ($(AVX_OT), 1)
 $(LIBSIMPLEOT): SimpleOT/Makefile

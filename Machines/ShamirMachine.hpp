@@ -30,6 +30,7 @@
 #include "GC/ShareSecret.hpp"
 #include "GC/VectorProtocol.hpp"
 #include "GC/Secret.hpp"
+#include "GC/CcdPrep.hpp"
 #include "Math/gfp.hpp"
 
 ShamirOptions ShamirOptions::singleton;

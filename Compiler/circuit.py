@@ -127,7 +127,7 @@ def sha3_256(x):
 
         from circuit import sha3_256
         a = sbitvec.from_vec([])
-        b = sbitvec(sint(0xcc), 8)
+        b = sbitvec(sint(0xcc), 8, 8)
         for x in a, b:
             sha3_256(x).elements()[0].reveal().print_reg()
 

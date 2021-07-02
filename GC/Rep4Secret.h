@@ -7,7 +7,6 @@
 #define GC_REP4SECRET_H_
 
 #include "ShareSecret.h"
-#include "Processor/NoLivePrep.h"
 #include "Protocols/Rep4MC.h"
 #include "Protocols/Rep4Share.h"
 

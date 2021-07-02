@@ -9,6 +9,11 @@ implemented protocols etc. see https://github.com/data61/MP-SPDZ.
 Compilation process
 -------------------
 
+The easiest way of using MP-SPDZ is using the ``compile.py`` as
+described below. If you would like to run compilation directly from
+Python, see ``Scripts/direct_compilation_example.py``. It contains all
+the necessary setup steps.
+
 After putting your code in ``Program/Source/<progname>.mpc``, run the
 compiler from the root directory as follows
 
@@ -151,6 +156,11 @@ Reference
    instructions
    low-level
    networking
+   io
+   non-linear
+   preprocessing
+   add-protocol
+   troubleshooting
 
 
 Indices and tables

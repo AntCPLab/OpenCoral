@@ -18,6 +18,8 @@ from Compiler import program
 ### MUST also be changed. (+ the documentation)
 ###
 opcodes = dict(
+    # Emulation
+    CISC = 0,
     # Load/store
     LDI = 0x1,
     LDSI = 0x2,
@@ -98,6 +100,7 @@ opcodes = dict(
     MATMULS = 0xAA,
     MATMULSM = 0xAB,
     CONV2DS = 0xAC,
+    CHECK = 0xAF,
     # Data access
     TRIPLE = 0x50,
     BIT = 0x51,
@@ -409,7 +412,7 @@ def cisc(function):
             program.curr_block.instructions.append(self)
 
         def get_def(self):
-            return [self.args[0]]
+            return [call[0][0] for call in self.calls]
 
         def get_used(self):
             return self.used
@@ -423,6 +426,7 @@ def cisc(function):
 
         def merge(self, other):
             self.calls += other.calls
+            self.used += other.used
 
         def get_size(self):
             return self.args[0].size
@@ -470,7 +474,9 @@ def cisc(function):
                 inst.copy(size, subs)
             reset_global_vector_size()
 
-        def expand_merged(self):
+        def expand_merged(self, skip):
+            if function.__name__ in skip:
+                return [self], 0
             tape = program.curr_tape
             block = tape.BasicBlock(tape, None, None)
             tape.active_basicblock = block
@@ -496,10 +502,38 @@ def cisc(function):
                 reg.mov(reg, new_regs[0].get_vector(base, reg.size))
                 reset_global_vector_size()
                 base += reg.size
-            return block.instructions
+            return block.instructions, self.n_rounds - 1
 
-        def expanded_rounds(self):
-            return self.n_rounds - 1
+        def add_usage(self, *args):
+            pass
+
+        def get_bytes(self):
+            assert len(self.kwargs) < 2
+            res = int_to_bytes(opcodes['CISC'])
+            res += int_to_bytes(sum(len(x[0]) + 2 for x in self.calls) + 1)
+            name = self.function.__name__
+            String.check(name)
+            res += String.encode(name)
+            for call in self.calls:
+                assert not call[1]
+                res += int_to_bytes(len(call[0]) + 2)
+                res += int_to_bytes(call[0][0].size)
+                for arg in call[0]:
+                    res += self.arg_to_bytes(arg)
+            return bytearray(res)
+
+        @classmethod
+        def arg_to_bytes(self, arg):
+            if arg is None:
+                return int_to_bytes(0)
+            try:
+                return int_to_bytes(arg.i)
+            except:
+                return int_to_bytes(arg)
+
+        def __str__(self):
+            return self.function.__name__ + ' ' + ', '.join(
+                str(x) for x in itertools.chain(call[0] for call in self.calls))
 
     MergeCISC.__name__ = function.__name__
 
@@ -804,11 +838,8 @@ class Instruction(object):
         else:
             return self.args
 
-    def expand_merged(self):
-        return [self]
-
-    def expanded_rounds(self):
-        return 0
+    def expand_merged(self, skip):
+        return [self], 0
 
     def get_new_args(self, size, subs):
         new_args = []

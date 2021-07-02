@@ -591,12 +591,12 @@ class _register(Tape.Register, _number, _structure):
     def prep_res(cls, other):
         return cls()
 
-    @staticmethod
-    def bit_compose(bits):
+    @classmethod
+    def bit_compose(cls, bits):
         """ Compose value from bits.
 
         :param bits: iterable of any type implementing left shift """
-        return sum(b << i for i,b in enumerate(bits))
+        return sum(cls.conv(b) << i for i,b in enumerate(bits))
 
     @classmethod
     def malloc(cls, size, creator_tape=None):
@@ -840,6 +840,7 @@ class cint(_clear, _int):
     def in_immediate_range(value):
         return value < 2**31 and value >= -2**31
 
+    @vectorize_init
     def __init__(self, val=None, size=None):
         """
         :param val: initialization (cint/regint/int/cgf2n or list thereof)
@@ -1119,12 +1120,6 @@ class cgf2n(_clear, _gf2n):
                 elif chunk:
                     sum += chunk
 
-    def __mul__(self, other):
-        """ Clear :math:`\mathrm{GF}(2^n)` multiplication.
-
-        :param other: cgf2n/regint/int """
-        return super(cgf2n, self).__mul__(other)
-
     def __neg__(self):
         """ Identity. """
         return self
@@ -1209,7 +1204,9 @@ class regint(_register, _int):
     def get_random(cls, bit_length):
         """ Public insecure randomness.
 
-        :param bit_length: number of bits (int) """
+        :param bit_length: number of bits (int)
+        :param size: vector size (int, default 1)
+        """
         if isinstance(bit_length, int):
             bit_length = regint(bit_length)
         res = cls()
@@ -1582,7 +1579,9 @@ class _secret(_register):
     def get_input_from(cls, player):
         """ Secret input from player.
 
-        :param player: public (regint/cint/int) """
+        :param player: public (regint/cint/int)
+        :param size: vector size (int, default 1)
+        """
         res = cls()
         asm_input(res, player)
         return res
@@ -1592,7 +1591,9 @@ class _secret(_register):
     def get_random_triple(cls):
         """ Secret random triple according to security model.
 
-        :return: :math:`(a, b, ab)` """
+        :return: :math:`(a, b, ab)`
+        :param size: vector size (int, default 1)
+        """
         res = (cls(), cls(), cls())
         triple(*res)
         return res
@@ -1602,7 +1603,9 @@ class _secret(_register):
     def get_random_bit(cls):
         """ Secret random bit according to security model.
 
-        :return: 0/1 50-50 """
+        :return: 0/1 50-50
+        :param size: vector size (int, default 1)
+        """
         res = cls()
         bit(res)
         return res
@@ -1612,7 +1615,9 @@ class _secret(_register):
     def get_random_square(cls):
         """ Secret random square according to security model.
 
-        :return: :math:`(a, a^2)` """
+        :return: :math:`(a, a^2)`
+        :param size: vector size (int, default 1)
+        """
         res = (cls(), cls())
         square(*res)
         return res
@@ -1622,7 +1627,9 @@ class _secret(_register):
     def get_random_inverse(cls):
         """ Secret random inverse tuple according to security model.
 
-        :return: :math:`(a, a^{-1})` """
+        :return: :math:`(a, a^{-1})`
+        :param size: vector size (int, default 1)
+        """
         res = (cls(), cls())
         inverse(*res)
         return res
@@ -1717,16 +1724,51 @@ class _secret(_register):
         else:
             self.load_clear(self.clear_type(val))
 
+    @classmethod
+    def bit_compose(cls, bits):
+        """ Compose value from bits.
+
+        :param bits: iterable of any type convertible to sint """
+        from Compiler.GC.types import sbits, sbitintvec
+        bits = list(bits)
+        if (program.use_edabit() or program.use_split()) and isinstance(bits[0], sbits):
+            if program.use_edabit():
+                mask = cls.get_edabit(len(bits), strict=True, size=bits[0].n)
+            else:
+                tmp = sint(size=bits[0].n)
+                randoms(tmp, len(bits))
+                n_overflow_bits = min(program.use_split().bit_length(),
+                                      int(program.options.ring) - len(bits))
+                mask_bits = tmp.bit_decompose(len(bits) + n_overflow_bits,
+                                              maybe_mixed=True)
+                if n_overflow_bits:
+                    overflow = sint.bit_compose(
+                        sint.conv(x) for x in mask_bits[-n_overflow_bits:])
+                    mask = tmp - (overflow << len(bits)), \
+                        mask_bits[:-n_overflow_bits]
+                else:
+                    mask = tmp, mask_bits
+            t = sbitintvec.get_type(len(bits) + 1)
+            masked = t.from_vec(mask[1] + [0]) + t.from_vec(bits + [0])
+            overflow = masked.v[-1]
+            masked = cls.bit_compose(x.reveal().to_regint_by_bit() for x in masked.v[:-1])
+            return masked - mask[0] + (cls(overflow) << len(bits))
+        else:
+            return super(_secret, cls).bit_compose(bits)
+
     @set_instruction_type
     @read_mem_value
     @vectorize
     def secret_op(self, other, s_inst, m_inst, si_inst, reverse=False):
-        cls = self.__class__
         res = self.prep_res(other)
+        cls = type(res)
         if isinstance(other, regint):
             other = res.clear_type(other)
         if isinstance(other, cls):
-            s_inst(res, self, other)
+            if reverse:
+                s_inst(res, other, self)
+            else:
+                s_inst(res, self, other)
         elif isinstance(other, res.clear_type):
             if reverse:
                 m_inst(res, other, self)
@@ -1861,10 +1903,12 @@ class sint(_secret, _int):
     def get_random_int(cls, bits):
         """ Secret random n-bit number according to security model.
 
-        :param bits: compile-time integer (int) """
+        :param bits: compile-time integer (int)
+        :param size: vector size (int, default 1)
+        """
         if program.use_edabit():
             return sint.get_edabit(bits, True)[0]
-        elif program.use_split() > 2:
+        elif program.use_split() > 2 and program.use_split() < 5:
             tmp = sint()
             randoms(tmp, bits)
             x = tmp.split_to_two_summands(bits, True)
@@ -1882,7 +1926,10 @@ class sint(_secret, _int):
 
     @vectorized_classmethod
     def get_random(cls):
-        """ Secret random ring element according to security model. """
+        """ Secret random ring element according to security model.
+
+        :param size: vector size (int, default 1)
+        """
         res = sint()
         randomfulls(res)
         return res
@@ -1891,7 +1938,9 @@ class sint(_secret, _int):
     def get_input_from(cls, player):
         """ Secret input.
 
-        :param player: public (regint/cint/int) """
+        :param player: public (regint/cint/int)
+        :param size: vector size (int, default 1)
+        """
         res = cls()
         inputmixed('int', res, player)
         return res
@@ -1915,7 +1964,7 @@ class sint(_secret, _int):
             else:
                 a = [sint.get_random_bit() for i in range(n_bits)]
                 return sint.bit_compose(a), a
-        program.curr_tape.require_bit_length(n_bits)
+        program.curr_tape.require_bit_length(n_bits - 1)
         whole = cls()
         size = get_global_vector_size()
         from Compiler.GC.types import sbits, sbitvec
@@ -1931,6 +1980,7 @@ class sint(_secret, _int):
         return 1
 
     @staticmethod
+    @vectorize
     def bit_decompose_clear(a, n_bits):
         return floatingpoint.bits(a, n_bits)
 
@@ -2055,7 +2105,7 @@ class sint(_secret, _int):
 
         :param other: sint/cint/regint/int
         :return: 0/1 (sint) """
-        res = sint()
+        res = sintbit()
         comparison.LTZ(res, self - other,
                        (bit_length or program.bit_length) + 1,
                        security or program.security)
@@ -2064,7 +2114,7 @@ class sint(_secret, _int):
     @read_mem_value
     @vectorize
     def __gt__(self, other, bit_length=None, security=None):
-        res = sint()
+        res = sintbit()
         comparison.LTZ(res, other - self,
                        (bit_length or program.bit_length) + 1,
                        security or program.security)
@@ -2185,13 +2235,14 @@ class sint(_secret, _int):
         return floatingpoint.Trunc(other, program.bit_length, self, program.security)
 
     @vectorize
-    def bit_decompose(self, bit_length=None, security=None):
+    def bit_decompose(self, bit_length=None, security=None, maybe_mixed=False):
         """ Secret bit decomposition. """
         if bit_length == 0:
             return []
         bit_length = bit_length or program.bit_length
-        security = security or program.security
-        return floatingpoint.BitDec(self, bit_length, bit_length, security)
+        assert program.security == security or program.security
+        return program.non_linear.bit_dec(self, bit_length, bit_length,
+                                          maybe_mixed)
 
     def TruncMul(self, other, k, m, kappa=None, nearest=False):
         return (self * other).round(k, m, kappa, nearest, signed=True)
@@ -2249,6 +2300,7 @@ class sint(_secret, _int):
         return floatingpoint.two_power(n)
 
     def split_to_n_summands(self, length, n):
+        comparison.require_ring_size(length, 'splitting')
         from .GC.types import sbits
         from .GC.instructions import split
         columns = [[sbits.get_type(self.size)()
@@ -2274,7 +2326,9 @@ class sint(_secret, _int):
     @vectorize
     def reveal_to(self, player):
         """ Reveal secret value to :py:obj:`player`.
-        Result potentially written to ``Player-Data/Private-Output-P<player>.``
+        Result potentially written to
+        ``Player-Data/Private-Output-P<player>``, but not if
+        :py:obj:`player` is a :py:class:`regint`.
 
         :param player: public integer (int/regint/cint):
         :returns: value to be used with :py:func:`~Compiler.library.print_ln_to`
@@ -2287,6 +2341,65 @@ class sint(_secret, _int):
                             (self + secret_mask).reveal() - player_mask)
         else:
             return super(sint, self).reveal_to(player)
+
+class sintbit(sint):
+    @classmethod
+    def prep_res(cls, other):
+        return sint()
+
+    def load_other(self, other):
+        if isinstance(other, sint):
+            movs(self, other)
+        else:
+            super(sintbit, self).load_other(other)
+
+    @vectorize
+    def __and__(self, other):
+        if isinstance(other, sintbit):
+            res = sintbit()
+            muls(res, self, other)
+            return res
+        elif util.is_zero(other):
+            return 0
+        elif util.is_one(other):
+            return self
+        else:
+            return NotImplemented
+
+    @vectorize
+    def __or__(self, other):
+        if isinstance(other, sintbit):
+            res = sintbit()
+            adds(res, self, other - self * other)
+            return res
+        elif util.is_zero(other):
+            return self
+        elif util.is_one(other):
+            return 1
+        else:
+            return NotImplemented
+
+    @vectorize
+    def __xor__(self, other):
+        if isinstance(other, sintbit):
+            res = sintbit()
+            adds(res, self, other - 2 * self * other)
+            return res
+        elif util.is_zero(other):
+            return self
+        elif util.is_one(other):
+            return 1
+        else:
+            return NotImplemented
+
+    @vectorize
+    def __rsub__(self, other):
+        if util.is_one(other):
+            res = sintbit()
+            subsfi(res, self, 1)
+            return res
+        else:
+            return super(sintbit, self).__rsub__(other)
 
 class sgf2n(_secret, _gf2n):
     """ Secret :math:`\mathrm{GF}(2^n)` value. """
@@ -2437,10 +2550,11 @@ class sgf2n(_secret, _gf2n):
         return [self.clear_type((masked >> wanted_positions[i]) & one) + r for i,r in enumerate(random_bits)]
 
 for t in (sint, sgf2n):
-    t.bit_type = t
     t.basic_type = t
     t.default_type = t
 
+sint.bit_type = sintbit
+sgf2n.bit_type = sgf2n
 
 class _bitint(object):
     bits = None
@@ -3046,14 +3160,17 @@ class cfix(_number, _structure):
 
     @staticmethod
     def int_rep(v, f, k=None):
+        if isinstance(v, regint):
+            v = cint(v)
         res = v * (2 ** f)
         try:
             res = int(round(res))
-            if k and abs(res) >= 2 ** k:
+            if k and res >= 2 ** (k - 1) or res < -2 ** (k - 1):
+                limit = 2 ** (k - f - 1)
                 raise CompilerError(
-                    'Value out of fixed-point range (maximum %d). '
+                    'Value out of fixed-point range [-%d, %d). '
                     'Use `sfix.set_precision(f, k)` with k being at least f+%d'
-                    % (2 ** (k - f), math.ceil(math.log(abs(v), 2)) + 1))
+                    % (limit, limit, res.bit_length() - f + 1))
         except TypeError:
             pass
         return res
@@ -3268,6 +3385,14 @@ class cfix(_number, _structure):
         else:
             raise TypeError('Incompatible fixed point types in division')
 
+    @vectorize
+    def __rtruediv__(self, other):
+        """ Fixed-point division.
+
+        :param other: sfix/sint/cfix/cint/regint/int """
+        other = parse_type(other, self.k, self.f)
+        return other / self
+
     def print_plain(self):
         """ Clear fixed-point output. """
         print_float_plain(cint.conv(self.v), cint(-self.f), \
@@ -3468,7 +3593,7 @@ class _fix(_single):
     set_precision = classmethod(set_precision)
 
     @classmethod
-    def set_precision_from_args(cls, program):
+    def set_precision_from_args(cls, program, adapt_ring=False):
         f = None
         k = None
         for arg in program.args:
@@ -3484,6 +3609,15 @@ class _fix(_single):
             cfix.set_precision(f, k)
         elif k is not None:
             raise CompilerError('need to set fractional precision')
+        if 'nearest' in program.args:
+            print('Nearest rounding instead of proabilistic '
+                  'for fixed-point computation')
+            cls.round_nearest = True
+        if adapt_ring and program.options.ring:
+            need = 2 ** int(math.ceil(math.log(2 * cls.k, 2)))
+            if need != int(program.options.ring):
+                print('Changing computation modulus to 2^%d' % need)
+                program.set_ring_size(need)
 
     @classmethod
     def coerce(cls, other):
@@ -3609,11 +3743,14 @@ class _fix(_single):
         :param other: sfix/cfix/sint/cint/regint/int """
         if util.is_constant_float(other):
             assert other != 0
-            other_length = self.f + math.ceil(math.log(abs(other), 2))
-            if other_length >= self.k:
-                factor = 2 ** (self.k - other_length - 1)
+            log = math.ceil(math.log(abs(other), 2))
+            other_length = self.f + log
+            if other_length >= self.k - 1:
+                factor = 2 ** (self.k - other_length - 2)
                 self *= factor
                 other *= factor
+            if 2 ** log == other:
+                return self * 2 ** -log
         other = self.coerce(other)
         assert self.k == other.k
         assert self.f == other.f
@@ -3660,7 +3797,9 @@ class sfix(_fix):
     def get_input_from(cls, player):
         """ Secret fixed-point input.
 
-        :param player: public (regint/cint/int) """
+        :param player: public (regint/cint/int)
+        :param size: vector size (int, default 1)
+        """
         cls.int_type.require_bit_length(cls.k)
         v = cls.int_type()
         inputmixed('fix', v, cls.f, player)
@@ -3677,6 +3816,7 @@ class sfix(_fix):
 
         :param lower: float
         :param upper: float
+        :param size: vector size (int, default 1)
         """
         log_range = int(math.log(upper - lower, 2))
         n_bits = log_range + cls.f
@@ -3732,7 +3872,8 @@ class sfix(_fix):
     def reveal_to(self, player):
         """ Reveal secret value to :py:obj:`player`.
         Raw representation possibly written to
-        ``Player-Data/Private-Output-P<player>.``
+        ``Player-Data/Private-Output-P<player>``, but not if
+        :py:obj:`player` is a :py:class:`regint`.
 
         :param player: public integer (int/regint/cint)
         :returns: value to be used with :py:func:`~Compiler.library.print_ln_to`
@@ -4066,7 +4207,9 @@ class sfloat(_number, _structure):
     def get_input_from(cls, player):
         """ Secret floating-point input.
 
-        :param player: public (regint/cint/int) """
+        :param player: public (regint/cint/int)
+        :param size: vector size (int, default 1)
+        """
         v = sint()
         p = sint()
         z = sint()
@@ -4444,6 +4587,7 @@ class Array(object):
         self.address_cache = {}
         self.debug = debug
         self.creator_tape = program.curr_tape
+        self.sink = None
         if alloc:
             self.alloc()
 
@@ -4513,6 +4657,17 @@ class Array(object):
                 source_index.iadd(1)
             return
         self._store(value, self.get_address(index))
+
+    def maybe_get(self, condition, index):
+        return condition * self[condition * index]
+
+    def maybe_set(self, condition, index, value):
+        if self.sink is None:
+            self.sink = self.value_type.Array(1)
+        addresses = (condition.if_else(x, y) for x, y in
+                     zip(util.tuplify(self.get_address(index)),
+                         util.tuplify(self.sink.get_address(0))))
+        self._store(value, util.untuplify(tuple(addresses)))
 
     # the following two are useful for compile-time lengths
     # and thus differ from the usual Python syntax
@@ -4590,10 +4745,21 @@ class Array(object):
 
     get_part_vector = get_vector
 
+    def get_part(self, base, size):
+        return Array(size, self.value_type, self.get_address(base))
+
     def get(self, indices):
         return self.value_type.load_mem(
             regint.inc(len(indices), self.address, 0) + indices,
             size=len(indices))
+
+    def get_slice_vector(self, slice):
+        assert self.value_type.n_elements() == 1
+        assert len(slice) <= self.total_size()
+        base = regint.inc(len(slice), slice.address, 1, 1)
+        inc = regint.inc(len(slice), 0, 1, 1, 1)
+        addresses = slice.value_type.load_mem(base) + inc
+        return self.value_type.load_mem(self.address + addresses)
 
     def expand_to_vector(self, index, size):
         assert self.value_type.n_elements() == 1
@@ -4641,6 +4807,12 @@ class Array(object):
         :param other: vector or container of same length and type that supports operations with type of this array """
         return self.get_vector() * value
 
+    def __truediv__(self, value):
+        """ Vector division.
+
+        :param other: vector or container of same length and type that supports operations with type of this array """
+        return self.get_vector() / value
+
     def __pow__(self, value):
         """ Vector power-of computation.
 
@@ -4673,6 +4845,16 @@ class Array(object):
         return list(self.get_vector().reveal())
 
     reveal_nested = reveal_list
+
+    def sort(self, n_threads=None):
+        """
+        Sort in place using Batchers' odd-even merge mergesort
+        with complexity :math:`O(n (\log n)^2)`.
+
+        :param n_threads: number of threads to use (single thread by
+          default)
+        """
+        library.loopy_odd_even_merge_sort(self, n_threads=n_threads)
 
     def __str__(self):
         return '%s array of length %s at %s' % (self.value_type, len(self),
@@ -4784,6 +4966,15 @@ class SubMultiArray(object):
         assert vector.size <= self.total_size()
         vector.store_in_mem(self.address + base * part_size)
 
+    def get_slice_vector(self, slice):
+        assert self.value_type.n_elements() == 1
+        part_size = reduce(operator.mul, self.sizes[1:])
+        assert len(slice) * part_size <= self.total_size()
+        base = regint.inc(len(slice) * part_size, slice.address, 1, part_size)
+        inc = regint.inc(len(slice) * part_size, 0, 1, 1, part_size)
+        addresses = slice.value_type.load_mem(base) * part_size + inc
+        return self.value_type.load_mem(self.address + addresses)
+
     def get_addresses(self, *indices):
         assert self.value_type.n_elements() == 1
         assert len(indices) == len(self.sizes)
@@ -4815,6 +5006,10 @@ class SubMultiArray(object):
     def same_shape(self):
         """ :return: new multidimensional array with same shape and basic type """
         return MultiArray(self.sizes, self.value_type)
+
+    def get_part(self, start, size):
+        return MultiArray([size] + list(self.sizes[1:]), self.value_type,
+                          address=self[start].address)
 
     def input_from(self, player, budget=None, raw=False):
         """ Fill with inputs from player if supported by type.
@@ -4978,7 +5173,7 @@ class SubMultiArray(object):
             indices = [regint.inc(i) for i in self.sizes + other.sizes[::-1]]
         assert len(indices[1]) == len(indices[2])
         indices = list(indices)
-        indices[3] *= other.sizes[0]
+        indices[3] *= other.sizes[1]
         return self.value_type.direct_matrix_mul(
             self.address, other.address, None, self.sizes[1], 1,
             reduce=reduce, indices=indices)

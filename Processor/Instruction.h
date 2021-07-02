@@ -23,6 +23,7 @@ class ArithmeticProcessor;
  */
 enum
 {
+    CISC = 0,
     // Load/store
     LDI = 0x1,
     LDSI = 0x2,
@@ -101,6 +102,7 @@ enum
     MATMULS = 0xAA,
     MATMULSM = 0xAB,
     CONV2DS = 0xAC,
+    CHECK = 0xAF,
     // Data access
     TRIPLE = 0x50,
     BIT = 0x51,

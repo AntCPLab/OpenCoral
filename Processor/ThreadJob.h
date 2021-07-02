@@ -7,6 +7,7 @@
 #define PROCESSOR_THREADJOB_H_
 
 #include "Data_Files.h"
+#include "Math/modp.h"
 
 enum ThreadJobType
 {
@@ -20,6 +21,8 @@ enum ThreadJobType
     EDABIT_SACRIFICE_JOB,
     PERSONAL_TRIPLE_JOB,
     TRIPLE_SACRIFICE_JOB,
+    CHECK_JOB,
+    FFT_JOB,
     NO_JOB
 };
 
@@ -156,6 +159,28 @@ public:
         type = TRIPLE_SACRIFICE_JOB;
         output = triples;
         input = check_triples;
+    }
+};
+
+class CheckJob : public ThreadJob
+{
+public:
+    CheckJob()
+    {
+        type = CHECK_JOB;
+    }
+};
+
+class FftJob : public ThreadJob
+{
+public:
+    FftJob(vector<modp>& ioput, vector<modp>& alpha2, int m, const Zp_Data& PrD)
+    {
+        type = FFT_JOB;
+        output = &ioput;
+        input = &alpha2;
+        length = m;
+        supply = &PrD;
     }
 };
 

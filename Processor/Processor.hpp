@@ -147,6 +147,24 @@ void Processor<sint, sgf2n>::reset(const Program& program,int arg)
 }
 
 template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::check()
+{
+  // protocol check before last MAC check
+  Procp.protocol.check();
+  Proc2.protocol.check();
+  share_thread.protocol->check();
+
+  // MACCheck
+  MC2.Check(P);
+  MCp.Check(P);
+  share_thread.MC->Check(P);
+
+  //cout << num << " : Checking broadcast" << endl;
+  P.Check_Broadcast();
+  //cout << num << " : Broadcast checked "<< endl;
+}
+
+template<class sint, class sgf2n>
 void Processor<sint, sgf2n>::dabit(const Instruction& instruction)
 {
   int size = instruction.get_size();
@@ -555,49 +573,77 @@ void SubProcessor<T>::conv2ds(const Instruction& instruction)
     int n_channels_in = args[8];
     int padding_h = args[9];
     int padding_w = args[10];
-    int r0 = instruction.get_r(0);
-    int r1 = instruction.get_r(1);
+    int batch_size = args[11];
+    size_t r0 = instruction.get_r(0);
+    size_t r1 = instruction.get_r(1);
     int r2 = instruction.get_r(2);
-    int lengths[output_h][output_w];
+    int lengths[batch_size][output_h][output_w];
     memset(lengths, 0, sizeof(lengths));
+    int filter_stride_h = 1;
+    int filter_stride_w = 1;
+    if (stride_h < 0)
+    {
+        filter_stride_h = -stride_h;
+        stride_h = 1;
+    }
+    if (stride_w < 0)
+    {
+        filter_stride_w = -stride_w;
+        stride_w = 1;
+    }
 
-    for (int out_y = 0; out_y < output_h; out_y++)
-        for (int out_x = 0; out_x < output_w; out_x++)
-        {
-            int in_x_origin = (out_x * stride_w) - padding_w;
-            int in_y_origin = (out_y * stride_h) - padding_h;
-
-            for (int filter_y = 0; filter_y < weights_h; filter_y++)
+    for (int i_batch = 0; i_batch < batch_size; i_batch ++)
+    {
+        size_t base = r1 + i_batch * inputs_w * inputs_h * n_channels_in;
+        assert(base + inputs_w * inputs_h * n_channels_in <= S.size());
+        T* input_base = &S[base];
+        for (int out_y = 0; out_y < output_h; out_y++)
+            for (int out_x = 0; out_x < output_w; out_x++)
             {
-                int in_y = in_y_origin + filter_y;
-                if ((0 <= in_y) and (in_y < inputs_h))
-                    for (int filter_x = 0; filter_x < weights_w; filter_x++)
-                    {
-                        int in_x = in_x_origin + filter_x;
-                        if ((0 <= in_x) and (in_x < inputs_w))
-                        {
-                            for (int in_c = 0; in_c < n_channels_in; in_c++)
-                                protocol.prepare_dotprod(
-                                        S[r1 + (in_y * inputs_w + in_x) *
-                                          n_channels_in + in_c],
-                                        S[r2 + (filter_y * weights_w + filter_x) *
-                                          n_channels_in + in_c]);
-                            lengths[out_y][out_x] += n_channels_in;
-                        }
-                    }
-            }
+                int in_x_origin = (out_x * stride_w) - padding_w;
+                int in_y_origin = (out_y * stride_h) - padding_h;
 
-            protocol.next_dotprod();
-        }
+                for (int filter_y = 0; filter_y < weights_h; filter_y++)
+                {
+                    int in_y = in_y_origin + filter_y * filter_stride_h;
+                    if ((0 <= in_y) and (in_y < inputs_h))
+                        for (int filter_x = 0; filter_x < weights_w; filter_x++)
+                        {
+                            int in_x = in_x_origin + filter_x * filter_stride_w;
+                            if ((0 <= in_x) and (in_x < inputs_w))
+                            {
+                                T* pixel_base = &input_base[(in_y * inputs_w
+                                        + in_x) * n_channels_in];
+                                T* weight_base = &S[r2
+                                        + (filter_y * weights_w + filter_x)
+                                                * n_channels_in];
+                                for (int in_c = 0; in_c < n_channels_in; in_c++)
+                                    protocol.prepare_dotprod(pixel_base[in_c],
+                                            weight_base[in_c]);
+                                lengths[i_batch][out_y][out_x] += n_channels_in;
+                            }
+                        }
+                }
+
+                protocol.next_dotprod();
+            }
+    }
 
     protocol.exchange();
 
-    for (int out_y = 0; out_y < output_h; out_y++)
-        for (int out_x = 0; out_x < output_w; out_x++)
-        {
-            S[r0 + out_y * output_w + out_x] = protocol.finalize_dotprod(
-                    lengths[out_y][out_x]);
-        }
+    for (int i_batch = 0; i_batch < batch_size; i_batch ++)
+    {
+        size_t base = r0 + i_batch * output_h * output_w;
+        assert(base + output_h * output_w <= S.size());
+        T* output_base = &S[base];
+        for (int out_y = 0; out_y < output_h; out_y++)
+            for (int out_x = 0; out_x < output_w; out_x++)
+            {
+                output_base[out_y * output_w + out_x] =
+                        protocol.finalize_dotprod(
+                                lengths[i_batch][out_y][out_x]);
+            }
+    }
 }
 
 template<class sint, class sgf2n>

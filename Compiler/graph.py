@@ -1,4 +1,5 @@
 import heapq
+import collections
 from Compiler.exceptions import *
 
 class GraphError(CompilerError):
@@ -23,7 +24,7 @@ class SparseDiGraph(object):
         self.n = max_nodes
         # each node contains list of default attributes, followed by outoing edges
         self.nodes = [list(self.default_attributes.values()) for i in range(self.n)]
-        self.succ = [set() for i in range(self.n)]
+        self.succ = [collections.OrderedDict() for i in range(self.n)]
         self.pred = [set() for i in range(self.n)]
         self.weights = {}
 
@@ -32,7 +33,7 @@ class SparseDiGraph(object):
 
     def __getitem__(self, i):
         """ Get list of the neighbours of node i """
-        return self.succ[i]
+        return self.succ[i].keys()
 
     def __iter__(self):
         pass #return iter(self.nodes)
@@ -68,7 +69,7 @@ class SparseDiGraph(object):
             self.pred[v].remove(i)
             #del self.weights[(i,v)]
         for v in pred:
-            self.succ[v].remove(i)
+            del self.succ[v][i]
             #del self.weights[(v,i)]
             #self.nodes[v].remove(i)
         self.pred[i] = []
@@ -77,7 +78,7 @@ class SparseDiGraph(object):
     def add_edge(self, i, j, weight=1):
         if j not in self[i]:
             self.pred[j].add(i)
-            self.succ[i].add(j)
+            self.succ[i][j] = None
         self.weights[(i,j)] = weight
 
     def add_edges_from(self, tuples):
@@ -89,7 +90,7 @@ class SparseDiGraph(object):
                 self.add_edge(edge[0], edge[1])
 
     def remove_edge(self, i, j):
-        self.succ[i].remove(j)
+        del self.succ[i][j]
         self.pred[j].remove(i)
         del self.weights[(i,j)]
 

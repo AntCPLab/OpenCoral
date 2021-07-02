@@ -23,6 +23,8 @@ ExternalClients::~ExternalClients()
   {
     delete it->second;
   }
+  if (ctx)
+    delete ctx;
 }
 
 void ExternalClients::start_listening(int portnum_base)

@@ -44,7 +44,7 @@ void Rep4Input<T>::add_mine(const typename T::open_type& input, int)
 }
 
 template<class T>
-void Rep4Input<T>::add_other(int player)
+void Rep4Input<T>::add_other(int player, int)
 {
     auto& prot = protocol;
     T res;

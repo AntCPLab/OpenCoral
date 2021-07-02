@@ -25,7 +25,10 @@ bool Check_Decoding(const Plaintext<T,FD,S>& AE,bool Diag)
 //      return false;
 //    }
   if (Diag && !AE.is_diagonal())
-    { cout << "Fail Check 5 " << endl;
+    {
+#ifdef VERBOSE
+      cout << "Fail Check 5 " << endl;
+#endif
       return false;
     }
   return true;
@@ -62,7 +65,7 @@ template <class FD>
 void Verifier<FD>::Stage_2(
                           AddableVector<Ciphertext>& c,octetStream& ciphertexts,
                           octetStream& cleartexts,
-                          const FHE_PK& pk,bool binary)
+                          const FHE_PK& pk)
 {
   unsigned int i, V;
 
@@ -90,18 +93,19 @@ void Verifier<FD>::Stage_2(
       rc.assign(t[0], t[1], t[2]);
       pk.encrypt(d2,z,rc);
       if (!(d1 == d2))
-        { cout << "Fail Check 6 " << i << endl; 
+        {
+#ifdef VERBOSE
+          cout << "Fail Check 6 " << i << endl;
+#endif
           throw runtime_error("ciphertexts don't match");
         }
       if (!Check_Decoding(z,P.get_diagonal(),FieldD))
-         { cout << "\tCheck : " << i << endl; 
+         {
+#ifdef VERBOSE
+          cout << "\tCheck : " << i << endl;
+#endif
            throw runtime_error("cleartext isn't diagonal");
          }
-      if (binary && !z.is_binary())
-        {
-          cout << "Not binary " << i << endl;
-          throw runtime_error("cleartext isn't binary");
-        }
     }
 }
 
@@ -112,17 +116,15 @@ void Verifier<FD>::Stage_2(
 template <class FD>
 void Verifier<FD>::NIZKPoK(AddableVector<Ciphertext>& c,
                           octetStream& ciphertexts, octetStream& cleartexts,
-                          const FHE_PK& pk,
-                          bool binary)
+                          const FHE_PK& pk)
 {
   P.set_challenge(ciphertexts);
 
-  Stage_2(c,ciphertexts,cleartexts,pk,binary);
+  Stage_2(c,ciphertexts,cleartexts,pk);
 
   if (P.top_gear)
     {
       assert(not P.get_diagonal());
-      assert(not binary);
       c += c;
     }
 }

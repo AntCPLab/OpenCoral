@@ -11,6 +11,7 @@
 
 const true_type gfpvar::invertible;
 const true_type gfpvar::prime_field;
+const false_type gfpvar::characteristic_two;
 
 Zp_Data gfpvar::ZpD;
 

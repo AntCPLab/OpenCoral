@@ -37,7 +37,8 @@ int OfflineMachine<W>::run()
     T::clear::init_default(this->online_opts.prime_length());
     U::clear::init_field(U::clear::default_degree());
     T::bit_type::mac_key_type::init_field();
-    auto binary_mac_key = read_generate_write_mac_key<typename T::bit_type>(P);
+    auto binary_mac_key = read_generate_write_mac_key<
+            typename T::bit_type::part_type>(P);
     GC::ShareThread<typename T::bit_type> thread(playerNames,
             OnlineOptions::singleton, P, binary_mac_key, usage);
 
@@ -63,12 +64,13 @@ void OfflineMachine<W>::generate()
     typename T::LivePrep preprocessing(0, generated);
     SubProcessor<T> processor(output, preprocessing, P);
 
-    auto& domain_usage = usage.files[T::field_type()];
+    auto& domain_usage = usage.files[T::clear::field_type()];
     for (unsigned i = 0; i < domain_usage.size(); i++)
     {
         auto my_usage = domain_usage[i];
         Dtype dtype = Dtype(i);
-        string filename = Sub_Data_Files<T>::get_filename(playerNames, dtype);
+        string filename = Sub_Data_Files<T>::get_filename(playerNames, dtype,
+                T::clear::field_type() == DATA_GF2 ? 0 : -1);
         if (my_usage > 0)
         {
             ofstream out(filename, iostream::out | iostream::binary);
@@ -101,7 +103,7 @@ void OfflineMachine<W>::generate()
 
     for (int i = 0; i < P.num_players(); i++)
     {
-        auto n_inputs = usage.inputs[i][T::field_type()];
+        auto n_inputs = usage.inputs[i][T::clear::field_type()];
         string filename = Sub_Data_Files<T>::get_input_filename(playerNames, i);
         if (n_inputs > 0)
         {
@@ -120,7 +122,7 @@ void OfflineMachine<W>::generate()
             remove(filename.c_str());
     }
 
-    if (T::field_type() == DATA_INT)
+    if (T::clear::field_type() == DATA_INT)
     {
         int max_n_bits = 0;
         for (auto& x : usage.edabits)
@@ -132,7 +134,7 @@ void OfflineMachine<W>::generate()
             int total = usage.edabits[{false, n_bits}] +
                     usage.edabits[{true, n_bits}];
             string filename = Sub_Data_Files<T>::get_edabit_filename(playerNames,
-                                n_bits, P.my_num());
+                                n_bits);
             if (total > 0)
             {
                 ofstream out(filename, ios::binary);

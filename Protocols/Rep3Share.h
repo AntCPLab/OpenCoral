@@ -37,6 +37,11 @@ public:
         return 1;
     }
 
+    static void specification(octetStream& os)
+    {
+        T::specification(os);
+    }
+
     RepShare()
     {
     }
@@ -46,12 +51,10 @@ public:
     {
     }
 
-    void mul_by_bit(const This& x, const T& y)
+    void pack(octetStream& os, T) const
     {
-        (void) x, (void) y;
-        throw runtime_error("multiplication by bit not implemented");
+        pack(os, false);
     }
-
     void pack(octetStream& os, bool full = true) const
     {
         if (full)

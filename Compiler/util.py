@@ -195,7 +195,7 @@ def is_all_ones(x, n):
     else:
         return False
 
-def max(x, y=None):
+def max(x, y=None, n_threads=None):
     if y is None:
         return tree_reduce(max, x)
     else:

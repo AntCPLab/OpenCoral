@@ -80,7 +80,7 @@ def ApplyBDEmbedding(x):
 def PreprocInverseEmbedding(x):
     in_bytes = x.bit_decompose(step=5)
 
-    out_bytes = [cgf2(0) for _ in range(8)]
+    out_bytes = [cgf2n(0) for _ in range(8)]
 
     out_bytes[7] = in_bytes[7]
     out_bytes[6] = in_bytes[6] + out_bytes[7]
@@ -337,7 +337,7 @@ class SpdzBox(object):
             [0,1,0,0,1,0,1,0]
         ]
         to_add = [1,0,1,0,0,0,0,0]
-        self.addition_inv = [cgf2(_) for _ in to_add]
+        self.addition_inv = [cgf2n(_) for _ in to_add]
         self.forward_matrix = [
             [1,0,0,0,1,1,1,1],
             [1,1,0,0,0,1,1,1],
@@ -351,7 +351,7 @@ class SpdzBox(object):
         forward_add = [1,1,0,0,0,1,1,0]
         self.forward_add = Array(len(forward_add), cgf2)
         for i,x in enumerate(forward_add):
-            self.forward_add[i] = cgf2(x)
+            self.forward_add[i] = cgf2n(x)
 
     def __init__(self):
         constants = [
@@ -369,7 +369,7 @@ class SpdzBox(object):
 
         linear_transform = list()
         for row in self.forward_matrix:
-            result = cgf2(0)
+            result = cgf2n(0)
             for idx in range(len(row)):
                 result = result + unembedded_x[idx] * row[idx]
             linear_transform.append(result)
@@ -395,7 +395,7 @@ class SpdzBox(object):
         linear_transform = list() 
 
         for row in self.matrix_inv:
-            result = cgf2(0)
+            result = cgf2n(0)
             for idx in range(len(row)):
                 result = result + what_inv_bd[idx] * row[idx]
             linear_transform.append(result)

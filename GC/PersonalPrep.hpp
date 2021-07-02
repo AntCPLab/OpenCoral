@@ -88,7 +88,7 @@ void PersonalPrep<T>::buffer_personal_triples(vector<array<T, 3>>& triples,
     input.reset_all(P);
     for (size_t i = begin; i < end; i++)
     {
-        typename T::clear x[2];
+        typename T::open_type x[2];
         for (int j = 0; j < 2; j++)
             this->get_input(triples[i][j], x[j], input_player);
         if (P.my_num() == input_player)

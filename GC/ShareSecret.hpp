@@ -21,6 +21,7 @@
 #include "ShareParty.h"
 #include "ShareThread.hpp"
 #include "Thread.hpp"
+#include "VectorProtocol.hpp"
 
 namespace GC
 {

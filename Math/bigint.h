@@ -196,6 +196,18 @@ bigint& bigint::operator=(const gfp_<X, L>& x)
   return *this;
 }
 
+template<class T>
+void to_bigint(bigint& res, const T& other)
+{
+  other.to(res);
+}
+
+template<class T>
+void to_gfp(T& res, const bigint& a)
+{
+  res = a;
+}
+
 string to_string(const bigint& x);
 
 /**********************************

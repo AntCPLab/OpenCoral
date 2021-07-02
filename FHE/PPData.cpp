@@ -5,14 +5,6 @@
 
 
 
-void PPData::assign(const PPData& PPD)
-{
-  R=PPD.R;
-  prData=PPD.prData;
-  root=PPD.root;
-}
-
-
 void PPData::init(const Ring& Rg,const Zp_Data& PrD)
 {
   R=Rg;

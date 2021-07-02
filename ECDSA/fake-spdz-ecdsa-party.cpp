@@ -7,6 +7,7 @@
 #include "Networking/CryptoPlayer.h"
 #include "Math/gfp.h"
 #include "ECDSA/P256Element.h"
+#include "GC/VectorInput.h"
 
 #include "ECDSA/preprocessing.hpp"
 #include "ECDSA/sign.hpp"
@@ -20,6 +21,8 @@
 #include "Protocols/MascotPrep.hpp"
 #include "GC/Secret.hpp"
 #include "GC/TinyPrep.hpp"
+#include "GC/VectorProtocol.hpp"
+#include "GC/CcdPrep.hpp"
 #include "OT/NPartyTripleGenerator.hpp"
 
 #include <assert.h>

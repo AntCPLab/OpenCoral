@@ -7,7 +7,6 @@
 #define PROTOCOLS_REP4SHARE2K_H_
 
 #include "Rep4Share.h"
-#include "Processor/NoLivePrep.h"
 #include "Processor/DummyProtocol.h"
 #include "GC/square64.h"
 

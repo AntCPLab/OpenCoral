@@ -19,13 +19,13 @@ template<class T>
 class CcdPrep : public BufferPrep<T>
 {
     typename T::part_type::LivePrep part_prep;
-    typename T::part_type::MAC_Check part_MC;
     SubProcessor<typename T::part_type>* part_proc;
     ShareThread<T>& thread;
 
 public:
     CcdPrep(DataPositions& usage, ShareThread<T>& thread) :
-            BufferPrep<T>(usage), part_prep(usage), part_proc(0), thread(thread)
+            BufferPrep<T>(usage), part_prep(usage, thread), part_proc(0),
+            thread(thread)
     {
     }
 
@@ -34,17 +34,9 @@ public:
     {
     }
 
-    ~CcdPrep()
-    {
-        if (part_proc)
-            delete part_proc;
-    }
+    ~CcdPrep();
 
-    void set_protocol(typename T::Protocol& protocol)
-    {
-        part_proc = new SubProcessor<typename T::part_type>(part_MC,
-                part_prep, protocol.get_part().P);
-    }
+    void set_protocol(typename T::Protocol& protocol);
 
     Preprocessing<typename T::part_type>& get_part()
     {
@@ -53,7 +45,16 @@ public:
 
     void buffer_triples()
     {
-        throw not_implemented();
+        assert(part_proc);
+        this->triples.push_back({});
+        for (auto& x : this->triples.back())
+            x.resize_regs(T::default_length);
+        for (int i = 0; i < T::default_length; i++)
+        {
+            auto triple = part_prep.get_triple(1);
+            for (int j = 0; j < 3; j++)
+                this->triples.back()[j].get_bit(j) = triple[j];
+        }
     }
 
     void buffer_bits()
@@ -71,6 +72,25 @@ public:
     void buffer_inverses()
     {
         throw not_implemented();
+    }
+
+    void buffer_inputs(int player)
+    {
+        this->inputs[player].push_back({});
+        this->inputs[player].back().share.resize_regs(T::default_length);
+        for (int i = 0; i < T::default_length; i++)
+        {
+            typename T::part_type::open_type tmp;
+            part_prep.get_input(this->inputs[player].back().share.get_reg(i),
+                    tmp, player);
+            this->inputs[player].back().value ^=
+                    (typename T::clear(tmp.get_bit(0)) << i);
+        }
+    }
+
+    size_t data_sent()
+    {
+        return part_prep.data_sent();
     }
 };
 

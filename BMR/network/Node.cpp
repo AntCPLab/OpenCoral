@@ -167,7 +167,7 @@ void Node::Broadcast2(SendBuffer& msg) {
 }
 
 void Node::_identify() {
-	char* msg = id_msg;
+	char msg[strlen(ID_HDR)+sizeof(_id)];
 	memcpy(msg, ID_HDR, strlen(ID_HDR));
 	memcpy(msg+strlen(ID_HDR), (const char *)&_id, sizeof(_id));
 	//printf("Node:: identifying myself:\n");

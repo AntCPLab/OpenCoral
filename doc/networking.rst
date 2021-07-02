@@ -28,3 +28,33 @@ individually setting ports:
 
    The hosts can be both hostnames and IP addresses. If not given, the
    ports default to base plus party number.
+
+
+Internal Infrastructure
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The internal networking infrastructure of MP-SPDZ reflects the needs
+of the various multi-party computation. For example, some protocols
+require a simultaneous broadcast from all parties whereas other
+protocols require that every party sends different information to
+different parties (include none at all). The infrastructure makes sure
+to send and receive in parallel whenever possible.
+
+All communication is handled through two subclasses of ``Player``
+defined in ``Networking/Player.h``. ``PlainPlayer`` communicates in
+cleartext while ``CryptoPlayer`` uses TLS encryption. The former uses
+the same BSD socket for sending and receiving but the latter uses two
+different connections for sending and receiving. This is because TLS
+communication is never truly one-way due key renewals etc., so the
+only way for simultaneous sending and receiving we found was to use
+two connections in two threads.
+
+If you wish to use a different networking facility, we recommend to
+subclass ``Player`` and fill in the virtual-only functions required by
+the compiler (e.g., ``send_to_no_stats`` for sending to one other
+party). Note that not all protocols require all functions, so you only
+need to properly implement those you need. You can then replace uses
+of ``PlainPlayer`` or ``CryptoPlayer`` by your own class. Furthermore,
+you might need to extend the ``Names`` class to suit your purpose. By
+default, ``Names`` manages one TCP port that a party is listening on
+for connections. If this suits you, you don't need to change anything

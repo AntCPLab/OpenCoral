@@ -28,12 +28,12 @@ protected:
 
     int nplayers;
 
-    void start_networking();
-
 public:
     template<class V = gf2n>
     OnlineMachine(int argc, const char** argv, ez::ezOptionParser& opt,
             OnlineOptions& online_opts, int nplayers = 0, V = {});
+
+    void start_networking();
 
     template<class T, class U>
     int run();

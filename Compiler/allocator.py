@@ -123,7 +123,7 @@ class StraightlineAllocator:
                 for x in itertools.chain(dup.duplicates, base.duplicates):
                     to_check.add(x)
 
-        free[reg.reg_type, base.size].add(self.alloc[base])
+        free[reg.reg_type, base.size].append(self.alloc[base])
         if inst.is_vec() and base.vector:
             self.defined[base] = inst
             for i in base.vector:
@@ -604,4 +604,4 @@ class RegintOptimizer:
                     elif op == 1:
                         instructions[i] = None
                         inst.args[0].link(inst.args[1])
-        instructions[:] = filter(lambda x: x is not None, instructions)
+        instructions[:] = list(filter(lambda x: x is not None, instructions))

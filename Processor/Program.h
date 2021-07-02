@@ -43,7 +43,7 @@ class Program
 
   bool usage_unknown() const { return unknown_usage; }
 
-  int num_reg(RegType reg_type) const
+  unsigned num_reg(RegType reg_type) const
     { return max_reg[reg_type]; }
 
   unsigned direct_mem(RegType reg_type) const

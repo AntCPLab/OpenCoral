@@ -103,7 +103,7 @@ void Input<T>::add_mine(const open_type& input, int n_bits)
 }
 
 template<class T>
-void Input<T>::add_other(int player)
+void Input<T>::add_other(int player, int)
 {
     open_type t;
     shares.at(player).push_back({});

@@ -23,8 +23,6 @@ class Ciphertext
   word pk_id;
 
   public:
-  static string type_string() { return "ciphertext"; }
-  static int t() { return 0; }
   static int size() { return 0; }
 
   const FHE_Params& get_params() const { return *params; }
@@ -40,8 +38,6 @@ class Ciphertext
   {
     set(a0, a1, C.get_pk_id());
   }
-
-  ~Ciphertext() {  ; }
 
   // Rely on default copy assignment/constructor
   

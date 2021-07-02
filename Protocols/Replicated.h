@@ -50,6 +50,7 @@ protected:
     vector<T> random;
 
     int trunc_pr_counter;
+    int rounds, trunc_rounds;
 
 public:
     typedef T share_type;
@@ -90,6 +91,9 @@ public:
     virtual void stop_exchange() {}
 
     virtual void check() {}
+
+    virtual void cisc(SubProcessor<T>&, const Instruction&)
+    { throw runtime_error("CISC instructions not implemented"); }
 };
 
 template <class T>

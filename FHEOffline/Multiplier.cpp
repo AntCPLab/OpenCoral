@@ -45,7 +45,7 @@ template <class FD>
 void Multiplier<FD>::multiply_and_add(Plaintext_<FD>& res,
         const Ciphertext& enc_a, const Rq_Element& b, OT_ROLE role)
 {
-    octetStream o;
+    o.reset_write_head();
 
     if (role & SENDER)
     {

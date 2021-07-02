@@ -12,6 +12,12 @@ sharing (with an honest majority).
 us, but you can also write an email to mp-spdz@googlegroups.com
 ([archive](https://groups.google.com/forum/#!forum/mp-spdz)).
 
+#### Frequently Asked Questions
+
+[The documentation](https://mp-spdz.readthedocs.io/en/latest) contains
+sections on a number of frequently asked topics as well as information
+on how to solve common issues.
+
 #### TL;DR (Binary Distribution on Linux or Source Distribution on macOS)
 
 This requires either a Linux distribution originally released 2014 or
@@ -120,6 +126,14 @@ there are a few things to consider:
   most efficient one for a number of reasons: It requires the lowest
   communication, and it is the only one offering constant-communication
   dot products.
+
+- Fixed-point multiplication: Three- and four-party replicated secret
+  sharing modulo a power of two allow a special probabilistic
+  truncation protocol (see [Dalskov et
+  al.](https://eprint.iacr.org/2019/131) and [Dalskov et
+  al.](https://eprint.iacr.org/2020/1330)). You can activate it by
+  adding `program.use_trunc_pr = True` at the beginning of your
+  high-level program.
 
 - Minor variants: Some command-line options change aspects of the
   protocols such as:
@@ -610,7 +624,7 @@ The following table shows all programs for honest-majority computation:
 | `malicious-rep-field-party.x` | Replicated | Mod prime | Y | 3 | `mal-rep-field.sh` |
 | `shamir-party.x` | Shamir | Mod prime | N | 3 or more | `shamir.sh` |
 | `malicious-shamir-party.x` | Shamir | Mod prime | Y | 3 or more | `mal-shamir.sh` |
-| `sy-shamir-party.x` | SPDZ-wise Shamir | Mod prime | Y | 3 or more | `mal-shamir.sh` |
+| `sy-shamir-party.x` | SPDZ-wise Shamir | Mod prime | Y | 3 or more | `sy-shamir.sh` |
 | `ccd-party.x` | CCD/Shamir | Binary | N | 3 or more | `ccd.sh` |
 | `malicious-cdd-party.x` | CCD/Shamir | Binary | Y | 3 or more | `mal-ccd.sh` |
 
@@ -790,7 +804,7 @@ This sets up parameters for the online phase for 2 parties with a 128-bit prime 
 
 Parameters can be customised by running
 
-`Scripts/setup-online.sh <nparties> <nbitsp> <nbits2>`
+`Scripts/setup-online.sh <nparties> <nbitsp> [<nbits2>]`
 
 
 #### To compile a program

@@ -28,9 +28,7 @@ data_types = dict(
     square = 1,
     bit = 2,
     inverse = 3,
-    bittriple = 4,
-    bitgf2ntriple = 5,
-    dabit = 6,
+    dabit = 4,
 )
 
 field_types = dict(
@@ -62,6 +60,7 @@ class defaults:
     asmoutfile = None
     stop = False
     insecure = False
+    keep_cisc = False
 
 class Program(object):
     """ A program consists of a list of tapes representing the whole
@@ -80,14 +79,14 @@ class Program(object):
         self.init_names(args)
         self._security = 40
         self.prime = None
+        self.tapes = []
         if sum(x != 0 for x in(options.ring, options.field,
                                                options.binary)) > 1:
             raise CompilerError('can only use one out of -B, -R, -F')
         if options.prime and (options.ring or options.binary):
             raise CompilerError('can only use one out of -B, -R, -p')
         if options.ring:
-            self.bit_length = int(options.ring) - 1
-            self.non_linear = Ring(int(options.ring))
+            self.set_ring_size(int(options.ring))
         else:
             self.bit_length = int(options.binary) or int(options.field)
             if options.prime:
@@ -108,7 +107,6 @@ class Program(object):
         if self.verbose:
             print('Galois length:', self.galois_length)
         self.tape_counter = 0
-        self.tapes = []
         self._curr_tape = None
         self.DEBUG = options.debug
         self.allocated_mem = RegType.create_dict(lambda: USER_MEM)
@@ -203,6 +201,16 @@ class Program(object):
             self.name += '-' + '-'.join(re.sub('/', '_', arg)
                                         for arg in args[1:])
         self.progname = progname
+
+    def set_ring_size(self, ring_size):
+        from .non_linear import Ring
+        for tape in self.tapes:
+            prev = tape.req_bit_length['p']
+            if prev and prev != ring_size:
+                raise CompilerError('cannot have different ring sizes')
+        self.bit_length = ring_size - 1
+        self.non_linear = Ring(ring_size)
+        self.options.ring = str(ring_size)
 
     def new_tape(self, function, args=[], name=None, single_thread=False):
         """
@@ -414,7 +422,7 @@ class Program(object):
         self.curr_tape.start_new_basicblock(None, 'memory-usage')
         # reset register counter to 0
         self.curr_tape.init_registers()
-        for mem_type,size in list(self.allocated_mem.items()):
+        for mem_type,size in sorted(self.allocated_mem.items()):
             if size:
                 #print "Memory of type '%s' of size %d" % (mem_type, size)
                 if mem_type in self.types:
@@ -488,7 +496,7 @@ class Program(object):
         else:
             if change and not self.options.ring:
                 raise CompilerError('splitting only supported for rings')
-            assert change > 1
+            assert change > 1 or change == False
             self._split = change
 
     def use_square(self, change=None):
@@ -575,7 +583,7 @@ class Tape:
                 scope.children.append(self)
                 self.alloc_pool = scope.alloc_pool
             else:
-                self.alloc_pool = defaultdict(set)
+                self.alloc_pool = defaultdict(list)
             self.purged = False
             self.n_rounds = 0
             self.n_to_merge = 0
@@ -647,9 +655,14 @@ class Tape:
 
         def expand_cisc(self):
             new_instructions = []
+            if self.parent.program.options.keep_cisc:
+                skip = ['LTZ', 'Trunc']
+            else:
+                skip = []
             for inst in self.instructions:
-                new_instructions.extend(inst.expand_merged())
-                self.n_rounds += inst.expanded_rounds()
+                new_inst, n_rounds = inst.expand_merged(skip)
+                new_instructions.extend(new_inst)
+                self.n_rounds += n_rounds
             self.instructions = new_instructions
 
         def __str__(self):
@@ -774,7 +787,10 @@ class Tape:
 
         # allocate registers
         reg_counts = self.count_regs()
-        if not options.noreallocate:
+        if options.noreallocate:
+            if self.program.verbose:
+                print('Tape register usage:', dict(reg_counts))
+        else:
             if self.program.verbose:
                 print('Tape register usage before re-allocation:',
                       dict(reg_counts))
@@ -1071,7 +1087,7 @@ class Tape:
             if size is None:
                 size = Compiler.instructions_base.get_global_vector_size()
             if size is not None and size > self.maximum_size:
-                raise CompilerError('vector too large')
+                raise CompilerError('vector too large: %d' % size)
             self.size = size
             self.vectorbase = self
             self.relative_i = 0

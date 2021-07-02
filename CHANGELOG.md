@@ -1,5 +1,17 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.2.5 (Jul 2, 2021)
+
+- Training of convolutional neural networks
+- Bit decomposition using edaBits
+- Ability to force MAC checks from high-level code
+- Ability to close client connection from high-level code
+- Binary operators for comparison results
+- Faster compilation for emulation
+- More documentation
+- Fixed security bug: insufficient LowGear secret key randomness
+- Fixed security bug: skewed random bit generation
+
 ## 0.2.4 (Apr 19, 2021)
 
 - ARM support

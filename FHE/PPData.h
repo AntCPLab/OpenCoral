@@ -27,17 +27,9 @@ class PPData
   
   void init(const Ring& Rg,const Zp_Data& PrD);
 
-  void assign(const PPData& PPD);
-
   PPData() { ; }
-  PPData(const PPData& PPD)
-    { assign(PPD); }
   PPData(const Ring& Rg,const Zp_Data& PrD)
     { init(Rg,PrD); }
-  PPData& operator=(const PPData& PPD)
-    { if (this!=&PPD) { assign(PPD); }
-      return *this;
-    }
 
   const Zp_Data& get_prD() const   { return prData; }
   const bigint&  get_prime() const { return prData.pr; }

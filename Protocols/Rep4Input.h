@@ -29,7 +29,7 @@ public:
     void reset(int player);
 
     void add_mine(const typename T::open_type& input, int n_bits = -1);
-    void add_other(int player);
+    void add_other(int player, int n_bits = -1);
 
     void send_mine();
     void exchange();

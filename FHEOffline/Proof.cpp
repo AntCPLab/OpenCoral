@@ -88,6 +88,7 @@ public:
 
 bool Proof::check_bounds(T& z, X& t, int i) const
 {
+  (void)i;
   unsigned int j,k;
 
   // Check Bound 1 and Bound 2
@@ -99,9 +100,11 @@ bool Proof::check_bounds(T& z, X& t, int i) const
       auto& te = z[j];
       if (plain_checker.outside(te, dist))
         {
+#ifdef VERBOSE
           cout << "Fail on Check 1 " << i << " " << j << endl;
           cout << te << "  " << plain_check << endl;
           cout << tau << " " << sec << " " << n_proofs << endl;
+#endif
           return false;
         }
     }
@@ -113,9 +116,11 @@ bool Proof::check_bounds(T& z, X& t, int i) const
           auto& te = coeffs.at(j);
           if (rand_checker.outside(te, dist))
             {
+#ifdef VERBOSE
               cout << "Fail on Check 2 " << k << " : " << i << " " << j << endl;
               cout << te << "  " << rand_check << endl;
               cout << rho << " " << sec << " " << n_proofs << endl;
+#endif
               return false;
             }
         }

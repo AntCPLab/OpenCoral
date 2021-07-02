@@ -40,4 +40,10 @@ void SpdzWiseShare<T>::read_or_generate_mac_key(string directory, Player& P, T& 
     }
 }
 
+template<class T>
+void SpdzWiseShare<T>::pack(octetStream& os, open_type factor) const
+{
+    this->get_share().pack(os, factor);
+}
+
 #endif /* PROTOCOLS_SPDZWISESHARE_HPP_ */

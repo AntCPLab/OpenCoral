@@ -589,7 +589,7 @@ void InputProducer<FD>::run(const Player& P, const FHE_PK& pk,
             P.receive_player(j, cleartexts);
             C.resize(personal_EC.machine->sec, pk.get_params());
             Verifier<FD>(personal_EC.proof, FieldD).NIZKPoK(C, ciphertexts,
-                    cleartexts, pk, false);
+                    cleartexts, pk);
         }
 
         inputs[j].clear();

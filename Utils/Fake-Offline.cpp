@@ -75,49 +75,6 @@ public:
   }
 };
 
-void make_bit_triples(const gf2n& key,int N,int ntrip,Dtype dtype,bool zero)
-{
-  PRNG G;
-  G.ReSeed();
-
-  ofstream* outf=new ofstream[N];
-  gf2n a,b,c, one;
-  one.assign_one();
-  vector<Share<gf2n> > Sa(N),Sb(N),Sc(N);
-  /* Generate Triples */
-  for (int i=0; i<N; i++)
-    { stringstream filename;
-      filename << get_prep_sub_dir<Share<gf2n>>(prep_data_prefix, N)
-          << DataPositions::dtype_names[dtype] << "-2-P" << i;
-      cout << "Opening " << filename.str() << endl;
-      outf[i].open(filename.str().c_str(),ios::out | ios::binary);
-      if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
-    }
-  for (int i=0; i<ntrip; i++)
-    {
-      if (!zero)
-        a.randomize(G);
-      a &= one;
-      make_share(Sa,a,N,key,G);
-      if (!zero)
-        b.randomize(G);
-      if (dtype == DATA_BITTRIPLE)
-        b &= (one);
-      make_share(Sb,b,N,key,G);
-      c.mul(a,b);
-      make_share(Sc,c,N,key,G);
-      for (int j=0; j<N; j++)
-        { Sa[j].output(outf[j],false);
-          Sb[j].output(outf[j],false);
-          Sc[j].output(outf[j],false);
-        }
-    }
-  check_files(outf, N);
-  for (int i=0; i<N; i++)
-    { outf[i].close(); }
-  delete[] outf;
-}
-
 
 /* N      = Number players
  * ntrip  = Number tuples needed
@@ -790,8 +747,6 @@ int FakeParams::generate()
   make_inverse<sgf2n>(key2,nplayers,ninv,zero,prep_data_prefix);
   if (T::clear::invertible)
     make_inverse<T>(keyp,nplayers,ninv,zero,prep_data_prefix);
-  make_bit_triples(key2,nplayers,nbittrip,DATA_BITTRIPLE,zero);
-  make_bit_triples(key2,nplayers,nbitgf2ntrip,DATA_BITGF2NTRIPLE,zero);
 
   if (opt.isSet("-s"))
   {
@@ -829,8 +784,8 @@ int FakeParams::generate()
   make_minimal<GC::TinySecret<40>>(keyt, nplayers, default_num / 64, zero);
 
   gf2n_short keytt;
-  generate_mac_keys<GC::TinierSecret<gf2n_short>>(keytt, nplayers, prep_data_prefix);
-  make_minimal<GC::TinierSecret<gf2n_short>>(keytt, nplayers, default_num / 64, zero);
+  generate_mac_keys<GC::TinierShare<gf2n_short>>(keytt, nplayers, prep_data_prefix);
+  make_minimal<GC::TinierShare<gf2n_short>>(keytt, nplayers, default_num / 64, zero);
 
   make_dabits<T>(keyp, nplayers, default_num, zero, keytt);
   make_edabits<T>(keyp, nplayers, default_num, zero, false_type(), keytt);

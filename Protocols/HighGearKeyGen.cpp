@@ -27,7 +27,10 @@ void PartSetup<FFT_Data>::key_and_mac_generation(Player& P,
     }
     X(5, 3) X(4, 3) X(3, 2)
     if (not done)
-        throw runtime_error("not compiled for choice of parameters");
+        throw runtime_error(
+                "not compiled for choice of parameters, add X("
+                        + to_string(n_limbs[0]) + ", " + to_string(n_limbs[1])
+                        + ") at " + __FILE__ + ":" + to_string(__LINE__ - 5));
     batch_size = backup;
 }
 

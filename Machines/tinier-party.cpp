@@ -4,9 +4,9 @@
  */
 
 #include "GC/TinierSecret.h"
-#include "GC/TinierPrep.h"
 #include "GC/ShareParty.h"
 #include "GC/TinyMC.h"
+#include "GC/VectorInput.h"
 
 #include "GC/ShareParty.hpp"
 #include "GC/ShareSecret.hpp"
@@ -17,6 +17,8 @@
 #include "GC/ThreadMaster.hpp"
 #include "GC/Secret.hpp"
 #include "GC/TinyPrep.hpp"
+#include "GC/TinierSharePrep.hpp"
+#include "GC/CcdPrep.hpp"
 
 #include "Processor/Instruction.hpp"
 #include "Protocols/MAC_Check.hpp"
