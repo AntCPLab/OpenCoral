@@ -1771,10 +1771,7 @@ class Optimizer:
 
     def __init__(self, report_loss=None):
         self.tol = 0.000
-        if report_loss is None:
-            self.report_loss = self.layers[-1].compute_loss
-        else:
-            self.report_loss = report_loss
+        self.report_loss = report_loss
         self.X_by_label = None
         self.print_update_average = False
         self.print_losses = False
