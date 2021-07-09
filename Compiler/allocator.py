@@ -180,9 +180,10 @@ def determine_scope(block, options):
     used_from_scope = set_by_id()
 
     def read(reg, n):
-        if last_def[reg] == -1:
-            reg.can_eliminate = False
-            used_from_scope.add(reg)
+        for dup in reg.duplicates:
+            if last_def[dup] == -1:
+                dup.can_eliminate = False
+                used_from_scope.add(dup)
 
     def write(reg, n):
         if last_def[reg] != -1:
@@ -331,8 +332,9 @@ class Merger:
                     d[j] = d[i]
 
         def read(reg, n):
-            if last_def[reg] != -1:
-                add_edge(last_def[reg], n)
+            for dup in reg.duplicates:
+                if last_def[dup] != -1:
+                    add_edge(last_def[dup], n)
 
         def write(reg, n):
             last_def[reg] = n
