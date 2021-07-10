@@ -22,7 +22,7 @@ class SparseDiGraph(object):
         self.default_attributes = default_attributes
         self.attribute_pos = dict(list(zip(list(default_attributes.keys()), list(range(len(default_attributes))))))
         self.n = max_nodes
-        # each node contains list of default attributes, followed by outoing edges
+        # each node contains list of default attributes, followed by outgoing edges
         self.nodes = [list(self.default_attributes.values()) for i in range(self.n)]
         self.succ = [collections.OrderedDict() for i in range(self.n)]
         self.pred = [set() for i in range(self.n)]
