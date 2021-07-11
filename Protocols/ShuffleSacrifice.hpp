@@ -68,6 +68,96 @@ void TripleShuffleSacrifice<T>::triple_combine(vector<array<T, 3> >& triples,
 }
 
 template<class T>
+void DabitShuffleSacrifice<T>::dabit_sacrifice(vector<dabit<T> >& output,
+        vector<dabit<T> >& to_check, SubProcessor<T>& proc,
+        ThreadQueues* queues)
+{
+#ifdef VERBOSE_DABIT
+    cerr << "Sacrificing daBits" << endl;
+#endif
+
+    auto& P = proc.P;
+    auto& MC = proc.MC;
+
+    int buffer_size = to_check.size();
+    int N = (buffer_size - C) / B;
+
+    shuffle(to_check, P);
+
+    // opening C
+    vector<T> shares;
+    vector<typename T::bit_type::part_type> bit_shares;
+    for (int i = 0; i < C; i++)
+    {
+        shares.push_back(to_check.back().first);
+        bit_shares.push_back(to_check.back().second);
+        to_check.pop_back();
+    }
+    vector<typename T::open_type> opened;
+    MC.POpen(opened, shares, P);
+    vector<typename T::bit_type::part_type::open_type> bits;
+    auto& MCB = *T::bit_type::part_type::new_mc(
+            GC::ShareThread<typename T::bit_type>::s().MC->get_alphai());
+    MCB.POpen(bits, bit_shares, P);
+    for (int i = 0; i < C; i++)
+        if (typename T::clear(opened[i]) != bits[i].get())
+            throw Offline_Check_Error("dabit shuffle opening");
+
+    // sacrifice buckets
+    typename T::Protocol protocol(P);
+    vector<pair<T, T>> multiplicands;
+    for (int i = 0; i < N; i++)
+    {
+        auto& a = to_check[i].first;
+        for (int j = 1; j < B; j++)
+        {
+            auto& f = to_check[i + N * j].first;
+            multiplicands.push_back({a, f});
+        }
+    }
+
+    PointerVector<T> products;
+    products.resize(multiplicands.size());
+    if (queues)
+    {
+        ThreadJob job(&products, &multiplicands);
+        int start = queues->distribute(job, products.size());
+        protocol.multiply(products, multiplicands,
+                start, products.size(), proc);
+        queues->wrap_up(job);
+    }
+    else
+        protocol.multiply(products, multiplicands, 0, products.size(), proc);
+
+    shares.clear();
+    bit_shares.clear();
+    shares.reserve((B - 1) * N);
+    bit_shares.reserve((B - 1) * N);
+    for (int i = 0; i < N; i++)
+    {
+        auto& a = to_check[i].first;
+        auto& b = to_check[i].second;
+        for (int j = 1; j < B; j++)
+        {
+            auto& f = to_check[i + N * j].first;
+            auto& g = to_check[i + N * j].second;
+            shares.push_back(a + f - products.next() * 2);
+            bit_shares.push_back(b + g);
+        }
+    }
+    MC.POpen(opened, shares, P);
+    MCB.POpen(bits, bit_shares, P);
+    for (int i = 0; i < (B - 1) * N; i++)
+        if (typename T::clear(opened[i]) != bits[i].get())
+            throw Offline_Check_Error("dabit shuffle opening");
+    MCB.Check(P);
+
+    to_check.resize(N);
+    output.insert(output.end(), to_check.begin(), to_check.end());
+    delete &MCB;
+}
+
+template<class T>
 void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
         vector<T>& wholes, vector<vector<typename T::bit_type::part_type>>& parts,
         size_t n_bits, SubProcessor<T>& proc, bool strict, int player,

@@ -73,6 +73,15 @@ public:
 };
 
 template<class T>
+class DabitShuffleSacrifice : public ShuffleSacrifice
+{
+public:
+    void dabit_sacrifice(vector<dabit<T>>& dabits,
+            vector<dabit<T>>& check_dabits, SubProcessor<T>& proc,
+            ThreadQueues* queues = 0);
+};
+
+template<class T>
 class EdabitShuffleSacrifice : public ShuffleSacrifice
 {
   typedef typename T::bit_type::part_type BT;

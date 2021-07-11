@@ -233,9 +233,11 @@ template<class T>
 class MaliciousDabitOnlyPrep : public virtual RingPrep<T>
 {
     template<int>
-    void buffer_dabits(ThreadQueues* queues, true_type);
+    void buffer_dabits(ThreadQueues* queues, true_type, false_type);
     template<int>
-    void buffer_dabits(ThreadQueues* queues, false_type);
+    void buffer_dabits(ThreadQueues* queues, false_type, false_type);
+    template<int>
+    void buffer_dabits(ThreadQueues* queues, false_type, true_type);
 
 public:
     MaliciousDabitOnlyPrep(SubProcessor<T>* proc, DataPositions& usage) :
