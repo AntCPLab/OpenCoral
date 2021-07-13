@@ -343,17 +343,54 @@ void BitPrep<T>::buffer_bits_without_check()
 template<class T>
 void MaliciousRingPrep<T>::buffer_personal_dabits(int input_player)
 {
-    buffer_personal_dabits(input_player, T::clear::characteristic_two);
+    buffer_personal_dabits<0>(input_player, T::clear::characteristic_two,
+            T::clear::prime_field);
 }
 
 template<class T>
-void MaliciousRingPrep<T>::buffer_personal_dabits(int, true_type)
+template<int>
+void MaliciousRingPrep<T>::buffer_personal_dabits(int, true_type, false_type)
 {
     throw runtime_error("only implemented for integer-like domains");
 }
 
 template<class T>
-void MaliciousRingPrep<T>::buffer_personal_dabits(int input_player, false_type)
+template<int>
+void MaliciousRingPrep<T>::buffer_personal_dabits(int input_player, false_type,
+        false_type)
+{
+    assert(this->proc != 0);
+    vector<dabit<T>> check_dabits;
+    DabitSacrifice<T> dabit_sacrifice;
+    this->buffer_personal_dabits_without_check<0>(input_player, check_dabits,
+            dabit_sacrifice.minimum_n_inputs());
+    dabit_sacrifice.sacrifice_and_check_bits(
+            this->personal_dabits[input_player], check_dabits, *this->proc, 0);
+}
+
+template<class T>
+template<int>
+void MaliciousRingPrep<T>::buffer_personal_dabits(int input_player, false_type,
+        true_type)
+{
+    if (T::clear::length() >= 60)
+        buffer_personal_dabits<0>(input_player, false_type(), false_type());
+    else
+    {
+        assert(this->proc != 0);
+        vector<dabit<T>> check_dabits;
+        DabitShuffleSacrifice<T> shuffle_sacrifice;
+        this->buffer_personal_dabits_without_check<0>(input_player, check_dabits,
+                shuffle_sacrifice.minimum_n_inputs());
+        shuffle_sacrifice.dabit_sacrifice(this->personal_dabits[input_player],
+                check_dabits, *this->proc, 0);
+    }
+}
+
+template<class T>
+template<int>
+void MaliciousRingPrep<T>::buffer_personal_dabits_without_check(
+        int input_player, vector<dabit<T>>& to_check, int buffer_size)
 {
     assert(this->proc != 0);
     auto& P = this->proc->P;
@@ -366,11 +403,6 @@ void MaliciousRingPrep<T>::buffer_personal_dabits(int input_player, false_type)
     input.reset_all(P);
     bit_input.reset_all(P);
     SeededPRNG G;
-    ThreadQueues* queues = 0;
-    DabitSacrifice<T> dabit_sacrifice;
-    int buffer_size = dabit_sacrifice.minimum_n_inputs();
-    if (queues)
-        buffer_size *= queues->size();
     if (input_player == P.my_num())
     {
         for (int i = 0; i < buffer_size; i++)
@@ -388,14 +420,10 @@ void MaliciousRingPrep<T>::buffer_personal_dabits(int input_player, false_type)
         }
     input.exchange();
     bit_input.exchange();
-    vector<dabit<T>> to_check;
     for (int i = 0; i < buffer_size; i++)
         to_check.push_back({input.finalize(input_player),
                 bit_input.finalize(input_player, 1)});
-    dabit_sacrifice.sacrifice_and_check_bits(
-            this->personal_dabits[input_player], to_check, *this->proc, queues);
 }
-
 
 template<class T>
 template<int>

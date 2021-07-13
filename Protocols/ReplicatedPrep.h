@@ -270,8 +270,16 @@ protected:
             ThreadQueues* queues, false_type);
 
     void buffer_personal_dabits(int input_player);
-    void buffer_personal_dabits(int input_player, true_type);
-    void buffer_personal_dabits(int input_player, false_type);
+    template<int>
+    void buffer_personal_dabits(int input_player, true_type, false_type);
+    template<int>
+    void buffer_personal_dabits(int input_player, false_type, false_type);
+    template<int>
+    void buffer_personal_dabits(int input_player, false_type, true_type);
+
+    template<int>
+    void buffer_personal_dabits_without_check(int input_player,
+            vector<dabit<T>>& dabits, int buffer_size);
 
 public:
     static void edabit_sacrifice_buckets(vector<edabit<T>>& to_check, size_t n_bits,
