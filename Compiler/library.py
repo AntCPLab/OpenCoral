@@ -3,7 +3,7 @@ This module defines functions directly available in high-level programs,
 in particularly providing flow control and output.
 """
 
-from Compiler.types import cint,sint,cfix,sfix,sfloat,MPCThread,Array,MemValue,cgf2n,sgf2n,_number,_mem,_register,regint,Matrix,_types, cfloat, _single, localint, personal, copy_doc
+from Compiler.types import cint,sint,cfix,sfix,sfloat,MPCThread,Array,MemValue,cgf2n,sgf2n,_number,_mem,_register,regint,Matrix,_types, cfloat, _single, localint, personal, copy_doc, _vec
 from Compiler.instructions import *
 from Compiler.util import tuplify,untuplify,is_zero
 from Compiler.allocator import RegintOptimizer
@@ -1323,7 +1323,7 @@ def _run_and_link(function, g=None):
     if g:
         from .types import _single
         for name, var in pre.items():
-            if isinstance(var, (program.Tape.Register, _single)):
+            if isinstance(var, (program.Tape.Register, _single, _vec)):
                 new_var = g[name]
                 if id(new_var) != id(var):
                     new_var.link(var)

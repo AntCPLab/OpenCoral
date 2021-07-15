@@ -517,7 +517,10 @@ class _structure(object):
         return 1
 
 class _vec(object):
-    pass
+    def link(self, other):
+        assert len(self.v) == len(other.v)
+        for x, y in zip(self.v, other.v):
+            x.link(y)
 
 class _register(Tape.Register, _number, _structure):
     @staticmethod
