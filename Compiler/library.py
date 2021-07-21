@@ -940,6 +940,7 @@ def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
         use_array = True
     if not util.is_constant(n_loops):
         budget //= 10
+        n_loops = regint(n_loops)
     def decorator(loop_body):
         my_n_parallel = n_parallel
         if isinstance(n_parallel, int):
