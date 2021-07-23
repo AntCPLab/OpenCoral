@@ -5,7 +5,7 @@
 
 #include <mpirxx.h>
 
-#include "BitMatrix.h"
+#include "OT/BitMatrix.h"
 #include "Tools/random.h"
 #include "Tools/BitVector.h"
 #include "Tools/intrinsics.h"

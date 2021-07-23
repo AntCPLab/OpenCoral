@@ -5,6 +5,8 @@
 
 #include "square64.h"
 #include "Tools/cpu_support.h"
+#include "OT/BitMatrix.h"
+
 #include <stdexcept>
 #include <iostream>
 #include <assert.h>
@@ -101,6 +103,18 @@ void square64::transpose(int n_rows, int n_cols)
 
     assert(n_rows <= 64);
     assert(n_cols <= 64);
+
+#ifndef __AVX2__
+    square128 tmp2;
+    tmp2.set_zero();
+    for (int i = 0; i < n_rows; i++)
+        tmp2.rows[i] = _mm_cvtsi64_si128(rows[i]);
+    tmp2.transpose();
+    *this = {};
+    for (int i = 0; i < n_cols; i++)
+        rows[i] = _mm_cvtsi128_si64(tmp2.rows[i]);
+    return;
+#endif
 
     square64 tmp = *this;
     *this = {};
