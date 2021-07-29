@@ -410,14 +410,9 @@ class sbits(bits):
             return res
     __radd__ = __add__
     __sub__ = __add__
+    __rsub__ = __add__
     __xor__ = __add__
     __rxor__ = __add__
-    @read_mem_value
-    def __rsub__(self, other):
-        if isinstance(other, cbits):
-            return other + self
-        else:
-            return self.xor_int(other)
     @read_mem_value
     def __mul__(self, other):
         if isinstance(other, int):
