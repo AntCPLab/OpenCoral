@@ -4666,7 +4666,8 @@ class Array(object):
 
     def maybe_set(self, condition, index, value):
         if self.sink is None:
-            self.sink = self.value_type.Array(1)
+            self.sink = self.value_type.Array(
+                1, address=self.value_type.malloc(1, creator_tape=program.tapes[0]))
         addresses = (condition.if_else(x, y) for x, y in
                      zip(util.tuplify(self.get_address(index)),
                          util.tuplify(self.sink.get_address(0))))
