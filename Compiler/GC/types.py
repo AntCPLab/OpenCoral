@@ -1246,6 +1246,8 @@ class sbitfixvec(_fix):
             return super(sbitfixvec, self).mul(other)
     def __xor__(self, other):
         return self._new(self.v ^ other.v)
+    def __and__(self, other):
+        return self._new(self.v & other.v)
     @staticmethod
     def multipliable(other, k, f, size):
         class cls(_fix):
