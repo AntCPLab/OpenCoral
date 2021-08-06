@@ -38,6 +38,12 @@ class NonLinear:
                          signed)
         return res
 
+    def trunc(self, a, k, m, kappa, signed):
+        self.check_security(kappa)
+        if m == 0:
+            return a
+        return self._trunc(a, k, m, signed)
+
 class Masking(NonLinear):
     def eqz(self, a, k):
         c, r = self._mask(a, k)
@@ -71,6 +77,12 @@ class Prime(Masking):
     def _trunc_pr(self, a, k, m, signed=None):
         return TruncPrField(a, k, m, self.kappa)
 
+    def _trunc(self, a, k, m, signed=None):
+        a_prime = self.mod2m(a, k, m, signed)
+        tmp = cint()
+        inv2m(tmp, m)
+        return (a - a_prime) * tmp
+
     def bit_dec(self, a, k, m, maybe_mixed=False):
         if maybe_mixed:
             return BitDecFieldRaw(a, k, m, self.kappa)
@@ -93,6 +105,14 @@ class KnownPrime(NonLinear):
     def _trunc_pr(self, a, k, m, signed):
         # nearest truncation
         return self.trunc_round_nearest(a, k, m, signed)
+
+    def _trunc(self, a, k, m, signed=None):
+        if signed:
+            a += cint(1) << (k - 1)
+        res = sint.bit_compose(self.bit_dec(a, k, k, True)[m:])
+        if signed:
+            res -= cint(1) << (k - 1 - m)
+        return res
 
     def trunc_round_nearest(self, a, k, m, signed):
         a += cint(1) << (m - 1)
@@ -132,6 +152,9 @@ class Ring(Masking):
 
     def _trunc_pr(self, a, k, m, signed):
         return TruncPrRing(a, k, m, signed=signed)
+
+    def _trunc(self, a, k, m, signed=None):
+        return comparison.TruncRing(None, a, k, m, signed=signed)
 
     def bit_dec(self, a, k, m, maybe_mixed=False):
         if maybe_mixed:

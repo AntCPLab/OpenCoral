@@ -174,12 +174,24 @@ void make_share(FixedVec<T, 3>* Sa, const V& a, int N, const U& key, PRNG& G)
     }
 }
 
+template<class T>
+class VanderStore
+{
+public:
+  static vector<vector<T>> vandermonde;
+};
+
+template<class T>
+vector<vector<T>> VanderStore<T>::vandermonde;
+
 template<class T, class V>
 void make_share(ShamirShare<T>* Sa, const V& a, int N,
     const typename ShamirShare<T>::mac_type&, PRNG& G)
 {
   insecure("share generation", false);
-  const auto& vandermonde = ShamirInput<ShamirShare<T>>::get_vandermonde(N / 2, N);
+  auto& vandermonde = VanderStore<T>::vandermonde;
+  if (vandermonde.empty())
+      vandermonde = ShamirInput<ShamirShare<T>>::get_vandermonde(N / 2, N);
   vector<T> randomness(N / 2);
   for (auto& x : randomness)
       x.randomize(G);
@@ -188,7 +200,7 @@ void make_share(ShamirShare<T>* Sa, const V& a, int N,
       auto& share = Sa[i];
       share = a;
       for (int j = 0; j < ShamirOptions::singleton.threshold; j++)
-          share += vandermonde[i][j] * randomness[j];
+          share += vandermonde.at(i).at(j) * randomness[j];
   }
 }
 

@@ -37,6 +37,8 @@ public:
 
     typedef GC::SemiSecret bit_type;
 
+    static const bool has_split = true;
+
     Semi2kShare()
     {
     }

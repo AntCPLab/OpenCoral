@@ -93,6 +93,7 @@ enum
     LEGENDREC = 0x38,
     DIGESTC = 0x39,
     INV2M = 0x3a,
+    FLOORDIVC = 0x3b,
     // Open
     OPEN = 0xA5,
     MULS = 0xA6,
@@ -123,6 +124,7 @@ enum
     INPUTMIXED = 0xF2,
     INPUTMIXEDREG = 0xF3,
     RAWINPUT = 0xF4,
+    INPUTPERSONAL = 0xF5,
     STARTINPUT = 0x61,
     STOPINPUT = 0x62,
     READSOCKETC = 0x63,
@@ -193,6 +195,8 @@ enum
     CONDPRINTSTR = 0xBF,
     PRINTFLOATPREC = 0xE0,
     CONDPRINTPLAIN = 0xE1,
+    INTOUTPUT = 0xE6,
+    FLOATOUTPUT = 0xE7,
 
     // GF(2^n) versions
     

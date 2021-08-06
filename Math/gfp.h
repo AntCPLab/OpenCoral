@@ -159,7 +159,7 @@ class gfp_ : public ValueInterface
   void add(void* x)
     { ZpD.Add<L>(a.x,a.x,(mp_limb_t*)x); }
   void sub(const gfp_& x,const gfp_& y)
-    { Sub(a,x.a,y.a,ZpD); }
+    { ZpD.Sub<L>(a.x,x.a.x,y.a.x); }
   // = x * y
   void mul(const gfp_& x,const gfp_& y)
     { a.template mul<L>(x.a,y.a,ZpD); }

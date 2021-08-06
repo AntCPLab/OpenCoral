@@ -75,6 +75,8 @@ public:
 
     static const bool actual_inputs = T::actual_inputs;
 
+    static int threshold(int nplayers) { return T::threshold(nplayers); }
+
     static Secret<T> input(party_id_t from, const int128& input, int n_bits = -1);
     static Secret<T> input(Processor<Secret<T>>& processor, const InputArgs& args);
     void random(int n_bits, int128 share);

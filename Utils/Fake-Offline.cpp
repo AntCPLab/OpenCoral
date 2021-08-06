@@ -583,6 +583,16 @@ int main(int argc, const char** argv)
           "-T", // Flag token.
           "--threshold" // Flag token.
   );
+  opt.add(
+          "", // Default.
+          0, // Required?
+          0, // Number of args expected.
+          0, // Delimiter if expecting multiple args.
+          "Deactivate Montgomery representation"
+          "(default: activated)", // Help description.
+          "-n", // Flag token.
+          "--nontgomery" // Flag token.
+  );
   opt.parse(argc, argv);
 
   int lgp;
@@ -711,13 +721,13 @@ int FakeParams::generate()
   {
     string p;
     opt.get("--prime")->getString(p);
-    T::clear::init_field(p);
+    T::clear::init_field(p, not opt.isSet("--nontgomery"));
     T::clear::template write_setup<T>(nplayers);
   }
   else
   {
     T::clear::template generate_setup<T>(prep_data_prefix, nplayers, lgp);
-    T::clear::init_default(lgp);
+    T::clear::init_default(lgp, not opt.isSet("--nontgomery"));
   }
 
   /* Find number players and MAC keys etc*/
@@ -817,6 +827,7 @@ void FakeParams::generate_field(true_type)
 
   if (nplayers > 2)
     {
+      ShamirShare<U>::bit_type::clear::init_field();
       make_basic<ShamirShare<U>>({}, nplayers, default_num, zero);
       make_basic<MaliciousShamirShare<U>>({}, nplayers, default_num, zero);
       make_with_mac_key<SpdzWiseShare<MaliciousShamirShare<U>>>(nplayers,

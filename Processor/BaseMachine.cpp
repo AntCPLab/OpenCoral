@@ -84,6 +84,7 @@ void BaseMachine::load_schedule(const string& progname, bool load_bytecode)
   inpf.get();
   getline(inpf, compiler);
   getline(inpf, domain);
+  getline(inpf, relevant_opts);
   inpf.close();
 }
 

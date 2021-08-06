@@ -15,15 +15,18 @@
 template <class U, class V>
 class Rectangle
 {
-public:
-	typedef V RowType;
-
 	static const int N_ROWS = U::N_BITS;
-	static const int N_COLUMNS = V::N_BITS;
-	static const int N_ROW_BYTES = V::N_BYTES;
 
 	// make sure number of allocated rows matches the number of bytes
 	static const int N_ROWS_ALLOCATED = 8 * U::N_BYTES;
+
+public:
+	typedef V RowType;
+
+	static int n_rows() { return U::N_BITS; }
+	static int n_columns() { return V::N_BITS; }
+	static int n_row_bytes() { return V::N_BYTES; }
+	static int n_rows_allocated() { return N_ROWS_ALLOCATED; }
 
 	V rows[N_ROWS_ALLOCATED];
 
@@ -67,5 +70,12 @@ using Z2kRectangle = Rectangle<Z2<K>, Z2<L> >;
 
 template <int K>
 using Z2kSquare = Rectangle<Z2<K>, Z2<K>>;
+
+template <class U, class V>
+ostream& operator<<(ostream& o, const Rectangle<U, V>&)
+{
+	throw not_implemented();
+	return o;
+}
 
 #endif /* OT_RECTANGLE_H_ */

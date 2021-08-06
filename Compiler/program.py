@@ -149,6 +149,7 @@ class Program(object):
         self._always_raw = False
         self._linear_rounds = False
         self.warn_about_mem = [True]
+        self.relevant_opts = set()
         Program.prog = self
         from . import instructions_base, instructions, types, comparison
         instructions.program = self
@@ -329,11 +330,13 @@ class Program(object):
         sch_file.write(' '.join(sys.argv) + '\n')
         req = max(x.req_bit_length['p'] for x in self.tapes)
         if self.options.ring:
-            sch_file.write('R:%s' % (self.options.ring if req else 0))
+            sch_file.write('R:%s' % self.options.ring)
         elif self.options.prime:
             sch_file.write('p:%s' % self.options.prime)
         else:
             sch_file.write('lgp:%s' % req)
+        sch_file.write('\n')
+        sch_file.write('opts: %s\n' % ' '.join(self.relevant_opts))
         for tape in self.tapes:
             tape.write_bytes()
 
@@ -469,6 +472,16 @@ class Program(object):
         self.tape_counter += 1
         return res
 
+    @property
+    def use_trunc_pr(self):
+        if not self._use_trunc_pr:
+            self.relevant_opts.add('trunc_pr')
+        return self._use_trunc_pr
+
+    @use_trunc_pr.setter
+    def use_trunc_pr(self, change):
+        self._use_trunc_pr = change
+
     def use_edabit(self, change=None):
         """ Setting whether to use edaBits for non-linear
         functionality (default: false).
@@ -477,6 +490,8 @@ class Program(object):
         :returns: setting if :py:obj:`change` is :py:obj:`None`
         """
         if change is None:
+            if not self._edabit:
+                self.relevant_opts.add('edabit')
             return self._edabit
         else:
             self._edabit = change
@@ -492,6 +507,8 @@ class Program(object):
         :returns: setting if :py:obj:`change` is :py:obj:`None`
         """
         if change is None:
+            if not self._split:
+                self.relevant_opts.add('split')
             return self._split
         else:
             if change and not self.options.ring:
@@ -527,12 +544,14 @@ class Program(object):
         """ Set a number of options from the command-line arguments. """
         if 'trunc_pr' in self.args:
             self.use_trunc_pr = True
+        if 'signed_trunc_pr' in self.args:
+            self.use_trunc_pr = -1
         if 'split' in self.args or 'split3' in self.args:
             self.use_split(3)
-        if 'split4' in self.args:
-            self.use_split(4)
-        if 'split2' in self.args:
-            self.use_split(2)
+        for arg in self.args:
+            m = re.match('split([0-9]+)', arg)
+            if m:
+                self.use_split(int(m.group(1)))
         if 'raw' in self.args:
             self.always_raw(True)
         if 'edabit' in self.args:

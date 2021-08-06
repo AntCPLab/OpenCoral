@@ -15,6 +15,8 @@ protected:
 	Key key_;
 
 public:
+	static int threshold(int) { return 1; }
+
 	template<class T>
 	static void xors(GC::Processor<T>& processor, const vector<int>& args);
 	template<class T>

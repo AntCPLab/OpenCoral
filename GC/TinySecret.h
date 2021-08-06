@@ -126,18 +126,20 @@ public:
         return *this * BitVec(other);
     }
 
-    This extend_bit() const
+    void extend_bit(This& res, int n_bits) const
     {
-        This res;
-        res.get_regs().resize(BitVec::N_BITS, this->get_reg(0));
-        return res;
+        auto& regs = res.get_regs();
+        regs.assign(n_bits, this->get_reg(0));
     }
 
-    This mask(int n_bits) const
+    void mask(This& res, int n_bits) const
     {
-        This res = *this;
-        res.get_regs().resize(n_bits);
-        return res;
+        if (this != &res)
+            res.get_regs().assign(this->get_regs().begin(),
+                    this->get_regs().begin()
+                            + max(size_t(n_bits), this->get_regs().size()));
+
+        res.resize_regs(n_bits);
     }
 
     T get_bit(int i) const
@@ -172,7 +174,7 @@ public:
     template <class U>
     void finalize_input(U& inputter, int from, int n_bits)
     {
-        *this = inputter.finalize(from, n_bits).mask(n_bits);
+        inputter.finalize(from, n_bits).mask(*this, n_bits);
     }
 };
 

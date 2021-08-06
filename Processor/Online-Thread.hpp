@@ -312,6 +312,7 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
   delete processor;
 
   machine.data_sent += P.sent + prep_sent;
+  machine.comm_stats += P.comm_stats;
   queues->finished(actual_usage);
 
   delete MC2;

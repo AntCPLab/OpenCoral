@@ -69,6 +69,7 @@ LDLIBS = -lmpirxx -lmpir -lsodium $(MY_LDLIBS)
 LDLIBS += -lboost_system -lssl -lcrypto
 
 ifeq ($(USE_NTL),1)
+CFLAGS += -DUSE_NTL
 LDLIBS := -lntl $(LDLIBS)
 endif
 

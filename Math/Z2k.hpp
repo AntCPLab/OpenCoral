@@ -9,6 +9,8 @@
 #include <Math/Z2k.h>
 #include "Math/Integer.h"
 
+#include <math.h>
+
 template<int K>
 const int Z2<K>::N_BITS;
 template<int K>
@@ -65,6 +67,18 @@ template<int K>
 bool Z2<K>::get_bit(int i) const
 {
 	return 1 & (a[i / N_LIMB_BITS] >> (i % N_LIMB_BITS));
+}
+
+template<int K>
+int Z2<K>::bit_length() const
+{
+    if (is_zero())
+        return 1;
+    size_t max_limb = 0;
+    for (int i = 1; i < N_WORDS; i++)
+        if (a[i] != 0)
+            max_limb = i;
+    return log2(mp_limb_t(a[max_limb])) + 1 + 64 * max_limb;
 }
 
 template<int K>

@@ -16,11 +16,13 @@
 #include <fstream>
 using namespace std;
 
+#ifdef USE_NTL
 #include <NTL/ZZ.h>
 #include <NTL/ZZX.h>
 #include <NTL/GF2EXFactoring.h>
 #include <NTL/GF2XFactoring.h>
 NTL_CLIENT
+#endif
 
 #include "FHEOffline/DataSetup.h"
 
@@ -288,7 +290,7 @@ void Parameters::SPDZ_Data_Setup(FHE_Params& params, FFT_Data& FTD)
   FTD.init(R,Zp);
 }
 
-
+#ifdef USE_NTL
 /* Compute Phi(N) */
 int phi_N(int N)
 {
@@ -342,6 +344,17 @@ ZZX Cyclotomic(int N)
   F=Num/Den;
   return F;
 }
+#else
+int phi_N(int N)
+{
+  if (((N - 1) & N) != 0)
+    throw runtime_error("compile with NTL support");
+  else if (N == 1)
+    return 1;
+  else
+    return N / 2;
+}
+#endif
 
 
 void init(Ring& Rg, int m, bool generate_poly)
@@ -370,6 +383,7 @@ void init(Ring& Rg, int m, bool generate_poly)
     }
   else
     {
+#ifdef USE_NTL
       int k=0;
       for (int i=1; i<Rg.mm; i++)
         { if (gcd(i,Rg.mm)==1)
@@ -383,11 +397,14 @@ void init(Ring& Rg, int m, bool generate_poly)
       Rg.poly.resize(Rg.phim+1);
       for (int i=0; i<Rg.phim+1; i++)
         { Rg.poly[i]=to_int(coeff(P,i)); }
+#else
+      throw runtime_error("compile with NTL support");
+#endif
     }
 }
 
 
-
+#ifdef USE_NTL
 // Computes a(b) mod c
 GF2X Subs_Mod(const GF2X& a,const GF2X& b,const GF2X& c)
 {
@@ -554,7 +571,12 @@ void init(P2Data& P2D,const Ring& Rg)
   P2D.slots=Gord;
 
 }
-
+#else
+void init(P2Data&, const Ring&)
+{
+  throw runtime_error("need to compile with 'USE_NTL=1' in 'CONFIG'");
+}
+#endif
 
 /*
  * Create the FHE parameters
@@ -656,7 +678,7 @@ void load_or_generate(P2Data& P2D, const Ring& R)
 }
 
 
-
+#ifdef USE_NTL
 /*
  * Create FHE parameters for a general plaintext modulus p
  *   Basically this is for general large primes only
@@ -784,5 +806,5 @@ void SPDZ_Data_Setup_Char_p_General(Ring& R, PPData& PPD, bigint& pr0,
   pr0 = parameters.pr0;
   pr1 = parameters.pr1;
 }
-
+#endif
 

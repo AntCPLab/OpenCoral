@@ -8,6 +8,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <assert.h>
 using namespace std;
 
 #include "Math/field_types.h"
@@ -71,6 +72,12 @@ public:
     BufferOwner() :
             file(0)
     {
+    }
+
+    BufferOwner(const BufferOwner& other) :
+            file(0)
+    {
+        assert(other.file == 0);
     }
 
     ~BufferOwner()

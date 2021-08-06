@@ -875,6 +875,11 @@ def for_range(start, stop=None, step=None):
             a[i] = i
             global x
             x += 1
+
+    Note that you cannot overwrite data structures such as
+    :py:class:`~Compiler.types.Array` in a loop even when using
+    :py:obj:`global`. Use :py:func:`~Compiler.types.Array.assign`
+    instead.
     """
     def decorator(loop_body):
         range_loop(loop_body, start, stop, step)
@@ -889,7 +894,7 @@ def for_range_parallel(n_parallel, n_loops):
     the optimization.
 
     :param n_parallel: compile-time (int)
-    :param n_loops: regint/cint/int
+    :param n_loops: regint/cint/int or list of int
 
     Example:
 
@@ -898,7 +903,18 @@ def for_range_parallel(n_parallel, n_loops):
         @for_range_parallel(n_parallel, n_loops)
         def _(i):
             a[i] = a[i] * a[i]
+
+    Multidimensional ranges are supported as well. The following
+    executes ``f(0, 0)`` to ``f(4, 2)``, two calls in parallel.
+
+    .. code::
+
+        @for_range_parallel(2, [5, 3])
+        def f(i, j):
+            ...
     """
+    if isinstance(n_loops, (list, tuple)):
+        return for_range_multithread(None, n_parallel, n_loops)
     return map_reduce_single(n_parallel, n_loops)
 
 def for_range_opt(n_loops, budget=None):
@@ -922,7 +938,18 @@ def for_range_opt(n_loops, budget=None):
         def _(i):
             ...
 
+    Multidimensional ranges are supported as well. The following
+    executes ``f(0, 0)`` to ``f(4, 2)`` in parallel according to
+    the budget.
+
+    .. code::
+
+        @for_range_opt([5, 3])
+        def f(i, j):
+            ...
     """
+    if isinstance(n_loops, (list, tuple)):
+        return for_range_opt_multithread(None, n_loops)
     return map_reduce_single(None, n_loops, budget=budget)
 
 def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
@@ -961,9 +988,13 @@ def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
             @for_range(loop_rounds)
             def f(i):
                 state = tuplify(initializer())
+                start_block = get_block()
                 for k in range(n_parallel):
                     j = i * n_parallel + k
                     state = reducer(tuplify(loop_body(j)), state)
+                if n_parallel > 1 and start_block != get_block():
+                    print('WARNING: parallelization broken '
+                          'by control flow instruction')
                 r = reducer(mem_state, state)
                 write_state_to_memory(r)
         else:
@@ -1222,6 +1253,24 @@ def map_sum(n_threads, n_parallel, n_loops, n_items, value_types):
         return tuple(a + b for a,b in zip(x,y))
     return map_reduce(n_threads, n_parallel, n_loops, initializer, summer)
 
+def map_sum_opt(n_threads, n_loops, types):
+    """ Multi-threaded sum reduction. The following computes a sum of
+    ten squares in three threads::
+
+        @map_sum_opt(3, 10, [sint])
+        def summer(i):
+            return sint(i) ** 2
+
+        result = summer()
+
+    :param n_threads: number of threads (int)
+    :param n_loops: number of loop runs (regint/cint/int)
+    :param types: return type, must match the return statement
+        in the loop
+
+    """
+    return map_sum(n_threads, None, n_loops, len(types), types)
+
 def tree_reduce_multithread(n_threads, function, vector):
     inputs = vector.Array(len(vector))
     inputs.assign_vector(vector)
@@ -1326,6 +1375,8 @@ def _run_and_link(function, g=None):
         for name, var in pre.items():
             if isinstance(var, (program.Tape.Register, _single, _vec)):
                 new_var = g[name]
+                if util.is_constant_float(new_var):
+                    raise CompilerError('cannot reassign constants in blocks')
                 if id(new_var) != id(var):
                     new_var.link(var)
     return res

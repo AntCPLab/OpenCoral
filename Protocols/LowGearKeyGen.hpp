@@ -14,7 +14,7 @@
 template<int L>
 LowGearKeyGen<L>::LowGearKeyGen(Player& P, PairwiseMachine& machine,
         FHE_Params& params) :
-        KeyGenProtocol<5, L>(P, params), P(P), machine(machine)
+        KeyGenProtocol<1, L>(P, params), P(P), machine(machine)
 {
 }
 
@@ -25,6 +25,10 @@ KeyGenProtocol<X, L>::KeyGenProtocol(Player& P, const FHE_Params& params,
 {
     open_type::init_field(params.FFTD().at(level).get_prD().pr);
     typename share_type::mac_key_type alphai;
+
+    auto& batch_size = OnlineOptions::singleton.batch_size;
+    backup_batch_size = batch_size;
+    batch_size = 100;
 
     if (OnlineOptions::singleton.live_prep)
     {
@@ -52,6 +56,8 @@ KeyGenProtocol<X, L>::~KeyGenProtocol()
     delete proc;
     delete prep;
     delete MC;
+
+    OnlineOptions::singleton.batch_size = backup_batch_size;
 }
 
 template<int X, int L>

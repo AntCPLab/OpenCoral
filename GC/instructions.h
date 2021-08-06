@@ -137,6 +137,9 @@
     X(JOIN_TAPE, MACH->join_tape(R0)) \
     X(USE, ) \
     X(USE_INP, ) \
+    X(NPLAYERS, I0 = Thread<T>::s().P->num_players()) \
+    X(THRESHOLD, I0 = T::threshold(Thread<T>::s().P->num_players())) \
+    X(PLAYERID, I0 = Thread<T>::s().P->my_num()) \
 
 #define INSTRUCTIONS BIT_INSTRUCTIONS GC_INSTRUCTIONS
 

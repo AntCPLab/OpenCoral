@@ -14,6 +14,7 @@
 #include "OT/OTMultiplier.hpp"
 #include "Protocols/MAC_Check.hpp"
 #include "Protocols/SemiInput.hpp"
+#include "Protocols/SemiMC.hpp"
 
 #include <sstream>
 #include <fstream>
@@ -523,7 +524,32 @@ void OTTripleGenerator<U>::plainTripleRound(int k)
         {
             plainTriples[j] = {{a, b, c}};
         }
+
+#ifdef DEBUG_MASCOT
+        cout << "lengths ";
+        for (int i = 0; i < 3; i++)
+            cout << valueBits[i].size() << " ";
+        cout << endl;
+
+        auto& P = globalPlayer;
+        SemiMC<SemiShare<T>> MC;
+
+        auto aa = MC.open(a, P);
+        auto bb = MC.open(b, P);
+        auto cc = MC.open(c, P);
+        if (cc != aa * bb)
+        {
+            cout << j << " " << cc << " != " << aa << " * " << bb << ", diff " <<
+                    (cc - aa * bb) << endl;
+            cout << "OT output " << ot_multipliers[0]->c_output[j] << endl;
+            assert(cc == aa * bb);
+        }
+#endif
     }
+
+#ifdef DEBUG_MASCOT
+    cout << "plain triple round done" << endl;
+#endif
 }
 
 template<class U>
@@ -654,6 +680,27 @@ void MascotTripleGenerator<T>::sacrifice(typename T::MAC_Check& MC, PRNG& G)
     vector<open_type> openedAs(nTriplesPerLoop);
     MC.POpen_Begin(openedAs, maskedAs, globalPlayer);
     MC.POpen_End(openedAs, maskedAs, globalPlayer);
+
+#ifdef DEBUG_MASCOT
+    MC.Check(globalPlayer);
+    auto& P = globalPlayer;
+
+    for (int j = 0; j < nTriplesPerLoop; j++)
+        for (int i = 0; i < 2; i++)
+        {
+            auto a = MC.open(uncheckedTriples[j].a[i], P);
+            auto b = MC.open(uncheckedTriples[j].b, P);
+            auto c = MC.open(uncheckedTriples[j].c[i], P);
+            if (c != a * b)
+            {
+                cout << c << " != " << a << " * " << b << ", diff " << hex <<
+                        (c - a * b) << endl;
+                assert(c == a * b);
+            }
+        }
+
+    MC.Check(globalPlayer);
+#endif
 
     for (int j = 0; j < nTriplesPerLoop; j++) {
         MC.AddToCheck(maskedTriples[j].computeCheckShare(openedAs[j]), 0,

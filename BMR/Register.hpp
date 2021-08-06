@@ -107,7 +107,7 @@ void EvalRegister::store(GC::Memory<U>& mem,
 			//cout << "ext:" << ext << "/" << (int)reg.get_external() << " " << endl;
 			tmp = spdz_wire.mask + U::constant(ext, (int)party.get_id() - 1, party.get_mac_key());
 			S.push_back(tmp);
-			tmp *= gf2n_long(1) << i;
+			tmp <<= i;
 			dest += tmp;
 			const Key& key = reg.external_key(party.get_id());
 			Key& expected_key = spdz_wire.my_keys[(int)reg.get_external()];

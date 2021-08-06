@@ -42,8 +42,12 @@ public:
     void hashBlocks(void* output, const void* input);
     template <class T>
     void hashEightBlocks(T* output, const void* input);
+    template <class T, int N_BYTES>
+    void hashEightBlocks(T* output, const void* input);
     template <int X, int L>
     void hashEightBlocks(gfp_<X, L>* output, const void* input);
+    template <int X, int L>
+    void hashEightBlocks(gfpvar_<X, L>* output, const void* input);
     template <class T>
     void outputOneBlock(octet* output);
     Key hash(const Key& input);

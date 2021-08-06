@@ -46,11 +46,22 @@ class modp_
     }
 
   template<int X, int M>
-  modp_(const gfp_<X, M>& other) :
+  modp_(const gfp_<X, M>& other, const Zp_Data& ZpD) :
       modp_()
     {
+      assert(other.get_ZpD() == ZpD);
       assert(M <= L);
       inline_mpn_copyi(x, other.get().get(), M);
+    }
+
+  template<int X, int M>
+  modp_(const gfpvar_<X, M>& other, const Zp_Data& ZpD) :
+      modp_()
+    {
+      if (other.get_ZpD() == ZpD)
+        *this = other.get();
+      else
+        to_modp(*this, bigint(other), ZpD);
     }
 
   const mp_limb_t* get() const { return x; }
@@ -63,6 +74,8 @@ class modp_
   void convert_destroy(int source, const Zp_Data& ZpD) { to_modp(*this, source, ZpD); }
   template<int M>
   void convert_destroy(const fixint<M>& source, const Zp_Data& ZpD);
+
+  void zero_overhang(const Zp_Data& ZpD);
 
   void randomize(PRNG& G, const Zp_Data& ZpD);
 

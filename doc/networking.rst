@@ -19,7 +19,7 @@ individually setting ports:
    can specify a party's listening port using ``--my-port``.
 
 2. The parties read the information from a local file, which needs to
-   be same everywhere. The file can be specified using
+   be the same everywhere. The file can be specified using
    ``--ip-file-name`` and has the following format::
 
      <host0>[:<port0>]
@@ -28,6 +28,16 @@ individually setting ports:
 
    The hosts can be both hostnames and IP addresses. If not given, the
    ports default to base plus party number.
+
+Whether or not encrypted connections are used depends on the security
+model of the protocol. Honest-majority protocols default to encrypted
+whereas dishonest-majority protocols default to unencrypted. You
+change this by either using ``--encrypted/-e`` or
+``--unencrypted/-u``.
+
+If using encryption, the certificates (``Player-Data/*.pem``) must be
+the same on all hosts, and you have to run ``c_rehash Player-Data`` on
+all of them.
 
 
 Internal Infrastructure

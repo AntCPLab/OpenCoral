@@ -141,9 +141,9 @@ void OTMultiplier<W>::multiplyForTriples()
 {
     typedef typename W::Rectangle X;
 
-    otCorrelator.resize(X::N_COLUMNS * generator.nPreampTriplesPerLoop);
+    otCorrelator.resize(X::n_columns() * generator.nPreampTriplesPerLoop);
 
-    rot_ext.resize(X::N_ROWS * generator.nPreampTriplesPerLoop + 2 * 128);
+    rot_ext.resize(X::n_rows() * generator.nPreampTriplesPerLoop + 2 * 128);
     
     vector<Matrix<X> >& baseSenderOutputs = otCorrelator.matrices;
     Matrix<X>& baseReceiverOutput = otCorrelator.senderOutputMatrices[0];
@@ -283,7 +283,7 @@ void MascotMultiplier<U>::after_correlation()
             for (int j = 0; j < 3; j++)
             {
                 bits.append(generator.valueBits[j],
-                        n_vals[j] * T::Square::N_COLUMNS);
+                        n_vals[j] * T::Square::n_columns());
                 total += n_vals[j];
             }
             this->auth_ot_ext.resize(bits.size());
@@ -298,7 +298,7 @@ void MascotMultiplier<U>::after_correlation()
         }
         else
         {
-            this->auth_ot_ext.resize(n_vals[0] * T::Square::N_COLUMNS);
+            this->auth_ot_ext.resize(n_vals[0] * T::Square::n_columns());
             for (int j = 0; j < 3; j++)
             {
                 int nValues = n_vals[j];
@@ -459,7 +459,7 @@ void MascotMultiplier<T>::multiplyForBits(U)
         {
             int128 r = auth_ot_ext.receiverOutputMatrix.squares[j/128].rows[j%128];
             int128 s = auth_ot_ext.senderOutputMatrices[0].squares[j/128].rows[j%128];
-            macs[0][j] = T::clear::cut(r ^ s);
+            macs[0][j] = typename T::clear(r ^ s);
         }
 
         outbox.push(job);

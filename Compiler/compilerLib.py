@@ -15,6 +15,10 @@ def run(args, options):
     if options.binary:
         VARS['sint'] = GC_types.sbitintvec.get_type(int(options.binary))
         VARS['sfix'] = GC_types.sbitfixvec
+        for i in 'cint', 'cfix', 'cgf2n', 'sintbit', 'sgf2n', 'sgf2nint', \
+            'sgf2nuint', 'sgf2nuint32', 'sgf2nfloat', 'sfloat', 'cfloat', \
+            'squant':
+            del VARS[i]
     
     print('Compiling file', prog.infile)
     

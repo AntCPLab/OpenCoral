@@ -49,6 +49,8 @@ class Machine : public BaseMachine
 
   void load_program(const string& threadname, const string& filename);
 
+  void suggest_optimizations();
+
   public:
 
   vector<Program>  progs;
@@ -71,6 +73,7 @@ class Machine : public BaseMachine
   OnlineOptions opts;
 
   atomic<size_t> data_sent;
+  NamedCommStats comm_stats;
   ExecutionStats stats;
 
   Machine(int my_number, Names& playerNames, const string& progname,

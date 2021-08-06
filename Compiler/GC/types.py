@@ -118,6 +118,8 @@ class bits(Tape.Register, _structure, _bit):
         self.store_inst[isinstance(address, int)](self, address)
     @classmethod
     def new(cls, value=None, n=None):
+        if util.is_constant(value):
+            n = value.bit_length()
         return cls.get_type(n)(value)
     def __init__(self, value=None, n=None, size=None):
         assert n == self.n or n is None
@@ -152,7 +154,7 @@ class bits(Tape.Register, _structure, _bit):
              and self.n == other.n:
             for i in range(math.ceil(self.n / self.unit)):
                 self.mov(self[i], other[i])
-        elif isinstance(other, sint):
+        elif isinstance(other, sint) and isinstance(self, sbits):
             self.mov(self, sbitvec(other, self.n).elements()[0])
         else:
             try:
@@ -214,7 +216,13 @@ class cbits(bits):
         cls.conv_cint_vec(cint(other, size=other.size), res)
     types = {}
     def load_int(self, value):
-        self.load_other(regint(value))
+        if self.n <= 64:
+            tmp = regint(value)
+        elif value == self.long_one():
+            tmp = cint(1, size=self.n)
+        else:
+            raise CompilerError('loading long integers to cbits not supported')
+        self.load_other(tmp)
     def store_in_dynamic_mem(self, address):
         inst.stmsdci(self, cbits.conv(address))
     def clear_op(self, other, c_inst, ci_inst, op):
@@ -227,7 +235,7 @@ class cbits(bits):
         else:
             if util.is_constant(other):
                 if other >= 2**31 or other < -2**31:
-                    return op(self, cbits(other))
+                    return op(self, cbits.new(other))
                 res = cbits.get_type(max(self.n, len(bin(other)) - 2))()
                 ci_inst(res, self, other)
                 return res
@@ -269,6 +277,8 @@ class cbits(bits):
         res = cbits.get_type(self.n+other)()
         inst.shlcbi(res, self, other)
         return res
+    def __invert__(self):
+        return self ^ self.long_one()
     def print_reg(self, desc=''):
         inst.print_regb(self, desc)
     def print_reg_plain(self):
@@ -527,6 +537,14 @@ class sbits(bits):
             return res
     @staticmethod
     def bit_adder(*args, **kwargs):
+        """ Binary adder in binary circuits.
+
+        :param a: summand (list of 0/1 in compatible type)
+        :param b: summand (list of 0/1 in compatible type)
+        :param carry_in: input carry (default 0)
+        :param get_carry: add final carry to output
+        :returns: list of 0/1 in relevant type
+        """
         return sbitint.bit_adder(*args, **kwargs)
     @staticmethod
     def ripple_carry_adder(*args, **kwargs):
@@ -889,7 +907,7 @@ sbits.dynamic_array = DynamicArray
 cbits.dynamic_array = Array
 
 def _complement_two_extend(bits, k):
-    return bits + [bits[-1]] * (k - len(bits))
+    return bits[:k] + [bits[-1]] * (k - len(bits))
 
 class _sbitintbase:
     def extend(self, n):
@@ -1096,7 +1114,6 @@ class sbitintvec(sbitvec, _number, _bitint, _sbitintbase):
             raise CompilerError('round to nearest not implemented')
         if not isinstance(other, sbitintvec):
             other = sbitintvec(other)
-        assert len(self.v) + len(other.v) <= k
         a = self.get_type(k).from_vec(_complement_two_extend(self.v, k))
         b = self.get_type(k).from_vec(_complement_two_extend(other.v, k))
         tmp = a * b
@@ -1147,6 +1164,10 @@ class sbitfix(_fix):
         mul: 0.149994
         sub: 0.199997
         lt: 0
+
+    Note that the default precision (16 bits after the dot, 31 bits in
+    total) only allows numbers up to :math:`2^{31-16-1} \\approx
+    16000`. You can increase this using :py:func:`set_precision`.
 
     """
     float_type = type(None)

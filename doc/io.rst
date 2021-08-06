@@ -50,6 +50,16 @@ conjunction with :py:func:`~Compiler.library.print_ln_to` in order to
 output it.
 
 
+Binary Output
+~~~~~~~~~~~~~
+
+Most types returned by :py:func:`reveal` or :py:func:`reveal_to`
+feature a :py:func:`binary_output` method, which writes to
+``Player-Data/Binary-Output-P<playerno>-<threadno>``. The format is
+either signed 64-bit integer or double-precision floating-point in
+machine byte order (usually little endian).
+
+
 Clients (Non-computing Parties)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -65,7 +75,17 @@ Secret Shares
 
 :py:func:`Compiler.types.sint.read_from_file` and
 :py:func:`Compiler.types.sint.write_to_file` allow reading and writing
-secret shares to and from files.
+secret shares to and from files. These instructions use
+``Persistence/Transactions-P<playerno>.data``. The format depends on
+the protocol with the following principles.
+
+- One share follows the other without metadata.
+- If there is a MAC, it comes after the share.
+- Numbers are stored in little-endian format.
+- Numbers modulo a power of two are stored with the minimal number of
+  bytes.
+- Numbers modulo a prime are stored in Montgomery representation in
+  blocks of eight bytes.
 
 Another possibility for persistence between program runs is to use the
 fact that the memory is stored in

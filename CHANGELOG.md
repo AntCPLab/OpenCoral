@@ -1,5 +1,20 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.2.6 (Aug 6, 2021)
+
+- [ATLAS](https://eprint.iacr.org/2021/833)
+- Keras-like interface
+- Iterative linear solution approximation
+- Binary output
+- HighGear/LowGear key generation for wider range of parameters by default
+- Dabit generation for smaller primes and malicious security
+- More consistent type model
+- Improved local computation
+- Optimized GF(2^8) for CCD
+- NTL only needed for computation with GF(2^40)
+- Virtual machines suggest compile-time optimizations
+- Improved documentation of types
+
 ## 0.2.5 (Jul 2, 2021)
 
 - Training of convolutional neural networks

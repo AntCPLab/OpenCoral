@@ -38,6 +38,7 @@ void HighGearKeyGen<L, M>::buffer_mabits()
     bmc.Check(P);
     for (int i = 0; i < batch_size; i++)
     {
+        assert(open_diffs.at(i).get_bit(1) == 0);
         bits0.push_back(my_bits0[i]);
         bits1.push_back(
                 my_bits1[i]
@@ -45,6 +46,30 @@ void HighGearKeyGen<L, M>::buffer_mabits()
                                 proto1.MC->get_alphai())
                         - my_bits1[i] * open_diffs.at(i) * 2);
     }
+
+#ifdef DEBUG_HIGHGEAR_KEYGEN
+    proto0.MC->init_open(P);
+    proto1.MC->init_open(P);
+    auto it0 = bits0.end() - batch_size;
+    auto it1 = bits1.end() - batch_size;
+    for (int i = 0; i < batch_size; i++)
+    {
+        proto0.MC->prepare_open(*it0);
+        proto1.MC->prepare_open(*it1);
+        it0++;
+        it1++;
+    }
+    proto0.MC->exchange(P);
+    proto1.MC->exchange(P);
+    for (int i = 0; i < batch_size; i++)
+    {
+        auto x0 = proto0.MC->finalize_open();
+        auto x1 = proto1.MC->finalize_open();
+        assert(x0.is_bit());
+        assert(x1.is_bit());
+        assert(x0.is_zero() == x1.is_zero());
+    }
+#endif
 }
 
 template<int L, int M>

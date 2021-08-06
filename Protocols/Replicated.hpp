@@ -117,6 +117,12 @@ T ProtocolBase<T>::mul(const T& x, const T& y)
 }
 
 template<class T>
+void ProtocolBase<T>::finalize_mult(T& res, int n)
+{
+    res = finalize_mul(n);
+}
+
+template<class T>
 T ProtocolBase<T>::finalize_dotprod(int length)
 {
     counter += length;

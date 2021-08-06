@@ -34,6 +34,14 @@ void HemiPrep<T>::basic_setup(Player& P)
     T::clear::template init<typename FD::T>();
 }
 
+
+template<class T>
+HemiPrep<T>::~HemiPrep()
+{
+    for (auto& x : multipliers)
+        delete x;
+}
+
 template<class T>
 void HemiPrep<T>::buffer_triples()
 {

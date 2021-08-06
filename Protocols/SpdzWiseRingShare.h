@@ -38,6 +38,8 @@ public:
     static const int LENGTH = K;
     static const int SECURITY = S;
 
+    static const bool has_split = true;
+
     SpdzWiseRingShare()
     {
     }

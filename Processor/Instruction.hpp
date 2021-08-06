@@ -62,6 +62,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case MULM:
       case DIVC:
       case MODC:
+      case FLOORDIVC:
       case TRIPLE:
       case ANDC:
       case XORC:
@@ -287,6 +288,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case INPUTMIXEDREG:
       case RAWINPUT:
       case GRAWINPUT:
+      case INPUTPERSONAL:
       case TRUNC_PR:
       case RUN_TAPE:
         num_var_args = get_int(s);
@@ -446,8 +448,13 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
         get_vector(get_int(s), start, s);
         break;
       case PRINTREGSIGNED:
+      case INTOUTPUT:
         n = get_int(s);
         get_ints(r, s, 1);
+        break;
+      case FLOATOUTPUT:
+        n = get_int(s);
+        get_vector(4, start, s);
         break;
       case TRANS:
         num_var_args = get_int(s) - 1;
@@ -537,6 +544,7 @@ int BaseInstruction::get_reg_type() const
     case PLAYERID:
     case CONVCBIT:
     case CONVCBITVEC:
+    case INTOUTPUT:
       return INT;
     case PREP:
     case GPREP:
@@ -567,6 +575,7 @@ int BaseInstruction::get_reg_type() const
     case LEGENDREC:
     case DIGESTC:
     case INV2M:
+    case FLOORDIVC:
     case OPEN:
     case ANDC:
     case XORC:
@@ -581,6 +590,7 @@ int BaseInstruction::get_reg_type() const
     case SHRCI:
     case CONVINT:
     case PUBINPUT:
+    case FLOATOUTPUT:
       return CINT;
     default:
       if (is_gf2n_instruction())
@@ -718,6 +728,11 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
       size = DIV_CEIL(this->size, 64);
       skip = 1;
       break;
+  case INPUTPERSONAL:
+      size_offset = -2;
+      offset = 2;
+      skip = 4;
+      break;
   }
 
   if (skip > 0)
@@ -848,7 +863,16 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
           throw Processor_Error("Division by zero from register");
         Proc.write_C2(r[0], Proc.read_C2(r[1]) / Proc.read_C2(r[2]));
         break;
+      case FLOORDIVC:
+        if (Proc.read_Cp(r[2]).is_zero())
+          throw Processor_Error("Division by zero from register");
+        Proc.temp.aa.from_signed(Proc.read_Cp(r[1]));
+        Proc.temp.aa2.from_signed(Proc.read_Cp(r[2]));
+        Proc.write_Cp(r[0], bigint(Proc.temp.aa / Proc.temp.aa2));
+        break;
       case MODC:
+        if (Proc.read_Cp(r[2]).is_zero())
+          throw Processor_Error("Modulo by zero from register");
         to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
         to_bigint(Proc.temp.aa2, Proc.read_Cp(r[2]));
         mpz_fdiv_r(Proc.temp.aa.get_mpz_t(), Proc.temp.aa.get_mpz_t(), Proc.temp.aa2.get_mpz_t());
@@ -887,6 +911,8 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.write_Cp(r[0], Proc.get_inverse2(n));
         break;
       case MODCI:
+        if (n == 0)
+          throw Processor_Error("Modulo by immediate zero");
         to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
         to_gfp(Proc.temp.ansp, Proc.temp.aa2 = mpz_fdiv_ui(Proc.temp.aa.get_mpz_t(), n));
         Proc.write_Cp(r[0],Proc.temp.ansp);
@@ -943,6 +969,9 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         return;
       case GRAWINPUT:
         Proc.Proc2.input.raw_input(Proc.Proc2, start, size);
+        return;
+      case INPUTPERSONAL:
+        Proc.Procp.input_personal(start);
         return;
       // Note: Fp version has different semantics for NOTC than GNOTC
       case NOTC:
@@ -1163,6 +1192,19 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         break;
       case RAWOUTPUT:
         Proc.read_Cp(r[0]).output(Proc.public_output, false);
+        break;
+      case INTOUTPUT:
+        if (n == -1 or n == Proc.P.my_num())
+          Integer(Proc.read_Ci(r[0])).output(Proc.binary_output, false);
+        break;
+      case FLOATOUTPUT:
+        if (n == -1 or n == Proc.P.my_num())
+          {
+            double tmp = bigint::get_float(Proc.read_Cp(start[0] + i),
+              Proc.read_Cp(start[1] + i), Proc.read_Cp(start[2] + i),
+              Proc.read_Cp(start[3] + i)).get_d();
+            Proc.binary_output.write((char*) &tmp, sizeof(double));
+          }
         break;
       case STARTPRIVATEOUTPUT:
         Proc.privateOutputp.start(n,r[0],r[1]);

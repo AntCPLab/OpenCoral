@@ -1,6 +1,14 @@
 import ml
 import random
 import re
+import sys
+
+if len(program.args) < 4:
+   print('Usage: %s <n_negative> <n_positive> <n_features>' % program.args[0],
+         file=sys.stderr)
+   print('Refer to https://github.com/mkskeller/idash-submission for '
+         'scripts to run this benchmark.', file=sys.stderr)
+   exit(1)
 
 program.use_trunc_pr = True
 
@@ -42,6 +50,8 @@ if 'mini' in program.args:
    batch_size = 32
 else:
    batch_size = N
+
+ml.Layer.back_batch_size = batch_size
 
 X_normal = sfix.Matrix(n_normal, n_features)
 X_pos = sfix.Matrix(n_pos, n_features)

@@ -272,6 +272,8 @@ public:
 	// only true for evaluation
 	static const bool actual_inputs = false;
 
+	static int threshold(int) { throw not_implemented(); }
+
 	static Register new_reg();
 	static Register tmp_reg() { return new_reg(); }
 	static Register and_reg() { return new_reg(); }

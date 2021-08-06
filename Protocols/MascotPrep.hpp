@@ -72,6 +72,20 @@ void MascotTriplePrep<T>::buffer_triples()
 template<class T>
 void MascotDabitOnlyPrep<T>::buffer_bits()
 {
+    buffer_bits<0>(T::clear::prime_field);
+}
+
+template<class T>
+template<int>
+void MascotDabitOnlyPrep<T>::buffer_bits(true_type)
+{
+    buffer_bits_from_squares(*this);
+}
+
+template<class T>
+template<int>
+void MascotDabitOnlyPrep<T>::buffer_bits(false_type)
+{
     this->params.generateBits = true;
     auto& triple_generator = this->triple_generator;
     triple_generator->generate();

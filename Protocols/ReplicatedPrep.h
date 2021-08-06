@@ -323,6 +323,11 @@ template<class T>
 class ReplicatedPrep : public virtual ReplicatedRingPrep<T>,
         public virtual SemiHonestRingPrep<T>
 {
+    template<int>
+    void buffer_bits(false_type);
+    template<int>
+    void buffer_bits(true_type);
+
 public:
     ReplicatedPrep(SubProcessor<T>* proc, DataPositions& usage) :
             BufferPrep<T>(usage), BitPrep<T>(proc, usage),

@@ -11,15 +11,18 @@
 template<class U>
 class Square
 {
+protected:
+    static const int N_ROWS = U::MAX_N_BITS;
+
 public:
     typedef U RowType;
 
-    static const int N_ROWS = U::MAX_N_BITS;
-    static const int N_ROWS_ALLOCATED = N_ROWS;
-    static const int N_COLUMNS = N_ROWS;
-    static const int N_ROW_BYTES = N_ROWS / 8;
+    static int n_rows() { return U::size_in_bits(); }
+    static int n_rows_allocated() { return n_rows(); }
+    static int n_columns() { return n_rows(); }
+    static int n_row_bytes() { return U::size(); }
 
-    static size_t size() { return N_ROWS * U::size(); }
+    static size_t size() { return U::length() * U::size(); }
 
     U rows[N_ROWS];
 
@@ -32,6 +35,7 @@ public:
             int offset);
     void to(U& result);
     void to(U& result, false_type);
+    void to(U& result, true_type);
     template<int X, int L>
     void to(gfp_<X, L>& result, true_type);
 

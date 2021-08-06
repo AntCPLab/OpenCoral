@@ -135,8 +135,8 @@ void OTExtensionWithMatrix::hash_outputs(int nOTs, vector<V>& senderOutput,
     gettimeofday(&startv, NULL);
 #endif
 
-    int n_rows = V::PartType::N_ROWS_ALLOCATED;
-    int n = (nOTs + n_rows - 1) / n_rows * V::PartType::N_ROWS;
+    int n_rows = V::PartType::n_rows_allocated();
+    int n = (nOTs + n_rows - 1) / n_rows * V::PartType::n_rows();
     for (int i = 0; i < 2; i++)
         senderOutput[i].resize_vertical(n);
     receiverOutput.resize_vertical(n);
@@ -192,8 +192,20 @@ void OTCorrelator<U>::reduce_squares(unsigned int nTriples, vector<T>& output, i
     output.resize(nTriples);
     for (unsigned int j = 0; j < nTriples; j++)
     {
+#ifdef DEBUG_MASCOT
+        T a, b;
+        receiverOutputMatrix.squares[j + start].to(a);
+        senderOutputMatrices[0].squares[j + start].to(b);
+#endif
+
         receiverOutputMatrix.squares[j + start].sub(
                 senderOutputMatrices[0].squares[j + start]).to(output[j]);
+
+#ifdef DEBUG_MASCOT
+        cout << output[j] << " ?= " << a <<  " - " << b << endl;
+        cout << "first row " << receiverOutputMatrix.squares[j + start].rows[0] << endl;
+        assert(output[j] == a - b);
+#endif
     }
 }
 

@@ -12,8 +12,8 @@ void ShareVector<U>::fft(const FFT_Data& fftd)
     array<vector<modp>, 2> data;
     for (auto& share : *this)
     {
-        data[0].push_back(share.get_share());
-        data[1].push_back(share.get_mac());
+        data[0].push_back({share.get_share(), fftd.get_prD()});
+        data[1].push_back({share.get_mac(), fftd.get_prD()});
     }
 
     for (auto& x : data)
@@ -26,6 +26,7 @@ void ShareVector<U>::fft(const FFT_Data& fftd)
 
     for (int i = 0; i < fftd.phi_m(); i++)
     {
-        (*this)[i] = {data[0][i], data[1][i]};
+        typedef typename U::clear clear;
+        (*this)[i] = {clear(data[0][i], fftd.get_prD()), clear(data[1][i], fftd.get_prD())};
     }
 }

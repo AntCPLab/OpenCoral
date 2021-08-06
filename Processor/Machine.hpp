@@ -79,6 +79,11 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
        inpf.open(memory_filename(), ios::in | ios::binary);
        if (inpf.fail()) { throw file_error(memory_filename()); }
        inpf >> M2 >> Mp >> Mi;
+       if (inpf.get() != 'M')
+         {
+           cerr << "Invalid memory file. Run with '-m empty'." << endl;
+           exit(1);
+         }
        inpf.close();
      }
   else if (!(memtype.compare("empty")==0))
@@ -319,7 +324,12 @@ void Machine<sint, sgf2n>::run()
 #endif
 
   print_timers();
-  cerr << "Data sent = " << data_sent / 1e6 << " MB" << endl;
+
+  size_t rounds = 0;
+  for (auto& x : comm_stats)
+      rounds += x.second.rounds;
+  cerr << "Data sent = " << data_sent / 1e6 << " MB in ~" << rounds
+      << " rounds (party " << my_number << ")" << endl;
 
   auto& P = *this->P;
   Bundle<octetStream> bundle(P);
@@ -328,7 +338,7 @@ void Machine<sint, sgf2n>::run()
   size_t global = 0;
   for (auto& os : bundle)
       global += os.get_int(8);
-  cerr << "Global data sent = " << global / 1e6 << " MB" << endl;
+  cerr << "Global data sent = " << global / 1e6 << " MB (all parties)" << endl;
 
 #ifdef VERBOSE_OPTIONS
   if (opening_sum < N.num_players() && !direct)
@@ -352,6 +362,7 @@ void Machine<sint, sgf2n>::run()
   // Write out the memory to use next time
   ofstream outf(memory_filename(), ios::out | ios::binary);
   outf << M2 << Mp << Mi;
+  outf << 'M';
   outf.close();
 
   bit_memories.write_memory(N.my_num());
@@ -396,6 +407,8 @@ void Machine<sint, sgf2n>::run()
   sint::LivePrep::teardown();
   sgf2n::LivePrep::teardown();
 
+  suggest_optimizations();
+
 #ifdef VERBOSE
   cerr << "End of prog" << endl;
 #endif
@@ -418,6 +431,23 @@ template<class sint, class sgf2n>
 void Machine<sint, sgf2n>::reqbl(int n)
 {
   sint::clear::reqbl(n);
+}
+
+template<class sint, class sgf2n>
+void Machine<sint, sgf2n>::suggest_optimizations()
+{
+  string optimizations;
+  if (relevant_opts.find("trunc_pr") != string::npos and sint::has_trunc_pr)
+    optimizations.append("\tprogram.use_trunc_pr = True\n");
+  if (relevant_opts.find("split") != string::npos and sint::has_split)
+    optimizations.append(
+        "\tprogram.use_split(" + to_string(N.num_players()) + ")\n");
+  if (relevant_opts.find("edabit") != string::npos and not sint::has_split)
+    optimizations.append("\tprogram.use_edabit(True)\n");
+  if (not optimizations.empty())
+    cerr << "This program might benefit from some protocol options." << endl
+        << "Consider adding the following at the beginning of '" << progname
+        << ".mpc':" << endl << optimizations;
 }
 
 #endif

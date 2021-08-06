@@ -85,11 +85,14 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
   private_input.open(private_input_filename.c_str());
   public_output.open(get_filename(PREP_DIR "Public-Output-",true).c_str(), ios_base::out);
   private_output.open(get_filename(PREP_DIR "Private-Output-",true).c_str(), ios_base::out);
+  binary_output.open(
+      get_parameterized_filename(P.my_num(), thread_num,
+          PREP_DIR "Binary-Output"), ios_base::out);
 
   open_input_file(P.my_num(), thread_num, machine.opts.cmd_private_input_file);
 
   secure_prng.ReSeed();
-  shared_prng.SeedGlobally(P);
+  shared_prng.SeedGlobally(P, false);
 
   // only output on party 0 if not interactive
   bool output = P.my_num() == 0 or machine.opts.interactive;
@@ -217,8 +220,8 @@ void Processor<sint, sgf2n>::convcintvec(const Instruction& instruction)
           int n_cols = min(n_bits - j * unit, unit);
           for (int k = 0; k < n_rows; k++)
             square.rows[k] =
-                Integer(Procp.C[instruction.get_r(0) + i * unit + k]
-                                >> (j * unit)).get();
+                Integer::convert_unsigned(
+                    Procp.C[instruction.get_r(0) + i * unit + k] >> (j * unit)).get();
           square.transpose(n_rows, n_cols);
           for (int k = 0; k < n_cols; k++)
             Procb.C[instruction.get_start()[k + j * unit] + i] = square.rows[k];
@@ -644,6 +647,24 @@ void SubProcessor<T>::conv2ds(const Instruction& instruction)
                                 lengths[i_batch][out_y][out_x]);
             }
     }
+}
+
+template<class T>
+void SubProcessor<T>::input_personal(const vector<int>& args)
+{
+  input.reset_all(P);
+  for (size_t i = 0; i < args.size(); i += 4)
+    for (int j = 0; j < args[i]; j++)
+      {
+        if (args[i + 1] == P.my_num())
+          input.add_mine(C[args[i + 3] + j]);
+        else
+          input.add_other(args[i + 1]);
+      }
+  input.exchange();
+  for (size_t i = 0; i < args.size(); i += 4)
+    for (int j = 0; j < args[i]; j++)
+      S[args[i + 2] + j] = input.finalize(args[i + 1]);
 }
 
 template<class sint, class sgf2n>

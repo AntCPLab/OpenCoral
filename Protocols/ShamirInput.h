@@ -9,6 +9,7 @@
 #include "Processor/Input.h"
 #include "Shamir.h"
 #include "ReplicatedInput.h"
+#include "Machines/ShamirMachine.h"
 
 template<class T>
 class IndividualInput : public PrepLessInput<T>
@@ -40,29 +41,36 @@ class ShamirInput : public IndividualInput<T>
 {
     friend class Shamir<T>;
 
-    static vector<vector<typename T::open_type>> vandermonde;
+    vector<vector<typename T::open_type>> vandermonde;
 
     SeededPRNG secure_prng;
 
     vector<typename T::Scalar> randomness;
 
+    int threshold;
+
 public:
-    static const vector<vector<typename T::open_type>>& get_vandermonde(size_t t,
+    static vector<vector<typename T::open_type>> get_vandermonde(size_t t,
             size_t n);
 
-    ShamirInput(SubProcessor<T>& proc, ShamirMC<T>& MC) :
-            IndividualInput<T>(proc)
+    ShamirInput(SubProcessor<T>& proc, typename T::MAC_Check& MC) :
+            ShamirInput<T>(&proc, proc.P)
     {
         (void) MC;
     }
 
-    ShamirInput(SubProcessor<T>* proc, Player& P) :
+    ShamirInput(SubProcessor<T>* proc, Player& P, int t = 0) :
             IndividualInput<T>(proc, P)
     {
+        if (t > 0)
+            threshold = t;
+        else
+            threshold = ShamirMachine::s().threshold;
+
     }
 
     ShamirInput(ShamirMC<T>&, Preprocessing<T>&, Player& P) :
-            IndividualInput<T>(0, P)
+            ShamirInput<T>(0, P)
     {
     }
 

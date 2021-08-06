@@ -37,8 +37,8 @@ template<int L, int M>
 class HighGearKeyGen
 {
 public:
-    typedef KeyGenProtocol<5, L> Proto0;
-    typedef KeyGenProtocol<7, M> Proto1;
+    typedef KeyGenProtocol<1, -1> Proto0;
+    typedef KeyGenProtocol<2, -1> Proto1;
 
     typedef typename Proto0::share_type share_type0;
     typedef typename Proto1::share_type share_type1;

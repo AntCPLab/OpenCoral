@@ -75,7 +75,7 @@ class Ring_Element
       FFTD = &prd;
       rep = r;
       for (auto& x : other)
-        element.push_back(x);
+        element.push_back({x, FFTD->get_prD()});
     }
 
   /* Functional Operators */

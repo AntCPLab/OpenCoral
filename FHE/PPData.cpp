@@ -3,6 +3,8 @@
 #include "FHE/FFT.h"
 #include "FHE/Matrix.h"
 
+#include "Math/modp.hpp"
+
 
 
 void PPData::init(const Ring& Rg,const Zp_Data& PrD)
@@ -64,7 +66,9 @@ void PPData::from_eval(vector<modp>& elem) const
 
 void PPData::reset_iteration()
 {
-  pow=1; theta = (root); thetaPow=theta;
+  pow = 1;
+  theta = {root, prData};
+  thetaPow = theta;
 }
 
 void PPData::next_iteration()

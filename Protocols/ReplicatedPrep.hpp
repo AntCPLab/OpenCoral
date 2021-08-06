@@ -321,16 +321,15 @@ void buffer_bits_from_squares(RingPrep<T>& prep)
         throw runtime_error("squares were all zero");
 }
 
-template<template<class U> class T, int X, int L>
-void buffer_bits_spec(ReplicatedPrep<T<gfp_<X, L>>>& prep, vector<T<gfp_<X, L>>>& bits,
-    typename T<gfp_<X, L>>::Protocol& prot)
+template<class T>
+template<int>
+void ReplicatedPrep<T>::buffer_bits(true_type)
 {
-    (void) bits, (void) prot;
-    if (prot.get_n_relevant_players() > 10
+    if (this->protocol->get_n_relevant_players() > 10
             or OnlineOptions::singleton.bits_from_squares)
-        buffer_bits_from_squares(prep);
+        buffer_bits_from_squares(*this);
     else
-        prep.ReplicatedRingPrep<T<gfp_<X, L>>>::buffer_bits();
+        ReplicatedRingPrep<T>::buffer_bits();
 }
 
 template<class T>
@@ -535,7 +534,7 @@ void MaliciousRingPrep<T>::buffer_personal_edabits(int n_bits, vector<T>& wholes
 
 template<class T>
 void buffer_bits_from_players(vector<vector<T>>& player_bits,
-        vector<PRNG>& G, SubProcessor<T>& proc, int base_player,
+        PRNG& G, SubProcessor<T>& proc, int base_player,
         int buffer_size, int n_bits)
 {
     auto& protocol = proc.protocol;
@@ -553,7 +552,7 @@ void buffer_bits_from_players(vector<vector<T>>& player_bits,
             {
                 typename T::clear tmp;
                 for (int j = 0; j < n_bits; j++)
-                    tmp += typename T::clear(G[j % G.size()].get_bit()) << j;
+                    tmp += typename T::clear(G.get_bit()) << j;
                 input.add_mine(tmp, n_bits);
             }
         }
@@ -565,17 +564,17 @@ void buffer_bits_from_players(vector<vector<T>>& player_bits,
     for (int i = 0; i < n_relevant_players; i++)
         for (auto& x : player_bits[i])
             x = input.finalize((base_player + i) % P.num_players(), n_bits);
-}
-
-template<class T>
-void buffer_bits_from_players(vector<vector<T>>& player_bits, PRNG& G,
-        SubProcessor<T>& proc, int base_player, int buffer_size,
-        int n_bits = -1)
-{
-    vector<PRNG> Gs = {G};
-    buffer_bits_from_players(player_bits, Gs, proc, base_player, buffer_size,
-            n_bits);
-    G = Gs[0];
+#if !defined(__clang__) && (__GNUC__ == 6)
+    // mitigate compiler bug
+    Bundle<octetStream> bundle(P);
+    P.unchecked_broadcast(bundle);
+#endif
+#ifdef DEBUG_BIT_SACRIFICE
+    typename T::MAC_Check MC;
+    for (int i = 0; i < n_relevant_players; i++)
+        for (auto& x : player_bits[i])
+            assert((MC.open(x, P) == 0) or (MC.open(x, P) == 1));
+#endif
 }
 
 template<class T>
@@ -927,35 +926,18 @@ void bits_from_random(vector<T>& bits, typename T::Protocol& protocol)
     }
 }
 
-template<template<class U> class T>
-void buffer_bits_spec(ReplicatedPrep<T<gf2n_short>>& prep, vector<T<gf2n_short>>& bits,
-    typename T<gf2n_short>::Protocol& prot)
+template<class T>
+template<int>
+void ReplicatedPrep<T>::buffer_bits(false_type)
 {
-    (void) bits, (void) prot;
-    prep.ReplicatedRingPrep<T<gf2n_short>>::buffer_bits();
-}
-
-template<template<class U> class T>
-void buffer_bits_spec(ReplicatedPrep<T<gf2n_long>>& prep, vector<T<gf2n_long>>& bits,
-    typename T<gf2n_long>::Protocol& prot)
-{
-    (void) bits, (void) prot;
-    prep.ReplicatedRingPrep<T<gf2n_long>>::buffer_bits();
-}
-
-template<template<class U> class T, int K>
-void buffer_bits_spec(ReplicatedPrep<T<Z2<K>>>& prep, vector<T<Z2<K>>>& bits,
-    typename T<Z2<K>>::Protocol& prot)
-{
-    (void) bits, (void) prot;
-    prep.ReplicatedRingPrep<T<Z2<K>>>::buffer_bits();
+    ReplicatedRingPrep<T>::buffer_bits();
 }
 
 template<class T>
 void ReplicatedPrep<T>::buffer_bits()
 {
     assert(this->protocol != 0);
-    buffer_bits_spec(*this, this->bits, *this->protocol);
+    buffer_bits<0>(T::clear::prime_field);
 }
 
 template<class T>

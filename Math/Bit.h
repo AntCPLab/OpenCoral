@@ -8,7 +8,7 @@
 
 #include "BitVec.h"
 
-class gf2n_short;
+template<class T> class gf2n_;
 
 class Bit : public BitVec_<bool>
 {
@@ -37,7 +37,8 @@ public:
         throw runtime_error("never call this");
     }
 
-    Bit(const gf2n_short& other);
+    template<class T>
+    Bit(const gf2n_<T>& other);
 
     Bit operator*(const Bit& other) const
     {

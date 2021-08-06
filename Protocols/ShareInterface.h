@@ -32,6 +32,9 @@ public:
     static const bool expensive = false;
     static const bool expensive_triples = false;
 
+    static const bool has_trunc_pr = false;
+    static const bool has_split = false;
+
     static const int default_length = 1;
 
     static string type_short() { return "undef"; }

@@ -26,6 +26,7 @@ protected:
 
     string compiler;
     string domain;
+    string relevant_opts;
 
     void print_timers();
 

@@ -1,3 +1,6 @@
+# this trains network C (LeNet) from SecureNN
+# see https://github.com/csiro-mlai/mnist-mpc for data preparation
+
 import ml
 import math
 import re
@@ -58,8 +61,9 @@ layers = [
     ml.Dense(N, 800, 500),
     ml.Relu([N, 500]),
     ml.Dense(N, 500, 10),
-    ml.MultiOutput(n_examples, 10)
 ]
+
+layers += [ml.MultiOutput.from_args(program, n_examples, 10)]
 
 if 'dropout' in program.args or 'dropout2' in program.args:
     layers.insert(8, ml.Dropout(N, 500))

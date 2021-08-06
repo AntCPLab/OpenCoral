@@ -10,18 +10,16 @@ Compiler.types module
 
 .. automodule:: Compiler.types
    :members:
-   :special-members:
-   :private-members:
    :no-undoc-members:
-   :no-inherited-members:
-   :show-inheritance:
+   :inherited-members:
    :exclude-members: intbitint, sgf2nfloat, sgf2nint, sgf2nint32, sgf2nuint, t,
 		     unreduced_sfix, sgf2nuint32, MemFix, MemFloat, PreOp,
 		     ClientMessageType, __weakref__, __repr__,
 		     reg_type, int_type, clear_type, float_type, basic_type,
 		     default_type, unreduced_type, bit_type, dynamic_array,
 		     squant, mov,
-		     write_share_to_socket,
+		     write_share_to_socket, add, mul, sintbit, from_sint
+.. autoclass:: sintbit
 
 Compiler.GC.types module
 ------------------------
@@ -70,7 +68,8 @@ Compiler.ml module
 .. automodule:: Compiler.ml
    :members:
    :no-undoc-members:
-   :exclude-members: Adam, Tensor
+   :exclude-members: Tensor
+   :show-inheritance:
 .. autofunction:: approx_sigmoid
 
 Compiler.circuit module

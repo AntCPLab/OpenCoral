@@ -347,6 +347,7 @@ void Player::send_all(const octetStream& o) const
 
 void Player::receive_all(vector<octetStream>& os) const
 {
+  os.resize(num_players());
   for (int j = 0; j < num_players(); j++)
     if (j != my_num())
       receive_player(j, os[j]);

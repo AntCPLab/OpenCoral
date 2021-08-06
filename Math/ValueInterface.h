@@ -24,7 +24,7 @@ public:
     template<class T>
     static void init(bool mont = true) { (void) mont; }
     static void init_default(int, bool = true) {}
-    static void init_field(const bigint& = {}) {}
+    static void init_field(const bigint& = {}, bool = true) {}
 
     static void read_or_generate_setup(const string&, const OnlineOptions&) {}
     template<class T>

@@ -9,6 +9,16 @@
 #include "ShamirMC.h"
 
 template<class T>
+ShamirMC<T>::ShamirMC(int t) :
+        os(0), player(0), threshold()
+{
+    if (t > 0)
+        threshold = t;
+    else
+        threshold = ShamirMachine::s().threshold;
+}
+
+template<class T>
 ShamirMC<T>::~ShamirMC()
 {
     if (os)
@@ -25,15 +35,23 @@ void ShamirMC<T>::POpen_Begin(vector<typename T::open_type>& values,
 }
 
 template<class T>
+vector<typename T::open_type::Scalar> ShamirMC<T>::get_reconstruction(
+        const Player& P)
+{
+    int n_relevant_players = threshold + 1;
+    vector<rec_type> reconstruction(n_relevant_players);
+    for (int i = 0; i < n_relevant_players; i++)
+        reconstruction[i] = Shamir<T>::get_rec_factor(P.get_player(i),
+                P.num_players(), P.my_num(), n_relevant_players);
+    return reconstruction;
+}
+
+template<class T>
 void ShamirMC<T>::init_open(const Player& P, int n)
 {
-    int n_relevant_players = ShamirMachine::s().threshold + 1;
     if (reconstruction.empty())
     {
-        reconstruction.resize(n_relevant_players);
-        for (int i = 0; i < n_relevant_players; i++)
-            reconstruction[i] = Shamir<T>::get_rec_factor(P.get_player(i),
-                    P.num_players(), P.my_num(), n_relevant_players);
+        reconstruction = get_reconstruction(P);
     }
 
     if (not os)
@@ -110,6 +128,44 @@ typename T::open_type ShamirMC<T>::finalize_open()
     }
 
     return res;
+}
+
+template<class T>
+void IndirectShamirMC<T>::exchange(const Player& P)
+{
+    oss.resize(P.num_players());
+    int threshold = ShamirMachine::s().threshold;
+    if (P.my_num() <= threshold)
+    {
+        oss[0].reset_write_head();
+        auto rec_factor = Shamir<T>::get_rec_factor(P.my_num(), threshold + 1);
+        for (auto& x : this->secrets)
+            (x * rec_factor).pack(oss[0]);
+        vector<vector<bool>> channels(P.num_players(),
+                vector<bool>(P.num_players()));
+        for (int i = 0; i <= threshold; i++)
+            channels[i][0] = true;
+        P.send_receive_all(channels, oss, oss);
+    }
+
+    if (P.my_num() == 0)
+    {
+        os.reset_write_head();
+        while (oss[0].left())
+        {
+            T sum;
+            for (int i = 0; i <= threshold; i++)
+                sum += oss[i].template get<T>();
+            sum.pack(os);
+        }
+        P.send_all(os);
+    }
+
+    if (P.my_num() != 0)
+        P.receive_player(0, os);
+
+    while (os.left())
+        this->values.push_back(os.get<T>());
 }
 
 #endif

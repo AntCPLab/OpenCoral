@@ -1,6 +1,10 @@
+#ifndef MATH_MODP_HPP_
+#define MATH_MODP_HPP_
+
 #include "Zp_Data.h"
 #include "modp.h"
 #include "Z2k.hpp"
+#include "gfpvar.h"
 
 #include "Tools/Exceptions.h"
 
@@ -246,6 +250,12 @@ void modp_<L>::convert(const mp_limb_t* source, mp_size_t size, const Zp_Data& Z
     ZpD.Mont_Mult(x, x, ZpD.R2);
 }
 
+template<int L>
+void modp_<L>::zero_overhang(const Zp_Data& ZpD)
+{
+  x[ZpD.get_t() - 1] &= ZpD.overhang_mask();
+}
+
 
 
 template<int L>
@@ -350,3 +360,5 @@ void modp_<L>::input(istream& s,const Zp_Data& ZpD,bool human)
   else
     { s.read((char*) x,ZpD.t*sizeof(mp_limb_t)); }
 }
+
+#endif

@@ -1,3 +1,6 @@
+# this trains logistic regression in 0/1 distinction
+# see https://github.com/csiro-mlai/mnist-mpc for data preparation
+
 import ml
 
 program.options_from_args()

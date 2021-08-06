@@ -31,6 +31,9 @@ public:
     typedef ::PrivateOutput<This> PrivateOutput;
     typedef Rep4RingOnlyPrep<This> LivePrep;
 
+    static const bool has_trunc_pr = true;
+    static const bool has_split = true;
+
     Rep4Share2()
     {
     }

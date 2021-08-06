@@ -50,10 +50,16 @@ template<class T>
 T VectorProtocol<T>::finalize_mul(int n)
 {
     T res;
+    finalize_mult(res, n);
+    return res;
+}
+
+template<class T>
+void VectorProtocol<T>::finalize_mult(T& res, int n)
+{
     res.resize_regs(n);
     for (int i = 0; i < n; i++)
         res.get_reg(i) = part_protocol.finalize_mul(1);
-    return res;
 }
 
 } /* namespace GC */

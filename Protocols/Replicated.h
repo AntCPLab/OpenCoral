@@ -73,6 +73,7 @@ public:
     virtual typename T::clear prepare_mul(const T& x, const T& y, int n = -1) = 0;
     virtual void exchange() = 0;
     virtual T finalize_mul(int n = -1) = 0;
+    virtual void finalize_mult(T& res, int n = -1);
 
     void init_dotprod(SubProcessor<T>* proc) { init_mul(proc); }
     void prepare_dotprod(const T& x, const T& y) { prepare_mul(x, y); }

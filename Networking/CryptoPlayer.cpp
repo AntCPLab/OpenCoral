@@ -21,6 +21,7 @@ void ssl_error(string side, string pronoun, string other, string server)
             << " have the necessary certificate (" << PREP_DIR << server
             << ".pem in the default configuration),"
             << " and run `c_rehash <directory>` on its location." << endl
+            << "The certificates should be the same on every host. "
             << "Also make sure that it's still valid. Certificates generated "
             << "with `Scripts/setup-ssl.sh` expire after a month." << endl;
 }

@@ -15,6 +15,7 @@ using namespace std;
 #include "field_types.h"
 #include "Z2k.h"
 #include "ValueInterface.h"
+#include "gf2nlong.h"
 
 
 // Functionality shared between integers and bit vectors
@@ -124,6 +125,7 @@ class Integer : public IntBase<long>
   Integer(const Z2<K>& x) : Integer(x.get_limb(0)) {}
   template<int X, int L>
   Integer(const gfp_<X, L>& x);
+  Integer(int128 x) : Integer(x.get_lower()) {}
 
   Integer(const Integer& x, int n_bits);
 
@@ -186,7 +188,7 @@ Integer Integer::convert_unsigned(const gfp_<X, L>& other)
 template<int K>
 Integer Integer::convert_unsigned(const Z2<K>& other)
 {
-  return bigint::tmp = other;
+  return other;
 }
 
 // slight misnomer

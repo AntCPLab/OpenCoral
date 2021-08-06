@@ -28,7 +28,8 @@ LIB = libSPDZ.a
 LIBRELEASE = librelease.a
 
 ifeq ($(AVX_OT), 0)
-LIBSIMPLEOT = ECDSA/P256Element.o
+VM += ECDSA/P256Element.o
+OT += ECDSA/P256Element.o
 else
 LIBSIMPLEOT = SimpleOT/libsimpleot.a
 endif
@@ -42,6 +43,7 @@ DEPS := $(wildcard */*.d */*/*.d)
 
 
 all: arithmetic binary gen_input online offline externalIO bmr ecdsa doc
+vm: arithmetic binary
 
 .PHONY: doc
 doc:
@@ -50,10 +52,8 @@ doc:
 arithmetic: rep-ring rep-field shamir semi2k-party.x semi-party.x mascot sy
 binary: rep-bin yao semi-bin-party.x tinier-party.x tiny-party.x ccd-party.x malicious-ccd-party.x real-bmr
 
-ifeq ($(USE_NTL),1)
 all: overdrive she-offline
 arithmetic: hemi-party.x soho-party.x gear
-endif
 
 -include $(DEPS)
 include $(wildcard *.d static/*.d)
@@ -105,7 +105,7 @@ ifeq ($(MACHINE), aarch64)
 tldr: simde/simde
 endif
 
-shamir: shamir-party.x malicious-shamir-party.x galois-degree.x
+shamir: shamir-party.x malicious-shamir-party.x atlas-party.x galois-degree.x
 
 sy: sy-rep-field-party.x sy-rep-ring-party.x sy-shamir-party.x
 
@@ -179,12 +179,6 @@ secure.x: Utils/secure.o
 %gear-party.x: Machines/%gear-party.o $(VM) OT/OTTripleSetup.o OT/BaseOT.o $(LIBSIMPLEOT)
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS) -lntl
 
-hemi-party.x: Machines/hemi-party.o $(VM)
-	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS) -lntl
-
-soho-party.x: Machines/soho-party.o $(VM)
-	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS) -lntl
-
 %-ecdsa-party.x: ECDSA/%-ecdsa-party.o ECDSA/P256Element.o $(VM)
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
 
@@ -207,6 +201,7 @@ cowgear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o $(OT)
 chaigear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o $(OT)
 lowgear-party.x: $(FHEOFFLINE) $(OT) Protocols/CowGearOptions.o Protocols/LowGearKeyGen.o
 highgear-party.x: $(FHEOFFLINE) $(OT) Protocols/CowGearOptions.o Protocols/HighGearKeyGen.o
+atlas-party.x: GC/AtlasSecret.o
 static/hemi-party.x: $(FHEOFFLINE)
 static/soho-party.x: $(FHEOFFLINE)
 static/cowgear-party.x: $(FHEOFFLINE)

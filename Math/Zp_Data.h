@@ -84,6 +84,7 @@ class Zp_Data
   void Sub(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) const;
 
   bool operator!=(const Zp_Data& other) const;
+  bool operator==(const Zp_Data& other) const;
 
    template<int L> friend void to_modp(modp_<L>& ans,int x,const Zp_Data& ZpD);
    template<int L> friend void to_modp(modp_<L>& ans,const mpz_class& x,const Zp_Data& ZpD);
@@ -169,12 +170,9 @@ inline void Zp_Data::Add(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) c
 {
   switch (t)
   {
-  case 4:
-    return Add<4>(ans, x, y);
-  case 2:
-    return Add<2>(ans, x, y);
-  case 1:
-    return Add<1>(ans, x, y);
+#define X(L) case L: Add<L>(ans, x, y); break;
+  X(1) X(2) X(3) X(4) X(5)
+#undef X
   default:
     return Add<0>(ans, x, y);
   }
@@ -203,14 +201,9 @@ inline void Zp_Data::Sub(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y) c
 {
   switch (t)
   {
-  /*
-  case 2:
-    Sub<2>(ans, x, y);
-    break;
-  case 1:
-    Sub<1>(ans, x, y);
-    break;
-   */
+#define X(L) case L: Sub<L>(ans, x, y); break;
+  X(1) X(2) X(3) X(4) X(5)
+#undef X
   default:
     Sub<0>(ans, x, y);
     break;

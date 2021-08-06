@@ -18,9 +18,9 @@ class MamaRectangle
     typename T::Square squares[N];
 
 public:
-    static const int N_ROWS = T::Square::N_ROWS;
-    static const int N_COLUMNS = T::Square::N_COLUMNS;
-    static const int N_ROW_BYTES = T::Square::N_ROW_BYTES;
+    static int n_rows() { return T::Square::n_rows(); }
+    static int n_columns() { return T::Square::n_columns(); }
+    static int n_row_bytes() { return T::Square::n_row_bytes(); }
 
     static int size()
     {
@@ -58,7 +58,8 @@ public:
 
     void randomize(int row, PRNG& G)
     {
-        squares[row / T::Square::N_ROWS].randomize(row % T::Square::N_ROWS, G);
+        squares[row / T::Square::n_rows()].randomize(
+                row % T::Square::n_rows(), G);
     }
 
     void pack(octetStream& os) const

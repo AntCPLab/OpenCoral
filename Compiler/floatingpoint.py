@@ -264,8 +264,8 @@ def BitDec(a, k, m, kappa, bits_to_compute=None):
     return program.Program.prog.non_linear.bit_dec(a, k, m)
 
 def BitDecRingRaw(a, k, m):
+    comparison.require_ring_size(m, 'bit decomposition')
     n_shift = int(program.Program.prog.options.ring) - m
-    assert(n_shift >= 0)
     if program.Program.prog.use_split():
         x = a.split_to_two_summands(m)
         bits = types._bitint.carry_lookahead_adder(x[0], x[1], fewer_inv=False)
@@ -504,7 +504,8 @@ def TruncPrRing(a, k, m, signed=True):
         return comparison.TruncLeakyInRing(a, k, m, signed=signed)
     else:
         from .types import sint
-        if signed:
+        prog = program.Program.prog
+        if signed and prog.use_trunc_pr != -1:
             a += (1 << (k - 1))
         if program.Program.prog.use_trunc_pr:
             res = sint()
@@ -530,7 +531,7 @@ def TruncPrRing(a, k, m, signed=True):
             overflow = msb.bit_xor(masked >> (n_ring - 1))
             res = shifted - upper + \
                   (overflow << (k - m))
-        if signed:
+        if signed and prog.use_trunc_pr != -1:
             res -= (1 << (k - m - 1))
         return res
 
@@ -672,7 +673,7 @@ def BitDecFull(a, maybe_mixed=False):
     t = bbits[0].bit_decompose_clear(p - c, bit_length)
     c = longint(c, bit_length)
     czero = (c==0)
-    q = bbits[0].long_one() - BITLT(bbits, t, bit_length)
+    q = bbits[0].long_one() - comparison.BitLTL_raw(bbits, t)
     fbar = [bbits[0].clear_type.conv(cint(x))
             for x in ((1<<bit_length)+c-p).bit_decompose(bit_length)]
     fbard = bbits[0].bit_decompose_clear(cmodp, bit_length)

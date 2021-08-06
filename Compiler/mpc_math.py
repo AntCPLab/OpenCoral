@@ -3,7 +3,7 @@ Module for math operations.
 
 Implements trigonometric and logarithmic functions.
 
-This has to imported explicitely.
+This has to imported explicitly.
 """
 
 

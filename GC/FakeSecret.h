@@ -70,6 +70,8 @@ public:
     static const true_type invertible;
     static const true_type characteristic_two;
 
+    static int threshold(int) { return 0; }
+
     static MC* new_mc(mac_key_type key) { return new MC(key); }
 
     static void store_clear_in_dynamic(Memory<DynamicType>& mem,

@@ -1,5 +1,5 @@
 /*
- * gfpvar.cpp
+ * gfpvar_<X, L>.cpp
  *
  */
 
@@ -9,207 +9,302 @@
 
 #include "gfp.hpp"
 
-const true_type gfpvar::invertible;
-const true_type gfpvar::prime_field;
-const false_type gfpvar::characteristic_two;
+template<int X, int L>
+Zp_Data gfpvar_<X, L>::ZpD;
 
-Zp_Data gfpvar::ZpD;
-
-string gfpvar::type_string()
+template<int X, int L>
+string gfpvar_<X, L>::type_string()
 {
     return "gfpvar";
 }
 
-string gfpvar::type_short()
+template<int X, int L>
+string gfpvar_<X, L>::type_short()
 {
     return "p";
 }
 
-char gfpvar::type_char()
+template<int X, int L>
+char gfpvar_<X, L>::type_char()
 {
     return 'p';
 }
 
-int gfpvar::length()
+template<int X, int L>
+int gfpvar_<X, L>::length()
 {
     return ZpD.pr_bit_length;
 }
 
-int gfpvar::size()
+template<int X, int L>
+int gfpvar_<X, L>::size()
 {
-    return ZpD.pr_byte_length;
+    return ZpD.get_t() * sizeof(mp_limb_t);
 }
 
-bool gfpvar::allows(Dtype dtype)
+template<int X, int L>
+int gfpvar_<X, L>::size_in_bits()
+{
+    return size() * 8;
+}
+
+template<int X, int L>
+bool gfpvar_<X, L>::allows(Dtype dtype)
 {
     return gfp_<0, 0>::allows(dtype);
 }
 
-DataFieldType gfpvar::field_type()
+template<int X, int L>
+DataFieldType gfpvar_<X, L>::field_type()
 {
     return gfp_<0, 0>::field_type();
 }
 
-void gfpvar::init_field(bigint prime, bool montgomery)
+template<int X, int L>
+void gfpvar_<X, L>::init_field(bigint prime, bool montgomery)
 {
     ZpD.init(prime, montgomery);
     if (ZpD.get_t() > N_LIMBS)
-        throw wrong_gfp_size("gfpvar", prime, "MAX_MOD_SZ", ZpD.get_t() * 2);
+        throw wrong_gfp_size("gfpvar_<X, L>", prime, "MAX_MOD_SZ", ZpD.get_t() * 2);
 }
 
-void gfpvar::init_default(int lgp, bool montgomery)
+template<int X, int L>
+void gfpvar_<X, L>::init_default(int lgp, bool montgomery)
 {
     init_field(SPDZ_Data_Setup_Primes(lgp), montgomery);
 }
 
-const Zp_Data& gfpvar::get_ZpD()
+template<int X, int L>
+const Zp_Data& gfpvar_<X, L>::get_ZpD()
 {
     return ZpD;
 }
 
-const bigint& gfpvar::pr()
+template<int X, int L>
+const bigint& gfpvar_<X, L>::pr()
 {
     return ZpD.pr;
 }
 
-template<>
-void gfpvar::generate_setup<Share<gfpvar>>(string prep_data_prefix,
-    int nplayers, int lgp)
-{
-    generate_prime_setup<Share<gfpvar>>(prep_data_prefix, nplayers, lgp);
-}
-
-void gfpvar::check_setup(string dir)
+template<int X, int L>
+void gfpvar_<X, L>::check_setup(string dir)
 {
     ::check_setup(dir, pr());
 }
 
-void gfpvar::write_setup(string dir)
+template<int X, int L>
+void gfpvar_<X, L>::write_setup(string dir)
 {
     write_online_setup(dir, pr());
 }
 
-gfpvar::gfpvar()
+template<int X, int L>
+gfpvar_<X, L>::gfpvar_()
 {
 }
 
-gfpvar::gfpvar(int other)
-{
-    to_modp(a, other, ZpD);
-}
-
-gfpvar::gfpvar(const bigint& other)
+template<int X, int L>
+gfpvar_<X, L>::gfpvar_(int other)
 {
     to_modp(a, other, ZpD);
 }
 
-gfpvar::gfpvar(const modp& other) :
-        a(other)
+template<int X, int L>
+gfpvar_<X, L>::gfpvar_(const bigint& other)
+{
+    to_modp(a, other, ZpD);
+}
+
+template<int X, int L>
+gfpvar_<X, L>::gfpvar_(int128 other) :
+        gfpvar_(
+                (bigint::tmp = other.get_lower()
+                        + ((bigint::tmp2 = other.get_upper()) << 64)))
 {
 }
 
-void gfpvar::assign(const char* buffer)
+template<int X, int L>
+gfpvar_<X, L>::gfpvar_(BitVec_<long> other) :
+        gfpvar_(bigint::tmp = other.get())
+{
+}
+
+template<int X, int L>
+void gfpvar_<X, L>::assign(const void* buffer)
 {
     a.assign(buffer, ZpD.get_t());
 }
 
-void gfpvar::assign_zero()
+template<int X, int L>
+void gfpvar_<X, L>::assign_zero()
 {
     *this = {};
 }
 
-void gfpvar::assign_one()
+template<int X, int L>
+void gfpvar_<X, L>::assign_one()
 {
     assignOne(a, ZpD);
 }
 
-bool gfpvar::is_zero()
+template<int X, int L>
+bool gfpvar_<X, L>::is_zero()
 {
     return isZero(a, ZpD);
 }
 
-bool gfpvar::is_one()
+template<int X, int L>
+bool gfpvar_<X, L>::is_one()
 {
     return isOne(a, ZpD);
 }
 
-gfpvar::modp_type gfpvar::get() const
+template<int X, int L>
+bool gfpvar_<X, L>::is_bit()
+{
+    return is_zero() or is_one();
+}
+
+template<int X, int L>
+typename gfpvar_<X, L>::modp_type gfpvar_<X, L>::get() const
 {
     return a;
 }
 
-gfpvar gfpvar::operator +(const gfpvar& other) const
+template<int X, int L>
+const void* gfpvar_<X, L>::get_ptr() const
 {
-    gfpvar res;
+    return a.get();
+}
+
+template<int X, int L>
+void* gfpvar_<X, L>::get_ptr()
+{
+    return &a;
+}
+
+template<int X, int L>
+void gfpvar_<X, L>::zero_overhang()
+{
+    a.zero_overhang(ZpD);
+}
+
+template <int X, int L>
+void gfpvar_<X, L>::check()
+{
+    assert(mpn_cmp(a.get(), ZpD.get_prA(), ZpD.get_t()) < 0);
+}
+
+template<int X, int L>
+gfpvar_<X, L> gfpvar_<X, L>::operator +(const gfpvar_<X, L>& other) const
+{
+    gfpvar_<X, L> res;
     Add(res.a, a, other.a, ZpD);
     return res;
 }
 
-gfpvar gfpvar::operator -(const gfpvar& other) const
+template<int X, int L>
+gfpvar_<X, L> gfpvar_<X, L>::operator -(const gfpvar_<X, L>& other) const
 {
-    gfpvar res;
+    gfpvar_<X, L> res;
     Sub(res.a, a, other.a, ZpD);
     return res;
 }
 
-gfpvar gfpvar::operator *(const gfpvar& other) const
+template<int X, int L>
+gfpvar_<X, L> gfpvar_<X, L>::operator *(const gfpvar_<X, L>& other) const
 {
-    gfpvar res;
+    gfpvar_<X, L> res;
     Mul(res.a, a, other.a, ZpD);
     return res;
 }
 
-gfpvar gfpvar::operator /(const gfpvar& other) const
+template<int X, int L>
+gfpvar_<X, L> gfpvar_<X, L>::operator /(const gfpvar_<X, L>& other) const
 {
     return *this * other.invert();
 }
 
-gfpvar& gfpvar::operator +=(const gfpvar& other)
+template<int X, int L>
+gfpvar_<X, L> gfpvar_<X, L>::operator <<(int other) const
+{
+    return bigint::tmp = (bigint::tmp = *this) << other;
+}
+
+template<int X, int L>
+gfpvar_<X, L> gfpvar_<X, L>::operator >>(int other) const
+{
+    return bigint::tmp = (bigint::tmp = *this) >> other;
+}
+
+template<int X, int L>
+gfpvar_<X, L>& gfpvar_<X, L>::operator +=(const gfpvar_<X, L>& other)
 {
     Add(a, a, other.a, ZpD);
     return *this;
 }
 
-gfpvar& gfpvar::operator -=(const gfpvar& other)
+template<int X, int L>
+gfpvar_<X, L>& gfpvar_<X, L>::operator -=(const gfpvar_<X, L>& other)
 {
     Sub(a, a, other.a, ZpD);
     return *this;
 }
 
-gfpvar& gfpvar::operator *=(const gfpvar& other)
+template<int X, int L>
+gfpvar_<X, L>& gfpvar_<X, L>::operator *=(const gfpvar_<X, L>& other)
 {
     Mul(a, a, other.a, ZpD);
     return *this;
 }
 
-bool gfpvar::operator ==(const gfpvar& other) const
+template<int X, int L>
+gfpvar_<X, L>& gfpvar_<X, L>::operator &=(const gfpvar_<X, L>& other)
+{
+    *this = bigint::tmp = (bigint::tmp = *this) & (bigint::tmp2 = other);
+    return *this;
+}
+
+template<int X, int L>
+gfpvar_<X, L>& gfpvar_<X, L>::operator >>=(int other)
+{
+    return *this = *this >> other;
+}
+
+template<int X, int L>
+bool gfpvar_<X, L>::operator ==(const gfpvar_<X, L>& other) const
 {
     return areEqual(a, other.a, ZpD);
 }
 
-bool gfpvar::operator !=(const gfpvar& other) const
+template<int X, int L>
+bool gfpvar_<X, L>::operator !=(const gfpvar_<X, L>& other) const
 {
     return not (*this == other);
 }
 
-void gfpvar::add(octetStream& other)
+template<int X, int L>
+void gfpvar_<X, L>::add(octetStream& other)
 {
-    *this += other.get<gfpvar>();
+    *this += other.get<gfpvar_<X, L>>();
 }
 
-void gfpvar::negate()
+template<int X, int L>
+void gfpvar_<X, L>::negate()
 {
-    *this = gfpvar() - *this;
+    *this = gfpvar_<X, L>() - *this;
 }
 
-gfpvar gfpvar::invert() const
+template<int X, int L>
+gfpvar_<X, L> gfpvar_<X, L>::invert() const
 {
-    gfpvar res;
+    gfpvar_<X, L> res;
     Inv(res.a, a, ZpD);
     return res;
 }
 
-gfpvar gfpvar::sqrRoot() const
+template<int X, int L>
+gfpvar_<X, L> gfpvar_<X, L>::sqrRoot() const
 {
     bigint ti = *this;
     ti = sqrRootMod(ti, ZpD.pr);
@@ -218,44 +313,42 @@ gfpvar gfpvar::sqrRoot() const
     return ti;
 }
 
-void gfpvar::randomize(PRNG& G, int)
+template<int X, int L>
+void gfpvar_<X, L>::randomize(PRNG& G, int)
 {
     a.randomize(G, ZpD);
 }
 
-void gfpvar::almost_randomize(PRNG& G)
+template<int X, int L>
+void gfpvar_<X, L>::almost_randomize(PRNG& G)
 {
     randomize(G);
 }
 
-void gfpvar::pack(octetStream& os, int) const
+template<int X, int L>
+void gfpvar_<X, L>::pack(octetStream& os, int) const
 {
     a.pack(os, ZpD);
 }
 
-void gfpvar::unpack(octetStream& os, int)
+template<int X, int L>
+void gfpvar_<X, L>::unpack(octetStream& os, int)
 {
     a.unpack(os, ZpD);
 }
 
-void gfpvar::output(ostream& o, bool human) const
+template<int X, int L>
+void gfpvar_<X, L>::output(ostream& o, bool human) const
 {
     a.output(o, ZpD, human);
 }
 
-void gfpvar::input(istream& i, bool human)
+template<int X, int L>
+void gfpvar_<X, L>::input(istream& i, bool human)
 {
     a.input(i, ZpD, human);
 }
 
-ostream& operator <<(ostream& o, const gfpvar& x)
-{
-    x.output(o, true);
-    return o;
-}
-
-istream& operator >>(istream& i, gfpvar& x)
-{
-    x.input(i, true);
-    return i;
-}
+template class gfpvar_<0, MAX_MOD_SZ / 2>;
+template class gfpvar_<1, MAX_MOD_SZ>;
+template class gfpvar_<2, MAX_MOD_SZ>;

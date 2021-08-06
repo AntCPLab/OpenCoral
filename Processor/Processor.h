@@ -70,6 +70,8 @@ public:
       int b);
   void conv2ds(const Instruction& instruction);
 
+  void input_personal(const vector<int>& args);
+
   CheckVector<T>& get_S()
   {
     return S;
@@ -109,6 +111,7 @@ public:
   ifstream public_input;
   ofstream public_output;
   ofstream private_output;
+  ofstream binary_output;
 
   int sent, rounds;
 

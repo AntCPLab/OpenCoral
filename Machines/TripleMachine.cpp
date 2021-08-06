@@ -73,9 +73,9 @@ TripleMachine::TripleMachine(int argc, const char** argv) :
     opt.add(
         "", // Default.
         0, // Required?
-        0, // Number of args expected.
+        1, // Number of args expected.
         0, // Delimiter if expecting multiple args.
-        "GF(p) items", // Help description.
+        "GF(p) items for chosen prime", // Help description.
         "-P", // Flag token.
         "--prime-field" // Flag token.
     );
@@ -124,7 +124,12 @@ TripleMachine::TripleMachine(int argc, const char** argv) :
     correlation_check = opt.get("-c")->isSet;
     generateMACs = opt.get("-m")->isSet || check;
     amplify = opt.get("-a")->isSet || generateMACs;
-    primeField = opt.get("-P")->isSet;
+    if (opt.isSet("-P"))
+    {
+        string tmp;
+        opt.get("-P")->getString(tmp);
+        prime = tmp;
+    }
     bonding = opt.get("-b")->isSet;
     opt.get("-Z")->getInt(z2k);
     check |= z2k;
@@ -133,8 +138,7 @@ TripleMachine::TripleMachine(int argc, const char** argv) :
         opt.get("-S")->getInt(z2s);
 
     // doesn't work with Montgomery multiplication
-    gfp1::init_default(gfp0::MAX_N_BITS, false);
-    gfp0::init_default(gfp0::MAX_N_BITS, true);
+    gfpvar1::init_field(prime, false);
     gf2n_long::init_field(128);
     gf2n_short::init_field(40);
     
@@ -179,8 +183,8 @@ void TripleMachine::run()
 
     for (int i = 0; i < nthreads; i++)
     {
-        if (primeField)
-            generators[i] = new_generator<Share<gfp0>>(setup, i, mac_keyp);
+        if (prime)
+            generators[i] = new_generator<Share<gfpvar1>>(setup, i, mac_keyp);
         else if (z2k)
         {
             if (z2k == 32 and z2s == 32)

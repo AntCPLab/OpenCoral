@@ -39,6 +39,7 @@ public:
 
 	static const int N_BITS = K;
 	static const int MAX_EDABITS = K;
+	static const int MAX_N_BITS = K;
 	static const int N_BYTES = (K + 7) / 8;
 	static const mp_limb_t UPPER_MASK = mp_limb_t(-1LL) >> (N_LIMB_BITS - 1 - (K - 1) % N_LIMB_BITS);
 
@@ -97,6 +98,8 @@ public:
 
 	void convert_destroy(bigint& a) { *this = a; }
 	
+	int bit_length() const;
+
 	Z2<K> operator+(const Z2<K>& other) const;
 	Z2<K> operator-(const Z2<K>& other) const;
 

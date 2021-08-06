@@ -20,12 +20,13 @@ class TripleMachine : public OfflineMachineBase, public MascotParams
     int nConnections;
 
     gf2n mac_key2;
-    gfp1 mac_keyp;
+    gfpvar1 mac_keyp;
     Z2<128> mac_keyz;
+
+    bigint prime;
 
 public:
     int nloops;
-    bool primeField;
     bool bonding;
     int z2k, z2s;
 

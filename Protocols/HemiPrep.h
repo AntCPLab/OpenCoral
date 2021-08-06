@@ -33,6 +33,7 @@ public:
             SemiHonestRingPrep<T>(proc, usage)
     {
     }
+    ~HemiPrep();
 
     void buffer_triples();
 };

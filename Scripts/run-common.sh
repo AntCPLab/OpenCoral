@@ -24,7 +24,7 @@ lldb_screen()
 }
 
 run_player() {
-    port=$((RANDOM%10000+10000))
+    port=${PORT:-$((RANDOM%10000+10000))}
     bin=$1
     shift
     prog=$1

@@ -1,3 +1,6 @@
+# this trains network B from SecureNN
+# see https://github.com/csiro-mlai/mnist-mpc for data preparation
+
 import ml
 import math
 import re

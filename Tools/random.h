@@ -77,6 +77,7 @@ class PRNG
 
    // Agree securely on seed
    void SeedGlobally(const PlayerBase& P);
+   void SeedGlobally(const Player& P, bool secure = true);
 
    // Set seed from array
    void SetSeed(const unsigned char*);
@@ -213,6 +214,18 @@ inline void PRNG::randomBnd(mp_limb_t* res, const mp_limb_t* B, mp_limb_t mask)
       res[n_limbs - 1] &= mask;
     }
   while (mpn_cmp(res, B, n_limbs) >= 0);
+}
+
+template<>
+inline octet PRNG::get()
+{
+  return get_uchar();
+}
+
+template<>
+inline word PRNG::get()
+{
+  return get_word();
 }
 
 #endif

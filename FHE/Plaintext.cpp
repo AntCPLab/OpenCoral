@@ -33,7 +33,7 @@ void Plaintext<gfp,FFT_Data,bigint>::from_poly() const
   e.change_rep(evaluation);
   a.resize(n_slots);
   for (unsigned int i=0; i<a.size(); i++)
-     { a[i]=e.get_element(i); }
+    a[i] = gfp(e.get_element(i), e.get_FFTD().get_prD());
   type=Both;
 }
 
@@ -62,7 +62,7 @@ void Plaintext<gfp,PPData,bigint>::from_poly() const
   (*Field_Data).to_eval(aa);
   a.resize(n_slots);
   for (unsigned int i=0; i<aa.size(); i++)
-    { a[i] = (aa[i]); }
+    a[i] = {aa[i], Field_Data->get_prD()};
   type=Both;
 }
 

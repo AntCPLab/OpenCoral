@@ -9,27 +9,32 @@
 #include "modp.h"
 #include "Zp_Data.h"
 #include "Setup.h"
+#include "Square.h"
 
 class FFT_Data;
+template<class T> class BitVec_;
 
-class gfpvar
+template<int X, int L>
+class gfpvar_
 {
-    typedef modp_<MAX_MOD_SZ / 2> modp_type;
+    typedef modp_<L> modp_type;
 
     static Zp_Data ZpD;
 
     modp_type a;
 
 public:
-    typedef gfpvar Scalar;
+    typedef gfpvar_ Scalar;
     typedef FFT_Data FD;
 
-    typedef void Square;
-    typedef void next;
+    typedef ::Square<gfpvar_> Square;
+    typedef gfpvar_ next;
+    typedef gfpvar_ value_type;
 
     static const int MAX_N_BITS = modp_type::MAX_N_BITS;
     static const int MAX_EDABITS = modp_type::MAX_N_BITS;
     static const int N_LIMBS = modp_type::N_LIMBS;
+    static const int N_BITS = -1;
 
     static const true_type invertible;
     static const true_type prime_field;
@@ -41,12 +46,18 @@ public:
 
     static int length();
     static int size();
+    static int size_in_bits();
 
     static bool allows(Dtype dtype);
     static DataFieldType field_type();
 
     static void init_field(bigint prime, bool montgomery = true);
     static void init_default(int lgp, bool montgomery = true);
+    template<class T>
+    static void init(bool montgomery)
+    {
+        init_field(T::pr(), montgomery);
+    }
 
     static const Zp_Data& get_ZpD();
     static const bigint& pr();
@@ -61,47 +72,72 @@ public:
         write_setup(get_prep_sub_dir<T>(nplayers));
     }
 
-    gfpvar();
-    gfpvar(int other);
-    gfpvar(const bigint& other);
-    gfpvar(const modp& other);
+    gfpvar_();
+    gfpvar_(int other);
+    gfpvar_(int128 other);
+    gfpvar_(BitVec_<long> other);
+    gfpvar_(const bigint& other);
 
-    template<int X, int L>
-    gfpvar(const gfp_<X, L>& other)
+    template<int M>
+    gfpvar_(const modp_<M>& other, const Zp_Data& ZpD)
+    {
+        if (get_ZpD() == ZpD)
+            a = other;
+        else
+        {
+            to_bigint(bigint::tmp, other, ZpD);
+            *this = bigint::tmp;
+        }
+    }
+
+    template<int XX, int LL>
+    gfpvar_(const gfp_<XX, LL>& other)
     {
         assert(pr() == other.pr());
         a = other.get();
     }
 
-    void assign(const char* buffer);
+    void assign(const void* buffer);
 
     void assign_zero();
     void assign_one();
 
     bool is_zero();
     bool is_one();
+    bool is_bit();
 
     modp_type get() const;
+    const void* get_ptr() const;
+    void* get_ptr();
 
-    gfpvar operator+(const gfpvar& other) const;
-    gfpvar operator-(const gfpvar& other) const;
-    gfpvar operator*(const gfpvar& other) const;
-    gfpvar operator/(const gfpvar& other) const;
+    void zero_overhang();
+    void check();
 
-    gfpvar& operator+=(const gfpvar& other);
-    gfpvar& operator-=(const gfpvar& other);
-    gfpvar& operator*=(const gfpvar& other);
+    gfpvar_ operator+(const gfpvar_& other) const;
+    gfpvar_ operator-(const gfpvar_& other) const;
+    gfpvar_ operator*(const gfpvar_& other) const;
+    gfpvar_ operator/(const gfpvar_& other) const;
 
-    bool operator==(const gfpvar& other) const;
-    bool operator!=(const gfpvar& other) const;
+    gfpvar_ operator<<(int other) const;
+    gfpvar_ operator>>(int other) const;
+
+    gfpvar_& operator+=(const gfpvar_& other);
+    gfpvar_& operator-=(const gfpvar_& other);
+    gfpvar_& operator*=(const gfpvar_& other);
+    gfpvar_& operator&=(const gfpvar_& other);
+
+    gfpvar_& operator>>=(int other);
+
+    bool operator==(const gfpvar_& other) const;
+    bool operator!=(const gfpvar_& other) const;
 
     void add(octetStream& other);
 
     void negate();
 
-    gfpvar invert() const;
+    gfpvar_ invert() const;
 
-    gfpvar sqrRoot() const;
+    gfpvar_ sqrRoot() const;
 
     void randomize(PRNG& G, int n_bits = -1);
     void almost_randomize(PRNG& G);
@@ -113,9 +149,39 @@ public:
     void input(istream& o, bool human);
 };
 
-ostream& operator<<(ostream& o, const gfpvar& x);
-istream& operator>>(istream& i, gfpvar& x);
+typedef gfpvar_<0, MAX_MOD_SZ / 2> gfpvar;
+typedef gfpvar_<1, MAX_MOD_SZ> gfpvar1;
+typedef gfpvar_<2, MAX_MOD_SZ> gfpvar2;
 
 typedef gfpvar gfp;
+
+template<int X, int L>
+const true_type gfpvar_<X, L>::invertible;
+template<int X, int L>
+const true_type gfpvar_<X, L>::prime_field;
+template<int X, int L>
+const false_type gfpvar_<X, L>::characteristic_two;
+
+template<int X, int L>
+template<class T>
+void gfpvar_<X, L>::generate_setup(string prep_data_prefix,
+    int nplayers, int lgp)
+{
+    generate_prime_setup<T>(prep_data_prefix, nplayers, lgp);
+}
+
+template<int X, int L>
+ostream& operator <<(ostream& o, const gfpvar_<X, L>& x)
+{
+    x.output(o, true);
+    return o;
+}
+
+template<int X, int L>
+istream& operator >>(istream& i, gfpvar_<X, L>& x)
+{
+    x.input(i, true);
+    return i;
+}
 
 #endif /* MATH_GFPVAR_H_ */

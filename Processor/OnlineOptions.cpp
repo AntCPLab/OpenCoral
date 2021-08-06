@@ -23,7 +23,7 @@ OnlineOptions::OnlineOptions() : playerno(-1)
     memtype = "empty";
     bits_from_squares = false;
     direct = false;
-    bucket_size = 3;
+    bucket_size = 4;
     cmd_private_input_file = "Player-Data/Input";
     cmd_private_output_file = "";
 }
@@ -163,11 +163,11 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
             "--direct" // Flag token.
     );
     opt.add(
-            "3", // Default.
+            "4", // Default.
             0, // Required?
             1, // Number of args expected.
             0, // Delimiter if expecting multiple args.
-            "Batch size for sacrifice (3-5, default: 3)", // Help description.
+            "Batch size for sacrifice (3-5, default: 4)", // Help description.
             "-B", // Flag token.
             "--bucket-size" // Flag token.
     );

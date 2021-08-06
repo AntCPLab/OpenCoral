@@ -1,7 +1,7 @@
 """
 This module contains machine learning functionality. It is work in
 progress, so you must expect things to change. The only tested
-functionality for training is using consective layers.
+functionality for training is using consecutive layers.
 This includes logistic regression. It can be run as
 follows::
 
@@ -15,7 +15,7 @@ follows::
 
 This loads measurements from party 0 and labels (0/1) from party
 1. After running, the model is stored in :py:obj:`sgd.layers[0].W` and
-:py:obj:`sgd.layers[1].b`. The :py:obj:`approx` parameter determines
+:py:obj:`sgd.layers[0].b`. The :py:obj:`approx` parameter determines
 whether to use an approximate sigmoid function. Setting it to 5 uses
 a five-piece approximation instead of a three-piece one.
 
@@ -172,6 +172,7 @@ def _no_mem_warnings(function):
         res = function(*args, **kwargs)
         get_program().warn_about_mem.pop()
         return res
+    copy_doc(wrapper, function)
     return wrapper
 
 class Tensor(MultiArray):
@@ -265,6 +266,7 @@ class Output(NoVariableLayer):
         self.weights = None
         self.approx = approx
         self.compute_loss = True
+        self.d_out = 1
 
     def divisor(self, divisor, size):
         return cfix(1.0 / divisor, size=size)
@@ -303,7 +305,6 @@ class Output(NoVariableLayer):
         def _(base, size):
             diff = self.eval(size, base) - \
                    self.Y.get(batch.get_vector(base, size))
-            assert sfix.f == cfix.f
             if self.weights is not None:
                 assert N == len(self.weights)
                 diff *= self.weights.get_vector(base, size)
@@ -318,6 +319,7 @@ class Output(NoVariableLayer):
             print_ln('batch %s', batch.reveal_nested())
 
     def set_weights(self, weights):
+        assert sfix.f == cfix.f
         self.weights = cfix.Array(len(weights))
         self.weights.assign(weights)
         self.weight_total = sum(weights)
@@ -1366,7 +1368,7 @@ class Conv2d(ConvBase):
         padding_h, padding_w = self.padding
 
         if self.use_conv2ds:
-            n_parts = max(1, round(self.n_threads / n_channels_out))
+            n_parts = max(1, round((self.n_threads or 1) / n_channels_out))
             while len(batch) % n_parts != 0:
                 n_parts -= 1
             print('Convolution in %d parts' % n_parts)
@@ -1763,17 +1765,20 @@ class Optimizer:
     always_shuffle = True
     time_layers = False
     revealing_correctness = False
+    early_division = False
 
     @staticmethod
     def from_args(program, layers):
         if 'adam' in program.args or 'adamapprox' in program.args:
-            return Adam(layers, 1, approx='adamapprox' in program.args)
+            res = Adam(layers, 1, approx='adamapprox' in program.args)
         elif 'amsgrad' in program.args:
-            return Adam(layers, approx=True, amsgrad=True)
+            res = Adam(layers, approx=True, amsgrad=True)
         elif 'quotient' in program.args:
-            return Adam(layers, approx=True, amsgrad=True, normalize=True)
+            res = Adam(layers, approx=True, amsgrad=True, normalize=True)
         else:
-            return SGD(layers, 1)
+            res = SGD(layers, 1)
+        res.early_division = 'early_div' in program.args
+        return res
 
     def __init__(self, report_loss=None):
         self.tol = 0.000
@@ -1794,11 +1799,13 @@ class Optimizer:
     def layers(self, layers):
         """ Construct linear graph from list of layers. """
         self._layers = layers
+        self.thetas = []
         prev = None
         for layer in layers:
             if not layer.inputs and prev is not None:
                 layer.inputs = [prev]
             prev = layer
+            self.thetas.extend(layer.thetas())
 
     def set_layers_with_inputs(self, layers):
         """ Construct graph from :py:obj:`inputs` members of list of layers. """
@@ -1855,12 +1862,22 @@ class Optimizer:
                     theta.delete()
 
     @_no_mem_warnings
-    def eval(self, data):
-        """ Compute evaluation after training. """
-        N = len(data)
-        self.layers[0].X.assign(data)
-        self.forward(N)
-        return self.layers[-1].eval(N)
+    def eval(self, data, batch_size=None):
+        """ Compute evaluation after training.
+
+        :param data: sample data (:py:class:`Compiler.types.Matrix` with one row per sample)
+        """
+        if isinstance(self.layers[-1].Y, Array):
+            res = sfix.Array(len(data))
+        else:
+            res = sfix.Matrix(len(data), self.layers[-1].d_out)
+        def f(start, batch_size, batch):
+            batch.assign_vector(regint.inc(batch_size, start))
+            self.forward(batch=batch)
+            part = self.layers[-1].eval(batch_size)
+            res.assign_part_vector(part.get_vector(), start)
+        self.run_in_batches(f, data, batch_size or len(self.layers[1].X))
+        return res
 
     @_no_mem_warnings
     def backward(self, batch):
@@ -1877,6 +1894,9 @@ class Optimizer:
                 if len(layer.inputs) == 1:
                     layer.inputs[0].nabla_Y.address = \
                         layer.nabla_X.address
+                    if i == len(self.layers) - 1 and self.early_division:
+                        layer.nabla_X.assign_vector(
+                            layer.nabla_X.get_vector() / len(batch))
             if self.time_layers:
                 stop_timer(200 + i)
 
@@ -1963,35 +1983,40 @@ class Optimizer:
             return res
 
     def reveal_correctness(self, data, truth, batch_size):
-        training_data = self.layers[0].X.address
-        training_truth = self.layers[-1].Y.address
-        self.layers[0].X.address = data.address
-        self.layers[-1].Y.address = truth.address
         N = data.sizes[0]
-        batch = regint.Array(batch_size)
         n_correct = MemValue(0)
         loss = MemValue(sfix(0))
-        def f(start, batch_size):
+        def f(start, batch_size, batch):
             batch.assign_vector(regint.inc(batch_size, start))
             self.forward(batch=batch)
             part_truth = truth.get_part(start, batch_size)
             n_correct.iadd(
                 self.layers[-1].reveal_correctness(batch_size, part_truth))
             loss.iadd(self.layers[-1].l * batch_size)
-        @for_range(N // batch_size)
-        def _(i):
-            start = i * batch_size
-            f(start, batch_size)
-        batch_size = N % batch_size
-        if batch_size:
-            start = N - batch_size
-            f(start, batch_size)
-        self.layers[0].X.address = training_data
-        self.layers[-1].Y.address = training_truth
+        self.run_in_batches(f, data, batch_size)
         loss = loss.reveal()
         if cfix.f < 31:
             loss = cfix._new(loss.v << (31 - cfix.f), k=63, f=31)
         return n_correct, loss / N
+
+    def run_in_batches(self, f, data, batch_size, truth=None):
+        training_data = self.layers[0].X.address
+        training_truth = self.layers[-1].Y.address
+        self.layers[0].X.address = data.address
+        if truth:
+            self.layers[-1].Y.address = truth.address
+        N = data.sizes[0]
+        batch = regint.Array(batch_size)
+        @for_range(N // batch_size)
+        def _(i):
+            start = i * batch_size
+            f(start, batch_size, batch)
+        batch_size = N % batch_size
+        if batch_size:
+            start = N - batch_size
+            f(start, batch_size, batch)
+        self.layers[0].X.address = training_data
+        self.layers[-1].Y.address = training_truth
 
     @_no_mem_warnings
     def run_by_args(self, program, n_runs, batch_size, test_X, test_Y,
@@ -2048,11 +2073,14 @@ class Optimizer:
             print_ln('train_acc: %s (%s/%s)',
                      cfix(self.n_correct, k=63, f=31) / n_trained,
                      self.n_correct, n_trained)
-            n_test = len(test_Y)
-            n_correct, loss = self.reveal_correctness(test_X, test_Y, acc_batch_size)
-            print_ln('test loss: %s', loss)
-            print_ln('acc: %s (%s/%s)', cfix(n_correct, k=63, f=31) / n_test,
-                     n_correct, n_test)
+            if test_X and test_Y:
+                n_test = len(test_Y)
+                n_correct, loss = self.reveal_correctness(test_X, test_Y,
+                                                          acc_batch_size)
+                print_ln('test loss: %s', loss)
+                print_ln('acc: %s (%s/%s)',
+                         cfix(n_correct, k=63, f=31) / n_test,
+                         n_correct, n_test)
             if acc_first:
                 start_timer(1)
                 self.run(batch_size)
@@ -2062,6 +2090,10 @@ class Optimizer:
                                 int(n_test // self.layers[-1].n_outputs * 1.2)))
                 def _():
                     self.gamma.imul(.5)
+                    if 'crash' in program.args:
+                        @if_(self.gamma == 0)
+                        def _():
+                            runtime_error('diverging')
                     self.reset()
                     print_ln('reset after reducing learning rate to %s',
                              self.gamma)
@@ -2110,7 +2142,6 @@ class Adam(Optimizer):
         self.ms = []
         self.vs = []
         self.gs = []
-        self.thetas = []
         self.vhats = []
         for layer in layers:
             for nabla in layer.nablas():
@@ -2119,8 +2150,6 @@ class Adam(Optimizer):
                     x.append(nabla.same_shape())
                 if amsgrad:
                     self.vhats.append(nabla.same_shape())
-            for theta in layer.thetas():
-                self.thetas.append(theta)
 
         super(Adam, self).__init__()
 
@@ -2177,12 +2206,10 @@ class SGD(Optimizer):
         self.momentum = 0.9
         self.layers = layers
         self.n_epochs = n_epochs
-        self.thetas = []
         self.nablas = []
         self.delta_thetas = []
         for layer in layers:
             self.nablas.extend(layer.nablas())
-            self.thetas.extend(layer.thetas())
             for theta in layer.thetas():
                 self.delta_thetas.append(theta.same_shape())
         self.gamma = MemValue(cfix(0.01))
@@ -2220,10 +2247,13 @@ class SGD(Optimizer):
                 # divide by len(batch) by truncation
                 # increased rate if len(batch) is not a power of two
                 pre_trunc = nabla_vector.v * rate.v
-                k = nabla_vector.k + rate.k
+                k = max(nabla_vector.k, rate.k) + rate.f
                 m = rate.f + int(log_batch_size)
-                v = pre_trunc.round(k, m, signed=True,
-                                    nearest=sfix.round_nearest)
+                if self.early_division:
+                    v = pre_trunc
+                else:
+                    v = pre_trunc.round(k, m, signed=True,
+                                        nearest=sfix.round_nearest)
                 new = nabla_vector._new(v)
                 diff = red_old - new
                 delta_theta.assign_vector(diff, base)
@@ -2265,3 +2295,228 @@ class SGD(Optimizer):
                 print_ln('%s at %s: nabla=%s update=%s theta=%s', str(theta), index,
                          aa[1][index], aa[0][index], aa[2][index])
         self.gamma.imul(1 - 10 ** - 6)
+
+def apply_padding(input_shape, kernel_size, strides, padding):
+    if padding == 'valid':
+        return (input_shape[0] - kernel_size[0] + 1) // strides[0], \
+            (input_shape[1] - kernel_size[1] + 1) // strides[1],
+    elif padding == 'same':
+        return (input_shape[1]) // strides[0], \
+            (input_shape[2]) // strides[1],
+    else:
+        raise Exception('invalid padding: ' + padding)
+
+class keras:
+    class layers:
+        Flatten = lambda *args, **kwargs: ('flatten', args, kwargs)
+        Dense = lambda *args, **kwargs: ('dense', args, kwargs)
+
+        def Conv2D(filters, kernel_size, strides=(1, 1), padding='valid',
+                   activation=None):
+            return 'conv2d', {'filters': filters, 'kernel_size': kernel_size,
+                              'strides': strides, 'padding': padding,
+                              'activation': activation}
+
+        def MaxPooling2D(pool_size=2, strides=None, padding='valid'):
+            return 'maxpool', {'pool_size': pool_size, 'strides': strides,
+                               'padding': padding}
+
+        def Dropout(rate):
+            l = math.log(rate, 2)
+            if int(l) != l:
+                raise Exception('rate needs to be a power of two')
+            return 'dropout', rate
+
+    class optimizers:
+        SGD = lambda *args, **kwargs: ('sgd', args, kwargs)
+        Adam = lambda *args, **kwargs: ('adam', args, kwargs)
+
+    class models:
+        class Sequential:
+            def __init__(self, layers):
+                self.layers = layers
+                self.optimizer = None
+                self.opt = None
+
+            def compile(self, optimizer):
+                self.optimizer = optimizer
+
+            @property
+            def trainable_variables(self):
+                if self.opt == None:
+                    raise Exception('need to run build() or fit() first')
+                return list(self.opt.thetas)
+
+            def build(self, input_shape, batch_size=128):
+                if self.opt != None and \
+                   input_shape == self.opt.layers[0].X.sizes and \
+                   batch_size <= self.batch_size and \
+                   type(self.opt).__name__.lower() == self.optimizer[0]:
+                    return
+                if self.optimizer == None:
+                    self.optimizer = 'inference', [], {}
+                if input_shape == None:
+                    raise Exception('must specify number of samples')
+                Layer.back_batch_size = batch_size
+                layers = []
+                for i, layer in enumerate(self.layers):
+                    name = layer[0]
+                    if name == 'dense':
+                        if len(layers) == 0:
+                            N = input_shape[0]
+                            n_units = reduce(operator.mul, input_shape[1:])
+                        else:
+                            N = batch_size
+                            n_units = reduce(operator.mul,
+                                             layers[-1].Y.sizes[1:])
+                        if i == len(self.layers) - 1:
+                            if layer[2].get('activation', 'softmax') in \
+                               ('softmax', 'sigmoid'):
+                                del layer[2]['activation']
+                        layers.append(Dense(N, n_units, layer[1][0],
+                                            **layer[2]))
+                    elif name == 'conv2d':
+                        if len(layers) != 0:
+                            input_shape = layers[-1].Y.sizes
+                        input_shape = list(input_shape) + \
+                            [1] * (4 - len(input_shape))
+                        print (layer[1])
+                        kernel_size = layer[1]['kernel_size']
+                        filters = layer[1]['filters']
+                        strides = layer[1]['strides']
+                        padding = layer[1]['padding']
+                        if isinstance(kernel_size, int):
+                            kernel_size = (kernel_size, kernel_size)
+                        if isinstance(strides, int):
+                            strides = (strides, strides)
+                        weight_shape = [filters] + list(kernel_size) + \
+                            [input_shape[-1]]
+                        output_shape = [batch_size] + list(
+                            apply_padding(input_shape[1:3], kernel_size,
+                                          strides, padding)) + [filters]
+                        layers.append(FixConv2d(input_shape, weight_shape,
+                                                (filters,), output_shape,
+                                                strides, padding.upper()))
+                    elif name == 'maxpool':
+                        pool_size = layer[1]['pool_size']
+                        strides = layer[1]['strides']
+                        padding = layer[1]['padding']
+                        if isinstance(pool_size, int):
+                            pool_size = (pool_size, pool_size)
+                        if isinstance(strides, int):
+                            strides = (strides, strides)
+                        if strides == None:
+                            strides = pool_size
+                        layers.append(MaxPool(layers[-1].Y.sizes,
+                                              [1] + list(strides) + [1],
+                                              [1] + list(pool_size) + [1],
+                                              padding.upper()))
+                    elif name == 'dropout':
+                        layers.append(Dropout(batch_size, reduce(
+                            operator.mul, layers[-1].Y.sizes[1:]),
+                                              alpha=layer[1]))
+                    elif name == 'flatten':
+                        pass
+                    else:
+                        raise Exception(layer[0] + ' not supported')
+                if layers[-1].d_out == 1:
+                    layers.append(Output(input_shape[0]))
+                else:
+                    layers.append(MultiOutput(input_shape[0], layers[-1].d_out))
+                if self.optimizer[1]:
+                    raise Exception('use keyword arguments for optimizer')
+                opt = self.optimizer[0]
+                opts = self.optimizer[2]
+                if opt == 'sgd':
+                    opt = SGD(layers, 1)
+                    momentum = opts.pop('momentum', None)
+                    if momentum != None:
+                        opt.momentum = momentum
+                elif opt == 'adam':
+                    opt = Adam(layers, amsgrad=opts.pop('amsgrad', None),
+                               approx=True)
+                    beta1 = opts.pop('beta_1', None)
+                    beta2 = opts.pop('beta_2', None)
+                    epsilon = opts.pop('epsilon', None)
+                    if beta1 != None:
+                        opt.beta1 = beta1
+                    if beta2:
+                        opt.beta2 = beta2
+                    if epsilon:
+                        if epsilon < opt.epsilon:
+                            print('WARNING: epsilon smaller than default might '
+                                  'cause overflows')
+                        opt.epsilon = epsilon
+                elif opt == 'inference':
+                    opt = Optimizer()
+                    opt.layers = layers
+                else:
+                    raise Exception(opt + ' not supported')
+                lr = opts.pop('learning_rate', None)
+                if lr != None:
+                    opt.gamma = MemValue(cfix(lr))
+                if opts:
+                    raise Exception(opts + ' not supported')
+                self.batch_size = batch_size
+                self.opt = opt
+
+            def fit(self, x, y, batch_size, epochs=1, validation_data=None):
+                assert len(x) == len(y)
+                self.build(x.sizes, batch_size)
+                if x.total_size() != self.opt.layers[0].X.total_size():
+                    raise Exception('sample data size mismatch')
+                if y.total_size() != self.opt.layers[-1].Y.total_size():
+                    print (y, layers[-1].Y)
+                    raise Exception('label size mismatch')
+                if validation_data == None:
+                    validation_data = None, None
+                else:
+                    if len(validation_data[0]) != len(validation_data[1]):
+                        raise Exception('test set size mismatch')
+                self.opt.layers[0].X.address = x.address
+                self.opt.layers[-1].Y.address = y.address
+                self.opt.run_by_args(get_program(), epochs, batch_size,
+                                     validation_data[0], validation_data[1],
+                                     batch_size)
+                return self.opt
+
+            def predict(self, x, batch_size=None):
+                if self.opt == None:
+                    raise Exception('need to run fit() or build() first')
+                if batch_size != None:
+                    batch_size = min(batch_size, self.batch_size)
+                return self.opt.eval(x, batch_size=batch_size)
+
+def solve_linear(A, b, n_iterations, debug=False):
+    """ Iterative linear solution approximation. """
+    assert len(b) == A.sizes[0]
+    x = sfix.Array(A.sizes[1])
+    x.assign_vector(sfix.get_random(-1, 1, size=len(x)))
+    At = A.transpose()
+    @for_range(n_iterations)
+    def _(i):
+        r = At * (b - A * x)
+        tmp = A * r
+        tmp = sfix.dot_product(tmp, tmp)
+        alpha = (tmp == 0).if_else(0, sfix.dot_product(r, r) / tmp)
+        x.assign(x + alpha * r)
+        if debug:
+            print_ln('%s r=%s tmp=%s r*r=%s tmp*tmp=%s alpha=%s x=%s alpha*r=%s', i,
+                     list(r.reveal()), list(tmp.reveal()),
+                     sfix.dot_product(r, r).reveal(), sfix.dot_product(tmp, tmp).reveal(),
+                     alpha.reveal(), x.reveal_list(), list((alpha * r).reveal()))
+    return x
+
+def mr(A, n_iterations):
+    """ Iterative matrix inverse approximation. """
+    assert len(A.sizes) == 2
+    assert A.sizes[0] == A.sizes[1]
+    M = A.same_shape()
+    n = A.sizes[0]
+    @for_range(n)
+    def _(i):
+        e = sfix.Array(n)
+        e.assign_all(0)
+        e[i] = 1
+        M[i] = solve_linear(A, e, n_iterations)
+    return M.transpose()

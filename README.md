@@ -10,7 +10,10 @@ sharing (with an honest majority).
 
 [Filing an issue on GitHub](../../issues) is the preferred way of contacting
 us, but you can also write an email to mp-spdz@googlegroups.com
-([archive](https://groups.google.com/forum/#!forum/mp-spdz)).
+([archive](https://groups.google.com/forum/#!forum/mp-spdz)). Before
+reporting a problem, please check against the list of [known
+issues and possible
+solutions](https://mp-spdz.readthedocs.io/en/latest/troubleshooting.html).
 
 #### Frequently Asked Questions
 
@@ -84,7 +87,7 @@ The following table lists all protocols that are fully supported.
 | Covert, dishonest majority | [CowGear / ChaiGear](#secret-sharing) | N/A | N/A | N/A |
 | Semi-honest, dishonest majority | [Semi / Hemi / Soho](#secret-sharing) | [Semi2k](#secret-sharing) | [SemiBin](#secret-sharing) | [Yao's GC](#yaos-garbled-circuits) / [BMR](#bmr) |
 | Malicious, honest majority | [Shamir / Rep3 / PS / SY](#honest-majority) | [Brain / Rep[34] / PS / SY](#honest-majority) | [Rep3 / CCD / PS](#honest-majority) | [BMR](#bmr) |
-| Semi-honest, honest majority | [Shamir / Rep3](#honest-majority) | [Rep3](#honest-majority) | [Rep3 / CCD](#honest-majority) | [BMR](#bmr) |
+| Semi-honest, honest majority | [Shamir / ATLAS / Rep3](#honest-majority) | [Rep3](#honest-majority) | [Rep3 / CCD](#honest-majority) | [BMR](#bmr) |
 
 See [this paper](https://eprint.iacr.org/2020/300) for an explanation
 of the various security models and high-level introduction to
@@ -165,12 +168,14 @@ The design of MP-SPDZ is described in [this
 paper](https://eprint.iacr.org/2020/521). If you use it for an
 academic project, please cite:
 ```
-@misc{mp-spdz,
+@inproceedings{mp-spdz,
     author = {Marcel Keller},
     title = {{MP-SPDZ}: A Versatile Framework for Multi-Party Computation},
-    howpublished = {Cryptology ePrint Archive, Report 2020/521},
+    booktitle = {Proceedings of the 2020 ACM SIGSAC Conference on
+    Computer and Communications Security},
     year = {2020},
-    note = {\url{https://eprint.iacr.org/2020/521}},
+    doi = {10.1145/3372297.3417872},
+    url = {https://doi.org/10.1145/3372297.3417872},
 }
 ```
 
@@ -256,7 +261,7 @@ compute the preprocessing time for a particular computation.
    add `AVX_OT = 0` in addition.
  - To benchmark online-only protocols or Overdrive offline phases, add the following line at the top: `MY_CFLAGS = -DINSECURE`
  - `PREP_DIR` should point to a local, unversioned directory to store preprocessing data (the default is `Player-Data` in the current directory).
- - For homomorphic encryption, set `USE_NTL = 1`.
+ - For homomorphic encryption with GF(2^40), set `USE_NTL = 1`.
 
 2) Run `make` to compile all the software (use the flag `-j` for faster
 compilation using multiple threads). See below on how to compile specific
@@ -381,15 +386,15 @@ variant by Mohassel and Rindal (available in Rep3 only).
 ##### Finding the most efficient variant
 
 Where available, local share conversion is likely the most efficient
-variant. Protocols based on Shamir secret sharing are unlikely to
-benefit from mixed-circuit computation because they use an extension
-field for binary computation. Otherwise, edaBits likely offer an
-asymptotic benefit. However, malicious protocols by default generate
-large batches of edaBits (more than one million at once), which is
-only worthwhile for accordingly large computation. For smaller
-computation, try running the virtual machines with `-B 4` or `-B 5`,
-which reduces the batch size to ~10,000 and ~1,000, respectively, at a
-higher asymptotic cost.
+variant. Otherwise, edaBits likely offer an asymptotic benefit. When
+using edaBits with malicious protocols, there is a trade-off between
+cost per item and batch size. The lowest cost per item requires large
+batches of edaBits (more than one million at once), which is only
+worthwhile for accordingly large computation. This setting can be
+selected by running the virtual machine with `-B 3`. For smaller
+computation, try `-B 4` or `-B 5`, which set the batch size to ~10,000
+and ~1,000, respectively, at a higher asymptotic cost. `-B 4` is the
+default.
 
 #### Bristol Fashion circuits
 
@@ -622,6 +627,7 @@ The following table shows all programs for honest-majority computation:
 | `ps-rep-field-party.x` | Replicated | Mod prime | Y | 3 | `ps-rep-field.sh` |
 | `sy-rep-field-party.x` | SPDZ-wise replicated | Mod prime | Y | 3 | `sy-rep-field.sh` |
 | `malicious-rep-field-party.x` | Replicated | Mod prime | Y | 3 | `mal-rep-field.sh` |
+| `atlas-party.x` | [ATLAS](https://eprint.iacr.org/2021/833) | Mod prime | N | 3 or more | `atlas.sh` |
 | `shamir-party.x` | Shamir | Mod prime | N | 3 or more | `shamir.sh` |
 | `malicious-shamir-party.x` | Shamir | Mod prime | Y | 3 or more | `mal-shamir.sh` |
 | `sy-shamir-party.x` | SPDZ-wise Shamir | Mod prime | Y | 3 or more | `sy-shamir.sh` |

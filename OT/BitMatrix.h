@@ -24,9 +24,11 @@ union square128 {
     typedef gf2n_long RowType;
 
     const static int N_ROWS = 128;
-    const static int N_ROWS_ALLOCATED = 128;
-    const static int N_COLUMNS = 128;
-    const static int N_ROW_BYTES = 128 / 8;
+
+    static int n_rows() { return 128; }
+    static int n_rows_allocated() { return 128; }
+    static int n_columns() { return 128; }
+    static int n_row_bytes() { return 128 / 8; }
 
     static size_t size() { return N_ROWS * sizeof(__m128i); }
 
@@ -124,7 +126,8 @@ public:
 
     size_t vertical_size();
 
-    void resize_vertical(int length) { squares.resize(DIV_CEIL(length, U::N_ROWS)); }
+    void resize_vertical(int length)
+    { squares.resize(DIV_CEIL(length, U::n_rows())); }
 
     bool operator==(Matrix<U>& other);
     bool operator!=(Matrix<U>& other);

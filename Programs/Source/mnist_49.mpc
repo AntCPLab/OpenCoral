@@ -1,3 +1,6 @@
+# this trains network with dense layers in 4/9 distinction
+# see https://github.com/csiro-mlai/mnist-mpc for data preparation
+
 import ml
 import math
 import re
@@ -54,7 +57,7 @@ if not ('no_acc' in program.args and 'no_loss' in program.args):
    Y.input_from(0)
    X.input_from(0)
 
-sgd = ml.SGD(layers, 1)
+sgd = ml.Optimizer.from_args(program, layers)
 
 if 'no_out' in program.args:
     del sgd.layers[-1]

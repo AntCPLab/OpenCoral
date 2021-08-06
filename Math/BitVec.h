@@ -54,6 +54,9 @@ public:
     BitVec_ extend_bit() const { return -(this->a & 1); }
     BitVec_ mask(int n) const { return n < n_bits ? *this & ((1L << n) - 1) : *this; }
 
+    void extend_bit(BitVec_& res, int) const { res = extend_bit(); }
+    void mask(BitVec_& res, int n) const { res = mask(n); }
+
     void add(octetStream& os) { *this += os.get<BitVec_>(); }
 
     void mul(const BitVec_& a, const BitVec_& b) { *this = a * b; }

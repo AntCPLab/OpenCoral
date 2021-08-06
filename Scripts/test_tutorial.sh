@@ -40,6 +40,8 @@ function test_vm
 # big buckets for smallest batches
 run_opts="$run_opts -B 5"
 
+export PORT=$((RANDOM%10000+10000))
+
 for dabit in ${dabit:-0 1 2}; do
     if [[ $dabit = 1 ]]; then
 	compile_opts="$compile_opts -X"
@@ -57,7 +59,7 @@ for dabit in ${dabit:-0 1 2}; do
     ./compile.py  $compile_opts tutorial
 
     for i in rep-field shamir mal-rep-field ps-rep-field sy-rep-field \
-		       mal-shamir sy-shamir hemi semi \
+		       atlas mal-shamir sy-shamir hemi semi \
 		       soho mascot; do
 	test_vm $i $run_opts
     done
@@ -81,7 +83,7 @@ fi
 ./compile.py tutorial
 
 for i in cowgear chaigear; do
-    test_vm $i $run_opts -l 3 -c 2 -T
+    test_vm $i $run_opts -l 3 -c 2 -J
 done
 
 if test $skip_binary; then

@@ -12,14 +12,17 @@
 #include "Processor/Processor.h"
 #include "GC/TinierSecret.h"
 #include "Math/gfp.h"
+#include "Math/gfpvar.h"
 
 template<int X, int L>
 class KeyGenProtocol
 {
 public:
-    typedef Share<gfp_<X, L>> share_type;
+    typedef Share<gfpvar_<X, MAX_MOD_SZ>> share_type;
     typedef typename share_type::open_type open_type;
     typedef ShareVector<share_type> vector_type;
+
+    int backup_batch_size;
 
 protected:
     Player& P;
@@ -53,9 +56,9 @@ public:
 };
 
 template<int L>
-class LowGearKeyGen : public KeyGenProtocol<5, L>
+class LowGearKeyGen : public KeyGenProtocol<1, L>
 {
-    typedef KeyGenProtocol<5, L> super;
+    typedef KeyGenProtocol<1, L> super;
 
     typedef typename super::share_type share_type;
     typedef typename super::open_type open_type;

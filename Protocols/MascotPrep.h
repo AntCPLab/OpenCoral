@@ -56,6 +56,11 @@ template<class T>
 class MascotDabitOnlyPrep : public virtual MaliciousDabitOnlyPrep<T>,
         public virtual MascotTriplePrep<T>
 {
+    template<int>
+    void buffer_bits(true_type);
+    template<int>
+    void buffer_bits(false_type);
+
 public:
     MascotDabitOnlyPrep(SubProcessor<T>* proc, DataPositions& usage) :
             BufferPrep<T>(usage), BitPrep<T>(proc, usage),

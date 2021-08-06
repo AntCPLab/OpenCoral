@@ -1,6 +1,13 @@
 import ml
 import util
 import math
+import sys
+
+if len(program.args) < 2:
+   print('Usage: %s <net> <n_threads>' % program.args[0],
+         file=sys.stderr)
+   print('<net> refers to the letter naming in SecureNN.', file=sys.stderr)
+   exit(1)
 
 program.options_from_args()
 program.options.cisc = True
@@ -29,10 +36,10 @@ if program.args[1] == 'A':
     ]
 elif program.args[1] == 'B':
     layers = [
-        ml.FixConv2d([1, 28, 28, 1], (16, 5, 5, 1), (16,), [1, 24, 24, 16], (1, 1)),
+        ml.FixConv2d([1, 28, 28, 1], (16, 5, 5, 1), (16,), [1, 24, 24, 16], (1, 1), 'VALID'),
         ml.MaxPool([1, 24, 24, 16]),
         ml.Relu([1, 12, 12, 16]),
-        ml.FixConv2d([1, 12, 12, 16], (16, 5, 5, 16), (16,), [1, 8, 8, 16], (1, 1)),
+        ml.FixConv2d([1, 12, 12, 16], (16, 5, 5, 16), (16,), [1, 8, 8, 16], (1, 1), 'VALID'),
         ml.MaxPool([1, 8, 8, 16]),
         ml.Relu([1, 4, 4, 16]),
         ml.Dense(1, 256, 100),
@@ -42,10 +49,10 @@ elif program.args[1] == 'B':
     ]
 elif program.args[1] == 'C':
     layers = [
-        ml.FixConv2d([1, 28, 28, 1], (20, 5, 5, 1), (20,), [1, 24, 24, 20], (1, 1)),
+        ml.FixConv2d([1, 28, 28, 1], (20, 5, 5, 1), (20,), [1, 24, 24, 20], (1, 1), 'VALID'),
         ml.MaxPool([1, 24, 24, 20]),
         ml.Relu([1, 12, 12, 20]),
-        ml.FixConv2d([1, 12, 12, 20], (50, 5, 5, 20), (50,), [1, 8, 8, 50], (1, 1)),
+        ml.FixConv2d([1, 12, 12, 20], (50, 5, 5, 20), (50,), [1, 8, 8, 50], (1, 1), 'VALID'),
         ml.MaxPool([1, 8, 8, 50]),
         ml.Relu([1, 4, 4, 50]),
         ml.Dense(1, 800, 500),

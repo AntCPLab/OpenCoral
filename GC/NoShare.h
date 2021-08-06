@@ -76,6 +76,8 @@ public:
 
     bool operator!=(NoValue) const { fail(); return 0; }
 
+    bool operator==(int) { fail(); return false; }
+
     bool get_bit(int) { fail(); return 0; }
 
     void randomize(PRNG&) { fail(); }
@@ -173,6 +175,7 @@ public:
     void invert(int, NoShare) { fail(); }
 
     NoShare mask(int) const { fail(); return {}; }
+    void mask(NoShare, int) const { fail(); }
 
     void input(istream&, bool) { fail(); }
     void output(ostream&, bool) { fail(); }

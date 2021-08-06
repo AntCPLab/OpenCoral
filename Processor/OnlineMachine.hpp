@@ -103,7 +103,9 @@ OnlineMachine::OnlineMachine(int argc, const char** argv, ez::ezOptionParser& op
           "--external-server" // Flag token.
     );
 
+    opt.parse(argc, argv);
     opt.get("--lg2")->getInt(lg2);
+    opt.resetArgs();
 }
 
 inline

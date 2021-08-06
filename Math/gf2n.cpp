@@ -11,37 +11,25 @@ const false_type ValueInterface::characteristic_two;
 const false_type ValueInterface::prime_field;
 const false_type ValueInterface::invertible;
 
-const true_type gf2n_short::characteristic_two;
-const true_type gf2n_long::characteristic_two;
-
-const true_type gf2n_short::invertible;
-const true_type gf2n_long::invertible;
-
-int gf2n_short::n = 0;
-int gf2n_short::t1;
-int gf2n_short::t2;
-int gf2n_short::t3;
-int gf2n_short::l0;
-int gf2n_short::l1;
-int gf2n_short::l2;
-int gf2n_short::l3;
-int gf2n_short::nterms;
-word gf2n_short::mask;
-bool gf2n_short::useC;
+template<class U>
+int gf2n_<U>::l[4];
+template<class U>
+bool gf2n_<U>::useC;
 
 word gf2n_short_table[256][256];
 
-#define num_2_fields 4
+#define num_2_fields 6
 
 /* Require
  *  2*(n-1)-64+t1<64
  */
 int fields_2[num_2_fields][4] = { 
-	{4,1,0,0},{8,4,3,1},{28,1,0,0},{40,20,15,10}
+	{4,1,0,0},{8,4,3,1},{28,1,0,0},{40,20,15,10},{63,1,0,0},{128,7,2,1},
     };
 
 
-void gf2n_short::init_tables()
+template<class U>
+void gf2n_<U>::init_tables()
 {
   if (sizeof(word)!=8)
     { cout << "Word size is wrong" << endl; 
@@ -61,12 +49,17 @@ void gf2n_short::init_tables()
     }
 }
 
-
 void gf2n_short::init_field(int nn)
+{
+  super::init_field(nn == 0 ? DEFAULT_LENGTH : nn);
+}
+
+template<class U>
+void gf2n_<U>::init_field(int nn)
 {
   if (nn == 0)
     {
-      nn = DEFAULT_LENGTH;
+      nn = MAX_N_BITS;
 #ifdef VERBOSE
       cerr << "Using GF(2^" << nn << ")" << endl;
 #endif
@@ -77,34 +70,38 @@ void gf2n_short::init_field(int nn)
 
   assert(n == 0);
 
-  gf2n_short::init_tables();
+  init_tables();
   int i,j=-1;
   for (i=0; i<num_2_fields && j==-1; i++)
     { if (nn==fields_2[i][0]) { j=i; } }
+
+  if (nn > MAX_N_BITS)
+    throw runtime_error("Bit length not supported.\n"
+        "You might need to compile with USE_GF2N_LONG = 1.\n"
+        "Remember to run 'make clean'.");
+
   if (j==-1)
     {
-      if (nn == 128)
-	throw runtime_error("need to compile with USE_GF2N_LONG = 1; "
-			    "remember to make clean");
-      else
-	throw runtime_error("field size not supported");
+      throw runtime_error("field size not supported");
     }
 
   n=nn;
-  nterms=1;
-  l0=64-n;  
-  t1=fields_2[j][1];
-  l1=64+t1-n; 
-  if (fields_2[j][2]!=0)
-    { nterms=3;
-      t2=fields_2[j][2];
-      l2=64+t2-n; 
-      t3=fields_2[j][3];
-      l3=64+t3-n; 
+  l[0] = MAX_N_BITS - n;
+  for (int i = 1; i < 4; i++)
+    {
+      if (fields_2[j][i] == 0)
+        break;
+      nterms = i;
+      t[i] = fields_2[j][i];
+      l[i] = MAX_N_BITS + t[i] - n;
     }
-  if (2*(n-1)-64+t1>=64) { throw invalid_params(); }
+  assert(nterms > 0);
 
-  mask=(1ULL<<n)-1;
+  mask = (n == MAX_N_BITS) ? ~U() : ~(U(~U()) << n);
+  uppermask = U(~U()) << (MAX_N_BITS - t[1]);
+  lowermask = ~uppermask;
+
+  init_multiplication();
 
 #ifdef __PCLMUL__
   useC = not cpu_has_pclmul();
@@ -112,8 +109,46 @@ void gf2n_short::init_field(int nn)
   useC = true;
 #endif
 }
-  
 
+
+template<class U>
+void gf2n_<U>::init_multiplication()
+{
+  if (n <= 8)
+    {
+      word red = 1;
+      for (int i = 1; i <= nterms; i++)
+        red ^= (1 << t[i]);
+      memset(mult_table, 0, sizeof(mult_table));
+      for (int i = 1; i < 1 << n; i++)
+        {
+          for (int j = 1; j <= i; j++)
+            {
+              word tmp = mult_table[i / 2][j];
+              tmp <<= 1;
+              if (i & 1)
+                tmp ^= j;
+              if (tmp >> n)
+                tmp ^= red;
+              tmp &= Integer(mask).get();
+              mult_table[i][j] = tmp;
+              mult_table[j][i] = tmp;
+          }
+        }
+    }
+}
+
+
+/* Takes 8bit x and y and returns the 16 bit product in c1 and c0
+      ans = (c1<<8)^c0
+   where c1 and c0 are 8 bit
+*/
+void mul(octet x, octet y, octet& c0, octet& c1)
+{
+  auto full = gf2n_short_table[octet(x)][octet(y)];
+  c0 = full;
+  c1 = full >> 8;
+}
 
 /* Takes 16bit x and y and returns the 32 bit product in c1 and c0
       ans = (c1<<16)^c0
@@ -147,44 +182,47 @@ inline word mul16(word x,word y)
 
 
 
-void gf2n_short::reduce_trinomial(word xh,word xl)
+template<class U>
+void gf2n_<U>::reduce(U xh, U xl)
 {
-  // Deal with xh first
-  a=xl;
-  a^=(xh<<l0); 
-  a^=(xh<<l1); 
+  if (n == 0)
+    throw runtime_error("gf2n not initialized");
 
-  // Now deal with last word
-  word hi=a>>n;
-  while (hi!=0)
-    { a&=mask;
+  if (2 * (n - 1) - MAX_N_BITS + t[1] < MAX_N_BITS)
+    {
+      // Deal with xh first
+      a = xl;
+      for (int i = 0; i < nterms + 1; i++)
+        a ^= (xh << l[i]);
 
-      a^=hi;
-      a^=(hi<<t1);
-      hi=a>>n;
+      // Now deal with last word
+      U hi = a >> n;
+      while (hi != 0)
+        {
+          a &= mask;
+
+          a ^= hi;
+          for (int i = 1; i < nterms + 1; i++)
+            a ^= (hi << t[i]);
+
+          hi = a >> n;
+        }
     }
-}
-
-void gf2n_short::reduce_pentanomial(word xh,word xl)
-{
-  // Deal with xh first
-  a=xl;
-  a^=(xh<<l0);   
-  a^=(xh<<l1);
-  a^=(xh<<l2);
-  a^=(xh<<l3);
-
-  // Now deal with last word
-  word hi=a>>n;
-  while (hi!=0)
-    { a&=mask;
-
-      a^=hi;
-      a^=(hi<<t1);
-      a^=(hi<<t2);
-      a^=(hi<<t3);
-
-      hi=a>>n;
+  else
+    {
+      a = xl;
+      U upper, lower;
+      upper = xh & uppermask;
+      lower = xh & lowermask;
+      // Upper part
+      U tmp = 0;
+      for (int i = 0; i < nterms + 1; i++)
+        tmp ^= (upper >> (n - t[1] - l[i]));
+      lower ^= (tmp >> (l[1]));
+      a ^= (tmp << (n - l[1]));
+      // Lower part
+      for (int i = 0; i < nterms + 1; i++)
+        a ^= (lower << l[i]);
     }
 }
 
@@ -209,7 +247,7 @@ void mul32(word x,word y,word& ans)
 }
 
 
-void mul64(word x, word y, word& lo, word& hi)
+void mul(word x, word y, word& lo, word& hi)
 {
    word c,d,e,t;
    word xl=x&0xFFFFFFFF,yl=y&0xFFFFFFFF;
@@ -223,52 +261,90 @@ void mul64(word x, word y, word& lo, word& hi)
 }
 
 
-void gf2n_short::mul(const gf2n_short& x,const gf2n_short& y)
+word to_word(word x)
 {
-  word hi,lo;
-  
-  if (gf2n_short::useC)
-    { /* Uses Karatsuba */
-      mul64(x.a, y.a, lo, hi);
+  return x;
+}
+
+word to_word(int128 x)
+{
+  return x.get_lower();
+}
+
+template<class U>
+gf2n_<U>& gf2n_<U>::mul(const gf2n_& x,const gf2n_& y)
+{
+  U hi,lo;
+
+  if (n <= 8)
+    {
+      *this = mult_table[octet(to_word(x.a))][octet(to_word(y.a))];
+      return *this;
+    }
+  else if (useC or n > 64)
+    {
+      ::mul(x.a, y.a, lo, hi);
     }
   else
-    { /* Use Intel Instructions */
-#ifdef __PCLMUL__
-      __m128i xx,yy,zz;
-      uint64_t c[] __attribute__((aligned (16))) = { 0,0 };
-      xx=_mm_set1_epi64x(x.a);
-      yy=_mm_set1_epi64x(y.a);
-      zz=_mm_clmulepi64_si128(xx,yy,0);
-      _mm_store_si128((__m128i*)c,zz);
-      lo=c[0];
-      hi=c[1];
-#else
-      throw runtime_error("need to compile with PCLMUL support");
-#endif
+    {
+      int128 res = clmul<0>(int128(x.a).a, int128(y.a).a);
+
+      if (MAX_N_BITS <= 64)
+        {
+          hi = res.get_upper();
+          lo = res.get_lower();
+        }
+      else
+        {
+          res.to(lo);
+          hi = 0;
+        }
     }
 
   reduce(hi,lo);
+  return *this;
 }
 
-gf2n_short gf2n_short::operator*(const Bit& x) const
+template<class U>
+gf2n_<U> gf2n_<U>::operator*(const Bit& x) const
 {
-  return x.get() * a;
+  return x.get() ? a : 0;
 }
 
 
-gf2n_short gf2n_short::invert() const
+template<class U>
+gf2n_<U> gf2n_<U>::invert() const
 {
-  if (is_one())  { return *this; }
+  if (n < 64)
+    return U(invert<word>(a));
+  else
+    return invert<bit_plus<U>>(a).get_lower();
+}
+
+template<>
+gf2n_<int128> gf2n_<int128>::invert() const
+{
+  if (n < 64)
+    return int128(invert<word>(a.get_lower()));
+  if (n < 128)
+    return invert<int128>(a);
+  else
+    return invert<bit_plus<int128>>(a).get_lower();
+}
+
+template<class U>
+template<class T>
+T gf2n_<U>::invert(T a) const
+{
+  if (is_one())  { return a; }
   if (is_zero()) { throw division_by_zero(); }
 
-  word u,v=a,B=0,D=1,mod=1;
+  T u,v=a,B=0,D=1,mod=1;
 
-  mod^=(1ULL<<n);
-  mod^=(1ULL<<t1);
-  if (nterms==3)
-    { mod^=(1ULL<<t2);
-      mod^=(1ULL<<t3);
-    }
+  mod ^= (T(1) << n);
+  for (int i = 1; i <= nterms; i++)
+    mod ^= (1ULL << t[i]);
+
   u=mod; v=a;
   
   while (u!=0)
@@ -291,40 +367,84 @@ gf2n_short gf2n_short::invert() const
 }
 
 
-void gf2n_short::randomize(PRNG& G, int n)
+template<class U>
+gf2n_<U> gf2n_<U>::operator <<(int i) const
+{
+  if (i < 0)
+    throw runtime_error("cannot shift by negative");
+  else if (i >= n)
+    return 0;
+  else
+    return a << i;
+}
+
+template<class U>
+gf2n_<U> gf2n_<U>::operator >>(int i) const
+{
+  if (i < 0)
+    throw runtime_error("cannot shift by negative");
+  else if (i >= n)
+    return 0;
+  else
+    return a >> i;
+}
+
+
+template<class U>
+void gf2n_<U>::randomize(PRNG& G, int n)
 {
   (void) n;
-  a=G.get_uint();
-  a=(a<<32)^G.get_uint();
+  a=G.get<U>();
   a&=mask;
 }
 
-
-void gf2n_short::output(ostream& s,bool human) const
+template<>
+void gf2n_<octet>::output(ostream& s,bool human) const
 {
   if (human)
-    { s << hex << showbase << a << dec << " "; }
+    s << hex << showbase << word(a) << dec;
   else
-    { s.write((char*) &a,sizeof(word)); }
+    s.write((char*) &a, sizeof(octet));
 }
 
-void gf2n_short::input(istream& s,bool human)
+template<class U>
+void gf2n_<U>::output(ostream& s,bool human) const
+{
+  if (human)
+    { s << hex << showbase << a << dec; }
+  else
+    { s.write((char*) &a, (sizeof(U))); }
+}
+
+template<class U>
+void gf2n_<U>::input(istream& s,bool human)
 {
   if (s.peek() == EOF)
     { if (s.tellg() == 0)
         { cout << "IO problem. Empty file?" << endl;
-          throw file_error("gf2n_short input");
+          throw file_error("gf2n input");
         }
-      throw end_of_file("gf2n_short");
+      throw end_of_file("gf2n");
     }
 
   if (human)
     { s >> hex >> a >> dec; } 
   else
-    { s.read((char*) &a,sizeof(word)); }
+    { s.read((char*) &a, sizeof(U)); }
 
   a &= mask;
 }
+
+gf2n_short gf2n_short::cut(int128 x)
+{
+  return x.get_lower();
+}
+
+gf2n_short::gf2n_short(const int128& a)
+{
+  reduce(a.get_upper(), a.get_lower());
+}
+
 
 // Expansion is by x=y^5+1 (as we embed GF(256) into GF(2^40)
 void expand_byte(gf2n_short& a,int b)
@@ -371,3 +491,7 @@ void collapse_byte(int& b,const gf2n_short& aa)
       b+=a[i];
     }
 }
+
+template class gf2n_<word>;
+template class gf2n_<octet>;
+template class gf2n_<int128> ;

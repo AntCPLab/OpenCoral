@@ -7,7 +7,7 @@ representing the integer bit length, and kappa the statistical security
 parameter.
 
 Most of these routines were implemented before the cint/sint classes, so use
-the old-fasioned Register class and assembly instructions instead of operator
+the old-fashioned Register class and assembly instructions instead of operator
 overloading.
 
 The PreMulC function has a few variants, depending on whether
@@ -61,18 +61,13 @@ def ld2i(c, n):
         t1 = t2
     movc(c, t1)
 
-inverse_of_two = {}
-
-def divide_by_two(res, x, m=1):
-    """ Faster clear division by two using a cached value of 2^-1 mod p """
-    tmp = program.curr_block.new_reg('c')
-    inv2m(tmp, m)
-    mulc(res, x, tmp)
-
 def require_ring_size(k, op):
     if int(program.options.ring) < k:
-        raise CompilerError('ring size too small for %s, compile '
-                            'with \'-R %d\' or more' % (op, k))
+        msg = 'ring size too small for %s, compile ' \
+            'with \'-R %d\' or more' % (op, k)
+        if k > 64 and k < 128:
+            msg += ' (maybe \'-R 128\' as it is supported by default)'
+        raise CompilerError(msg)
     program.curr_tape.require_bit_length(k)
 
 @instructions_base.cisc
@@ -122,20 +117,11 @@ def Trunc(d, a, k, m, kappa, signed):
     m: compile-time integer
     signed: True/False, describes a
     """
-    t = program.curr_block.new_reg('s')
-    c = [program.curr_block.new_reg('c') for i in range(3)]
-    c2m = program.curr_block.new_reg('c')
     if m == 0:
         movs(d, a)
         return
-    elif program.options.ring:
-        return TruncRing(d, a, k, m, signed)
     else:
-        a_prime = program.non_linear.mod2m(a, k, m, signed)
-    subs(t, a, a_prime)
-    ldi(c[1], 1)
-    divide_by_two(c[2], c[1], m)
-    mulm(d, t, c[2])
+        movs(d, program.non_linear.trunc(a, k, m, kappa, signed))
 
 def TruncRing(d, a, k, m, signed):
     program.curr_tape.require_bit_length(1)
@@ -489,13 +475,12 @@ def BitLTL(res, a, b, kappa):
     """
     k = len(b)
     a_bits = b[0].bit_decompose_clear(a, k)
-    s = [[program.curr_block.new_reg('s') for i in range(k)] for j in range(2)]
-    t = [program.curr_block.new_reg('s') for i in range(1)]
-    for i in range(len(b)):
-        s[0][i] = b[0].long_one() - b[i]
-    CarryOut(t[0], a_bits[::-1], s[0][::-1], b[0].long_one(), kappa)
-    subsfi(res, t[0], 1)
-    return a_bits, s[0]
+    from .types import sint
+    movs(res, sint.conv(BitLTL_raw(a_bits, b)))
+
+def BitLTL_raw(a_bits, b):
+    s = [x.bit_not() for x in b]
+    return CarryOutRaw(a_bits[::-1], s[::-1], b[0].long_one()).bit_not()
 
 def PreMulC_with_inverses_and_vectors(p, a):
     """

@@ -25,6 +25,7 @@ public:
     void init_mul(Preprocessing<T>& prep, typename T::MAC_Check& MC);
     typename T::clear prepare_mul(const T& x, const T& y, int n = -1);
     void exchange();
+    void finalize_mult(T& res, int n = -1);
     T finalize_mul(int n = -1);
 
     typename T::part_type::Protocol& get_part()

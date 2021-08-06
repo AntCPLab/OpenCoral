@@ -58,9 +58,18 @@ CowGearOptions::CowGearOptions(ez::ezOptionParser& opt, int argc,
             0, // Required?
             0, // Number of args expected.
             0, // Delimiter if expecting multiple args.
-            "Use TopGear", // Help description.
+            "Obsolete", // Help description.
             "-T", // Flag token.
             "--top-gear" // Flag token.
+    );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Don't use TopGear", // Help description.
+            "-J", // Flag token.
+            "--no-top-gear" // Flag token.
     );
     opt.parse(argc, argv);
     if (opt.isSet("-c"))
@@ -77,6 +86,8 @@ CowGearOptions::CowGearOptions(ez::ezOptionParser& opt, int argc,
         if (covert_security > (1LL << lowgear_security))
             insecure(", LowGear security less than key generation security");
     }
-    use_top_gear = opt.isSet("-T");
+    use_top_gear = not opt.isSet("-J");
+    if (opt.isSet("-T"))
+        cerr << "WARNING: Option -T/--top-gear is obsolete." << endl;
     opt.resetArgs();
 }

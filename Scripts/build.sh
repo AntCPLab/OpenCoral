@@ -15,5 +15,8 @@ function build
     strip $dest/*
 }
 
+echo AVX_OT = 0 >> CONFIG.mine
 build '-maes -mpclmul -DCHECK_AES -DCHECK_PCLMUL -DCHECK_AVX' amd64
+
+echo AVX_OT = 1 >> CONFIG.mine
 build '-msse4.1 -maes -mpclmul -mavx -mavx2 -mbmi2 -madx -DCHECK_ADX' avx2

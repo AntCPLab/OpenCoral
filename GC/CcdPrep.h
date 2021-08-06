@@ -61,7 +61,11 @@ public:
     {
         assert(part_proc);
         for (int i = 0; i < OnlineOptions::singleton.batch_size; i++)
-            this->bits.push_back(part_prep.get_bit());
+        {
+            typename T::part_type tmp;
+            part_prep.get_one_no_count(DATA_BIT, tmp);
+            this->bits.push_back(tmp);
+        }
     }
 
     void buffer_squares()

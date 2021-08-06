@@ -31,6 +31,9 @@ public:
 
     typedef GC::SemiHonestRepSecret bit_type;
 
+    static const bool has_trunc_pr = true;
+    static const bool has_split = true;
+
     Rep3Share2()
     {
     }

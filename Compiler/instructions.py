@@ -612,6 +612,19 @@ class divc(base.InvertInstruction):
 
 @base.gf2n
 @base.vectorize
+class floordivc(base.Instruction):
+    """ Clear integer floor division.
+
+    :param: result (cint)
+    :param: dividend (cint)
+    :param: divisor (cint)
+    """
+    __slots__ = []
+    code = base.opcodes['FLOORDIVC']
+    arg_format = ['cw','c','c']
+
+@base.gf2n
+@base.vectorize
 class modc(base.Instruction):
     """ Clear modular reduction.
 
@@ -1406,6 +1419,32 @@ class rawinput(base.RawInputInstruction, base.Mergeable):
             req_node.increment((self.field_type, 'input', player), \
                                self.get_size())
 
+class inputpersonal(base.Instruction, base.Mergeable):
+    """ Private input from cint.
+
+    :param: vector size (int)
+    :param: player (int)
+    :param: destination (sint)
+    :param: source (cint)
+    :param: (repeat from vector size)...
+    """
+    __slots__ = []
+    code = base.opcodes['INPUTPERSONAL']
+    arg_format = tools.cycle(['int','p','sw','c'])
+    field_type = 'modp'
+
+    def __init__(self, *args):
+        super(inputpersonal, self).__init__(*args)
+        for i in range(0, len(args), 4):
+            assert args[i + 2].size == args[i]
+            assert args[i + 3].size == args[i]
+
+    def add_usage(self, req_node):
+        for i in range(0, len(self.args), 4):
+            player = self.args[i + 1]
+            req_node.increment((self.field_type, 'input', player), \
+                               self.args[i])
+
 @base.gf2n
 @base.vectorize
 class print_reg(base.IOInstruction):
@@ -1676,6 +1715,31 @@ class raw_output(base.PublicFileIOInstruction):
     __slots__ = []
     code = base.opcodes['RAWOUTPUT']
     arg_format = ['c']
+
+@base.vectorize
+class intoutput(base.PublicFileIOInstruction):
+    """ Binary integer output.
+
+    :param: player (int)
+    :param: regint
+    """
+    __slots__ = []
+    code = base.opcodes['INTOUTPUT']
+    arg_format = ['p','ci']
+
+@base.vectorize
+class floatoutput(base.PublicFileIOInstruction):
+    """ Binary floating-point output.
+
+    :param: player (int)
+    :param: significand (cint)
+    :param: exponent (cint)
+    :param: zero bit (cint)
+    :param: sign bit (cint)
+    """
+    __slots__ = []
+    code = base.opcodes['FLOATOUTPUT']
+    arg_format = ['p','c','c','c','c']
 
 @base.gf2n
 @base.vectorize

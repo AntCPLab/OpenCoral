@@ -243,9 +243,9 @@ void ShareSecret<U>::reveal_inst(Processor<U>& processor,
             assert(U::default_length == Clear::N_BITS);
         for (int j = 0; j < DIV_CEIL(n, U::default_length); j++)
         {
-            shares.push_back(
-                    processor.S[r1 + j].mask(
-                            min(U::default_length, n - j * U::default_length)));
+            shares.push_back({});
+            processor.S[r1 + j].mask(shares.back(),
+                    min(U::default_length, n - j * U::default_length));
         }
     }
     assert(party.MC);

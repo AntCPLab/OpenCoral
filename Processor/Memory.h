@@ -33,16 +33,33 @@ class Memory
   unsigned size_c()
     { return MC.size(); }
 
+  template<class U>
+  static void check_index(const vector<U>& M, size_t i)
+    {
+      if (i >= M.size())
+        throw overflow("memory", i, M.size());
+    }
+
   const typename T::clear& read_C(int i) const
-    { return MC[i]; }
+    {
+      check_index(MC, i);
+      return MC[i];
+    }
   const T& read_S(int i) const
-    { return MS[i]; }
+    {
+      check_index(MS, i);
+      return MS[i];
+    }
 
   void write_C(unsigned int i,const typename T::clear& x)
-    { MC[i]=x;
+    {
+      check_index(MC, i);
+      MC[i]=x;
     }
   void write_S(unsigned int i,const T& x)
-    { MS[i]=x;
+    {
+      check_index(MS, i);
+      MS[i]=x;
     }
 
   void minimum_size(RegType secret_type, RegType clear_type,

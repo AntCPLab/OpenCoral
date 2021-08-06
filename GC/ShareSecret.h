@@ -46,6 +46,11 @@ public:
     static const bool is_real = true;
     static const bool actual_inputs = true;
 
+    static ShareThread<U>& get_party()
+    {
+        return ShareThread<U>::s();
+    }
+
     static void store_clear_in_dynamic(Memory<U>& mem,
             const vector<ClearWriteAccess>& accesses);
 

@@ -72,9 +72,9 @@ public:
         int n_bits = this->size_in_bits();
         if (numBits(limit) - N_OVERFLOW > n_bits)
         {
-            cerr << "maybe change N_LIMBS_RAND to at least "
-                    << ((numBits(limit) - N_OVERFLOW) / 64) << endl;
-            throw runtime_error("fixed-length integer too small");
+            throw runtime_error("Fixed-length integer too small. "
+                    "Maybe change N_LIMBS_RAND to at least " +
+                    to_string((numBits(limit) - N_OVERFLOW) / 64));
         }
     }
 };

@@ -191,6 +191,15 @@ void MaliciousBitOnlyRepPrep<T>::buffer_bits()
         honest_prep.get_two(DATA_SQUARE, f, h);
         bits.push_back(a);
         check_squares.push_back({{f, h}});
+#ifdef DEBUG_BIT_SACRIFICE
+        typename T::MAC_Check MC;
+        if (not (MC.open(a, P).is_zero() or MC.open(a, P).is_one()))
+        {
+            cout << MC.open(a, P) << endl;
+            throw exception();
+        }
+        assert(MC.open(f, P) * MC.open(f, P) == MC.open(h, P));
+#endif
     }
     auto t = Create_Random<typename T::clear>(P);
     for (int i = 0; i < buffer_size; i++)

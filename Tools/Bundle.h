@@ -38,6 +38,12 @@ public:
             if (os != mine)
                 throw mismatch_among_parties();
     }
+
+    void reset()
+    {
+        for (auto& x : *this)
+            x.reset_write_head();
+    }
 };
 
 #endif /* TOOLS_BUNDLE_H_ */

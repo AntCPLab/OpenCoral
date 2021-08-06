@@ -148,3 +148,8 @@ bool Zp_Data::operator!=(const Zp_Data& other) const
   else
     return false;
 }
+
+bool Zp_Data::operator==(const Zp_Data& other) const
+{
+  return not (*this != other);
+}

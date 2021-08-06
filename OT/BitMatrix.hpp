@@ -118,12 +118,12 @@ Slice<U>& Slice<U>::rsub(Slice<U>& other)
 template <class U>
 Slice<U>& Slice<U>::sub(BitVector& other, int repeat)
 {
-    if (end * U::PartType::N_COLUMNS > other.size() * repeat)
-        throw invalid_length(to_string(U::PartType::N_COLUMNS));
+    if (end * U::PartType::n_columns() > other.size() * repeat)
+        throw invalid_length(to_string(U::PartType::n_columns()));
     for (size_t i = start; i < end; i++)
     {
         bm.squares[i].sub(other.get_ptr_to_byte(i / repeat,
-                U::PartType::N_ROW_BYTES));
+                U::PartType::n_row_bytes()));
     }
     return *this;
 }

@@ -46,11 +46,6 @@ public:
         return "tiny share";
     }
 
-    static ShareThread<TinySecret<S>>& get_party()
-    {
-        return ShareThread<TinySecret<S>>::s();
-    }
-
     static This new_reg()
     {
         return {};
@@ -75,7 +70,7 @@ public:
 
     void public_input(bool input)
     {
-        auto& party = get_party();
+        auto& party = this->get_party();
         *this = super::constant(input, party.P->my_num(),
                 party.MC->get_alphai());
     }
@@ -83,7 +78,7 @@ public:
     void random()
     {
         TinySecret<S> tmp;
-        get_party().DataF.get_one(DATA_BIT, tmp);
+        this->get_party().DataF.get_one(DATA_BIT, tmp);
         *this = tmp.get_reg(0);
     }
 };

@@ -31,8 +31,8 @@ public:
     typedef GC::NoShare mac_share_type;
 
     typedef Shamir<ShamirShare> Protocol;
-    typedef ShamirMC<ShamirShare> MAC_Check;
-    typedef MAC_Check Direct_MC;
+    typedef IndirectShamirMC<ShamirShare> MAC_Check;
+    typedef ShamirMC<ShamirShare> Direct_MC;
     typedef ShamirInput<ShamirShare> Input;
     typedef ::PrivateOutput<ShamirShare> PrivateOutput;
     typedef ReplicatedPrep<ShamirShare> LivePrep;
@@ -40,7 +40,7 @@ public:
     typedef ShamirShare Honest;
 
 #ifndef NO_MIXED_CIRCUITS
-    typedef GC::CcdSecret<gf2n_short> bit_type;
+    typedef GC::CcdSecret<gf2n_<octet>> bit_type;
 #endif
 
     const static bool needs_ot = false;

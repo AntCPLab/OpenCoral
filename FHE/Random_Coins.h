@@ -10,7 +10,7 @@
 class FHE_PK;
 
 #ifndef N_LIMBS_RAND
-#define N_LIMBS_RAND 0
+#define N_LIMBS_RAND 1
 #endif
 
 class Int_Random_Coins : public AddableMatrix<fixint<N_LIMBS_RAND>>

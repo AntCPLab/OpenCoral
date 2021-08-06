@@ -167,8 +167,9 @@ class StraightlineAllocator:
 
     def finalize(self, options):
         for reg in self.alloc:
-            for x in reg.vector:
-                if x not in self.dealloc and reg not in self.dealloc:
+            for x in reg.get_all():
+                if x not in self.dealloc and reg not in self.dealloc \
+                   and len(x.duplicates) == 1:
                     print('Warning: read before write at register', x)
                     print('\tregister trace: %s' % format_trace(x.caller,
                                                                 '\t\t'))

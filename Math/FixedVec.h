@@ -22,6 +22,7 @@ template<class T> class Replicated;
 template <class T, int L>
 class FixedVec
 {
+    typedef FixedVec This;
     array<T, L> v;
 
 public:
@@ -302,19 +303,29 @@ public:
         return res;
     }
 
-    FixedVec<T, L> extend_bit() const
+    void extend_bit(This& res, int n_bits) const
     {
-        FixedVec<T, L> res;
         for (int i = 0; i < L; i++)
-            res[i] = v[i].extend_bit();
+            v[i].extend_bit(res[i], n_bits);
+    }
+
+    void mask(This& res, int n_bits) const
+    {
+        for (int i = 0; i < L; i++)
+            v[i].mask(res[i], n_bits);
+    }
+
+    This extend_bit() const
+    {
+        This res;
+        extend_bit(res, T::N_BITS);
         return res;
     }
 
-    FixedVec<T, L> mask(int n_bits) const
+    This mask(int n_bits) const
     {
-        FixedVec<T, L> res;
-        for (int i = 0; i < L; i++)
-            res[i] = v[i].mask(n_bits);
+        This res;
+        mask(res, n_bits);
         return res;
     }
 

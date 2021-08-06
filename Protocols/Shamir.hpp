@@ -8,6 +8,7 @@
 
 #include "Shamir.h"
 #include "ShamirInput.h"
+#include "ShamirShare.h"
 #include "Machines/ShamirMachine.h"
 #include "Tools/benchmarking.h"
 
@@ -32,12 +33,15 @@ typename T::open_type::Scalar Shamir<T>::get_rec_factor(int i, int n_total,
 }
 
 template<class T>
-Shamir<T>::Shamir(Player& P) :
+Shamir<T>::Shamir(Player& P, int t) :
         resharing(0), random_input(0), P(P)
 {
     if (not P.is_encrypted())
         insecure("unencrypted communication");
-    threshold = ShamirMachine::s().threshold;
+    if (t > 0)
+        threshold = t;
+    else
+        threshold = ShamirMachine::s().threshold;
     n_mul_players = 2 * threshold + 1;
 }
 
@@ -59,7 +63,7 @@ Shamir<T> Shamir<T>::branch()
 template<class T>
 int Shamir<T>::get_n_relevant_players()
 {
-    return ShamirMachine::s().threshold + 1;
+    return threshold + 1;
 }
 
 template<class T>
@@ -182,32 +186,92 @@ T Shamir<T>::finalize_dotprod(int)
 template<class T>
 void Shamir<T>::buffer_random()
 {
-    if (hyper.empty())
+    this->random = get_randoms(secure_prng, threshold);
+}
+
+template<class T>
+vector<vector<typename T::open_type>>& Shamir<T>::get_hyper(int t)
+{
+    auto& hyper = hypers[t];
+    if (int(hyper.size()) != P.num_players() - t)
     {
-        int n = P.num_players();
-        for (int i = 0; i < n - threshold; i++)
-        {
-            hyper.push_back({});
-            for (int j = 0; j < n; j++)
-            {
-                hyper.back().push_back({1});
-                for (int k = 0; k < n; k++)
-                    if (k != j)
-                        hyper.back().back() *= U(n + i - k) / U(j - k);
-            }
-        }
+        get_hyper(hyper, t, P.num_players());
+    }
+    return hyper;
+}
+
+template<class T>
+string Shamir<T>::hyper_filename(int t, int n)
+{
+    return PREP_DIR "/Hyper-" + to_string(t) + "-" + to_string(n) + "-"
+            + to_string(T::clear::pr());
+}
+
+template<class T>
+void Shamir<T>::get_hyper(vector<vector<typename T::open_type> >& hyper,
+        int t, int n)
+{
+    assert(hyper.empty());
+
+    try
+    {
+        octetStream os;
+        string filename = hyper_filename(t, n);
+        ifstream in(filename);
+#ifdef VERBOSE
+        cerr << "Trying to load hyper-invertable matrix from " << filename << endl;
+#endif
+        os.input(in);
+        os.get(hyper);
+        if (int(hyper.size()) != n - t)
+            throw exception();
+#ifdef VERBOSE
+        cerr << "Loaded hyper-invertable matrix from " << filename << endl;
+#endif
+        return;
+    }
+    catch (...)
+    {
+#ifdef VERBOSE
+        cerr << "Failed to load hyper-invertable" << endl;
+#endif
     }
 
+    map<int, U> inverses, dividends;
+    for (int i = -n; i < n; i++)
+        if (i != 0)
+            inverses[i] = U(i).invert();
+    for (int i = 0; i < 2 * n; i++)
+        dividends[i] = i;
+    for (int i = 0; i < n - t; i++)
+    {
+        hyper.push_back({});
+        for (int j = 0; j < n; j++)
+        {
+            hyper.back().push_back({1});
+            for (int k = 0; k < n; k++)
+                if (k != j)
+                    hyper.back().back() *= dividends.at(n + i - k)
+                    * inverses.at(j - k);
+        }
+    }
+}
+
+template<class T>
+vector<T> Shamir<T>::get_randoms(PRNG& G, int t)
+{
+    auto& hyper = get_hyper(t);
     if (random_input == 0)
-        random_input = new ShamirInput<T>(0, P);
+        random_input = new ShamirInput<T>(0, P, threshold);
     auto& input = *random_input;
     input.reset_all(P);
     int buffer_size = OnlineOptions::singleton.batch_size;
     for (int i = 0; i < buffer_size; i += hyper.size())
-        input.add_mine(secure_prng.get<U>());
+        input.add_mine(G.get<U>());
     input.exchange();
     vector<U> inputs;
-    auto& random = this->random;
+    vector<T> random;
+    random.reserve(buffer_size + hyper.size());
     for (int i = 0; i < buffer_size; i += hyper.size())
     {
         inputs.clear();
@@ -220,6 +284,7 @@ void Shamir<T>::buffer_random()
                 random.back() += hyper[j][k] * inputs[k];
         }
     }
+    return random;
 }
 
 #endif

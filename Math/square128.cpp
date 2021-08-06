@@ -279,7 +279,7 @@ template <>
 void Square<gf2n_long>::to(gf2n_long& result, false_type)
 {
     int128 high, low;
-    for (int i = 0; i < 128; i++)
+    for (int i = 0; i < gf2n_long::degree(); i++)
     {
         low ^= rows[i].get() << i;
         high ^= rows[i].get() >> (128 - i);

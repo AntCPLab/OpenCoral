@@ -9,7 +9,7 @@ implemented protocols etc. see https://github.com/data61/MP-SPDZ.
 Compilation process
 -------------------
 
-The easiest way of using MP-SPDZ is using the ``compile.py`` as
+The easiest way of using MP-SPDZ is using ``compile.py`` as
 described below. If you would like to run compilation directly from
 Python, see ``Scripts/direct_compilation_example.py``. It contains all
 the necessary setup steps.
@@ -155,6 +155,7 @@ Reference
    Compiler
    instructions
    low-level
+   machine-learning
    networking
    io
    non-linear

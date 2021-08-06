@@ -15,6 +15,7 @@ template<class T> class SubProcessor;
 template<class T> class ShamirMC;
 template<class T> class ShamirShare;
 template<class T> class ShamirInput;
+template<class T> class IndirectShamirMC;
 
 class Player;
 
@@ -31,7 +32,7 @@ class Shamir : public ProtocolBase<T>
 
     SeededPRNG secure_prng;
 
-    vector<vector<typename T::clear>> hyper;
+    map<int, vector<vector<typename T::open_type>>> hypers;
 
     typename T::open_type dotprod_share;
 
@@ -48,7 +49,7 @@ public:
     static U get_rec_factor(int i, int n);
     static U get_rec_factor(int i, int n_total, int start, int threshold);
 
-    Shamir(Player& P);
+    Shamir(Player& P, int threshold = 0);
     ~Shamir();
 
     Shamir branch();
@@ -85,6 +86,12 @@ public:
     void prepare_dotprod(const T& x, const T& y);
     void next_dotprod();
     T finalize_dotprod(int length);
+
+    vector<T> get_randoms(PRNG& G, int t);
+
+    vector<vector<typename T::open_type>>& get_hyper(int t);
+    static void get_hyper(vector<vector<typename T::open_type>>& hyper, int t, int n);
+    static string hyper_filename(int t, int n);
 };
 
 #endif /* PROTOCOLS_SHAMIR_H_ */

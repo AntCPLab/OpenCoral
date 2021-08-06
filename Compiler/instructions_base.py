@@ -89,6 +89,7 @@ opcodes = dict(
     LEGENDREC = 0x38,
     DIGESTC = 0x39,
     INV2M = 0x3a,
+    FLOORDIVC = 0x3b,
     GMULBITC = 0x136,
     GMULBITM = 0x137,
     # Open
@@ -123,6 +124,7 @@ opcodes = dict(
     INPUTMIXED = 0xF2,
     INPUTMIXEDREG = 0xF3,
     RAWINPUT = 0xF4,
+    INPUTPERSONAL = 0xF5,
     STARTINPUT = 0x61,
     STOPINPUT = 0x62,  
     READSOCKETC = 0x63,
@@ -193,6 +195,8 @@ opcodes = dict(
     CONDPRINTSTR = 0xBF,
     PRINTFLOATPREC = 0xE0,
     CONDPRINTPLAIN = 0xE1,
+    INTOUTPUT = 0xE6,
+    FLOATOUTPUT = 0xE7,
     GBITDEC = 0x184,
     GBITCOM = 0x185,
     # Secure socket
@@ -1024,17 +1028,7 @@ class ClearShiftInstruction(ClearImmediate):
 
     def check_args(self):
         super(ClearShiftInstruction, self).check_args()
-        bits = float('nan')
-        if self.is_gf2n():
-            if program.galois_length > 64:
-                bits = 127
-            else:
-                # assume 64-bit machine
-                bits = 63
-        if self.args[2] > bits:
-            raise CompilerError('Shifting by more than %d bits '
-                                'not implemented' % bits)
-        elif self.args[2] < 0:
+        if self.args[2] < 0:
             raise CompilerError('negative shift')
 
 ###

@@ -30,6 +30,7 @@ SemiHomomorphicNoiseBounds::SemiHomomorphicNoiseBounds(const bigint& p,
 
     // according to documentation of SCALE-MAMBA 1.7
     // excluding a factor of n because we don't always add up n ciphertexts
+    assert(phi_m != 0);
     V_s = sigma * sqrt(phi_m);
     B_clean = (bigint(phi_m) << (sec + 1)) * p
             * (20.5 + c1 * sigma * sqrt(phi_m) + 20 * c1 * V_s);
@@ -159,6 +160,7 @@ bigint NoiseBounds::min_p1()
 
 bigint NoiseBounds::opt_p1()
 {
+    assert(B_scale != 0);
     // square equation parameters
     bigint a, b, c;
     a = B_scale * B_scale + B_scale;

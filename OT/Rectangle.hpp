@@ -15,10 +15,6 @@
 template<class U, class V>
 const int Rectangle<U, V>::N_ROWS;
 template<class U, class V>
-const int Rectangle<U, V>::N_COLUMNS;
-template<class U, class V>
-const int Rectangle<U, V>::N_ROW_BYTES;
-template<class U, class V>
 const int Rectangle<U, V>::N_ROWS_ALLOCATED;
 
 template<class U, class V>

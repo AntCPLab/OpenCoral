@@ -23,7 +23,8 @@ enum ReportType
 
 template<int X, int L>
 class gfp_;
-class gfpvar;
+template<int X, int L>
+class gfpvar_;
 class gmp_random;
 class Integer;
 template<int K> class Z2;
@@ -54,7 +55,8 @@ public:
   bigint(const T& x) : mpz_class(x) {}
   template<int X, int L>
   bigint(const gfp_<X, L>& x);
-  bigint(const gfpvar& x);
+  template<int X, int L>
+  bigint(const gfpvar_<X, L>& x);
   template <int K>
   bigint(const Z2<K>& x);
   template <int K>
@@ -187,6 +189,12 @@ template<int X, int L>
 bigint::bigint(const gfp_<X, L>& x)
 {
   *this = x;
+}
+
+template<int X, int L>
+bigint::bigint(const gfpvar_<X, L>& other)
+{
+  to_bigint(*this, other.get(), other.get_ZpD());
 }
 
 template<int X, int L>
