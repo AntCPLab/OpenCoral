@@ -286,6 +286,8 @@ class cbits(bits):
     output = print_reg_plain
     def print_if(self, string):
         inst.cond_print_strb(self, string)
+    def output_if(self, cond):
+        cint(self).output_if(cond)
     def reveal(self):
         return self
     def to_regint(self, dest=None):
