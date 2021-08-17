@@ -36,19 +36,17 @@ def close_connections(number_clients):
     def _(i):
         closeclientconnection(i)
 
-def client_input(client_socket_id):
+def client_input(t, client_socket_id):
     """
     Send share of random value, receive input and deduce share.
     """
     
-    client_inputs = sint.receive_from_client(1, client_socket_id)
-
-    return client_inputs[0]
+    return t.receive_from_client(1, client_socket_id)[0]
 
 
 def determine_winner(number_clients, client_values, client_ids):
     """Work out and return client_id which corresponds to max client_value"""
-    max_value = Array(1, sint)
+    max_value = Array(1, client_values.value_type)
     max_value[0] = client_values[0]
     win_client_id = Array(1, sint)
     win_client_id[0] = client_ids[0]
@@ -62,6 +60,7 @@ def determine_winner(number_clients, client_values, client_ids):
         # Keep current winning client id
         win_client_id[0] = if_else(is_new_max, client_ids[i+1], win_client_id[0])
 
+    print_ln('maximum: %s', max_value[0].reveal())
     return win_client_id[0]
 
 
@@ -92,8 +91,6 @@ def main():
         client_sockets = Array(MAX_NUM_CLIENTS, regint)
         # Number of clients
         number_clients = MemValue(regint(0))
-        # Clients secret input.
-        client_values = Array(MAX_NUM_CLIENTS, sint)
         # Client ids to identity client
         client_ids = Array(MAX_NUM_CLIENTS, sint)
         # Keep track of received inputs
@@ -117,15 +114,24 @@ def main():
 
             return (sum(seen) < number_clients) + (number_clients == 0)
 
-        @for_range(number_clients)
-        def _(client_id):
-            client_values[client_id] = client_input(client_id)
+        def type_run(t):
+            # Clients secret input.
+            client_values = t.Array(MAX_NUM_CLIENTS)
 
-        winning_client_id = determine_winner(number_clients, client_values, client_ids)
+            @for_range(number_clients)
+            def _(client_id):
+                client_values[client_id] = client_input(t, client_id)
 
-        # print_ln('Found winner, index: %s.', winning_client_id.reveal())
+            winning_client_id = determine_winner(number_clients, client_values,
+                                                 client_ids)
 
-        write_winner_to_clients(client_sockets, number_clients, winning_client_id)
+            # print_ln('Found winner, index: %s.', winning_client_id.reveal())
+
+            write_winner_to_clients(client_sockets, number_clients,
+                                    winning_client_id)
+
+        type_run(sint)
+        type_run(sfix)
 
         close_connections(number_clients)
 

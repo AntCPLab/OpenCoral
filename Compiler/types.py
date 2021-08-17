@@ -3633,8 +3633,9 @@ class _single(_number, _structure):
         :param client_id: regint
 
         """
-        sint_inputs = cls.int_type.receive_from_client(n, client_id, ClientMessageType.TripleShares)
-        return list(map(cls, sint_inputs))
+        sint_inputs = cls.int_type.receive_from_client(n, client_id,
+                                                       message_type)
+        return list(map(cls._new, sint_inputs))
 
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):

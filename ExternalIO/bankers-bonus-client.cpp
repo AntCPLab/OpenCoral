@@ -125,7 +125,7 @@ T receive_result(vector<ssl_socket*>& sockets, int nparties)
 }
 
 template<class T>
-void run(int salary_value, vector<ssl_socket*>& sockets, int nparties)
+void one_run(T salary_value, vector<ssl_socket*>& sockets, int nparties)
 {
     // Run the computation
     send_private_inputs<T>({salary_value}, sockets, nparties);
@@ -137,11 +137,20 @@ void run(int salary_value, vector<ssl_socket*>& sockets, int nparties)
     cout << "Winning client id is : " << result << endl;
 }
 
+template<class T>
+void run(double salary_value, vector<ssl_socket*>& sockets, int nparties)
+{
+    // sint
+    one_run<T>(long(round(salary_value)), sockets, nparties);
+    // sfix with f = 16
+    one_run<T>(long(round(salary_value * exp2(16))), sockets, nparties);
+}
+
 int main(int argc, char** argv)
 {
     int my_client_id;
     int nparties;
-    int salary_value;
+    double salary_value;
     int finish;
     int port_base = 14000;
 
@@ -154,7 +163,7 @@ int main(int argc, char** argv)
 
     my_client_id = atoi(argv[1]);
     nparties = atoi(argv[2]);
-    salary_value = atoi(argv[3]);
+    salary_value = atof(argv[3]);
     finish = atoi(argv[4]);
     vector<const char*> hostnames(nparties, "localhost");
 
