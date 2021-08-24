@@ -317,7 +317,7 @@ directly. For fixed-point computation this is done via
 
 The length is communicated to the virtual machines and automatically
 used if supported. By default, they support bit lengths 64, 72, and
-128. If another length is required, use `MOD = DRING_SIZE=<bit
+128. If another length is required, use `MOD = -DRING_SIZE=<bit
 length>` in `CONFIG.mine`.
 
 #### Binary circuits
