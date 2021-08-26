@@ -129,6 +129,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case RAND:
       case DABIT:
       case SHUFFLE:
+      case ACCEPTCLIENTCONNECTION:
         r[0]=get_int(s);
         r[1]=get_int(s);
         break;
@@ -154,6 +155,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case NPLAYERS:
       case THRESHOLD:
       case PLAYERID:
+      case LISTEN:
       case CLOSECLIENTCONNECTION:
         r[0]=get_int(s);
         break;
@@ -234,7 +236,6 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case LDINT:
       case INPUTMASK:
       case GINPUTMASK:
-      case ACCEPTCLIENTCONNECTION:
       case INV2M:
       case CONDPRINTSTR:
       case CONDPRINTSTRB:
@@ -248,7 +249,6 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case JMP:
       case START:
       case STOP:
-      case LISTEN:
       case PRINTFLOATPREC:
         n = get_int(s);
         break;
@@ -545,6 +545,7 @@ int BaseInstruction::get_reg_type() const
     case CONVCBIT:
     case CONVCBITVEC:
     case INTOUTPUT:
+    case ACCEPTCLIENTCONNECTION:
       return INT;
     case PREP:
     case GPREP:
@@ -1137,12 +1138,13 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       // ***
       case LISTEN:
         // listen for connections at port number n
-        Proc.external_clients.start_listening(n);
+        Proc.external_clients.start_listening(Proc.read_Ci(r[0]));
         break;
       case ACCEPTCLIENTCONNECTION:
       {
         // get client connection at port number n + my_num())
-        int client_handle = Proc.external_clients.get_client_connection(n);
+        int client_handle = Proc.external_clients.get_client_connection(
+            Proc.read_Ci(r[1]));
         if (Proc.P.my_num() == 0)
         {
           octetStream os;

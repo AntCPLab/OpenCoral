@@ -14,7 +14,6 @@
 """
 
 from Compiler.types import sint, regint, Array, MemValue
-from Compiler.instructions import listen, acceptclientconnection
 from Compiler.library import print_ln, do_while, for_range
 from Compiler.util import if_else
 
@@ -26,8 +25,7 @@ if len(program.args) > 1:
     n_rounds = int(program.args[1])
 
 def accept_client():
-    client_socket_id = regint()
-    acceptclientconnection(client_socket_id, PORTNUM)
+    client_socket_id = accept_client_connection(PORTNUM)
     last = regint.read_from_socket(client_socket_id)
     return client_socket_id, last
 
@@ -81,7 +79,7 @@ def main():
     """Listen in while loop for players to join a game.
     Once maxiumum reached or have notified that round finished, run comparison and return result."""
     # Start listening for client socket connections
-    listen(PORTNUM)
+    listen_for_clients(PORTNUM)
     print_ln('Listening for client connections on base port %s', PORTNUM)
 
     def game_loop(_=None):

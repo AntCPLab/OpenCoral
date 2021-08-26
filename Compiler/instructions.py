@@ -1650,22 +1650,22 @@ class listen(base.IOInstruction):
     """ Open a server socket on a party-specific port number and listen for
     client connections (non-blocking).
 
-    :param: port number (int)
+    :param: port number (regint)
     """
     __slots__ = []
     code = base.opcodes['LISTEN']
-    arg_format = ['int']
+    arg_format = ['ci']
 
 class acceptclientconnection(base.IOInstruction):
     """ Wait for a connection at the given port and write socket handle
     to clear integer register.
 
     :param: client id destination (regint)
-    :param: port number (int)
+    :param: port number (regint)
     """
     __slots__ = []
     code = base.opcodes['ACCEPTCLIENTCONNECTION']
-    arg_format = ['ciw', 'int']
+    arg_format = ['ciw', 'ci']
 
 class closeclientconnection(base.IOInstruction):
     """ Close connection to client.

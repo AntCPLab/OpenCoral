@@ -1592,6 +1592,16 @@ def get_player_id():
     playerid(res._v)
     return res
 
+def listen_for_clients(port):
+    """ Listen for clients on specific port. """
+    instructions.listen(regint.conv(port))
+
+def accept_client_connection(port):
+    """ Listen for clients on specific port. """
+    res = regint()
+    instructions.acceptclientconnection(res, regint.conv(port))
+    return res
+
 def break_point(name=''):
     """
     Insert break point. This makes sure that all following code

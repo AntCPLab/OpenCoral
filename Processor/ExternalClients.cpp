@@ -32,7 +32,7 @@ void ExternalClients::start_listening(int portnum_base)
   client_connection_servers[portnum_base] = new AnonymousServerSocket(portnum_base + get_party_num());
   client_connection_servers[portnum_base]->init();
   cerr << "Start listening on thread " << this_thread::get_id() << endl;
-  cerr << "Party " << get_party_num() << " is listening on port " << (portnum_base + get_party_num()) 
+  cerr << "Party " << get_party_num() << " is listening on port " << (portnum_base + get_party_num())
         << " for external client connections." << endl;
 }
 
