@@ -99,7 +99,7 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 		mac_key.randomize(prng);
 		if (T::needs_ot)
 			BaseMachine::s().ot_setups.push_back({*P, true});
-		prep = new typename T::TriplePrep(0, usage);
+		prep = new typename T::LivePrep(0, usage);
 	}
 	else
 	{
