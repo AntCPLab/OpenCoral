@@ -592,6 +592,7 @@ int BaseInstruction::get_reg_type() const
     case CONVINT:
     case PUBINPUT:
     case FLOATOUTPUT:
+    case READSOCKETC:
       return CINT;
     default:
       if (is_gf2n_instruction())
