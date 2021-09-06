@@ -3638,6 +3638,18 @@ class _single(_number, _structure):
         return list(map(cls._new, sint_inputs))
 
     @vectorized_classmethod
+    def write_shares_to_socket(cls, client_id, values,
+                               message_type=ClientMessageType.NoType):
+        """ Send shares of integer representations of a list of values
+        to a specified client socket.
+
+        :param client_id: regint
+        :param values: list of values of this type
+        """
+        cls.int_type.write_shares_to_socket(
+            client_id, [x.v for x in values], message_type)
+
+    @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
         """ Load from memory by public address. """
         return cls._new(cls.int_type.load_mem(address))
