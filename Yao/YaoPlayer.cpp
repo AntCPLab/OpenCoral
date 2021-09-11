@@ -58,7 +58,8 @@ YaoPlayer::YaoPlayer(int argc, const char** argv)
 			"-t", // Flag token.
 			"--threshold" // Flag token.
 	);
-	OnlineOptions online_opts(opt, argc, argv);
+	auto& online_opts = OnlineOptions::singleton;
+	online_opts = {opt, argc, argv};
 	opt.parse(argc, argv);
 	opt.syntax = "./yao-player.x [OPTIONS] <progname>";
 	vector<string*> free_args = opt.firstArgs;
