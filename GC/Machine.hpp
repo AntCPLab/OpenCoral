@@ -81,7 +81,7 @@ template<class T>
 void Machine<T>::run_tapes(const vector<int>& args)
 {
     assert(args.size() % 3 == 0);
-    for (unsigned i = 0; i < args.size(); i++)
+    for (unsigned i = 0; i < args.size(); i += 3)
         run_tape(args[i], args[i + 1], args[i + 2]);
 }
 
