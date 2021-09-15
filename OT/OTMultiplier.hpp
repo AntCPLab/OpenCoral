@@ -403,19 +403,19 @@ void Spdz2kMultiplier<K, S>::after_correlation()
 template<class T>
 void MascotMultiplier<T>::multiplyForBits()
 {
-    multiplyForBits(typename T::clear());
+    multiplyForBits(T::clear::characteristic_two);
 }
 
 template<class T>
-template<int X, int L>
-void MascotMultiplier<T>::multiplyForBits(gfp_<X, L>)
+template<int>
+void MascotMultiplier<T>::multiplyForBits(false_type)
 {
     throw runtime_error("should not be called");
 }
 
 template<class T>
-template<class U>
-void MascotMultiplier<T>::multiplyForBits(U)
+template<int>
+void MascotMultiplier<T>::multiplyForBits(true_type)
 {
     auto& macs = this->macs;
     auto& outbox = this->outbox;
@@ -459,7 +459,7 @@ void MascotMultiplier<T>::multiplyForBits(U)
         {
             int128 r = auth_ot_ext.receiverOutputMatrix.squares[j/128].rows[j%128];
             int128 s = auth_ot_ext.senderOutputMatrices[0].squares[j/128].rows[j%128];
-            macs[0][j] = typename T::clear(r ^ s);
+            macs[0][j] = T::clear::cut(r ^ s);
         }
 
         outbox.push(job);
