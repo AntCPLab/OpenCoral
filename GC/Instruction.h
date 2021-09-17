@@ -68,6 +68,7 @@ enum
     CLEAR_WRITE = 0x210,
     XORCBI = 0x210,
     BITDECC = 0x211,
+    NOTCB = 0x212,
     CONVCINT = 0x213,
     REVEAL = 0x214,
     STMSDCI = 0x215,

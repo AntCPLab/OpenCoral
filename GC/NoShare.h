@@ -143,7 +143,7 @@ public:
 
     static void trans(Processor<NoShare>&, Integer, const vector<int>&) { fail(); }
 
-    static NoShare constant(const GC::Clear&, int, mac_key_type) { fail(); return {}; }
+    static NoShare constant(const GC::Clear&, int, mac_key_type, int = -1) { fail(); return {}; }
 
     NoShare() {}
 

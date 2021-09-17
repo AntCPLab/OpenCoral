@@ -20,6 +20,8 @@ class Binary_File_IO
 {
   public:
 
+  static string filename(int my_number);
+
   /*
    * Append the buffer values as binary to the filename.
    * Throws file_error.   

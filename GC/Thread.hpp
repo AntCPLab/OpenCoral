@@ -51,10 +51,11 @@ void Thread<T>::run()
     singleton = this;
     BaseMachine::s().thread_num = thread_num;
     secure_prng.ReSeed();
+    string id = "T" + to_string(thread_num);
     if (machine.use_encryption)
-        P = new CryptoPlayer(N, thread_num << 16);
+        P = new CryptoPlayer(N, id);
     else
-        P = new PlainPlayer(N, thread_num << 16);
+        P = new PlainPlayer(N, id);
     processor.open_input_file(N.my_num(), thread_num,
             master.opts.cmd_private_input_file);
     processor.out.activate(N.my_num() == 0 or master.opts.interactive);
@@ -98,10 +99,10 @@ void Thread<T>::finish()
 }
 
 template<class T>
-size_t GC::Thread<T>::data_sent()
+NamedCommStats Thread<T>::comm_stats()
 {
 	assert(P);
-	return P->comm_stats.total_data();
+	return P->comm_stats;
 }
 
 } /* namespace GC */

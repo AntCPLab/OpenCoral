@@ -43,7 +43,7 @@ void run(int argc, const char** argv)
     int n_tuples = 1000;
     if (not opt.lastArgs.empty())
         n_tuples = atoi(opt.lastArgs[0]->c_str());
-    CryptoPlayer P(N);
+    CryptoPlayer P(N, "ecdsa");
     P256Element::init();
     typedef T<P256Element::Scalar> pShare;
     OnlineOptions::singleton.batch_size = 1;

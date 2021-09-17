@@ -69,7 +69,7 @@ private:
 	int _numparties;
 
 	endpoint_t* _endpoints;
-	Client* _client;
+	BIU::Client* _client;
 	BIU::Server* _server;
 	bool* _ready_nodes;
 	volatile bool _connected_to_servers;

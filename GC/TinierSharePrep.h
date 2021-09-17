@@ -48,7 +48,7 @@ public:
 
     void set_protocol(typename T::Protocol& protocol);
 
-    size_t data_sent();
+    NamedCommStats comm_stats();
 };
 
 }

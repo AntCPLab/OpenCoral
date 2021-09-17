@@ -49,26 +49,27 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
   fprintf(stderr, "\tI am in thread %d\n",num);
 #endif
   Player* player;
+  string id = "thread" + to_string(num);
   if (machine.use_encryption)
     {
 #ifdef VERBOSE_OPTIONS
       cerr << "Using encrypted single-threaded communication" << endl;
 #endif
-      player = new CryptoPlayer(*(tinfo->Nms), num << 16);
+      player = new CryptoPlayer(*(tinfo->Nms), id);
     }
   else if (!machine.receive_threads or machine.direct)
     {
 #ifdef VERBOSE_OPTIONS
       cerr << "Using single-threaded receiving" << endl;
 #endif
-      player = new PlainPlayer(*(tinfo->Nms), num << 16);
+      player = new PlainPlayer(*(tinfo->Nms), id);
     }
   else
     {
 #ifdef VERBOSE_OPTIONS
       cerr << "Using player-specific threads for receiving" << endl;
 #endif
-      player = new ThreadPlayer(*(tinfo->Nms), num << 16);
+      player = new ThreadPlayer(*(tinfo->Nms), id);
     }
   Player& P = *player;
 #ifdef DEBUG_THREADS
@@ -238,6 +239,16 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
                 *(Zp_Data*) job.supply);
           queues->finished(job);
         }
+      else if (job.type == CIPHER_PLAIN_MULT_JOB)
+        {
+          cipher_plain_mult(job, sint::triple_matmul);
+          queues->finished(job);
+        }
+      else if (job.type == MATRX_RAND_MULT_JOB)
+        {
+          matrix_rand_mult(job, sint::triple_matmul);
+          queues->finished(job);
+        }
       else
         { // RUN PROGRAM
 #ifdef DEBUG_THREADS
@@ -303,16 +314,15 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
 #endif
 
   // wind down thread by thread
-  size_t prep_sent = Proc.DataF.data_sent();
-  prep_sent += Proc.share_thread.DataF.data_sent();
-  prep_sent += Proc.Procp.bit_prep.data_sent();
+  auto prep_stats = Proc.DataF.comm_stats();
+  prep_stats += Proc.share_thread.DataF.comm_stats();
+  prep_stats += Proc.Procp.bit_prep.comm_stats();
   for (auto& x : Proc.Procp.personal_bit_preps)
-    prep_sent += x->data_sent();
+    prep_stats += x->comm_stats();
   machine.stats += Proc.stats;
   delete processor;
 
-  machine.data_sent += P.sent + prep_sent;
-  machine.comm_stats += P.comm_stats;
+  machine.comm_stats += P.comm_stats + prep_stats;
   queues->finished(actual_usage);
 
   delete MC2;

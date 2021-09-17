@@ -5,6 +5,7 @@
 
 #include "Memory.hpp"
 #include "Online-Thread.hpp"
+#include "Protocols/Hemi.hpp"
 
 #include "Tools/Exceptions.h"
 
@@ -30,8 +31,7 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   : my_number(my_number), N(playerNames),
     direct(direct), opening_sum(opening_sum),
     receive_threads(receive_threads), max_broadcast(max_broadcast),
-    use_encryption(use_encryption), live_prep(live_prep), opts(opts),
-    data_sent(0)
+    use_encryption(use_encryption), live_prep(live_prep), opts(opts)
 {
   if (opening_sum < 2)
     this->opening_sum = N.num_players();
@@ -49,10 +49,11 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   // make directory for outputs if necessary
   mkdir_p(PREP_DIR);
 
+  string id = "machine";
   if (use_encryption)
-    P = new CryptoPlayer(N, 0xF00);
+    P = new CryptoPlayer(N, id);
   else
-    P = new PlainPlayer(N, 0xF00);
+    P = new PlainPlayer(N, id);
 
   if (opts.live_prep)
     {
@@ -95,6 +96,13 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   pos.set_num_players(N.num_players());
 
   load_schedule(progname_str);
+
+  // remove persistence if necessary
+  for (auto& prog : progs)
+    {
+      if (prog.writes_persistance)
+        ofstream(Binary_File_IO::filename(my_number), ios::out);
+    }
 
 #ifdef VERBOSE
   progs[0].print_offline_cost();
@@ -226,6 +234,49 @@ void Machine<sint, sgf2n>::fill_buffers(int thread_number, int tape_number,
 #endif
       }
     }
+
+  if (not HemiOptions::singleton.plain_matmul)
+    fill_matmul(thread_number, tape_number, prep, sint::triple_matmul);
+}
+
+template<class sint, class sgf2n>
+template<int>
+void Machine<sint, sgf2n>::fill_matmul(int thread_number, int tape_number,
+    Preprocessing<sint>* prep, true_type)
+{
+  auto usage = progs[tape_number].get_offline_data_used();
+  for (auto it = usage.matmuls.begin(); it != usage.matmuls.end(); it++)
+    {
+      try
+      {
+          auto& source_proc = *dynamic_cast<BufferPrep<sint>&>(*prep).proc;
+          int max_inner = opts.batch_size;
+          int max_cols = opts.batch_size;
+          for (int j = 0; j < it->first[1]; j += max_inner)
+            {
+              for (int k = 0; k < it->first[2]; k += max_cols)
+                {
+                  auto subdim = it->first;
+                  subdim[1] = min(subdim[1] - j, max_inner);
+                  subdim[2] = min(subdim[2] - k, max_cols);
+                  auto& source =
+                      dynamic_cast<Hemi<sint>&>(source_proc.protocol).get_matrix_prep(
+                          subdim, source_proc);
+                  auto& dest =
+                      dynamic_cast<Hemi<sint>&>(tinfo[thread_number].processor->Procp.protocol).get_matrix_prep(
+                          subdim, tinfo[thread_number].processor->Procp);
+                  for (int i = 0; i < it->second; i++)
+                    dest.push_triple(source.get_triple_no_count(-1));
+                }
+            }
+      }
+      catch (bad_cast& e)
+      {
+#ifdef VERBOSE_CENTRAL
+        cerr << "Problem with central matmul preprocessing: " << e.what() << endl;
+#endif
+      }
+    }
 }
 
 template<class sint, class sgf2n>
@@ -320,20 +371,27 @@ void Machine<sint, sgf2n>::run()
   for (unsigned int i = 0; i < join_timer.size(); i++)
     cerr << "Join timer: " << i << " " << join_timer[i].elapsed() << endl;
   cerr << "Finish timer: " << finish_timer.elapsed() << endl;
-  cerr << "Process timer: " << proc_timer.elapsed() << endl;
 #endif
+
+  if (opts.verbose)
+    {
+      cerr << "Communication details "
+          "(rounds in parallel threads counted double):" << endl;
+      comm_stats.print();
+      cerr << "CPU time = " <<  proc_timer.elapsed() << endl;
+    }
 
   print_timers();
 
   size_t rounds = 0;
   for (auto& x : comm_stats)
       rounds += x.second.rounds;
-  cerr << "Data sent = " << data_sent / 1e6 << " MB in ~" << rounds
+  cerr << "Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
       << " rounds (party " << my_number << ")" << endl;
 
   auto& P = *this->P;
   Bundle<octetStream> bundle(P);
-  bundle.mine.store(data_sent.load());
+  bundle.mine.store(comm_stats.sent);
   P.Broadcast_Receive_no_stats(bundle);
   size_t global = 0;
   for (auto& os : bundle)
@@ -384,10 +442,11 @@ void Machine<sint, sgf2n>::run()
     }
 #endif
 
-#ifdef VERBOSE
-  cerr << "Actual cost of program:" << endl;
-  pos.print_cost();
-#endif
+  if (opts.verbose)
+    {
+      cerr << "Actual cost of program:" << endl;
+      pos.print_cost();
+    }
 
   if (pos.any_more(progs[0].get_offline_data_used())
       and not progs[0].usage_unknown())

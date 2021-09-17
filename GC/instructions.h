@@ -43,6 +43,7 @@
     X(XORCB, processor.xorc(instruction)) \
     X(XORCBI, C0.xor_(PC1, IMM)) \
     X(NOTS, processor.nots(INST)) \
+    X(NOTCB, processor.notcb(INST)) \
     X(ANDRS, T::andrs(PROC, EXTRA)) \
     X(ANDS, T::ands(PROC, EXTRA)) \
     X(ADDCB, C0 = PC1 + PC2) \
@@ -140,6 +141,7 @@
     X(NPLAYERS, I0 = Thread<T>::s().P->num_players()) \
     X(THRESHOLD, I0 = T::threshold(Thread<T>::s().P->num_players())) \
     X(PLAYERID, I0 = Thread<T>::s().P->my_num()) \
+    X(CRASH, if (I0.get()) throw crash_requested()) \
 
 #define INSTRUCTIONS BIT_INSTRUCTIONS GC_INSTRUCTIONS
 

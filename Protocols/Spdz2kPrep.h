@@ -39,7 +39,7 @@ public:
     void get_dabit(T& a, GC::TinySecret<T::s>& b);
 #endif
 
-    size_t data_sent();
+    NamedCommStats comm_stats();
 };
 
 #endif /* PROTOCOLS_SPDZ2KPREP_H_ */

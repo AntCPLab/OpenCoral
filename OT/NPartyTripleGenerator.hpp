@@ -72,7 +72,7 @@ OTTripleGenerator<T>::OTTripleGenerator(const OTTripleSetup& setup,
         const Names& names, int thread_num, int _nTriples, int nloops,
         MascotParams& machine, mac_key_type mac_key, Player* parentPlayer) :
         globalPlayer(parentPlayer ? *parentPlayer : *new PlainPlayer(names,
-                - thread_num * names.num_players() * names.num_players())),
+                to_string(thread_num))),
         parentPlayer(parentPlayer),
         thread_num(thread_num),
         mac_key(mac_key),

@@ -169,6 +169,33 @@ class bits(Tape.Register, _structure, _bit):
                                     (str(other), repr(other), type(other), type(self)))
     def long_one(self):
         return 2**self.n - 1 if self.n != None else None
+    def is_long_one(self, other):
+        return util.is_all_ones(other, self.n) or \
+            (other is None and self.n == None)
+    def res_type(self, other):
+        if self.n == None and other.n == None:
+            n = None
+        else:
+            n = max(self.n, other.n)
+        return self.get_type(n)
+    @read_mem_value
+    def __and__(self, other):
+        if util.is_zero(other):
+            return 0
+        elif self.is_long_one(other):
+            return self
+        else:
+            return self._and(other)
+    @read_mem_value
+    def __xor__(self, other):
+        if util.is_zero(other):
+            return self
+        elif self.is_long_one(other):
+            return ~self
+        else:
+            return self._xor(other)
+    __rand__ = __and__
+    __rxor__ = __xor__
     def __repr__(self):
         if self.n != None:
             suffix = '%d' % self.n
@@ -245,19 +272,20 @@ class cbits(bits):
               self.clear_op(other, inst.addcb, inst.addcbi, operator.add)
     __sub__ = lambda self, other: \
               self.clear_op(-other, inst.addcb, inst.addcbi, operator.add)
-    def __xor__(self, other):
+    def _xor(self, other):
         if isinstance(other, (sbits, sbitvec)):
             return NotImplemented
         elif isinstance(other, cbits):
-            res = cbits.get_type(max(self.n, other.n))()
+            res = self.res_type(other)()
             assert res.size == self.size
             assert res.size == other.size
             inst.xorcb(res.n, res, self, other)
             return res
         else:
             return self.clear_op(other, None, inst.xorcbi, operator.xor)
+    def _and(self, other):
+        return NotImplemented
     __radd__ = __add__
-    __rxor__ = __xor__
     def __mul__(self, other):
         if isinstance(other, cbits):
             return NotImplemented
@@ -278,7 +306,9 @@ class cbits(bits):
         inst.shlcbi(res, self, other)
         return res
     def __invert__(self):
-        return self ^ self.long_one()
+        res = type(self)()
+        inst.notcb(self.n, res, self)
+        return res
     def print_reg(self, desc=''):
         inst.print_regb(self, desc)
     def print_reg_plain(self):
@@ -287,6 +317,8 @@ class cbits(bits):
     def print_if(self, string):
         inst.cond_print_strb(self, string)
     def output_if(self, cond):
+        if Program.prog.options.binary:
+            raise CompilerError('conditional output not supported')
         cint(self).output_if(cond)
     def reveal(self):
         return self
@@ -423,8 +455,7 @@ class sbits(bits):
     __radd__ = __add__
     __sub__ = __add__
     __rsub__ = __add__
-    __xor__ = __add__
-    __rxor__ = __add__
+    _xor = __add__
     @read_mem_value
     def __mul__(self, other):
         if isinstance(other, int):
@@ -440,13 +471,7 @@ class sbits(bits):
         except AttributeError:
             return NotImplemented
     __rmul__ = __mul__
-    @read_mem_value
-    def __and__(self, other):
-        if util.is_zero(other):
-            return 0
-        elif util.is_all_ones(other, self.n) or \
-             (other is None and self.n == None):
-            return self
+    def _and(self, other):
         res = self.new(n=self.n)
         if not isinstance(other, sbits):
             other = cbits.get_type(self.n).conv(other)
@@ -456,7 +481,6 @@ class sbits(bits):
         assert(self.n == other.n)
         inst.ands(self.n, res, self, other)
         return res
-    __rand__ = __and__
     def xor_int(self, other):
         if other == 0:
             return self
@@ -551,12 +575,6 @@ class sbits(bits):
     @staticmethod
     def ripple_carry_adder(*args, **kwargs):
         return sbitint.ripple_carry_adder(*args, **kwargs)
-    def to_sint(self, n_bits):
-        """ Convert the :py:obj:`n_bits` least significant bits to
-        :py:obj:`~Compiler.types.sint`. """
-        bits = sbitvec.from_vec(sbitvec([self]).v[:n_bits]).elements()[0]
-        bits = sint(bits, size=n_bits)
-        return sint.bit_compose(bits)
 
 class sbitvec(_vec):
     """ Vector of registers of secret bits, effectively a matrix of secret bits.

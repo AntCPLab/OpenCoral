@@ -23,6 +23,7 @@ void Program::compute_constants()
           max_mem[reg_type] = max(max_mem[reg_type],
               p[i].get_mem(RegType(reg_type)));
         }
+      writes_persistance |= p[i].opcode == WRITEFILESHARE;
     }
 }
 
@@ -41,6 +42,8 @@ void Program::parse(istream& s)
   s.peek();
   while (!s.eof())
     { instr.parse(s, p.size());
+      if (s.fail())
+        throw runtime_error("error while parsing " + to_string(instr.opcode));
       p.push_back(instr);
       //cerr << "\t" << instr << endl;
       s.peek();

@@ -45,15 +45,26 @@ template <class FD>
 void Multiplier<FD>::multiply_and_add(Plaintext_<FD>& res,
         const Ciphertext& enc_a, const Rq_Element& b, OT_ROLE role)
 {
+    if (role & SENDER)
+    {
+        timers["Ciphertext multiplication"].start();
+        C.mul(enc_a, b);
+        timers["Ciphertext multiplication"].stop();
+    }
+
+    add(res, C, role);
+}
+
+template <class FD>
+void Multiplier<FD>::add(Plaintext_<FD>& res, const Ciphertext& c,
+        OT_ROLE role, int n_summands)
+{
     o.reset_write_head();
 
     if (role & SENDER)
     {
         PRNG G;
         G.ReSeed();
-        timers["Ciphertext multiplication"].start();
-        C.mul(enc_a, b);
-        timers["Ciphertext multiplication"].stop();
         timers["Mask randomization"].start();
         product_share.randomize(G);
         bigint B = 6 * machine.setup<FD>().params.get_R();
@@ -63,12 +74,13 @@ void Multiplier<FD>::multiply_and_add(Plaintext_<FD>& res,
         B *= NonInteractiveProof::slack(machine.sec,
                 machine.setup<FD>().params.phi_m());
         B <<= machine.extra_slack;
+        B *= n_summands;
         rc.generateUniform(G, 0, B, B);
         timers["Mask randomization"].stop();
         timers["Encryption"].start();
         other_pk.encrypt(mask, product_share, rc);
         timers["Encryption"].stop();
-        mask += C;
+        mask += c;
         mask.pack(o);
         res -= product_share;
     }

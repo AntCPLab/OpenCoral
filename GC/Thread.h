@@ -56,7 +56,7 @@ public:
     void join_tape();
     void finish();
 
-    virtual size_t data_sent();
+    virtual NamedCommStats comm_stats();
 };
 
 template<class T>

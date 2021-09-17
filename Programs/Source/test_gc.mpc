@@ -124,3 +124,6 @@ test(c[1], 2 ** 32 - 1)
 c = (a < b).bit_decompose()
 test(c[0], 1)
 test(c[1], 1)
+
+test(~cbits.get_type(2)(0), 3)
+test(~sbits.get_type(64)(0).reveal(), 2 ** 64 - 1)

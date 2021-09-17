@@ -12,6 +12,12 @@
 #include <boost/asio/ssl.hpp>
 #include <boost/asio.hpp>
 
+/**
+ * Encrypted multi-party communication.
+ * Uses OpenSSL and certificates issued to "P<player_no>".
+ * Sending and receiving is done in separate threads to allow
+ * for bidirectional communication.
+ */
 class CryptoPlayer : public MultiPlayer<ssl_socket*>
 {
     PlainPlayer plaintext_player, other_player;
@@ -24,7 +30,14 @@ class CryptoPlayer : public MultiPlayer<ssl_socket*>
     vector<Receiver<ssl_socket*>*> receivers;
 
 public:
-    CryptoPlayer(const Names& Nms, int id_base=0);
+    /**
+     * Start a new set of encrypted connections.
+     * @param Nms network setup
+     * @param id unique identifier
+     */
+    CryptoPlayer(const Names& Nms, const string& id);
+    // legacy interface
+    CryptoPlayer(const Names& Nms, int id_base = 0);
     ~CryptoPlayer();
 
     bool is_encrypted() { return true; }

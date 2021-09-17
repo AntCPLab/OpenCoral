@@ -9,9 +9,8 @@ Crash without error message or ``bad_alloc``
 
 Some protocols require several gigabytes of memory, and the virtual
 machine will crash if there is not enough RAM. You can reduce the
-memory usage for some malicious protocols with ``-B 5``. The memory
-usage for malicious protocols based on homomorphic encryption can also
-be reduced by using ``-T``. Finally, every computation thread requires
+memory usage for some malicious protocols with ``-B 5``.
+Furthermore, every computation thread requires
 separate resources, so consider reducing the number of threads with
 :py:func:`~Compiler.library.for_range_multithreads` and similar.
 
@@ -24,12 +23,14 @@ lists only exists at compile time. Consider using
 :py:class:`~Compiler.types.Array`.
 
 
-``compile.py`` takes too long
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``compile.py`` takes too long or runs out of memory
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you use Python loops (``for``), they are unrolled at compile-time,
 resulting in potentially too much virtual machine code. Consider using
-:py:func:`~Compiler.library.for_range` or similar.
+:py:func:`~Compiler.library.for_range` or similar. You can also use
+``-l`` when compiling, which will replace simple loops by an optimized
+version.
 
 
 Order of memory instructions not preserved
@@ -37,7 +38,7 @@ Order of memory instructions not preserved
 
 By default, the compiler runs optimizations that in some corner case
 can introduce errors with memory accesses such as accessing an
-:py:func:`~Compiler.types.Array`. If you encounter such errors, you
+:py:class:`~Compiler.types.Array`. If you encounter such errors, you
 can fix this either  with ``-M`` when compiling or placing
 `break_point()` around memory accesses.
 
@@ -72,7 +73,8 @@ MP-SPDZ requires at least one TCP port per party to be open to other
 parties. In the default setting, it's 4999 and 5000 on party 0, and
 5001 on party 1 etc. You change change the base port (5000) using
 ``--portnumbase`` and individual ports for parties using
-``--my-port``.
+``--my-port``. The scripts in use a random base port number, which you
+can also change with ``--portnumbase``.
 
 
 Internally called tape has unknown offline data usage
@@ -82,15 +84,6 @@ Certain computations are not compatible with reading preprocessing
 from disk. You can compile the binaries with ``MY_CFLAGS +=
 -DINSECURE`` in ``CONFIG.mine`` in order to execute the computation in
 a way that reuses preprocessing.
-
-
-Not compiled for choice of parameters
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-HighGear and LowGear only support a limited choice of parameters
-because they need to be chosen when compiling the binaries. You can follow
-the instructions in the error message and recompile the binaries in order
-fix this.
 
 
 Illegal instruction

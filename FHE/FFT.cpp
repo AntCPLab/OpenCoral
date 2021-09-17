@@ -185,7 +185,8 @@ void FFT_Iter(vector<modp>& ioput, int n, const vector<modp>& roots,
             int start = queues.distribute(job, n / 2);
             for (int i = start; i < n / 2; i++)
                 FFT_Iter2_body(ioput, alpha2, i, m, PrD);
-            queues.wrap_up(job);
+            if (start > 0)
+                queues.wrap_up(job);
         }
         else
             for (int i = 0; i < n / 2; i++)

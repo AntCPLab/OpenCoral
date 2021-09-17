@@ -74,6 +74,7 @@ HonestMajorityRingMachineWithSecurity<U, V>::HonestMajorityRingMachineWithSecuri
         Y(K, 40) \
         default: \
             cerr << "not compiled for security parameter " << to_string(opts.S) << endl; \
+            cerr << "add 'Y(K, " << opts.S << ")' to " __FILE__ ", line 76" << endl; \
             exit(1); \
         } \
         break;

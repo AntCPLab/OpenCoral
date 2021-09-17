@@ -88,6 +88,15 @@ public:
     virtual void randoms(T&, int) { throw runtime_error("randoms not implemented"); }
     virtual void randoms_inst(vector<T>&, const Instruction&);
 
+    template<int = 0>
+    void matmulsm(SubProcessor<T> & proc, CheckVector<T>& source,
+            const Instruction& instruction, int a, int b)
+    { proc.matmulsm(source, instruction, a, b); }
+
+    template<int = 0>
+    void conv2ds(SubProcessor<T>& proc, const Instruction& instruction)
+    { proc.conv2ds(instruction); }
+
     virtual void start_exchange() { exchange(); }
     virtual void stop_exchange() {}
 

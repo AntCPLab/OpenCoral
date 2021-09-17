@@ -138,7 +138,10 @@ TripleMachine::TripleMachine(int argc, const char** argv) :
         opt.get("-S")->getInt(z2s);
 
     // doesn't work with Montgomery multiplication
-    gfpvar1::init_field(prime, false);
+    if (prime)
+        gfpvar1::init_field(prime, false);
+    else
+        gfpvar1::init_default(128, false);
     gf2n_long::init_field(128);
     gf2n_short::init_field(40);
     
@@ -175,7 +178,7 @@ void TripleMachine::run()
         nConnections = 2;
     }
     // do the base OTs
-    PlainPlayer P(N[0], 0xF000);
+    PlainPlayer P(N[0], "base");
     OTTripleSetup setup(P, true);
 
     vector<GeneratorThread*> generators(nthreads);

@@ -30,7 +30,8 @@ void Z2<K>::reqbl(int n)
 	}
 	else if (n > 0)
 	{
-		throw Processor_Error("Program compiled for fields not rings");
+		throw Processor_Error("Program compiled for fields not rings, "
+		        "run compile.py with '-R " + to_string(K) + "'");
 	}
 }
 

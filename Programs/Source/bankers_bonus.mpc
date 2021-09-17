@@ -67,13 +67,7 @@ def write_winner_to_clients(sockets, number_clients, winning_client_id):
 
     # Setup authenticate result using share of random.
     # client can validate ∑ winning_client_id * ∑ rnd_from_triple = ∑ auth_result
-    rnd_from_triple = sint.get_random_triple()[0]
-    auth_result = winning_client_id * rnd_from_triple
-
-    @for_range(number_clients)
-    def loop_body(i):
-        sint.write_shares_to_socket(sockets[i], [winning_client_id, rnd_from_triple, auth_result])
-
+    sint.reveal_to_clients(sockets.get_sub(number_clients), [winning_client_id])
 
 def main():
     """Listen in while loop for players to join a game.

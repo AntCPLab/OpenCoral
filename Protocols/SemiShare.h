@@ -83,7 +83,8 @@ public:
         return nplayers - 1;
     }
 
-    static SemiShare constant(const clear& other, int my_num, const T& alphai = {})
+    static SemiShare constant(const clear& other, int my_num,
+            const T& alphai = {}, int = -1)
     {
         return SemiShare(other, my_num, alphai);
     }

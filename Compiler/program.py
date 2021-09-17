@@ -150,6 +150,8 @@ class Program(object):
         self._linear_rounds = False
         self.warn_about_mem = [True]
         self.relevant_opts = set()
+        self.n_running_threads = None
+        self.input_files = {}
         Program.prog = self
         from . import instructions_base, instructions, types, comparison
         instructions.program = self
@@ -370,8 +372,6 @@ class Program(object):
         """ Allocate memory from the top """
         if not isinstance(size, int):
             raise CompilerError('size must be known at compile time')
-        if not (creator_tape or self.curr_tape).singular:
-            raise CompilerError('cannot allocate memory outside main thread')
         if size == 0:
             return
         if isinstance(mem_type, type):
@@ -383,6 +383,14 @@ class Program(object):
             mem_type = mem_type.reg_type
         elif reg_type is not None:
             self.types[mem_type] = reg_type
+        single_size = None
+        if not (creator_tape or self.curr_tape).singular:
+            if self.n_running_threads:
+                single_size = size
+                size *= self.n_running_threads
+            else:
+                raise CompilerError('cannot allocate memory '
+                                    'outside main thread')
         blocks = self.free_mem_blocks[mem_type]
         addr = blocks.pop(size)
         if addr is not None:
@@ -393,7 +401,13 @@ class Program(object):
             if len(str(addr)) != len(str(addr + size)) and self.verbose:
                 print("Memory of type '%s' now of size %d" % (mem_type, addr + size))
         self.allocated_mem_blocks[addr,mem_type] = size
-        return addr
+        if single_size:
+            from .library import get_thread_number, runtime_error_if
+            tn = get_thread_number()
+            runtime_error_if(tn > self.n_running_threads, 'malloc')
+            return addr + single_size * (tn - 1)
+        else:
+            return addr
 
     def free(self, addr, mem_type):
         """ Free memory """
@@ -424,7 +438,8 @@ class Program(object):
         from . import library
         self.curr_tape.start_new_basicblock(None, 'memory-usage')
         # reset register counter to 0
-        self.curr_tape.init_registers()
+        if not self.options.noreallocate:
+            self.curr_tape.init_registers()
         for mem_type,size in sorted(self.allocated_mem.items()):
             if size:
                 #print "Memory of type '%s' of size %d" % (mem_type, size)
@@ -586,6 +601,7 @@ class Tape:
         self.functions = []
         self.singular = True
         self.free_threads = set()
+        self.loop_breaks = []
 
     class BasicBlock(object):
         def __init__(self, parent, name, scope, exit_condition=None):
@@ -827,8 +843,7 @@ class Tape:
                     block = left.popleft()
                     alloc(block)
                     for child in block.children:
-                        if child.instructions:
-                            left.append(child)
+                        left.append(child)
             for i,block in enumerate(reversed(self.basicblocks)):
                 if len(block.instructions) > 1000000:
                     print('Allocating %s, %d/%d' % \
@@ -877,6 +892,10 @@ class Tape:
             elif req[0] == 'sedabit':
                 self.basicblocks[-1].instructions.append(
                     Compiler.instructions.use_edabit(True, req[1], num, \
+                                                     add_to_prog=False))
+            elif req[0] == 'matmul':
+                self.basicblocks[-1].instructions.append(
+                    Compiler.instructions.use_matmul(*req[1], num, \
                                                      add_to_prog=False))
 
         if not self.is_empty():
@@ -1012,6 +1031,9 @@ class Tape:
                     else:
                         eda = 'loose edabits'
                     res += ['%s %s of length %d' % (n, eda, req[1])]
+                elif domain == 'matmul':
+                    res += ['%s matrix multiplications (%dx%d * %dx%d)' %
+                            (n, req[1][0], req[1][1], req[1][1], req[1][2])]
                 elif req[0] != 'all':
                     res += ['%s %s %ss' % (n, domain, req[1])]
             if self['all','round']:
@@ -1077,7 +1099,10 @@ class Tape:
     def require_bit_length(self, bit_length, t='p'):
         if t == 'p':
             if self.program.prime:
-                assert bit_length < self.program.prime.bit_length() - 1
+                if (bit_length >= self.program.prime.bit_length() - 1):
+                    raise CompilerError(
+                        'required bit length %d too much for %d' % \
+                        (bit_length, self.program.prime))
             self.req_bit_length[t] = max(bit_length + 1, \
                                          self.req_bit_length[t])
         else:
@@ -1150,7 +1175,9 @@ class Tape:
         def _new_by_number(self, i, size=1):
             return Tape.Register(self.reg_type, self.program, size=size, i=i)
 
-        def get_vector(self, base, size):
+        def get_vector(self, base=0, size=None):
+            if size == None:
+                size = self.size
             if base == 0 and size == self.size:
                 return self
             if size == 1:
@@ -1206,7 +1233,8 @@ class Tape:
                 self.reg_type == RegType.ClearInt
 
         def __bool__(self):
-            raise CompilerError('cannot derive truth value from register')
+            raise CompilerError('Cannot derive truth value from register, '
+                                "consider using 'compile.py -l'")
 
         def __str__(self):
             return self.reg_type + str(self.i)

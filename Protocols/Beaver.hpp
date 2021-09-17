@@ -78,8 +78,9 @@ T Beaver<T>::finalize_mul(int n)
     for (int k = 0; k < 2; k++)
     {
         masked[k] = *it++;
-        tmp += (masked[k] * (*triple)[1 - k]);
     }
+    tmp += (masked[0] * (*triple)[1]);
+    tmp += ((*triple)[0] * masked[1]);
     tmp += T::constant(masked[0] * masked[1], P.my_num(), MC->get_alphai());
     triple++;
     return tmp;

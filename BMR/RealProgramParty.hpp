@@ -79,7 +79,7 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	auto& MC = this->MC;
 
 	this->_id = online_opts.playerno + 1;
-	Server* server = Server::start_networking(N, online_opts.playerno, nparties,
+	Server::start_networking(N, online_opts.playerno, nparties,
 			network_opts.hostname, network_opts.portnum_base);
 	if (T::dishonest_majority)
 	    P = new PlainPlayer(N, 0);
@@ -159,8 +159,7 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	MC->Check(*P);
 	data_sent = P->comm_stats.total_data() + prep->data_sent();
 
-	if (server)
-		delete server;
+	this->machine.write_memory(this->N.my_num());
 }
 
 template<class T>

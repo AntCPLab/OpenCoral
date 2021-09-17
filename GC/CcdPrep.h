@@ -92,9 +92,9 @@ public:
         }
     }
 
-    size_t data_sent()
+    NamedCommStats comm_stats()
     {
-        return part_prep.data_sent();
+        return part_prep.comm_stats();
     }
 };
 

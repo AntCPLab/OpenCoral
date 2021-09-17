@@ -31,7 +31,7 @@ public:
     map<string, Timer> timers;
 
     GeneratorBase(int thread_num, const Names& N, Player* player = 0) :
-            player(player ? 0 : new PlainPlayer(N, thread_num << 16)),
+            player(player ? 0 : new PlainPlayer(N, to_string(thread_num))),
             thread_num(thread_num),
             P(player ? *player : *this->player), thread(0), total(0)
     {

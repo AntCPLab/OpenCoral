@@ -13,7 +13,6 @@ class YaoPlayer
 {
 	string progname;
 	Names N;
-	Server* server;
 
 public:
 	YaoPlayer(int argc, const char** argv);

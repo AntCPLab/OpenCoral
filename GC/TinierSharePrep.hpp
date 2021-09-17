@@ -92,13 +92,13 @@ void GC::TinierSharePrep<T>::buffer_bits()
 }
 
 template<class T>
-size_t TinierSharePrep<T>::data_sent()
+NamedCommStats TinierSharePrep<T>::comm_stats()
 {
-    size_t res = 0;
+    NamedCommStats res;
     if (triple_generator)
-        res += triple_generator->data_sent();
+        res += triple_generator->comm_stats();
     if (real_triple_generator)
-        res += real_triple_generator->data_sent();
+        res += real_triple_generator->comm_stats();
     return res;
 }
 

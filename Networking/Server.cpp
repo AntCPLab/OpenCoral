@@ -116,7 +116,7 @@ void Server::start()
 #ifdef DEBUG_NETWORKING
       cerr << "Waiting for player " << i << endl;
 #endif
-      socket_num[i] = server.get_connection_socket(i);
+      socket_num[i] = server.get_connection_socket("P" + to_string(i));
 #ifdef DEBUG_NETWORKING
       cerr << "Connected to player " << i << endl;
 #endif

@@ -25,6 +25,9 @@ static void throw_bad_ip(const char* ip) {
 	throw std::invalid_argument( "bad ip" );
 }
 
+namespace BIU
+{
+
 Client::Client(endpoint_t* endpoints, int numservers, ClientUpdatable* updatable, unsigned int max_message_size)
 	:_max_msg_sz(max_message_size),
 	 _numservers(numservers),
@@ -204,4 +207,6 @@ void Client::_send_blocking(SendBuffer& msg, int id) {
 	phex(msg.data(), 4);
 	fflush(0);
 #endif
+}
+
 }

@@ -11,15 +11,13 @@ using namespace std;
 
 
 OfflineMachineBase::OfflineMachineBase() :
-        server(0), my_num(0), nplayers(0), ntriples(0),
+        my_num(0), nplayers(0), ntriples(0),
         nTriplesPerThread(0)
 {
 }
 
 OfflineMachineBase::~OfflineMachineBase()
 {
-    if (server)
-        delete server;
 }
 
 void OfflineMachineBase::parse_options(int argc, const char** argv)
@@ -91,5 +89,5 @@ void OfflineMachineBase::parse_options(int argc, const char** argv)
 void OfflineMachineBase::start_networking_with_server(string hostname,
         int portnum)
 {
-    server = Server::start_networking(N, my_num, nplayers, hostname, portnum);
+    Server::start_networking(N, my_num, nplayers, hostname, portnum);
 }

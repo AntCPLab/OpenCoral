@@ -190,7 +190,7 @@
             *dest++ = *op1++ * *op2++) \
     X(DIVINT, auto dest = &Proc.get_Ci()[r[0]]; auto op1 = &Proc.get_Ci()[r[1]]; \
             auto op2 = &Proc.get_Ci()[r[2]], \
-            *dest++ = *op1++ / *op2++) \
+            if (*op2 == 0) throw division_by_zero(); *dest++ = *op1++ / *op2++) \
     X(INCINT, auto dest = &Proc.get_Ci()[r[0]]; auto base = Proc.get_Ci()[r[1]], \
             int inc = (i / start[0]) % start[1]; *dest++ = base + inc * int(n)) \
     X(EQZC, auto dest = &Ci[r[0]]; auto source = &Ci[r[1]], *dest++ = *source++ == 0) \

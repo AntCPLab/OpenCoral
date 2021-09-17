@@ -266,7 +266,7 @@ def tan(x):
 
 @types.vectorize
 @instructions_base.sfix_cisc
-def exp2_fx(a, zero_output=False):
+def exp2_fx(a, zero_output=False, as19=False):
     """
     Power of two for fixed-point numbers.
 
@@ -287,7 +287,7 @@ def exp2_fx(a, zero_output=False):
         g = a._new(whole_exp.TruncMul(e.v, 2 * a.k, n_shift,
                                            nearest=a.round_nearest), a.k, a.f)
         return g
-    if types.program.options.ring:
+    if types.program.options.ring and not as19:
         sint = types.sint
         intbitint = types.intbitint
         # how many bits to use from integer part

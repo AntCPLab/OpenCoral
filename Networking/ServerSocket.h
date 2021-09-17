@@ -9,6 +9,7 @@
 #include <map>
 #include <set>
  #include <queue>
+#include <string>
 using namespace std;
 
 #include <pthread.h>
@@ -23,8 +24,8 @@ class ServerSocket
 {
 protected:
     int main_socket, portnum;
-    map<int,int> clients;
-    std::set<int> used;
+    map<string,int> clients;
+    std::set<string> used;
     Signal data_signal;
     pthread_t thread;
 
@@ -33,9 +34,9 @@ protected:
     // disable copying
     ServerSocket(const ServerSocket& other);
 
-    void process_connection(int socket, int client_id);
+    void process_connection(int socket, const string& client_id);
 
-    virtual void process_client(int) {}
+    virtual void process_client(const string&) {}
 
 public:
     ServerSocket(int Portnum);
@@ -47,9 +48,9 @@ public:
 
     void wait_for_client_id(int socket, struct sockaddr dest);
 
-    // This depends on clients sending their id as int.
+    // This depends on clients sending their id.
     // Has to be thread-safe.
-    int get_connection_socket(int number);
+    int get_connection_socket(const string& id);
 };
 
 /*
@@ -59,9 +60,9 @@ class AnonymousServerSocket : public ServerSocket
 {
 private:
     // No. of accepted connections in this instance
-    queue<int> client_connection_queue;
+    queue<string> client_connection_queue;
 
-    void process_client(int client_id);
+    void process_client(const string& client_id);
 
 public:
     AnonymousServerSocket(int Portnum) :
@@ -69,9 +70,9 @@ public:
     void init();
 
     // Get socket and id for the last client who connected
-    int get_connection_socket(int& client_id);
+    int get_connection_socket(string& client_id);
 
-    void remove_client(int client_id);
+    void remove_client(const string& client_id);
 };
 
 #endif /* NETWORKING_SERVERSOCKET_H_ */

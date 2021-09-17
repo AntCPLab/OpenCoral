@@ -63,6 +63,16 @@ public:
         return *this;
     }
 
+    AddableVector<T> operator-(const AddableVector<T>& y) const
+    {
+        if (this->size() != y.size())
+            throw out_of_range("vector length mismatch");
+        AddableVector<T> res(y.size());
+        for (unsigned int i = 0; i < this->size(); i++)
+            res[i] = (*this)[i] - y[i];
+        return res;
+    }
+
     void mul(const AddableVector<T>& x, const AddableVector<T>& y)
     {
         if (x.size() != y.size())

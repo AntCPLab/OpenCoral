@@ -122,21 +122,12 @@ T Preprocessing<T>::get_random_from_inputs(int nplayers)
 }
 
 template<class T>
-size_t OTPrep<T>::data_sent()
-{
-    size_t res = BitPrep<T>::data_sent();
-    if (triple_generator)
-        res += triple_generator->data_sent();
-    return res;
-}
-
-template<class T>
 NamedCommStats OTPrep<T>::comm_stats()
 {
+    auto res = BitPrep<T>::comm_stats();
     if (triple_generator)
-        return triple_generator->comm_stats();
-    else
-        return {};
+        res += triple_generator->comm_stats();
+    return res;
 }
 
 #endif

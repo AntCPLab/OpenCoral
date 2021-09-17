@@ -1,5 +1,7 @@
 prog = program
 
+prog.options.binary = -1
+
 from Compiler.GC.types import *
 from Compiler.GC.instructions import *
 

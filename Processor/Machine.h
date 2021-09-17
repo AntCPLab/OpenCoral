@@ -72,7 +72,6 @@ class Machine : public BaseMachine
 
   OnlineOptions opts;
 
-  atomic<size_t> data_sent;
   NamedCommStats comm_stats;
   ExecutionStats stats;
 
@@ -89,6 +88,11 @@ class Machine : public BaseMachine
   void fill_buffers(int thread_number, int tape_number,
       Preprocessing<sint> *prep,
       Preprocessing<typename sint::bit_type> *bit_prep);
+  template<int = 0>
+  void fill_matmul(int thread_numbber, int tape_number,
+      Preprocessing<sint> *prep, true_type);
+  template<int = 0>
+  void fill_matmul(int, int, Preprocessing<sint>*, false_type) {}
   DataPositions run_tape(int thread_number, int tape_number, int arg);
   DataPositions join_tape(int thread_number);
   void run();

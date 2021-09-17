@@ -10,6 +10,7 @@
 
 #include "Protocols/ReplicatedPrep.hpp"
 #include "Protocols/MAC_Check_Base.hpp"
+#include "Protocols/Replicated.hpp"
 #include "OT/NPartyTripleGenerator.hpp"
 
 namespace GC
@@ -65,12 +66,12 @@ void SemiPrep::buffer_bits()
     }
 }
 
-size_t SemiPrep::data_sent()
+NamedCommStats SemiPrep::comm_stats()
 {
     if (triple_generator)
-        return triple_generator->data_sent();
+        return triple_generator->comm_stats();
     else
-        return 0;
+        return {};
 }
 
 } /* namespace GC */

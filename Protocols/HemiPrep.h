@@ -9,10 +9,14 @@
 #include "ReplicatedPrep.h"
 #include "FHEOffline/Multiplier.h"
 
+template<class T> class HemiMatrixPrep;
+
 template<class T>
 class HemiPrep : public SemiHonestRingPrep<T>
 {
     typedef typename T::clear::FD FD;
+
+    friend class HemiMatrixPrep<T>;
 
     static PairwiseMachine* pairwise_machine;
     static Lock lock;
@@ -34,6 +38,8 @@ public:
     {
     }
     ~HemiPrep();
+
+    vector<Multiplier<FD>*>& get_multipliers();
 
     void buffer_triples();
 };

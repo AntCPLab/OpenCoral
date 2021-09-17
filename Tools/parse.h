@@ -33,6 +33,8 @@ inline void get_ints(int* res, istream& s, int count)
 
 inline void get_vector(int m, vector<int>& start, istream& s)
 {
+  if (s.fail())
+    throw runtime_error("error when parsing vector");
   start.resize(m);
   s.read((char*) start.data(), 4 * m);
   for (int i = 0; i < m; i++)

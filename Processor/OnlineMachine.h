@@ -20,7 +20,6 @@ protected:
     int lg2, opening_sum, max_broadcast;
 
     Names playerNames;
-    Server* server;
 
     bool use_encryption, receive_threads;
 
@@ -38,7 +37,7 @@ public:
     template<class T, class U>
     int run();
 
-    Player* new_player(int id_base = 0);
+    Player* new_player(const string& id_base);
 };
 
 class DishonestMajorityMachine : public OnlineMachine

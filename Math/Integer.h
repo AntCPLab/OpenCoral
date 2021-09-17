@@ -85,6 +85,9 @@ public:
   T& operator^=(const IntBase& other) { return a ^= other.a; }
   T& operator&=(const IntBase& other) { return a &= other.a; }
 
+  IntBase mask(int n) const { return n < N_BITS ? *this & ((1L << n) - 1) : *this; }
+  void mask(IntBase& res, int n) const { res = mask(n); }
+
   friend ostream& operator<<(ostream& s, const IntBase& x) { x.output(s, true); return s; }
   friend istream& operator>>(istream& s, IntBase& x) { x.input(s, true); return s; }
 

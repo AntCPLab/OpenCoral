@@ -54,16 +54,15 @@ exponent as parameter, and some take an additional security parameter.
 
 .. code-block:: cpp
 
-    Names N;
     int my_number = atoi(argv[1]);
     int n_parties = atoi(argv[2]);
     int port_base = 9999;
-    Server::start_networking(N, my_number, n_parties, "localhost", port_base);
+    Names N(my_number, n_parties, "localhost", port_base);
 
 All implemented protocols require point-to-point connections between
 all parties. :class:`Names` objects represent a setup of hostnames and
 IPs used to set up the actual
-connections. :func:`Server::start_networking` provides a way where
+connections. The chosen initialization provides a way where
 every party connects to party 0 on a specified location (localhost in
 this case), which then broadcasts the locations of all parties. The
 base port number is used to derive the port numbers for the parties to

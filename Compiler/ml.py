@@ -292,7 +292,8 @@ class Output(NoVariableLayer):
         self.l.write(sum(lse) * \
                      self.divisor(N, 1))
 
-    def eval(self, size, base=0):
+    def eval(self, size, base=0, top=False):
+        assert not top
         if self.approx:
             return approx_sigmoid(self.X.get_vector(base, size), self.approx)
         else:
@@ -474,8 +475,14 @@ class MultiOutput(MultiOutputBase):
                     self.true_X[i] = true_X
         self.l.write(sum(tmp.get_vector(0, N)) / N)
 
-    def eval(self, N):
+    def eval(self, N, top=False):
         d_out = self.X.sizes[1]
+        if top:
+            res = sint.Array(N)
+            @for_range_opt_multithread(self.n_threads, N)
+            def _(i):
+                res[i] = argmax(self.X[i])
+            return res
         res = sfix.Matrix(N, d_out)
         if self.approx:
             @for_range_opt_multithread(self.n_threads, N)
@@ -1832,7 +1839,7 @@ class Optimizer:
 
     @_no_mem_warnings
     def forward(self, N=None, batch=None, keep_intermediate=True,
-                model_from=None, training=False):
+                model_from=None, training=False, run_last=True):
         """ Compute graph.
 
         :param N: batch size (used if batch not given)
@@ -1851,7 +1858,9 @@ class Optimizer:
             break_point()
             if self.time_layers:
                 start_timer(100 + i)
-            layer.forward(batch=self.batch_for(layer, batch), training=training)
+            if i != len(self.layers) - 1 or run_last:
+                layer.forward(batch=self.batch_for(layer, batch),
+                              training=training)
             if self.time_layers:
                 stop_timer(100 + i)
             break_point()
@@ -1862,19 +1871,23 @@ class Optimizer:
                     theta.delete()
 
     @_no_mem_warnings
-    def eval(self, data, batch_size=None):
+    def eval(self, data, batch_size=None, top=False):
         """ Compute evaluation after training.
 
         :param data: sample data (:py:class:`Compiler.types.Matrix` with one row per sample)
+        :param top: return top prediction instead of probability distribution
         """
-        if isinstance(self.layers[-1].Y, Array):
-            res = sfix.Array(len(data))
+        if isinstance(self.layers[-1].Y, Array) or top:
+            if top:
+                res = sint.Array(len(data))
+            else:
+                res = sfix.Array(len(data))
         else:
             res = sfix.Matrix(len(data), self.layers[-1].d_out)
         def f(start, batch_size, batch):
             batch.assign_vector(regint.inc(batch_size, start))
-            self.forward(batch=batch)
-            part = self.layers[-1].eval(batch_size)
+            self.forward(batch=batch, run_last=not top)
+            part = self.layers[-1].eval(batch_size, top=top)
             res.assign_part_vector(part.get_vector(), start)
         self.run_in_batches(f, data, batch_size or len(self.layers[1].X))
         return res
@@ -2487,24 +2500,29 @@ class keras:
                     batch_size = min(batch_size, self.batch_size)
                 return self.opt.eval(x, batch_size=batch_size)
 
-def solve_linear(A, b, n_iterations, debug=False):
+def solve_linear(A, b, n_iterations, progress=False):
     """ Iterative linear solution approximation. """
     assert len(b) == A.sizes[0]
     x = sfix.Array(A.sizes[1])
     x.assign_vector(sfix.get_random(-1, 1, size=len(x)))
-    At = A.transpose()
+    AtA = sfix.Matrix(len(x), len(x))
+    AtA[:] = A.direct_trans_mul(A)
+    v = sfix.Array(A.sizes[1])
+    v.assign_all(0)
+    r = Array.create_from(A.transpose() * b - AtA * x)
+    Av = sfix.Array(len(x))
     @for_range(n_iterations)
     def _(i):
-        r = At * (b - A * x)
-        tmp = A * r
-        tmp = sfix.dot_product(tmp, tmp)
-        alpha = (tmp == 0).if_else(0, sfix.dot_product(r, r) / tmp)
-        x.assign(x + alpha * r)
-        if debug:
-            print_ln('%s r=%s tmp=%s r*r=%s tmp*tmp=%s alpha=%s x=%s alpha*r=%s', i,
-                     list(r.reveal()), list(tmp.reveal()),
-                     sfix.dot_product(r, r).reveal(), sfix.dot_product(tmp, tmp).reveal(),
-                     alpha.reveal(), x.reveal_list(), list((alpha * r).reveal()))
+        v[:] = r - sfix.dot_product(r, Av) / sfix.dot_product(v, Av) * v
+        Av[:] = AtA * v
+        v_norm = sfix.dot_product(v, Av)
+        vr = sfix.dot_product(v, r)
+        alpha = (v_norm == 0).if_else(0, vr / v_norm)
+        x[:] = x + alpha * v
+        r[:] = r - alpha * Av
+        if progress:
+            print_ln('%s alpha=%s vr=%s v_norm=%s', i, alpha.reveal(),
+                     vr.reveal(), v_norm.reveal())
     return x
 
 def mr(A, n_iterations):

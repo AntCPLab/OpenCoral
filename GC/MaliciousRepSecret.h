@@ -84,12 +84,6 @@ public:
         return new HashMaliciousRepMC<U>;
     }
 
-    static U constant(const BitVec& other, int my_num, const BitVec& alphai)
-    {
-        (void) my_num, (void) alphai;
-        return other;
-    }
-
     MalRepSecretBase() {}
     template<class T>
     MalRepSecretBase(const T& other) : super(other) {}

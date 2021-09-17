@@ -1,5 +1,17 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.2.7 (Sep 17, 2021)
+
+- Optimized matrix multiplication in Hemi
+- Improved client communication
+- Private integer division as per `Veugen and Abspoel
+  <https://doi.org/10.2478/popets-2021-0073>`
+- Compiler option to translate some Python control flow instructions
+  to run-time instructions
+- Functionality to break out of run-time loops
+- Run-time range check of data structure accesses
+- Improved documentation of network infrastructure
+
 ## 0.2.6 (Aug 6, 2021)
 
 - [ATLAS](https://eprint.iacr.org/2021/833)

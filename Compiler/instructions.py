@@ -409,6 +409,18 @@ class use_edabit(base.Instruction):
     code = base.opcodes['USE_EDABIT']
     arg_format = ['int','int','int']
 
+class use_matmul(base.Instruction):
+    """ Matrix multiplication usage. Used for multithreading of
+    preprocessing.
+
+    :param: number of left-hand rows (int)
+    :param: number of left-hand columns/right-hand rows (int)
+    :param: number of right-hand columns (int)
+    :param: number (int, -1 for unknown)
+    """
+    code = base.opcodes['USE_MATMUL']
+    arg_format = ['int','int','int','int']
+
 class run_tape(base.Instruction):
     """ Start tape/bytecode file in another thread.
 
@@ -432,7 +444,7 @@ class join_tape(base.Instruction):
 class crash(base.IOInstruction):
     """ Crash runtime. """
     code = base.opcodes['CRASH']
-    arg_format = []
+    arg_format = ['ci']
 
 class start_grind(base.IOInstruction):
     code = base.opcodes['STARTGRIND']
@@ -1559,51 +1571,49 @@ class pubinput(base.PublicFileIOInstruction):
     code = base.opcodes['PUBINPUT']
     arg_format = ['cw']
 
-@base.vectorize
 class readsocketc(base.IOInstruction):
     """ Read a variable number of clear values in internal representation
     from socket for a specified client id and store them in clear registers.
 
     :param: number of arguments to follow / number of inputs minus one (int)
     :param: client id (regint)
+    :param: vector size (int)
     :param: destination (cint)
     :param: (repeat destination)...
     """
     __slots__ = []
     code = base.opcodes['READSOCKETC']
-    arg_format = tools.chain(['ci'], itertools.repeat('cw'))
+    arg_format = tools.chain(['ci','int'], itertools.repeat('cw'))
 
     def has_var_args(self):
         return True
 
-@base.vectorize
 class readsockets(base.IOInstruction):
     """Read a variable number of secret shares + MACs from socket for a client id and store in registers"""
     __slots__ = []
     code = base.opcodes['READSOCKETS']
-    arg_format = tools.chain(['ci'], itertools.repeat('sw'))
+    arg_format = tools.chain(['ci','int'], itertools.repeat('sw'))
 
     def has_var_args(self):
         return True
 
-@base.vectorize
 class readsocketint(base.IOInstruction):
     """ Read a variable number of 32-bit integers from socket for a
     specified client id and store them in clear integer registers.
 
     :param: number of arguments to follow / number of inputs minus one (int)
     :param: client id (regint)
+    :param: vector size (int)
     :param: destination (regint)
     :param: (repeat destination)...
     """
     __slots__ = []
     code = base.opcodes['READSOCKETINT']
-    arg_format = tools.chain(['ci'], itertools.repeat('ciw'))
+    arg_format = tools.chain(['ci','int'], itertools.repeat('ciw'))
 
     def has_var_args(self):
         return True
 
-@base.vectorize
 class writesocketc(base.IOInstruction):
     """
     Write a variable number of clear GF(p) values from registers into socket 
@@ -1611,29 +1621,28 @@ class writesocketc(base.IOInstruction):
     """
     __slots__ = []
     code = base.opcodes['WRITESOCKETC']
-    arg_format = tools.chain(['ci', 'int'], itertools.repeat('c'))
+    arg_format = tools.chain(['ci', 'int', 'int'], itertools.repeat('c'))
 
     def has_var_args(self):
         return True
 
-@base.vectorize
 class writesocketshare(base.IOInstruction):
     """ Write a variable number of shares (without MACs) from secret
     registers into socket for a specified client id.
 
     :param: client id (regint)
     :param: message type (must be 0)
+    :param: vector size (int)
     :param: source (sint)
     :param: (repeat source)...
     """
     __slots__ = []
     code = base.opcodes['WRITESOCKETSHARE']
-    arg_format = tools.chain(['ci', 'int'], itertools.repeat('s'))
+    arg_format = tools.chain(['ci', 'int', 'int'], itertools.repeat('s'))
 
     def has_var_args(self):
         return True
 
-@base.vectorize
 class writesocketint(base.IOInstruction):
     """
     Write a variable number of 32-bit ints from registers into socket
@@ -1641,7 +1650,7 @@ class writesocketint(base.IOInstruction):
     """
     __slots__ = []
     code = base.opcodes['WRITESOCKETINT']
-    arg_format = tools.chain(['ci', 'int'], itertools.repeat('ci'))
+    arg_format = tools.chain(['ci', 'int', 'int'], itertools.repeat('ci'))
 
     def has_var_args(self):
         return True
@@ -2266,6 +2275,10 @@ class matmulsm(matmul_base):
         for i in range(2):
             assert args[8 + i].size == args[4 + i]
 
+    def add_usage(self, req_node):
+        super(matmulsm, self).add_usage(req_node)
+        req_node.increment(('matmul', tuple(self.args[3:6])), 1)
+
 class conv2ds(base.DataInstruction):
     """ Secret 2D convolution.
 
@@ -2300,6 +2313,12 @@ class conv2ds(base.DataInstruction):
     def get_repeat(self):
         return self.args[3] * self.args[4] * self.args[7] * self.args[8] * \
             self.args[11] * self.args[14]
+
+    def add_usage(self, req_node):
+        super(conv2ds, self).add_usage(req_node)
+        args = self.args
+        req_node.increment(('matmul', (1, args[7] * args[8] * args[11],
+                                       args[14] * args[3] * args[4])), 1)
 
 @base.vectorize
 class trunc_pr(base.VarArgsInstruction):

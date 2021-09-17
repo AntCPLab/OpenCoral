@@ -58,8 +58,8 @@ public:
     void pre_run();
     void post_run() { ShareThread<T>::post_run(); }
 
-    size_t data_sent()
-    { return Thread<T>::data_sent() + this->DataF.data_sent(); }
+    NamedCommStats comm_stats()
+    { return Thread<T>::comm_stats() + this->DataF.comm_stats(); }
 };
 
 template<class T>

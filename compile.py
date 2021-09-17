@@ -80,6 +80,8 @@ def main():
                       help="faster CISC compilation mode")
     parser.add_option("-K", "--keep-cisc", action="store_true", dest="keep_cisc",
                       help="don't translate CISC instructions")
+    parser.add_option("-l", "--flow-optimization", action="store_true",
+                      dest="flow_optimization", help="optimize control flow")
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
                       help="more verbose output")
     options,args = parser.parse_args()

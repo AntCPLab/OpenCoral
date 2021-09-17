@@ -143,7 +143,6 @@ def print_str_if(cond, ss, *args):
         assert len(subs) == len(args) + 1
         if isinstance(cond, localint):
             cond = cond._v
-        cond = cint.conv(cond)
         for i, s in enumerate(subs):
             if i != 0:
                 val = args[i - 1]
@@ -202,6 +201,27 @@ def runtime_error(msg='', *args):
     print_str('User exception: ')
     print_ln(msg, *args)
     crash()
+
+def runtime_error_if(condition, msg='', *args):
+    """ Conditionally print an error message and abort the runtime.
+
+    :param condition: regint/cint/int/cbit
+    :param msg: message
+    :param args: list of public values to fit ``%s`` in the message
+
+    """
+    print_ln_if(condition, msg, *args)
+    crash(condition)
+
+def crash(condition=None):
+    """ Crash virtual machine.
+
+    :param condition: crash if true (default: true)
+
+    """
+    if condition == None:
+        condition = regint(1)
+    instructions.crash(regint.conv(condition))
 
 def public_input():
     """ Public input read from ``Programs/Public-Input/<progname>``. """
@@ -1209,6 +1229,8 @@ def map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, \
                     return loop_body(base + i)
         prog = get_program()
         thread_args = []
+        if prog.curr_tape == prog.tapes[0]:
+            prog.n_running_threads = n_threads
         if not util.is_zero(thread_rounds):
             tape = prog.new_tape(f, (0,), 'multithread')
             for i in range(n_threads - remainder):
@@ -1225,6 +1247,7 @@ def map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, \
                 if len(mem_state):
                     args[i][1] = mem_state.address
                 thread_args.append((tape1, i))
+        prog.n_running_threads = None
         threads = prog.run_tapes(thread_args)
         for thread in threads:
             prog.join_tape(thread)
@@ -1397,6 +1420,7 @@ def do_while(loop_fn, g=None):
     # possibly unknown loop count
     get_tape().open_scope(lambda x: x[0].set_all(float('Inf')), \
                               name='begin-loop')
+    get_tape().loop_breaks.append([])
     loop_block = instructions.program.curr_block
     condition = _run_and_link(loop_fn, g)
     if callable(condition):
@@ -1404,7 +1428,14 @@ def do_while(loop_fn, g=None):
     branch = instructions.jmpnz(regint.conv(condition), 0, add_to_prog=False)
     instructions.program.curr_block.set_exit(branch, loop_block)
     get_tape().close_scope(scope, parent_node, 'end-loop')
+    for loop_break in get_tape().loop_breaks.pop():
+        loop_break.set_exit(jmp(0, add_to_prog=False), get_block())
     return loop_fn
+
+def break_loop():
+    """ Break out of loop. """
+    get_tape().loop_breaks[-1].append(get_block())
+    break_point('break')
 
 def if_then(condition):
     class State: pass
@@ -1483,10 +1514,18 @@ def if_(condition):
         def _():
             ...
     """
+    try:
+        condition = bool(condition)
+    except:
+        pass
     def decorator(body):
-        if_then(condition)
-        _run_and_link(body)
-        end_if()
+        if isinstance(condition, bool):
+            if condition:
+                _run_and_link(body)
+        else:
+            if_then(condition)
+            _run_and_link(body)
+            end_if()
     return decorator
 
 def if_e(condition):
@@ -1506,15 +1545,30 @@ def if_e(condition):
         def _():
             ...
     """
+    try:
+        condition = bool(condition)
+    except:
+        pass
     def decorator(body):
-        if_then(condition)
-        _run_and_link(body)
+        if isinstance(condition, bool):
+            get_tape().if_states.append(condition)
+            if condition:
+                _run_and_link(body)
+        else:
+            if_then(condition)
+            _run_and_link(body)
     return decorator
 
 def else_(body):
-    else_then()
-    _run_and_link(body)
-    end_if()
+    if_states = get_tape().if_states
+    if isinstance(if_states[-1], bool):
+        if not if_states[-1]:
+            _run_and_link(body)
+        if_states.pop()
+    else:
+        else_then()
+        _run_and_link(body)
+        end_if()
 
 def and_(*terms):
     res = regint(0)

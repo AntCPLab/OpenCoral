@@ -53,7 +53,7 @@ public:
         throw not_implemented();
     }
 
-    size_t data_sent();
+    NamedCommStats comm_stats();
 };
 
 } /* namespace GC */

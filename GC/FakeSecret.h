@@ -108,7 +108,8 @@ public:
     static FakeSecret input(GC::Processor<FakeSecret>& processor, const InputArgs& args);
     static FakeSecret input(int from, word input, int n_bits);
 
-    static FakeSecret constant(clear value, int = 0, mac_key_type = {}) { return value; }
+    static FakeSecret constant(clear value, int = 0, mac_key_type = {}, int = -1)
+    { return value; }
 
     FakeSecret() {}
     template <class T>

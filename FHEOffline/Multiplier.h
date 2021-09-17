@@ -47,6 +47,8 @@ public:
             const Plaintext_<FD>& b);
     void multiply_and_add(Plaintext_<FD>& res, const Ciphertext& C,
             const Rq_Element& b, OT_ROLE role = BOTH);
+    void add(Plaintext_<FD>& res, const Ciphertext& C, OT_ROLE role = BOTH,
+            int n_summands = 1);
     void multiply_alpha_and_add(Plaintext_<FD>& res, const Rq_Element& b,
             OT_ROLE role = BOTH);
     int get_offset() { return P.get_offset(); }

@@ -26,9 +26,9 @@ void ssl_error(string side, string pronoun, string other, string server)
             << "with `Scripts/setup-ssl.sh` expire after a month." << endl;
 }
 
-CryptoPlayer::CryptoPlayer(const Names& Nms, int id_base) :
-        MultiPlayer<ssl_socket*>(Nms, id_base), plaintext_player(Nms, id_base),
-        other_player(Nms, id_base + Nms.num_players()),
+CryptoPlayer::CryptoPlayer(const Names& Nms, const string& id_base) :
+        MultiPlayer<ssl_socket*>(Nms), plaintext_player(Nms, id_base),
+        other_player(Nms, id_base + "recv"),
         ctx("P" + to_string(my_num()))
 {
     sockets.resize(num_players());
@@ -55,6 +55,11 @@ CryptoPlayer::CryptoPlayer(const Names& Nms, int id_base) :
         senders[i] = new Sender<ssl_socket*>(i < my_num() ? sockets[i] : other_sockets[i]);
         receivers[i] = new Receiver<ssl_socket*>(i < my_num() ? other_sockets[i] : sockets[i]);
     }
+}
+
+CryptoPlayer::CryptoPlayer(const Names& Nms, int id_base) :
+        CryptoPlayer(Nms, to_string(id_base))
+{
 }
 
 CryptoPlayer::~CryptoPlayer()
@@ -122,13 +127,6 @@ void CryptoPlayer::pass_around_no_stats(const octetStream& to_send,
             << 1e-3 * to_receive.get_length() << " KB" << endl;
 #endif
     }
-}
-
-template<>
-void MultiPlayer<ssl_socket*>::setup_sockets(const vector<string>& names,
-        const vector<int>& ports, int id_base, ServerSocket& server)
-{
-    (void)names, (void)ports, (void)id_base, (void)server;
 }
 
 void CryptoPlayer::send_receive_all_no_stats(const vector<vector<bool>>& channels,

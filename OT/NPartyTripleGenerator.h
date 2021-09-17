@@ -116,7 +116,6 @@ public:
 
     mac_key_type get_mac_key() const { return mac_key; }
 
-    size_t data_sent();
     NamedCommStats comm_stats();
 };
 
@@ -209,17 +208,6 @@ public:
 
     void generateTriples();
 };
-
-template<class T>
-size_t OTTripleGenerator<T>::data_sent()
-{
-    size_t res = 0;
-    if (parentPlayer != &globalPlayer)
-        res = globalPlayer.sent;
-    for (auto& player : players)
-        res += player->sent;
-    return res;
-}
 
 template<class T>
 NamedCommStats OTTripleGenerator<T>::comm_stats()

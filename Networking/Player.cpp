@@ -22,24 +22,20 @@ void Names::init(int player,int pnb,int my_port,const char* servername)
   setup_server();
 }
 
-void Names::init(int player,int pnb,vector<string> Nms)
+Names::Names(int player, int nplayers, const string& servername, int pnb,
+    int my_port) :
+    Names()
 {
-  vector<octet*> names;
-  for (auto& name : Nms)
-    names.push_back((octet*)name.c_str());
-  init(player, pnb, names);
+  Server::start_networking(*this, player, nplayers, servername, pnb, my_port);
 }
 
-void Names::init(int player,int pnb,vector<octet*> Nms)
+void Names::init(int player,int pnb,vector<string> Nms)
 {
   player_no=player;
   portnum_base=pnb;
   nplayers=Nms.size();
-  names.resize(nplayers);
+  names=Nms;
   setup_ports();
-  for (int i=0; i<nplayers; i++) {
-      names[i]=(char*)Nms[i];
-  }
   setup_server();
 }
 
@@ -112,7 +108,7 @@ Names::Names(ez::ezOptionParser& opt, int argc, const char** argv,
       cerr << usage;
       exit(1);
   }
-  global_server = network_opts.start_networking(*this, player_no);
+  network_opts.start_networking(*this, player_no);
 }
 
 void Names::setup_ports()
@@ -130,7 +126,7 @@ void Names::setup_names(const char *servername, int my_port)
   int socket_num;
   int pn = portnum_base - 1;
   set_up_client_socket(socket_num, servername, pn);
-  send(socket_num, (octet*)&player_no, sizeof(player_no));
+  octetStream("P" + to_string(player_no)).Send(socket_num);
 #ifdef DEBUG_NETWORKING
   cerr << "Sent " << player_no << " to " << servername << ":" << pn << endl;
 #endif
@@ -191,16 +187,12 @@ Names::Names(const Names& other)
   names = other.names;
   ports = other.ports;
   server = 0;
-  global_server = 0;
 }
-
 
 Names::~Names()
 {
   if (server != 0)
     delete server;
-  if (global_server != 0)
-    delete global_server;
 }
 
 
@@ -213,18 +205,27 @@ Player::Player(const Names& Nms) :
 
 
 template<class T>
-MultiPlayer<T>::MultiPlayer(const Names& Nms, int id) :
+MultiPlayer<T>::MultiPlayer(const Names& Nms) :
         Player(Nms), send_to_self_socket(0)
 {
-  if (Nms.num_players() > 1)
-    setup_sockets(Nms.names, Nms.ports, id, *Nms.server);
-  else
-    sockets.resize(Nms.num_players());
+  sockets.resize(Nms.num_players());
 }
 
 
-template<>
-MultiPlayer<int>::~MultiPlayer()
+PlainPlayer::PlainPlayer(const Names& Nms, const string& id) :
+        MultiPlayer<int>(Nms)
+{
+  if (Nms.num_players() > 1)
+    setup_sockets(Nms.names, Nms.ports, id, *Nms.server);
+}
+
+
+PlainPlayer::PlainPlayer(const Names& Nms, int id_base) :
+        PlainPlayer(Nms, to_string(id_base))
+{
+}
+
+PlainPlayer::~PlainPlayer()
 {
   if (num_players() > 1)
     {
@@ -258,33 +259,38 @@ PlayerBase::~PlayerBase()
 // Set up nmachines client and server sockets to send data back and fro
 //   A machine is a server between it and player i if i<=my_number
 //   Can also communicate with myself, but only with send_to and receive_from
-template<>
-void MultiPlayer<int>::setup_sockets(const vector<string>& names,const vector<int>& ports,int id_base,ServerSocket& server)
+void PlainPlayer::setup_sockets(const vector<string>& names,
+        const vector<int>& ports, const string& id_base, ServerSocket& server)
 {
     sockets.resize(nplayers);
     // Set up the client side
     for (int i=player_no; i<nplayers; i++) {
-        int pn=id_base+player_no;
+        auto pn=id_base+"P"+to_string(player_no);
         if (i==player_no) {
           const char* localhost = "127.0.0.1";
 #ifdef DEBUG_NETWORKING
-          fprintf(stderr, "Setting up send to self socket to %s:%d with id 0x%x\n",localhost,ports[i],pn);
+          fprintf(stderr,
+              "Setting up send to self socket to %s:%d with id %s\n",
+              localhost, ports[i], pn.c_str());
 #endif
           set_up_client_socket(sockets[i],localhost,ports[i]);
         } else {
 #ifdef DEBUG_NETWORKING
-          fprintf(stderr, "Setting up client to %s:%d with id 0x%x\n",names[i].c_str(),ports[i],pn);
+            fprintf(stderr, "Setting up client to %s:%d with id %s\n",
+                names[i].c_str(), ports[i], pn.c_str());
 #endif
           set_up_client_socket(sockets[i],names[i].c_str(),ports[i]);
         }
-        send(sockets[i], (unsigned char*)&pn, sizeof(pn));
+        octetStream(pn).Send(sockets[i]);
     }
     send_to_self_socket = sockets[player_no];
     // Setting up the server side
     for (int i=0; i<=player_no; i++) {
-        int id=id_base+i;
+        auto id=id_base+"P"+to_string(i);
 #ifdef DEBUG_NETWORKING
-        fprintf(stderr, "As a server, waiting for client with id 0x%x to connect.\n",id);
+        fprintf(stderr,
+            "As a server, waiting for client with id %s to connect.\n",
+            id.c_str());
 #endif
         sockets[i] = server.get_connection_socket(id);
     }
@@ -539,11 +545,10 @@ void Player::send_receive_all(const vector<vector<bool>>& channels,
   send_receive_all_no_stats(channels, to_send, to_receive);
 }
 
-void Player::partial_broadcast(const vector<bool>& senders,
-    vector<octetStream>& os) const
+void Player::partial_broadcast(const vector<bool>&,
+    const vector<bool>&, vector<octetStream>& os) const
 {
-  partial_broadcast(senders, vector<bool>(num_players(), senders[my_num()]),
-      os);
+  unchecked_broadcast(os);
 }
 
 template<class T>
@@ -570,7 +575,8 @@ void MultiPlayer<T>::send_receive_all_no_stats(
 }
 
 
-ThreadPlayer::ThreadPlayer(const Names& Nms, int id_base) : PlainPlayer(Nms, id_base)
+ThreadPlayer::ThreadPlayer(const Names& Nms, const string& id_base) :
+    PlainPlayer(Nms, id_base)
 {
   for (int i = 0; i < Nms.num_players(); i++)
     {
@@ -625,11 +631,16 @@ void ThreadPlayer::send_all(const octetStream& o) const
 }
 
 
-RealTwoPartyPlayer::RealTwoPartyPlayer(const Names& Nms, int other_player, int id) :
+RealTwoPartyPlayer::RealTwoPartyPlayer(const Names& Nms, int other_player, const string& id) :
         TwoPartyPlayer(Nms.my_num()), other_player(other_player)
 {
   is_server = Nms.my_num() > other_player;
   setup_sockets(other_player, Nms, Nms.ports[other_player], id);
+}
+
+RealTwoPartyPlayer::RealTwoPartyPlayer(const Names& Nms, int other_player,
+        int id_base) : RealTwoPartyPlayer(Nms, other_player, to_string(id_base))
+{
 }
 
 RealTwoPartyPlayer::~RealTwoPartyPlayer()
@@ -637,23 +648,24 @@ RealTwoPartyPlayer::~RealTwoPartyPlayer()
   close_client_socket(socket);
 }
 
-void RealTwoPartyPlayer::setup_sockets(int other_player, const Names &nms, int portNum, int id)
+void RealTwoPartyPlayer::setup_sockets(int other_player, const Names &nms, int portNum, string id)
 {
-    id += 0xF << 28;
+    id += "2";
     const char *hostname = nms.names[other_player].c_str();
     ServerSocket *server = nms.server;
     if (is_server) {
 #ifdef DEBUG_NETWORKING
-        fprintf(stderr, "Setting up server with id %d\n",id);
+        fprintf(stderr, "Setting up server with id %s\n", id.c_str());
 #endif
         socket = server->get_connection_socket(id);
     }
     else {
 #ifdef DEBUG_NETWORKING
-        fprintf(stderr, "Setting up client to %s:%d with id %d\n", hostname, portNum, id);
+        fprintf(stderr, "Setting up client to %s:%d with id %s\n", hostname,
+                portNum, id.c_str());
 #endif
         set_up_client_socket(socket, hostname, portNum);
-        ::send(socket, (unsigned char*)&id, sizeof(id));
+        octetStream(id).Send(socket);
     }
 }
 
@@ -739,6 +751,10 @@ void TwoPartyPlayer::Broadcast_Receive(vector<octetStream>& o) const
   o[1 - my_num()] = os[1];
 }
 
+NamedCommStats::NamedCommStats() : sent(0)
+{
+}
+
 CommStats& CommStats::operator +=(const CommStats& other)
 {
   data += other.data;
@@ -749,6 +765,7 @@ CommStats& CommStats::operator +=(const CommStats& other)
 
 NamedCommStats& NamedCommStats::operator +=(const NamedCommStats& other)
 {
+  sent += other.sent;
   for (auto it = other.begin(); it != other.end(); it++)
     (*this)[it->first] += it->second;
   return *this;
@@ -772,6 +789,7 @@ CommStats& CommStats::operator -=(const CommStats& other)
 NamedCommStats NamedCommStats::operator -(const NamedCommStats& other) const
 {
   NamedCommStats res = *this;
+  res.sent = sent - other.sent;
   for (auto it = other.begin(); it != other.end(); it++)
     res[it->first] -= it->second;
   return res;

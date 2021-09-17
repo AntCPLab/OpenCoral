@@ -947,7 +947,7 @@ class RefBucket(object):
                 child.output()
 
 def random_block(length, value_type):
-    return sum(value_type.bit_type.get_random_bit() << i for i in range(length))
+    return bit_compose(value_type.bit_type.get_random_bit() for i in range(length))
 
 class List(EndRecursiveEviction):
     """ Debugging only. List which accepts secret values as indices

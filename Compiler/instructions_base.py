@@ -63,6 +63,7 @@ opcodes = dict(
     THRESHOLD = 0xE3,
     PLAYERID = 0xE4,
     USE_EDABIT = 0xE5,
+    USE_MATMUL = 0x1F,
     # Addition
     ADDC = 0x20,
     ADDS = 0x21,
@@ -456,7 +457,7 @@ def cisc(function):
                 reset_global_vector_size()
                 program.curr_tape = old_tape
                 for x, bl in tape.req_bit_length.items():
-                    old_tape.require_bit_length(bl, x)
+                    old_tape.require_bit_length(bl - 1, x)
                 from Compiler.allocator import Merger
                 merger = Merger(block, program.options,
                                 tuple(program.to_merge))
@@ -542,7 +543,13 @@ def cisc(function):
     MergeCISC.__name__ = function.__name__
 
     def wrapper(*args, **kwargs):
-        if program.options.cisc:
+        same_sizes = True
+        for arg in args:
+            try:
+                same_sizes &= arg.size == args[0].size
+            except:
+                pass
+        if program.options.cisc and same_sizes:
             return MergeCISC(*args, **kwargs)
         else:
             return function(*args, **kwargs)

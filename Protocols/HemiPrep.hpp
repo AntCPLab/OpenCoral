@@ -43,7 +43,7 @@ HemiPrep<T>::~HemiPrep()
 }
 
 template<class T>
-void HemiPrep<T>::buffer_triples()
+vector<Multiplier<typename T::clear::FD>*>& HemiPrep<T>::get_multipliers()
 {
     assert(this->proc != 0);
     auto& P = this->proc->P;
@@ -51,7 +51,7 @@ void HemiPrep<T>::buffer_triples()
     lock.lock();
     if (pairwise_machine == 0 or pairwise_machine->enc_alphas.empty())
     {
-        PlainPlayer P(this->proc->P.N, T::clear::type_char());
+        PlainPlayer P(this->proc->P.N, "Hemi" + T::type_string());
         if (pairwise_machine == 0)
             basic_setup(P);
         pairwise_machine->setup<FD>().covert_key_generation(P,
@@ -64,7 +64,15 @@ void HemiPrep<T>::buffer_triples()
         for (int i = 1; i < P.num_players(); i++)
             multipliers.push_back(
                     new Multiplier<FD>(i, *pairwise_machine, P, timers));
+    return multipliers;
+}
 
+template<class T>
+void HemiPrep<T>::buffer_triples()
+{
+    assert(this->proc != 0);
+    auto& P = this->proc->P;
+    auto& multipliers = get_multipliers();
     auto& FieldD = pairwise_machine->setup<FD>().FieldD;
     Plaintext_<FD> a(FieldD), b(FieldD), c(FieldD);
     a.randomize(G);

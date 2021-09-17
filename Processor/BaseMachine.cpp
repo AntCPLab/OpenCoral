@@ -4,6 +4,7 @@
  */
 
 #include "BaseMachine.h"
+#include "OnlineOptions.h"
 #include "Math/Setup.h"
 
 #include <iostream>
@@ -90,10 +91,8 @@ void BaseMachine::load_schedule(const string& progname, bool load_bytecode)
 
 void BaseMachine::print_compiler()
 {
-#ifdef VERBOSE
-  if (compiler.size() != 0)
+  if (compiler.size() != 0 and OnlineOptions::singleton.verbose)
     cerr << "Compiler: " << compiler << endl;
-#endif
 }
 
 void BaseMachine::load_program(const string& threadname, const string& filename)

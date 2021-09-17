@@ -508,7 +508,7 @@ class _structure(object):
             a = sfix.Tensor([10, 10])
         """
         if len(shape) == 1:
-            return Array(size[0], cls)
+            return Array(shape[0], cls)
         else:
             return MultiArray(shape, cls)
 
@@ -521,6 +521,75 @@ class _structure(object):
     @staticmethod
     def mem_size():
         return 1
+
+class _secret_structure(_structure):
+    @classmethod
+    def input_tensor_from(cls, player, shape):
+        """ Input tensor secretly from player.
+
+        :param player: int/regint/cint
+        :param shape: tensor shape
+
+        """
+        res = cls.Tensor(shape)
+        res.input_from(player)
+        return res
+
+    @classmethod
+    def input_tensor_from_client(cls, client_id, shape):
+        """ Input tensor secretly from client.
+
+        :param client_id: client identifier (public)
+        :param shape: tensor shape
+
+        """
+        res = cls.Tensor(shape)
+        res.assign_vector(cls.receive_from_client(1, client_id,
+                                                  size=res.total_size())[0])
+        return res
+
+    @classmethod
+    def input_tensor_via(cls, player, content):
+        """
+        Input tensor-like data via a player. This overwrites the input
+        file for the relevant player. The following returns an
+        :py:class:`sint` matrix of dimension 2 by 2::
+
+          M = [[1, 2], [3, 4]]
+          sint.input_tensor_via(0, M)
+
+        Make sure to copy ``Player-Data/Input-P<player>-0`` if running
+        on another host.
+
+        """
+        if program.curr_tape != program.tapes[0]:
+            raise CompilerError('only available in main thread')
+        shape = []
+        tmp = content
+        while True:
+            try:
+                shape.append(len(tmp))
+                tmp = tmp[0]
+            except:
+                break
+        if not program.input_files.get(player, None):
+            program.input_files[player] = open(
+                'Player-Data/Input-P%d-0' % player, 'w')
+        f = program.input_files[player]
+        def traverse(content, level):
+            assert len(content) == shape[level]
+            if level == len(shape) - 1:
+                for x in content:
+                    f.write(' ')
+                    f.write(str(x))
+            else:
+                for x in content:
+                    traverse(x, level + 1)
+        traverse(content, 0)
+        f.write('\n')
+        res = cls.Tensor(shape)
+        res.input_from(player)
+        return res
 
 class _vec(object):
     def link(self, other):
@@ -835,23 +904,26 @@ class cint(_clear, _int):
 
         :param client_id: Client id (regint)
         :param n: number of values (default 1)
+        :param size: vector size (default 1)
         :returns: cint (if n=1) or list of cint
         """
         res = [cls() for i in range(n)]
-        readsocketc(client_id, *res)
+        readsocketc(client_id, get_global_vector_size(), *res)
         if n == 1:
             return res[0]
         else:
             return res
 
-    @vectorized_classmethod
+    @classmethod
     def write_to_socket(self, client_id, values, message_type=ClientMessageType.NoType):
         """ Send a list of clear values to a client.
 
         :param client_id: Client id (regint)
         :param values: list of cint
         """
-        writesocketc(client_id, message_type, *values)
+        for value in values:
+            assert(value.size == values[0].size)
+        writesocketc(client_id, message_type, values[0].size, *values)
 
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
@@ -1089,7 +1161,7 @@ class cint(_clear, _int):
         cond_print_str(self, string)
 
     def output_if(self, cond):
-        cond_print_plain(cond, self, cint(0))
+        cond_print_plain(self.conv(cond), self, cint(0))
 
 
 class cgf2n(_clear, _gf2n):
@@ -1298,23 +1370,26 @@ class regint(_register, _int):
 
         :param client_id: Client id (regint)
         :param n: number of values (default 1)
+        :param size: vector size (default 1)
         :returns: regint (if n=1) or list of regint
         """
         res = [cls() for i in range(n)]
-        readsocketint(client_id, *res)
+        readsocketint(client_id, get_global_vector_size(), *res)
         if n == 1:
             return res[0]
         else:
             return res
 
-    @vectorized_classmethod
+    @classmethod
     def write_to_socket(self, client_id, values, message_type=ClientMessageType.NoType):
         """ Send a list of clear integers to a client.
 
         :param client_id: Client id (regint)
         :param values: list of regint
         """
-        writesocketint(client_id, message_type, *values)
+        for value in values:
+            assert(value.size == values[0].size)
+        writesocketint(client_id, message_type, values[0].size, *values)
 
     @vectorize_init
     def __init__(self, val=None, size=None):
@@ -1388,6 +1463,8 @@ class regint(_register, _int):
         """ Clear integer division (rounding to floor).
 
         :param other: regint/cint/int """
+        if util.is_constant(other) and other >= 2 ** 64:
+            return 0
         return self.int_op(other, divint)
 
     def __rfloordiv__(self, other):
@@ -1546,10 +1623,17 @@ class regint(_register, _int):
         """ Output string if value is non-zero.
 
         :param string: Python string """
-        cint(self).print_if(string)
+        self._condition().print_if(string)
 
     def output_if(self, cond):
-        cint(self).output_if(cond)
+        self._condition().output_if(cond)
+
+    def _condition(self):
+        if program.options.binary:
+            from GC.types import cbits
+            return cbits.get_type(64)(self)
+        else:
+            return cint(self)
 
     def binary_output(self, player=None):
         """ Write 64-bit signed integer to
@@ -1596,6 +1680,9 @@ class personal(object):
 
     def binary_output(self):
         self._v.binary_output(self.player)
+
+    def bit_decompose(self, length):
+        return [personal(self.player, x) for x in self._v.bit_decompose(length)]
 
     def _san(self, other):
         if isinstance(other, personal):
@@ -1689,7 +1776,7 @@ class longint:
             res += x.bit_decompose(64)
         return res[:bit_length]
 
-class _secret(_register):
+class _secret(_register, _secret_structure):
     __slots__ = []
 
     mov = staticmethod(set_instruction_type(movs))
@@ -2022,7 +2109,7 @@ class sint(_secret, _int):
     the bit length.
 
     :param val: initialization (sint/cint/regint/int/cgf2n or list
-        thereof or sbits/sbitvec)
+        thereof or sbits/sbitvec/sfix)
     :param size: vector size (int), defaults to 1 or size of list
 
     """
@@ -2130,22 +2217,50 @@ class sint(_secret, _int):
         rawinput(player, res)
         return res
 
-    @classmethod
+    @vectorized_classmethod
     def receive_from_client(cls, n, client_id, message_type=ClientMessageType.NoType):
         """ Securely obtain shares of values input by a client.
 
         :param n: number of inputs (int)
         :param client_id: regint
+        :param size: vector size (default 1)
+
         """
         # send shares of a triple to client
         triples = list(itertools.chain(*(sint.get_random_triple() for i in range(n))))
         sint.write_shares_to_socket(client_id, triples, message_type)
 
-        received = cint.read_from_socket(client_id, n)
+        received = util.tuplify(cint.read_from_socket(client_id, n))
         y = [0] * n
         for i in range(n):
             y[i] = received[i] - triples[i * 3]
         return y
+
+    @classmethod
+    def reveal_to_clients(cls, clients, values):
+        """ Reveal securely to clients.
+
+        :param clients: client ids (list or array)
+        :param values: list of sint to reveal
+
+        """
+        set_global_vector_size(values[0].size)
+        to_send = []
+
+        for value in values:
+            assert(value.size == values[0].size)
+            r = sint.get_random()
+            to_send += [value, r, value * r]
+
+        if isinstance(clients, Array):
+            n_clients = clients.length
+        else:
+            n_clients = len(clients)
+
+        @library.for_range(n_clients)
+        def loop_body(i):
+            sint.write_shares_to_socket(clients[i], to_send)
+        reset_global_vector_size()
 
     @vectorized_classmethod
     def read_from_socket(cls, client_id, n=1):
@@ -2153,10 +2268,11 @@ class sint(_secret, _int):
 
         :param client_id: Client id (regint)
         :param n: number of values (default 1)
+        :param size: vector size of values (default 1)
         :returns: sint (if n=1) or list of sint
         """
         res = [cls() for i in range(n)]
-        readsockets(client_id, *res)
+        readsockets(client_id, get_global_vector_size(), *res)
         if n == 1:
             return res[0]
         else:
@@ -2165,9 +2281,9 @@ class sint(_secret, _int):
     @vectorize
     def write_share_to_socket(self, client_id, message_type=ClientMessageType.NoType):
         """ Send only share to socket """
-        writesocketshare(client_id, message_type, self)
+        writesocketshare(client_id, message_type, self.size, self)
 
-    @vectorized_classmethod
+    @classmethod
     def write_shares_to_socket(cls, client_id, values,
                                message_type=ClientMessageType.NoType):
         """ Send shares of a list of values to a specified client socket.
@@ -2175,7 +2291,7 @@ class sint(_secret, _int):
         :param client_id: regint
         :param values: list of sint
         """
-        writesocketshare(client_id, message_type, *values)
+        writesocketshare(client_id, message_type, values[0].size, *values)
 
     @classmethod
     def read_from_file(cls, start, n_items):
@@ -2227,6 +2343,9 @@ class sint(_secret, _int):
             size = val._v.size
             super(sint, self).__init__('s', size=size)
             inputpersonal(size, val.player, self, self.clear_type.conv(val._v))
+        elif isinstance(val, _fix):
+            super(sint, self).__init__('s', size=val.v.size)
+            self.load_other(val.v.round(val.k, val.f))
         else:
             super(sint, self).__init__('s', val=val, size=size)
 
@@ -2498,8 +2617,18 @@ class sint(_secret, _int):
 
     def private_division(self, divisor, active=True, dividend_length=None,
                          divisor_length=None):
-        assert active == False
+        """ Private integer division as per `Veugen and Abspoel
+        <https://doi.org/10.2478/popets-2021-0073>`_
 
+        :param divisor: public (cint/regint) or personal value thereof
+        :param active: whether to check on the party knowing the
+            divisor (active security)
+        :param dividend_length: bit length of the dividend (default:
+            global bit length)
+        :param dividend_length: bit length of the divisor (default:
+            global bit length)
+
+        """
         d = divisor
         l = divisor_length or program.bit_length
         m = dividend_length or program.bit_length
@@ -2515,11 +2644,28 @@ class sint(_secret, _int):
         r_prime = sint.get_random_int(m + sigma)
         r_pprime = sint.get_random_int(l + sigma)
 
-        h = (r + (r_prime << (l + sigma))) * sint(d)
-        z = ((self << (l + sigma)) + h + r_pprime).reveal_to(0)
+        d_shared = sint(d)
+        h = (r + (r_prime << (l + sigma))) * d_shared
+        z_shared = ((self << (l + sigma)) + h + r_pprime)
+        z = z_shared.reveal_to(0)
 
-        y = sint(z // (d << (l + sigma)))
-        y_prime = sint((z // d) % (2 ** (l + sigma)))
+        if active:
+            z_prime = [sint(x) for x in (z // d).bit_decompose(min_length)]
+            check = [(x * (1 - x)).reveal() == 0 for x in z_prime]
+            z_pp = [sint(x) for x in (z % d).bit_decompose(l)]
+            check += [(x * (1 - x)).reveal() == 0 for x in z_pp]
+            library.runtime_error_if(sum(check) != len(check),
+                                     'private division')
+            z_pp = sint.bit_compose(z_pp)
+            beta1 = z_pp.less_than(d_shared, l)
+            beta2 = z_shared - sint.bit_compose(z_prime) * d_shared - z_pp
+            library.runtime_error_if(beta1.reveal() != 1, 'private div')
+            library.runtime_error_if(beta2.reveal() != 0, 'private div')
+            y_prime = sint.bit_compose(z_prime[:l + sigma])
+            y = sint.bit_compose(z_prime[l + sigma:])
+        else:
+            y = sint(z // (d << (l + sigma)))
+            y_prime = sint((z // d) % (2 ** (l + sigma)))
 
         b = r.greater_than(y_prime, l + sigma)
         w = y - b - r_prime
@@ -3320,15 +3466,16 @@ class cfix(_number, _structure):
 
         :param client_id: Client id (regint)
         :param n: number of values (default 1)
+        :param: vector size (int)
         :returns: cfix (if n=1) or list of cfix
         """
-        cint_input = cint.read_from_socket(client_id, n)
+        cint_inputs = cint.read_from_socket(client_id, n)
         if n == 1:
             return cfix._new(cint_inputs)
         else:
-            return list(map(cfix, cint_inputs))
-        
-    @vectorized_classmethod
+            return list(map(cfix._new, cint_inputs))
+
+    @classmethod
     def write_to_socket(self, client_id, values, message_type=ClientMessageType.NoType):
         """ Send a list of clear fixed-point values to a client
         (represented as clear integers).
@@ -3336,10 +3483,12 @@ class cfix(_number, _structure):
         :param client_id: Client id (regint)
         :param values: list of cint
         """
+        for value in values:
+            assert(value.size == values[0].size)
         def cfix_to_cint(fix_val):
             return cint(fix_val.v)
         cint_values = list(map(cfix_to_cint, values))
-        writesocketc(client_id, message_type, *cint_values)
+        writesocketc(client_id, message_type, values[0].size, *cint_values)
 
     @staticmethod
     def malloc(size, creator_tape=None):
@@ -3401,6 +3550,9 @@ class cfix(_number, _structure):
 
     def __len__(self):
         return len(self.v)
+
+    def __getitem__(self, index):
+        return self._new(self.v[index], k=self.k, f=self.f)
 
     @vectorize
     def load_int(self, v):
@@ -3601,7 +3753,7 @@ class cfix(_number, _structure):
                           cint(0), cint(0), cint(0))
 
     def output_if(self, cond):
-        cond_print_plain(cond, self.v, cint(-self.f))
+        cond_print_plain(cint.conv(cond), self.v, cint(-self.f))
 
     @vectorize
     def binary_output(self, player=None):
@@ -3614,7 +3766,7 @@ class cfix(_number, _structure):
             player = -1
         floatoutput(player, self.v, cint(-self.f), cint(0), cint(0))
 
-class _single(_number, _structure):
+class _single(_number, _secret_structure):
     """ Representation as single integer preserving the order """
     """ E.g. fixed-point numbers """
     __slots__ = ['v']
@@ -3623,7 +3775,7 @@ class _single(_number, _structure):
     """ Whether to round deterministically to nearest instead of
     probabilistically, e.g. after fixed-point multiplication. """
 
-    @classmethod
+    @vectorized_classmethod
     def receive_from_client(cls, n, client_id, message_type=ClientMessageType.NoType):
         """
         Securely obtain shares of values input by a client. Assumes client
@@ -3631,11 +3783,21 @@ class _single(_number, _structure):
 
         :param n: number of inputs (int)
         :param client_id: regint
-
+        :param size: vector size (default 1)
         """
         sint_inputs = cls.int_type.receive_from_client(n, client_id,
                                                        message_type)
         return list(map(cls._new, sint_inputs))
+
+    @classmethod
+    def reveal_to_clients(cls, clients, values):
+        """ Reveal securely to clients.
+
+        :param clients: client ids (list or array)
+        :param values: list of values of this class
+
+        """
+        cls.int_type.reveal_to_clients(clients, [x.v for x in values])
 
     @vectorized_classmethod
     def write_shares_to_socket(cls, client_id, values,
@@ -3926,6 +4088,9 @@ class _fix(_single):
             self.v = (1-2*_v.s)*a
         elif isinstance(_v, type(self)):
             self.v = _v.v
+        elif isinstance(_v, cfix):
+            assert _v.f <= self.f
+            self.v = self.int_type(_v.v << (self.f - _v.f))
         elif isinstance(_v, (MemValue, MemFix)):
             #this is a memvalue object
             self.v = type(self)(_v.read()).v
@@ -4049,9 +4214,9 @@ class _fix(_single):
         return revealed_fix._new(val)
 
 class sfix(_fix):
-    """ Secret fixed-point number represented as secret integer.
-    This uses integer operations internally, see :py:class:`sint` for security
-    considerations.
+    """ Secret fixed-point number represented as secret integer, by
+    multiplying with ``2^f`` and then rounding. See :py:class:`sint`
+    for security considerations of the underlying integer operations.
 
     It supports basic arithmetic (``+, -, *, /``), returning
     :py:class:`sfix`, and comparisons (``==, !=, <, <=, >, >=``),
@@ -4391,7 +4556,7 @@ class squant_params(object):
             shifted = under.if_else(0, shifted)
         return squant._new(shifted, params=self)
 
-class sfloat(_number, _structure):
+class sfloat(_number, _secret_structure):
     """
     Secret floating-point number.
     Represents :math:`(1 - 2s) \cdot (1 - z)\cdot v \cdot 2^p`.
@@ -4705,6 +4870,7 @@ class sfloat(_number, _structure):
         return -self + other
     __rsub__.__doc__ = __sub__.__doc__
 
+    @vectorize
     def __truediv__(self, other):
         """ Secret floating-point division.
 
@@ -4857,21 +5023,36 @@ def _get_type(t):
     else:
         return t
 
-class Array(object):
+class _vectorizable:
+    def reveal_to_clients(self, clients):
+        """ Reveal contents to list of clients.
+
+        :param clients: list or array of client identifiers
+
+        """
+        self.value_type.reveal_to_clients(clients, [self.get_vector()])
+
+class Array(_vectorizable):
     """
     Array accessible by public index. That is, ``a[i]`` works for an
     array ``a`` and ``i`` being a :py:class:`regint`,
-    :py:class:`cint`, or a Python integer. ``a[start:stop:step]``
-    works as well, and so does iteration over an array.
-
-    Arrays support a number of element-wise operations if the
-    underlying basic type does so. These are ``+, -, *, **, /``. The
-    return type of these is a vector, which can be assigned to an
-    array of a compatible type using :py:func:`assign`.
+    :py:class:`cint`, or a Python integer.
 
     :param length: compile-time integer (int) or :py:obj:`None` for unknown length
     :param value_type: basic type
     :param address: if given (regint/int), the array will not be allocated
+
+    You can convert between arrays and register vectors by using slice
+    indexing. This allows for element-wise operations as long as
+    supported by the basic type. The following adds 10 secret integers
+    from the first two parties::
+
+      a = sint.Array(10)
+      a.input_from(0)
+      b = sint.Array(10)
+      b.input_from(1)
+      a[:] += b[:]
+
     """
     @classmethod
     def create_from(cls, l):
@@ -4900,6 +5081,7 @@ class Array(object):
         self.debug = debug
         self.creator_tape = program.curr_tape
         self.sink = None
+        self.check_indices = True
         if alloc:
             self.alloc()
 
@@ -4914,11 +5096,17 @@ class Array(object):
 
     def get_address(self, index):
         key = str(index)
-        if isinstance(index, int) and self.length is not None:
-            index += self.length * (index < 0)
-            if index >= self.length or index < 0:
-                raise IndexError('index %s, length %s' % \
-                                     (str(index), str(self.length)))
+        if self.length is not None:
+            from .GC.types import cbits
+            if isinstance(index, int):
+                index += self.length * (index < 0)
+                if index >= self.length or index < 0:
+                    raise IndexError('index %s, length %s' % \
+                                         (str(index), str(self.length)))
+            elif self.check_indices and not isinstance(index, cbits):
+                library.runtime_error_if(regint.conv(index) >= self.length,
+                                         'overflow: %s/%s',
+                                         index, self.length)
         if (program.curr_block, key) not in self.address_cache:
             n = self.value_type.n_elements()
             length = self.length
@@ -4937,21 +5125,24 @@ class Array(object):
     def get_slice(self, index):
         if index.stop is None and self.length is None:
             raise CompilerError('Cannot slice array of unknown length')
-        return index.start or 0, index.stop or self.length, index.step or 1
+        if index.step == 0:
+            raise CompilerError('slice step cannot be zero')
+        return index.start or 0, \
+            min(index.stop or self.length, self.length), index.step or 1
 
     def __getitem__(self, index):
         """ Reading from array.
 
         :param index: public (regint/cint/int/slice)
-        :return: array if slice is given, basic type otherwise"""
+        :return: vector if slice is given, basic type otherwise"""
         if isinstance(index, slice):
             start, stop, step = self.get_slice(index)
-            res_length = (stop - start - 1) // step + 1
-            res = Array(res_length, self.value_type)
-            @library.for_range(res_length)
-            def f(i):
-                res[i] = self[start+i*step]
-            return res
+            if step == 1:
+                return self.get_vector(start, stop - start)
+            else:
+                res_length = (stop - start - 1) // step + 1
+                addresses = regint.inc(res_length, start, step)
+                return self.get_vector(addresses, res_length)
         return self._load(self.get_address(index))
 
     def __setitem__(self, index, value):
@@ -4961,14 +5152,20 @@ class Array(object):
         :param value: convertible for relevant basic type """
         if isinstance(index, slice):
             start, stop, step = self.get_slice(index)
-            value = Array.create_from(value)
-            source_index = MemValue(0)
-            @library.for_range(start, stop, step)
-            def f(i):
-                self[i] = value[source_index]
-                source_index.iadd(1)
-            return
+            if step == 1:
+                return self.assign(value, start)
+            else:
+                res_length = (stop - start - 1) // step + 1
+                addresses = regint.inc(res_length, start, step)
+                return self.assign(value, addresses)
         self._store(value, self.get_address(index))
+
+    def get_sub(self, start, stop=None):
+        if stop is None:
+            stop = start
+            start = 0
+        return Array(stop - start, self.value_type,
+                     address=self.address + start)
 
     def maybe_get(self, condition, index):
         """ Return entry if condition is true.
@@ -4989,7 +5186,7 @@ class Array(object):
             self.sink = self.value_type.Array(
                 1, address=self.value_type.malloc(1, creator_tape=program.tapes[0]))
         addresses = (condition.if_else(x, y) for x, y in
-                     zip(util.tuplify(self.get_address(index)),
+                     zip(util.tuplify(self.get_address(condition * index)),
                          util.tuplify(self.sink.get_address(0))))
         self._store(value, util.untuplify(tuple(addresses)))
 
@@ -5034,10 +5231,10 @@ class Array(object):
         except:
             pass
         try:
-            other.store_in_mem(self.get_address(base))
+            self.value_type.conv(other).store_in_mem(self.get_address(base))
             if len(self) != None and util.is_constant(base):
                 assert len(self) >= other.size + base
-        except AttributeError:
+        except (AttributeError, CompilerError):
             if isinstance(other, Array):
                 @library.for_range_opt(len(other))
                 def _(i):
@@ -5071,7 +5268,7 @@ class Array(object):
 
         :param base: starting point (regint/cint/int)
         :param size: length (compile-time int) """
-        size = size or self.length
+        size = size or self.length - base
         return self.value_type.load_mem(self.get_address(base), size=size)
 
     get_part_vector = get_vector
@@ -5249,7 +5446,7 @@ sint.dynamic_array = Array
 sgf2n.dynamic_array = Array
 
 
-class SubMultiArray(object):
+class SubMultiArray(_vectorizable):
     """ Multidimensional array functionality.  Don't construct this
     directly, use :py:class:`MultiArray` instead. """
     def __init__(self, sizes, value_type, address, index, debug=None):
@@ -5261,6 +5458,7 @@ class SubMultiArray(object):
             self.address = None
         self.sub_cache = {}
         self.debug = debug
+        self.check_indices = True
         if debug:
             library.print_ln_if(self.address + reduce(operator.mul, self.sizes) * self.value_type.n_elements() > program.allocated_mem[self.value_type.reg_type], 'AOF%d:' % len(self.sizes) + self.debug)
 
@@ -5271,11 +5469,17 @@ class SubMultiArray(object):
         :return: :py:class:`Array` if one-dimensional, :py:class:`SubMultiArray` otherwise"""
         if util.is_constant(index) and index >= self.sizes[0]:
             raise StopIteration
+        if isinstance(index, slice) and index == slice(None):
+            return self.get_vector()
         key = program.curr_block, str(index)
         if key not in self.sub_cache:
-            if self.debug:
-                library.print_ln_if(index >= self.sizes[0], \
-                                    'OF%d:' % len(self.sizes) + self.debug)
+            if util.is_constant(index) and \
+               (index >= self.sizes[0] or index < 0):
+                raise CompilerError('index out of range')
+            elif self.check_indices:
+                library.runtime_error_if(index >= self.sizes[0],
+                                         'overflow: %s/%s',
+                                         index, self.sizes)
             if len(self.sizes) == 2:
                 self.sub_cache[key] = \
                         Array(self.sizes[1], self.value_type, \
@@ -5293,6 +5497,8 @@ class SubMultiArray(object):
 
         :param index: public (regint/cint/int)
         :param other: container of matching size and type """
+        if isinstance(index, slice) and index == slice(None):
+            return self.assign(other)
         self[index].assign(other)
 
     def __len__(self):
@@ -5526,13 +5732,18 @@ class SubMultiArray(object):
         self.assign_vector(self.get_vector() + other.get_vector())
 
     def __mul__(self, other):
+        # legacy function
+        return self.mul(other)
+
+    def mul(self, other, res_params=None):
+        # legacy function
+        return self.dot(other, res_params)
+
+    def dot(self, other, res_params=None):
         """ Matrix-matrix and matrix-vector multiplication.
 
         :param self: two-dimensional
         :param other: Matrix or Array of matching size and type """
-        return self.mul(other)
-
-    def mul(self, other, res_params=None):
         assert len(self.sizes) == 2
         if isinstance(other, Array):
             assert len(other) == self.sizes[1]
@@ -5762,11 +5973,16 @@ class SubMultiArray(object):
         assert len(self.sizes) == 2
         res = Matrix(self.sizes[1], self.sizes[0], self.value_type)
         library.break_point()
-        @library.for_range_opt(self.sizes[1])
-        def _(i):
+        if self.value_type.n_elements() == 1:
             @library.for_range_opt(self.sizes[0])
             def _(j):
-                res[i][j] = self[j][i]
+                res.set_column(j, self[j][:])
+        else:
+            @library.for_range_opt(self.sizes[1])
+            def _(i):
+                @library.for_range_opt(self.sizes[0])
+                def _(j):
+                    res[i][j] = self[j][i]
         library.break_point()
         return res
 
@@ -5809,13 +6025,21 @@ class MultiArray(SubMultiArray):
     """
     Multidimensional array. The access operator (``a[i]``) allows to a
     multi-dimensional array of dimension one less or a simple array
-    for a two-dimensional array. Element-wise addition and subtraction
-    is supported, returning a vector, which can be assigned using
-    :py:func:`assign`.  Matrix-vector and matrix-matrix multiplication
-    is supported as well.
+    for a two-dimensional array.
 
     :param sizes: shape (compile-time list of integers)
     :param value_type: basic type of entries
+
+    You can convert between arrays and register vectors by using slice
+    indexing. This allows for element-wise operations as long as
+    supported by the basic type. The following has the first two parties
+    input a 10x10 secret integer matrix followed by storing the
+    element-wise multiplications in the same data structure::
+
+      a = sint.Tensor([3, 10, 10])
+      a[0].input_from(0)
+      a[1].input_from(1)
+      a[2][:] = a[0][:] * a[1][:]
 
     """
     def __init__(self, sizes, value_type, debug=None, address=None, alloc=True):

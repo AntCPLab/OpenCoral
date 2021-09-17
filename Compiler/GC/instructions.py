@@ -52,6 +52,7 @@ opcodes = dict(
     CONVCBIT2S = 0x249,
     XORCBI = 0x210,
     BITDECC = 0x211,
+    NOTCB = 0x212,
     CONVCINT = 0x213,
     REVEAL = 0x214,
     STMSDCI = 0x215,
@@ -189,6 +190,16 @@ class nots(BinaryVectorInstruction):
     """
     code = opcodes['NOTS']
     arg_format = ['int','sbw','sb']
+
+class notcb(BinaryVectorInstruction):
+    """ Bitwise NOT of secret register vector.
+
+    :param: number of bits
+    :param: result (cbit)
+    :param: operand (cbit)
+    """
+    code = opcodes['NOTCB']
+    arg_format = ['int','cbw','cb']
 
 class addcb(NonVectorInstruction):
     """ Integer addition two single clear bit registers.
@@ -617,4 +628,4 @@ class cond_print_strb(base.IOInstruction):
     arg_format = ['cb', 'int']
 
     def __init__(self, cond, val):
-        super(cond_print_str, self).__init__(cond, self.str_to_int(val))
+        super(cond_print_strb, self).__init__(cond, self.str_to_int(val))

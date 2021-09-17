@@ -95,10 +95,13 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
   shared_prng.SeedGlobally(P, false);
 
   // only output on party 0 if not interactive
-  bool output = P.my_num() == 0 or machine.opts.interactive;
+  bool always_stdout = machine.opts.cmd_private_output_file == ".";
+  bool output = P.my_num() == 0 or machine.opts.interactive or always_stdout;
   out.activate(output);
   Procb.out.activate(output);
-  setup_redirection(P.my_num(), thread_num, opts);
+
+  if (not always_stdout)
+    setup_redirection(P.my_num(), thread_num, opts);
 
   if (stdout_redirect_file.is_open())
   {
@@ -236,7 +239,8 @@ void Processor<sint, sgf2n>::convcbit2s(const Instruction& instruction)
   for (int i = 0; i < DIV_CEIL(instruction.get_n(), unit); i++)
     Procb.S[instruction.get_r(0) + i] = sint::bit_type::constant(
         Procb.C[instruction.get_r(1) + i], P.my_num(),
-        share_thread.MC->get_alphai());
+        share_thread.MC->get_alphai(),
+        min(unsigned(unit), instruction.get_n() - i * unit));
 }
 
 template<class sint, class sgf2n>
@@ -262,8 +266,8 @@ void Processor<sint, sgf2n>::split(const Instruction& instruction)
 // If message_type is > 0, send message_type in bytes 0 - 3, to allow an external client to
 //  determine the data structure being sent in a message.
 template<class sint, class sgf2n>
-void Processor<sint, sgf2n>::write_socket(const RegType reg_type,
-                             int socket_id, int message_type, const vector<int>& registers)
+void Processor<sint, sgf2n>::write_socket(const RegType reg_type, int socket_id,
+    int message_type, const vector<int>& registers, int size)
 {
   int m = registers.size();
   socket_stream.reset_write_head();
@@ -273,28 +277,40 @@ void Processor<sint, sgf2n>::write_socket(const RegType reg_type,
     socket_stream.store(message_type);
   }
 
-  for (int i = 0; i < m; i++)
-  {
-    if (reg_type == SINT) {
-      // Send vector of secret shares
-      get_Sp_ref(registers[i]).pack(socket_stream,
-          sint::get_rec_factor(P.my_num(), P.num_players()));
+  for (int j = 0; j < size; j++)
+    {
+      for (int i = 0; i < m; i++)
+        {
+          if (reg_type == SINT)
+            {
+              // Send vector of secret shares
+              get_Sp_ref(registers[i] + j).pack(socket_stream,
+                  sint::get_rec_factor(P.my_num(), P.num_players()));
+            }
+          else if (reg_type == CINT)
+            {
+              // Send vector of clear public field elements
+              get_Cp_ref(registers[i] + j).pack(socket_stream);
+            }
+          else if (reg_type == INT)
+            {
+              // Send vector of 32-bit clear ints
+              socket_stream.store((int&) get_Ci_ref(registers[i] + j));
+            }
+          else
+            {
+              stringstream ss;
+              ss << "Write socket instruction with unknown reg type "
+                  << reg_type << "." << endl;
+              throw Processor_Error(ss.str());
+            }
+        }
     }
-    else if (reg_type == CINT) {
-      // Send vector of clear public field elements
-      get_Cp_ref(registers[i]).pack(socket_stream);
-    }
-    else if (reg_type == INT) {
-      // Send vector of 32-bit clear ints
-      socket_stream.store((int&)get_Ci_ref(registers[i]));
-    } 
-    else {
-      stringstream ss;
-      ss << "Write socket instruction with unknown reg type " << reg_type << 
-        "." << endl;
-      throw Processor_Error(ss.str());
-    }
-  }
+
+#ifdef VERBOSE_COMM
+  cerr << "send " << socket_stream.get_length() << " to client " << socket_id
+       << endl;
+#endif
 
   try {
     socket_stream.Send(external_clients.get_socket(socket_id));
@@ -308,44 +324,47 @@ void Processor<sint, sgf2n>::write_socket(const RegType reg_type,
 
 // Receive vector of 32-bit clear ints
 template<class sint, class sgf2n>
-void Processor<sint, sgf2n>::read_socket_ints(int client_id, const vector<int>& registers)
+void Processor<sint, sgf2n>::read_socket_ints(int client_id,
+    const vector<int>& registers, int size)
 {
   int m = registers.size();
   socket_stream.reset_write_head();
   socket_stream.Receive(external_clients.get_socket(client_id));
-  for (int i = 0; i < m; i++)
-  {
-    int val;
-    socket_stream.get(val);
-    write_Ci(registers[i], (long)val);
-  }
+  for (int j = 0; j < size; j++)
+    for (int i = 0; i < m; i++)
+      {
+        int val;
+        socket_stream.get(val);
+        write_Ci(registers[i] + j, (long) val);
+      }
 }
 
 // Receive vector of public field elements
 template<class sint, class sgf2n>
-void Processor<sint, sgf2n>::read_socket_vector(int client_id, const vector<int>& registers)
+void Processor<sint, sgf2n>::read_socket_vector(int client_id,
+    const vector<int>& registers, int size)
 {
   int m = registers.size();
   socket_stream.reset_write_head();
   socket_stream.Receive(external_clients.get_socket(client_id));
-  for (int i = 0; i < m; i++)
-  {
-    get_Cp_ref(registers[i]) = socket_stream.get<typename sint::open_type>();
-  }
+  for (int j = 0; j < size; j++)
+    for (int i = 0; i < m; i++)
+      get_Cp_ref(registers[i] + j) =
+          socket_stream.get<typename sint::open_type>();
 }
 
 // Receive vector of field element shares over private channel
 template<class sint, class sgf2n>
-void Processor<sint, sgf2n>::read_socket_private(int client_id, const vector<int>& registers, bool read_macs)
+void Processor<sint, sgf2n>::read_socket_private(int client_id,
+    const vector<int>& registers, int size, bool read_macs)
 {
   int m = registers.size();
   socket_stream.reset_write_head();
   socket_stream.Receive(external_clients.get_socket(client_id));
 
-  for (int i = 0; i < m; i++)
-  {
-    get_Sp_ref(registers[i]).unpack(socket_stream, read_macs);
-  }
+  for (int j = 0; j < size; j++)
+    for (int i = 0; i < m; i++)
+      get_Sp_ref(registers[i] + j).unpack(socket_stream, read_macs);
 }
 
 
@@ -382,11 +401,7 @@ void Processor<sint, sgf2n>::read_shares_from_file(int start_file_posn, int end_
 // Append share data in data_registers to end of file. Expects Persistence directory to exist.
 template<class sint, class sgf2n>
 void Processor<sint, sgf2n>::write_shares_to_file(const vector<int>& data_registers) {
-  string dir = "Persistence";
-  mkdir_p(dir.c_str());
-
-  string filename;
-  filename = dir + "/Transactions-P" + to_string(P.my_num()) + ".data";
+  string filename = binary_file_io.filename(P.my_num());
 
   unsigned int size = data_registers.size();
 

@@ -2,7 +2,6 @@ from Compiler import ml
 
 debug = False
 
-program.use_edabit(True)
 program.options_from_args()
 
 sfix.set_precision(16, 31)
@@ -12,30 +11,39 @@ dim = int(program.args[1])
 batch = int(program.args[2])
 
 try:
-   ml.set_n_threads(int(program.args[3]))
+   n_iterations = int(program.args[3])
+except:
+   n_iterations = 1
+
+try:
+   ml.set_n_threads(int(program.args[4]))
 except:
    ml.set_n_threads(None)
 
-X_normal = sfix.Matrix(6400, dim)
-X_pos = sfix.Matrix(6400, dim)
+N = batch * n_iterations
 
-dense = ml.Dense(12800, dim, 1)
-layers = [dense, ml.Output(12800, debug=debug, approx='approx' in program.args)]
+print('run 1 epoch of logistic regression with %d examples' % (N))
 
-sgd = ml.SGD(layers, batch // 128 * 10 , debug=debug, report_loss=False)
+dense = ml.Dense(N, dim, 1)
+sigmoid = ml.Output(N, debug=debug, approx='approx' in program.args)
+
+for x in dense.X, sigmoid.Y:
+   x.assign_all(0)
+
+sgd = ml.SGD([dense, sigmoid], 1, debug=debug, report_loss=False)
+sgd.reset()
 
 if not ('forward' in program.args or 'backward' in program.args):
-   sgd.reset([X_normal, X_pos])
    sgd.run(batch_size=batch)
 
 if 'forward' in program.args:
-   @for_range(1000)
+   @for_range(n_iterations)
    def _(i):
       sgd.forward(N=batch)
 
 if 'backward' in program.args:
    b = regint.Array(batch)
    b.assign(regint.inc(batch))
-   @for_range(1000)
+   @for_range(n_iterations)
    def _(i):
       sgd.backward(batch=b)

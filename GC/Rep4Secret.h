@@ -30,7 +30,7 @@ public:
     static MC* new_mc(typename super::mac_key_type) { return new MC; }
 
     static This constant(const typename super::clear& constant, int my_num,
-            typename super::mac_key_type = {})
+            typename super::mac_key_type = {}, int = -1)
     {
         return Rep4Share<typename super::clear>::constant(constant, my_num);
     }

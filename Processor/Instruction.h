@@ -67,6 +67,7 @@ enum
     THRESHOLD = 0xE3,
     PLAYERID = 0xE4,
     USE_EDABIT = 0xE5,
+    USE_MATMUL = 0x1F,
     // Addition
     ADDC = 0x20,
     ADDS = 0x21,

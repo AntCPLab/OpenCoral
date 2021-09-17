@@ -562,7 +562,7 @@ def SDiv(a, b, l, kappa, round_nearest=False):
     y = a * w
     y = y.round(2 * l + 1, l, kappa, round_nearest, signed=False)
     x2 = types.sint()
-    comparison.Mod2m(x2, x, 2 * l + 1, l, kappa, False)
+    comparison.Mod2m(x2, x, 2 * l + 1, l, kappa, True)
     x1 = comparison.TruncZeros(x - x2, 2 * l + 1, l, True)
     for i in range(theta-1):
         y = y * (x1 + two_power(l)) + (y * x2).round(2 * l, l, kappa,
@@ -642,7 +642,7 @@ def BitDecFull(a, maybe_mixed=False):
             b, bbits = sint.get_edabit(logp, True, size=a.size)
             if logp != bit_length:
                 from .GC.types import sbits
-                bbits += [sbits.get_type(a.size)(0)]
+                bbits += [0]
         else:
             bbits = [sint.get_random_bit(size=a.size) for i in range(logp)]
             b = sint.bit_compose(bbits)

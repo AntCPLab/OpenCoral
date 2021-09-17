@@ -68,11 +68,10 @@ template<class T>
 void run(char** argv, int prime_length)
 {
     // set up networking on localhost
-    Names N;
     int my_number = atoi(argv[1]);
     int n_parties = atoi(argv[2]);
     int port_base = 9999;
-    Server::start_networking(N, my_number, n_parties, "localhost", port_base);
+    Names N(my_number, n_parties, "localhost", port_base);
     CryptoPlayer P(N);
 
     // initialize fields

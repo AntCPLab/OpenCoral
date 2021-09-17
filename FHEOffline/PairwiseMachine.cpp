@@ -17,7 +17,7 @@ PairwiseMachine::PairwiseMachine(Player& P) :
 }
 
 PairwiseMachine::PairwiseMachine(int argc, const char** argv) :
-    MachineBase(argc, argv), P(*new PlainPlayer(N, 0xffff << 16)),
+    MachineBase(argc, argv), P(*new PlainPlayer(N, "pairwise")),
     other_pks(N.num_players(), {setup_p.params, 0}),
     pk(other_pks[N.my_num()]), sk(pk)
 {

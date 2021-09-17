@@ -23,6 +23,8 @@ enum ThreadJobType
     TRIPLE_SACRIFICE_JOB,
     CHECK_JOB,
     FFT_JOB,
+    CIPHER_PLAIN_MULT_JOB,
+    MATRX_RAND_MULT_JOB,
     NO_JOB
 };
 

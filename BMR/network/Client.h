@@ -28,6 +28,8 @@ public:
 
 
 
+namespace BIU
+{
 
 class Client {
 public:
@@ -60,5 +62,7 @@ private:
 
 	boost::thread_group threads;
 };
+
+}
 
 #endif /* NETWORK_INC_CLIENT_H_ */

@@ -171,8 +171,8 @@ class ReplicatedSecret : public RepSecretBase<U, 2>
 public:
     typedef ReplicatedBase Protocol;
 
-    static ReplicatedSecret constant(const typename super::clear& value, int my_num,
-            typename super::mac_key_type)
+    static ReplicatedSecret constant(const typename super::clear& value,
+        int my_num, typename super::mac_key_type, int = -1)
     {
       ReplicatedSecret res;
       if (my_num < 2)

@@ -20,7 +20,7 @@ YaoEvaluator::YaoEvaluator(int thread_num, YaoEvalMaster& master) :
 		Thread<GC::Secret<YaoEvalWire>>(thread_num, master),
 		YaoCommon<YaoEvalWire>(master),
 		master(master),
-		player(N, 0, thread_num << 24),
+		player(N, 0, "thread" + to_string(thread_num)),
 		ot_ext(OTExtensionWithMatrix::setup(player, {}, RECEIVER, true))
 {
 	set_n_program_threads(master.machine.nthreads);

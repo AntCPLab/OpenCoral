@@ -23,7 +23,6 @@ class OfflineMachineBase : virtual public OfflineParams
 {
 protected:
     ez::ezOptionParser opt;
-    Server* server;
 
 public:
     Names N;

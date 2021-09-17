@@ -35,6 +35,8 @@ public:
     static const bool has_trunc_pr = false;
     static const bool has_split = false;
 
+    static const false_type triple_matmul;
+
     static const int default_length = 1;
 
     static string type_short() { return "undef"; }

@@ -56,6 +56,11 @@ octetStream::octetStream(size_t len, const octet* source) :
   append(source, len);
 }
 
+octetStream::octetStream(const string& other) :
+    octetStream(other.size(), (const octet*)other.data())
+{
+}
+
 octetStream::octetStream(const octetStream& os)
 {
   mxlen=os.mxlen;
@@ -72,6 +77,12 @@ octetStream::octetStream(FlexBuffer& buffer)
   data = (octet*)buffer.data();
   ptr = buffer.ptr - buffer.data();
   buffer.reset();
+}
+
+
+string octetStream::str() const
+{
+  return string((char*) get_data(), get_length());
 }
 
 

@@ -18,7 +18,8 @@ Compiler.types module
 		     reg_type, int_type, clear_type, float_type, basic_type,
 		     default_type, unreduced_type, bit_type, dynamic_array,
 		     squant, mov,
-		     write_share_to_socket, add, mul, sintbit, from_sint
+		     write_share_to_socket, add, mul, sintbit, from_sint,
+		     SubMultiArray
 .. autoclass:: sintbit
 
 Compiler.GC.types module

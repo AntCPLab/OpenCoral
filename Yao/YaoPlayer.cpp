@@ -71,7 +71,6 @@ YaoPlayer::YaoPlayer(int argc, const char** argv)
 	}
 	else
 	{
-		throw exception();
 		string usage;
 		opt.getUsage(usage);
 		cerr << usage;
@@ -94,7 +93,7 @@ YaoPlayer::YaoPlayer(int argc, const char** argv)
 	else
 	    master = new YaoEvalMaster(continuous, online_opts);
 
-	server = Server::start_networking(master->N, my_num, 2, hostname, pnb);
+	Server::start_networking(master->N, my_num, 2, hostname, pnb);
 	master->run(progname);
 
 	if (my_num == 1)
@@ -105,6 +104,4 @@ YaoPlayer::YaoPlayer(int argc, const char** argv)
 
 YaoPlayer::~YaoPlayer()
 {
-	if (server)
-		delete server;
 }

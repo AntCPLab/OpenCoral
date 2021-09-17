@@ -92,9 +92,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case DIVINT:
       case CONDPRINTPLAIN:
       case INPUTMASKREG:
-        r[0]=get_int(s);
-        r[1]=get_int(s);
-        r[2]=get_int(s);
+        get_ints(r, s, 3);
         break;
       // instructions with 2 register operands
       case LDMCI:
@@ -130,8 +128,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case DABIT:
       case SHUFFLE:
       case ACCEPTCLIENTCONNECTION:
-        r[0]=get_int(s);
-        r[1]=get_int(s);
+        get_ints(r, s, 2);
         break;
       // instructions with 1 register operand
       case BIT:
@@ -157,6 +154,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case PLAYERID:
       case LISTEN:
       case CLOSECLIENTCONNECTION:
+      case CRASH:
         r[0]=get_int(s);
         break;
       // instructions with 2 registers + 1 integer operand
@@ -205,8 +203,11 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case STOPPRIVATEOUTPUT:
       case GSTOPPRIVATEOUTPUT:
       case DIGESTC:
-        r[0]=get_int(s);
-        r[1]=get_int(s);
+        get_ints(r, s, 2);
+        n = get_int(s);
+        break;
+      case USE_MATMUL:
+        get_ints(r, s, 3);
         n = get_int(s);
         break;
       // instructions with 1 register + 1 integer operand
@@ -254,7 +255,6 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
         break;
       // instructions with no operand
       case TIME:
-      case CRASH:
       case STARTGRIND:
       case STOPGRIND:
       case CHECK:
@@ -320,8 +320,9 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case READSOCKETC:
       case READSOCKETS:
       case READSOCKETINT:
-        num_var_args = get_int(s) - 1;
+        num_var_args = get_int(s) - 2;
         r[0] = get_int(s);
+        n = get_int(s);
         get_vector(num_var_args, start, s);
         break;
 
@@ -329,9 +330,10 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case WRITESOCKETC:
       case WRITESOCKETSHARE:
       case WRITESOCKETINT:
-        num_var_args = get_int(s) - 2;
+        num_var_args = get_int(s) - 3;
         r[0] = get_int(s);
         r[1] = get_int(s);
+        n = get_int(s);
         get_vector(num_var_args, start, s);
         break;
       case WRITESOCKETS:
@@ -383,9 +385,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
         // subtract extra argument
         num_var_args = get_int(s) - 1;
         s.read((char*)r, sizeof(r));
-        start.resize(num_var_args);
-        for (int i = 0; i < num_var_args; i++)
-        { start[i] = get_int(s); }
+        get_vector(num_var_args, start, s);
         break;
       case USE_PREP:
       case GUSE_PREP:
@@ -431,6 +431,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case CONVCBITVEC:
       case CONVCBIT2S:
       case NOTS:
+      case NOTCB:
         n = get_int(s);
         get_ints(r, s, 2);
         break;
@@ -497,6 +498,9 @@ bool Instruction::get_offline_data_usage(DataPositions& usage)
     case USE_EDABIT:
       usage.edabits[{r[0], r[1]}] = n;
       return int(n) >= 0;
+    case USE_MATMUL:
+      usage.matmuls[{{r[0], r[1], r[2]}}] = n;
+      return int(n) >= 0;
     case USE_PREP:
       usage.extended[DATA_INT][r] = n;
       return int(n) >= 0;
@@ -552,6 +556,7 @@ int BaseInstruction::get_reg_type() const
     case USE_PREP:
     case GUSE_PREP:
     case USE_EDABIT:
+    case USE_MATMUL:
     case RUN_TAPE:
     case CISC:
       // those use r[] not for registers
@@ -709,6 +714,7 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
   }
   case ANDM:
   case NOTS:
+  case NOTCB:
       size = DIV_CEIL(n, 64);
       break;
   case CONVCBIT2S:
@@ -734,6 +740,14 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
       size_offset = -2;
       offset = 2;
       skip = 4;
+      break;
+  case READSOCKETS:
+  case READSOCKETC:
+  case READSOCKETINT:
+  case WRITESOCKETSHARE:
+  case WRITESOCKETC:
+  case WRITESOCKETINT:
+      size = n;
       break;
   }
 
@@ -1016,11 +1030,11 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.Procp.matmuls(Proc.Procp.get_S(), *this, r[1], r[2]);
         return;
       case MATMULSM:
-        Proc.Procp.matmulsm(Proc.machine.Mp.MS, *this, Proc.read_Ci(r[1]),
-            Proc.read_Ci(r[2]));
+        Proc.Procp.protocol.matmulsm(Proc.Procp, Proc.machine.Mp.MS, *this,
+            Proc.read_Ci(r[1]), Proc.read_Ci(r[2]));
         return;
       case CONV2DS:
-        Proc.Procp.conv2ds(*this);
+        Proc.Procp.protocol.conv2ds(Proc.Procp, *this);
         return;
       case TRUNC_PR:
         Proc.Procp.protocol.trunc_pr(start, size, Proc.Procp);
@@ -1096,6 +1110,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       case USE:
       case USE_INP:
       case USE_EDABIT:
+      case USE_MATMUL:
       case USE_PREP:
       case GUSE_PREP:
         break;
@@ -1117,7 +1132,8 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.machine.join_tape(r[0]);
         break;
       case CRASH:
-        throw crash_requested();
+        if (Proc.read_Ci(r[0]))
+          throw crash_requested();
         break;
       case STARTGRIND:
         CALLGRIND_START_INSTRUMENTATION;
@@ -1160,25 +1176,25 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.external_clients.close_connection(Proc.read_Ci(r[0]));
         break;
       case READSOCKETINT:
-        Proc.read_socket_ints(Proc.read_Ci(r[0]), start);
+        Proc.read_socket_ints(Proc.read_Ci(r[0]), start, n);
         break;
       case READSOCKETC:
-        Proc.read_socket_vector(Proc.read_Ci(r[0]), start);
+        Proc.read_socket_vector(Proc.read_Ci(r[0]), start, n);
         break;
       case READSOCKETS:
         // read shares and MAC shares
-        Proc.read_socket_private(Proc.read_Ci(r[0]), start, true);
+        Proc.read_socket_private(Proc.read_Ci(r[0]), start, n, true);
         break;
       case WRITESOCKETINT:
-        Proc.write_socket(INT, Proc.read_Ci(r[0]), r[1], start);
+        Proc.write_socket(INT, Proc.read_Ci(r[0]), r[1], start, n);
         break;
       case WRITESOCKETC:
-        Proc.write_socket(CINT, Proc.read_Ci(r[0]), r[1], start);
+        Proc.write_socket(CINT, Proc.read_Ci(r[0]), r[1], start, n);
         break;
       case WRITESOCKETSHARE:
         // Send only shares, no MACs
         // N.B. doesn't make sense to have a corresponding read instruction for this
-        Proc.write_socket(SINT, Proc.read_Ci(r[0]), r[1], start);
+        Proc.write_socket(SINT, Proc.read_Ci(r[0]), r[1], start, n);
         break;
       case WRITEFILESHARE:
         // Write shares to file system

@@ -7,12 +7,14 @@
 #include "BaseMachine.h"
 #include "Math/gfp.h"
 #include "Math/gfpvar.h"
+#include "Protocols/HemiOptions.h"
 
 #include "Math/gfp.hpp"
 
 using namespace std;
 
 OnlineOptions OnlineOptions::singleton;
+HemiOptions HemiOptions::singleton;
 
 OnlineOptions::OnlineOptions() : playerno(-1)
 {
@@ -26,6 +28,11 @@ OnlineOptions::OnlineOptions() : playerno(-1)
     bucket_size = 4;
     cmd_private_input_file = "Player-Data/Input";
     cmd_private_output_file = "";
+#ifdef VERBOSE
+    verbose = true;
+#else
+    verbose = false;
+#endif
 }
 
 OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
@@ -65,7 +72,8 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
           "Prefix for output file path "
           "(default: output to stdout for party 0 (silent otherwise "
           "unless interactive mode is active). "
-          "Output will be written to {prefix}-P{id}-{thread_id}.", // Help description.
+          "Output will be written to {prefix}-P{id}-{thread_id}. "
+          "Use '.' for stdout on all parties.", // Help description.
           "-OF", // Flag token.
           "--output-file" // Flag token.
     );
@@ -171,6 +179,15 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
             "-B", // Flag token.
             "--bucket-size" // Flag token.
     );
+    opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Verbose output", // Help description.
+            "-v", // Flag token.
+            "--verbose" // Flag token.
+    );
 
     opt.parse(argc, argv);
 
@@ -197,6 +214,10 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
     direct = opt.isSet("--direct");
 
     opt.get("--bucket-size")->getInt(bucket_size);
+
+#ifndef VERBOSE
+    verbose = opt.isSet("--verbose");
+#endif
 
     opt.resetArgs();
 }

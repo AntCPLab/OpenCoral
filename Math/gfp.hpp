@@ -166,7 +166,8 @@ void gfp_<X, L>::reqbl(int n)
     }
   else if ((int)n < 0)
     {
-      throw Processor_Error("Program compiled for rings not fields");
+      throw Processor_Error("Program compiled for rings not fields, "
+              "run compile.py without -R");
     }
 }
 

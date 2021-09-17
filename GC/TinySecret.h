@@ -70,11 +70,14 @@ public:
         T::reveal_inst(processor, args);
     }
 
-    static This constant(BitVec other, int my_num, mac_key_type alphai)
+    static This constant(BitVec other, int my_num, mac_key_type alphai,
+            int n_bits = -1)
     {
+        if (n_bits < 0)
+            n_bits = other.length();
         This res;
-        res.resize_regs(other.length());
-        for (int i = 0; i < other.length(); i++)
+        res.resize_regs(n_bits);
+        for (int i = 0; i < n_bits; i++)
             res.get_reg(i) = part_type::constant(other.get_bit(i), my_num, alphai);
         return res;
     }

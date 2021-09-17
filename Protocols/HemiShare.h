@@ -9,6 +9,7 @@
 #include "SemiShare.h"
 
 template<class T> class HemiPrep;
+template<class T> class Hemi;
 
 template<class T>
 class HemiShare : public SemiShare<T>
@@ -21,10 +22,11 @@ public:
     typedef DirectSemiMC<This> Direct_MC;
     typedef SemiInput<This> Input;
     typedef ::PrivateOutput<This> PrivateOutput;
-    typedef SPDZ<This> Protocol;
+    typedef typename conditional<T::prime_field, Hemi<This>, Beaver<This>>::type Protocol;
     typedef HemiPrep<This> LivePrep;
 
     static const bool needs_ot = false;
+    static true_type triple_matmul;
 
     HemiShare()
     {
@@ -36,5 +38,8 @@ public:
     }
 
 };
+
+template<class T>
+true_type HemiShare<T>::triple_matmul;
 
 #endif /* PROTOCOLS_HEMISHARE_H_ */

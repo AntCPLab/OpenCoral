@@ -39,111 +39,33 @@
 #include "Protocols/fake-stuff.h"
 
 #include "Math/gfp.hpp"
+#include "Client.hpp"
 
 #include <sodium.h>
 #include <iostream>
 #include <sstream>
 #include <fstream>
 
-// Send the private inputs masked with a random value.
-// Receive shares of a preprocessed triple from each SPDZ engine, combine and check the triples are valid.
-// Add the private input value to triple[0] and send to each spdz engine.
 template<class T>
-void send_private_inputs(const vector<T>& values, vector<ssl_socket*>& sockets, int nparties)
-{
-    int num_inputs = values.size();
-    octetStream os;
-    vector< vector<T> > triples(num_inputs, vector<T>(3));
-    vector<T> triple_shares(3);
-
-    // Receive num_inputs triples from SPDZ
-    for (int j = 0; j < nparties; j++)
-    {
-        os.reset_write_head();
-        os.Receive(sockets[j]);
-
-#ifdef VERBOSE_COMM
-        cerr << "received " << os.get_length() << " from " << j << endl;
-#endif
-
-        for (int j = 0; j < num_inputs; j++)
-        {
-            for (int k = 0; k < 3; k++)
-            {
-                triple_shares[k].unpack(os);
-                triples[j][k] += triple_shares[k];
-            }
-        }
-    }
-
-    // Check triple relations (is a party cheating?)
-    for (int i = 0; i < num_inputs; i++)
-    {
-        if (T(triples[i][0] * triples[i][1]) != triples[i][2])
-        {
-            cerr << triples[i][2] << " != " << triples[i][0] << " * " << triples[i][1] << endl;
-            cerr << "Incorrect triple at " << i << ", aborting\n";
-            throw mac_fail();
-        }
-    }
-    // Send inputs + triple[0], so SPDZ can compute shares of each value
-    os.reset_write_head();
-    for (int i = 0; i < num_inputs; i++)
-    {
-        T y = values[i] + triples[i][0];
-        y.pack(os);
-    }
-    for (int j = 0; j < nparties; j++)
-        os.Send(sockets[j]);
-}
-
-// Receive shares of the result and sum together.
-// Also receive authenticating values.
-template<class T>
-T receive_result(vector<ssl_socket*>& sockets, int nparties)
-{
-    vector<T> output_values(3);
-    octetStream os;
-    for (int i = 0; i < nparties; i++)
-    {
-        os.reset_write_head();
-        os.Receive(sockets[i]);
-        for (unsigned int j = 0; j < 3; j++)
-        {
-            T value;
-            value.unpack(os);
-            output_values[j] += value;            
-        }
-    }
-
-    if (T(output_values[0] * output_values[1]) != output_values[2])
-    {
-        cerr << "Unable to authenticate output value as correct, aborting." << endl;
-        throw mac_fail();
-    }
-    return output_values[0];
-}
-
-template<class T>
-void one_run(T salary_value, vector<ssl_socket*>& sockets, int nparties)
+void one_run(T salary_value, Client& client)
 {
     // Run the computation
-    send_private_inputs<T>({salary_value}, sockets, nparties);
+    client.send_private_inputs<T>({salary_value});
     cout << "Sent private inputs to each SPDZ engine, waiting for result..." << endl;
 
     // Get the result back (client_id of winning client)
-    T result = receive_result<T>(sockets, nparties);
+    T result = client.receive_outputs<T>(1)[0];
 
     cout << "Winning client id is : " << result << endl;
 }
 
 template<class T>
-void run(double salary_value, vector<ssl_socket*>& sockets, int nparties)
+void run(double salary_value, Client& client)
 {
     // sint
-    one_run<T>(long(round(salary_value)), sockets, nparties);
+    one_run<T>(long(round(salary_value)), client);
     // sfix with f = 16
-    one_run<T>(long(round(salary_value * exp2(16))), sockets, nparties);
+    one_run<T>(long(round(salary_value * exp2(16))), client);
 }
 
 int main(int argc, char** argv)
@@ -165,7 +87,7 @@ int main(int argc, char** argv)
     nparties = atoi(argv[2]);
     salary_value = atof(argv[3]);
     finish = atoi(argv[4]);
-    vector<const char*> hostnames(nparties, "localhost");
+    vector<string> hostnames(nparties, "localhost");
 
     if (argc > 5)
     {
@@ -185,19 +107,11 @@ int main(int argc, char** argv)
     bigint::init_thread();
 
     // Setup connections from this client to each party socket
-    vector<int> plain_sockets(nparties);
-    vector<ssl_socket*> sockets(nparties);
-    ssl_ctx ctx("C" + to_string(my_client_id));
-    ssl_service io_service;
-    octetStream specification;
+    Client client(hostnames, port_base, my_client_id);
+    auto& specification = client.specification;
+    auto& sockets = client.sockets;
     for (int i = 0; i < nparties; i++)
     {
-        set_up_client_socket(plain_sockets[i], hostnames[i], port_base + i);
-        send(plain_sockets[i], (octet*) &my_client_id, sizeof(int));
-        sockets[i] = new ssl_socket(io_service, ctx, plain_sockets[i],
-                "P" + to_string(i), "C" + to_string(my_client_id), true);
-        if (i == 0)
-            specification.Receive(sockets[0]);
         octetStream os;
         os.store(finish);
         os.Send(sockets[i]);
@@ -211,7 +125,7 @@ int main(int argc, char** argv)
     {
         gfp::init_field(specification.get<bigint>());
         cerr << "using prime " << gfp::pr() << endl;
-        run<gfp>(salary_value, sockets, nparties);
+        run<gfp>(salary_value, client);
         break;
     }
     case 'R':
@@ -220,13 +134,13 @@ int main(int argc, char** argv)
         switch (R)
         {
         case 64:
-            run<Z2<64>>(salary_value, sockets, nparties);
+            run<Z2<64>>(salary_value, client);
             break;
         case 104:
-            run<Z2<104>>(salary_value, sockets, nparties);
+            run<Z2<104>>(salary_value, client);
             break;
         case 128:
-            run<Z2<128>>(salary_value, sockets, nparties);
+            run<Z2<128>>(salary_value, client);
             break;
         default:
             cerr << R << "-bit ring not implemented";
@@ -238,9 +152,6 @@ int main(int argc, char** argv)
         cerr << "Type " << type << " not implemented";
         exit(1);
     }
-
-    for (int i = 0; i < nparties; i++)
-        delete sockets[i];
 
     return 0;
 }

@@ -258,6 +258,19 @@ void Processor<T>::nots(const ::BaseInstruction& instruction)
 }
 
 template<class T>
+void Processor<T>::notcb(const ::BaseInstruction& instruction)
+{
+    int total = instruction.get_n();
+    int unit = Clear::N_BITS;
+    for (int i = 0; i < DIV_CEIL(total, unit); i++)
+    {
+        int n = min(unit, total - i * unit);
+        C[instruction.get_r(0) + i] =
+                Clear(~C[instruction.get_r(1) + i].get()).mask(n);
+    }
+}
+
+template<class T>
 void Processor<T>::andm(const ::BaseInstruction& instruction)
 {
     for (int i = 0; i < DIV_CEIL(instruction.get_n(), T::default_length); i++)

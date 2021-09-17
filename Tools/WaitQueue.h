@@ -80,7 +80,7 @@ public:
     T pop()
     {
         T res;
-        pop(res);
+        assert(pop(res));
         return res;
     }
 

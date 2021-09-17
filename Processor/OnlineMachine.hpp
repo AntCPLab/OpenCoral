@@ -28,7 +28,7 @@ template<class V>
 OnlineMachine::OnlineMachine(int argc, const char** argv, ez::ezOptionParser& opt,
         OnlineOptions& online_opts, int nplayers, V) :
         argc(argc), argv(argv), online_opts(online_opts), lg2(0),
-        opening_sum(0), max_broadcast(0), server(0),
+        opening_sum(0), max_broadcast(0),
         use_encryption(false), receive_threads(false),
         opt(opt), nplayers(nplayers)
 {
@@ -192,7 +192,6 @@ void OnlineMachine::start_networking()
     int mynum = online_opts.playerno;
     int playerno = online_opts.playerno;
 
-    server = 0;
     if (ipFileName.size() > 0) {
       if (my_port != Names::DEFAULT_PORT)
         throw runtime_error("cannot set port number when using IP file");
@@ -204,7 +203,7 @@ void OnlineMachine::start_networking()
       {
         if (nplayers == 0)
           opt.get("-N")->getInt(nplayers);
-        server = Server::start_networking(playerNames, mynum, nplayers,
+        Server::start_networking(playerNames, mynum, nplayers,
             hostname, pnbase, my_port);
       }
       else
@@ -216,7 +215,7 @@ void OnlineMachine::start_networking()
 }
 
 inline
-Player* OnlineMachine::new_player(int id_base)
+Player* OnlineMachine::new_player(const string& id_base)
 {
     if (use_encryption)
         return new CryptoPlayer(playerNames, id_base);
@@ -238,15 +237,13 @@ int OnlineMachine::run()
                 use_encryption, online_opts.live_prep,
                 online_opts).run();
 
-        if (server)
-          delete server;
-
-#ifdef VERBOSE
-        cerr << "Command line:";
-        for (int i = 0; i < argc; i++)
-            cerr << " " << argv[i];
-        cerr << endl;
-#endif
+        if (online_opts.verbose)
+          {
+            cerr << "Command line:";
+            for (int i = 0; i < argc; i++)
+              cerr << " " << argv[i];
+            cerr << endl;
+          }
     }
 #ifndef INSECURE
     catch(...)

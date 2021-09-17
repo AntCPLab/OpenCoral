@@ -58,6 +58,7 @@ public:
   vector< array<long long, N_DATA_FIELD_TYPE> > inputs;
   array<map<DataTag, long long>, N_DATA_FIELD_TYPE> extended;
   map<pair<bool, int>, long long> edabits;
+  map<array<int, 3>, long long> matmuls;
 
   DataPositions(int num_players = 0);
   DataPositions(const Player& P) : DataPositions(P.num_players()) {}
@@ -126,7 +127,7 @@ public:
   virtual void prune() {}
   virtual void purge() {}
 
-  virtual size_t data_sent() { return 0; }
+  virtual size_t data_sent() { return comm_stats().sent; }
   virtual NamedCommStats comm_stats() { return {}; }
 
   virtual void get_three_no_count(Dtype dtype, T& a, T& b, T& c) = 0;
@@ -288,7 +289,7 @@ class Data_Files
 
   void reset_usage() { usage.reset(); skipped.reset(); }
 
-  size_t data_sent() { return DataFp.data_sent() + DataF2.data_sent(); }
+  NamedCommStats comm_stats() { return DataFp.comm_stats() + DataF2.comm_stats(); }
 };
 
 template<class T> inline

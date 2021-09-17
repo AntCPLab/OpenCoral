@@ -99,7 +99,7 @@ typename ChaiGearPrep<T>::Generator& ChaiGearPrep<T>::get_generator()
     lock.lock();
     if (machine == 0 or machine->setup.part<FD>().alphai == 0)
     {
-        PlainPlayer P(proc->P.N, T::clear::type_char());
+        PlainPlayer P(proc->P.N, "ChaiGear" + T::type_string());
         if (machine == 0)
             basic_setup(P);
         key_setup(P, proc->MC.get_alphai());

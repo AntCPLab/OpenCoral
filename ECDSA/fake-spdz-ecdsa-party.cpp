@@ -35,7 +35,7 @@ int main(int argc, const char** argv)
     int n_tuples = 1000;
     if (not opt.lastArgs.empty())
         n_tuples = atoi(opt.lastArgs[0]->c_str());
-    PlainPlayer P(N);
+    PlainPlayer P(N, "ecdsa");
     P256Element::init();
 
     P256Element::Scalar keyp;

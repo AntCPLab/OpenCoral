@@ -133,7 +133,7 @@ inline void Zp_Data::Add<1>(mp_limb_t* ans,const mp_limb_t* x,const mp_limb_t* y
 #else
   *ans = *x + *y;
   asm goto ("jc %l[sub]" :::: sub);
-  if (*ans >= *prA)
+  if (mpn_cmp(ans, prA, 1) >= 0)
  sub:
       *ans -= *prA;
 #endif
@@ -251,13 +251,17 @@ inline void Zp_Data::Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* 
     break;
   CASE(1)
   CASE(2)
-#if MAX_MOD_SZ >= 5
+#if MAX_MOD_SZ >= 4
   CASE(3)
   CASE(4)
+#endif
+#if MAX_MOD_SZ >= 5
   CASE(5)
 #endif
-#if MAX_MOD_SZ >= 10
+#if MAX_MOD_SZ >= 6
   CASE(6)
+#endif
+#if MAX_MOD_SZ >= 10
   CASE(7)
   CASE(8)
   CASE(9)

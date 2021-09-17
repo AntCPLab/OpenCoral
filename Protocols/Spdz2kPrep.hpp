@@ -238,11 +238,11 @@ void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
 }
 
 template<class T>
-size_t Spdz2kPrep<T>::data_sent()
+NamedCommStats Spdz2kPrep<T>::comm_stats()
 {
-    size_t res = OTPrep<T>::data_sent();
+    auto res = OTPrep<T>::comm_stats();
     if (bit_prep)
-        res += bit_prep->data_sent();
+        res += bit_prep->comm_stats();
     return res;
 }
 

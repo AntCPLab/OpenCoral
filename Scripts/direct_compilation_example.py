@@ -16,3 +16,6 @@ from Compiler.types import sint
 print_ln('%s', (sint(0) < sint(1)).reveal())
 
 prog.finalize()
+
+import subprocess
+subprocess.run(['./emulate.x', 'direct_compilation'])

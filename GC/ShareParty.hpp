@@ -102,16 +102,16 @@ ShareParty<T>::ShareParty(int argc, const char** argv, ez::ezOptionParser& opt,
     if (not this->machine.use_encryption and not T::dishonest_majority)
         insecure("unencrypted communication");
 
-    Server* server = network_opts.start_networking(this->N, my_num);
+    network_opts.start_networking(this->N, my_num);
 
     if (online_opts.live_prep)
         if (T::needs_ot)
         {
             Player* P;
             if (this->machine.use_encryption)
-                P = new CryptoPlayer(this->N, 0xFFFF);
+                P = new CryptoPlayer(this->N, "shareparty");
             else
-                P = new PlainPlayer(this->N, 0xFFFF);
+                P = new PlainPlayer(this->N, "shareparty");
             for (int i = 0; i < this->machine.nthreads; i++)
                 this->machine.ot_setups.push_back({*P, true});
             delete P;
@@ -133,9 +133,6 @@ ShareParty<T>::ShareParty(int argc, const char** argv, ez::ezOptionParser& opt,
     this->run();
 
     this->machine.write_memory(this->N.my_num());
-
-    if (server)
-        delete server;
 }
 
 template<class T>

@@ -28,6 +28,7 @@ public:
     int bucket_size;
     std::string cmd_private_input_file;
     std::string cmd_private_output_file;
+    bool verbose;
 
     OnlineOptions();
     OnlineOptions(ez::ezOptionParser& opt, int argc, const char** argv,

@@ -7,6 +7,7 @@
 #include <Networking/sockets.h>
 #include "Tools/Exceptions.h"
 #include "Tools/time-func.h"
+#include "Tools/octetStream.h"
 
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
@@ -53,7 +54,10 @@ ServerSocket::ServerSocket(int Portnum) : portnum(Portnum), thread(0)
   while (fl!=0 and timer.elapsed() < 600)
     { fl=::bind(main_socket, (struct sockaddr *)&serv, sizeof(struct sockaddr));
       if (fl != 0)
-        { cerr << "Binding to socket on " << my_name << ":" << Portnum << " failed, trying again in a second ..." << endl;
+        {
+          cerr << "Binding to socket on " << my_name << ":" << Portnum
+              << " failed (" << strerror(errno)
+              << "), trying again in a second ..." << endl;
           sleep(1);
         }
 #ifdef DEBUG_NETWORKING
@@ -109,11 +113,11 @@ ServerSocket::~ServerSocket()
 void ServerSocket::wait_for_client_id(int socket, struct sockaddr dest)
 {
   (void) dest;
-  int client_id;
   try
     {
-      receive(socket, (unsigned char*) &client_id, sizeof(client_id));
-      process_connection(socket, client_id);
+      octetStream client_id;
+      client_id.Receive(socket);
+      process_connection(socket, client_id.str());
     }
   catch (closed_connection&)
     {
@@ -138,9 +142,13 @@ void ServerSocket::accept_clients()
       int consocket = accept(main_socket, (struct sockaddr *)&dest, (socklen_t*) &socksize);
       if (consocket<0) { error("set_up_socket:accept"); }
 
-      int client_id;
-      if (receive_all_or_nothing(consocket, (unsigned char*)&client_id, sizeof(client_id)))
-        process_connection(consocket, client_id);
+      octetStream client_id;
+      char buf[1];
+      if (recv(consocket, buf, 1, MSG_PEEK | MSG_DONTWAIT) > 0)
+        {
+          client_id.Receive(consocket);
+          process_connection(consocket, client_id.str());
+        }
       else
         {
 #ifdef DEBUG_NETWORKING
@@ -162,7 +170,7 @@ void ServerSocket::accept_clients()
     }
 }
 
-void ServerSocket::process_connection(int consocket, int client_id)
+void ServerSocket::process_connection(int consocket, const string& client_id)
 {
   data_signal.lock();
 #ifdef DEBUG_NETWORKING
@@ -175,7 +183,7 @@ void ServerSocket::process_connection(int consocket, int client_id)
   data_signal.unlock();
 }
 
-int ServerSocket::get_connection_socket(int id)
+int ServerSocket::get_connection_socket(const string& id)
 {
   data_signal.lock();
   if (used.find(id) != used.end())
@@ -208,14 +216,14 @@ void AnonymousServerSocket::init()
   pthread_create(&thread, 0, anonymous_accept_thread, this);
 }
 
-void AnonymousServerSocket::process_client(int client_id)
+void AnonymousServerSocket::process_client(const string& client_id)
 {
   if (clients.find(client_id) != clients.end())
     close_client_socket(clients[client_id]);
   client_connection_queue.push(client_id);
 }
 
-int AnonymousServerSocket::get_connection_socket(int& client_id)
+int AnonymousServerSocket::get_connection_socket(string& client_id)
 {
   data_signal.lock();
 
@@ -230,7 +238,7 @@ int AnonymousServerSocket::get_connection_socket(int& client_id)
   return client_socket;
 }
 
-void AnonymousServerSocket::remove_client(int client_id)
+void AnonymousServerSocket::remove_client(const string& client_id)
 {
   clients.erase(client_id);
 }

@@ -591,7 +591,7 @@ class RegintOptimizer:
             elif isinstance(inst, IndirectMemoryInstruction):
                 if inst.args[1] in self.cache:
                     instructions[i] = inst.get_direct(self.cache[inst.args[1]])
-            elif isinstance(inst, convint_class):
+            elif type(inst) == convint_class:
                 if inst.args[1] in self.cache:
                     res = self.cache[inst.args[1]]
                     self.cache[inst.args[0]] = res

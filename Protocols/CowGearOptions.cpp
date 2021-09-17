@@ -88,6 +88,7 @@ CowGearOptions::CowGearOptions(ez::ezOptionParser& opt, int argc,
     }
     use_top_gear = not opt.isSet("-J");
     if (opt.isSet("-T"))
-        cerr << "WARNING: Option -T/--top-gear is obsolete." << endl;
+        cerr << "WARNING: Option -T/--top-gear is obsolete "
+            "because it is the default now. Use -J to deactivate it." << endl;
     opt.resetArgs();
 }

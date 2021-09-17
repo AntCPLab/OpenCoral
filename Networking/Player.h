@@ -27,15 +27,22 @@ template<class T> class MultiPlayer;
 class Server;
 class ServerSocket;
 
-/* Class to get the names off the server */
+/**
+ * Network setup (hostnames and port numbers)
+ */
 class Names
 {
+  friend class Player;
+  friend class PlainPlayer;
+  friend class RealTwoPartyPlayer;
+
   vector<string> names;
   vector<int> ports;
   int nplayers;
   int portnum_base;
   int player_no;
-  Server* global_server;
+
+  ServerSocket* server;
 
   int default_port(int playerno) { return portnum_base + playerno; }
   void setup_ports();
@@ -48,28 +55,63 @@ class Names
 
   static const int DEFAULT_PORT = -1;
 
-  mutable ServerSocket* server;
-
+  /**
+   * Initialize with central server
+   * @param player my number
+   * @param pnb base port number (server listens one below)
+   * @param my_port my port number (`DEFAULT_PORT` for default,
+   *  which is base port number plus player number)
+   * @param servername location of server
+   */
   void init(int player,int pnb,int my_port,const char* servername);
   Names(int player,int pnb,int my_port,const char* servername) : Names()
     { init(player,pnb,my_port,servername); }
-  // Set up names when we KNOW who we are going to be using before hand
-  void init(int player,int pnb,vector<octet*> Nms);
-  Names(int player,int pnb,vector<octet*> Nms) : Names()
-    { init(player,pnb,Nms); }
+
+  /**
+   * Initialize with central server running on player 0
+   * @param player my number
+   * @param nplayers number of players
+   * @param servername location of player 0
+   * @param pnb base port number
+   * @param my_port my port number (`DEFAULT_PORT` for default,
+   *  which is base port number plus player number)
+   */
+  Names(int player, int nplayers, const string& servername, int pnb,
+      int my_port = DEFAULT_PORT);
+
+  /**
+   * Initialize without central server
+   * @param player my number
+   * @param pnb base port number
+   * @param Nms locations of all parties
+   */
   void init(int player,int pnb,vector<string> Nms);
   Names(int player,int pnb,vector<string> Nms) : Names()
     { init(player,pnb,Nms); }
-  // nplayers = 0 for taking it from hostsfile
+
+  /**
+   * Initialize from file. One party per line, format ``<hostname>[:<port>]``
+   * @param player my number
+   * @param pnb base port number
+   * @param hostsfile filename
+   * @param players number of players (0 to take from file)
+   */
   void init(int player, int pnb, const string& hostsfile, int players = 0);
   Names(int player, int pnb, const string& hostsfile) : Names()
     { init(player, pnb, hostsfile); }
 
-  // initialize from command-line options
+  /**
+   * Initialize from command-line options
+   * @param opt option parser instance
+   * @param argc number of command-line arguments
+   * @param argv command-line arguments
+   * @param default_nplayers default number of players
+   *  (used if not given in arguments)
+   */
   Names(ez::ezOptionParser& opt, int argc, const char** argv,
       int default_nplayers = 2);
 
-  Names() : nplayers(1), portnum_base(-1), player_no(0), global_server(0), server(0) { ; }
+  Names() : nplayers(1), portnum_base(-1), player_no(0), server(0) { ; }
   Names(const Names& other);
   ~Names();
 
@@ -77,11 +119,6 @@ class Names
   int my_num() const { return player_no; }
   const string get_name(int i) const { return names[i]; }
   int get_portnum_base() const { return portnum_base; }
-
-  friend class PlayerBase;
-  friend class Player;
-  template<class T> friend class MultiPlayer;
-  friend class RealTwoPartyPlayer;
 };
 
 
@@ -108,6 +145,10 @@ struct CommStats
 class NamedCommStats : public map<string, CommStats>
 {
 public:
+  size_t sent;
+
+  NamedCommStats();
+
   NamedCommStats& operator+=(const NamedCommStats& other);
   NamedCommStats operator+(const NamedCommStats& other) const;
   NamedCommStats operator-(const NamedCommStats& other) const;
@@ -123,17 +164,20 @@ public:
 #endif
 };
 
+/**
+ * Abstract class for two- and multi-player communication
+ */
 class PlayerBase
 {
 protected:
   int player_no;
 
 public:
-  mutable size_t sent;
+  size_t& sent;
   mutable Timer timer;
   mutable NamedCommStats comm_stats;
 
-  PlayerBase(int player_no) : player_no(player_no), sent(0) {}
+  PlayerBase(int player_no) : player_no(player_no), sent(comm_stats.sent) {}
   virtual ~PlayerBase();
 
   int my_real_num() const { return player_no; }
@@ -146,6 +190,11 @@ public:
   { Broadcast_Receive(o); }
 };
 
+/**
+ * Abstract class for multi-player communication.
+ * ``*_no_stats`` functions are called by their equivalents
+ * after accounting for communications statistics.
+ */
 class Player : public PlayerBase
 {
 protected:
@@ -159,7 +208,13 @@ public:
   Player(const Names& Nms);
   virtual ~Player();
 
+  /**
+   * Get number of players
+   */
   int num_players() const { return nplayers; }
+  /**
+   * Get my player number
+   */
   int my_num() const { return player_no; }
 
   int get_offset(int other_player) const { return positive_modulo(other_player - my_num(), num_players()); }
@@ -173,61 +228,115 @@ public:
   // The following functions generally update the statistics
   // and then call the *_no_stats equivalent specified by a subclass.
 
-  // send the same to all other players
+  /**
+   * Send the same to all other players
+   */
   virtual void send_all(const octetStream& o) const;
-  // send to a specific player
+  /**
+   * Send to a specific player
+   */
   void send_to(int player,const octetStream& o) const;
   virtual void send_to_no_stats(int player,const octetStream& o) const = 0;
-  // receive from all other players
+  /**
+   * Receive from all other players.
+   * Information from player 0 at ``os[0]`` etc.
+   */
   void receive_all(vector<octetStream>& os) const;
-  // receive from a specific player
+  /**
+   * Receive from a specific player
+   */
   void receive_player(int i,octetStream& o) const;
   virtual void receive_player_no_stats(int i,octetStream& o) const = 0;
   virtual void receive_player(int i,FlexBuffer& buffer) const;
 
-  // Communication relative to my number
-  // send to all other players by offset
+  /**
+   * Send to all other players by offset.
+   * ``o[0]`` gets sent to the next player etc.
+   */
   void send_relative(const vector<octetStream>& o) const;
-  // send to other player specified by offset
+  /*
+   * Send to other player specified by offset.
+   * 1 stands for the next player etc.
+   */
   void send_relative(int offset, const octetStream& o) const;
-  // receive from all other players by offset
+  /**
+   * Receive from all other players by offset.
+   * ``o[0]`` will contain data from the next player etc.
+   */
   void receive_relative(vector<octetStream>& o) const;
-  // receive from other palyer specified by offset
+  /**
+   * Receive from other player specified by offset.
+   * 1 stands for the next player etc.
+   */
   void receive_relative(int offset, octetStream& o) const;
 
-  // exchange data with minimal memory usage
-  // exchange information with one other party
+  /**
+   * Exchange information with one other party,
+   * reusing the buffer if possible.
+   */
   void exchange(int other, const octetStream& to_send, octetStream& ot_receive) const;
   virtual void exchange_no_stats(int other, const octetStream& to_send, octetStream& ot_receive) const = 0;
+  /**
+   * Exchange information with one other party, reusing the buffer.
+   */
   void exchange(int other, octetStream& o) const;
-  // exchange with one other partiy specified by offset
+  /**
+   * Exchange information with one other party specified by offset,
+   * reusing the buffer if possible.
+   */
   void exchange_relative(int offset, octetStream& o) const;
-  // send information to party while receiving from another by offset
+  /**
+   * Send information to a party while receiving from another by offset,
+   * The default is to send to the next party while receiving from the previous.
+   * The buffer is reused.
+   */
   void pass_around(octetStream& o, int offset = 1) const { pass_around(o, o, offset); }
+  /**
+   * Send information to a party while receiving from another by offset.
+   * The default is to send to the next party while receiving from the previous.
+   */
   void pass_around(octetStream& to_send, octetStream& to_receive, int offset) const;
   virtual void pass_around_no_stats(const octetStream& to_send,
       octetStream& to_receive, int offset) const = 0;
 
-  /* Broadcast and Receive data to/from all players
-   *  - Assumes o[player_no] contains the thing broadcast by me
+  /**
+   * Broadcast and receive data to/from all players.
+   * Assumes o[player_no] contains the data to be broadcast by me.
    */
   virtual void unchecked_broadcast(vector<octetStream>& o) const;
-  // broadcast with eventual verification
+  /**
+   * Broadcast and receive data to/from all players with eventual verification.
+   * Assumes o[player_no] contains the data to be broadcast by me.
+   */
   virtual void Broadcast_Receive(vector<octetStream>& o) const;
   virtual void Broadcast_Receive_no_stats(vector<octetStream>& o) const = 0;
 
-  /* Run Protocol To Verify Broadcast Is Correct
-   *     - Resets the blk_SHA_CTX at the same time
+  /**
+   * Run protocol to verify broadcast is correct
    */
   virtual void Check_Broadcast() const;
 
-  // send something different to all
+  /**
+   * Send something different to each player.
+   */
   void send_receive_all(const vector<octetStream>& to_send,
       vector<octetStream>& to_receive) const;
-  // specified senders only send something different to all
+  /**
+   * Specified senders only send something different to each player.
+   * @param senders set whether a player sends or not,
+   *   must be equal on all players
+   * @param to_send data to send by player number
+   * @param to_receive received data by player number
+   */
   void send_receive_all(const vector<bool>& senders,
       const vector<octetStream>& to_send, vector<octetStream>& to_receive) const;
-  // send something different only one specified channels
+  /**
+   * Send something different only one specified channels.
+   * @param channels ``channel[i][j]`` indicates whether party ``i`` sends
+   *   to party ``j``
+   * @param to_send data to send by player number
+   * @param to_receive received data by player number
+   */
   void send_receive_all(const vector<vector<bool>>& channels,
       const vector<octetStream>& to_send,
       vector<octetStream>& to_receive) const;
@@ -235,11 +344,15 @@ public:
       const vector<octetStream>& to_send,
       vector<octetStream>& to_receive) const = 0;
 
-  // specified senders broadcast information
+  /**
+   * Specified senders broadcast information to specified receivers.
+   * @param senders specify which parties do send
+   * @param receivers specify which parties do send
+   * @param os data to send at ``os[my_number]``, received data elsewhere
+   */
   virtual void partial_broadcast(const vector<bool>& senders,
+      const vector<bool>& receivers,
       vector<octetStream>& os) const;
-  virtual void partial_broadcast(const vector<bool>&, const vector<bool>&,
-      vector<octetStream>& os) const { unchecked_broadcast(os); }
 
   // dummy functions for compatibility
   virtual void request_receive(int i, octetStream& o) const { (void)i; (void)o; }
@@ -247,6 +360,11 @@ public:
   { receive_player(i, o); }
 };
 
+/**
+ * Multi-player communication helper class.
+ * ``T = int`` for unencrypted BSD sockets and
+ * ``T = ssl_socket*`` for Boost SSL streams.
+ */
 template<class T>
 class MultiPlayer : public Player
 {
@@ -254,16 +372,12 @@ protected:
   vector<T> sockets;
   T send_to_self_socket;
 
-  void setup_sockets(const vector<string>& names,const vector<int>& ports,int id_base,ServerSocket& server);
-
   T socket_to_send(int player) const { return player == player_no ? send_to_self_socket : sockets[player]; }
 
   friend class CryptoPlayer;
 
 public:
-  // The offset is used for the multi-threaded call, to ensure different
-  // portnum bases in each thread
-  MultiPlayer(const Names& Nms,int id_base=0);
+  MultiPlayer(const Names& Nms);
 
   virtual ~MultiPlayer();
 
@@ -296,16 +410,34 @@ public:
       vector<octetStream>& to_receive) const;
 };
 
-typedef MultiPlayer<int> PlainPlayer;
+/**
+ * Plaintext multi-player communication
+ */
+class PlainPlayer : public MultiPlayer<int>
+{
+  void setup_sockets(const vector<string>& names, const vector<int>& ports,
+      const string& id_base, ServerSocket& server);
+
+public:
+  /**
+   * Start a new set of unencrypted connections.
+   * @param Nms network setup
+   * @param id unique identifier
+   */
+  PlainPlayer(const Names& Nms, const string& id);
+  // legacy interface
+  PlainPlayer(const Names& Nms, int id_base = 0);
+  ~PlainPlayer();
+};
 
 
-class ThreadPlayer : public MultiPlayer<int>
+class ThreadPlayer : public PlainPlayer
 {
 public:
   mutable vector<Receiver<int>*> receivers;
   mutable vector<Sender<int>*>   senders;
 
-  ThreadPlayer(const Names& Nms,int id_base=0);
+  ThreadPlayer(const Names& Nms, const string& id_base);
   virtual ~ThreadPlayer();
 
   void request_receive(int i, octetStream& o) const;
@@ -335,14 +467,16 @@ class RealTwoPartyPlayer : public TwoPartyPlayer
 {
 private:
   // setup sockets for comm. with only one other player
-  void setup_sockets(int other_player, const Names &nms, int portNum, int id);
+  void setup_sockets(int other_player, const Names &nms, int portNum, string id);
 
   int socket;
   bool is_server;
   int other_player;
 
 public:
-  RealTwoPartyPlayer(const Names& Nms, int other_player, int pn_offset=0);
+  RealTwoPartyPlayer(const Names& Nms, int other_player, const string& id);
+  // legacy
+  RealTwoPartyPlayer(const Names& Nms, int other_player, int id_base = 0);
   ~RealTwoPartyPlayer();
 
   void send(octetStream& o) const;

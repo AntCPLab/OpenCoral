@@ -15,6 +15,17 @@ whitespace-separated text in order (independent of the data type) from
 the main thread. You can change the prefix (``Player-Data/Input``)
 using the ``-IF`` option on the virtual machine binary. You can also
 use ``-I`` to read inputs from the command line.
+:py:func:`Compiler.types.sint.input_tensor_from` and
+:py:func:`Compiler.types.sfix.input_tensor_from` allow inputting a
+tensor.
+
+
+Compile-Time Data via Private Input
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:py:func:`~Compiler.types.sint.input_tensor_via` is a convenience
+function that allows to use data available at compile-time via
+private input.
 
 
 Public Inputs
@@ -64,11 +75,14 @@ Clients (Non-computing Parties)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :py:func:`Compiler.types.sint.receive_from_client` and
-:py:func:`Compiler.types.sint.write_shares_to_socket` allow
+:py:func:`Compiler.types.sint.reveal_to_clients` allow
 communicating securely with the clients. See `this example
 <https://github.com/data61/MP-SPDZ/tree/master/ExternalIO>`_
 covering both client code and server-side high-level code.
-
+:py:func:`Compiler.types.sint.input_tensor_from_client` and
+:py:func:`Compiler.types.MultiArray.reveal_to_clients`. The same
+functions are available for :py:class:`~Compiler.types.sfix` and
+:py:class:`~Compiler.types.Array`, respectively.
 
 Secret Shares
 ~~~~~~~~~~~~~

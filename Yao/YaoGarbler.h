@@ -72,7 +72,7 @@ public:
 
 	long get_gate_id() { return gate_id(thread_num); }
 
-	size_t data_sent();
+	NamedCommStats comm_stats();
 };
 
 inline YaoGarbler& YaoGarbler::s()

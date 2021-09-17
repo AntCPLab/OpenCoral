@@ -126,6 +126,14 @@ computation:
    logarithms will be computed in parallel. This speeds up the
    compilation because of reduced complexity.
 
+.. cmdoption:: -l
+	       --flow-optimization
+
+   Optimize simple loops (``for <iterator> in range(<n>)``) by using
+   :py:func:`~Compiler.library.for_range_opt` and defer if statements
+   to the run time.
+
+
 Compilation vs run time
 ~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -35,7 +35,7 @@ Node::Node(const char* netmap_file, int my_id, NodeUpdatable* updatable, int num
 	_ready_nodes = new bool[_numparties](); //initialized to false
 	_clients_connected = new bool[_numparties]();
 	_server = new BIU::Server(_port, _numparties-1, this, max_message_size);
-	_client = new Client(_endpoints, _numparties-1, this, max_message_size);
+	_client = new BIU::Client(_endpoints, _numparties-1, this, max_message_size);
 }
 
 Node::~Node() {

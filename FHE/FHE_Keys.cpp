@@ -359,10 +359,18 @@ void FHE_PK::check(const FHE_Params& params, const bigint& pr) const
 
 
 
+template void FHE_PK::encrypt(Ciphertext&, const Plaintext_<FFT_Data>& mess,
+    const Random_Coins& rc) const;
+template void FHE_PK::encrypt(Ciphertext&, const Plaintext_<P2Data>& mess,
+    const Random_Coins& rc) const;
+
 template Ciphertext FHE_PK::encrypt(const Plaintext_<FFT_Data>& mess,
     const Random_Coins& rc) const;
 template Ciphertext FHE_PK::encrypt(const Plaintext_<FFT_Data>& mess) const;
 template Ciphertext FHE_PK::encrypt(const Plaintext_<P2Data>& mess) const;
+
+template void FHE_SK::decrypt(Plaintext_<FFT_Data>&, const Ciphertext& c) const;
+template void FHE_SK::decrypt(Plaintext_<P2Data>&, const Ciphertext& c) const;
 
 template Plaintext_<FFT_Data> FHE_SK::decrypt(const Ciphertext& c,
         const FFT_Data& FieldD);
