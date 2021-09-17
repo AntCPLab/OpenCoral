@@ -4,8 +4,7 @@ The changelog explains changes pulled through from the private development repos
 
 - Optimized matrix multiplication in Hemi
 - Improved client communication
-- Private integer division as per `Veugen and Abspoel
-  <https://doi.org/10.2478/popets-2021-0073>`
+- Private integer division as per [Veugen and Abspoel](https://doi.org/10.2478/popets-2021-0073)
 - Compiler option to translate some Python control flow instructions
   to run-time instructions
 - Functionality to break out of run-time loops
