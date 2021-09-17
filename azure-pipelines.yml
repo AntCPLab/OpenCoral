@@ -6,7 +6,8 @@
 trigger:
 - master
 
-vmImage: 'ubuntu-18.04'
+pool:
+  vmImage: 'ubuntu-18.04'
 
 steps:
   - script: |
