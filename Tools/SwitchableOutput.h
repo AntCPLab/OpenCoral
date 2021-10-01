@@ -17,13 +17,17 @@ class SwitchableOutput
 public:
     SwitchableOutput(bool on = true)
     {
+        activate(false);
         activate(on);
     }
 
     void activate(bool on)
     {
         if (on)
-            out = &cout;
+        {
+            if (out == 0)
+                out = &cout;
+        }
         else
             out = 0;
     }
