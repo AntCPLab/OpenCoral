@@ -287,12 +287,12 @@ def exp2_fx(a, zero_output=False, as19=False):
         g = a._new(whole_exp.TruncMul(e.v, 2 * a.k, n_shift,
                                            nearest=a.round_nearest), a.k, a.f)
         return g
+    # how many bits to use from integer part
+    n_int_bits = int(math.ceil(math.log(a.k - a.f, 2)))
+    n_bits = a.f + n_int_bits
+    sint = types.sint
     if types.program.options.ring and not as19:
-        sint = types.sint
         intbitint = types.intbitint
-        # how many bits to use from integer part
-        n_int_bits = int(math.ceil(math.log(a.k - a.f, 2)))
-        n_bits = a.f + n_int_bits
         n_shift = int(types.program.options.ring) - a.k
         if types.program.use_split():
             assert not zero_output
@@ -360,11 +360,16 @@ def exp2_fx(a, zero_output=False, as19=False):
                 bits_to_check = [x.bit_xor(y)
                                  for x, y in zip(highest_bits[:-1],
                                                  r_bits[n_bits:-1])]
-                t = sint.conv(floatingpoint.KOpL(lambda x, y: x.bit_and(y),
-                                                 bits_to_check))
             # sign
             s = carry.bit_xor(sint.conv(r_bits[-1])).bit_xor(masked_bits[-1])
             del higher_bits[-1]
+    else:
+        bits = a.v.bit_decompose(a.k, maybe_mixed=True)
+        lower = sint.bit_compose(bits[:a.f])
+        higher_bits = bits[a.f:n_bits]
+        s = sint.conv(bits[-1])
+        bits_to_check = bits[n_bits:-1]
+    if not as19:
         c = types.sfix._new(lower, k=a.k, f=a.f)
         assert(len(higher_bits) == n_bits - a.f)
         pow2_bits = [sint.conv(x) for x in higher_bits]
@@ -375,6 +380,8 @@ def exp2_fx(a, zero_output=False, as19=False):
                                             nearest=types.sfix.round_nearest),
                                        k=a.k, f=a.f)
         if zero_output:
+            t = sint.conv(floatingpoint.KOpL(lambda x, y: x.bit_and(y),
+                                             bits_to_check))
             small_result = t.if_else(small_result, 0)
         return s.if_else(small_result, g)
     else:
