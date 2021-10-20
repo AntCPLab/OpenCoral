@@ -55,22 +55,22 @@ public:
   int generate();
 
   template<class T>
-  void generate_field(true_type);
+  void generate_field(true_type, PRNG& G);
   template<class T>
-  void generate_field(false_type)
+  void generate_field(false_type, PRNG&)
   {
   }
 
   template<class T>
-  void make_with_mac_key(int nplayers, int default_num, bool zero);
+  void make_with_mac_key(int nplayers, int default_num, bool zero, PRNG& G);
   template<class T>
-  void make_basic(const typename T::mac_type& key, int nplayers, int nitems, bool zero);
+  void make_basic(const typename T::mac_type& key, int nplayers, int nitems, bool zero, PRNG& G);
 
   template<class T>
-  void make_edabits(const typename T::mac_type& key, int N, int ntrip, bool zero, false_type,
+  void make_edabits(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G, false_type,
       const typename T::bit_type::mac_type& bit_key = {});
   template<class T>
-  void make_edabits(const typename T::mac_type&, int, int, bool, true_type)
+  void make_edabits(const typename T::mac_type&, int, int, bool, PRNG&, true_type)
   {
   }
 };
@@ -80,14 +80,10 @@ public:
  * ntrip  = Number tuples needed
  */
 template<class T>
-void make_square_tuples(const typename T::mac_type& key,int N,int ntrip,const string& str,bool zero)
+void make_square_tuples(const typename T::mac_type& key,int N,int ntrip,const string& str,bool zero,PRNG& G)
 {
   (void) str;
-
-  PRNG G;
-  G.ReSeed();
-
-  Files<T> files(N, key, prep_data_prefix, DATA_SQUARE);
+  Files<T> files(N, key, prep_data_prefix, DATA_SQUARE, G);
   typename T::clear a,c;
   /* Generate Squares */
   for (int i=0; i<ntrip; i++)
@@ -105,13 +101,11 @@ void make_square_tuples(const typename T::mac_type& key,int N,int ntrip,const st
  * ntrip  = Number bits needed
  */
 template<class T>
-void make_bits(const typename T::mac_type& key, int N, int ntrip, bool zero,
+void make_bits(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G,
     int thread_num = -1)
 {
-  PRNG G;
-  G.ReSeed();
 
-  Files<T> files(N, key, prep_data_prefix, DATA_BIT, thread_num);
+  Files<T> files(N, key, prep_data_prefix, DATA_BIT, G, thread_num);
   typename T::clear a;
   /* Generate Bits */
   for (int i=0; i<ntrip; i++)
@@ -123,13 +117,12 @@ void make_bits(const typename T::mac_type& key, int N, int ntrip, bool zero,
 }
 
 template<class T>
-void make_dabits(const typename T::mac_type& key, int N, int ntrip, bool zero,
+void make_dabits(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G,
     const typename T::bit_type::mac_type& bit_key = { })
 {
   Files<T> files(N, key,
       get_prep_sub_dir<T>(prep_data_prefix, N)
-          + DataPositions::dtype_names[DATA_DABIT] + "-" + T::type_short());
-  SeededPRNG G;
+          + DataPositions::dtype_names[DATA_DABIT] + "-" + T::type_short(), G);
   for (int i = 0; i < ntrip; i++)
     {
       bool bit = not zero && G.get_bit();
@@ -139,7 +132,7 @@ void make_dabits(const typename T::mac_type& key, int N, int ntrip, bool zero,
 }
 
 template<class T>
-void FakeParams::make_edabits(const typename T::mac_type& key, int N, int ntrip, bool zero, false_type,
+void FakeParams::make_edabits(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G, false_type,
     const typename T::bit_type::mac_type& bit_key)
 {
   vector<int> lengths;
@@ -148,8 +141,7 @@ void FakeParams::make_edabits(const typename T::mac_type& key, int N, int ntrip,
     {
       Files<T> files(N, key,
           get_prep_sub_dir<T>(prep_data_prefix, N)
-          + "edaBits-" + to_string(length));
-      SeededPRNG G;
+          + "edaBits-" + to_string(length), G);
       bigint value;
       int max_size = edabitvec<T>::MAX_SIZE;
       for (int i = 0; i < ntrip / max_size; i++)
@@ -176,12 +168,9 @@ void FakeParams::make_edabits(const typename T::mac_type& key, int N, int ntrip,
  * ntrip  = Number inputs needed
  */
 template<class T>
-void make_inputs(const typename T::mac_type& key,int N,int ntrip,const string& str,bool zero)
+void make_inputs(const typename T::mac_type& key,int N,int ntrip,const string& str,bool zero,PRNG& G)
 {
   (void) str;
-
-  PRNG G;
-  G.ReSeed();
 
   ofstream* outf=new ofstream[N];
   typename T::open_type a;
@@ -217,13 +206,11 @@ void make_inputs(const typename T::mac_type& key,int N,int ntrip,const string& s
 
 
 template<class T>
-void make_PreMulC(const typename T::mac_type& key, int N, int ntrip, bool zero)
+void make_PreMulC(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G)
 {
   stringstream ss;
   ss << get_prep_sub_dir<T>(prep_data_prefix, N) << "PreMulC-" << T::type_short();
-  Files<T> files(N, key, ss.str());
-  PRNG G;
-  G.ReSeed();
+  Files<T> files(N, key, ss.str(), G);
   typename T::clear a, b, c;
   c = 1;
   for (int i=0; i<ntrip; i++)
@@ -264,12 +251,10 @@ unsigned char sbox[256] =
 };
 
 template<class T>
-void make_AES(const typename T::mac_type& key, int N, int ntrip, bool zero) {
+void make_AES(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G) {
   stringstream ss;
   ss << get_prep_sub_dir<T>(prep_data_prefix, N) << "Sbox-" << T::type_short();
-  Files<T> files(N, key, ss.str());
-  PRNG G;
-  G.ReSeed();
+  Files<T> files(N, key, ss.str(), G);
   gf2n_short x;
 
   for (int i = 0; i < ntrip; i++)
@@ -302,13 +287,11 @@ vector<vector<unsigned char>> des_sbox = {
 
 
 template<class T>
-void make_DES(const typename T::mac_type& key, int N, int ntrip, bool zero)
+void make_DES(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G)
 {
   stringstream ss;
   ss << get_prep_sub_dir<T>(prep_data_prefix, N) << "SboxDes-" << T::type_short();
-  Files<T> files(N, key, ss.str());
-  PRNG G;
-  G.ReSeed();
+  Files<T> files(N, key, ss.str(), G);
   gf2n_short x;
 
   for (int i = 0; i < ntrip; i++)
@@ -329,57 +312,57 @@ void make_DES(const typename T::mac_type& key, int N, int ntrip, bool zero)
 }
 
 template<class T>
-void make_Sbox(const typename T::mac_type& key, int N, int ntrip, bool zero, T, gf2n_short)
+void make_Sbox(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G, T, gf2n_short)
 {
-  make_AES<T>(key, N, ntrip, zero);
-  make_DES<T>(key, N, ntrip, zero);
+  make_AES<T>(key, N, ntrip, zero, G);
+  make_DES<T>(key, N, ntrip, zero, G);
 }
 
 
 template<class T, class U>
-void make_Sbox(const typename T::mac_type& key, int N, int ntrip, bool zero, T, U)
+void make_Sbox(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG&, T, U)
 {
   (void)key, (void)N, (void)ntrip, (void)zero;
 }
 
 template<class T>
-void make_Sbox(const typename T::mac_type& key, int N, int ntrip, bool zero)
+void make_Sbox(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G)
 {
-  make_Sbox(key, N, ntrip, zero, T(), typename T::clear());
+  make_Sbox(key, N, ntrip, zero, G, T(), typename T::clear());
 }
 
 template<class T>
-void make_minimal(const typename T::mac_type& key, int nplayers, int nitems, bool zero)
+void make_minimal(const typename T::mac_type& key, int nplayers, int nitems, bool zero, PRNG& G)
 {
-    make_mult_triples<T>(key, nplayers, nitems, zero, prep_data_prefix);
-    make_bits<T>(key, nplayers, nitems, zero);
-    make_inputs<T>(key, nplayers, nitems, T::type_short(), zero);
+    make_mult_triples<T>(key, nplayers, nitems, zero, prep_data_prefix, G);
+    make_bits<T>(key, nplayers, nitems, zero, G);
+    make_inputs<T>(key, nplayers, nitems, T::type_short(), zero, G);
 }
 
 template<class T>
-void FakeParams::make_basic(const typename T::mac_type& key, int nplayers, int nitems, bool zero)
+void FakeParams::make_basic(const typename T::mac_type& key, int nplayers, int nitems, bool zero, PRNG& G)
 {
-    make_minimal<T>(key, nplayers, nitems, zero);
-    make_square_tuples<T>(key, nplayers, nitems, T::type_short(), zero);
-    make_dabits<T>(key, nplayers, nitems, zero);
-    make_edabits<T>(key, nplayers, nitems, zero, T::clear::characteristic_two);
+    make_minimal<T>(key, nplayers, nitems, zero, G);
+    make_square_tuples<T>(key, nplayers, nitems, T::type_short(), zero, G);
+    make_dabits<T>(key, nplayers, nitems, zero, G);
+    make_edabits<T>(key, nplayers, nitems, zero, G, T::clear::characteristic_two);
     if (T::clear::invertible)
     {
-        make_inverse<T>(key, nplayers, nitems, zero, prep_data_prefix);
+        make_inverse<T>(key, nplayers, nitems, zero, prep_data_prefix, G);
         if (opt.isSet("-s"))
         {
-            make_PreMulC<T>(key, nplayers, nitems, zero);
-            make_Sbox<T>(key, nplayers, nitems, zero);
+            make_PreMulC<T>(key, nplayers, nitems, zero, G);
+            make_Sbox<T>(key, nplayers, nitems, zero, G);
         }
     }
 }
 
 template<class T>
-void FakeParams::make_with_mac_key(int nplayers, int default_num, bool zero)
+void FakeParams::make_with_mac_key(int nplayers, int default_num, bool zero, PRNG& G)
 {
     typename T::mac_share_type::open_type key;
-    generate_mac_keys<T>(key, nplayers, prep_data_prefix);
-    make_basic<T>(key, nplayers, default_num, zero);
+    generate_mac_keys<T>(key, nplayers, prep_data_prefix, G);
+    make_basic<T>(key, nplayers, default_num, zero, G);
 }
 
 template<class T>
@@ -560,6 +543,16 @@ int main(int argc, const char** argv)
           "-n", // Flag token.
           "--nontgomery" // Flag token.
   );
+  opt.add(
+          "", // Default.
+          0, // Required?
+          1, // Number of args expected.
+          0, // Delimiter if expecting multiple args.
+          "Seed to use for initializing pseudorandom number generator "
+          "(default: seed from /dev/random)", // Help description.
+          "-seed", // Flag token.
+          "--prngseed" // Flag token.
+  );
   opt.parse(argc, argv);
 
   int lgp;
@@ -680,8 +673,18 @@ int FakeParams::generate()
   // check compatibility
   gf2n::init_field(lg2);
 
+  // Initialize PRNG
   PRNG G;
-  G.ReSeed();
+  if (opt.isSet("--prngseed")) {
+    std::string seed;
+    opt.get("--prngseed")->getString(seed);
+    unsigned char *val = new unsigned char[seed.length()+1];
+    strcpy((char *)val, seed.c_str());
+    G.SetSeed(val);
+  } else {
+    G.ReSeed();
+  }
+
   prep_data_prefix = PREP_DIR;
   // Set up the fields
   if (opt.isSet("--prime"))
@@ -710,96 +713,96 @@ int FakeParams::generate()
 
   typedef Share<gf2n> sgf2n;
 
-  generate_mac_keys<T>(keyp, nplayers, prep_data_prefix);
-  generate_mac_keys<sgf2n>(key2, nplayers, prep_data_prefix);
+  generate_mac_keys<T>(keyp, nplayers, prep_data_prefix, G);
+  generate_mac_keys<sgf2n>(key2, nplayers, prep_data_prefix, G);
 
-  make_mult_triples<sgf2n>(key2,nplayers,ntrip2,zero,prep_data_prefix);
-  make_mult_triples<T>(keyp,nplayers,ntripp,zero,prep_data_prefix);
-  make_bits<Share<gf2n>>(key2,nplayers,nbits2,zero);
-  make_bits<T>(keyp,nplayers,nbitsp,zero);
-  make_square_tuples<sgf2n>(key2,nplayers,nsqr2,"2",zero);
-  make_square_tuples<T>(keyp,nplayers,nsqrp,"p",zero);
-  make_inputs<sgf2n>(key2,nplayers,ninp2,"2",zero);
-  make_inputs<T>(keyp,nplayers,ninpp,"p",zero);
-  make_inverse<sgf2n>(key2,nplayers,ninv,zero,prep_data_prefix);
+  make_mult_triples<sgf2n>(key2,nplayers,ntrip2,zero,prep_data_prefix,G);
+  make_mult_triples<T>(keyp,nplayers,ntripp,zero,prep_data_prefix,G);
+  make_bits<Share<gf2n>>(key2,nplayers,nbits2,zero,G);
+  make_bits<T>(keyp,nplayers,nbitsp,zero,G);
+  make_square_tuples<sgf2n>(key2,nplayers,nsqr2,"2",zero,G);
+  make_square_tuples<T>(keyp,nplayers,nsqrp,"p",zero,G);
+  make_inputs<sgf2n>(key2,nplayers,ninp2,"2",zero,G);
+  make_inputs<T>(keyp,nplayers,ninpp,"p",zero,G);
+  make_inverse<sgf2n>(key2,nplayers,ninv,zero,prep_data_prefix,G);
   if (T::clear::invertible)
-    make_inverse<T>(keyp,nplayers,ninv,zero,prep_data_prefix);
+    make_inverse<T>(keyp,nplayers,ninv,zero,prep_data_prefix,G);
 
   if (opt.isSet("-s"))
   {
-    make_PreMulC<sgf2n>(key2,nplayers,ninv,zero);
+    make_PreMulC<sgf2n>(key2,nplayers,ninv,zero,G);
     if (T::clear::invertible)
-      make_PreMulC<T>(keyp,nplayers,ninv,zero);
-    make_Sbox<sgf2n>(key2,nplayers,ninv,zero);
+      make_PreMulC<T>(keyp,nplayers,ninv,zero,G);
+    make_Sbox<sgf2n>(key2,nplayers,ninv,zero,G);
   }
 
   // replicated secret sharing only for three parties
   if (nplayers == 3)
   {
-    make_bits<Rep3Share<Integer>>({}, nplayers, nbitsp, zero);
-    make_basic<BrainShare<64, 40>>({}, nplayers, default_num, zero);
-    make_basic<PostSacriRepRingShare<64, 40>>({}, nplayers, default_num, zero);
-    make_with_mac_key<SpdzWiseRingShare<64, 40>>(nplayers, default_num, zero);
+    make_bits<Rep3Share<Integer>>({}, nplayers, nbitsp, zero,G);
+    make_basic<BrainShare<64, 40>>({}, nplayers, default_num, zero, G);
+    make_basic<PostSacriRepRingShare<64, 40>>({}, nplayers, default_num, zero, G);
+    make_with_mac_key<SpdzWiseRingShare<64, 40>>(nplayers, default_num, zero, G);
 
-    make_mult_triples<GC::MaliciousRepSecret>({}, nplayers, ntrip2, zero, prep_data_prefix);
-    make_bits<GC::MaliciousRepSecret>({}, nplayers, nbits2, zero);
+    make_mult_triples<GC::MaliciousRepSecret>({}, nplayers, ntrip2, zero, prep_data_prefix, G);
+    make_bits<GC::MaliciousRepSecret>({}, nplayers, nbits2, zero,G);
   }
   else if (nplayers == 4)
-    make_basic<Rep4Share2<64>>({}, nplayers, default_num, zero);
+    make_basic<Rep4Share2<64>>({}, nplayers, default_num, zero, G);
 
-  make_basic<SemiShare<Z2<64>>>({}, nplayers, default_num, zero);
+  make_basic<SemiShare<Z2<64>>>({}, nplayers, default_num, zero, G);
 
-  make_mult_triples<GC::SemiSecret>({}, nplayers, default_num, zero, prep_data_prefix);
-  make_bits<GC::SemiSecret>({}, nplayers, default_num, zero);
+  make_mult_triples<GC::SemiSecret>({}, nplayers, default_num, zero, prep_data_prefix, G);
+  make_bits<GC::SemiSecret>({}, nplayers, default_num, zero, G);
 
   gf2n_short::reset();
   gf2n_short::init_field(40);
 
   Z2<41> keyt;
-  generate_mac_keys<GC::TinySecret<40>>(keyt, nplayers, prep_data_prefix);
+  generate_mac_keys<GC::TinySecret<40>>(keyt, nplayers, prep_data_prefix, G);
 
-  make_minimal<GC::TinySecret<40>>(keyt, nplayers, default_num / 64, zero);
+  make_minimal<GC::TinySecret<40>>(keyt, nplayers, default_num / 64, zero, G);
 
   gf2n_short keytt;
-  generate_mac_keys<GC::TinierShare<gf2n_short>>(keytt, nplayers, prep_data_prefix);
-  make_minimal<GC::TinierShare<gf2n_short>>(keytt, nplayers, default_num, zero);
+  generate_mac_keys<GC::TinierShare<gf2n_short>>(keytt, nplayers, prep_data_prefix, G);
+  make_minimal<GC::TinierShare<gf2n_short>>(keytt, nplayers, default_num, zero, G);
 
-  make_dabits<T>(keyp, nplayers, default_num, zero, keytt);
-  make_edabits<T>(keyp, nplayers, default_num, zero, false_type(), keytt);
+  make_dabits<T>(keyp, nplayers, default_num, zero, G, keytt);
+  make_edabits<T>(keyp, nplayers, default_num, zero, G, false_type(), keytt);
 
   if (nplayers > 2)
     {
       make_mult_triples<GC::MaliciousCcdShare<gf2n_short>>({}, nplayers,
-          default_num, zero, prep_data_prefix);
+          default_num, zero, prep_data_prefix, G);
       make_bits<GC::MaliciousCcdShare<gf2n_short>>({}, nplayers,
-          default_num, zero);
+          default_num, zero, G);
     }
 
-  generate_field<typename T::clear>(T::clear::prime_field);
-  generate_field<gf2n>(true_type());
+  generate_field<typename T::clear>(T::clear::prime_field, G);
+  generate_field<gf2n>(true_type(), G);
 
   return 0;
 }
 
 template<class U>
-void FakeParams::generate_field(true_type)
+void FakeParams::generate_field(true_type, PRNG& G)
 {
   if (nplayers == 3)
     {
-      make_basic<Rep3Share<U>>({}, nplayers, default_num, zero);
-      make_basic<MaliciousRep3Share<U>>({}, nplayers, default_num, zero);
-      make_basic<PostSacriRepFieldShare<U>>({}, nplayers, default_num, zero);
-      make_with_mac_key<SpdzWiseShare<MaliciousRep3Share<U>>>(nplayers, default_num, zero);
+      make_basic<Rep3Share<U>>({}, nplayers, default_num, zero, G);
+      make_basic<MaliciousRep3Share<U>>({}, nplayers, default_num, zero, G);
+      make_basic<PostSacriRepFieldShare<U>>({}, nplayers, default_num, zero, G);
+      make_with_mac_key<SpdzWiseShare<MaliciousRep3Share<U>>>(nplayers, default_num, zero, G);
     }
 
-  make_basic<SemiShare<U>>({}, nplayers, default_num, zero);
+  make_basic<SemiShare<U>>({}, nplayers, default_num, zero, G);
 
   if (nplayers > 2)
     {
       ShamirShare<U>::bit_type::clear::init_field();
-      make_basic<ShamirShare<U>>({}, nplayers, default_num, zero);
-      make_basic<MaliciousShamirShare<U>>({}, nplayers, default_num, zero);
+      make_basic<ShamirShare<U>>({}, nplayers, default_num, zero, G);
+      make_basic<MaliciousShamirShare<U>>({}, nplayers, default_num, zero, G);
       make_with_mac_key<SpdzWiseShare<MaliciousShamirShare<U>>>(nplayers,
-          default_num, zero);
+          default_num, zero, G);
     }
 }

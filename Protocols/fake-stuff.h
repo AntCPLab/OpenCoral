@@ -46,16 +46,16 @@ public:
   typename T::mac_type key;
   PRNG G;
   Files(int N, const typename T::mac_type& key, const string& prep_data_prefix,
-      Dtype type, int thread_num = -1) :
+      Dtype type, PRNG& G, int thread_num = -1) :
       Files(N, key,
           get_prep_sub_dir<T>(prep_data_prefix, N)
               + DataPositions::dtype_names[type] + "-" + T::type_short(),
-          thread_num)
+          G, thread_num)
   {
   }
   Files(int N, const typename T::mac_type& key, const string& prefix,
-      int thread_num = -1) :
-      N(N), key(key)
+      PRNG& G, int thread_num = -1) :
+      N(N), key(key), G(G)
   {
     outf = new ofstream[N];
     for (int i=0; i<N; i++)
@@ -69,7 +69,6 @@ public:
         if (outf[i].fail())
           throw file_error(filename.str().c_str());
       }
-    G.ReSeed();
   }
   ~Files()
   {
