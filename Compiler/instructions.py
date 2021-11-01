@@ -442,7 +442,9 @@ class join_tape(base.Instruction):
     arg_format = ['int']
 
 class crash(base.IOInstruction):
-    """ Crash runtime. """
+    """ Crash runtime if the register's value is > 0.
+
+    :param: Crash condition (regint)"""
     code = base.opcodes['CRASH']
     arg_format = ['ci']
 
