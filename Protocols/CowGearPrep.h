@@ -11,6 +11,9 @@
 class PairwiseMachine;
 template<class FD> class PairwiseGenerator;
 
+/**
+ * LowGear/CowGear preprocessing
+ */
 template<class T>
 class CowGearPrep : public MaliciousRingPrep<T>
 {

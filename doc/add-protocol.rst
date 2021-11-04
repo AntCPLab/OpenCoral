@@ -40,11 +40,13 @@ found in ``Protocols/Replicated.h``.
 
 1. Fill in the :c:func:`constant` static member function of
    :c:type:`NoShare` as well as the :c:func:`exchange` member function
-   of c:type:`NoOutput`. Check out
+   of :c:type:`NoOutput`. Check out
    :c:func:`DirectSemiMC<T>::exchange_` in ``Protocols/SemiMC.hpp``
    for a simple example. It opens an additive secret sharing by
    sending all shares to all other parties and then summing up the
-   received. Constant sharing and public output allows to execute the
+   received. See :ref:`this reference <network-reference>` for
+   documentation on the necessary infrastructure.
+   Constant sharing and public output allows to execute the
    following program::
 
      print_ln('%s', sint(123).reveal())

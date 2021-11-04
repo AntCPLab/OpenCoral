@@ -33,6 +33,9 @@ public:
     }
 };
 
+/**
+ * Somewhat homomorphic encryption key generation using MASCOT
+ */
 template<int L, int M>
 class HighGearKeyGen
 {

@@ -13,6 +13,9 @@
 template<class T, class U>
 void bits_from_square_in_ring(vector<T>& bits, int buffer_size, U* bit_prep);
 
+/**
+ * SPDZ2k preprocessing
+ */
 template<class T>
 class Spdz2kPrep : public virtual MaliciousRingPrep<T>,
         public virtual MascotTriplePrep<T>,

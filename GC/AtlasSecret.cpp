@@ -24,11 +24,4 @@ AtlasShare::AtlasShare(const AtlasSecret& other) :
 {
 }
 
-void AtlasShare::random()
-{
-    AtlasSecret tmp;
-    this->get_party().DataF.get_one(DATA_BIT, tmp);
-    *this = tmp.get_reg(0);
-}
-
 }

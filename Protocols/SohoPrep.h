@@ -6,6 +6,9 @@
 #ifndef PROTOCOLS_SOHOPREP_H_
 #define PROTOCOLS_SOHOPREP_H_
 
+/**
+ * Semi-honest preprocessing with somewhat homomorphic encryption
+ */
 template<class T>
 class SohoPrep : public SemiHonestRingPrep<T>
 {

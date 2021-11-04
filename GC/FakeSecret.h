@@ -136,6 +136,8 @@ public:
     void andrs(int n, const FakeSecret& x, const FakeSecret& y)
     { *this = BitVec(x.a * (y.a & 1)).mask(n); }
 
+    void xor_bit(int i, FakeSecret bit) { *this ^= bit << i; }
+
     void invert(int n, const FakeSecret& x) { *this = BitVec(~x.a).mask(n); }
 
     void random_bit() { a = random() % 2; }

@@ -1496,6 +1496,14 @@ class cond_print_plain(base.IOInstruction):
     code = base.opcodes['CONDPRINTPLAIN']
     arg_format = ['c', 'c', 'c']
 
+    def __init__(self, *args, **kwargs):
+        base.Instruction.__init__(self, *args, **kwargs)
+        self.size = args[1].size
+        args[2].set_size(self.size)
+
+    def get_code(self):
+        return base.Instruction.get_code(self, self.size)
+
 class print_int(base.IOInstruction):
     """ Output clear integer register.
 
@@ -1591,7 +1599,16 @@ class readsocketc(base.IOInstruction):
         return True
 
 class readsockets(base.IOInstruction):
-    """Read a variable number of secret shares + MACs from socket for a client id and store in registers"""
+    """ Read a variable number of secret shares (potentially with MAC)
+    from a socket for a client id and store them in registers. If the
+    protocol uses MACs, the client should be different for every party.
+
+    :param: client id (regint)
+    :param: vector size (int)
+    :param: source (sint)
+    :param: (repeat source)...
+
+    """
     __slots__ = []
     code = base.opcodes['READSOCKETS']
     arg_format = tools.chain(['ci','int'], itertools.repeat('sw'))
@@ -1624,6 +1641,25 @@ class writesocketc(base.IOInstruction):
     __slots__ = []
     code = base.opcodes['WRITESOCKETC']
     arg_format = tools.chain(['ci', 'int', 'int'], itertools.repeat('c'))
+
+    def has_var_args(self):
+        return True
+
+class writesockets(base.IOInstruction):
+    """ Write a variable number of secret shares (potentially with MAC)
+    from registers into a socket for a specified client id. If the
+    protocol uses MACs, the client should be different for every party.
+
+    :param: client id (regint)
+    :param: message type (must be 0)
+    :param: vector size (int)
+    :param: source (sint)
+    :param: (repeat source)...
+
+    """
+    __slots__ = []
+    code = base.opcodes['WRITESOCKETS']
+    arg_format = tools.chain(['ci', 'int', 'int'], itertools.repeat('s'))
 
     def has_var_args(self):
         return True
@@ -2383,6 +2419,77 @@ class lts(base.CISC):
         a = sint()
         subs(a, self.args[1], self.args[2])
         comparison.LTZ(self.args[0], a, self.args[3], self.args[4])
+
+# placeholder for documentation
+class cisc:
+    """ Meta instruction for emulation. This instruction is only generated
+    when using ``-K`` with ``compile.py``. The header looks as follows:
+
+    :param: number of arguments after name plus one
+    :param: name (16 bytes, zero-padded)
+
+    Currently, the following names are supported:
+
+    LTZ
+      Less than zero.
+
+      :param: number of arguments in this unit (must be 6)
+      :param: vector size
+      :param: result (sint)
+      :param: input (sint)
+      :param: bit length
+      :param: (ignored)
+      :param: (repeat)...
+
+    Trunc
+      Truncation.
+
+      :param: number of arguments in this unit (must be 8)
+      :param: vector size
+      :param: result (sint)
+      :param: input (sint)
+      :param: bit length
+      :param: number of bits to truncate
+      :param: (ignored)
+      :param: 0 for unsigned or 1 for signed
+      :param: (repeat)...
+
+    FPDiv
+      Fixed-point division. Division by zero results in zero without error.
+
+      :param: number of arguments in this unit (must be at least 7)
+      :param: vector size
+      :param: result (sint)
+      :param: dividend (sint)
+      :param: divisor (sint)
+      :param: (ignored)
+      :param: fixed-point precision
+      :param: (repeat)...
+
+    exp2_fx
+      Fixed-point power of two.
+
+      :param: number of arguments in this unit (must be at least 6)
+      :param: vector size
+      :param: result (sint)
+      :param: exponent (sint)
+      :param: (ignored)
+      :param: fixed-point precision
+      :param: (repeat)...
+
+    log2_fx
+      Fixed-point logarithm with base 2.
+
+      :param: number of arguments in this unit (must be at least 6)
+      :param: vector size
+      :param: result (sint)
+      :param: input (sint)
+      :param: (ignored)
+      :param: fixed-point precision
+      :param: (repeat)...
+
+    """
+    code = base.opcodes['CISC']
 
 # hack for circular dependency
 from Compiler import comparison

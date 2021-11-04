@@ -187,7 +187,13 @@ void NPartyTripleGenerator<T>::generate()
     if (thread_num != 0)
         ss << "-" << thread_num;
     if (machine.output)
+    {
         outputFile.open(ss.str().c_str());
+        if (machine.generateMACs or not T::clear::invertible)
+            file_signature<T>().output(outputFile);
+        else
+            file_signature<typename T::clear>().output(outputFile);
+    }
 
     if (machine.generateBits)
         generateBits();

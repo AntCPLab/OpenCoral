@@ -10,6 +10,7 @@
 #include "Math/bigint.h"
 #include "Math/gfp.h"
 #include "GC/NoShare.h"
+#include "BMR/Register.h"
 
 #include "NoLivePrep.h"
 #include "NoProtocol.h"

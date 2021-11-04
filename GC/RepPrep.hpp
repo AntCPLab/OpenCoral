@@ -17,13 +17,6 @@ namespace GC
 {
 
 template<class T>
-RepPrep<T>::RepPrep(DataPositions& usage, ShareThread<T>& thread) :
-        RepPrep<T>(usage)
-{
-    (void) thread;
-}
-
-template<class T>
 RepPrep<T>::RepPrep(DataPositions& usage, int input_player) :
         PersonalPrep<T>(usage, input_player), protocol(0)
 {

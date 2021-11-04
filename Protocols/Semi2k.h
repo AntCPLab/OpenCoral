@@ -9,6 +9,9 @@
 #include "SPDZ.h"
 #include "Processor/TruncPrTuple.h"
 
+/**
+ * Dishonest-majority protocol for computation modulo a power of two
+ */
 template<class T>
 class Semi2k : public SPDZ<T>
 {

@@ -9,6 +9,10 @@
 #include "SpdzWisePrep.h"
 #include "RepRingOnlyEdabitPrep.h"
 
+/**
+ * Preprocessing for three-party replicated secret sharing protocol with MAC
+ * modulo a power of two
+ */
 template<class T>
 class SpdzWiseRingPrep : public virtual SpdzWisePrep<T>,
         public virtual RepRingOnlyEdabitPrep<T>

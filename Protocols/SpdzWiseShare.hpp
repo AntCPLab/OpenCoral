@@ -41,6 +41,12 @@ void SpdzWiseShare<T>::read_or_generate_mac_key(string directory, Player& P, T& 
 }
 
 template<class T>
+void SpdzWiseShare<T>::pack(octetStream& os, bool full) const
+{
+    super::pack(os, full);
+}
+
+template<class T>
 void SpdzWiseShare<T>::pack(octetStream& os, open_type factor) const
 {
     this->get_share().pack(os, factor);

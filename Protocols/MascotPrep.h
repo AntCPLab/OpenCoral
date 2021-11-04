@@ -25,6 +25,9 @@ public:
     NamedCommStats comm_stats();
 };
 
+/**
+ * MASCOT input tuple generation
+ */
 template<class T>
 class MascotInputPrep : public OTPrep<T>
 {
@@ -38,6 +41,9 @@ public:
     }
 };
 
+/**
+ * MASCOT triple generation
+ */
 template<class T>
 class MascotTriplePrep : public MascotInputPrep<T>
 {
@@ -51,6 +57,9 @@ public:
     void buffer_triples();
 };
 
+/**
+ * MASCOT random bit generation
+ */
 template<class T>
 class MascotDabitOnlyPrep : public virtual MaliciousDabitOnlyPrep<T>,
         public virtual MascotTriplePrep<T>
@@ -75,6 +84,9 @@ public:
     virtual void buffer_bits();
 };
 
+/**
+ * MASCOT preprocessing with edaBits
+ */
 template<class T>
 class MascotPrep : public virtual MaliciousRingPrep<T>,
         public virtual MascotDabitOnlyPrep<T>

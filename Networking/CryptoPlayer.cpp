@@ -14,27 +14,59 @@ void check_ssl_file(string filename)
                         "You can use `Scripts/setup-ssl.sh <nparties>`.");
 }
 
-void ssl_error(string side, string pronoun, string other, string server)
+void ssl_error(string side, string other, string me)
 {
     cerr << side << "-side handshake with " << other
-            << " failed. Make sure " << pronoun
-            << " have the necessary certificate (" << PREP_DIR << server
-            << ".pem in the default configuration),"
+            << " failed. Make sure both sides "
+            << " have the necessary certificate (" << PREP_DIR << me
+            << ".pem in the default configuration on their side and "
+            << PREP_DIR << other << ".pem on ours),"
             << " and run `c_rehash <directory>` on its location." << endl
             << "The certificates should be the same on every host. "
             << "Also make sure that it's still valid. Certificates generated "
             << "with `Scripts/setup-ssl.sh` expire after a month." << endl;
+    cerr << "See also "
+            "https://mp-spdz.readthedocs.io/en/latest/troubleshooting.html"
+            "#handshake-failures" << endl;
+
+    string ids[2];
+    ids[side == "Client"] = other;
+    ids[side != "Client"] = me;
+    cerr << "Signature (should match the other side): ";
+    for (int i = 0; i < 2; i++)
+    {
+        auto filename = PREP_DIR + ids[i] + ".pem";
+        ifstream cert(filename);
+        stringstream buffer;
+        buffer << cert.rdbuf();
+        if (buffer.str().empty())
+            cerr << "<'" << filename << "' not found>";
+        else
+            cerr << octetStream(buffer.str()).hash();
+        if (i == 0)
+            cerr << "/";
+    }
+    cerr << endl;
 }
 
 CryptoPlayer::CryptoPlayer(const Names& Nms, const string& id_base) :
-        MultiPlayer<ssl_socket*>(Nms), plaintext_player(Nms, id_base),
-        other_player(Nms, id_base + "recv"),
+        MultiPlayer<ssl_socket*>(Nms),
         ctx("P" + to_string(my_num()))
 {
     sockets.resize(num_players());
     other_sockets.resize(num_players());
     senders.resize(num_players());
     receivers.resize(num_players());
+
+    vector<int> plaintext_sockets[2];
+
+    for (int i = 0; i < 2; i++)
+    {
+        PlainPlayer player(Nms, id_base + (i ? "recv" : ""));
+        plaintext_sockets[i] = player.sockets;
+        close_client_socket(player.socket(my_num()));
+        player.sockets.clear();
+    }
 
     for (int i = 0; i < (int)sockets.size(); i++)
     {
@@ -47,9 +79,9 @@ CryptoPlayer::CryptoPlayer(const Names& Nms, const string& id_base) :
             continue;
         }
 
-        sockets[i] = new ssl_socket(io_service, ctx, plaintext_player.socket(i),
+        sockets[i] = new ssl_socket(io_service, ctx, plaintext_sockets[0][i],
                 "P" + to_string(i), "P" + to_string(my_num()), i < my_num());
-        other_sockets[i] = new ssl_socket(io_service, ctx, other_player.socket(i),
+        other_sockets[i] = new ssl_socket(io_service, ctx, plaintext_sockets[1][i],
                 "P" + to_string(i), "P" + to_string(my_num()), i < my_num());
 
         senders[i] = new Sender<ssl_socket*>(i < my_num() ? sockets[i] : other_sockets[i]);
@@ -64,10 +96,6 @@ CryptoPlayer::CryptoPlayer(const Names& Nms, int id_base) :
 
 CryptoPlayer::~CryptoPlayer()
 {
-    close_client_socket(plaintext_player.socket(my_num()));
-    close_client_socket(other_player.socket(my_num()));
-    plaintext_player.sockets.clear();
-    other_player.sockets.clear();
     for (int i = 0; i < num_players(); i++)
     {
         delete sockets[i];

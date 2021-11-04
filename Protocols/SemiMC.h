@@ -9,6 +9,9 @@
 #include "MAC_Check.h"
 #include "Tools/Bundle.h"
 
+/**
+ * Additive secret sharing opening protocol (indirect communication)
+ */
 template<class T>
 class SemiMC : public TreeSum<typename T::open_type>, public MAC_Check_Base<T>
 {
@@ -26,6 +29,9 @@ public:
     SemiMC& get_part_MC() { return *this; }
 };
 
+/**
+ * Additive secret sharing opening protocol (direct communication)
+ */
 template<class T>
 class DirectSemiMC : public SemiMC<T>
 {

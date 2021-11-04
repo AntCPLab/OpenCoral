@@ -8,6 +8,10 @@
 
 #include "Protocols/ReplicatedPrep.h"
 
+/**
+ * Generate random triples with malicious security modulo a power two,
+ * either via larger modulo or shuffling
+ */
 template<class T>
 class MalRepRingPrep : public virtual BufferPrep<T>
 {
@@ -27,6 +31,9 @@ public:
     void buffer_inputs(int player);
 };
 
+/**
+ * Generate random bits from squares modulo a power of two
+ */
 template<class T>
 class RingOnlyBitsFromSquaresPrep : public virtual BufferPrep<T>
 {

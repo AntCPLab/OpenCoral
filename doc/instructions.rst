@@ -89,7 +89,6 @@ Compiler.instructions module
 		     print_char_regint, protectmemc, sqrs,
 		     start_grind, startprivateoutput, stop_grind,
 		     stopprivateoutput, writesocketc, writesocketint,
-		     writesockets, readsockets,
 		     protectmemint, protectmems, print_mem,
 		     matmul_base, g2muls, inputmixed_base, raw_output
 

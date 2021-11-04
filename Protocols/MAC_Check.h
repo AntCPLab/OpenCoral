@@ -23,6 +23,9 @@ using namespace std;
 #define POPEN_MAX 1000000
 
 
+/**
+ * Sum and broadcast values via a tree of players
+ */
 template<class T>
 class TreeSum
 {
@@ -90,6 +93,9 @@ class Tree_MAC_Check : public TreeSum<typename U::open_type>, public MAC_Check_B
   void set_random_element(const U& random_element) { (void) random_element; }
 };
 
+/**
+ * SPDZ opening protocol with MAC check (indirect communication)
+ */
 template<class U>
 class MAC_Check_ : public Tree_MAC_Check<U>
 {
@@ -108,6 +114,9 @@ template<int K, int S> class Spdz2kShare;
 template<class T> class Spdz2kPrep;
 template<class T> class MascotPrep;
 
+/**
+ * SPDZ2k opening protocol with MAC check
+ */
 template<class T, class U, class V, class W>
 class MAC_Check_Z2k : public Tree_MAC_Check<W>
 {
@@ -141,6 +150,9 @@ template<class T>
   void add_openings(vector<T>& values, const Player& P, int sum_players, int last_sum_players, int send_player, TreeSum<T>& MC);
 
 
+/**
+ * SPDZ opening protocol with MAC check (pairwise communication)
+ */
 template<class T>
 class Direct_MAC_Check: public MAC_Check_<T>
 {
@@ -257,12 +269,14 @@ void TreeSum<T>::start(vector<T>& values, const Player& P)
   int my_relative_num = positive_modulo(P.my_num() - base_player, P.num_players());
   while (true)
     {
+      // summing phase
       int last_sum_players = sum_players;
       sum_players = (sum_players - 2 + opening_sum) / opening_sum;
       if (sum_players == 0)
         break;
       if (my_relative_num >= sum_players && my_relative_num < last_sum_players)
         {
+          // send to the player up the tree
           for (unsigned int i=0; i<values.size(); i++)
             { values[i].pack(os); }
           int receiver = positive_modulo(base_player + my_relative_num % sum_players, P.num_players());
@@ -273,6 +287,7 @@ void TreeSum<T>::start(vector<T>& values, const Player& P)
 
       if (my_relative_num < sum_players)
         {
+          // if receiving, add the values
           timers[RECV_ADD].start();
           add_openings<T>(values, P, sum_players, last_sum_players, base_player, *this);
           timers[RECV_ADD].stop();
@@ -281,6 +296,7 @@ void TreeSum<T>::start(vector<T>& values, const Player& P)
 
   if (P.my_num() == base_player)
     {
+      // send from the root player
       os.reset_write_head();
       for (unsigned int i=0; i<values.size(); i++)
         { values[i].pack(os); }
@@ -294,6 +310,7 @@ void TreeSum<T>::start(vector<T>& values, const Player& P)
     }
   else if (my_relative_num * max_broadcast < P.num_players())
     {
+      // send if there are children
       int sender = (base_player + my_relative_num / max_broadcast) % P.num_players();
       ReceiveValues(values, P, sender);
       timers[BCAST].start();
@@ -316,6 +333,7 @@ void TreeSum<T>::finish(vector<T>& values, const Player& P)
   int my_relative_num = positive_modulo(P.my_num() - base_player, P.num_players());
   if (my_relative_num * max_broadcast >= P.num_players())
     {
+      // receiving at the leafs
       int sender = (base_player + my_relative_num / max_broadcast) % P.num_players();
       ReceiveValues(values, P, sender);
     }

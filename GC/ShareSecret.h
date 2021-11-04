@@ -161,6 +161,9 @@ public:
 
     This get_bit(int i)
     { return (*this >> i) & 1; }
+
+    void xor_bit(int i, const This& bit)
+    { *this ^= bit << i; }
 };
 
 template<class U>

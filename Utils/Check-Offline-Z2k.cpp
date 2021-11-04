@@ -33,6 +33,9 @@ void check_triples_Z2k(int n_players, string type_char = "")
         ss << "-P" << i;
         inputFiles[i].open(ss.str().c_str());
         cout << "Opening file " << ss.str() << endl;
+        octetStream tmp;
+        tmp.input(inputFiles[i]);
+        assert(tmp == file_signature<W>());
     }
 
     int j = 0;

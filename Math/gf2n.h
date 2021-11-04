@@ -76,6 +76,8 @@ protected:
   static string type_short() { return "2"; }
   static string type_string() { return "gf2n_"; }
 
+  static void specification(octetStream& os);
+
   static int size() { return sizeof(a); }
   static int size_in_bits() { return sizeof(a) * 8; }
 

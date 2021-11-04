@@ -11,6 +11,9 @@
 
 template<class T> class HemiMatrixPrep;
 
+/**
+ * Semi-honest triple generation with semi-homomorphic encryption (pairwise)
+ */
 template<class T>
 class HemiPrep : public SemiHonestRingPrep<T>
 {

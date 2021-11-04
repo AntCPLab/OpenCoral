@@ -89,6 +89,13 @@ DataPositions DataPositions::operator-(const DataPositions& other) const
   return res;
 }
 
+DataPositions DataPositions::operator+(const DataPositions& other) const
+{
+  DataPositions res = *this;
+  res.increase(other);
+  return res;
+}
+
 void DataPositions::print_cost() const
 {
   ifstream file("cost");

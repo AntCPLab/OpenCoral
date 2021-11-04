@@ -24,7 +24,7 @@ items = list(chain(base.opcodes.items(), gc.opcodes.items()))
 for name, opcode in sorted(items, key=lambda x: x[1]):
     d, n = desc.get(opcode, (None, None))
     if d and '$' not in d and '|' not in d and opcode not in \
-       (0x64, 0x65, 0x66, 0x6a) :
+       (0x65, 0x6a) :
         m = re.split(r'\.\s', d)
         if m:
             d = m[0]

@@ -218,21 +218,21 @@ void Shamir<T>::get_hyper(vector<vector<typename T::open_type> >& hyper,
         octetStream os;
         string filename = hyper_filename(t, n);
         ifstream in(filename);
-#ifdef VERBOSE
+#ifdef VERBOSE_HYPER
         cerr << "Trying to load hyper-invertable matrix from " << filename << endl;
 #endif
         os.input(in);
         os.get(hyper);
         if (int(hyper.size()) != n - t)
             throw exception();
-#ifdef VERBOSE
+#ifdef VERBOSE_HYPER
         cerr << "Loaded hyper-invertable matrix from " << filename << endl;
 #endif
         return;
     }
     catch (...)
     {
-#ifdef VERBOSE
+#ifdef VERBOSE_HYPER
         cerr << "Failed to load hyper-invertable" << endl;
 #endif
     }

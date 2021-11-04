@@ -14,6 +14,7 @@ template<class T>
 void TinierSharePrep<T>::init_real(Player& P)
 {
     assert(real_triple_generator == 0);
+    auto& thread = ShareThread<secret_type>::s();
     real_triple_generator = new typename T::whole_type::TripleGenerator(
             BaseMachine::s().fresh_ot_setup(), P.N, -1,
             OnlineOptions::singleton.batch_size, 1, params,
@@ -24,6 +25,7 @@ void TinierSharePrep<T>::init_real(Player& P)
 template<class T>
 void TinierSharePrep<T>::buffer_secret_triples()
 {
+    auto& thread = ShareThread<secret_type>::s();
     auto& triple_generator = real_triple_generator;
     assert(triple_generator != 0);
     params.generateBits = false;

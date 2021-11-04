@@ -43,6 +43,8 @@ the same on all hosts, and you have to run ``c_rehash Player-Data`` on
 all of them.
 
 
+.. _network-reference:
+
 Internal Infrastructure
 ~~~~~~~~~~~~~~~~~~~~~~~
 

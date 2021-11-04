@@ -9,6 +9,9 @@
 #include "SPDZ.h"
 #include "HemiMatrixPrep.h"
 
+/**
+ * Matrix multiplication optimized with semi-homomorphic encryption
+ */
 template<class T>
 class Hemi : public SPDZ<T>
 {

@@ -112,8 +112,6 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	garble_processor.reset(program);
 	this->processor.open_input_file(N.my_num(), 0);
 
-	T::bit_type::mac_key_type::init_field();
-	GC::ShareThread<typename T::bit_type> share_thread(N, online_opts, *P, 0, usage);
 	shared_proc = new SubProcessor<T>(dummy_proc, *MC, *prep, *P);
 
 	auto& inputter = shared_proc->input;

@@ -5,6 +5,7 @@
 #include "Processor/Processor.h"
 #include "Protocols/dabit.h"
 #include "Math/Setup.h"
+#include "GC/BitPrepFiles.h"
 
 #include "Protocols/MascotPrep.hpp"
 
@@ -26,6 +27,19 @@ Preprocessing<T>* Preprocessing<T>::get_new(
   else
     return new Sub_Data_Files<T>(machine.get_N(),
         machine.template prep_dir_prefix<T>(), usage);
+}
+
+template<class T>
+Preprocessing<T>* Preprocessing<T>::get_new(
+    bool live_prep, const Names& N,
+    DataPositions& usage)
+{
+  if (live_prep)
+    return new typename T::LivePrep(usage);
+  else
+    return new GC::BitPrepFiles<T>(N,
+        get_prep_sub_dir<T>(PREP_DIR, N.num_players()), usage,
+        BaseMachine::thread_num);
 }
 
 template<class T>
@@ -96,7 +110,7 @@ Sub_Data_Files<T>::Sub_Data_Files(int my_num, int num_players,
 
   dabit_buffer.setup(
       PrepBase::get_filename(prep_data_dir, DATA_DABIT,
-          type_short, my_num, thread_num), 1, type_string,
+          type_short, my_num, thread_num), dabit<T>::size(), type_string,
       DataPositions::dtype_names[DATA_DABIT]);
 
   input_buffers.resize(num_players);
@@ -106,7 +120,7 @@ Sub_Data_Files<T>::Sub_Data_Files(int my_num, int num_players,
           type_short, i, my_num, thread_num);
       if (i == my_num)
         my_input_buffers.setup(filename,
-            T::size() * 3 / 2, type_string);
+            T::size() + T::clear::size(), type_string);
       else
         input_buffers[i].setup(filename,
             T::size(), type_string);
@@ -122,7 +136,10 @@ Data_Files<sint, sgf2n>::Data_Files(Machine<sint, sgf2n>& machine, SubProcessor<
     SubProcessor<sgf2n>* proc2) :
     usage(machine.get_N().num_players()),
     DataFp(*Preprocessing<sint>::get_new(machine, usage, procp)),
-    DataF2(*Preprocessing<sgf2n>::get_new(machine, usage, proc2))
+    DataF2(*Preprocessing<sgf2n>::get_new(machine, usage, proc2)),
+    DataFb(
+        *Preprocessing<typename sint::bit_type>::get_new(machine.live_prep,
+            machine.get_N(), usage))
 {
 }
 
@@ -130,7 +147,8 @@ template<class sint, class sgf2n>
 Data_Files<sint, sgf2n>::Data_Files(const Names& N) :
     usage(N.num_players()),
     DataFp(*new Sub_Data_Files<sint>(N, usage)),
-    DataF2(*new Sub_Data_Files<sgf2n>(N, usage))
+    DataF2(*new Sub_Data_Files<sgf2n>(N, usage)),
+    DataFb(*new Sub_Data_Files<typename sint::bit_type>(N, usage))
 {
 }
 
@@ -150,6 +168,7 @@ Data_Files<sint, sgf2n>::~Data_Files()
         DataF2.data_sent() * 1e-6 << " MB" << endl;
 #endif
   delete &DataF2;
+  delete &DataFb;
 }
 
 template<class T>
@@ -166,6 +185,12 @@ Sub_Data_Files<T>::~Sub_Data_Files()
 template<class T>
 void Sub_Data_Files<T>::seekg(DataPositions& pos)
 {
+  if (T::LivePrep::use_part)
+    {
+      get_part().seekg(pos);
+      return;
+    }
+
   DataFieldType field_type = T::clear::field_type();
   for (int dtype = 0; dtype < N_DTYPE; dtype++)
     if (T::clear::allows(Dtype(dtype)))
@@ -181,6 +206,7 @@ void Sub_Data_Files<T>::seekg(DataPositions& pos)
       setup_extended(it->first);
       extended[it->first].seekg(it->second);
     }
+  dabit_buffer.seekg(pos.files[field_type][DATA_DABIT]);
 }
 
 template<class sint, class sgf2n>
@@ -188,6 +214,7 @@ void Data_Files<sint, sgf2n>::seekg(DataPositions& pos)
 {
   DataFp.seekg(pos);
   DataF2.seekg(pos);
+  DataFb.seekg(pos);
   usage = pos;
 }
 
@@ -210,6 +237,9 @@ void Sub_Data_Files<T>::prune()
     input_buffers[j].prune();
   for (auto it : extended)
     it.second.prune();
+  dabit_buffer.prune();
+  if (part != 0)
+    part->prune();
 }
 
 template<class sint, class sgf2n>
@@ -217,6 +247,7 @@ void Data_Files<sint, sgf2n>::prune()
 {
   DataFp.prune();
   DataF2.prune();
+  DataFb.prune();
 }
 
 template<class T>
@@ -229,6 +260,7 @@ void Sub_Data_Files<T>::purge()
     input_buffers[j].purge();
   for (auto it : extended)
     it.second.purge();
+  dabit_buffer.purge();
 }
 
 template<class T>
@@ -280,11 +312,12 @@ void Sub_Data_Files<T>::buffer_edabits_with_queues(bool strict, int n_bits,
       ifstream* f = new ifstream(filename);
       if (f->fail())
         throw runtime_error("cannot open " + filename);
+      check_file_signature<T>(*f, filename);
       edabit_buffers[n_bits] = f;
     }
   auto& buffer = *edabit_buffers[n_bits];
   if (buffer.peek() == EOF)
-    buffer.seekg(0);
+    buffer.seekg(file_signature<T>().get_length());
   edabitvec<T> eb;
   eb.input(n_bits, buffer);
   this->edabits[{strict, n_bits}].push_back(eb);

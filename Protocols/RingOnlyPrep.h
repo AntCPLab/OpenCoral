@@ -8,6 +8,9 @@
 
 #include "ReplicatedPrep.h"
 
+/**
+ * Semi-honest daBit generation for computation modulo a power of two
+ */
 template<class T>
 class RingOnlyPrep : public virtual RingPrep<T>
 {

@@ -7,39 +7,13 @@
 #include "YaoGarbler.h"
 #include "YaoEvaluator.h"
 #include "Tools/ezOptionParser.h"
+#include "Tools/NetworkOptions.h"
 
 #include "GC/Machine.hpp"
 
 YaoPlayer::YaoPlayer(int argc, const char** argv)
 {
 	ez::ezOptionParser opt;
-	opt.add(
-			"", // Default.
-			1, // Required?
-			1, // Number of args expected.
-			0, // Delimiter if expecting multiple args.
-			"This player's number, 0 for garbling, 1 for evaluating.", // Help description.
-			"-p", // Flag token.
-			"--player" // Flag token.
-	);
-	opt.add(
-			"localhost", // Default.
-			0, // Required?
-			1, // Number of args expected.
-			0, // Delimiter if expecting multiple args.
-			"Host where party 0 is running (default: localhost)", // Help description.
-			"-h", // Flag token.
-			"--hostname" // Flag token.
-	);
-	opt.add(
-			"5000", // Default.
-			0, // Required?
-			1, // Number of args expected.
-			0, // Delimiter if expecting multiple args.
-			"Base port number (default: 5000).", // Help description.
-			"-pn", // Flag token.
-			"--portnum" // Flag token.
-	);
 	opt.add(
 			"", // Default.
 			0, // Required?
@@ -59,33 +33,15 @@ YaoPlayer::YaoPlayer(int argc, const char** argv)
 			"--threshold" // Flag token.
 	);
 	auto& online_opts = OnlineOptions::singleton;
-	online_opts = {opt, argc, argv};
-	opt.parse(argc, argv);
-	opt.syntax = "./yao-player.x [OPTIONS] <progname>";
-	vector<string*> free_args = opt.firstArgs;
-	free_args.insert(free_args.end(), opt.unknownArgs.begin(), opt.unknownArgs.end());
-	free_args.insert(free_args.end(), opt.lastArgs.begin(), opt.lastArgs.end());
-	if (free_args.size() == 2)
-	{
-		progname = *free_args[1];
-	}
-	else
-	{
-		string usage;
-		opt.getUsage(usage);
-		cerr << usage;
-		exit(1);
-	}
+	online_opts = {opt, argc, argv, false_type()};
+	NetworkOptionsWithNumber network_opts(opt, argc, argv, 2, false);
+	online_opts.finalize(opt, argc, argv);
 
-	int my_num;
-	int pnb;
-	string hostname;
+	int my_num = online_opts.playerno;
 	int threshold;
-	opt.get("-p")->getInt(my_num);
-	opt.get("-pn")->getInt(pnb);
-	opt.get("-h")->getString(hostname);
 	bool continuous = not opt.get("-O")->isSet;
 	opt.get("-t")->getInt(threshold);
+	progname = online_opts.progname;
 
 	GC::ThreadMasterBase* master;
 	if (my_num == 0)
@@ -93,7 +49,7 @@ YaoPlayer::YaoPlayer(int argc, const char** argv)
 	else
 	    master = new YaoEvalMaster(continuous, online_opts);
 
-	Server::start_networking(master->N, my_num, 2, hostname, pnb);
+	network_opts.start_networking(master->N, my_num);
 	master->run(progname);
 
 	if (my_num == 1)

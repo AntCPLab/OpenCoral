@@ -290,6 +290,7 @@ def BitDecRing(a, k, m):
     return [types.sint.conv(bit) for bit in reversed(bits)][::-1]
 
 def BitDecFieldRaw(a, k, m, kappa, bits_to_compute=None):
+    instructions_base.set_global_vector_size(a.size)
     r_dprime = types.sint()
     r_prime = types.sint()
     c = types.cint()
@@ -298,6 +299,7 @@ def BitDecFieldRaw(a, k, m, kappa, bits_to_compute=None):
     pow2 = two_power(k + kappa)
     asm_open(c, pow2 + two_power(k) + a - two_power(m)*r_dprime - r_prime)
     res = r[0].bit_adder(r, list(r[0].bit_decompose_clear(c,m)))
+    instructions_base.reset_global_vector_size()
     return res
 
 def BitDecField(a, k, m, kappa, bits_to_compute=None):

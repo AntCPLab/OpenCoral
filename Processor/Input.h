@@ -15,6 +15,9 @@ using namespace std;
 
 class ArithmeticProcessor;
 
+/**
+ * Abstract base for input protocols
+ */
 template<class T>
 class InputBase
 {
@@ -45,18 +48,28 @@ public:
     InputBase(SubProcessor<T>* proc);
     virtual ~InputBase();
 
+    /// Initialize input round for ``player``
     virtual void reset(int player) = 0;
+    /// Initialize input round for all players
     void reset_all(Player& P);
 
+    /// Schedule input from me
     virtual void add_mine(const typename T::open_type& input, int n_bits = -1) = 0;
+    /// Schedule input from other player
     virtual void add_other(int player, int n_bits = -1) = 0;
+    /// Schedule input from all players
     void add_from_all(const clear& input);
 
+    /// Send my inputs
     virtual void send_mine() = 0;
+    /// Run input protocol for all players
     virtual void exchange();
 
+    /// Get share for next input of mine
     virtual T finalize_mine() = 0;
+    /// Store share for next input from ``player`` from buffer ``o`` in ``target``
     virtual void finalize_other(int player, T& target, octetStream& o, int n_bits = -1) = 0;
+    /// Get share for next input from ``player`
     virtual T finalize(int player, int n_bits = -1);
 
     void raw_input(SubProcessor<T>& proc, const vector<int>& args, int size);

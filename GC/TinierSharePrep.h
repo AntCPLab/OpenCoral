@@ -25,7 +25,6 @@ class TinierSharePrep : public PersonalPrep<T>
     MascotParams params;
 
     typedef typename T::whole_type secret_type;
-    ShareThread<secret_type>& thread;
 
     void buffer_triples();
     void buffer_squares() { throw not_implemented(); }
@@ -39,8 +38,6 @@ class TinierSharePrep : public PersonalPrep<T>
     void init_real(Player& P);
 
 public:
-    TinierSharePrep(DataPositions& usage, ShareThread<secret_type>& thread,
-            int input_player = PersonalPrep<T>::SECURE);
     TinierSharePrep(DataPositions& usage, int input_player =
             PersonalPrep<T>::SECURE);
     TinierSharePrep(SubProcessor<T>*, DataPositions& usage);

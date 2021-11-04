@@ -254,3 +254,151 @@ necessary to call the checking in order to verify the outputs.
 
 This frees the memory used for global key material when using homomorphic
 encryption. Otherwise, this does not do anything.
+
+
+Domain Types
+------------
+
+.. list-table::
+   :widths: 20 80
+
+   *
+     - ``gfp_<X, L>``
+     - Computation modulo a prime. ``L`` is the number of 64-bit
+       limbs, that is, it covers primes of bit length
+       :math:`64(L-1)+1` to :math:`64L`. The type has to be
+       initialized using :cpp:func:`init_field` or
+       :cpp:func:`init_default`. The latter picks a prime given a bit length.
+   *
+     - ``SignedZ2<K>`` / ``Z2<K>``
+     - Computation modulo :math:`2^K`. This is not a field.
+   *
+     - ``gf2n_short`` / ``gf2n_long`` / ``gf2n_<T>``
+     - :math:`GF(2^n)`. ``T`` denotes a type that is used to store the
+       values. It must support a variety of integer
+       operations. The type has to be initialized using
+       :cpp:func:`init_field`. The choice of degrees is limited. At
+       the time of writing, 4, 8, 28, 40, 63, and 128 are supported if the
+       storage type is large enough.
+
+Share Types
+------------
+
+.. list-table::
+   :widths: 20 80
+   :header-rows: 1
+
+   *
+     - Type
+     - Protocol
+   *
+     - ``AtlasShare<T>``
+     - Semi-honest version of `ATLAS
+       <https://eprint.iacr.org/2021/833>`_ (Section 4.2). ``T`` must
+       represent a field.
+   *
+     - ``ChaiGearShare<T>``
+     - `HighGear <https://eprint.iacr.org/2017/1230>`_ with covert key
+       setup. ``T`` must be ``gfp_<X, L>`` or ``gf2n_short``.
+   *
+     - ``CowGearShare<T>``
+     - `LowGear <https://eprint.iacr.org/2017/1230>`_ with covert key
+       setup. ``T`` must be ``gfp_<X, L>`` or ``gf2n_short``.
+   *
+     - ``HemiShare<T>``
+     - Semi-honest protocol with Beaver multiplication based on
+       semi-homomorphic encryption. ``T`` must be ``gfp_<X, L>`` or
+       ``gf2n_short``.
+   *
+     - ``HighGearShare<T>``
+     - `HighGear <https://eprint.iacr.org/2017/1230>`_. ``T`` must be
+       ``gfp_<X, L>`` or ``gf2n_short``.
+   *
+     - ``LowGearShare<T>``
+     - `LowGear <https://eprint.iacr.org/2017/1230>`_. ``T`` must be
+       ``gfp_<X, L>`` or ``gf2n_short``.
+   *
+     - ``MaliciousShamirShare<T>``
+     - Shamir secret sharing with Beaver multiplication and sacrifice.
+       ``T`` must represent a field.
+   *
+     - ``MamaShare<T, N>``
+     - `MASCOT <https://eprint.iacr.org/2016/505>`_ with multiple
+       MACs. ``T`` must represent a field, ``N`` is the number of MACs.
+   *
+     - ``PostSacriRepFieldShare<T>``
+     - `Post-sacrifice <https://eprint.iacr.org/2017/816>`_ protocol
+       using three-party replicated secret sharing with ``T``
+       representing a field.
+   *
+     - ``PostSacriRepRingShare<K, S>``
+     - `Post-sacrifice protocol <https://eprint.iacr.org/2019/164>`_
+       using replicated three-party secret sharing modulo :math:`2^K`
+       with security parameter ``S``.
+   *
+     - ``Rep3Share2<K>``
+     - `Three-party semi-honest protocol
+       <https://eprint.iacr.org/2016/768>`_ using replicated secret
+       sharing modulo :math:`2^K`.
+   *
+     - ``Rep4Share<T>``
+     - `Four-party malicious protocol
+       <https://eprint.iacr.org/2020/1330>`_ using replicated secret
+       sharing over a field.
+   *
+     - ``Rep4Share2<K>``
+     - `Four-party malicious protocol
+       <https://eprint.iacr.org/2020/1330>`_ using replicated secret
+       sharing modulo :math:`2^K`.
+   *
+     - ``SemiShare2<K>``
+     - Semi-honest dishonest-majority protocol using Beaver
+       multiplication based on oblivious transfer modulo :math:`2^K`.
+   *
+     - ``SemiShare<T>``
+     - Semi-honest dishonest-majority protocol using Beaver
+       multiplication based on oblivious transfer in a field.
+   *
+     - ``ShamirShare<T>``
+     - `Semi-honest protocol <https://eprint.iacr.org/2000/037>`_
+       based on Shamir's secret sharing. ``T`` must represent a field.
+   *
+     - ``Share<T>``
+     - `MASCOT <https://eprint.iacr.org/2016/505>`_. ``T`` must
+       represent a field.
+   *
+     - ``SohoShare<T>``
+     - Semi-honest protocol with Beaver multiplication based on
+       somewhat homomorphic encryption. ``T`` must be ``gfp_<X, L>``
+       or ``gf2n_short``.
+   *
+     - ``Spdz2kShare<K, S>``
+     - `SPDZ2k <https://eprint.iacr.org/2018/482>`_ computing modulo
+       :math:`2^K` with security parameter ``S``.
+   *
+     - ``SpdzWiseShare<K, S>``
+     - `SPDZ-wise <https://eprint.iacr.org/2019/1298>`_ computing
+       modulo :math:`2^K` with security parameter ``S``.
+   *
+     - ``SpdzWiseShare<T>``
+     - `SPDZ-wise <https://eprint.iacr.org/2018/570>`_. ``T`` must be
+       ``MaliciousShamirShare`` or ``MaliciousRep3Share``.
+
+
+Protocol Interfaces
+-------------------
+
+.. doxygenclass:: ProtocolBase
+   :members:
+
+.. doxygenclass:: InputBase
+   :members:
+
+.. doxygenclass:: MAC_Check_Base
+   :members:
+
+.. doxygenclass:: Preprocessing
+   :members:
+
+.. doxygenclass:: BufferPrep
+   :members:

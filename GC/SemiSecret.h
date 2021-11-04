@@ -73,6 +73,9 @@ public:
     void xor_(int n, const SemiSecret& x, const SemiSecret& y)
     { *this = BitVec(x ^ y).mask(n); }
 
+    void xor_bit(int i, const SemiSecret& bit)
+    { *this ^= bit << i; }
+
     void reveal(size_t n_bits, Clear& x);
 
     SemiSecret lsb()

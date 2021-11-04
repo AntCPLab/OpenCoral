@@ -15,6 +15,9 @@ template<class T> class SubProcessor;
 template<class T> class Share;
 class Player;
 
+/**
+ * SPDZ protocol
+ */
 template <class T>
 class SPDZ : public Beaver<T>
 {

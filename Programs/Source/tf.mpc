@@ -30,6 +30,8 @@ layers[0].X.input_from(0)
 for layer in layers:
     layer.input_from(0, raw='raw' in program.args)
 
+sint(0).reveal().store_in_mem(0)
+
 start_timer(1)
 opt.forward(1, keep_intermediate=False)
 stop_timer(1)

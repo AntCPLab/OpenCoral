@@ -8,6 +8,9 @@
 
 #include "MascotPrep.h"
 
+/**
+ * Semi-honest triple generation based on oblivious transfer
+ */
 template<class T>
 class SemiPrep : public virtual OTPrep<T>, public virtual SemiHonestRingPrep<T>
 {

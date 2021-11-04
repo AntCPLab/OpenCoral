@@ -8,6 +8,9 @@
 
 #include "ShamirMC.h"
 
+/**
+ * Shamir share opening with correctness check
+ */
 template<class T>
 class MaliciousShamirMC : public ShamirMC<T>
 {

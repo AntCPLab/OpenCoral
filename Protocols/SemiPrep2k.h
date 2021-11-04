@@ -9,6 +9,9 @@
 #include "SemiPrep.h"
 #include "RepRingOnlyEdabitPrep.h"
 
+/**
+ * Preprocessing for additive secret sharing modulo a power of two
+ */
 template<class T>
 class SemiPrep2k : public SemiPrep<T>, public RepRingOnlyEdabitPrep<T>
 {

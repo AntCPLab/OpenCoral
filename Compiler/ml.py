@@ -155,6 +155,26 @@ def argmax(x):
         return comp.if_else(a[0], b[0]), comp.if_else(a[1], b[1])
     return tree_reduce(op, enumerate(x))[0]
 
+def softmax(x):
+    """ Softmax.
+
+    :param x: vector or list of sfix
+    :returns: sfix vector
+    """
+    return softmax_from_exp(exp_for_softmax(x)[0])
+
+def exp_for_softmax(x):
+    m = util.max(x)
+    mv = m.expand_to_vector(len(x))
+    try:
+        x = x.get_vector()
+    except AttributeError:
+        x = sfix(x)
+    return (x - mv > -get_limit(x)).if_else(exp(x - mv), 0), m
+
+def softmax_from_exp(x):
+    return x / sum(x)
+
 report_progress = False
 
 def progress(x):
@@ -464,10 +484,7 @@ class MultiOutput(MultiOutputBase):
                         self.losses[i] = -sfix.dot_product(
                             self.Y[batch[i]].get_vector(), log_e(div))
             else:
-                m = util.max(self.X[i])
-                mv = m.expand_to_vector(d_out)
-                x = self.X[i].get_vector()
-                e = (x - mv > -get_limit(x)).if_else(exp(x - mv), 0)
+                e, m = exp_for_softmax(self.X[i])
                 self.exp[i].assign_vector(e)
                 if self.compute_loss:
                     true_X = sfix.dot_product(self.Y[batch[i]], self.X[i])
@@ -532,11 +549,8 @@ class MultiOutput(MultiOutputBase):
             return
         @for_range_opt_multithread(self.n_threads, len(batch))
         def _(i):
-            for j in range(d_out):
-                dividend = self.exp[i][j]
-                divisor = sum(self.exp[i])
-                div = (divisor > 0.1).if_else(dividend / divisor, 0)
-                self.nabla_X[i][j] = (-self.Y[batch[i]][j] + div)
+            div = softmax_from_exp(self.exp[i])
+            self.nabla_X[i][:] = -self.Y[batch[i]][:] + div
         self.maybe_debug_backward(batch)
 
     def maybe_debug_backward(self, batch):
@@ -588,7 +602,7 @@ class DenseBase(Layer):
     nablas = lambda self: (self.nabla_W, self.nabla_b)
 
     def output_weights(self):
-        print_ln('%s', self.W.reveal_nested())
+        self.W.print_reveal_nested()
         print_ln('%s', self.b.reveal_nested())
 
     def backward_params(self, f_schur_Y, batch):
@@ -1316,7 +1330,7 @@ class ConvBase(BaseLayer):
             self.bias.input_from(player, raw=raw)
 
     def output_weights(self):
-        print_ln('%s', self.weights.reveal_nested())
+        self.weights.print_reveal_nested()
         print_ln('%s', self.bias.reveal_nested())
 
     def dot_product(self, iv, wv, out_y, out_x, out_c):
@@ -1942,7 +1956,12 @@ class Optimizer:
             for label, X in enumerate(self.X_by_label):
                 indices = regint.Array(n * n_per_epoch)
                 indices_by_label.append(indices)
-                indices.assign(regint.inc(len(indices), 0, 1, 1, len(X)))
+                indices.assign(regint.inc(len(X)))
+                missing = len(indices) - len(X)
+                if missing:
+                    indices.assign_vector(
+                        regint.get_random(int(math.log2(len(X))), size=missing),
+                        base=len(X))
                 if self.always_shuffle or n_per_epoch > 1:
                     indices.shuffle()
             loss_sum = MemValue(sfix(0))
@@ -2050,6 +2069,8 @@ class Optimizer:
         self.time_layers = 'time_layers' in program.args
         self.revealing_correctness = not 'no_acc' in program.args
         self.layers[-1].compute_loss = not 'no_loss' in program.args
+        if 'full_cisc' in program.args:
+            program.options.keep_cisc = 'FPDiv,exp2_fx,log2_fx'
         model_input = 'model_input' in program.args
         acc_first = model_input and not 'train_first' in program.args
         if model_input:
@@ -2058,12 +2079,14 @@ class Optimizer:
         else:
             self.reset()
         if 'one_iter' in program.args:
+            print_float_prec(16)
             self.output_weights()
             print_ln('loss')
-            print_ln('%s', self.eval(
-                self.layers[0].X.get_part(0, batch_size)).reveal_nested())
+            self.eval(
+                self.layers[0].X.get_part(0, batch_size),
+                batch_size=batch_size).print_reveal_nested()
             for layer in self.layers:
-                print_ln('%s', layer.X.get_part(0, batch_size).reveal_nested())
+                layer.X.get_part(0, batch_size).print_reveal_nested()
             print_ln('%s', self.layers[-1].Y.get_part(0, batch_size).reveal_nested())
             batch = Array.create_from(regint.inc(batch_size))
             self.forward(batch=batch, training=True)
@@ -2083,9 +2106,10 @@ class Optimizer:
                 return
             N = self.layers[0].X.sizes[0]
             n_trained = (N + batch_size - 1) // batch_size * batch_size
-            print_ln('train_acc: %s (%s/%s)',
-                     cfix(self.n_correct, k=63, f=31) / n_trained,
-                     self.n_correct, n_trained)
+            if not acc_first:
+                print_ln('train_acc: %s (%s/%s)',
+                         cfix(self.n_correct, k=63, f=31) / n_trained,
+                         self.n_correct, n_trained)
             if test_X and test_Y:
                 n_test = len(test_Y)
                 n_correct, loss = self.reveal_correctness(test_X, test_Y,
@@ -2500,16 +2524,30 @@ class keras:
                     batch_size = min(batch_size, self.batch_size)
                 return self.opt.eval(x, batch_size=batch_size)
 
-def solve_linear(A, b, n_iterations, progress=False):
-    """ Iterative linear solution approximation. """
+def solve_linear(A, b, n_iterations, progress=False, n_threads=None,
+                 stop=False, already_symmetric=False, precond=False):
+    """ Iterative linear solution approximation for :math:`Ax=b`.
+
+    :param progress: print some information on the progress (implies revealing)
+    :param n_threads: number of threads to use
+    :param stop: whether to stop when converged (implies revealing)
+
+    """
     assert len(b) == A.sizes[0]
     x = sfix.Array(A.sizes[1])
     x.assign_vector(sfix.get_random(-1, 1, size=len(x)))
-    AtA = sfix.Matrix(len(x), len(x))
-    AtA[:] = A.direct_trans_mul(A)
+    if already_symmetric:
+        AtA = A
+        r = Array.create_from(b - AtA * x)
+    else:
+        AtA = sfix.Matrix(len(x), len(x))
+        A.trans_mul_to(A, AtA, n_threads=n_threads)
+        r = Array.create_from(A.transpose() * b - AtA * x)
+    if precond:
+        return solve_linear_diag_precond(AtA, b, x, r, n_iterations,
+                                         progress, stop)
     v = sfix.Array(A.sizes[1])
     v.assign_all(0)
-    r = Array.create_from(A.transpose() * b - AtA * x)
     Av = sfix.Array(len(x))
     @for_range(n_iterations)
     def _(i):
@@ -2523,10 +2561,43 @@ def solve_linear(A, b, n_iterations, progress=False):
         if progress:
             print_ln('%s alpha=%s vr=%s v_norm=%s', i, alpha.reveal(),
                      vr.reveal(), v_norm.reveal())
+        if stop:
+            return (alpha > 0).reveal()
     return x
 
-def mr(A, n_iterations):
-    """ Iterative matrix inverse approximation. """
+def solve_linear_diag_precond(A, b, x, r, n_iterations, progress=False,
+                              stop=False):
+    m = 1 / A.diag()
+    mr = Array.create_from(m * r[:])
+    d = Array.create_from(mr)
+    @for_range(n_iterations)
+    def _(i):
+        Ad = A * d
+        d_norm = sfix.dot_product(d, Ad)
+        alpha = (d_norm == 0).if_else(0, sfix.dot_product(r, mr) / d_norm)
+        x[:] = x[:] + alpha * d[:]
+        r_norm = sfix.dot_product(r, mr)
+        r[:] = r[:] - alpha * Ad
+        tmp = m * r[:]
+        beta = (r_norm == 0).if_else(0, sfix.dot_product(r, tmp) / r_norm)
+        mr[:] = tmp
+        d[:] = tmp + beta * d
+        if progress:
+            print_ln('%s alpha=%s beta=%s r_norm=%s d_norm=%s', i,
+                     alpha.reveal(), beta.reveal(), r_norm.reveal(),
+                     d_norm.reveal())
+        if stop:
+            return (alpha > 0).reveal()
+    return x
+
+def mr(A, n_iterations, stop=False):
+    """ Iterative matrix inverse approximation.
+
+    :param A: matrix to invert
+    :param n_iterations: maximum number of iterations
+    :param stop: whether to stop when converged (implies revealing)
+
+    """
     assert len(A.sizes) == 2
     assert A.sizes[0] == A.sizes[1]
     M = A.same_shape()
@@ -2536,5 +2607,18 @@ def mr(A, n_iterations):
         e = sfix.Array(n)
         e.assign_all(0)
         e[i] = 1
-        M[i] = solve_linear(A, e, n_iterations)
+        M[i] = solve_linear(A, e, n_iterations, stop=stop)
     return M.transpose()
+
+def var(x):
+    """ Variance. """
+    mean = MemValue(type(x[0])(0))
+    @for_range_opt(len(x))
+    def _(i):
+        mean.iadd(x[i])
+    mean /= len(x)
+    res = MemValue(type(x[0])(0))
+    @for_range_opt(len(x))
+    def _(i):
+        res.iadd((x[i] - mean.read()) ** 2)
+    return res.read()

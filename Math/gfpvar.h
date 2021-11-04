@@ -44,6 +44,8 @@ public:
     static string type_short();
     static char type_char();
 
+    static void specification(octetStream& os);
+
     static int length();
     static int size();
     static int size_in_bits();

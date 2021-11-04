@@ -8,6 +8,9 @@
 
 #include "MascotPrep.h"
 
+/**
+ * MASCOT triple generation with multiple MACs
+ */
 template<class T>
 class MamaPrep : public OTPrep<T>, public MaliciousRingPrep<T>
 {

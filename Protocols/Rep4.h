@@ -8,6 +8,9 @@
 
 #include "Replicated.h"
 
+/**
+ * Four-party protocol with malicious security via replication
+ */
 template<class T>
 class Rep4 : public ProtocolBase<T>
 {

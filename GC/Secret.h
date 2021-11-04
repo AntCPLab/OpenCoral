@@ -84,7 +84,6 @@ public:
     template <class U>
     static void store_clear_in_dynamic(U& mem, const vector<ClearWriteAccess>& accesses)
     { T::store_clear_in_dynamic(mem, accesses); }
-    static void output(T& reg);
 
     template<class U, class V>
     static void load(vector< ReadAccess<V> >& accesses, const U& mem);
@@ -113,7 +112,7 @@ public:
     { T::inputbvec(processor, input_proc, args); }
     template<class U>
     static void reveal_inst(Processor<U>& processor, const vector<int>& args)
-    { processor.reveal(args); }
+    { T::reveal_inst(processor, args); }
 
     template<class U>
     static void trans(Processor<U>& processor, int n_inputs, const vector<int>& args);
@@ -148,7 +147,6 @@ public:
     }
     void invert(int n, const Secret<T>& x);
     void and_(int n, const Secret<T>& x, const Secret<T>& y, bool repeat);
-    void andrs(int n, const Secret<T>& x, const Secret<T>& y) { and_(n, x, y, true); }
 
     template <class U>
     void reveal(size_t n_bits, U& x);

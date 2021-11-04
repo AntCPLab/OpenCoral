@@ -139,6 +139,14 @@ void gf2n_<U>::init_multiplication()
 }
 
 
+template<class U>
+void gf2n_<U>::specification(octetStream& os)
+{
+  os.store(sizeof(U));
+  os.store(degree());
+}
+
+
 /* Takes 8bit x and y and returns the 16 bit product in c1 and c0
       ans = (c1<<8)^c0
    where c1 and c0 are 8 bit

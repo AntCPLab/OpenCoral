@@ -373,6 +373,7 @@ protected:
   T send_to_self_socket;
 
   T socket_to_send(int player) const { return player == player_no ? send_to_self_socket : sockets[player]; }
+  T socket(int i) const { return sockets[i]; }
 
   friend class CryptoPlayer;
 
@@ -380,8 +381,6 @@ public:
   MultiPlayer(const Names& Nms);
 
   virtual ~MultiPlayer();
-
-  T socket(int i) const { return sockets[i]; }
 
   // Send/Receive data to/from player i 
   void send_long(int i, long a) const;

@@ -11,6 +11,9 @@
 #include "Machines/ShamirMachine.h"
 #include "Tools/Bundle.h"
 
+/**
+ * Shamir secret sharing opening protocol (indirect communication)
+ */
 template<class T>
 class IndirectShamirMC : public MAC_Check_Base<T>
 {
@@ -24,6 +27,9 @@ public:
     virtual void exchange(const Player& P);
 };
 
+/**
+ * Shamir secret sharing opening protocol (direct communication)
+ */
 template<class T>
 class ShamirMC : public IndirectShamirMC<T>
 {

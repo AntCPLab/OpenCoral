@@ -30,6 +30,15 @@ YaoGarbler::YaoGarbler(int thread_num, YaoGarbleMaster& master) :
 	prng.ReSeed();
 	set_n_program_threads(master.machine.nthreads);
 	this->init(*this);
+	if (continuous())
+	    taint();
+	else
+	{
+		processor.out.activate(false);
+		if (not master.opts.cmd_private_output_file.empty())
+			cerr << "Garbling party cannot output with one-shot computation"
+					<< endl;
+	}
 }
 
 YaoGarbler::~YaoGarbler()

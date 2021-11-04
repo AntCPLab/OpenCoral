@@ -25,6 +25,9 @@ void check_triples(int n_players, string type_char = "")
         ss << "-P" << i;
         inputFiles[i].open(ss.str().c_str());
         cout << "Opening file " << ss.str() << endl;
+        octetStream tmp, tmp2 = file_signature<T>();
+        tmp.input(inputFiles[i]);
+        assert(tmp == tmp2);
     }
 
     int j = 0;
@@ -78,6 +81,7 @@ int main(int argc, char** argv)
         n_players = atoi(argv[1]);
     read_setup(get_prep_sub_dir<Share<gfp>>(PREP_DIR, n_players, 128));
     gfp::init_field(gfp::pr(), false);
+    gf2n::init_field();
     check_triples<gf2n>(n_players);
     check_triples<gfp>(n_players);
 }

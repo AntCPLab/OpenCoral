@@ -104,6 +104,9 @@ ShareMatrix<T> Hemi<T>::matrix_multiply(const ShareMatrix<T>& A,
     return C;
 }
 
+/**
+ * Reduce convolution to matrix multiplication
+ */
 template<class T>
 void Hemi<T>::conv2ds(SubProcessor<T>& processor,
         const Instruction& instruction)

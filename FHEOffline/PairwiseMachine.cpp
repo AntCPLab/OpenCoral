@@ -6,6 +6,7 @@
 #include "FHEOffline/PairwiseMachine.h"
 #include "Tools/benchmarking.h"
 #include "Protocols/fake-stuff.h"
+#include "Tools/Bundle.h"
 
 #include "Protocols/fake-stuff.hpp"
 

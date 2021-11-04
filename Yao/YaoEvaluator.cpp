@@ -29,7 +29,8 @@ YaoEvaluator::YaoEvaluator(int thread_num, YaoEvalMaster& master) :
 
 void YaoEvaluator::pre_run()
 {
-	processor.out.activate(true);
+	if (master.opts.cmd_private_output_file.empty())
+		processor.out.activate(not continuous());
 	if (not continuous())
 		receive_to_store(*P);
 }

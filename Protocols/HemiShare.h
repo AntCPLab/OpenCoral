@@ -22,6 +22,7 @@ public:
     typedef DirectSemiMC<This> Direct_MC;
     typedef SemiInput<This> Input;
     typedef ::PrivateOutput<This> PrivateOutput;
+    // matrix multiplication only with prime order field
     typedef typename conditional<T::prime_field, Hemi<This>, Beaver<This>>::type Protocol;
     typedef HemiPrep<This> LivePrep;
 

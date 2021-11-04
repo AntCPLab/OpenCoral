@@ -20,7 +20,6 @@
  */
 class CryptoPlayer : public MultiPlayer<ssl_socket*>
 {
-    PlainPlayer plaintext_player, other_player;
     ssl_ctx ctx;
     boost::asio::io_service io_service;
 

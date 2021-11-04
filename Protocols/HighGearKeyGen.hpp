@@ -14,6 +14,10 @@ HighGearKeyGen<L, M>::HighGearKeyGen(Player& P, const FHE_Params& params) :
 {
 }
 
+/**
+ * Generate maBits (authenticated random bits modulo two different primes)
+ * using daBits (authenticated random bits modulo a large prime and two)
+ */
 template<int L, int M>
 void HighGearKeyGen<L, M>::buffer_mabits()
 {

@@ -10,6 +10,9 @@
 #include "Processor/Processor.h"
 #include "Replicated.h"
 
+/**
+ * Base class for input protocols without preprocessing
+ */
 template <class T>
 class PrepLessInput : public InputBase<T>
 {
@@ -33,6 +36,9 @@ public:
     T finalize_mine();
 };
 
+/**
+ * Replicated three-party input protocol
+ */
 template <class T>
 class ReplicatedInput : public PrepLessInput<T>
 {

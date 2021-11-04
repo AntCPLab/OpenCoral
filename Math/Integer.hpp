@@ -9,6 +9,12 @@ template<class T>
 const int IntBase<T>::N_BITS;
 
 template<class T>
+inline void IntBase<T>::specification(octetStream& os)
+{
+  os.store(sizeof(T));
+}
+
+template<class T>
 void IntBase<T>::output(ostream& s,bool human) const
 {
   if (human)
@@ -40,6 +46,15 @@ void Integer::reqbl(int n)
     {
       throw Processor_Error("Program compiled for fields not rings");
     }
+}
+
+template<int K>
+Integer::Integer(const SignedZ2<K>& x)
+{
+  if (K < N_BITS and x.negative())
+    a = -(-x).get_limb(0);
+  else
+    a = x.get_limb(0);
 }
 
 inline

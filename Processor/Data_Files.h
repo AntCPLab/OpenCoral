@@ -19,6 +19,11 @@ using namespace std;
 
 template<class T> class dabit;
 
+namespace GC
+{
+template<class T> class ShareThread;
+}
+
 class DataTag
 {
   int t[4];
@@ -74,6 +79,7 @@ public:
   void increase(const DataPositions& delta);
   DataPositions& operator-=(const DataPositions& delta);
   DataPositions operator-(const DataPositions& delta) const;
+  DataPositions operator+(const DataPositions& delta) const;
   void print_cost() const;
   bool empty() const;
   bool any_more(const DataPositions& other) const;
@@ -84,10 +90,15 @@ template<class sint, class sgf2n> class Data_Files;
 template<class sint, class sgf2n> class Machine;
 template<class T> class SubProcessor;
 
+/**
+ * Abstract base class for preprocessing
+ */
 template<class T>
 class Preprocessing : public PrepBase
 {
 protected:
+  static const bool use_part = false;
+
   DataPositions& usage;
 
   map<pair<bool, int>, vector<edabitvec<T>>> edabits;
@@ -114,6 +125,8 @@ public:
   template<class U, class V>
   static Preprocessing<T>* get_new(Machine<U, V>& machine, DataPositions& usage,
       SubProcessor<T>* proc);
+  static Preprocessing<T>* get_new(bool live_prep, const Names& N,
+      DataPositions& usage);
   static Preprocessing<T>* get_live_prep(SubProcessor<T>* proc,
       DataPositions& usage);
 
@@ -144,11 +157,15 @@ public:
   void get_input(T& a, typename T::open_type& x, int i);
   void get(vector<T>& S, DataTag tag, const vector<int>& regs, int vector_size);
 
+  /// Get fresh random multiplication triple
   virtual array<T, 3> get_triple(int n_bits);
   virtual array<T, 3> get_triple_no_count(int n_bits);
+  /// Get fresh random bit
   virtual T get_bit();
+  /// Get fresh random value in domain
   virtual T get_random();
-  virtual void get_dabit(T&, typename T::bit_type&);
+  /// Store fresh daBit in ``a`` (arithmetic part) and ``b`` (binary part)
+  virtual void get_dabit(T& a, typename T::bit_type& b);
   virtual void get_dabit_no_count(T&, typename T::bit_type&) { throw runtime_error("no daBit"); }
   virtual void get_edabits(bool strict, size_t size, T* a,
           vector<typename T::bit_type>& Sb, const vector<int>& regs)
@@ -156,6 +173,7 @@ public:
   template<int>
   void get_edabit_no_count(bool, int n_bits, edabit<T>& eb);
   template<int>
+  /// Get fresh edaBit chunk
   edabitvec<T> get_edabitvec(bool strict, int n_bits);
   virtual void buffer_edabits_with_queues(bool, int) { throw runtime_error("no edaBits"); }
 
@@ -270,13 +288,14 @@ class Data_Files
 
   Preprocessing<sint>& DataFp;
   Preprocessing<sgf2n>& DataF2;
+  Preprocessing<typename sint::bit_type>& DataFb;
 
   Data_Files(Machine<sint, sgf2n>& machine, SubProcessor<sint>* procp = 0,
       SubProcessor<sgf2n>* proc2 = 0);
   Data_Files(const Names& N);
   ~Data_Files();
 
-  DataPositions tellg();
+  DataPositions tellg() { return usage; }
   void seekg(DataPositions& pos);
   void skip(const DataPositions& pos);
   void prune();
@@ -289,7 +308,7 @@ class Data_Files
 
   void reset_usage() { usage.reset(); skipped.reset(); }
 
-  NamedCommStats comm_stats() { return DataFp.comm_stats() + DataF2.comm_stats(); }
+  NamedCommStats comm_stats();
 };
 
 template<class T> inline
@@ -407,6 +426,13 @@ inline void Data_Files<sint, sgf2n>::purge()
 {
   DataFp.purge();
   DataF2.purge();
+  DataFb.purge();
+}
+
+template<class sint, class sgf2n>
+NamedCommStats Data_Files<sint, sgf2n>::comm_stats()
+{
+  return DataFp.comm_stats() + DataF2.comm_stats() + DataFb.comm_stats();
 }
 
 #endif

@@ -19,6 +19,9 @@ template<class T> class IndirectShamirMC;
 
 class Player;
 
+/**
+ * Shamir secret sharing-based protocol with resharing
+ */
 template<class T>
 class Shamir : public ProtocolBase<T>
 {

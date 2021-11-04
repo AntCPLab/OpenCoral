@@ -13,6 +13,7 @@ using namespace std;
 
 #include "Math/field_types.h"
 #include "Tools/time-func.h"
+#include "Tools/octetStream.h"
 
 #ifndef BUFFER_SIZE
 #define BUFFER_SIZE 101
@@ -30,12 +31,13 @@ protected:
     Timer timer;
     int tuple_length;
     string filename;
+    int header_length;
 
 public:
     bool eof;
 
     BufferBase() : file(0), next(BUFFER_SIZE),
-            tuple_length(-1), eof(false) {}
+            tuple_length(-1), header_length(0), eof(false) {}
     ~BufferBase() {}
     virtual ifstream* open() = 0;
     void setup(ifstream* f, int length, const string& filename,
@@ -63,6 +65,31 @@ public:
     void fill_buffer();
 };
 
+template<class T>
+octetStream file_signature()
+{
+    octetStream res(T::type_string());
+    T::specification(res);
+    return res;
+}
+
+template<class T>
+octetStream check_file_signature(ifstream& file, const string& filename)
+{
+    octetStream file_spec;
+    try
+    {
+        file_spec.input(file);
+    }
+    catch (bad_alloc&)
+    {
+        throw signature_mismatch(filename);
+    }
+    if (file_signature<T>() != file_spec)
+        throw signature_mismatch(filename);
+    return file_spec;
+}
+
 template<class U, class V>
 class BufferOwner : public Buffer<U, V>
 {
@@ -88,6 +115,12 @@ public:
     ifstream* open()
     {
         file = new ifstream(this->filename, ios::in | ios::binary);
+        if (file->good())
+        {
+            auto file_spec = check_file_signature<U>(*file, this->filename);
+            this->header_length = file_spec.get_length()
+                    + sizeof(file_spec.get_length());
+        }
         return file;
     }
 
@@ -159,6 +192,9 @@ inline void Buffer<T, U>::read(char* read_buffer)
     {
         file->read(read_buffer + n_read, size_in_bytes - n_read);
         n_read += file->gcount();
+#ifdef DEBUG_BUFFER
+        fprintf(stderr, "read %d\n", n_read);
+#endif
         if (file->eof())
         {
             try_rewind();
@@ -180,6 +216,9 @@ inline void Buffer<T, U>::read(char* read_buffer)
 template <class T, class U>
 inline void Buffer<T,U>::input(U& a)
 {
+#ifdef DEBUG_BUFFER
+    fprintf(stderr, "next is %d\n", next);
+#endif
     if (next == BUFFER_SIZE)
     {
         fill_buffer();

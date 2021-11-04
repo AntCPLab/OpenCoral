@@ -48,26 +48,33 @@ BufferPrep<T>::BufferPrep(DataPositions& usage) :
 template<class T>
 BufferPrep<T>::~BufferPrep()
 {
-#ifdef VERBOSE
     string type_string = T::type_string();
+
+#ifdef VERBOSE
     if (n_bit_rounds > 0)
         cerr << n_bit_rounds << " rounds of random " << type_string
                 << " bit generation" << endl;
+#endif
 
-    this->print_left("triples", triples.size() * T::default_length,
-            type_string);
+    if (OnlineOptions::singleton.verbose)
+    {
+        this->print_left("triples", triples.size() * T::default_length,
+                type_string);
 
 #define X(KIND) \
     this->print_left(#KIND, KIND.size(), type_string);
-    X(squares) X(inverses) X(bits) X(dabits)
+        X(squares)
+        X(inverses)
+        X(bits)
+        X(dabits)
 #undef X
 
-    for (auto& x : this->edabits)
-    {
-        this->print_left_edabits(x.second.size(), x.second[0].size(),
-                x.first.first, x.first.second);
+        for (auto& x : this->edabits)
+        {
+            this->print_left_edabits(x.second.size(), x.second[0].size(),
+                    x.first.first, x.first.second);
+        }
     }
-#endif
 }
 
 template<class T>
@@ -79,8 +86,15 @@ BitPrep<T>::BitPrep(SubProcessor<T>* proc, DataPositions& usage) :
 
 template<class T>
 RingPrep<T>::RingPrep(SubProcessor<T>* proc, DataPositions& usage) :
-        BufferPrep<T>(usage), BitPrep<T>(proc, usage)
+        BufferPrep<T>(usage), BitPrep<T>(proc, usage), bit_part_proc(0)
 {
+}
+
+template<class T>
+RingPrep<T>::~RingPrep()
+{
+    if (bit_part_proc)
+        delete bit_part_proc;
 }
 
 template<class T>
@@ -708,8 +722,10 @@ void RingPrep<T>::buffer_edabits_without_check(int n_bits, vector<T>& sums,
     assert(this->protocol != 0);
     assert(proc != 0);
     auto &party = GC::ShareThread<typename T::bit_type>::s();
-    SubProcessor<bit_type> bit_proc(party.MC->get_part_MC(), proc->bit_prep,
-            proc->P);
+    if (bit_part_proc == 0)
+        bit_part_proc = new SubProcessor<bit_type>(party.MC->get_part_MC(),
+                proc->bit_prep, proc->P);
+    auto& bit_proc = *bit_part_proc;
     int n_relevant = this->protocol->get_n_relevant_players();
     vector<vector<T>> player_ints(n_relevant, vector<T>(buffer_size));
     vector<vector<vector<bit_type>>> parts(n_relevant,
@@ -1070,8 +1086,7 @@ void Preprocessing<T>::get_edabits(bool strict, size_t size, T* a,
                 {
                     if (i % unit == 0)
                         Sb[regs[j] + i / unit] = {};
-                    Sb[regs[j] + i / unit] ^=
-                            (typename T::bit_type(eb.second[j]) << (i % unit));
+                    Sb[regs[j] + i / unit].xor_bit(i % unit, eb.second[j]);
                 }
             }
         }

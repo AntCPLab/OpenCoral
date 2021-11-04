@@ -27,6 +27,11 @@ public:
         return T::type_string();
     }
 
+    static void specification(octetStream& os)
+    {
+        T::specification(os);
+    }
+
     dabit()
     {
     }

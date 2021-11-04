@@ -485,7 +485,6 @@ inline void check_files(ofstream* outf, int N)
 
 /* N      = Number players
  * ntrip  = Number triples needed
- * str    = "2" or "p"
  */
 template<class T>
 void make_mult_triples(const typename T::mac_type& key, int N, int ntrip,
@@ -496,44 +495,25 @@ void make_mult_triples(const typename T::mac_type& key, int N, int ntrip,
   PRNG G;
   G.ReSeed();
 
-  ofstream* outf=new ofstream[N];
+  Files<T> files(N, key, prep_data_prefix, DATA_TRIPLE, thread_num);
   typename T::clear a,b,c;
-  vector<T> Sa(N),Sb(N),Sc(N);
   /* Generate Triples */
-  for (int i=0; i<N; i++)
-    {
-      string filename = PrepBase::get_filename(
-          get_prep_sub_dir<T>(prep_data_prefix, N), DATA_TRIPLE,
-          T::type_short(), i, thread_num);
-      cout << "Opening " << filename << endl;
-      outf[i].open(filename,ios::out | ios::binary);
-      if (outf[i].fail()) { throw file_error(filename); }
-    }
   for (int i=0; i<ntrip; i++)
     {
       if (!zero)
         a.randomize(G);
-      make_share(Sa,a,N,key,G);
       if (!zero)
         b.randomize(G);
-      make_share(Sb,b,N,key,G);
       c = a * b;
-      make_share(Sc,c,N,key,G);
-      for (int j=0; j<N; j++)
-        { Sa[j].output(outf[j],false);
-          Sb[j].output(outf[j],false);
-          Sc[j].output(outf[j],false);
-        }
+      files.output_shares(a);
+      files.output_shares(b);
+      files.output_shares(c);
     }
-  check_files(outf, N);
-  for (int i=0; i<N; i++)
-    { outf[i].close(); }
-  delete[] outf;
+  check_files(files.outf, N);
 }
 
 /* N      = Number players
  * ntrip  = Number inverses needed
- * str    = "2" or "p"
  */
 template<class T>
 void make_inverse(const typename T::mac_type& key, int N, int ntrip, bool zero,
@@ -542,17 +522,8 @@ void make_inverse(const typename T::mac_type& key, int N, int ntrip, bool zero,
   PRNG G;
   G.ReSeed();
 
-  ofstream* outf=new ofstream[N];
+  Files<T> files(N, key, prep_data_prefix, DATA_INVERSE);
   typename T::clear a,b;
-  vector<T> Sa(N),Sb(N);
-  /* Generate Triples */
-  for (int i=0; i<N; i++)
-    { stringstream filename;
-      filename << get_prep_sub_dir<T>(prep_data_prefix, N) << "Inverses-" << T::type_short() << "-P" << i;
-      cout << "Opening " << filename.str() << endl;
-      outf[i].open(filename.str().c_str(),ios::out | ios::binary);
-      if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
-    }
   for (int i=0; i<ntrip; i++)
     {
       if (zero)
@@ -562,17 +533,10 @@ void make_inverse(const typename T::mac_type& key, int N, int ntrip, bool zero,
         do
           a.randomize(G);
         while (a.is_zero());
-      make_share(Sa,a,N,key,G);
-      make_share(Sb,a.invert(),N,key,G);
-      for (int j=0; j<N; j++)
-        { Sa[j].output(outf[j],false);
-          Sb[j].output(outf[j],false);
-        }
+      files.output_shares(a);
+      files.output_shares(a.invert());
     }
-  check_files(outf, N);
-  for (int i=0; i<N; i++)
-    { outf[i].close(); }
-  delete[] outf;
+  check_files(files.outf, N);
 }
 
 #endif

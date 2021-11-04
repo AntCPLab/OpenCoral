@@ -16,11 +16,6 @@
 namespace GC
 {
 
-SemiPrep::SemiPrep(DataPositions& usage, ShareThread<SemiSecret>&) :
-        SemiPrep(usage)
-{
-}
-
 SemiPrep::SemiPrep(DataPositions& usage, bool) :
         BufferPrep<SemiSecret>(usage), triple_generator(0)
 {

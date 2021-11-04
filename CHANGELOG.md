@@ -1,5 +1,14 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.2.8 (Nov 4, 2021)
+
+- Tested on Apple laptop with ARM chip
+- Restore trusted client interface
+- Directly accessible softmax function
+- Signature in preprocessing files to reduce confusing errors
+- Improved error messages for connection issues
+- Documentation of low-level share types and protocol pairs
+
 ## 0.2.7 (Sep 17, 2021)
 
 - Optimized matrix multiplication in Hemi

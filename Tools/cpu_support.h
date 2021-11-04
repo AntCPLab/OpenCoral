@@ -6,12 +6,19 @@
 #ifndef TOOLS_CPU_SUPPORT_H_
 #define TOOLS_CPU_SUPPORT_H_
 
+#include <stdexcept>
+
 inline bool check_cpu(int func, bool ecx, int feature)
 {
+#ifdef __aarch64__
+    (void) func, (void) ecx, (void) feature;
+    throw std::runtime_error("only for x86");
+#else
     int ax = func, bx, cx = 0, dx;
     __asm__ __volatile__ ("cpuid":
             "+a" (ax), "=b" (bx), "+c" (cx), "=d" (dx));
     return ((ecx ? cx : bx) >> feature) & 1;
+#endif
 }
 
 inline bool cpu_has_adx()

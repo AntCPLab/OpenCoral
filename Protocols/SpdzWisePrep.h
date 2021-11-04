@@ -10,6 +10,9 @@
 
 template<class T> class MaliciousShamirShare;
 
+/**
+ * Preprocessing for honest-majority protocol with MAC
+ */
 template<class T>
 class SpdzWisePrep : public MaliciousRingPrep<T>
 {

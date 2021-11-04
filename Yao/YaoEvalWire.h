@@ -59,6 +59,7 @@ public:
 
 	static void convcbit(Integer& dest, const GC::Clear& source,
 			GC::Processor<GC::Secret<YaoEvalWire>>&);
+	static void reveal_inst(Processor& processor, const vector<int>& args);
 
 	void set(const Key& key);
 	void set(Key key, bool external);

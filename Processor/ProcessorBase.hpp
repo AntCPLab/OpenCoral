@@ -42,8 +42,9 @@ T ProcessorBase::get_input(istream& input_file, const string& input_filename, co
     res.read(input_file, params);
     if (input_file.fail())
     {
-        throw input_error(T::NAME, input_filename, input_file);
+        throw input_error(T::NAME, input_filename, input_file, input_counter);
     }
+    input_counter++;
     return res;
 }
 

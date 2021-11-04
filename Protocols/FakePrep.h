@@ -69,6 +69,16 @@ public:
         }
     }
 
+    void buffer_inputs(int)
+    {
+        this->inputs.resize(1);
+        for (int i = 0; i < 1000; i++)
+        {
+            auto r = G.get<T>();
+            this->inputs[0].push_back({r, r});
+        }
+    }
+
     void get_dabit_no_count(T& a, typename T::bit_type& b)
     {
         auto bit = G.get_bit();

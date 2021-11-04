@@ -83,12 +83,6 @@ void Tree_MAC_Check<U>::exchange(const Player& P)
 
   popen_cnt += this->values.size();
   CheckIfNeeded(P);
-
-  /* not compatible with continuous communication
-  send_player++;
-  if (send_player==P.num_players())
-    { send_player=0; }
-  */
 }
 
 
@@ -134,6 +128,7 @@ void MAC_Check_<U>::Check(const Player& P)
 
   if (popen_cnt < 10)
     {
+      // no random combination with few values
       vector<typename U::mac_type> deltas;
       Bundle<octetStream> bundle(P);
       for (int i = 0; i < popen_cnt; i++)
@@ -155,6 +150,7 @@ void MAC_Check_<U>::Check(const Player& P)
     }
   else
     {
+      // check random combination
       octet seed[SEED_SIZE];
       this->timers[SEED].start();
       Create_Random_Seed(seed,P,SEED_SIZE);

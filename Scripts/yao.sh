@@ -1,14 +1,8 @@
 #!/usr/bin/env bash
 
-. Scripts/run-common.sh
+HERE=$(cd `dirname $0`; pwd)
+SPDZROOT=$HERE/..
 
-port=$[RANDOM+1024]
+. $HERE/run-common.sh
 
-for i in 0 1; do
-    IFS=""
-    log="$*-$[1-i]"
-    IFS=" "
-    $prefix ./yao-party.x -p $i -pn $port $* 2>&1 | tee logs/$log & true
-done
-
-wait || exit 1
+run_player yao-party.x $* || exit 1

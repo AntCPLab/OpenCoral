@@ -14,6 +14,7 @@ using namespace std;
 template<class sint, class sgf2n> class Machine;
 template<class sint, class sgf2n> class Processor;
 class ArithmeticProcessor;
+class SwitchableOutput;
 
 /* 
  * Opcode constants
@@ -306,12 +307,6 @@ enum RegType {
   MAX_REG_TYPE,
 };
 
-enum SecrecyType {
-  SECRET,
-  CLEAR,
-  MAX_SECRECY_TYPE
-};
-
 template<class sint, class sgf2n>
 struct TempVars {
   typename sgf2n::clear ans2;
@@ -387,6 +382,10 @@ public:
 
   void shuffle(ArithmeticProcessor& Proc) const;
   void bitdecint(ArithmeticProcessor& Proc) const;
+
+  template<class T>
+  void print(SwitchableOutput& out, T* v, T* p = 0, T* s = 0, T* z = 0,
+      T* nan = 0) const;
 };
 
 #endif

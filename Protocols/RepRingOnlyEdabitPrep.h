@@ -8,6 +8,9 @@
 
 #include "ReplicatedPrep.h"
 
+/**
+ * edaBit generation for replicated secret sharing modulo a power of two
+ */
 template<class T>
 class RepRingOnlyEdabitPrep : public virtual BufferPrep<T>
 {

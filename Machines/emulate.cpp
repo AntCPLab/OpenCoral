@@ -59,6 +59,9 @@ int main(int argc, const char** argv)
                 online_opts.live_prep, online_opts).run(); \
         break;
     X(64) X(128) X(256) X(192) X(384) X(512)
+#ifdef RING_SIZE
+    X(RING_SIZE)
+#endif
 #undef X
     default:
         cerr << "Not compiled for " << R << "-bit rings" << endl;

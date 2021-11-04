@@ -15,7 +15,7 @@ Zp_Data gfpvar_<X, L>::ZpD;
 template<int X, int L>
 string gfpvar_<X, L>::type_string()
 {
-    return "gfpvar";
+    return "gfp";
 }
 
 template<int X, int L>
@@ -28,6 +28,12 @@ template<int X, int L>
 char gfpvar_<X, L>::type_char()
 {
     return 'p';
+}
+
+template<int X, int L>
+void gfpvar_<X, L>::specification(octetStream& os)
+{
+    os.store(pr());
 }
 
 template<int X, int L>

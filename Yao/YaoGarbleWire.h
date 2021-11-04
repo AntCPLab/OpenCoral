@@ -23,6 +23,7 @@ public:
 	typedef YaoGarbler Party;
 	typedef YaoGarbleInput Input;
 	typedef GC::Processor<GC::Secret<YaoGarbleWire>> Processor;
+	typedef SwitchableOutput out_type;
 
 	static string name() { return "YaoGarbleWire"; }
 
@@ -59,6 +60,7 @@ public:
 
 	static void convcbit(Integer& dest, const GC::Clear& source,
 			GC::Processor<GC::Secret<YaoGarbleWire>>&);
+	static void reveal_inst(Processor& processor, const vector<int>& args);
 
 	void randomize(PRNG& prng);
 	void set(Key key, bool mask);

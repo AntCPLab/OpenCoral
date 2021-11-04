@@ -20,17 +20,17 @@ class CcdPrep : public BufferPrep<T>
 {
     typename T::part_type::LivePrep part_prep;
     SubProcessor<typename T::part_type>* part_proc;
-    ShareThread<T>& thread;
 
 public:
-    CcdPrep(DataPositions& usage, ShareThread<T>& thread) :
-            BufferPrep<T>(usage), part_prep(usage, thread), part_proc(0),
-            thread(thread)
+    static const bool use_part = true;
+
+    CcdPrep(DataPositions& usage) :
+            BufferPrep<T>(usage), part_prep(usage), part_proc(0)
     {
     }
 
     CcdPrep(SubProcessor<T>*, DataPositions& usage) :
-            CcdPrep(usage, ShareThread<T>::s())
+            CcdPrep(usage)
     {
     }
 

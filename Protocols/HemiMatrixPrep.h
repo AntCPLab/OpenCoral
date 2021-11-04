@@ -11,6 +11,9 @@
 
 template<class T> class HemiPrep;
 
+/**
+ * Semi-honest matrix triple generation using semi-homomorphic encryption
+ */
 template<class T>
 class HemiMatrixPrep : public BufferPrep<ShareMatrix<T>>
 {

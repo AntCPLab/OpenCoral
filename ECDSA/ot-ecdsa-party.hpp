@@ -106,8 +106,6 @@ void run(int argc, const char** argv)
     typename pShare::Direct_MC MCp(keyp);
     ArithmeticProcessor _({}, 0);
     typename pShare::TriplePrep sk_prep(0, usage);
-    GC::ShareThread<typename pShare::bit_type> thread(N,
-            OnlineOptions::singleton, P, {}, usage);
     SubProcessor<pShare> sk_proc(_, MCp, sk_prep, P);
     pShare sk, __;
     // synchronize

@@ -158,8 +158,8 @@ GeneratorThread* TripleMachine::new_generator(OTTripleSetup& setup, int i,
 {
     if (output and i == 0)
     {
-        T::clear::template generate_setup<T>(PREP_DIR, nplayers, 128);
         prep_data_dir = get_prep_sub_dir<T>(PREP_DIR, nplayers);
+        T::clear::write_setup(prep_data_dir);
         write_mac_key(prep_data_dir, my_num, nplayers, mac_key);
     }
 

@@ -18,6 +18,9 @@ class Player;
 
 template<class T> class LimitedPrep;
 
+/**
+ * Base class for shuffle sacrificing
+ */
 class ShuffleSacrifice
 {
 protected:

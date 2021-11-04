@@ -78,7 +78,6 @@ public:
 
 /* N      = Number players
  * ntrip  = Number tuples needed
- * str    = "2" or "p"
  */
 template<class T>
 void make_square_tuples(const typename T::mac_type& key,int N,int ntrip,const string& str,bool zero)
@@ -88,34 +87,18 @@ void make_square_tuples(const typename T::mac_type& key,int N,int ntrip,const st
   PRNG G;
   G.ReSeed();
 
-  ofstream* outf=new ofstream[N];
+  Files<T> files(N, key, prep_data_prefix, DATA_SQUARE);
   typename T::clear a,c;
-  vector<T> Sa(N),Sc(N);
   /* Generate Squares */
-  for (int i=0; i<N; i++)
-    { stringstream filename;
-      filename << get_prep_sub_dir<T>(prep_data_prefix, N) << "Squares-"
-          << T::type_short() << "-P" << i;
-      cout << "Opening " << filename.str() << endl;
-      outf[i].open(filename.str().c_str(),ios::out | ios::binary);
-      if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
-    }
   for (int i=0; i<ntrip; i++)
     {
       if (!zero)
         a.randomize(G);
-      make_share(Sa,a,N,key,G);
       c = a * a;
-      make_share(Sc,c,N,key,G);
-      for (int j=0; j<N; j++)
-        { Sa[j].output(outf[j],false);
-          Sc[j].output(outf[j],false);
-        }
+      files.output_shares(a);
+      files.output_shares(c);
     }
-  check_files(outf, N);
-  for (int i=0; i<N; i++)
-    { outf[i].close(); }
-  delete[] outf;
+  check_files(files.outf, N);
 }
 
 /* N      = Number players
@@ -128,30 +111,15 @@ void make_bits(const typename T::mac_type& key, int N, int ntrip, bool zero,
   PRNG G;
   G.ReSeed();
 
-  ofstream* outf=new ofstream[N];
+  Files<T> files(N, key, prep_data_prefix, DATA_BIT, thread_num);
   typename T::clear a;
-  vector<T> Sa(N);
   /* Generate Bits */
-  for (int i=0; i<N; i++)
-    { stringstream filename;
-      filename << get_prep_sub_dir<T>(prep_data_prefix, N) << "Bits-"
-          << T::type_short() << "-P" << i
-          << Sub_Data_Files<T>::get_suffix(thread_num);
-      cout << "Opening " << filename.str() << endl;
-      outf[i].open(filename.str().c_str(),ios::out | ios::binary);
-      if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
-    }
   for (int i=0; i<ntrip; i++)
     { if ((G.get_uchar()&1)==0 || zero) { a.assign_zero(); }
       else                       { a.assign_one();  }
-      make_share(Sa,a,N,key,G);
-      for (int j=0; j<N; j++)
-        { Sa[j].output(outf[j],false); }
+      files.output_shares(a);
     }
-  check_files(outf, N);
-  for (int i=0; i<N; i++)
-    { outf[i].close(); }
-  delete[] outf;
+  check_files(files.outf, N);
 }
 
 template<class T>
@@ -206,8 +174,6 @@ void FakeParams::make_edabits(const typename T::mac_type& key, int N, int ntrip,
 
 /* N      = Number players
  * ntrip  = Number inputs needed
- * str    = "2" or "p"
- *
  */
 template<class T>
 void make_inputs(const typename T::mac_type& key,int N,int ntrip,const string& str,bool zero)
@@ -228,6 +194,7 @@ void make_inputs(const typename T::mac_type& key,int N,int ntrip,const string& s
               << T::type_short() << "-P" << i << "-" << player;
           cout << "Opening " << filename.str() << endl;
           outf[i].open(filename.str().c_str(),ios::out | ios::binary);
+          file_signature<T>().output(outf[i]);
           if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
         }
       for (int i=0; i<ntrip; i++)
@@ -795,7 +762,7 @@ int FakeParams::generate()
 
   gf2n_short keytt;
   generate_mac_keys<GC::TinierShare<gf2n_short>>(keytt, nplayers, prep_data_prefix);
-  make_minimal<GC::TinierShare<gf2n_short>>(keytt, nplayers, default_num / 64, zero);
+  make_minimal<GC::TinierShare<gf2n_short>>(keytt, nplayers, default_num, zero);
 
   make_dabits<T>(keyp, nplayers, default_num, zero, keytt);
   make_edabits<T>(keyp, nplayers, default_num, zero, false_type(), keytt);
@@ -804,6 +771,8 @@ int FakeParams::generate()
     {
       make_mult_triples<GC::MaliciousCcdShare<gf2n_short>>({}, nplayers,
           default_num, zero, prep_data_prefix);
+      make_bits<GC::MaliciousCcdShare<gf2n_short>>({}, nplayers,
+          default_num, zero);
     }
 
   generate_field<typename T::clear>(T::clear::prime_field);

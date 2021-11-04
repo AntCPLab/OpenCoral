@@ -8,27 +8,23 @@ void Memory<T>::minimum_size(RegType secret_type, RegType clear_type,
     const Program &program, const string& threadname)
 {
   (void) threadname;
-  unsigned sizes[MAX_SECRECY_TYPE];
-  sizes[SECRET]= program.direct_mem(secret_type);
-  sizes[CLEAR] = program.direct_mem(clear_type);
-  if (sizes[SECRET] > size_s())
-    {
-#ifdef DEBUG_MEMORY
-      cerr << threadname << " needs more secret " << T::type_string() << " memory, resizing to "
-          << sizes[SECRET] << endl;
-#endif
-      resize_s(sizes[SECRET]);
-    }
-  if (sizes[CLEAR] > size_c())
-    {
-#ifdef DEBUG_MEMORY
-      cerr << threadname << " needs more clear " << T::type_string() << " memory, resizing to "
-          << sizes[CLEAR] << endl;
-#endif
-      resize_c(sizes[CLEAR]);
-    }
+  MS.minimum_size(program.direct_mem(secret_type));
+  MC.minimum_size(program.direct_mem(clear_type));
 }
 
+template<class T>
+void MemoryPart<T>::minimum_size(size_t size)
+{
+  try
+  {
+      if (size > this->size())
+          this->resize(size);
+  }
+  catch (bad_alloc&)
+  {
+      throw insufficient_memory(size, T::type_string());
+  }
+}
 
 template<class T>
 ostream& operator<<(ostream& s,const Memory<T>& M)

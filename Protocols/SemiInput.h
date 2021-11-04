@@ -10,6 +10,9 @@
 
 template<class T> class SemiMC;
 
+/**
+ * Additive secret sharing input protocol
+ */
 template<class T>
 class SemiInput : public IndividualInput<T>
 {

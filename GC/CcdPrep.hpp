@@ -23,6 +23,7 @@ CcdPrep<T>::~CcdPrep()
 template<class T>
 void CcdPrep<T>::set_protocol(typename T::Protocol& protocol)
 {
+    auto& thread = ShareThread<T>::s();
     assert(thread.MC);
     part_proc = new SubProcessor<typename T::part_type>(
             thread.MC->get_part_MC(), part_prep, protocol.get_part().P);

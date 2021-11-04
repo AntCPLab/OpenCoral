@@ -10,6 +10,9 @@
 
 template<class T> class SpdzWiseInput;
 
+/**
+ * Honest-majority protocol with MAC check
+ */
 template<class T>
 class SpdzWise : public ProtocolBase<T>
 {

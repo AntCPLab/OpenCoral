@@ -8,6 +8,9 @@
 
 #include "Protocols/Replicated.h"
 
+/**
+ * Protocol with optimistic multiplication and postponed sacrifice
+ */
 template<class T>
 class PostSacrifice : public ProtocolBase<T>
 {

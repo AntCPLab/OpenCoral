@@ -70,7 +70,7 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
         const Program& program)
 : ArithmeticProcessor(machine.opts, thread_num),DataF(machine, &Procp, &Proc2),P(P),
   MC2(MC2),MCp(MCp),machine(machine),
-  share_thread(machine.get_N(), machine.opts, P, machine.get_bit_mac_key(), DataF.usage),
+  share_thread(DataF.DataFb, P, machine.get_bit_mac_key()),
   Procb(machine.bit_memories),
   Proc2(*this,MC2,DataF.DataF2,P),Procp(*this,MCp,DataF.DataFp,P),
   privateOutput2(Proc2),privateOutputp(Procp),
@@ -94,21 +94,8 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
   secure_prng.ReSeed();
   shared_prng.SeedGlobally(P, false);
 
-  // only output on party 0 if not interactive
-  bool always_stdout = machine.opts.cmd_private_output_file == ".";
-  bool output = P.my_num() == 0 or machine.opts.interactive or always_stdout;
-  out.activate(output);
-  Procb.out.activate(output);
-
-  if (not always_stdout)
-    setup_redirection(P.my_num(), thread_num, opts);
-
-  if (stdout_redirect_file.is_open())
-  {
-    out.redirect_to_file(stdout_redirect_file);
-    Procb.out.redirect_to_file(stdout_redirect_file);
-  }
-
+  setup_redirection(P.my_num(), thread_num, opts, out);
+  Procb.out = out;
 }
 
 
@@ -266,8 +253,9 @@ void Processor<sint, sgf2n>::split(const Instruction& instruction)
 // If message_type is > 0, send message_type in bytes 0 - 3, to allow an external client to
 //  determine the data structure being sent in a message.
 template<class sint, class sgf2n>
-void Processor<sint, sgf2n>::write_socket(const RegType reg_type, int socket_id,
-    int message_type, const vector<int>& registers, int size)
+void Processor<sint, sgf2n>::write_socket(const RegType reg_type,
+    bool send_macs, int socket_id, int message_type,
+    const vector<int>& registers, int size)
 {
   int m = registers.size();
   socket_stream.reset_write_head();
@@ -283,9 +271,12 @@ void Processor<sint, sgf2n>::write_socket(const RegType reg_type, int socket_id,
         {
           if (reg_type == SINT)
             {
-              // Send vector of secret shares
-              get_Sp_ref(registers[i] + j).pack(socket_stream,
-                  sint::get_rec_factor(P.my_num(), P.num_players()));
+              // Send vector of secret shares and optionally macs
+              if (send_macs)
+                get_Sp_ref(registers[i] + j).pack(socket_stream);
+              else
+                get_Sp_ref(registers[i] + j).pack(socket_stream,
+                    sint::get_rec_factor(P.my_num(), P.num_players()));
             }
           else if (reg_type == CINT)
             {
@@ -522,7 +513,7 @@ void SubProcessor<T>::dotprods(const vector<int>& reg, int size)
 
 template<class T>
 void SubProcessor<T>::matmuls(const vector<T>& source,
-        const Instruction& instruction, int a, int b)
+        const Instruction& instruction, size_t a, size_t b)
 {
     auto& dim = instruction.get_start();
     auto A = source.begin() + a;
@@ -549,7 +540,7 @@ void SubProcessor<T>::matmuls(const vector<T>& source,
 
 template<class T>
 void SubProcessor<T>::matmulsm(const CheckVector<T>& source,
-        const Instruction& instruction, int a, int b)
+        const Instruction& instruction, size_t a, size_t b)
 {
     auto& dim = instruction.get_start();
     auto C = S.begin() + (instruction.get_r(0));

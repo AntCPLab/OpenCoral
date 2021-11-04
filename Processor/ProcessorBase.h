@@ -12,6 +12,7 @@
 using namespace std;
 
 #include "Tools/ExecutionStats.h"
+#include "Tools/SwitchableOutput.h"
 #include "OnlineOptions.h"
 
 class ProcessorBase
@@ -21,6 +22,7 @@ class ProcessorBase
 
   ifstream input_file;
   string input_filename;
+  size_t input_counter;
 
 protected:
   // Optional argument to tape
@@ -33,6 +35,8 @@ public:
   ExecutionStats stats;
 
   ofstream stdout_redirect_file;
+
+  ProcessorBase();
 
   void pushi(long x) { stacki.push(x); }
   void popi(long& x) { x = stacki.top(); stacki.pop(); }
@@ -55,7 +59,8 @@ public:
   template<class T>
   T get_input(istream& is, const string& input_filename, const int* params);
 
-  void setup_redirection(int my_nu, int thread_num, OnlineOptions& opts);
+  void setup_redirection(int my_nu, int thread_num, OnlineOptions& opts,
+      SwitchableOutput& out);
 };
 
 #endif /* PROCESSOR_PROCESSORBASE_H_ */

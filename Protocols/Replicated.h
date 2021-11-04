@@ -26,6 +26,9 @@ template<class T> class MAC_Check_Base;
 template<class T> class Preprocessing;
 class Instruction;
 
+/**
+ * Base class for replicated three-party protocols
+ */
 class ReplicatedBase
 {
 public:
@@ -41,6 +44,9 @@ public:
     int get_n_relevant_players() { return P.num_players() - 1; }
 };
 
+/**
+ * Abstract base class for multiplication protocols
+ */
 template <class T>
 class ProtocolBase
 {
@@ -67,17 +73,27 @@ public:
     void multiply(vector<T>& products, vector<pair<T, T>>& multiplicands,
             int begin, int end, SubProcessor<T>& proc);
 
+    /// Single multiplication
     T mul(const T& x, const T& y);
 
+    /// Initialize multiplication round
     virtual void init_mul(SubProcessor<T>* proc) = 0;
+    /// Schedule multiplication of operand pair
     virtual typename T::clear prepare_mul(const T& x, const T& y, int n = -1) = 0;
+    /// Run multiplication protocol
     virtual void exchange() = 0;
+    /// Get next multiplication result
     virtual T finalize_mul(int n = -1) = 0;
+    /// Store next multiplication result in ``res``
     virtual void finalize_mult(T& res, int n = -1);
 
+    /// Initialize dot product round
     void init_dotprod(SubProcessor<T>* proc) { init_mul(proc); }
+    /// Add operand pair to current dot product
     void prepare_dotprod(const T& x, const T& y) { prepare_mul(x, y); }
+    /// Finish dot product
     void next_dotprod() {}
+    /// Get next dot product result
     T finalize_dotprod(int length);
 
     virtual T get_random();
@@ -106,6 +122,9 @@ public:
     { throw runtime_error("CISC instructions not implemented"); }
 };
 
+/**
+ * Semi-honest replicated three-party protocol
+ */
 template <class T>
 class Replicated : public ReplicatedBase, public ProtocolBase<T>
 {

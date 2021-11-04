@@ -19,6 +19,9 @@ template<int K, int S> class PostSacriRepRingShare;
 template<class T, class U>
 void sacrifice(const vector<array<T, 5>>& check_triples, Player& P);
 
+/**
+ * Random bit generation from semi-honest protocol with sacrifice against square
+ */
 template<class T>
 class MaliciousBitOnlyRepPrep : public virtual BufferPrep<T>
 {
@@ -39,6 +42,9 @@ public:
     void init_honest(Player& P);
 };
 
+/**
+ * Random triple/square from semi-honest protocol with sacrifice
+ */
 template<class T>
 class MaliciousRepPrep : public MaliciousBitOnlyRepPrep<T>
 {

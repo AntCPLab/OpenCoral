@@ -97,15 +97,14 @@ replicated: rep-field rep-ring rep-bin
 spdz2k: spdz2k-party.x ot-offline.x Check-Offline-Z2k.x galois-degree.x Fake-Offline.x
 mascot: mascot-party.x spdz2k mama-party.x
 
-tldr:
-	-echo ARCH = -march=native >> CONFIG.mine
-	$(MAKE) mascot-party.x
-
 ifeq ($(OS), Darwin)
 tldr: mac-setup
 else
-tldr: mpir
+tldr: mpir linux-machine-setup
 endif
+
+tldr:
+	$(MAKE) mascot-party.x
 
 ifeq ($(MACHINE), aarch64)
 tldr: simde/simde
@@ -143,8 +142,6 @@ static-release: static-dir $(patsubst Machines/%.cpp, static/%.x, $(wildcard Mac
 
 Fake-ECDSA.x: ECDSA/Fake-ECDSA.cpp ECDSA/P256Element.o $(COMMON) Processor/PrepBase.o
 	$(CXX) -o $@ $^ $(CFLAGS) $(LDLIBS)
-
-Check-Offline.x: $(PROCESSOR)
 
 ot.x: $(OT) $(COMMON) Machines/OText_main.o Machines/OTMachine.o $(LIBSIMPLEOT)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDLIBS)
@@ -285,11 +282,21 @@ mpir: mpir-setup
 	-echo MY_CFLAGS += -I./local/include >> CONFIG.mine
 	-echo MY_LDLIBS += -Wl,-rpath -Wl,$(CURDIR)/local/lib -L$(CURDIR)/local/lib >> CONFIG.mine
 
-mac-setup:
+mac-setup: mac-machine-setup
 	brew install openssl boost libsodium mpir yasm ntl
-	-echo MY_CFLAGS += -I/usr/local/opt/openssl/include >> CONFIG.mine
-	-echo MY_LDLIBS += -L/usr/local/opt/openssl/lib >> CONFIG.mine
-	-echo USE_NTL = 1 >> CONFIG.mine
+	-echo MY_CFLAGS += -I/usr/local/opt/openssl/include -I/opt/homebrew/opt/openssl/include -I/opt/homebrew/include >> CONFIG.mine
+	-echo MY_LDLIBS += -L/usr/local/opt/openssl/lib -L/opt/homebrew/lib -L/opt/homebrew/opt/openssl/lib >> CONFIG.mine
+#	-echo USE_NTL = 1 >> CONFIG.mine
+
+ifeq ($(MACHINE), aarch64)
+mac-machine-setup:
+	-echo ARCH = >> CONFIG.mine
+linux-machine-setup:
+	-echo ARCH = -march=armv8.2-a+crypto >> CONFIG.mine
+else
+mac-machine-setup:
+linux-machine-setup:
+endif
 
 simde/simde:
 	git submodule update --init simde

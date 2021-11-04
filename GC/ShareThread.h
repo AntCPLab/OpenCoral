@@ -32,9 +32,9 @@ public:
 
     Preprocessing<T>& DataF;
 
-    ShareThread(const Names& N, OnlineOptions& opts, DataPositions& usage);
-    ShareThread(const Names& N, OnlineOptions& opts, Player& P,
-            typename T::mac_key_type mac_key, DataPositions& usage);
+    ShareThread(Preprocessing<T>& prep);
+    ShareThread(Preprocessing<T>& prep, Player& P,
+            typename T::mac_key_type mac_key);
     virtual ~ShareThread();
 
     virtual typename T::MC* new_mc(typename T::mac_key_type mac_key)
@@ -54,6 +54,7 @@ public:
     DataPositions usage;
 
     StandaloneShareThread(int i, ThreadMaster<T>& master);
+    ~StandaloneShareThread();
 
     void pre_run();
     void post_run() { ShareThread<T>::post_run(); }

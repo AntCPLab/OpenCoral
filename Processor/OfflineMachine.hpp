@@ -8,6 +8,7 @@
 
 #include "OfflineMachine.h"
 #include "Protocols/mac_key.hpp"
+#include "Tools/Buffer.h"
 
 template<class W>
 template<class V>
@@ -39,8 +40,8 @@ int OfflineMachine<W>::run()
     T::bit_type::mac_key_type::init_field();
     auto binary_mac_key = read_generate_write_mac_key<
             typename T::bit_type::part_type>(P);
-    GC::ShareThread<typename T::bit_type> thread(playerNames,
-            OnlineOptions::singleton, P, binary_mac_key, usage);
+    typename T::bit_type::LivePrep bit_prep(usage);
+    GC::ShareThread<typename T::bit_type> thread(bit_prep, P, binary_mac_key);
 
     generate<T>();
     generate<typename T::bit_type::part_type>();
@@ -74,6 +75,7 @@ void OfflineMachine<W>::generate()
         if (my_usage > 0)
         {
             ofstream out(filename, iostream::out | iostream::binary);
+            file_signature<T>().output(out);
             if (i == DATA_DABIT)
             {
                 for (long long j = 0;
@@ -108,6 +110,7 @@ void OfflineMachine<W>::generate()
         if (n_inputs > 0)
         {
             ofstream out(filename, iostream::out | iostream::binary);
+            file_signature<T>().output(out);
             InputTuple<T> tuple;
             for (long long j = 0;
                     j < DIV_CEIL(n_inputs, BUFFER_SIZE) * BUFFER_SIZE; j++)
@@ -138,6 +141,7 @@ void OfflineMachine<W>::generate()
             if (total > 0)
             {
                 ofstream out(filename, ios::binary);
+                file_signature<T>().output(out);
                 for (int i = 0; i < DIV_CEIL(total, batch) * batch; i++)
                     preprocessing.template get_edabitvec<0>(true, n_bits).output(n_bits,
                             out);

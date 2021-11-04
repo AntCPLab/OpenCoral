@@ -63,8 +63,6 @@ public:
     {
         *this = input;
     }
-
-    void random();
 };
 
 }

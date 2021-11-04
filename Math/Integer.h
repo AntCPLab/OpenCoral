@@ -35,6 +35,8 @@ public:
   static int length() { return N_BITS; }
   static string type_string() { return "integer"; }
 
+  static void specification(octetStream& os);
+
   static void init_default(int lgp) { (void)lgp; }
 
   static bool allows(Dtype type) { return type <= DATA_BIT; }
@@ -126,6 +128,8 @@ class Integer : public IntBase<long>
   Integer(const bigint& x)  { *this = (x > 0) ? x.get_ui() : -x.get_ui(); }
   template<int K>
   Integer(const Z2<K>& x) : Integer(x.get_limb(0)) {}
+  template<int K>
+  Integer(const SignedZ2<K>& x);
   template<int X, int L>
   Integer(const gfp_<X, L>& x);
   Integer(int128 x) : Integer(x.get_lower()) {}

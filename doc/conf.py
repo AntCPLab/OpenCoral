@@ -186,3 +186,6 @@ breathe_projects = {'mp-spdz': 'xml'}
 breathe_default_project = 'mp-spdz'
 import subprocess
 subprocess.call('doxygen', shell=True)
+
+def setup(app):
+    app.add_stylesheet('custom.css')

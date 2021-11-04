@@ -15,16 +15,8 @@ namespace GC
 
 template<class T>
 TinierSharePrep<T>::TinierSharePrep(DataPositions& usage, int input_player) :
-        TinierSharePrep<T>(usage, ShareThread<secret_type>::s(), input_player)
-{
-}
-
-template<class T>
-TinierSharePrep<T>::TinierSharePrep(DataPositions& usage,
-        ShareThread<secret_type>& thread, int input_player) :
         PersonalPrep<T>(usage, input_player), triple_generator(0),
-        real_triple_generator(0),
-        thread(thread)
+        real_triple_generator(0)
 {
 }
 
@@ -87,6 +79,7 @@ void TinierSharePrep<T>::buffer_inputs(int player)
 template<class T>
 void GC::TinierSharePrep<T>::buffer_bits()
 {
+    auto& thread = ShareThread<secret_type>::s();
     this->bits.push_back(
             BufferPrep<T>::get_random_from_inputs(thread.P->num_players()));
 }

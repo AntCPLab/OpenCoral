@@ -30,6 +30,9 @@ public:
     }
 };
 
+/**
+ * 3-party replicated opening with checking via hash
+ */
 template<class T>
 class HashMaliciousRepMC : public MaliciousRepMC<T>
 {

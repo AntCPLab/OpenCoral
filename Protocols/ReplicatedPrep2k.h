@@ -8,6 +8,9 @@
 
 #include "ReplicatedPrep.h"
 
+/**
+ * Preprocessing for three-party replicated secret sharing modulo a power of two
+ */
 template<class T>
 class ReplicatedPrep2k : public virtual SemiHonestRingPrep<T>,
         public virtual ReplicatedRingPrep<T>

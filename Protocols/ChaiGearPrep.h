@@ -8,6 +8,9 @@
 
 #include "FHEOffline/SimpleGenerator.h"
 
+/**
+ * HighGear/ChaiGear preprocessing
+ */
 template<class T>
 class ChaiGearPrep : public MaliciousRingPrep<T>
 {

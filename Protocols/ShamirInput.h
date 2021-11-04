@@ -11,6 +11,10 @@
 #include "ReplicatedInput.h"
 #include "Machines/ShamirMachine.h"
 
+/**
+ * Base class for input protocols where the inputting player sends a share
+ * to every other player
+ */
 template<class T>
 class IndividualInput : public PrepLessInput<T>
 {
@@ -36,6 +40,9 @@ public:
     void finalize_other(int player, T& target, octetStream& o, int n_bits = -1);
 };
 
+/**
+ * Shamir secret sharing input protocol
+ */
 template<class T>
 class ShamirInput : public IndividualInput<T>
 {

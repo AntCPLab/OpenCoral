@@ -8,6 +8,10 @@
 
 #include "Replicated.h"
 
+/**
+ * ATLAS protocol (simple version).
+ * Uses double sharings to reduce degree of Shamir secret sharing.
+ */
 template<class T>
 class Atlas : public ProtocolBase<T>
 {

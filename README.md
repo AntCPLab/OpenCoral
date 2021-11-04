@@ -158,10 +158,6 @@ there are a few things to consider:
     bits via XOR of parties' inputs to generation using the root of a
     random square.
 
-  - `--top-gear`: In protocols with malicious security using
-    homomorphic encryption, this reduces the memory usage and batch
-    size for preprocessing.
-
 #### Paper and Citation
 
 The design of MP-SPDZ is described in [this
@@ -232,15 +228,15 @@ compute the preprocessing time for a particular computation.
 
 #### Requirements
 
- - GCC 5 or later (tested with up to 10) or LLVM/clang 5 or later
-   (only x86; tested with up to 11). For x86, we recommend clang
-   because it performs better.
+ - GCC 5 or later (tested with up to 11) or LLVM/clang 5 or later
+   (tested with up to 12). We recommend clang because it performs better.
  - MPIR library, compiled with C++ support (use flag `--enable-cxx` when running configure). You can use `make -j8 tldr` to install it locally.
- - libsodium library, tested against 1.0.16
+ - libsodium library, tested against 1.0.18
  - OpenSSL, tested against 1.1.1
- - Boost.Asio with SSL support (`libboost-dev` on Ubuntu), tested against 1.65
- - Boost.Thread for BMR (`libboost-thread-dev` on Ubuntu), tested against 1.65
- - x86 or ARM 64-bit CPU (the latter tested with AWS Gravitron)
+ - Boost.Asio with SSL support (`libboost-dev` on Ubuntu), tested against 1.71
+ - Boost.Thread for BMR (`libboost-thread-dev` on Ubuntu), tested against 1.71
+ - x86 or ARM 64-bit CPU (the latter tested with AWS Gravitron and
+   Apple Silicon)
  - Python 3.5 or later
  - NTL library for homomorphic encryption (optional; tested with NTL 10.5)
  - If using macOS, Sierra or later
@@ -249,7 +245,7 @@ compute the preprocessing time for a particular computation.
 
 1) Edit `CONFIG` or `CONFIG.mine` to your needs:
 
- - By default, the binaries are optimized for the CPU you are
+ - On x86, the binaries are optimized for the CPU you are
    compiling on.
    For all optimizations on x86, a CPU supporting AES-NI, PCLMUL, AVX2, BMI2, ADX is
    required. This includes mainstream processors released 2014 or later.
@@ -259,6 +255,9 @@ compute the preprocessing time for a particular computation.
    documentation](https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html)
    for the possible options. To run OT-based protocols on x86 without AVX,
    add `AVX_OT = 0` in addition.
+ - For optimal results on Linux on ARM, add `ARCH =
+   -march=-march=armv8.2-a+crypto` to `CONFIG.mine`. This enables the
+   hardware support for AES.
  - To benchmark online-only protocols or Overdrive offline phases, add the following line at the top: `MY_CFLAGS = -DINSECURE`
  - `PREP_DIR` should point to a local, unversioned directory to store preprocessing data (the default is `Player-Data` in the current directory).
  - For homomorphic encryption with GF(2^40), set `USE_NTL = 1`.

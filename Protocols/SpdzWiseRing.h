@@ -10,6 +10,9 @@
 #include "PostSacrifice.h"
 #include "PostSacriRepRingShare.h"
 
+/**
+ * Three-party replicated secret sharing protocol with MAC modulo a power of two
+ */
 template<class T>
 class SpdzWiseRing : public SpdzWise<T>
 {

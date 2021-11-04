@@ -36,7 +36,7 @@ run_player() {
     fi
     if [[ $bin = Player-Online.x || $bin =~ 'party.x' ]]; then
 	params="$prog $* -pn $port -h localhost"
-	if [[ ! ($bin =~ 'rep' || $bin =~ 'brain') ]]; then
+	if [[ ! ($bin =~ 'rep' || $bin =~ 'brain' || $bin =~ 'yao') ]]; then
 	    params="$params -N $players"
 	fi
     else

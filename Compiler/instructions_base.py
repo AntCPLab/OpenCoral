@@ -481,7 +481,16 @@ def cisc(function):
 
         def expand_merged(self, skip):
             if function.__name__ in skip:
-                return [self], 0
+                good = True
+                for call in self.calls:
+                    if not good:
+                        break
+                    for arg in call[0]:
+                        if isinstance(arg, program.curr_tape.Register) and \
+                           not issubclass(type(self.calls[0][0][0]), type(arg)):
+                            good = False
+                if good:
+                    return [self], 0
             tape = program.curr_tape
             block = tape.BasicBlock(tape, None, None)
             tape.active_basicblock = block
@@ -520,6 +529,7 @@ def cisc(function):
             String.check(name)
             res += String.encode(name)
             for call in self.calls:
+                call[1].pop('nearest', None)
                 assert not call[1]
                 res += int_to_bytes(len(call[0]) + 2)
                 res += int_to_bytes(call[0][0].size)

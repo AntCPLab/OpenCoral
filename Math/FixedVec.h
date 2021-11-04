@@ -49,6 +49,11 @@ public:
         return string(1, T::type_char());
     }
 
+    static void specification(octetStream& os)
+    {
+        T::specification(os);
+    }
+
     template<class U, class V>
     static FixedVec Mul(const FixedVec<U, L>& a, const V& b)
     {

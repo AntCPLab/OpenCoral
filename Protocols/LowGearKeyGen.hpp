@@ -79,6 +79,9 @@ void KeyGenProtocol<X, L>::input(vector<vector_type>& shares, const Rq_Element& 
             shares[j].push_back(inputter.finalize(j));
 }
 
+/**
+ * Binomial secret generation from random bits
+ */
 template<int X, int L>
 template<class T>
 void KeyGenProtocol<X, L>::binomial(vector_type& shares, T& prep)

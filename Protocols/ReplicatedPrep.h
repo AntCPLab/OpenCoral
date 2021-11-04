@@ -25,6 +25,9 @@ namespace GC
 template<class T> class ShareThread;
 }
 
+/**
+ * Abstract base class for live preprocessing
+ */
 template<class T>
 class BufferPrep : public Preprocessing<T>
 {
@@ -78,8 +81,11 @@ public:
 
     int buffer_size;
 
+    /// Key-independent setup if necessary (cryptosystem parameters)
     static void basic_setup(Player& P) { (void) P; }
+    /// Generate keys if necessary
     static void setup(Player& P, typename T::mac_key_type alphai) { (void) P, (void) alphai; }
+    /// Free memory of global cryptosystem parameters
     static void teardown() {}
 
     static void edabit_sacrifice_buckets(vector<edabit<T>>&, size_t, bool, int,
@@ -102,6 +108,7 @@ public:
 
     virtual void get_dabit_no_count(T& a, typename T::bit_type& b);
 
+    /// Get fresh random value
     virtual T get_random();
 
     void push_triples(const vector<array<T, 3>>& triples)
@@ -118,6 +125,9 @@ public:
     void set_proc(SubProcessor<T>* proc) { this->proc = proc; }
 };
 
+/**
+ * Generic preprocessing protocols
+ */
 template<class T>
 class BitPrep : public virtual BufferPrep<T>
 {
@@ -135,15 +145,22 @@ public:
 
     void set_protocol(typename T::Protocol& protocol);
 
+    /// Generate squares from triples
     void buffer_squares();
 
+    /// Generate random bits from inputs without semi-honest security
     void buffer_bits_without_check();
 };
 
+/**
+ * Generate (e)daBit protocols
+ */
 template<class T>
 class RingPrep : public virtual BitPrep<T>
 {
     typedef typename T::bit_type::part_type BT;
+
+    SubProcessor<BT>* bit_part_proc;
 
 protected:
     void buffer_dabits_without_check(vector<dabit<T>>& dabits,
@@ -169,10 +186,11 @@ protected:
 
 public:
     RingPrep(SubProcessor<T>* proc, DataPositions& usage);
-    virtual ~RingPrep() {}
+    virtual ~RingPrep();
 
     vector<T>& get_bits() { return this->bits; }
 
+    /// Generate strict edabits from loose ones
     template<int>
     void sanitize(vector<edabit<T>>& edabits, int n_bits,
             int player = -1, ThreadQueues* queues = 0);
@@ -180,6 +198,7 @@ public:
     void sanitize(vector<edabit<T>>& edabits, int n_bits, int player, int begin,
             int end);
 
+    /// Generic daBit generation with semi-honest security
     void buffer_dabits_without_check(vector<dabit<T>>& dabits,
             size_t begin, size_t end);
     template<int>
@@ -187,6 +206,7 @@ public:
             size_t begin, size_t end,
             Preprocessing<typename T::bit_type::part_type>& bit_prep);
 
+    /// Generic edaBit generation with semi-honest security
     template<int>
     void buffer_edabits_without_check(int n_bits, vector<T>& sums,
             vector<vector<typename T::bit_type::part_type>>& bits, int begin,
@@ -198,6 +218,9 @@ public:
             int begin, int end);
 };
 
+/**
+ * Semi-honest *bit preprocessing
+ */
 template<class T>
 class SemiHonestRingPrep : public virtual RingPrep<T>
 {
@@ -229,6 +252,9 @@ public:
     { this->buffer_sedabits_from_edabits(n_bits); }
 };
 
+/**
+ * daBit preprocessing with malicious security
+ */
 template<class T>
 class MaliciousDabitOnlyPrep : public virtual RingPrep<T>
 {
@@ -250,6 +276,9 @@ public:
     virtual void buffer_dabits(ThreadQueues* queues);
 };
 
+/**
+ * Random bit and edaBit preprocessing with malicious security
+ */
 template<class T>
 class MaliciousRingPrep : public virtual MaliciousDabitOnlyPrep<T>
 {
@@ -301,6 +330,9 @@ public:
     virtual void buffer_edabits(bool strict, int n_bits, ThreadQueues* queues);
 };
 
+/**
+ * Semi-honest preprocessing with honest majority (no (e)daBits)
+ */
 template<class T>
 class ReplicatedRingPrep : public virtual BitPrep<T>
 {
@@ -319,6 +351,9 @@ public:
     virtual void buffer_bits() { this->buffer_bits_without_check(); }
 };
 
+/**
+ * Semi-honest preprocessing with honest majority (including (e)daBits)
+ */
 template<class T>
 class ReplicatedPrep : public virtual ReplicatedRingPrep<T>,
         public virtual SemiHonestRingPrep<T>

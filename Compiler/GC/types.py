@@ -309,6 +309,8 @@ class cbits(bits):
         res = type(self)()
         inst.notcb(self.n, res, self)
         return res
+    def __eq__(self, other):
+        raise CompilerError('equality not implemented')
     def print_reg(self, desc=''):
         inst.print_regb(self, desc)
     def print_reg_plain(self):

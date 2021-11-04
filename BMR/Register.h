@@ -243,6 +243,9 @@ public:
 	template <class T>
 	static T get_input(int from, GC::Processor<T>& processor, int n_bits)
 	{ return T::input(from, processor.get_input(n_bits), n_bits); }
+	template<class U>
+	static void reveal_inst(GC::Processor<U>& processor, const vector<int>& args)
+	{ processor.reveal(args); }
 
 	template<class T>
 	static void convcbit(Integer& dest, const GC::Clear& source, T&)

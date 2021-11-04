@@ -26,7 +26,7 @@ class thread_info
 
   static void* Main_Func(void *ptr);
 
-  static void purge_preprocessing(const Names& N);
+  static void purge_preprocessing(const Names& N, int thread_num);
 
   template<class T>
   static void print_usage(ostream& o, const vector<T>& regs,

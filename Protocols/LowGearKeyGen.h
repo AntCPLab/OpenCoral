@@ -14,6 +14,9 @@
 #include "Math/gfp.h"
 #include "Math/gfpvar.h"
 
+/**
+ * Homomorphic key component generation (modulo a prime) using MASCOT
+ */
 template<int X, int L>
 class KeyGenProtocol
 {
@@ -55,6 +58,9 @@ public:
             vector<share_type>& shares);
 };
 
+/**
+ * Semi-homomorphic key generation using MASCOT
+ */
 template<int L>
 class LowGearKeyGen : public KeyGenProtocol<1, L>
 {

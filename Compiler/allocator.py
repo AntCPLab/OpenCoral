@@ -19,6 +19,8 @@ class BlockAllocator:
         self.by_address = {}
 
     def by_size(self, size):
+        if size >= 2 ** 32:
+            raise CompilerError('size exceeds addressing capability')
         return self.by_logsize[int(math.log(size, 2))][size]
 
     def push(self, address, size):

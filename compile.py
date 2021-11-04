@@ -78,7 +78,7 @@ def main():
                       "(number of parties as argument)")
     parser.add_option("-C", "--CISC", action="store_true", dest="cisc",
                       help="faster CISC compilation mode")
-    parser.add_option("-K", "--keep-cisc", action="store_true", dest="keep_cisc",
+    parser.add_option("-K", "--keep-cisc", dest="keep_cisc",
                       help="don't translate CISC instructions")
     parser.add_option("-l", "--flow-optimization", action="store_true",
                       dest="flow_optimization", help="optimize control flow")

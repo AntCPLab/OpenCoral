@@ -42,9 +42,6 @@ class Machine : public BaseMachine
   typename sgf2n::mac_key_type alpha2i;
   typename sint::bit_type::mac_key_type alphabi;
 
-  // Keep record of used offline data
-  DataPositions pos;
-
   Player* P;
 
   void load_program(const string& threadname, const string& filename);
@@ -83,8 +80,8 @@ class Machine : public BaseMachine
 
   const Names& get_N() { return N; }
 
-  DataPositions run_tapes(const vector<int> &args, Preprocessing<sint> *prep,
-      Preprocessing<typename sint::bit_type> *bit_prep);
+  DataPositions run_tapes(const vector<int> &args,
+      Data_Files<sint, sgf2n>& DataF);
   void fill_buffers(int thread_number, int tape_number,
       Preprocessing<sint> *prep,
       Preprocessing<typename sint::bit_type> *bit_prep);
@@ -93,7 +90,8 @@ class Machine : public BaseMachine
       Preprocessing<sint> *prep, true_type);
   template<int = 0>
   void fill_matmul(int, int, Preprocessing<sint>*, false_type) {}
-  DataPositions run_tape(int thread_number, int tape_number, int arg);
+  DataPositions run_tape(int thread_number, int tape_number, int arg,
+      const DataPositions& pos);
   DataPositions join_tape(int thread_number);
   void run();
 

@@ -80,6 +80,7 @@ public:
     {
     }
 
+    void pack(octetStream& os, bool full = true) const;
     void pack(octetStream& os, open_type factor) const;
 };
 

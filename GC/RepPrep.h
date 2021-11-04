@@ -22,7 +22,6 @@ class RepPrep : public PersonalPrep<T>, ShiftableTripleBuffer<T>
     ReplicatedBase* protocol;
 
 public:
-    RepPrep(DataPositions& usage, ShareThread<T>& thread);
     RepPrep(DataPositions& usage, int input_player = PersonalPrep<T>::SECURE);
     ~RepPrep();
 

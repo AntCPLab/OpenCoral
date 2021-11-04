@@ -59,13 +59,9 @@ void check_mult_triples(const typename T::mac_key_type& key,int N,vector<Sub_Dat
 
       cout << n << " triples of type " << T::type_string() << endl;
   }
-  catch (file_error& e)
-  {
-      cout << e.what() << " after " << n << " triples of type " << T::type_string() << endl;
-  }
   catch (exception& e)
   {
-      cout << "Error after " << n << " triples of type " << T::type_string() << endl;
+      cout << "Error '" << e.what() << "' after " << n << " triples of type " << T::type_string() << endl;
   }
 }
 

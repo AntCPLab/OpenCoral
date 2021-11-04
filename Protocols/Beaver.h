@@ -17,6 +17,9 @@ template<class T> class SubProcessor;
 template<class T> class MAC_Check_Base;
 class Player;
 
+/**
+ * Beaver multiplication
+ */
 template<class T>
 class Beaver : public ProtocolBase<T>
 {

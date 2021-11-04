@@ -19,6 +19,11 @@ struct InputTuple
   static string type_string()
     { return T::type_string(); }
 
+  static void specification(octetStream& os)
+    {
+      T::specification(os);
+    }
+
   InputTuple() {}
 
   InputTuple(const T& share, const typename T::open_type& value) : share(share), value(value) {}

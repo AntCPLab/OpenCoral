@@ -7,12 +7,12 @@
 #define GC_NOSHARE_H_
 
 #include "Processor/DummyProtocol.h"
-#include "BMR/Register.h"
-#include "Tools/SwitchableOutput.h"
 #include "Protocols/ShareInterface.h"
 
 class InputArgs;
 class ArithmeticProcessor;
+class BlackHole;
+class SwitchableOutput;
 
 namespace GC
 {
@@ -110,7 +110,7 @@ public:
 
     typedef NoShare small_type;
 
-    typedef BlackHole out_type;
+    typedef SwitchableOutput out_type;
 
     static const bool is_real = false;
 
@@ -122,6 +122,11 @@ public:
     static string type_string()
     {
         return "no";
+    }
+
+    static void specification(octetStream&)
+    {
+        fail();
     }
 
     static int size()
@@ -171,6 +176,8 @@ public:
     NoShare& operator+=(const NoShare&) { fail(); return *this; }
 
     NoShare get_bit(int) const { fail(); return {}; }
+
+    void xor_bit(int, NoShare) const { fail(); }
 
     void invert(int, NoShare) { fail(); }
 

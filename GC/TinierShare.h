@@ -106,11 +106,6 @@ public:
                 party.MC->get_alphai());
     }
 
-    void random()
-    {
-        *this = get_party().DataF.get_part().get_bit();
-    }
-
     This lsb() const
     {
         return *this;

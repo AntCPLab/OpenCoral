@@ -26,6 +26,8 @@ class FakeProtocol : public ProtocolBase<T>
 
     vector<size_t> trunc_stats;
 
+    map<string, size_t> cisc_stats;
+
 public:
     Player& P;
 
@@ -47,6 +49,10 @@ public:
         }
         if (expected != 0)
             cerr << "Expected truncation failures: " << expected << endl;
+        for (auto& x : cisc_stats)
+        {
+            cerr << x.second << " " << x.first << endl;
+        }
     }
 
     template<int>
@@ -190,8 +196,21 @@ public:
 
     void cisc(SubProcessor<T>& processor, const Instruction& instruction)
     {
+        cisc(processor, instruction, T::characteristic_two);
+    }
+
+    template<int = 0>
+    void cisc(SubProcessor<T>&, const Instruction&, true_type)
+    {
+        throw not_implemented();
+    }
+
+    template<int = 0>
+    void cisc(SubProcessor<T>& processor, const Instruction& instruction, false_type)
+    {
         int r0 = instruction.get_r(0);
         string tag((char*)&r0, 4);
+        cisc_stats[tag.c_str()]++;
         auto& args = instruction.get_start();
         if (tag == string("LTZ\0", 4))
         {
@@ -222,6 +241,56 @@ public:
                     auto& res = processor.get_S()[args[i + 2] + j];
                     res = ((T(processor.get_S()[args[i + 3] + j])
                             + (T(s) << (k - 1))) >> m) - (T(s) << (k - m - 1));
+                }
+            }
+        }
+        else if (tag == "FPDi")
+        {
+            for (size_t i = 0; i < args.size(); i += args[i])
+            {
+                assert(i + args[i] <= args.size());
+                int f = args.at(i + 6);
+                for (int j = 0; j < args[i + 1]; j++)
+                {
+                    auto& res = processor.get_S()[args[i + 2] + j];
+                    mpf_class a[2];
+                    for (int k = 0; k < 2; k++)
+                        a[k] = bigint(typename T::clear(
+                                processor.get_S()[args[i + 3 + k] + j]));
+                    if (a[1] != 0)
+                        res = bigint(a[0] / a[1] * exp2(f));
+                    else
+                        res = 0;
+                }
+            }
+        }
+        else if (tag == "exp2")
+        {
+            for (size_t i = 0; i < args.size(); i += args[i])
+            {
+                assert(i + args[i] <= args.size());
+                int f = args.at(i + 5);
+                for (int j = 0; j < args[i + 1]; j++)
+                {
+                    auto& res = processor.get_S()[args[i + 2] + j];
+                    auto a = bigint(typename T::clear(
+                                    processor.get_S()[args[i + 3] + j]));
+                    res = bigint(round(exp2(mpf_class(a).get_d() / exp2(f) + f)));
+                }
+            }
+        }
+        else if (tag == "log2")
+        {
+            for (size_t i = 0; i < args.size(); i += args[i])
+            {
+                assert(i + args[i] <= args.size());
+                int f = args.at(i + 5);
+                for (int j = 0; j < args[i + 1]; j++)
+                {
+                    auto& res = processor.get_S()[args[i + 2] + j];
+                    auto a = bigint(typename T::clear(
+                                    processor.get_S()[args[i + 3] + j]));
+                    res = bigint(round((log2(mpf_class(a).get_d()) - f) * exp2(f)));
                 }
             }
         }

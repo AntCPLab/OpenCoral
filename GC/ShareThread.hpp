@@ -18,26 +18,28 @@ namespace GC
 
 template<class T>
 StandaloneShareThread<T>::StandaloneShareThread(int i, ThreadMaster<T>& master) :
-        ShareThread<T>(master.N, master.opts, usage), Thread<T>(i, master)
+        ShareThread<T>(*Preprocessing<T>::get_new(master.opts.live_prep,
+                master.N, usage)),
+        Thread<T>(i, master)
 {
 }
 
 template<class T>
-ShareThread<T>::ShareThread(const Names& N, OnlineOptions& opts, DataPositions& usage) :
-        P(0), MC(0), protocol(0), DataF(
-                opts.live_prep ?
-                        *static_cast<Preprocessing<T>*>(new typename T::LivePrep(
-                                usage, *this)) :
-                        *static_cast<Preprocessing<T>*>(new BitPrepFiles<T>(N,
-                                get_prep_sub_dir<T>(PREP_DIR, N.num_players()),
-                                usage, BaseMachine::thread_num)))
+StandaloneShareThread<T>::~StandaloneShareThread()
+{
+    delete &this->DataF;
+}
+
+template<class T>
+ShareThread<T>::ShareThread(Preprocessing<T>& prep) :
+    P(0), MC(0), protocol(0), DataF(prep)
 {
 }
 
 template<class T>
-ShareThread<T>::ShareThread(const Names& N, OnlineOptions& opts, Player& P,
-        typename T::mac_key_type mac_key, DataPositions& usage) :
-        ShareThread(N, opts, usage)
+ShareThread<T>::ShareThread(Preprocessing<T>& prep, Player& P,
+        typename T::mac_key_type mac_key) :
+        ShareThread(prep)
 {
     pre_run(P, mac_key);
 }
@@ -45,7 +47,6 @@ ShareThread<T>::ShareThread(const Names& N, OnlineOptions& opts, Player& P,
 template<class T>
 ShareThread<T>::~ShareThread()
 {
-    delete &DataF;
     if (MC)
         delete MC;
     if (protocol)
@@ -76,12 +77,6 @@ void ShareThread<T>::post_run()
 {
     protocol->check();
     MC->Check(*this->P);
-#ifndef INSECURE
-#ifdef VERBOSE
-    cerr << "Removing used pre-processed data" << endl;
-#endif
-    DataF.prune();
-#endif
 }
 
 template<class T>

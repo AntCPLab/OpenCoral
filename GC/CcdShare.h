@@ -74,13 +74,6 @@ public:
         *this = input;
     }
 
-    void random()
-    {
-        CcdSecret<T> tmp;
-        ShareThread<CcdSecret<T>>::s().DataF.get_one(DATA_BIT, tmp);
-        *this = tmp.get_reg(0);
-    }
-
     This& operator^=(const This& other)
     {
         *this += other;

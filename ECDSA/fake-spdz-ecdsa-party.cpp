@@ -3,6 +3,8 @@
  *
  */
 
+#define NO_MIXED_CIRCUITS
+
 #include "Networking/Server.h"
 #include "Networking/CryptoPlayer.h"
 #include "Math/gfp.h"
@@ -49,8 +51,6 @@ int main(int argc, const char** argv)
     ArithmeticProcessor _({}, 0);
     BaseMachine machine;
     machine.ot_setups.push_back({P, false});
-    GC::ShareThread<typename pShare::bit_type> thread(N,
-            OnlineOptions::singleton, P, {}, usage);
     SubProcessor<pShare> proc(_, MCp, prep, P);
 
     pShare sk, __;

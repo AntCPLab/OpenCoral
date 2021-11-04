@@ -120,12 +120,6 @@ void Secret<T>::store(U& mem,
 }
 
 template <class T>
-void Secret<T>::output(T& reg)
-{
-    reg.output();
-}
-
-template <class T>
 Secret<T>::Secret()
 {
 

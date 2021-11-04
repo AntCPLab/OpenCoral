@@ -88,7 +88,9 @@ CPPFLAGS = $(CFLAGS)
 LD = $(CXX)
 
 ifeq ($(OS), Darwin)
+# for boost with OpenSSL 3
+CFLAGS += -Wno-error=deprecated-declarations
 ifeq ($(USE_NTL),1)
-CFLAGS += -Wno-error=unused-parameter
+CFLAGS += -Wno-error=unused-parameter -Wno-error=deprecated-copy
 endif
 endif

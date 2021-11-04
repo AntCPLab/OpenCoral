@@ -8,6 +8,9 @@
 
 #include "MAC_Check_Base.h"
 
+/**
+ * Replicated semi-honest three-party opening protocol
+ */
 template <class T>
 class ReplicatedMC : public MAC_Check_Base<T>
 {

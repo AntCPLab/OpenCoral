@@ -27,7 +27,7 @@ public:
     static int check_args(const vector<int>& args, int n);
 
     template<class U>
-    static void check_input(const U& in, int n_bits);
+    static void check_input(const U& in, const int* params);
 
     Machine<T>* machine;
     Memories<T>& memories;

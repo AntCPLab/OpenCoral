@@ -32,6 +32,8 @@ public:
 
     OnlineOptions();
     OnlineOptions(ez::ezOptionParser& opt, int argc, const char** argv,
+            false_type);
+    OnlineOptions(ez::ezOptionParser& opt, int argc, const char** argv,
             int default_batch_size = 0, bool default_live_prep = true,
             bool variable_prime_length = false);
     ~OnlineOptions() {}

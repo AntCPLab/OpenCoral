@@ -8,6 +8,9 @@
 
 #include "ReplicatedPrep.h"
 
+/**
+ * ATLAS preprocessing.
+ */
 template<class T>
 class AtlasPrep : public ReplicatedPrep<T>
 {
@@ -21,6 +24,7 @@ public:
     {
     }
 
+    /// Input tuples from random sharings
     void buffer_inputs(int player)
     {
         assert(this->protocol and this->proc);

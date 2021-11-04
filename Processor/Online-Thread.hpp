@@ -352,7 +352,7 @@ void* thread_info<sint, sgf2n>::Main_Func(void* ptr)
     catch (...)
     {
       thread_info<sint, sgf2n>* ti = (thread_info<sint, sgf2n>*)ptr;
-      ti->purge_preprocessing(ti->machine->get_N());
+      ti->purge_preprocessing(ti->machine->get_N(), ti->thread_num);
       throw;
     }
 #endif
@@ -361,13 +361,17 @@ void* thread_info<sint, sgf2n>::Main_Func(void* ptr)
 
 
 template<class sint, class sgf2n>
-void thread_info<sint, sgf2n>::purge_preprocessing(const Names& N)
+void thread_info<sint, sgf2n>::purge_preprocessing(const Names& N, int thread_num)
 {
   cerr << "Purging preprocessed data because something is wrong" << endl;
   try
   {
       Data_Files<sint, sgf2n> df(N);
       df.purge();
+      DataPositions pos;
+      Sub_Data_Files<typename sint::bit_type> bit_df(N, pos, thread_num);
+      bit_df.get_part();
+      bit_df.purge();
   }
   catch(...)
   {

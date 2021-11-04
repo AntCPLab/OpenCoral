@@ -42,7 +42,7 @@ RingMachine<U, V, W>::RingMachine(int argc, const char** argv,
     case L: \
         machine.template run<U<L>, V<gf2n>>(); \
         break;
-    X(64) X(72) X(128)
+    X(64) X(72) X(128) X(192)
 #ifdef RING_SIZE
     X(RING_SIZE)
 #endif

@@ -31,7 +31,7 @@ class SubProcessor
 
   DataPositions bit_usage;
 
-  void resize(int size)       { C.resize(size); S.resize(size); }
+  void resize(size_t size)       { C.resize(size); S.resize(size); }
 
   template<class sint, class sgf2n> friend class Processor;
   template<class U> friend class SPDZ;
@@ -64,10 +64,10 @@ public:
   void muls(const vector<int>& reg, int size);
   void mulrs(const vector<int>& reg);
   void dotprods(const vector<int>& reg, int size);
-  void matmuls(const vector<T>& source, const Instruction& instruction, int a,
-      int b);
-  void matmulsm(const CheckVector<T>& source, const Instruction& instruction, int a,
-      int b);
+  void matmuls(const vector<T>& source, const Instruction& instruction, size_t a,
+      size_t b);
+  void matmulsm(const CheckVector<T>& source, const Instruction& instruction, size_t a,
+      size_t b);
   void conv2ds(const Instruction& instruction);
 
   void input_personal(const vector<int>& args);
@@ -82,12 +82,12 @@ public:
     return C;
   }
 
-  T& get_S_ref(int i)
+  T& get_S_ref(size_t i)
   {
     return S[i];
   }
 
-  typename T::clear& get_C_ref(int i)
+  typename T::clear& get_C_ref(size_t i)
   {
     return C[i];
   }
@@ -136,11 +136,11 @@ public:
     return thread_num;
   }
 
-  const long& read_Ci(int i) const
+  const long& read_Ci(size_t i) const
     { return Ci[i]; }
-  long& get_Ci_ref(int i)
+  long& get_Ci_ref(size_t i)
     { return Ci[i]; }
-  void write_Ci(int i,const long& x)
+  void write_Ci(size_t i, const long& x)
     { Ci[i]=x; }
   CheckVector<long>& get_Ci()
     { return Ci; }
@@ -190,30 +190,30 @@ class Processor : public ArithmeticProcessor
           const Program& program);
   ~Processor();
 
-    const typename sgf2n::clear& read_C2(int i) const
+    const typename sgf2n::clear& read_C2(size_t i) const
       { return Proc2.C[i]; }
-    const sgf2n& read_S2(int i) const
+    const sgf2n& read_S2(size_t i) const
       { return Proc2.S[i]; }
-    typename sgf2n::clear& get_C2_ref(int i)
+    typename sgf2n::clear& get_C2_ref(size_t i)
       { return Proc2.C[i]; }
-    sgf2n& get_S2_ref(int i)
+    sgf2n& get_S2_ref(size_t i)
       { return Proc2.S[i]; }
-    void write_C2(int i,const typename sgf2n::clear& x)
+    void write_C2(size_t i,const typename sgf2n::clear& x)
       { Proc2.C[i]=x; }
-    void write_S2(int i,const sgf2n& x)
+    void write_S2(size_t i,const sgf2n& x)
       { Proc2.S[i]=x; }
   
-    const typename sint::clear& read_Cp(int i) const
+    const typename sint::clear& read_Cp(size_t i) const
       { return Procp.C[i]; }
-    const sint & read_Sp(int i) const
+    const sint & read_Sp(size_t i) const
       { return Procp.S[i]; }
-    typename sint::clear& get_Cp_ref(int i)
+    typename sint::clear& get_Cp_ref(size_t i)
       { return Procp.C[i]; }
-    sint & get_Sp_ref(int i)
+    sint & get_Sp_ref(size_t i)
       { return Procp.S[i]; }
-    void write_Cp(int i,const typename sint::clear& x)
+    void write_Cp(size_t i,const typename sint::clear& x)
       { Procp.C[i]=x; }
-    void write_Sp(int i,const sint & x)
+    void write_Sp(size_t i,const sint & x)
       { Procp.S[i]=x; }
 
   void check();
@@ -229,8 +229,8 @@ class Processor : public ArithmeticProcessor
   // Access to external client sockets for reading clear/shared data
   void read_socket_ints(int client_id, const vector<int>& registers, int size);
 
-  void write_socket(const RegType reg_type, int socket_id, int message_type,
-      const vector<int>& registers, int size);
+  void write_socket(const RegType reg_type, bool send_macs, int socket_id,
+      int message_type, const vector<int>& registers, int size);
 
   void read_socket_vector(int client_id, const vector<int>& registers,
       int size);

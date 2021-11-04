@@ -31,6 +31,11 @@ public:
     {
         tainted = true;
     }
+
+    bool is_tainted()
+    {
+        return tainted;
+    }
 };
 
 } /* namespace GC */

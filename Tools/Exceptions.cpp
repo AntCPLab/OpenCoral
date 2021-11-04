@@ -51,11 +51,35 @@ invalid_opcode::invalid_opcode(int opcode) :
 }
 
 input_error::input_error(const char* name, const string& filename,
-        istream& input_file)
+        istream& input_file, size_t input_counter)
 {
     input_file.clear();
     string token;
     input_file >> token;
     msg += string() + "cannot read " + name + " from " + filename
-            + ", problem with '" + token + "'";
+            + ", problem with '" + token + "' after "
+            + to_string(input_counter);
+}
+
+signature_mismatch::signature_mismatch(const string& filename) :
+        runtime_error("Signature in " + filename + " doesn't match protocol. "
+                "Re-run preprocessing")
+{
+}
+
+insufficient_memory::insufficient_memory(size_t size, const string& type) :
+        runtime_error(
+                "program requires too much " + type + " memory: "
+                        + to_string(size))
+{
+}
+
+not_enough_to_buffer::not_enough_to_buffer(const string& type, const string& filename)  :
+        runtime_error(
+                "Not enough data available for buffer"
+                        + (filename.empty() ? "" : (" in " + filename)) + ". "
+                                "Maybe insufficient preprocessing" + type
+                        + ".\nFor benchmarking, you can activate reusing data by "
+                                "adding -DINSECURE to the compiler options.")
+{
 }

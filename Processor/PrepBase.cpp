@@ -9,15 +9,8 @@
 
 string PrepBase::get_suffix(int thread_num)
 {
-#ifdef INSECURE
     (void) thread_num;
     return "";
-#else
-    if (thread_num >= 0)
-        return "-T" + to_string(thread_num);
-    else
-        return "";
-#endif
 }
 
 string PrepBase::get_filename(const string& prep_data_dir,

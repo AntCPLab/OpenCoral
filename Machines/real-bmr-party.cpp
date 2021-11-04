@@ -3,6 +3,8 @@
  *
  */
 
+#define NO_MIXED_CIRCUITS
+
 #include "BMR/RealProgramParty.hpp"
 #include "Machines/SPDZ.hpp"
 

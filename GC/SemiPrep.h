@@ -26,7 +26,6 @@ class SemiPrep : public BufferPrep<SemiSecret>, ShiftableTripleBuffer<SemiSecret
     SeededPRNG secure_prng;
 
 public:
-    SemiPrep(DataPositions& usage, ShareThread<SemiSecret>& thread);
     SemiPrep(DataPositions& usage, bool = true);
     ~SemiPrep();
 

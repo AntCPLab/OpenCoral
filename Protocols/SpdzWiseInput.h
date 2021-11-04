@@ -8,6 +8,9 @@
 
 #include "ReplicatedInput.h"
 
+/**
+ * Honest-majority input protocol with MAC
+ */
 template<class T>
 class SpdzWiseInput : public InputBase<T>
 {
