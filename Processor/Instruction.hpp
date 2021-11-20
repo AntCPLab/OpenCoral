@@ -805,22 +805,6 @@ bool BaseInstruction::is_direct_memory_access() const
 }
 
 
-inline
-ostream& operator<<(ostream& s,const Instruction& instr)
-{
-  s << instr.opcode << " : ";
-  for (int i=0; i<3; i++)
-    { s << instr.r[i] << " "; }
-  s << " : " << instr.n;
-  if (instr.start.size()!=0)
-    { s << " : " << instr.start.size() << " : ";
-      for (unsigned int i=0; i<instr.start.size(); i++)
-	{ s << instr.start[i] << " "; }
-    }
-  return s;
-} 
-
-
 template<class sint, class sgf2n>
 inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
 {
@@ -1285,6 +1269,10 @@ void Program::execute(Processor<sint, sgf2n>& Proc) const
 
 #ifdef COUNT_INSTRUCTIONS
       Proc.stats[p[Proc.PC].get_opcode()]++;
+#endif
+
+#ifdef OUTPUT_INSTRUCTIONS
+      cerr << instruction << endl;
 #endif
 
       Proc.PC++;
