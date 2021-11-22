@@ -28,6 +28,7 @@ OnlineOptions::OnlineOptions() : playerno(-1)
     bucket_size = 4;
     cmd_private_input_file = "Player-Data/Input";
     cmd_private_output_file = "";
+    file_prep_per_thread = false;
 #ifdef VERBOSE
     verbose = true;
 #else
@@ -171,6 +172,16 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
         );
 
     opt.add(
+            "", // Default.
+            0, // Required?
+            0, // Number of args expected.
+            0, // Delimiter if expecting multiple args.
+            "Preprocessing from files by thread (use with pipes)", // Help description.
+            "-f", // Flag token.
+            "--file-prep-per-thread" // Flag token.
+    );
+
+    opt.add(
             to_string(default_batch_size).c_str(), // Default.
             0, // Required?
             1, // Number of args expected.
@@ -224,6 +235,11 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
         live_prep = not opt.get("-F")->isSet;
     else
         live_prep = opt.get("-L")->isSet;
+    if (opt.isSet("-f"))
+    {
+        live_prep = false;
+        file_prep_per_thread = true;
+    }
     opt.get("-b")->getInt(batch_size);
     opt.get("--memory")->getString(memtype);
     bits_from_squares = opt.isSet("-Q");

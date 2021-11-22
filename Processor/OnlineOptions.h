@@ -29,6 +29,7 @@ public:
     std::string cmd_private_input_file;
     std::string cmd_private_output_file;
     bool verbose;
+    bool file_prep_per_thread;
 
     OnlineOptions();
     OnlineOptions(ez::ezOptionParser& opt, int argc, const char** argv,

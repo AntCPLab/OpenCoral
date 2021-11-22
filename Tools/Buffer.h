@@ -44,6 +44,7 @@ public:
             const char* type = "", const string& field = {});
     void seekg(int pos);
     bool is_up() { return file != 0; }
+    bool is_pipe();
     void try_rewind();
     void prune();
     void purge();

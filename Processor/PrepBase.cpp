@@ -6,11 +6,17 @@
 #include "PrepBase.h"
 
 #include "Data_Files.h"
+#include "OnlineOptions.h"
 
 string PrepBase::get_suffix(int thread_num)
 {
-    (void) thread_num;
-    return "";
+    if (OnlineOptions::singleton.file_prep_per_thread)
+    {
+        assert(thread_num >= 0);
+        return "-T" + to_string(thread_num);
+    }
+    else
+        return "";
 }
 
 string PrepBase::get_filename(const string& prep_data_dir,

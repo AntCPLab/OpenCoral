@@ -26,7 +26,7 @@ Preprocessing<T>* Preprocessing<T>::get_new(
     return get_live_prep(proc, usage);
   else
     return new Sub_Data_Files<T>(machine.get_N(),
-        machine.template prep_dir_prefix<T>(), usage);
+        machine.template prep_dir_prefix<T>(), usage, BaseMachine::thread_num);
 }
 
 template<class T>
@@ -185,6 +185,9 @@ Sub_Data_Files<T>::~Sub_Data_Files()
 template<class T>
 void Sub_Data_Files<T>::seekg(DataPositions& pos)
 {
+  if (OnlineOptions::singleton.file_prep_per_thread)
+    return;
+
   if (T::LivePrep::use_part)
     {
       get_part().seekg(pos);
