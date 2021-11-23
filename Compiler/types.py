@@ -1011,8 +1011,9 @@ class cint(_clear, _int):
             return regint(self) < regint(other)
         else:
             diff = self - other
+            diff += (1 << (bit_length - 1))
             shifted = diff >> (bit_length - 1)
-            res = regint(shifted & 1)
+            res = 1 - regint(shifted & 1)
             return res
 
     def __lt__(self, other):
