@@ -2011,7 +2011,8 @@ class Optimizer:
             i.iadd(1)
             res = True
             if self.tol > 0:
-                res *= (1 - (loss >= 0) * (loss < self.tol)).reveal()
+                res *= (1 - (loss_sum >= 0) * \
+                        (loss_sum < self.tol * n_per_epoch)).reveal()
             return res
 
     def reveal_correctness(self, data, truth, batch_size):
