@@ -19,7 +19,9 @@ int main()
     string prefix = PREP_DIR "ECDSA/";
     mkdir_p(prefix.c_str());
     write_online_setup(prefix, P256Element::Scalar::pr());
-    generate_mac_keys<Share<P256Element::Scalar>>(key, 2, prefix);
-    make_mult_triples<Share<P256Element::Scalar>>(key, 2, 1000, false, prefix);
-    make_inverse<Share<P256Element::Scalar>>(key, 2, 1000, false, prefix);
+    PRNG G;
+    G.ReSeed();
+    generate_mac_keys<Share<P256Element::Scalar>>(key, 2, prefix, G);
+    make_mult_triples<Share<P256Element::Scalar>>(key, 2, 1000, false, prefix, G);
+    make_inverse<Share<P256Element::Scalar>>(key, 2, 1000, false, prefix, G);
 }
