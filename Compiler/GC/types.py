@@ -228,8 +228,8 @@ class cbits(bits):
     max_length = 64
     reg_type = 'cb'
     is_clear = True
-    load_inst = (None, inst.ldmcb)
-    store_inst = (None, inst.stmcb)
+    load_inst = (inst.ldmcbi, inst.ldmcb)
+    store_inst = (inst.stmcbi, inst.stmcb)
     bitdec = inst.bitdecc
     conv_regint = staticmethod(lambda n, x, y: inst.convcint(x, y))
     conv_cint_vec = inst.convcintvec

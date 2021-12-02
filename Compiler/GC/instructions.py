@@ -64,6 +64,8 @@ opcodes = dict(
     MULCBI = 0x21c,
     SHRCBI = 0x21d,
     SHLCBI = 0x21e,
+    LDMCBI = 0x258,
+    STMCBI = 0x259,
     CONVCINTVEC = 0x21f,
     PRINTREGSIGNED = 0x220,
     PRINTREGB = 0x221,
@@ -359,6 +361,26 @@ class stmsbi(base.WriteMemoryInstruction, base.VectorInstruction):
     """
     code = opcodes['STMSBI']
     arg_format = ['sb','ci']
+
+class ldmcbi(base.ReadMemoryInstruction, base.VectorInstruction):
+    """ Copy clear bit memory cell with run-time address to clear bit
+    register.
+
+    :param: destination (cbit)
+    :param: memory address (regint)
+    """
+    code = opcodes['LDMCBI']
+    arg_format = ['cbw','ci']
+
+class stmcbi(base.WriteMemoryInstruction, base.VectorInstruction):
+    """ Copy clear bit register to clear bit memory cell with run-time
+    address.
+
+    :param: source (cbit)
+    :param: memory address (regint)
+    """
+    code = opcodes['STMCBI']
+    arg_format = ['cb','ci']
 
 class ldmsdi(base.ReadMemoryInstruction):
     code = opcodes['LDMSDI']

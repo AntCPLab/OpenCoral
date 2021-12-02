@@ -81,6 +81,8 @@ enum
     SHRCBI = 0x21d,
     SHLCBI = 0x21e,
     CONVCINTVEC = 0x21f,
+    LDMCBI = 0x258,
+    STMCBI = 0x259,
     // don't write
     PRINTREGSIGNED = 0x220,
     PRINTREGB = 0x221,

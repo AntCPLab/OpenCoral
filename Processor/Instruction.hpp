@@ -101,6 +101,8 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case STMSI:
       case LDMSBI:
       case STMSBI:
+      case LDMCBI:
+      case STMCBI:
       case MOVC:
       case MOVS:
       case MOVSB:
