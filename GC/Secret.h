@@ -18,6 +18,7 @@
 #include "Math/gf2nlong.h"
 
 #include "Processor/DummyProtocol.h"
+#include "Processor/Instruction.h"
 
 #include "Tools/FixedVector.h"
 
@@ -121,6 +122,10 @@ public:
     static void convcbit(Integer& dest, const Clear& source,
             Processor<U>& proc)
     { T::convcbit(dest, source, proc); }
+
+    template<class U>
+    static void convcbit2s(Processor<U>& processor, const BaseInstruction& instruction)
+    { T::convcbit2s(processor, instruction); }
 
     Secret();
     Secret(const Integer& x) { *this = x; }

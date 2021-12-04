@@ -230,3 +230,18 @@ void YaoGarbleWire::reveal_inst(Processor& processor, const vector<int>& args)
 	else
 		processor.reveal(args);
 }
+
+void YaoGarbleWire::convcbit2s(GC::Processor<whole_type>& processor,
+		const BaseInstruction& instruction)
+{
+	int unit = GC::Clear::N_BITS;
+	for (int i = 0; i < DIV_CEIL(instruction.get_n(), unit); i++)
+	{
+		auto& dest = processor.S[instruction.get_r(0) + i];
+		int n = min(unsigned(unit), instruction.get_n() - i * unit);
+		dest.resize_regs(n);
+		for (int j = 0; j < n; j++)
+			dest.get_reg(i).public_input(
+					processor.C[instruction.get_r(1) + i].get_bit(j));
+	}
+}

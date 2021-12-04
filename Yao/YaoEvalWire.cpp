@@ -243,6 +243,19 @@ void YaoEvalWire::reveal_inst(Processor& processor, const vector<int>& args)
 	}
 }
 
+void YaoEvalWire::convcbit2s(GC::Processor<whole_type>& processor,
+		const BaseInstruction& instruction)
+{
+	int unit = GC::Clear::N_BITS;
+	for (int i = 0; i < DIV_CEIL(instruction.get_n(), unit); i++)
+	{
+		auto& dest = processor.S[instruction.get_r(0) + i];
+		dest.resize_regs(min(unsigned(unit), instruction.get_n() - i * unit));
+		for (auto& reg : dest.get_regs())
+			reg.set(0);
+	}
+}
+
 template void YaoEvalWire::and_<false>(
         GC::Processor<GC::Secret<YaoEvalWire> >& processor,
         const vector<int>& args);

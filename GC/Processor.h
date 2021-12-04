@@ -100,6 +100,9 @@ public:
 
     void reveal(const vector<int>& args);
 
+    template<int = 0>
+    void convcbit2s(const BaseInstruction& instruction);
+
     void print_reg(int reg, int n, int size);
     void print_reg_plain(Clear& value);
     void print_reg_signed(unsigned n_bits, Integer value);

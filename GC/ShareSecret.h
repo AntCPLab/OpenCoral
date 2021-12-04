@@ -21,6 +21,7 @@ using namespace std;
 #include "Protocols/ReplicatedMC.h"
 #include "Processor/DummyProtocol.h"
 #include "Processor/ProcessorBase.h"
+#include "Processor/Instruction.h"
 
 namespace GC
 {
@@ -73,6 +74,10 @@ public:
 
     template<class T>
     static void convcbit(Integer& dest, const Clear& source, T&) { dest = source; }
+
+    template<class T>
+    static void convcbit2s(Processor<T>& processor, const BaseInstruction& instruction)
+    { processor.convcbit2s(instruction); }
 
     static BitVec get_mask(int n) { return n >= 64 ? -1 : ((1L << n) - 1); }
 

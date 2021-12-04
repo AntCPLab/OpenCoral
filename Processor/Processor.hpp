@@ -220,17 +220,6 @@ void Processor<sint, sgf2n>::convcintvec(const Instruction& instruction)
 }
 
 template<class sint, class sgf2n>
-void Processor<sint, sgf2n>::convcbit2s(const Instruction& instruction)
-{
-  int unit = GC::Clear::N_BITS;
-  for (int i = 0; i < DIV_CEIL(instruction.get_n(), unit); i++)
-    Procb.S[instruction.get_r(0) + i] = sint::bit_type::constant(
-        Procb.C[instruction.get_r(1) + i], P.my_num(),
-        share_thread.MC->get_alphai(),
-        min(unsigned(unit), instruction.get_n() - i * unit));
-}
-
-template<class sint, class sgf2n>
 void Processor<sint, sgf2n>::split(const Instruction& instruction)
 {
   int n = instruction.get_n();

@@ -82,7 +82,7 @@
     X(CONVCBIT, Proc.write_Ci(R0, PC1.get())) \
     X(CONVCINTVEC, Proc.convcintvec(instruction)) \
     X(CONVCBITVEC, Proc.convcbitvec(instruction)) \
-    X(CONVCBIT2S, Proc.convcbit2s(instruction)) \
+    X(CONVCBIT2S, PROC.convcbit2s(instruction)) \
     X(DABIT, Proc.dabit(INST)) \
     X(EDABIT, Proc.edabit(INST)) \
     X(SEDABIT, Proc.edabit(INST, true)) \
@@ -99,6 +99,7 @@
     X(CONVSINT, S0.load_clear(IMM, PI1)) \
     X(CONVCINT, C0 = PI1) \
     X(CONVCBIT, T::convcbit(I0, PC1, PROC)) \
+    X(CONVCBIT2S, T::convcbit2s(PROC, instruction)) \
     X(PRINTCHR, PROC.print_chr(IMM)) \
     X(PRINTSTR, PROC.print_str(IMM)) \
     X(PRINTFLOATPREC, PROC.print_float_prec(IMM)) \

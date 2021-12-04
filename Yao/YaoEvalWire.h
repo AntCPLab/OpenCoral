@@ -10,6 +10,7 @@
 #include "BMR/Gate.h"
 #include "BMR/Register.h"
 #include "Processor/DummyProtocol.h"
+#include "Processor/Instruction.h"
 #include "config.h"
 #include "YaoWire.h"
 
@@ -19,6 +20,8 @@ class ProcessorBase;
 
 class YaoEvalWire : public YaoWire
 {
+	typedef GC::Secret<YaoEvalWire> whole_type;
+
 public:
 	typedef YaoEvaluator Party;
 	typedef YaoEvalInput Input;
@@ -60,6 +63,9 @@ public:
 	static void convcbit(Integer& dest, const GC::Clear& source,
 			GC::Processor<GC::Secret<YaoEvalWire>>&);
 	static void reveal_inst(Processor& processor, const vector<int>& args);
+
+	static void convcbit2s(GC::Processor<whole_type>& processor,
+			const BaseInstruction& instruction);
 
 	void set(const Key& key);
 	void set(Key key, bool external);

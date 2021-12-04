@@ -10,6 +10,7 @@
 #include "BMR/Register.h"
 #include "config.h"
 #include "YaoWire.h"
+#include "Processor/Instruction.h"
 
 #include <map>
 
@@ -19,6 +20,8 @@ class ProcessorBase;
 
 class YaoGarbleWire : public YaoWire
 {
+	typedef GC::Secret<YaoGarbleWire> whole_type;
+
 public:
 	typedef YaoGarbler Party;
 	typedef YaoGarbleInput Input;
@@ -61,6 +64,9 @@ public:
 	static void convcbit(Integer& dest, const GC::Clear& source,
 			GC::Processor<GC::Secret<YaoGarbleWire>>&);
 	static void reveal_inst(Processor& processor, const vector<int>& args);
+
+	static void convcbit2s(GC::Processor<whole_type>& processor,
+			const BaseInstruction& instruction);
 
 	void randomize(PRNG& prng);
 	void set(Key key, bool mask);

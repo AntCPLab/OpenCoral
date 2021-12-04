@@ -332,6 +332,18 @@ void Processor<T>::reveal(const vector<int>& args)
 }
 
 template <class T>
+template <int>
+void Processor<T>::convcbit2s(const BaseInstruction& instruction)
+{
+    int unit = GC::Clear::N_BITS;
+    auto& share_thread = ShareThread<T>::s();
+    for (int i = 0; i < DIV_CEIL(instruction.get_n(), unit); i++)
+        S[instruction.get_r(0) + i] = T::constant(C[instruction.get_r(1) + i],
+                share_thread.P->my_num(), share_thread.MC->get_alphai(),
+                min(unsigned(unit), instruction.get_n() - i * unit));
+}
+
+template <class T>
 void Processor<T>::print_reg(int reg, int n, int size)
 {
 #ifdef DEBUG_VALUES
