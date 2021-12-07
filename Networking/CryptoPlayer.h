@@ -28,6 +28,8 @@ class CryptoPlayer : public MultiPlayer<ssl_socket*>
     vector<Sender<ssl_socket*>*> senders;
     vector<Receiver<ssl_socket*>*> receivers;
 
+    void connect(int other, vector<int>* plaintext_sockets);
+
 public:
     /**
      * Start a new set of encrypted connections.

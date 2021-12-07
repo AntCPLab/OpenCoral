@@ -68,7 +68,20 @@ CryptoPlayer::CryptoPlayer(const Names& Nms, const string& id_base) :
         player.sockets.clear();
     }
 
-    for (int i = 0; i < (int)sockets.size(); i++)
+    for (int offset = 1; offset <= num_players() / 2; offset++)
+    {
+        int others[] = { get_player(offset), get_player(-offset) };
+        if (my_num() % (2 * offset) < offset)
+            swap(others[0], others[1]);
+
+        if (num_players() % 2 == 0 and offset == num_players() / 2)
+            connect(others[0], plaintext_sockets);
+        else
+            for (int i = 0; i < 2; i++)
+                connect(others[i], plaintext_sockets);
+    }
+
+    for (int i = 0; i < num_players(); i++)
     {
         if (i == my_num())
         {
@@ -79,14 +92,18 @@ CryptoPlayer::CryptoPlayer(const Names& Nms, const string& id_base) :
             continue;
         }
 
-        sockets[i] = new ssl_socket(io_service, ctx, plaintext_sockets[0][i],
-                "P" + to_string(i), "P" + to_string(my_num()), i < my_num());
-        other_sockets[i] = new ssl_socket(io_service, ctx, plaintext_sockets[1][i],
-                "P" + to_string(i), "P" + to_string(my_num()), i < my_num());
-
         senders[i] = new Sender<ssl_socket*>(i < my_num() ? sockets[i] : other_sockets[i]);
         receivers[i] = new Receiver<ssl_socket*>(i < my_num() ? other_sockets[i] : sockets[i]);
     }
+}
+
+void CryptoPlayer::connect(int i, vector<int>* plaintext_sockets)
+{
+    sockets[i] = new ssl_socket(io_service, ctx, plaintext_sockets[0][i],
+            "P" + to_string(i), "P" + to_string(my_num()), i < my_num());
+    other_sockets[i] = new ssl_socket(io_service, ctx, plaintext_sockets[1][i],
+            "P" + to_string(i), "P" + to_string(my_num()), i < my_num());
+
 }
 
 CryptoPlayer::CryptoPlayer(const Names& Nms, int id_base) :
