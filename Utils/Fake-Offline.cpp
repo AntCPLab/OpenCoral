@@ -548,7 +548,7 @@ int main(int argc, const char** argv)
           0, // Required?
           1, // Number of args expected.
           0, // Delimiter if expecting multiple args.
-          "Seed to use for initializing pseudorandom number generator "
+          "Seed to use for initializing pseudorandom number generator"
           "(default: seed from /dev/random)", // Help description.
           "-seed", // Flag token.
           "--prngseed" // Flag token.
@@ -678,9 +678,16 @@ int FakeParams::generate()
   if (opt.isSet("--prngseed")) {
     std::string seed;
     opt.get("--prngseed")->getString(seed);
+    if (seed.length() != SEED_SIZE) {
+      cerr << "ERROR: invalid seed length. Must be " << SEED_SIZE << " bytes";
+      opt.getUsage(usage);
+      cout << usage;
+      return 1;
+    }
     unsigned char *val = new unsigned char[seed.length()+1];
     strcpy((char *)val, seed.c_str());
     G.SetSeed(val);
+    delete [] val;
   } else {
     G.ReSeed();
   }
