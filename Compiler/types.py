@@ -5420,6 +5420,22 @@ class Array(_vectorizable):
     __radd__ = __add__
     __rmul__ = __mul__
 
+    def __iadd__(self, other):
+        self[:] += other.get_vector()
+        return self
+
+    def __isub__(self, other):
+        self[:] -= other.get_vector()
+        return self
+
+    def __imul__(self, other):
+        self[:] *= other.get_vector()
+        return self
+
+    def __itruediv__(self, other):
+        self[:] /= other.get_vector()
+        return self
+
     def __neg__(self):
         return -self.get_vector()
 
@@ -5769,6 +5785,22 @@ class SubMultiArray(_vectorizable):
         :param other: container of matching size and type """
         assert self.sizes == other.sizes
         self.assign_vector(self.get_vector() + other.get_vector())
+
+    def __iadd__(self, other):
+        self[:] += other.get_vector()
+        return self
+
+    def __isub__(self, other):
+        self[:] -= other.get_vector()
+        return self
+
+    def __imul__(self, other):
+        self[:] *= other.get_vector()
+        return self
+
+    def __itruediv__(self, other):
+        self[:] /= other.get_vector()
+        return self
 
     def __mul__(self, other):
         # legacy function
