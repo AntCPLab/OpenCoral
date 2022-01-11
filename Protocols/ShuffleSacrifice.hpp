@@ -10,7 +10,6 @@
 #include "Tools/PointerVector.h"
 #include "GC/BitAdder.h"
 
-#include "MalRepRingPrep.hpp"
 #include "LimitedPrep.hpp"
 
 inline
@@ -23,6 +22,21 @@ inline
 ShuffleSacrifice::ShuffleSacrifice(int B, int C) :
         B(B), C(C)
 {
+}
+
+template<class U>
+void ShuffleSacrifice::shuffle(vector<U>& check_triples, Player& P)
+{
+    int buffer_size = check_triples.size();
+
+    // shuffle
+    GlobalPRNG G(P);
+    for (int i = 0; i < buffer_size; i++)
+    {
+        int remaining = buffer_size - i;
+        int pos = G.get_uint(remaining);
+        swap(check_triples[i], check_triples[i + pos]);
+    }
 }
 
 template<class T>

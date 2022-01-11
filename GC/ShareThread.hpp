@@ -63,6 +63,7 @@ void ShareThread<T>::pre_run(Player& P, typename T::mac_key_type mac_key)
     protocol = new typename T::Protocol(*this->P);
     MC = this->new_mc(mac_key);
     DataF.set_protocol(*this->protocol);
+    this->protocol->init(DataF, *MC);
 }
 
 template<class T>
@@ -85,7 +86,7 @@ void ShareThread<T>::and_(Processor<T>& processor,
 {
     auto& protocol = this->protocol;
     processor.check_args(args, 4);
-    protocol->init_mul(DataF, *this->MC);
+    protocol->init_mul();
     T x_ext, y_ext;
     for (size_t i = 0; i < args.size(); i += 4)
     {

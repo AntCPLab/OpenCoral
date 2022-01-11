@@ -90,7 +90,7 @@ The following table lists all protocols that are fully supported.
 | Semi-honest, honest majority | [Shamir / ATLAS / Rep3](#honest-majority) | [Rep3](#honest-majority) | [Rep3 / CCD](#honest-majority) | [BMR](#bmr) |
 
 See [this paper](https://eprint.iacr.org/2020/300) for an explanation
-of the various security models and high-level introduction to
+of the various security models and a high-level introduction to
 multi-party computation.
 
 ##### Finding the most efficient protocol
@@ -131,8 +131,8 @@ there are a few things to consider:
   dot products.
 
 - Fixed-point multiplication: Three- and four-party replicated secret
-  sharing modulo a power of two allow a special probabilistic
-  truncation protocol (see [Dalskov et
+  sharing as well semi-honest full-threshold protocols allow a special
+  probabilistic truncation protocol (see [Dalskov et
   al.](https://eprint.iacr.org/2019/131) and [Dalskov et
   al.](https://eprint.iacr.org/2020/1330)). You can activate it by
   adding `program.use_trunc_pr = True` at the beginning of your

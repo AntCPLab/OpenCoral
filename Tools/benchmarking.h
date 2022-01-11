@@ -8,6 +8,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <iostream>
 using namespace std;
 
 // call before insecure benchmarking functionality
@@ -25,5 +26,7 @@ inline void insecure(string message, bool warning = true)
     throw runtime_error(msg);
 #endif
 }
+
+void insecure_fake();
 
 #endif /* TOOLS_BENCHMARKING_H_ */

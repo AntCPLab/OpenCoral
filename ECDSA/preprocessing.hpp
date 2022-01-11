@@ -41,8 +41,8 @@ void preprocessing(vector<EcTuple<T>>& tuples, int buffer_size,
     timer.start();
     Player& P = proc.P;
     auto& prep = proc.DataF;
-    size_t start = P.sent + prep.data_sent();
-    auto stats = P.comm_stats + prep.comm_stats();
+    size_t start = P.total_comm().sent;
+    auto stats = P.total_comm();
     auto& extra_player = P;
 
     auto& protocol = proc.protocol;
@@ -77,7 +77,7 @@ void preprocessing(vector<EcTuple<T>>& tuples, int buffer_size,
         MCc.POpen_Begin(opened_Rs, secret_Rs, extra_player);
     if (prep_mul)
     {
-        protocol.init_mul(&proc);
+        protocol.init_mul();
         for (int i = 0; i < buffer_size; i++)
             protocol.prepare_mul(inv_ks[i], sk);
         protocol.start_exchange();
@@ -106,9 +106,9 @@ void preprocessing(vector<EcTuple<T>>& tuples, int buffer_size,
     timer.stop();
     cout << "Generated " << buffer_size << " tuples in " << timer.elapsed()
             << " seconds, throughput " << buffer_size / timer.elapsed() << ", "
-            << 1e-3 * (P.sent + prep.data_sent() - start) / buffer_size
+            << 1e-3 * (P.total_comm().sent - start) / buffer_size
             << " kbytes per tuple" << endl;
-    (P.comm_stats + prep.comm_stats() - stats).print(true);
+    (P.total_comm() - stats).print(true);
 }
 
 template<template<class U> class T>

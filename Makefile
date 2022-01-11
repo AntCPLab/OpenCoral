@@ -25,6 +25,8 @@ MINI_OT = OT/OTTripleSetup.o OT/BaseOT.o $(LIBSIMPLEOT)
 VMOBJS = $(PROCESSOR) $(COMMONOBJS) GC/square64.o GC/Instruction.o OT/OTTripleSetup.o OT/BaseOT.o $(LIBSIMPLEOT)
 VM = $(MINI_OT) $(SHAREDLIB)
 COMMON = $(SHAREDLIB)
+TINIER =  Machines/Tinier.o $(OT)
+SPDZ = Machines/SPDZ.o $(TINIER)
 
 
 LIB = libSPDZ.a
@@ -117,7 +119,7 @@ sy: sy-rep-field-party.x sy-rep-ring-party.x sy-shamir-party.x
 ecdsa: $(patsubst ECDSA/%.cpp,%.x,$(wildcard ECDSA/*-ecdsa-party.cpp)) Fake-ECDSA.x
 ecdsa-static: static-dir $(patsubst ECDSA/%.cpp,static/%.x,$(wildcard ECDSA/*-ecdsa-party.cpp))
 
-$(LIBRELEASE): Protocols/MalRepRingOptions.o $(PROCESSOR) $(COMMONOBJS) $(OT) $(GC)
+$(LIBRELEASE): Protocols/MalRepRingOptions.o $(PROCESSOR) $(COMMONOBJS) $(TINIER) $(GC)
 	$(AR) -csr $@ $^
 
 CFLAGS += -fPIC
@@ -203,16 +205,16 @@ ps-rep-bin-party.x: GC/PostSacriBin.o
 semi-bin-party.x: $(OT) GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
 tiny-party.x: $(OT)
 tinier-party.x: $(OT)
-spdz2k-party.x: $(OT) $(patsubst %.cpp,%.o,$(wildcard Machines/SPDZ2*.cpp))
+spdz2k-party.x: $(TINIER) $(patsubst %.cpp,%.o,$(wildcard Machines/SPDZ2*.cpp))
 static/spdz2k-party.x: $(patsubst %.cpp,%.o,$(wildcard Machines/SPDZ2*.cpp))
 semi-party.x: $(OT) GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
 semi2k-party.x: $(OT) GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
 hemi-party.x: $(FHEOFFLINE) $(GC_SEMI) $(OT)
 soho-party.x: $(FHEOFFLINE) $(GC_SEMI) $(OT)
-cowgear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o $(OT)
-chaigear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o $(OT)
-lowgear-party.x: $(FHEOFFLINE) $(OT) Protocols/CowGearOptions.o Protocols/LowGearKeyGen.o
-highgear-party.x: $(FHEOFFLINE) $(OT) Protocols/CowGearOptions.o Protocols/HighGearKeyGen.o
+cowgear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o $(TINIER)
+chaigear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o $(TINIER)
+lowgear-party.x: $(FHEOFFLINE) $(TINIER) Protocols/CowGearOptions.o Protocols/LowGearKeyGen.o
+highgear-party.x: $(FHEOFFLINE) $(TINIER) Protocols/CowGearOptions.o Protocols/HighGearKeyGen.o
 atlas-party.x: GC/AtlasSecret.o
 static/hemi-party.x: $(FHEOBJS)
 static/soho-party.x: $(FHEOBJS)
@@ -220,10 +222,10 @@ static/cowgear-party.x: $(FHEOBJS)
 static/chaigear-party.x: $(FHEOBJS)
 static/lowgear-party.x: $(FHEOBJS) Protocols/CowGearOptions.o Protocols/LowGearKeyGen.o
 static/highgear-party.x: $(FHEOBJS) Protocols/CowGearOptions.o Protocols/HighGearKeyGen.o
-mascot-party.x: Machines/SPDZ.o $(OT)
-static/mascot-party.x: Machines/SPDZ.o
-Player-Online.x: Machines/SPDZ.o $(OT)
-mama-party.x: $(OT)
+mascot-party.x: $(SPDZ)
+static/mascot-party.x: $(SPDZ)
+Player-Online.x: $(SPDZ)
+mama-party.x: $(TINIER)
 ps-rep-ring-party.x: Protocols/MalRepRingOptions.o
 malicious-rep-ring-party.x: Protocols/MalRepRingOptions.o
 sy-rep-ring-party.x: Protocols/MalRepRingOptions.o
@@ -236,8 +238,10 @@ emulate.x: GC/FakeSecret.o
 semi-bmr-party.x: GC/SemiPrep.o GC/SemiSecret.o $(OT)
 real-bmr-party.x: $(OT)
 paper-example.x: $(VM) $(OT) $(FHEOFFLINE)
-mascot-offline.x: $(VM) $(OT)
-cowgear-offline.x: $(OT) $(FHEOFFLINE)
+binary-example.x: $(VM) $(OT) GC/PostSacriBin.o GC/SemiPrep.o GC/SemiSecret.o GC/AtlasSecret.o
+mixed-example.x: $(VM) $(OT) GC/PostSacriBin.o GC/SemiPrep.o GC/SemiSecret.o GC/AtlasSecret.o Machines/Tinier.o
+mascot-offline.x: $(VM) $(TINIER)
+cowgear-offline.x: $(TINIER) $(FHEOFFLINE)
 static/rep-bmr-party.x: $(BMR)
 static/mal-rep-bmr-party.x: $(BMR)
 static/shamir-bmr-party.x: $(BMR)

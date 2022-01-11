@@ -7,6 +7,7 @@
 #define CRYPTO_SSL_SOCKETS_H_
 
 #include "Tools/int.h"
+#include "Tools/time-func.h"
 #include "sockets.h"
 #include "Math/Setup.h"
 
@@ -46,6 +47,10 @@ public:
             string me, bool client) :
             parent(io_service, ctx)
     {
+#ifdef DEBUG_NETWORKING
+        cerr << me << " setting up SSL to " << other << " as " <<
+                (client ? "client" : "server") << endl;
+#endif
         lowest_layer().assign(boost::asio::ip::tcp::v4(), plaintext_socket);
         set_verify_mode(boost::asio::ssl::verify_peer);
         set_verify_callback(boost::asio::ssl::rfc2818_verification(other));
@@ -82,8 +87,16 @@ template<>
 inline void send(ssl_socket* socket, octet* data, size_t length)
 {
     size_t sent = 0;
+#ifdef VERBOSE_SSL
+    RunningTimer timer;
+#endif
     while (sent < length)
+    {
         sent += send_non_blocking(socket, data + sent, length - sent);
+#ifdef VERBOSE_SSL
+        cout << "sent " << sent * 1e-6 << " MB at " << timer.elapsed() << endl;
+#endif
+    }
 }
 
 template<>

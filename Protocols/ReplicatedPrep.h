@@ -184,6 +184,15 @@ protected:
     template<int>
     void sanitize(vector<edabitvec<T>>& edabits, int n_bits);
 
+    template<int = 0>
+    void buffer_personal_edabits_without_check_pre(int n_bits,
+            Player& P, typename T::Input& input, typename BT::Input& bit_input,
+            int input_player, int buffer_size);
+    template<int = 0>
+    void buffer_personal_edabits_without_check_post(int n_bits,
+            vector<T>& sums, vector<vector<BT> >& bits, typename T::Input& input,
+            typename BT::Input& bit_input, int input_player, int begin, int end);
+
 public:
     RingPrep(SubProcessor<T>* proc, DataPositions& usage);
     virtual ~RingPrep();
@@ -224,6 +233,13 @@ public:
 template<class T>
 class SemiHonestRingPrep : public virtual RingPrep<T>
 {
+    template<int = 0>
+    void buffer_bits(false_type, false_type);
+    template<int = 0>
+    void buffer_bits(true_type, false_type);
+    template<int = 0>
+    void buffer_bits(false_type, true_type);
+
 public:
     SemiHonestRingPrep(SubProcessor<T>* proc, DataPositions& usage) :
             BufferPrep<T>(usage), BitPrep<T>(proc, usage),
@@ -232,7 +248,7 @@ public:
     }
     virtual ~SemiHonestRingPrep() {}
 
-    virtual void buffer_bits() { this->buffer_bits_without_check(); }
+    virtual void buffer_bits();
     virtual void buffer_inputs(int player)
     { this->buffer_inputs_as_usual(player, this->proc); }
 
@@ -358,11 +374,6 @@ template<class T>
 class ReplicatedPrep : public virtual ReplicatedRingPrep<T>,
         public virtual SemiHonestRingPrep<T>
 {
-    template<int>
-    void buffer_bits(false_type);
-    template<int>
-    void buffer_bits(true_type);
-
 public:
     ReplicatedPrep(SubProcessor<T>* proc, DataPositions& usage) :
             BufferPrep<T>(usage), BitPrep<T>(proc, usage),
@@ -384,7 +395,7 @@ public:
     }
 
     void buffer_squares() { ReplicatedRingPrep<T>::buffer_squares(); }
-    void buffer_bits();
+    void buffer_bits() { SemiHonestRingPrep<T>::buffer_bits(); }
 };
 
 #endif /* PROTOCOLS_REPLICATEDPREP_H_ */

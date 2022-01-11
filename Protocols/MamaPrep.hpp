@@ -6,6 +6,7 @@
 #include "MamaPrep.h"
 
 #include "SemiMC.hpp"
+#include "MalRepRingPrep.hpp"
 
 template<class T>
 MamaPrep<T>::MamaPrep(SubProcessor<T>* proc, DataPositions& usage) :

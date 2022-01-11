@@ -6,14 +6,14 @@
 #ifndef PROTOCOLS_HEMI_H_
 #define PROTOCOLS_HEMI_H_
 
-#include "SPDZ.h"
+#include "Semi.h"
 #include "HemiMatrixPrep.h"
 
 /**
  * Matrix multiplication optimized with semi-homomorphic encryption
  */
 template<class T>
-class Hemi : public SPDZ<T>
+class Hemi : public Semi<T>
 {
     map<array<int, 3>, HemiMatrixPrep<T>*> matrix_preps;
 
@@ -22,7 +22,7 @@ class Hemi : public SPDZ<T>
 
 public:
     Hemi(Player& P) :
-            SPDZ<T>(P)
+            Semi<T>(P)
     {
     }
     ~Hemi();

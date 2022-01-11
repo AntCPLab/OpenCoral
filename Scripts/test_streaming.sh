@@ -15,3 +15,7 @@ done
 ./stream-fake-mascot-triples.x &
 
 Scripts/mascot.sh test_thread_mul -f || exit 1
+
+./stream-fake-mascot-triples.x &
+
+Scripts/mascot.sh test_thread_mul -f || exit 1

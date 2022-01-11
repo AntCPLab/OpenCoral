@@ -1,5 +1,18 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.2.9 (Jan 11, 2021)
+
+- Disassembler
+- Run-time parameter for probabilistic truncation error
+- Probabilistic truncation for some protocols computing modulo a prime
+- Simplified C++ interface
+- Comparison as in [ACCO](https://dl.acm.org/doi/10.1145/3474123.3486757)
+- More general scalar-vector multiplication
+- Complete memory support for clear bits
+- Extended clear bit functionality with Yao's garbled circuits
+- Allow preprocessing information to be supplied via named pipes
+- In-place operations for containers
+
 ## 0.2.8 (Nov 4, 2021)
 
 - Tested on Apple laptop with ARM chip

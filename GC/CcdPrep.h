@@ -91,11 +91,6 @@ public:
                     (typename T::clear(tmp.get_bit(0)) << i);
         }
     }
-
-    NamedCommStats comm_stats()
-    {
-        return part_prep.comm_stats();
-    }
 };
 
 } /* namespace GC */

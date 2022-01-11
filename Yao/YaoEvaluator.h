@@ -58,9 +58,6 @@ public:
 
 	int get_n_worker_threads()
 	{ return max(1u, thread::hardware_concurrency() / master.machine.nthreads); }
-
-	NamedCommStats comm_stats()
-	{ return super::comm_stats() + player.comm_stats; }
 };
 
 inline void YaoEvaluator::load_gate(YaoGate& gate)

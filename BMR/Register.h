@@ -293,6 +293,9 @@ public:
     template<class U>
     static void convcbit2s(GC::Processor<U>&, const BaseInstruction&)
     { throw runtime_error("convcbit2s not implemented"); }
+    template<class U>
+    static void andm(GC::Processor<U>&, const BaseInstruction&)
+    { throw runtime_error("andm not implemented"); }
 
 	// most BMR phases don't need actual input
 	template<class T>

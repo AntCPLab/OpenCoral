@@ -387,7 +387,7 @@ int generate(ez::ezOptionParser& opt);
 
 int main(int argc, const char** argv)
 {
-  insecure("preprocessing");
+  insecure_fake();
   bigint::init_thread();
 
   FakeParams params;

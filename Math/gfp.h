@@ -11,7 +11,6 @@ using namespace std;
 #include "Math/Bit.h"
 #include "Math/Setup.h"
 #include "Tools/random.h"
-#include "GC/NoShare.h"
 #include "Processor/OnlineOptions.h"
 
 #include "Math/modp.hpp"
@@ -101,6 +100,7 @@ class gfp_ : public ValueInterface
   static int size() { return t() * sizeof(mp_limb_t); }
   static int size_in_bits() { return 8 * size(); }
   static int length() { return ZpD.pr_bit_length; }
+  static int n_bits() { return length() - 1; }
 
   static void reqbl(int n);
 

@@ -71,7 +71,7 @@ template<class T>
 inline void ReplicatedInput<T>::finalize_other(int player, T& target,
         octetStream& o, int n_bits)
 {
-    int offset = player - P.my_num();
+    int offset = player - this->my_num;
     if (offset == 1 or offset == -2)
     {
         typename T::value_type t;

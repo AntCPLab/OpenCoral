@@ -61,8 +61,9 @@ void MaliciousBitOnlyRepPrep<T>::set_protocol(typename T::Protocol& protocol)
 template<class T>
 void MaliciousBitOnlyRepPrep<T>::init_honest(Player& P)
 {
-    honest_proc = new SubProcessor<typename T::Honest>(honest_mc, honest_prep,
-            P);
+    if (not honest_proc)
+        honest_proc = new SubProcessor<typename T::Honest>(honest_mc,
+                honest_prep, P);
 }
 
 template<class T>

@@ -7,6 +7,7 @@
 #define PROTOCOLS_SEMISHARE_H_
 
 #include "Protocols/Beaver.h"
+#include "Protocols/Semi.h"
 #include "Processor/DummyProtocol.h"
 #include "ShareInterface.h"
 
@@ -16,7 +17,7 @@ using namespace std;
 template<class T> class Input;
 template<class T> class SemiMC;
 template<class T> class DirectSemiMC;
-template<class T> class SPDZ;
+template<class T> class Semi;
 template<class T> class SemiPrep;
 template<class T> class SemiInput;
 template<class T> class PrivateOutput;
@@ -59,7 +60,7 @@ public:
     typedef DirectSemiMC<SemiShare> Direct_MC;
     typedef SemiInput<SemiShare> Input;
     typedef ::PrivateOutput<SemiShare> PrivateOutput;
-    typedef SPDZ<SemiShare> Protocol;
+    typedef Semi<SemiShare> Protocol;
     typedef SemiPrep<SemiShare> LivePrep;
     typedef LivePrep TriplePrep;
 
@@ -69,12 +70,15 @@ public:
     typedef T sacri_type;
     typedef typename T::Square Rectangle;
 
+#ifndef NO_MIXED_CIRCUITS
     typedef GC::SemiSecret bit_type;
+#endif
 
     const static bool needs_ot = true;
     const static bool dishonest_majority = true;
     const static bool variable_players = true;
     const static bool expensive = false;
+    static const bool has_trunc_pr = true;
 
     static string type_short() { return "D" + string(1, T::type_char()); }
 

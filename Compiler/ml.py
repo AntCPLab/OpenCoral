@@ -1810,6 +1810,7 @@ class Optimizer:
         self.print_loss_reduction = False
         self.i_epoch = MemValue(0)
         self.stopped_on_loss = MemValue(0)
+        self.stopped_on_low_loss = MemValue(0)
 
     @property
     def layers(self):
@@ -1932,6 +1933,7 @@ class Optimizer:
         """ Run training.
 
         :param batch_size: batch size (defaults to example size of first layer)
+        :param stop_on_loss: stop when loss falls below this (default: 0)
         """
         if self.n_epochs == 0:
             return
@@ -2013,6 +2015,7 @@ class Optimizer:
             if self.tol > 0:
                 res *= (1 - (loss_sum >= 0) * \
                         (loss_sum < self.tol * n_per_epoch)).reveal()
+            self.stopped_on_low_loss.write(1 - res)
             return res
 
     def reveal_correctness(self, data, truth, batch_size):
@@ -2138,6 +2141,7 @@ class Optimizer:
             if depreciation:
                 self.gamma.imul(depreciation)
                 print_ln('reducing learning rate to %s', self.gamma)
+            return 1 - self.stopped_on_low_loss
         if 'model_output' in program.args:
             self.output_weights()
 
@@ -2386,6 +2390,7 @@ class keras:
                 return list(self.opt.thetas)
 
             def build(self, input_shape, batch_size=128):
+                data_input_shape = input_shape
                 if self.opt != None and \
                    input_shape == self.opt.layers[0].X.sizes and \
                    batch_size <= self.batch_size and \
@@ -2458,9 +2463,10 @@ class keras:
                     else:
                         raise Exception(layer[0] + ' not supported')
                 if layers[-1].d_out == 1:
-                    layers.append(Output(input_shape[0]))
+                    layers.append(Output(data_input_shape[0]))
                 else:
-                    layers.append(MultiOutput(input_shape[0], layers[-1].d_out))
+                    layers.append(
+                        MultiOutput(data_input_shape[0], layers[-1].d_out))
                 if self.optimizer[1]:
                     raise Exception('use keyword arguments for optimizer')
                 opt = self.optimizer[0]
@@ -2504,7 +2510,7 @@ class keras:
                 if x.total_size() != self.opt.layers[0].X.total_size():
                     raise Exception('sample data size mismatch')
                 if y.total_size() != self.opt.layers[-1].Y.total_size():
-                    print (y, layers[-1].Y)
+                    print (y, self.opt.layers[-1].Y)
                     raise Exception('label size mismatch')
                 if validation_data == None:
                     validation_data = None, None

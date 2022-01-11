@@ -86,6 +86,42 @@ void Zp_Data::Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y,int t
      { inline_mpn_copyi(z,ans+t,t); }
 }
 
+void Zp_Data::Mont_Mult_switch(mp_limb_t* z, const mp_limb_t* x,
+        const mp_limb_t* y) const
+{
+  switch (t)
+  {
+#ifdef __BMI2__
+#define CASE(N) \
+  case N: \
+    Mont_Mult_<N>(z, x, y); \
+    break;
+  CASE(1)
+  CASE(2)
+#if MAX_MOD_SZ >= 4
+  CASE(3)
+  CASE(4)
+#endif
+#if MAX_MOD_SZ >= 5
+  CASE(5)
+#endif
+#if MAX_MOD_SZ >= 6
+  CASE(6)
+#endif
+#if MAX_MOD_SZ >= 10
+  CASE(7)
+  CASE(8)
+  CASE(9)
+  CASE(10)
+#endif
+#undef CASE
+#endif
+  default:
+    Mont_Mult_variable(z, x, y);
+    break;
+  }
+}
+
 
 
 ostream& operator<<(ostream& s,const Zp_Data& ZpD)

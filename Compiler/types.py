@@ -127,7 +127,7 @@ def vectorize(operation):
             if (isinstance(args[0], Tape.Register) or isinstance(args[0], sfloat)) \
                     and not isinstance(args[0], bits) \
                     and args[0].size != self.size:
-                raise CompilerError('Different vector sizes of operands: %d/%d'
+                raise VectorMismatch('Different vector sizes of operands: %d/%d'
                                     % (self.size, args[0].size))
         set_global_vector_size(self.size)
         try:
@@ -221,7 +221,7 @@ def inputmixed(*args):
     else:
         instructions.inputmixedreg(*(args[:-1] + (regint.conv(args[-1]),)))
 
-class _number(object):
+class _number(Tape._no_truth):
     """ Number functionality. """
 
     def square(self):
@@ -246,7 +246,11 @@ class _number(object):
         elif is_one(other):
             return self
         else:
-            return self.mul(other)
+            try:
+                return self.mul(other)
+            except VectorMismatch:
+                # try reverse multiplication
+                return NotImplemented
 
     __radd__ = __add__
     __rmul__ = __mul__
@@ -320,7 +324,7 @@ class _number(object):
     def popcnt_bits(bits):
         return sum(bits)
 
-class _int(object):
+class _int(Tape._no_truth):
     """ Integer functionality. """
 
     @staticmethod
@@ -408,7 +412,7 @@ class _int(object):
     def long_one():
         return 1
 
-class _bit(object):
+class _bit(Tape._no_truth):
     """ Binary functionality. """
 
     def bit_xor(self, other):
@@ -474,7 +478,7 @@ class _gf2n(_bit):
     def bit_not(self):
         return self ^ 1
 
-class _structure(object):
+class _structure(Tape._no_truth):
     """ Interface for type-dependent container types. """
 
     MemValue = classmethod(lambda cls, value: MemValue(cls.conv(value)))
@@ -591,7 +595,7 @@ class _secret_structure(_structure):
         res.input_from(player)
         return res
 
-class _vec(object):
+class _vec(Tape._no_truth):
     def link(self, other):
         assert len(self.v) == len(other.v)
         for x, y in zip(self.v, other.v):
@@ -726,7 +730,7 @@ class _register(Tape.Register, _number, _structure):
         assert self.size == 1
         res = type(self)(size=size)
         for i in range(size):
-            movs(res[i], self)
+            self.mov(res[i], self)
         return res
 
 class _clear(_register):
@@ -1010,9 +1014,10 @@ class cint(_clear, _int):
         if bit_length <= 64:
             return regint(self) < regint(other)
         else:
+            sint.require_bit_length(bit_length + 1)
             diff = self - other
-            diff += (1 << (bit_length - 1))
-            shifted = diff >> (bit_length - 1)
+            diff += 1 << bit_length
+            shifted = diff >> bit_length
             res = 1 - regint(shifted & 1)
             return res
 
@@ -1646,7 +1651,7 @@ class regint(_register, _int):
             player = -1
         intoutput(player, self)
 
-class localint(object):
+class localint(Tape._no_truth):
     """ Local integer that must prevented from leaking into the secure
     computation. Uses regint internally.
 
@@ -1669,7 +1674,7 @@ class localint(object):
     __eq__ = lambda self, other: localint(self._v == other)
     __ne__ = lambda self, other: localint(self._v != other)
 
-class personal(object):
+class personal(Tape._no_truth):
     def __init__(self, player, value):
         assert value is not NotImplemented
         assert not isinstance(value, _secret)
@@ -2003,9 +2008,11 @@ class _secret(_register, _secret_structure):
         size or one size 1 for a value-vector multiplication.
 
         :param other: any compatible type """
-        if isinstance(other, _secret) and (1 in (self.size, other.size)) \
+        if isinstance(other, _register) and (1 in (self.size, other.size)) \
            and (self.size, other.size) != (1, 1):
             x, y = (other, self) if self.size < other.size else (self, other)
+            if not isinstance(other, _secret):
+                return y.expand_to_vector(x.size) * x
             res = type(self)(size=x.size)
             mulrs(res, x, y)
             return res
@@ -2221,11 +2228,13 @@ class sint(_secret, _int):
     @vectorized_classmethod
     def receive_from_client(cls, n, client_id, message_type=ClientMessageType.NoType):
         """ Securely obtain shares of values input by a client.
+        This uses the triple-based input protocol introduced by
+        `Damgård et al. <http://eprint.iacr.org/2015/1006>`_
 
         :param n: number of inputs (int)
         :param client_id: regint
         :param size: vector size (default 1)
-
+        :returns: list of sint
         """
         # send shares of a triple to client
         triples = list(itertools.chain(*(sint.get_random_triple() for i in range(n))))
@@ -2910,7 +2919,7 @@ for t in (sint, sgf2n):
 sint.bit_type = sintbit
 sgf2n.bit_type = sgf2n
 
-class _bitint(object):
+class _bitint(Tape._no_truth):
     bits = None
     log_rounds = False
     linear_rounds = False
@@ -3521,6 +3530,7 @@ class cfix(_number, _structure):
 
     @classmethod
     def _new(cls, other, k=None, f=None):
+        assert not isinstance(other, (list, tuple))
         res = cls(k=k, f=f)
         res.v = cint.conv(other)
         return res
@@ -3567,6 +3577,8 @@ class cfix(_number, _structure):
         return len(self.v)
 
     def __getitem__(self, index):
+        if isinstance(index, slice):
+            return [self._new(x, k=self.k, f=self.f) for x in self.v[index]]
         return self._new(self.v[index], k=self.k, f=self.f)
 
     @vectorize
@@ -3608,7 +3620,6 @@ class cfix(_number, _structure):
         else:
             return NotImplemented
 
-    @vectorize 
     def mul(self, other):
         """ Clear fixed-point multiplication.
 
@@ -4045,7 +4056,8 @@ class _fix(_single):
                   'for fixed-point computation')
             cls.round_nearest = True
         if adapt_ring and program.options.ring \
-           and 'fix_ring' not in program.args:
+           and 'fix_ring' not in program.args \
+           and 2 * cls.k > int(program.options.ring):
             need = 2 ** int(math.ceil(math.log(2 * cls.k, 2)))
             if need != int(program.options.ring):
                 print('Changing computation modulus to 2^%d' % need)
@@ -4489,7 +4501,7 @@ class squant(_single):
     def __neg__(self):
         return self._new(-self.v + 2 * util.expand(self.Z, self.v.size))
 
-class _unreduced_squant(object):
+class _unreduced_squant(Tape._no_truth):
     def __init__(self, v, params, res_params=None, n_summands=1):
         self.v = v
         self.params = params
@@ -5011,7 +5023,7 @@ class sfloat(_number, _secret_structure):
         :return: cfloat """
         return cfloat(self.v.reveal(), self.p.reveal(), self.z.reveal(), self.s.reveal())
 
-class cfloat(object):
+class cfloat(Tape._no_truth):
     """ Helper class for printing revealed sfloats. """
     __slots__ = ['v', 'p', 'z', 's', 'nan']
 

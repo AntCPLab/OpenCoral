@@ -50,11 +50,13 @@ Tree_MAC_Check<U>::Tree_MAC_Check(const typename U::mac_key_type::Scalar& ai, in
 template<class T>
 Tree_MAC_Check<T>::~Tree_MAC_Check()
 {
+#ifndef NO_SECURITY_CHECK
   if (WaitingForCheck() > 0)
     {
       cerr << endl << "SECURITY BUG: insufficient checking" << endl;
       terminate();
     }
+#endif
 }
 
 template<class U>

@@ -83,6 +83,8 @@ covering both client code and server-side high-level code.
 :py:func:`Compiler.types.MultiArray.reveal_to_clients`. The same
 functions are available for :py:class:`~Compiler.types.sfix` and
 :py:class:`~Compiler.types.Array`, respectively.
+See also :ref:`client ref` below.
+
 
 Secret Shares
 ~~~~~~~~~~~~~
@@ -114,3 +116,11 @@ etc. Note also that all types based on
 :py:class:`~Compiler.types.sfix`) share the same memory, and that the
 address is only a base address. This means that vectors will be
 written to the memory starting at the given address.
+
+.. _client ref:
+
+Reference
+~~~~~~~~~
+
+.. doxygenclass:: Client
+   :members:

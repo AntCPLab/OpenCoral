@@ -47,6 +47,7 @@ public:
 	static int size_in_limbs() { return N_WORDS; }
 	static int size_in_bits() { return size() * 8; }
 	static int length() { return size_in_bits(); }
+	static int n_bits() { return N_BITS; }
 	static int t() { return 0; }
 
 	static char type_char() { return 'R'; }
@@ -99,6 +100,8 @@ public:
 	void convert_destroy(bigint& a) { *this = a; }
 	
 	int bit_length() const;
+
+	Z2 mask(int) const { return *this; }
 
 	Z2<K> operator+(const Z2<K>& other) const;
 	Z2<K> operator-(const Z2<K>& other) const;

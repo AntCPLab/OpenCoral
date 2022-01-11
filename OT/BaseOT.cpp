@@ -1,6 +1,7 @@
 #include "OT/BaseOT.h"
 #include "Tools/random.h"
 #include "Tools/benchmarking.h"
+#include "Tools/Bundle.h"
 
 #include <stdio.h>
 #include <iostream>
@@ -78,6 +79,23 @@ void send_if_ot_receiver(TwoPartyPlayer* P, vector<octetStream>& os, OT_ROLE rol
 
 void BaseOT::exec_base(bool new_receiver_inputs)
 {
+    Bundle<octetStream> bundle(*P);
+#ifdef NO_AVX_OT
+    bundle.mine = string("OT without AVX");
+#else
+    bundle.mine = string("OT with AVX");
+#endif
+    try
+    {
+        bundle.compare(*P);
+    }
+    catch (mismatch_among_parties&)
+    {
+        cerr << "Parties compiled with different base OT algorithms" << endl;
+        cerr << "Set \"AVX_OT\" to the same value on all parties" << endl;
+        exit(1);
+    }
+
 #ifdef NO_AVX_OT
 #ifdef USE_RISTRETTO
     typedef CurveElement Element;

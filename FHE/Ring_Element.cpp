@@ -401,15 +401,25 @@ void Ring_Element::change_rep(RepType r)
 
 bool Ring_Element::equals(const Ring_Element& a) const
 {
-  if (element.empty() and a.element.empty())
-    return true;
-  else if (element.empty() or a.element.empty())
-    throw not_implemented();
-
   if (rep!=a.rep)   { throw rep_mismatch(); }
   if (*FFTD!=*a.FFTD) { throw pr_mismatch();  }
+
+  if (is_zero() or a.is_zero())
+    return is_zero() and a.is_zero();
+
   for (int i=0; i<(*FFTD).phi_m(); i++)
     { if (!areEqual(element[i],a.element[i],(*FFTD).get_prD())) { return false; } }
+  return true;
+}
+
+
+bool Ring_Element::is_zero() const
+{
+  if (element.empty())
+    return true;
+  for (auto& x : element)
+    if (not ::isZero(x, FFTD->get_prD()))
+      return false;
   return true;
 }
 
@@ -560,6 +570,8 @@ void Ring_Element::check(const FFT_Data& FFTD) const
 {
   if (&FFTD != this->FFTD)
     throw params_mismatch();
+  if (is_zero())
+    throw runtime_error("element is zero");
 }
 
 

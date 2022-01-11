@@ -1,10 +1,16 @@
 Welcome to MP-SPDZ's documentation!
 ===================================
 
-This documentation provides a reference to the most important
-high-level functionality provided by the MP-SPDZ compiler. For a
-tutorial and documentation on how to run programs, the
-implemented protocols etc. see https://github.com/data61/MP-SPDZ.
+If you're new to MP-SPDZ, consider the following:
+
+1. `Quickstart tutorial <https://github.com/data61/MP-SPDZ#tldr-binary-distribution-on-linux-or-source-distribution-on-macos>`_
+2. `Implemented protocols <https://github.com/data61/MP-SPDZ#protocols>`_
+3. :ref:`troubleshooting`
+
+Unlike the `Readme
+<https://github.com/data61/MP-SPDZ#multi-protocol-spdz--->`_, this
+documentation provides a reference for more detailed aspects of the
+software.
 
 Compilation process
 -------------------

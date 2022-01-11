@@ -21,7 +21,7 @@ exec(compile(open('gen-instructions.py').read(), 'gen', 'exec'))
 # -- Project information -----------------------------------------------------
 
 project = u'MP-SPDZ'
-copyright = u'2021, CSIRO\'s Data61'
+copyright = u'2022, CSIRO\'s Data61'
 author = u'Marcel Keller'
 
 # The short X.Y version
@@ -185,7 +185,8 @@ epub_exclude_files = ['search.html']
 breathe_projects = {'mp-spdz': 'xml'}
 breathe_default_project = 'mp-spdz'
 import subprocess
-subprocess.call('doxygen', shell=True)
+if (subprocess.call('doxygen', shell=True)):
+    raise Exception('doxygen failed')
 
 def setup(app):
     app.add_css_file('custom.css')

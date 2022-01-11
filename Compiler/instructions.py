@@ -442,7 +442,7 @@ class join_tape(base.Instruction):
     arg_format = ['int']
 
 class crash(base.IOInstruction):
-    """ Crash runtime if the register's value is > 0.
+    """ Crash runtime if the value in the register is not zero.
 
     :param: Crash condition (regint)"""
     code = base.opcodes['CRASH']
@@ -1275,7 +1275,7 @@ class prep(base.Instruction):
     field_type = 'modp'
 
     def add_usage(self, req_node):
-        req_node.increment((self.field_type, self.args[0]), 1)
+        req_node.increment((self.field_type, self.args[0]), self.get_size())
 
     def has_var_args(self):
         return True
@@ -2406,19 +2406,6 @@ class sqrs(base.CISC):
         adds(s[5], s[1], s[4])
         subml(self.args[0], s[5], c[1])
 
-
-@base.gf2n
-@base.vectorize
-class lts(base.CISC):
-    """ Secret comparison $s_i = (s_j < s_k)$. """
-    __slots__ = []
-    arg_format = ['sw', 's', 's', 'int', 'int']
-
-    def expand(self):
-        from .types import sint
-        a = sint()
-        subs(a, self.args[1], self.args[2])
-        comparison.LTZ(self.args[0], a, self.args[3], self.args[4])
 
 # placeholder for documentation
 class cisc:

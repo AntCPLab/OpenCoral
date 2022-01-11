@@ -175,7 +175,7 @@ void GarbleInputter<T>::exchange()
 		assert(party.P != 0);
 		assert(party.MC != 0);
 		auto& protocol = party.shared_proc->protocol;
-		protocol.init_mul(party.shared_proc);
+		protocol.init_mul();
 		for (auto& tuple : tuples)
 			protocol.prepare_mul(tuple.first->mask,
 					T::constant(1, party.P->my_num(), party.mac_key)

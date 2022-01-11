@@ -126,6 +126,9 @@ public:
     template<class U>
     static void convcbit2s(Processor<U>& processor, const BaseInstruction& instruction)
     { T::convcbit2s(processor, instruction); }
+    template<class U>
+    static void andm(Processor<U>& processor, const BaseInstruction& instruction)
+    { T::andm(processor, instruction); }
 
     Secret();
     Secret(const Integer& x) { *this = x; }

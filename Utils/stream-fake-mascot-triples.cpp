@@ -27,13 +27,18 @@ void* run(void* arg)
     int count = 0;
     while (true)
     {
-        gfpvar triple[3];
-        for (int i = 0; i < 2; i++)
-            triple[i].randomize(G);
-        triple[2] = triple[0] * triple[1];
-        for (int i = 0; i < 3; i++)
-            files.output_shares(triple[i]);
-        count++;
+        for (int i = 0; i < 100000; i++)
+        {
+            gfpvar triple[3];
+            for (int i = 0; i < 2; i++)
+                triple[i].randomize(G);
+            triple[2] = triple[0] * triple[1];
+            for (int i = 0; i < 3; i++)
+                files.output_shares(triple[i]);
+            count++;
+        }
+        // take a break to make them wait
+        sleep(1);
     }
     cerr << "failed after " << count << endl;
     return 0;
@@ -41,7 +46,7 @@ void* run(void* arg)
 
 int main()
 {
-    insecure("preprocessing");
+    insecure_fake();
     typedef Share<gfpvar> T;
     int nplayers = 2;
     int lgp = 128;

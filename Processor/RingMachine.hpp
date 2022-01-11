@@ -12,6 +12,7 @@
 #include "Tools/ezOptionParser.h"
 #include "Math/gf2n.h"
 #include "OnlineMachine.hpp"
+#include "OnlineOptions.hpp"
 
 
 template<template<int L> class U, template<class T> class V>
@@ -25,7 +26,7 @@ template<template<int L> class U, template<class T> class V>
 HonestMajorityRingMachine<U, V>::HonestMajorityRingMachine(int argc, const char** argv,
         ez::ezOptionParser& opt, int nplayers)
 {
-    OnlineOptions online_opts(opt, argc, argv);
+    OnlineOptions online_opts(opt, argc, argv, U<64>());
     RingMachine<U, V, HonestMajorityMachine>(argc, argv, opt, online_opts, nplayers);
 }
 

@@ -175,7 +175,7 @@ size_t PairwiseGenerator<FD>::report_size(ReportType type)
 template <class FD>
 size_t PairwiseGenerator<FD>::report_sent()
 {
-    return P.sent;
+    return P.total_comm().sent;
 }
 
 template <class FD>

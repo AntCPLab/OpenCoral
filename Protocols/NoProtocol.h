@@ -45,12 +45,12 @@ public:
     }
 
     // prepare next round of multiplications
-    void init_mul(SubProcessor<T>*)
+    void init_mul()
     {
     }
 
     // schedule multiplication
-    typename T::clear prepare_mul(const T&, const T&, int = -1)
+    void prepare_mul(const T&, const T&, int = -1)
     {
         throw runtime_error("no multiplication preparation");
     }

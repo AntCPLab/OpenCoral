@@ -82,7 +82,7 @@ def run(args, options):
     prog.finalize()
 
     if prog.req_num:
-        print('Program requires:')
+        print('Program requires at most:')
         for x in prog.req_num.pretty():
             print(x)
 

@@ -178,12 +178,6 @@ int finalize_lengths(int& lg2p0, int& lg2p1, int n, int m, int* lg2pi,
 
   return extra_slack;
 }
-
-
-
-/******************************************************************************
- * Here onwards needs NTL
- ******************************************************************************/
  
 
 
@@ -345,6 +339,7 @@ ZZX Cyclotomic(int N)
   return F;
 }
 #else
+// simplified version powers of two
 int phi_N(int N)
 {
   if (((N - 1) & N) != 0)

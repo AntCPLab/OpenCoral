@@ -46,6 +46,7 @@
     X(NOTCB, processor.notcb(INST)) \
     X(ANDRS, T::andrs(PROC, EXTRA)) \
     X(ANDS, T::ands(PROC, EXTRA)) \
+    X(ANDM, T::andm(PROC, instruction)) \
     X(ADDCB, C0 = PC1 + PC2) \
     X(ADDCBI, C0 = PC1 + int(IMM)) \
     X(MULCBI, C0 = PC1 * int(IMM)) \
@@ -76,7 +77,6 @@
 #define COMBI_INSTRUCTIONS BIT_INSTRUCTIONS \
     X(INPUTB, T::inputb(PROC, Proc, EXTRA)) \
     X(INPUTBVEC, T::inputbvec(PROC, Proc, EXTRA)) \
-    X(ANDM, processor.andm(instruction)) \
     X(CONVSINT, S0.load_clear(IMM, Proc.read_Ci(REG1))) \
     X(CONVCINT, C0 = Proc.read_Ci(REG1)) \
     X(CONVCBIT, Proc.write_Ci(R0, PC1.get())) \

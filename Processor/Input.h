@@ -14,6 +14,8 @@ using namespace std;
 #include "Tools/PointerVector.h"
 
 class ArithmeticProcessor;
+template<class T> class SubProcessor;
+template<class T> class Preprocessing;
 
 /**
  * Abstract base for input protocols
@@ -25,6 +27,7 @@ class InputBase
 
 protected:
     Player* P;
+    int my_num;
 
     Buffer<typename T::clear, typename T::clear> buffer;
     Timer timer;
@@ -58,7 +61,7 @@ public:
     /// Schedule input from other player
     virtual void add_other(int player, int n_bits = -1) = 0;
     /// Schedule input from all players
-    void add_from_all(const clear& input);
+    void add_from_all(const clear& input, int n_bits = -1);
 
     /// Send my inputs
     virtual void send_mine() = 0;

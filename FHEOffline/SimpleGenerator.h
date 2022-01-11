@@ -71,7 +71,7 @@ public:
     void run(bool exhaust);
     size_t report_size(ReportType type);
     void report_size(ReportType type, MemoryUsage& res);
-    size_t report_sent() { return P.sent; }
+    size_t report_sent() { return P.total_comm().sent; }
 };
 
 #endif /* FHEOFFLINE_SIMPLEGENERATOR_H_ */

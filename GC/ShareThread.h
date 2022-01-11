@@ -58,9 +58,6 @@ public:
 
     void pre_run();
     void post_run() { ShareThread<T>::post_run(); }
-
-    NamedCommStats comm_stats()
-    { return Thread<T>::comm_stats() + this->DataF.comm_stats(); }
 };
 
 template<class T>

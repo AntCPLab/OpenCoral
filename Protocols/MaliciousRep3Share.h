@@ -42,6 +42,7 @@ public:
     typedef GC::MaliciousRepSecret bit_type;
 
     const static bool expensive = true;
+    static const bool has_trunc_pr = false;
 
     static string type_short()
     {

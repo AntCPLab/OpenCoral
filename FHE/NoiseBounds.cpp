@@ -114,7 +114,6 @@ NoiseBounds::NoiseBounds(const bigint& p, int phi_m, int n, int sec, int slack,
     cout << "n: " << n << endl;
     cout << "sec: " << sec << endl;
     cout << "sigma: " << this->sigma << endl;
-    cout << "h: " << h << endl;
     cout << "B_clean size: " << numBits(B_clean) << endl;
     cout << "B_scale size: " << numBits(B_scale) << endl;
     cout << "B_KS size: " << numBits(B_KS) << endl;

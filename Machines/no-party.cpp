@@ -8,6 +8,7 @@
 #include "Processor/OnlineMachine.hpp"
 #include "Processor/Machine.hpp"
 #include "Protocols/Replicated.hpp"
+#include "Protocols/MalRepRingPrep.hpp"
 #include "Math/gfp.hpp"
 #include "Math/Z2k.hpp"
 

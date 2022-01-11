@@ -11,6 +11,7 @@
 #include "Protocols/Replicated.h"
 #include "GC/ShareSecret.h"
 #include "ShareInterface.h"
+#include "Processor/Instruction.h"
 
 template<class T> class ReplicatedPrep;
 template<class T> class ReplicatedRingPrep;
@@ -67,6 +68,31 @@ public:
         assert(full);
         FixedVec<T, L>::unpack(os);
     }
+
+    template<class U>
+    static void shrsi(SubProcessor<U>& proc, const Instruction& inst)
+    {
+        shrsi(proc, inst, T::invertible);
+    }
+
+    template<class U>
+    static void shrsi(SubProcessor<U>&, const Instruction&,
+            true_type)
+    {
+        throw runtime_error("shrsi not implemented");
+    }
+
+    template<class U>
+    static void shrsi(SubProcessor<U>& proc, const Instruction& inst,
+            false_type)
+    {
+        for (int i = 0; i < inst.get_size(); i++)
+        {
+            auto& dest = proc.get_S_ref(inst.get_r(0) + i);
+            auto& source = proc.get_S_ref(inst.get_r(1) + i);
+            dest = source >> inst.get_n();
+        }
+    }
 };
 
 template<class T>
@@ -94,6 +120,7 @@ public:
     const static bool dishonest_majority = false;
     const static bool expensive = false;
     const static bool variable_players = false;
+    static const bool has_trunc_pr = true;
 
     static string type_short()
     {

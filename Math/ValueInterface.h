@@ -20,6 +20,7 @@ public:
     static const false_type characteristic_two;
     static const false_type prime_field;
     static const false_type invertible;
+    static const false_type binary;
 
     template<class T>
     static void init(bool mont = true) { (void) mont; }

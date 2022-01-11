@@ -7,6 +7,7 @@
 #define PROCESSOR_BASEMACHINE_H_
 
 #include "Tools/time-func.h"
+#include "Tools/TimerWithComm.h"
 #include "OT/OTTripleSetup.h"
 #include "ThreadJob.h"
 #include "ThreadQueues.h"
@@ -22,7 +23,7 @@ class BaseMachine
 protected:
     static BaseMachine* singleton;
 
-    std::map<int,Timer> timer;
+    std::map<int,TimerWithComm> timer;
 
     string compiler;
     string domain;
@@ -66,12 +67,18 @@ public:
 
     virtual void reqbl(int) {}
 
-    OTTripleSetup fresh_ot_setup();
+    static OTTripleSetup fresh_ot_setup(Player& P);
+
+    NamedCommStats total_comm();
+    void set_thread_comm(const NamedCommStats& stats);
 };
 
-inline OTTripleSetup BaseMachine::fresh_ot_setup()
+inline OTTripleSetup BaseMachine::fresh_ot_setup(Player& P)
 {
-    return ot_setups.at(thread_num).get_fresh();
+    if (singleton and size_t(thread_num) < s().ot_setups.size())
+        return s().ot_setups.at(thread_num).get_fresh();
+    else
+        return OTTripleSetup(P, true);
 }
 
 #endif /* PROCESSOR_BASEMACHINE_H_ */

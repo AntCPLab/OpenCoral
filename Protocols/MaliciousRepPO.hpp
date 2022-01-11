@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef PROTOCOLS_MALICIOUSREPPO_HPP_
+#define PROTOCOLS_MALICIOUSREPPO_HPP_
+
 #include "MaliciousRepPO.h"
 
 #include <assert.h>
@@ -16,7 +19,10 @@ MaliciousRepPO<T>::MaliciousRepPO(Player& P) : P(P)
 template<class T>
 void MaliciousRepPO<T>::prepare_sending(const T& secret, int player)
 {
-    secret[2 - P.get_offset(player)].pack(to_send);
+    if (player == P.my_num())
+        secrets.push_back(secret);
+    else
+        secret[2 - P.get_offset(player)].pack(to_send);
 }
 
 template<class T>
@@ -24,7 +30,7 @@ void MaliciousRepPO<T>::send(int player)
 {
     if (P.get_offset(player) == 2)
         P.send_to(player, to_send);
-    else
+    else if (P.my_num() != player)
         P.send_to(player, to_send.hash());
 }
 
@@ -42,3 +48,11 @@ typename T::clear MaliciousRepPO<T>::finalize(const T& secret)
 {
     return secret.sum() + to_receive[0].template get<typename T::open_type>();
 }
+
+template<class T>
+typename T::clear MaliciousRepPO<T>::finalize()
+{
+    return finalize(secrets.next());
+}
+
+#endif

@@ -126,7 +126,7 @@ typename KeyGenProtocol<X, L>::vector_type KeyGenProtocol<X, L>::schur_product(
     vector_type res;
     assert(x.size() == y.size());
     auto& protocol = proc->protocol;
-    protocol.init_mul(proc);
+    protocol.init_mul();
     for (size_t i = 0; i < x.size(); i++)
         protocol.prepare_mul(x[i], y[i]);
     protocol.exchange();

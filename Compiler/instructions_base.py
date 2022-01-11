@@ -4,6 +4,8 @@ import time
 import inspect
 import functools
 import copy
+import sys
+import struct
 from Compiler.exceptions import *
 from Compiler.config import *
 from Compiler import util
@@ -299,11 +301,12 @@ def vectorize(instruction, global_dict=None):
     vectorized_name = 'v' + instruction.__name__
     Vectorized_Instruction.__name__ = vectorized_name
     global_dict[vectorized_name] = Vectorized_Instruction
+
+    if 'sphinx.extension' in sys.modules:
+        return instruction
+
     global_dict[instruction.__name__ + '_class'] = instruction
-    instruction.__doc__ = ''
-    # exclude GF(2^n) instructions from documentation
-    if instruction.code and instruction.code >> 8 == 1:
-        maybe_vectorized_instruction.__doc__ = ''
+    maybe_vectorized_instruction.arg_format = instruction.arg_format
     return maybe_vectorized_instruction
 
 
@@ -389,8 +392,11 @@ def gf2n(instruction):
     else:
         global_dict[GF2N_Instruction.__name__] = GF2N_Instruction
 
+    if 'sphinx.extension' in sys.modules:
+        return instruction
+
     global_dict[instruction.__name__ + '_class'] = instruction_cls
-    instruction_cls.__doc__ = ''
+    maybe_gf2n_instruction.arg_format = instruction.arg_format
     return maybe_gf2n_instruction
     #return instruction
 
@@ -661,6 +667,12 @@ class RegisterArgFormat(ArgFormat):
         assert arg.i >= 0
         return int_to_bytes(arg.i)
 
+    def __init__(self, f):
+        self.i = struct.unpack('>I', f.read(4))[0]
+
+    def __str__(self):
+        return self.reg_type + str(self.i)
+
 class ClearModpAF(RegisterArgFormat):
     reg_type = RegType.ClearModp
 
@@ -685,6 +697,12 @@ class IntArgFormat(ArgFormat):
     @classmethod
     def encode(cls, arg):
         return int_to_bytes(arg)
+
+    def __init__(self, f):
+        self.i = struct.unpack('>i', f.read(4))[0]
+
+    def __str__(self):
+        return str(self.i)
 
 class ImmediateModpAF(IntArgFormat):
     @classmethod
@@ -721,6 +739,13 @@ class String(ArgFormat):
     @classmethod
     def encode(cls, arg):
         return bytearray(arg, 'ascii') + b'\0' * (cls.length - len(arg))
+
+    def __init__(self, f):
+        tmp = f.read(16)
+        self.str = str(tmp[0:tmp.find(b'\0')], 'ascii')
+
+    def __str__(self):
+        return self.str
 
 ArgFormats = {
     'c': ClearModpAF,
@@ -889,6 +914,54 @@ class Instruction(object):
 
     def __repr__(self):
         return self.__class__.__name__ + '(' + self.get_pre_arg() + ','.join(str(a) for a in self.args) + ')'
+
+class ParsedInstruction:
+    reverse_opcodes = {}
+
+    def __init__(self, f):
+        cls = type(self)
+        from Compiler import instructions
+        from Compiler.GC import instructions as gc_inst
+        if not cls.reverse_opcodes:
+            for module in instructions, gc_inst:
+                for x, y in inspect.getmodule(module).__dict__.items():
+                    if inspect.isclass(y) and y.__name__[0] != 'v':
+                        try:
+                            cls.reverse_opcodes[y.code] = y
+                        except AttributeError:
+                            pass
+        read = lambda: struct.unpack('>I', f.read(4))[0]
+        full_code = read()
+        code = full_code % (1 << Instruction.code_length)
+        self.size = full_code >> Instruction.code_length
+        self.type = cls.reverse_opcodes[code]
+        t = self.type
+        name = t.__name__
+        try:
+            n_args = len(t.arg_format)
+            self.var_args = False
+        except:
+            n_args = read()
+            self.var_args = True
+        try:
+            arg_format = iter(t.arg_format)
+        except:
+            if name == 'cisc':
+                arg_format = itertools.chain(['str'], itertools.repeat('int'))
+            else:
+                arg_format = itertools.repeat('int')
+        self.args = [ArgFormats[next(arg_format)](f)
+                     for i in range(n_args)]
+
+    def __str__(self):
+        name = self.type.__name__
+        res = name + ' '
+        if self.size > 1:
+            res = 'v' + res + str(self.size) + ', '
+        if self.var_args:
+            res += str(len(self.args)) + ', '
+        res += ', '.join(str(arg) for arg in self.args)
+        return res
 
 class VarArgsInstruction(Instruction):
     def has_var_args(self):

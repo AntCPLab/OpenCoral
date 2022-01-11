@@ -5,6 +5,7 @@
 
 #include "CryptoPlayer.h"
 #include "Math/Setup.h"
+#include "Tools/Bundle.h"
 
 void check_ssl_file(string filename)
 {
@@ -124,12 +125,14 @@ CryptoPlayer::~CryptoPlayer()
 
 void CryptoPlayer::send_to_no_stats(int other, const octetStream& o) const
 {
+    assert(other != my_num());
     senders[other]->request(o);
     senders[other]->wait(o);
 }
 
 void CryptoPlayer::receive_player_no_stats(int other, octetStream& o) const
 {
+    assert(other != my_num());
     receivers[other]->request(o);
     receivers[other]->wait(o);
 }
@@ -137,6 +140,7 @@ void CryptoPlayer::receive_player_no_stats(int other, octetStream& o) const
 void CryptoPlayer::exchange_no_stats(int other, const octetStream& to_send,
         octetStream& to_receive) const
 {
+    assert(other != my_num());
     if (&to_send == &to_receive)
     {
         MultiPlayer<ssl_socket*>::exchange_no_stats(other, to_send, to_receive);
@@ -153,6 +157,7 @@ void CryptoPlayer::exchange_no_stats(int other, const octetStream& to_send,
 void CryptoPlayer::pass_around_no_stats(const octetStream& to_send,
         octetStream& to_receive, int offset) const
 {
+    assert(get_player(offset) != my_num());
     if (&to_send == &to_receive)
     {
         MultiPlayer<ssl_socket*>::pass_around_no_stats(to_send, to_receive, offset);

@@ -108,6 +108,9 @@ public:
     template<class U>
     static void convcbit2s(GC::Processor<U>&, const BaseInstruction&)
     { throw runtime_error("convcbit2s not implemented"); }
+    template<class U>
+    static void andm(GC::Processor<U>&, const BaseInstruction&)
+    { throw runtime_error("andm not implemented"); }
 
     static FakeSecret input(GC::Processor<FakeSecret>& processor, const InputArgs& args);
     static FakeSecret input(int from, word input, int n_bits);

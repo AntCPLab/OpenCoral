@@ -25,9 +25,8 @@ Player& PostSacrifice<T>::branch()
 }
 
 template<class T>
-void PostSacrifice<T>::init_mul(SubProcessor<T>* proc)
+void PostSacrifice<T>::init_mul()
 {
-    (void) proc;
     // throw away unused operands
     operands.resize(results.size());
     if ((int) results.size() >= OnlineOptions::singleton.batch_size)
@@ -36,11 +35,11 @@ void PostSacrifice<T>::init_mul(SubProcessor<T>* proc)
 }
 
 template<class T>
-typename T::clear PostSacrifice<T>::prepare_mul(const T& x, const T& y, int n)
+void PostSacrifice<T>::prepare_mul(const T& x, const T& y, int n)
 {
     (void) n;
     operands.push_back({{x, y}});
-    return internal.prepare_mul(x, y);
+    internal.prepare_mul(x, y);
 }
 
 template<class T>

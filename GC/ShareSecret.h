@@ -78,6 +78,8 @@ public:
     template<class T>
     static void convcbit2s(Processor<T>& processor, const BaseInstruction& instruction)
     { processor.convcbit2s(instruction); }
+    static void andm(Processor<U>& processor, const BaseInstruction& instruction)
+    { processor.andm(instruction); }
 
     static BitVec get_mask(int n) { return n >= 64 ? -1 : ((1L << n) - 1); }
 

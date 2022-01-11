@@ -142,6 +142,8 @@ template<class sint, class sgf2n>
 Machine<sint, sgf2n>::~Machine()
 {
   delete P;
+  for (auto& queue : queues)
+    delete queue;
 }
 
 template<class sint, class sgf2n>
@@ -324,7 +326,7 @@ void Machine<sint, sgf2n>::run()
 {
   Timer proc_timer(CLOCK_PROCESS_CPUTIME_ID);
   proc_timer.start();
-  timer[0].start();
+  timer[0].start({});
 
   // run main tape
   run_tape(0, 0, 0, N.num_players());
@@ -352,7 +354,6 @@ void Machine<sint, sgf2n>::run()
       queues[i]->schedule({});
       pos.increase(queues[i]->result().pos);
       pthread_join(threads[i],NULL);
-      delete queues[i];
     }
   finish_timer.stop();
   
@@ -371,6 +372,8 @@ void Machine<sint, sgf2n>::run()
     cerr << "Join timer: " << i << " " << join_timer[i].elapsed() << endl;
   cerr << "Finish timer: " << finish_timer.elapsed() << endl;
 #endif
+
+  NamedCommStats comm_stats = total_comm();
 
   if (opts.verbose)
     {
@@ -457,9 +460,12 @@ void Machine<sint, sgf2n>::run()
     }
 
 #ifndef INSECURE
-  Data_Files<sint, sgf2n> df(*this);
-  df.seekg(pos);
-  df.prune();
+  if (not opts.file_prep_per_thread)
+    {
+      Data_Files<sint, sgf2n> df(*this);
+      df.seekg(pos);
+      df.prune();
+    }
 #endif
 
   sint::LivePrep::teardown();

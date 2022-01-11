@@ -19,6 +19,8 @@ Scripts/<protocol>.sh bankers_bonus-1 &
 ./bankers-bonus-client.x 1 <nparties> 200 0 &
 ./bankers-bonus-client.x 2 <nparties> 50 1
 ```
+`<protocol>` can be any arithmetic protocol (e.g., `mascot`) but not a
+binary protocol (e.g., `yao`).
 This should output that the winning id is 1. Note that the ids have to
 be incremental, and the client with the highest id has to input 1 as
 the last argument while the others have to input 0 there. Furthermore,
@@ -32,54 +34,21 @@ different hosts, you will have to distribute the `*.pem` files.
 
 ### Connection Setup
 
-**listen**(*int port_num*)
-
-Setup a socket server to listen for client connections. Runs in own thread so once created clients will be able to connect in the background.
-
-*port_num* - the port number to listen on.
-
-**acceptclientconnection**(*regint client_socket_id*, *int port_num*)
-
-Picks the first available client socket connection. Blocks if none available.
-
-*client_socket_id* - an identifier used to refer to the client socket.
-
-*port_num* - the port number identifies the socket server to accept connections on.
+1. [Listen for clients](https://mp-spdz.readthedocs.io/en/latest/Compiler.html#Compiler.library.listen_for_clients)
+2. [Accept client connections](https://mp-spdz.readthedocs.io/en/latest/Compiler.html#Compiler.library.accept_client_connection)
+3. [Close client connections](https://mp-spdz.readthedocs.io/en/latest/instructions.html#Compiler.instructions.closeclientconnection)
 
 ### Data Exchange
 
-Only the sint methods are documented here, equivalent methods are available for the other data types **cfix**, **cint** and **regint**. See implementation details in [types.py](../Compiler/types.py).
+Only the `sint` methods used in the example are documented here, equivalent methods are available for other data types. See [the reference](https://mp-spdz.readthedocs.io/en/latest/Compiler.html#module-Compiler.types).
 
-*[sint inputs]* **sint.read_from_socket**(*regint client_socket_id*, *int number_of_inputs*)
+1. [Public value from client](https://mp-spdz.readthedocs.io/en/latest/Compiler.html#Compiler.types.regint.read_from_socket)
+2. [Secret value from client](https://mp-spdz.readthedocs.io/en/latest/Compiler.html#Compiler.types.sint.receive_from_client)
+3. [Reveal secret value to clients](https://mp-spdz.readthedocs.io/en/latest/Compiler.html#Compiler.types.sint.reveal_to_clients)
 
-Read a share of an input from a client, blocking on the client send.
+## Client-Side Interface
 
-*client_socket_id* - an identifier used to refer to the client socket.
-
-*number_of_inputs* - the number of inputs expected
-
-*[inputs]* - returned list of shares of private input.
-
-**sint.write_to_socket**(*regint client_socket_id*, *[sint values]*, *int message_type*)
-
-Write shares of values including macs to an external client.
-
-*client_socket_id* - an identifier used to refer to the client socket.
-
-*[values]* - list of shares of values to send to client.
-
-*message_type* - optional integer which will be sent in first 4 bytes of message, to indicate message type to client.
-
-See also sint.write_shares_to_socket where macs can be explicitly included or excluded from the message.
-
-*[sint inputs]* **sint.receive_from_client**(*int number_of_inputs*, *regint client_socket_id*, *int message_type*)
-
-Receive shares of private inputs from a client, blocking on client send. This is an abstraction which first sends shares of random values to the client and then receives masked input from the client, using the input protocol introduced in [Confidential Benchmarking based on Multiparty Computation. Damgard et al.](http://eprint.iacr.org/2015/1006.pdf)
-
-*number_of_inputs* - the number of inputs expected
-
-*client_socket_id* - an identifier used to refer to the client socket.
-
-*message_type* - optional integer which will be sent in first 4 bytes of message, to indicate message type to client.
-
-*[inputs]* - returned list of shares of private input.
+The example uses the `Client` class implemented in
+`ExternalIO/Client.hpp` to handle the communication, see
+https://mp-spdz.readthedocs.io/en/latest/io.html#reference for
+documentation.

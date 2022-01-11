@@ -34,39 +34,26 @@ run_player() {
     if ! test -e $SPDZROOT/logs; then
         mkdir $SPDZROOT/logs
     fi
-    if [[ $bin = Player-Online.x || $bin =~ 'party.x' ]]; then
-	params="$prog $* -pn $port -h localhost"
-	if [[ ! ($bin =~ 'rep' || $bin =~ 'brain' || $bin =~ 'yao') ]]; then
-	    params="$params -N $players"
-	fi
-    else
-	params="$port localhost $prog $*"
+    params="$prog $* -pn $port -h localhost"
+    if $SPDZROOT/$bin 2>&1 | grep -q '^-N,'; then
+       params="$params -N $players"
     fi
-    rem=$(($players - 2))
     if test "$prog"; then
 	log_prefix=$prog-
     fi
-    for i in $(seq 0 $rem); do
+    set -o pipefail
+    for i in $(seq 0 $[players-1]); do
       >&2 echo Running $prefix $SPDZROOT/$bin $i $params
       log=$SPDZROOT/logs/$log_prefix$i
       $prefix $SPDZROOT/$bin $i $params 2>&1 |
 	  { if test $i = 0; then tee $log; else cat > $log; fi; } &
+      codes[$i]=$!
     done
-    last_player=$(($players - 1))
-    i=$last_player
-    >&2 echo Running $prefix $SPDZROOT/$bin $last_player $params
-    $prefix $SPDZROOT/$bin $last_player $params > $SPDZROOT/logs/$log_prefix$last_player 2>&1 || return 1
-    wait
+    for i in $(seq 0 $[players-1]); do
+	wait ${codes[$i]} || return 1
+    done
 }
-
-sleep 0.5
-
-#mkdir /dev/shm/Player-Data
 
 players=${PLAYERS:-2}
 
 SPDZROOT=${SPDZROOT:-.}
-
-#. Scripts/setup.sh
-
-mkdir logs 2> /dev/null

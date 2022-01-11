@@ -38,9 +38,8 @@ public:
     PostSacriBin(Player& P);
     ~PostSacriBin();
 
-    void init_mul(Preprocessing<T>&, T::MC&);
-    void init_mul(SubProcessor<T>* proc);
-    T::clear prepare_mul(const T& x, const T& y, int n = -1);
+    void init_mul();
+    void prepare_mul(const T& x, const T& y, int n = -1);
     void exchange();
     T finalize_mul(int n = -1);
 

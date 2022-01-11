@@ -392,7 +392,7 @@ def Trunc(a, l, m, kappa=None, compute_modulo=False, signed=False):
     for i in range(1,l):
         ci[i] = c % two_power(i)
     c_dprime = sum(ci[i]*(x[i-1] - x[i]) for i in range(1,l))
-    lts(d, c_dprime, r_prime, l, kappa)
+    d = program.Program.prog.non_linear.ltz(c_dprime - r_prime, l, kappa)
     if compute_modulo:
         b = c_dprime - r_prime + pow2m * d
         return b, pow2m
@@ -629,12 +629,14 @@ def BITLT(a, b, bit_length):
 #   - From the paper
 #        Multiparty Computation for Interval, Equality, and Comparison without 
 #        Bit-Decomposition Protocol
-def BitDecFull(a, maybe_mixed=False):
+def BitDecFull(a, n_bits=None, maybe_mixed=False):
     from .library import get_program, do_while, if_, break_point
     from .types import sint, regint, longint, cint
     p = get_program().prime
     assert p
     bit_length = p.bit_length()
+    n_bits = n_bits or bit_length
+    assert n_bits <= bit_length
     logp = int(round(math.log(p, 2)))
     if abs(p - 2 ** logp) / p < 2 ** -get_program().security:
         # inspired by Rabbit (https://eprint.iacr.org/2021/119)
@@ -677,12 +679,12 @@ def BitDecFull(a, maybe_mixed=False):
     czero = (c==0)
     q = bbits[0].long_one() - comparison.BitLTL_raw(bbits, t)
     fbar = [bbits[0].clear_type.conv(cint(x))
-            for x in ((1<<bit_length)+c-p).bit_decompose(bit_length)]
-    fbard = bbits[0].bit_decompose_clear(cmodp, bit_length)
-    g = [q.if_else(fbar[i], fbard[i]) for i in range(bit_length)]
+            for x in ((1<<bit_length)+c-p).bit_decompose(n_bits)]
+    fbard = bbits[0].bit_decompose_clear(cmodp, n_bits)
+    g = [q.if_else(fbar[i], fbard[i]) for i in range(n_bits)]
     h = bbits[0].bit_adder(bbits, g)
     abits = [bbits[0].clear_type(cint(czero)).if_else(bbits[i], h[i])
-             for i in range(bit_length)]
+             for i in range(n_bits)]
     if maybe_mixed:
         return abits
     else:

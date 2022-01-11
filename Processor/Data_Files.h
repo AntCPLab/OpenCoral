@@ -89,6 +89,7 @@ template<class sint, class sgf2n> class Processor;
 template<class sint, class sgf2n> class Data_Files;
 template<class sint, class sgf2n> class Machine;
 template<class T> class SubProcessor;
+template<class T> class NoFilePrep;
 
 /**
  * Abstract base class for preprocessing
@@ -125,6 +126,7 @@ public:
   template<class U, class V>
   static Preprocessing<T>* get_new(Machine<U, V>& machine, DataPositions& usage,
       SubProcessor<T>* proc);
+  template<int = 0>
   static Preprocessing<T>* get_new(bool live_prep, const Names& N,
       DataPositions& usage);
   static Preprocessing<T>* get_live_prep(SubProcessor<T>* proc,
@@ -133,22 +135,21 @@ public:
   Preprocessing(DataPositions& usage) : usage(usage), do_count(true) {}
   virtual ~Preprocessing() {}
 
-  virtual void set_protocol(typename T::Protocol& protocol) = 0;
+  virtual void set_protocol(typename T::Protocol&) {};
   virtual void set_proc(SubProcessor<T>* proc) { (void) proc; }
 
   virtual void seekg(DataPositions& pos) { (void) pos; }
   virtual void prune() {}
   virtual void purge() {}
 
-  virtual size_t data_sent() { return comm_stats().sent; }
-  virtual NamedCommStats comm_stats() { return {}; }
-
-  virtual void get_three_no_count(Dtype dtype, T& a, T& b, T& c) = 0;
-  virtual void get_two_no_count(Dtype dtype, T& a, T& b) = 0;
-  virtual void get_one_no_count(Dtype dtype, T& a) = 0;
-  virtual void get_input_no_count(T& a, typename T::open_type& x, int i) = 0;
-  virtual void get_no_count(vector<T>& S, DataTag tag, const vector<int>& regs,
-      int vector_size) = 0;
+  virtual void get_three_no_count(Dtype, T&, T&, T&)
+  { throw not_implemented(); }
+  virtual void get_two_no_count(Dtype, T&, T&) { throw not_implemented(); }
+  virtual void get_one_no_count(Dtype, T&) { throw not_implemented(); }
+  virtual void get_input_no_count(T&, typename T::open_type&, int)
+  { throw not_implemented() ; }
+  virtual void get_no_count(vector<T>&, DataTag, const vector<int>&, int)
+  { throw not_implemented(); }
 
   void get(Dtype dtype, T* a);
   void get_three(Dtype dtype, T& a, T& b, T& c);
@@ -191,6 +192,9 @@ class Sub_Data_Files : public Preprocessing<T>
 {
   template<class U> friend class Sub_Data_Files;
 
+  typedef typename conditional<T::LivePrep::use_part,
+      Sub_Data_Files<typename T::part_type>, NoFilePrep<typename T::part_type>>::type part_type;
+
   static int tuple_length(int dtype);
 
   BufferOwner<T, T> buffers[N_DTYPE];
@@ -205,7 +209,7 @@ class Sub_Data_Files : public Preprocessing<T>
   const string prep_data_dir;
   int thread_num;
 
-  Sub_Data_Files<typename T::part_type>* part;
+  part_type* part;
 
   void buffer_edabits_with_queues(bool strict, int n_bits)
   { buffer_edabits_with_queues<0>(strict, n_bits, T::clear::characteristic_two); }
@@ -274,7 +278,7 @@ public:
   void get_no_count(vector<T>& S, DataTag tag, const vector<int>& regs, int vector_size);
   void get_dabit_no_count(T& a, typename T::bit_type& b);
 
-  Preprocessing<typename T::part_type>& get_part();
+  part_type& get_part();
 };
 
 template<class sint, class sgf2n>
@@ -307,8 +311,6 @@ class Data_Files
   }
 
   void reset_usage() { usage.reset(); skipped.reset(); }
-
-  NamedCommStats comm_stats();
 };
 
 template<class T> inline
@@ -418,6 +420,7 @@ T Preprocessing<T>::get_bit()
 template<class T>
 T Preprocessing<T>::get_random()
 {
+  assert(not usage.inputs.empty());
   return get_random_from_inputs(usage.inputs.size());
 }
 
@@ -427,12 +430,6 @@ inline void Data_Files<sint, sgf2n>::purge()
   DataFp.purge();
   DataF2.purge();
   DataFb.purge();
-}
-
-template<class sint, class sgf2n>
-NamedCommStats Data_Files<sint, sgf2n>::comm_stats()
-{
-  return DataFp.comm_stats() + DataF2.comm_stats() + DataFb.comm_stats();
 }
 
 #endif

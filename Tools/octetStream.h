@@ -35,7 +35,9 @@ class bigint;
 class FlexBuffer;
 
 /**
- * Buffer for networking communication with a pointer for sequential reading
+ * Buffer for network communication with a pointer for sequential reading.
+ * When sent over the network or stored in a file, the length is prefixed
+ * as eight bytes in little-endian order.
  */
 class octetStream
 {

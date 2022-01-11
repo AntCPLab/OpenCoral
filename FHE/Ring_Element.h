@@ -95,6 +95,7 @@ class Ring_Element
   void randomize(PRNG& G,bool Diag=false);
 
   bool equals(const Ring_Element& a) const;
+  bool is_zero() const;
 
   // This is a NOP in cases where we cannot do a FFT
   void change_rep(RepType r);

@@ -9,6 +9,7 @@
 #include "Replicated.h"
 #include "Math/Z2k.h"
 #include "Processor/Instruction.h"
+#include "Processor/TruncPrTuple.h"
 
 #include <cmath>
 
@@ -75,15 +76,14 @@ public:
         return P;
     }
 
-    void init_mul(SubProcessor<T>*)
+    void init_mul()
     {
         results.clear();
     }
 
-    typename T::clear prepare_mul(const T& x, const T& y, int = -1)
+    void prepare_mul(const T& x, const T& y, int = -1)
     {
         results.push_back(x * y);
-        return {};
     }
 
     void exchange()
@@ -95,9 +95,9 @@ public:
         return results.next();
     }
 
-    void init_dotprod(SubProcessor<T>* proc)
+    void init_dotprod()
     {
-        init_mul(proc);
+        init_mul();
         dot_prod = {};
     }
 
@@ -177,19 +177,22 @@ public:
                     res += overflow;
                 }
 #else
-#ifdef RISKY_TRUNCATION_IN_EMULATION
-                T r;
-                r.randomize(G);
+                if (TruncPrTupleWithGap<typename T::clear>(regs, i).big_gap())
+                {
+                    T r;
+                    r.randomize(G);
 
-                if (source.negative())
-                    res = -T(((-source + r) >> n_shift) - (r >> n_shift));
+                    if (source.negative())
+                        res = -T(((-source + r) >> n_shift) - (r >> n_shift));
+                    else
+                        res = ((source + r) >> n_shift) - (r >> n_shift);
+                }
                 else
-                    res = ((source + r) >> n_shift) - (r >> n_shift);
-#else
-                T r;
-                r.randomize_part(G, n_shift);
-                res = (source + r) >> n_shift;
-#endif
+                {
+                    T r;
+                    r.randomize_part(G, n_shift);
+                    res = (source + r) >> n_shift;
+                }
 #endif
             }
     }

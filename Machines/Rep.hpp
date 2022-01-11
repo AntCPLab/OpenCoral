@@ -4,6 +4,7 @@
  */
 
 #include "Protocols/MalRepRingPrep.h"
+#include "Protocols/ReplicatedPrep2k.h"
 
 #include "Processor/Data_Files.hpp"
 #include "Processor/Instruction.hpp"

@@ -13,3 +13,6 @@ class ArgumentError(CompilerError):
     def __init__(self, arg, msg):
         self.arg = arg
         self.msg = msg
+
+class VectorMismatch(CompilerError):
+    pass

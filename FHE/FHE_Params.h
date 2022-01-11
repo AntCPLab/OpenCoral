@@ -33,9 +33,6 @@ class FHE_Params
 
   int n_mults() const { return FFTData.size() - 1; }
 
-  // Rely on default copy assignment/constructor (not that they should
-  // ever be needed)
-
   void set(const Ring& R,const vector<bigint>& primes);
   void set(const vector<bigint>& primes);
   void set_sec(int sec);

@@ -87,10 +87,10 @@ public:
     {
     }
 
-    void init_mul(SubProcessor<T>* = 0)
+    void init_mul()
     {
     }
-    typename T::clear prepare_mul(const T&, const T&, int = 0)
+    void prepare_mul(const T&, const T&, int = 0)
     {
         throw not_implemented();
     }

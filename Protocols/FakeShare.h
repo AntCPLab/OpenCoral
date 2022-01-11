@@ -32,6 +32,9 @@ public:
 
     typedef GC::FakeSecret bit_type;
 
+    static const bool has_trunc_pr = true;
+    static const bool dishonest_majority = false;
+
     static string type_short()
     {
         return "emul";

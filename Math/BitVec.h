@@ -26,6 +26,7 @@ public:
 
     static const false_type invertible;
     static const true_type characteristic_two;
+    static const true_type binary;
 
     static char type_char() { return 'B'; }
     static string type_short() { return "B"; }
@@ -64,8 +65,21 @@ public:
     void pack(octetStream& os) const { os.store_int<sizeof(T)>(this->a); }
     void unpack(octetStream& os) { this->a = os.get_int<sizeof(T)>(); }
 
-    void pack(octetStream& os, int n) const { os.store_int(super::mask(n).get(), DIV_CEIL(n, 8)); }
-    void unpack(octetStream& os, int n) { this->a = os.get_int(DIV_CEIL(n, 8)); }
+    void pack(octetStream& os, int n) const
+    {
+        if (n == -1)
+            pack(os);
+        else
+            os.store_int(super::mask(n).get(), DIV_CEIL(n, 8));
+    }
+
+    void unpack(octetStream& os, int n)
+    {
+        if (n == -1)
+            unpack(os);
+        else
+            this->a = os.get_int(DIV_CEIL(n, 8));
+    }
 
     static BitVec_ unpack_new(octetStream& os, int n = n_bits)
     {
@@ -81,5 +95,7 @@ template<class T>
 const false_type BitVec_<T>::invertible;
 template<class T>
 const true_type BitVec_<T>::characteristic_two;
+template<class T>
+const true_type BitVec_<T>::binary;
 
 #endif /* MATH_BITVEC_H_ */

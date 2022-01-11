@@ -243,10 +243,6 @@ class Processor : public ArithmeticProcessor
   
   cint get_inverse2(unsigned m);
 
-  // Print the processor state
-  template<class T, class U>
-  friend ostream& operator<<(ostream& s,const Processor<T, U>& P);
-
   private:
 
   template<class T> friend class SPDZ;

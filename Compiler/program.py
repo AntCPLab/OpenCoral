@@ -578,6 +578,15 @@ class Program(object):
         self.warn_about_mem.append(False)
         self.curr_block.warn_about_mem = False
 
+    @staticmethod
+    def read_tapes(schedule):
+        if not os.path.exists(schedule):
+            schedule = 'Programs/Schedules/%s.sch' % schedule
+
+        lines = open(schedule).readlines()
+        for tapename in lines[2].split(' '):
+            yield tapename.strip()
+
 class Tape:
     """ A tape contains a list of basic blocks, onto which instructions are added. """
     def __init__(self, name, program):
@@ -1109,7 +1118,20 @@ class Tape:
         else:
             self.req_bit_length[t] = max(bit_length, self.req_bit_length)
 
-    class Register(object):
+    @staticmethod
+    def read_instructions(tapename):
+        tape = open('Programs/Bytecode/%s.bc' % tapename, 'rb')
+        while tape.peek():
+            yield inst_base.ParsedInstruction(tape)
+
+    class _no_truth(object):
+        __slots__ = []
+
+        def __bool__(self):
+            raise CompilerError('Cannot derive truth value from register, '
+                                "consider using 'compile.py -l'")
+
+    class Register(_no_truth):
         """
         Class for creating new registers. The register's index is automatically assigned
         based on the block's  reg_counter dictionary.
@@ -1232,10 +1254,6 @@ class Tape:
             return self.reg_type == RegType.ClearModp or \
                 self.reg_type == RegType.ClearGF2N or \
                 self.reg_type == RegType.ClearInt
-
-        def __bool__(self):
-            raise CompilerError('Cannot derive truth value from register, '
-                                "consider using 'compile.py -l'")
 
         def __str__(self):
             return self.reg_type + str(self.i)

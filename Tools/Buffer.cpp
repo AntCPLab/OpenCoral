@@ -26,7 +26,7 @@ void BufferBase::setup(ifstream* f, int length, const string& filename,
 bool BufferBase::is_pipe()
 {
     struct stat buf;
-    if (stat(filename.c_str(), &buf))
+    if (stat(filename.c_str(), &buf) == 0)
         return S_ISFIFO(buf.st_mode);
     else
         return false;
@@ -113,6 +113,17 @@ void BufferBase::prune()
         rename(tmp_name.c_str(), filename.c_str());
         file->open(filename.c_str(), ios::in | ios::binary);
     }
+#ifdef VERBOSE
+    else
+    {
+        cerr << "Not pruning " << filename << " because it's ";
+        if (file)
+            cerr << "closed";
+        else
+            cerr << "unused";
+        cerr << endl;
+    }
+#endif
 }
 
 void BufferBase::purge()

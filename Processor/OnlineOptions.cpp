@@ -29,6 +29,7 @@ OnlineOptions::OnlineOptions() : playerno(-1)
     cmd_private_input_file = "Player-Data/Input";
     cmd_private_output_file = "";
     file_prep_per_thread = false;
+    trunc_error = 40;
 #ifdef VERBOSE
     verbose = true;
 #else
@@ -325,6 +326,19 @@ void OnlineOptions::finalize(ez::ezOptionParser& opt, int argc,
         if (prime_limbs() > 4)
 #endif
             lgp = max(lgp, gfp0::MAX_N_BITS);
+    }
+
+    set_trunc_error(opt);
+}
+
+void OnlineOptions::set_trunc_error(ez::ezOptionParser& opt)
+{
+    if (opt.get("-E"))
+    {
+        opt.get("-E")->getInt(trunc_error);
+#ifdef VERBOSE
+        cerr << "Truncation error probability 2^-" << trunc_error << endl;
+#endif
     }
 }
 

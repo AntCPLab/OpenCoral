@@ -30,6 +30,7 @@ public:
     std::string cmd_private_output_file;
     bool verbose;
     bool file_prep_per_thread;
+    int trunc_error;
 
     OnlineOptions();
     OnlineOptions(ez::ezOptionParser& opt, int argc, const char** argv,
@@ -37,9 +38,14 @@ public:
     OnlineOptions(ez::ezOptionParser& opt, int argc, const char** argv,
             int default_batch_size = 0, bool default_live_prep = true,
             bool variable_prime_length = false);
+    template<class T>
+    OnlineOptions(ez::ezOptionParser& opt, int argc, const char** argv, T,
+            bool default_live_prep = true);
     ~OnlineOptions() {}
 
     void finalize(ez::ezOptionParser& opt, int argc, const char** argv);
+
+    void set_trunc_error(ez::ezOptionParser& opt);
 
     int prime_length();
     int prime_limbs();

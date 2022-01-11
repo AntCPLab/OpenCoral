@@ -9,6 +9,7 @@
 
 #include "Protocols/Replicated.hpp"
 #include "Protocols/MaliciousRepMC.hpp"
+#include "Protocols/MalRepRingPrep.hpp"
 #include "ShareSecret.hpp"
 
 namespace GC
@@ -28,24 +29,19 @@ PostSacriBin::~PostSacriBin()
     }
 }
 
-void PostSacriBin::init_mul(SubProcessor<T>* proc)
-{
-    assert(proc != 0);
-    init_mul(proc->DataF, proc->MC);
-}
-
-void PostSacriBin::init_mul(Preprocessing<T>&, T::MC&)
+void PostSacriBin::init_mul()
 {
     if ((int) inputs.size() >= OnlineOptions::singleton.batch_size)
         check();
     honest.init_mul();
 }
 
-PostSacriBin::T::clear PostSacriBin::prepare_mul(const T& x, const T& y, int n)
+void PostSacriBin::prepare_mul(const T& x, const T& y, int n)
 {
+    if (n == -1)
+        n = T::default_length;
     honest.prepare_mul(x, y, n);
     inputs.push_back({{x.mask(n), y.mask(n)}});
-    return {};
 }
 
 void PostSacriBin::exchange()
@@ -55,6 +51,8 @@ void PostSacriBin::exchange()
 
 PostSacriBin::T PostSacriBin::finalize_mul(int n)
 {
+    if (n == -1)
+        n = T::default_length;
     auto res = honest.finalize_mul(n);
     outputs.push_back({res, n});
     return res;

@@ -25,7 +25,6 @@ Spdz2kPrep<T>::Spdz2kPrep(SubProcessor<T>* proc, DataPositions& usage) :
     bit_MC = 0;
     bit_proc = 0;
     bit_prep = 0;
-    bit_protocol = 0;
 }
 
 template<class T>
@@ -36,7 +35,6 @@ Spdz2kPrep<T>::~Spdz2kPrep()
         delete bit_prep;
         delete bit_proc;
         delete bit_MC;
-        delete bit_protocol;
     }
 }
 
@@ -50,10 +48,8 @@ void Spdz2kPrep<T>::set_protocol(typename T::Protocol& protocol)
     // just dummies
     bit_pos = DataPositions(proc->P.num_players());
     bit_prep = new MascotTriplePrep<BitShare>(bit_proc, bit_pos);
-    bit_proc = new SubProcessor<BitShare>(*bit_MC, *bit_prep, proc->P);
     bit_prep->params.amplify = false;
-    bit_protocol = new typename BitShare::Protocol(proc->P);
-    bit_prep->set_protocol(*bit_protocol);
+    bit_proc = new SubProcessor<BitShare>(*bit_MC, *bit_prep, proc->P);
     bit_MC->set_prep(*bit_prep);
     this->proc->MC.set_prep(*this);
 }
@@ -65,7 +61,7 @@ void MaliciousRingPrep<T>::buffer_bits()
     RingPrep<T>::buffer_bits_without_check();
     assert(this->protocol != 0);
     auto& protocol = *this->protocol;
-    protocol.init_dotprod(this->proc);
+    protocol.init_dotprod();
     auto one = T::constant(1, protocol.P.my_num(), this->proc->MC.get_alphai());
     GlobalPRNG G(protocol.P);
     for (auto& bit : this->bits)
@@ -238,12 +234,29 @@ void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
 }
 
 template<class T>
-NamedCommStats Spdz2kPrep<T>::comm_stats()
+void MaliciousRingPrep<T>::buffer_edabits(bool strict, int n_bits,
+        ThreadQueues* queues)
 {
-    auto res = OTPrep<T>::comm_stats();
-    if (bit_prep)
-        res += bit_prep->comm_stats();
-    return res;
+    RunningTimer timer;
+#ifndef NONPERSONAL_EDA
+    this->buffer_edabits_from_personal(strict, n_bits, queues);
+#else
+    assert(this->proc != 0);
+    ShuffleSacrifice<T> shuffle_sacrifice;
+    typedef typename T::bit_type::part_type bit_type;
+    vector<vector<bit_type>> bits;
+    vector<T> sums;
+    this->buffer_edabits_without_check(n_bits, sums, bits,
+            shuffle_sacrifice.minimum_n_inputs(), queues);
+    vector<edabit<T>>& checked = this->edabits[{strict, n_bits}];
+    shuffle_sacrifice.edabit_sacrifice(checked, sums, bits,
+            n_bits, *this->proc, strict, -1, queues);
+    if (strict)
+        this->sanitize(checked, n_bits, -1, queues);
+#endif
+#ifdef VERBOSE_EDA
+    cerr << "Total edaBit generation took " << timer.elapsed() << " seconds" << endl;
+#endif
 }
 
 #endif

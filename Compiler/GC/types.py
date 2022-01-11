@@ -112,10 +112,16 @@ class bits(Tape.Register, _structure, _bit):
             return cls.load_dynamic_mem(address)
         else:
             for i in range(res.size):
-                cls.load_inst[util.is_constant(address)](res[i], address + i)
+                cls.mem_op(cls.load_inst, res[i], address + i)
             return res
     def store_in_mem(self, address):
-        self.store_inst[isinstance(address, int)](self, address)
+        self.mem_op(self.store_inst, self, address)
+    @staticmethod
+    def mem_op(inst, reg, address):
+        direct = isinstance(address, int)
+        if not direct:
+            address = regint.conv(address)
+        inst[direct](reg, address)
     @classmethod
     def new(cls, value=None, n=None):
         if util.is_constant(value):

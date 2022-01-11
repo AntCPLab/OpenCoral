@@ -35,6 +35,7 @@ class Names
   friend class Player;
   friend class PlainPlayer;
   friend class RealTwoPartyPlayer;
+  friend class Server;
 
   vector<string> names;
   vector<int> ports;
@@ -51,6 +52,8 @@ class Names
 
   void setup_server();
 
+  void set_server(ServerSocket* socket);
+
   public:
 
   static const int DEFAULT_PORT = -1;
@@ -62,8 +65,10 @@ class Names
    * @param my_port my port number (`DEFAULT_PORT` for default,
    *  which is base port number plus player number)
    * @param servername location of server
+   * @param setup_socket whether to start listening
    */
-  void init(int player,int pnb,int my_port,const char* servername);
+  void init(int player, int pnb, int my_port, const char* servername,
+      bool setup_socket = true);
   Names(int player,int pnb,int my_port,const char* servername) : Names()
     { init(player,pnb,my_port,servername); }
 
@@ -172,10 +177,11 @@ class PlayerBase
 protected:
   int player_no;
 
-public:
   size_t& sent;
-  mutable Timer timer;
   mutable NamedCommStats comm_stats;
+
+public:
+  mutable Timer timer;
 
   PlayerBase(int player_no) : player_no(player_no), sent(comm_stats.sent) {}
   virtual ~PlayerBase();
@@ -204,6 +210,8 @@ protected:
 
 public:
   const Names& N;
+
+  mutable vector<NamedCommStats> thread_stats;
 
   Player(const Names& Nms);
   virtual ~Player();
@@ -358,6 +366,8 @@ public:
   virtual void request_receive(int i, octetStream& o) const { (void)i; (void)o; }
   virtual void wait_receive(int i, octetStream& o) const
   { receive_player(i, o); }
+
+  NamedCommStats total_comm() const;
 };
 
 /**
@@ -500,6 +510,7 @@ class VirtualTwoPartyPlayer : public TwoPartyPlayer
 {
   Player& P;
   int other_player;
+  NamedCommStats& comm_stats;
 
 public:
   VirtualTwoPartyPlayer(Player& P, int other_player);

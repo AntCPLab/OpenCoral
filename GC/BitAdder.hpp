@@ -96,7 +96,7 @@ void BitAdder::add(vector<vector<T> >& res,
             b[j] = summands[i][1][input_begin + j];
         }
 
-        protocol.init_mul(&proc);
+        protocol.init_mul();
         for (size_t j = 0; j < n_items; j++)
         {
             res[begin + j][i] = a[j] + b[j] + carries[j];

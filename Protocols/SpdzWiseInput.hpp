@@ -12,6 +12,7 @@ SpdzWiseInput<T>::SpdzWiseInput(SubProcessor<T>* proc, Player& P) :
 {
     assert(proc != 0);
     mac_key = proc->MC.get_alphai();
+    checker.init(proc->DataF, proc->MC);
 }
 
 template<class T>
@@ -76,7 +77,7 @@ void SpdzWiseInput<T>::exchange()
             shares[i][j].set_mac(honest_mult.finalize_mul());
             checker.results.push_back(shares[i][j]);
         }
-    checker.init(proc);
+    checker.maybe_check();
 }
 
 template<class T>

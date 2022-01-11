@@ -84,7 +84,7 @@ void Instruction::parse(istream& s, int pos)
         ostringstream os;
         os << "Code not defined for instruction " << showbase << hex << opcode << dec << endl;
         os << "This virtual machine executes binary circuits only." << endl;
-        os << "Try compiling with '-B' or use only sbit* types." << endl;
+        os << "Use 'compile.py -B'." << endl;
         throw Invalid_Instruction(os.str());
         break;
     }

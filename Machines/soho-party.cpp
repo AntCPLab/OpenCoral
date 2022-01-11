@@ -22,6 +22,7 @@
 #include "Protocols/MAC_Check.hpp"
 #include "Protocols/SemiMC.hpp"
 #include "Protocols/Beaver.hpp"
+#include "Protocols/MalRepRingPrep.hpp"
 #include "GC/ShareSecret.hpp"
 #include "GC/SemiHonestRepPrep.h"
 #include "Math/gfp.hpp"

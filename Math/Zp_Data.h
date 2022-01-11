@@ -40,6 +40,7 @@ class Zp_Data
   template <int T>
   void Mont_Mult_(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const;
   void Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const;
+  void Mont_Mult_switch(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const;
   void Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y, int t) const;
   void Mont_Mult_variable(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const
   { Mont_Mult(z, x, y, t); }
@@ -242,37 +243,11 @@ inline void Zp_Data::Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* 
 {
   if (not cpu_has_bmi2())
     return Mont_Mult_variable(z, x, y);
-  switch (t)
-  {
 #ifdef __BMI2__
-#define CASE(N) \
-  case N: \
-    Mont_Mult_<N>(z, x, y); \
-    break;
-  CASE(1)
-  CASE(2)
-#if MAX_MOD_SZ >= 4
-  CASE(3)
-  CASE(4)
+  return Mont_Mult_switch(z, x, y);
+#else
+  return Mont_Mult_variable(z, x, y);
 #endif
-#if MAX_MOD_SZ >= 5
-  CASE(5)
-#endif
-#if MAX_MOD_SZ >= 6
-  CASE(6)
-#endif
-#if MAX_MOD_SZ >= 10
-  CASE(7)
-  CASE(8)
-  CASE(9)
-  CASE(10)
-#endif
-#undef CASE
-#endif
-  default:
-    Mont_Mult_variable(z, x, y);
-    break;
-  }
 }
 
 inline void Zp_Data::Mont_Mult_max(mp_limb_t* z, const mp_limb_t* x,

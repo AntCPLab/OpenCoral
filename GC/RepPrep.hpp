@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef GC_REPPREP_HPP_
+#define GC_REPPREP_HPP_
+
 #include "RepPrep.h"
 #include "ShareThread.h"
 #include "Processor/OnlineOptions.h"
@@ -98,3 +101,5 @@ void RepPrep<T>::buffer_inputs(int player)
 }
 
 } /* namespace GC */
+
+#endif

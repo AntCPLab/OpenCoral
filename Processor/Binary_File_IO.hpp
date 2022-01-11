@@ -38,7 +38,7 @@ void Binary_File_IO::read_from_file(const string filename, vector< T >& buffer, 
 
   int size_in_bytes = T::size() * buffer.size();
   int n_read = 0;
-  char * read_buffer = new char[size_in_bytes];
+  char read_buffer[size_in_bytes];
   inf.seekg(start_posn * T::size());
   do
   {

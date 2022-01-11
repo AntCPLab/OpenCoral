@@ -69,7 +69,6 @@ class Machine : public BaseMachine
 
   OnlineOptions opts;
 
-  NamedCommStats comm_stats;
   ExecutionStats stats;
 
   Machine(int my_number, Names& playerNames, const string& progname,

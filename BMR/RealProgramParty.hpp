@@ -155,7 +155,7 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	while (next != GC::DONE_BREAK);
 
 	MC->Check(*P);
-	data_sent = P->comm_stats.total_data() + prep->data_sent();
+	data_sent = P->total_comm().sent;
 
 	this->machine.write_memory(this->N.my_num());
 }
@@ -173,7 +173,8 @@ void RealProgramParty<T>::garble()
 		garble_jobs.clear();
 		garble_inputter->reset_all(*P);
 		auto& protocol = *garble_protocol;
-		protocol.init_mul(shared_proc);
+		protocol.init(*prep, shared_proc->MC);
+		protocol.init_mul();
 
 		next = this->first_phase(program, garble_processor, this->garble_machine);
 
@@ -181,7 +182,8 @@ void RealProgramParty<T>::garble()
 		protocol.exchange();
 
 		typename T::Protocol second_protocol(*P);
-		second_protocol.init_mul(shared_proc);
+		second_protocol.init(*prep, shared_proc->MC);
+		second_protocol.init_mul();
 		for (auto& job : garble_jobs)
 			job.middle_round(*this, second_protocol);
 

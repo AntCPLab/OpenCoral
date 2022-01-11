@@ -54,7 +54,7 @@ template<class T>
 void Rep4RingPrep<T>::buffer_squares()
 {
     generate_squares(this->squares, OnlineOptions::singleton.batch_size,
-            this->protocol, this->proc);
+            this->protocol);
 }
 
 template<class T>

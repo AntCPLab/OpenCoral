@@ -71,8 +71,6 @@ public:
 	int get_threshold() { return master.threshold; }
 
 	long get_gate_id() { return gate_id(thread_num); }
-
-	NamedCommStats comm_stats();
 };
 
 inline YaoGarbler& YaoGarbler::s()

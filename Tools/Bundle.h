@@ -31,7 +31,7 @@ public:
     {
     }
 
-    void compare(Player& P)
+    void compare(PlayerBase& P)
     {
         P.unchecked_broadcast(*this);
         for (auto& os : *this)

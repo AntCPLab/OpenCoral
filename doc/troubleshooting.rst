@@ -1,3 +1,5 @@
+.. _troubleshooting:
+
 Troubleshooting
 ---------------
 
@@ -57,8 +59,21 @@ second batch is necessary the cost shoots up. Other preprocessing
 methods allow for a variable batch size, which can be changed using
 ``-b``. Smaller batch sizes generally reduce the communication cost
 while potentially increasing the number of communication rounds. Try
-adding ``-b 10`` to the virtal machine (or script) arguments for very
+adding ``-b 10`` to the virtual machine (or script) arguments for very
 short computations.
+
+
+Disparities in round figures
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The number of virtual machine rounds given by the compiler are not an
+exact prediction of network rounds but the number of relevant protocol
+calls (such as multiplication, input, output etc) in the program. The
+actual number of network rounds is determined by the choice of
+protocol, which might use several rounds per protocol
+call. Furthermore, communication at the beginning and the end of a
+computation such as random key distribution and MAC checks further
+increase the number of network rounds.
 
 
 Handshake failures
@@ -82,8 +97,8 @@ use the client facility.
 Connection failures
 ~~~~~~~~~~~~~~~~~~~
 
-MP-SPDZ requires at least one TCP port per party to be open to other
-parties. In the default setting, it's 4999 and 5000 on party 0, and
+MP-SPDZ requires one TCP port per party to be open to other
+parties. In the default setting, it's 5000 on party 0, and
 5001 on party 1 etc. You change change the base port (5000) using
 ``--portnumbase`` and individual ports for parties using
 ``--my-port``. The scripts in use a random base port number, which you

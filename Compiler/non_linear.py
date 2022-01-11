@@ -1,7 +1,7 @@
 from .comparison import *
 from .floatingpoint import *
 from .types import *
-from . import comparison
+from . import comparison, program
 
 class NonLinear:
     kappa = None
@@ -30,6 +30,15 @@ class NonLinear:
     def trunc_pr(self, a, k, m, signed=True):
         if isinstance(a, types.cint):
             return shift_two(a, m)
+        prog = program.Program.prog
+        if prog.use_trunc_pr:
+            if signed and prog.use_trunc_pr != -1:
+                a += (1 << (k - 1))
+            res = sint()
+            trunc_pr(res, a, k, m)
+            if signed and prog.use_trunc_pr != -1:
+                res -= (1 << (k - m - 1))
+            return res
         return self._trunc_pr(a, k, m, signed)
 
     def trunc_round_nearest(self, a, k, m, signed):
@@ -43,6 +52,9 @@ class NonLinear:
         if m == 0:
             return a
         return self._trunc(a, k, m, signed)
+
+    def ltz(self, a, k, kappa=None):
+        return -self.trunc(a, k, k - 1, kappa, True)
 
 class Masking(NonLinear):
     def eqz(self, a, k):
@@ -100,41 +112,43 @@ class KnownPrime(NonLinear):
     def _mod2m(self, a, k, m, signed):
         if signed:
             a += cint(1) << (k - 1)
-        return sint.bit_compose(self.bit_dec(a, k, k, True)[:m])
+        return sint.bit_compose(self.bit_dec(a, k, m, True))
 
     def _trunc_pr(self, a, k, m, signed):
         # nearest truncation
         return self.trunc_round_nearest(a, k, m, signed)
 
     def _trunc(self, a, k, m, signed=None):
-        if signed:
-            a += cint(1) << (k - 1)
-        res = sint.bit_compose(self.bit_dec(a, k, k, True)[m:])
-        if signed:
-            res -= cint(1) << (k - 1 - m)
-        return res
+        return TruncZeros(a - self._mod2m(a, k, m, signed), k, m, signed)
 
     def trunc_round_nearest(self, a, k, m, signed):
         a += cint(1) << (m - 1)
         if signed:
             a += cint(1) << (k - 1)
             k += 1
-        res = sint.bit_compose(self.bit_dec(a, k, k, True)[m:])
+        res = self._trunc(a, k, m, False)
         if signed:
             res -= cint(1) << (k - m - 2)
         return res
 
     def bit_dec(self, a, k, m, maybe_mixed=False):
         assert k < self.prime.bit_length()
-        bits = BitDecFull(a, maybe_mixed=maybe_mixed)
-        if len(bits) < m:
-            raise CompilerError('%d has fewer than %d bits' % (self.prime, m))
-        return bits[:m]
+        bits = BitDecFull(a, m, maybe_mixed=maybe_mixed)
+        assert len(bits) == m
+        return bits
 
     def eqz(self, a, k):
         # always signed
         a += two_power(k)
         return 1 - types.sintbit.conv(KORL(self.bit_dec(a, k, k, True)))
+
+    def ltz(self, a, k, kappa=None):
+        if k + 1 < self.prime.bit_length():
+            # https://dl.acm.org/doi/10.1145/3474123.3486757
+            # "negative" values wrap around when doubling, thus becoming odd
+            return self.mod2m(2 * a, k + 1, 1, False)
+        else:
+            return super(KnownPrime, self).ltz(a, k, kappa)
 
 class Ring(Masking):
     """ Non-linear functionality modulo a power of two known at compile time.
@@ -172,3 +186,6 @@ class Ring(Masking):
             return TruncRing(None, tmp + 1, k - m + 1, 1, signed)
         else:
             return super(Ring, self).trunc_round_nearest(a, k, m, signed)
+
+    def ltz(self, a, k, kappa=None):
+        return LtzRing(a, k)

@@ -96,13 +96,6 @@ void Thread<T>::finish()
     pthread_join(thread, 0);
 }
 
-template<class T>
-NamedCommStats Thread<T>::comm_stats()
-{
-	assert(P);
-	return P->comm_stats;
-}
-
 } /* namespace GC */
 
 

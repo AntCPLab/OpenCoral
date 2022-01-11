@@ -27,6 +27,7 @@ public:
     typedef ShamirInput<This> Input;
 
     typedef ShamirMC<This> MAC_Check;
+    typedef Shamir<This> Protocol;
 
     typedef This small_type;
 

@@ -47,7 +47,7 @@ public:
             ez::ezOptionParser& opt, bool live_prep_default = true)
     {
         OnlineOptions& online_opts = OnlineOptions::singleton;
-        online_opts = {opt, argc, argv, 1000, live_prep_default, false};
+        online_opts = {opt, argc, argv, T<64>(), live_prep_default};
 
         RingMachine<T, U, DishonestMajorityMachine>(argc, argv, opt, online_opts);
     }

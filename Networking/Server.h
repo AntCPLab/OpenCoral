@@ -14,10 +14,11 @@ using namespace std;
 class Server
 {
     vector<int> socket_num;
-    vector<octet*> names;
+    vector<string> names;
     vector<int> ports;
     int nmachines;
     int PortnumBase;
+    ServerSocket* server_socket;
 
     void get_ip(int num);
     void get_name(int num);
@@ -31,7 +32,11 @@ public:
 
     Server(int argc, char** argv);
     Server(int nmachines, int PortnumBase);
+    ~Server();
+
     void start();
+
+    ServerSocket* get_socket();
 };
 
 #endif /* NETWORKING_SERVER_H_ */

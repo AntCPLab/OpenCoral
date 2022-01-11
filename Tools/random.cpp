@@ -13,7 +13,7 @@ using namespace std;
 
 
 PRNG::PRNG() :
-    cnt(0), n_cached_bits(0), cached_bits(0)
+    cnt(0), n_cached_bits(0), cached_bits(0), initialized(false)
 {
 #if defined(__AES__) || !defined(__x86_64__)
   #ifdef USE_AES
@@ -83,6 +83,7 @@ void PRNG::SecureSeed(Player& player)
 
 void PRNG::InitSeed()
 {
+  initialized = true;
   #ifdef USE_AES
      if (useC)
         { aes_schedule(KeyScheduleC,seed); }
@@ -122,6 +123,7 @@ void PRNG::print_state() const
 
 void PRNG::hash()
 {
+  assert(initialized);
   #ifndef USE_AES
     unsigned char tmp[RAND_SIZE + SEED_SIZE];
     randombytes_buf_deterministic(tmp, sizeof tmp, seed);

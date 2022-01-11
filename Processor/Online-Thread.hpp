@@ -279,13 +279,18 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
           printf("\tSignalling I have finished\n");
 #endif
           wait_timer.start();
-          queues->finished(job);
+          queues->finished(job, P.total_comm());
 	 wait_timer.stop();
        }  
     }
 
   // final check
   Proc.check();
+
+#ifndef INSECURE
+  if (machine.opts.file_prep_per_thread)
+    Proc.DataF.prune();
+#endif
 
   wait_timer.start();
   queues->next();
@@ -314,16 +319,10 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
 #endif
 
   // wind down thread by thread
-  auto prep_stats = Proc.DataF.comm_stats();
-  prep_stats += Proc.share_thread.DataF.comm_stats();
-  prep_stats += Proc.Procp.bit_prep.comm_stats();
-  for (auto& x : Proc.Procp.personal_bit_preps)
-    prep_stats += x->comm_stats();
   machine.stats += Proc.stats;
   delete processor;
 
-  machine.comm_stats += P.comm_stats + prep_stats;
-  queues->finished(actual_usage);
+  queues->finished(actual_usage, P.total_comm());
 
   delete MC2;
   delete MCp;

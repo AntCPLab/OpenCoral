@@ -21,9 +21,10 @@ public:
 
     VectorProtocol(Player& P);
 
-    void init_mul(SubProcessor<T>* proc);
-    void init_mul(Preprocessing<T>& prep, typename T::MAC_Check& MC);
-    typename T::clear prepare_mul(const T& x, const T& y, int n = -1);
+    void init(Preprocessing<T>& prep, typename T::MAC_Check& MC);
+
+    void init_mul();
+    void prepare_mul(const T& x, const T& y, int n = -1);
     void exchange();
     void finalize_mult(T& res, int n = -1);
     T finalize_mul(int n = -1);

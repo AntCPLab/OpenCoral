@@ -7,6 +7,7 @@
 #define GC_NOSHARE_H_
 
 #include "Processor/DummyProtocol.h"
+#include "Processor/Instruction.h"
 #include "Protocols/ShareInterface.h"
 
 class InputArgs;
@@ -148,11 +149,14 @@ public:
 
     static void trans(Processor<NoShare>&, Integer, const vector<int>&) { fail(); }
 
+    static void andm(GC::Processor<NoShare>&, const BaseInstruction&) { fail(); }
+
     static NoShare constant(const GC::Clear&, int, mac_key_type, int = -1) { fail(); return {}; }
 
     NoShare() {}
 
-    NoShare(int) { fail(); }
+    template<class T>
+    NoShare(T) { fail(); }
 
     void load_clear(Integer, Integer) { fail(); }
     void random_bit() { fail(); }

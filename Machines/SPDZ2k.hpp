@@ -23,9 +23,10 @@
 #include "Protocols/MascotPrep.hpp"
 #include "Protocols/Spdz2kPrep.hpp"
 
-#include "GC/ShareParty.hpp"
-#include "GC/ShareSecret.hpp"
+#include "GC/ShareParty.h"
+#include "GC/ShareSecret.h"
 #include "GC/Secret.hpp"
-#include "GC/TinyPrep.hpp"
-#include "GC/TinierSharePrep.hpp"
-#include "GC/CcdPrep.hpp"
+#include "GC/TinierSharePrep.h"
+#include "GC/CcdPrep.h"
+
+#include "GC/VectorProtocol.hpp"

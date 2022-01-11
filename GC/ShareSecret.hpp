@@ -47,7 +47,7 @@ void ShareSecret<U>::invert(int n, const U& x)
 {
     U ones;
     ones.load_clear(64, -1);
-    static_cast<U&>(*this) = U(x ^ ones) & get_mask(n);
+    reinterpret_cast<U&>(*this) = U(x + ones) & get_mask(n);
 }
 
 template<class U>
@@ -92,8 +92,12 @@ template<class U>
 void ShareSecret<U>::store_clear_in_dynamic(Memory<U>& mem,
         const vector<ClearWriteAccess>& accesses)
 {
+    auto& thread = ShareThread<U>::s();
+    assert(thread.P);
+    assert(thread.MC);
     for (auto access : accesses)
-        mem[access.address] = access.value;
+        mem[access.address] = U::constant(access.value, thread.P->my_num(),
+                thread.MC->get_alphai());
 }
 
 template<class U>
@@ -330,7 +334,7 @@ void ShareSecret<U>::random_bit()
 template<class U>
 U& GC::ShareSecret<U>::operator=(const U& other)
 {
-    U& real_this = static_cast<U&>(*this);
+    U& real_this = reinterpret_cast<U&>(*this);
     real_this = other;
     return real_this;
 }

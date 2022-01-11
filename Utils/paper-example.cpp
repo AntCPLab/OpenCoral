@@ -11,8 +11,10 @@
 #include "Machines/SPDZ.hpp"
 #include "Machines/MalRep.hpp"
 #include "Machines/ShamirMachine.hpp"
+#include "Machines/Semi2k.hpp"
 #include "Protocols/CowGearShare.h"
 #include "Protocols/CowGearPrep.hpp"
+#include "Protocols/ProtocolSet.h"
 
 template<class T>
 void run(char** argv, int prime_length);
@@ -42,6 +44,8 @@ int main(int argc, char** argv)
         run<CowGearShare<gfp_<0, n_limbs>>>(argv, prime_length);
     else if (protocol == "SPDZ2k")
         run<Spdz2kShare<64, 64>>(argv, 0);
+    else if (protocol == "Semi2k")
+        run<Semi2kShare<64>>(argv, 0);
     else if (protocol == "Shamir" or protocol == "MalShamir")
     {
         int nparties = (atoi(argv[2]));
@@ -74,35 +78,14 @@ void run(char** argv, int prime_length)
     Names N(my_number, n_parties, "localhost", port_base);
     CryptoPlayer P(N);
 
-    // initialize fields
-    T::clear::init_default(prime_length);
-    T::clear::next::init_default(prime_length, false);
+    // protocol setup (domain, MAC key if needed etc)
+    ProtocolSetup<T> setup(P, prime_length);
 
-    // must initialize MAC key for security of some protocols
-    typename T::mac_key_type mac_key;
-    T::read_or_generate_mac_key("", P, mac_key);
-
-    // global OT setup
-    BaseMachine machine;
-    if (T::needs_ot)
-        machine.ot_setups.push_back({P});
-
-    // keeps tracks of preprocessing usage (triples etc)
-    DataPositions usage;
-    usage.set_num_players(P.num_players());
-
-    // output protocol
-    typename T::MAC_Check output(mac_key);
-
-    // various preprocessing
-    typename T::LivePrep preprocessing(0, usage);
-    SubProcessor<T> processor(output, preprocessing, P);
-
-    // input protocol
-    typename T::Input input(processor, output);
-
-    // multiplication protocol
-    typename T::Protocol protocol(P);
+    // set of protocols (input, multiplication, output)
+    ProtocolSet<T> set(P, setup);
+    auto& input = set.input;
+    auto& protocol = set.protocol;
+    auto& output = set.output;
 
     int n = 1000;
     vector<T> a(n), b(n);
@@ -119,19 +102,23 @@ void run(char** argv, int prime_length)
         b[i] = input.finalize(1);
     }
 
-    protocol.init_dotprod(&processor);
+    protocol.init_dotprod();
     for (int i = 0; i < n; i++)
         protocol.prepare_dotprod(a[i], b[i]);
     protocol.next_dotprod();
     protocol.exchange();
     c = protocol.finalize_dotprod(n);
+
+    // protocol check before revealing results
+    protocol.check();
+
     output.init_open(P);
     output.prepare_open(c);
     output.exchange(P);
     result = output.finalize_open();
 
     cout << "result: " << result << endl;
-    output.Check(P);
 
-    T::LivePrep::teardown();
+    // result check after opening
+    output.Check(P);
 }

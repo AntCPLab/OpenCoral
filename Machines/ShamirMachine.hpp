@@ -27,6 +27,7 @@
 #include "Protocols/Beaver.hpp"
 #include "Protocols/Spdz2kPrep.hpp"
 #include "Protocols/ReplicatedPrep.hpp"
+#include "Protocols/MalRepRingPrep.hpp"
 #include "GC/ShareSecret.hpp"
 #include "GC/VectorProtocol.hpp"
 #include "GC/Secret.hpp"

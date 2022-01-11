@@ -3,8 +3,8 @@
  *
  */
 
-#ifndef PROTOCOLS_SEMI2K_H_
-#define PROTOCOLS_SEMI2K_H_
+#ifndef PROTOCOLS_SEMI_H_
+#define PROTOCOLS_SEMI_H_
 
 #include "SPDZ.h"
 #include "Processor/TruncPrTuple.h"
@@ -13,12 +13,12 @@
  * Dishonest-majority protocol for computation modulo a power of two
  */
 template<class T>
-class Semi2k : public SPDZ<T>
+class Semi : public SPDZ<T>
 {
     SeededPRNG G;
 
 public:
-    Semi2k(Player& P) :
+    Semi(Player& P) :
             SPDZ<T>(P)
     {
     }
@@ -30,6 +30,19 @@ public:
 
     void trunc_pr(const vector<int>& regs, int size,
             SubProcessor<T>& proc)
+    {
+        trunc_pr(regs, size, proc, T::clear::characteristic_two);
+    }
+
+    template<int = 0>
+    void trunc_pr(const vector<int>&, int, SubProcessor<T>&, true_type)
+    {
+        throw not_implemented();
+    }
+
+    template<int = 0>
+    void trunc_pr(const vector<int>& regs, int size,
+            SubProcessor<T>& proc, false_type)
     {
         if (this->P.num_players() > 2)
             throw runtime_error("probabilistic truncation "
@@ -60,4 +73,4 @@ public:
     }
 };
 
-#endif /* PROTOCOLS_SEMI2K_H_ */
+#endif /* PROTOCOLS_SEMI_H_ */

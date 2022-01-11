@@ -1,8 +1,6 @@
 #ifndef _NTL_Subs
 #define _NTL_Subs
 
-/* All these routines use NTL on the inside */
-
 #include "FHE/Ring.h"
 #include "FHE/FFT_Data.h"
 #include "FHE/P2Data.h"
@@ -47,7 +45,7 @@ public:
 
 };
 
-// Main setup routine (need NTL if online_only is false)
+// Main setup routine
 void generate_setup(int nparties, int lgp, int lg2,
     int sec, bool skip_2 = false, int slack = 0, bool round_up = false);
 
@@ -60,7 +58,6 @@ int generate_semi_setup(int plaintext_length, int sec,
 int common_semi_setup(FHE_Params& params, int m, bigint p, int lgp0, int lgp1,
     bool round_up);
 
-// Everything else needs NTL
 void init(Ring& Rg, int m, bool generate_poly);
 void init(P2Data& P2D,const Ring& Rg);
 

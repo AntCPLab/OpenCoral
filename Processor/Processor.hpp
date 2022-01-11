@@ -28,8 +28,8 @@ SubProcessor<T>::SubProcessor(typename T::MAC_Check& MC,
     bit_prep(bit_usage)
 {
   DataF.set_proc(this);
+  protocol.init(DataF, MC);
   DataF.set_protocol(protocol);
-  protocol.init_mul(this);
   bit_usage.set_num_players(P.num_players());
   personal_bit_preps.resize(P.num_players());
   for (int i = 0; i < P.num_players(); i++)
@@ -39,22 +39,12 @@ SubProcessor<T>::SubProcessor(typename T::MAC_Check& MC,
 template<class T>
 SubProcessor<T>::~SubProcessor()
 {
-  protocol.check();
-
   for (size_t i = 0; i < personal_bit_preps.size(); i++)
     {
       auto& x = personal_bit_preps[i];
-#ifdef VERBOSE
-      if (x->data_sent())
-        cerr << "Sent for personal bit preprocessing threads of player " << i << ": " <<
-              x->data_sent() * 1e-6 << " MB" << endl;
-#endif
       delete x;
     }
 #ifdef VERBOSE
-  if (bit_prep.data_sent())
-    cerr << "Sent for global bit preprocessing threads: " <<
-        bit_prep.data_sent() * 1e-6 << " MB" << endl;
   if (not bit_usage.empty())
     {
       cerr << "Mixed-circuit preprocessing cost:" << endl;
@@ -423,7 +413,7 @@ void SubProcessor<T>::muls(const vector<int>& reg, int size)
     int n = reg.size() / 3;
 
     SubProcessor<T>& proc = *this;
-    protocol.init_mul(&proc);
+    protocol.init_mul();
     for (int i = 0; i < n; i++)
         for (int j = 0; j < size; j++)
         {
@@ -448,7 +438,7 @@ void SubProcessor<T>::mulrs(const vector<int>& reg)
     int n = reg.size() / 4;
 
     SubProcessor<T>& proc = *this;
-    protocol.init_mul(&proc);
+    protocol.init_mul();
     for (int i = 0; i < n; i++)
         for (int j = 0; j < reg[4 * i]; j++)
         {
@@ -470,7 +460,7 @@ void SubProcessor<T>::mulrs(const vector<int>& reg)
 template<class T>
 void SubProcessor<T>::dotprods(const vector<int>& reg, int size)
 {
-    protocol.init_dotprod(this);
+    protocol.init_dotprod();
     for (int i = 0; i < size; i++)
     {
         auto it = reg.begin();
@@ -512,7 +502,7 @@ void SubProcessor<T>::matmuls(const vector<T>& source,
     assert(B + dim[1] * dim[2] <= source.end());
     assert(C + dim[0] * dim[2] <= S.end());
 
-    protocol.init_dotprod(this);
+    protocol.init_dotprod();
     for (int i = 0; i < dim[0]; i++)
         for (int j = 0; j < dim[2]; j++)
         {
@@ -536,7 +526,7 @@ void SubProcessor<T>::matmulsm(const CheckVector<T>& source,
     assert(C + dim[0] * dim[2] <= S.end());
     assert(Proc);
 
-    protocol.init_dotprod(this);
+    protocol.init_dotprod();
     for (int i = 0; i < dim[0]; i++)
     {
         auto ii = Proc->get_Ci().at(dim[3] + i);
@@ -562,7 +552,7 @@ void SubProcessor<T>::matmulsm(const CheckVector<T>& source,
 template<class T>
 void SubProcessor<T>::conv2ds(const Instruction& instruction)
 {
-    protocol.init_dotprod(this);
+    protocol.init_dotprod();
     auto& args = instruction.get_start();
     int output_h = args[0], output_w = args[1];
     int inputs_h = args[2], inputs_w = args[3];
@@ -668,32 +658,6 @@ typename sint::clear Processor<sint, sgf2n>::get_inverse2(unsigned m)
   for (unsigned i = inverses2m.size(); i <= m; i++)
     inverses2m.push_back((cint(1) << i).invert());
   return inverses2m[m];
-}
-
-template<class sint, class sgf2n>
-ostream& operator<<(ostream& s,const Processor<sint, sgf2n>& P)
-{
-  s << "Processor State" << endl;
-  s << "Char 2 Registers" << endl;
-  s << "Val\tClearReg\tSharedReg" << endl;
-  for (int i=0; i<P.reg_max2; i++)
-    { s << i << "\t";
-      P.read_C2(i).output(s,true);
-      s << "\t";
-      P.read_S2(i).output(s,true);
-      s << endl;
-    }
-  s << "Char p Registers" << endl;
-  s << "Val\tClearReg\tSharedReg" << endl;
-  for (int i=0; i<P.reg_maxp; i++)
-    { s << i << "\t";
-      P.read_Cp(i).output(s,true);
-      s << "\t";
-      P.read_Sp(i).output(s,true);
-      s << endl;
-    }
-
-  return s;
 }
 
 #endif

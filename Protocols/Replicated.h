@@ -76,10 +76,13 @@ public:
     /// Single multiplication
     T mul(const T& x, const T& y);
 
+    /// Initialize protocol if needed (repeated call possible)
+    virtual void init(Preprocessing<T>&, typename T::MAC_Check&) {}
+
     /// Initialize multiplication round
-    virtual void init_mul(SubProcessor<T>* proc) = 0;
+    virtual void init_mul() = 0;
     /// Schedule multiplication of operand pair
-    virtual typename T::clear prepare_mul(const T& x, const T& y, int n = -1) = 0;
+    virtual void prepare_mul(const T& x, const T& y, int n = -1) = 0;
     /// Run multiplication protocol
     virtual void exchange() = 0;
     /// Get next multiplication result
@@ -88,7 +91,7 @@ public:
     virtual void finalize_mult(T& res, int n = -1);
 
     /// Initialize dot product round
-    void init_dotprod(SubProcessor<T>* proc) { init_mul(proc); }
+    void init_dotprod() { init_mul(); }
     /// Add operand pair to current dot product
     void prepare_dotprod(const T& x, const T& y) { prepare_mul(x, y); }
     /// Finish dot product
@@ -132,6 +135,11 @@ class Replicated : public ReplicatedBase, public ProtocolBase<T>
     PointerVector<typename T::clear> add_shares;
     typename T::clear dotprod_share;
 
+    template<class U>
+    void trunc_pr(const vector<int>& regs, int size, U& proc, true_type);
+    template<class U>
+    void trunc_pr(const vector<int>& regs, int size, U& proc, false_type);
+
 public:
     typedef ReplicatedMC<T> MAC_Check;
     typedef ReplicatedInput<T> Input;
@@ -149,17 +157,13 @@ public:
             share[my_num] = value;
     }
 
-    void init_mul(SubProcessor<T>* proc);
-    void init_mul(Preprocessing<T>& prep, typename T::MAC_Check& MC);
-
     void init_mul();
-    typename T::clear prepare_mul(const T& x, const T& y, int n = -1);
+    void prepare_mul(const T& x, const T& y, int n = -1);
     void exchange();
     T finalize_mul(int n = -1);
 
     void prepare_reshare(const typename T::clear& share, int n = -1);
 
-    void init_dotprod(SubProcessor<T>*) { init_mul(); }
     void init_dotprod();
     void prepare_dotprod(const T& x, const T& y);
     void next_dotprod();

@@ -61,6 +61,8 @@ class PRNG
    int n_cached_bits;
    word cached_bits;
 
+   bool initialized;
+
    void hash(); // Hashes state to random and sets cnt=0
    void next();
 

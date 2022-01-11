@@ -22,6 +22,8 @@ public:
     static const int BIT_LENGTH = K;
     static const int SECURITY = S;
 
+    static const bool has_trunc_pr = false;
+
     typedef SignedZ2<K> clear;
     typedef MaliciousRep3Share<Z2<K + S>> prep_type;
     typedef Z2<S> random_type;

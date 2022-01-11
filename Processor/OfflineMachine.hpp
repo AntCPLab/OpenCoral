@@ -71,7 +71,7 @@ void OfflineMachine<W>::generate()
         auto my_usage = domain_usage[i];
         Dtype dtype = Dtype(i);
         string filename = Sub_Data_Files<T>::get_filename(playerNames, dtype,
-                T::clear::field_type() == DATA_GF2 ? 0 : -1);
+                0);
         if (my_usage > 0)
         {
             ofstream out(filename, iostream::out | iostream::binary);
@@ -106,7 +106,7 @@ void OfflineMachine<W>::generate()
     for (int i = 0; i < P.num_players(); i++)
     {
         auto n_inputs = usage.inputs[i][T::clear::field_type()];
-        string filename = Sub_Data_Files<T>::get_input_filename(playerNames, i);
+        string filename = Sub_Data_Files<T>::get_input_filename(playerNames, i, 0);
         if (n_inputs > 0)
         {
             ofstream out(filename, iostream::out | iostream::binary);
@@ -137,7 +137,7 @@ void OfflineMachine<W>::generate()
             int total = usage.edabits[{false, n_bits}] +
                     usage.edabits[{true, n_bits}];
             string filename = Sub_Data_Files<T>::get_edabit_filename(playerNames,
-                                n_bits);
+                                n_bits, 0);
             if (total > 0)
             {
                 ofstream out(filename, ios::binary);

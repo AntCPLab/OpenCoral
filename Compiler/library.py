@@ -219,6 +219,9 @@ def crash(condition=None):
     :param condition: crash if true (default: true)
 
     """
+    if isinstance(condition, localint):
+        # allow crash on local values
+        condition = condition._v
     if condition == None:
         condition = regint(1)
     instructions.crash(regint.conv(condition))
@@ -1347,6 +1350,8 @@ def while_loop(loop_body, condition, arg, g=None):
         arg = regint(arg)
         def loop_fn():
             result = loop_body(arg)
+            if isinstance(result, MemValue):
+                result = result.read()
             result.link(arg)
             cont = condition(result)
             return cont
@@ -1531,6 +1536,8 @@ def if_(condition):
 def if_e(condition):
     """
     Conditional execution with else block.
+    Use :py:class:`~Compiler.types.MemValue` to assign values that
+    live beyond.
 
     :param condition: regint/cint/int
 
@@ -1538,12 +1545,13 @@ def if_e(condition):
 
     .. code::
 
+        y = MemValue(0)
         @if_e(x > 0)
         def _():
-            ...
+            y.write(1)
         @else_
         def _():
-            ...
+            y.write(0)
     """
     try:
         condition = bool(condition)
@@ -1647,11 +1655,18 @@ def get_player_id():
     return res
 
 def listen_for_clients(port):
-    """ Listen for clients on specific port. """
+    """ Listen for clients on specific port base.
+
+    :param port: port base (int/regint/cint)
+    """
     instructions.listen(regint.conv(port))
 
 def accept_client_connection(port):
-    """ Listen for clients on specific port. """
+    """ Accept client connection on specific port base.
+
+    :param port: port base (int/regint/cint)
+    :returns: client id
+    """
     res = regint()
     instructions.acceptclientconnection(res, regint.conv(port))
     return res

@@ -95,11 +95,11 @@ void ThreadMaster<T>::run()
 
     post_run();
 
-    NamedCommStats stats = P->comm_stats;
+    NamedCommStats stats = P->total_comm();
     ExecutionStats exe_stats;
     for (auto thread : threads)
     {
-        stats += thread->P->comm_stats;
+        stats += thread->P->total_comm();
         exe_stats += thread->processor.stats;
         delete thread;
     }

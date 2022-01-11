@@ -81,13 +81,6 @@ void Shamir<T>::reset()
 }
 
 template<class T>
-void Shamir<T>::init_mul(SubProcessor<T>* proc)
-{
-    (void) proc;
-    init_mul();
-}
-
-template<class T>
 void Shamir<T>::init_mul()
 {
     reset();
@@ -96,13 +89,12 @@ void Shamir<T>::init_mul()
 }
 
 template<class T>
-typename T::clear Shamir<T>::prepare_mul(const T& x, const T& y, int n)
+void Shamir<T>::prepare_mul(const T& x, const T& y, int n)
 {
     (void) n;
     auto add_share = x * y * rec_factor;
     if (P.my_num() < n_mul_players)
         resharing->add_mine(add_share);
-    return {};
 }
 
 template<class T>
@@ -157,9 +149,9 @@ T Shamir<T>::finalize(int n_relevant_players)
 }
 
 template<class T>
-void Shamir<T>::init_dotprod(SubProcessor<T>* proc)
+void Shamir<T>::init_dotprod()
 {
-    init_mul(proc);
+    init_mul();
     dotprod_share = 0;
 }
 
