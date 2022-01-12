@@ -94,13 +94,6 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
 
   load_schedule(progname_str);
 
-  // remove persistence if necessary
-  for (auto& prog : progs)
-    {
-      if (prog.writes_persistance)
-        ofstream(Binary_File_IO::filename(my_number), ios::out);
-    }
-
 #ifdef VERBOSE
   progs[0].print_offline_cost();
 #endif
