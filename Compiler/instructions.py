@@ -1727,14 +1727,15 @@ class writesharestofile(base.IOInstruction):
     """ Write shares to ``Persistence/Transactions-P<playerno>.data``
     (appending at the end).
 
-    :param: number of shares (int)
+    :param: number of arguments to follow / number of shares plus one (int)
+    :param: position (regint, -1 for appending)
     :param: source (sint)
     :param: (repeat from source)...
 
     """
     __slots__ = []
     code = base.opcodes['WRITEFILESHARE']
-    arg_format = itertools.repeat('s')
+    arg_format = tools.chain(['ci'], itertools.repeat('s'))
 
     def has_var_args(self):
         return True

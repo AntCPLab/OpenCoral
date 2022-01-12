@@ -14,17 +14,31 @@ inline string Binary_File_IO::filename(int my_number)
 }
 
 template<class T> 
-void Binary_File_IO::write_to_file(const string filename, const vector< T >& buffer)
+
+void Binary_File_IO::write_to_file(const string filename,
+    const vector<T>& buffer, long start_pos)
 {
   ofstream outf;
 
-  outf.open(filename, ios::out | ios::binary | ios::app);
+  outf.open(filename, ios::out | ios::binary | ios::ate | ios::in);
   if (outf.fail()) { throw file_error(filename); }
+
+  if (start_pos != -1)
+    {
+      long write_pos = start_pos * T::size();
+      // fill with zeros if needed
+      for (long i = outf.tellp(); i < write_pos; i++)
+        outf.put(0);
+      outf.seekp(write_pos);
+    }
 
   for (unsigned int i = 0; i < buffer.size(); i++)
   {
     buffer[i].output(outf, false);
   }
+
+  if (outf.fail())
+    throw runtime_error("failed writing to " + filename);
 
   outf.close();
 }

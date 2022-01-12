@@ -273,7 +273,6 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
         get_vector(2, start, s);
         break;
       // open instructions + read/write instructions with variable length args
-      case WRITEFILESHARE:
       case OPEN:
       case GOPEN:
       case MULS:
@@ -376,6 +375,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case BITDECINT:
       case EDABIT:
       case SEDABIT:
+      case WRITEFILESHARE:
           num_var_args = get_int(s) - 1;
           r[0] = get_int(s);
           get_vector(num_var_args, start, s);
@@ -1175,7 +1175,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         break;
       case WRITEFILESHARE:
         // Write shares to file system
-        Proc.write_shares_to_file(start);
+        Proc.write_shares_to_file(Proc.read_Ci(r[0]), start);
         break;
       case READFILESHARE:
         // Read shares from file system

@@ -370,7 +370,9 @@ void Processor<sint, sgf2n>::read_shares_from_file(int start_file_posn, int end_
 
 // Append share data in data_registers to end of file. Expects Persistence directory to exist.
 template<class sint, class sgf2n>
-void Processor<sint, sgf2n>::write_shares_to_file(const vector<int>& data_registers) {
+void Processor<sint, sgf2n>::write_shares_to_file(long start_pos,
+    const vector<int>& data_registers)
+{
   string filename = binary_file_io.filename(P.my_num());
 
   unsigned int size = data_registers.size();
@@ -382,7 +384,7 @@ void Processor<sint, sgf2n>::write_shares_to_file(const vector<int>& data_regist
     inpbuf[i] = get_Sp_ref(data_registers[i]);
   }
 
-  binary_file_io.write_to_file(filename, inpbuf);
+  binary_file_io.write_to_file(filename, inpbuf, start_pos);
 }
 
 template <class T>
