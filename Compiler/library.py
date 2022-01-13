@@ -12,6 +12,7 @@ import inspect,math
 import random
 import collections
 import operator
+import copy
 from functools import reduce
 
 def get_program():
@@ -1031,12 +1032,14 @@ def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
                 state = tuplify(initializer())
                 k = 0
                 block = get_block()
+                pre = copy.copy(loop_body.__globals__)
                 while (not util.is_constant(n_loops) or k < n_loops) \
                       and (len(get_block()) < budget or k == 0) \
                       and block is get_block():
                     j = i + k
                     state = reducer(tuplify(loop_body(j)), state)
                     k += 1
+                _link(pre, loop_body.__globals__)
                 r = reducer(mem_state, state)
                 write_state_to_memory(r)
                 global n_opt_loops
@@ -1395,9 +1398,12 @@ def do_loop(condition, loop_fn):
 def _run_and_link(function, g=None):
     if g is None:
         g = function.__globals__
-    import copy
     pre = copy.copy(g)
     res = function()
+    _link(pre, g)
+    return res
+
+def _link(pre, g):
     if g:
         from .types import _single
         for name, var in pre.items():
@@ -1407,7 +1413,6 @@ def _run_and_link(function, g=None):
                     raise CompilerError('cannot reassign constants in blocks')
                 if id(new_var) != id(var):
                     new_var.link(var)
-    return res
 
 def do_while(loop_fn, g=None):
     """ Do-while loop. The loop is stopped if the return value is zero.
