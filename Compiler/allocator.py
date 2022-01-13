@@ -583,13 +583,6 @@ class RegintOptimizer:
                         self.cache[inst.args[0]] = res
                         instructions[i] = ldint(inst.args[0], res,
                                                 add_to_prog=False)
-                elif isinstance(inst, addint_class):
-                    if inst.args[1] in self.cache and \
-                       self.cache[inst.args[1]] == 0:
-                        instructions[i] = inst.args[0].link(inst.args[2])
-                    elif inst.args[2] in self.cache and \
-                       self.cache[inst.args[2]] == 0:
-                        instructions[i] = inst.args[0].link(inst.args[1])
             elif isinstance(inst, IndirectMemoryInstruction):
                 if inst.args[1] in self.cache:
                     instructions[i] = inst.get_direct(self.cache[inst.args[1]])
@@ -606,7 +599,4 @@ class RegintOptimizer:
                     if op == 0:
                         instructions[i] = ldsi(inst.args[0], 0,
                                                add_to_prog=False)
-                    elif op == 1:
-                        instructions[i] = None
-                        inst.args[0].link(inst.args[1])
         instructions[:] = list(filter(lambda x: x is not None, instructions))
