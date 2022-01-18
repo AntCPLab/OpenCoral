@@ -104,7 +104,7 @@ def sigmoid_prime(x):
 @vectorize
 def approx_sigmoid(x, n=3):
     """ Piece-wise approximate sigmoid as in
-    `Dahl et al. <https://arxiv.org/abs/1810.08130>`_
+    `Hong et al. <https://arxiv.org/abs/2002.04344>`_
 
     :param x: input
     :param n: number of pieces, 3 (default) or 5
