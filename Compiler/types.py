@@ -1698,6 +1698,12 @@ class personal(Tape._no_truth):
     def _div_san(self):
         return self._v.conv((library.get_player_id() == self.player)._v).if_else(self._v, 1)
 
+    def __setitem__(self, index, value):
+        self._san(value)
+        self._v[index] = value
+
+    __getitem__ = lambda self, index: personal(self.player, self._v[index])
+
     __add__ = lambda self, other: personal(self.player, self._san(other) + other)
     __sub__ = lambda self, other: personal(self.player, self._san(other) - other)
     __mul__ = lambda self, other: personal(self.player, self._san(other) * other)
@@ -5499,6 +5505,14 @@ class Array(_vectorizable):
         :param: player (default all)
         """
         self.get_vector().binary_output(player)
+
+    def reveal_to(self, player):
+        """ Reveal secret array to :py:obj:`player`.
+
+        :param player: public integer (int/regint/cint)
+        :returns: :py:class:`personal` containing an array
+        """
+        return personal(player, self.create_from(self[:].reveal_to(player)._v))
 
     def sort(self, n_threads=None):
         """
