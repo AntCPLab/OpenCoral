@@ -241,7 +241,7 @@ void YaoGarbleWire::convcbit2s(GC::Processor<whole_type>& processor,
 		int n = min(unsigned(unit), instruction.get_n() - i * unit);
 		dest.resize_regs(n);
 		for (int j = 0; j < n; j++)
-			dest.get_reg(i).public_input(
+			dest.get_reg(j).public_input(
 					processor.C[instruction.get_r(1) + i].get_bit(j));
 	}
 }

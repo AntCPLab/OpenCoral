@@ -140,7 +140,7 @@ T& GC::Secret<T>::get_new_reg()
 template <class T>
 void Secret<T>::load_clear(int n, const Integer& x)
 {
-    if ((unsigned)n < 8 * sizeof(x) and abs(x.get()) > (1LL << n))
+    if ((unsigned)n < 8 * sizeof(x) and (unsigned long) abs(x.get()) > (1ul << n))
         throw out_of_range("public value too long");
 #ifdef DEBUG_ROUNDS2
     cout << "secret from integer " << hex << this << dec << " " << endl;
