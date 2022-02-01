@@ -111,8 +111,7 @@ class bits(Tape.Register, _structure, _bit):
         if mem_type == 'sd':
             return cls.load_dynamic_mem(address)
         else:
-            for i in range(res.size):
-                cls.mem_op(cls.load_inst, res[i], address + i)
+            cls.mem_op(cls.load_inst, res, address)
             return res
     def store_in_mem(self, address):
         self.mem_op(self.store_inst, self, address)
