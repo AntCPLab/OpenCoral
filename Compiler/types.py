@@ -4274,6 +4274,7 @@ class sfix(_fix):
     :params _v: int/float/regint/cint/sint/sfloat
     """
     int_type = sint
+    bit_type = sintbit
     clear_type = cfix
 
     @vectorized_classmethod

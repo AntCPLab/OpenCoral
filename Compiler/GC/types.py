@@ -811,7 +811,7 @@ class sbitvec(_vec):
     def store_in_mem(self, address):
         for i, x in enumerate(self.elements()):
             x.store_in_mem(address + i)
-    def bit_decompose(self, n_bits=None, security=None):
+    def bit_decompose(self, n_bits=None, security=None, maybe_mixed=None):
         return self.v[:n_bits]
     bit_compose = from_vec
     def reveal(self):
@@ -1267,6 +1267,9 @@ class sbitfixvec(_fix):
     int_type = sbitintvec.get_type(sbitfix.k)
     float_type = type(None)
     clear_type = cbitfix
+    @property
+    def bit_type(self):
+        return type(self.v[0])
     @classmethod
     def set_precision(cls, f, k=None):
         super(sbitfixvec, cls).set_precision(f=f, k=k)
@@ -1284,6 +1287,8 @@ class sbitfixvec(_fix):
         if isinstance(value, (list, tuple)):
             self.v = self.int_type.from_vec(sbitvec([x.v for x in value]))
         else:
+            if isinstance(value, sbitvec):
+                value = self.int_type(value)
             super(sbitfixvec, self).__init__(value, *args, **kwargs)
     def elements(self):
         return [sbitfix._new(x, f=self.f, k=self.k) for x in self.v.elements()]
@@ -1293,9 +1298,12 @@ class sbitfixvec(_fix):
         else:
             return super(sbitfixvec, self).mul(other)
     def __xor__(self, other):
+        if util.is_zero(other):
+            return self
         return self._new(self.v ^ other.v)
     def __and__(self, other):
         return self._new(self.v & other.v)
+    __rxor__ = __xor__
     @staticmethod
     def multipliable(other, k, f, size):
         class cls(_fix):

@@ -290,7 +290,7 @@ def exp2_fx(a, zero_output=False, as19=False):
     # how many bits to use from integer part
     n_int_bits = int(math.ceil(math.log(a.k - a.f, 2)))
     n_bits = a.f + n_int_bits
-    sint = types.sint
+    sint = a.int_type
     if types.program.options.ring and not as19:
         intbitint = types.intbitint
         n_shift = int(types.program.options.ring) - a.k
@@ -367,17 +367,17 @@ def exp2_fx(a, zero_output=False, as19=False):
         bits = a.v.bit_decompose(a.k, maybe_mixed=True)
         lower = sint.bit_compose(bits[:a.f])
         higher_bits = bits[a.f:n_bits]
-        s = sint.conv(bits[-1])
+        s = a.bit_type.conv(bits[-1])
         bits_to_check = bits[n_bits:-1]
     if not as19:
-        c = types.sfix._new(lower, k=a.k, f=a.f)
+        c = a._new(lower, k=a.k, f=a.f)
         assert(len(higher_bits) == n_bits - a.f)
         pow2_bits = [sint.conv(x) for x in higher_bits]
         d = floatingpoint.Pow2_from_bits(pow2_bits)
         g = exp_from_parts(d, c)
-        small_result = types.sfix._new(g.v.round(a.f + 2 ** n_int_bits,
+        small_result = a._new(g.v.round(a.f + 2 ** n_int_bits,
                                             2 ** n_int_bits, signed=False,
-                                            nearest=types.sfix.round_nearest),
+                                            nearest=a.round_nearest),
                                        k=a.k, f=a.f)
         if zero_output:
             t = sint.conv(floatingpoint.KOpL(lambda x, y: x.bit_and(y),
