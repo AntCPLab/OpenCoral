@@ -283,6 +283,7 @@ compute the preprocessing time for a particular computation.
    on available options.
  - To benchmark online-only protocols or Overdrive offline phases, add the following line at the top: `MY_CFLAGS = -DINSECURE`
  - `PREP_DIR` should point to a local, unversioned directory to store preprocessing data (the default is `Player-Data` in the current directory).
+ - `SSL_DIR` should point to a local, unversioned directory to store ssl keys (the default is `Player-Data` in the current directory).
  - For homomorphic encryption with GF(2^40), set `USE_NTL = 1`.
 
 2) Run `make` to compile all the software (use the flag `-j` for faster
@@ -707,7 +708,7 @@ information.
 MP-SPDZ uses OpenSSL for secure channels. You can generate the
 necessary certificates and keys as follows:
 
-`Scripts/setup-ssl.sh [<number of parties>]`
+`Scripts/setup-ssl.sh [<number of parties> <SSL_DIR>]`
 
 The programs expect the keys and certificates to be in
 `Player-Data/P<i>.key` and `Player-Data/P<i>.pem`, respectively, and

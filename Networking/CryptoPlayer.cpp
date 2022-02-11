@@ -19,9 +19,9 @@ void ssl_error(string side, string other, string me)
 {
     cerr << side << "-side handshake with " << other
             << " failed. Make sure both sides "
-            << " have the necessary certificate (" << PREP_DIR << me
+            << " have the necessary certificate (" << SSL_DIR << me
             << ".pem in the default configuration on their side and "
-            << PREP_DIR << other << ".pem on ours),"
+            << SSL_DIR << other << ".pem on ours),"
             << " and run `c_rehash <directory>` on its location." << endl
             << "The certificates should be the same on every host. "
             << "Also make sure that it's still valid. Certificates generated "
@@ -36,7 +36,7 @@ void ssl_error(string side, string other, string me)
     cerr << "Signature (should match the other side): ";
     for (int i = 0; i < 2; i++)
     {
-        auto filename = PREP_DIR + ids[i] + ".pem";
+        auto filename = SSL_DIR + ids[i] + ".pem";
         ifstream cert(filename);
         stringstream buffer;
         buffer << cert.rdbuf();
