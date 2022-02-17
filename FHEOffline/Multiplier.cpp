@@ -130,6 +130,13 @@ void Multiplier<FD>::report_size(ReportType type, MemoryUsage& res)
     res += memory_usage;
 }
 
+template<class FD>
+const vector<Ciphertext>& Multiplier<FD>::get_multiplicands(
+        const vector<vector<Ciphertext> >& others_ct, const FHE_PK&)
+{
+    return others_ct[P.get_full_player().get_player(-P.get_offset())];
+}
+
 
 template class Multiplier<FFT_Data>;
 template class Multiplier<P2Data>;

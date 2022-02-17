@@ -317,7 +317,14 @@ void read_mac_key(const string& directory, int player_num, int nplayers, U& key)
       throw mac_key_error(filename);
     }
 
-  key.input(inpf,true);
+  try
+  {
+      key.input(inpf,true);
+  }
+  catch(exception&)
+  {
+      throw mac_key_error(filename);
+  }
 
   if (inpf.fail())
       throw mac_key_error(filename);

@@ -32,7 +32,7 @@ public:
     {
     }
 
-    void init_open(const Player& P, int n)
+    void init_open(const Player& P, int n = 0)
     {
         inner_MC.init_open(P, n);
     }

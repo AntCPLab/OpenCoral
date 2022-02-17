@@ -15,7 +15,6 @@
 #include "Spdz2kPrep.hpp"
 #include "ShamirMC.hpp"
 #include "MaliciousRepPO.hpp"
-#include "MaliciousShamirPO.hpp"
 #include "GC/RepPrep.hpp"
 
 template<class T>

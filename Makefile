@@ -61,7 +61,7 @@ arithmetic: rep-ring rep-field shamir semi2k-party.x semi-party.x mascot sy
 binary: rep-bin yao semi-bin-party.x tinier-party.x tiny-party.x ccd-party.x malicious-ccd-party.x real-bmr
 
 all: overdrive she-offline
-arithmetic: hemi-party.x soho-party.x gear
+arithmetic: semi-he gear
 
 -include $(DEPS)
 include $(wildcard *.d static/*.d)
@@ -87,6 +87,7 @@ she-offline: Check-Offline.x spdz2-offline.x
 
 overdrive: simple-offline.x pairwise-offline.x cnc-offline.x gear
 gear: cowgear-party.x chaigear-party.x lowgear-party.x highgear-party.x
+semi-he: hemi-party.x soho-party.x temi-party.x
 
 rep-field: malicious-rep-field-party.x replicated-field-party.x ps-rep-field-party.x
 
@@ -210,6 +211,7 @@ static/spdz2k-party.x: $(patsubst %.cpp,%.o,$(wildcard Machines/SPDZ2*.cpp))
 semi-party.x: $(OT) GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
 semi2k-party.x: $(OT) GC/SemiSecret.o GC/SemiPrep.o GC/square64.o
 hemi-party.x: $(FHEOFFLINE) $(GC_SEMI) $(OT)
+temi-party.x: $(FHEOFFLINE) $(GC_SEMI) $(OT)
 soho-party.x: $(FHEOFFLINE) $(GC_SEMI) $(OT)
 cowgear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o $(TINIER)
 chaigear-party.x: $(FHEOFFLINE) Protocols/CowGearOptions.o $(TINIER)
@@ -217,6 +219,7 @@ lowgear-party.x: $(FHEOFFLINE) $(TINIER) Protocols/CowGearOptions.o Protocols/Lo
 highgear-party.x: $(FHEOFFLINE) $(TINIER) Protocols/CowGearOptions.o Protocols/HighGearKeyGen.o
 atlas-party.x: GC/AtlasSecret.o
 static/hemi-party.x: $(FHEOBJS)
+static/temi-party.x: $(FHEOBJS)
 static/soho-party.x: $(FHEOBJS)
 static/cowgear-party.x: $(FHEOBJS)
 static/chaigear-party.x: $(FHEOBJS)

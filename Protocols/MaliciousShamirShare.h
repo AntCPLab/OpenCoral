@@ -13,6 +13,7 @@
 template<class T> class MaliciousRepPrepWithBits;
 template<class T> class MaliciousRepPrep;
 template<class T> class MaliciousShamirPO;
+template<class T> class SpecificPrivateOutput;
 
 namespace GC
 {
@@ -23,14 +24,15 @@ template<class T>
 class MaliciousShamirShare : public ShamirShare<T>
 {
     typedef ShamirShare<T> super;
+    typedef MaliciousShamirShare This;
 
 public:
     typedef Beaver<MaliciousShamirShare<T>> Protocol;
     typedef MaliciousShamirMC<MaliciousShamirShare> MAC_Check;
     typedef MAC_Check Direct_MC;
     typedef ShamirInput<MaliciousShamirShare> Input;
-    typedef ::PrivateOutput<MaliciousShamirShare> PrivateOutput;
     typedef MaliciousShamirPO<MaliciousShamirShare> PO;
+    typedef SpecificPrivateOutput<This> PrivateOutput;
     typedef ShamirShare<T> Honest;
     typedef MaliciousRepPrepWithBits<MaliciousShamirShare> LivePrep;
     typedef MaliciousRepPrep<MaliciousShamirShare> TriplePrep;

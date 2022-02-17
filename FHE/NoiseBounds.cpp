@@ -39,6 +39,7 @@ SemiHomomorphicNoiseBounds::SemiHomomorphicNoiseBounds(const bigint& p,
     bigint B_clean_not_top_gear = B_clean << int(ceil(sec / 2.));
     B_clean = max(B_clean_not_top_gear, B_clean_top_gear);
     B_scale = (c1 + c2 * V_s) * p * sqrt(phi_m / 12.0);
+    int matrix_dim = params.get_matrix_dim();
 #ifdef NOISY
     cout << "p * sqrt(phi(m) / 12): " << p * sqrt(phi_m / 12.0) << endl;
     cout << "V_s: " << V_s << endl;
@@ -48,9 +49,11 @@ SemiHomomorphicNoiseBounds::SemiHomomorphicNoiseBounds(const bigint& p,
     cout << "log(slack): " << slack << endl;
     cout << "B_clean: " << B_clean << endl;
     cout << "B_scale: " << B_scale << endl;
+    cout << "matrix dimension: " << matrix_dim << endl;
 #endif
 
-    drown = 1 + n * (bigint(1) << sec);
+    assert(matrix_dim > 0);
+    drown = 1 + matrix_dim * n * (bigint(1) << sec);
 }
 
 bigint SemiHomomorphicNoiseBounds::min_p0(const bigint& p1)

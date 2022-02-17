@@ -35,8 +35,8 @@ wrong_gfp_size::wrong_gfp_size(const char* name, const bigint& p,
 {
 }
 
-overflow::overflow(const char* name, size_t i, size_t n) :
-        runtime_error(string(name) + " overflow: " + to_string(i) + "/" + to_string(n))
+overflow::overflow(const string& name, size_t i, size_t n) :
+        runtime_error(name + " overflow: " + to_string(i) + "/" + to_string(n))
 {
 }
 

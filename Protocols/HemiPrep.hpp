@@ -34,6 +34,20 @@ void HemiPrep<T>::basic_setup(Player& P)
     T::clear::template init<typename FD::T>();
 }
 
+template<class T>
+const FHE_PK& HemiPrep<T>::get_pk()
+{
+    assert(pairwise_machine);
+    return pairwise_machine->pk;
+}
+
+template<class T>
+const typename T::clear::FD& HemiPrep<T>::get_FTD()
+{
+    assert(pairwise_machine);
+    return pairwise_machine->setup<FD>().FieldD;
+}
+
 
 template<class T>
 HemiPrep<T>::~HemiPrep()

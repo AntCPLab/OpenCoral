@@ -48,10 +48,17 @@ Rq_Element FHE_PK::sample_secret_key(PRNG& G)
 
 void FHE_PK::KeyGen(Rq_Element& sk, PRNG& G, int noise_boost)
 {
+  Rq_Element a(*this);
+  a.randomize(G);
+  partial_key_gen(sk, a, G, noise_boost);
+}
+
+void FHE_PK::partial_key_gen(const Rq_Element& sk, const Rq_Element& a, PRNG& G,
+    int noise_boost)
+{
   FHE_PK& PK = *this;
 
-  // Generate the main public key
-  PK.a0.randomize(G);
+  a0 = a;
 
   // b0=a0*s+p*e0
   Rq_Element e0((*PK.params).FFTD(),evaluation,evaluation);
@@ -76,9 +83,6 @@ void FHE_PK::KeyGen(Rq_Element& sk, PRNG& G, int noise_boost)
       mul(PK.Sw_b,PK.Sw_a,sk);
       mul(es,es,PK.pr);
       add(PK.Sw_b,PK.Sw_b,es);
-
-      // Lowering level as we only decrypt at level 0
-      sk.lower_level();
 
       // bs=bs-p1*s^2
       Rq_Element s2;
@@ -334,7 +338,7 @@ void FHE_SK::check(const FHE_Params& params, const FHE_PK& pk,
 template<class FD>
 void FHE_SK::check(const FHE_PK& pk, const FD& FieldD)
 {
-  check(*params, pk, pr);
+  check(*params, pk, FieldD.get_prime());
   pk.check_noise(*this);
   if (decrypt(pk.encrypt(Plaintext_<FD>(FieldD)), FieldD) !=
       Plaintext_<FD>(FieldD))

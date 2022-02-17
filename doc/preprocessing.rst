@@ -85,7 +85,37 @@ modulo the default 128-bit prime
   00000025
 
 
-``Fake-Offline.x`` generates preprocessing data insecurely for a range
-of protocols, and ``{mascot,cowgear,mal-shamir}-offline.x`` generate
+The actual data is stored is by simple concatenation. For example,
+triples are stored as repetitions of ``a, b, ab``, and daBits are
+stored as repetitions of ``a, b`` where ``a`` is the arithmetic
+share and ``b`` is the binary share.
+
+For protocols with MAC, the value share is stored before the MAC
+share.
+
+Values are generally stored in little-endian order. Note the following
+domain specifics:
+
+Modulo a prime
+  Values are stored in `Montgomery representation
+  <https://en.wikipedia.org/wiki/Montgomery_modular_multiplication>`_
+  with :math:`R` being the smallest power of :math:`2^{64}` larger than
+  the prime. For example, :math:`R = 2^{128}` for a 128-bit prime.
+  Furthermore, the values are stored in the smallest number of 8-byte
+  blocks necessary, all in little-endian order.
+
+Modulo a power of two:
+  Values are stored in the smallest number of 8-byte blocks necessary,
+  all in little-endian order.
+
+:math:`GF(2^n)`
+  Values are stored in blocks according to the storage size above,
+  all in little-endian order.
+
+For further details, have a look at ``Utils/Fake-Offline.cpp``, which
+contains code that generates preprocessing data insecurely for a range
+of protocols (underlying the binary ``Fake-Offline.x``).
+
+``{mascot,cowgear,mal-shamir}-offline.x`` generate
 sufficient preprocessing data for a specific high-level program with
 MASCOT, CowGear, and malicious Shamir secret sharing, respectively.

@@ -56,16 +56,24 @@ BufferPrep<T>::~BufferPrep()
                 << " bit generation" << endl;
 #endif
 
+    auto field_type = T::clear::field_type();
+    auto& my_usage = this->usage.files.at(field_type);
+
     this->print_left("triples", triples.size() * T::default_length, type_string,
             this->usage.files.at(T::clear::field_type()).at(DATA_TRIPLE)
                     * T::default_length);
+
+    size_t used_bits = my_usage.at(DATA_BIT);
+    if (not T::clear::invertible and field_type == DATA_INT and not T::has_mac)
+        // add dabits with computation modulo power of two but without MAC
+        used_bits += my_usage.at(DATA_DABIT);
+    this->print_left("bits", bits.size(), type_string, used_bits);
 
 #define X(KIND, TYPE) \
     this->print_left(#KIND, KIND.size(), type_string, \
             this->usage.files.at(T::clear::field_type()).at(TYPE));
     X(squares, DATA_SQUARE)
     X(inverses, DATA_INVERSE)
-    X(bits, DATA_BIT)
     X(dabits, DATA_DABIT)
 #undef X
 
@@ -601,17 +609,6 @@ void buffer_bits_from_players(vector<vector<T>>& player_bits,
     for (int i = 0; i < n_relevant_players; i++)
         for (auto& x : player_bits[i])
             x = input.finalize((base_player + i) % P.num_players(), n_bits);
-#if !defined(__clang__) && (__GNUC__ == 6)
-    // mitigate compiler bug
-    Bundle<octetStream> bundle(P);
-    P.unchecked_broadcast(bundle);
-#endif
-#ifdef DEBUG_BIT_SACRIFICE
-    typename T::MAC_Check MC;
-    for (int i = 0; i < n_relevant_players; i++)
-        for (auto& x : player_bits[i])
-            assert((MC.open(x, P) == 0) or (MC.open(x, P) == 1));
-#endif
 }
 
 template<class T>
@@ -1164,18 +1161,18 @@ void BufferPrep<T>::buffer_inputs_as_usual(int player, SubProcessor<T>* proc)
             typename T::clear r;
             r.randomize(G);
             input.add_mine(r);
-            this->inputs[player].push_back({input.finalize_mine(), r});
+            this->inputs[player].push_back({input.finalize(player), r});
         }
-        input.send_mine();
+        input.exchange();
     }
     else
     {
-        octetStream os;
-        P.receive_player(player, os);
-        T share;
+        for (int i = 0; i < buffer_size; i++)
+            input.add_other(player);
+        input.exchange();
         for (int i = 0; i < buffer_size; i++)
         {
-            input.finalize_other(player, share, os);
+            auto share = input.finalize(player);
             this->inputs[player].push_back({share, 0});
         }
     }

@@ -34,6 +34,7 @@ public:
 
     static const bool has_trunc_pr = false;
     static const bool has_split = false;
+    static const bool has_mac = false;
 
     static const false_type triple_matmul;
 

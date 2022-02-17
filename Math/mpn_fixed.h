@@ -24,6 +24,12 @@ inline void inline_mpn_copyi(mp_limb_t* dest, const mp_limb_t* src, mp_size_t si
     avx_memcpy(dest, src, size * sizeof(mp_limb_t));
 }
 
+template<int N>
+inline void inline_mpn_copyi(mp_limb_t* dest, const mp_limb_t* src)
+{
+    avx_memcpy<N * sizeof(mp_limb_t)>(dest, src);
+}
+
 inline void debug_print(const char* name, const mp_limb_t* x, int n)
 {
     (void)name, (void)x, (void)n;

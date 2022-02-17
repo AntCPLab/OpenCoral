@@ -233,7 +233,7 @@ inline void Zp_Data::Mont_Mult_(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t*
   if (mpn_cmp(ans+T,prA,T+1)>=0)
      { mpn_sub_fixed_n<T>(z,ans+T,prA); }
   else
-     { inline_mpn_copyi(z,ans+T,T); }
+     { inline_mpn_copyi<T>(z,ans+T); }
 #else
   Mont_Mult(z, x, y, t);
 #endif

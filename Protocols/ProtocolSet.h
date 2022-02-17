@@ -42,8 +42,13 @@ public:
     {
     }
 
-    ~ProtocolSet()
+    /**
+     * Run all protocol checks
+     */
+    void check()
     {
+        protocol.check();
+        output.Check(processor.P);
     }
 };
 
@@ -73,6 +78,15 @@ public:
                     *thread.protocol), input(output, prep, P)
     {
     }
+
+    /**
+     * Run all protocol checks
+     */
+    void check()
+    {
+        protocol.check();
+        output.Check(protocol.P);
+    }
 };
 
 /**
@@ -101,6 +115,15 @@ public:
                     arithmetic.output), preprocessing(arithmetic.preprocessing), protocol(
                     arithmetic.protocol), input(arithmetic.input)
     {
+    }
+
+    /**
+     * Run all protocol checks
+     */
+    void check()
+    {
+        arithmetic.check();
+        binary.check();
     }
 };
 

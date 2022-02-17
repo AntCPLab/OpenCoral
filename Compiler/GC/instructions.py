@@ -497,7 +497,7 @@ class movsb(NonVectorInstruction):
     code = opcodes['MOVSB']
     arg_format = ['sbw','sb']
 
-class trans(base.VarArgsInstruction):
+class trans(base.VarArgsInstruction, base.DynFormatInstruction):
     """ Secret bit register vector transpose. The first destination vector
     will contain the least significant bits of all source vectors etc.
 
@@ -511,9 +511,21 @@ class trans(base.VarArgsInstruction):
     code = opcodes['TRANS']
     is_vec = lambda self: True
     def __init__(self, *args):
-        self.arg_format = ['int'] + ['sbw'] * args[0] + \
-                          ['sb'] * (len(args) - 1 - args[0])
         super(trans, self).__init__(*args)
+
+    @classmethod
+    def dynamic_arg_format(cls, args):
+        yield 'int'
+        n = next(args)
+        for i in range(n):
+            yield 'sbw'
+            next(args)
+        while True:
+            try:
+                yield 'sb'
+                next(args)
+            except StopIteration:
+                break
 
 class bitb(NonVectorInstruction):
     """ Copy fresh secret random bit to secret bit register.
@@ -560,7 +572,7 @@ class inputb(base.DoNotEliminateInstruction, base.VarArgsInstruction):
             req_node.increment(('bit', 'input', self.args[i]), self.args[i + 1])
 
 class inputbvec(base.DoNotEliminateInstruction, base.VarArgsInstruction,
-                base.Mergeable):
+                base.Mergeable, base.DynFormatInstruction):
     """ Copy private input to secret bit registers bit by bit. The input is
     read as floating-point number, multiplied by a power of two, rounded to an
     integer, and then decomposed into bits.
@@ -577,10 +589,17 @@ class inputbvec(base.DoNotEliminateInstruction, base.VarArgsInstruction,
     code = opcodes['INPUTBVEC']
 
     def __init__(self, *args, **kwargs):
-        self.arg_format = []
-        for x in self.get_arg_tuples(args):
-            self.arg_format += ['int', 'int', 'p'] + ['sbw'] * (x[0]  - 3)
         super(inputbvec, self).__init__(*args, **kwargs)
+
+    @classmethod
+    def dynamic_arg_format(cls, args):
+        yield 'int'
+        for i, n in cls.bases(args):
+            yield 'int'
+            yield 'p'
+            for j in range(n - 3):
+                yield 'sbw'
+            yield 'int'
 
     @staticmethod
     def get_arg_tuples(args):
@@ -589,10 +608,6 @@ class inputbvec(base.DoNotEliminateInstruction, base.VarArgsInstruction,
             yield args[i:i+args[i]]
             i += args[i]
         assert i == len(args)
-
-    def merge(self, other):
-        self.args += other.args
-        self.arg_format += other.arg_format
 
     def add_usage(self, req_node):
         for x in self.get_arg_tuples(self.args):

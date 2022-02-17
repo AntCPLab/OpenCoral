@@ -18,15 +18,21 @@ bool gf2n_<U>::useC;
 
 word gf2n_short_table[256][256];
 
-#define num_2_fields 6
+#define num_2_fields 7
 
 /* Require
  *  2*(n-1)-64+t1<64
  */
-int fields_2[num_2_fields][4] = { 
-	{4,1,0,0},{8,4,3,1},{28,1,0,0},{40,20,15,10},{63,1,0,0},{128,7,2,1},
-    };
-
+int fields_2[num_2_fields][4] =
+{
+    { 4, 1, 0, 0 },
+    { 8, 4, 3, 1 },
+    { 16, 5, 3, 1 },
+    { 28, 1, 0, 0 },
+    { 40, 20, 15, 10 },
+    { 63, 1, 0, 0 },
+    { 128, 7, 2, 1 },
+};
 
 template<class U>
 void gf2n_<U>::init_tables()

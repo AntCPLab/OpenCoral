@@ -85,21 +85,3 @@ T SpdzWiseInput<T>::finalize(int player, int)
 {
     return shares[player].next();
 }
-
-template<class T>
-void SpdzWiseInput<T>::send_mine()
-{
-    throw runtime_error("use exchange()");
-}
-
-template<class T>
-T SpdzWiseInput<T>::finalize_mine()
-{
-    throw runtime_error("use finalize()");
-}
-
-template<class T>
-void SpdzWiseInput<T>::finalize_other(int, T&, octetStream&, int)
-{
-    throw runtime_error("use finalize()");
-}

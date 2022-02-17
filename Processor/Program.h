@@ -30,10 +30,10 @@ class Program
 
   public:
 
-  bool writes_persistance;
+  bool writes_persistence;
 
   Program(int nplayers) : offline_data_used(nplayers),
-      unknown_usage(false), writes_persistance(false)
+      unknown_usage(false), writes_persistence(false)
     { compute_constants(); }
 
   // Read in a program

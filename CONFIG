@@ -42,6 +42,7 @@ else
 AVX_OT = 1
 endif
 else
+ARCH =
 AVX_OT = 0
 endif
 

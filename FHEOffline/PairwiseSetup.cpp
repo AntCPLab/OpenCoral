@@ -9,6 +9,7 @@
 #include "Math/Setup.h"
 #include "FHEOffline/Proof.h"
 #include "FHEOffline/PairwiseMachine.h"
+#include "FHEOffline/TemiSetup.h"
 #include "Tools/Commit.h"
 #include "Tools/Bundle.h"
 #include "Processor/OnlineOptions.h"
@@ -53,7 +54,7 @@ void PairwiseSetup<FD>::init(const Player& P, int sec, int plaintext_length,
 template <class FD>
 void PairwiseSetup<FD>::secure_init(Player& P, PairwiseMachine& machine, int plaintext_length, int sec)
 {
-    ::secure_init(*this, P, machine, plaintext_length, sec);
+    ::secure_init(*this, P, machine, plaintext_length, sec, params);
     alpha = FieldD;
     machine.sk = FHE_SK(params, FieldD.get_prime());
     for (auto& pk : machine.other_pks)
@@ -62,13 +63,14 @@ void PairwiseSetup<FD>::secure_init(Player& P, PairwiseMachine& machine, int pla
 
 template <class T, class U>
 void secure_init(T& setup, Player& P, U& machine,
-        int plaintext_length, int sec)
+        int plaintext_length, int sec, FHE_Params& params)
 {
     machine.sec = sec;
     sec = max(sec, 40);
     machine.drown_sec = sec;
     string filename = PREP_DIR + T::name() + "-"
             + to_string(plaintext_length) + "-" + to_string(sec) + "-"
+            + to_string(params.get_matrix_dim()) + "-"
             + OnlineOptions::singleton.prime.get_str() + "-"
             + to_string(CowGearOptions::singleton.top_gear()) + "-P"
             + to_string(P.my_num()) + "-" + to_string(P.num_players());
@@ -85,7 +87,6 @@ void secure_init(T& setup, Player& P, U& machine,
     {
         cout << "Finding parameters for security " << sec << " and field size ~2^"
                 << plaintext_length << endl;
-        setup.params = setup.params.n_mults();
         setup.generate(P, machine, plaintext_length, sec);
         setup.check(P, machine);
         octetStream os;
@@ -208,5 +209,8 @@ void PairwiseSetup<FD>::set_alphai(T alphai)
 template class PairwiseSetup<FFT_Data>;
 template class PairwiseSetup<P2Data>;
 
-template void secure_init(PartSetup<FFT_Data>&, Player&, MachineBase&, int, int);
-template void secure_init(PartSetup<P2Data>&, Player&, MachineBase&, int, int);
+template void secure_init(PartSetup<FFT_Data>&, Player&, MachineBase&, int, int, FHE_Params& params);
+template void secure_init(PartSetup<P2Data>&, Player&, MachineBase&, int, int, FHE_Params& params);
+
+template void secure_init(TemiSetup<FFT_Data>&, Player&, MachineBase&, int, int, FHE_Params& params);
+template void secure_init(TemiSetup<P2Data>&, Player&, MachineBase&, int, int, FHE_Params& params);

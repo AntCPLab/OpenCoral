@@ -55,7 +55,7 @@
     X(BITDECC, PROC.bitdecc(EXTRA, C0)) \
     X(SHRCBI, C0 = PC1 >> IMM) \
     X(SHLCBI, C0 = PC1 << IMM) \
-    X(LDBITS, S0.load_clear(REG1, IMM)) \
+    X(LDBITS, S0.load_clear(REG1, int(IMM))) \
     X(LDMSB, PROC.mem_op(SIZE, PROC.S, MMS, R0, IMM)) \
     X(STMSB, PROC.mem_op(SIZE, MMS, PROC.S, IMM, R0)) \
     X(LDMCB, PROC.mem_op(SIZE, PROC.C, MMC, R0, IMM)) \

@@ -140,12 +140,12 @@ void KeyGenProtocol<X, L>::output_to(int player, vector<open_type>& opened,
         vector<share_type>& shares)
 {
     PrivateOutput<share_type> po(*proc);
-    vector<share_type> masked;
     for (auto& share : shares)
-        masked.push_back(po.start(player, share));
-    MC->POpen(opened, masked, P);
+        po.prepare_sending(share, player);
+    po.exchange();
+    opened.resize(shares.size());
     for (auto& x : opened)
-        x = po.stop(player, x);
+        x = po.finalize(player);
 }
 
 template<int L>

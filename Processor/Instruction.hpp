@@ -200,14 +200,17 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case USE:
       case USE_INP:
       case USE_EDABIT:
+      case DIGESTC:
+      case INPUTMASK:
+      case GINPUTMASK:
+        get_ints(r, s, 2);
+        n = get_int(s);
+        break;
       case STARTPRIVATEOUTPUT:
       case GSTARTPRIVATEOUTPUT:
       case STOPPRIVATEOUTPUT:
       case GSTOPPRIVATEOUTPUT:
-      case DIGESTC:
-        get_ints(r, s, 2);
-        n = get_int(s);
-        break;
+        throw runtime_error("two-stage private output not supported any more");
       case USE_MATMUL:
         get_ints(r, s, 3);
         n = get_int(s);
@@ -237,8 +240,6 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case PRINTREGB:
       case GPRINTREG:
       case LDINT:
-      case INPUTMASK:
-      case GINPUTMASK:
       case INV2M:
       case CONDPRINTSTR:
       case CONDPRINTSTRB:
@@ -290,6 +291,8 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case RAWINPUT:
       case GRAWINPUT:
       case INPUTPERSONAL:
+      case SENDPERSONAL:
+      case PRIVATEOUTPUT:
       case TRUNC_PR:
       case RUN_TAPE:
         num_var_args = get_int(s);
@@ -599,6 +602,7 @@ int BaseInstruction::get_reg_type() const
     case PUBINPUT:
     case FLOATOUTPUT:
     case READSOCKETC:
+    case PRIVATEOUTPUT:
       return CINT;
     default:
       if (is_gf2n_instruction())
@@ -738,9 +742,15 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
       skip = 1;
       break;
   case INPUTPERSONAL:
+  case PRIVATEOUTPUT:
       size_offset = -2;
       offset = 2;
       skip = 4;
+      break;
+  case SENDPERSONAL:
+      size_offset = -2;
+      offset = 2;
+      skip = 5;
       break;
   case READSOCKETS:
   case READSOCKETC:
@@ -939,13 +949,11 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         break;
       case INPUTMASK:
         Procp.DataF.get_input(Proc.get_Sp_ref(r[0]), Proc.temp.rrp, n);
-        if (n == Proc.P.my_num())
-          Proc.temp.rrp.output(Proc.private_output, false);
+        Proc.write_Cp(r[1], Proc.temp.rrp);
         break;
       case GINPUTMASK:
         Proc2.DataF.get_input(Proc.get_S2_ref(r[0]), Proc.temp.ans2, n);
-        if (n == Proc.P.my_num())
-          Proc.temp.ans2.output(Proc.private_output, false);
+        Proc.write_C2(r[1], Proc.temp.ans2);
         break;
       case INPUT:
         sint::Input::template input<IntInput<typename sint::clear>>(Proc.Procp, start, size);
@@ -973,6 +981,12 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         return;
       case INPUTPERSONAL:
         Proc.Procp.input_personal(start);
+        return;
+      case SENDPERSONAL:
+        Proc.Procp.send_personal(start);
+        return;
+      case PRIVATEOUTPUT:
+        Proc.Procp.private_output(start);
         return;
       // Note: Fp version has different semantics for NOTC than GNOTC
       case NOTC:
@@ -1201,18 +1215,6 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
               Proc.read_Cp(start[3] + i)).get_d();
             Proc.binary_output.write((char*) &tmp, sizeof(double));
           }
-        break;
-      case STARTPRIVATEOUTPUT:
-        Proc.privateOutputp.start(n,r[0],r[1]);
-        break;
-      case GSTARTPRIVATEOUTPUT:
-        Proc.privateOutput2.start(n,r[0],r[1]);
-        break;
-      case STOPPRIVATEOUTPUT:
-        Proc.privateOutputp.stop(n,r[0],r[1]);
-        break;
-      case GSTOPPRIVATEOUTPUT:
-        Proc.privateOutput2.stop(n,r[0],r[1]);
         break;
       case PREP:
         Procp.DataF.get(Proc.Procp.get_S(), r, start, size);

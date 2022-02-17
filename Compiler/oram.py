@@ -1493,6 +1493,7 @@ class PackedIndexStructure(object):
                     self.l[i] = [0] * self.elements_per_block
                 time()
                 print_ln('packed ORAM init %s/%s', i, real_init_rounds)
+            print_ln('packed ORAM init done')
         print('index initialized, size', size)
     def translate_index(self, index):
         """ Bit slicing *index* according parameters. Output is tuple

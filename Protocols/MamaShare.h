@@ -76,12 +76,6 @@ public:
         return string(1, T::type_char());
     }
 
-    static void read_or_generate_mac_key(string, Player&, mac_key_type& key)
-    {
-        SeededPRNG G;
-        key.randomize(G);
-    }
-
     MamaShare()
     {
     }

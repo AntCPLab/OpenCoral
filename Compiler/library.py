@@ -223,7 +223,7 @@ def crash(condition=None):
     if isinstance(condition, localint):
         # allow crash on local values
         condition = condition._v
-    if condition == None:
+    if condition is None:
         condition = regint(1)
     instructions.crash(regint.conv(condition))
 
@@ -284,8 +284,8 @@ def get_arg():
 
 def make_array(l):
     if isinstance(l, program.Tape.Register):
-        res = Array(1, type(l))
-        res[0] = l
+        res = Array(len(l), type(l))
+        res[:] = l
     else:
         l = list(l)
         res = Array(len(l), type(l[0]) if l else cint)
@@ -1032,6 +1032,7 @@ def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
                 state = tuplify(initializer())
                 k = 0
                 block = get_block()
+                assert not isinstance(n_loops, int) or n_loops > 0
                 pre = copy.copy(loop_body.__globals__)
                 while (not util.is_constant(n_loops) or k < n_loops) \
                       and (len(get_block()) < budget or k == 0) \
@@ -1211,7 +1212,13 @@ def map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, \
             if t != regint:
                 raise CompilerError('Not implemented for other than regint')
         args = Matrix(n_threads, 2 + thread_mem_req.get(regint, 0), 'ci')
-        state = tuple(initializer())
+        state = initializer()
+        if len(state) == 0:
+            state_type = cint
+        elif isinstance(state, (tuple, list)):
+            state_type = type(state[0])
+        else:
+            state_type = type(state)
         def f(inc):
             base = args[get_arg()][0]
             if not util.is_constant(thread_rounds):
@@ -1224,8 +1231,7 @@ def map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, \
             if thread_mem_req:
                 thread_mem = Array(thread_mem_req[regint], regint, \
                                        args[get_arg()].address + 2)
-            mem_state = Array(len(state), type(state[0]) \
-                                  if state else cint, args[get_arg()][1])
+            mem_state = Array(len(state), state_type, args[get_arg()][1])
             @map_reduce_single(n_parallel, thread_rounds + inc, \
                                    initializer, reducer, mem_state)
             def f(i):
@@ -1257,14 +1263,14 @@ def map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, \
         threads = prog.run_tapes(thread_args)
         for thread in threads:
             prog.join_tape(thread)
-        if state:
+        if len(state):
             if thread_rounds:
                 for i in range(n_threads - remainder):
-                    state = reducer(Array(len(state), type(state[0]), \
+                    state = reducer(Array(len(state), state_type, \
                                               args[remainder + i][1]), state)
             if remainder:
                 for i in range(remainder):
-                    state = reducer(Array(len(state), type(state[0]).reg_type, \
+                    state = reducer(Array(len(state), state_type, \
                                               args[i][1]), state)
         def returner():
             return untuplify(state)
@@ -1299,6 +1305,39 @@ def map_sum_opt(n_threads, n_loops, types):
 
     """
     return map_sum(n_threads, None, n_loops, len(types), types)
+
+def map_sum_simple(n_threads, n_loops, type, size):
+    """ Vectorized multi-threaded sum reduction. The following computes a
+    100 sums of ten squares in three threads::
+
+        @map_sum_simple(3, 10, sint, 100)
+        def summer(i):
+            return sint(regint.inc(100, i, 0)) ** 2
+
+        result = summer()
+
+    :param n_threads: number of threads (int)
+    :param n_loops: number of loop runs (regint/cint/int)
+    :param type: return type, must match the return statement
+        in the loop
+    :param size: vector size, must match the return statement
+        in the loop
+
+    """
+    initializer = lambda: type(0, size=size)
+    def summer(*args):
+        assert len(args) == 2
+        args = list(args)
+        for i in (0, 1):
+            if isinstance(args[i], tuple):
+                assert len(args[i]) == 1
+                args[i] = args[i][0]
+        for i in (0, 1):
+            assert len(args[i]) == size
+            if isinstance(args[i], Array):
+                args[i] = args[i][:]
+        return args[0] + args[1]
+    return map_reduce(n_threads, 1, n_loops, initializer, summer)
 
 def tree_reduce_multithread(n_threads, function, vector):
     inputs = vector.Array(len(vector))

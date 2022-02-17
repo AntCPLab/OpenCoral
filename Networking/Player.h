@@ -542,6 +542,7 @@ public:
   int other_player_num() const { return P.get_player(offset); }
   int num_players() const { return 2; }
   int get_offset() const { return offset; }
+  Player& get_full_player() const { return P; }
 
   void send(octetStream& o) const { P.send_to(P.get_player(offset), o); }
   void reverse_send(octetStream& o) const { P.send_to(P.get_player(-offset), o); }

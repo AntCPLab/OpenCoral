@@ -19,10 +19,6 @@ using namespace std;
 template<class T> class SubProcessor;
 template<class T> class ReplicatedMC;
 template<class T> class ReplicatedInput;
-template<class T> class ReplicatedPrivateOutput;
-template<class T> class Share;
-template<class T> class Rep3Share;
-template<class T> class MAC_Check_Base;
 template<class T> class Preprocessing;
 class Instruction;
 
@@ -141,9 +137,6 @@ class Replicated : public ReplicatedBase, public ProtocolBase<T>
     void trunc_pr(const vector<int>& regs, int size, U& proc, false_type);
 
 public:
-    typedef ReplicatedMC<T> MAC_Check;
-    typedef ReplicatedInput<T> Input;
-
     static const bool uses_triples = false;
 
     Replicated(Player& P);

@@ -85,10 +85,31 @@ The following table lists all protocols that are fully supported.
 | --- | --- | --- | --- | --- |
 | Malicious, dishonest majority | [MASCOT / LowGear / HighGear](#secret-sharing) | [SPDZ2k](#secret-sharing) | [Tiny / Tinier](#secret-sharing) | [BMR](#bmr) |
 | Covert, dishonest majority | [CowGear / ChaiGear](#secret-sharing) | N/A | N/A | N/A |
-| Semi-honest, dishonest majority | [Semi / Hemi / Soho](#secret-sharing) | [Semi2k](#secret-sharing) | [SemiBin](#secret-sharing) | [Yao's GC](#yaos-garbled-circuits) / [BMR](#bmr) |
+| Semi-honest, dishonest majority | [Semi / Hemi / Temi / Soho](#secret-sharing) | [Semi2k](#secret-sharing) | [SemiBin](#secret-sharing) | [Yao's GC](#yaos-garbled-circuits) / [BMR](#bmr) |
 | Malicious, honest majority | [Shamir / Rep3 / PS / SY](#honest-majority) | [Brain / Rep[34] / PS / SY](#honest-majority) | [Rep3 / CCD / PS](#honest-majority) | [BMR](#bmr) |
 | Semi-honest, honest majority | [Shamir / ATLAS / Rep3](#honest-majority) | [Rep3](#honest-majority) | [Rep3 / CCD](#honest-majority) | [BMR](#bmr) |
 
+Modulo prime and modulo 2^k are the two settings that allow
+integer-like computation. For k = 64, the latter corresponds to the
+computation available on the widely used 64-bit processors.  GF(2^n)
+denotes Galois extension fields of order 2^n, which are different to
+computation modulo 2^n. In particular, every element has an inverse,
+which is not the case modulo 2^n. See [this
+article](https://en.wikipedia.org/wiki/Finite_field) for an
+introduction. Modulo prime and GF(2^n) are lumped together because the
+protocols are very similar due to the mathematical properties.
+
+Bin. SS stands for binary secret sharing, that is secret sharing
+modulo two. In some settings, this requires specific protocols as some
+protocols require the domain size to be larger than two. In other
+settings, the protocol is the same mathematically speaking, but a
+specific implementation allows for optimizations such as using the
+inherent parallelism of bit-wise operations on machine words.
+
+A security model specifies how many parties are "allowed" to misbehave
+in what sense. Malicious means that not following the protocol will at
+least be detected while semi-honest means that even corrupted parties
+are assumed to follow the protocol.
 See [this paper](https://eprint.iacr.org/2020/300) for an explanation
 of the various security models and a high-level introduction to
 multi-party computation.
@@ -257,7 +278,9 @@ compute the preprocessing time for a particular computation.
    add `AVX_OT = 0` in addition.
  - For optimal results on Linux on ARM, add `ARCH =
    -march=-march=armv8.2-a+crypto` to `CONFIG.mine`. This enables the
-   hardware support for AES.
+   hardware support for AES. See the [GCC
+   documentation](https://gcc.gnu.org/onlinedocs/gcc/AArch64-Options.html#AArch64-Options)
+   on available options.
  - To benchmark online-only protocols or Overdrive offline phases, add the following line at the top: `MY_CFLAGS = -DINSECURE`
  - `PREP_DIR` should point to a local, unversioned directory to store preprocessing data (the default is `Player-Data` in the current directory).
  - For homomorphic encryption with GF(2^40), set `USE_NTL = 1`.
@@ -501,6 +524,7 @@ The following table shows all programs for dishonest-majority computation using 
 | `cowgear-party.x` | Adapted [LowGear](https://eprint.iacr.org/2017/1230) | Mod prime | Covert | `cowgear.sh` |
 | `chaigear-party.x` | Adapted [HighGear](https://eprint.iacr.org/2017/1230) | Mod prime | Covert | `chaigear.sh` |
 | `hemi-party.x` | Semi-homomorphic encryption | Mod prime | Semi-honest | `hemi.sh` |
+| `temi-party.x` | Adapted [CDN01](https://eprint.iacr.org/2000/055) | Mod prime | Semi-honest | `temi.sh` |
 | `soho-party.x` | Somewhat homomorphic encryption | Mod prime | Semi-honest | `soho.sh` |
 | `semi-bin-party.x` | OT-based | Binary | Semi-honest | `semi-bin.sh` |
 | `tiny-party.x` | Adapted SPDZ2k | Binary | Malicious | `tiny.sh` |
@@ -538,6 +562,11 @@ Hemi and Soho denote the stripped version version of LowGear and
 HighGear, respectively, for semi-honest
 security similar to Semi, that is, generating additively shared Beaver
 triples using semi-homomorphic encryption.
+Temi in turn denotes the adaption of
+[Cramer et al.](https://eprint.iacr.org/2000/055) to LWE-based
+semi-homomorphic encryption.
+Both Hemi and Temi use the diagonal packing by [Halevi and
+Shoup](https://eprint.iacr.org/2014/106) for matrix multiplication.
 
 We will use MASCOT to demonstrate the use, but the other protocols
 work similarly.

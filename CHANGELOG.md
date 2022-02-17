@@ -1,6 +1,17 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
-## 0.2.9 (Jan 11, 2021)
+## 0.3.0 (Feb 17, 2022)
+
+- Semi-honest computation based on threshold semi-homomorphic encryption
+- Batch normalization backward propagation
+- AlexNet for CIFAR-10
+- Specific private output protocols
+- Semi-honest additive secret sharing without communication
+- Sending of personal values
+- Allow overwriting of persistence files
+- Protocol signature in persistence files
+
+## 0.2.9 (Jan 11, 2022)
 
 - Disassembler
 - Run-time parameter for probabilistic truncation error

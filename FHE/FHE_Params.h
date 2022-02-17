@@ -26,16 +26,20 @@ class FHE_Params
   // Data for distributed decryption
   int sec_p;
   bigint Bval;
+  int matrix_dim;
 
   public:
 
-  FHE_Params(int n_mults = 1) : FFTData(n_mults + 1), Chi(0.7), sec_p(-1) {}
+  FHE_Params(int n_mults = 1);
 
   int n_mults() const { return FFTData.size() - 1; }
 
   void set(const Ring& R,const vector<bigint>& primes);
   void set(const vector<bigint>& primes);
   void set_sec(int sec);
+
+  void set_matrix_dim(int matrix_dim);
+  int get_matrix_dim() const         { return matrix_dim; }
 
   const vector<FFT_Data>& FFTD() const { return FFTData; }
 

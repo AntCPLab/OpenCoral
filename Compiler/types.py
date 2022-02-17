@@ -1675,6 +1675,13 @@ class localint(Tape._no_truth):
     __ne__ = lambda self, other: localint(self._v != other)
 
 class personal(Tape._no_truth):
+    """ Value known to one player. Supports operations with public
+    values and personal values known to the same player. Can be used
+    with :py:func:`~Compiler.library.print_ln_to`.
+
+    :param player: player (int)
+    :param value: cleartext value (cint, cfix, cfloat) or array thereof
+    """
     def __init__(self, player, value):
         assert value is not NotImplemented
         assert not isinstance(value, _secret)
@@ -1685,7 +1692,23 @@ class personal(Tape._no_truth):
         self._v = value
 
     def binary_output(self):
+        """ Write binary output to
+        ``Player-Data/Binary-Output-P<playerno>-<threadno>`` if
+        supported by underlying type. Player must be known at compile time."""
         self._v.binary_output(self.player)
+
+    def reveal_to(self, player):
+        """ Pass personal value to another player. """
+        if isinstance(self._v, Array):
+            source = self._v[:]
+        else:
+            source = self._v
+        source = cint.conv(source)
+        res = cint(size=source.size)
+        sendpersonal(source.size, player, res, self.player, source)
+        if isinstance(self._v, Array):
+            res = Array.create_from(res)
+        return personal(player, res)
 
     def bit_decompose(self, length):
         return [personal(self.player, x) for x in self._v.bit_decompose(length)]
@@ -1858,8 +1881,13 @@ class _secret(_register, _secret_structure):
     @vectorized_classmethod
     @set_instruction_type
     def get_random_input_mask_for(cls, player):
-        res = cls()
-        inputmask(res, player)
+        """ Secret random input mask according to security model.
+
+        :return: mask (sint), mask (personal cint)
+        :param size: vector size (int, default 1)
+        """
+        res = cls(), personal(player, cls.clear_type())
+        inputmask(res[0], res[1]._v, player)
         return res
 
     @classmethod
@@ -2071,15 +2099,13 @@ class _secret(_register, _secret_structure):
     @set_instruction_type
     def reveal_to(self, player):
         """ Reveal secret value to :py:obj:`player`.
-        Result written to ``Player-Data/Private-Output-P<player>``
 
         :param player: int
-        :returns: value to be used with :py:func:`~Compiler.library.print_ln_to`
+        :returns: :py:class:`personal`
         """
-        masked = self.__class__()
-        res = personal(player, self.clear_type())
-        startprivateoutput(masked, self, player)
-        stopprivateoutput(res._v, masked.reveal(), player)
+        mask = self.get_random_input_mask_for(player)
+        masked = self + mask[0]
+        res = personal(player, masked.reveal() - mask[1])
         return res
 
 
@@ -2633,21 +2659,20 @@ class sint(_secret, _int):
     @vectorize
     def reveal_to(self, player):
         """ Reveal secret value to :py:obj:`player`.
-        Result potentially written to
-        ``Player-Data/Private-Output-P<player>``, but not if
-        :py:obj:`player` is a :py:class:`regint`.
 
-        :param player: public integer (int/regint/cint):
-        :returns: value to be used with :py:func:`~Compiler.library.print_ln_to`
+        :param player: public integer (int/regint/cint)
+        :returns: :py:class:`personal`
         """
-        if not util.is_constant(player) or self.size > 1:
+        if not util.is_constant(player):
             secret_mask = sint()
             player_mask = cint()
             inputmaskreg(secret_mask, player_mask, regint.conv(player))
             return personal(player,
                             (self + secret_mask).reveal() - player_mask)
         else:
-            return super(sint, self).reveal_to(player)
+            res = personal(player, self.clear_type())
+            privateoutput(self.size, player, res._v, self)
+            return res
 
     def private_division(self, divisor, active=True, dividend_length=None,
                          divisor_length=None):
@@ -4366,12 +4391,9 @@ class sfix(_fix):
 
     def reveal_to(self, player):
         """ Reveal secret value to :py:obj:`player`.
-        Raw representation possibly written to
-        ``Player-Data/Private-Output-P<player>``, but not if
-        :py:obj:`player` is a :py:class:`regint`.
 
         :param player: public integer (int/regint/cint)
-        :returns: value to be used with :py:func:`~Compiler.library.print_ln_to`
+        :returns: :py:class:`personal`
         """
         return personal(player, cfix._new(self.v.reveal_to(player)._v,
                                           self.k, self.f))
@@ -5221,6 +5243,9 @@ class Array(_vectorizable):
                 return self.assign(value, addresses)
         self._store(value, self.get_address(index))
 
+    def to_array(self):
+        return self
+
     def get_sub(self, start, stop=None):
         if stop is None:
             stop = start
@@ -5471,6 +5496,10 @@ class Array(_vectorizable):
         """ Insecure shuffle in place. """
         self.assign_vector(self.get(regint.inc(len(self)).shuffle()))
 
+    def randomize(self, *args):
+        """ Randomize according to data type. """
+        self.assign_vector(self.value_type.get_random(*args, size=len(self)))
+
     def reveal(self):
         """ Reveal the whole array.
 
@@ -5595,6 +5624,9 @@ class SubMultiArray(_vectorizable):
 
     def __iter__(self):
         return (self[i] for i in range(len(self)))
+
+    def to_array(self):
+        return Array(self.total_size(), self.value_type, address=self.address)
 
     def assign_all(self, value):
         """ Assign the same value to all entries.
@@ -5958,6 +5990,7 @@ class SubMultiArray(_vectorizable):
         """
         assert len(self.sizes) == 2
         assert len(other.sizes) == 2
+        assert other.address != None
         if indices is None:
             assert self.sizes[1] == other.sizes[1]
             indices = [regint.inc(i) for i in self.sizes + other.sizes[::-1]]
@@ -6145,6 +6178,16 @@ class SubMultiArray(_vectorizable):
         n = self.sizes[0]
         return self.array.get(regint.inc(n, 0, n + 1))
 
+    def randomize(self, *args):
+        """ Randomize according to data type. """
+        if self.total_size() < program.options.budget:
+            self.assign_vector(
+                self.value_type.get_random(*args, size=self.total_size()))
+        else:
+            @library.for_range(self.sizes[0])
+            def _(i):
+                self[i].randomize(*args)
+
     def reveal_list(self):
         """ Reveal as list. """
         return list(self.get_vector().reveal())
@@ -6250,6 +6293,22 @@ class Matrix(MultiArray):
     def __init__(self, rows, columns, value_type, debug=None, address=None):
         MultiArray.__init__(self, [rows, columns], value_type, debug=debug, \
                             address=address)
+
+    def get_column(self, index):
+        """ Get column as vector.
+
+        :param index: regint/cint/int
+        """
+        assert self.value_type.n_elements() == 1
+        addresses = regint.inc(self.sizes[0], self.address + index,
+                               self.sizes[1])
+        return self.value_type.load_mem(addresses)
+
+    def get_column_by_row_indices(self, rows, column):
+        assert self.value_type.n_elements() == 1
+        addresses = rows * self.sizes[1] + \
+            regint.inc(len(rows), self.address + column, 0)
+        return self.value_type.load_mem(addresses)
 
     def set_column(self, index, vector):
         """ Change column.

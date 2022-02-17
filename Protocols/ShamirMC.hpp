@@ -131,6 +131,19 @@ typename T::open_type ShamirMC<T>::finalize_open()
 }
 
 template<class T>
+typename T::open_type ShamirMC<T>::reconstruct(const vector<open_type>& shares)
+{
+    assert(reconstruction.size());
+    typename T::open_type res;
+    for (size_t j = 0; j < reconstruction.size(); j++)
+    {
+        res += shares[j] * reconstruction[j];
+    }
+
+    return res;
+}
+
+template<class T>
 void IndirectShamirMC<T>::exchange(const Player& P)
 {
     oss.resize(P.num_players());

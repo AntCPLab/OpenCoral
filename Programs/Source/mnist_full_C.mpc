@@ -53,7 +53,7 @@ except:
 ml.Layer.back_batch_size = batch_size
 
 layers = [
-    ml.FixConv2d([n_examples, 28, 28, 1], (20, 5, 5, 1), (20,), [n_examples, 24, 24, 20], (1, 1), 'VALID'),
+    ml.FixConv2d([n_examples, 28, 28, 1], (20, 5, 5, 1), (20,), [N, 24, 24, 20], (1, 1), 'VALID'),
     ml.MaxPool([N, 24, 24, 20]),
     ml.Relu([N, 12, 12, 20]),
     ml.FixConv2d([N, 12, 12, 20], (50, 5, 5, 20), (50,), [N, 8, 8, 50], (1, 1), 'VALID'),
@@ -65,6 +65,12 @@ layers = [
 ]
 
 layers += [ml.MultiOutput.from_args(program, n_examples, 10)]
+
+if 'batchnorm' in program.args:
+    for arg in program.args:
+        assert not arg.startswith('dropout')
+    layers.insert(4, ml.BatchNorm([N, 8, 8, 50], args=program.args))
+    layers.insert(1, ml.BatchNorm([N, 24, 24, 20], args=program.args))
 
 if 'dropout' in program.args or 'dropout2' in program.args:
     layers.insert(8, ml.Dropout(N, 500))

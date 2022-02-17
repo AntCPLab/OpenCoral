@@ -127,6 +127,7 @@ void MAC_Check_<U>::Check(const Player& P)
   auto& vals = this->vals;
   auto& macs = this->macs;
   auto& popen_cnt = this->popen_cnt;
+  assert(int(macs.size()) <= popen_cnt);
 
   if (popen_cnt < 10)
     {

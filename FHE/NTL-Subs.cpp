@@ -47,7 +47,7 @@ bool same_word_length(int l1, int l2)
 
 template <>
 int generate_semi_setup(int plaintext_length, int sec,
-    FHE_Params& params, FFT_Data& FTD, bool round_up)
+    FHE_Params& params, FFT_Data& FTD, bool round_up, int n)
 {
   int m = 1024;
   int lgp = plaintext_length;
@@ -58,7 +58,7 @@ int generate_semi_setup(int plaintext_length, int sec,
   while (true)
     {
       tmp_params = params;
-      SemiHomomorphicNoiseBounds nb(p, phi_N(m), 1, sec,
+      SemiHomomorphicNoiseBounds nb(p, phi_N(m), n, sec,
           numBits(NonInteractiveProof::slack(sec, phi_N(m))), true, tmp_params);
       bigint p1 = 2 * p * m, p0 = p;
       while (nb.min_p0(params.n_mults() > 0, p1) > p0)
@@ -89,14 +89,14 @@ int generate_semi_setup(int plaintext_length, int sec,
 
 template <>
 int generate_semi_setup(int plaintext_length, int sec,
-    FHE_Params& params, P2Data& P2D, bool round_up)
+    FHE_Params& params, P2Data& P2D, bool round_up, int n)
 {
   if (params.n_mults() > 0)
     throw runtime_error("only implemented for 0-level BGV");
   gf2n_short::init_field(plaintext_length);
   int m;
   char_2_dimension(m, plaintext_length);
-  SemiHomomorphicNoiseBounds nb(2, phi_N(m), 1, sec,
+  SemiHomomorphicNoiseBounds nb(2, phi_N(m), n, sec,
       numBits(NonInteractiveProof::slack(sec, phi_N(m))), true, params);
   int lgp0 = numBits(nb.min_p0(false, 0));
   int extra_slack = common_semi_setup(params, m, 2, lgp0, -1, round_up);
@@ -589,6 +589,9 @@ void char_2_dimension(int& m, int& lg2)
       case -40:
         m=5797;
         lg2=40;
+        break;
+      case 16:
+        m = 13107;
         break;
       default:
         throw runtime_error("field size not supported");

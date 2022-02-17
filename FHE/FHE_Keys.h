@@ -150,6 +150,8 @@ class FHE_PK
 
   Rq_Element sample_secret_key(PRNG& G);
   void KeyGen(Rq_Element& sk, PRNG& G, int noise_boost = 1);
+  void partial_key_gen(const Rq_Element& sk, const Rq_Element& a, PRNG& G,
+      int noise_boost = 1);
 
   void check_noise(const FHE_SK& sk) const;
   void check_noise(const Rq_Element& x, bool check_modulo = false) const;

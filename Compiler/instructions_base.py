@@ -105,6 +105,7 @@ opcodes = dict(
     MATMULSM = 0xAB,
     CONV2DS = 0xAC,
     CHECK = 0xAF,
+    PRIVATEOUTPUT = 0xAD,
     # Data access
     TRIPLE = 0x50,
     BIT = 0x51,
@@ -128,6 +129,7 @@ opcodes = dict(
     INPUTMIXEDREG = 0xF3,
     RAWINPUT = 0xF4,
     INPUTPERSONAL = 0xF5,
+    SENDPERSONAL = 0xF6,
     STARTINPUT = 0x61,
     STOPINPUT = 0x62,  
     READSOCKETC = 0x63,
@@ -364,6 +366,7 @@ def gf2n(instruction):
             arg_format = copy.deepcopy(instruction_cls.arg_format)
             reformat(arg_format)
 
+        @classmethod
         def is_gf2n(self):
             return True
 
@@ -505,8 +508,12 @@ def cisc(function):
             for arg in self.args:
                 try:
                     new_regs.append(type(arg)(size=size))
-                except:
+                except TypeError:
                     break
+                except:
+                    print([call[0][0].size for call in self.calls])
+                    raise
+            assert len(new_regs) > 1
             base = 0
             for call in self.calls:
                 for new_reg, reg in zip(new_regs[1:], call[0][1:]):
@@ -854,6 +861,7 @@ class Instruction(object):
     def is_vec(self):
         return False
 
+    @classmethod
     def is_gf2n(self):
         return False
 
@@ -902,6 +910,10 @@ class Instruction(object):
                     new_args.append(arg)
         return new_args
 
+    @staticmethod
+    def get_usage(args):
+        return {}
+
     # String version of instruction attempting to replicate encoded version
     def __str__(self):
         
@@ -949,9 +961,18 @@ class ParsedInstruction:
             if name == 'cisc':
                 arg_format = itertools.chain(['str'], itertools.repeat('int'))
             else:
-                arg_format = itertools.repeat('int')
-        self.args = [ArgFormats[next(arg_format)](f)
-                     for i in range(n_args)]
+                def arg_iter():
+                    i = 0
+                    while True:
+                        try:
+                            yield self.args[i].i
+                        except AttributeError:
+                            yield None
+                        i += 1
+                arg_format = t.dynamic_arg_format(arg_iter())
+        self.args = []
+        for i in range(n_args):
+            self.args.append(ArgFormats[next(arg_format)](f))
 
     def __str__(self):
         name = self.type.__name__
@@ -963,6 +984,9 @@ class ParsedInstruction:
         res += ', '.join(str(arg) for arg in self.args)
         return res
 
+    def get_usage(self):
+        return self.type.get_usage(self.args)
+
 class VarArgsInstruction(Instruction):
     def has_var_args(self):
         return True
@@ -973,6 +997,26 @@ class VectorInstruction(Instruction):
 
     def get_code(self):
         return super(VectorInstruction, self).get_code(len(self.args[0]))
+
+class DynFormatInstruction(Instruction):
+    __slots__ = []
+
+    @property
+    def arg_format(self):
+        return self.dynamic_arg_format(iter(self.args))
+
+    @classmethod
+    def bases(self, args):
+        i = 0
+        while True:
+            try:
+                n = next(args)
+            except StopIteration:
+                return
+            yield i, n
+            i += n
+            for j in range(n - 1):
+                next(args)
 
 ###
 ### Basic arithmetic
@@ -1071,6 +1115,11 @@ class PublicFileIOInstruction(DoNotEliminateInstruction):
 class TextInputInstruction(VarArgsInstruction, DoNotEliminateInstruction):
     """ Input from text file or stdin """
     __slots__ = []
+
+    def add_usage(self, req_node):
+        for player in self.get_players():
+            req_node.increment((self.field_type, 'input', player), \
+                               self.get_size())
 
 ###
 ### Data access instructions

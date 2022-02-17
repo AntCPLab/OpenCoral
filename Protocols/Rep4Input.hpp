@@ -65,12 +65,6 @@ void Rep4Input<T>::add_other(int player, int)
 }
 
 template<class T>
-void Rep4Input<T>::send_mine()
-{
-    throw not_implemented();
-}
-
-template<class T>
 void Rep4Input<T>::exchange()
 {
     P.pass_around(to_send, to_receive[0], -1);

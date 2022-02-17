@@ -69,8 +69,6 @@ int Shamir<T>::get_n_relevant_players()
 template<class T>
 void Shamir<T>::reset()
 {
-    os.reset(P);
-
     if (resharing == 0)
     {
         resharing = new ShamirInput<T>(0, P);
@@ -78,6 +76,9 @@ void Shamir<T>::reset()
 
     for (int i = 0; i < P.num_players(); i++)
         resharing->reset(i);
+
+    for (int i = 0; i < n_mul_players; i++)
+        resharing->add_sender(i);
 }
 
 template<class T>
@@ -92,37 +93,27 @@ template<class T>
 void Shamir<T>::prepare_mul(const T& x, const T& y, int n)
 {
     (void) n;
-    auto add_share = x * y * rec_factor;
     if (P.my_num() < n_mul_players)
-        resharing->add_mine(add_share);
+        resharing->add_mine(x * y * rec_factor);
 }
 
 template<class T>
 void Shamir<T>::exchange()
 {
-    vector<bool> senders(P.num_players(), false);
-    for (int i = 0; i < n_mul_players; i++)
-        senders[i] = true;
-    P.send_receive_all(senders, resharing->os, os);
+    assert(resharing);
+    resharing->exchange();
 }
 
 template<class T>
 void Shamir<T>::start_exchange()
 {
-    if (P.my_num() < n_mul_players)
-        for (int offset = 1; offset < P.num_players(); offset++)
-            P.send_relative(offset, resharing->os[P.get_player(offset)]);
+    resharing->start_exchange();
 }
 
 template<class T>
 void Shamir<T>::stop_exchange()
 {
-    for (int offset = 1; offset < P.num_players(); offset++)
-    {
-        int receive_from = P.get_player(-offset);
-        if (receive_from < n_mul_players)
-            P.receive_player(receive_from, os[receive_from]);
-    }
+    resharing->stop_exchange();
 }
 
 template<class T>
@@ -136,15 +127,8 @@ template<class T>
 T Shamir<T>::finalize(int n_relevant_players)
 {
     ShamirShare<U> res = U(0);
-    if (P.my_num() < n_relevant_players)
-        res = resharing->finalize_mine();
     for (int i = 0; i < n_relevant_players; i++)
-        if (i != P.my_num())
-        {
-            T tmp;
-            resharing->finalize_other(i, tmp, os[i]);
-            res += tmp;
-        }
+        res += resharing->finalize(i);
     return res;
 }
 
@@ -259,7 +243,7 @@ vector<T> Shamir<T>::get_randoms(PRNG& G, int t)
     input.reset_all(P);
     int buffer_size = OnlineOptions::singleton.batch_size;
     for (int i = 0; i < buffer_size; i += hyper.size())
-        input.add_mine(G.get<U>());
+        input.add_from_all(G.get<U>());
     input.exchange();
     vector<U> inputs;
     vector<T> random;

@@ -97,12 +97,19 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
   // initialize persistence if necessary
   for (auto& prog : progs)
     {
-      if (prog.writes_persistance)
+      if (prog.writes_persistence)
         {
           string filename = Binary_File_IO::filename(my_number);
           ifstream pers(filename);
-          if (pers.fail())
-            ofstream pers(filename, ios::binary);
+          try
+          {
+              check_file_signature<sint>(pers, filename);
+          }
+          catch (signature_mismatch&)
+          {
+              ofstream pers(filename, ios::binary);
+              file_signature<sint>().output(pers);
+          }
           break;
         }
     }
@@ -418,12 +425,14 @@ void Machine<sint, sgf2n>::run()
     cerr << "Full broadcast" << endl;
 #endif
 
+#ifdef CHOP_MEMORY
   // Reduce memory size to speed up
   unsigned max_size = 1 << 20;
   if (M2.size_s() > max_size)
     M2.resize_s(max_size);
   if (Mp.size_s() > max_size)
     Mp.resize_s(max_size);
+#endif
 
   // Write out the memory to use next time
   ofstream outf(memory_filename(), ios::out | ios::binary);

@@ -126,12 +126,12 @@ void run(char** argv)
         output.prepare_open(res);
     }
     output.exchange(P);
-    bit_output.Check(P);
+    set.check();
 
     cout << "result: ";
     for (int i = 0; i < n; i++)
         cout << output.finalize_open() << " ";
     cout << endl;
 
-    output.Check(P);
+    set.check();
 }

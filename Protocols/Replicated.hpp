@@ -10,6 +10,7 @@
 #include "Processor/Processor.h"
 #include "Processor/TruncPrTuple.h"
 #include "Tools/benchmarking.h"
+#include "Tools/Bundle.h"
 
 #include "ReplicatedInput.h"
 #include "Rep3Share2k.h"
@@ -162,14 +163,13 @@ void Replicated<T>::prepare_mul(const T& x,
 }
 
 template<class T>
-inline void Replicated<T>::prepare_reshare(const typename T::clear& share,
+void Replicated<T>::prepare_reshare(const typename T::clear& share,
         int n)
 {
-    auto add_share = share;
     typename T::value_type tmp[2];
     for (int i = 0; i < 2; i++)
         tmp[i].randomize(shared_prngs[i], n);
-    add_share += tmp[0] - tmp[1];
+    auto add_share = share + tmp[0] - tmp[1];
     add_share.pack(os[0], n);
     add_shares.push_back(add_share);
 }

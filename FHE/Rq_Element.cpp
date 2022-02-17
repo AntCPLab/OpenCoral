@@ -109,6 +109,13 @@ void mul(Rq_Element& ans,const Rq_Element& a,const bigint& b)
   }
 }
 
+void Rq_Element::add(octetStream& os)
+{
+  Rq_Element tmp(*this);
+  tmp.unpack(os);
+  *this += tmp;
+}
+
 void Rq_Element::randomize(PRNG& G,int l)
 {
   set_level(l);
@@ -246,7 +253,7 @@ void Rq_Element::Scale(const bigint& p)
 
   // Now add delta back onto a0
   Rq_Element bb(b0,b1);
-  add(*this,*this,bb);
+  ::add(*this,*this,bb);
 
   // Now divide by p1 mod p0
   modp p1_inv,pp;

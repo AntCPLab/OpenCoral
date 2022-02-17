@@ -21,10 +21,11 @@ class IndividualInput : public PrepLessInput<T>
 protected:
     Player& P;
     octetStreams os;
+    vector<bool> senders;
 
 public:
     IndividualInput(SubProcessor<T>* proc, Player& P) :
-            PrepLessInput<T>(proc), P(P)
+            PrepLessInput<T>(proc), P(P), senders(P.num_players())
     {
         this->reset_all(P);
     }
@@ -34,10 +35,14 @@ public:
     }
 
     void reset(int player);
+    void add_sender(int player);
     void add_other(int player, int n_bits = -1);
     void send_mine();
     void exchange();
     void finalize_other(int player, T& target, octetStream& o, int n_bits = -1);
+
+    void start_exchange();
+    void stop_exchange();
 };
 
 /**

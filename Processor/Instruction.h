@@ -106,6 +106,7 @@ enum
     MATMULSM = 0xAB,
     CONV2DS = 0xAC,
     CHECK = 0xAF,
+    PRIVATEOUTPUT = 0xAD,
     // Data access
     TRIPLE = 0x50,
     BIT = 0x51,
@@ -127,6 +128,7 @@ enum
     INPUTMIXEDREG = 0xF3,
     RAWINPUT = 0xF4,
     INPUTPERSONAL = 0xF5,
+    SENDPERSONAL = 0xF6,
     STARTINPUT = 0x61,
     STOPINPUT = 0x62,
     READSOCKETC = 0x63,

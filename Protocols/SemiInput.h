@@ -14,34 +14,33 @@ template<class T> class SemiMC;
  * Additive secret sharing input protocol
  */
 template<class T>
-class SemiInput : public IndividualInput<T>
+class SemiInput : public InputBase<T>
 {
-    SeededPRNG secure_prng;
+    vector<SeededPRNG> send_prngs;
+    vector<PRNG> recv_prngs;
+    Player& P;
+    vector<PointerVector<T>> shares;
 
 public:
-    SemiInput(SubProcessor<T>& proc, SemiMC<T>& MC) :
-            IndividualInput<T>(proc)
+    SemiInput(SubProcessor<T>& proc, SemiMC<T>&) :
+            SemiInput(&proc, proc.P)
     {
-        (void) MC;
     }
 
-    SemiInput(SubProcessor<T>* proc, Player& P) :
-            IndividualInput<T>(proc, P)
-    {
-    }
+    SemiInput(SubProcessor<T>* proc, Player& P);
 
     SemiInput(typename T::MAC_Check& MC, Preprocessing<T>& prep, Player& P) :
-            SemiInput(P)
+            SemiInput(0, P)
     {
         (void) MC, (void) prep;
     }
 
-    SemiInput(Player& P) :
-            IndividualInput<T>(0, P)
-    {
-    }
-
+    void reset(int player);
     void add_mine(const typename T::clear& input, int n_bits = -1);
+    void add_other(int player, int n_bits = -1);
+    void exchange();
+    void finalize_other(int player, T& target, octetStream& o, int n_bits = -1);
+    T finalize_mine();
 };
 
 #endif /* PROTOCOLS_SEMIINPUT_H_ */

@@ -85,6 +85,12 @@ void Atlas<T>::exchange()
         resharing.add_mine(e);
     }
 
+    for (size_t i = 0; i < min(masks.size(), size_t(P.num_players())); i++)
+    {
+        int j = (base_king + i) % P.num_players();
+        resharing.add_sender(j);
+    }
+
     resharing.exchange();
 }
 

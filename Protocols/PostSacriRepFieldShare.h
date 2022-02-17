@@ -15,6 +15,7 @@ template<class T>
 class PostSacriRepFieldShare : public MaliciousRep3Share<T>
 {
     typedef MaliciousRep3Share<T> super;
+    typedef PostSacriRepFieldShare This;
 
 public:
     typedef typename super::clear clear;
@@ -23,7 +24,8 @@ public:
     typedef HashMaliciousRepMC<PostSacriRepFieldShare> MAC_Check;
     typedef MAC_Check Direct_MC;
     typedef ReplicatedInput<PostSacriRepFieldShare> Input;
-    typedef ::PrivateOutput<PostSacriRepFieldShare> PrivateOutput;
+    typedef ReplicatedPO<This> PO;
+    typedef SpecificPrivateOutput<This> PrivateOutput;
     typedef MaliciousRepPrepWithBits<PostSacriRepFieldShare> LivePrep;
 
     PostSacriRepFieldShare()

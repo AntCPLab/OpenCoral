@@ -23,6 +23,7 @@
 #include "Protocols/Shamir.hpp"
 #include "Protocols/ShamirMC.hpp"
 #include "Protocols/MaliciousShamirMC.hpp"
+#include "Protocols/MaliciousShamirPO.hpp"
 #include "Protocols/MAC_Check_Base.hpp"
 #include "Protocols/Beaver.hpp"
 #include "Protocols/Spdz2kPrep.hpp"

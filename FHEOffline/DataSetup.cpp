@@ -203,7 +203,7 @@ template<class FD>
 void PartSetup<FD>::secure_init(Player& P, MachineBase& machine,
     int plaintext_length, int sec)
 {
-    ::secure_init(*this, P, machine, plaintext_length, sec);
+    ::secure_init(*this, P, machine, plaintext_length, sec, params);
 }
 
 template<class FD>

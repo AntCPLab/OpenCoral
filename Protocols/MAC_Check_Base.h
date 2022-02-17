@@ -12,6 +12,8 @@ using namespace std;
 #include "Networking/Player.h"
 #include "Tools/PointerVector.h"
 
+template<class T> class Preprocessing;
+
 /**
  * Abstract base class for opening protocols
  */
@@ -61,6 +63,8 @@ public:
     virtual void CheckFor(const typename T::open_type& value, const vector<T>& shares, const Player& P);
 
     virtual const Player& get_check_player(const Player& P) const { return P; }
+
+    virtual void set_prep(Preprocessing<T>&) {}
 };
 
 #endif /* PROTOCOLS_MAC_CHECK_BASE_H_ */

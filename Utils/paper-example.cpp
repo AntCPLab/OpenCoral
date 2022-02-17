@@ -110,7 +110,7 @@ void run(char** argv, int prime_length)
     c = protocol.finalize_dotprod(n);
 
     // protocol check before revealing results
-    protocol.check();
+    set.check();
 
     output.init_open(P);
     output.prepare_open(c);
@@ -120,5 +120,5 @@ void run(char** argv, int prime_length)
     cout << "result: " << result << endl;
 
     // result check after opening
-    output.Check(P);
+    set.check();
 }

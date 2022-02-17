@@ -206,6 +206,18 @@ void BaseOT::exec_base(bool new_receiver_inputs)
                     receiver_outputs[i + j].set_byte(k, receiver_keys[j][k]);
                 }
             }
+
+#ifdef BASE_OT_DEBUG
+            for (j = 0; j < 4; j++)
+                for (k = 0; k < AES_BLK_SIZE; k++)
+                {
+                    printf("%4d-th receiver key:", i+j);
+                    for (k = 0; k < HASHBYTES; k++) printf("%.2X", receiver_keys[j][k]);
+                    printf("\n");
+                }
+
+            printf("\n");
+#endif
         }
     }
 
@@ -242,12 +254,6 @@ void BaseOT::exec_base(bool new_receiver_inputs)
                 for (k = 0; k < HASHBYTES; k++) printf("%.2X", sender_keys[0][j][k]);
                 printf(" ");
                 for (k = 0; k < HASHBYTES; k++) printf("%.2X", sender_keys[1][j][k]);
-                printf("\n");
-            }
-            if (ot_role & RECEIVER)
-            {
-                printf("%4d-th receiver key:", i+j);
-                for (k = 0; k < HASHBYTES; k++) printf("%.2X", receiver_keys[j][k]);
                 printf("\n");
             }
         }

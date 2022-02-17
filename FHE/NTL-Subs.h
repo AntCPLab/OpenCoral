@@ -52,7 +52,7 @@ void generate_setup(int nparties, int lgp, int lg2,
 // semi-homomorphic, includes slack
 template <class FD>
 int generate_semi_setup(int plaintext_length, int sec,
-    FHE_Params& params, FD& FieldD, bool round_up);
+    FHE_Params& params, FD& FieldD, bool round_up, int n = 1);
 
 // field-independent semi-homomorphic setup
 int common_semi_setup(FHE_Params& params, int m, bigint p, int lgp0, int lgp1,

@@ -13,6 +13,8 @@
 
 template<class T> class ReplicatedPrep;
 template<class T> class ReplicatedRingPrep;
+template<class T> class MaliciousShamirPO;
+template<class T> class SpecificPrivateOutput;
 
 namespace GC
 {
@@ -22,6 +24,8 @@ template<class T> class CcdSecret;
 template<class T>
 class ShamirShare : public T, public ShareInterface
 {
+    typedef ShamirShare This;
+
 public:
     typedef T clear;
     typedef T open_type;
@@ -34,7 +38,8 @@ public:
     typedef IndirectShamirMC<ShamirShare> MAC_Check;
     typedef ShamirMC<ShamirShare> Direct_MC;
     typedef ShamirInput<ShamirShare> Input;
-    typedef ::PrivateOutput<ShamirShare> PrivateOutput;
+    typedef MaliciousShamirPO<This> PO;
+    typedef SpecificPrivateOutput<This> PrivateOutput;
     typedef ReplicatedPrep<ShamirShare> LivePrep;
     typedef ReplicatedRingPrep<ShamirShare> TriplePrep;
     typedef ShamirShare Honest;

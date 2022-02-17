@@ -113,7 +113,7 @@ void Input<T>::add_other(int player, int)
 }
 
 template<class T>
-void InputBase<T>::add_from_all(const clear& input, int n_bits)
+void InputBase<T>::add_from_all(const typename T::open_type& input, int n_bits)
 {
     for (int i = 0; i < P->num_players(); i++)
         if (i == P->my_num())

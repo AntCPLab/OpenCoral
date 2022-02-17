@@ -85,12 +85,10 @@ Compiler.instructions module
 .. automodule:: Compiler.instructions
    :members:
    :no-undoc-members:
-   :exclude-members: asm_input, inputmask, lts, print_char4_regint,
-		     print_char_regint, protectmemc, sqrs,
-		     start_grind, startprivateoutput, stop_grind,
-		     stopprivateoutput, writesocketc, writesocketint,
-		     protectmemint, protectmems, print_mem,
-		     matmul_base, g2muls, inputmixed_base, raw_output
+   :exclude-members: asm_input, sqrs,
+		     start_grind, stop_grind,
+		     writesocketc, writesocketint,
+		     matmul_base, inputmixed_base, raw_output
 
 Compiler.GC.instructions module
 -------------------------------

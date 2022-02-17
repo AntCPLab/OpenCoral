@@ -129,12 +129,12 @@ void run(int argc, char** argv)
         output.prepare_open(c);
     }
     output.exchange(P);
+    set.check();
 
     cout << "result: ";
     for (int i = 0; i < n; i++)
         cout << output.finalize_open() << " ";
     cout << endl;
 
-    protocol.check();
-    output.Check(P);
+    set.check();
 }

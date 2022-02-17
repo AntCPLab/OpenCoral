@@ -15,7 +15,8 @@
 
 template<class T> class ReplicatedPrep;
 template<class T> class ReplicatedRingPrep;
-template<class T> class PrivateOutput;
+template<class T> class ReplicatedPO;
+template<class T> class SpecificPrivateOutput;
 
 template<class T, int L>
 class RepShare : public FixedVec<T, L>, public ShareInterface
@@ -99,6 +100,7 @@ template<class T>
 class Rep3Share : public RepShare<T, 2>
 {
     typedef RepShare<T, 2> super;
+    typedef Rep3Share This;
 
 public:
     typedef T clear;
@@ -107,7 +109,8 @@ public:
     typedef ReplicatedMC<Rep3Share> MAC_Check;
     typedef MAC_Check Direct_MC;
     typedef ReplicatedInput<Rep3Share> Input;
-    typedef ::PrivateOutput<Rep3Share> PrivateOutput;
+    typedef ReplicatedPO<This> PO;
+    typedef SpecificPrivateOutput<This> PrivateOutput;
     typedef ReplicatedPrep<Rep3Share> LivePrep;
     typedef ReplicatedRingPrep<Rep3Share> TriplePrep;
     typedef Rep3Share Honest;

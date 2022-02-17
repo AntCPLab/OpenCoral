@@ -122,6 +122,7 @@ public:
     static const bool dishonest_majority = false;
     static const bool variable_players = false;
     static const bool needs_ot = false;
+    static const bool has_mac = false;
 
     static string type_string() { return "replicated secret"; }
     static string phase_name() { return "Replicated computation"; }

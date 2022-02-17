@@ -580,10 +580,19 @@ class Program(object):
 
     @staticmethod
     def read_tapes(schedule):
+        m = re.search(r'([^/]*)\.mpc', schedule)
+        if m:
+            schedule = m.group(1)
         if not os.path.exists(schedule):
             schedule = 'Programs/Schedules/%s.sch' % schedule
 
-        lines = open(schedule).readlines()
+        try:
+            lines = open(schedule).readlines()
+        except FileNotFoundError:
+            print('%s not found, have you compiled the program?' % schedule,
+                  file=sys.stderr)
+            sys.exit(1)
+
         for tapename in lines[2].split(' '):
             yield tapename.strip()
 

@@ -71,6 +71,12 @@ public:
                             proc.get_S()[info.source_base + i] >> info.m;
         }
     }
+
+    void buffer_random()
+    {
+        for (int i = 0; i < OnlineOptions::singleton.batch_size; i++)
+            this->random.push_back(G.get<T>());
+    }
 };
 
 #endif /* PROTOCOLS_SEMI_H_ */

@@ -93,12 +93,14 @@ protected:
   friend void mul(Rq_Element& ans,const Rq_Element& a,const Rq_Element& b);
   friend void mul(Rq_Element& ans,const Rq_Element& a,const bigint& b);
 
+  void add(octetStream& os);
+
   template<class S>
   Rq_Element& operator+=(const vector<S>& other);
 
-  Rq_Element& operator+=(const Rq_Element& other) { add(*this, *this, other); return *this; }
+  Rq_Element& operator+=(const Rq_Element& other) { ::add(*this, *this, other); return *this; }
 
-  Rq_Element operator+(const Rq_Element& b) const { Rq_Element res(*this); add(res, *this, b); return res; }
+  Rq_Element operator+(const Rq_Element& b) const { Rq_Element res(*this); ::add(res, *this, b); return res; }
   Rq_Element operator-(const Rq_Element& b) const { Rq_Element res(*this); sub(res, *this, b); return res; }
   template <class T>
   Rq_Element operator*(const T& b) const { Rq_Element res(*this); mul(res, *this, b); return res; }
@@ -176,7 +178,7 @@ Rq_Element& Rq_Element::operator+=(const vector<S>& other)
 {
   Rq_Element tmp = *this;
   tmp.from(Iterator<S>(other), lev);
-  add(*this, *this, tmp);
+  ::add(*this, *this, tmp);
   return *this;
 }
 

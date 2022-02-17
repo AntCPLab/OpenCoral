@@ -237,7 +237,7 @@ public:
 class overflow : public runtime_error
 {
 public:
-    overflow(const char* name, size_t i, size_t n);
+    overflow(const string& name, size_t i, size_t n);
 };
 
 class unknown_input_type : public runtime_error

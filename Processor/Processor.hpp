@@ -4,9 +4,8 @@
 #include "Processor/Processor.h"
 #include "Processor/Program.h"
 #include "GC/square64.h"
+#include "SpecificPrivateOutput.h"
 
-#include "Protocols/ReplicatedInput.hpp"
-#include "Protocols/ReplicatedPrivateOutput.hpp"
 #include "Processor/ProcessorBase.hpp"
 #include "GC/Processor.hpp"
 #include "GC/ShareThread.hpp"
@@ -63,7 +62,6 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
   share_thread(DataF.DataFb, P, machine.get_bit_mac_key()),
   Procb(machine.bit_memories),
   Proc2(*this,MC2,DataF.DataF2,P),Procp(*this,MCp,DataF.DataFp,P),
-  privateOutput2(Proc2),privateOutputp(Procp),
   external_clients(P.my_num()),
   binary_file_io(Binary_File_IO())
 {
@@ -74,7 +72,6 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
   private_input_filename = (get_filename(PREP_DIR "Private-Input-",true));
   private_input.open(private_input_filename.c_str());
   public_output.open(get_filename(PREP_DIR "Public-Output-",true).c_str(), ios_base::out);
-  private_output.open(get_filename(PREP_DIR "Private-Output-",true).c_str(), ios_base::out);
   binary_output.open(
       get_parameterized_filename(P.my_num(), thread_num,
           PREP_DIR "Binary-Output"), ios_base::out);
@@ -652,6 +649,37 @@ void SubProcessor<T>::input_personal(const vector<int>& args)
   for (size_t i = 0; i < args.size(); i += 4)
     for (int j = 0; j < args[i]; j++)
       S[args[i + 2] + j] = input.finalize(args[i + 1]);
+}
+
+template<class T>
+void SubProcessor<T>::private_output(const vector<int>& args)
+{
+  typename T::PrivateOutput output(*this);
+  for (size_t i = 0; i < args.size(); i += 4)
+    for (int j = 0; j < args[i]; j++)
+      {
+        int player = args[i + 1];
+        output.prepare_sending(S.at(args[i + 3] + j), player);
+      }
+  output.exchange();
+  for (size_t i = 0; i < args.size(); i += 4)
+    for (int j = 0; j < args[i]; j++)
+      C.at(args[i + 2] + j) = output.finalize(args[i + 1]);
+}
+
+template<class T>
+void SubProcessor<T>::send_personal(const vector<int>& args)
+{
+  octetStreams to_send(P), to_receive(P);
+  for (size_t i = 0; i < args.size(); i += 5)
+    if (args[i + 3] == P.my_num())
+        for (int j = 0; j < args[i]; j++)
+          C[args[i + 4] + j].pack(to_send[args[i + 1]]);
+  P.send_receive_all(to_send, to_receive);
+  for (size_t i = 0; i < args.size(); i += 5)
+    if (args[i + 1] == P.my_num())
+        for (int j = 0; j < args[i]; j++)
+          C[args[i + 2] + j].unpack(to_receive[args[i + 3]]);
 }
 
 template<class sint, class sgf2n>

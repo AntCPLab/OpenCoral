@@ -7,13 +7,21 @@
 #include "Processor.h"
 
 template<class T>
-void PrivateOutput<T>::start(int player, int target, int source)
+PrivateOutput<T>::PrivateOutput(SubProcessor<T>& proc) :
+        proc(proc), MC(proc.MC.get_alphai())
 {
-    proc.get_S_ref(target) = start(player, proc.get_S_ref(source));
+    MC.init_open(proc.P);
+    MC.set_prep(proc.DataF);
 }
 
 template<class T>
-T PrivateOutput<T>::start(int player, const T& source)
+PrivateOutput<T>::~PrivateOutput()
+{
+    MC.Check(proc.P);
+}
+
+template<class T>
+void PrivateOutput<T>::prepare_sending(const T& source, int player)
 {
     assert (player < proc.P.num_players());
     open_type mask;
@@ -24,26 +32,25 @@ T PrivateOutput<T>::start(int player, const T& source)
     if (player == proc.P.my_num())
         masks.push_back(mask);
 
-    return res;
+    MC.prepare_open(res);
 }
 
 template<class T>
-void PrivateOutput<T>::stop(int player, int dest, int source)
+void PrivateOutput<T>::exchange()
 {
-    auto& value = proc.get_C_ref(dest);
-    value = stop(player, proc.get_C_ref(source));
-    if (proc.Proc)
-        value.output(proc.Proc->private_output, false);
+    MC.exchange(proc.P);
 }
 
 template<class T>
-typename T::clear PrivateOutput<T>::stop(int player, const typename T::clear& source)
+typename T::clear PrivateOutput<T>::finalize(int player)
 {
-    typename T::clear value;
+    auto res = MC.finalize_open();
+
     if (player == proc.P.my_num())
     {
-        value = source - masks.front();
+        res -= masks.front();
         masks.pop_front();
     }
-    return value;
+
+    return res;
 }

@@ -403,6 +403,20 @@ class Merger:
                     add_edge(last_input[t][1], n)
             last_input[t][0] = n
 
+        def keep_text_order(inst, n):
+            if inst.get_players() is None:
+                # switch
+                for x in list(last_input.keys()):
+                    if isinstance(x, int):
+                        add_edge(last_input[x][0], n)
+                        del last_input[x]
+                keep_merged_order(instr, n, None)
+            elif last_input[None][0] is not None:
+                keep_merged_order(instr, n, None)
+            else:
+                for player in inst.get_players():
+                    keep_merged_order(instr, n, player)
+
         for n,instr in enumerate(block.instructions):
             outputs,inputs = instr.get_def(), instr.get_used()
 
@@ -427,7 +441,7 @@ class Merger:
 
             # will be merged
             if isinstance(instr, TextInputInstruction):
-                keep_merged_order(instr, n, TextInputInstruction)
+                keep_text_order(instr, n)
             elif isinstance(instr, RawInputInstruction):
                 keep_merged_order(instr, n, RawInputInstruction)
 
@@ -479,10 +493,6 @@ class Merger:
                 last_print_str = n
             elif isinstance(instr, PublicFileIOInstruction):
                 keep_order(instr, n, instr.__class__)
-            elif isinstance(instr, startprivateoutput_class):
-                keep_order(instr, n, startprivateoutput_class, 2)
-            elif isinstance(instr, stopprivateoutput_class):
-                keep_order(instr, n, stopprivateoutput_class, 2)
             elif isinstance(instr, prep_class):
                 keep_order(instr, n, instr.args[0])
             elif isinstance(instr, StackInstruction):

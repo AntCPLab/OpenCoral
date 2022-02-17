@@ -27,6 +27,7 @@ public:
     typedef HemiPrep<This> LivePrep;
 
     static const bool needs_ot = false;
+    static const bool local_mul = true;
     static true_type triple_matmul;
 
     HemiShare()

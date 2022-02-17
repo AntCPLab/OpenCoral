@@ -88,7 +88,7 @@ The following table lists the matching arithmetic and binary protocols.
        cut-and-choose analysis by `Furukawa et
        al. <https://eprint.iacr.org/2016/944>`_
    *
-     - Semi, Hemi, Soho, Semi2k
+     - Semi, Hemi, Temi, Soho, Semi2k
      - SemiBin (Beaver triples modulo 2 using OT)
    *
      - `Malicious Shamir <https://eprint.iacr.org/2017/816>`_

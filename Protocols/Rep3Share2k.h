@@ -24,7 +24,8 @@ public:
     typedef ReplicatedMC<Rep3Share2> MAC_Check;
     typedef MAC_Check Direct_MC;
     typedef ReplicatedInput<Rep3Share2> Input;
-    typedef ::PrivateOutput<Rep3Share2> PrivateOutput;
+    typedef ReplicatedPO<This> PO;
+    typedef SpecificPrivateOutput<This> PrivateOutput;
     typedef ReplicatedPrep2k<Rep3Share2> LivePrep;
     typedef Rep3Share2 Honest;
     typedef SignedZ2<K> clear;

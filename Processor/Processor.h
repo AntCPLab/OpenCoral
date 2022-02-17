@@ -71,6 +71,8 @@ public:
   void conv2ds(const Instruction& instruction);
 
   void input_personal(const vector<int>& args);
+  void send_personal(const vector<int>& args);
+  void private_output(const vector<int>& args);
 
   CheckVector<T>& get_S()
   {
@@ -110,7 +112,6 @@ public:
   ifstream private_input;
   ifstream public_input;
   ofstream public_output;
-  ofstream private_output;
   ofstream binary_output;
 
   int sent, rounds;
@@ -171,9 +172,6 @@ class Processor : public ArithmeticProcessor
   GC::Processor<typename sint::bit_type> Procb;
   SubProcessor<sgf2n> Proc2;
   SubProcessor<sint>  Procp;
-
-  typename sgf2n::PrivateOutput privateOutput2;
-  typename sint::PrivateOutput privateOutputp;
 
   unsigned int PC;
   TempVars<sint, sgf2n> temp;

@@ -20,6 +20,8 @@ void IndividualInput<U>::reset(int player)
         this->i_share = 0;
         os.reset(P);
     }
+
+    senders[player] = false;
 }
 
 template<class T>
@@ -68,12 +70,20 @@ void ShamirInput<T>::add_mine(const typename T::open_type& input, int n_bits)
         else
             x.pack(this->os[i]);
     }
+
+    this->senders[P.my_num()] = true;
+}
+
+template<class U>
+void IndividualInput<U>::add_sender(int player)
+{
+    senders[player] = true;
 }
 
 template<class U>
 void IndividualInput<U>::add_other(int player, int)
 {
-    (void) player;
+    add_sender(player);
 }
 
 template<class U>
@@ -87,7 +97,26 @@ void IndividualInput<U>::send_mine()
 template<class T>
 void IndividualInput<T>::exchange()
 {
-    P.send_receive_all(os, InputBase<T>::os);
+    P.send_receive_all(senders, os, InputBase<T>::os);
+}
+
+template<class T>
+void IndividualInput<T>::start_exchange()
+{
+    if (senders[P.my_num()])
+        for (int offset = 1; offset < P.num_players(); offset++)
+            P.send_relative(offset, os[P.get_player(offset)]);
+}
+
+template<class T>
+void IndividualInput<T>::stop_exchange()
+{
+    for (int offset = 1; offset < P.num_players(); offset++)
+    {
+        int receive_from = P.get_player(-offset);
+        if (senders[receive_from])
+            P.receive_player(receive_from, InputBase<T>::os[receive_from]);
+    }
 }
 
 template<class T>

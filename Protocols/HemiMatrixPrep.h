@@ -18,17 +18,18 @@ template<class T>
 class HemiMatrixPrep : public BufferPrep<ShareMatrix<T>>
 {
     typedef BufferPrep<ShareMatrix<T>> super;
+    typedef typename T::LivePrep LivePrep;
 
     int n_rows, n_inner, n_cols;
     bool swapped;
     DataPositions* usage;
 
-    HemiPrep<T>* prep;
+    LivePrep* prep;
 
     HemiMatrixPrep(const HemiMatrixPrep&) = delete;
 
 public:
-    HemiMatrixPrep(int n_rows, int n_inner, int n_cols, HemiPrep<T>& prep) :
+    HemiMatrixPrep(int n_rows, int n_inner, int n_cols, LivePrep& prep) :
             super(*(usage = new DataPositions)), n_rows(n_rows), n_inner(n_inner),
             n_cols(n_cols), prep(&prep)
     {

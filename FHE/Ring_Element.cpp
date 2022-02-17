@@ -50,6 +50,7 @@ void Ring_Element::prepare_push()
 
 void Ring_Element::allocate()
 {
+  assert(FFTD);
   element.resize(FFTD->phi_m());
 }
 

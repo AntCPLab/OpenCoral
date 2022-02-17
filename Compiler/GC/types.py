@@ -41,7 +41,7 @@ class bits(Tape.Register, _structure, _bit):
         return cls.types[length]
     @classmethod
     def conv(cls, other):
-        if isinstance(other, cls):
+        if isinstance(other, cls) and cls.n == other.n:
             return other
         elif isinstance(other, MemValue):
             return cls.conv(other.read())
@@ -246,14 +246,20 @@ class cbits(bits):
         assert n == res.n
         assert n == other.size
         cls.conv_cint_vec(cint(other, size=other.size), res)
+    @classmethod
+    def conv(cls, other):
+        if isinstance(other, cbits) and cls.n != None and \
+           cls.n // cls.unit == other.n // cls.unit:
+            return other
+        else:
+            return super(cbits, cls).conv(other)
     types = {}
     def load_int(self, value):
-        if self.n <= 64:
-            tmp = regint(value)
-        elif value == self.long_one():
-            tmp = cint(1, size=self.n)
-        else:
-            raise CompilerError('loading long integers to cbits not supported')
+        n_limbs = math.ceil(self.n / self.unit)
+        tmp = regint(size=n_limbs)
+        for i in range(n_limbs):
+            tmp[i].load_int(value % 2 ** self.unit)
+            value >>= self.unit
         self.load_other(tmp)
     def store_in_dynamic_mem(self, address):
         inst.stmsdci(self, cbits.conv(address))
@@ -1163,14 +1169,14 @@ class cbitfix(object):
     @classmethod
     def _new(cls, value):
         res = cls()
+        if cls.k < value.unit:
+            bits = value.bit_decompose(cls.k)
+            sign = bits[-1]
+            value += (sign << (cls.k)) * -1
         res.v = value
         return res
     def output(self):
         v = self.v
-        if self.k < v.unit:
-            bits = self.v.bit_decompose(self.k)
-            sign = bits[-1]
-            v += (sign << (self.k)) * -1
         inst.print_float_plainb(v, cbits.get_type(32)(-self.f), cbits(0),
                                 cbits(0), cbits(0))
 

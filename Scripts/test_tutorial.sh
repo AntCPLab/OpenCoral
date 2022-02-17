@@ -59,7 +59,7 @@ for dabit in ${dabit:-0 1 2}; do
     ./compile.py  $compile_opts tutorial
 
     for i in rep-field shamir mal-rep-field ps-rep-field sy-rep-field \
-		       atlas mal-shamir sy-shamir hemi semi \
+		       atlas mal-shamir sy-shamir hemi semi temi \
 		       soho mascot; do
 	test_vm $i $run_opts
     done

@@ -52,6 +52,7 @@ public:
   virtual ~TreeSum();
 
   void run(vector<T>& values, const Player& P);
+  T run(const T& value, const Player& P);
 
   octetStream& get_buffer() { return os; }
 
@@ -211,6 +212,14 @@ void TreeSum<T>::run(vector<T>& values, const Player& P)
 }
 
 template<class T>
+T TreeSum<T>::run(const T& value, const Player& P)
+{
+  vector<T> values = {value};
+  run(values, P);
+  return values[0];
+}
+
+template<class T>
 size_t TreeSum<T>::report_size(ReportType type)
 {
   if (type == CAPACITY)
@@ -244,14 +253,6 @@ void add_openings(vector<T>& values, const Player& P, int sum_players, int last_
       MC.player_timers[sender].start();
       P.wait_receive(sender, oss[j]);
       MC.player_timers[sender].stop();
-      if ((unsigned)oss[j].get_length() < values.size() * T::size())
-        {
-          stringstream ss;
-          ss << "Not enough information received, expected "
-              << values.size() * T::size() << " bytes, got "
-              << oss[j].get_length();
-          throw Processor_Error(ss.str());
-        }
       MC.timers[SUM].start();
       for (unsigned int i=0; i<values.size(); i++)
         {

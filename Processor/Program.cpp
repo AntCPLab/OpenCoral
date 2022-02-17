@@ -23,7 +23,7 @@ void Program::compute_constants()
           max_mem[reg_type] = max(max_mem[reg_type],
               p[i].get_mem(RegType(reg_type)));
         }
-      writes_persistance |= p[i].opcode == WRITEFILESHARE;
+      writes_persistence |= p[i].opcode == WRITEFILESHARE;
     }
 }
 

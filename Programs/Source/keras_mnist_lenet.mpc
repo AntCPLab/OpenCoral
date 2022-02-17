@@ -20,8 +20,21 @@ tf = ml
 
 layers = [
     tf.keras.layers.Conv2D(20, 5, 1, 'valid', activation='relu'),
+]
+
+if 'batchnorm' in program.args:
+    layers += [tf.keras.layers.BatchNormalization()]
+
+layers += [
     tf.keras.layers.MaxPooling2D(2),
     tf.keras.layers.Conv2D(50, 5, 1, 'valid', activation='relu'),
+]
+
+
+if 'batchnorm' in program.args:
+    layers += [tf.keras.layers.BatchNormalization()]
+
+layers += [
     tf.keras.layers.MaxPooling2D(2),
     tf.keras.layers.Flatten(),
     tf.keras.layers.Dropout(0.5),

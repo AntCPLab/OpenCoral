@@ -49,6 +49,7 @@ public:
     static const bool dishonest_majority = T::dishonest_majority;
     static const bool variable_players = T::variable_players;
     static const bool needs_ot = T::needs_ot;
+    static const bool has_mac = T::has_mac;
     static const bool expensive_triples = false;
 
     static const int default_length = 64;
