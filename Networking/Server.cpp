@@ -56,16 +56,18 @@ void Server::get_name(int num)
 }
 
 
-void Server::send_names(int num)
+void Server::send_names()
 {
   /* Now send the machine names back to each client 
    * and the number of machines
    */
-  send(socket_num[num],nmachines,4);
+  RunningTimer timer;
+  octetStream addresses;
+  addresses.store(names);
+  addresses.store(ports);
   for (int i=0; i<nmachines; i++)
     {
-      octetStream(names[i]).Send(socket_num[num]);
-      send(socket_num[num],(octet*)&ports[i],4);
+      addresses.Send(socket_num[i]);
     }
 }
 
@@ -147,8 +149,7 @@ void Server::start()
     }
 
   // send names
-  for (i=0; i<nmachines; i++)
-    send_names(i);
+  send_names();
 
   for (int i = 0; i < nmachines; i++)
     close(socket_num[i]);

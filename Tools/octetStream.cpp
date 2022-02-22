@@ -198,6 +198,21 @@ void octetStream::get(bigint& ans)
 }
 
 
+void octetStream::store(const string& str)
+{
+  store(str.length());
+  append((const octet*) str.data(), str.length());
+}
+
+
+void octetStream::get(string& str)
+{
+  size_t size;
+  get(size);
+  str.assign((const char*) consume(size), size);
+}
+
+
 template<class T>
 void octetStream::exchange(T send_socket, T receive_socket, octetStream& receive_stream) const
 {

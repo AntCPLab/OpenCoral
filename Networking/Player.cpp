@@ -146,25 +146,17 @@ void Names::setup_names(const char *servername, int my_port)
 #endif
 
   // Now get the set of names
-  int i;
-  size_t tmp;
-  receive(socket_num,tmp,4);
-  nplayers = tmp;
+  octetStream os;
+  os.Receive(socket_num);
+  os.get(names);
+  os.get(ports);
+  if (names.size() != ports.size())
+    throw runtime_error("invalid network setup");
+  nplayers = names.size();
 #ifdef VERBOSE
-  cerr << nplayers << " players\n";
+  for (int i = 0; i < nplayers; i++)
+    cerr << "Player " << i << " is running on machine " << names[i] << endl;
 #endif
-  names.resize(nplayers);
-  ports.resize(nplayers);
-  for (i=0; i<nplayers; i++)
-    {
-      octetStream os;
-      os.Receive(socket_num);
-      names[i] = os.str();
-      receive(socket_num, (octet*)&ports[i], 4);
-#ifdef VERBOSE
-      cerr << "Player " << i << " is running on machine " << names[i] << endl;
-#endif
-    }
   close_client_socket(socket_num);
 }
 

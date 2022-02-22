@@ -22,7 +22,7 @@ class Server
 
     void get_ip(int num);
     void get_name(int num);
-    void send_names(int num);
+    void send_names();
 
 public:
     static void* start_in_thread(void* server);
