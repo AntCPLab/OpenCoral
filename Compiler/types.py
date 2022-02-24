@@ -5409,7 +5409,7 @@ class Array(_vectorizable):
             input_from = self.value_type.get_input_from
         try:
             self.assign(input_from(player, size=len(self)))
-        except TypeError:
+        except (TypeError, CompilerError):
             @library.for_range_opt(len(self), budget=budget)
             def _(i):
                 self[i] = input_from(player)
