@@ -5917,7 +5917,22 @@ class SubMultiArray(_vectorizable):
             res_matrix = Matrix(self.sizes[0], other.sizes[1], t)
             try:
                 try:
-                    res_matrix.assign_vector(self.direct_mul(other))
+                    if res_matrix.total_size() < _register.maximum_size:
+                        res_matrix.assign_vector(self.direct_mul(other))
+                    else:
+                        slice = _register.maximum_size // res_matrix.sizes[1]
+                        assert slice > 0
+                        n = res_matrix.sizes[0] // slice
+                        @library.for_range_opt(n)
+                        def _(i):
+                            res_matrix.assign_part_vector(
+                                self.get_part(i * slice,
+                                              slice).direct_mul(other),
+                                i * slice)
+                        base = n * slice
+                        rem = self.sizes[0] - base
+                        res_matrix.assign_part_vector(
+                            self.get_part(base, rem).direct_mul(other), base)
                 except AttributeError:
                     if max(res_matrix.sizes) > 1000:
                         raise AttributeError()
