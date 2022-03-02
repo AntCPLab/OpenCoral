@@ -5885,7 +5885,7 @@ class SubMultiArray(_vectorizable):
         # legacy function
         return self.dot(other, res_params)
 
-    def dot(self, other, res_params=None):
+    def dot(self, other, res_params=None, n_threads=None):
         """ Matrix-matrix and matrix-vector multiplication.
 
         :param self: two-dimensional
@@ -5917,22 +5917,12 @@ class SubMultiArray(_vectorizable):
             res_matrix = Matrix(self.sizes[0], other.sizes[1], t)
             try:
                 try:
-                    if res_matrix.total_size() < _register.maximum_size:
-                        res_matrix.assign_vector(self.direct_mul(other))
-                    else:
-                        slice = _register.maximum_size // res_matrix.sizes[1]
-                        assert slice > 0
-                        n = res_matrix.sizes[0] // slice
-                        @library.for_range_opt(n)
-                        def _(i):
-                            res_matrix.assign_part_vector(
-                                self.get_part(i * slice,
-                                              slice).direct_mul(other),
-                                i * slice)
-                        base = n * slice
-                        rem = self.sizes[0] - base
+                    self.value_type.direct_matrix_mul
+                    max_size = _register.maximum_size // res_matrix.sizes[1]
+                    @library.multithread(n_threads, self.sizes[0], max_size)
+                    def _(base, size):
                         res_matrix.assign_part_vector(
-                            self.get_part(base, rem).direct_mul(other), base)
+                            self.get_part(base, size).direct_mul(other), base)
                 except AttributeError:
                     if max(res_matrix.sizes) > 1000:
                         raise AttributeError()
