@@ -6,6 +6,10 @@
 #ifndef PROTOCOLS_SPDZ2KSHARE_H_
 #define PROTOCOLS_SPDZ2KSHARE_H_
 
+#ifndef SPDZ2K_DEFAULT_SECURITY
+#define SPDZ2K_DEFAULT_SECURITY 64
+#endif
+
 #include "Math/Z2k.h"
 #include "Protocols/Share.h"
 #include "Protocols/MAC_Check.h"

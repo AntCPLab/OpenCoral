@@ -30,6 +30,13 @@ HonestMajorityRingMachine<U, V>::HonestMajorityRingMachine(int argc, const char*
     RingMachine<U, V, HonestMajorityMachine>(argc, argv, opt, online_opts, nplayers);
 }
 
+inline void ring_domain_error(int R)
+{
+    cerr << "not compiled for " << R << "-bit computation, " << endl;
+    cerr << "compile with -DRING_SIZE=" << R << endl;
+    exit(1);
+}
+
 template<template<int L> class U, template<class T> class V, class W>
 RingMachine<U, V, W>::RingMachine(int argc, const char** argv,
         ez::ezOptionParser& opt, OnlineOptions& online_opts, int nplayers)
@@ -49,8 +56,7 @@ RingMachine<U, V, W>::RingMachine(int argc, const char** argv,
 #endif
 #undef X
     default:
-        cerr << "not compiled for " << to_string(R) + "-bit computation" << endl;
-        exit(1);
+        ring_domain_error(R);
     }
 }
 
@@ -88,8 +94,7 @@ HonestMajorityRingMachineWithSecurity<U, V>::HonestMajorityRingMachineWithSecuri
 #endif
 #undef X
     default:
-        cerr << "not compiled for " << to_string(R) + "-bit computation" << endl;
-        exit(1);
+        ring_domain_error(R);
     }
 }
 
