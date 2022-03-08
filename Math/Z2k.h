@@ -19,6 +19,12 @@ using namespace std;
 template<class T> class IntBase;
 template<int L> class fixint;
 
+/**
+ * Type for values in the ring defined by the integers modulo ``2^K``
+ * representing `[0, 2^K-1]`.
+ * It supports arithmetic, bit-wise, and output streaming operations.
+ * It does not need initialization because ``K`` completely defines the domain.
+ */
 template <int K>
 class Z2 : public ValueInterface
 {
@@ -71,6 +77,9 @@ public:
 	typedef Z2 next;
 	typedef Z2 Scalar;
 
+	/**
+	 * Initialize to zero.
+	 */
 	Z2() { assign_zero(); }
 	Z2(mp_limb_t x) : Z2() { a[0] = x; }
 	Z2(__m128i x) : Z2() { avx_memcpy(a, &x, min(N_BYTES, 16)); }
@@ -78,8 +87,14 @@ public:
 	Z2(long x) : Z2(mp_limb_t(x)) { if (K > 64 and x < 0) memset(&a[1], -1, N_BYTES - 8); }
 	template<class T>
 	Z2(const IntBase<T>& x);
+	/**
+	 * Convert from unrestricted integer.
+	 */
 	Z2(const bigint& x);
 	Z2(const void* buffer) : Z2() { assign(buffer); }
+	/**
+	 * Convert from different domain via the canonical integer representation.
+	 */
 	template <int L>
 	Z2(const Z2<L>& x) : Z2()
 	{ avx_memcpy(a, x.a, min(N_BYTES, x.N_BYTES)); normalize(); }
@@ -140,19 +155,38 @@ public:
 
 	Z2 invert() const;
 
+	/**
+	 * Deterministic square root for values with least significate bit 1.
+	 * Raises an exception otherwise.
+	 */
 	Z2 sqrRoot();
 
 	bool is_zero() const { return *this == Z2<K>(); }
 	bool is_one() const { return *this == 1; }
 	bool is_bit() const { return is_zero() or is_one(); }
 
+	/**
+	 * Sample with uniform distribution.
+	 * @param G randomness generator
+	 * @param n (unused)
+	 */
 	void randomize(PRNG& G, int n = -1);
 	void randomize_part(PRNG& G, int n);
 	void almost_randomize(PRNG& G) { randomize(G); }
 
 	void force_to_bit() { throw runtime_error("impossible"); }
 
+	/**
+	 * Append to buffer in native format.
+	 * @param o buffer
+	 * @param n (unused)
+	 */
 	void pack(octetStream& o, int = -1) const;
+	/**
+	 * Read from buffer in native format
+	 * @param o buffer
+	 * @param n (unused)
+	 */
 	void unpack(octetStream& o, int n = -1);
 
 	void input(istream& s, bool human=true);
@@ -162,20 +196,31 @@ public:
 	friend ostream& operator<<(ostream& o, const Z2<J>& x);
 };
 
+/**
+ * Type for values in the ring defined by the integers modulo ``2^K``
+ * representing `[-2^(K-1), 2^(K-1)-1]`.
+ * It supports arithmetic, bit-wise, comparison, and output streaming operations.
+ * It does not need initialization because ``K`` completely defines the domain.
+ */
 template<int K>
 class SignedZ2 : public Z2<K>
 {
 public:
+    /**
+     * Initialization to zero
+     */
     SignedZ2()
     {
     }
 
+    /**
+     * Conversion from another domain via the signed representation
+     */
     template <int L>
     SignedZ2(const SignedZ2<L>& other) : Z2<K>(other)
     {
         extend(other);
     }
-
 
     template<int L>
     void extend(const SignedZ2<L>& other)

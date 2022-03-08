@@ -355,3 +355,19 @@ Protocol Interfaces
 
 .. doxygenclass:: BufferPrep
    :members:
+
+
+Domain Reference
+----------------
+
+.. doxygenclass:: gfp_
+   :members:
+
+.. doxygenclass:: gfpvar_
+   :members:
+
+.. doxygenclass:: Z2
+   :members:
+
+.. doxygenclass:: SignedZ2
+   :members:
