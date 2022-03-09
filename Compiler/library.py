@@ -1340,6 +1340,16 @@ def map_sum_simple(n_threads, n_loops, type, size):
     return map_reduce(n_threads, 1, n_loops, initializer, summer)
 
 def tree_reduce_multithread(n_threads, function, vector):
+    """ Round-efficient reduction in several threads. The following code
+    computes the maximum of an array in 10 threads::
+
+      tree_reduce_multithread(10, lambda x, y: x.max(y), a)
+
+    :param n_threads: number of threads (int)
+    :param function: reduction function taking exactly two arguments
+    :param vector: register vector or array
+
+    """
     inputs = vector.Array(len(vector))
     inputs.assign_vector(vector)
     outputs = vector.Array(len(vector) // 2)

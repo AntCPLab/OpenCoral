@@ -5554,6 +5554,10 @@ class Array(_vectorizable):
         """
         library.loopy_odd_even_merge_sort(self, n_threads=n_threads)
 
+    def Array(self, size):
+        # compatibility with registers
+        return Array(size, self.value_type)
+
     def __str__(self):
         return '%s array of length %s at %s' % (self.value_type, len(self),
                                                 self.address)
