@@ -13,7 +13,7 @@ base port number, which can be changed using the same option.
 There are two ways of communicating hosts and
 individually setting ports:
 
-1. All parties first to connect to a coordination server, which
+1. All parties first connect to a coordination server, which
    broadcasts the data for all parties. This is the default with the
    coordination server being run as a thread of party 0. The hostname
    of the coordination server has to be given with the command-line
