@@ -292,7 +292,7 @@ def PRandM(r_dprime, r_prime, b, k, m, kappa, use_dabit=True):
     """
     program.curr_tape.require_bit_length(k + kappa)
     from .types import sint
-    if program.use_edabit() and m > 1 and not const_rounds:
+    if program.use_edabit() and not const_rounds:
         movs(r_dprime, sint.get_edabit(k + kappa - m, True)[0])
         tmp, b[:] = sint.get_edabit(m, True)
         movs(r_prime, tmp)
