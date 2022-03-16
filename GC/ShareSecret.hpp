@@ -162,7 +162,7 @@ void Processor<T>::inputb(typename T::Input& input, ProcessorBase& input_process
             for (int i = 0; i < DIV_CEIL(x.n_bits, dl); i++)
             {
                 auto& res = S[x.dest + i];
-                res.my_input(input, bigint(whole_input >> (i * dl)).get_ui(),
+                res.my_input(input, bigint(whole_input >> (i * dl)).get_si(),
                         min(dl, x.n_bits - i * dl));
             }
         }
