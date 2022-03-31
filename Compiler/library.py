@@ -1848,7 +1848,8 @@ def sint_cint_division(a, b, k, f, kappa):
     return (sign_a * sign_b) * A
 
 def IntDiv(a, b, k, kappa=None):
-    return FPDiv(a.extend(2 * k) << k, b.extend(2 * k) << k, 2 * k, k,
+    l = 2 * k + 1
+    return FPDiv(a.extend(l) << k, b.extend(l) << k, l, k,
                  kappa, nearest=True)
 
 @instructions_base.ret_cisc
