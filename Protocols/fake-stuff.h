@@ -34,7 +34,7 @@ template <class U>
 void read_mac_key(const string& directory, const Names& N, U& key);
 
 template <class T>
-typename T::mac_key_type read_generate_write_mac_key(const Player& P,
+typename T::mac_key_type read_generate_write_mac_key(Player& P,
         string directory = "");
 
 template <class T>

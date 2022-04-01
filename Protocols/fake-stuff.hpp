@@ -272,7 +272,9 @@ void write_mac_key(const string& directory, int i, int nplayers, U key)
   ofstream outf;
   stringstream filename;
   filename << mac_filename<U>(directory, i);
+#ifdef VERBOSE
   cout << "Writing to " << filename.str().c_str() << endl;
+#endif
   outf.open(filename.str().c_str());
   outf << nplayers << endl;
   key.output(outf,true);
@@ -333,7 +335,7 @@ void read_mac_key(const string& directory, int player_num, int nplayers, U& key)
 }
 
 template<class T>
-inline typename T::mac_key_type read_generate_write_mac_key(const Player& P,
+typename T::mac_key_type read_generate_write_mac_key(Player& P,
         string directory)
 {
   if (directory == "")

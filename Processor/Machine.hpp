@@ -6,6 +6,7 @@
 #include "Memory.hpp"
 #include "Online-Thread.hpp"
 #include "Protocols/Hemi.hpp"
+#include "Protocols/fake-stuff.hpp"
 
 #include "Tools/Exceptions.h"
 
@@ -60,10 +61,10 @@ Machine<sint, sgf2n>::Machine(int my_number, Names& playerNames,
       sint::LivePrep::basic_setup(*P);
     }
 
-  sint::read_or_generate_mac_key(prep_dir_prefix<sint>(), *P, alphapi);
-  sgf2n::read_or_generate_mac_key(prep_dir_prefix<sgf2n>(), *P, alpha2i);
-  sint::bit_type::part_type::read_or_generate_mac_key(
-      prep_dir_prefix<typename sint::bit_type::part_type>(), *P, alphabi);
+  alphapi = read_generate_write_mac_key<sint>(*P);
+  alpha2i = read_generate_write_mac_key<sgf2n>(*P);
+  alphabi = read_generate_write_mac_key<typename
+      sint::bit_type::part_type>(*P);
 
 #ifdef DEBUG_MAC
   cerr << "MAC Key p = " << alphapi << endl;
