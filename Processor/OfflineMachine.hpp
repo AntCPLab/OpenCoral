@@ -22,6 +22,7 @@ OfflineMachine<W>::OfflineMachine(int argc, const char** argv,
     Program program(playerNames.num_players());
     program.parse(machine.bc_filenames[0]);
     usage = program.get_offline_data_used();
+    n_threads = machine.nthreads;
     machine.ot_setups.push_back({P});
 }
 
@@ -53,6 +54,12 @@ int OfflineMachine<W>::run()
 }
 
 template<class W>
+int OfflineMachine<W>::buffered_total(size_t required, size_t batch)
+{
+    return DIV_CEIL(required, batch) * batch + (n_threads - 1) * batch;
+}
+
+template<class W>
 template<class T>
 void OfflineMachine<W>::generate()
 {
@@ -79,7 +86,7 @@ void OfflineMachine<W>::generate()
             if (i == DATA_DABIT)
             {
                 for (long long j = 0;
-                        j < DIV_CEIL(my_usage, BUFFER_SIZE) * BUFFER_SIZE; j++)
+                        j < buffered_total(my_usage, BUFFER_SIZE); j++)
                 {
                     T a;
                     typename T::bit_type b;
@@ -91,7 +98,7 @@ void OfflineMachine<W>::generate()
             {
                 vector<T> tuple(DataPositions::tuple_size[i]);
                 for (long long j = 0;
-                        j < DIV_CEIL(my_usage, BUFFER_SIZE) * BUFFER_SIZE; j++)
+                        j < buffered_total(my_usage, BUFFER_SIZE); j++)
                 {
                     preprocessing.get(dtype, tuple.data());
                     for (auto& x : tuple)
@@ -113,7 +120,7 @@ void OfflineMachine<W>::generate()
             file_signature<T>().output(out);
             InputTuple<T> tuple;
             for (long long j = 0;
-                    j < DIV_CEIL(n_inputs, BUFFER_SIZE) * BUFFER_SIZE; j++)
+                    j < buffered_total(n_inputs, BUFFER_SIZE); j++)
             {
                 preprocessing.get_input(tuple.share, tuple.value, i);
                 tuple.share.output(out, false);
@@ -142,7 +149,7 @@ void OfflineMachine<W>::generate()
             {
                 ofstream out(filename, ios::binary);
                 file_signature<T>().output(out);
-                for (int i = 0; i < DIV_CEIL(total, batch) * batch; i++)
+                for (int i = 0; i < buffered_total(total, batch); i++)
                     preprocessing.template get_edabitvec<0>(true, n_bits).output(n_bits,
                             out);
             }
