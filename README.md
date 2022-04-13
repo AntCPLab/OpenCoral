@@ -67,6 +67,21 @@ echo 1 2 3 4 > Player-Data/Input-P1-0
 Scripts/mascot.sh tutorial
 ```
 
+#### TL;DR (Docker)
+Build a docker image for `mascot-party.x`:
+
+```
+docker build --tag mpspdz:mascot-party --build-arg machine=mascot-party.x .
+```
+
+Run the [the tutorial](Programs/Source/tutorial.mpc):
+
+```
+docker run --rm -it mpspdz:mascot-party ./Scripts/mascot.sh tutorial
+```
+
+See the [`Dockerfile`](./Dockerfile) for examples of how it can be used.
+
 #### Preface
 
 The primary aim of this software is to run the same computation in
