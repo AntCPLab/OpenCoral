@@ -708,16 +708,18 @@ information.
 MP-SPDZ uses OpenSSL for secure channels. You can generate the
 necessary certificates and keys as follows:
 
-`Scripts/setup-ssl.sh [<number of parties> <SSL_DIR>]`
+`Scripts/setup-ssl.sh [<number of parties> <ssl_dir>]`
 
 The programs expect the keys and certificates to be in
-`Player-Data/P<i>.key` and `Player-Data/P<i>.pem`, respectively, and
+`SSL_DIR/P<i>.key` and `SSL_DIR/P<i>.pem`, respectively, and
 the certificates to have the common name `P<i>` for player
 `<i>`. Furthermore, the relevant root certificates have to be in
-`Player-Data` such that OpenSSL can find them (run `c_rehash
-Player-Data`). The script above takes care of all this by generating
+`SSL_DIR` such that OpenSSL can find them (run `c_rehash
+<ssl_dir>`). The script above takes care of all this by generating
 self-signed certificates. Therefore, if you are running the programs
 on different hosts you will need to copy the certificate files.
+Note that `<ssl_dir>` must match `SSL_DIR` set in `CONFIG` or `CONFIG.mine`.
+Just like `SSL_DIR`, `<ssl_dir>` defaults to `Player-Data`.
 
 In the following, we will walk through running the tutorial modulo
 2^k with three parties. The other programs work similarly.
