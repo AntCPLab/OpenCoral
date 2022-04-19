@@ -30,7 +30,9 @@ void HemiPrep<T>::basic_setup(Player& P)
     pairwise_machine = new PairwiseMachine(P);
     auto& machine = *pairwise_machine;
     auto& setup = machine.setup<FD>();
-    setup.secure_init(P, machine, T::clear::length(), 40);
+    setup.params.set_matrix_dim_from_options();
+    setup.params.set_sec(OnlineOptions::singleton.security_parameter);
+    setup.secure_init(P, machine, T::clear::length(), 0);
     T::clear::template init<typename FD::T>();
 }
 

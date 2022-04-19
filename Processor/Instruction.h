@@ -328,14 +328,14 @@ protected:
   int opcode;         // The code
   int size;           // Vector size
   int r[4];           // Fixed parameter registers
-  unsigned int n;     // Possible immediate value
+  size_t n;             // Possible immediate value
   vector<int>  start; // Values for a start/stop open
 
 public:
   virtual ~BaseInstruction() {};
 
   int get_r(int i) const { return r[i]; }
-  unsigned int get_n() const { return n; }
+  size_t get_n() const { return n; }
   const vector<int>& get_start() const { return start; }
   int get_opcode() const { return opcode; }
   int get_size() const { return size; }
@@ -350,7 +350,7 @@ public:
   bool is_direct_memory_access() const;
 
   // Returns the memory size used if applicable and known
-  unsigned get_mem(RegType reg_type) const;
+  size_t get_mem(RegType reg_type) const;
 
   // Returns the maximal register used
   unsigned get_max_reg(int reg_type) const;

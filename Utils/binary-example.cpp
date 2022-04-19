@@ -20,6 +20,7 @@
 #include "GC/Secret.hpp"
 #include "GC/TinyPrep.hpp"
 #include "GC/ThreadMaster.hpp"
+#include "GC/SemiSecret.hpp"
 #include "Protocols/Atlas.hpp"
 #include "Protocols/MaliciousRepPrep.hpp"
 #include "Protocols/Share.hpp"

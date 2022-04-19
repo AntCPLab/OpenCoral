@@ -112,11 +112,11 @@ void ShamirMC<T>::finalize(vector<typename T::open_type>& values,
 {
     values.clear();
     for (size_t i = 0; i < S.size(); i++)
-        values.push_back(finalize_open());
+        values.push_back(finalize_raw());
 }
 
 template<class T>
-typename T::open_type ShamirMC<T>::finalize_open()
+typename T::open_type ShamirMC<T>::finalize_raw()
 {
     assert(reconstruction.size());
     typename T::open_type res;

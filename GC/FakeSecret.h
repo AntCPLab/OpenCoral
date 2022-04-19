@@ -10,6 +10,7 @@
 #include "GC/Memory.h"
 #include "GC/Access.h"
 #include "GC/ArgTuples.h"
+#include "GC/NoShare.h"
 
 #include "Math/gf2nlong.h"
 #include "Tools/SwitchableOutput.h"
@@ -40,7 +41,6 @@ public:
     typedef FakeSecret DynamicType;
     typedef Memory<FakeSecret> DynamicMemory;
 
-    typedef BitVec mac_key_type;
     typedef BitVec clear;
     typedef BitVec open_type;
 

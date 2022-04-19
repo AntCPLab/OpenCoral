@@ -85,6 +85,11 @@ void BufferBase::try_rewind()
 
 void BufferBase::prune()
 {
+    // only prune in secure mode
+#ifdef INSECURE
+    return;
+#endif
+
     if (is_pipe())
         return;
 

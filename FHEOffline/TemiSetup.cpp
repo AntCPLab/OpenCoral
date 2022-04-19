@@ -15,9 +15,7 @@ TemiSetup<FD>::TemiSetup()
     this->pk = {this->params, 0};
     this->sk = {this->params, 0};
     this->calpha = this->params;
-    this->params.set_matrix_dim(
-            HemiOptions::singleton.plain_matmul ?
-                    1 : OnlineOptions::singleton.batch_size);
+    this->params.set_matrix_dim_from_options();
 }
 
 template<class FD>

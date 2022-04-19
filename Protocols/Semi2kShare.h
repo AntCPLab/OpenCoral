@@ -21,8 +21,6 @@ class Semi2kShare : public SemiShare<SignedZ2<K>>
     typedef SignedZ2<K> T;
 
 public:
-    typedef Z2<64> mac_key_type;
-
     typedef SemiMC<Semi2kShare> MAC_Check;
     typedef DirectSemiMC<Semi2kShare> Direct_MC;
     typedef SemiInput<Semi2kShare> Input;

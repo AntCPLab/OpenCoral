@@ -11,6 +11,8 @@
 
 #include "instructions.h"
 
+#include "Tools/benchmarking.h"
+
 #include "Machine.hpp"
 
 namespace GC
@@ -58,15 +60,10 @@ Thread<T>* ThreadMaster<T>::new_thread(int i)
 template<class T>
 void ThreadMaster<T>::run()
 {
-#ifndef INSECURE
     if (not opts.live_prep)
     {
-        cerr
-                << "Preprocessing from file not supported by binary virtual machines"
-                << endl;
-        exit(1);
+        insecure("preprocessing from file in binary virtual machines");
     }
-#endif
 
     P = new PlainPlayer(N, "main");
 

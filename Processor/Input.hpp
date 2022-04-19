@@ -81,7 +81,7 @@ void InputBase<T>::reset(int player)
 }
 
 template<class T>
-void InputBase<T>::reset_all(Player& P)
+void InputBase<T>::reset_all(PlayerBase& P)
 {
     this->P = &P;
     my_num = P.my_num();

@@ -91,8 +91,8 @@ void Client::send_private_inputs(const vector<T>& values)
 
 // Receive shares of the result and sum together.
 // Also receive authenticating values.
-template<class T>
-vector<T> Client::receive_outputs(int n)
+template<class T, class U>
+vector<U> Client::receive_outputs(int n)
 {
     vector<T> triples(3 * n);
     octetStream os;
@@ -111,7 +111,7 @@ vector<T> Client::receive_outputs(int n)
         }
     }
 
-    vector<T> output_values;
+    vector<U> output_values;
     for (int i = 0; i < 3 * n; i += 3)
     {
         if (T(triples[i] * triples[i + 1]) != triples[i + 2])

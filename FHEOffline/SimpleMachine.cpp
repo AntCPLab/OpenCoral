@@ -27,7 +27,7 @@ void* run_generator(void* generator)
 MachineBase::MachineBase() :
         throughput_loop_thread(0),portnum_base(0),
         data_type(DATA_TRIPLE),
-        sec(0), drown_sec(0), field_size(0), extra_slack(0),
+        sec(0), field_size(0), extra_slack(0),
         produce_inputs(false),
         use_gf2n(false)
 {
@@ -91,7 +91,6 @@ void MachineBase::parse_options(int argc, const char** argv)
     opt.get("-h")->getString(hostname);
     opt.get("-pn")->getInt(portnum_base);
     opt.get("-s")->getInt(sec);
-    drown_sec = max(40, sec);
     opt.get("-f")->getInt(field_size);
     use_gf2n = opt.isSet("-2");
     if (use_gf2n)
@@ -221,7 +220,7 @@ void MultiplicativeMachine::fake_keys(int slack)
     PartSetup<FD>& part_setup = setup.part<FD>();
     if (P.my_num() == 0)
     {
-        part_setup.generate_setup(N.num_players(), field_size, drown_sec, slack, true);
+        part_setup.generate_setup(N.num_players(), field_size, sec, slack, true);
         vector<PartSetup<FD> > setups;
         part_setup.fake(setups, P.num_players(), false);
         for (int i = 1; i < P.num_players(); i++)
@@ -238,7 +237,7 @@ void MultiplicativeMachine::fake_keys(int slack)
         P.receive_player(0, os);
     }
     part_setup.unpack(os);
-    part_setup.check(drown_sec);
+    part_setup.check();
 
     part_setup.alphai = read_or_generate_mac_key<Share<typename FD::T>>(P);
     Plaintext_<FD> m(part_setup.FieldD);

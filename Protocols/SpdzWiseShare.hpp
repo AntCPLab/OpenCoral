@@ -13,14 +13,15 @@
 template<class T>
 void SpdzWiseShare<T>::read_or_generate_mac_key(string directory, Player& P, T& mac_key)
 {
+    bool fresh = false;
+
     try
     {
         read_mac_key(directory, P.N, mac_key);
     }
     catch (mac_key_error&)
     {
-        SeededPRNG G;
-        mac_key.randomize(G);
+        fresh = true;
     }
 
     try
@@ -33,11 +34,12 @@ void SpdzWiseShare<T>::read_or_generate_mac_key(string directory, Player& P, T& 
     }
     catch (mac_fail&)
     {
-#ifdef VERBOSE
-        cerr << "Generating fresh MAC key for " << type_string() << endl;
-#endif
-        mac_key = typename T::Honest::Protocol(P).get_random();
+        fresh = true;
+        cerr << "Invalid " << type_string() << " MAC key, generating fresh one" << endl;
     }
+
+    if (fresh)
+        mac_key = typename T::Honest::Protocol(P).get_random();
 }
 
 template<class T>

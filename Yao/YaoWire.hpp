@@ -55,7 +55,7 @@ void YaoWire::andm(GC::Processor<T>& processor,
 	for (int i = 0; i < DIV_CEIL(instruction.get_n(), unit); i++)
 	{
 		auto &dest = processor.S[instruction.get_r(0) + i];
-		int n = min(unsigned(unit), instruction.get_n() - i * unit);
+		int n = min(size_t(unit), instruction.get_n() - i * unit);
 		dest.resize_regs(n);
 		for (int j = 0; j < n; j++)
 			if (processor.C[instruction.get_r(2) + i].get_bit(j))

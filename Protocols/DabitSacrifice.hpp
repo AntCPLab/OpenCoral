@@ -12,6 +12,12 @@
 #include <math.h>
 
 template<class T>
+DabitSacrifice<T>::DabitSacrifice() :
+        S(OnlineOptions::singleton.security_parameter)
+{
+}
+
+template<class T>
 dabit<T>& operator+=(dabit<T>& x, const dabit<T>& y)
 {
     x.first += y.first;

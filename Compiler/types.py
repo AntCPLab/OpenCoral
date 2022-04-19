@@ -1710,7 +1710,12 @@ class personal(Tape._no_truth):
             res = Array.create_from(res)
         return personal(player, res)
 
-    def bit_decompose(self, length):
+    def bit_decompose(self, length=None):
+        """ Bit decomposition.
+
+        :param length: number of bits
+
+        """
         return [personal(self.player, x) for x in self._v.bit_decompose(length)]
 
     def _san(self, other):
@@ -2144,13 +2149,16 @@ class sint(_secret, _int):
     the bit length.
 
     :param val: initialization (sint/cint/regint/int/cgf2n or list
-        thereof or sbits/sbitvec/sfix)
+        thereof, sbits/sbitvec/sfix, or :py:class:`personal`)
     :param size: vector size (int), defaults to 1 or size of list
 
     When converting :py:class:`~Compiler.GC.types.sbits`, the result is a
     vector of bits, and when converting
     :py:class:`~Compiler.GC.types.sbitvec`, the result is a vector of values
     with bit length equal the length of the input.
+
+    Initializing from a :py:class:`personal` value implies the
+    relevant party inputting their value securely.
 
     """
     __slots__ = []
@@ -4285,6 +4293,7 @@ class sfix(_fix):
     """ Secret fixed-point number represented as secret integer, by
     multiplying with ``2^f`` and then rounding. See :py:class:`sint`
     for security considerations of the underlying integer operations.
+    The secret integer is stored as the :py:obj:`v` member.
 
     It supports basic arithmetic (``+, -, *, /``), returning
     :py:class:`sfix`, and comparisons (``==, !=, <, <=, >, >=``),
@@ -5121,7 +5130,8 @@ class Array(_vectorizable):
     array ``a`` and ``i`` being a :py:class:`regint`,
     :py:class:`cint`, or a Python integer.
 
-    :param length: compile-time integer (int) or :py:obj:`None` for unknown length
+    :param length: compile-time integer (int) or :py:obj:`None`
+      for unknown length (need to specify :py:obj:`address`)
     :param value_type: basic type
     :param address: if given (regint/int), the array will not be allocated
 
@@ -5178,6 +5188,8 @@ class Array(_vectorizable):
         self.address = None
 
     def get_address(self, index):
+        if isinstance(index, (_secret, _single)):
+            raise CompilerError('need cleartext index')
         key = str(index)
         if self.length is not None:
             from .GC.types import cbits
@@ -5211,6 +5223,7 @@ class Array(_vectorizable):
         if index.step == 0:
             raise CompilerError('slice step cannot be zero')
         return index.start or 0, \
+            index.stop if self.length is None else \
             min(index.stop or self.length, self.length), index.step or 1
 
     def __getitem__(self, index):
@@ -5517,7 +5530,15 @@ class Array(_vectorizable):
 
         :param end: string to print after (default: line break)
         """
-        library.print_str('%s' + end, self.get_vector().reveal())
+        if util.is_constant(self.length):
+            library.print_str('%s' + end, self.get_vector().reveal())
+        else:
+            library.print_str('[')
+            @library.for_range(self.length - 1)
+            def _(i):
+                library.print_str('%s, ', self[i].reveal())
+            library.print_str('%s', self[self.length - 1].reveal())
+            library.print_str(']' + end)
 
     def reveal_to_binary_output(self, player=None):
         """ Reveal to binary output if supported by type.
@@ -5893,7 +5914,8 @@ class SubMultiArray(_vectorizable):
         """ Matrix-matrix and matrix-vector multiplication.
 
         :param self: two-dimensional
-        :param other: Matrix or Array of matching size and type """
+        :param other: Matrix or Array of matching size and type
+        :param n_threads: number of threads (default: all in same thread) """
         assert len(self.sizes) == 2
         if isinstance(other, Array):
             assert len(other) == self.sizes[1]
@@ -5928,6 +5950,7 @@ class SubMultiArray(_vectorizable):
                         res_matrix.assign_part_vector(
                             self.get_part(base, size).direct_mul(other), base)
                 except AttributeError:
+                    assert n_threads is None
                     if max(res_matrix.sizes) > 1000:
                         raise AttributeError()
                     A = self.get_vector()
@@ -5937,7 +5960,7 @@ class SubMultiArray(_vectorizable):
                                                    res_params))
             except (AttributeError, AssertionError):
                 # fallback for sfloat etc.
-                @library.for_range_opt(self.sizes[0])
+                @library.for_range_opt_multithread(n_threads, self.sizes[0])
                 def _(i):
                     try:
                         res_matrix[i] = self.value_type.row_matrix_mul(

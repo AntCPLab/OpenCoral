@@ -84,9 +84,9 @@ void HashMaliciousRepMC<T>::POpen_End(vector<typename T::open_type>& values,
 }
 
 template<class T>
-typename T::open_type HashMaliciousRepMC<T>::finalize_open()
+typename T::open_type HashMaliciousRepMC<T>::finalize_raw()
 {
-    auto res = ReplicatedMC<T>::finalize_open();
+    auto res = ReplicatedMC<T>::finalize_raw();
     os.reset_write_head();
     res.pack(os);
     update();

@@ -5,6 +5,7 @@
 
 #include "HemiMatrixPrep.h"
 #include "FHE/Diagonalizer.h"
+#include "Tools/Bundle.h"
 
 class CipherPlainMultJob : public ThreadJob
 {

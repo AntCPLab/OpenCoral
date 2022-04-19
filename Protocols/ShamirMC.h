@@ -69,7 +69,7 @@ public:
     virtual void init_open(const Player& P, int n = 0);
     virtual void prepare_open(const T& secret);
     virtual void exchange(const Player& P);
-    virtual typename T::open_type finalize_open();
+    virtual typename T::open_type finalize_raw();
 
     void Check(const Player& P) { (void)P; }
 

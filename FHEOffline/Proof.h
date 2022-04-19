@@ -78,6 +78,7 @@ class Proof
               diagonal(diagonal),
               B_plain_length(0), B_rand_length(0), pk(&pk), n_proofs(n_proofs)
     { sec=sc;
+      assert(sec > 0);
       tau=Tau; rho=Rho;
 
       phim=(pk.get_params()).phi_m();

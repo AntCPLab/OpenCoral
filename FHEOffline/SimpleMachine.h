@@ -26,7 +26,6 @@ protected:
 
 public:
     int sec;
-    int drown_sec;
     int field_size;
     int extra_slack;
     bool produce_inputs;

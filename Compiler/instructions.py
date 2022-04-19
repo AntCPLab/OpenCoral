@@ -69,7 +69,7 @@ class ldmc(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
     """
     __slots__ = []
     code = base.opcodes['LDMC']
-    arg_format = ['cw','int']
+    arg_format = ['cw','long']
 
 @base.gf2n
 @base.vectorize
@@ -84,7 +84,7 @@ class ldms(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
     """
     __slots__ = []
     code = base.opcodes['LDMS']
-    arg_format = ['sw','int']
+    arg_format = ['sw','long']
 
 @base.gf2n
 @base.vectorize
@@ -99,7 +99,7 @@ class stmc(base.DirectMemoryWriteInstruction):
     """
     __slots__ = []
     code = base.opcodes['STMC']
-    arg_format = ['c','int']
+    arg_format = ['c','long']
 
 @base.gf2n
 @base.vectorize
@@ -114,7 +114,7 @@ class stms(base.DirectMemoryWriteInstruction):
     """
     __slots__ = []
     code = base.opcodes['STMS']
-    arg_format = ['s','int']
+    arg_format = ['s','long']
 
 @base.vectorize
 class ldmint(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
@@ -128,7 +128,7 @@ class ldmint(base.DirectMemoryInstruction, base.ReadMemoryInstruction):
     """
     __slots__ = []
     code = base.opcodes['LDMINT']
-    arg_format = ['ciw','int']
+    arg_format = ['ciw','long']
 
 @base.vectorize
 class stmint(base.DirectMemoryWriteInstruction):
@@ -142,7 +142,7 @@ class stmint(base.DirectMemoryWriteInstruction):
     """
     __slots__ = []
     code = base.opcodes['STMINT']
-    arg_format = ['ci','int']
+    arg_format = ['ci','long']
 
 @base.vectorize
 class ldmci(base.ReadMemoryInstruction, base.IndirectMemoryInstruction):

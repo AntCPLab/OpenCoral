@@ -100,11 +100,12 @@ int generate_semi_setup(int plaintext_length, int sec,
       numBits(NonInteractiveProof::slack(sec, phi_N(m))), true, params);
   int lgp0 = numBits(nb.min_p0(false, 0));
   int extra_slack = common_semi_setup(params, m, 2, lgp0, -1, round_up);
+  assert(nb.min_phi_m(lgp0, false) * 2 <= m);
   load_or_generate(P2D, params.get_ring());
   return extra_slack;
 }
 
-int common_semi_setup(FHE_Params& params, int m, bigint p, int lgp0, int lgp1, bool round_up)
+int common_semi_setup(FHE_Params& params, int m, bigint p, int& lgp0, int lgp1, bool round_up)
 {
   cout << "Need ciphertext modulus of length " << lgp0;
   if (params.n_mults() > 0)
@@ -428,6 +429,16 @@ GF2X Subs_PowX_Mod(const GF2X& a,int pow,int m,const GF2X& c)
 
 
 
+GF2X get_F(const Ring& Rg)
+{
+  GF2X F;
+  for (int i=0; i<=Rg.phi_m(); i++)
+    { if (((Rg.Phi()[i])%2)!=0)
+        { SetCoeff(F,i,1); }
+    }
+  //cout << "F = " << F << endl;
+  return F;
+}
 
 void init(P2Data& P2D,const Ring& Rg)
 {
@@ -438,16 +449,12 @@ void init(P2Data& P2D,const Ring& Rg)
     { SetCoeff(G,gf2n_short::get_t(i),1); }
   //cout << "G = " << G << endl;
 
-  for (int i=0; i<=Rg.phi_m(); i++)
-    { if (((Rg.Phi()[i])%2)!=0)
-        { SetCoeff(F,i,1); }
-    }
-  //cout << "F = " << F << endl;
+  F = get_F(Rg);
 
   // seed randomness to achieve same result for all players
   // randomness is used in SFCanZass and FindRoot
   SetSeed(ZZ(0));
-  
+
   // Now factor F modulo 2
   vec_GF2X facts=SFCanZass(F);
 
@@ -459,17 +466,34 @@ void init(P2Data& P2D,const Ring& Rg)
   // Compute the quotient group
   QGroup QGrp;
   int Gord=-1,e=Rg.phi_m()/d; // e = # of plaintext slots, phi(m)/degree
-  int seed=1;
-  while (Gord!=e)
+
+  if ((e*gf2n_short::degree())!=Rg.phi_m())
+    { cout << "Plaintext type requires Gord*gf2n_short::degree ==  phi_m" << endl;
+      cout << e << " * " << gf2n_short::degree() << " != " << Rg.phi_m() << endl;
+      throw invalid_params();
+    }
+
+  int max_tries = 10;
+  for (int seed = 0;; seed++)
     { QGrp.assign(Rg.m(),seed);       // QGrp encodes the the quotient group Z_m^*/<2>
-      Gord=QGrp.order();
-      if (Gord!=e) { cout << "Group order wrong, need to repeat the Haf-Mc algorithm" << endl; seed++; }
+      Gord = QGrp.order();
+      if (Gord == e)
+        {
+          break;
+        }
+      else
+        {
+          if (seed == max_tries)
+            {
+              cerr << "abort after " << max_tries << " tries" << endl;
+              throw invalid_params();
+            }
+          else
+            cout << "Group order wrong, need to repeat the Haf-Mc algorithm"
+                << endl;
+        }
     }
   //cout << " l = " << Gord << " , d = " << d << endl;
-  if ((Gord*gf2n_short::degree())!=Rg.phi_m())
-    { cout << "Plaintext type requires Gord*gf2n_short::degree ==  phi_m" << endl;
-      throw not_implemented();
-    }
 
   vector<GF2X> Fi(Gord);
   vector<GF2X> Rts(Gord);
@@ -590,8 +614,23 @@ void char_2_dimension(int& m, int& lg2)
         m=5797;
         lg2=40;
         break;
+      case 64:
+        m = 9615;
+        break;
+      case 63:
+        m = 9271;
+        break;
+      case 28:
+        m = 3277;
+        break;
       case 16:
-        m = 13107;
+        m = 4369;
+        break;
+      case 12:
+        m = 4095;
+        break;
+      case 11:
+        m = 2047;
         break;
       default:
         throw runtime_error("field size not supported");
@@ -628,7 +667,7 @@ void Parameters::SPDZ_Data_Setup(FHE_Params& params, P2Data& P2D)
     finalize_lengths(lg2p0, lg2p1, n, m, lg2pi[0], round_up, params);
   }
 
-  if (NoiseBounds::min_phi_m(lg2p0 + lg2p1, params) > phi_N(m))
+  if (NoiseBounds::min_phi_m(lg2p0 + lg2p1, params) * 2 > m)
     throw runtime_error("number of slots too small");
 
   cout << "m = " << m << endl;

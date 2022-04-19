@@ -48,12 +48,12 @@ public:
         part_MC.exchange(P);
     }
 
-    typename T::open_type finalize_open()
+    typename T::open_type finalize_raw()
     {
         int n = sizes.next();
         typename T::open_type opened = 0;
         for (int i = 0; i < n; i++)
-            opened += typename T::open_type(part_MC.finalize_open().get_bit(0)) << i;
+            opened += typename T::open_type(part_MC.finalize_raw().get_bit(0)) << i;
         return opened;
     }
 

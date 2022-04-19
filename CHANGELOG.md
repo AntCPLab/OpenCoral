@@ -1,5 +1,15 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.3.1 (Apr 19, 2022)
+
+- Protocol in dealer model
+- Command-line option for security parameter
+- Fixed security bug in SPDZ2k (see Section 3.4 of [the updated paper](https://eprint.iacr.org/2018/482))
+- Ability to run high-level (Python) code from C++
+- More memory capacity due to 64-bit addressing
+- Homomorphic encryption for more fields of characteristic two
+- Docker container
+
 ## 0.3.0 (Feb 17, 2022)
 
 - Semi-honest computation based on threshold semi-homomorphic encryption

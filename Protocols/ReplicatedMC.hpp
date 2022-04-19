@@ -65,7 +65,7 @@ void ReplicatedMC<T>::finalize(vector<typename T::open_type>& values,
 }
 
 template<class T>
-typename T::open_type ReplicatedMC<T>::finalize_open()
+typename T::open_type ReplicatedMC<T>::finalize_raw()
 {
     auto a = this->secrets.next().sum();
     return a + o.get<typename T::open_type>();

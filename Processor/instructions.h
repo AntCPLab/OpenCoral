@@ -203,7 +203,7 @@
             *dest++ = *op1++ == *op2++) \
     X(PRINTINT, Proc.out << Proc.read_Ci(r[0]) << flush,) \
     X(PRINTFLOATPREC, Proc.out << setprecision(n),) \
-    X(PRINTSTR, Proc.out << string((char*)&n,sizeof(n)) << flush,) \
+    X(PRINTSTR, Proc.out << string((char*)&n,4) << flush,) \
     X(PRINTCHR, Proc.out << string((char*)&n,1) << flush,) \
     X(SHUFFLE, shuffle(Proc),) \
     X(BITDECINT, bitdecint(Proc),) \
@@ -270,7 +270,7 @@
             *dest++ = *op1++ >> n) \
     X(GPRINTREG, auto source = &C2[r[0]], \
             Proc.out << "Reg[" << r[0] << "] = " << *source++ \
-            << " # " << string((char*)&n,sizeof(n)) << endl) \
+            << " # " << string((char*)&n, 4) << endl) \
     X(GPRINTREGPLAIN, auto source = &C2[r[0]], \
             Proc.out << *source++ << flush) \
     X(GBITDEC, gbitdec(C2),) \

@@ -65,11 +65,12 @@ template <class T, class U>
 void secure_init(T& setup, Player& P, U& machine,
         int plaintext_length, int sec, FHE_Params& params)
 {
+    assert(sec >= 0);
     machine.sec = sec;
-    sec = max(sec, 40);
-    machine.drown_sec = sec;
+    params.set_min_sec(sec);
     string filename = PREP_DIR + T::name() + "-"
             + to_string(plaintext_length) + "-" + to_string(sec) + "-"
+            + to_string(params.secp()) + "-"
             + to_string(params.get_matrix_dim()) + "-"
             + OnlineOptions::singleton.prime.get_str() + "-"
             + to_string(CowGearOptions::singleton.top_gear()) + "-P"

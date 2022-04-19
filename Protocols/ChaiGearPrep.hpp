@@ -43,15 +43,16 @@ void ChaiGearPrep<T>::basic_setup(Player& P)
     assert(machine == 0);
     machine = new MultiplicativeMachine;
     auto& setup = machine->setup.part<FD>();
-    auto& options = CowGearOptions::singleton;
+    int lowgear_security = OnlineOptions::singleton.security_parameter;
 #ifdef VERBOSE
+    auto& options = CowGearOptions::singleton;
     cerr << "Covert security parameter for key and MAC generation: "
             << options.covert_security << endl;
     cerr << "Triple generation security parameter: "
-            << options.lowgear_security << endl;
+            << lowgear_security << endl;
 #endif
-    machine->sec = options.lowgear_security;
-    setup.secure_init(P, *machine, T::clear::length(), options.lowgear_security);
+    machine->sec = lowgear_security;
+    setup.secure_init(P, *machine, T::clear::length(), lowgear_security);
     T::clear::template init<typename FD::T>();
 #ifdef VERBOSE
     cerr << T::type_string() << " parameter setup took " << timer.elapsed()

@@ -65,7 +65,7 @@ HonestMajorityRingMachineWithSecurity<U, V>::HonestMajorityRingMachineWithSecuri
         int argc, const char** argv, ez::ezOptionParser& opt)
 {
     OnlineOptions online_opts(opt, argc, argv);
-    RingOptions opts(opt, argc, argv, true);
+    RingOptions opts(opt, argc, argv);
     HonestMajorityMachine machine(argc, argv, opt, online_opts);
     int R = opts.ring_size_from_opts_or_schedule(online_opts.progname);
     switch (R)
@@ -76,15 +76,19 @@ HonestMajorityRingMachineWithSecurity<U, V>::HonestMajorityRingMachineWithSecuri
         break;
 #define X(K) \
     case K: \
-        switch (opts.S) \
+    { \
+        int S = online_opts.security_parameter; \
+        switch (S) \
         { \
-        Y(K, 40) \
+        Y(K, DEFAULT_SECURITY) \
         default: \
-            cerr << "not compiled for security parameter " << to_string(opts.S) << endl; \
-            cerr << "add 'Y(K, " << opts.S << ")' to " __FILE__ ", line 76" << endl; \
+            cerr << "not compiled for security parameter " << to_string(S) << endl; \
+            cerr << "add 'Y(K, " << S << ")' to " __FILE__ ", line 76" << endl; \
+            cerr << "or compile with -DDEFAULT_SECURITY=" << S << endl; \
             exit(1); \
         } \
-        break;
+        break; \
+    }
     X(64)
 #ifdef RING_SIZE
     X(RING_SIZE)

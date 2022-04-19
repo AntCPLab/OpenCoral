@@ -18,7 +18,7 @@ template<class T, class U>
 int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt, bool live_prep_default = true)
 {
     OnlineOptions& online_opts = OnlineOptions::singleton;
-    online_opts = {opt, argc, argv, 1000, live_prep_default, T::clear::invertible};
+    online_opts = {opt, argc, argv, T(), live_prep_default};
 
     DishonestMajorityMachine machine(argc, argv, opt, online_opts, typename U::clear());
     return machine.run<T, U>();
@@ -28,8 +28,7 @@ template<class V>
 OnlineMachine::OnlineMachine(int argc, const char** argv, ez::ezOptionParser& opt,
         OnlineOptions& online_opts, int nplayers, V) :
         argc(argc), argv(argv), online_opts(online_opts), lg2(0),
-        opening_sum(0), max_broadcast(0),
-        use_encryption(false), receive_threads(false),
+        use_encryption(false),
         opt(opt), nplayers(nplayers)
 {
     opt.add(
@@ -126,33 +125,6 @@ DishonestMajorityMachine::DishonestMajorityMachine(int argc, const char** argv,
             + " -h localhost -p 1 -N 2 sample-prog\n";
 
     opt.add(
-          "0", // Default.
-          0, // Required?
-          1, // Number of args expected.
-          0, // Delimiter if expecting multiple args.
-          "Sum at most n shares at once when using indirect communication", // Help description.
-          "-s", // Flag token.
-          "--opening-sum" // Flag token.
-    );
-    opt.add(
-          "", // Default.
-          0, // Required?
-          0, // Number of args expected.
-          0, // Delimiter if expecting multiple args.
-          "Use player-specific threads for communication", // Help description.
-          "-t", // Flag token.
-          "--threads" // Flag token.
-    );
-    opt.add(
-          "0", // Default.
-          0, // Required?
-          1, // Number of args expected.
-          0, // Delimiter if expecting multiple args.
-          "Maximum number of parties to send to at once", // Help description.
-          "-mb", // Flag token.
-          "--max-broadcast" // Flag token.
-    );
-    opt.add(
           "", // Default.
           0, // Required?
           0, // Number of args expected.
@@ -163,11 +135,7 @@ DishonestMajorityMachine::DishonestMajorityMachine(int argc, const char** argv,
     );
     online_opts.finalize(opt, argc, argv);
 
-    opt.get("--opening-sum")->getInt(opening_sum);
-    opt.get("--max-broadcast")->getInt(max_broadcast);
-
     use_encryption = opt.isSet("--encrypted");
-    receive_threads = opt.isSet("--threads");
 
     start_networking();
 }
@@ -230,12 +198,8 @@ int OnlineMachine::run()
     try
 #endif
     {
-        Machine<T, U>(online_opts.playerno, playerNames, online_opts.progname,
-                online_opts.memtype, lg2,
-                online_opts.direct, opening_sum,
-                receive_threads, max_broadcast,
-                use_encryption, online_opts.live_prep,
-                online_opts).run();
+        Machine<T, U>(playerNames, use_encryption, online_opts, lg2).run(
+                online_opts.progname);
 
         if (online_opts.verbose)
           {

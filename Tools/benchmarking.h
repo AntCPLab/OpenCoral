@@ -12,20 +12,7 @@
 using namespace std;
 
 // call before insecure benchmarking functionality
-inline void insecure(string message, bool warning = true)
-{
-#ifdef INSECURE
-    if (warning)
-        cerr << "WARNING: insecure " << message << endl;
-#else
-    (void)warning;
-    string msg = "You are trying to use insecure benchmarking functionality for "
-            + message + ".\nYou can activate this at compile time "
-                    "by adding -DINSECURE to the compiler options.\n"
-                    "Make sure to run make clean as well.";
-    throw runtime_error(msg);
-#endif
-}
+void insecure(string message, bool warning = true);
 
 void insecure_fake();
 

@@ -14,7 +14,7 @@
 
 inline
 ShuffleSacrifice::ShuffleSacrifice() :
-        B(OnlineOptions::singleton.bucket_size), C(this->B)
+        ShuffleSacrifice(OnlineOptions::singleton.bucket_size, 3)
 {
 }
 
@@ -22,6 +22,9 @@ inline
 ShuffleSacrifice::ShuffleSacrifice(int B, int C) :
         B(B), C(C)
 {
+    if (OnlineOptions::singleton.security_parameter > 40)
+        throw runtime_error("shuffle sacrifice not implemented for more than "
+                "40-bit security");
 }
 
 template<class U>

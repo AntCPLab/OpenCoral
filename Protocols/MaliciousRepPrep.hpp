@@ -7,6 +7,8 @@
 #include "Tools/Subroutines.h"
 #include "Processor/OnlineOptions.h"
 
+#include "mac_key.hpp"
+
 template<class T>
 MaliciousBitOnlyRepPrep<T>::MaliciousBitOnlyRepPrep(SubProcessor<T>* proc, DataPositions& usage) :
         BufferPrep<T>(usage),
@@ -69,7 +71,7 @@ void MaliciousBitOnlyRepPrep<T>::init_honest(Player& P)
 template<class T>
 void MaliciousRepPrep<T>::buffer_triples()
 {
-    assert(T::open_type::length() >= 40);
+    check_field_size<typename T::open_type>();
     auto& triples = this->triples;
     auto buffer_size = this->buffer_size;
     auto& honest_proc = this->honest_proc;

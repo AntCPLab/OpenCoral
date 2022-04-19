@@ -59,6 +59,8 @@ void BaseMachine::load_schedule(const string& progname, bool load_bytecode)
   cerr << "Number of program sequences I need to load = " << nprogs << endl;
 #endif
 
+  bc_filenames.clear();
+
   // Load in the programs
   string threadname;
   for (int i=0; i<nprogs; i++)

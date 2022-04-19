@@ -65,6 +65,7 @@ protected:
 
   static void init_field(int nn = 0);
   static void init_default(int, bool = false) { init_field(); }
+  static void init_minimum(int lower);
 
   static void reset() { n = 0; }
   static int degree() { return n; }
@@ -213,7 +214,7 @@ public:
   static const int DEFAULT_LENGTH = 40;
 
   static int length()         { return n == 0 ? DEFAULT_LENGTH : n; }
-  static int default_degree() { return 40; }
+  static int default_degree() { return DEFAULT_LENGTH; }
 
   static void init_field(int nn = 0);
 

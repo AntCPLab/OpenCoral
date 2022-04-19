@@ -25,13 +25,15 @@ template<class T>
 void MamaPrep<T>::buffer_triples()
 {
     int mac_security = T::N_MACS * T::clear::length();
+    int sec = OnlineOptions::singleton.security_parameter;
 
-    if (mac_security < 40)
+    if (mac_security < sec)
     {
-        cerr << T::N_MACS << " MACs are not enough for 40-bit security with "
-                << T::clear::length() << "-bit primes." << endl;
+        cerr << T::N_MACS << " MACs are not enough for " << sec
+                << "-bit security with " << T::clear::length() << "-bit primes."
+                << endl;
         cerr << "Compile with -DN_MAMA_MACS="
-                << DIV_CEIL(40, T::clear::length())
+                << DIV_CEIL(sec, T::clear::length())
                 << " or remove this check in " << __FILE__ << endl;
         exit(1);
     }
@@ -45,7 +47,7 @@ void MamaPrep<T>::buffer_triples()
     size_t required = OnlineOptions::singleton.batch_size;
 
     // prefer shuffling if not loosing much security and bucket size is smaller
-    bool use_shuffling = mac_security <= 42
+    bool use_shuffling = mac_security <= (sec + 2)
             and OnlineOptions::singleton.bucket_size < T::N_MACS;
     if (use_shuffling)
         required = sacrifice.minimum_n_inputs();

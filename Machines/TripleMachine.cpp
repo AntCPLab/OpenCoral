@@ -142,8 +142,8 @@ TripleMachine::TripleMachine(int argc, const char** argv) :
         gfpvar1::init_field(prime, false);
     else
         gfpvar1::init_default(128, false);
-    gf2n_long::init_field(128);
-    gf2n_short::init_field(40);
+    gf2n_long::init_field();
+    gf2n_short::init_field();
     
     PRNG G;
     G.ReSeed();

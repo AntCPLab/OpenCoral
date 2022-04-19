@@ -24,6 +24,13 @@ void Share_<T, V>::read_or_generate_mac_key(string directory, const Player& P,
 }
 
 template<class T, class V>
+void Share_<T, V>::randomize(PRNG& G)
+{
+  a.randomize(G);
+  mac.randomize(G);
+}
+
+template<class T, class V>
 inline void Share_<T, V>::pack(octetStream& os, bool full) const
 {
   a.pack(os, full);

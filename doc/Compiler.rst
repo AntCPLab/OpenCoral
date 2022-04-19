@@ -28,12 +28,16 @@ Compiler.GC.types module
 .. automodule:: Compiler.GC.types
    :members:
    :no-undoc-members:
-   :no-inherited-members:
-   :show-inheritance:
+   :inherited-members:
    :exclude-members: PreOp, cbit, dynamic_array, conv_cint_vec, bitdec,
 		     bit_type, bitcom, clear_type, conv_regint, default_type,
 		     mov, dyn_sbits, int_type, mul, vec, load_mem,
-		     DynamicArray, get_raw_input_from
+		     DynamicArray, get_raw_input_from, bits,
+		     input_tensor_from, input_tensor_from_client,
+		     input_tensor_via, dot_product, Matrix, Tensor,
+		     from_sint, read_from_file, receive_from_client,
+		     reveal_to_clients, write_shares_to_socket,
+		     write_to_file
 
 Compiler.library module
 -----------------------

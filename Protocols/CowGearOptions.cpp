@@ -23,7 +23,6 @@ CowGearOptions::CowGearOptions(bool covert)
         covert_security = -1;
     }
 
-    lowgear_security = 40;
     use_top_gear = false;
 }
 
@@ -49,7 +48,7 @@ CowGearOptions::CowGearOptions(ez::ezOptionParser& opt, int argc,
             0, // Required?
             1, // Number of args expected.
             0, // Delimiter if expecting multiple args.
-            "LowGear security parameter (default: 40)", // Help description.
+            "DEPRECATED: use -S/--security", // Help description.
             "-l", // Flag token.
             "--lowgear-security" // Flag token.
     );
@@ -76,15 +75,8 @@ CowGearOptions::CowGearOptions(ez::ezOptionParser& opt, int argc,
         opt.get("-c")->getInt(covert_security);
     if (opt.isSet("-l"))
     {
-        opt.get("-l")->getInt(lowgear_security);
-        if (lowgear_security <= 0)
-        {
-            throw exception();
-            cerr << "Invalid LowGear Security parameter: " << lowgear_security << endl;
-            exit(1);
-        }
-        if (covert_security > (1LL << lowgear_security))
-            insecure(", LowGear security less than key generation security");
+        cerr << "Deprecated parameter, use -S/--security" << endl;
+        exit(1);
     }
     use_top_gear = not opt.isSet("-J");
     if (opt.isSet("-T"))

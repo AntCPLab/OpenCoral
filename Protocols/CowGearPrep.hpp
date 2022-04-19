@@ -38,14 +38,15 @@ void CowGearPrep<T>::basic_setup(Player& P)
     pairwise_machine = new PairwiseMachine(P);
     auto& machine = *pairwise_machine;
     auto& setup = machine.setup<FD>();
-    auto& options = CowGearOptions::singleton;
+    int lowgear_security = OnlineOptions::singleton.security_parameter;
 #ifdef VERBOSE
+    auto& options = CowGearOptions::singleton;
     if (T::covert)
         cerr << "Covert security parameter for key and MAC generation: "
                 << options.covert_security << endl;
-    cerr << "LowGear security parameter: " << options.lowgear_security << endl;
+    cerr << "LowGear security parameter: " << lowgear_security << endl;
 #endif
-    setup.secure_init(P, machine, T::clear::length(), options.lowgear_security);
+    setup.secure_init(P, machine, T::clear::length(), lowgear_security);
     T::clear::template init<typename FD::T>();
 #ifdef VERBOSE
     cerr << T::type_string() << " parameter setup took " << timer.elapsed()

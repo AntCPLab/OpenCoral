@@ -128,7 +128,7 @@ public:
 
     typedef ValueMatrix<typename T::clear> clear;
     typedef clear open_type;
-    typedef typename T::clear mac_key_type;
+    typedef typename T::mac_key_type mac_key_type;
 
     static string type_string()
     {

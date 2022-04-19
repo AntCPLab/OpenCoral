@@ -340,7 +340,7 @@ void Processor<T>::convcbit2s(const BaseInstruction& instruction)
     for (int i = 0; i < DIV_CEIL(instruction.get_n(), unit); i++)
         S[instruction.get_r(0) + i] = T::constant(C[instruction.get_r(1) + i],
                 share_thread.P->my_num(), share_thread.MC->get_alphai(),
-                min(unsigned(unit), instruction.get_n() - i * unit));
+                min(size_t(unit), instruction.get_n() - i * unit));
 }
 
 template <class T>

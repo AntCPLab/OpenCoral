@@ -44,9 +44,9 @@ public:
     {
         inner_MC.exchange(P);
     }
-    typename T::open_type finalize_open()
+    typename T::open_type finalize_raw()
     {
-        return inner_MC.finalize_open();
+        return inner_MC.finalize_raw();
     }
     void Check(const Player& P)
     {

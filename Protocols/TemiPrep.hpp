@@ -24,6 +24,7 @@ void TemiPrep<T>::basic_setup(Player& P)
     assert(not setup);
     setup = new TemiSetup<FD>;
     MachineBase machine;
+    setup->params.set_sec(OnlineOptions::singleton.security_parameter);
     setup->secure_init(P, T::clear::length());
     read_or_generate_secrets(*setup, P, machine, 1, true_type());
     T::clear::template init<typename FD::T>();
@@ -102,6 +103,13 @@ vector<TemiMultiplier<T>*>& TemiPrep<T>::get_multipliers()
 template<class T>
 TemiMultiplier<T>::TemiMultiplier(Player& P) : P(P)
 {
+}
+
+template<class T>
+TemiPrep<T>::~TemiPrep()
+{
+    for (auto& x : multipliers)
+        delete x;
 }
 
 template<class T>

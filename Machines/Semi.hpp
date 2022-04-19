@@ -19,3 +19,4 @@
 #include "Protocols/SemiMC.hpp"
 #include "Protocols/Beaver.hpp"
 #include "Protocols/MalRepRingPrep.hpp"
+#include "GC/SemiSecret.hpp"

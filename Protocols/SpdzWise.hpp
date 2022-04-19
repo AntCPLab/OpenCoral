@@ -5,6 +5,8 @@
 
 #include "SpdzWise.h"
 
+#include "mac_key.hpp"
+
 template<class T>
 SpdzWise<T>::SpdzWise(Player& P) :
         internal(P), internal2(P), P(P)
@@ -142,6 +144,7 @@ template<class T>
 void SpdzWise<T>::zero_check(check_type t)
 {
     assert(T::clear::invertible);
+    check_field_size<typename T::clear>();
     auto r = internal.get_random();
     internal.init_mul();
     internal.prepare_mul(t, r);

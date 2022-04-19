@@ -18,7 +18,7 @@ bool gf2n_<U>::useC;
 
 word gf2n_short_table[256][256];
 
-#define num_2_fields 7
+#define num_2_fields 17
 
 /* Require
  *  2*(n-1)-64+t1<64
@@ -26,11 +26,21 @@ word gf2n_short_table[256][256];
 int fields_2[num_2_fields][4] =
 {
     { 4, 1, 0, 0 },
+    { 5, 2, 0, 0 },
+    { 6, 1, 0, 0 },
+    { 7, 1, 0, 0 },
     { 8, 4, 3, 1 },
+    { 9, 1, 0, 0 },
+    { 10, 3, 0, 0},
+    { 11, 2, 0, 0},
+    { 12, 3, 0, 0},
+    { 14, 5, 0, 0},
+    { 15, 1, 0, 0},
     { 16, 5, 3, 1 },
     { 28, 1, 0, 0 },
     { 40, 20, 15, 10 },
     { 63, 1, 0, 0 },
+    { 64, 4, 3, 1},
     { 128, 7, 2, 1 },
 };
 
@@ -53,6 +63,21 @@ void gf2n_<U>::init_tables()
             }
          }
     }
+}
+
+template<class U>
+void gf2n_<U>::init_minimum(int lower)
+{
+  if (lower <= n)
+    return;
+
+  for (int i = 0; i < num_2_fields; i++)
+    {
+      int n = fields_2[i][0];
+      if (lower <= n and n <= MAX_N_BITS)
+        return init_field(n);
+    }
+  throw runtime_error("no suitable field for minimum degree " + to_string(lower));
 }
 
 void gf2n_short::init_field(int nn)
@@ -88,7 +113,7 @@ void gf2n_<U>::init_field(int nn)
 
   if (j==-1)
     {
-      throw runtime_error("field size not supported");
+      throw gf2n_not_supported(nn);
     }
 
   n=nn;
@@ -332,7 +357,11 @@ gf2n_<U> gf2n_<U>::invert() const
   if (n < 64)
     return U(invert<word>(a));
   else
-    return invert<bit_plus<U>>(a).get_lower();
+    {
+      gf2n_ res;
+      res.a = invert<int128>(a).get_lower();
+      return res;
+    }
 }
 
 template<>

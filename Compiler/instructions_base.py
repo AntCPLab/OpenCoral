@@ -337,7 +337,7 @@ def gf2n(instruction):
         if isinstance(arg_format, list):
             __format = []
             for __f in arg_format:
-                if __f in ('int', 'p', 'ci', 'str'):
+                if __f in ('int', 'long', 'p', 'ci', 'str'):
                     __format.append(__f)
                 else:
                     __format.append(__f[0] + 'g' + __f[1:])
@@ -360,7 +360,7 @@ def gf2n(instruction):
             arg_format = instruction_cls.gf2n_arg_format
         elif isinstance(instruction_cls.arg_format, itertools.repeat):
             __f = next(instruction_cls.arg_format)
-            if __f != 'int' and __f != 'p':
+            if __f not in ('int', 'long', 'p'):
                 arg_format = itertools.repeat(__f[0] + 'g' + __f[1:])
         else:
             arg_format = copy.deepcopy(instruction_cls.arg_format)
@@ -711,6 +711,14 @@ class IntArgFormat(ArgFormat):
     def __str__(self):
         return str(self.i)
 
+class LongArgFormat(IntArgFormat):
+    @classmethod
+    def encode(cls, arg):
+        return struct.pack('>Q', arg)
+
+    def __init__(self, f):
+        self.i = struct.unpack('>Q', f.read(8))[0]
+
 class ImmediateModpAF(IntArgFormat):
     @classmethod
     def check(cls, arg):
@@ -768,6 +776,7 @@ ArgFormats = {
     'i': ImmediateModpAF,
     'ig': ImmediateGF2NAF,
     'int': IntArgFormat,
+    'long': LongArgFormat,
     'p': PlayerNoAF,
     'str': String,
 }

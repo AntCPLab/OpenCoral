@@ -8,6 +8,7 @@
 
 #include "Protocols/SemiMC.h"
 #include "Protocols/SemiShare.h"
+#include "Protocols/DealerShare.h"
 #include "Processor/DummyProtocol.h"
 #include "ShareSecret.h"
 
@@ -17,69 +18,114 @@ namespace GC
 {
 
 class SemiPrep;
+class DealerPrep;
 
-class SemiSecret : public SemiShare<BitVec>, public ShareSecret<SemiSecret>
+template<class T, class V>
+class SemiSecretBase : public V, public ShareSecret<T>
 {
+    typedef V super;
+
 public:
-    typedef Memory<SemiSecret> DynamicMemory;
+    typedef Memory<T> DynamicMemory;
 
-    typedef SemiMC<SemiSecret> MC;
-    typedef DirectSemiMC<SemiSecret> Direct_MC;
-    typedef Beaver<SemiSecret> Protocol;
-    typedef MC MAC_Check;
-    typedef SemiPrep LivePrep;
-    typedef SemiInput<SemiSecret> Input;
+    typedef Beaver<T> Protocol;
 
-    typedef SemiSecret part_type;
-    typedef SemiSecret small_type;
+    typedef T part_type;
+    typedef T small_type;
 
     static const int default_length = sizeof(BitVec) * 8;
 
     static string type_string() { return "binary secret"; }
     static string phase_name() { return "Binary computation"; }
 
-    static MC* new_mc(mac_key_type);
-
-    template<class T>
-    static void generate_mac_key(mac_key_type, T)
-    {
-    }
-
-    static void trans(Processor<SemiSecret>& processor, int n_outputs,
+    static void trans(Processor<T>& processor, int n_outputs,
             const vector<int>& args);
 
-    SemiSecret()
+    SemiSecretBase()
     {
     }
-    SemiSecret(long other) :
-            SemiShare<BitVec>(other)
+    SemiSecretBase(long other) :
+            V(other)
     {
     }
-    SemiSecret(const IntBase& other) :
-            SemiShare<BitVec>(other)
+    template<class U>
+    SemiSecretBase(const IntBase<U>& other) :
+            V(other)
     {
     }
     template<int K>
-    SemiSecret(const Z2<K>& other) :
-            SemiShare<BitVec>(other)
+    SemiSecretBase(const Z2<K>& other) :
+            V(other)
     {
     }
 
     void load_clear(int n, const Integer& x);
 
-    void bitcom(Memory<SemiSecret>& S, const vector<int>& regs);
-    void bitdec(Memory<SemiSecret>& S, const vector<int>& regs) const;
+    void bitcom(Memory<T>& S, const vector<int>& regs);
+    void bitdec(Memory<T>& S, const vector<int>& regs) const;
 
-    void xor_(int n, const SemiSecret& x, const SemiSecret& y)
+    void xor_(int n, const T& x, const T& y)
     { *this = BitVec(x ^ y).mask(n); }
 
-    void xor_bit(int i, const SemiSecret& bit)
+    void xor_bit(int i, const T& bit)
     { *this ^= bit << i; }
 
     void reveal(size_t n_bits, Clear& x);
 
-    SemiSecret lsb()
+    T lsb()
     { return *this & 1; }
+};
+
+class SemiSecret: public SemiSecretBase<SemiSecret, SemiShare<BitVec>>
+{
+    typedef SemiSecret This;
+
+public:
+    typedef SemiSecretBase<SemiSecret, SemiShare<BitVec>> super;
+
+    typedef SemiMC<This> MC;
+    typedef DirectSemiMC<This> Direct_MC;
+    typedef MC MAC_Check;
+    typedef SemiInput<This> Input;
+    typedef SemiPrep LivePrep;
+
+    static MC* new_mc(typename SemiShare<BitVec>::mac_key_type);
+
+    SemiSecret()
+    {
+    }
+
+    template<class T>
+    SemiSecret(const T& other) :
+            super(other)
+    {
+    }
+};
+
+class DealerSecret : public SemiSecretBase<DealerSecret, DealerShare<BitVec>>
+{
+    typedef DealerSecret This;
+
+public:
+    typedef SemiSecretBase<DealerSecret, DealerShare<BitVec>> super;
+
+    typedef DealerMC<This> MC;
+    typedef DirectDealerMC<This> Direct_MC;
+    typedef MC MAC_Check;
+    typedef DealerInput<This> Input;
+    typedef DealerPrep LivePrep;
+
+    static MC* new_mc(typename super::mac_key_type);
+
+    DealerSecret()
+    {
+    }
+
+    template<class T>
+    DealerSecret(const T& other) :
+            super(other)
+    {
+    }
 };
 
 } /* namespace GC */

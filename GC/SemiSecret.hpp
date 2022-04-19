@@ -4,17 +4,20 @@
  */
 
 #include "GC/ShareParty.h"
-#include "SemiSecret.h"
-
 #include "GC/ShareSecret.hpp"
 #include "Protocols/MAC_Check_Base.hpp"
+#include "Protocols/DealerMC.h"
+#include "SemiSecret.h"
 
 namespace GC
 {
 
-const int SemiSecret::default_length;
+template<class T, class V>
+const int SemiSecretBase<T, V>::default_length;
 
-SemiSecret::MC* SemiSecret::new_mc(mac_key_type)
+inline
+SemiSecret::MC* SemiSecret::new_mc(
+        typename super::mac_key_type)
 {
     if (OnlineOptions::singleton.direct)
         return new Direct_MC;
@@ -22,7 +25,18 @@ SemiSecret::MC* SemiSecret::new_mc(mac_key_type)
         return new MC;
 }
 
-void SemiSecret::trans(Processor<SemiSecret>& processor, int n_outputs,
+inline
+DealerSecret::MC* DealerSecret::new_mc(
+        typename super::mac_key_type)
+{
+    if (OnlineOptions::singleton.direct)
+        return new Direct_MC;
+    else
+        return new MC;
+}
+
+template<class T, class V>
+void SemiSecretBase<T, V>::trans(Processor<T>& processor, int n_outputs,
         const vector<int>& args)
 {
     int N_BITS = default_length;
@@ -46,29 +60,33 @@ void SemiSecret::trans(Processor<SemiSecret>& processor, int n_outputs,
         }
 }
 
-void SemiSecret::load_clear(int n, const Integer& x)
+template<class T, class V>
+void SemiSecretBase<T, V>::load_clear(int n, const Integer& x)
 {
-    check_length(n, x);
-    *this = constant(x, ShareThread<SemiSecret>::s().P->my_num());
+    this->check_length(n, x);
+    *this = this->constant(x, ShareThread<T>::s().P->my_num());
 }
 
-void SemiSecret::bitcom(Memory<SemiSecret>& S, const vector<int>& regs)
+template<class T, class V>
+void SemiSecretBase<T, V>::bitcom(Memory<T>& S, const vector<int>& regs)
 {
     *this = 0;
     for (unsigned int i = 0; i < regs.size(); i++)
         *this ^= (S[regs[i]] << i);
 }
 
-void SemiSecret::bitdec(Memory<SemiSecret>& S,
+template<class T, class V>
+void SemiSecretBase<T, V>::bitdec(Memory<T>& S,
         const vector<int>& regs) const
 {
     for (unsigned int i = 0; i < regs.size(); i++)
         S[regs[i]] = (*this >> i) & 1;
 }
 
-void SemiSecret::reveal(size_t n_bits, Clear& x)
+template<class T, class V>
+void SemiSecretBase<T, V>::reveal(size_t n_bits, Clear& x)
 {
-    auto& thread = ShareThread<SemiSecret>::s();
+    auto& thread = ShareThread<T>::s();
     x = thread.MC->POpen(*this, *thread.P).mask(n_bits);
 }
 

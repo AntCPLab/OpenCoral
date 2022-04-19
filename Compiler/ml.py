@@ -1079,14 +1079,17 @@ class MaxPool(NoVariableLayer):
             (type(self).__name__, self.X.sizes, self.strides,
              self.ksize, self.padding)
 
-    def _forward(self, batch):
+    def forward(self, batch=None, training=False):
+        if batch is None:
+            batch = Array.create_from(regint(0))
         def process(pool, bi, k, i, j):
             def m(a, b):
                 c = a[0] > b[0]
                 l = [c * x for x in a[1]]
                 l += [(1 - c) * x for x in b[1]]
                 return c.if_else(a[0], b[0]), l
-            red = util.tree_reduce(m, [(x[0], [1]) for x in pool])
+            red = util.tree_reduce(m, [(x[0], [1] if training else [])
+                                       for x in pool])
             self.Y[bi][i][j][k] = red[0]
             for i, x in enumerate(red[1]):
                 self.comparisons[bi][k][i] = x

@@ -20,6 +20,7 @@ template<class T, int L> class FixedVec;
 template<class T, class V> class Share_;
 template<class T> class SpdzWiseShare;
 template<class> class MaliciousRep3Share;
+template<class> class DealerShare;
 
 namespace GC
 {
@@ -115,7 +116,6 @@ void make_share(GC::TinierSecret<T>* Sa, const U& a, int N, const V& key, PRNG& 
 template<class T, class U>
 void make_share(SemiShare<T>* Sa,const T& a,int N,const U&,PRNG& G)
 {
-  insecure("share generation", false);
   T x, S = a;
   for (int i=0; i<N-1; i++)
     {
@@ -124,6 +124,13 @@ void make_share(SemiShare<T>* Sa,const T& a,int N,const U&,PRNG& G)
       S -= x;
     }
   Sa[N-1]=S;
+}
+
+template<class T, class U>
+void make_share(DealerShare<T>* Sa, const T& a, int N, const U&, PRNG& G)
+{
+  make_share((SemiShare<T>*) Sa, a, N - 1, U(), G);
+  Sa[N - 1] = {};
 }
 
 template<class T, class U, class V>
@@ -234,7 +241,7 @@ void check_share(vector<Share<T> >& Sa,
 
 template<class T>
 void check_share(vector<T>& Sa, typename T::clear& value,
-    typename T::value_type& mac, int N, const typename T::value_type& key)
+    typename T::mac_type& mac, int N, const typename T::mac_key_type& key)
 {
   assert(N == 3);
   value = 0;
@@ -340,23 +347,27 @@ typename T::mac_key_type read_generate_write_mac_key(Player& P,
 {
   if (directory == "")
     directory = get_prep_sub_dir<T>(P.num_players());
-  typename T::mac_key_type res;
+  typename T::mac_key_type res, tmp;
 
   try
   {
-      read_mac_key(directory, P.my_num(), P.num_players(), res);
+      read_mac_key(directory, P.my_num(), P.num_players(), tmp);
   }
   catch (mac_key_error&)
   {
-      T::read_or_generate_mac_key(directory, P, res);
-      write_mac_key(directory, P.my_num(), P.num_players(), res);
   }
+
+  T::read_or_generate_mac_key(directory, P, res);
+
+  // only write if changed
+  if (tmp != res)
+      write_mac_key(directory, P.my_num(), P.num_players(), res);
 
   return res;
 }
 
 template <class U>
-void read_global_mac_key(const string& directory, int nparties, U& key)
+void read_global_mac_key(const string& directory, int nparties, U& key, false_type)
 {
   U pp;
   key.assign_zero();
@@ -370,6 +381,17 @@ void read_global_mac_key(const string& directory, int nparties, U& key)
 
   cout << "--------------\n";
   cout << "Final Keys : " << key << endl;
+}
+
+template <class U>
+void read_global_mac_key(const string&, int, U&, true_type)
+{
+}
+
+template <class U>
+void read_global_mac_key(const string& directory, int nparties, U& key)
+{
+  read_global_mac_key(directory, nparties, key, is_same<U, GC::NoValue>());
 }
 
 template <class T>
@@ -546,6 +568,27 @@ void make_inverse(const typename T::mac_type& key, int N, int ntrip, bool zero,
       files.output_shares(a.invert());
     }
   check_files(files.outf, N);
+}
+
+template<class T>
+void plain_edabits(vector<typename T::clear>& as,
+    vector<typename T::bit_type::part_type::clear>& bs, int length, PRNG& G,
+    bool zero = false)
+{
+  int max_size = edabitvec<T>::MAX_SIZE;
+  as.resize(max_size);
+  bs.clear();
+  bs.resize(length);
+  bigint value;
+  for (int j = 0; j < max_size; j++)
+    {
+      if (not zero)
+        G.get_bigint(value, length, true);
+      as[j] = value;
+      for (int k = 0; k < length; k++)
+        bs[k] ^= BitVec(bigint((value >> k) & 1).get_si()) << j;
+    }
+
 }
 
 #endif

@@ -49,8 +49,8 @@ public:
      * @param n number of values
      * @returns vector of integer-like values
      */
-    template<class T>
-    vector<T> receive_outputs(int n);
+    template<class T, class U = T>
+    vector<U> receive_outputs(int n);
 };
 
 #endif /* EXTERNALIO_CLIENT_H_ */

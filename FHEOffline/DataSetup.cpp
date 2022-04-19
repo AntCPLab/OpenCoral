@@ -40,10 +40,9 @@ template <class FD>
 void PartSetup<FD>::generate_setup(int n_parties, int plaintext_length, int sec,
     int slack, bool round_up)
 {
-  sec = max(sec, 40);
+  params.set_min_sec(sec);
   Parameters(n_parties, plaintext_length, sec, slack, round_up).generate_setup(
       params, FieldD);
-  params.set_sec(sec);
   pk = FHE_PK(params, FieldD.get_prime());
   sk = FHE_SK(params, FieldD.get_prime());
   calpha = Ciphertext(params);
@@ -180,11 +179,8 @@ void PartSetup<P2Data>::init_field()
 }
 
 template <class FD>
-void PartSetup<FD>::check(int sec) const
+void PartSetup<FD>::check() const
 {
-    sec = max(sec, 40);
-    if (abs(sec - params.secp()) > 2)
-        throw runtime_error("security parameters vary too much between protocol and distributed decryption");
     sk.check(params, pk, FieldD.get_prime());
 }
 

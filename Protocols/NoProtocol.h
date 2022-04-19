@@ -8,6 +8,7 @@
 
 #include "Protocols/Replicated.h"
 #include "Protocols/MAC_Check_Base.h"
+#include "Processor/Input.h"
 
 // opening facility
 template<class T>

@@ -9,6 +9,7 @@
 #include "Protocols/Beaver.h"
 #include "Protocols/Semi.h"
 #include "Processor/DummyProtocol.h"
+#include "GC/NoShare.h"
 #include "ShareInterface.h"
 
 #include <string>
@@ -51,8 +52,6 @@ class SemiShare : public T, public ShareInterface
     typedef T super;
 
 public:
-    typedef T mac_key_type;
-    typedef T mac_type;
     typedef T open_type;
     typedef T clear;
 
@@ -87,10 +86,10 @@ public:
         return nplayers - 1;
     }
 
-    static SemiShare constant(const clear& other, int my_num,
-            const T& alphai = {}, int = -1)
+    static SemiShare constant(const open_type& other, int my_num,
+            mac_key_type = {}, int = -1)
     {
-        return SemiShare(other, my_num, alphai);
+        return SemiShare(other, my_num);
     }
 
     SemiShare()
@@ -100,7 +99,7 @@ public:
     SemiShare(const U& other) : T(other)
     {
     }
-    SemiShare(const clear& other, int my_num, const T& alphai = {})
+    SemiShare(const open_type& other, int my_num, const T& alphai = {})
     {
         (void) alphai;
         Protocol::assign(*this, other, my_num);

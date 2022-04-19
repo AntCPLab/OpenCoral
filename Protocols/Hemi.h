@@ -16,6 +16,7 @@ template<class T>
 class Hemi : public Semi<T>
 {
     map<array<int, 3>, HemiMatrixPrep<T>*> matrix_preps;
+    DataPositions matrix_usage;
 
     ShareMatrix<T> matrix_multiply(const ShareMatrix<T>& A, const ShareMatrix<T>& B,
             SubProcessor<T>& processor);

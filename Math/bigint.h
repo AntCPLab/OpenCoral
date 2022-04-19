@@ -12,6 +12,7 @@ using namespace std;
 #include "Tools/random.h"
 #include "Tools/octetStream.h"
 #include "Tools/avx_memcpy.h"
+#include "Protocols/config.h"
 
 enum ReportType
 {
@@ -270,7 +271,8 @@ inline int probPrime(const bigint& x)
 {
   gmp_randstate_t rand_state;
   gmp_randinit_default(rand_state);
-  int ans=mpz_probable_prime_p(x.get_mpz_t(),rand_state,40,0);
+  int ans = mpz_probable_prime_p(x.get_mpz_t(), rand_state,
+      max(40, DEFAULT_SECURITY), 0);
   gmp_randclear(rand_state);
   return ans;
 }

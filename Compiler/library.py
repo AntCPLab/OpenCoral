@@ -1149,6 +1149,7 @@ def multithread(n_threads, n_items=None, max_size=None):
 
     :param n_threads: compile-time (int)
     :param n_items: regint/cint/int (default: :py:obj:`n_threads`)
+    :param max_size: maximum size to be processed at once (default: no limit)
 
     The following executes ``f(0, 8)``, ``f(8, 8)``, and
     ``f(16, 9)`` in three different threads:
@@ -1365,6 +1366,18 @@ def tree_reduce_multithread(n_threads, function, vector):
             inputs[left // 2] = inputs[left - 1]
         left = (left + 1) // 2
     return inputs[0]
+
+def tree_reduce(function, sequence):
+    """ Round-efficient reduction. The following computes the maximum
+    of the list :py:obj:`l`::
+
+      m = tree_reduce(lambda x, y: x.max(y), l)
+
+    :param function: reduction function taking two arguments
+    :param sequence: list, vector, or array
+
+    """
+    return util.tree_reduce(function, sequence)
 
 def foreach_enumerate(a):
     """ Run-time loop over public data. This uses

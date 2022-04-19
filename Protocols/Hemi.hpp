@@ -27,7 +27,8 @@ HemiMatrixPrep<T>& Hemi<T>::get_matrix_prep(const array<int, 3>& dims,
     if (matrix_preps.find(dims) == matrix_preps.end())
         matrix_preps.insert({dims,
             new HemiMatrixPrep<T>(dims[0], dims[1], dims[2],
-                    dynamic_cast<typename T::LivePrep&>(processor.DataF))});
+                    dynamic_cast<typename T::LivePrep&>(processor.DataF),
+                    matrix_usage)});
     return *matrix_preps.at(dims);
 }
 

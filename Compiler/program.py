@@ -400,6 +400,9 @@ class Program(object):
             self.allocated_mem[mem_type] += size
             if len(str(addr)) != len(str(addr + size)) and self.verbose:
                 print("Memory of type '%s' now of size %d" % (mem_type, addr + size))
+            if addr + size >= 2 ** 32:
+                raise CompilerError("allocation exceeded for type '%s'" %
+                                    mem_type)
         self.allocated_mem_blocks[addr,mem_type] = size
         if single_size:
             from .library import get_thread_number, runtime_error_if

@@ -28,6 +28,8 @@
 
 int main(int argc, const char** argv)
 {
-    gf2n_short::init_field(40);
+    ez::ezOptionParser opt;
+    OnlineOptions opts(opt, argc, argv);
+    gf2n_short::init_minimum(opts.security_parameter);
     GC::simple_binary_main<GC::TinierSecret<gf2n_short>>(argc, argv, 1000);
 }

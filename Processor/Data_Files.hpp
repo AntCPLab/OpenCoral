@@ -299,9 +299,7 @@ template<int>
 void Sub_Data_Files<T>::buffer_edabits_with_queues(bool strict, int n_bits,
         false_type)
 {
-#ifndef INSECURE
-  throw runtime_error("no secure implementation of reading edaBits from files");
-#endif
+  insecure("reading edaBits from files");
   if (edabit_buffers.find(n_bits) == edabit_buffers.end())
     {
       string filename = PrepBase::get_edabit_filename(prep_data_dir,

@@ -218,24 +218,10 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       // instructions with 1 register + 1 integer operand
       case LDI:
       case LDSI:
-      case LDMC:
-      case LDMS:
-      case STMC:
-      case STMS:
-      case LDMSB:
-      case STMSB:
-      case LDMCB:
-      case STMCB:
-      case LDMINT:
-      case STMINT:
       case JMPNZ:
       case JMPEQZ:
       case GLDI:
       case GLDSI:
-      case GLDMC:
-      case GLDMS:
-      case GSTMC:
-      case GSTMS:
       case PRINTREG:
       case PRINTREGB:
       case GPRINTREG:
@@ -246,6 +232,24 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case RANDOMS:
         r[0]=get_int(s);
         n = get_int(s);
+        break;
+      // instructions with 1 register + 1 long operand
+      case LDMC:
+      case LDMS:
+      case STMC:
+      case STMS:
+      case LDMSB:
+      case STMSB:
+      case LDMCB:
+      case STMCB:
+      case LDMINT:
+      case STMINT:
+      case GLDMC:
+      case GLDMS:
+      case GSTMC:
+      case GSTMS:
+        r[0] = get_int(s);
+        n = get_long(s);
         break;
       // instructions with 1 integer operand
       case PRINTSTR:
@@ -783,7 +787,7 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
 }
 
 inline
-unsigned BaseInstruction::get_mem(RegType reg_type) const
+size_t BaseInstruction::get_mem(RegType reg_type) const
 {
   if (get_reg_type() == reg_type and is_direct_memory_access())
     return n + size;
@@ -843,7 +847,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
   }
 
   int r[3] = {this->r[0], this->r[1], this->r[2]};
-  int n = this->n;
+  int64_t n = this->n;
   for (int i = 0; i < size; i++) 
   { switch (opcode)
     {
@@ -1065,7 +1069,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       case PRINTREG:
            {
              Proc.out << "Reg[" << r[0] << "] = " << Proc.read_Cp(r[0])
-              << " # " << string((char*)&n,sizeof(n)) << endl;
+              << " # " << string((char*)&n, 4) << endl;
            }
         break;
       case PRINTREGPLAIN:
@@ -1085,7 +1089,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       case CONDPRINTSTR:
           if (not Proc.read_Cp(r[0]).is_zero())
             {
-              string str = {(char*)&n, sizeof(n)};
+              string str = {(char*)&n, 4};
               size_t n = str.find('\0');
               if (n < 4)
                 str.erase(n);
@@ -1313,7 +1317,7 @@ void Instruction::print(SwitchableOutput& out, T* v, T* p, T* s, T* z, T* nan) c
     out << "[";
   for (int i = 0; i < size; i++)
     {
-      if (p == 0)
+      if (p == 0 or (*p == 0 and s == 0))
         out << v[i];
       else if (s == 0)
         out << bigint::get_float(v[i], p[i], {}, {});

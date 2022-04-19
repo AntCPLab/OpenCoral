@@ -3,6 +3,9 @@ This modules contains basic types for binary circuits. The
 fixed-length types obtained by :py:obj:`get_type(n)` are the preferred
 way of using them, and in some cases required in connection with
 container types.
+
+Computation using these types will always be executed as a binary
+circuit. See :ref:`protocol-pairs` for the exact protocols.
 """
 
 from Compiler.types import MemValue, read_mem_value, regint, Array, cint
@@ -17,7 +20,6 @@ import math
 from functools import reduce
 
 class bits(Tape.Register, _structure, _bit):
-    """ Base class for binary registers. """
     n = 40
     unit = 64
     PreOp = staticmethod(floatingpoint.PreOpN)
@@ -400,12 +402,18 @@ class sbits(bits):
         res = sbit()
         inst.bitb(res)
         return res
+    @staticmethod
+    def _check_input_player(player):
+        if not util.is_constant(player):
+            raise CompilerError('player must be known at compile time '
+                                'for binary circuit inputs')
     @classmethod
     def get_input_from(cls, player, n_bits=None):
         """ Secret input from :py:obj:`player`.
 
         :param: player (int)
         """
+        cls._check_input_player(player)
         if n_bits is None:
             n_bits = cls.n
         res = cls()
@@ -653,6 +661,7 @@ class sbitvec(_vec):
 
                 :param: player (int)
                 """
+                sbits._check_input_player(player)
                 res = cls.from_vec(sbit() for i in range(n))
                 inst.inputbvec(n + 3, 0, player, *res.v)
                 return res
@@ -780,6 +789,8 @@ class sbitvec(_vec):
             size = other.size
             return (other.get_vector(base, min(64, size - base)) \
                     for base in range(0, size, 64))
+        if not isinstance(other, type(self)):
+            return type(self)(other)
         return other
     def __xor__(self, other):
         other = self.coerce(other)
@@ -1222,6 +1233,7 @@ class sbitfix(_fix):
 
         :param: player (int)
         """
+        sbits._check_input_player(player)
         v = cls.int_type()
         inst.inputb(player, cls.k, cls.f, v)
         return cls._new(v)
@@ -1287,6 +1299,7 @@ class sbitfixvec(_fix):
         :param: player (int)
         """
         v = [sbit() for i in range(sbitfix.k)]
+        sbits._check_input_player(player)
         inst.inputbvec(len(v) + 3, sbitfix.f, player, *v)
         return cls._new(cls.int_type.from_vec(v))
     def __init__(self, value=None, *args, **kwargs):

@@ -278,4 +278,10 @@ public:
     insufficient_memory(size_t size, const string& type);
 };
 
+class gf2n_not_supported : public runtime_error
+{
+public:
+    gf2n_not_supported(int n);
+};
+
 #endif

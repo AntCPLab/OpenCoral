@@ -116,7 +116,7 @@ class Names
   Names(ez::ezOptionParser& opt, int argc, const char** argv,
       int default_nplayers = 2);
 
-  Names() : nplayers(1), portnum_base(-1), player_no(0), server(0) { ; }
+  Names(int my_num = 0, int num_players = 1);
   Names(const Names& other);
   ~Names();
 
@@ -159,6 +159,7 @@ public:
   NamedCommStats operator-(const NamedCommStats& other) const;
   size_t total_data();
   void print(bool newline = false);
+  void reset();
 #ifdef VERBOSE_COMM
   CommStats& operator[](const string& name)
   {
@@ -190,10 +191,19 @@ public:
   virtual int my_num() const = 0;
   virtual int num_players() const = 0;
 
-  virtual void pass_around(octetStream& o, int offset = 1) const = 0;
-  virtual void Broadcast_Receive(vector<octetStream>& o) const = 0;
+  virtual void receive_player(int, octetStream&) const
+  { throw not_implemented(); }
+  virtual void pass_around(octetStream&, int = 1) const
+  { throw not_implemented(); }
+  virtual void Broadcast_Receive(vector<octetStream>&) const
+  { throw not_implemented(); }
   virtual void unchecked_broadcast(vector<octetStream>& o) const
   { Broadcast_Receive(o); }
+  virtual void send_receive_all(const vector<octetStream>&,
+      vector<octetStream>&) const
+  { throw not_implemented(); }
+
+  void reset_stats();
 };
 
 /**
@@ -230,8 +240,8 @@ public:
 
   virtual bool is_encrypted() { return false; }
 
-  virtual void send_long(int i, long a) const = 0;
-  virtual long receive_long(int i) const = 0;
+  virtual void send_long(int, long) const { throw not_implemented(); }
+  virtual long receive_long(int) const { throw not_implemented(); }
 
   // The following functions generally update the statistics
   // and then call the *_no_stats equivalent specified by a subclass.
@@ -283,7 +293,8 @@ public:
    * reusing the buffer if possible.
    */
   void exchange(int other, const octetStream& to_send, octetStream& ot_receive) const;
-  virtual void exchange_no_stats(int other, const octetStream& to_send, octetStream& ot_receive) const = 0;
+  virtual void exchange_no_stats(int, const octetStream&, octetStream&) const
+  { throw runtime_error("implement exchange"); }
   /**
    * Exchange information with one other party, reusing the buffer.
    */
@@ -304,8 +315,8 @@ public:
    * The default is to send to the next party while receiving from the previous.
    */
   void pass_around(octetStream& to_send, octetStream& to_receive, int offset) const;
-  virtual void pass_around_no_stats(const octetStream& to_send,
-      octetStream& to_receive, int offset) const = 0;
+  virtual void pass_around_no_stats(const octetStream&, octetStream&,
+      int) const { throw runtime_error("implement passing around"); }
 
   /**
    * Broadcast and receive data to/from all players.
@@ -317,7 +328,8 @@ public:
    * Assumes o[player_no] contains the data to be broadcast by me.
    */
   virtual void Broadcast_Receive(vector<octetStream>& o) const;
-  virtual void Broadcast_Receive_no_stats(vector<octetStream>& o) const = 0;
+  virtual void Broadcast_Receive_no_stats(vector<octetStream>&) const
+  { throw runtime_error("implement broadcast"); }
 
   /**
    * Run protocol to verify broadcast is correct

@@ -29,7 +29,7 @@ void PairwiseMachine::init()
 {
     if (use_gf2n)
     {
-        field_size = 40;
+        field_size = gf2n_short::DEFAULT_LENGTH;
         gf2n_short::init_field(field_size);
         setup_keys<P2Data>();
     }
@@ -67,7 +67,7 @@ void PairwiseMachine::setup_keys()
 {
     auto& N = P;
     PairwiseSetup<FD>& s = setup<FD>();
-    s.init(P, drown_sec, field_size, extra_slack);
+    s.init(P, sec, field_size, extra_slack);
     if (output)
         write_mac_key(get_prep_dir<FD>(P), P.my_num(), P.num_players(), s.alphai);
     for (auto& x : other_pks)

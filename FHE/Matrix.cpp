@@ -68,6 +68,10 @@ void HNF(matrix& H,matrix& U,const matrix& A)
 {
   int m=A.size(),n=A[0].size(),r,i,j,k;
   
+#ifdef VERBOSE
+  cerr << "HNF m=" << m << ", n=" << n << endl;
+#endif
+
   H=A;
   ident(U,n);
   r=min(m,n);
@@ -79,9 +83,9 @@ void HNF(matrix& H,matrix& U,const matrix& A)
     { if (step==2)
         { // Step 2
           k=-1;
-          mn=bigint(1)<<256;
+          mn=bigint(0);
           for (j=i; j<n; j++)
-	    { if (H[i][j]!=0 && abs(H[i][j])<mn)
+	    { if (H[i][j]!=0 && (abs(H[i][j])<mn || mn == 0))
 	        { k=j; mn=abs(H[i][j]); }
             }
           if (k!=-1)
@@ -207,6 +211,11 @@ void SNF_Step(matrix& S,matrix& V)
 void SNF(matrix& S,const matrix& A,matrix& V)
 {
   int m=A.size(),n=A[0].size();
+
+#ifdef VERBOSE
+  cerr << "SNF m=" << m << ", n=" << n << endl;
+#endif
+
   S=A;
   ident(V,n);
 

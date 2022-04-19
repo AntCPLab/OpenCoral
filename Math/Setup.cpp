@@ -27,6 +27,13 @@ void SPDZ_Data_Setup_Primes(bigint& p,int lgp,int& idx,int& m)
   cerr << "Setting up parameters" << endl;
 #endif
 
+  m = default_m(lgp, idx);
+  generate_prime(p, lgp, m);
+}
+
+int default_m(int& lgp, int& idx)
+{
+  int m;
   switch (lgp)
     { case -1:
         m=16;
@@ -56,15 +63,12 @@ void SPDZ_Data_Setup_Primes(bigint& p,int lgp,int& idx,int& m)
       default:
         m=1;
         idx=0;
-#ifdef VERBOSE
-        cerr << "no precomputed parameters, trying anyway" << endl;
-#endif
         break;
     }
 #ifdef VERBOSE
   cerr << "m = " << m << endl;
 #endif
-  generate_prime(p, lgp, m);
+  return m;
 }
 
 bigint generate_prime(int lgp, int m)
@@ -94,6 +98,9 @@ void generate_prime(bigint& p, int lgp, int m)
       else
           return;
     }
+
+  int idx;
+  m = max(m, default_m(lgp, idx));
 
   bigint u;
   int ex;

@@ -5,6 +5,7 @@
 
 #include "Protocols/Spdz2kShare.h"
 #include "Protocols/Spdz2kPrep.h"
+#include "Protocols/SPDZ2k.h"
 
 #include "GC/TinySecret.h"
 #include "GC/TinyMC.h"

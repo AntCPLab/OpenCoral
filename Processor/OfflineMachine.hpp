@@ -37,12 +37,15 @@ template<class T, class U>
 int OfflineMachine<W>::run()
 {
     T::clear::init_default(this->online_opts.prime_length());
-    U::clear::init_field(U::clear::default_degree());
-    T::bit_type::mac_key_type::init_field();
+    Machine<T, U>::init_binary_domains(this->online_opts.security_parameter,
+            this->lg2);
     auto binary_mac_key = read_generate_write_mac_key<
             typename T::bit_type::part_type>(P);
     typename T::bit_type::LivePrep bit_prep(usage);
     GC::ShareThread<typename T::bit_type> thread(bit_prep, P, binary_mac_key);
+
+    // setup before generation to fix prime
+    T::LivePrep::basic_setup(P);
 
     generate<T>();
     generate<typename T::bit_type::part_type>();

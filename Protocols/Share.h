@@ -73,7 +73,7 @@ class Share_ : public ShareInterface
    static void specification(octetStream& os)
      { T::specification(os); }
 
-   static Share_ constant(const clear& aa, int my_num, const typename V::Scalar& alphai)
+   static Share_ constant(const open_type& aa, int my_num, const typename V::Scalar& alphai)
      { return Share_(aa, my_num, alphai); }
 
    template<class U, class W>
@@ -85,12 +85,12 @@ class Share_ : public ShareInterface
      { a.assign_zero(); 
        mac.assign_zero(); 
      }
-   void assign(const clear& aa, int my_num, const typename V::Scalar& alphai);
+   void assign(const open_type& aa, int my_num, const typename V::Scalar& alphai);
 
    Share_()                   { assign_zero(); }
    template<class U, class W>
    Share_(const Share_<U, W>& S) { assign(S); }
-   Share_(const clear& aa, int my_num, const typename V::Scalar& alphai)
+   Share_(const open_type& aa, int my_num, const typename V::Scalar& alphai)
      { assign(aa, my_num, alphai); }
    Share_(const T& share, const V& mac) : a(share), mac(mac) {}
 
@@ -127,6 +127,8 @@ class Share_ : public ShareInterface
    Share_<T, V> operator>>(int i) const { return {a >> i, mac >> i}; }
 
    void force_to_bit() { a.force_to_bit(); }
+
+   void randomize(PRNG& G);
 
    // Input and output from a stream
    //  - Can do in human or machine only format (later should be faster)
@@ -235,7 +237,7 @@ inline void Share_<T, V>::mul(const Share_<T, V>& S,const clear& aa)
 }
 
 template<class T, class V>
-inline void Share_<T, V>::assign(const clear& aa, int my_num,
+inline void Share_<T, V>::assign(const open_type& aa, int my_num,
     const typename V::Scalar& alphai)
 {
   a = T::constant(aa, my_num);

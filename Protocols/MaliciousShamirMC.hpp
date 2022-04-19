@@ -33,7 +33,7 @@ void MaliciousShamirMC<T>::init_open(const Player& P, int n)
 }
 
 template<class T>
-typename T::open_type MaliciousShamirMC<T>::finalize_open()
+typename T::open_type MaliciousShamirMC<T>::finalize_raw()
 {
     int threshold = ShamirMachine::s().threshold;
     shares.resize(2 * threshold + 1);

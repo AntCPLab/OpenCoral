@@ -17,11 +17,11 @@ protected:
     const char** argv;
     OnlineOptions& online_opts;
 
-    int lg2, opening_sum, max_broadcast;
+    int lg2;
 
     Names playerNames;
 
-    bool use_encryption, receive_threads;
+    bool use_encryption;
 
     ez::ezOptionParser& opt;
 

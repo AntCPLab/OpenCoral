@@ -18,7 +18,7 @@ class SemiInput : public InputBase<T>
 {
     vector<SeededPRNG> send_prngs;
     vector<PRNG> recv_prngs;
-    Player& P;
+    PlayerBase& P;
     vector<PointerVector<T>> shares;
 
 public:
@@ -27,7 +27,7 @@ public:
     {
     }
 
-    SemiInput(SubProcessor<T>* proc, Player& P);
+    SemiInput(SubProcessor<T>* proc, PlayerBase& P);
 
     SemiInput(typename T::MAC_Check& MC, Preprocessing<T>& prep, Player& P) :
             SemiInput(0, P)

@@ -27,8 +27,6 @@ class RepShare : public FixedVec<T, L>, public ShareInterface
 public:
     typedef T clear;
     typedef T open_type;
-    typedef T mac_type;
-    typedef T mac_key_type;
 
     const static bool needs_ot = false;
     const static bool dishonest_majority = false;
@@ -138,9 +136,10 @@ public:
         return T::type_char();
     }
 
-    static Rep3Share constant(T value, int my_num, const T& alphai = {})
+    static Rep3Share constant(T value, int my_num,
+            typename super::mac_key_type = {})
     {
-        return Rep3Share(value, my_num, alphai);
+        return Rep3Share(value, my_num);
     }
 
     Rep3Share()

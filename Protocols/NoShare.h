@@ -25,9 +25,6 @@ public:
     typedef T clear;
     typedef clear open_type;
 
-    // needs to be defined even if protocol doesn't use MACs
-    typedef clear mac_key_type;
-
     // disable binary computation
     typedef GC::NoShare bit_type;
 

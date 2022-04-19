@@ -26,6 +26,7 @@
 #include "Protocols/Hemi.hpp"
 #include "GC/ShareSecret.hpp"
 #include "GC/SemiHonestRepPrep.h"
+#include "GC/SemiSecret.hpp"
 #include "Math/gfp.hpp"
 
 int main(int argc, const char** argv)

@@ -20,6 +20,7 @@ template<size_t L>
 inline void avx_memcpy(void* dest, const void* source)
 {
 	size_t length = L;
+#ifdef __SSE2__
 	__m256i* d = (__m256i*)dest, *s = (__m256i*)source;
 #ifdef __AVX__
 	while (length >= 32)
@@ -35,6 +36,10 @@ inline void avx_memcpy(void* dest, const void* source)
 		_mm_storeu_si128(d2++, _mm_loadu_si128(s2++));
 		length -= 16;
 	}
+#else
+	void* d2 = dest;
+	const void* s2 = source;
+#endif
 	switch (length)
 	{
 	case 0:
@@ -53,14 +58,16 @@ inline void avx_memcpy(void* dest, const void* source)
 
 inline void avx_memzero(void* dest, size_t length)
 {
-	__m256i* d = (__m256i*)dest;
 #ifdef __AVX__
+	__m256i* d = (__m256i*)dest;
 	__m256i s = _mm256_setzero_si256();
 	while (length >= 32)
 	{
 		_mm256_storeu_si256(d++, s);
 		length -= 32;
 	}
+#else
+	void* d = dest;
 #endif
 	switch (length)
 	{

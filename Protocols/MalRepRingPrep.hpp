@@ -89,7 +89,7 @@ void MalRepRingPrep<T>::simple_buffer_triples()
 template<class T>
 void MalRepRingPrep<T>::shuffle_buffer_triples()
 {
-    assert(T::SECURITY <= 40);
+    assert(T::SECURITY <= OnlineOptions::singleton.security_parameter);
     assert(this->proc != 0);
     typename T::MAC_Check MC;
     shuffle_triple_generation(this->triples, this->proc->P, MC);

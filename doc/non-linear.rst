@@ -56,6 +56,10 @@ Power-of-two modulus
     mask-and-reveal approach above to the setting of computation
     modulo a power of two.
 
+See also `this slide deck
+<https://mkskeller.github.io/files/programming.pdf>`_ for an
+introduction to non-linear computation in arithmetic MPC.
+
 
 Mixed-Circuit Computation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -70,6 +74,12 @@ more general methods such as `daBits
 <https://eprint.iacr.org/2019/207>`_ and `edaBits
 <https://eprint.iacr.org/2020/338>`_.
 
+See also `this slide deck
+<https://mkskeller.github.io/files/mixed.pdf>`_ for an introduction to
+mixed-circuit computation.
+
+
+.. _protocol-pairs:
 
 Protocol Pairs
 ==============

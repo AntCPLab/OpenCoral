@@ -146,10 +146,18 @@ void Names::setup_names(const char *servername, int my_port)
 #endif
 
   // Now get the set of names
-  octetStream os;
-  os.Receive(socket_num);
-  os.get(names);
-  os.get(ports);
+  try
+  {
+    octetStream os;
+    os.Receive(socket_num);
+    os.get(names);
+    os.get(ports);
+  }
+  catch (exception& e)
+  {
+    throw runtime_error(string("error in network setup: ") + e.what());
+  }
+
   if (names.size() != ports.size())
     throw runtime_error("invalid network setup");
   nplayers = names.size();
@@ -184,6 +192,11 @@ Names::Names(const Names& other)
   names = other.names;
   ports = other.ports;
   server = 0;
+}
+
+Names::Names(int my_num, int num_players) :
+    nplayers(num_players), portnum_base(-1), player_no(my_num), server(0)
+{
 }
 
 Names::~Names()
@@ -815,6 +828,17 @@ void NamedCommStats::print(bool newline)
       << " seconds" << endl;
   if (size() and newline)
     cerr << endl;
+}
+
+void NamedCommStats::reset()
+{
+  clear();
+  sent = 0;
+}
+
+void PlayerBase::reset_stats()
+{
+  comm_stats.reset();
 }
 
 NamedCommStats Player::total_comm() const

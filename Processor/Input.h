@@ -26,7 +26,7 @@ class InputBase
     typedef typename T::clear clear;
 
 protected:
-    Player* P;
+    PlayerBase* P;
     int my_num;
 
     Buffer<typename T::clear, typename T::clear> buffer;
@@ -63,7 +63,7 @@ public:
     /// Initialize input round for ``player``
     virtual void reset(int player) = 0;
     /// Initialize input round for all players
-    void reset_all(Player& P);
+    void reset_all(PlayerBase& P);
 
     /// Schedule input from me
     virtual void add_mine(const typename T::open_type& input, int n_bits = -1) = 0;

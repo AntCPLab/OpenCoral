@@ -14,6 +14,7 @@
 #include "GC/Thread.hpp"
 #include "GC/ThreadMaster.hpp"
 #include "GC/Processor.hpp"
+#include "GC/SemiSecret.hpp"
 #include "Protocols/MAC_Check_Base.hpp"
 #include "Protocols/SemiMC.hpp"
 #include "Protocols/SemiInput.hpp"

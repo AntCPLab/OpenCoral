@@ -36,7 +36,8 @@ string PREP_DATA_PREFIX;
 template<class T>
 void check_mult_triples(const typename T::mac_key_type& key,int N,vector<Sub_Data_Files<T>*>& dataF)
 {
-  typename T::clear a,b,c,mac;
+  typename T::clear a,b,c;
+  typename T::mac_type mac;
   vector<T> Sa(N),Sb(N),Sc(N);
   int n = 0;
 
@@ -99,7 +100,8 @@ void check_tuple(const T& a, const T& b, int n, Dtype type)
 template<class T>
 void check_tuples(const typename T::mac_key_type& key,int N,vector<Sub_Data_Files<T>*>& dataF, Dtype type)
 {
-  typename T::clear a,b,c,mac,res;
+  typename T::clear a,b,c,res;
+  typename T::mac_type mac;
   vector<T> Sa(N),Sb(N),Sc(N);
   int n = 0;
 
@@ -127,7 +129,8 @@ void check_tuples(const typename T::mac_key_type& key,int N,vector<Sub_Data_File
 template<class T>
 void check_bits(const typename T::mac_key_type& key,int N,vector<Sub_Data_Files<T>*>& dataF)
 {
-  typename T::clear a,b,c,mac,res;
+  typename T::clear a,b,c,res;
+  typename T::mac_type mac;
   vector<T> Sa(N),Sb(N),Sc(N);
   int n = 0;
 
@@ -157,7 +160,8 @@ void check_bits(const typename T::mac_key_type& key,int N,vector<Sub_Data_Files<
 template<class T>
 void check_inputs(const typename T::mac_key_type& key,int N,vector<Sub_Data_Files<T>*>& dataF)
 {
-  typename T::clear a, mac, x;
+  typename T::clear a, x;
+  typename T::mac_type mac;
   vector<T> Sa(N);
 
   for (int player = 0; player < N; player++)

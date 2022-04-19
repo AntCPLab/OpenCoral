@@ -22,12 +22,12 @@ int main(int argc, const char** argv)
         1, // Number of args expected.
         0, // Delimiter if expecting multiple args.
         "SPDZ2k security parameter (default: 64)", // Help description.
-        "-S", // Flag token.
-        "--security" // Flag token.
+        "-SP", // Flag token.
+        "--spdz2k-security" // Flag token.
     );
     opt.parse(argc, argv);
     int s;
-    opt.get("-S")->getInt(s);
+    opt.get("-SP")->getInt(s);
     opt.resetArgs();
     RingOptions ring_options(opt, argc, argv);
     int k = ring_options.R;
@@ -62,6 +62,8 @@ int main(int argc, const char** argv)
             cerr << "add Z(" << k << ", " << s << ") to " << __FILE__ << " at line "
                     << (__LINE__ - 11) << " and create Machines/SPDZ2^" << k << "+"
                     << s << ".cpp based on Machines/SPDZ2^72+64.cpp" << endl;
+            cerr << "Alternatively, compile with -DRING_SIZE=" << k
+                    << " and -DSPDZ2K_DEFAULT_SECURITY=" << s << endl;
         }
         exit(1);
     }

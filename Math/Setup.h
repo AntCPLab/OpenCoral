@@ -35,6 +35,7 @@ bigint SPDZ_Data_Setup_Primes(int lgp);
 void SPDZ_Data_Setup_Primes(bigint& p,int lgp,int& idx,int& m);
 void generate_prime(bigint& p, int lgp, int m);
 bigint generate_prime(int lgp, int m);
+int default_m(int& lgp, int& idx);
 
 string get_prep_sub_dir(const string& prep_dir, int nparties, int log2mod,
         const string& type_short);

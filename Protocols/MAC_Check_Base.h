@@ -57,7 +57,8 @@ public:
     /// Run opening protocol
     virtual void exchange(const Player& P) = 0;
     /// Get next opened value
-    virtual typename T::open_type finalize_open();
+    virtual typename T::clear finalize_open();
+    virtual typename T::open_type finalize_raw();
 
     /// Check whether all ``shares`` are ``value``
     virtual void CheckFor(const typename T::open_type& value, const vector<T>& shares, const Player& P);

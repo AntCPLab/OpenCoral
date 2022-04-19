@@ -18,6 +18,7 @@
 
 template<int K, int S> class Spdz2kMultiplier;
 template<class T> class Spdz2kTripleGenerator;
+template<class T> class SPDZ2k;
 
 namespace GC
 {
@@ -48,7 +49,7 @@ public:
     typedef MAC_Check Direct_MC;
     typedef ::Input<Spdz2kShare> Input;
     typedef ::PrivateOutput<Spdz2kShare> PrivateOutput;
-    typedef SPDZ<Spdz2kShare> Protocol;
+    typedef SPDZ2k<Spdz2kShare> Protocol;
     typedef Spdz2kPrep<Spdz2kShare> LivePrep;
 
 #ifndef NO_MIXED_CIRCUITS

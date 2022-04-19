@@ -29,5 +29,5 @@
 
 int main(int argc, const char** argv)
 {
-    GC::simple_binary_main<GC::TinySecret<40>>(argc, argv, 1000);
+    GC::simple_binary_main<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv, 1000);
 }

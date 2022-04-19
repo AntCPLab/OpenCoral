@@ -112,8 +112,8 @@ public:
 
     typedef BitVec clear;
     typedef BitVec open_type;
-    typedef BitVec mac_type;
-    typedef BitVec mac_key_type;
+    typedef NoShare mac_type;
+    typedef NoValue mac_key_type;
 
     typedef NoShare bit_type;
 
@@ -213,7 +213,7 @@ public:
     typedef ReplicatedMC<This> MC;
     typedef BitVec_<unsigned char> open_type;
     typedef open_type clear;
-    typedef BitVec mac_key_type;
+    typedef NoValue mac_key_type;
 
     static MC* new_mc(mac_key_type)
     {

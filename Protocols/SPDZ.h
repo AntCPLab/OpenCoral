@@ -26,7 +26,8 @@ public:
     {
     }
 
-    static void assign(typename T::clear& share, const typename T::clear& clear, int my_num)
+    static void assign(typename T::open_type& share,
+            const typename T::open_type& clear, int my_num)
     {
         if (my_num == 0)
             share = clear;

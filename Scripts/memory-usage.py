@@ -12,7 +12,7 @@ if len(sys.argv) <= 1:
     print('Usage: %s <program>' % sys.argv[0])
 
 res = collections.defaultdict(lambda: 0)
-m = 0
+regs = collections.defaultdict(lambda: 0)
 
 for tapename in Program.read_tapes(sys.argv[1]):
     for inst in Tape.read_instructions(tapename):
@@ -22,8 +22,9 @@ for tapename in Program.read_tapes(sys.argv[1]):
                                        res[t.arg_format[0]])
         for arg in inst.args:
             if isinstance(arg, RegisterArgFormat):
-                m = max(m, arg.i + inst.size)
+                regs[type(arg)] = max(regs[type(arg)], arg.i + inst.size)
 
-print (res)
-print (m)
+reverse_formats = dict((v, k) for k, v in ArgFormats.items())
 
+print ('Memory:', dict(res))
+print ('Registers:', dict((reverse_formats[t], n) for t, n in regs.items()))

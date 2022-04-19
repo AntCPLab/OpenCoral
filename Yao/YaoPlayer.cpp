@@ -33,7 +33,7 @@ YaoPlayer::YaoPlayer(int argc, const char** argv)
 			"--threshold" // Flag token.
 	);
 	auto& online_opts = OnlineOptions::singleton;
-	online_opts = {opt, argc, argv, false_type()};
+	online_opts = {opt, argc, argv, false};
 	NetworkOptionsWithNumber network_opts(opt, argc, argv, 2, false);
 	online_opts.finalize(opt, argc, argv);
 

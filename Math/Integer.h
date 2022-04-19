@@ -37,8 +37,6 @@ public:
 
   static void specification(octetStream& os);
 
-  static void init_default(int lgp) { (void)lgp; }
-
   static bool allows(Dtype type) { return type <= DATA_BIT; }
 
   IntBase()                 { a = 0; }

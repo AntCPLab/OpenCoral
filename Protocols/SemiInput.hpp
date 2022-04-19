@@ -11,7 +11,7 @@
 #include "ShamirInput.hpp"
 
 template<class T>
-SemiInput<T>::SemiInput(SubProcessor<T>* proc, Player& P) :
+SemiInput<T>::SemiInput(SubProcessor<T>* proc, PlayerBase& P) :
         InputBase<T>(proc), P(P)
 {
     shares.resize(P.num_players());

@@ -20,7 +20,8 @@
 
 template<class T>
 ProtocolBase<T>::ProtocolBase() :
-        trunc_pr_counter(0), rounds(0), trunc_rounds(0), counter(0)
+        trunc_pr_counter(0), rounds(0), trunc_rounds(0), dot_counter(0),
+        bit_counter(0), counter(0)
 {
 }
 
@@ -67,7 +68,11 @@ ProtocolBase<T>::~ProtocolBase()
 {
 #ifdef VERBOSE_COUNT
     if (counter or rounds)
-        cerr << "Number of " << T::type_string() << " multiplications: " << counter << " in " << rounds << " rounds" << endl;
+        cerr << "Number of " << T::type_string() << " multiplications: "
+                << counter << " (" << bit_counter << " bits) in " << rounds
+                << " rounds" << endl;
+    if (counter or rounds)
+        cerr << "Number of " << T::type_string() << " dot products: " << dot_counter << endl;
     if (trunc_pr_counter or trunc_rounds)
         cerr << "Number of probabilistic truncations: " << trunc_pr_counter << " in " << trunc_rounds << " rounds" << endl;
 #endif
@@ -126,6 +131,7 @@ template<class T>
 T ProtocolBase<T>::finalize_dotprod(int length)
 {
     counter += length;
+    dot_counter++;
     T res;
     for (int i = 0; i < length; i++)
         res += finalize_mul();
@@ -199,6 +205,7 @@ template<class T>
 inline T Replicated<T>::finalize_mul(int n)
 {
     this->counter++;
+    this->bit_counter += n;
     T result;
     result[0] = add_shares.next();
     result[1].unpack(os[1], n);
@@ -230,6 +237,7 @@ template<class T>
 inline T Replicated<T>::finalize_dotprod(int length)
 {
     (void) length;
+    this->dot_counter++;
     return finalize_mul();
 }
 
@@ -316,6 +324,7 @@ void Replicated<T>::trunc_pr(const vector<int>& regs, int size, U& proc,
     for (auto info : infos)
         for (int i = 0; i < size; i++)
         {
+            this->trunc_pr_counter++;
             auto c_prime = input.finalize(comp_player);
             auto r_prime = input.finalize(gen_player);
             S[info.dest_base + i] = c_prime - r_prime;

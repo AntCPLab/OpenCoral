@@ -23,6 +23,11 @@ class MamaMac : public FixedVec<SemiShare<T>, N>
 public:
     static const true_type invertible;
 
+    static int length()
+    {
+        return N * T::length();
+    }
+
     MamaMac()
     {
     }

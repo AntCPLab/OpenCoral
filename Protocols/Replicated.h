@@ -53,6 +53,8 @@ protected:
 
     int trunc_pr_counter;
     int rounds, trunc_rounds;
+    int dot_counter;
+    int bit_counter;
 
 public:
     typedef T share_type;

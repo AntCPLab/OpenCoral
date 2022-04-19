@@ -20,6 +20,7 @@ class ValueInterface;
 namespace GC
 {
 class NoShare;
+class NoValue;
 }
 
 class ShareInterface
@@ -27,6 +28,10 @@ class ShareInterface
 public:
     typedef GC::NoShare part_type;
     typedef GC::NoShare bit_type;
+
+    typedef GC::NoValue mac_key_type;
+    typedef GC::NoShare mac_type;
+    typedef GC::NoShare mac_share_type;
 
     static const bool needs_ot = false;
     static const bool expensive = false;

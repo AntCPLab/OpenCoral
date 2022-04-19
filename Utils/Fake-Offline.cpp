@@ -154,16 +154,9 @@ void FakeParams::make_edabits(const typename T::mac_type& key, int N, int ntrip,
       int max_size = edabitvec<T>::MAX_SIZE;
       for (int i = 0; i < ntrip / max_size; i++)
         {
-          vector<typename T::clear> as(max_size);
-          vector<typename T::bit_type::part_type::clear> bs(length);
-          for (int j = 0; j < max_size; j++)
-            {
-              if (not zero)
-                G.get_bigint(value, length, true);
-              as[j] = value;
-              for (int k = 0; k < length; k++)
-                bs[k] ^= BitVec(bigint((value >> k) & 1).get_si()) << j;
-            }
+          vector<typename T::clear> as;
+          vector<typename T::bit_type::part_type::clear> bs;
+          plain_edabits<T>(as, bs, length, G, zero);
           for (auto& a : as)
             files.template output_shares<T>(a);
           for (auto& b : bs)
@@ -737,9 +730,12 @@ int FakeParams::generate()
   if (nplayers == 3)
   {
     make_bits<Rep3Share<Integer>>({}, nplayers, nbitsp, zero);
-    make_basic<BrainShare<64, 40>>({}, nplayers, default_num, zero);
-    make_basic<PostSacriRepRingShare<64, 40>>({}, nplayers, default_num, zero);
-    make_with_mac_key<SpdzWiseRingShare<64, 40>>(nplayers, default_num, zero);
+    make_basic<BrainShare<64, DEFAULT_SECURITY>>({}, nplayers, default_num,
+        zero);
+    make_basic<PostSacriRepRingShare<64, DEFAULT_SECURITY>>({}, nplayers,
+        default_num, zero);
+    make_with_mac_key<SpdzWiseRingShare<64, DEFAULT_SECURITY>>(nplayers,
+        default_num, zero);
 
     make_mult_triples<GC::MaliciousRepSecret>({}, nplayers, ntrip2, zero, prep_data_prefix);
     make_bits<GC::MaliciousRepSecret>({}, nplayers, nbits2, zero);
@@ -748,17 +744,21 @@ int FakeParams::generate()
     make_basic<Rep4Share2<64>>({}, nplayers, default_num, zero);
 
   make_basic<SemiShare<Z2<64>>>({}, nplayers, default_num, zero);
+  make_basic<DealerShare<Z2<64>>>({}, nplayers, default_num, zero);
+  make_minimal<GC::DealerSecret>({}, nplayers, default_num, zero);
 
   make_mult_triples<GC::SemiSecret>({}, nplayers, default_num, zero, prep_data_prefix);
   make_bits<GC::SemiSecret>({}, nplayers, default_num, zero);
 
   gf2n_short::reset();
-  gf2n_short::init_field(40);
+  gf2n_short::init_field();
 
-  Z2<41> keyt;
-  generate_mac_keys<GC::TinySecret<40>>(keyt, nplayers, prep_data_prefix);
+  Z2<DEFAULT_SECURITY + 1> keyt;
+  generate_mac_keys<GC::TinySecret<DEFAULT_SECURITY>>(keyt, nplayers,
+      prep_data_prefix);
 
-  make_minimal<GC::TinySecret<40>>(keyt, nplayers, default_num / 64, zero);
+  make_minimal<GC::TinySecret<DEFAULT_SECURITY>>(keyt, nplayers,
+      default_num / 64, zero);
 
   gf2n_short keytt;
   generate_mac_keys<GC::TinierShare<gf2n_short>>(keytt, nplayers, prep_data_prefix);

@@ -69,7 +69,7 @@ void Multiplier<FD>::add(Plaintext_<FD>& res, const Ciphertext& c,
         product_share.randomize(G);
         bigint B = 6 * machine.setup<FD>().params.get_R();
         B *= machine.setup<FD>().FieldD.get_prime();
-        B <<= machine.drown_sec;
+        B <<= machine.setup<FD>().params.secp();
         // slack
         B *= NonInteractiveProof::slack(machine.sec,
                 machine.setup<FD>().params.phi_m());

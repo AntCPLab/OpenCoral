@@ -11,35 +11,15 @@ void Subs(modp& ans,const vector<int>& poly,const modp& x,const Zp_Data& ZpD)
   assignZero(ans,ZpD);
   for (int i=poly.size()-1; i>=0; i--)
     { Mul(ans,ans,x,ZpD);
-      switch (poly[i])
-        { case 0:
-            break;
-          case 1:
-            Add(ans,ans,one,ZpD);
-            break;
-          case -1:
-            Sub(ans,ans,one,ZpD);
-            break;
-          case 2:
-            Add(ans,ans,one,ZpD);
-            Add(ans,ans,one,ZpD);
-            break;
-          case -2:
-            Sub(ans,ans,one,ZpD);
-            Sub(ans,ans,one,ZpD);
-            break;
-          case 3:
-            Add(ans,ans,one,ZpD);
-            Add(ans,ans,one,ZpD);
-            Add(ans,ans,one,ZpD);
-            break;
-          case -3:
-            Sub(ans,ans,one,ZpD);
-            Sub(ans,ans,one,ZpD);
-            Sub(ans,ans,one,ZpD);
-            break;
-          default:
-            throw not_implemented();
+      if (poly[i] > 0)
+        {
+          for (int j = 0; j < poly[i]; j++)
+            Add(ans, ans, one, ZpD);
+        }
+      if (poly[i] < 0)
+        {
+          for (int j = 0; j < -poly[i]; j++)
+            Sub(ans, ans, one, ZpD);
         }
     }
 }

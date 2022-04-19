@@ -97,6 +97,5 @@ ShamirMachineSpec<T>::ShamirMachineSpec(int argc, const char** argv)
     auto& opts = ShamirOptions::singleton;
     ez::ezOptionParser opt;
     opts = {opt, argc, argv};
-    T<gfp>::bit_type::part_type::open_type::init_field();
     HonestMajorityFieldMachine<T>(argc, argv, opt, opts.nparties);
 }

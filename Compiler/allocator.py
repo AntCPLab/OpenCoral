@@ -15,11 +15,11 @@ from functools import reduce
 class BlockAllocator:
     """ Manages freed memory blocks. """
     def __init__(self):
-        self.by_logsize = [defaultdict(set) for i in range(32)]
+        self.by_logsize = [defaultdict(set) for i in range(64)]
         self.by_address = {}
 
     def by_size(self, size):
-        if size >= 2 ** 32:
+        if size >= 2 ** 64:
             raise CompilerError('size exceeds addressing capability')
         return self.by_logsize[int(math.log(size, 2))][size]
 

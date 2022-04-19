@@ -28,6 +28,7 @@ class FakeProtocol : public ProtocolBase<T>
     vector<size_t> trunc_stats;
 
     map<string, size_t> cisc_stats;
+    map<int, size_t> ltz_stats;
 
 public:
     Player& P;
@@ -54,6 +55,8 @@ public:
         {
             cerr << x.second << " " << x.first << endl;
         }
+        for (auto& x : ltz_stats)
+            cerr << "LTZ " << x.first << ": " << x.second << endl;
     }
 
     template<int>
@@ -219,6 +222,7 @@ public:
         {
             for (size_t i = 0; i < args.size(); i += args[i])
             {
+                ltz_stats[args[i + 4]] += args[i + 1];
                 assert(i + args[i] <= args.size());
                 assert(args[i] == 6);
                 for (int j = 0; j < args[i + 1]; j++)

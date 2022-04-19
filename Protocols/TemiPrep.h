@@ -64,6 +64,8 @@ public:
     {
     }
 
+    ~TemiPrep();
+
     void buffer_triples();
 
     vector<TemiMultiplier<T>*>& get_multipliers();

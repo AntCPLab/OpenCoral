@@ -23,6 +23,7 @@ class Player;
 template<class T>
 class Beaver : public ProtocolBase<T>
 {
+protected:
     vector<T> shares;
     vector<typename T::open_type> opened;
     vector<array<T, 3>> triples;
