@@ -139,7 +139,7 @@ there are a few things to consider:
 - Computation domain: Arithmetic protocols (modulo prime or power of
   two) are preferable for many applications because they offer integer
   addition and multiplication at low cost. However, binary circuits
-  might a better option if there is very little integer
+  might be a better option if there is very little integer
   computation. [See below](#finding-the-most-efficient-variant) to
   find the most efficient mixed-circuit variant.  Furthermore, local
   computation modulo a power of two is cheaper, but MP-SPDZ does not
