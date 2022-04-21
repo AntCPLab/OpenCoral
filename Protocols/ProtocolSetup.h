@@ -35,6 +35,22 @@ public:
         T::read_or_generate_mac_key(directory, P, mac_key);
     }
 
+    /**
+     * @param prime modulus for computation
+     * @param P communication instance (used for MAC generation if needed)
+     * @param directory location to read MAC if needed
+     */
+    ProtocolSetup(bigint prime, Player& P, string directory = "")
+    {
+        static_assert(T::clear::prime_field, "must use computation modulo a prime");
+
+        T::clear::init_field(prime);
+        T::clear::next::init_field(prime, false);
+
+        // must initialize MAC key for security of some protocols
+        T::read_or_generate_mac_key(directory, P, mac_key);
+    }
+
     ~ProtocolSetup()
     {
         T::LivePrep::teardown();
