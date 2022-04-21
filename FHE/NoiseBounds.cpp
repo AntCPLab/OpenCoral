@@ -105,7 +105,7 @@ void SemiHomomorphicNoiseBounds::produce_epsilon_constants()
         {
             tp *= t;
             double lgtp = log(tp) / log(2.0);
-            if (C[i] < 0 && lgtp < FHE_epsilon)
+            if (C[i] < 0 && lgtp < -FHE_epsilon)
             {
                 C[i] = pow(x, i);
             }
