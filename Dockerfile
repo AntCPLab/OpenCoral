@@ -132,7 +132,7 @@ RUN make clean && make ${machine} && cp ${machine} /usr/local/bin/
 #           --build-arg machine=replicated-ring-party.x \                      #
 #           --build-arg prep_dir=/opt/prep \                                   #
 #           --build-arg ssl_dir=/opt/ssl \                                     #
-#           --build-arg nparties=3 \                                           #
+#           --build-arg cryptoplayers=3 \                                      #
 #           --build-arg compile_options="--ring=64" .                          #
 #                                                                              #
 # Test it:                                                                     #
