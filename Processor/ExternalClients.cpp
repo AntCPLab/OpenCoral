@@ -51,8 +51,8 @@ int ExternalClients::get_client_connection(int portnum_base)
       client);
   client_id = stoi(client);
   if (ctx == 0)
-    ctx = new ssl_ctx("P" + to_string(get_party_num()));
-  external_client_sockets[client_id] = new ssl_socket(io_service, *ctx, socket,
+    ctx = new client_ctx("P" + to_string(get_party_num()));
+  external_client_sockets[client_id] = new client_socket(io_service, *ctx, socket,
       "C" + to_string(client_id), "P" + to_string(get_party_num()), false);
   client_ports[client_id] = portnum_base;
   cerr << "Party " << get_party_num() << " received external client connection from client id: " << dec << client_id << endl;
@@ -75,7 +75,7 @@ int ExternalClients::get_party_num()
   return party_num;
 }
 
-ssl_socket* ExternalClients::get_socket(int id)
+client_socket* ExternalClients::get_socket(int id)
 {
   if (external_client_sockets.find(id) == external_client_sockets.end())
     throw runtime_error("external connection not found for id " + to_string(id));

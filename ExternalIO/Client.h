@@ -8,20 +8,72 @@
 
 #include "Networking/ssl_sockets.h"
 
+#ifdef NO_CLIENT_TLS
+class client_ctx
+{
+public:
+    client_ctx(string)
+    {
+    }
+};
+
+class client_socket
+{
+public:
+    int socket;
+
+    client_socket(boost::asio::io_service&,
+            client_ctx&, int plaintext_socket, string,
+            string, bool) : socket(plaintext_socket)
+    {
+    }
+
+    ~client_socket()
+    {
+        close(socket);
+    }
+};
+
+inline void send(client_socket* socket, octet* data, size_t len)
+{
+    send(socket->socket, data, len);
+}
+
+inline void receive(client_socket* socket, octet* data, size_t len)
+{
+    receive(socket->socket, data, len);
+}
+
+#else
+
+typedef ssl_ctx client_ctx;
+
+class client_socket : public ssl_socket
+{
+public:
+    client_socket(boost::asio::io_service& io_service,
+            boost::asio::ssl::context& ctx, int plaintext_socket, string other,
+            string me, bool client) :
+            ssl_socket(io_service, ctx, plaintext_socket, other, me, client)
+    {
+    }
+};
+#endif
+
 /**
  * Client-side interface
  */
 class Client
 {
     vector<int> plain_sockets;
-    ssl_ctx ctx;
+    client_ctx ctx;
     ssl_service io_service;
 
 public:
     /**
      * Sockets for cleartext communication
      */
-    vector<ssl_socket*> sockets;
+    vector<client_socket*> sockets;
 
     /**
      * Specification of computation domain

@@ -87,7 +87,6 @@ inline size_t send_non_blocking(ssl_socket* socket, octet* data, size_t length)
     return socket->write_some(boost::asio::buffer(data, length));
 }
 
-template<>
 inline void send(ssl_socket* socket, octet* data, size_t length)
 {
     size_t sent = 0;
@@ -103,7 +102,6 @@ inline void send(ssl_socket* socket, octet* data, size_t length)
     }
 }
 
-template<>
 inline void receive(ssl_socket* socket, octet* data, size_t length)
 {
     size_t received = 0;

@@ -35,11 +35,6 @@ void send(T& socket, size_t a, size_t len);
 template<class T>
 void receive(T& socket, size_t& a, size_t len);
 
-template<class T>
-void send(T socket, octet* msg, size_t len);
-template<class T>
-void receive(T socket, octet* msg, size_t len);
-
 
 inline size_t send_non_blocking(int socket, octet* msg, size_t len)
 {
@@ -54,7 +49,6 @@ inline size_t send_non_blocking(int socket, octet* msg, size_t len)
   return j;
 }
 
-template<>
 inline void send(int socket,octet *msg,size_t len)
 {
   size_t i = 0;
@@ -72,7 +66,6 @@ inline void send(T& socket, size_t a, size_t len)
   send(socket, blen, len);
 }
 
-template<>
 inline void receive(int socket,octet *msg,size_t len)
 {
   size_t i=0;
