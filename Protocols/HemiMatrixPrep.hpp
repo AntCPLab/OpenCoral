@@ -53,12 +53,14 @@ class MatrixRandMultJob : public ThreadJob
 public:
     MatrixRandMultJob(vector<ValueMatrix<gfpvar>>& C,
             const vector<ValueMatrix<gfpvar>>& A,
-            vector<ValueMatrix<gfpvar>>& B)
+            vector<ValueMatrix<gfpvar>>& B,
+            bool local_mul)
     {
         type = MATRX_RAND_MULT_JOB;
         output = &C;
         input = &A;
         supply = &B;
+        length = local_mul;
     }
 };
 
@@ -73,7 +75,8 @@ inline void matrix_rand_mult(ThreadJob job, true_type = {})
     {
         A[i].randomize(G);
         B[i].randomize(G);
-        C[i] = A[i] * B[i];
+        if (job.length)
+            C[i] = A[i] * B[i];
     }
 }
 
@@ -101,25 +104,22 @@ void HemiMatrixPrep<T>::buffer_triples()
             B(n_matrices, {n_inner, n_cols});
     SeededPRNG G;
     AddableVector<ValueMatrix<gfpvar>> C(n_matrices);
-    MatrixRandMultJob job(C, A, B);
+    MatrixRandMultJob job(C, A, B, T::local_mul);
 
-    if (T::local_mul)
+    if (BaseMachine::thread_num == 0 and BaseMachine::has_singleton())
     {
-        if (BaseMachine::thread_num == 0 and BaseMachine::has_singleton())
-        {
-            auto& queues = BaseMachine::s().queues;
-            int start = queues.distribute(job, n_matrices);
-            job.begin = start;
-            job.end = n_matrices;
-            matrix_rand_mult(job);
-            queues.wrap_up(job);
-        }
-        else
-        {
-            job.begin = 0;
-            job.end = n_matrices;
-            matrix_rand_mult(job);
-        }
+        auto& queues = BaseMachine::s().queues;
+        int start = queues.distribute(job, n_matrices);
+        job.begin = start;
+        job.end = n_matrices;
+        matrix_rand_mult(job);
+        queues.wrap_up(job);
+    }
+    else
+    {
+        job.begin = 0;
+        job.end = n_matrices;
+        matrix_rand_mult(job);
     }
 
 #ifdef VERBOSE_HE
