@@ -1148,12 +1148,14 @@ class cint(_clear, _int):
         bit_length = bit_length or program.bit_length
         return floatingpoint.bits(self, bit_length)
 
+    @vectorize
     def legendre(self):
         """ Clear Legendre symbol computation. """
         res = cint()
         legendrec(res, self)
         return res
 
+    @vectorize
     def digest(self, num_bytes):
         """ Clear hashing (libsodium default). """
         res = cint()
