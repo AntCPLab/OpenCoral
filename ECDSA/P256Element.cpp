@@ -29,7 +29,7 @@ P256Element::P256Element(const Scalar& other) :
 {
     BIGNUM* exp = BN_new();
     BN_dec2bn(&exp, bigint(other).get_str().c_str());
-    assert(EC_POINTs_mul(curve, point, exp, 0, 0, 0, 0) != 0);
+    assert(EC_POINT_mul(curve, point, exp, 0, 0, 0) != 0);
     BN_free(exp);
 }
 
@@ -38,7 +38,7 @@ P256Element::P256Element(word other) :
 {
     BIGNUM* exp = BN_new();
     BN_dec2bn(&exp, to_string(other).c_str());
-    assert(EC_POINTs_mul(curve, point, exp, 0, 0, 0, 0) != 0);
+    assert(EC_POINT_mul(curve, point, exp, 0, 0, 0) != 0);
     BN_free(exp);
 }
 
@@ -56,7 +56,11 @@ void P256Element::check()
 P256Element::Scalar P256Element::x() const
 {
     BIGNUM* x = BN_new();
+#if OPENSSL_VERSION_MAJOR >= 3
+    assert(EC_POINT_get_affine_coordinates(curve, point, x, 0, 0) != 0);
+#else
     assert(EC_POINT_get_affine_coordinates_GFp(curve, point, x, 0, 0) != 0);
+#endif
     char* xx = BN_bn2dec(x);
     Scalar res((bigint(xx)));
     OPENSSL_free(xx);
