@@ -161,6 +161,7 @@ class gfp_ : public ValueInterface
   gfp_(const mpz_class& x) { to_modp(a, x, ZpD); }
   gfp_(int x) : gfp_(long(x)) {}
   gfp_(long x);
+  gfp_(long long x) : gfp_(long(x)) {}
   gfp_(word x) : gfp_(bigint::tmp = x) {}
   template<class T>
   gfp_(IntBase<T> x) : gfp_(x.get()) {}

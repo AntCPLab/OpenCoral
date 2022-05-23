@@ -118,6 +118,7 @@ protected:
   gf2n_(U a) : a(a & mask) {}
   gf2n_(long a) : gf2n_(U(a)) {}
   gf2n_(int a) : gf2n_(U(unsigned(a))) {}
+  gf2n_(long long a) : gf2n_(U(a)) {}
   template<class T>
   gf2n_(IntBase<T> a) : a(a.get()) {}
 
