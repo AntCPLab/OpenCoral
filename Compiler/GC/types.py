@@ -154,9 +154,15 @@ class bits(Tape.Register, _structure, _bit):
             self.set_length(self.n or util.int_len(other))
             self.load_int(other)
         elif isinstance(other, regint):
-            assert(other.size == math.ceil(self.n / self.unit))
-            for i, (x, y) in enumerate(zip(self, other)):
+            assert self.unit == 64
+            n_units = int(math.ceil(self.n / self.unit))
+            n_convs = min(other.size, n_units)
+            for i in range(n_convs):
+                x = self[i]
+                y = other[i]
                 self.conv_regint(min(self.unit, self.n - i * self.unit), x, y)
+            for i in range(n_convs, n_units):
+                inst.ldbits(self[i], min(self.unit, self.n - i * self.unit), 0)
         elif (isinstance(self, type(other)) or isinstance(other, type(self))) \
              and self.n == other.n:
             for i in range(math.ceil(self.n / self.unit)):
