@@ -5189,10 +5189,10 @@ class Array(_vectorizable):
         self.value_type.free(self.address)
         self.address = None
 
-    def get_address(self, index):
+    def get_address(self, index, size=None):
         if isinstance(index, (_secret, _single)):
             raise CompilerError('need cleartext index')
-        key = str(index)
+        key = str(index), size or 1
         if self.length is not None:
             from .GC.types import cbits
             if isinstance(index, int):
@@ -5211,6 +5211,8 @@ class Array(_vectorizable):
                 # length can be None for single-element arrays
                 length = 0
             base = self.address + index * self.value_type.mem_size()
+            if size is not None and isinstance(base, _register):
+                base = regint._expand_address(base, size)
             self.address_cache[program.curr_block, key] = \
                 util.untuplify([base + i * length \
                                 for i in range(n)])
@@ -5332,7 +5334,8 @@ class Array(_vectorizable):
         except:
             pass
         try:
-            self.value_type.conv(other).store_in_mem(self.get_address(base))
+            other = self.value_type.conv(other)
+            other.store_in_mem(self.get_address(base, other.size))
             if len(self) != None and util.is_constant(base):
                 assert len(self) >= other.size + base
         except (AttributeError, CompilerError):
@@ -5370,7 +5373,7 @@ class Array(_vectorizable):
         :param base: starting point (regint/cint/int)
         :param size: length (compile-time int) """
         size = size or self.length - base
-        return self.value_type.load_mem(self.get_address(base), size=size)
+        return self.value_type.load_mem(self.get_address(base, size), size=size)
 
     get_part_vector = get_vector
 
@@ -5580,6 +5583,9 @@ class Array(_vectorizable):
     def Array(self, size):
         # compatibility with registers
         return Array(size, self.value_type)
+
+    def output_if(self, cond):
+        library.print_str_if(cond, '%s', self.get_vector())
 
     def __str__(self):
         return '%s array of length %s at %s' % (self.value_type, len(self),
