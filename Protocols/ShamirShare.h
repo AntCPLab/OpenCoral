@@ -49,6 +49,7 @@ public:
     const static bool dishonest_majority = false;
     const static bool variable_players = true;
     const static bool expensive = false;
+    const static bool malicious = true;
 
     static string type_short()
     {

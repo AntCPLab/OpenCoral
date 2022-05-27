@@ -31,6 +31,12 @@ word check_pk_id(word a, word b)
 }
 
 
+void Ciphertext::Scale()
+{
+  Scale(params->get_plaintext_modulus());
+}
+
+
 void add(Ciphertext& ans,const Ciphertext& c0,const Ciphertext& c1)
 {
   if (c0.params!=c1.params)  { throw params_mismatch(); }
@@ -115,9 +121,28 @@ void Ciphertext::add(octetStream& os)
   *this += tmp;
 }
 
+void Ciphertext::rerandomize(const FHE_PK& pk)
+{
+  Rq_Element tmp(*params);
+  SeededPRNG G;
+  vector<FFT_Data::S> r(params->FFTD()[0].m());
+  bigint p = pk.p();
+  assert(p != 0);
+  for (auto& x : r)
+    {
+      G.get<FFT_Data::S>(x, params->p0().numBits() - p.numBits() - 1);
+      x *= p;
+    }
+  tmp.from(r, 0);
+  Scale();
+  cc0 += tmp;
+  auto zero = pk.encrypt(*params);
+  zero.Scale(pk.p());
+  *this += zero;
+}
+
 
 template void mul(Ciphertext& ans,const Plaintext<gfp,FFT_Data,bigint>& a,const Ciphertext& c);
 template void mul(Ciphertext& ans,const Plaintext<gfp,PPData,bigint>& a,const Ciphertext& c);
-template void mul(Ciphertext& ans,const Plaintext<gf2n_short,P2Data,int>& a,const Ciphertext& c);
-
-
+template void mul(Ciphertext& ans, const Plaintext<gf2n_short, P2Data, int>& a,
+        const Ciphertext& c);

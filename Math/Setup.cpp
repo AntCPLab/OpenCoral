@@ -136,7 +136,7 @@ void write_online_setup(string dirname, const bigint& p)
   if (mkdir_p(ss.str().c_str()) == -1)
   {
     cerr << "mkdir_p(" << ss.str() << ") failed\n";
-    throw file_error(ss.str());
+    throw file_error("cannot create " + dirname);
   }
 
   // Output the data
@@ -167,6 +167,6 @@ string get_prep_sub_dir(const string& prep_dir, int nparties, int log2mod,
     res += "-" + to_string(log2mod);
   res += "/";
   if (mkdir_p(res.c_str()) < 0)
-    throw file_error(res);
+    throw file_error("cannot create " + res);
   return res;
 }

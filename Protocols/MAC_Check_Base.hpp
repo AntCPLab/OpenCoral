@@ -71,6 +71,13 @@ typename T::open_type MAC_Check_Base<T>::finalize_raw()
 }
 
 template<class T>
+array<typename T::open_type*, 2> MAC_Check_Base<T>::finalize_several(size_t n)
+{
+    assert(values.left() >= n);
+    return {{values.skip(0), values.skip(n)}};
+}
+
+template<class T>
 void MAC_Check_Base<T>::CheckFor(const typename T::open_type& value,
         const vector<T>& shares, const Player& P)
 {

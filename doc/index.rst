@@ -175,6 +175,7 @@ Reference
    non-linear
    preprocessing
    add-protocol
+   homomorphic-encryption
    troubleshooting
 
 

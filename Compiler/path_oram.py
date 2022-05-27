@@ -111,24 +111,6 @@ def bucket_size_sorter(x, y):
     return 1 - reduce(lambda x,y: x*y, t.bit_decompose(2*Z)[:Z])
 
 
-def shuffle(x, config=None, value_type=sgf2n, reverse=False):
-    """ Simulate secure shuffling with Waksman network for 2 players.
-
-
-    Returns the network switching config so it may be re-used later.  """
-    n = len(x)
-    if n & (n-1) != 0:
-        raise CompilerError('shuffle requires n a power of 2')
-    if config is None:
-        config = permutation.configure_waksman(permutation.random_perm(n))
-        for i,c in enumerate(config):
-            config[i] = [value_type(b) for b in c]
-    permutation.waksman(x, config, reverse=reverse)
-    permutation.waksman(x, config, reverse=reverse)
-
-    return config
-
-
 def LT(a, b):
     a_bits = bit_decompose(a)
     b_bits = bit_decompose(b)
@@ -472,10 +454,15 @@ class PathORAM(TreeORAM):
             print_ln()
         
         # shuffle entries and levels
-        while len(merged_entries) & (len(merged_entries)-1) != 0:
-            merged_entries.append(None) #self.root.bucket.empty_entry(False))
-        permutation.rec_shuffle(merged_entries, value_type=self.value_type)
-        merged_entries = [e for e in merged_entries if e is not None]
+        flat = []
+        for x in merged_entries:
+            flat += list(x[0]) + [x[1]]
+        flat = self.value_type(flat)
+        assert len(flat) % len(merged_entries) == 0
+        l = len(flat) // len(merged_entries)
+        shuffled = flat.secure_shuffle(l)
+        merged_entries = [[Entry(shuffled[i*l:(i+1)*l-1]), shuffled[(i+1)*l-1]]
+                          for i in range(len(shuffled) // l)]
 
         # need to copy entries/levels to memory for re-positioning
         entries_ram = RAM(self.temp_size, self.entry_type, self.get_array)

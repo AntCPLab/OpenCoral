@@ -50,17 +50,12 @@ public:
 
     void Broadcast_Receive_no_stats(vector<octetStream>& os) const
     {
-        vector<octetStream> to_send(P.num_players(), os[P.my_num()]);
-        vector<vector<bool>> channels(P.num_players(),
-                vector<bool>(P.num_players(), true));
-        for (auto& x: channels)
-            x.back() = false;
-        channels.back() = vector<bool>(P.num_players(), false);
-        vector<octetStream> to_receive;
-        P.send_receive_all(channels, to_send, to_receive);
-        for (int i = 0; i < P.num_players() - 1; i++)
-            if (i != P.my_num())
-                os[i] = to_receive[i];
+        vector<bool> senders(P.num_players(), true), receivers(P.num_players(),
+                true);
+        senders.back() = false;
+        receivers.back() = false;
+        P.partial_broadcast(senders, receivers, os);
+        os.resize(num_players());
     }
 };
 

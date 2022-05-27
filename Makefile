@@ -244,6 +244,7 @@ paper-example.x: $(VM) $(OT) $(FHEOFFLINE)
 binary-example.x: $(VM) $(OT) GC/PostSacriBin.o GC/SemiPrep.o GC/AtlasSecret.o
 mixed-example.x: $(VM) $(OT) GC/PostSacriBin.o GC/SemiPrep.o GC/AtlasSecret.o Machines/Tinier.o
 l2h-example.x: $(VM) $(OT) Machines/Tinier.o
+he-example.x: $(FHEOFFLINE)
 mascot-offline.x: $(VM) $(TINIER)
 cowgear-offline.x: $(TINIER) $(FHEOFFLINE)
 static/rep-bmr-party.x: $(BMR)

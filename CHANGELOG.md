@@ -1,5 +1,14 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.3.2 (Mai 27, 2022)
+
+- Secure shuffling
+- O(n log n) radix sorting
+- Documented BGV encryption interface
+- Optimized matrix multiplication in dealer protocol
+- Fixed security bug in homomorphic encryption parameter generation
+- Fixed Security bug in Temi matrix multiplication
+
 ## 0.3.1 (Apr 19, 2022)
 
 - Protocol in dealer model

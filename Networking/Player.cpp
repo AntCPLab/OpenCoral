@@ -811,14 +811,6 @@ NamedCommStats NamedCommStats::operator -(const NamedCommStats& other) const
   return res;
 }
 
-size_t NamedCommStats::total_data()
-{
-  size_t res = 0;
-  for (auto& x : *this)
-    res += x.second.data;
-  return res;
-}
-
 void NamedCommStats::print(bool newline)
 {
   for (auto it = begin(); it != end(); it++)

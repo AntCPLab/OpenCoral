@@ -24,6 +24,7 @@ public:
     DealerInput(SubProcessor<T>& proc, typename T::MAC_Check&);
     DealerInput(typename T::MAC_Check&, Preprocessing<T>&, Player& P);
     DealerInput(Player& P);
+    DealerInput(SubProcessor<T>*, Player& P);
     ~DealerInput();
 
     bool is_dealer(int player = -1);

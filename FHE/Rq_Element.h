@@ -69,8 +69,9 @@ protected:
     a({b0}), lev(n_mults()) {}
 
   template<class T, class FD, class S>
-  Rq_Element(const FHE_Params& params, const Plaintext<T, FD, S>& plaintext) :
-      Rq_Element(params)
+  Rq_Element(const FHE_Params& params, const Plaintext<T, FD, S>& plaintext,
+      RepType r0 = polynomial, RepType r1 = polynomial) :
+      Rq_Element(params, r0, r1)
   {
     from(plaintext.get_iterator());
   }
@@ -158,6 +159,9 @@ protected:
    */
   void pack(octetStream& o) const;
   void unpack(octetStream& o);
+
+  // without prior initialization
+  void unpack(octetStream& o, const FHE_Params& params);
 
   void output(ostream& s) const;
   void input(istream& s);

@@ -84,7 +84,9 @@ not_enough_to_buffer::not_enough_to_buffer(const string& type, const string& fil
 {
 }
 
-gf2n_not_supported::gf2n_not_supported(int n) :
-        runtime_error("GF(2^" + to_string(n) + ") not supported")
+gf2n_not_supported::gf2n_not_supported(int n, string options) :
+        runtime_error(
+                "GF(2^" + to_string(n) + ") not supported"
+                        + (options.empty() ? "" : ", options are " + options))
 {
 }

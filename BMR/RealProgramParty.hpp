@@ -28,7 +28,7 @@ RealProgramParty<T>* RealProgramParty<T>::singleton = 0;
 
 template<class T>
 RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
-		garble_processor(garble_machine), dummy_proc({{}, 0})
+		garble_processor(garble_machine), dummy_proc({}, 0)
 {
 	assert(singleton == 0);
 	singleton = this;
@@ -156,6 +156,9 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 
 	MC->Check(*P);
 	data_sent = P->total_comm().sent;
+
+	if (online_opts.verbose)
+	    P->total_comm().print();
 
 	this->machine.write_memory(this->N.my_num());
 }

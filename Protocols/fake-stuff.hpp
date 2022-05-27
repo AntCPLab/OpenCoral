@@ -130,7 +130,6 @@ template<class T, class U>
 void make_share(DealerShare<T>* Sa, const T& a, int N, const U&, PRNG& G)
 {
   make_share((SemiShare<T>*) Sa, a, N - 1, U(), G);
-  Sa[N - 1] = {};
 }
 
 template<class T, class U, class V>
@@ -273,6 +272,11 @@ inline string mac_filename(string directory, int playerno)
       + to_string(playerno);
 }
 
+template <>
+inline void write_mac_key(const string&, int, int, GC::NoValue)
+{
+}
+
 template <class U>
 void write_mac_key(const string& directory, int i, int nplayers, U key)
 {
@@ -299,6 +303,11 @@ template <class T>
 void read_mac_key(const string& directory, const Names& N, T& key)
 {
   read_mac_key(directory, N.my_num(), N.num_players(), key);
+}
+
+template <>
+inline void read_mac_key(const string&, int, int, GC::NoValue&)
+{
 }
 
 template <class U>
@@ -367,7 +376,7 @@ typename T::mac_key_type read_generate_write_mac_key(Player& P,
 }
 
 template <class U>
-void read_global_mac_key(const string& directory, int nparties, U& key, false_type)
+void read_global_mac_key(const string& directory, int nparties, U& key)
 {
   U pp;
   key.assign_zero();
@@ -383,15 +392,9 @@ void read_global_mac_key(const string& directory, int nparties, U& key, false_ty
   cout << "Final Keys : " << key << endl;
 }
 
-template <class U>
-void read_global_mac_key(const string&, int, U&, true_type)
+template <>
+inline void read_global_mac_key(const string&, int, GC::NoValue&)
 {
-}
-
-template <class U>
-void read_global_mac_key(const string& directory, int nparties, U& key)
-{
-  read_global_mac_key(directory, nparties, key, is_same<U, GC::NoValue>());
 }
 
 template <class T>
@@ -579,14 +582,14 @@ void plain_edabits(vector<typename T::clear>& as,
   as.resize(max_size);
   bs.clear();
   bs.resize(length);
-  bigint value;
+  Z2<T::clear::MAX_EDABITS> value;
   for (int j = 0; j < max_size; j++)
     {
       if (not zero)
-        G.get_bigint(value, length, true);
+        value.randomize_part(G, length);
       as[j] = value;
       for (int k = 0; k < length; k++)
-        bs[k] ^= BitVec(bigint((value >> k) & 1).get_si()) << j;
+        bs[k] ^= BitVec(value.get_bit(k)) << j;
     }
 
 }

@@ -20,6 +20,7 @@
 #include "Tools/CheckVector.h"
 #include "GC/Processor.h"
 #include "GC/ShareThread.h"
+#include "Protocols/SecureShuffle.h"
 
 class Program;
 
@@ -30,6 +31,8 @@ class SubProcessor
   CheckVector<T> S;
 
   DataPositions bit_usage;
+
+  SecureShuffle<T> shuffler;
 
   void resize(size_t size)       { C.resize(size); S.resize(size); }
 
@@ -69,6 +72,11 @@ public:
   void matmulsm(const CheckVector<T>& source, const Instruction& instruction, size_t a,
       size_t b);
   void conv2ds(const Instruction& instruction);
+
+  void secure_shuffle(const Instruction& instruction);
+  size_t generate_secure_shuffle(const Instruction& instruction);
+  void apply_shuffle(const Instruction& instruction, int handle);
+  void delete_shuffle(int handle);
 
   void input_personal(const vector<int>& args);
   void send_personal(const vector<int>& args);
@@ -127,6 +135,10 @@ public:
   ArithmeticProcessor(OnlineOptions opts, int thread_num) : thread_num(thread_num),
           sent(0), rounds(0), opts(opts) {}
 
+  virtual ~ArithmeticProcessor()
+  {
+  }
+
   bool use_stdin()
   {
     return thread_num == 0 and opts.interactive;
@@ -145,6 +157,11 @@ public:
     { Ci[i]=x; }
   CheckVector<long>& get_Ci()
     { return Ci; }
+
+  virtual long sync_Ci(size_t) const
+  {
+    throw not_implemented();
+  }
 
   void shuffle(const Instruction& instruction);
   void bitdecint(const Instruction& instruction);
@@ -240,6 +257,10 @@ class Processor : public ArithmeticProcessor
   void write_shares_to_file(long start_pos, const vector<int>& data_registers);
   
   cint get_inverse2(unsigned m);
+
+  // synchronize in asymmetric protocols
+  long sync_Ci(size_t i) const;
+  long sync(long x) const;
 
   private:
 

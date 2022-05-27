@@ -21,5 +21,5 @@ using MamaShare_ = MamaShare<T, N_MAMA_MACS>;
 int main(int argc, const char** argv)
 {
     ez::ezOptionParser opt;
-    DishonestMajorityFieldMachine<MamaShare_, Share>(argc, argv, opt);
+    DishonestMajorityFieldMachine<MamaShare_, MamaShare_>(argc, argv, opt);
 }

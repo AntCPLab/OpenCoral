@@ -9,6 +9,7 @@
 #include "Processor/ProcessorBase.hpp"
 #include "GC/Processor.hpp"
 #include "GC/ShareThread.hpp"
+#include "Protocols/SecureShuffle.hpp"
 
 #include <sodium.h>
 #include <string>
@@ -23,6 +24,7 @@ SubProcessor<T>::SubProcessor(ArithmeticProcessor& Proc, typename T::MAC_Check& 
 template <class T>
 SubProcessor<T>::SubProcessor(typename T::MAC_Check& MC,
     Preprocessing<T>& DataF, Player& P, ArithmeticProcessor* Proc) :
+    shuffler(*this),
     Proc(Proc), MC(MC), P(P), DataF(DataF), protocol(P), input(*this, MC),
     bit_prep(bit_usage)
 {
@@ -340,6 +342,9 @@ void Processor<sint, sgf2n>::read_socket_private(int client_id,
 // Tolerent to no file if no shares yet persisted.
 template<class sint, class sgf2n>
 void Processor<sint, sgf2n>::read_shares_from_file(int start_file_posn, int end_file_pos_register, const vector<int>& data_registers) {
+  if (not sint::real_shares(P))
+    return;
+
   string filename;
   filename = "Persistence/Transactions-P" + to_string(P.my_num()) + ".data";
 
@@ -370,6 +375,9 @@ template<class sint, class sgf2n>
 void Processor<sint, sgf2n>::write_shares_to_file(long start_pos,
     const vector<int>& data_registers)
 {
+  if (not sint::real_shares(P))
+    return;
+
   string filename = binary_file_io.filename(P.my_num());
 
   unsigned int size = data_registers.size();
@@ -634,6 +642,33 @@ void SubProcessor<T>::conv2ds(const Instruction& instruction)
 }
 
 template<class T>
+void SubProcessor<T>::secure_shuffle(const Instruction& instruction)
+{
+    SecureShuffle<T>(S, instruction.get_size(), instruction.get_n(),
+            instruction.get_r(0), instruction.get_r(1), *this);
+}
+
+template<class T>
+size_t SubProcessor<T>::generate_secure_shuffle(const Instruction& instruction)
+{
+    return shuffler.generate(instruction.get_n());
+}
+
+template<class T>
+void SubProcessor<T>::apply_shuffle(const Instruction& instruction, int handle)
+{
+    shuffler.apply(S, instruction.get_size(), instruction.get_start()[2],
+            instruction.get_start()[0], instruction.get_start()[1], handle,
+            instruction.get_start()[4]);
+}
+
+template<class T>
+void SubProcessor<T>::delete_shuffle(int handle)
+{
+    shuffler.del(handle);
+}
+
+template<class T>
 void SubProcessor<T>::input_personal(const vector<int>& args)
 {
   input.reset_all(P);
@@ -688,6 +723,27 @@ typename sint::clear Processor<sint, sgf2n>::get_inverse2(unsigned m)
   for (unsigned i = inverses2m.size(); i <= m; i++)
     inverses2m.push_back((cint(1) << i).invert());
   return inverses2m[m];
+}
+
+template<class sint, class sgf2n>
+long Processor<sint, sgf2n>::sync_Ci(size_t i) const
+{
+  return sync(read_Ci(i));
+}
+
+template<class sint, class sgf2n>
+long Processor<sint, sgf2n>::sync(long x) const
+{
+  if (not sint::symmetric)
+    {
+      // send number to dealer
+      if (P.my_num() == 0)
+        P.send_long(P.num_players() - 1, x);
+      if (not sint::real_shares(P))
+        return P.receive_long(0);
+    }
+
+  return x;
 }
 
 #endif

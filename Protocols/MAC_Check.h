@@ -298,7 +298,8 @@ void TreeSum<T>::start(vector<T>& values, const Player& P)
     {
       // send from the root player
       os.reset_write_head();
-      for (unsigned int i=0; i<values.size(); i++)
+      size_t n = values.size();
+      for (unsigned int i=0; i<n; i++)
         { values[i].pack(os); }
       timers[BCAST].start();
       for (int i = 1; i < max_broadcast && i < P.num_players(); i++)

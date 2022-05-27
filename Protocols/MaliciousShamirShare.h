@@ -45,6 +45,8 @@ public:
     typedef GC::MaliciousCcdSecret<gf2n_short> bit_type;
 #endif
 
+    static const bool malicious = true;
+
     static string type_short()
     {
         return "M" + super::type_short();

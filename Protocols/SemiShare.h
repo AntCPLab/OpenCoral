@@ -78,6 +78,7 @@ public:
     const static bool variable_players = true;
     const static bool expensive = false;
     static const bool has_trunc_pr = true;
+    static const bool malicious = false;
 
     static string type_short() { return "D" + string(1, T::type_char()); }
 

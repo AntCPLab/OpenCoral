@@ -56,6 +56,7 @@ class Share_ : public ShareInterface
    const static bool dishonest_majority = T::dishonest_majority;
    const static bool variable_players = T::variable_players;
    const static bool has_mac = true;
+   static const bool malicious = true;
 
    static int size()
      { return T::size() + V::size(); }

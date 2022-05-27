@@ -330,10 +330,13 @@ Direct_MAC_Check<T>::~Direct_MAC_Check() {
 template<class T>
 void direct_add_openings(vector<T>& values, const PlayerBase& P, vector<octetStream>& os)
 {
-  for (unsigned int i=0; i<values.size(); i++)
-    for (int j=0; j<P.num_players(); j++)
-      if (j!=P.my_num())
-	values[i].add(os.at(j));
+  size_t n = P.num_players();
+  size_t me = P.my_num();
+  assert(os.size() == n);
+  for (auto& value : values)
+    for (size_t j = 0; j < n; j++)
+      if (j != me)
+        value += os[j].get<T>();
 }
 
 template<class T>

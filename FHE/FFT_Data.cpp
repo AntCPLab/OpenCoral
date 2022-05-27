@@ -7,6 +7,11 @@
 
 
 
+FFT_Data::FFT_Data() :
+    twop(-1)
+{
+}
+
 void FFT_Data::init(const Ring& Rg,const Zp_Data& PrD)
 {
   R=Rg;

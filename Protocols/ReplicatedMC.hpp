@@ -28,7 +28,7 @@ void ReplicatedMC<T>::POpen_Begin(vector<typename T::open_type>&,
 template<class T>
 void ReplicatedMC<T>::prepare(const vector<T>& S)
 {
-    assert(T::length == 2);
+    assert(T::vector_length == 2);
     o.reset_write_head();
     to_send.reset_write_head();
     to_send.reserve(S.size() * T::value_type::size());

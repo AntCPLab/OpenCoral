@@ -382,7 +382,6 @@ class sbits(bits):
     reg_type = 'sb'
     is_clear = False
     clear_type = cbits
-    default_type = cbits
     load_inst = (inst.ldmsbi, inst.ldmsb)
     store_inst = (inst.stmsbi, inst.stmsb)
     bitdec = inst.bitdecs
@@ -403,6 +402,9 @@ class sbits(bits):
             return sbit(value)
         else:
             return sbits.get_type(n)(value)
+    @staticmethod
+    def _new(value):
+        return value
     @staticmethod
     def get_random_bit():
         res = sbit()
@@ -909,6 +911,7 @@ class cbit(bit, cbits):
 sbits.bit_type = sbit
 cbits.bit_type = cbit
 sbit.clear_type = cbit
+sbits.default_type = sbits
 
 class bitsBlock(oram.Block):
     value_type = sbits

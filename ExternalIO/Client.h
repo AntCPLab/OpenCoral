@@ -47,17 +47,8 @@ inline void receive(client_socket* socket, octet* data, size_t len)
 #else
 
 typedef ssl_ctx client_ctx;
+typedef ssl_socket client_socket;
 
-class client_socket : public ssl_socket
-{
-public:
-    client_socket(boost::asio::io_service& io_service,
-            boost::asio::ssl::context& ctx, int plaintext_socket, string other,
-            string me, bool client) :
-            ssl_socket(io_service, ctx, plaintext_socket, other, me, client)
-    {
-    }
-};
 #endif
 
 /**

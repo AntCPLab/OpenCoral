@@ -50,11 +50,6 @@ public:
         return "no";
     }
 
-    static string type_short()
-    {
-        return "no";
-    }
-
     static DataFieldType field_type()
     {
         throw not_implemented();
@@ -66,7 +61,7 @@ public:
 
     static void fail()
     {
-        throw runtime_error("VM does not support binary circuits");
+        throw runtime_error("functionality not available");
     }
 
     NoValue() {}
@@ -139,6 +134,11 @@ public:
     }
 
     static int size()
+    {
+        return 0;
+    }
+
+    static int length()
     {
         return 0;
     }

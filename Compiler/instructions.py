@@ -17,6 +17,7 @@ right order.
 
 import itertools
 import operator
+import math
 from . import tools
 from random import randint
 from functools import reduce
@@ -2405,6 +2406,70 @@ class trunc_pr(base.VarArgsInstruction):
     __slots__ = []
     code = base.opcodes['TRUNC_PR']
     arg_format = tools.cycle(['sw','s','int','int'])
+
+@base.gf2n
+class secshuffle(base.VectorInstruction, base.DataInstruction):
+    """ Secure shuffling.
+
+    :param: destination (sint)
+    :param: source (sint)
+    """
+    __slots__ = []
+    code = base.opcodes['SECSHUFFLE']
+    arg_format = ['sw','s','int']
+
+    def __init__(self, *args, **kwargs):
+        super(secshuffle_class, self).__init__(*args, **kwargs)
+        assert len(args[0]) == len(args[1])
+        assert len(args[0]) > args[2]
+
+    def add_usage(self, req_node):
+        req_node.increment((self.field_type, 'input', 0), float('inf'))
+
+class gensecshuffle(base.DataInstruction):
+    """ Generate secure shuffle to bit used several times.
+
+    :param: destination (regint)
+    :param: size (int)
+
+    """
+    __slots__ = []
+    code = base.opcodes['GENSECSHUFFLE']
+    arg_format = ['ciw','int']
+
+    def add_usage(self, req_node):
+        req_node.increment((self.field_type, 'input', 0), float('inf'))
+
+class applyshuffle(base.VectorInstruction, base.DataInstruction):
+    """ Generate secure shuffle to bit used several times.
+
+    :param: destination (sint)
+    :param: source (sint)
+    :param: number of elements to be treated as one (int)
+    :param: handle (regint)
+    :param: reverse (0/1)
+
+    """
+    __slots__ = []
+    code = base.opcodes['APPLYSHUFFLE']
+    arg_format = ['sw','s','int','ci','int']
+
+    def __init__(self, *args, **kwargs):
+        super(applyshuffle, self).__init__(*args, **kwargs)
+        assert len(args[0]) == len(args[1])
+        assert len(args[0]) > args[2]
+
+    def add_usage(self, req_node):
+        req_node.increment((self.field_type, 'triple', 0), float('inf'))
+
+class delshuffle(base.Instruction):
+    """ Delete secure shuffle.
+
+    :param: handle (regint)
+
+    """
+    code = base.opcodes['DELSHUFFLE']
+    arg_format = ['ci']
 
 class check(base.Instruction):
     """

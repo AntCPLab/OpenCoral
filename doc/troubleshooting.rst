@@ -148,12 +148,14 @@ AVX/AVX2 instructions are deactivated (see e.g.
 `here <https://stackoverflow.com/questions/65780506/how-to-enable-avx-avx2-in-virtualbox-6-1-16-with-ubuntu-20-04-64bit>`_),
 which causes a dramatic performance loss. Deactivate Hyper-V/Hypervisor
 using::
+
   bcdedit /set hypervisorlaunchtype off
   DISM /Online /Disable-Feature:Microsoft-Hyper-V
 
 
 Performance can be further increased when compiling MP-SPDZ yourself:
 ::
+
  sudo apt-get update
  sudo apt-get install automake build-essential git libboost-dev libboost-thread-dev libntl-dev libsodium-dev libssl-dev libtool m4 python3 texinfo yasm
  git clone https://github.com/data61/MP-SPDZ.git

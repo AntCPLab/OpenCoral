@@ -10,7 +10,7 @@
 
 template<class T>
 DealerInput<T>::DealerInput(SubProcessor<T>& proc, typename T::MAC_Check&) :
-        DealerInput(proc.P)
+        DealerInput(&proc, proc.P)
 {
 }
 
@@ -23,6 +23,13 @@ DealerInput<T>::DealerInput(typename T::MAC_Check&, Preprocessing<T>&,
 
 template<class T>
 DealerInput<T>::DealerInput(Player& P) :
+        DealerInput(0, P)
+{
+}
+
+template<class T>
+DealerInput<T>::DealerInput(SubProcessor<T>* proc, Player& P) :
+        InputBase<T>(proc),
         P(P), to_send(P), shares(P.num_players()), from_dealer(false),
         sub_player(P)
 {
@@ -68,8 +75,8 @@ void DealerInput<T>::add_mine(const typename T::open_type& input,
     if (is_dealer())
     {
         make_share(shares.data(), input, P.num_players() - 1, 0, G);
-        for (int i = 1; i < P.num_players(); i++)
-            shares.at(i - 1).pack(to_send[i]);
+        for (int i = 0; i < P.num_players() - 1; i++)
+            shares.at(i).pack(to_send[i]);
         from_dealer = true;
     }
     else

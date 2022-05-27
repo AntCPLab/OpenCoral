@@ -40,12 +40,17 @@ public:
     static const bool has_trunc_pr = false;
     static const bool has_split = false;
     static const bool has_mac = false;
+    static const bool malicious = false;
 
     static const false_type triple_matmul;
 
+    const static bool symmetric = true;
+
     static const int default_length = 1;
 
-    static string type_short() { return "undef"; }
+    static string type_short() { throw runtime_error("don't call this"); }
+
+    static bool real_shares(const Player&) { return true; }
 
     template<class T, class U>
     static void split(vector<U>, vector<int>, int, T*, int,
@@ -63,6 +68,8 @@ public:
 
     template<class T, class U>
     static void generate_mac_key(T&, U&) {}
+
+    static int threshold(int) { throw runtime_error("undefined threshold"); }
 };
 
 #endif /* PROTOCOLS_SHAREINTERFACE_H_ */

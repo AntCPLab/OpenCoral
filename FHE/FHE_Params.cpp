@@ -1,5 +1,6 @@
 
 #include "FHE_Params.h"
+#include "NTL-Subs.h"
 #include "FHE/Ring_Element.h"
 #include "Tools/Exceptions.h"
 #include "Protocols/HemiOptions.h"
@@ -67,6 +68,7 @@ void FHE_Params::pack(octetStream& o) const
   Bval.pack(o);
   o.store(sec_p);
   o.store(matrix_dim);
+  fd.pack(o);
 }
 
 void FHE_Params::unpack(octetStream& o)
@@ -80,6 +82,7 @@ void FHE_Params::unpack(octetStream& o)
   Bval.unpack(o);
   o.get(sec_p);
   o.get(matrix_dim);
+  fd.unpack(o);
 }
 
 bool FHE_Params::operator!=(const FHE_Params& other) const
@@ -91,4 +94,38 @@ bool FHE_Params::operator!=(const FHE_Params& other) const
     }
   else
     return false;
+}
+
+void FHE_Params::basic_generation_mod_prime(int plaintext_length)
+{
+  if (n_mults() == 0)
+    generate_semi_setup(plaintext_length, 0, *this, fd, false);
+  else
+    {
+      Parameters parameters(1, plaintext_length, 0);
+      parameters.generate_setup(*this, fd);
+    }
+}
+
+template<>
+const FFT_Data& FHE_Params::get_plaintext_field_data() const
+{
+  return fd;
+}
+
+template<>
+const P2Data& FHE_Params::get_plaintext_field_data() const
+{
+  throw not_implemented();
+}
+
+template<>
+const PPData& FHE_Params::get_plaintext_field_data() const
+{
+  throw not_implemented();
+}
+
+bigint FHE_Params::get_plaintext_modulus() const
+{
+  return fd.get_prime();
 }

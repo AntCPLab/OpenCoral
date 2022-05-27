@@ -37,6 +37,8 @@ public:
 
     typedef GC::Rep4Secret bit_type;
 
+    static const bool malicious = true;
+
     static string type_short()
     {
         return "R4" + string(1, T::type_char());

@@ -24,7 +24,12 @@ public:
     typedef T value_type;
     typedef FixedVec Scalar;
 
-    static const int length = L;
+    static const int vector_length = L;
+
+    static int length()
+    {
+        return L * T::length();
+    }
 
     static int size()
     {

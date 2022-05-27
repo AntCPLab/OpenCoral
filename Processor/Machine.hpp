@@ -30,7 +30,7 @@ void Machine<sint, sgf2n>::init_binary_domains(int security_parameter, int lg2)
 
   if (not is_same<typename sgf2n::mac_key_type, GC::NoValue>())
     {
-      if (sgf2n::clear::degree() < security_parameter)
+      if (sgf2n::mac_key_type::length() < security_parameter)
         {
           cerr << "Security parameter needs to be at most n in GF(2^n)."
               << endl;
@@ -469,7 +469,10 @@ void Machine<sint, sgf2n>::run(const string& progname)
   for (auto& x : comm_stats)
       rounds += x.second.rounds;
   cerr << "Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
-      << " rounds (party " << my_number << ")" << endl;
+      << " rounds (party " << my_number;
+  if (threads.size() > 1)
+      cerr << "; rounds counted double due to multi-threading";
+  cerr << ")" << endl;
 
   auto& P = *this->P;
   Bundle<octetStream> bundle(P);

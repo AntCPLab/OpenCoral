@@ -157,7 +157,6 @@ public:
   NamedCommStats& operator+=(const NamedCommStats& other);
   NamedCommStats operator+(const NamedCommStats& other) const;
   NamedCommStats operator-(const NamedCommStats& other) const;
-  size_t total_data();
   void print(bool newline = false);
   void reset();
 #ifdef VERBOSE_COMM

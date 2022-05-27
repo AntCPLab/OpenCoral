@@ -107,6 +107,12 @@ public:
         a = other.get();
     }
 
+    template<int K>
+    gfpvar_(const Z2<K>& other) :
+            gfpvar_(bigint(other))
+    {
+    }
+
     void assign(const void* buffer);
 
     void assign_zero();

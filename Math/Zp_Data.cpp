@@ -174,7 +174,8 @@ void Zp_Data::unpack(octetStream& o)
   int m;
   o.get(m);
   montgomery = m;
-  init(pr, m);
+  if (pr != 0)
+    init(pr, m);
 }
 
 bool Zp_Data::operator!=(const Zp_Data& other) const

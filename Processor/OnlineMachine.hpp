@@ -36,7 +36,9 @@ OnlineMachine::OnlineMachine(int argc, const char** argv, ez::ezOptionParser& op
           0, // Required?
           1, // Number of args expected.
           0, // Delimiter if expecting multiple args.
-          ("Bit length of GF(2^n) field (default: " + to_string(V::default_degree()) + ")").c_str(), // Help description.
+          ("Bit length of GF(2^n) field (default: "
+                  + to_string(V::default_degree()) + "; options are "
+                  + V::options() + ")").c_str(), // Help description.
           "-lg2", // Flag token.
           "--lg2" // Flag token.
     );

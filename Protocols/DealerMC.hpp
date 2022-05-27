@@ -73,4 +73,11 @@ typename T::open_type DealerMC<T>::finalize_raw()
         return {};
 }
 
+template<class T>
+array<typename T::open_type*, 2> DealerMC<T>::finalize_several(int n)
+{
+    assert(sub_player);
+    return internal.finalize_several(n);
+}
+
 #endif /* PROTOCOLS_DEALERMC_HPP_ */

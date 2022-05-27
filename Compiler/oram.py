@@ -348,7 +348,7 @@ class Entry(object):
     def __len__(self):
         return 2 + len(self.x)
     def __repr__(self):
-        return '{empty=%s}' % self.is_empty if self.is_empty \
+        return '{empty=%s}' % self.is_empty if util.is_one(self.is_empty) \
             else '{%s: %s}' % (self.v, self.x)
     def __add__(self, other):
         try:
@@ -466,12 +466,14 @@ class AbstractORAM(object):
     def get_array(size, t, *args, **kwargs):
         return t.dynamic_array(size, t, *args, **kwargs)
     def read(self, index):
-        return self._read(self.value_type.hard_conv(index))
+        res = self._read(self.index_type.hard_conv(index))
+        res = [self.value_type._new(x) for x in res]
+        return res
     def write(self, index, value):
+        value = util.tuplify(value)
+        value = [self.value_type.conv(x) for x in value]
         new_value = [self.value_type.get_type(length).hard_conv(v) \
-                         for length,v in zip(self.entry_size, value \
-                                             if isinstance(value, (tuple, list)) \
-                                       else (value,))]
+                         for length,v in zip(self.entry_size, value)]
         return self._write(self.index_type.hard_conv(index), *new_value)
     def access(self, index, new_value, write, new_empty=False):
         return self._access(self.index_type.hard_conv(index),
@@ -795,7 +797,8 @@ class RefTrivialORAM(EndRecursiveEviction):
         for i,value in enumerate(values):
             index = MemValue(self.value_type.hard_conv(i))
             new_value = [MemValue(self.value_type.hard_conv(v)) \
-                            for v in (value if isinstance(value, (tuple, list)) \
+                            for v in (value if isinstance(
+                                    value, (tuple, list, Array)) \
                             else (value,))]
             self.ram[i] = Entry(index, new_value, value_type=self.value_type)
 
@@ -986,7 +989,8 @@ class List(EndRecursiveEviction):
         for i,value in enumerate(values):
             index = self.value_type.hard_conv(i)
             new_value = [self.value_type.hard_conv(v) \
-                            for v in (value if isinstance(value, (tuple, list)) \
+                            for v in (value if isinstance(
+                                    value, (tuple, list, Array)) \
                             else (value,))]
             self.__setitem__(index, new_value)
     def __repr__(self):
@@ -1062,11 +1066,12 @@ class TreeORAM(AbstractORAM):
             stop_timer(1)
             start_timer()
         self.root = RefBucket(1, self)
-        self.index = self.index_structure(size, self.D, value_type, init_rounds, True)
+        self.index = self.index_structure(size, self.D, self.index_type,
+                                          init_rounds, True)
 
-        self.read_value = Array(self.value_length, value_type)
+        self.read_value = Array(self.value_length, value_type.default_type)
         self.read_non_empty = MemValue(self.value_type.bit_type(0))
-        self.state = MemValue(self.value_type(0))
+        self.state = MemValue(self.value_type.default_type(0))
     @method_block
     def add_to_root(self, state, is_empty, v, *x):
         if len(x) != self.value_length:
@@ -1106,10 +1111,10 @@ class TreeORAM(AbstractORAM):
         self.evict_bucket(RefBucket(p_bucket2, self), d)
     @method_block
     def read_and_renew_index(self, u):
-        l_star = random_block(self.D, self.value_type)
+        l_star = random_block(self.D, self.index_type)
         if use_insecure_randomness:
             new_path = regint.get_random(self.D)
-            l_star = self.value_type(new_path)
+            l_star = self.index_type(new_path)
         self.state.write(l_star)
         return self.index.update(u, l_star, evict=False).reveal()
     @method_block
@@ -1120,7 +1125,7 @@ class TreeORAM(AbstractORAM):
         parallel = get_parallel(self.index_size, *self.internal_value_type())
         @map_sum(get_n_threads_for_tree(self.size), parallel, levels, \
                      self.value_length + 1, [self.value_type.bit_type] + \
-                        [self.value_type] * self.value_length)
+                        [self.value_type.default_type] * self.value_length)
         def process(level):
             b_index = regint(cint(2**(self.D) + read_path) >> cint(self.D - level))
             bucket = RefBucket(b_index, self)
@@ -1142,9 +1147,9 @@ class TreeORAM(AbstractORAM):
                 Program.prog.curr_tape.start_new_basicblock()
                 crash()
     def internal_value_type(self):
-        return self.value_type, self.value_length + 1
+        return self.value_type.default_type, self.value_length + 1
     def internal_entry_size(self):
-        return self.value_type, [self.D] + list(self.entry_size)
+        return self.value_type.default_type, [self.D] + list(self.entry_size)
     def n_buckets(self):
         return 2**(self.D+1)
     @method_block
@@ -1176,8 +1181,9 @@ class TreeORAM(AbstractORAM):
         #print 'pre-add', self
         maybe_start_timer(4)
         self.add_to_root(state, entry.empty(), \
-                             self.value_type(entry.v.read()), \
-                             *(self.value_type(i.read()) for i in entry.x))
+                             self.index_type(entry.v.read()), \
+                             *(self.value_type.default_type(i.read())
+                               for i in entry.x))
         maybe_stop_timer(4)
         #print 'pre-evict', self
         if evict:
@@ -1228,21 +1234,27 @@ class TreeORAM(AbstractORAM):
             raise CompilerError('Batch initialization only possible with sint.')
 
         depth = log2(m)
-        leaves = [0] * m
-        entries = [0] * m
-        indexed_values = [0] * m
+        leaves = self.value_type.Array(m)
+        indexed_values = \
+            self.value_type.Matrix(m, len(util.tuplify(values[0])) + 1)
 
         # assign indices 0, ..., m-1
-        for i,value in enumerate(values):
+        @for_range(m)
+        def _(i):
+            value = values[i]
             index = MemValue(self.value_type.hard_conv(i))
             new_value = [MemValue(self.value_type.hard_conv(v)) \
                          for v in (value if isinstance(value, (tuple, list)) \
                                        else (value,))]
             indexed_values[i] = [index] + new_value
 
-        
+        entries = sint.Matrix(self.bucket_size * 2 ** self.D,
+                              len(Entry(0, list(indexed_values[0]), False)))
+
         # assign leaves
-        for i,index_value in enumerate(indexed_values):
+        @for_range(len(indexed_values))
+        def _(i):
+            index_value = list(indexed_values[i])
             leaves[i] = random_block(self.D, self.value_type)
 
             index = index_value[0]
@@ -1252,18 +1264,20 @@ class TreeORAM(AbstractORAM):
         
         # save unsorted leaves for position map
         unsorted_leaves = [MemValue(self.value_type(leaf)) for leaf in leaves]
-        permutation.sort(leaves, comp=permutation.normal_comparator)
+        leaves.sort()
 
         bucket_sz = 0
         # B[i] = (pos, leaf, "last in bucket" flag) for i-th entry
-        B = [[0]*3 for i in range(m)]
+        B = sint.Matrix(m, 3)
         B[0] = [0, leaves[0], 0]
         B[-1] = [None, None, sint(1)]
-        s = 0
+        s = MemValue(sint(0))
 
-        for i in range(1, m):
+        @for_range_opt(m - 1)
+        def _(j):
+            i = j + 1
             eq = leaves[i].equal(leaves[i-1])
-            s = (s + eq) * eq
+            s.write((s + eq) * eq)
             B[i][0] = s
             B[i][1] = leaves[i]
             B[i-1][2] = 1 - eq
@@ -1271,7 +1285,7 @@ class TreeORAM(AbstractORAM):
             #last_in_bucket[i-1] = 1 - eq
 
         # shuffle
-        permutation.shuffle(B, value_type=sint)
+        B.secure_shuffle()
         #cint(0).print_reg('shuf')
 
         sz = MemValue(0) #cint(0)
@@ -1279,7 +1293,8 @@ class TreeORAM(AbstractORAM):
         empty_positions = Array(nleaves, self.value_type)
         empty_leaves = Array(nleaves, self.value_type)
         
-        for i in range(m):
+        @for_range(m)
+        def _(i):
             if_then(reveal(B[i][2]))
             #if B[i][2] == 1:
             #cint(i).print_reg('last')
@@ -1291,12 +1306,13 @@ class TreeORAM(AbstractORAM):
             empty_positions[szval] = B[i][0] #pos[i][0]
             #empty_positions[szval].reveal().print_reg('ps0')
             empty_leaves[szval] = B[i][1] #pos[i][1]
-            sz += 1
+            sz.iadd(1)
             end_if()
 
-        pos_bits = []
+        pos_bits = self.value_type.Matrix(self.bucket_size * nleaves, 2)
 
-        for i in range(nleaves):
+        @for_range_opt(nleaves)
+        def _(i):
             leaf = empty_leaves[i]
             # split into 2 if bucket size can't fit into one field elem
             if self.bucket_size + Program.prog.security > 128:
@@ -1315,46 +1331,39 @@ class TreeORAM(AbstractORAM):
                 bucket_bits = [b for sl in zip(bits2,bits) for b in sl]
             else:
                 bucket_bits = floatingpoint.B2U(empty_positions[i]+1, self.bucket_size, Program.prog.security)[0]
-            pos_bits += [[b, leaf] for b in bucket_bits]
+            assert len(bucket_bits) == self.bucket_size
+            for j, b in enumerate(bucket_bits):
+                pos_bits[i * self.bucket_size + j] = [b, leaf]
         
         # sort to get empty positions first
-        permutation.sort(pos_bits, comp=permutation.bitwise_list_comparator)
+        pos_bits.sort(n_bits=1)
 
         # now assign positions to empty entries
-        empty_entries = [0] * (self.bucket_size*2**self.D - m)
-        
-        for i in range(self.bucket_size*2**self.D - m):
+        @for_range(len(entries) - m)
+        def _(i):
             vtype, vlength = self.internal_value_type()
             leaf = vtype(pos_bits[i][1])
             # set leaf in empty entry for assigning after shuffle
-            value = tuple([leaf] + [vtype(0) for j in range(vlength)])
+            value = tuple([leaf] + [vtype(0) for j in range(vlength - 1)])
             entry = Entry(vtype(0), value, vtype.hard_conv(True), vtype)
-            empty_entries[i] = entry
+            entries[m + i] = entry
 
         # now shuffle, reveal positions and place entries
-        entries = entries + empty_entries
-        while len(entries) & (len(entries)-1) != 0:
-            entries.append(None)
-        permutation.shuffle(entries, value_type=sint)
-        entries = [entry for entry in entries if entry is not None]
-        clear_leaves = [MemValue(entry.x[0].reveal()) for entry in entries]
+        entries.secure_shuffle()
+        clear_leaves = Array.create_from(
+            Entry(entries.get_columns()).x[0].reveal())
 
         Program.prog.curr_tape.start_new_basicblock()
 
         bucket_sizes = Array(2**self.D, regint)
         for i in range(2**self.D):
             bucket_sizes[i] = 0
-        k = 0
-        for entry,leaf in zip(entries, clear_leaves):
-            leaf = leaf.read()
-            k += 1
 
-            # for some reason leaf_buckets is in bit-reversed order
-            bits = bit_decompose(leaf, self.D)
-            rev_leaf = sum(b*2**i for i,b in enumerate(bits[::-1]))
-            bucket = RefBucket(rev_leaf + (1 << self.D), self)
-            # hack: 1*entry ensures MemValues are converted to sints
-            bucket.bucket.ram[bucket_sizes[leaf]] = 1*entry
+        @for_range_opt(len(entries))
+        def _(k):
+            leaf = clear_leaves[k]
+            bucket = RefBucket(leaf + (1 << self.D), self)
+            bucket.bucket.ram[bucket_sizes[leaf]] = Entry(entries[k])
             bucket_sizes[leaf] += 1
 
         self.index.batch_init([leaf.read() for leaf in unsorted_leaves])
@@ -1599,16 +1608,20 @@ class PackedIndexStructure(object):
     def batch_init(self, values):
         """ Initialize m values with indices 0, ..., m-1 """
         m = len(values)
-        n_entries = max(1, m/self.entries_per_block)
-        new_values = [0] * n_entries
+        n_entries = max(1, m//self.entries_per_block)
+        new_values = sint.Matrix(n_entries, self.elements_per_block)
+        values = Array.create_from(values)
 
-        for i in range(n_entries):
+        @for_range(n_entries)
+        def _(i):
             block = [0] * self.elements_per_block
             for j in range(self.elements_per_block):
                 base = i * self.entries_per_block + j * self.entries_per_element
                 for k in range(self.entries_per_element):
-                    if base + k < m:
-                        block[j] += values[base + k] << (k * self.entry_size)
+                    @if_(base + k < m)
+                    def _():
+                        block[j] += \
+                            values[base + k] << (k * sum(self.entry_size))
 
             new_values[i] = block
 
@@ -1667,7 +1680,8 @@ def OptimalORAM(size,*args,**kwargs):
     experiments.
 
     :param size: number of elements
-    :param value_type: :py:class:`sint` (default) / :py:class:`sg2fn`
+    :param value_type: :py:class:`sint` (default) / :py:class:`sg2fn` /
+      :py:class:`sfix`
     """
     if optimal_threshold is None:
         if n_threads == 1:
@@ -1784,7 +1798,7 @@ def test_batch_init(oram_type, N):
     oram = oram_type(N, value_type)
     print('initialized')
     print_reg(cint(0), 'init')
-    oram.batch_init([value_type(i) for i in range(N)])
+    oram.batch_init(Array.create_from(sint(regint.inc(N))))
     print_reg(cint(0), 'done')
     @for_range(N)
     def f(i):

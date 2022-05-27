@@ -107,10 +107,12 @@ int generate_semi_setup(int plaintext_length, int sec,
 
 int common_semi_setup(FHE_Params& params, int m, bigint p, int& lgp0, int lgp1, bool round_up)
 {
+#ifdef VERBOSE
   cout << "Need ciphertext modulus of length " << lgp0;
   if (params.n_mults() > 0)
     cout << "+" << lgp1;
   cout << " and " << phi_N(m) << " slots" << endl;
+#endif
 
   int extra_slack = 0;
   if (round_up)
@@ -125,8 +127,10 @@ int common_semi_setup(FHE_Params& params, int m, bigint p, int& lgp0, int lgp1, 
         }
       extra_slack = i - 1;
       lgp0 += extra_slack;
+#ifdef VERBOSE
       cout << "Rounding up to " << lgp0 << ", giving extra slack of "
           << extra_slack << " bits" << endl;
+#endif
     }
 
   Ring R;
@@ -148,11 +152,15 @@ int common_semi_setup(FHE_Params& params, int m, bigint p, int& lgp0, int lgp1, 
 int finalize_lengths(int& lg2p0, int& lg2p1, int n, int m, int* lg2pi,
     bool round_up, FHE_Params& params)
 {
+  (void) lg2pi, (void) n;
+
+#ifdef VERBOSE
   if (n >= 2 and n <= 10)
     cout << "Difference to suggestion for p0: " << lg2p0 - lg2pi[n - 2]
         << ", for p1: " << lg2p1 - lg2pi[9 + n - 2] << endl;
   cout << "p0 needs " << int(ceil(1. * lg2p0 / 64)) << " words" << endl;
   cout << "p1 needs " << int(ceil(1. * lg2p1 / 64)) << " words" << endl;
+#endif
 
   int extra_slack = 0;
   if (round_up)
@@ -171,11 +179,15 @@ int finalize_lengths(int& lg2p0, int& lg2p1, int n, int m, int* lg2pi,
       extra_slack = 2 * i;
       lg2p0 += i;
       lg2p1 += i;
+#ifdef VERBOSE
       cout << "Rounding up to " << lg2p0 << "+" << lg2p1
           << ", giving extra slack of " << extra_slack << " bits" << endl;
+#endif
     }
 
+#ifdef VERBOSE
   cout << "Total length: " << lg2p0 + lg2p1 << endl;
+#endif
 
   return extra_slack;
 }
@@ -215,12 +227,21 @@ int Parameters::SPDZ_Data_Setup_Char_p_Sub(int idx, int& m, bigint& p,
     {
       double phi_m_bound =
               NoiseBounds(p, phi_N(m), n, sec, slack, params).optimize(lg2p0, lg2p1);
+
+#ifdef VERBOSE
       cout << "Trying primes of length " << lg2p0 << " and " << lg2p1 << endl;
+#endif
+
       if (phi_N(m) < phi_m_bound)
         {
           int old_m = m;
+          (void) old_m;
           m = 2 << int(ceil(log2(phi_m_bound)));
+
+#ifdef VERBOSE
           cout << "m = " << old_m << " too small, increasing it to " << m << endl;
+#endif
+
           generate_prime(p, numBits(p), m);
         }
       else
@@ -244,6 +265,8 @@ void generate_moduli(bigint& pr0, bigint& pr1, const int m, const bigint p,
 void generate_modulus(bigint& pr, const int m, const bigint p, const int lg2pr,
     const string& i, const bigint& pr0)
 {
+  (void) i;
+
   if (lg2pr==0) { throw invalid_params(); }
 
   bigint step=m;
@@ -260,13 +283,14 @@ void generate_modulus(bigint& pr, const int m, const bigint p, const int lg2pr,
       assert(numBits(pr) == lg2pr);
     }
 
+#ifdef VERBOSE
   cout << "\t pr" << i << " = " << pr << "  :   " << numBits(pr) <<  endl;
+  cout << "Minimal MAX_MOD_SZ = " << int(ceil(1. * lg2pr / 64)) << endl;
+#endif
 
   assert(pr % m == 1);
   assert(pr % p == 1);
   assert(numBits(pr) == lg2pr);
-
-  cout << "Minimal MAX_MOD_SZ = " << int(ceil(1. * lg2pr / 64)) << endl;
 }
 
 /*
@@ -625,6 +649,9 @@ void char_2_dimension(int& m, int& lg2)
         break;
       case 16:
         m = 4369;
+        break;
+      case 15:
+        m = 4681;
         break;
       case 12:
         m = 4095;

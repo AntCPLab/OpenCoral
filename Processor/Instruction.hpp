@@ -157,6 +157,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case LISTEN:
       case CLOSECLIENTCONNECTION:
       case CRASH:
+      case DELSHUFFLE:
         r[0]=get_int(s);
         break;
       // instructions with 2 registers + 1 integer operand
@@ -203,6 +204,8 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case DIGESTC:
       case INPUTMASK:
       case GINPUTMASK:
+      case SECSHUFFLE:
+      case GSECSHUFFLE:
         get_ints(r, s, 2);
         n = get_int(s);
         break;
@@ -230,6 +233,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case CONDPRINTSTR:
       case CONDPRINTSTRB:
       case RANDOMS:
+      case GENSECSHUFFLE:
         r[0]=get_int(s);
         n = get_int(s);
         break;
@@ -269,6 +273,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       // instructions with 5 register operands
       case PRINTFLOATPLAIN:
       case PRINTFLOATPLAINB:
+      case APPLYSHUFFLE:
         get_vector(5, start, s);
         break;
       case INCINT:
@@ -558,6 +563,7 @@ int BaseInstruction::get_reg_type() const
     case CONVCBITVEC:
     case INTOUTPUT:
     case ACCEPTCLIENTCONNECTION:
+    case GENSECSHUFFLE:
       return INT;
     case PREP:
     case GPREP:
@@ -835,11 +841,13 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         {
           for (int i = 0; i < size; i++)
             Proc.write_Ci(r[0] + i,
-                Integer::convert_unsigned(Proc.read_Cp(r[1] + i)).get());
+                Proc.sync(
+                    Integer::convert_unsigned(Proc.read_Cp(r[1] + i)).get()));
         }
       else if (n <= 64)
         for (int i = 0; i < size; i++)
-          Proc.write_Ci(r[0] + i, Integer(Proc.read_Cp(r[1] + i), n).get());
+          Proc.write_Ci(r[0] + i,
+              Proc.sync(Integer(Proc.read_Cp(r[1] + i), n).get()));
       else
         throw Processor_Error(to_string(n) + "-bit conversion impossible; "
             "integer registers only have 64 bits");
@@ -856,40 +864,32 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         n++;
         break;
       case LDMCI:
-        Proc.write_Cp(r[0], Proc.machine.Mp.read_C(Proc.read_Ci(r[1])));
+        Proc.write_Cp(r[0], Proc.machine.Mp.read_C(Proc.sync_Ci(r[1])));
         break;
       case STMC:
         Proc.machine.Mp.write_C(n,Proc.read_Cp(r[0]));
         n++;
         break;
       case STMCI:
-        Proc.machine.Mp.write_C(Proc.read_Ci(r[1]), Proc.read_Cp(r[0]));
+        Proc.machine.Mp.write_C(Proc.sync_Ci(r[1]), Proc.read_Cp(r[0]));
         break;
       case MOVC:
         Proc.write_Cp(r[0],Proc.read_Cp(r[1]));
         break;
       case DIVC:
-        if (Proc.read_Cp(r[2]).is_zero())
-          throw Processor_Error("Division by zero from register");
-        Proc.write_Cp(r[0], Proc.read_Cp(r[1]) / Proc.read_Cp(r[2]));
+        Proc.write_Cp(r[0], Proc.read_Cp(r[1]) / sanitize(Proc.Procp, r[2]));
         break;
       case GDIVC:
-        if (Proc.read_C2(r[2]).is_zero())
-          throw Processor_Error("Division by zero from register");
-        Proc.write_C2(r[0], Proc.read_C2(r[1]) / Proc.read_C2(r[2]));
+        Proc.write_C2(r[0], Proc.read_C2(r[1]) / sanitize(Proc.Proc2, r[2]));
         break;
       case FLOORDIVC:
-        if (Proc.read_Cp(r[2]).is_zero())
-          throw Processor_Error("Division by zero from register");
         Proc.temp.aa.from_signed(Proc.read_Cp(r[1]));
-        Proc.temp.aa2.from_signed(Proc.read_Cp(r[2]));
+        Proc.temp.aa2.from_signed(sanitize(Proc.Procp, r[2]));
         Proc.write_Cp(r[0], bigint(Proc.temp.aa / Proc.temp.aa2));
         break;
       case MODC:
-        if (Proc.read_Cp(r[2]).is_zero())
-          throw Processor_Error("Modulo by zero from register");
         to_bigint(Proc.temp.aa, Proc.read_Cp(r[1]));
-        to_bigint(Proc.temp.aa2, Proc.read_Cp(r[2]));
+        to_bigint(Proc.temp.aa2, sanitize(Proc.Procp, r[2]));
         mpz_fdiv_r(Proc.temp.aa.get_mpz_t(), Proc.temp.aa.get_mpz_t(), Proc.temp.aa2.get_mpz_t());
         Proc.temp.ansp.convert_destroy(Proc.temp.aa);
         Proc.write_Cp(r[0],Proc.temp.ansp);
@@ -948,7 +948,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Procp.protocol.randoms_inst(Procp.get_S(), *this);
         return;
       case INPUTMASKREG:
-        Procp.DataF.get_input(Proc.get_Sp_ref(r[0]), Proc.temp.rrp, Proc.read_Ci(r[2]));
+        Procp.DataF.get_input(Proc.get_Sp_ref(r[0]), Proc.temp.rrp, Proc.sync_Ci(r[2]));
         Proc.write_Cp(r[1], Proc.temp.rrp);
         break;
       case INPUTMASK:
@@ -1034,13 +1034,28 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         return;
       case MATMULSM:
         Proc.Procp.protocol.matmulsm(Proc.Procp, Proc.machine.Mp.MS, *this,
-            Proc.read_Ci(r[1]), Proc.read_Ci(r[2]));
+            Proc.sync_Ci(r[1]), Proc.sync_Ci(r[2]));
         return;
       case CONV2DS:
         Proc.Procp.protocol.conv2ds(Proc.Procp, *this);
         return;
       case TRUNC_PR:
         Proc.Procp.protocol.trunc_pr(start, size, Proc.Procp);
+        return;
+      case SECSHUFFLE:
+        Proc.Procp.secure_shuffle(*this);
+        return;
+      case GSECSHUFFLE:
+        Proc.Proc2.secure_shuffle(*this);
+        return;
+      case GENSECSHUFFLE:
+        Proc.write_Ci(r[0], Proc.Procp.generate_secure_shuffle(*this));
+        return;
+      case APPLYSHUFFLE:
+        Proc.Procp.apply_shuffle(*this, Proc.read_Ci(start.at(3)));
+        return;
+      case DELSHUFFLE:
+        Proc.Procp.delete_shuffle(Proc.read_Ci(r[0]));
         return;
       case CHECK:
         {
@@ -1056,14 +1071,14 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.PC += (signed int) n;
         break;
       case JMPI:
-        Proc.PC += (signed int) Proc.read_Ci(r[0]);
+        Proc.PC += (signed int) Proc.sync_Ci(r[0]);
         break;
       case JMPNZ:
-        if (Proc.read_Ci(r[0]) != 0)
+        if (Proc.sync_Ci(r[0]) != 0)
           { Proc.PC += (signed int) n; }
         break;
       case JMPEQZ:
-        if (Proc.read_Ci(r[0]) == 0)
+        if (Proc.sync_Ci(r[0]) == 0)
           { Proc.PC += (signed int) n; }
         break;
       case PRINTREG:
@@ -1123,7 +1138,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.machine.join_tape(r[0]);
         break;
       case CRASH:
-        if (Proc.read_Ci(r[0]))
+        if (Proc.sync_Ci(r[0]))
           throw crash_requested();
         break;
       case STARTGRIND:
@@ -1146,7 +1161,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       // ***
       case LISTEN:
         // listen for connections at port number n
-        Proc.external_clients.start_listening(Proc.read_Ci(r[0]));
+        Proc.external_clients.start_listening(Proc.sync_Ci(r[0]));
         break;
       case ACCEPTCLIENTCONNECTION:
       {
@@ -1333,6 +1348,17 @@ void Instruction::print(SwitchableOutput& out, T* v, T* p, T* s, T* z, T* nan) c
     }
   if (size > 1)
     out << "]";
+}
+
+template<class T>
+typename T::clear Instruction::sanitize(SubProcessor<T>& proc, int reg) const
+{
+  if (not T::real_shares(proc.P))
+    return 1;
+  auto& res = proc.get_C_ref(reg);
+  if (res.is_zero())
+    throw Processor_Error("Division by zero from register");
+  return res;
 }
 
 #endif

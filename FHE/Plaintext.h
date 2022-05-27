@@ -18,6 +18,7 @@
  */
 
 #include "FHE/Generator.h"
+#include "FHE/FFT_Data.h"
 #include "Math/fixint.h"
 
 #include <vector>
@@ -25,6 +26,8 @@ using namespace std;
 
 class FHE_PK;
 class Rq_Element;
+class FHE_Params;
+class FFT_Data;
 template<class T> class AddableVector;
 
 // Forward declaration as apparently this is needed for friends in templates
@@ -38,13 +41,19 @@ enum condition { Full, Diagonal, Bits };
 
 enum PT_Type   { Polynomial, Evaluation, Both }; 
 
+/**
+ * BGV plaintext.
+ * Use ``Plaintext_mod_prime`` instead of filling in the templates.
+ * The plaintext is held in one of the two representations or both,
+ * polynomial and evaluation. The latter is the one allowing element-wise
+ * multiplication over a vector.
+ * Plaintexts can be added, subtracted, and multiplied via operator overloading.
+ */
 template<class T,class FD,class _>
 class Plaintext
 {
   typedef typename FD::poly_type S;
 
-  int n_slots;
-  int degree;
 
   mutable vector<T> a;  // The thing in evaluation/FFT form
   mutable vector<S> b;  // Now in polynomial form
@@ -58,33 +67,47 @@ class Plaintext
 
   const FD   *Field_Data;
 
-  void set_sizes();
+  int degree() const;
 
   public:
   
   const FD& get_field() const { return *Field_Data; }
-  unsigned int num_slots() const { return n_slots; }
+
+  /// Number of slots
+  unsigned int num_slots() const;
 
   Plaintext(const FD& FieldD, PT_Type type = Polynomial)
-  { Field_Data=&FieldD; set_sizes(); allocate(type); }
+  { Field_Data=&FieldD; allocate(type); }
 
   Plaintext(const FD& FieldD, const Rq_Element& other);
+
+  /// Initialization
+  Plaintext(const FHE_Params& params);
 
   void allocate(PT_Type type) const;
   void allocate() const { allocate(type); }
   void allocate_slots(const bigint& value);
   int get_min_alloc();
 
-  // Access evaluation representation
+  /**
+   * Read slot.
+   * @param i slot number
+   * @returns slot content
+   */
   T element(int i) const
     {  if (type==Polynomial)  
          { from_poly(); }
        return a[i]; 
     }
+  /**
+   * Write to slot
+   * @param i slot number
+   * @param e new slot content
+   */
   void set_element(int i,const T& e)
     { if (type==Polynomial)
         { throw not_implemented(); }
-      a.resize(n_slots);
+      a.resize(num_slots());
       a[i]=e;
       type=Evaluation;
     }
@@ -171,10 +194,10 @@ class Plaintext
 
   bool is_diagonal() const;
 
-  /* Pack and unpack into an octetStream 
-   *   For unpack we assume the FFTD has been assigned correctly already
-   */
+  /// Append to buffer
   void pack(octetStream& o) const;
+
+  /// Read from buffer. Assumes parameters are set correctly
   void unpack(octetStream& o);
 
   size_t report_size(ReportType type);
@@ -184,5 +207,7 @@ class Plaintext
 
 template <class FD>
 using Plaintext_ = Plaintext<typename FD::T, FD, typename FD::S>;
+
+typedef Plaintext_<FFT_Data> Plaintext_mod_prime;
 
 #endif

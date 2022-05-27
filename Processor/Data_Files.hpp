@@ -230,7 +230,7 @@ void Sub_Data_Files<T>::prune()
   my_input_buffers.prune();
   for (int j = 0; j < num_players; j++)
     input_buffers[j].prune();
-  for (auto it : extended)
+  for (auto& it : extended)
     it.second.prune();
   dabit_buffer.prune();
   if (part != 0)

@@ -106,6 +106,11 @@ opcodes = dict(
     CONV2DS = 0xAC,
     CHECK = 0xAF,
     PRIVATEOUTPUT = 0xAD,
+    # Shuffling
+    SECSHUFFLE = 0xFA,
+    GENSECSHUFFLE = 0xFB,
+    APPLYSHUFFLE = 0xFC,
+    DELSHUFFLE = 0xFD,
     # Data access
     TRIPLE = 0x50,
     BIT = 0x51,

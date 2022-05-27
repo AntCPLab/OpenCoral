@@ -45,6 +45,19 @@ int fields_2[num_2_fields][4] =
 };
 
 template<class U>
+string gf2n_<U>::options()
+{
+    string res = to_string(fields_2[0][0]);
+    for (int i = 1; i < num_2_fields; i++)
+    {
+        int n = fields_2[i][0];
+        if (n <= MAX_N_BITS)
+            res += ", " + to_string(n);
+    }
+    return res;
+}
+
+template<class U>
 void gf2n_<U>::init_tables()
 {
   if (sizeof(word)!=8)
@@ -113,7 +126,7 @@ void gf2n_<U>::init_field(int nn)
 
   if (j==-1)
     {
-      throw gf2n_not_supported(nn);
+      throw gf2n_not_supported(nn, options());
     }
 
   n=nn;

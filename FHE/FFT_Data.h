@@ -50,7 +50,7 @@ class FFT_Data
   void pack(octetStream& o) const;
   void unpack(octetStream& o);
 
-  FFT_Data() { ; }
+  FFT_Data();
   FFT_Data(const Ring& Rg,const Zp_Data& PrD)
     { init(Rg,PrD); }
 

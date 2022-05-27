@@ -281,7 +281,7 @@ public:
 class gf2n_not_supported : public runtime_error
 {
 public:
-    gf2n_not_supported(int n);
+    gf2n_not_supported(int n, string options = "");
 };
 
 #endif

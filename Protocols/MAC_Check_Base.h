@@ -13,6 +13,7 @@ using namespace std;
 #include "Tools/PointerVector.h"
 
 template<class T> class Preprocessing;
+template<class T> class MatrixMC;
 
 /**
  * Abstract base class for opening protocols
@@ -20,6 +21,8 @@ template<class T> class Preprocessing;
 template<class T>
 class MAC_Check_Base
 {
+    friend class MatrixMC<T>;
+
 protected:
     /* MAC Share */
     typename T::mac_key_type::Scalar alphai;
@@ -59,6 +62,7 @@ public:
     /// Get next opened value
     virtual typename T::clear finalize_open();
     virtual typename T::open_type finalize_raw();
+    array<typename T::open_type*, 2> finalize_several(size_t n);
 
     /// Check whether all ``shares`` are ``value``
     virtual void CheckFor(const typename T::open_type& value, const vector<T>& shares, const Player& P);

@@ -439,6 +439,12 @@ void Z2<K>::randomize(PRNG& G, int n)
 template<int K>
 void Z2<K>::randomize_part(PRNG& G, int n)
 {
+	if (n >= N_BITS)
+	{
+		randomize(G);
+		return;
+	}
+
 	*this = {};
 	G.get_octets((octet*)a, DIV_CEIL(n, 8));
 	a[DIV_CEIL(n, 64) - 1] &= mp_limb_t(-1LL) >> (N_LIMB_BITS - 1 - (n - 1) % N_LIMB_BITS);

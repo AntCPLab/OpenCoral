@@ -167,7 +167,7 @@ bigint NoiseBounds::min_p0(const bigint& p1)
 
 bigint NoiseBounds::min_p1()
 {
-    return drown * B_KS + 1;
+    return max(bigint(drown * B_KS), bigint((phi_m * p) << 10));
 }
 
 bigint NoiseBounds::opt_p1()
@@ -181,8 +181,10 @@ bigint NoiseBounds::opt_p1()
     // solve
     mpf_class s = (-b + sqrt(b * b - 4 * a * c)) / (2 * a);
     bigint res = ceil(s);
+#ifdef VERBOSE
     cout << "Optimal p1 vs minimal: " << numBits(res) << "/"
             << numBits(min_p1()) << endl;
+#endif
     return res;
 }
 
@@ -194,8 +196,10 @@ double NoiseBounds::optimize(int& lg2p0, int& lg2p1)
       {
         min_p0 *= 2;
         min_p1 *= 2;
+#ifdef VERBOSE
         cout << "increasing lengths: " << numBits(min_p0) << "/"
             << numBits(min_p1) << endl;
+#endif
       }
     lg2p1 = numBits(min_p1);
     lg2p0 = numBits(min_p0);

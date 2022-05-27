@@ -33,6 +33,7 @@ public:
 
     static const bool has_trunc_pr = true;
     static const bool dishonest_majority = false;
+    static const bool malicious = false;
 
     static string type_short()
     {

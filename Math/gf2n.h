@@ -86,6 +86,8 @@ protected:
 
   static bool allows(Dtype type) { (void) type; return true; }
 
+  static string options();
+
   static const true_type invertible;
   static const true_type characteristic_two;
 
@@ -154,6 +156,8 @@ protected:
   gf2n_ operator*(int x) const { return *this * gf2n_(x); }
 
   gf2n_ invert() const;
+
+  gf2n_ operator-() const { return *this; }
   void negate() { return; }
 
   /* Bitwise Ops */

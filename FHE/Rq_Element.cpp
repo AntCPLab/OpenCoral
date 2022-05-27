@@ -5,7 +5,7 @@
 #include "Math/modp.hpp"
 
 Rq_Element::Rq_Element(const FHE_PK& pk) :
-        Rq_Element(pk.get_params().FFTD())
+        Rq_Element(pk.get_params().FFTD(), evaluation, evaluation)
 {
 }
 
@@ -345,6 +345,12 @@ size_t Rq_Element::report_size(ReportType type) const
 	  if (n_mults() == 1)
 		  sz += a[1].report_size(type);
   return sz;
+}
+
+void Rq_Element::unpack(octetStream& o, const FHE_Params& params)
+{
+  set_data(params.FFTD());
+  unpack(o);
 }
 
 void Rq_Element::print_first_non_zero() const

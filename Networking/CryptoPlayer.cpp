@@ -212,8 +212,8 @@ void CryptoPlayer::partial_broadcast(const vector<bool>& my_senders,
     for (int offset = 1; offset < num_players(); offset++)
     {
         int other = get_player(offset);
-        bool receive = my_senders[other];
-        if (my_receivers[other])
+        bool receive = my_senders.at(other);
+        if (my_receivers.at(other))
         {
             this->senders[other]->request(os[my_num()]);
             sent += os[my_num()].get_length();

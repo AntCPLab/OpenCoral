@@ -259,7 +259,6 @@ ProgramParty::~ProgramParty()
 	reset();
 	if (P)
 	{
-		cerr << "Data sent: " << 1e-6 * P->total_comm().total_data() << " MB" << endl;
 		delete P;
 	}
 	delete[] eval_threads;

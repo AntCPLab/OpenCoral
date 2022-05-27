@@ -122,6 +122,7 @@ public:
     const static bool expensive = false;
     const static bool variable_players = false;
     static const bool has_trunc_pr = true;
+    static const bool malicious = false;
 
     static string type_short()
     {

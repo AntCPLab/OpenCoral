@@ -1937,6 +1937,11 @@ class _secret(_register, _secret_structure):
         matmuls(res, A, B, n_rows, n, n_cols)
         return res
 
+    @staticmethod
+    def _new(self):
+        # mirror sfix
+        return self
+
     @no_doc
     def __init__(self, reg_type, val=None, size=None):
         if isinstance(val, self.clear_type):
@@ -2092,6 +2097,12 @@ class _secret(_register, _secret_structure):
             return res
         else:
             return self * self
+
+    @set_instruction_type
+    def secure_shuffle(self, unit_size=1):
+        res = type(self)(size=self.size)
+        secshuffle(res, self, unit_size)
+        return res
 
     @set_instruction_type
     @vectorize
@@ -2740,6 +2751,17 @@ class sint(_secret, _int):
         w = y - b - r_prime
 
         return w
+
+    @staticmethod
+    def get_secure_shuffle(n):
+        res = regint()
+        gensecshuffle(res, n)
+        return res
+
+    def secure_permute(self, shuffle, unit_size=1, reverse=False):
+        res = sint(size=self.size)
+        applyshuffle(res, self, unit_size, shuffle, reverse)
+        return res
 
 class sintbit(sint):
     """ :py:class:`sint` holding a bit, supporting binary operations
@@ -4291,6 +4313,10 @@ class _fix(_single):
             k = self.k
         return revealed_fix._new(val)
 
+    def bit_decompose(self, n_bits=None):
+        """ Bit decomposition. """
+        return self.v.bit_decompose(n_bits or self.k)
+
 class sfix(_fix):
     """ Secret fixed-point number represented as secret integer, by
     multiplying with ``2^f`` and then rounding. See :py:class:`sint`
@@ -4312,6 +4338,8 @@ class sfix(_fix):
     int_type = sint
     bit_type = sintbit
     clear_type = cfix
+    get_type = staticmethod(lambda n: sint)
+    default_type = sint
 
     @vectorized_classmethod
     def get_input_from(cls, player):
@@ -4385,6 +4413,10 @@ class sfix(_fix):
     def coerce(self, other):
         return parse_type(other, k=self.k, f=self.f)
 
+    def hard_conv_me(self, cls):
+        assert cls == sint
+        return self.v
+
     def mul_no_reduce(self, other, res_params=None):
         assert self.f == other.f
         assert self.k == other.k
@@ -4408,6 +4440,14 @@ class sfix(_fix):
         """
         return personal(player, cfix._new(self.v.reveal_to(player)._v,
                                           self.k, self.f))
+
+    def secure_shuffle(self, *args, **kwargs):
+        return self._new(self.v.secure_shuffle(*args, **kwargs),
+                         k=self.k, f=self.f)
+
+    def secure_permute(self, *args, **kwargs):
+        return self._new(self.v.secure_permute(*args, **kwargs),
+                         k=self.k, f=self.f)
 
 class unreduced_sfix(_single):
     int_type = sint
@@ -5395,13 +5435,21 @@ class Array(_vectorizable):
             regint.inc(len(indices), self.address, 0) + indices,
             size=len(indices))
 
-    def get_slice_vector(self, slice):
+    def get_slice_addresses(self, slice):
         assert self.value_type.n_elements() == 1
         assert len(slice) <= self.total_size()
         base = regint.inc(len(slice), slice.address, 1, 1)
-        inc = regint.inc(len(slice), 0, 1, 1, 1)
+        inc = regint.inc(len(slice), self.address, 1, 1, 1)
         addresses = slice.value_type.load_mem(base) + inc
-        return self.value_type.load_mem(self.address + addresses)
+        return addresses
+
+    def get_slice_vector(self, slice):
+        addresses = self.get_slice_addresses(slice)
+        return self.value_type.load_mem(addresses)
+
+    def assign_slice_vector(self, slice, vector):
+        addresses = self.get_slice_addresses(slice)
+        vector.store_in_mem(addresses)
 
     def expand_to_vector(self, index, size):
         """ Create vector from single entry.
@@ -5514,6 +5562,14 @@ class Array(_vectorizable):
         """ Insecure shuffle in place. """
         self.assign_vector(self.get(regint.inc(len(self)).shuffle()))
 
+    def secure_shuffle(self):
+        """ Secure shuffle in place according to the security model. """
+        self.assign_vector(self.get_vector().secure_shuffle())
+
+    def secure_permute(self, *args, **kwargs):
+        """ Secure permutate in place according to the security model. """
+        self.assign_vector(self.get_vector().secure_permute(*args, **kwargs))
+
     def randomize(self, *args):
         """ Randomize according to data type. """
         self.assign_vector(self.value_type.get_random(*args, size=len(self)))
@@ -5570,15 +5626,26 @@ class Array(_vectorizable):
         """
         return personal(player, self.create_from(self[:].reveal_to(player)._v))
 
-    def sort(self, n_threads=None):
+    def sort(self, n_threads=None, batcher=False, n_bits=None):
         """
-        Sort in place using Batchers' odd-even merge mergesort
-        with complexity :math:`O(n (\log n)^2)`.
+        Sort in place using radix sort with complexity :math:`O(n \log
+        n)` for :py:class:`sint` and :py:class:`sfix`, and Batcher's
+        odd-even mergesort with :math:`O(n (\log n)^2)` for
+        :py:class:`sfloat`.
 
         :param n_threads: number of threads to use (single thread by
-          default)
+          default), need to use Batcher's algorithm for several threads
+        :param batcher: use Batcher's odd-even mergesort in any case
+        :param n_bits: number of bits in keys (default: global bit length)
         """
-        library.loopy_odd_even_merge_sort(self, n_threads=n_threads)
+        if batcher or self.value_type.n_elements() > 1:
+            library.loopy_odd_even_merge_sort(self, n_threads=n_threads)
+        else:
+            if n_threads or 1 > 1:
+                raise CompilerError('multi-threaded sorting only implemented '
+                                    'with Batcher\'s odd-even mergesort')
+            import sorting
+            sorting.radix_sort(self, self, n_bits=n_bits)
 
     def Array(self, size):
         # compatibility with registers
@@ -5619,6 +5686,8 @@ class SubMultiArray(_vectorizable):
         :return: :py:class:`Array` if one-dimensional, :py:class:`SubMultiArray` otherwise"""
         if isinstance(index, slice) and index == slice(None):
             return self.get_vector()
+        if isinstance(index, int) and index < 0:
+            index += self.sizes[0]
         key = program.curr_block, str(index)
         if key not in self.sub_cache:
             if util.is_constant(index) and \
@@ -5672,6 +5741,10 @@ class SubMultiArray(_vectorizable):
 
     def total_size(self):
         return reduce(operator.mul, self.sizes) * self.value_type.n_elements()
+
+    def part_size(self):
+        return reduce(operator.mul, self.sizes[1:]) * \
+            self.value_type.n_elements()
 
     def get_vector(self, base=0, size=None):
         """ Return vector with content. Not implemented for floating-point.
@@ -5731,13 +5804,21 @@ class SubMultiArray(_vectorizable):
 
         :param slice: regint array
         """
+        addresses = self.get_slice_addresses(slice)
+        return self.value_type.load_mem(self.address + addresses)
+
+    def assign_slice_vector(self, slice, vector):
+        addresses = self.get_slice_addresses(slice)
+        vector.store_in_mem(self.address + addresses)
+
+    def get_slice_addresses(self, slice):
         assert self.value_type.n_elements() == 1
         part_size = reduce(operator.mul, self.sizes[1:])
         assert len(slice) * part_size <= self.total_size()
         base = regint.inc(len(slice) * part_size, slice.address, 1, part_size)
         inc = regint.inc(len(slice) * part_size, 0, 1, 1, part_size)
         addresses = slice.value_type.load_mem(base) * part_size + inc
-        return self.value_type.load_mem(self.address + addresses)
+        return addresses
 
     def get_addresses(self, *indices):
         assert self.value_type.n_elements() == 1
@@ -6218,6 +6299,31 @@ class SubMultiArray(_vectorizable):
         n = self.sizes[0]
         return self.array.get(regint.inc(n, 0, n + 1))
 
+    def secure_shuffle(self):
+        """ Securely shuffle rows (first index). """
+        self.assign_vector(self.get_vector().secure_shuffle(self.part_size()))
+
+    def secure_permute(self, permutation, reverse=False):
+        """ Securely permute rows (first index). """
+        self.assign_vector(self.get_vector().secure_permute(
+            permutation, self.part_size(), reverse))
+
+    def sort(self, key_indices=None, n_bits=None):
+        """ Sort sub-arrays (different first index) in place.
+
+        :param key_indices: indices to sorting keys, for example
+          ``(1, 2)`` to sort three-dimensional array ``a`` by keys
+          ``a[*][1][2]``. Default is ``(0, ..., 0)`` of correct length.
+        :param n_bits: number of bits in keys (default: global bit length)
+
+        """
+        if key_indices is None:
+            key_indices = (0,) * (len(self.sizes) - 1)
+        key_indices = (None,) + util.tuplify(key_indices)
+        import sorting
+        keys = self.get_vector_by_indices(*key_indices)
+        sorting.radix_sort(keys, self, n_bits=n_bits)
+
     def randomize(self, *args):
         """ Randomize according to data type. """
         if self.total_size() < program.options.budget:
@@ -6334,6 +6440,18 @@ class Matrix(MultiArray):
         MultiArray.__init__(self, [rows, columns], value_type, debug=debug, \
                             address=address)
 
+    @staticmethod
+    def create_from(rows):
+        rows = list(rows)
+        if isinstance(rows[0], (list, tuple)):
+            t = type(rows[0][0])
+        else:
+            t = type(rows[0])
+        res = Matrix(len(rows), len(rows[0]), t)
+        for i in range(len(rows)):
+            res[i].assign(rows[i])
+        return res
+
     def get_column(self, index):
         """ Get column as vector.
 
@@ -6343,6 +6461,9 @@ class Matrix(MultiArray):
         addresses = regint.inc(self.sizes[0], self.address + index,
                                self.sizes[1])
         return self.value_type.load_mem(addresses)
+
+    def get_columns(self):
+        return (self.get_column(i) for i in range(self.sizes[1]))
 
     def get_column_by_row_indices(self, rows, column):
         assert self.value_type.n_elements() == 1

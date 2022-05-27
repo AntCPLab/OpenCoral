@@ -75,6 +75,8 @@ void secure_init(T& setup, Player& P, U& machine,
             + OnlineOptions::singleton.prime.get_str() + "-"
             + to_string(CowGearOptions::singleton.top_gear()) + "-P"
             + to_string(P.my_num()) + "-" + to_string(P.num_players());
+    string reason;
+
     try
     {
         ifstream file(filename);
@@ -82,12 +84,30 @@ void secure_init(T& setup, Player& P, U& machine,
         os.input(file);
         os.get(machine.extra_slack);
         setup.unpack(os);
+    }
+    catch (exception& e)
+    {
+        reason = e.what();
+    }
+
+    try
+    {
         setup.check(P, machine);
     }
-    catch (...)
+    catch (exception& e)
     {
-        cout << "Finding parameters for security " << sec << " and field size ~2^"
-                << plaintext_length << endl;
+        reason = e.what();
+    }
+
+    if (not reason.empty())
+    {
+        if (OnlineOptions::singleton.verbose)
+            cerr << "Generating parameters for security " << sec
+                    << " and field size ~2^" << plaintext_length
+                    << " because no suitable material "
+                            "from a previous run was found (" << reason << ")"
+                    << endl;
+        setup = {};
         setup.generate(P, machine, plaintext_length, sec);
         setup.check(P, machine);
         octetStream os;

@@ -87,7 +87,6 @@ void Ring_Element::negate()
 
 void add(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b)
 {
-  if (a.rep!=b.rep)   { throw rep_mismatch(); }
   if (a.FFTD!=b.FFTD) { throw pr_mismatch();  }  
   if (a.element.empty())
     {
@@ -99,6 +98,8 @@ void add(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b)
       ans = a;
       return;
     }
+
+  if (a.rep!=b.rep)   { throw rep_mismatch(); }
 
   if (&ans == &a)
     {

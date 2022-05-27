@@ -28,7 +28,7 @@ ProtocolBase<T>::ProtocolBase() :
 template<class T>
 Replicated<T>::Replicated(Player& P) : ReplicatedBase(P)
 {
-    assert(T::length == 2);
+    assert(T::vector_length == 2);
 }
 
 template<class T>
@@ -149,6 +149,16 @@ T ProtocolBase<T>::get_random()
 
     auto res = random.back();
     random.pop_back();
+    return res;
+}
+
+template<class T>
+vector<int> ProtocolBase<T>::get_relevant_players()
+{
+    vector<int> res;
+    int n = dynamic_cast<typename T::Protocol&>(*this).P.num_players();
+    for (int i = 0; i < T::threshold(n) + 1; i++)
+        res.push_back(i);
     return res;
 }
 

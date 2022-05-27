@@ -13,6 +13,7 @@ using namespace std;
 
 template<class sint, class sgf2n> class Machine;
 template<class sint, class sgf2n> class Processor;
+template<class T> class SubProcessor;
 class ArithmeticProcessor;
 class SwitchableOutput;
 
@@ -107,6 +108,11 @@ enum
     CONV2DS = 0xAC,
     CHECK = 0xAF,
     PRIVATEOUTPUT = 0xAD,
+    // Shuffling
+    SECSHUFFLE = 0xFA,
+    GENSECSHUFFLE = 0xFB,
+    APPLYSHUFFLE = 0xFC,
+    DELSHUFFLE = 0xFD,
     // Data access
     TRIPLE = 0x50,
     BIT = 0x51,
@@ -250,6 +256,7 @@ enum
     GMULS = 0x1A6,
     GMULRS = 0x1A7,
     GDOTPRODS = 0x1A8,
+    GSECSHUFFLE = 0x1FA,
     // Data access
     GTRIPLE = 0x150,
     GBIT = 0x151,
@@ -388,6 +395,9 @@ public:
   template<class T>
   void print(SwitchableOutput& out, T* v, T* p = 0, T* s = 0, T* z = 0,
       T* nan = 0) const;
+
+  template<class T>
+  typename T::clear sanitize(SubProcessor<T>& proc, int reg) const;
 };
 
 #endif
