@@ -179,10 +179,11 @@ unsigned int PRNG::get_uint(int upper)
 	}
 	// not power of 2
 	unsigned int r, reduced;
+	bool use_char = upper <= 128;
 	do {
-		r = (upper < 255) ? get_uchar() : get_uint();
+		r = use_char ? get_uchar() : get_uint();
 		reduced = r % upper;
-	} while (int(r - reduced + (upper - 1)) < 0);
+	} while (int(r - reduced + (upper - 1)) > (use_char ? 256 : 0));
 	return reduced;
 }
 
@@ -260,7 +261,9 @@ void PRNG::get_bigint(bigint& res, int n_bits, bool positive)
   octet* bytes = (octet*) words;
   words[n_words - 1] = 0;
   get_octets(bytes, n_bytes);
-  octet mask = (1 << (n_bits % 8)) - 1;
+  octet mask = -1;
+  if (n_bits % 8 > 0)
+    mask = (1 << (n_bits % 8)) - 1;
   bytes[n_bytes - 1] &= mask;
   mpz_import(res.get_mpz_t(), n_words, -1, sizeof(word), -1, 0, bytes);
   if (not positive and (get_bit()))
