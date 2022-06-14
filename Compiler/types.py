@@ -5701,7 +5701,8 @@ class SubMultiArray(_vectorizable):
                 self.sub_cache[key] = \
                         Array(self.sizes[1], self.value_type, \
                               self.address + index * self.sizes[1] *
-                              self.value_type.n_elements(), \
+                              self.value_type.n_elements() * \
+                              self.value_type.mem_size(), \
                               debug=self.debug)
             else:
                 self.sub_cache[key] = \

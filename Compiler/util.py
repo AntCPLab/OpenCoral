@@ -116,6 +116,11 @@ def round_to_int(x):
         return x.round_to_int()
 
 def tree_reduce(function, sequence):
+    try:
+        return sequence.tree_reduce(function)
+    except AttributeError:
+        pass
+
     sequence = list(sequence)
     assert len(sequence) > 0
     n = len(sequence)

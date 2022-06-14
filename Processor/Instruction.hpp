@@ -730,6 +730,7 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
   case ANDM:
   case NOTS:
   case NOTCB:
+  case TRANS:
       size = DIV_CEIL(n, 64);
       break;
   case CONVCBIT2S:
