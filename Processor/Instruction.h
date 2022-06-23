@@ -284,8 +284,9 @@ enum
     // Bitwise shifts
     GSHLCI = 0x182,
     GSHRCI = 0x183,
-    GBITDEC = 0x184,
-    GBITCOM = 0x185,
+    GSHRSI = 0x184,
+    GBITDEC = 0x18A,
+    GBITCOM = 0x18B,
     // Conversion
     GCONVINT = 0x1C0,
     GCONVGF2N = 0x1C1,

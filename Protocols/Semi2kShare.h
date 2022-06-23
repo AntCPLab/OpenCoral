@@ -85,17 +85,6 @@ public:
             }
         }
     }
-
-    template<class T>
-    static void shrsi(SubProcessor<T>& proc, const Instruction& inst)
-    {
-        for (int i = 0; i < inst.get_size(); i++)
-        {
-            auto& dest = proc.get_S_ref(inst.get_r(0) + i);
-            auto& source = proc.get_S_ref(inst.get_r(1) + i);
-            dest = source >> inst.get_n();
-        }
-    }
 };
 
 #endif /* PROTOCOLS_SEMI2KSHARE_H_ */

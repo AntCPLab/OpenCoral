@@ -198,6 +198,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case GORCI:
       case GSHLCI:
       case GSHRCI:
+      case GSHRSI:
       case USE:
       case USE_INP:
       case USE_EDABIT:
@@ -1005,6 +1006,9 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         break;
       case SHRSI:
         sint::shrsi(Procp, *this);
+        return;
+      case GSHRSI:
+        sgf2n::shrsi(Proc2, *this);
         return;
       case OPEN:
         Proc.Procp.POpen(start, Proc.P, size);

@@ -2126,6 +2126,21 @@ class _secret(_register, _secret_structure):
         res = personal(player, masked.reveal() - mask[1])
         return res
 
+    @set_instruction_type
+    @vectorize
+    def raw_right_shift(self, length):
+        """ Local right shift in supported protocols.
+        In integer-like protocols, the output is potentially off by one.
+
+        :param length: number of bits
+        """
+        res = type(self)()
+        shrsi(res, self, length)
+        return res
+
+    def raw_mod2m(self, m):
+        return self - (self.raw_right_shift(m) << m)
+
 
 class sint(_secret, _int):
     """
@@ -2667,15 +2682,6 @@ class sint(_secret, _int):
         assert n
         columns = self.split_to_n_summands(length, n)
         return _bitint.wallace_tree_without_finish(columns, get_carry)
-
-    @vectorize
-    def raw_right_shift(self, length):
-        res = sint()
-        shrsi(res, self, length)
-        return res
-
-    def raw_mod2m(self, m):
-        return self - (self.raw_right_shift(m) << m)
 
     @vectorize
     def reveal_to(self, player):

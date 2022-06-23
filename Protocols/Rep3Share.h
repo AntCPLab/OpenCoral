@@ -71,7 +71,7 @@ public:
     template<class U>
     static void shrsi(SubProcessor<U>& proc, const Instruction& inst)
     {
-        shrsi(proc, inst, T::invertible);
+        shrsi(proc, inst, T::prime_field);
     }
 
     template<class U>

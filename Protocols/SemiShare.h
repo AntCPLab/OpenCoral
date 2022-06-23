@@ -130,6 +130,31 @@ public:
     {
         super::unpack(os, n_bits);
     }
+
+    template<class U>
+    static void shrsi(SubProcessor<U>& proc, const Instruction& inst)
+    {
+        shrsi(proc, inst, T::prime_field);
+    }
+
+    template<class U>
+    static void shrsi(SubProcessor<U>&, const Instruction&,
+            true_type)
+    {
+        throw runtime_error("shrsi not implemented");
+    }
+
+    template<class U>
+    static void shrsi(SubProcessor<U>& proc, const Instruction& inst,
+            false_type)
+    {
+        for (int i = 0; i < inst.get_size(); i++)
+        {
+            auto& dest = proc.get_S_ref(inst.get_r(0) + i);
+            auto& source = proc.get_S_ref(inst.get_r(1) + i);
+            dest = source >> inst.get_n();
+        }
+    }
 };
 
 #endif /* PROTOCOLS_SEMISHARE_H_ */

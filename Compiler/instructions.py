@@ -1051,6 +1051,7 @@ class shrci(base.ClearShiftInstruction):
     code = base.opcodes['SHRCI']
     op = '__rshift__'
 
+@base.gf2n
 @base.vectorize
 class shrsi(base.ClearShiftInstruction):
     """ Bitwise right shift of secret register (vector) by (constant)
