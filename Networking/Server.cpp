@@ -176,9 +176,11 @@ Server* Server::start_networking(Names& N, int my_num, int nplayers,
     {
       pthread_create(&thread, 0, Server::start_in_thread,
           server = new Server(nplayers, portnum));
-      N.init(my_num, portnum, my_port, hostname.c_str(), false);
+      bool default_port = my_port == Names::DEFAULT_PORT or my_port == portnum;
+      N.init(my_num, portnum, my_port, hostname.c_str(), not default_port);
       pthread_join(thread, 0);
-      N.set_server(server->get_socket());
+      if (default_port)
+        N.set_server(server->get_socket());
       delete server;
     }
   else
