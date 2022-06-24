@@ -1519,6 +1519,7 @@ def if_then(condition):
     state.req_child = get_tape().open_scope(lambda x: x[0].max(x[1]), \
                                                    name='if-block')
     state.has_else = False
+    state.caller = [frame[1:] for frame in inspect.stack()[1:]]
     instructions.program.curr_tape.if_states.append(state)
 
 def else_then():

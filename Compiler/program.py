@@ -776,7 +776,14 @@ class Tape:
             return
 
         if self.if_states:
-            raise CompilerError('Unclosed if/else blocks')
+            print('Tracebacks for open blocks:')
+            for state in self.if_states:
+                try:
+                    print(util.format_trace(state.caller))
+                except AttributeError:
+                    pass
+            print()
+            raise CompilerError('Unclosed if/else blocks, see tracebacks above')
 
         if self.program.verbose:
             print('Processing tape', self.name, 'with %d blocks' % len(self.basicblocks))
