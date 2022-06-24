@@ -1,6 +1,6 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
-## 0.3.2 (Mai 27, 2022)
+## 0.3.2 (May 27, 2022)
 
 - Secure shuffling
 - O(n log n) radix sorting
