@@ -375,6 +375,13 @@ typename T::mac_key_type read_generate_write_mac_key(Player& P,
   return res;
 }
 
+template<>
+inline GC::NoValue read_generate_write_mac_key<GC::NoShare>(Player&,
+        string)
+{
+  return {};
+}
+
 template <class U>
 void read_global_mac_key(const string& directory, int nparties, U& key)
 {
