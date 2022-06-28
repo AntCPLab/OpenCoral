@@ -581,7 +581,7 @@ secure versions of LowGear and HighGear. In all relevant programs,
 option `-T` activates [TopGear](https://eprint.iacr.org/2019/035)
 zero-knowledge proofs in both.
 
-Hemi and Soho denote the stripped version version of LowGear and
+Hemi and Soho denote the stripped version of LowGear and
 HighGear, respectively, for semi-honest
 security similar to Semi, that is, generating additively shared Beaver
 triples using semi-homomorphic encryption.
