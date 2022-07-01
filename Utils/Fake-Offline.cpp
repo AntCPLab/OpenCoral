@@ -61,6 +61,9 @@ public:
   {
   }
 
+  template<int K>
+  void generate_ring();
+
   template<class T>
   void make_with_mac_key(int nplayers, int default_num, bool zero);
   template<class T>
@@ -394,7 +397,7 @@ int main(int argc, const char** argv)
         0, // Required?
         1, // Number of args expected.
         0, // Delimiter if expecting multiple args.
-        "Bit length of GF(p) field (default: 128)", // Help description.
+        "Bit length of GF(p) field (default: 128) and Z_2^k rings (default: 64)", // Help description.
         "-lgp", // Flag token.
         "--lgp" // Flag token.
   );
@@ -729,22 +732,12 @@ int FakeParams::generate()
   // replicated secret sharing only for three parties
   if (nplayers == 3)
   {
-    make_bits<Rep3Share<Integer>>({}, nplayers, nbitsp, zero);
-    make_basic<BrainShare<64, DEFAULT_SECURITY>>({}, nplayers, default_num,
-        zero);
-    make_basic<PostSacriRepRingShare<64, DEFAULT_SECURITY>>({}, nplayers,
-        default_num, zero);
-    make_with_mac_key<SpdzWiseRingShare<64, DEFAULT_SECURITY>>(nplayers,
-        default_num, zero);
-
     make_mult_triples<GC::MaliciousRepSecret>({}, nplayers, ntrip2, zero, prep_data_prefix);
     make_bits<GC::MaliciousRepSecret>({}, nplayers, nbits2, zero);
   }
   else if (nplayers == 4)
     make_basic<Rep4Share2<64>>({}, nplayers, default_num, zero);
 
-  make_basic<SemiShare<Z2<64>>>({}, nplayers, default_num, zero);
-  make_basic<DealerShare<Z2<64>>>({}, nplayers, default_num, zero);
   make_minimal<GC::DealerSecret>({}, nplayers, default_num, zero);
 
   make_mult_triples<GC::SemiSecret>({}, nplayers, default_num, zero, prep_data_prefix);
@@ -778,6 +771,22 @@ int FakeParams::generate()
   generate_field<typename T::clear>(T::clear::prime_field);
   generate_field<gf2n>(true_type());
 
+  // default
+  generate_ring<64>();
+
+  // reuse lgp for simplified interface
+  switch (lgp)
+  {
+  case 64:
+    break;
+#define X(L) case L: generate_ring<L>(); break;
+    X(128) X(192) X(256)
+  default:
+    cerr << "Not compiled for " << lgp << "-bit rings." << endl << "Add 'X("
+        << lgp << "') to line " << (__LINE__ - 2) << " in " << __FILE__ << endl;
+    exit(1);
+  }
+
   return 0;
 }
 
@@ -802,4 +811,24 @@ void FakeParams::generate_field(true_type)
       make_with_mac_key<SpdzWiseShare<MaliciousShamirShare<U>>>(nplayers,
           default_num, zero);
     }
+}
+
+template<int K>
+inline void FakeParams::generate_ring()
+{
+  if (nplayers == 3)
+    {
+      make_bits<Rep3Share2<K>>({}, nplayers, default_num, zero);
+      make_basic<BrainShare<K, DEFAULT_SECURITY>>({}, nplayers, default_num,
+          zero);
+      make_basic<PostSacriRepRingShare<K, DEFAULT_SECURITY>>({}, nplayers,
+          default_num, zero);
+      make_with_mac_key<SpdzWiseRingShare<K, DEFAULT_SECURITY>>(nplayers,
+          default_num, zero);
+    }
+  else if (nplayers == 4)
+    make_basic<Rep4Share2<K>>({}, nplayers, default_num, zero);
+
+  make_basic<SemiShare<Z2<K>>>({}, nplayers, default_num, zero);
+  make_basic<DealerShare<Z2<K>>>({}, nplayers, default_num, zero);
 }
