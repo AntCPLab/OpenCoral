@@ -1227,7 +1227,8 @@ class TreeORAM(AbstractORAM):
         """ Batch initalization. Obliviously shuffles and adds N entries to
             random leaf buckets. """
         m = len(values)
-        assert((m & (m-1)) == 0)
+        if not (m & (m-1)) == 0:
+            raise CompilerError('Batch size must a power of 2.')
         if m != self.size:
             raise CompilerError('Batch initialization must have N values.')
         if self.value_type != sint:
