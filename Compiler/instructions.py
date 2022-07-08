@@ -2408,8 +2408,36 @@ class trunc_pr(base.VarArgsInstruction):
     code = base.opcodes['TRUNC_PR']
     arg_format = tools.cycle(['sw','s','int','int'])
 
+class shuffle_base(base.DataInstruction):
+    n_relevant_parties = 2
+
+    @staticmethod
+    def logn(n):
+        return int(math.ceil(math.log(n, 2)))
+
+    def add_gen_usage(self, req_node, n):
+        # hack for unknown usage
+        req_node.increment(('bit', 'inverse'), float('inf'))
+        # minimal usage with two relevant parties
+        logn = self.logn(n)
+        n_switches = logn * 2 ** logn
+        for i in range(self.n_relevant_parties):
+            req_node.increment((self.field_type, 'input', i), n_switches)
+        # multiplications for bit check
+        req_node.increment((self.field_type, 'triple'),
+                           n_switches * self.n_relevant_parties)
+
+    def add_apply_usage(self, req_node, n, record_size):
+        req_node.increment(('bit', 'inverse'), float('inf'))
+        logn = self.logn(n)
+        n_switches = logn * 2 ** logn * self.n_relevant_parties
+        if n != 2 ** logn:
+            record_size += 1
+        req_node.increment((self.field_type, 'triple'),
+                           n_switches * record_size)
+
 @base.gf2n
-class secshuffle(base.VectorInstruction, base.DataInstruction):
+class secshuffle(base.VectorInstruction, shuffle_base):
     """ Secure shuffling.
 
     :param: destination (sint)
@@ -2425,9 +2453,10 @@ class secshuffle(base.VectorInstruction, base.DataInstruction):
         assert len(args[0]) > args[2]
 
     def add_usage(self, req_node):
-        req_node.increment((self.field_type, 'input', 0), float('inf'))
+        self.add_gen_usage(req_node, len(self.args[0]))
+        self.add_apply_usage(req_node, len(self.args[0]), self.args[2])
 
-class gensecshuffle(base.DataInstruction):
+class gensecshuffle(shuffle_base):
     """ Generate secure shuffle to bit used several times.
 
     :param: destination (regint)
@@ -2439,9 +2468,9 @@ class gensecshuffle(base.DataInstruction):
     arg_format = ['ciw','int']
 
     def add_usage(self, req_node):
-        req_node.increment((self.field_type, 'input', 0), float('inf'))
+        self.add_gen_usage(req_node, self.args[1])
 
-class applyshuffle(base.VectorInstruction, base.DataInstruction):
+class applyshuffle(base.VectorInstruction, shuffle_base):
     """ Generate secure shuffle to bit used several times.
 
     :param: destination (sint)
@@ -2461,7 +2490,7 @@ class applyshuffle(base.VectorInstruction, base.DataInstruction):
         assert len(args[0]) > args[2]
 
     def add_usage(self, req_node):
-        req_node.increment((self.field_type, 'triple', 0), float('inf'))
+        self.add_apply_usage(req_node, len(self.args[0]), self.args[2])
 
 class delshuffle(base.Instruction):
     """ Delete secure shuffle.
