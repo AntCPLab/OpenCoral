@@ -5063,10 +5063,12 @@ class sfloat(_number, _secret_structure):
         """ Secret floating-point comparison. """
         return 1 - (self < other)
 
+    @vectorize
     def __gt__(self, other):
         """ Secret floating-point comparison. """
         return self.conv(other) < self
 
+    @vectorize
     def __le__(self, other):
         """ Secret floating-point comparison. """
         return self.conv(other) >= self
