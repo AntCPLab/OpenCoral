@@ -460,6 +460,10 @@ def method_block(function):
     return wrapper
 
 def cond_swap(x,y):
+    from .types import SubMultiArray
+    if isinstance(x, (Array, SubMultiArray)):
+        b = x[0] > y[0]
+        return list(zip(*[b.cond_swap(xx, yy) for xx, yy in zip(x, y)]))
     b = x < y
     if isinstance(x, sfloat):
         res = ([], [])

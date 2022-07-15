@@ -452,6 +452,10 @@ class _bit(Tape._no_truth):
         s = a ^ b
         return a ^ (s & (self ^ a))
 
+    def cond_swap(self, a, b):
+        prod = self * (a ^ b)
+        return a ^ prod, b ^ prod
+
 class _gf2n(_bit):
     """ :math:`\mathrm{GF}(2^n)` functionality. """
 
@@ -5646,7 +5650,8 @@ class Array(_vectorizable):
         :param batcher: use Batcher's odd-even mergesort in any case
         :param n_bits: number of bits in keys (default: global bit length)
         """
-        if batcher or self.value_type.n_elements() > 1:
+        if batcher or self.value_type.n_elements() > 1 or \
+           program.options.binary:
             library.loopy_odd_even_merge_sort(self, n_threads=n_threads)
         else:
             if n_threads or 1 > 1:
@@ -5738,6 +5743,13 @@ class SubMultiArray(_vectorizable):
 
     def to_array(self):
         return Array(self.total_size(), self.value_type, address=self.address)
+
+    def maybe_get(self, condition, index):
+        return self[condition * index]
+
+    def maybe_set(self, condition, index, value):
+        for i, x in enumerate(value):
+            self.maybe_get(condition, index).maybe_set(condition, i, x)
 
     def assign_all(self, value):
         """ Assign the same value to all entries.
@@ -6326,6 +6338,11 @@ class SubMultiArray(_vectorizable):
         :param n_bits: number of bits in keys (default: global bit length)
 
         """
+        if program.options.binary:
+            assert key_indices is None
+            assert len(self.sizes) == 2
+            library.loopy_odd_even_merge_sort(self)
+            return
         if key_indices is None:
             key_indices = (0,) * (len(self.sizes) - 1)
         key_indices = (None,) + util.tuplify(key_indices)
