@@ -30,7 +30,7 @@ class Client:
         self.specification.Receive(self.sockets[0])
 
     def receive_triples(self, T, n):
-        triples = [[0, 0, 0] * n]
+        triples = [[0, 0, 0] for i in range(n)]
         os = octetStream()
         for socket in self.sockets:
             os.Receive(socket)
@@ -51,6 +51,7 @@ class Client:
         T = type(values[0])
         triples = self.receive_triples(T, len(values))
         os = octetStream()
+        assert len(values) == len(triples)
         for value, triple in zip(values, triples):
             (value + triple[0]).pack(os)
         for socket in self.sockets:
