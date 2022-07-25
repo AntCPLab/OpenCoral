@@ -146,7 +146,7 @@ public:
         if (this != &res)
             res.get_regs().assign(this->get_regs().begin(),
                     this->get_regs().begin()
-                            + max(size_t(n_bits), this->get_regs().size()));
+                            + min(size_t(n_bits), this->get_regs().size()));
 
         res.resize_regs(n_bits);
     }

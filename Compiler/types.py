@@ -5263,7 +5263,8 @@ class Array(_vectorizable):
                 # length can be None for single-element arrays
                 length = 0
             base = self.address + index * self.value_type.mem_size()
-            if size is not None and isinstance(base, _register):
+            if size is not None and isinstance(base, _register) \
+               and not issubclass(self.value_type, _vec):
                 base = regint._expand_address(base, size)
             self.address_cache[program.curr_block, key] = \
                 util.untuplify([base + i * length \
@@ -6063,6 +6064,7 @@ class SubMultiArray(_vectorizable):
                     assert n_threads is None
                     if max(res_matrix.sizes) > 1000:
                         raise AttributeError()
+                    self.value_type.matrix_mul
                     A = self.get_vector()
                     B = other.get_vector()
                     res_matrix.assign_vector(

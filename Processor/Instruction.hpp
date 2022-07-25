@@ -666,6 +666,21 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
           return r[1] + size;
       else
           return 0;
+  case TRANS:
+      if (reg_type == SBIT)
+      {
+          int n_outputs = n;
+          auto& args = start;
+          int n_inputs = args.size() - n_outputs;
+          long long res = 0;
+          for (int i = 0; i < n_outputs; i++)
+              res = max(res, args[i] + DIV_CEIL(n_inputs, 64));
+          for (int j = 0; j < n_inputs; j++)
+              res = max(res, args[n_outputs] + DIV_CEIL(n_outputs, 64));
+          return res;
+      }
+      else
+          return 0;
   default:
       if (get_reg_type() != reg_type)
           return 0;
@@ -731,7 +746,6 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
   case ANDM:
   case NOTS:
   case NOTCB:
-  case TRANS:
       size = DIV_CEIL(n, 64);
       break;
   case CONVCBIT2S:

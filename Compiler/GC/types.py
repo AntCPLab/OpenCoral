@@ -17,6 +17,7 @@ from Compiler import instructions_base
 import Compiler.GC.instructions as inst
 import operator
 import math
+import itertools
 from functools import reduce
 
 class bits(Tape.Register, _structure, _bit):
@@ -1182,9 +1183,20 @@ class sbitintvec(sbitvec, _number, _bitint, _sbitintbase):
             return self.from_vec(other * x for x in self.v)
         elif isinstance(other, sbitfixvec):
             return NotImplemented
+        other_bits = util.bit_decompose(other)
+        m = float('inf')
+        for x in itertools.chain(self.v, other_bits):
+            try:
+                m = min(m, x.n)
+            except:
+                pass
+        if m == 1:
+            op = operator.mul
+        else:
+            op = operator.and_
         matrix = []
-        for i, b in enumerate(util.bit_decompose(other)):
-            matrix.append([x & b for x in self.v[:len(self.v)-i]])
+        for i, b in enumerate(other_bits):
+            matrix.append([op(x, b) for x in self.v[:len(self.v)-i]])
         v = sbitint.wallace_tree_from_matrix(matrix)
         return self.from_vec(v[:len(self.v)])
     __rmul__ = __mul__
