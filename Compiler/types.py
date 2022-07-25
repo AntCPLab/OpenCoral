@@ -5657,7 +5657,7 @@ class Array(_vectorizable):
             if n_threads or 1 > 1:
                 raise CompilerError('multi-threaded sorting only implemented '
                                     'with Batcher\'s odd-even mergesort')
-            import sorting
+            from . import sorting
             sorting.radix_sort(self, self, n_bits=n_bits)
 
     def Array(self, size):
@@ -6346,7 +6346,7 @@ class SubMultiArray(_vectorizable):
         if key_indices is None:
             key_indices = (0,) * (len(self.sizes) - 1)
         key_indices = (None,) + util.tuplify(key_indices)
-        import sorting
+        from . import sorting
         keys = self.get_vector_by_indices(*key_indices)
         sorting.radix_sort(keys, self, n_bits=n_bits)
 

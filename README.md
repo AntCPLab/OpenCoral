@@ -466,21 +466,21 @@ for further examples.
 
 #### Compiling and running programs from external directories
 
-Programs can also be edited, compiled and run from any directory with the above basic structure. So for a source file in `./Programs/Source/`, all SPDZ scripts must be run from `./`. The `setup-online.sh` script must also be run from `./` to create the relevant data. For example:
+Programs can also be edited, compiled and run from any directory with the above basic structure. So for a source file in `./Programs/Source/`, all MP-SPDZ scripts must be run from `./`. The `setup-online.sh` script must also be run from `./` to create the relevant data. For example:
 
 ```
-spdz$ cd ../
+MP-SPDZ$ cd ../
 $ mkdir myprogs
 $ cd myprogs
 $ mkdir -p Programs/Source
 $ vi Programs/Source/test.mpc
-$ ../spdz/compile.py test.mpc
+$ ../MP-SPDZ/compile.py test.mpc
 $ ls Programs/
 Bytecode  Public-Input  Schedules  Source
-$ ../spdz/Scripts/setup-online.sh
+$ ../MP-SPDZ/Scripts/setup-online.sh
 $ ls
 Player-Data Programs
-$ ../spdz/Scripts/run-online.sh test
+$ ../MP-SPDZ/Scripts/run-online.sh test
 ```
 
 ### TensorFlow inference
