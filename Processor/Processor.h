@@ -77,6 +77,7 @@ public:
   size_t generate_secure_shuffle(const Instruction& instruction);
   void apply_shuffle(const Instruction& instruction, int handle);
   void delete_shuffle(int handle);
+  void inverse_permutation(const Instruction& instruction);
 
   void input_personal(const vector<int>& args);
   void send_personal(const vector<int>& args);
@@ -101,6 +102,8 @@ public:
   {
     return C[i];
   }
+
+    void inverse_permutation(const Instruction &instruction, int handle);
 };
 
 class ArithmeticProcessor : public ProcessorBase

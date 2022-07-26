@@ -2776,6 +2776,11 @@ class sint(_secret, _int):
         applyshuffle(res, self, unit_size, shuffle, reverse)
         return res
 
+    def inverse_permutation(self):
+        res = sint(size=self.size)
+        inverse_permutation(res, self)
+        return res
+
 class sintbit(sint):
     """ :py:class:`sint` holding a bit, supporting binary operations
     (``&, |, ^``). """

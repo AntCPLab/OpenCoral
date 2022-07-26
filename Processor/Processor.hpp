@@ -669,6 +669,12 @@ void SubProcessor<T>::delete_shuffle(int handle)
 }
 
 template<class T>
+void SubProcessor<T>::inverse_permutation(const Instruction& instruction) {
+    shuffler.inverse_permutation(S, instruction.get_size(), instruction.get_start()[0],
+                                 instruction.get_start()[1]);
+}
+
+template<class T>
 void SubProcessor<T>::input_personal(const vector<int>& args)
 {
   input.reset_all(P);
@@ -686,6 +692,16 @@ void SubProcessor<T>::input_personal(const vector<int>& args)
       S[args[i + 2] + j] = input.finalize(args[i + 1]);
 }
 
+/**
+ *
+ * @tparam T
+ * @param args Args contains four arguments
+ *      a[0] = the size of the input (and output) vector
+ *      a[1] = the player to which to reveal the output
+ *      a[2] = the memory address of the input vector (sint) (i.e. the value to reveal)
+ *      a[3] = the memory address of the output vector (cint) (i.e. the register to store the revealed value)
+ * // TODO: When would there be multiple sets of arguments? (for ... i < args.size(); i += 4 ... )
+ */
 template<class T>
 void SubProcessor<T>::private_output(const vector<int>& args)
 {
