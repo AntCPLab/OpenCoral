@@ -878,7 +878,7 @@ def range_loop(loop_body, start, stop=None, step=None):
         # known loop count
         if condition(start):
             get_tape().req_node.children[-1].aggregator = \
-                lambda x: ((stop - start) // step) * x[0]
+                lambda x: int(ceil(((stop - start) / step))) * x[0]
 
 def for_range(start, stop=None, step=None):
     """
