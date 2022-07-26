@@ -724,15 +724,7 @@ class sbitvec(_vec):
                         for j, x in enumerate(v[i].bit_decompose()):
                             x.store_in_mem(address + i + j * n)
             def reveal(self):
-                if len(self) > cbits.unit:
-                    return self.elements()[0].reveal()
-                revealed = [cbit() for i in range(len(self))]
-                for i in range(len(self)):
-                    try:
-                        inst.reveal(1, revealed[i], self.v[i])
-                    except:
-                        revealed[i] = cbit.conv(self.v[i])
-                return cbits.get_type(len(self)).bit_compose(revealed)
+                return util.untuplify([x.reveal() for x in self.elements()])
             @classmethod
             def two_power(cls, nn):
                 return cls.from_vec([0] * nn + [1] + [0] * (n - nn - 1))
