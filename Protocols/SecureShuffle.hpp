@@ -98,7 +98,7 @@ void SecureShuffle<T>::inverse_permutation(vector<T> &stack, size_t n, size_t ou
     for (size_t i = 0; i < n; i++)
         output.prepare_sending(stack[output_base + i], bob);
     output.exchange();
-    for (size_t i = 0; i < n_pow2; i++) {
+    for (size_t i = 0; i < n; i++) {
         // TODO: Is there a better way to convert a T::clear to int?
         bigint val;
         output.finalize(bob).to(val);
