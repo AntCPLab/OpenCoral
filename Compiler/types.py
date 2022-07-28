@@ -6708,6 +6708,7 @@ class MemValue(_mem):
 
     if_else = lambda self,*args,**kwargs: self.read().if_else(*args, **kwargs)
     bit_and = lambda self,other: self.read().bit_and(other)
+    bit_not = lambda self: self.read().bit_not()
 
     def expand_to_vector(self, size=None):
         if program.curr_block == self.last_write_block:
