@@ -82,7 +82,17 @@ class SqrtOram(Generic[T, B]):
             k (int): Leave at 0, this parameter is used to recursively pass down the depth of this ORAM.
             period (int): Leave at None, this parameter is used to recursively pass down the top-level period.
         """
-        self.n = len(data)
+        if isinstance(data, MultiArray):
+            self.shuffle = data
+            self.n = len(data)
+        elif isinstance(data, sint):
+            self.n = math.ceil(len(data) // entry_length)
+            if (len(data) % entry_length != 0):
+                raise Exception('Data incorrectly padded.')
+            self.shuffle = MultiArray((self.n, entry_length), value_type=value_type)
+            self.shuffle.assign_part_vector(data.get_vector())
+        else:
+            raise Exception("Incorrect format.")
 
         self.value_type = value_type
         if value_type != sint and value_type != sbitint:
@@ -95,13 +105,6 @@ class SqrtOram(Generic[T, B]):
             lib.print_ln('Initializing SqrtORAM of size %s at depth %s', self.n, k)
         self.shuffle_used = cint.Array(self.n)
         # Random permutation on the data
-        if isinstance(data, MultiArray):
-            self.shuffle = data
-        elif isinstance(data, sint):
-            self.shuffle = MultiArray((self.n, self.entry_length), value_type=value_type)
-            self.shuffle.assign_vector(data.get_vector())
-        else:
-            raise Exception("Incorrect format.")
         self.shufflei = Array.create_from([self.index_type(i) for i in range(self.n)])
         permutation = Array.create_from(self.shuffle_the_shuffle())
         # Calculate the period if not given
@@ -124,8 +127,8 @@ class SqrtOram(Generic[T, B]):
         return self.access(index, self.bit_type(False), *value)
 
     @lib.method_block
-    def write(self, index: T, value: T):
-        lib.runtime_error_if(value.size != self.entry_length, "A block must be of size entry_length")
+    def write(self, index: T, *value: T):
+        lib.runtime_error_if(len(value) != self.entry_length, "A block must be of size entry_length")
         self.access(index, self.bit_type(True), *value)
 
     __getitem__ = read
