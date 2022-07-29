@@ -141,6 +141,7 @@ class SqrtOram(Generic[T, B]):
             def __():
                 lib.print_ln('Reading from secret index %s', index.reveal())
         value = self.value_type(value)
+        index = MemValue(index)
 
         # Refresh if we have performed T (period) accesses
         @lib.if_(self.t == self.T)
@@ -159,21 +160,23 @@ class SqrtOram(Generic[T, B]):
         # This allows us to keep track of it in an oblivious manner
         if multithreading:
             found_ = self.bit_type.Array(size=self.T)
-            @lib.multithread(8, self.T)
+            @lib.multithread(1, self.T)
             def _(base, size):
-                found_.assign_vector(self.stashi.get_vector(base, size)[:] == index, base=base)
+                found_.assign_vector((self.stashi.get_vector(base, size) == index.expand_to_vector(size))
+                        & self.bit_type(regint.inc(size, base=base) < self.t.expand_to_vector(size)),
+                        base=base)
             @lib.for_range_opt(self.t - 1)
             def _(i):
-                swap(self.stash, 0, i, found_[i])
-                swap(self.stashi, 0, i, found_[i])
+                swap(self.stash, 0, i + 1, found_[i+1])
+                swap(self.stashi, 0, i + 1, found_[i+1])
             found.write(sum(found_))
         else:
             @lib.for_range_opt(self.t - 1)
             def _(i):
                 nonlocal found
                 found_: B =  index == self.stashi[i + 1]
-                swap(self.stash, 0, i, found_)
-                swap(self.stashi, 0, i, found_)
+                swap(self.stash, 0, i + 1, found_)
+                swap(self.stashi, 0, i + 1, found_)
                 found |= found_
         # If the item was not in the stash, we move the unknown and unimportant
         # stash[0] out of the way (to the end of the stash)
@@ -183,11 +186,11 @@ class SqrtOram(Generic[T, B]):
         if debug:
             @lib.if_e(found.reveal() == 1)
             def _():
-                lib.print_ln('    Found item in stash')
+                lib.print_ln('\tFound item in stash')
             @lib.else_
             def __():
-                lib.print_ln('    Item not in stash')
-                lib.print_ln('    Moved stash[0]=(%s: %s) to the back of the stash[t=%s]=(%s: %s)', self.stashi[0].reveal(), self.stash[0].reveal(), self.t, self.stashi[self.t].reveal(), self.stash[self.t].reveal())
+                lib.print_ln('\tItem not in stash')
+                lib.print_ln('\tMoved stash[0]=(%s: %s) to the back of the stash[t=%s]=(%s: %s)', self.stashi[0].reveal(), self.stash[0].reveal(), self.t, self.stashi[self.t].reveal(), self.stash[self.t].reveal())
 
         # Possible fake lookup of the item in the shuffle,
         # depending on whether we already found the item in the stash
