@@ -5,9 +5,10 @@ import sys
 import tempfile
 from optparse import OptionParser
 
+from Compiler.exceptions import CompilerError
+
 from .GC import types as GC_types
 from .program import Program, defaults
-from Compiler.exceptions import CompilerError
 
 
 class Compiler:
@@ -339,10 +340,34 @@ class Compiler:
 
         return self.finalize_compile()
 
-    def compile_func(self, f, name):
-        self.prep_compile(name)
-        print(f"Compiling function: {f.__name__}")
-        f(self.VARS)
+    def register_function(self, name=None):
+        """
+        To register a function to be compiled, use this as a decorator.
+        Example:
+
+            @compiler.register_function('test-mpc')
+            def test_mpc(compiler):
+                ...
+        """
+
+        def inner(func):
+            self.compile_name = name or func.__name__
+            self.compile_function = func
+            return func
+
+        return inner
+
+    def compile_func(self):
+        if not hasattr(self, "compile_name") and hasattr(self, "compile_func"):
+            raise CompilerError(
+                "No function to compile. "
+                "Did you decorate a function with @register_fuction(name)?"
+            )
+        self.prep_compile(self.compile_name)
+        print(
+            f"Compiling: {self.compile_name} from " f"func {self.compile_func.__name__}"
+        )
+        self.compile_function(self)
         self.finalize_compile()
 
     def finalize_compile(self):
