@@ -637,6 +637,7 @@ def Mod2(a_0, a, k, kappa, signed):
     t = [program.curr_block.new_reg('s') for i in range(6)]
     c2k1 = program.curr_block.new_reg('c')
     PRandM(r_dprime, r_prime, [r_0], k, 1, kappa)
+    r_0 = r_prime
     mulsi(t[0], r_dprime, 2)
     if signed:
         ld2i(c2k1, k - 1)
