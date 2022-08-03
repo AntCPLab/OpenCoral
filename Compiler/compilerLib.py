@@ -367,7 +367,7 @@ class Compiler:
         print(
             f"Compiling: {self.compile_name} from " f"func {self.compile_func.__name__}"
         )
-        self.compile_function(self)
+        self.compile_function()
         self.finalize_compile()
 
     def finalize_compile(self):

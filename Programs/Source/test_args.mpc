@@ -15,7 +15,7 @@ if not compiler.options.columns:
 
 
 @compiler.register_function('testmpc')
-def main(compiler):
+def main():
     numrows = int(compiler.options.rows)
     numcolumns = int(compiler.options.columns)
     rows = range(numrows)
