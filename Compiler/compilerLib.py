@@ -7,11 +7,15 @@ from optparse import OptionParser
 
 from .GC import types as GC_types
 from .program import Program, defaults
+from Compiler.exceptions import CompilerError
 
 
 class Compiler:
-    def __init__(self):
-        self.usage = "usage: %prog [options] filename [args]"
+    def __init__(self, usage=None):
+        if usage:
+            self.usage = usage
+        else:
+            self.usage = "usage: %prog [options] filename [args]"
         self.build_option_parser()
         self.VARS = {}
 
@@ -201,15 +205,11 @@ class Compiler:
 
     def parse_args(self):
         self.options, self.args = self.parser.parse_args()
-        if len(self.args) < 1:
-            self.parser.print_help()
-            return
-
         if self.options.optimize_hard:
             print("Note that -O/--optimize-hard currently has no effect")
 
-    def build_program(self):
-        self.prog = Program(self.args, self.options)
+    def build_program(self, name=None):
+        self.prog = Program(self.args, self.options, name=name)
 
     def build_vars(self):
         from . import comparison, floatingpoint, instructions, library, types
@@ -266,9 +266,9 @@ class Compiler:
             ]:
                 del self.VARS[i]
 
-    def prep_compile(self):
+    def prep_compile(self, name=None):
         self.parse_args()
-        self.build_program()
+        self.build_program(name=name)
         self.build_vars()
 
     def compile_file(self):
@@ -339,8 +339,8 @@ class Compiler:
 
         return self.finalize_compile()
 
-    def compile_func(self, f):
-        self.prep_compile()
+    def compile_func(self, f, name):
+        self.prep_compile(name)
         print(f"Compiling function: {f.__name__}")
         f(self.VARS)
         self.finalize_compile()
