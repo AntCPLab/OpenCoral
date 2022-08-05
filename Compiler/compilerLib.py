@@ -279,7 +279,7 @@ class Compiler:
         parallelisable open instructions."""
         print("Compiling file", self.prog.infile)
 
-        with open(self.prog.infile, "rb") as f:
+        with open(self.prog.infile, "r") as f:
             changed = False
             if self.options.flow_optimization:
                 output = []
