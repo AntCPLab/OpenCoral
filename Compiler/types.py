@@ -2821,7 +2821,9 @@ class sintbit(sint):
         elif util.is_zero(other):
             return self
         elif util.is_one(other):
-            return 1
+            res = sintbit()
+            submr(res, cint(1), self)
+            return res
         else:
             return NotImplemented
 
