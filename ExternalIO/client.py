@@ -73,20 +73,21 @@ class octetStream:
         self.ptr = 0
 
     def Send(self, socket):
-        socket.send(struct.pack('<i', len(self.buf)))
-        socket.send(self.buf)
+        socket.sendall(struct.pack('<i', len(self.buf)))
+        socket.sendall(self.buf)
 
     def Receive(self, socket):
         length = struct.unpack('<I', socket.recv(4))[0]
-        self.buf = socket.recv(length)
+        self.buf = b''
+        while len(self.buf) < length:
+            self.buf += socket.recv(length - len(self.buf))
         self.ptr = 0
 
     def store(self, value):
         self.buf += struct.pack('<i', value)
 
     def get_int(self, length):
-        buf = self.buf[self.ptr:self.ptr + length]
-        self.ptr += length
+        buf = self.consume(length)
         if length == 4:
             return struct.unpack('<i', buf)[0]
         elif length == 8:
@@ -110,5 +111,5 @@ class octetStream:
 
     def consume(self, length):
         self.ptr += length
+        assert self.ptr <= len(self.buf)
         return self.buf[self.ptr - length:self.ptr]
-
