@@ -630,6 +630,12 @@ e.g. if this machine is name `diffie` on the local network:
 The software uses TCP ports around 5000 by default, use the `-pn`
 argument to change that.
 
+If you are using the SPDZ2k protocol in non-interactive mode to run a 
+program compiled with a ring size different from 64, you must specify
+the ring size in the script to run the program as follows:
+
+`Scripts/spdz2k.sh -R <ring-size> tutorial`
+
 ### Yao's garbled circuits
 
 We use half-gate garbling as described by [Zahur et
@@ -796,7 +802,7 @@ with three parties overall, Party 0 and 1 run the online phase.
 
 ## BMR
 
-BMR (Bellare-Micali-Rogaway) is a method of generating a garbled circuit
+BMR (Beaver-Micali-Rogaway) is a method of generating a garbled circuit
 using another secure computation protocol. We have implemented BMR
 based on all available implementations using GF(2^128) because the nature
 of this field particularly suits the Free-XOR optimization for garbled
