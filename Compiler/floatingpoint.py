@@ -28,7 +28,9 @@ def shift_two(n, pos):
 
 def maskRing(a, k):
     shift = int(program.Program.prog.options.ring) - k
-    if program.Program.prog.use_dabit:
+    if program.Program.prog.use_edabit:
+        r_prime, r = types.sint.get_edabit(k)
+    elif program.Program.prog.use_dabit:
         rr, r = zip(*(types.sint.get_dabit() for i in range(k)))
         r_prime = types.sint.bit_compose(rr)
     else:
