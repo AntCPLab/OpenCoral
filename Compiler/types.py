@@ -2777,8 +2777,20 @@ class sint(_secret, _int):
         return res
 
     def inverse_permutation(self):
-        res = sint(size=self.size)
-        inverse_permutation(res, self)
+        if program.use_invperm():
+            # If enabled, we use the low-level INVPERM instruction.
+            # This instruction has only been implemented for a semi-honest two-party environement.
+            res = sint(size=self.size)
+            inverse_permutation(res, self)
+        else:
+            shuffle = sint.get_secure_shuffle(len(self))
+            shuffled = self.secure_permute(shuffle).reveal()
+            idx = Array.create_from(shuffled)
+            res = Array.create_from(sint(regint.inc(len(self))))
+            res.secure_permute(shuffle, reverse=False)
+            res.assign_slice_vector(idx, res.get_vector())
+            library.break_point()
+            res = res.get_vector()
         return res
 
 class sintbit(sint):

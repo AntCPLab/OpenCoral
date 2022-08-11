@@ -49,6 +49,7 @@ class defaults:
     budget = 100000
     mixed = False
     edabit = False
+    invperm = False
     split = None
     cisc = False
     comparison = None
@@ -142,6 +143,8 @@ class Program(object):
         self.use_dabit = options.mixed
         """ Setting whether to use daBits for non-linear functionality. """
         self._edabit = options.edabit
+        """ Whether to use the low-level INVPERM instruction (only implemented with the assumption of a semi-honest two-party environment)"""
+        self._invperm = options.invperm
         self._split = False
         if options.split:
             self.use_split(int(options.split))
@@ -167,7 +170,7 @@ class Program(object):
         """ Upper bound on number of tapes that will be run in parallel.
         (Excludes empty tapes) """
         return self.n_threads
-    
+
     def init_names(self, args):
         # ignore path to file - source must be in Programs/Source
         if 'Programs' in os.listdir(os.getcwd()):
@@ -178,16 +181,16 @@ class Program(object):
             self.programs_dir = sys.path[0] + '/Programs'
         if self.verbose:
             print('Compiling program in', self.programs_dir)
-        
+
         # create extra directories if needed
         for dirname in ['Public-Input', 'Bytecode', 'Schedules']:
             if not os.path.exists(self.programs_dir + '/' + dirname):
                 os.mkdir(self.programs_dir + '/' + dirname)
-        
+
         progname = args[0].split('/')[-1]
         if progname.endswith('.mpc'):
             progname = progname[:-4]
-        
+
         if os.path.exists(args[0]):
             self.infile = args[0]
         else:
@@ -314,7 +317,7 @@ class Program(object):
             self.req_num = tape.req_num
         else:
             self.req_num += tape.req_num
-    
+
     def write_bytes(self):
 
         """ Write all non-empty threads and schedule to files. """
@@ -349,7 +352,7 @@ class Program(object):
             if self.options.asmoutfile:
                 tape.write_str(self.options.asmoutfile + '-' + tape.name)
             tape.purge()
-    
+
     @property
     def curr_tape(self):
         """ The tape that is currently running."""
@@ -367,7 +370,7 @@ class Program(object):
     def curr_block(self):
         """ The basic block that is currently being created. """
         return self.curr_tape.active_basicblock
-    
+
     def malloc(self, size, mem_type, reg_type=None, creator_tape=None):
         """ Allocate memory from the top """
         if not isinstance(size, int):
@@ -514,6 +517,20 @@ class Program(object):
         else:
             self._edabit = change
 
+    def use_invperm(self, change=None):
+        """ Set whether to use the low-level INVPERM instruction to inverse a permutation (see sint.inverse_permutation). The INVPERM instruction assumes a semi-honest two-party environment. If false, a general protocol implemented in the high-level language is used.
+
+        :param change: change setting if not :py:obj:`None`
+        :returns: setting if :py:obj:`change` is :py:obj:`None`
+        """
+        if change is None:
+            if not self._invperm:
+                self.relevant_opts.add('invperm')
+            return self._invperm
+        else:
+            self._invperm = change
+
+
     def use_edabit_for(self, *args):
         return True
 
@@ -574,6 +591,8 @@ class Program(object):
             self.always_raw(True)
         if 'edabit' in self.args:
             self.use_edabit(True)
+        if 'invperm' in self.args:
+            self.use_invperm(True)
         if 'linear_rounds' in self.args:
             self.linear_rounds(True)
 
@@ -658,7 +677,7 @@ class Tape:
         def adjust_return(self):
             offset = self.sub_block.get_offset(self)
             self.previous_block.return_address_store.args[1] = offset
-        
+
         def set_exit(self, condition, exit_true=None):
             """ Sets the block which we start from next, depending on the condition.
 
@@ -668,15 +687,15 @@ class Tape:
             self.exit_block = exit_true
             for reg in condition.get_used():
                 reg.can_eliminate = False
-        
+
         def add_jump(self):
             """ Add the jump for this block's exit condition to list of
             instructions (must be done after merging) """
             self.instructions.append(self.exit_condition)
-        
+
         def get_offset(self, next_block):
             return next_block.offset - (self.offset + len(self.instructions))
-        
+
         def adjust_jump(self):
             """ Set the correct relative jump offset """
             offset = self.get_offset(self.exit_block)
@@ -749,7 +768,7 @@ class Tape:
 
     def init_registers(self):
         self.reg_counter = RegType.create_dict(lambda: 0)
-   
+
     def init_names(self, name):
         self.name = name
         self.outfile = self.program.programs_dir + '/Bytecode/' + self.name + '.bc'
@@ -863,7 +882,7 @@ class Tape:
                 print('Re-allocating...')
             allocator = al.StraightlineAllocator(REG_MAX, self.program)
             def alloc(block):
-                for reg in sorted(block.used_from_scope, 
+                for reg in sorted(block.used_from_scope,
                                   key=lambda x: (x.reg_type, x.i)):
                     allocator.alloc_reg(reg, block.alloc_pool)
             def alloc_loop(block):
@@ -955,12 +974,12 @@ class Tape:
     def get_encoding(self):
         """ Get the encoding of the program, in human-readable format. """
         return [i.get_encoding() for i in self._get_instructions() if i is not None]
-    
+
     @unpurged
     def get_bytes(self):
         """ Get the byte encoding of the program as an actual string of bytes. """
         return b"".join(i.get_bytes() for i in self._get_instructions() if i is not None)
-    
+
     @unpurged
     def write_encoding(self, filename):
         """ Write the readable encoding to a file. """
@@ -969,7 +988,7 @@ class Tape:
         for line in self.get_encoding():
             f.write(str(line) + '\n')
         f.close()
-    
+
     @unpurged
     def write_str(self, filename):
         """ Write the sequence of instructions to a file. """
@@ -983,7 +1002,7 @@ class Tape:
                     f.write('%s # %d\n' % (line, n))
                     n += 1
         f.close()
-    
+
     @unpurged
     def write_bytes(self, filename=None):
         """ Write the program's byte encoding to a file. """
@@ -999,16 +1018,16 @@ class Tape:
             if i is not None:
                 f.write(i.get_bytes())
         f.close()
-    
+
     def new_reg(self, reg_type, size=None):
         return self.Register(reg_type, self, size=size)
-    
+
     def count_regs(self, reg_type=None):
         if reg_type is None:
             return self.reg_counter
         else:
             return self.reg_counter[reg_type]
-    
+
     def __str__(self):
         return self.name
 
@@ -1018,7 +1037,7 @@ class Tape:
         def __add__(self, other):
             res = Tape.ReqNum()
             for i,count in list(self.items()):
-                res[i] += count            
+                res[i] += count
             for i,count in list(other.items()):
                 res[i] += count
             return res
@@ -1267,7 +1286,7 @@ class Tape:
         def is_gf2n(self):
             return self.reg_type == RegType.ClearGF2N or \
                 self.reg_type == RegType.SecretGF2N
-        
+
         @property
         def is_clear(self):
             return self.reg_type == RegType.ClearModp or \

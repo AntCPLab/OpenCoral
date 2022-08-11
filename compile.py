@@ -72,6 +72,8 @@ def main():
                       help="mixing arithmetic and binary computation")
     parser.add_option("-Y", "--edabit", action="store_true", dest="edabit",
                       help="mixing arithmetic and binary computation using edaBits")
+    parser.add_option("--invperm", action="store_true", dest="invperm",
+                      help="speedup inverse permutation (only use in two-party, semi-honest environment)")
     parser.add_option("-Z", "--split", default=defaults.split, dest="split",
                       help="mixing arithmetic and binary computation "
                       "using direct conversion if supported "
