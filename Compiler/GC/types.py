@@ -236,6 +236,11 @@ class bits(Tape.Register, _structure, _bit):
         This will output 1.
         """
         return result_conv(x, y)(self & (x ^ y) ^ y)
+    def zero_if_not(self, condition):
+        if util.is_constant(condition):
+            return self * condition
+        else:
+            return self * cbit.conv(condition)
 
 class cbits(bits):
     """ Clear bits register. Helper type with limited functionality. """
@@ -491,6 +496,8 @@ class sbits(bits):
         if isinstance(other, int):
             return self.mul_int(other)
         try:
+            if (self.n, other.n) == (1, 1):
+                return self & other
             if min(self.n, other.n) != 1:
                 raise NotImplementedError('high order multiplication')
             n = max(self.n, other.n)
@@ -740,6 +747,8 @@ class sbitvec(_vec):
                     bits += [0] * (n - len(bits))
                 assert len(bits) == n
                 return cls.from_vec(bits)
+            def zero_if_not(self, condition):
+                return self.from_vec(x.zero_if_not(condition) for x in self.v)
             def __str__(self):
                 return 'sbitvec(%d)' % n
         return sbitvecn
