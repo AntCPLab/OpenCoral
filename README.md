@@ -464,6 +464,35 @@ See the
 [documentation](https://mp-spdz.readthedocs.io/en/latest/Compiler.html#module-Compiler.circuit)
 for further examples.
 
+#### Compiling programs directly in Python
+
+You may prefer to not have an entirely static `.mpc` file to compile, and may want to compile based on dynamic inputs. For example, you may want to be able to compile with different sizes of input data without making a code change to the `.mpc` file. To handle this, the compiler an also be directly imported, and a function can be compiled with the following interface:
+
+```python
+# hello_world.mpc
+from Compiler.library import print_ln
+from Compiler.compilerLib import Compiler
+
+compiler = Compiler()
+
+@compiler.register_function('helloworld')
+def hello_world():
+    print_ln('hello world')
+
+if __name__ == "__main__":
+    compiler.compile_func()
+```
+
+You could then run this with:
+
+```bash
+python hello_world.mpc <compile args>
+```
+
+This is particularly useful if want to add new command line arguements specifically for your `.mpc` file. See [test_args.mpc](Programs/Source/test_args.mpc) for more details on this use case.
+
+Note that when using this approach, all objects provided in the high level interface (e.g. sint, print_ln) need to be imported, because the `.mpc` file is interpreted directly by Python (instead of being read by `compile.py`.
+
 #### Compiling and running programs from external directories
 
 Programs can also be edited, compiled and run from any directory with the above basic structure. So for a source file in `./Programs/Source/`, all MP-SPDZ scripts must be run from `./`. The `setup-online.sh` script must also be run from `./` to create the relevant data. For example:
@@ -966,7 +995,7 @@ After compiling the mpc file:
 You can benchmark the ORAM implementation as follows:
 
 1) Edit `Program/Source/gc_oram.mpc` to change size and to choose
-Circuit ORAM or linear scan without ORAM. 
+Circuit ORAM or linear scan without ORAM.
 2) Run `./compile.py -D gc_oram`. The `-D` argument instructs the
 compiler to remove dead code. This is useful for more complex programs
 such as this one.
