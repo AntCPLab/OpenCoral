@@ -483,7 +483,7 @@ if __name__ == "__main__":
     compiler.compile_func()
 ```
 
-You could then run this with:
+You could then run this with the same args as used with `compile.py`:
 
 ```bash
 python hello_world.mpc <compile args>
@@ -491,7 +491,7 @@ python hello_world.mpc <compile args>
 
 This is particularly useful if want to add new command line arguements specifically for your `.mpc` file. See [test_args.mpc](Programs/Source/test_args.mpc) for more details on this use case.
 
-Note that when using this approach, all objects provided in the high level interface (e.g. sint, print_ln) need to be imported, because the `.mpc` file is interpreted directly by Python (instead of being read by `compile.py`.
+Note that when using this approach, all objects provided in the high level interface (e.g. sint, print_ln) need to be imported, because the `.mpc` file is interpreted directly by Python (instead of being read by `compile.py`.)
 
 #### Compiling and running programs from external directories
 
