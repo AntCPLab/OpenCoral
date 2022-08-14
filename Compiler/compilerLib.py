@@ -12,11 +12,12 @@ from .program import Program, defaults
 
 
 class Compiler:
-    def __init__(self, usage=None):
+    def __init__(self, custom_args=None, usage=None):
         if usage:
             self.usage = usage
         else:
             self.usage = "usage: %prog [options] filename [args]"
+        self.custom_args = custom_args
         self.build_option_parser()
         self.VARS = {}
 
@@ -205,7 +206,7 @@ class Compiler:
         self.parser = parser
 
     def parse_args(self):
-        self.options, self.args = self.parser.parse_args()
+        self.options, self.args = self.parser.parse_args(self.custom_args)
         if self.options.optimize_hard:
             print("Note that -O/--optimize-hard currently has no effect")
 
@@ -358,7 +359,7 @@ class Compiler:
         return inner
 
     def compile_func(self):
-        if not hasattr(self, "compile_name") and hasattr(self, "compile_func"):
+        if not (hasattr(self, "compile_name") and hasattr(self, "compile_func")):
             raise CompilerError(
                 "No function to compile. "
                 "Did you decorate a function with @register_fuction(name)?"
