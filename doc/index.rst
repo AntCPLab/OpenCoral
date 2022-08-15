@@ -17,8 +17,7 @@ Compilation process
 
 The easiest way of using MP-SPDZ is using ``compile.py`` as
 described below. If you would like to run compilation directly from
-Python, see ``Scripts/direct_compilation_example.py``. It contains all
-the necessary setup steps.
+Python, see :ref:`Direct Compilation in Python`.
 
 After putting your code in ``Program/Source/<progname>.mpc``, run the
 compiler from the root directory as follows
@@ -139,6 +138,43 @@ computation:
    :py:func:`~Compiler.library.for_range_opt` and defer if statements
    to the run time.
 
+
+Direct Compilation in Python
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+You may prefer to not have an entirely static `.mpc` file to compile,
+and may want to compile based on dynamic inputs. For example, you may
+want to be able to compile with different sizes of input data without
+making a code change to the `.mpc` file. To handle this, the compiler
+an also be directly imported, and a function can be compiled with the
+following interface:
+
+.. code-block:: python
+    # hello_world.mpc
+    from Compiler.library import print_ln
+    from Compiler.compilerLib import Compiler
+
+    compiler = Compiler()
+
+    @compiler.register_function('helloworld')
+    def hello_world():
+        print_ln('hello world')
+
+    if __name__ == "__main__":
+        compiler.compile_func()
+
+
+You could then run this with the same args as used with `compile.py`:
+
+.. code-block:: bash
+    python hello_world.mpc <compile args>
+
+This is particularly useful if want to add new command line arguements
+specifically for your `.mpc` file. See [test_args.mpc](Programs/Source/test_args.mpc)
+for more details on this use case.
+
+Note that when using this approach, all objects provided in the high level
+interface (e.g. sint, print_ln) need to be imported, because the `.mpc` file
+is interpreted directly by Python (instead of being read by `compile.py`.)
 
 Compilation vs run time
 ~~~~~~~~~~~~~~~~~~~~~~~
