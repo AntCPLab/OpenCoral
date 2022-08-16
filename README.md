@@ -842,7 +842,7 @@ lists the available schemes.
 | Program | Protocol | Dishonest Maj. | Malicious | \# parties | Script |
 | --- | --- | --- | --- | --- | --- |
 | `real-bmr-party.x` | MASCOT | Y | Y | 2 or more | `real-bmr.sh` |
-| `semi-bmr-party.x` | Semi | Y | Y | 2 or more | `semi-bmr.sh` |
+| `semi-bmr-party.x` | Semi | Y | N | 2 or more | `semi-bmr.sh` |
 | `shamir-bmr-party.x` | Shamir | N | N | 3 or more | `shamir-bmr.sh` |
 | `mal-shamir-bmr-party.x` | Shamir | N | Y | 3 or more | `mal-shamir-bmr.sh` |
 | `rep-bmr-party.x` | Replicated | N | N | 3 | `rep-bmr.sh` |
