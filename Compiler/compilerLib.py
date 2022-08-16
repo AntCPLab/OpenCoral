@@ -177,6 +177,12 @@ class Compiler:
             "(number of parties as argument)",
         )
         parser.add_option(
+            "--invperm",
+            action="store_true",
+            dest="invperm",
+            help="speedup inverse permutation (only use in two-party, "
+            "semi-honest environment)")
+        parser.add_option(
             "-C",
             "--CISC",
             action="store_true",

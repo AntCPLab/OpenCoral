@@ -58,6 +58,82 @@ void SecureShuffle<T>::apply(vector<T>& a, size_t n, int unit_size, size_t outpu
     post(a, n, output_base);
 }
 
+
+template<class T>
+void SecureShuffle<T>::inverse_permutation(vector<T> &stack, size_t n, size_t output_base,
+                                           size_t input_base) {
+    int alice = 0;
+    int bob = 1;
+
+    auto &P = proc.P;
+    auto &input = proc.input;
+
+    // This method only supports two players
+    assert(proc.protocol.get_relevant_players().size() == 2);
+    // The current implementation assumes a semi-honest environment
+    assert(!T::malicious);
+
+    // We are dealing directly with permutations, so the unit_size will always be 1.
+    this->unit_size = 1;
+    // We need to account for sizes which are not a power of 2
+    size_t n_pow2 = (1u << int(ceil(log2(n))));
+
+    // Copy over the input registers
+    pre(stack, n, input_base);
+    // Alice generates stack local permutation and shares the waksman configuration bits secretly to Bob.
+    vector<int> perm_alice(n_pow2);
+    if (P.my_num() == alice)
+        perm_alice = generate_random_permutation(n);
+    configure(alice, &perm_alice, n);
+    // Apply perm_alice to perm_alice to get perm_bob,
+    // stack permutation that we can reveal to Bob without Bob learning anything about perm_alice (since it is masked by perm_a)
+    iter_waksman(true);
+    // Store perm_bob at stack[output_base]
+    post(stack, n, output_base);
+
+    // Reveal permutation perm_bob = perm_a * perm_alice
+    // Since this permutation is masked by perm_a, Bob learns nothing about perm
+    vector<int> perm_bob(n_pow2);
+    typename T::PrivateOutput output(proc);
+    for (size_t i = 0; i < n; i++)
+        output.prepare_sending(stack[output_base + i], bob);
+    output.exchange();
+    for (size_t i = 0; i < n; i++) {
+        // TODO: Is there a better way to convert a T::clear to int?
+        bigint val;
+        output.finalize(bob).to(val);
+        perm_bob[i] = (int) val.get_si();
+    }
+
+    vector<int> perm_bob_inv(n_pow2);
+    if (P.my_num() == bob) {
+        for (int i = 0; i < (int) n; i++)
+            perm_bob_inv[perm_bob[i]] = i;
+        // Pad the permutation to n_pow2
+        // Required when using waksman networks
+        for (int i = (int) n; i < (int) n_pow2; i++)
+            perm_bob_inv[i] = i;
+    }
+
+    // Alice secret shares perm_a with bob
+    // perm_a is stored in the stack at output_base
+    input.reset_all(P);
+    if (P.my_num() == alice) {
+        for (int i = 0; i < (int) n; i++)
+            input.add_mine(perm_alice[i]);
+    }
+    input.exchange();
+    for (int i = 0; i < (int) n; i++)
+        stack[output_base + i] = input.finalize(alice);
+
+    // The two parties now jointly compute perm_a * perm_bob_inv to obtain perm_inv
+    pre(stack, n, output_base);
+    configure(bob, &perm_bob_inv, n);
+    iter_waksman(true);
+    // perm_inv is written back to stack[output_base]
+    post(stack, n, output_base);
+}
+
 template<class T>
 void SecureShuffle<T>::del(int handle)
 {
@@ -129,9 +205,27 @@ void SecureShuffle<T>::post(vector<T>& a, size_t n, size_t output_base)
 }
 
 template<class T>
-void SecureShuffle<T>::player_round(int config_player)
-{
-    generate(config_player, n_shuffle);
+vector<int> SecureShuffle<T>::generate_random_permutation(int n) {
+    vector<int> perm;
+    int n_pow2 = 1 << int(ceil(log2(n)));
+    int shuffle_size = n;
+    for (int j = 0; j < n_pow2; j++)
+        perm.push_back(j);
+    SeededPRNG G;
+    for (int i = 0; i < shuffle_size; i++) {
+        int j = G.get_uint(shuffle_size - i);
+        swap(perm[i], perm[i + j]);
+    }
+
+    return perm;
+}
+
+template<class T>
+void SecureShuffle<T>::player_round(int config_player) {
+    vector<int> random_perm(n_shuffle);
+    if (proc.P.my_num() == config_player)
+        random_perm = generate_random_permutation(n_shuffle);
+    configure(config_player, &random_perm, n_shuffle);
     iter_waksman();
 }
 
@@ -142,9 +236,12 @@ int SecureShuffle<T>::generate(int n_shuffle)
     shuffles.push_back({});
     auto& shuffle = shuffles.back();
 
-    for (auto i : proc.protocol.get_relevant_players())
-    {
-        generate(i, n_shuffle);
+    for (auto i: proc.protocol.get_relevant_players()) {
+        vector<int> perm;
+        if (proc.P.my_num() == i)
+            perm = generate_random_permutation(n_shuffle);
+        configure(i, &perm, n_shuffle);
+
         shuffle.push_back(config);
     }
 
@@ -152,39 +249,27 @@ int SecureShuffle<T>::generate(int n_shuffle)
 }
 
 template<class T>
-void SecureShuffle<T>::generate(int config_player, int n)
-{
-    auto& P = proc.P;
-    auto& input = proc.input;
+void SecureShuffle<T>::configure(int config_player, vector<int> *perm, int n) {
+    auto &P = proc.P;
+    auto &input = proc.input;
     input.reset_all(P);
     int n_pow2 = 1 << int(ceil(log2(n)));
     Waksman waksman(n_pow2);
 
-    if (P.my_num() == config_player)
-    {
-        vector<int> perm;
-        int shuffle_size = n;
-        for (int j = 0; j < n_pow2; j++)
-            perm.push_back(j);
-        SeededPRNG G;
-        for (int i = 0; i < shuffle_size; i++)
-        {
-            int j = G.get_uint(shuffle_size - i);
-            swap(perm[i], perm[i + j]);
-        }
-
-        auto config_bits = waksman.configure(perm);
-        for (size_t i = 0; i < config_bits.size(); i++)
-        {
-            auto& x = config_bits[i];
+    // The player specified by config_player configures the shared waksman network
+    // using its personal permutation
+    if (P.my_num() == config_player) {
+        auto config_bits = waksman.configure(*perm);
+        for (size_t i = 0; i < config_bits.size(); i++) {
+            auto &x = config_bits[i];
             for (size_t j = 0; j < x.size(); j++)
                 if (waksman.matters(i, j))
                     input.add_mine(int(x[j]));
                 else
                     assert(x[j] == 0);
         }
-    }
-    else
+        // The other player waits for its share of the configured waksman network
+    } else
         for (size_t i = 0; i < waksman.n_bits(); i++)
             input.add_other(config_player);
 

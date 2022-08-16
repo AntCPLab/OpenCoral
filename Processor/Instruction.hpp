@@ -283,6 +283,10 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
         n = get_int(s);
         get_vector(2, start, s);
         break;
+      // instructions with 2 register operands
+      case INVPERM:
+          get_vector(2, start, s);
+          break;
       // open instructions + read/write instructions with variable length args
       case OPEN:
       case GOPEN:
@@ -1075,6 +1079,9 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         return;
       case DELSHUFFLE:
         Proc.Procp.delete_shuffle(Proc.read_Ci(r[0]));
+        return;
+      case INVPERM:
+        Proc.Procp.inverse_permutation(*this);
         return;
       case CHECK:
         {

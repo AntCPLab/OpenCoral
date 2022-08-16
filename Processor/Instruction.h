@@ -113,6 +113,7 @@ enum
     GENSECSHUFFLE = 0xFB,
     APPLYSHUFFLE = 0xFC,
     DELSHUFFLE = 0xFD,
+    INVPERM = 0xFE,
     // Data access
     TRIPLE = 0x50,
     BIT = 0x51,

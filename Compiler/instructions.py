@@ -2501,6 +2501,26 @@ class delshuffle(base.Instruction):
     code = base.opcodes['DELSHUFFLE']
     arg_format = ['ci']
 
+class inverse_permutation(base.VectorInstruction, shuffle_base):
+    """ Calculate the inverse permutation of a secret permutation.
+
+    :param: destination (sint)
+    :param: source (sint)
+
+    """
+    __slots__ = []
+    code = base.opcodes['INVPERM']
+    arg_format = ['sw', 's']
+
+    def __init__(self, *args, **kwargs):
+        super(inverse_permutation, self).__init__(*args, **kwargs)
+        assert len(args[0]) == len(args[1])
+
+    def add_usage(self, req_node):
+        self.add_gen_usage(req_node, len(self.args[0]))
+        self.add_apply_usage(req_node, len(self.args[0]), 1)
+
+
 class check(base.Instruction):
     """
     Force MAC check in current thread and all idle thread if current
