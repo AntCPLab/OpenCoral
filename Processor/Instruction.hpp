@@ -509,9 +509,12 @@ bool Instruction::get_offline_data_usage(DataPositions& usage)
     case USE_INP:
       if (r[0] >= N_DATA_FIELD_TYPE)
         throw invalid_program();
-      if ((unsigned)r[1] >= usage.inputs.size())
-        throw Processor_Error("Player number too high");
-      usage.inputs[r[1]][r[0]] = n;
+      if (usage.inputs.size() != 1)
+        {
+          if ((unsigned) r[1] >= usage.inputs.size())
+            throw Processor_Error("Player number too high");
+          usage.inputs[r[1]][r[0]] = n;
+        }
       return int(n) >= 0;
     case USE_EDABIT:
       usage.edabits[{r[0], r[1]}] = n;
