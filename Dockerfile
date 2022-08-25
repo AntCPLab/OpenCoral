@@ -42,6 +42,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
                 automake \
                 build-essential \
                 clang-11 \
+		cmake \
                 git \
                 libboost-dev \
                 libboost-thread-dev \
@@ -91,6 +92,7 @@ ARG cryptoplayers=0
 ENV PLAYERS ${cryptoplayers}
 RUN ./Scripts/setup-ssl.sh ${cryptoplayers} ${ssl_dir}
 
+RUN make libote
 
 ###############################################################################
 # Use this stage to a build a specific virtual machine. For example:          #
