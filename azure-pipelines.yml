@@ -24,7 +24,7 @@ steps:
   - script:
       echo CXX = clang++ >> CONFIG.mine
   - script:
-      make arithmetic binary offline
+      make arithmetic binary
   - script:
       Scripts/setup-ssl.sh 4
   - script:
