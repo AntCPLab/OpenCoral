@@ -26,6 +26,8 @@ template<class T> class MascotTriplePrep;
 
 union square128;
 
+class gf2n_mac_key;
+
 namespace GC
 {
 template<class T> class TinierSecret;
@@ -49,7 +51,7 @@ class Share_ : public ShareInterface
    typedef typename T::clear clear;
 
 #ifndef NO_MIXED_CIRCUITS
-   typedef GC::TinierSecret<gf2n_short> bit_type;
+   typedef GC::TinierSecret<gf2n_mac_key> bit_type;
 #endif
 
    const static bool needs_ot = T::needs_ot;
@@ -159,6 +161,8 @@ public:
     typedef T mac_type;
 
     typedef Share<typename T::next> prep_type;
+    typedef Share prep_check_type;
+    typedef Share bit_prep_type;
     typedef Share input_check_type;
     typedef Share input_type;
     typedef MascotMultiplier<Share> Multiplier;

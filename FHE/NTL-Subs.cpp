@@ -368,7 +368,8 @@ ZZX Cyclotomic(int N)
 int phi_N(int N)
 {
   if (((N - 1) & N) != 0)
-    throw runtime_error("compile with NTL support");
+    throw runtime_error(
+        "compile with NTL support (USE_NTL=1 in CONFIG.mine)");
   else if (N == 1)
     return 1;
   else
@@ -418,7 +419,8 @@ void init(Ring& Rg, int m, bool generate_poly)
       for (int i=0; i<Rg.phim+1; i++)
         { Rg.poly[i]=to_int(coeff(P,i)); }
 #else
-      throw runtime_error("compile with NTL support");
+      throw runtime_error(
+          "compile with NTL support (USE_NTL=1 in CONFIG.mine)");
 #endif
     }
 }

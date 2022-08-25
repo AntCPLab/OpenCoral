@@ -49,7 +49,7 @@ int main(int argc, char** argv)
         protocol = argv[3];
 
     if (protocol == "Tinier")
-        run<GC::TinierSecret<gf2n_short>>(argc, argv);
+        run<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
     else if (protocol == "Rep3")
         run<GC::SemiHonestRepSecret>(argc, argv);
     else if (protocol == "Rep4")

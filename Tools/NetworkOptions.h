@@ -21,7 +21,7 @@ public:
     NetworkOptions(ez::ezOptionParser& opt, int argc, const char** argv);
 };
 
-class NetworkOptionsWithNumber : NetworkOptions
+class NetworkOptionsWithNumber : public NetworkOptions
 {
 public:
     int nplayers;

@@ -96,7 +96,7 @@ public:
     void inputb(typename T::Input& input, ProcessorBase& input_processor,
             const vector<int>& args, int my_num);
     void inputbvec(typename T::Input& input, ProcessorBase& input_processor,
-            const vector<int>& args, int my_num);
+            const vector<int>& args, PlayerBase& P);
 
     void reveal(const vector<int>& args);
 

@@ -56,6 +56,11 @@ public:
         return *this;
     }
 
+    void bit_sub(const BitVector&, int)
+    {
+        throw not_implemented();
+    }
+
     void randomize(int row, PRNG& G)
     {
         squares[row / T::Square::n_rows()].randomize(

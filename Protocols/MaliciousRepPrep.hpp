@@ -102,6 +102,7 @@ void MaliciousRepPrep<T>::buffer_triples()
 template<class T, class U>
 void sacrifice(const vector<array<T, 5>>& check_triples, Player& P)
 {
+    check_field_size<U>();
     vector<T> masked, checks;
     vector <typename T::open_type> opened;
     typename T::MAC_Check MC;

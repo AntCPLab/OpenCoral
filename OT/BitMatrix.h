@@ -7,6 +7,7 @@
 #define OT_BITMATRIX_H_
 
 #include "Tools/intrinsics.h"
+#include "Tools/Exceptions.h"
 
 #include <vector>
 #include <iostream>
@@ -55,6 +56,8 @@ union square128 {
     square128& rsub(square128& other);
     square128& sub(const __m128i* other);
     square128& sub(const void* other) { return sub((__m128i*)other); }
+
+    void bit_sub(const BitVector&, int) { throw not_implemented(); }
 
     void randomize(PRNG& G);
     void randomize(int row, PRNG& G);

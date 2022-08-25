@@ -268,6 +268,9 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
           // Execute the program
           progs[program].execute(Proc);
 
+          // make sure values used in other threads are safe
+          Proc.check();
+
           // prevent mangled output
           cout.flush();
 

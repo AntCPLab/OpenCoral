@@ -22,6 +22,8 @@ using namespace std;
 #include "Networking/Receiver.h"
 #include "Networking/Sender.h"
 #include "Tools/ezOptionParser.h"
+#include "Networking/PlayerBuffer.h"
+#include "Tools/Lock.h"
 
 template<class T> class MultiPlayer;
 class Server;
@@ -225,6 +227,8 @@ public:
   Player(const Names& Nms);
   virtual ~Player();
 
+  virtual string get_id() const { throw not_implemented(); }
+
   /**
    * Get number of players
    */
@@ -265,6 +269,11 @@ public:
   void receive_player(int i,octetStream& o) const;
   virtual void receive_player_no_stats(int i,octetStream& o) const = 0;
   virtual void receive_player(int i,FlexBuffer& buffer) const;
+
+  virtual size_t send_no_stats(int, const PlayerBuffer&, bool) const
+  { throw not_implemented(); }
+  virtual size_t recv_no_stats(int, const PlayerBuffer&, bool) const
+  { throw not_implemented(); }
 
   /**
    * Send to all other players by offset.
@@ -389,6 +398,8 @@ public:
 template<class T>
 class MultiPlayer : public Player
 {
+  string id;
+
 protected:
   vector<T> sockets;
   T send_to_self_socket;
@@ -399,9 +410,11 @@ protected:
   friend class CryptoPlayer;
 
 public:
-  MultiPlayer(const Names& Nms);
+  MultiPlayer(const Names& Nms, const string& id);
 
   virtual ~MultiPlayer();
+
+  string get_id() const { return id; }
 
   // Send/Receive data to/from player i 
   void send_long(int i, long a) const;
@@ -448,6 +461,9 @@ public:
   // legacy interface
   PlainPlayer(const Names& Nms, int id_base = 0);
   ~PlainPlayer();
+
+  size_t send_no_stats(int player, const PlayerBuffer& buffer, bool block) const;
+  size_t recv_no_stats(int player, const PlayerBuffer& buffer, bool block) const;
 };
 
 
@@ -481,39 +497,11 @@ public:
   virtual void receive(octetStream& o) const = 0;
   virtual void send_receive_player(vector<octetStream>& o) const = 0;
   void Broadcast_Receive(vector<octetStream>& o) const;
-};
 
-class RealTwoPartyPlayer : public TwoPartyPlayer
-{
-private:
-  // setup sockets for comm. with only one other player
-  void setup_sockets(int other_player, const Names &nms, int portNum, string id);
-
-  int socket;
-  bool is_server;
-  int other_player;
-
-public:
-  RealTwoPartyPlayer(const Names& Nms, int other_player, const string& id);
-  // legacy
-  RealTwoPartyPlayer(const Names& Nms, int other_player, int id_base = 0);
-  ~RealTwoPartyPlayer();
-
-  void send(octetStream& o) const;
-  void receive(octetStream& o) const;
-
-  int other_player_num() const;
-  int my_num() const { return is_server; }
-  int num_players() const { return 2; }
-
-  /* Send and receive to/from the other player
-   *  - o[0] contains my data, received data put in o[1]
-   */
-  void send_receive_player(vector<octetStream>& o) const;
-
-  void exchange(octetStream& o) const;
-  void exchange(int other, octetStream& o) const { (void)other; exchange(o); }
-  void pass_around(octetStream& o, int offset = 1) const { (void)offset; exchange(o); }
+  virtual size_t send(const PlayerBuffer&, bool) const
+  { throw not_implemented(); }
+  virtual size_t recv(const PlayerBuffer&, bool) const
+  { throw not_implemented(); }
 };
 
 // for different threads, separate statistics
@@ -522,6 +510,8 @@ class VirtualTwoPartyPlayer : public TwoPartyPlayer
   Player& P;
   int other_player;
   NamedCommStats& comm_stats;
+
+  mutable Lock lock;
 
 public:
   VirtualTwoPartyPlayer(Player& P, int other_player);
@@ -536,6 +526,20 @@ public:
   void send_receive_player(vector<octetStream>& o) const;
 
   void pass_around(octetStream& o, int _ = 1) const { (void)_, (void) o; throw not_implemented(); }
+
+  size_t send(const PlayerBuffer& buffer, bool block) const;
+  size_t recv(const PlayerBuffer& buffer, bool block) const;
+};
+
+class RealTwoPartyPlayer : public VirtualTwoPartyPlayer
+{
+  PlainPlayer* P;
+
+public:
+  RealTwoPartyPlayer(const Names& Nms, int other_player, const string& id);
+  // legacy
+  RealTwoPartyPlayer(const Names& Nms, int other_player, int id_base = 0);
+  ~RealTwoPartyPlayer();
 };
 
 // for the same thread

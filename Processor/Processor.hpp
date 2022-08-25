@@ -128,18 +128,21 @@ void Processor<sint, sgf2n>::reset(const Program& program,int arg)
   Procb.reset(program);
 }
 
+template<class T>
+void SubProcessor<T>::check()
+{
+  // protocol check before last MAC check
+  protocol.check();
+  // MACCheck
+  MC.Check(P);
+}
+
 template<class sint, class sgf2n>
 void Processor<sint, sgf2n>::check()
 {
-  // protocol check before last MAC check
-  Procp.protocol.check();
-  Proc2.protocol.check();
-  share_thread.protocol->check();
-
-  // MACCheck
-  MC2.Check(P);
-  MCp.Check(P);
-  share_thread.MC->Check(P);
+  Procp.check();
+  Proc2.check();
+  share_thread.check();
 
   //cout << num << " : Checking broadcast" << endl;
   P.Check_Broadcast();
@@ -393,8 +396,12 @@ void Processor<sint, sgf2n>::write_shares_to_file(long start_pos,
 }
 
 template <class T>
-void SubProcessor<T>::POpen(const vector<int>& reg,const Player& P,int size)
+void SubProcessor<T>::POpen(const Instruction& inst)
 {
+  if (inst.get_n())
+    check();
+  auto& reg = inst.get_start();
+  int size = inst.get_size();
   assert(reg.size() % 2 == 0);
   int sz=reg.size() / 2;
   MC.init_open(P, sz * size);

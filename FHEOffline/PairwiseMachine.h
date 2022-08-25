@@ -10,7 +10,7 @@
 #include "FHEOffline/SimpleMachine.h"
 #include "FHEOffline/PairwiseSetup.h"
 
-class PairwiseMachine : public MachineBase
+class PairwiseMachine : public virtual MachineBase
 {
 public:
     PairwiseSetup<FFT_Data> setup_p;
@@ -23,15 +23,6 @@ public:
     vector<Ciphertext> enc_alphas;
 
     PairwiseMachine(Player& P);
-    PairwiseMachine(int argc, const char** argv);
-
-    void init();
-
-    template <class FD>
-    void setup_keys();
-
-    template <class T>
-    void set_mac_key(T alphai);
 
     template <class FD>
     PairwiseSetup<FD>& setup();
@@ -40,6 +31,20 @@ public:
     void unpack(octetStream& os);
 
     void check(Player& P) const;
+};
+
+class RealPairwiseMachine : public virtual MachineBase, public virtual PairwiseMachine
+{
+public:
+    RealPairwiseMachine(int argc, const char** argv);
+
+    void init();
+
+    template <class FD>
+    void setup_keys();
+
+    template <class T>
+    void set_mac_key(T alphai);
 };
 
 #endif /* FHEOFFLINE_PAIRWISEMACHINE_H_ */

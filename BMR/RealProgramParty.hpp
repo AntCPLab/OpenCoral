@@ -97,8 +97,6 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	if (online_opts.live_prep)
 	{
 		mac_key.randomize(prng);
-		if (T::needs_ot)
-			BaseMachine::s().ot_setups.push_back({*P, true});
 		prep = new typename T::LivePrep(0, usage);
 	}
 	else
@@ -107,6 +105,7 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 		prep = new Sub_Data_Files<T>(N, prep_dir, usage);
 	}
 
+	T::MAC_Check::setup(*P);
 	MC = new typename T::MAC_Check(mac_key);
 
 	garble_processor.reset(program);
@@ -219,6 +218,7 @@ RealProgramParty<T>::~RealProgramParty()
 	delete garble_inputter;
 	delete garble_protocol;
 	cout << "Data sent = " << data_sent * 1e-6 << " MB" << endl;
+	T::MAC_Check::teardown();
 }
 
 template<class T>

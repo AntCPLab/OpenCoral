@@ -545,7 +545,7 @@ class Program(object):
         """
         if change is None:
             if not self._invperm:
-                self.relevant_opts.add('invperm')
+                self.relevant_opts.add("invperm")
             return self._invperm
         else:
             self._invperm = change
@@ -1276,7 +1276,7 @@ class Tape:
             "can_eliminate",
             "duplicates",
         ]
-        maximum_size = 2 ** (32 - inst_base.Instruction.code_length) - 1
+        maximum_size = 2 ** (64 - inst_base.Instruction.code_length) - 1
 
         def __init__(self, reg_type, program, size=None, i=None):
             """Creates a new register.
@@ -1381,6 +1381,20 @@ class Tape:
             self.duplicates |= other.duplicates
             for dup in self.duplicates:
                 dup.duplicates = self.duplicates
+
+        def update(self, other):
+            """
+            Update register. Useful in loops like
+            :py:func:`~Compiler.library.for_range`.
+
+            :param other: any convertible type
+
+            """
+            other = self.conv(other)
+            if self.program != other.program:
+                raise CompilerError(
+                    'cannot update register with one from another thread')
+            self.link(other)
 
         @property
         def is_gf2n(self):

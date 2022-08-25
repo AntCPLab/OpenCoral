@@ -61,8 +61,10 @@ public:
       ArithmeticProcessor* Proc = 0);
   ~SubProcessor();
 
+  void check();
+
   // Access to PO (via calls to POpen start/stop)
-  void POpen(const vector<int>& reg,const Player& P,int size);
+  void POpen(const Instruction& inst);
 
   void muls(const vector<int>& reg, int size);
   void mulrs(const vector<int>& reg);

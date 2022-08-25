@@ -49,11 +49,6 @@ public:
         return new MAC_Check;
     }
 
-    static This new_reg()
-    {
-        return {};
-    }
-
     MaliciousCcdShare()
     {
     }

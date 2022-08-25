@@ -21,6 +21,8 @@ class MamaMac : public FixedVec<SemiShare<T>, N>
     typedef FixedVec<SemiShare<T>, N> super;
 
 public:
+    typedef super open_type;
+
     static const true_type invertible;
 
     static int length()
@@ -59,6 +61,8 @@ public:
 
     typedef MamaPrep<This> LivePrep;
     typedef MamaShare<typename T::next, N> prep_type;
+    typedef This bit_prep_type;
+    typedef This prep_check_type;
     typedef SimpleMascotTripleGenerator<prep_type> TripleGenerator;
     typedef MascotMultiplier<This> Multiplier;
     typedef FixedVec<T, N> sacri_type;
@@ -73,12 +77,12 @@ public:
 
     static string type_string()
     {
-        return "Mama" + to_string(N);
+        return "Mama" + to_string(N) + " " + T::type_string();
     }
 
     static string type_short()
     {
-        return string(1, T::type_char());
+        return "MM" + to_string(N) + string(1, T::type_char());
     }
 
     MamaShare()

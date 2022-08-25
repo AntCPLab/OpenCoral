@@ -30,8 +30,6 @@ public:
 
 	static string name() { return "YaoGarbleWire"; }
 
-	static YaoGarbleWire new_reg() { return {}; }
-
 	static void andrs(GC::Processor<GC::Secret<YaoGarbleWire>>& processor,
 			const vector<int>& args)
 	{

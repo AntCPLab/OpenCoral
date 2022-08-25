@@ -32,7 +32,8 @@ void* run_ngenerator_thread(void* ptr)
 }
 
 TripleMachine::TripleMachine(int argc, const char** argv) :
-        nConnections(1), bonding(0)
+        nConnections(1), player(0), bonding(0),
+        network_opts(opt, argc, argv, 2, true)
 {
     opt.add(
         "1", // Default.
@@ -66,7 +67,7 @@ TripleMachine::TripleMachine(int argc, const char** argv) :
         0, // Required?
         0, // Number of args expected.
         0, // Delimiter if expecting multiple args.
-        "Check triples (implies -m).", // Help description.
+        "Check triples (implies -m; always done with SPDZ2k).", // Help description.
         "-c", // Flag token.
         "--check" // Flag token.
     );
@@ -133,6 +134,7 @@ TripleMachine::TripleMachine(int argc, const char** argv) :
     bonding = opt.get("-b")->isSet;
     opt.get("-Z")->getInt(z2k);
     check |= z2k;
+    amplify &= not z2k;
     z2s = z2k;
     if (opt.isSet("-S"))
         opt.get("-S")->getInt(z2s);
@@ -156,6 +158,9 @@ template<class T>
 GeneratorThread* TripleMachine::new_generator(OTTripleSetup& setup, int i,
         typename T::mac_key_type mac_key)
 {
+    if (i == 0)
+        T::MAC_Check::setup(*player);
+
     if (output and i == 0)
     {
         prep_data_dir = get_prep_sub_dir<T>(PREP_DIR, nplayers);
@@ -170,16 +175,23 @@ GeneratorThread* TripleMachine::new_generator(OTTripleSetup& setup, int i,
 void TripleMachine::run()
 {
     cout << "my_num: " << my_num << endl;
-    N[0].init(my_num, 10000, "HOSTS", nplayers);
+    network_opts.start_networking(N[0], my_num);
     nConnections = 1;
     if (bonding)
     {
-        N[1].init(my_num, 11000, "HOSTS2", nplayers);
+        if (network_opts.ip_filename.empty())
+        {
+            cerr << "Bonding only works with --ip-file-name" << endl;
+            exit(1);
+        }
+        N[1].init(my_num, network_opts.portnum_base + 1000,
+                network_opts.ip_filename + "2", nplayers);
         nConnections = 2;
     }
     // do the base OTs
     PlainPlayer P(N[0], "base");
     OTTripleSetup setup(P, true);
+    player = &P;
 
     vector<GeneratorThread*> generators(nthreads);
     vector<pthread_t> threads(nthreads);

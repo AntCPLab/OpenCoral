@@ -58,8 +58,20 @@ public:
     void check(Player&) const {}
 };
 
-class MultiplicativeMachine : public MachineBase
+class MultiplicativeMachineParams : public MachineBase
 {
+public:
+    DataSetup setup;
+
+    virtual ~MultiplicativeMachineParams() {}
+
+    virtual int get_covert() const { return 0; }
+};
+
+class MultiplicativeMachine : public MultiplicativeMachineParams
+{
+    PlainPlayer P;
+
 protected:
     void parse_options(int argc, const char** argv);
 
@@ -68,11 +80,8 @@ protected:
     void fake_keys(int slack);
 
 public:
-    DataSetup setup;
-
-    virtual ~MultiplicativeMachine() {}
-
-    virtual int get_covert() const { return 0; }
+    MultiplicativeMachine();
+    virtual ~MultiplicativeMachine();
 };
 
 class SimpleMachine : public MultiplicativeMachine

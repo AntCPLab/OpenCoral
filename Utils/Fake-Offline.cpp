@@ -13,6 +13,7 @@
 #include "Protocols/SpdzWiseRingShare.h"
 #include "Protocols/SpdzWiseShare.h"
 #include "Protocols/Rep4Share2k.h"
+#include "Protocols/MamaShare.h"
 #include "Protocols/fake-stuff.h"
 #include "Tools/Exceptions.h"
 #include "GC/MaliciousRepSecret.h"
@@ -65,15 +66,18 @@ public:
   void generate_ring();
 
   template<class T>
-  void make_with_mac_key(int nplayers, int default_num, bool zero);
+  void make_with_mac_key(int nplayers, int default_num, bool zero,
+      const typename T::bit_type::mac_type& bit_key = {});
   template<class T>
-  void make_basic(const typename T::mac_type& key, int nplayers, int nitems, bool zero);
+  void make_basic(const typename T::mac_type& key, int nplayers, int nitems,
+      bool zero, const typename T::bit_type::mac_type& bit_key = {});
 
   template<class T>
   void make_edabits(const typename T::mac_type& key, int N, int ntrip, bool zero, false_type,
       const typename T::bit_type::mac_type& bit_key = {});
   template<class T>
-  void make_edabits(const typename T::mac_type&, int, int, bool, true_type)
+  void make_edabits(const typename T::mac_type&, int, int, bool, true_type,
+      const typename T::bit_type::mac_type& = {})
   {
   }
 };
@@ -353,12 +357,14 @@ void make_minimal(const typename T::mac_type& key, int nplayers, int nitems, boo
 }
 
 template<class T>
-void FakeParams::make_basic(const typename T::mac_type& key, int nplayers, int nitems, bool zero)
+void FakeParams::make_basic(const typename T::mac_type& key, int nplayers,
+        int nitems, bool zero, const typename T::bit_type::mac_type& bit_key)
 {
     make_minimal<T>(key, nplayers, nitems, zero);
     make_square_tuples<T>(key, nplayers, nitems, T::type_short(), zero);
-    make_dabits<T>(key, nplayers, nitems, zero);
-    make_edabits<T>(key, nplayers, nitems, zero, T::clear::characteristic_two);
+    make_dabits<T>(key, nplayers, nitems, zero, bit_key);
+    make_edabits<T>(key, nplayers, nitems, zero, T::clear::characteristic_two,
+        bit_key);
     if (T::clear::invertible)
     {
         make_inverse<T>(key, nplayers, nitems, zero, prep_data_prefix);
@@ -371,11 +377,12 @@ void FakeParams::make_basic(const typename T::mac_type& key, int nplayers, int n
 }
 
 template<class T>
-void FakeParams::make_with_mac_key(int nplayers, int default_num, bool zero)
+void FakeParams::make_with_mac_key(int nplayers, int default_num, bool zero,
+        const typename T::bit_type::mac_type& bit_key)
 {
     typename T::mac_share_type::open_type key;
     generate_mac_keys<T>(key, nplayers, prep_data_prefix);
-    make_basic<T>(key, nplayers, default_num, zero);
+    make_basic<T>(key, nplayers, default_num, zero, bit_key);
 }
 
 template<class T>
@@ -627,7 +634,7 @@ int FakeParams::generate()
     ShamirOptions::singleton.set_threshold(opt);
   }
 
-  int ntrip2=0, ntripp=0, nbits2=0,nbitsp=0,nsqr2=0,nsqrp=0,ninp2=0,ninpp=0,ninv=0, nbittrip=0, nbitgf2ntrip=0;
+  int ntrip2=0, ntripp=0, nbits2=0,nbitsp=0,nsqr2=0,nsqrp=0,ninp2=0,ninpp=0,ninv=0;
   vector<int> list_options;
   int lg2, lgp;
 
@@ -636,7 +643,7 @@ int FakeParams::generate()
 
   opt.get("--default")->getInt(default_num);
   ntrip2 = ntripp = nbits2 = nbitsp = nsqr2 = nsqrp = ninp2 = ninpp = ninv =
-  nbittrip = nbitgf2ntrip = default_num;
+      default_num;
   
   if (opt.isSet("--ntriples"))
   {
@@ -664,10 +671,6 @@ int FakeParams::generate()
   }
   if (opt.isSet("--ninverses"))
     opt.get("--ninverses")->getInt(ninv);
-  if (opt.isSet("--nbittriples"))
-    opt.get("--nbittriples")->getInt(nbittrip);
-  if (opt.isSet("--nbitgf2ntriples"))
-    opt.get("--nbitgf2ntriples")->getInt(nbitgf2ntrip);
 
   zero = opt.isSet("--zero");
   if (zero)
@@ -759,6 +762,10 @@ int FakeParams::generate()
 
   make_dabits<T>(keyp, nplayers, default_num, zero, keytt);
   make_edabits<T>(keyp, nplayers, default_num, zero, false_type(), keytt);
+
+  if (T::clear::prime_field)
+    make_with_mac_key<MamaShare<typename T::clear, 1>>(nplayers, default_num,
+        zero, keytt);
 
   if (nplayers > 2)
     {

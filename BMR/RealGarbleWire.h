@@ -48,8 +48,6 @@ public:
 	static void inputbvec(GC::Processor<GC::Secret<RealGarbleWire>>& processor,
 			ProcessorBase& input_processor, const vector<int>& args);
 
-	RealGarbleWire(const Register& reg) : PRFRegister(reg) {}
-
 	void garble(PRFOutputs& prf_output, const RealGarbleWire<T>& left,
 			const RealGarbleWire<T>& right);
 

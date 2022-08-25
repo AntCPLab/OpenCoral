@@ -22,7 +22,7 @@ private:
     EC_POINT* point;
 
 public:
-    typedef void next;
+    typedef P256Element next;
     typedef void Square;
 
     static const true_type invertible;

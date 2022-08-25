@@ -30,7 +30,11 @@ int main(int argc, const char** argv)
     opt.get("-SP")->getInt(s);
     opt.resetArgs();
     RingOptions ring_options(opt, argc, argv);
-    int k = ring_options.R;
+    OnlineOptions& online_opts = OnlineOptions::singleton;
+    online_opts = {opt, argc, argv, Spdz2kShare<64, 64>(), true};
+    DishonestMajorityMachine machine(argc, argv, opt, online_opts, gf2n());
+    int k = ring_options.ring_size_from_opts_or_schedule(online_opts.progname);
+
 #ifdef VERBOSE
     cerr << "Using SPDZ2k with ring length " << k << " and security parameter "
             << s << endl;
@@ -39,7 +43,7 @@ int main(int argc, const char** argv)
 #undef Z
 #define Z(K, S) \
     if (s == S and k == K) \
-        return spdz_main<Spdz2kShare<K, S>, Share<gf2n>>(argc, argv, opt);
+        return machine.run<Spdz2kShare<K, S>, Share<gf2n>>();
 
     Z(64, 64)
     Z(64, 48)

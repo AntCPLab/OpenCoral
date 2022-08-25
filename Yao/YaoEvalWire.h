@@ -31,8 +31,6 @@ public:
 
 	typedef SwitchableOutput out_type;
 
-	static YaoEvalWire new_reg() { return {}; }
-
 	static void andrs(GC::Processor<GC::Secret<YaoEvalWire>>& processor,
 			const vector<int>& args)
 	{

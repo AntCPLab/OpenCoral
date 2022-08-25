@@ -101,7 +101,7 @@ MP-SPDZ requires one TCP port per party to be open to other
 parties. In the default setting, it's 5000 on party 0, and
 5001 on party 1 etc. You change change the base port (5000) using
 ``--portnumbase`` and individual ports for parties using
-``--my-port``. The scripts in use a random base port number, which you
+``--my-port``. The scripts use a random base port number, which you
 can also change with ``--portnumbase``.
 
 

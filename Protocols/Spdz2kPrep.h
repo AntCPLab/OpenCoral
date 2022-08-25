@@ -22,7 +22,7 @@ class Spdz2kPrep : public virtual MaliciousRingPrep<T>,
         public virtual MascotTriplePrep<T>,
         public virtual RingOnlyPrep<T>
 {
-    typedef Spdz2kShare<T::k + 2, T::s> BitShare;
+    typedef typename T::bit_prep_type BitShare;
     DataPositions bit_pos;
     MascotTriplePrep<BitShare>* bit_prep;
     SubProcessor<BitShare>* bit_proc;

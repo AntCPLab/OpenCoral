@@ -14,16 +14,6 @@
 
 using namespace std;
 
-template<class T, class U>
-int spdz_main(int argc, const char** argv, ez::ezOptionParser& opt, bool live_prep_default = true)
-{
-    OnlineOptions& online_opts = OnlineOptions::singleton;
-    online_opts = {opt, argc, argv, T(), live_prep_default};
-
-    DishonestMajorityMachine machine(argc, argv, opt, online_opts, typename U::clear());
-    return machine.run<T, U>();
-}
-
 template<class V>
 OnlineMachine::OnlineMachine(int argc, const char** argv, ez::ezOptionParser& opt,
         OnlineOptions& online_opts, int nplayers, V) :

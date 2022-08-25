@@ -19,6 +19,7 @@ template<class T> class MaliciousShamirShare;
 template<class T, int L> class FixedVec;
 template<class T, class V> class Share_;
 template<class T> class SpdzWiseShare;
+template<class T, int L> class MamaMac;
 template<class> class MaliciousRep3Share;
 template<class> class DealerShare;
 
@@ -32,7 +33,6 @@ template<class T> class MaliciousCcdSecret;
 template<class T, class U, class V, class W>
 void make_share(Share_<T, W>* Sa,const U& a,int N,const V& key,PRNG& G)
 {
-  insecure("share generation", false);
   T x;
   W mac, y;
   mac = a * key;
@@ -53,7 +53,6 @@ void make_share(Share_<T, W>* Sa,const U& a,int N,const V& key,PRNG& G)
 template<class T, class U, class V>
 void make_share(SpdzWiseShare<MaliciousRep3Share<T>>* Sa,const U& a,int N,const V& key,PRNG& G)
 {
-  insecure("share generation", false);
   assert (key[0] == key[1]);
   auto mac = a * key[0];
   FixedVec<typename V::value_type, 3> shares, macs;
@@ -126,6 +125,19 @@ void make_share(SemiShare<T>* Sa,const T& a,int N,const U&,PRNG& G)
   Sa[N-1]=S;
 }
 
+template<class T, class U, class V, int L>
+void make_share(MamaMac<V, L>* Sa,const T& a,int N,const U&,PRNG& G)
+{
+  T x, S = a;
+  for (int i=0; i<N-1; i++)
+    {
+      x.randomize(G);
+      Sa[i] = x;
+      S -= x;
+    }
+  Sa[N-1]=S;
+}
+
 template<class T, class U>
 void make_share(DealerShare<T>* Sa, const T& a, int N, const U&, PRNG& G)
 {
@@ -149,7 +161,6 @@ void make_share(FixedVec<T, 2>* Sa, const V& a, int N, const U& key, PRNG& G)
 {
   (void) key;
   assert(N == 3);
-  insecure("share generation", false);
   FixedVec<T, 3> add_shares;
   // hack
   add_shares.randomize_to_sum(a, G);
@@ -167,7 +178,6 @@ void make_share(FixedVec<T, 3>* Sa, const V& a, int N, const U& key, PRNG& G)
 {
   (void) key;
   assert(N == 4);
-  insecure("share generation", false);
   FixedVec<T, 4> add_shares;
   add_shares.randomize_to_sum(a, G);
   for (int i=0; i<N; i++)
@@ -194,7 +204,6 @@ template<class T, class V>
 void make_share(ShamirShare<T>* Sa, const V& a, int N,
     const typename ShamirShare<T>::mac_type&, PRNG& G)
 {
-  insecure("share generation", false);
   auto& vandermonde = VanderStore<T>::vandermonde;
   if (vandermonde.empty())
       vandermonde = ShamirInput<ShamirShare<T>>::get_vandermonde(N / 2, N);

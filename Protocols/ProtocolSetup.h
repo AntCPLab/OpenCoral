@@ -33,6 +33,8 @@ public:
 
         // must initialize MAC key for security of some protocols
         T::read_or_generate_mac_key(directory, P, mac_key);
+
+        T::MAC_Check::setup(P);
     }
 
     /**
@@ -49,11 +51,14 @@ public:
 
         // must initialize MAC key for security of some protocols
         T::read_or_generate_mac_key(directory, P, mac_key);
+
+        T::MAC_Check::setup(P);
     }
 
     ~ProtocolSetup()
     {
         T::LivePrep::teardown();
+        T::MAC_Check::teardown();
     }
 
     typename T::mac_key_type get_mac_key() const
@@ -80,6 +85,13 @@ public:
         T::part_type::open_type::init_field();
         T::mac_key_type::init_field();
         T::part_type::read_or_generate_mac_key(directory, P, mac_key);
+
+        T::MAC_Check::setup(P);
+    }
+
+    ~BinaryProtocolSetup()
+    {
+        T::MAC_Check::teardown();
     }
 
     typename T::mac_key_type get_mac_key() const

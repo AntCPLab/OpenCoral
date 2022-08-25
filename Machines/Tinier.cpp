@@ -15,9 +15,9 @@
 #include "GC/CcdPrep.hpp"
 #include "GC/PersonalPrep.hpp"
 
-//template class GC::ShareParty<GC::TinierSecret<gf2n_short>>;
-template class GC::CcdPrep<GC::TinierSecret<gf2n_short>>;
-template class Preprocessing<GC::TinierSecret<gf2n_short>>;
-template class GC::TinierSharePrep<GC::TinierShare<gf2n_short>>;
-template class GC::ShareSecret<GC::TinierSecret<gf2n_short>>;
-template class TripleShuffleSacrifice<GC::TinierSecret<gf2n_short>>;
+//template class GC::ShareParty<GC::TinierSecret<gf2n_mac_key>>;
+template class GC::CcdPrep<GC::TinierSecret<gf2n_mac_key>>;
+template class Preprocessing<GC::TinierSecret<gf2n_mac_key>>;
+template class GC::TinierSharePrep<GC::TinierShare<gf2n_mac_key>>;
+template class GC::ShareSecret<GC::TinierSecret<gf2n_mac_key>>;
+template class TripleShuffleSacrifice<GC::TinierSecret<gf2n_mac_key>>;

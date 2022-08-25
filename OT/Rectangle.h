@@ -47,6 +47,8 @@ public:
 	Rectangle<U, V>& sub(const void* other) { return sub_(other); }
 	Rectangle<U, V>& sub_(const void* other);
 
+	void bit_sub(const BitVector& bits, int start);
+
 	void mul(const BitVector& a, const V& b);
 
 	void randomize(PRNG& G);

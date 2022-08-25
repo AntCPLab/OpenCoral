@@ -33,7 +33,7 @@ public:
     T* skip(size_t n)
     {
         i += n;
-        return &(*this)[i];
+        return &*(this->begin() + i);
     }
     size_t left()
     {

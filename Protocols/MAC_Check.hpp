@@ -31,6 +31,31 @@ const char* TreeSum<T>::mc_timer_names[] = {
 };
 
 template<class U>
+void Tree_MAC_Check<U>::setup(Player& P)
+{
+  assert(coordinator == 0);
+  coordinator = new Coordinator(P.N, U::type_string() + to_string(U::clear::length()));
+  U::prep_type::MAC_Check::coordinator = coordinator;
+  U::prep_check_type::MAC_Check::coordinator = coordinator;
+  U::bit_prep_type::MAC_Check::coordinator = coordinator;
+  U::bit_prep_type::prep_check_type::MAC_Check::coordinator = coordinator;
+  U::input_check_type::MAC_Check::coordinator = coordinator;
+}
+
+template<class U>
+void Tree_MAC_Check<U>::teardown()
+{
+  if (coordinator)
+    delete coordinator;
+  coordinator = 0;
+  U::prep_type::MAC_Check::coordinator = 0;
+  U::prep_check_type::MAC_Check::coordinator = 0;
+  U::bit_prep_type::MAC_Check::coordinator = 0;
+  U::bit_prep_type::prep_check_type::MAC_Check::coordinator = 0;
+  U::input_check_type::MAC_Check::coordinator = 0;
+}
+
+template<class U>
 MAC_Check_<U>::MAC_Check_(const typename U::mac_key_type::Scalar& ai, int opening_sum,
     int max_broadcast, int send_player) :
     Tree_MAC_Check<U>(ai, opening_sum, max_broadcast, send_player)
@@ -130,6 +155,7 @@ void MAC_Check_<U>::Check(const Player& P)
   auto& macs = this->macs;
   auto& popen_cnt = this->popen_cnt;
   assert(int(macs.size()) <= popen_cnt);
+  assert(this->coordinator);
 
   if (popen_cnt < 10)
     {
@@ -142,7 +168,7 @@ void MAC_Check_<U>::Check(const Player& P)
           deltas.back().pack(bundle.mine);
         }
       this->timers[COMMIT].start();
-      Commit_And_Open_(bundle, P);
+      Commit_And_Open_(bundle, P, *this->coordinator);
       this->timers[COMMIT].stop();
       for (auto& delta : deltas)
         {
@@ -184,7 +210,7 @@ void MAC_Check_<U>::Check(const Player& P)
 
       //cerr << "\tCommit and Open" << endl;
       this->timers[COMMIT].start();
-      Commit_And_Open(tau,P);
+      Commit_And_Open(tau, P, *this->coordinator);
       this->timers[COMMIT].stop();
 
       //cerr << "\tFinal Check" << endl;
@@ -292,7 +318,9 @@ void MAC_Check_Z2k<T, U, V, W>::Check(const Player& P)
   T zj = mj - this->alphai * y;
   vector<T> zjs(P.num_players());
   zjs[P.my_num()] = zj;
-  Commit_And_Open(zjs, P);
+
+  assert(this->coordinator);
+  Commit_And_Open(zjs, P, *this->coordinator);
 
   T zj_sum;
   zj_sum.assign_zero();

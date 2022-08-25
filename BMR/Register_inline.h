@@ -9,10 +9,10 @@
 #include "CommonParty.h"
 #include "Party.h"
 
-
-inline Register ProgramRegister::new_reg()
+inline Register::Register() :
+        garbled_entry(CommonParty::s().get_n_parties()), external(NO_SIGNAL),
+        mask(NO_SIGNAL), keys(CommonParty::s().get_n_parties())
 {
-	return Register(CommonParty::s().get_n_parties());
 }
 
 #endif /* BMR_REGISTER_INLINE_H_ */

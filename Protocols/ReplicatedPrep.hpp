@@ -585,7 +585,7 @@ void buffer_bits_from_players(vector<vector<T>>& player_bits,
     auto& protocol = proc.protocol;
     auto& P = protocol.P;
     int n_relevant_players = protocol.get_n_relevant_players();
-    player_bits.resize(n_relevant_players, vector<T>(buffer_size));
+    player_bits.resize(n_relevant_players);
     auto& input = proc.input;
     input.reset_all(P);
     for (int i = 0; i < n_relevant_players; i++)
@@ -607,8 +607,10 @@ void buffer_bits_from_players(vector<vector<T>>& player_bits,
     }
     input.exchange();
     for (int i = 0; i < n_relevant_players; i++)
-        for (auto& x : player_bits[i])
-            x = input.finalize((base_player + i) % P.num_players(), n_bits);
+        for (int j = 0; j < buffer_size; j++)
+            player_bits[i].push_back(
+                    input.finalize((base_player + i) % P.num_players(),
+                            n_bits));
 }
 
 template<class T>

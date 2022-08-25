@@ -30,6 +30,6 @@ int main(int argc, const char** argv)
 {
     ez::ezOptionParser opt;
     OnlineOptions opts(opt, argc, argv);
-    gf2n_short::init_minimum(opts.security_parameter);
-    GC::simple_binary_main<GC::TinierSecret<gf2n_short>>(argc, argv, 1000);
+    gf2n_mac_key::init_minimum(opts.security_parameter);
+    GC::simple_binary_main<GC::TinierSecret<gf2n_mac_key>>(argc, argv, 1000);
 }

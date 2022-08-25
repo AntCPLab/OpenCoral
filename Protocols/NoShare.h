@@ -60,8 +60,9 @@ public:
     // must match assign/pack/unpack and machine-readable input/output
     static int size()
     {
-        throw runtime_error("no size");
-        return -1;
+        // works only if purely on the stack
+        // skip one byte for ShareInterface
+        return sizeof(This) - 1;
     }
 
     // maximum number of corrupted parties
@@ -134,16 +135,20 @@ public:
 
     // assignment from byte string
     // must match unpack
-    void assign(const char*)
+    void assign(const char* buffer)
     {
-        throw runtime_error("no assignment");
+        // works only if purely on the stack
+        // skip one byte for ShareInterface
+        memcpy((char*) this + 1, buffer, size());
     }
 
     // serialization
     // must use the number of bytes given by size()
-    void pack(octetStream&, bool = false) const
+    void pack(octetStream& os, bool = false) const
     {
-        throw runtime_error("no packing");
+        // works only if purely on the stack
+        // skip one byte for ShareInterface
+        memcpy(os.append(size()), (char*) this + 1, size());
     }
 
     // serialization

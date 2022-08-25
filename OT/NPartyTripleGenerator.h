@@ -80,7 +80,7 @@ public:
     vector<typename T::Multiplier*> ot_multipliers;
     //vector<OTMachine*> machines;
     BitVector baseReceiverInput; // same for every set of OTs
-    vector< vector< vector<BitVector> > > baseSenderInputs;
+    vector< vector< array<BitVector, 2> > > baseSenderInputs;
     vector< vector<BitVector> > baseReceiverOutputs;
     vector<BitVector> valueBits;
     BitVector b_padded_bits;
@@ -98,6 +98,7 @@ public:
 
     vector<PlainTriple<open_type, N_AMPLIFY>> preampTriples;
     vector<array<open_type, 3>> plainTriples;
+    vector<open_type> plainBits;
 
     typename T::MAC_Check* MC;
 
@@ -111,6 +112,8 @@ public:
 
     void generatePlainTriples();
     void plainTripleRound(int k = 0);
+
+    void generatePlainBits();
 
     void run_multipliers(MultJob job);
 

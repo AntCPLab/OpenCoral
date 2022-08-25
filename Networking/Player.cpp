@@ -216,15 +216,15 @@ Player::Player(const Names& Nms) :
 
 
 template<class T>
-MultiPlayer<T>::MultiPlayer(const Names& Nms) :
-        Player(Nms), send_to_self_socket(0)
+MultiPlayer<T>::MultiPlayer(const Names& Nms, const string& id) :
+        Player(Nms), id(id), send_to_self_socket(0)
 {
   sockets.resize(Nms.num_players());
 }
 
 
 PlainPlayer::PlainPlayer(const Names& Nms, const string& id) :
-        MultiPlayer<int>(Nms)
+        MultiPlayer<int>(Nms, id)
 {
   if (Nms.num_players() > 1)
     setup_sockets(Nms.names, Nms.ports, id, *Nms.server);
@@ -397,6 +397,30 @@ void Player::receive_player(int i, FlexBuffer& buffer) const
   octetStream os;
   receive_player(i, os);
   buffer = os;
+}
+
+size_t PlainPlayer::send_no_stats(int player,
+        const PlayerBuffer& buffer, bool block) const
+{
+  if (block)
+    {
+      send(socket(player), buffer.data, buffer.size);
+      return buffer.size;
+    }
+  else
+    return send_non_blocking(socket(player), buffer.data, buffer.size);
+}
+
+size_t PlainPlayer::recv_no_stats(int player,
+        const PlayerBuffer& buffer, bool block) const
+{
+    if (block)
+      {
+        receive(socket(player), buffer.data, buffer.size);
+        return buffer.size;
+      }
+    else
+      return receive_non_blocking(socket(player), buffer.data, buffer.size);
 }
 
 
@@ -647,10 +671,8 @@ void ThreadPlayer::send_all(const octetStream& o) const
 
 
 RealTwoPartyPlayer::RealTwoPartyPlayer(const Names& Nms, int other_player, const string& id) :
-        TwoPartyPlayer(Nms.my_num()), other_player(other_player)
+        VirtualTwoPartyPlayer(*(P = new PlainPlayer(Nms, id + "2")), other_player)
 {
-  is_server = Nms.my_num() > other_player;
-  setup_sockets(other_player, Nms, Nms.ports[other_player], id);
 }
 
 RealTwoPartyPlayer::RealTwoPartyPlayer(const Names& Nms, int other_player,
@@ -660,40 +682,7 @@ RealTwoPartyPlayer::RealTwoPartyPlayer(const Names& Nms, int other_player,
 
 RealTwoPartyPlayer::~RealTwoPartyPlayer()
 {
-  close_client_socket(socket);
-}
-
-void RealTwoPartyPlayer::setup_sockets(int other_player, const Names &nms, int portNum, string id)
-{
-    id += "2";
-    const char *hostname = nms.names[other_player].c_str();
-    ServerSocket *server = nms.server;
-    if (is_server) {
-#ifdef DEBUG_NETWORKING
-        fprintf(stderr, "Setting up server with id %s\n", id.c_str());
-#endif
-        socket = server->get_connection_socket(id);
-    }
-    else {
-#ifdef DEBUG_NETWORKING
-        fprintf(stderr, "Setting up client to %s:%d with id %s\n", hostname,
-                portNum, id.c_str());
-#endif
-        set_up_client_socket(socket, hostname, portNum);
-        octetStream(id).Send(socket);
-    }
-}
-
-int RealTwoPartyPlayer::other_player_num() const
-{
-  return other_player;
-}
-
-void RealTwoPartyPlayer::send(octetStream& o) const
-{
-  TimeScope ts(comm_stats["Sending one-to-one"].add(o));
-  o.Send(socket);
-  sent += o.get_length();
+  delete P;
 }
 
 void VirtualTwoPartyPlayer::send(octetStream& o) const
@@ -703,42 +692,11 @@ void VirtualTwoPartyPlayer::send(octetStream& o) const
   comm_stats.sent += o.get_length();
 }
 
-void RealTwoPartyPlayer::receive(octetStream& o) const
-{
-  TimeScope ts(timer);
-  o.reset_write_head();
-  o.Receive(socket);
-  comm_stats["Receiving one-to-one"].add(o, ts);
-}
-
 void VirtualTwoPartyPlayer::receive(octetStream& o) const
 {
   TimeScope ts(timer);
   P.receive_player_no_stats(other_player, o);
   comm_stats["Receiving one-to-one"].add(o, ts);
-}
-
-void RealTwoPartyPlayer::send_receive_player(vector<octetStream>& o) const
-{
-  {
-    if (is_server)
-    {
-      send(o[0]);
-      receive(o[1]);
-    }
-    else
-    {
-      receive(o[1]);
-      send(o[0]);
-    }
-  }
-}
-
-void RealTwoPartyPlayer::exchange(octetStream& o) const
-{
-  TimeScope ts(comm_stats["Exchanging one-to-one"].add(o));
-  sent += o.get_length();
-  o.exchange(socket, socket);
 }
 
 void VirtualTwoPartyPlayer::send_receive_player(vector<octetStream>& o) const
@@ -752,6 +710,25 @@ VirtualTwoPartyPlayer::VirtualTwoPartyPlayer(Player& P, int other_player) :
     TwoPartyPlayer(P.my_num()), P(P), other_player(other_player), comm_stats(
         P.thread_stats.at(other_player))
 {
+}
+
+size_t VirtualTwoPartyPlayer::send(const PlayerBuffer& buffer, bool block) const
+{
+  auto sent = P.send_no_stats(other_player, buffer, block);
+  lock.lock();
+  comm_stats["Sending one-to-one"].add(sent);
+  comm_stats.sent += sent;
+  lock.unlock();
+  return sent;
+}
+
+size_t VirtualTwoPartyPlayer::recv(const PlayerBuffer& buffer, bool block) const
+{
+  auto received = P.recv_no_stats(other_player, buffer, block);
+  lock.lock();
+  comm_stats["Receiving one-to-one"].add(received);
+  lock.unlock();
+  return received;
 }
 
 void OffsetPlayer::send_receive_player(vector<octetStream>& o) const

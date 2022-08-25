@@ -129,7 +129,7 @@ Secret<T>::Secret()
 template<class T>
 T& GC::Secret<T>::get_new_reg()
 {
-	registers.push_back(T::new_reg());
+	registers.push_back(T());
 	T& res = registers.back();
 #ifdef DEBUG_REGS
 	cout << "Secret: new " << typeid(T).name() << " " << res.get_id() << " at " << &res << endl;

@@ -16,6 +16,7 @@
 #include "Protocols/fake-stuff.hpp"
 #include "Protocols/mac_key.hpp"
 #include "Protocols/Share.hpp"
+#include "Protocols/MAC_Check.hpp"
 #include "Math/modp.hpp"
 
 void* run_generator(void* generator)
@@ -99,6 +100,19 @@ void MachineBase::parse_options(int argc, const char** argv)
         field_size = 40;
     }
     start_networking_with_server(hostname, portnum_base);
+}
+
+MultiplicativeMachine::MultiplicativeMachine() :
+        P(N, "machine-coordinator")
+{
+    Share<gfp>::MAC_Check::setup(P);
+    Share<gf2n_short>::MAC_Check::setup(P);
+}
+
+MultiplicativeMachine::~MultiplicativeMachine()
+{
+    Share<gfp>::MAC_Check::teardown();
+    Share<gf2n_short>::MAC_Check::teardown();
 }
 
 void MultiplicativeMachine::parse_options(int argc, const char** argv)

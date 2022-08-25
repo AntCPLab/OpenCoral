@@ -6,6 +6,7 @@
 #include "BaseMachine.h"
 #include "OnlineOptions.h"
 #include "Math/Setup.h"
+#include "Tools/Bundle.h"
 
 #include <iostream>
 #include <sodium.h>
@@ -13,6 +14,7 @@ using namespace std;
 
 BaseMachine* BaseMachine::singleton = 0;
 thread_local int BaseMachine::thread_num;
+thread_local OnDemandOTTripleSetup BaseMachine::ot_setup;
 
 void print_usage(ostream& o, const char* name, size_t capacity)
 {
@@ -126,12 +128,12 @@ void BaseMachine::stop(int n)
 
 void BaseMachine::print_timers()
 {
-  cerr << "The following timing is ";
+  cerr << "The following benchmarks are ";
   if (OnlineOptions::singleton.live_prep)
     cerr << "in";
   else
     cerr << "ex";
-  cerr << "clusive preprocessing." << endl;
+  cerr << "cluding preprocessing (offline phase)." << endl;
   cerr << "Time = " << timer[0].elapsed() << " seconds " << endl;
   timer.erase(0);
   for (auto it = timer.begin(); it != timer.end(); it++)
@@ -195,4 +197,15 @@ void BaseMachine::set_thread_comm(const NamedCommStats& stats)
   auto queue = queues.at(BaseMachine::thread_num);
   assert(queue);
   queue->set_comm_stats(stats);
+}
+
+void BaseMachine::print_global_comm(Player& P, const NamedCommStats& stats)
+{
+  Bundle<octetStream> bundle(P);
+  bundle.mine.store(stats.sent);
+  P.Broadcast_Receive_no_stats(bundle);
+  size_t global = 0;
+  for (auto& os : bundle)
+    global += os.get_int(8);
+  cerr << "Global data sent = " << global / 1e6 << " MB (all parties)" << endl;
 }

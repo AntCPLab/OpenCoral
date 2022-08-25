@@ -33,6 +33,9 @@ protected:
 public:
     int values_opened;
 
+    static void setup(Player&) {}
+    static void teardown() {}
+
     MAC_Check_Base(const typename T::mac_key_type::Scalar& mac_key = { }) :
             alphai(mac_key), values_opened(0) {}
     virtual ~MAC_Check_Base() {}

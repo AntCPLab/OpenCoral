@@ -176,7 +176,7 @@ void YaoEvalWire::inputbvec(GC::Processor<GC::Secret<YaoEvalWire> >& processor,
 {
     YaoEvalInput inputter;
     processor.inputbvec(inputter, input_processor, args,
-            inputter.evaluator.P->my_num());
+            *inputter.evaluator.P);
     return;
 }
 

@@ -387,6 +387,14 @@ class use(base.Instruction):
     code = base.opcodes['USE']
     arg_format = ['int','int','int']
 
+    @classmethod
+    def get_usage(cls, args):
+        from .program import field_types, data_types
+        from .util import find_in_dict
+        return {(find_in_dict(field_types, args[0].i),
+                 find_in_dict(data_types, args[1].i)):
+                 args[2].i}
+
 class use_inp(base.Instruction):
     """ Input usage.  Necessary to avoid reusage while using
     preprocessing from files.
@@ -397,6 +405,13 @@ class use_inp(base.Instruction):
     """
     code = base.opcodes['USE_INP']
     arg_format = ['int','int','int']
+
+    @classmethod
+    def get_usage(cls, args):
+        from .program import field_types, data_types
+        from .util import find_in_dict
+        return {(find_in_dict(field_types, args[0].i), 'input', args[1].i):
+                 args[2].i}
 
 class use_edabit(base.Instruction):
     """ edaBit usage. Necessary to avoid reusage while using
@@ -409,6 +424,10 @@ class use_edabit(base.Instruction):
     """
     code = base.opcodes['USE_EDABIT']
     arg_format = ['int','int','int']
+
+    @classmethod
+    def get_usage(cls, args):
+        return {('sedabit' if args[0].i else 'edabit', args[1].i): args[2].i}
 
 class use_matmul(base.Instruction):
     """ Matrix multiplication usage. Used for multithreading of
@@ -470,6 +489,11 @@ class use_prep(base.Instruction):
     """
     code = base.opcodes['USE_PREP']
     arg_format = ['str','int']
+
+    @classmethod
+    def get_usage(cls, args):
+        return {('gf2n' if cls.__name__ == 'guse_prep' else 'modp',
+                 args[0].str): args[1].i}
 
 class nplayers(base.Instruction):
     """ Store number of players in clear integer register.
@@ -782,30 +806,6 @@ class gbitcom(base.Instruction):
     def has_var_args(self):
         return True
 
-
-###
-### Special GF(2) arithmetic instructions
-###
-
-@base.vectorize
-class gmulbitc(base.MulBase):
-    r""" Clear GF(2^n) by clear GF(2) multiplication """
-    __slots__ = []
-    code = base.opcodes['GMULBITC']
-    arg_format = ['cgw','cg','cg']
-
-    def is_gf2n(self):
-        return True
-
-@base.vectorize
-class gmulbitm(base.MulBase):
-    r""" Secret GF(2^n) by clear GF(2) multiplication """
-    __slots__ = []
-    code = base.opcodes['GMULBITM']
-    arg_format = ['sgw','sg','cg']
-
-    def is_gf2n(self):
-        return True
 
 ###
 ### Arithmetic with immediate values
@@ -1707,6 +1707,7 @@ class writesockets(base.IOInstruction):
     from registers into a socket for a specified client id. If the
     protocol uses MACs, the client should be different for every party.
 
+    :param: number of arguments to follow
     :param: client id (regint)
     :param: message type (must be 0)
     :param: vector size (int)
@@ -2162,14 +2163,19 @@ class gconvgf2n(base.Instruction):
 class asm_open(base.VarArgsInstruction):
     """ Reveal secret registers (vectors) to clear registers (vectors).
 
-    :param: number of argument to follow (multiple of two)
+    :param: number of argument to follow (odd number)
+    :param: check after opening (0/1)
     :param: destination (cint)
     :param: source (sint)
     :param: (repeat the last two)...
     """
     __slots__ = []
     code = base.opcodes['OPEN']
-    arg_format = tools.cycle(['cw','s'])
+    arg_format = tools.chain(['int'], tools.cycle(['cw','s']))
+
+    def merge(self, other):
+        self.args[0] |= other.args[0]
+        self.args += other.args[1:]
 
 @base.gf2n
 @base.vectorize
@@ -2415,12 +2421,17 @@ class shuffle_base(base.DataInstruction):
     def logn(n):
         return int(math.ceil(math.log(n, 2)))
 
+    @classmethod
+    def n_swaps(cls, n):
+        logn = cls.logn(n)
+        return logn * 2 ** logn - 2 ** logn + 1
+
     def add_gen_usage(self, req_node, n):
         # hack for unknown usage
         req_node.increment(('bit', 'inverse'), float('inf'))
         # minimal usage with two relevant parties
         logn = self.logn(n)
-        n_switches = logn * 2 ** logn
+        n_switches = self.n_swaps(n)
         for i in range(self.n_relevant_parties):
             req_node.increment((self.field_type, 'input', i), n_switches)
         # multiplications for bit check
@@ -2430,7 +2441,7 @@ class shuffle_base(base.DataInstruction):
     def add_apply_usage(self, req_node, n, record_size):
         req_node.increment(('bit', 'inverse'), float('inf'))
         logn = self.logn(n)
-        n_switches = logn * 2 ** logn * self.n_relevant_parties
+        n_switches = self.n_swaps(n) * self.n_relevant_parties
         if n != 2 ** logn:
             record_size += 1
         req_node.increment((self.field_type, 'triple'),
@@ -2548,7 +2559,7 @@ class sqrs(base.CISC):
         c = [program.curr_block.new_reg('c') for i in range(2)]
         square(s[0], s[1])
         subs(s[2], self.args[1], s[0])
-        asm_open(c[0], s[2])
+        asm_open(False, c[0], s[2])
         mulc(c[1], c[0], c[0])
         mulm(s[3], self.args[1], c[0])
         adds(s[4], s[3], s[3])

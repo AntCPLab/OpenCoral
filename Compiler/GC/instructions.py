@@ -342,7 +342,8 @@ class stmcb(base.DirectMemoryWriteInstruction, base.VectorInstruction):
     code = opcodes['STMCB']
     arg_format = ['cb','long']
 
-class ldmsbi(base.ReadMemoryInstruction, base.VectorInstruction):
+class ldmsbi(base.ReadMemoryInstruction, base.VectorInstruction,
+             base.IndirectMemoryInstruction):
     """ Copy secret bit memory cell with run-time address to secret bit
     register.
 
@@ -351,8 +352,10 @@ class ldmsbi(base.ReadMemoryInstruction, base.VectorInstruction):
     """
     code = opcodes['LDMSBI']
     arg_format = ['sbw','ci']
+    direct = staticmethod(ldmsb)
 
-class stmsbi(base.WriteMemoryInstruction, base.VectorInstruction):
+class stmsbi(base.WriteMemoryInstruction, base.VectorInstruction,
+             base.IndirectMemoryInstruction):
     """ Copy secret bit register to secret bit memory cell with run-time
     address.
 
@@ -361,8 +364,10 @@ class stmsbi(base.WriteMemoryInstruction, base.VectorInstruction):
     """
     code = opcodes['STMSBI']
     arg_format = ['sb','ci']
+    direct = staticmethod(stmsb)
 
-class ldmcbi(base.ReadMemoryInstruction, base.VectorInstruction):
+class ldmcbi(base.ReadMemoryInstruction, base.VectorInstruction,
+             base.IndirectMemoryInstruction):
     """ Copy clear bit memory cell with run-time address to clear bit
     register.
 
@@ -371,8 +376,10 @@ class ldmcbi(base.ReadMemoryInstruction, base.VectorInstruction):
     """
     code = opcodes['LDMCBI']
     arg_format = ['cbw','ci']
+    direct = staticmethod(ldmcb)
 
-class stmcbi(base.WriteMemoryInstruction, base.VectorInstruction):
+class stmcbi(base.WriteMemoryInstruction, base.VectorInstruction,
+             base.IndirectMemoryInstruction):
     """ Copy clear bit register to clear bit memory cell with run-time
     address.
 
@@ -381,6 +388,7 @@ class stmcbi(base.WriteMemoryInstruction, base.VectorInstruction):
     """
     code = opcodes['STMCBI']
     arg_format = ['cb','ci']
+    direct = staticmethod(stmcb)
 
 class ldmsdi(base.ReadMemoryInstruction):
     code = opcodes['LDMSDI']

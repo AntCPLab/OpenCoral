@@ -82,3 +82,20 @@ found in ``Protocols/Replicated.h``.
    execute::
 
      print_ln('%s', (sint(2) < sint(3)).reveal()
+
+
+Reference
+=========
+
+The following classes are fundamental building blocks in
+protocols. See also the :ref:`this reference <network-reference>`
+for networking-related classes.
+
+.. doxygenclass:: PRNG
+   :members:
+
+.. doxygenclass:: SeededPRNG
+   :members:
+
+.. doxygenclass:: GlobalPRNG
+   :members:

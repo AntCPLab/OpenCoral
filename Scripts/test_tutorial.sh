@@ -60,7 +60,7 @@ for dabit in ${dabit:-0 1 2}; do
 
     for i in rep-field shamir mal-rep-field ps-rep-field sy-rep-field \
 		       atlas mal-shamir sy-shamir hemi semi temi \
-		       soho mascot; do
+		       soho mascot mama; do
 	test_vm $i $run_opts
     done
 

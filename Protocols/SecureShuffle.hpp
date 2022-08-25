@@ -69,7 +69,7 @@ void SecureShuffle<T>::inverse_permutation(vector<T> &stack, size_t n, size_t ou
     auto &input = proc.input;
 
     // This method only supports two players
-    assert(proc.protocol.get_relevant_players().size() == 2);
+    assert(P.num_players() == 2);
     // The current implementation assumes a semi-honest environment
     assert(!T::malicious);
 
@@ -263,8 +263,10 @@ void SecureShuffle<T>::configure(int config_player, vector<int> *perm, int n) {
         for (size_t i = 0; i < config_bits.size(); i++) {
             auto &x = config_bits[i];
             for (size_t j = 0; j < x.size(); j++)
-                if (waksman.matters(i, j))
+                if (waksman.matters(i, j) and not waksman.is_double(i, j))
                     input.add_mine(int(x[j]));
+                else if (waksman.is_double(i, j))
+                    assert(x[j] == x[j - 1]);
                 else
                     assert(x[j] == 0);
         }
@@ -284,13 +286,15 @@ void SecureShuffle<T>::configure(int config_player, vector<int> *perm, int n) {
         config.push_back({});
         for (int j = 0; j < n_pow2; j++)
         {
-            if (waksman.matters(i, j))
+            if (waksman.matters(i, j) and not waksman.is_double(i, j))
             {
                 config.back().push_back(input.finalize(config_player));
                 if (T::malicious)
                     checker.prepare_dotprod(config.back().back(),
                             one - config.back().back());
             }
+            else if (waksman.is_double(i, j))
+                config.back().push_back(config.back().back());
             else
                 config.back().push_back({});
         }

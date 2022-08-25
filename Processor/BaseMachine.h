@@ -23,6 +23,8 @@ class BaseMachine
 protected:
     static BaseMachine* singleton;
 
+    static thread_local OnDemandOTTripleSetup ot_setup;
+
     std::map<int,TimerWithComm> timer;
 
     string compiler;
@@ -38,8 +40,6 @@ public:
 
     string progname;
     int nthreads;
-
-    vector<OTTripleSetup> ot_setups;
 
     ThreadQueues queues;
 
@@ -71,14 +71,13 @@ public:
 
     NamedCommStats total_comm();
     void set_thread_comm(const NamedCommStats& stats);
+
+    void print_global_comm(Player& P, const NamedCommStats& stats);
 };
 
 inline OTTripleSetup BaseMachine::fresh_ot_setup(Player& P)
 {
-    if (singleton and size_t(thread_num) < s().ot_setups.size())
-        return s().ot_setups.at(thread_num).get_fresh();
-    else
-        return OTTripleSetup(P, true);
+    return ot_setup.get_fresh(P);
 }
 
 #endif /* PROCESSOR_BASEMACHINE_H_ */

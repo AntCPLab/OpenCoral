@@ -122,8 +122,11 @@ Slice<U>& Slice<U>::sub(BitVector& other, int repeat)
         throw invalid_length(to_string(U::PartType::n_columns()));
     for (size_t i = start; i < end; i++)
     {
-        bm.squares[i].sub(other.get_ptr_to_byte(i / repeat,
-                U::PartType::n_row_bytes()));
+        if (repeat > 0)
+            bm.squares[i].sub(other.get_ptr_to_byte(i / repeat,
+                    U::PartType::n_row_bytes()));
+        else
+            bm.squares[i].bit_sub(other, i * U::PartType::n_rows());
     }
     return *this;
 }

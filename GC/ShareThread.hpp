@@ -76,6 +76,12 @@ void StandaloneShareThread<T>::pre_run()
 template<class T>
 void ShareThread<T>::post_run()
 {
+    check();
+}
+
+template<class T>
+void ShareThread<T>::check()
+{
     protocol->check();
     MC->Check(*this->P);
 }

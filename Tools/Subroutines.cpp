@@ -150,7 +150,7 @@ void Create_Random_Seed(octet* seed,const PlayerBase& P,int len)
 }
 
 
-void Commit_And_Open_(vector<octetStream>& datas,const Player& P)
+void Commit_And_Open_(vector<octetStream>& datas, const Player& P, Coordinator& coordinator)
 {
   vector<octetStream> Comm_data(P.num_players());
   vector<octetStream> Open_data(P.num_players());
@@ -158,7 +158,9 @@ void Commit_And_Open_(vector<octetStream>& datas,const Player& P)
   Commit(Comm_data[P.my_num()],Open_data[P.my_num()],datas[P.my_num()],P.my_num());
   P.Broadcast_Receive(Comm_data);
 
+  coordinator.wait(P.get_id());
   P.Broadcast_Receive(Open_data);
+  coordinator.finished();
 
   for (int i = 0; i < P.num_players(); i++)
     { if (i != P.my_num())

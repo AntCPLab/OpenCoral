@@ -110,7 +110,7 @@ void RealGarbleWire<T>::inputbvec(
 {
 	GarbleInputter<T> inputter;
 	processor.inputbvec(inputter, input_processor, args,
-			inputter.party.P->my_num());
+			*inputter.party.P);
 }
 
 template<class T>

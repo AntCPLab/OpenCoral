@@ -238,6 +238,9 @@ def mem_size(x):
     except AttributeError:
         return 1
 
+def find_in_dict(d, v):
+    return list(d.keys())[list(d.values()).index(v)]
+
 class set_by_id(object):
     def __init__(self, init=[]):
         self.content = {}

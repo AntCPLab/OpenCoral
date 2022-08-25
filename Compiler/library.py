@@ -243,6 +243,10 @@ def store_in_mem(value, address):
     try:
         value.store_in_mem(address)
     except AttributeError:
+        if isinstance(value, (list, tuple)):
+            for i, x in enumerate(value):
+                store_in_mem(x, address + i)
+            return
         # legacy
         if value.is_clear:
             if isinstance(address, cint):
@@ -261,11 +265,13 @@ def reveal(secret):
     try:
         return secret.reveal()
     except AttributeError:
+        if secret.is_clear:
+            return secret
         if secret.is_gf2n:
             res = cgf2n()
         else:
             res = cint()
-        instructions.asm_open(res, secret)
+        instructions.asm_open(True, res, secret)
         return res
 
 @vectorize
@@ -883,10 +889,10 @@ def range_loop(loop_body, start, stop=None, step=None):
 def for_range(start, stop=None, step=None):
     """
     Decorator to execute loop bodies consecutively.  Arguments work as
-    in Python :py:func:`range`, but they can by any public
+    in Python :py:func:`range`, but they can be any public
     integer. Information has to be passed out via container types such
-    as :py:class:`~Compiler.types.Array` or declaring registers as
-    :py:obj:`global`. Note that changing Python data structures such
+    as :py:class:`~Compiler.types.Array` or using :py:func:`update`.
+    Note that changing Python data structures such
     as lists within the loop is not possible, but the compiler cannot
     warn about this.
 
@@ -901,13 +907,11 @@ def for_range(start, stop=None, step=None):
         @for_range(n)
         def _(i):
             a[i] = i
-            global x
-            x += 1
+            x.update(x + 1)
 
     Note that you cannot overwrite data structures such as
-    :py:class:`~Compiler.types.Array` in a loop even when using
-    :py:obj:`global`. Use :py:func:`~Compiler.types.Array.assign`
-    instead.
+    :py:class:`~Compiler.types.Array` in a loop.  Use
+    :py:func:`~Compiler.types.Array.assign` instead.
     """
     def decorator(loop_body):
         range_loop(loop_body, start, stop, step)
@@ -1518,6 +1522,11 @@ def if_then(condition):
     state = State()
     if callable(condition):
         condition = condition()
+    try:
+        if not condition.is_clear:
+            raise CompilerError('cannot branch on secret values')
+    except AttributeError:
+        pass
     state.condition = regint.conv(condition)
     state.start_block = instructions.program.curr_block
     state.req_child = get_tape().open_scope(lambda x: x[0].max(x[1]), \
@@ -1889,7 +1898,7 @@ def FPDiv(a, b, k, f, kappa, simplex_flag=False, nearest=False):
     theta = int(ceil(log(k/3.5) / log(2)))
 
     base.set_global_vector_size(b.size)
-    alpha = b.get_type(2 * k).two_power(2*f)
+    alpha = b.get_type(2 * k).two_power(2*f, size=b.size)
     w = AppRcr(b, k, f, kappa, simplex_flag, nearest).extend(2 * k)
     x = alpha - b.extend(2 * k) * w
     base.reset_global_vector_size()

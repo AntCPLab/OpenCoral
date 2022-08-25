@@ -33,9 +33,9 @@ void BaseInstruction::parse(istream& s, int inst_pos)
   r[0]=0; r[1]=0; r[2]=0; r[3]=0;
 
   int pos=s.tellg();
-  opcode=get_int(s);
-  size=unsigned(opcode)>>10;
-  opcode&=0x3FF;
+  uint64_t code = get_long(s);
+  size = code >> 10;
+  opcode = 0x3FF & code;
   
   if (size==0)
     size=1;
@@ -288,8 +288,6 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
           get_vector(2, start, s);
           break;
       // open instructions + read/write instructions with variable length args
-      case OPEN:
-      case GOPEN:
       case MULS:
       case GMULS:
       case MULRS:
@@ -475,6 +473,8 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
         n = get_int(s);
         get_vector(4, start, s);
         break;
+      case OPEN:
+      case GOPEN:
       case TRANS:
         num_var_args = get_int(s) - 1;
         n = get_int(s);
@@ -1013,6 +1013,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         Proc.Procp.send_personal(start);
         return;
       case PRIVATEOUTPUT:
+        Proc.Procp.check();
         Proc.Procp.private_output(start);
         return;
       // Note: Fp version has different semantics for NOTC than GNOTC
@@ -1032,10 +1033,10 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         sgf2n::shrsi(Proc2, *this);
         return;
       case OPEN:
-        Proc.Procp.POpen(start, Proc.P, size);
+        Proc.Procp.POpen(*this);
         return;
       case GOPEN:
-        Proc.Proc2.POpen(start, Proc.P, size);
+        Proc.Proc2.POpen(*this);
         return;
       case MULS:
         Proc.Procp.muls(start, size);

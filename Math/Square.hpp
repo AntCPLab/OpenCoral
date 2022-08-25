@@ -32,6 +32,15 @@ Square<U>& Square<U>::sub(const void* other)
 }
 
 template<class U>
+void Square<U>::bit_sub(const BitVector& bits, int start)
+{
+    for (int i = 0; i < U::length(); i++)
+    {
+        rows[i] -= bits.get_bit(start + i);
+    }
+}
+
+template<class U>
 void Square<U>::conditional_add(BitVector& conditions,
         Square<U>& other, int offset)
 {

@@ -16,8 +16,8 @@ MNIST. It starts by defining tensors to hold data::
   test_labels = sint.Tensor([10000, 10])
 
 The tensors are then filled with inputs from party 0 in the order that
-is used by `the preparation script
-<https://github.com/csiro-mlai/mnist-mpc>`_::
+is used by ``convert.sh`` in `the preparation code
+<https://github.com/csiro-mlai/deep-mpc>`_::
 
   training_labels.input_from(0)
   training_samples.input_from(0)

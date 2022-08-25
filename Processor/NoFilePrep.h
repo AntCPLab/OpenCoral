@@ -15,7 +15,7 @@ public:
     NoFilePrep(int, int, const string&, DataPositions& usage, int = -1) :
             Preprocessing<T>(usage)
     {
-        throw runtime_error("don't call this");
+        throw runtime_error("preprocessing from file disabled");
     }
 };
 

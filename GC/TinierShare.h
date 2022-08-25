@@ -10,6 +10,20 @@
 #include "Protocols/Share.h"
 #include "Math/Bit.h"
 
+class gf2n_mac_key : public gf2n_short
+{
+public:
+    gf2n_mac_key()
+    {
+    }
+
+    template<class T>
+    gf2n_mac_key(const T& other) :
+            gf2n_short(other)
+    {
+    }
+};
+
 namespace GC
 {
 
@@ -29,6 +43,9 @@ public:
     typedef T mac_type;
     typedef T sacri_type;
     typedef Share<T> input_check_type;
+    typedef This prep_type;
+    typedef This prep_check_type;
+    typedef This bit_prep_type;
 
     typedef MAC_Check_<This> MAC_Check;
     typedef TinierSharePrep<This> LivePrep;
@@ -68,11 +85,6 @@ public:
     static MAC_Check* new_mc(mac_key_type mac_key)
     {
         return new MAC_Check(mac_key);
-    }
-
-    static This new_reg()
-    {
-        return {};
     }
 
     TinierShare()

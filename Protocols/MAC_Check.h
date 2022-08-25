@@ -11,6 +11,7 @@ using namespace std;
 #include "Networking/Player.h"
 #include "Protocols/MAC_Check_Base.h"
 #include "Tools/time-func.h"
+#include "Tools/Coordinator.h"
 
 
 /* The MAX number of things we will partially open before running
@@ -65,7 +66,11 @@ class Tree_MAC_Check : public TreeSum<typename U::open_type>, public MAC_Check_B
 {
   typedef typename U::open_type T;
 
+  template<class V> friend class Tree_MAC_Check;
+
   protected:
+
+  static Coordinator* coordinator;
 
   /* POpen Data */
   int popen_cnt;
@@ -78,6 +83,9 @@ class Tree_MAC_Check : public TreeSum<typename U::open_type>, public MAC_Check_B
     { return max(macs.size(), vals.size()); }
 
   public:
+
+  static void setup(Player& P);
+  static void teardown();
 
   Tree_MAC_Check(const typename U::mac_key_type::Scalar& ai, int opening_sum = 10,
       int max_broadcast = 10, int send_player = 0);
@@ -93,6 +101,9 @@ class Tree_MAC_Check : public TreeSum<typename U::open_type>, public MAC_Check_B
   // compatibility
   void set_random_element(const U& random_element) { (void) random_element; }
 };
+
+template<class U>
+Coordinator* Tree_MAC_Check<U>::coordinator = 0;
 
 /**
  * SPDZ opening protocol with MAC check (indirect communication)

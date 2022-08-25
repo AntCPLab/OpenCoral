@@ -181,7 +181,8 @@ class Compiler:
             action="store_true",
             dest="invperm",
             help="speedup inverse permutation (only use in two-party, "
-            "semi-honest environment)")
+            "semi-honest environment)"
+        )
         parser.add_option(
             "-C",
             "--CISC",
@@ -244,11 +245,9 @@ class Compiler:
             self.VARS[op.__name__] = op
 
         # add open and input separately due to name conflict
-        self.VARS["open"] = instructions.asm_open
         self.VARS["vopen"] = instructions.vasm_open
         self.VARS["gopen"] = instructions.gasm_open
         self.VARS["vgopen"] = instructions.vgasm_open
-        self.VARS["input"] = instructions.asm_input
         self.VARS["ginput"] = instructions.gasm_input
 
         self.VARS["comparison"] = comparison
@@ -268,7 +267,6 @@ class Compiler:
                 "sgf2nuint",
                 "sgf2nuint32",
                 "sgf2nfloat",
-                "sfloat",
                 "cfloat",
                 "squant",
             ]:
@@ -276,6 +274,9 @@ class Compiler:
 
     def prep_compile(self, name=None):
         self.parse_args()
+        if len(self.args) < 1 and name is None:
+            self.parser.print_help()
+            exit(1)
         self.build_program(name=name)
         self.build_vars()
 
@@ -372,7 +373,7 @@ class Compiler:
             )
         self.prep_compile(self.compile_name)
         print(
-            f"Compiling: {self.compile_name} from " f"func {self.compile_func.__name__}"
+            "Compiling: {} from {}".format(self.compile_name, self.compile_func.__name__)
         )
         self.compile_function()
         self.finalize_compile()

@@ -24,7 +24,7 @@ def main():
         sint.get_input_from(0, size=numrows * numcolumns)
     )
     for row in rows:
-        print_ln(f"report[{row}]: %s", reports[row].reveal())
+        print_ln("report[{}]: %s".format(row), reports[row].reveal())
 
 
 if __name__ == "__main__":

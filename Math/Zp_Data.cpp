@@ -6,6 +6,8 @@
 
 void Zp_Data::init(const bigint& p,bool mont)
 {
+  lock.lock();
+
 #ifdef VERBOSE
   if (pr != 0)
     {
@@ -57,6 +59,8 @@ void Zp_Data::init(const bigint& p,bool mont)
     }
   inline_mpn_zero(prA,MAX_MOD_SZ+1);
   mpn_copyi(prA,pr.get_mpz_t()->_mp_d,t);
+
+  lock.unlock();
 }
 
 

@@ -23,6 +23,7 @@ public:
     typedef ::PrivateOutput<This> PrivateOutput;
     typedef SPDZ<This> Protocol;
     typedef CowGearPrep<This> LivePrep;
+    typedef Share<typename T::FD::T> prep_check_type;
 
     const static bool needs_ot = false;
 

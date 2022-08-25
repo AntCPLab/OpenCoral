@@ -6,6 +6,7 @@
 #include "Tools/aes.h"
 #include "Tools/MMO.h"
 #include "Tools/intrinsics.h"
+#include "Tools/benchmarking.h"
 
 
 OTExtension::OTExtension(const BaseOT& baseOT, TwoPartyPlayer* player,
@@ -26,10 +27,18 @@ int eq_m128i(__m128i a, __m128i b)
 }
 
 
+bool OTExtensionWithMatrix::warned = false;
 
 void OTExtensionWithMatrix::check_correlation(int nOTs,
     const BitVector& receiverInput)
 {
+    if (not warned)
+    {
+        insecure("OT extension (security of KOS15 is unclear, "
+                "see https://eprint.iacr.org/2022/192.)");
+        warned = true;
+    }
+
     //cout << "\tStarting correlation check\n" << flush;
 #ifdef OTEXT_TIMER
     timeval startv, endv;

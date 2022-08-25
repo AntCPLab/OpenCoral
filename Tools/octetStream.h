@@ -23,6 +23,7 @@
 
 #include <string.h>
 #include <vector>
+#include <array>
 #include <stdio.h>
 #include <iostream>
 #include <assert.h>
@@ -199,6 +200,11 @@ class octetStream
   /// if vector already has the right size
   template <class T>
   void get_no_resize(vector<T>& v);
+
+  template <class T, size_t L>
+  void store(const array<T, L>& v);
+  template <class T, size_t L>
+  void get(array<T, L>& v);
 
   /// Read ``l`` bytes into separate buffer
   void consume(octetStream& s,size_t l)
@@ -410,9 +416,12 @@ void octetStream::get(vector<T>& v, const T& init)
 {
   size_t size;
   get(size);
-  v.resize(size, init);
-  for (auto& x : v)
-    get(x);
+  v.reserve(size);
+  for (size_t i = 0; i < size; i++)
+    {
+      v.push_back(init);
+      get(v.back());
+    }
 }
 
 template<class T>
@@ -422,6 +431,20 @@ void octetStream::get_no_resize(vector<T>& v)
   get(size);
   if (size != v.size())
     throw runtime_error("wrong vector length");
+  for (auto& x : v)
+    get(x);
+}
+
+template<class T, size_t L>
+void octetStream::store(const array<T, L>& v)
+{
+  for (auto& x : v)
+    store(x);
+}
+
+template<class T, size_t L>
+void octetStream::get(array<T, L>& v)
+{
   for (auto& x : v)
     get(x);
 }

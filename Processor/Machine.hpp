@@ -85,6 +85,10 @@ Machine<sint, sgf2n>::Machine(Names& playerNames, bool use_encryption,
       sint::LivePrep::basic_setup(*P);
     }
 
+  sint::MAC_Check::setup(*P);
+  sint::bit_type::MAC_Check::setup(*P);
+  sgf2n::MAC_Check::setup(*P);
+
   alphapi = read_generate_write_mac_key<sint>(*P);
   alpha2i = read_generate_write_mac_key<sgf2n>(*P);
   alphabi = read_generate_write_mac_key<typename
@@ -153,13 +157,6 @@ void Machine<sint, sgf2n>::prepare(const string& progname_str)
   progs[0].print_offline_cost();
 #endif
 
-  if (live_prep
-      and (sint::needs_ot or sgf2n::needs_ot or sint::bit_type::needs_ot))
-  {
-    for (int i = old_n_threads; i < nthreads; i++)
-      ot_setups.push_back({ *P, true });
-  }
-
   /* Set up the threads */
   tinfo.resize(nthreads);
   threads.resize(nthreads);
@@ -191,6 +188,10 @@ Machine<sint, sgf2n>::~Machine()
 {
   sint::LivePrep::teardown();
   sgf2n::LivePrep::teardown();
+
+  sint::MAC_Check::teardown();
+  sint::bit_type::MAC_Check::teardown();
+  sgf2n::MAC_Check::teardown();
 
   delete P;
   for (auto& queue : queues)
@@ -475,13 +476,7 @@ void Machine<sint, sgf2n>::run(const string& progname)
   cerr << ")" << endl;
 
   auto& P = *this->P;
-  Bundle<octetStream> bundle(P);
-  bundle.mine.store(comm_stats.sent);
-  P.Broadcast_Receive_no_stats(bundle);
-  size_t global = 0;
-  for (auto& os : bundle)
-      global += os.get_int(8);
-  cerr << "Global data sent = " << global / 1e6 << " MB (all parties)" << endl;
+  this->print_global_comm(P, comm_stats);
 
 #ifdef VERBOSE_OPTIONS
   if (opening_sum < N.num_players() && !direct)

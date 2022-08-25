@@ -28,7 +28,7 @@ def shift_two(n, pos):
 
 def maskRing(a, k):
     shift = int(program.Program.prog.options.ring) - k
-    if program.Program.prog.use_edabit:
+    if program.Program.prog.use_edabit():
         r_prime, r = types.sint.get_edabit(k)
     elif program.Program.prog.use_dabit:
         rr, r = zip(*(types.sint.get_dabit() for i in range(k)))
@@ -36,7 +36,7 @@ def maskRing(a, k):
     else:
         r = [types.sint.get_random_bit() for i in range(k)]
         r_prime = types.sint.bit_compose(r)
-    c = ((a + r_prime) << shift).reveal() >> shift
+    c = ((a + r_prime) << shift).reveal(False) >> shift
     return c, r
 
 def maskField(a, k, kappa):
@@ -47,7 +47,7 @@ def maskField(a, k, kappa):
     comparison.PRandM(r_dprime, r_prime, r, k, k, kappa)
     # always signed due to usage in equality testing
     a += two_power(k)
-    asm_open(c, a + two_power(k) * r_dprime + r_prime)
+    asm_open(True, c, a + two_power(k) * r_dprime + r_prime)
     return c, r
 
 @instructions_base.ret_cisc
@@ -233,7 +233,7 @@ def Inv(a):
     ldi(one, 1)
     inverse(t[0], t[1])
     s = t[0]*a
-    asm_open(c[0], s)
+    asm_open(True, c[0], s)
     # avoid division by zero for benchmarking
     divc(c[1], one, c[0])
     #divc(c[1], c[0], one)
@@ -281,7 +281,7 @@ def BitDecRingRaw(a, k, m):
         else:
             r_bits = [types.sint.get_random_bit() for i in range(m)]
             r = types.sint.bit_compose(r_bits)
-        shifted = ((a - r) << n_shift).reveal()
+        shifted = ((a - r) << n_shift).reveal(False)
         masked = shifted >> n_shift
         bits = r_bits[0].bit_adder(r_bits, masked.bit_decompose(m))
         return bits
@@ -299,7 +299,7 @@ def BitDecFieldRaw(a, k, m, kappa, bits_to_compute=None):
     r = [types.sint() for i in range(m)]
     comparison.PRandM(r_dprime, r_prime, r, k, m, kappa)
     pow2 = two_power(k + kappa)
-    asm_open(c, pow2 + two_power(k) + a - two_power(m)*r_dprime - r_prime)
+    asm_open(True, c, pow2 + two_power(k) + a - two_power(m)*r_dprime - r_prime)
     res = r[0].bit_adder(r, list(r[0].bit_decompose_clear(c,m)))
     instructions_base.reset_global_vector_size()
     return res
@@ -341,10 +341,10 @@ def B2U_from_Pow2(pow2a, l, kappa):
     if program.Program.prog.options.ring:
         n_shift = int(program.Program.prog.options.ring) - l
         assert n_shift > 0
-        c = ((pow2a + types.sint.bit_compose(r)) << n_shift).reveal() >> n_shift
+        c = ((pow2a + types.sint.bit_compose(r)) << n_shift).reveal(False) >> n_shift
     else:
         comparison.PRandInt(t, kappa)
-        asm_open(c, pow2a + two_power(l) * t +
+        asm_open(True, c, pow2a + two_power(l) * t +
                  sum(two_power(i) * r[i] for i in range(l)))
         comparison.program.curr_tape.require_bit_length(l + kappa)
     c = list(r_bits[0].bit_decompose_clear(c, l))
@@ -386,11 +386,11 @@ def Trunc(a, l, m, kappa=None, compute_modulo=False, signed=False):
         r_dprime += t1 - t2
     if program.Program.prog.options.ring:
         n_shift = int(program.Program.prog.options.ring) - l
-        c = ((a + r_dprime + r_prime) << n_shift).reveal() >> n_shift
+        c = ((a + r_dprime + r_prime) << n_shift).reveal(False) >> n_shift
     else:
         comparison.PRandInt(rk, kappa)
         r_dprime += two_power(l) * rk
-        asm_open(c, a + r_dprime + r_prime)
+        asm_open(True, c, a + r_dprime + r_prime)
     for i in range(1,l):
         ci[i] = c % two_power(i)
     c_dprime = sum(ci[i]*(x[i-1] - x[i]) for i in range(1,l))
@@ -416,7 +416,7 @@ def TruncInRing(to_shift, l, pow2m):
     rev *= pow2m
     r_bits = [types.sint.get_random_bit() for i in range(l)]
     r = types.sint.bit_compose(r_bits)
-    shifted = (rev - (r << n_shift)).reveal()
+    shifted = (rev - (r << n_shift)).reveal(False)
     masked = shifted >> n_shift
     bits = types.intbitint.bit_adder(r_bits, masked.bit_decompose(l))
     return types.sint.bit_compose(reversed(bits))
@@ -457,7 +457,7 @@ def Int2FL(a, gamma, l, kappa=None):
             v = t.right_shift(gamma - l - 1, gamma - 1, kappa, signed=False)
     else:
         v = 2**(l-gamma+1) * t
-    p = (p + gamma - 1 - l) * (1 -z)
+    p = (p + gamma - 1 - l) * z.bit_not()
     return v, p, z, s
 
 def FLRound(x, mode):
@@ -530,7 +530,7 @@ def TruncPrRing(a, k, m, signed=True):
                 msb = r_bits[-1]
             n_shift = n_ring - (k + 1)
             tmp = a + r
-            masked = (tmp << n_shift).reveal()
+            masked = (tmp << n_shift).reveal(False)
             shifted = (masked << 1 >> (n_shift + m + 1))
             overflow = msb.bit_xor(masked >> (n_ring - 1))
             res = shifted - upper + \
@@ -551,7 +551,7 @@ def TruncPrField(a, k, m, kappa=None):
                       k, m, kappa, use_dabit=False)
     two_to_m = two_power(m)
     r = two_to_m * r_dprime + r_prime
-    c = (b + r).reveal()
+    c = (b + r).reveal(False)
     c_prime = c % two_to_m
     a_prime = c_prime - r_prime
     d = (a - a_prime) / two_to_m
@@ -667,14 +667,14 @@ def BitDecFull(a, n_bits=None, maybe_mixed=False):
                 def _():
                     for i in range(bit_length):
                         tbits[j][i].link(sint.get_random_bit())
-                    c = regint(BITLT(tbits[j], pbits, bit_length).reveal())
+                    c = regint(BITLT(tbits[j], pbits, bit_length).reveal(False))
                     done[j].link(c)
             return (sum(done) != a.size)
         for j in range(a.size):
             for i in range(bit_length):
                 movs(bbits[i][j], tbits[j][i])
         b = sint.bit_compose(bbits)
-    c = (a-b).reveal()
+    c = (a-b).reveal(False)
     cmodp = c
     t = bbits[0].bit_decompose_clear(p - c, bit_length)
     c = longint(c, bit_length)

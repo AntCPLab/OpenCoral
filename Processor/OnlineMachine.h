@@ -38,6 +38,11 @@ public:
     int run();
 
     Player* new_player(const string& id_base);
+
+    int get_lg2()
+    {
+        return lg2;
+    }
 };
 
 class DishonestMajorityMachine : public OnlineMachine

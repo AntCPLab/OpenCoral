@@ -77,7 +77,8 @@ Timer& Timer::operator +=(const Timer& other)
 {
   assert(clock_id == other.clock_id);
   assert(not running);
-  elapsed_time += other.elapsed_time + other.elapsed_since_last_start();
+  elapsed_time += other.elapsed_time
+      + other.running * other.elapsed_since_last_start();
   return *this;
 }
 

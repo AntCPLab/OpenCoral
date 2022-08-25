@@ -198,6 +198,8 @@ class bits(Tape.Register, _structure, _bit):
             return 0
         elif self.is_long_one(other):
             return self
+        elif isinstance(other, _vec):
+            return other & other.from_vec([self])
         else:
             return self._and(other)
     @read_mem_value
@@ -241,6 +243,13 @@ class bits(Tape.Register, _structure, _bit):
             return self * condition
         else:
             return self * cbit.conv(condition)
+    def expand(self, length):
+        if self.n in (length, None):
+            return self
+        elif self.n == 1:
+            return self.get_type(length).bit_compose([self] * length)
+        else:
+            raise CompilerError('cannot expand from %s to %s' % (self.n, length))
 
 class cbits(bits):
     """ Clear bits register. Helper type with limited functionality. """
@@ -295,8 +304,15 @@ class cbits(bits):
                 return op(self, cbits(other))
     __add__ = lambda self, other: \
               self.clear_op(other, inst.addcb, inst.addcbi, operator.add)
-    __sub__ = lambda self, other: \
-              self.clear_op(-other, inst.addcb, inst.addcbi, operator.add)
+    def __sub__(self, other):
+        try:
+            return self + -other
+        except:
+            return type(self)(regint(self) - regint(other))
+    def __rsub__(self, other):
+        return type(self)(other - regint(self))
+    def __neg__(self):
+        return type(self)(-regint(self))
     def _xor(self, other):
         if isinstance(other, (sbits, sbitvec)):
             return NotImplemented
@@ -589,7 +605,15 @@ class sbits(bits):
         rows = list(rows)
         if len(rows) == 1 and rows[0].n <= rows[0].unit:
             return rows[0].bit_decompose()
-        n_columns = rows[0].n
+        for row in rows:
+            try:
+                n_columns = row.n
+                break
+            except:
+                pass
+        for i in range(len(rows)):
+            if util.is_zero(rows[i]):
+                rows[i] = cls.get_type(n_columns)(0)
         for row in rows:
             assert(row.n == n_columns)
         if n_columns == 1 and len(rows) <= cls.unit:
@@ -613,7 +637,7 @@ class sbits(bits):
     def ripple_carry_adder(*args, **kwargs):
         return sbitint.ripple_carry_adder(*args, **kwargs)
 
-class sbitvec(_vec):
+class sbitvec(_vec, _bit):
     """ Vector of registers of secret bits, effectively a matrix of secret bits.
     This facilitates parallel arithmetic operations in binary circuits.
     Container types are not supported, use :py:obj:`sbitvec.get_type` for that.
@@ -656,6 +680,7 @@ class sbitvec(_vec):
         [1, 0, 1]
     """
     bit_extend = staticmethod(lambda v, n: v[:n] + [0] * (n - len(v)))
+    is_clear = False
     @classmethod
     def get_type(cls, n):
         """ Create type for fixed-length vector of registers of secret bits.
@@ -691,10 +716,11 @@ class sbitvec(_vec):
                 res.v = _complement_two_extend(list(vector), n)[:n]
                 return res
             def __init__(self, other=None, size=None):
-                assert size in (None, 1)
                 if other is not None:
                     if util.is_constant(other):
-                        self.v = [sbit((other >> i) & 1) for i in range(n)]
+                        t = sbits.get_type(size or 1)
+                        self.v = [t(((other >> i) & 1) * ((1 << t.n) - 1))
+                                  for i in range(n)]
                     elif isinstance(other, _vec):
                         self.v = self.bit_extend(other.v, n)
                     elif isinstance(other, (list, tuple)):
@@ -702,6 +728,7 @@ class sbitvec(_vec):
                     else:
                         self.v = sbits.get_type(n)(other).bit_decompose()
                     assert len(self.v) == n
+                    assert size is None or size == self.v[0].n
             @classmethod
             def load_mem(cls, address, size=None):
                 if size not in (None, 1):
@@ -733,8 +760,9 @@ class sbitvec(_vec):
             def reveal(self):
                 return util.untuplify([x.reveal() for x in self.elements()])
             @classmethod
-            def two_power(cls, nn):
-                return cls.from_vec([0] * nn + [1] + [0] * (n - nn - 1))
+            def two_power(cls, nn, size=1):
+                return cls.from_vec(
+                    [0] * nn + [sbits.get_type(size)().long_one()] + [0] * (n - nn - 1))
             def coerce(self, other):
                 if util.is_constant(other):
                     return self.from_vec(util.bit_decompose(other, n))
@@ -818,16 +846,14 @@ class sbitvec(_vec):
         return other
     def __xor__(self, other):
         other = self.coerce(other)
-        return self.from_vec(x ^ y for x, y in zip(self.v, other))
+        return self.from_vec(x ^ y for x, y in zip(*self.expand(other)))
     def __and__(self, other):
-        return self.from_vec(x & y for x, y in zip(self.v, other.v))
+        return self.from_vec(x & y for x, y in zip(*self.expand(other)))
+    def __invert__(self):
+        return self.from_vec(~x for x in self.v)
     def if_else(self, x, y):
         assert(len(self.v) == 1)
-        try:
-            return self.from_vec(util.if_else(self.v[0], a, b) \
-                                 for a, b in zip(x, y))
-        except:
-            return util.if_else(self.v[0], x, y)
+        return util.if_else(self.v[0], x, y)
     def __iter__(self):
         return iter(self.v)
     def __len__(self):
@@ -890,6 +916,24 @@ class sbitvec(_vec):
             elements = red.elements()
             elements += odd
         return self.from_vec(sbitvec(elements).v)
+    @classmethod
+    def comp_result(cls, x):
+        return cls.get_type(1).from_vec([x])
+    def expand(self, other, expand=True):
+        m = 1
+        for x in itertools.chain(self.v, other.v if isinstance(other, sbitvec) else []):
+            try:
+                m = max(m, x.n)
+            except:
+                pass
+        res = []
+        for y in self, other:
+            if isinstance(y, int):
+                res.append([x * sbits.get_type(m)().long_one()
+                            for x in util.bit_decompose(y, len(self.v))])
+            else:
+                res.append([x.expand(m) if (expand and isinstance(x, bits)) else x for x in y.v])
+        return res
 
 class bit(object):
     n = 1
@@ -1139,7 +1183,7 @@ class sbitint(_bitint, _number, sbits, _sbitintbase):
         :param k: bit length of input """
         return _sbitintbase.pow2(self, k)
 
-class sbitintvec(sbitvec, _number, _bitint, _sbitintbase):
+class sbitintvec(sbitvec, _bitint, _number, _sbitintbase):
     """
     Vector of signed integers for parallel binary computation::
 
@@ -1176,7 +1220,8 @@ class sbitintvec(sbitvec, _number, _bitint, _sbitintbase):
             return self
         other = self.coerce(other)
         assert(len(self.v) == len(other.v))
-        v = sbitint.bit_adder(self.v, other.v)
+        a, b = self.expand(other)
+        v = sbitint.bit_adder(a, b)
         return self.from_vec(v)
     __radd__ = __add__
     def __mul__(self, other):
@@ -1184,7 +1229,7 @@ class sbitintvec(sbitvec, _number, _bitint, _sbitintbase):
             return self.from_vec(other * x for x in self.v)
         elif isinstance(other, sbitfixvec):
             return NotImplemented
-        other_bits = util.bit_decompose(other)
+        _, other_bits = self.expand(other, False)
         m = float('inf')
         for x in itertools.chain(self.v, other_bits):
             try:
@@ -1228,6 +1273,8 @@ class cbitfix(object):
     store_in_mem = lambda self, *args: self.v.store_in_mem(*args)
     @classmethod
     def _new(cls, value):
+        if isinstance(value, list):
+            return [cls._new(x) for x in value]
         res = cls()
         if cls.k < value.unit:
             bits = value.bit_decompose(cls.k)

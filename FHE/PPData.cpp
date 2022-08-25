@@ -40,10 +40,9 @@ void PPData::to_eval(vector<modp>& elem) const
 */
 }
 
-void PPData::from_eval(vector<modp>& elem) const
+void PPData::from_eval(vector<modp>&) const
 {
   // avoid warning
-  elem.empty();
   throw not_implemented();
 
   /*

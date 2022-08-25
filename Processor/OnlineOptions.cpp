@@ -346,17 +346,14 @@ void OnlineOptions::finalize(ez::ezOptionParser& opt, int argc,
             prime = schedule_prime;
     }
 
+    // ignore program if length explicitly set from command line
     if (opt.get("-lgp") and not opt.isSet("-lgp"))
     {
         int prog_lgp = BaseMachine::prime_length_from_schedule(progname);
         prog_lgp = DIV_CEIL(prog_lgp, 64) * 64;
-        if (prog_lgp != 0)
+        // only increase to be consistent with program not demanding any length
+        if (prog_lgp > lgp)
             lgp = prog_lgp;
-
-#ifndef FEWER_PRIMES
-        if (prime_limbs() > 4)
-#endif
-            lgp = max(lgp, gfp0::MAX_N_BITS);
     }
 
     set_trunc_error(opt);

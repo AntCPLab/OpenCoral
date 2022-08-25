@@ -21,9 +21,15 @@ OfflineMachine<W>::OfflineMachine(int argc, const char** argv,
     machine.load_schedule(online_opts.progname, false);
     Program program(playerNames.num_players());
     program.parse(machine.bc_filenames[0]);
+
+    if (program.usage_unknown())
+    {
+        cerr << "Preprocessing might be insufficient "
+                << "due to unknown requirements" << endl;
+    }
+
     usage = program.get_offline_data_used();
     n_threads = machine.nthreads;
-    machine.ot_setups.push_back({P});
 }
 
 template<class W>
@@ -47,11 +53,19 @@ int OfflineMachine<W>::run()
     // setup before generation to fix prime
     T::LivePrep::basic_setup(P);
 
+    T::MAC_Check::setup(P);
+    T::bit_type::MAC_Check::setup(P);
+    U::MAC_Check::setup(P);
+
     generate<T>();
     generate<typename T::bit_type::part_type>();
     generate<U>();
 
     thread.MC->Check(P);
+
+    T::MAC_Check::teardown();
+    T::bit_type::MAC_Check::teardown();
+    U::MAC_Check::teardown();
 
     return 0;
 }

@@ -17,15 +17,13 @@ PairwiseMachine::PairwiseMachine(Player& P) :
 {
 }
 
-PairwiseMachine::PairwiseMachine(int argc, const char** argv) :
-    MachineBase(argc, argv), P(*new PlainPlayer(N, "pairwise")),
-    other_pks(N.num_players(), {setup_p.params, 0}),
-    pk(other_pks[N.my_num()]), sk(pk)
+RealPairwiseMachine::RealPairwiseMachine(int argc, const char** argv) :
+    MachineBase(argc, argv), PairwiseMachine(*new PlainPlayer(N, "pairwise"))
 {
     init();
 }
 
-void PairwiseMachine::init()
+void RealPairwiseMachine::init()
 {
     if (use_gf2n)
     {
@@ -63,7 +61,7 @@ PairwiseSetup<P2Data>& PairwiseMachine::setup()
 }
 
 template <class FD>
-void PairwiseMachine::setup_keys()
+void RealPairwiseMachine::setup_keys()
 {
     auto& N = P;
     PairwiseSetup<FD>& s = setup<FD>();
@@ -84,10 +82,11 @@ void PairwiseMachine::setup_keys()
         if (i != N.my_num())
             other_pks[i].unpack(os[i]);
     set_mac_key(s.alphai);
+    Share<typename FD::T>::MAC_Check::setup(P);
 }
 
 template <class T>
-void PairwiseMachine::set_mac_key(T alphai)
+void RealPairwiseMachine::set_mac_key(T alphai)
 {
     typedef typename T::FD FD;
     auto& N = P;
@@ -142,5 +141,5 @@ void PairwiseMachine::check(Player& P) const
     bundle.compare(P);
 }
 
-template void PairwiseMachine::setup_keys<FFT_Data>();
-template void PairwiseMachine::setup_keys<P2Data>();
+template void RealPairwiseMachine::setup_keys<FFT_Data>();
+template void RealPairwiseMachine::setup_keys<P2Data>();

@@ -170,7 +170,7 @@ void YaoGarbleWire::inputbvec(GC::Processor<GC::Secret<YaoGarbleWire>>& processo
 {
     auto& garbler = YaoGarbler::s();
     YaoGarbleInput input;
-    processor.inputbvec(input, input_processor, args, garbler.P->my_num());
+    processor.inputbvec(input, input_processor, args, *garbler.P);
 }
 
 inline void YaoGarbler::store_gate(const YaoGate& gate)

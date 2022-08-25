@@ -22,7 +22,7 @@ class OTTripleSetup
 public:
     map<string,Timer> timers;
     vector<OffsetPlayer*> players;
-    vector< vector< vector<BitVector> > > baseSenderInputs;
+    vector< vector< array<BitVector, 2> > > baseSenderInputs;
     vector< vector<BitVector> > baseReceiverOutputs;
 
     int get_nparties() const { return nparties; }
@@ -82,5 +82,28 @@ public:
     OTTripleSetup get_fresh();
 };
 
+class OnDemandOTTripleSetup
+{
+    OTTripleSetup* setup;
+
+public:
+    OnDemandOTTripleSetup() :
+            setup(0)
+    {
+    }
+
+    ~OnDemandOTTripleSetup()
+    {
+        if (setup)
+            delete setup;
+    }
+
+    OTTripleSetup get_fresh(Player& P)
+    {
+        if (not setup)
+            setup = new OTTripleSetup(P, true);
+        return setup->get_fresh();
+    }
+};
 
 #endif

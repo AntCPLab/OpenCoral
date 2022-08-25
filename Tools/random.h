@@ -36,7 +36,11 @@ class PlayerBase;
 
 // __attribute__ is needed to get the sse instructions to avoid
 //  seg faulting.
-     
+
+/**
+ * Pseudo-random number generator. This uses counter-mode AES by default,
+ * which can be changed libsodium's expansion by undefining ``USE_AES``.
+ */
 class PRNG
 {
    octet seed[SEED_SIZE]; 
@@ -68,58 +72,103 @@ class PRNG
 
    public:
 
+   /// Construction without initialization. Usage without initilization will fail.
    PRNG();
+   /// Initialize with ``SEED_SIZE`` bytes from buffer.
    PRNG(octetStream& seed);
 
    // For debugging
    void print_state() const;
 
-   // Set seed from dev/random
+   /// Initialize from local randomness.
    void ReSeed();
 
    // Agree securely on seed
    void SeedGlobally(const PlayerBase& P);
+
+   /**
+    * Coordinate random seed
+    * @param P communication instances
+    * @param secure seeding prevents tampering at higher cost
+    */
    void SeedGlobally(const Player& P, bool secure = true);
 
-   // Set seed from array
+   /// Initialize with ``SEED_SIZE`` bytes from pointer.
    void SetSeed(const unsigned char*);
+   /// Initialize with seed from another instance.
    void SetSeed(PRNG& G);
-   void SecureSeed(Player& player);
    void InitSeed();
    
+   /// Random bit
    bool get_bit();
+   /// Random bytes
    unsigned char get_uchar();
+   /// Random 32-bit integer
    unsigned int get_uint();
+   /// Random 32-bit integer between 0 and ``upper``
    unsigned int get_uint(int upper);
-   void get_bigint(bigint& res, int n_bits, bool positive = true);
-   template<class T>
-   void get(T& res, int n_bits, bool positive = true);
+
+   /* Random integer of any length
+    * @res result
+    * @n_bits number of bits
+    * @positive positive result (random sign otherwise)
+    */
+   void get(bigint& res, int n_bits, bool positive = true);
+
+   /**
+    * Random integer in ``[0, B-1]``
+    * @param res result
+    * @param B bound
+    * @param positive positive result (random sign otherwise)
+    */
    template<class T>
    void randomBnd(T& res, const bigint& B, bool positive=true);
-   bigint randomBnd(const bigint& B, bool positive=true);
    template<int N_BYTES>
    void randomBnd(mp_limb_t* res, const mp_limb_t* B, mp_limb_t mask = -1);
    void randomBnd(mp_limb_t* res, const mp_limb_t* B, size_t n_bytes, mp_limb_t mask = -1);
+
+   /// Random 64-bit integer
    word get_word()
      {
        word a;
        get_octets<sizeof(a)>((octet*)&a);
        return le64toh(a);
      }
+
+   /// Random 128-bit integer
    __m128i get_doubleword();
+
+   /*
+    * Fill buffer with random data
+    * @param ans result
+    * @param len byte length
+    */
    void get_octetStream(octetStream& ans,int len);
+
+   /**
+    * Fill array with random data
+    * @param ans result
+    * @param len byte length
+    */
    void get_octets(octet* ans, int len);
+
+   /**
+    * Fill array with random data (compile-time length)
+    * @param ans result
+    */
    template <int L>
    void get_octets(octet* ans);
 
    const octet* get_seed() const
      { return seed; }
 
+   /// Random instance of any supported class
    template<class T>
    T get()
      { T res; res.randomize(*this); return res; }
 };
 
+/// Randomly seeded pseudo-random number generator
 class SeededPRNG : public PRNG
 {
 public:
@@ -129,6 +178,7 @@ public:
   }
 };
 
+/// Coordinated pseudo-random number with secure seeding
 class GlobalPRNG : public PRNG
 {
 public:

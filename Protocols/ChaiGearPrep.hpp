@@ -13,7 +13,7 @@
 #include "FHEOffline/DataSetup.hpp"
 
 template<class T>
-MultiplicativeMachine* ChaiGearPrep<T>::machine = 0;
+MultiplicativeMachineParams* ChaiGearPrep<T>::machine = 0;
 template<class T>
 Lock ChaiGearPrep<T>::lock;
 
@@ -41,7 +41,7 @@ void ChaiGearPrep<T>::basic_setup(Player& P)
     Timer timer;
     timer.start();
     assert(machine == 0);
-    machine = new MultiplicativeMachine;
+    machine = new MultiplicativeMachineParams;
     auto& setup = machine->setup.part<FD>();
     int lowgear_security = OnlineOptions::singleton.security_parameter;
 #ifdef VERBOSE

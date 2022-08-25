@@ -42,6 +42,7 @@ public:
 
     void pre_run(Player& P, typename T::mac_key_type mac_key);
     void post_run();
+    void check();
 
     void and_(Processor<T>& processor, const vector<int>& args, bool repeat);
     void xors(Processor<T>& processor, const vector<int>& args);

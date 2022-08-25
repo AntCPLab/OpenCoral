@@ -295,7 +295,6 @@ def exp2_fx(a, zero_output=False, as19=False):
         intbitint = types.intbitint
         n_shift = int(types.program.options.ring) - a.k
         if types.program.use_split():
-            assert not zero_output
             from Compiler.GC.types import sbitvec
             if types.program.use_split() == 3:
                 x = a.v.split_to_two_summands(a.k)
@@ -327,6 +326,7 @@ def exp2_fx(a, zero_output=False, as19=False):
                 s = sint.conv(bits[-1])
                 lower = sint.bit_compose(sint.conv(b) for b in bits[:a.f])
             higher_bits = bits[a.f:n_bits]
+            bits_to_check = bits[n_bits:-1]
         else:
             if types.program.use_edabit():
                 l = sint.get_edabit(a.f, True)
@@ -338,7 +338,7 @@ def exp2_fx(a, zero_output=False, as19=False):
                 r_bits = [sint.get_random_bit() for i in range(a.k)]
                 r = sint.bit_compose(r_bits)
                 lower_r = sint.bit_compose(r_bits[:a.f])
-            shifted = ((a.v - r) << n_shift).reveal()
+            shifted = ((a.v - r) << n_shift).reveal(False)
             masked_bits = (shifted >> n_shift).bit_decompose(a.k)
             lower_overflow = comparison.CarryOutRaw(masked_bits[a.f-1::-1],
                                 r_bits[a.f-1::-1])

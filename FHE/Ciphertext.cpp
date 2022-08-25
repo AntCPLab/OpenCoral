@@ -130,7 +130,7 @@ void Ciphertext::rerandomize(const FHE_PK& pk)
   assert(p != 0);
   for (auto& x : r)
     {
-      G.get<FFT_Data::S>(x, params->p0().numBits() - p.numBits() - 1);
+      G.get(x, params->p0().numBits() - p.numBits() - 1);
       x *= p;
     }
   tmp.from(r, 0);

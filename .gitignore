@@ -119,3 +119,7 @@ _build/
 
 # environment
 .env
+
+# temp doc files
+doc/readme.md
+doc/xml

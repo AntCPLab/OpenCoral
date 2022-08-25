@@ -24,11 +24,13 @@ void insecure(string message, bool warning)
 #endif
 }
 
-void insecure_fake()
+void insecure_fake(bool warning)
 {
 #if defined(INSECURE) or defined(INSECURE_FAKE)
-    cerr << "WARNING: insecure preprocessing" << endl;
+    if (warning)
+        cerr << "WARNING: insecure preprocessing" << endl;
 #else
+    (void) warning;
     insecure("preprocessing");
 #endif
 }

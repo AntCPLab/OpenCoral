@@ -88,7 +88,10 @@ Compiler.instructions module
    :exclude-members: asm_input, sqrs,
 		     start_grind, stop_grind,
 		     writesocketc, writesocketint,
-		     matmul_base, inputmixed_base, raw_output
+		     matmul_base, inputmixed_base, raw_output,
+		     gbitcom, gbitdec, gbitgf2ntriple, gbittriple,
+		     gconvgf2n, gldmci, gldmsi, gmulbitc, gmulbitm,
+		     gnotc, gstmci, gstmsi,
 
 Compiler.GC.instructions module
 -------------------------------

@@ -115,7 +115,7 @@ public:
   { return mpz_sizeinbase(get_mpz_t(), 2); }
 
   void generateUniform(PRNG& G, int n_bits, bool positive = false)
-  { G.get_bigint(*this, n_bits, positive); }
+  { G.get(*this, n_bits, positive); }
 
   void pack(octetStream& os) const { os.store(*this); }
   void unpack(octetStream& os)     { os.get(*this); };

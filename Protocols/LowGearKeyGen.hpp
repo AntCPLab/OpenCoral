@@ -44,6 +44,8 @@ KeyGenProtocol<X, L>::KeyGenProtocol(Player& P, const FHE_Params& params,
 
     MC = new MAC_Check_<share_type>(alphai);
     proc = new SubProcessor<share_type>(*MC, *prep, P);
+
+    MC->setup(P);
 }
 
 template<int X, int L>
@@ -56,6 +58,8 @@ KeyGenProtocol<X, L>::~KeyGenProtocol()
     delete proc;
     delete prep;
     delete MC;
+
+    MC->teardown();
 
     OnlineOptions::singleton.batch_size = backup_batch_size;
 }

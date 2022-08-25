@@ -542,7 +542,7 @@ def cisc(function):
 
         def get_bytes(self):
             assert len(self.kwargs) < 2
-            res = int_to_bytes(opcodes['CISC'])
+            res = LongArgFormat.encode(opcodes['CISC'])
             res += int_to_bytes(sum(len(x[0]) + 2 for x in self.calls) + 1)
             name = self.function.__name__
             String.check(name)
@@ -720,7 +720,7 @@ class IntArgFormat(ArgFormat):
 class LongArgFormat(IntArgFormat):
     @classmethod
     def encode(cls, arg):
-        return struct.pack('>Q', arg)
+        return list(struct.pack('>Q', arg))
 
     def __init__(self, f):
         self.i = struct.unpack('>Q', f.read(8))[0]
@@ -741,6 +741,8 @@ class ImmediateGF2NAF(IntArgFormat):
 class PlayerNoAF(IntArgFormat):
     @classmethod
     def check(cls, arg):
+        if not util.is_constant(arg):
+            raise CompilerError('Player number must be known at compile time')
         super(PlayerNoAF, cls).check(arg)
         if arg > 256:
             raise ArgumentError(arg, 'Player number > 256')
@@ -823,7 +825,7 @@ class Instruction(object):
         return (prefix << self.code_length) + self.code
 
     def get_encoding(self):
-        enc = int_to_bytes(self.get_code())
+        enc = LongArgFormat.encode(self.get_code())
         # add the number of registers if instruction flagged as has var args
         if self.has_var_args():
             enc += int_to_bytes(len(self.args))
@@ -958,7 +960,7 @@ class ParsedInstruction:
                         except AttributeError:
                             pass
         read = lambda: struct.unpack('>I', f.read(4))[0]
-        full_code = read()
+        full_code = struct.unpack('>Q', f.read(8))[0]
         code = full_code % (1 << Instruction.code_length)
         self.size = full_code >> Instruction.code_length
         self.type = cls.reverse_opcodes[code]

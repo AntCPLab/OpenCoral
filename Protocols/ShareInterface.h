@@ -48,7 +48,7 @@ public:
 
     static const int default_length = 1;
 
-    static string type_short() { throw runtime_error("don't call this"); }
+    static string type_short() { throw runtime_error("shorthand undefined"); }
 
     static bool real_shares(const Player&) { return true; }
 

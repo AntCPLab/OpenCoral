@@ -13,7 +13,7 @@ MamaPrep<T>::MamaPrep(SubProcessor<T>* proc, DataPositions& usage) :
         BufferPrep<T>(usage), BitPrep<T>(proc, usage),
         RingPrep<T>(proc, usage),
         MaliciousDabitOnlyPrep<T>(proc, usage),
-        OTPrep<T>(proc, usage),
+        MascotInputPrep<T>(proc, usage),
         MaliciousRingPrep<T>(proc, usage)
 {
     this->params.amplify = true;
@@ -73,7 +73,7 @@ void MamaPrep<T>::buffer_triples()
     {
         auto& proc = this->proc;
         auto& P = proc->P;
-        const unsigned n_sacrifice = T::N_MACS - 1;
+        const unsigned n_sacrifice = T::N_MACS;
         vector<array<array<T, 3>, n_sacrifice>> check_triples;
         while (n_sacrifice <= triples.size())
         {

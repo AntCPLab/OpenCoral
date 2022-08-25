@@ -5,15 +5,16 @@
 
 trigger:
 - master
+- to-publish
 
 pool:
-  vmImage: 'ubuntu-18.04'
+  vmImage: 'ubuntu-20.04'
 
 steps:
   - script: |
-      bash -c "sudo apt-get update && sudo apt-get install libsodium-dev libntl-dev yasm texinfo libboost-dev libboost-thread-dev python3-gmpy2 python3-networkx python3-sphinx"
+      bash -c "sudo apt-get update && sudo apt-get install libsodium-dev libntl-dev yasm texinfo libboost-dev libboost-thread-dev python3-gmpy2 python3-networkx python3-sphinx clang"
   - script: |
-      make mpir
+      make libote mpir
   - script:
       echo USE_NTL=1 >> CONFIG.mine
   - script:
@@ -21,7 +22,9 @@ steps:
   - script:
       echo MY_CFLAGS += -DFEWER_RINGS >> CONFIG.mine
   - script:
-      make
+      echo CXX = clang++ >> CONFIG.mine
+  - script:
+      make arithmetic binary offline
   - script:
       Scripts/setup-ssl.sh 4
   - script:

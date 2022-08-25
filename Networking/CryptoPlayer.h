@@ -46,6 +46,11 @@ public:
     void send_to_no_stats(int other, const octetStream& o) const;
     void receive_player_no_stats(int other, octetStream& o) const;
 
+    size_t send_no_stats(int player, const PlayerBuffer& buffer,
+            bool block) const;
+    size_t recv_no_stats(int player, const PlayerBuffer& buffer,
+            bool block) const;
+
     void exchange_no_stats(int other, const octetStream& to_send,
         octetStream& to_receive) const;
 

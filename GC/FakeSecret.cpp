@@ -93,7 +93,8 @@ void FakeSecret::inputbvec(Processor<FakeSecret>& processor,
 {
     Input input;
     input.reset_all(*ShareThread<FakeSecret>::s().P);
-    processor.inputbvec(input, input_processor, args, 0);
+    processor.inputbvec(input, input_processor, args,
+            *ShareThread<FakeSecret>::s().P);
 }
 
 void FakeSecret::and_(int n, const FakeSecret& x, const FakeSecret& y,

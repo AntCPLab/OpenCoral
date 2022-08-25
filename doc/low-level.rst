@@ -152,7 +152,7 @@ separates dot products in the data preparation phase.
 
 .. code-block:: cpp
 
-    protocol.check();
+    set.check();
 
 Some protocols require a check of all multiplications up to a certain
 point. To guarantee that outputs do not reveal secret information, it
@@ -173,10 +173,20 @@ protocol.
 
 .. code-block:: cpp
 
-    T::LivePrep::teardown();
+    set.check();
 
-This frees the memory used for global key material when using homomorphic
-encryption. Otherwise, this does not do anything.
+Some output protocols require an additional to guarantee the
+correctness of outputs.
+
+
+Thread Safety
+-------------
+
+The low-level interface generally isn't thread-safe. In particular,
+you should only use one instance of :class:`ProtocolSetup` in the
+whole program, and you should use only one instance of
+:class:`CryptoPlayer`/:class:`PlainPlayer` and :class:`ProtocolSet`
+per thread.
 
 
 Domain Types
