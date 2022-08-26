@@ -1654,7 +1654,7 @@ class regint(_register, _int):
 
     def _condition(self):
         if program.options.binary:
-            from GC.types import cbits
+            from .GC.types import cbits
             return cbits.get_type(64)(self)
         else:
             return cint(self)
