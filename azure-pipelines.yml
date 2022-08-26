@@ -24,8 +24,8 @@ steps:
   - script:
       echo CXX = clang++ >> CONFIG.mine
   - script:
-      make arithmetic binary
+      make arithmetic rep-bin yao
   - script:
       Scripts/setup-ssl.sh 4
   - script:
-      Scripts/test_tutorial.sh -X
+      skip_binary=1 Scripts/test_tutorial.sh -X
