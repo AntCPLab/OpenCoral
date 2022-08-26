@@ -135,6 +135,7 @@ an also be directly imported, and a function can be compiled with the
 following interface:
 
 .. code-block:: python
+
     # hello_world.mpc
     from Compiler.library import print_ln
     from Compiler.compilerLib import Compiler
@@ -152,10 +153,12 @@ following interface:
 You could then run this with the same args as used with `compile.py`:
 
 .. code-block:: bash
+
     python hello_world.mpc <compile args>
 
 This is particularly useful if want to add new command line arguments
-specifically for your `.mpc` file. See [test_args.mpc](Programs/Source/test_args.mpc)
+specifically for your `.mpc` file. See `test_args.mpc
+<https://github.com/data61/MP-SPDZ/blob/master/Programs/Source/test_args.mpc>`_
 for more details on this use case.
 
 Note that when using this approach, all objects provided in the high level

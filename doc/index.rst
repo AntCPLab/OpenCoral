@@ -7,9 +7,6 @@ If you're new to MP-SPDZ, consider the following:
 2. `Implemented protocols <readme.html#protocols>`_
 3. :ref:`troubleshooting`
 
-Reference
----------
-
 .. toctree::
    :maxdepth: 4
    :caption: Contents:
