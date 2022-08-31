@@ -1001,7 +1001,7 @@ you entirely delete the definition, it will be able to run for any
 number of parties albeit slower.
 
 Compile the virtual machine:
-
+`make -j 8 libote`
 `make -j 8 bmr`
 
 After compiling the mpc file:
