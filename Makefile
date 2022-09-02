@@ -301,10 +301,12 @@ mpir: mpir-setup
 
 deps/libOTe/libOTe:
 	git submodule update --init --recursive deps/libOTe
-	cd deps/libOTe; \
-	python3 build.py --setup --boost --install=$(CURDIR)/local
 	-echo MY_CFLAGS += -I./local/include >> CONFIG.mine
 	-echo MY_LDLIBS += -Wl,-rpath -Wl,$(CURDIR)/local/lib -L$(CURDIR)/local/lib >> CONFIG.mine
+
+boost: deps/libOTe/libOTe
+	cd deps/libOTe; \
+	python3 build.py --setup --boost --install=$(CURDIR)/local
 
 OTE_OPTS = -DENABLE_SOFTSPOKEN_OT=ON -DCMAKE_CXX_COMPILER=$(CXX)
 

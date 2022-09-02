@@ -282,6 +282,9 @@ compute the preprocessing time for a particular computation.
    CMake of version at least 3.15, which is not available by default
    on older systems such as Ubuntu 18.04. You can run `make cmake` to
    install it locally.
+   libOTe also requires boost of version at least 1.75, which is not
+   available by default on relatively recent systems such as Ubuntu
+   20.04. You can install it locally by running `make boost`.
  - MPIR library, compiled with C++ support (use flag `--enable-cxx` when running configure). You can use `make -j8 mpir` to install it locally.
  - libsodium library, tested against 1.0.18
  - OpenSSL, tested against 1.1.1
