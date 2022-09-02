@@ -92,9 +92,9 @@ protected:
     virtual void create_more() = 0;
 
 public:
-    SimpleEncCommitFactory(const FHE_PK& pk, const FD& FTD,
-            const MachineBase& machine, bool diagonal = false);
+    SimpleEncCommitFactory(const FHE_PK& pk);
     virtual ~SimpleEncCommitFactory();
+    void init(const Proof& proof, const FD& FTD);
     bool has_left() { return cnt >= 0; }
     void next(Plaintext_<FD>& mess, Ciphertext& C);
     virtual size_t report_size(ReportType type);

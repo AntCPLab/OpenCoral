@@ -24,7 +24,7 @@ PairwiseGenerator<FD>::PairwiseGenerator(int thread_num,
             thread_num, machine.output, machine.get_prep_dir<FD>(P)),
     EC(P, machine.other_pks, machine.setup<FD>().FieldD, timers, machine, *this),
     MC(machine.setup<FD>().alphai),
-    n_ciphertexts(Proof::n_ciphertext_per_proof(machine.sec, machine.pk)),
+    n_ciphertexts(EC.proof.U),
     C(n_ciphertexts, machine.setup<FD>().params), volatile_memory(0),
     machine(machine)
 {

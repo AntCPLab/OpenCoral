@@ -22,6 +22,8 @@ enum SlackType
 
 class Proof
 {
+  protected:
+
   unsigned int sec;
 
   bool diagonal;
@@ -153,14 +155,18 @@ class Proof
 
 class NonInteractiveProof : public Proof
 {
+  // sec = 0 used for protocols without proofs
+  static int comp_sec(int sec) { return sec > 0 ? max(COMP_SEC, sec) : 0; }
+
 public:
   bigint static slack(int sec, int phim)
-  { return bigint(phim * sec * sec) << (sec / 2 + 8); }
+  { sec = comp_sec(sec); return bigint(phim * sec * sec) << (sec / 2 + 8); }
 
   NonInteractiveProof(int sec, const FHE_PK& pk,
       int extra_slack, bool diagonal = false) :
-      Proof(sec, pk, 1, diagonal)
+      Proof(comp_sec(sec), pk, 1, diagonal)
   {
+    sec = this->sec;
     bigint B;
     B=128*sec*sec;
     B <<= extra_slack;

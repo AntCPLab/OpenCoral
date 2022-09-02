@@ -22,6 +22,8 @@ steps:
   - script:
       echo MY_CFLAGS += -DFEWER_RINGS >> CONFIG.mine
   - script:
+      echo MY_CFLAGS += -DCOMP_SEC=64 >> CONFIG.mine
+  - script:
       echo CXX = clang++ >> CONFIG.mine
   - script:
       make arithmetic rep-bin yao
