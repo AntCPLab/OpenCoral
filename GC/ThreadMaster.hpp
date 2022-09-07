@@ -74,8 +74,7 @@ void ThreadMaster<T>::run()
     for (auto thread : threads)
         thread->join_tape();
 
-    Timer timer;
-    timer.start();
+    machine.reset_timer();
 
     threads[0]->tape_schedule.push(0);
 
@@ -100,7 +99,8 @@ void ThreadMaster<T>::run()
     exe_stats.print();
     stats.print();
 
-    cerr << "Time = " << timer.elapsed() << " seconds" << endl;
+    machine.print_timers();
+
     cerr << "Data sent = " << stats.sent * 1e-6 << " MB" << endl;
 
     machine.print_global_comm(*P, stats);

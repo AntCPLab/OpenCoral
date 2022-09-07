@@ -31,8 +31,6 @@ protected:
     string domain;
     string relevant_opts;
 
-    void print_timers();
-
     virtual void load_program(const string& threadname, const string& filename);
 
 public:
@@ -64,6 +62,8 @@ public:
     void time();
     void start(int n);
     void stop(int n);
+
+    void print_timers();
 
     virtual void reqbl(int) {}
 
