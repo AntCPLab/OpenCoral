@@ -1405,7 +1405,6 @@ class inputmixed(inputmixed_base):
         for i, t in self.bases(iter(self.args)):
             yield self.args[i + sum(self.types[t]) + 1]
 
-@base.vectorize
 class inputmixedreg(inputmixed_base):
     """ Store private input in secret registers (vectors). The input is
     read as integer or floating-point number and the latter is then
@@ -1425,6 +1424,21 @@ class inputmixedreg(inputmixed_base):
     """
     code = base.opcodes['INPUTMIXEDREG']
     player_arg_type = 'ci'
+    is_vec = lambda self: True
+
+    def __init__(self, *args):
+        inputmixed_base.__init__(self, *args)
+        for i, t in self.bases(iter(self.args)):
+            n = self.types[t][0]
+            for j in range(i + 1, i + 1 + n):
+                assert args[j].size == self.get_size()
+
+    def get_size(self):
+        return self.args[1].size
+
+    def get_code(self):
+        return inputmixed_base.get_code(
+            self, self.get_size() if self.get_size() > 1 else 0)
 
     def add_usage(self, req_node):
         # player 0 as proxy
