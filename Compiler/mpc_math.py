@@ -501,7 +501,7 @@ def abs_fx(x):
 #
 # @return floored sint value of x
 def floor_fx(x):
-    return load_sint(floatingpoint.Trunc(x.v, x.k - x.f, x.f, x.kappa), type(x))
+    return load_sint(floatingpoint.Trunc(x.v, x.k, x.f, x.kappa), type(x))
 
 
 ### sqrt methods
