@@ -1227,6 +1227,8 @@ class sbitintvec(sbitvec, _bitint, _number, _sbitintbase):
     def __mul__(self, other):
         if isinstance(other, sbits):
             return self.from_vec(other * x for x in self.v)
+        elif len(self.v) == 1:
+            return other * self.v[0]
         elif isinstance(other, sbitfixvec):
             return NotImplemented
         _, other_bits = self.expand(other, False)

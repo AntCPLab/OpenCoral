@@ -481,9 +481,7 @@ def cond_swap(x,y):
             res[0].append(bx + yy - by)
             res[1].append(xx - bx + by)
         return sfloat(*res[0]), sfloat(*res[1])
-    bx = b * x
-    by = b * y
-    return bx + y - by, x - bx + by
+    return b.cond_swap(y, x)
 
 def sort(a):
     res = a
