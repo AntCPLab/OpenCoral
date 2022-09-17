@@ -92,7 +92,7 @@ ARG cryptoplayers=0
 ENV PLAYERS ${cryptoplayers}
 RUN ./Scripts/setup-ssl.sh ${cryptoplayers} ${ssl_dir}
 
-RUN make libote
+RUN make boost libote
 
 ###############################################################################
 # Use this stage to a build a specific virtual machine. For example:          #
