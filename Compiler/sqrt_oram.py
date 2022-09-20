@@ -24,8 +24,8 @@ trace = False
 n_threads = 16
 n_parallel = 1
 
-# Avoids any memory allocation
-# This prevents some optimizations but allows for using the ORAMs outside of the main tape
+# Avoids any memory allocation if set to False
+# Setting to False prevents some optimizations but allows for controlling the ORAMs outside of the main tape
 allow_memory_allocation = True
 
 
@@ -147,8 +147,8 @@ class SqrtOram(Generic[T, B]):
         # To prevent the compiler from recompiling the same code over and over again, we should use @method_block
         # However, @method_block requires allocation (of return address), which is not allowed when not in the main thread
         # Therefore, we only conditionally wrap the methods in a @method_block if we are guaranteed to be running in the main thread
-        self.shuffle_the_shuffle = lib.method_block(self.shuffle_the_shuffle) if allow_memory_allocation else self.shuffle_the_shuffle
-        self.refresh = lib.method_block(self.refresh) if allow_memory_allocation else self.refresh
+        SqrtOram.shuffle_the_shuffle = lib.method_block(SqrtOram.shuffle_the_shuffle) if allow_memory_allocation else SqrtOram.shuffle_the_shuffle
+        SqrtOram.refresh = lib.method_block(SqrtOram.refresh) if allow_memory_allocation else SqrtOram.refresh
 
     @lib.method_block
     def access(self, index: T, write: B, *value: T):
