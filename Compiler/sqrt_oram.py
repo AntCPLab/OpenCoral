@@ -24,8 +24,8 @@ trace = False
 n_threads = 16
 n_parallel = 1024
 
-# Avoids any memory allocation
-# This prevents some optimizations but allows for using the ORAMs outside of the main tape
+# Avoids any memory allocation if set to False
+# Setting to False prevents some optimizations but allows for controlling the ORAMs outside of the main tape
 allow_memory_allocation = True
 
 
