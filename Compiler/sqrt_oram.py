@@ -22,7 +22,7 @@ debug = False
 trace = False
 
 n_threads = 16
-n_parallel = 1
+n_parallel = 1024
 
 # Avoids any memory allocation
 # This prevents some optimizations but allows for using the ORAMs outside of the main tape
@@ -68,7 +68,7 @@ class SqrtOram(Generic[T, B]):
     # the stash)
     t: cint
 
-    def __init__(self, data: T | MultiArray, entry_length: int = 1, value_type: Type[T] = sint, k: int = 0, period: int | None = None, initialize: bool = True) -> None:
+    def __init__(self, data: T | MultiArray, entry_length: int = 1, value_type: Type[T] = sint, k: int = 0, period: int | None = None, initialize: bool = True, empty_data=False) -> None:
         """Initialize a new Oblivious RAM using the "Square-Root" algorithm.
 
         Args:
@@ -129,7 +129,17 @@ class SqrtOram(Generic[T, B]):
         # This is the most expensive operation, and can be done in a thread (only if you know what you're doing)
         # Note that if you do not initialize, the ORAM is insecure
         if initialize:
-            self.shuffle_the_shuffle()
+            # If the ORAM is not initialized with existing data, we can apply
+            # a small optimization by forgoing shuffling the shuffle, as all
+            # entries of the shuffle are equal and empty.
+            if empty_data:
+                random_shuffle = sint.get_secure_shuffle(self.n)
+                self.shufflei.secure_permute(random_shuffle)
+                self.permutation.assign(self.shufflei[:].inverse_permutation())
+                if trace:
+                    lib.print_ln('  Calculated inverse permutation')
+            else:
+                self.shuffle_the_shuffle()
         else:
             print('You are opting out of default initialization for SqrtORAM. Be sure to call refresh before using the SqrtORAM, otherwise the ORAM is not secure.')
         # Initialize position map (recursive oram)
@@ -147,8 +157,9 @@ class SqrtOram(Generic[T, B]):
         # To prevent the compiler from recompiling the same code over and over again, we should use @method_block
         # However, @method_block requires allocation (of return address), which is not allowed when not in the main thread
         # Therefore, we only conditionally wrap the methods in a @method_block if we are guaranteed to be running in the main thread
-        self.shuffle_the_shuffle = lib.method_block(self.shuffle_the_shuffle) if allow_memory_allocation else self.shuffle_the_shuffle
-        self.refresh = lib.method_block(self.refresh) if allow_memory_allocation else self.refresh
+        SqrtOram.shuffle_the_shuffle = lib.method_block(SqrtOram.shuffle_the_shuffle) if allow_memory_allocation else SqrtOram.shuffle_the_shuffle
+        SqrtOram.refresh = lib.method_block(SqrtOram.refresh) if allow_memory_allocation else SqrtOram.refresh
+        SqrtOram.reinitialize = lib.method_block(SqrtOram.reinitialize) if allow_memory_allocation else SqrtOram.reinitialize
 
     @lib.method_block
     def access(self, index: T, write: B, *value: T):
@@ -252,7 +263,16 @@ class SqrtOram(Generic[T, B]):
         if trace:
             lib.print_ln('  Writing to secret index %s', index.reveal())
 
-        value = self.value_type(value)
+        if isinstance(value, tuple) or isinstance(value,list):
+            value = self.value_type(value, size=self.entry_length)
+            print(value, type(value))
+        elif isinstance(value, self.value_type):
+            value = self.value_type(*value, size=self.entry_length)
+            print(value, type(value))
+        else:
+            raise Exception("Cannot handle type of value passed")
+        print(self.entry_length, value, type(value),len(value))
+        value = MemValue(value)
         index = MemValue(index)
 
         # Refresh if we have performed T (period) accesses
@@ -445,7 +465,7 @@ class SqrtOram(Generic[T, B]):
         if trace:
             lib.print_ln('  Shuffled shuffle indexes')
 
-        if trace:
+        if trace and allow_memory_allocation:
             # If shufflei does not contain exactly the indices [i for i in
             # range(self.n)], the underlying waksman network of
             # 'inverse_permutation' will hang.
@@ -486,13 +506,7 @@ class SqrtOram(Generic[T, B]):
         # Reset the clock
         self.t.write(0)
         # Reset shuffle_used
-        global allow_memory_allocation
-        if allow_memory_allocation:
-            self.shuffle_used.assign_all(0)
-        else:
-            @lib.for_range_opt(self.n)
-            def _(i):
-                self.shuffle_used[i] = cint(0)
+        self._reset_shuffle_used()
 
         # Reinitialize position map
         self.shuffle_the_shuffle()
@@ -502,7 +516,6 @@ class SqrtOram(Generic[T, B]):
         # maintaining the structure.
         self.position_map.reinitialize(*self.permutation)
 
-    @lib.method_block
     def reinitialize(self, *data: T):
         # Note that this method is only used during refresh, and as such is
         # only called with a permutation as data.
@@ -512,7 +525,7 @@ class SqrtOram(Generic[T, B]):
         # Reset the clock
         self.t.write(0)
         # Reset shuffle_used
-        self.shuffle_used.assign_all(0)
+        self._reset_shuffle_used()
 
         # Note that the self.shuffle is actually a MultiArray
         # This structure is preserved while overwriting the values using
@@ -523,6 +536,14 @@ class SqrtOram(Generic[T, B]):
         self.shuffle_the_shuffle()
         self.position_map.reinitialize(*self.permutation)
 
+    def _reset_shuffle_used(self):
+        global allow_memory_allocation
+        if allow_memory_allocation:
+            self.shuffle_used.assign_all(0)
+        else:
+            @lib.for_range_opt(self.n)
+            def _(i):
+                self.shuffle_used[i] = cint(0)
 
 
 class PositionMap(Generic[T, B]):
@@ -689,7 +710,6 @@ class RecursivePositionMap(PositionMap[T, B], SqrtOram[T, B]):
 
         return p.reveal()
 
-    @lib.method_block
     def reinitialize(self, *permutation: T):
         SqrtOram.reinitialize(self, *permutation)
 
