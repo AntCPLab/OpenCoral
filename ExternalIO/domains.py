@@ -35,9 +35,12 @@ class Domain:
 
     def pack(self, os):
         v = self.v
+        temp_buf = []
         for i in range(self.n_bytes):
-            os.buf += struct.pack('<B', v % 2 ** 8)
+            temp_buf.append(v & 0xff)
             v >>= 8
+        #Instead of using python a loop per value we let struct pack handle all it
+        os.buf += struct.pack('<{}B'.format(len(temp_buf)), *tuple(temp_buf))
 
 def Z2(k):
     class Z(Domain):
