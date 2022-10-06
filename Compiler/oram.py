@@ -1690,9 +1690,10 @@ class BinaryORAM:
         self.oram = circuit_oram.OptimalCircuitORAM(
             size, value_type=oram_value_type, **kwargs)
     def get_index(self, index):
-        return self.index_type.conv(index).elements()[0]
+        return self.oram.value_type(self.index_type.conv(index).elements()[0])
     def __setitem__(self, index, value):
-        self.oram[self.get_index(index)] = self.value_type.conv(value).elements()[0]
+        self.oram[self.get_index(index)] = self.oram.value_type(
+            self.value_type.conv(value).elements()[0])
     def __getitem__(self, index):
         return self.value_type(self.oram[self.get_index(index)])
 
