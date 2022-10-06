@@ -862,15 +862,16 @@ class LinearORAM(TrivialORAM):
         empty_entry = self.empty_entry(False)
         demux_array(bit_decompose(index, self.index_size), \
                     self.index_vector)
+        t = self.value_type.get_type(None if None in self.entry_size else max(self.entry_size))
         @map_sum(get_n_threads(self.size), n_parallel, self.size, \
-                     self.value_length + 1, [self.value_type.bit_type] + \
-                        [self.value_type.get_type(l) for l in self.entry_size])
+                     self.value_length + 1, t)
         def f(i):
             entry = self.ram[i]
             access_here = self.index_vector[i]
             return access_here * ValueTuple((entry.empty(),) + entry.x)
-        not_found = f()[0]
-        read_value = ValueTuple(f()[1:]) + not_found * empty_entry.x
+        not_found = self.value_type.bit_type(f()[0])
+        read_value = ValueTuple(self.value_type.get_type(l)(x) for l, x in zip(self.entry_size, f()[1:])) + \
+            not_found * empty_entry.x
         maybe_stop_timer(6)
         return read_value, not_found
     @method_block
@@ -1676,6 +1677,25 @@ class OneLevelORAM(TreeORAM):
     pattern after one recursion. """
     index_structure = BaseORAMIndexStructure
 
+class BinaryORAM:
+    def __init__(self, size, value_type=None, **kwargs):
+        import circuit_oram
+        from GC import types
+        n_bits = int(get_program().options.binary)
+        self.value_type = value_type or types.sbitintvec.get_type(n_bits)
+        self.index_type = self.value_type
+        oram_value_type = types.sbits.get_type(64)
+        if 'entry_size' not in kwargs:
+            kwargs['entry_size'] = n_bits
+        self.oram = circuit_oram.OptimalCircuitORAM(
+            size, value_type=oram_value_type, **kwargs)
+    def get_index(self, index):
+        return self.index_type.conv(index).elements()[0]
+    def __setitem__(self, index, value):
+        self.oram[self.get_index(index)] = self.value_type.conv(value).elements()[0]
+    def __getitem__(self, index):
+        return self.value_type(self.oram[self.get_index(index)])
+
 def OptimalORAM(size,*args,**kwargs):
     """ Create an ORAM instance suitable for the size based on
     experiments.
@@ -1684,6 +1704,8 @@ def OptimalORAM(size,*args,**kwargs):
     :param value_type: :py:class:`sint` (default) / :py:class:`sg2fn` /
       :py:class:`sfix`
     """
+    if get_program().options.binary:
+        return BinaryORAM(size, *args, **kwargs)
     if optimal_threshold is None:
         if n_threads == 1:
             threshold = 2**11

@@ -59,12 +59,12 @@ class bits(Tape.Register, _structure, _bit):
     @classmethod
     def bit_compose(cls, bits):
         bits = list(bits)
-        if len(bits) == 1:
+        if len(bits) == 1 and isinstance(bits[0], cls):
             return bits[0]
         bits = list(bits)
         for i in range(len(bits)):
             if util.is_constant(bits[i]):
-                bits[i] = sbit(bits[i])
+                bits[i] = cls.bit_type(bits[i])
         res = cls.new(n=len(bits))
         if len(bits) <= cls.unit:
             cls.bitcom(res, *(sbit.conv(bit) for bit in bits))
@@ -173,7 +173,7 @@ class bits(Tape.Register, _structure, _bit):
         else:
             try:
                 bits = other.bit_decompose()
-                bits = bits[:self.n] + [sbit(0)] * (self.n - len(bits))
+                bits = bits[:self.n] + [self.bit_type(0)] * (self.n - len(bits))
                 other = self.bit_compose(bits)
                 assert(isinstance(other, type(self)))
                 assert(other.n == self.n)
@@ -261,6 +261,7 @@ class cbits(bits):
     bitdec = inst.bitdecc
     conv_regint = staticmethod(lambda n, x, y: inst.convcint(x, y))
     conv_cint_vec = inst.convcintvec
+    mov = staticmethod(lambda x, y: inst.addcbi(x, y, 0))
     @classmethod
     def bit_compose(cls, bits):
         return sum(bit << i for i, bit in enumerate(bits))
@@ -273,7 +274,13 @@ class cbits(bits):
     def conv(cls, other):
         if isinstance(other, cbits) and cls.n != None and \
            cls.n // cls.unit == other.n // cls.unit:
-            return other
+            if isinstance(other, cls):
+                return other
+            else:
+                res = cls()
+                for i in range(math.ceil(cls.n / cls.unit)):
+                    cls.mov(res[i], other[i])
+                return res
         else:
             return super(cbits, cls).conv(other)
     types = {}
@@ -987,8 +994,8 @@ sbit.clear_type = cbit
 sbits.default_type = sbits
 
 class bitsBlock(oram.Block):
-    value_type = sbits
     def __init__(self, value, start, lengths, entries_per_block):
+        self.value_type = type(value)
         oram.Block.__init__(self, value, lengths)
         length = sum(self.lengths)
         used_bits = entries_per_block * length
