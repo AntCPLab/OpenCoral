@@ -100,7 +100,7 @@ class SqrtOram(Generic[T, B]):
         # Set derived constants
         self.value_type = value_type
         self.bit_type: Type[B] = value_type.bit_type
-        self.index_size = util.log2(self.n)
+        self.index_size = util.log2(self.n) + 1 # +1 because signed
         self.index_type = value_type.get_type(self.index_size)
         self.entry_length = entry_length
 
@@ -137,7 +137,7 @@ class SqrtOram(Generic[T, B]):
                 self.shufflei.secure_permute(random_shuffle)
                 self.permutation.assign(self.shufflei[:].inverse_permutation())
                 if trace:
-                    lib.print_ln('  Calculated inverse permutation')
+                    lib.print_ln('Calculated inverse permutation')
             else:
                 self.shuffle_the_shuffle()
         else:
@@ -167,11 +167,11 @@ class SqrtOram(Generic[T, B]):
         if trace:
             @lib.if_e(write.reveal() == 1)
             def _():
-                lib.print_ln('  Writing to secret index %s', index.reveal())
+                lib.print_ln('Writing to secret index %s', index.reveal())
 
             @lib.else_
             def __():
-                lib.print_ln('  Reading from secret index %s', index.reveal())
+                lib.print_ln('Reading from secret index %s', index.reveal())
 
         value = self.value_type(value, size=self.entry_length).get_vector(
             0, size=self.entry_length)
@@ -223,11 +223,11 @@ class SqrtOram(Generic[T, B]):
         if trace:
             @lib.if_e(found.reveal() == 1)
             def _():
-                lib.print_ln('  Found item in stash')
+                lib.print_ln('Found item in stash')
 
             @lib.else_
             def __():
-                lib.print_ln('  Did not find item in stash')
+                lib.print_ln('Did not find item in stash')
 
         # Possible fake lookup of the item in the shuffle,
         # depending on whether we already found the item in the stash
@@ -249,7 +249,7 @@ class SqrtOram(Generic[T, B]):
         if trace:
             @lib.if_((write * found.bit_not()).reveal())
             def _():
-                lib.print_ln('  Wrote (%s: %s) to shuffle[%s]', self.stashi[self.t].reveal(
+                lib.print_ln('Wrote (%s: %s) to shuffle[%s]', self.stashi[self.t].reveal(
                 ), self.shuffle[physical_address].reveal(), physical_address)
 
         # Increase the "time" (i.e. access count in current period)
@@ -261,7 +261,7 @@ class SqrtOram(Generic[T, B]):
     def write(self, index: T, *value: T):
         global trace, n_parallel
         if trace:
-            lib.print_ln('  Writing to secret index %s', index.reveal())
+            lib.print_ln('Writing to secret index %s', index.reveal())
 
         if isinstance(value, tuple) or isinstance(value,list):
             value = self.value_type(value, size=self.entry_length)
@@ -319,11 +319,11 @@ class SqrtOram(Generic[T, B]):
         if trace:
             @lib.if_e(found.reveal() == 1)
             def _():
-                lib.print_ln('  Found item in stash')
+                lib.print_ln('Found item in stash')
 
             @lib.else_
             def __():
-                lib.print_ln('  Did not find item in stash')
+                lib.print_ln('Did not find item in stash')
 
         # Possible fake lookup of the item in the shuffle,
         # depending on whether we already found the item in the stash
@@ -345,10 +345,10 @@ class SqrtOram(Generic[T, B]):
         if trace:
             @lib.if_(found.bit_not().reveal())
             def _():
-                lib.print_ln('  Wrote (%s: %s) to shuffle[%s]', self.stashi[self.t].reveal(
+                lib.print_ln('Wrote (%s: %s) to shuffle[%s]', self.stashi[self.t].reveal(
                 ), self.shuffle[physical_address].reveal(), physical_address)
 
-            lib.print_ln('  Appended shuffle[%s]=(%s: %s) to stash at position t=%s', physical_address,
+            lib.print_ln('Appended shuffle[%s]=(%s: %s) to stash at position t=%s', physical_address,
                          self.shufflei[physical_address].reveal(), self.shuffle[physical_address].reveal(), self.t)
 
         # Increase the "time" (i.e. access count in current period)
@@ -360,7 +360,7 @@ class SqrtOram(Generic[T, B]):
     def read(self, index: T, *value: T):
         global debug, trace, n_parallel
         if trace:
-            lib.print_ln('  Reading from secret index %s', index.reveal())
+            lib.print_ln('Reading from secret index %s', index.reveal())
 
         value = self.value_type(value)
         index = MemValue(index)
@@ -369,8 +369,8 @@ class SqrtOram(Generic[T, B]):
         @lib.if_(self.t == self.T)
         def _():
             if debug:
-                lib.print_ln('  Refreshing SqrtORAM')
-                lib.print_ln('  t=%s according to me', self.t)
+                lib.print_ln('Refreshing SqrtORAM')
+                lib.print_ln('t=%s according to me', self.t)
 
             self.refresh()
 
@@ -391,9 +391,10 @@ class SqrtOram(Generic[T, B]):
                 base=base)
 
         # To determine whether the item is found in the stash, we simply
-        # check wheterh the demuxed array contains a True
+        # check whether the demuxed array contains a True
         # TODO: What if the index=0?
         found.write(sum(self.found_))
+        lib.check_point()
 
         # Store the stash item into the result if found
         # If the item is not in the stash, the result will simple remain 0
@@ -411,13 +412,17 @@ class SqrtOram(Generic[T, B]):
         result += self.value_type(stash_item(), size=self.entry_length)
 
         if trace:
+            # @lib.for_range(self.t)
+            # def _(i):
+            #     lib.print_ln("stash[%s]=(%s: %s)", i, self.stashi[i].reveal() ,self.stash[i].reveal())
+
             @lib.if_e(found.reveal() == 1)
             def _():
-                lib.print_ln('  Found item in stash')
+                lib.print_ln('Found item in stash (found=%s)', found.reveal())
 
             @lib.else_
             def __():
-                lib.print_ln('  Did not find item in stash')
+                lib.print_ln('Did not find item in stash (found=%s)', found.reveal())
 
         # Possible fake lookup of the item in the shuffle,
         # depending on whether we already found the item in the stash
@@ -434,8 +439,9 @@ class SqrtOram(Generic[T, B]):
         self.stashi[self.t] = self.shufflei[physical_address]
 
         if trace:
-            lib.print_ln('  Appended shuffle[%s]=(%s: %s) to stash at position t=%s', physical_address,
+            lib.print_ln('Appended shuffle[%s]=(%s: %s) to stash at position t=%s', physical_address,
                          self.shufflei[physical_address].reveal(), self.shuffle[physical_address].reveal(), self.t)
+
 
         # Increase the "time" (i.e. access count in current period)
         self.t.iadd(1)
@@ -456,25 +462,16 @@ class SqrtOram(Generic[T, B]):
         # Random permutation on n elements
         random_shuffle = sint.get_secure_shuffle(self.n)
         if trace:
-            lib.print_ln('  Generated shuffle')
+            lib.print_ln('Generated shuffle')
         # Apply the random permutation
         self.shuffle.secure_permute(random_shuffle)
         if trace:
-            lib.print_ln('  Shuffled shuffle')
+            lib.print_ln('Shuffled shuffle')
         self.shufflei.secure_permute(random_shuffle)
         if trace:
-            lib.print_ln('  Shuffled shuffle indexes')
+            lib.print_ln('Shuffled shuffle indexes')
 
-        if trace and allow_memory_allocation:
-            # If shufflei does not contain exactly the indices [i for i in
-            # range(self.n)], the underlying waksman network of
-            # 'inverse_permutation' will hang.
-            tmp_shuffli = Array.create_from(self.shufflei[:])
-            @lib.if_(sum(lib.sort(tmp_shuffli)[:] == Array.create_from([cint(i) for i in range(self.n)])[:]).reveal() != self.n)
-            def _():
-                lib.print_ln(
-                    'Shufflei is corrupted! You have found a bug in the implementation :c\nThe computation will now hang...')
-
+        lib.check_point()
         # Calculate the permutation that would have produced the newly produced
         # shuffle order. This can be calculated by regarding the logical
         # indexes (shufflei) as a permutation and calculating its inverse,
@@ -483,8 +480,11 @@ class SqrtOram(Generic[T, B]):
         # random_shuffle, as the shuffle may already be out of order (e.g. when
         # refreshing).
         self.permutation.assign(self.shufflei[:].inverse_permutation())
+        # If shufflei does not contain exactly the indices 
+        #       [i for i in range(self.n)], 
+        # the underlying waksman network of 'inverse_permutation' will hang.
         if trace:
-            lib.print_ln('  Calculated inverse permutation')
+            lib.print_ln('Calculated inverse permutation')
 
     def refresh(self):
         """Refresh the ORAM by reinserting the stash back into the shuffle, and
@@ -551,7 +551,7 @@ class PositionMap(Generic[T, B]):
     PACK: int = 1 << PACK_LOG
 
     n: int  # n in the paper
-    depth: int  # k in the paper
+    depth: cint  # k in the paper
     value_type: Type[T]
 
     def __init__(self, n: int, value_type: Type[T] = sint, k: int = -1) -> None:
@@ -559,14 +559,14 @@ class PositionMap(Generic[T, B]):
         self.depth = MemValue(cint(k))
         self.value_type = value_type
         self.bit_type = value_type.bit_type
-        self.index_type = self.value_type.get_type(util.log2(n))
+        self.index_type = self.value_type.get_type(util.log2(n) + 1) # +1 because signed
 
     @abstractmethod
     def get_position(self, logical_address: _secret, fake: B) -> Any:
         """Retrieve the block at the given (secret) logical address."""
         global trace
         if trace:
-            lib.print_ln('  %s Scanning %s for logical address %s (fake=%s)', self.depth,
+            print_at_depth(self.depth, 'Scanning %s for logical address %s (fake=%s)',
                          self.__class__.__name__, logical_address.reveal(), sintbit(fake).reveal())
 
     def reinitialize(self, *permutation: T):
@@ -615,7 +615,6 @@ class RecursivePositionMap(PositionMap[T, B], SqrtOram[T, B]):
             packed_structure[i] = Array.create_from(
                 permutation[i*pack:(i+1)*pack])
 
-        # TODO: Should this be n or packed_size?
         SqrtOram.__init__(self, packed_structure, value_type=value_type,
                           period=period, entry_length=pack, k=self.depth)
 
@@ -637,6 +636,13 @@ class RecursivePositionMap(PositionMap[T, B], SqrtOram[T, B]):
             logical_address).right_shift(pack_log, program.bit_length)))
         l = self.value_type.bit_compose(sbits(logical_address) & (pack - 1))
 
+        global trace
+        if trace:
+            print_at_depth(self.depth, '-> logical_address=%s:  h=%s, l=%s', logical_address.reveal(), h.reveal(), l.reveal())
+            # @lib.for_range(self.t)
+            # def _(i):
+            #     print_at_depth(self.depth, "stash[%s]=(%s: %s)", i, self.stashi[i].reveal() ,self.stash[i].reveal())
+
         # The resulting physical address
         p = MemValue(self.index_type(-1))
         found: B = MemValue(self.bit_type(False))
@@ -646,11 +652,9 @@ class RecursivePositionMap(PositionMap[T, B], SqrtOram[T, B]):
 
         # First we scan the stash for the block we need
         self.block_index_demux.assign_all(0)
-
         @lib.for_range_opt_multithread(get_n_threads(self.T), self.T)
         def _(i):
-            self.block_index_demux[i] = (
-                self.stashi[i] == h) & self.bit_type(i < self.t)
+            self.block_index_demux[i] = ( self.stashi[i] == h) & self.bit_type(i < self.t)
         # We can determine if the 'index' is in the stash by checking the
         # block_index_demux array
         found = sum(self.block_index_demux)
@@ -662,14 +666,15 @@ class RecursivePositionMap(PositionMap[T, B], SqrtOram[T, B]):
         def p_(i):
             # We should loop from 0 through self.t, but runtime loop lengths are not supported by map_sum
             # Therefore we include the check (i < self.t)
-            return self.stash[i // pack][i % pack] * self.block_index_demux[i // pack] * self.element_index_demux[i % pack] * (i < self.t)
+            return self.stash[i // pack][i % pack] * self.block_index_demux[i // pack] * self.element_index_demux[i % pack] * (i // pack< self.t)
         p.write(p_())
 
-        global trace
         if trace:
-            @lib.if_(found.reveal() == 0)
-            def _():
-                lib.print_ln('  %s Position not in stash', self.depth)
+            @lib.if_e(found.reveal() == 0)
+            def _(): print_at_depth(self.depth, 'Retrieve shuffle[%s]:', h.reveal())
+            @lib.else_
+            def __():
+                print_at_depth(self.depth, 'Retrieve dummy element from shuffle:')
 
         # Then we try and retrieve the item from the shuffle (the actual memory)
         # Depending on whether we found the item in the stash, we either
@@ -683,13 +688,13 @@ class RecursivePositionMap(PositionMap[T, B], SqrtOram[T, B]):
         if trace:
             @lib.if_e(found.reveal() == 0)
             def _():
-                lib.print_ln('  %s Retrieved stash[%s]=(%s: %s)',
-                             self.depth, p_prime.reveal(), self.shufflei[p_prime.reveal()].reveal(), self.shuffle[p_prime.reveal()].reveal())
+                print_at_depth(self.depth, 'Retrieved position from shuffle[%s]=(%s: %s)',
+                             p_prime.reveal(), self.shufflei[p_prime].reveal(), self.shuffle[p_prime].reveal())
 
             @lib.else_
             def __():
-                lib.print_ln('  %s Retrieved dummy stash[%s]=(%s: %s)',
-                             self.depth, p_prime.reveal(), self.shufflei[p_prime.reveal()].reveal(), self.shuffle[p_prime.reveal()].reveal())
+                print_at_depth(self.depth, 'Retrieved dummy position from shuffle[%s]=(%s: %s)',
+                             p_prime.reveal(), self.shufflei[p_prime].reveal(), self.shuffle[p_prime].reveal())
 
         # We add the retrieved block from the shuffle to the stash
         self.stash[self.t].assign(block_p_prime[:])
@@ -791,3 +796,11 @@ class LinearPositionMap(PositionMap):
             @lib.for_range_opt(self.n)
             def _(i):
                 self.used[i] = self.bit_type(0)
+
+def print_at_depth(depth: cint, message: str, *kwargs):
+    lib.print_str('%s', depth)
+    @lib.for_range(depth)
+    def _(i):
+        lib.print_char(' ')
+        lib.print_char(' ')
+    lib.print_ln(message, *kwargs)
