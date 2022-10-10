@@ -316,6 +316,7 @@ libote: deps/libOTe/libOTe
 	PATH=$(CURDIR)/local/bin:$(PATH) python3 build.py --install=$(CURDIR)/local -- -DBUILD_SHARED_LIBS=0 -DENABLE_AVX=OFF -DENABLE_SSE=OFF $(OTE_OPTS)
 else
 libote: deps/libOTe/libOTe
+	ln -sf . local/lib/x86_64-linux-gnu; \
 	cd deps/libOTe; \
 	PATH=$(CURDIR)/local/bin:$(PATH) python3 build.py --install=$(CURDIR)/local -- -DBUILD_SHARED_LIBS=0 $(OTE_OPTS)
 endif
