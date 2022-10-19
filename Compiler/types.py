@@ -1181,7 +1181,7 @@ class cint(_clear, _int):
     def print_if(self, string):
         """ Output if value is non-zero.
 
-        :param string: Python string """
+        :param string: bytearray """
         cond_print_str(self, string)
 
     def output_if(self, cond):

@@ -64,6 +64,7 @@ def print_str(s, *args):
     variables/registers with ``%s``. """
     def print_plain_str(ss):
         """ Print a plain string (no custom formatting options) """
+        ss = bytearray(ss, 'utf8')
         i = 1
         while 4*i <= len(ss):
             print_char4(ss[4*(i-1):4*i])
@@ -154,7 +155,8 @@ def print_str_if(cond, ss, *args):
                         print_str_if(cond, *_expand_to_print(val))
                     else:
                         print_str_if(cond, str(val))
-            s += '\0' * ((-len(s)) % 4)
+            s = bytearray(s, 'utf8')
+            s += b'\0' * ((-len(s)) % 4)
             while s:
                 cond.print_if(s[:4])
                 s = s[4:]

@@ -1109,12 +1109,16 @@ class IOInstruction(DoNotEliminateInstruction):
     @classmethod
     def str_to_int(cls, s):
         """ Convert a 4 character string to an integer. """
+        try:
+            s = bytearray(s, 'utf8')
+        except:
+            pass
         if len(s) > 4:
             raise CompilerError('String longer than 4 characters')
         n = 0
         for c in reversed(s.ljust(4)):
             n <<= 8
-            n += ord(c)
+            n += c
         return n
 
 class AsymmetricCommunicationInstruction(DoNotEliminateInstruction):

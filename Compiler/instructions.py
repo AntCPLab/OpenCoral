@@ -1617,7 +1617,7 @@ class print_char(base.IOInstruction):
     arg_format = ['int']
 
     def __init__(self, ch):
-        super(print_char, self).__init__(ord(ch))
+        super(print_char, self).__init__(ch)
 
 class print_char4(base.IOInstruction):
     """ Output four bytes.
