@@ -2353,6 +2353,9 @@ class sint(_secret, _int):
             n_clients = clients.length
         else:
             n_clients = len(clients)
+            set_global_vector_size(1)
+            clients = Array.create_from(regint.conv(clients))
+            reset_global_vector_size()
 
         @library.for_range(n_clients)
         def loop_body(i):
