@@ -313,12 +313,12 @@ OTE_OPTS = -DENABLE_SOFTSPOKEN_OT=ON -DCMAKE_CXX_COMPILER=$(CXX)
 ifeq ($(ARM), 1)
 libote: deps/libOTe/libOTe
 	cd deps/libOTe; \
-	PATH=$(CURDIR)/local/bin:$(PATH) python3 build.py --install=$(CURDIR)/local -- -DBUILD_SHARED_LIBS=0 -DENABLE_AVX=OFF -DENABLE_SSE=OFF $(OTE_OPTS)
+	PATH="$(CURDIR)/local/bin:$(PATH)" python3 build.py --install=$(CURDIR)/local -- -DBUILD_SHARED_LIBS=0 -DENABLE_AVX=OFF -DENABLE_SSE=OFF $(OTE_OPTS)
 else
 libote: deps/libOTe/libOTe
 	ln -sf . local/lib/x86_64-linux-gnu; \
 	cd deps/libOTe; \
-	PATH=$(CURDIR)/local/bin:$(PATH) python3 build.py --install=$(CURDIR)/local -- -DBUILD_SHARED_LIBS=0 $(OTE_OPTS)
+	PATH="$(CURDIR)/local/bin:$(PATH)" python3 build.py --install=$(CURDIR)/local -- -DBUILD_SHARED_LIBS=0 $(OTE_OPTS)
 endif
 
 libote-shared: deps/libOTe/libOTe
