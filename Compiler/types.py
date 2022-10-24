@@ -6705,9 +6705,10 @@ class MemValue(_mem):
         :return: relevant basic type instance """
         self.check()
         if program.curr_block != self.last_write_block:
+            from Compiler.GC.types import sbitvec
             self.register = self.value_type.load_mem(
                 self.address, size=self.size \
-                if issubclass(self.value_type, _register) else None)
+                if issubclass(self.value_type, (_register, sbitvec)) else None)
             self.last_write_block = program.curr_block
         return self.register
 

@@ -786,6 +786,8 @@ class sbitvec(_vec, _bit):
                 return self.from_vec(x.zero_if_not(condition) for x in self.v)
             def __str__(self):
                 return 'sbitvec(%d)' % n
+        sbitvecn.basic_type = sbitvecn
+        sbitvecn.reg_type = 'sb'
         return sbitvecn
     @classmethod
     def from_vec(cls, vector):
@@ -859,7 +861,6 @@ class sbitvec(_vec, _bit):
     def __invert__(self):
         return self.from_vec(~x for x in self.v)
     def if_else(self, x, y):
-        assert(len(self.v) == 1)
         return util.if_else(self.v[0], x, y)
     def __iter__(self):
         return iter(self.v)
@@ -873,6 +874,7 @@ class sbitvec(_vec, _bit):
             return cls.from_vec(other.v)
         else:
             return cls(other)
+    hard_conv = conv
     @property
     def size(self):
         if not self.v or util.is_constant(self.v[0]):
@@ -1040,7 +1042,10 @@ sbits.dynamic_array = DynamicArray
 cbits.dynamic_array = Array
 
 def _complement_two_extend(bits, k):
-    return bits[:k] + [bits[-1]] * (k - len(bits))
+    if len(bits) == 1:
+        return bits + [0] * (k - len(bits))
+    else:
+        return bits[:k] + [bits[-1]] * (k - len(bits))
 
 class _sbitintbase:
     def extend(self, n):
@@ -1226,10 +1231,9 @@ class sbitintvec(sbitvec, _bitint, _number, _sbitintbase):
         if util.is_zero(other):
             return self
         other = self.coerce(other)
-        assert(len(self.v) == len(other.v))
         a, b = self.expand(other)
         v = sbitint.bit_adder(a, b)
-        return self.from_vec(v)
+        return self.get_type(len(v)).from_vec(v)
     __radd__ = __add__
     def __mul__(self, other):
         if isinstance(other, sbits):

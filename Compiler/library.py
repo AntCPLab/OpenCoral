@@ -290,13 +290,13 @@ def get_arg():
     ldarg(res)
     return res
 
-def make_array(l):
+def make_array(l, t=None):
     if isinstance(l, program.Tape.Register):
-        res = Array(len(l), type(l))
+        res = Array(len(l), t or type(l))
         res[:] = l
     else:
         l = list(l)
-        res = Array(len(l), type(l[0]) if l else cint)
+        res = Array(len(l), t or type(l[0]) if l else cint)
         res.assign(l)
     return res
 
