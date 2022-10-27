@@ -5441,7 +5441,7 @@ class Array(_vectorizable):
         return self.length
 
     def total_size(self):
-        return len(self) * self.value_type.n_elements()
+        return self.length * self.value_type.n_elements()
 
     def __iter__(self):
         for i in range(self.length):
@@ -5565,7 +5565,8 @@ class Array(_vectorizable):
         try:
             self.assign(input_from(player, size=len(self)))
         except (TypeError, CompilerError):
-            @library.for_range_opt(len(self), budget=budget)
+            print (budget)
+            @library.for_range_opt(self.length, budget=budget)
             def _(i):
                 self[i] = input_from(player)
 
@@ -5977,17 +5978,16 @@ class SubMultiArray(_vectorizable):
         """ Fill with inputs from player if supported by type.
 
         :param player: public (regint/cint/int) """
-        budget = budget or Tape.Register.maximum_size
-        if (self.total_size() < budget) and \
-           self.value_type.n_elements() == 1:
+        if util.is_constant(self.total_size()) and \
+           self.value_type.n_elements() == 1 and \
+           self.value_type.mem_size() == 1:
             if raw or program.always_raw():
                 input_from = self.value_type.get_raw_input_from
             else:
                 input_from = self.value_type.get_input_from
             self.assign_vector(input_from(player, size=self.total_size()))
         else:
-            @library.for_range_opt(self.sizes[0],
-                                   budget=budget / self[0].total_size())
+            @library.for_range_opt(self.sizes[0], budget=budget)
             def _(i):
                 self[i].input_from(player, budget=budget, raw=raw)
 
@@ -6452,7 +6452,8 @@ class SubMultiArray(_vectorizable):
 
         :param end: string to print after (default: line break)
         """
-        if self.total_size() < program.options.budget:
+        if util.is_constant(self.total_size()) and \
+           self.total_size() < program.budget:
             library.print_str('%s' + end, self.reveal_nested())
         else:
             library.print_str('[')
