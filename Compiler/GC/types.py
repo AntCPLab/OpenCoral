@@ -936,6 +936,8 @@ class sbitvec(_vec, _bit):
             except:
                 pass
         res = []
+        if not util.is_constant(other):
+            other = self.coerce(other)
         for y in self, other:
             if isinstance(y, int):
                 res.append([x * sbits.get_type(m)().long_one()
@@ -1230,7 +1232,6 @@ class sbitintvec(sbitvec, _bitint, _number, _sbitintbase):
     def __add__(self, other):
         if util.is_zero(other):
             return self
-        other = self.coerce(other)
         a, b = self.expand(other)
         v = sbitint.bit_adder(a, b)
         return self.get_type(len(v)).from_vec(v)
