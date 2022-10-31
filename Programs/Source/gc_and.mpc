@@ -16,7 +16,7 @@ pack = min(n, 50)
 n = (n + pack - 1) // pack
 
 a = sbit(1)
-b = sbit(1, n=pack)
+b = sbit.get_type(pack)(1)
 
 start_timer(1)
 @for_range(m)
