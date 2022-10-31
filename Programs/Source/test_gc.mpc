@@ -1,4 +1,10 @@
 
+def test(actual, expected):
+    actual = actual.reveal()
+    if expected >= 2 ** (actual.n - 1) and actual.n != 1:
+        expected -= 2 ** actual.n
+    print_ln('expected %s, got %s', expected, actual)
+
 test(sbits(3) + sbits(5), 3 ^ 5)
 test(cbits(3) + cbits(5), 3 + 5)
 test(cbits(3) + (5), 3 + 5)
