@@ -308,7 +308,7 @@ boost: deps/libOTe/libOTe
 	cd deps/libOTe; \
 	python3 build.py --setup --boost --install=$(CURDIR)/local
 
-OTE_OPTS = -DENABLE_SOFTSPOKEN_OT=ON -DCMAKE_CXX_COMPILER=$(CXX)
+OTE_OPTS = -DENABLE_SOFTSPOKEN_OT=ON -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_INSTALL_LIBDIR=lib
 
 ifeq ($(ARM), 1)
 libote: deps/libOTe/libOTe
@@ -316,8 +316,6 @@ libote: deps/libOTe/libOTe
 	PATH="$(CURDIR)/local/bin:$(PATH)" python3 build.py --install=$(CURDIR)/local -- -DBUILD_SHARED_LIBS=0 -DENABLE_AVX=OFF -DENABLE_SSE=OFF $(OTE_OPTS)
 else
 libote: deps/libOTe/libOTe
-	ln -sf lib local/lib64; \
-	ln -sf . local/lib/x86_64-linux-gnu; \
 	cd deps/libOTe; \
 	PATH="$(CURDIR)/local/bin:$(PATH)" python3 build.py --install=$(CURDIR)/local -- -DBUILD_SHARED_LIBS=0 $(OTE_OPTS)
 endif
