@@ -117,6 +117,7 @@ protected:
   }
   
   gf2n_() : a(0)       {}
+  gf2n_(bool a) : a(a) {}
   gf2n_(U a) : a(a & mask) {}
   gf2n_(long a) : gf2n_(U(a)) {}
   gf2n_(int a) : gf2n_(U(unsigned(a))) {}

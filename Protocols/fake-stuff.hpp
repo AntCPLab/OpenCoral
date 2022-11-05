@@ -149,7 +149,7 @@ void make_share(FixedVec<T, 2>* Sa, const V& a, int N, const U& key, PRNG& G);
 
 template<class T, class U>
 inline void make_share(vector<T>& Sa,
-    const typename T::clear& a, int N, const U& key,
+    const typename T::open_type& a, int N, const U& key,
     PRNG& G)
 {
   Sa.resize(N);
@@ -554,7 +554,7 @@ void make_mult_triples(const typename T::mac_type& key, int N, int ntrip,
         a.randomize(G);
       if (!zero)
         b.randomize(G);
-      c = a * b;
+      auto c = typename T::open_type(a) * b;
       files.output_shares(a);
       files.output_shares(b);
       files.output_shares(c);
