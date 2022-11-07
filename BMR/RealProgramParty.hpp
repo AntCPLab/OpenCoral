@@ -64,7 +64,6 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	    online_opts = {opt, argc, argv, 1000};
 	else
 	    online_opts = {opt, argc, argv};
-	assert(not online_opts.interactive);
 
 	online_opts.finalize(opt, argc, argv);
 	this->load(online_opts.progname);
