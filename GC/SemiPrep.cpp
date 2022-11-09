@@ -4,6 +4,7 @@
  */
 
 #include "SemiPrep.h"
+#include "Semi.h"
 #include "ThreadMaster.h"
 #include "OT/NPartyTripleGenerator.h"
 #include "OT/BitDiagonal.h"
@@ -21,7 +22,7 @@ SemiPrep::SemiPrep(DataPositions& usage, bool) :
 {
 }
 
-void SemiPrep::set_protocol(Beaver<SemiSecret>& protocol)
+void SemiPrep::set_protocol(SemiSecret::Protocol& protocol)
 {
     if (triple_generator)
     {
@@ -53,6 +54,9 @@ SemiPrep::~SemiPrep()
 {
     if (triple_generator)
         delete triple_generator;
+    this->print_left("mixed triples", mixed_triples.size(),
+            SemiSecret::type_string(),
+            this->usage.files.at(DATA_GF2N).at(DATA_MIXED));
 }
 
 void SemiPrep::buffer_bits()
@@ -62,6 +66,27 @@ void SemiPrep::buffer_bits()
     {
         this->bits.push_back((r >> i) & 1);
     }
+}
+
+array<SemiSecret, 3> SemiPrep::get_mixed_triple(int n)
+{
+    assert(n < 128);
+
+    if (mixed_triples.empty())
+    {
+        assert(this->triple_generator);
+        this->triple_generator->generateMixedTriples();
+        for (auto& x : this->triple_generator->mixedTriples)
+        {
+            this->mixed_triples.push_back({{x[0], x[1], x[2]}});
+        }
+        this->triple_generator->unlock();
+    }
+
+    this->count(DATA_MIXED);
+    auto res = mixed_triples.back();
+    mixed_triples.pop_back();
+    return res;
 }
 
 } /* namespace GC */

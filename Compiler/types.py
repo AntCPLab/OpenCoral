@@ -749,7 +749,14 @@ class _register(Tape.Register, _number, _structure):
             self.mov(res[i], self)
         return res
 
-class _clear(_register):
+class _arithmetic_register(_register):
+    """ Arithmetic circuit type. """
+    def __init__(self, *args, **kwargs):
+        if program.options.garbled:
+            raise CompilerError('functionality only available in arithmetic circuits')
+        super(_arithmetic_register, self).__init__(*args, **kwargs)
+
+class _clear(_arithmetic_register):
     """ Clear domain-dependent type. """
     __slots__ = []
     mov = staticmethod(movc)
@@ -1084,6 +1091,8 @@ class cint(_clear, _int):
 
     def __ne__(self, other):
         return 1 - (self == other)
+
+    equal = lambda self, other, *args, **kwargs: self.__eq__(other)
 
     def __lshift__(self, other):
         """ Clear left shift.
@@ -1836,7 +1845,7 @@ class longint:
             res += x.bit_decompose(64)
         return res[:bit_length]
 
-class _secret(_register, _secret_structure):
+class _secret(_arithmetic_register, _secret_structure):
     __slots__ = []
 
     mov = staticmethod(set_instruction_type(movs))
@@ -2682,6 +2691,15 @@ class sint(_secret, _int):
         comparison.Trunc(res, tmp, 2 * k, k, kappa, True)
         return res
 
+    @vectorize
+    def int_mod(self, other, bit_length=None):
+        """ Secret integer modulo.
+
+        :param other: sint
+        :param bit_length: bit length of input (default: global bit length)
+        """
+        return self - other * self.int_div(other, bit_length=bit_length)
+
     def trunc_zeros(self, n_zeros, bit_length=None, signed=True):
         bit_length = bit_length or program.bit_length
         return comparison.TruncZeros(self, bit_length, n_zeros, signed)
@@ -2806,6 +2824,13 @@ class sint(_secret, _int):
             res.assign_slice_vector(idx, res.get_vector())
             library.break_point()
             res = res.get_vector()
+        return res
+
+    @vectorize
+    def prefix_sum(self):
+        """ Prefix sum. """
+        res = sint()
+        prefixsums(res, self)
         return res
 
 class sintbit(sint):
@@ -3940,6 +3965,8 @@ class _single(_number, _secret_structure):
         :param n: number of inputs (int)
         :param client_id: regint
         :param size: vector size (default 1)
+        :returns: list of length ``n``
+
         """
         sint_inputs = cls.int_type.receive_from_client(n, client_id,
                                                        message_type)
@@ -3977,6 +4004,8 @@ class _single(_number, _secret_structure):
     def conv(cls, other):
         if isinstance(other, cls):
             return other
+        elif isinstance(other, (list, tuple)):
+            return type(other)(cls.conv(x) for x in other)
         else:
             try:
                 return cls.from_sint(other)
@@ -4216,7 +4245,7 @@ class _fix(_single):
         if isinstance(other, _fix) and (cls.k, cls.f) == (other.k, other.f):
             return other
         else:
-            return cls(other)
+            return super(_fix, cls).conv(other)
 
     @classmethod
     def _new(cls, other, k=None, f=None):
@@ -4523,6 +4552,9 @@ class sfix(_fix):
     def secure_permute(self, *args, **kwargs):
         return self._new(self.v.secure_permute(*args, **kwargs),
                          k=self.k, f=self.f)
+
+    def prefix_sum(self):
+        return self._new(self.v.prefix_sum(), k=self.k, f=self.f)
 
 class unreduced_sfix(_single):
     int_type = sint
@@ -5271,6 +5303,8 @@ class Array(_vectorizable):
       a[:] += b[:]
 
     """
+    check_indices = True
+
     @classmethod
     def create_from(cls, l):
         """ Convert Python iterator or vector to array. Basic type will be taken
@@ -5283,7 +5317,9 @@ class Array(_vectorizable):
 
         """
         if isinstance(l, cls):
-            return l
+            res = l.same_shape()
+            res[:] = l[:]
+            return res
         if isinstance(l, _number):
             tmp = l
             t = type(l)
@@ -5304,7 +5340,6 @@ class Array(_vectorizable):
         self.debug = debug
         self.creator_tape = program.curr_tape
         self.sink = None
-        self.check_indices = True
         if alloc:
             self.alloc()
 
@@ -5435,7 +5470,10 @@ class Array(_vectorizable):
         return self.value_type.load_mem(address)
 
     def _store(self, value, address):
-        self.value_type.conv(value).store_in_mem(address)
+        tmp = self.value_type.conv(value)
+        if not isinstance(tmp, _vec) and tmp.size != self.value_type.mem_size():
+            raise CompilerError('size mismatch in array assignment')
+        tmp.store_in_mem(address)
 
     def __len__(self):
         return self.length
@@ -5505,6 +5543,12 @@ class Array(_vectorizable):
         return self.value_type.load_mem(self.get_address(base, size), size=size)
 
     get_part_vector = get_vector
+
+    def get_reverse_vector(self):
+        """ Return vector with content in reverse order. """
+        size = self.length
+        address = regint.inc(size, size - 1, -1)
+        return self.value_type.load_mem(self.address + address, size=size)
 
     def get_part(self, base, size):
         """ Part array.
@@ -5605,7 +5649,6 @@ class Array(_vectorizable):
         """ Vector subtraction.
 
         :param other: vector or container of same length and type that supports operations with type of this array """
-        assert len(self) == len(other)
         return self.get_vector() - other
 
     def __mul__(self, value):
@@ -5668,7 +5711,7 @@ class Array(_vectorizable):
         """ Reveal the whole array.
 
         :returns: Array of relevant clear type. """
-        return Array.create_from(x.reveal() for x in self)
+        return Array.create_from(self.get_vector().reveal())
 
     def reveal_list(self):
         """ Reveal as list. """
@@ -6367,13 +6410,15 @@ class SubMultiArray(_vectorizable):
         res = Matrix(self.sizes[1], self.sizes[0], self.value_type)
         library.break_point()
         if self.value_type.n_elements() == 1:
-            @library.for_range_opt(self.sizes[0])
-            def _(j):
-                res.set_column(j, self[j][:])
+            nr = self.sizes[1]
+            nc = self.sizes[0]
+            a = regint.inc(nr * nc, 0, nr, 1, nc)
+            b = regint.inc(nr * nc, 0, 1, nc)
+            res[:] = self.value_type.load_mem(self.address + a + b)
         else:
-            @library.for_range_opt(self.sizes[1])
+            @library.for_range_opt(self.sizes[1], budget=100)
             def _(i):
-                @library.for_range_opt(self.sizes[0])
+                @library.for_range_opt(self.sizes[0], budget=100)
                 def _(j):
                     res[i][j] = self[j][i]
         library.break_point()
@@ -6424,13 +6469,19 @@ class SubMultiArray(_vectorizable):
 
     def randomize(self, *args):
         """ Randomize according to data type. """
-        if self.total_size() < program.options.budget:
+        if self.total_size() < program.budget:
             self.assign_vector(
                 self.value_type.get_random(*args, size=self.total_size()))
         else:
             @library.for_range(self.sizes[0])
             def _(i):
                 self[i].randomize(*args)
+
+    def reveal(self):
+        """ Reveal to :py:obj:`MultiArray` of same shape. """
+        res = MultiArray(self.sizes, self.value_type.clear_type)
+        res[:] = self.get_vector().reveal()
+        return res
 
     def reveal_list(self):
         """ Reveal as list. """
@@ -6542,7 +6593,7 @@ class Matrix(MultiArray):
     @staticmethod
     def create_from(rows):
         rows = list(rows)
-        if isinstance(rows[0], (list, tuple)):
+        if isinstance(rows[0], (list, tuple, Array)):
             t = type(rows[0][0])
         else:
             t = type(rows[0])

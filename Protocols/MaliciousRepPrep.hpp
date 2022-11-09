@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef PROTOCOLS_MALICIOUSREPPREP_HPP_
+#define PROTOCOLS_MALICIOUSREPPREP_HPP_
+
 #include "MaliciousRepPrep.h"
 #include "Tools/Subroutines.h"
 #include "Processor/OnlineOptions.h"
@@ -232,3 +235,5 @@ void MaliciousRepPrep<T>::buffer_inputs(int player)
     assert(proc);
     this->buffer_inputs_as_usual(player, proc);
 }
+
+#endif

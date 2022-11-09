@@ -29,6 +29,7 @@
 #include "Protocols/fake-stuff.hpp"
 #include "Machines/ShamirMachine.hpp"
 #include "Machines/Rep4.hpp"
+#include "Machines/Rep.hpp"
 
 template<class T>
 void run(int argc, char** argv);

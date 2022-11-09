@@ -6,7 +6,8 @@ function build
     echo GDEBUG = >> CONFIG.mine
     root=`pwd`
     cd deps/libOTe
-    python3 build.py --install=$root/local -- -DENABLE_SOFTSPOKEN_OT=ON -DBUILD_SHARED_LIBS=0 $3
+    rm -R out
+    python3 build.py --install=$root/local -- -DENABLE_SOFTSPOKEN_OT=ON -DBUILD_SHARED_LIBS=0 -DCMAKE_INSTALL_LIBDIR=lib $3
     cd $root
     make clean
     rm -R static

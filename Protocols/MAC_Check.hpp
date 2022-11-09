@@ -96,7 +96,7 @@ void Tree_MAC_Check<U>::init_open(const Player&, int n)
 }
 
 template<class U>
-void Tree_MAC_Check<U>::prepare_open(const U& secret)
+void Tree_MAC_Check<U>::prepare_open(const U& secret, int)
 {
   this->values.push_back(secret.get_share());
   macs.push_back(secret.get_mac());
@@ -242,7 +242,7 @@ MAC_Check_Z2k<T, U, V, W>::MAC_Check_Z2k(const T& ai, Names& Nms,
 }
 
 template<class T, class U, class V, class W>
-void MAC_Check_Z2k<T, U, V, W>::prepare_open(const W& secret)
+void MAC_Check_Z2k<T, U, V, W>::prepare_open(const W& secret, int)
 {
   prepare_open_no_mask(secret + (get_random_element() << W::clear::N_BITS));
 }
@@ -402,7 +402,7 @@ void Direct_MAC_Check<T>::init_open(const Player& P, int n)
 }
 
 template<class T>
-void Direct_MAC_Check<T>::prepare_open(const T& secret)
+void Direct_MAC_Check<T>::prepare_open(const T& secret, int)
 {
   this->values.push_back(secret.get_share());
   this->macs.push_back(secret.get_mac());

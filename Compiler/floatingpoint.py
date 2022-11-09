@@ -311,6 +311,7 @@ def BitDecField(a, k, m, kappa, bits_to_compute=None):
 
 @instructions_base.ret_cisc
 def Pow2(a, l, kappa):
+    comparison.program.curr_tape.require_bit_length(l - 1)
     m = int(ceil(log(l, 2)))
     t = BitDec(a, m, m, kappa)
     return Pow2_from_bits(t)

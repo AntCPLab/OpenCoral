@@ -44,7 +44,7 @@ class Machine : public BaseMachine
 
   Player* P;
 
-  void load_program(const string& threadname, const string& filename);
+  size_t load_program(const string& threadname, const string& filename);
 
   void prepare(const string& progname_str);
 

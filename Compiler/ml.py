@@ -73,8 +73,13 @@ from functools import reduce
 def log_e(x):
     return mpc_math.log_fx(x, math.e)
 
+use_mux = False
+
 def exp(x):
-    return mpc_math.pow_fx(math.e, x)
+    if use_mux:
+        return mpc_math.mux_exp(math.e, x)
+    else:
+        return mpc_math.pow_fx(math.e, x)
 
 def get_limit(x):
     exp_limit = 2 ** (x.k - x.f - 1)
@@ -164,13 +169,16 @@ def softmax(x):
     return softmax_from_exp(exp_for_softmax(x)[0])
 
 def exp_for_softmax(x):
-    m = util.max(x) - get_limit(x[0]) + 1 + math.log(len(x), 2)
+    m = util.max(x) - get_limit(x[0]) + math.log(len(x))
     mv = m.expand_to_vector(len(x))
     try:
         x = x.get_vector()
     except AttributeError:
         x = sfix(x)
-    return (x - mv > -get_limit(x)).if_else(exp(x - mv), 0), m
+    if use_mux:
+        return exp(x - mv), m
+    else:
+        return (x - mv > -get_limit(x)).if_else(exp(x - mv), 0), m
 
 def softmax_from_exp(x):
     return x / sum(x)
@@ -2002,6 +2010,9 @@ class Optimizer:
         return res
 
     def __init__(self, report_loss=None):
+        if get_program().options.binary:
+            raise CompilerError(
+                'machine learning code not compatible with binary circuits')
         self.tol = 0.000
         self.report_loss = report_loss
         self.X_by_label = None

@@ -15,8 +15,14 @@
 #include "Protocols/DealerMC.hpp"
 #include "Protocols/DealerMatrixPrep.hpp"
 #include "Protocols/Beaver.hpp"
-#include "Semi.hpp"
+#include "Protocols/SemiInput.hpp"
+#include "Protocols/MAC_Check_Base.hpp"
+#include "Protocols/ReplicatedPrep.hpp"
+#include "Protocols/MalRepRingPrep.hpp"
+#include "Protocols/SemiMC.hpp"
 #include "GC/DealerPrep.h"
+#include "GC/SemiPrep.h"
+#include "GC/SemiSecret.hpp"
 
 int main(int argc, const char** argv)
 {

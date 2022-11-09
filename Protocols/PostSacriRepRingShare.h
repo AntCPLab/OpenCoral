@@ -9,6 +9,7 @@
 #include "Protocols/MaliciousRep3Share.h"
 #include "Protocols/MalRepRingShare.h"
 #include "Protocols/Rep3Share2k.h"
+#include "GC/MaliciousRepSecret.h"
 
 template<class T> class MalRepRingPrepWithBits;
 template<class T> class PostSacrifice;

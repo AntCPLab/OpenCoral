@@ -37,6 +37,7 @@ void Beaver<T>::init_mul()
     shares.clear();
     opened.clear();
     triples.clear();
+    lengths.clear();
 }
 
 template<class T>
@@ -48,12 +49,19 @@ void Beaver<T>::prepare_mul(const T& x, const T& y, int n)
     triple = prep->get_triple(n);
     shares.push_back(x - triple[0]);
     shares.push_back(y - triple[1]);
+    lengths.push_back(n);
 }
 
 template<class T>
 void Beaver<T>::exchange()
 {
-    MC->POpen(opened, shares, P);
+    assert(shares.size() == 2 * lengths.size());
+    MC->init_open(P, shares.size());
+    for (size_t i = 0; i < shares.size(); i++)
+        MC->prepare_open(shares[i], lengths[i / 2]);
+    MC->exchange(P);
+    for (size_t i = 0; i < shares.size(); i++)
+        opened.push_back(MC->finalize_raw());
     it = opened.begin();
     triple = triples.begin();
 }

@@ -141,7 +141,8 @@ void DabitShuffleSacrifice<T>::dabit_sacrifice(vector<dabit<T> >& output,
         int start = queues->distribute(job, products.size());
         protocol.multiply(products, multiplicands,
                 start, products.size(), proc);
-        queues->wrap_up(job);
+        if (start)
+            queues->wrap_up(job);
     }
     else
         protocol.multiply(products, multiplicands, 0, products.size(), proc);
@@ -311,7 +312,8 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
                 &supplies);
         edabit_sacrifice_buckets(to_check, n_bits, strict, player, proc, start,
                 N, personal_prep);
-        queues->wrap_up(job);
+        if (start)
+            queues->wrap_up(job);
     }
     else
         edabit_sacrifice_buckets(to_check, n_bits, strict, player, proc, 0, N,

@@ -72,7 +72,7 @@ void ShamirMC<T>::prepare(const vector<T>& S, const Player& P)
 }
 
 template<class T>
-void ShamirMC<T>::prepare_open(const T& share)
+void ShamirMC<T>::prepare_open(const T& share, int)
 {
     share.pack(os->mine);
 }

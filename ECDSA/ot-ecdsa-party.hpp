@@ -140,4 +140,5 @@ void run(int argc, const char** argv)
 
     pShare::MAC_Check::teardown();
     T<P256Element>::MAC_Check::teardown();
+    P256Element::finish();
 }

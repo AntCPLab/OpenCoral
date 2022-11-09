@@ -41,12 +41,21 @@ run_player() {
     if test "$prog"; then
 	log_prefix=$prog-
     fi
+    if test "$BENCH"; then
+	log_prefix=$log_prefix$bin-$(echo "$*" | sed 's/ /-/g')-N$players-
+    fi
     set -o pipefail
     for i in $(seq 0 $[players-1]); do
       >&2 echo Running $prefix $SPDZROOT/$bin $i $params
       log=$SPDZROOT/logs/$log_prefix$i
       $prefix $SPDZROOT/$bin $i $params 2>&1 |
-	  { if test $i = 0; then tee $log; else cat > $log; fi; } &
+	  {
+	      if test "$BENCH"; then
+		  if test $i = 0; then tee -a $log; else cat >> $log; fi;
+	      else
+		  if test $i = 0; then tee $log; else cat > $log; fi;
+	      fi
+	  } &
       codes[$i]=$!
     done
     for i in $(seq 0 $[players-1]); do

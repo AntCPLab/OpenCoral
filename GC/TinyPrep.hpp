@@ -6,6 +6,8 @@
 #include "TinierSharePrep.h"
 
 #include "Protocols/MascotPrep.hpp"
+#include "Protocols/ShuffleSacrifice.hpp"
+#include "Protocols/MalRepRingPrep.hpp"
 
 namespace GC
 {

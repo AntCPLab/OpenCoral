@@ -20,10 +20,10 @@
 using namespace std;
 
 #ifndef MAX_MOD_SZ
-   #if defined(GFP_MOD_SZ) and GFP_MOD_SZ > 10
+   #if defined(GFP_MOD_SZ) and GFP_MOD_SZ > 11
      #define MAX_MOD_SZ GFP_MOD_SZ
    #else
-     #define MAX_MOD_SZ 10
+     #define MAX_MOD_SZ 11
   #endif
 #endif
 

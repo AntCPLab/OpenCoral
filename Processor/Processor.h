@@ -32,7 +32,7 @@ class SubProcessor
 
   DataPositions bit_usage;
 
-  SecureShuffle<T> shuffler;
+  typename T::Protocol::Shuffler shuffler;
 
   void resize(size_t size)       { C.resize(size); S.resize(size); }
 

@@ -27,6 +27,7 @@ protected:
     vector<T> shares;
     vector<typename T::open_type> opened;
     vector<array<T, 3>> triples;
+    vector<int> lengths;
     typename vector<typename T::open_type>::iterator it;
     typename vector<array<T, 3>>::iterator triple;
     Preprocessing<T>* prep;

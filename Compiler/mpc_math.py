@@ -8,6 +8,8 @@ This has to imported explicitly.
 
 
 import math
+import operator
+from functools import reduce
 from Compiler import floatingpoint
 from Compiler import types
 from Compiler import comparison
@@ -396,6 +398,36 @@ def exp2_fx(a, zero_output=False, as19=False):
         d = b.pow2(a.k - a.f)
         g = exp_from_parts(d, c)
         return s.if_else(1 / g, g)
+
+
+def mux_exp(x, y, block_size=8):
+    assert util.is_constant_float(x)
+    from Compiler.GC.types import sbitvec, sbits
+    bits = sbitvec.from_vec(y.v.bit_decompose(y.k, maybe_mixed=True)).v
+    sign = bits[-1]
+    m = math.log(2 ** (y.k - y.f - 1), x)
+    del bits[int(math.ceil(math.log(m, 2))) + y.f:]
+    parts = []
+    for i in range(0, len(bits), block_size):
+        one_hot = sbitvec.from_vec(bits[i:i + block_size]).demux().v
+        exp = []
+        try:
+            for j in range(len(one_hot)):
+                exp.append(types.cfix.int_rep(x ** (j * 2 ** (i - y.f)), y.f))
+        except OverflowError:
+            pass
+        exp = list(filter(lambda x: x < 2 ** (y.k - 1), exp))
+        bin_part = [0] * max(x.bit_length() for x in exp)
+        for j in range(len(bin_part)):
+            for k, (a, b) in enumerate(zip(one_hot, exp)):
+                bin_part[j] ^= a if util.bit_decompose(b, len(bin_part))[j] \
+                    else 0
+            if util.is_zero(bin_part[j]):
+                bin_part[j] = sbits.get_type(y.size)(0)
+            if i == 0:
+                bin_part[j] = sign.if_else(0, bin_part[j])
+        parts.append(y._new(y.int_type(sbitvec.from_vec(bin_part))))
+    return util.tree_reduce(operator.mul, parts)
 
 
 @types.vectorize

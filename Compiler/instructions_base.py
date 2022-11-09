@@ -80,6 +80,7 @@ opcodes = dict(
     SUBSI = 0x2A,
     SUBCFI = 0x2B,
     SUBSFI = 0x2C,
+    PREFIXSUMS = 0x2D,
     # Multiplication/division
     MULC = 0x30,
     MULM = 0x31,
@@ -702,10 +703,16 @@ class ClearIntAF(RegisterArgFormat):
     reg_type = RegType.ClearInt
 
 class IntArgFormat(ArgFormat):
+    n_bits = 32
+
     @classmethod
     def check(cls, arg):
-        if not isinstance(arg, int) and not arg is None:
-            raise ArgumentError(arg, 'Expected an integer-valued argument')
+        if not arg is None:
+            if not isinstance(arg, int):
+                raise ArgumentError(arg, 'Expected an integer-valued argument')
+            if arg >= 2 ** cls.n_bits or arg < -2 ** cls.n_bits:
+                raise ArgumentError(
+                    arg, 'Immediate value outside of %d-bit range' % cls.n_bits)
 
     @classmethod
     def encode(cls, arg):
@@ -718,6 +725,8 @@ class IntArgFormat(ArgFormat):
         return str(self.i)
 
 class LongArgFormat(IntArgFormat):
+    n_bits = 64
+
     @classmethod
     def encode(cls, arg):
         return list(struct.pack('>Q', arg))
@@ -729,8 +738,6 @@ class ImmediateModpAF(IntArgFormat):
     @classmethod
     def check(cls, arg):
         super(ImmediateModpAF, cls).check(arg)
-        if arg >= 2**32 or arg < -2**32:
-            raise ArgumentError(arg, 'Immediate value outside of 32-bit range')
 
 class ImmediateGF2NAF(IntArgFormat):
     @classmethod

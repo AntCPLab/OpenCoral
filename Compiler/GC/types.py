@@ -652,7 +652,7 @@ class sbitvec(_vec, _bit):
     You can access the rows by member :py:obj:`v` and the columns by calling
     :py:obj:`elements`.
 
-    There are three ways to create an instance:
+    There are four ways to create an instance:
 
     1. By transposition::
 
@@ -685,6 +685,11 @@ class sbitvec(_vec, _bit):
        This should output::
 
         [1, 0, 1]
+
+    4. Private input::
+
+        x = sbitvec.get_type(32).get_input_from(player)
+
     """
     bit_extend = staticmethod(lambda v, n: v[:n] + [0] * (n - len(v)))
     is_clear = False
@@ -904,6 +909,34 @@ class sbitvec(_vec, _bit):
     def __mul__(self, other):
         if isinstance(other, int):
             return self.from_vec(x * other for x in self.v)
+        if isinstance(other, sbitvec):
+            if len(other.v) == 1:
+                other = other.v[0]
+            elif len(self.v) == 1:
+                self, other = other, self.v[0]
+            else:
+                raise CompilerError('no operand of lenght 1: %d/%d',
+                                    (len(self.v), len(other.v)))
+        if not isinstance(other, sbits):
+            return NotImplemented
+        ops = []
+        for x in self.v:
+            if not util.is_zero(x):
+                assert x.n == other.n
+                ops.append(x)
+        if ops:
+            prods = [sbits.get_type(other.n)() for i in ops]
+            inst.andrsvec(3 + 2 * len(ops), other.n, *prods, other, *ops)
+        res = []
+        i = 0
+        for x in self.v:
+            if util.is_zero(x):
+                res.append(0)
+            else:
+                res.append(prods[i])
+                i += 1
+        return sbitvec.from_vec(res)
+    __rmul__ = __mul__
     def __add__(self, other):
         return self.from_vec(x + y for x, y in zip(self.v, other))
     def bit_and(self, other):
@@ -945,6 +978,13 @@ class sbitvec(_vec, _bit):
             else:
                 res.append([x.expand(m) if (expand and isinstance(x, bits)) else x for x in y.v])
         return res
+    def demux(self):
+        if len(self) == 1:
+            return sbitvec.from_vec([self.v[0].bit_not(), self.v[0]])
+        a = sbitvec.from_vec(self.v[:len(self) // 2]).demux()
+        b = sbitvec.from_vec(self.v[len(self) // 2:]).demux()
+        prod = [a * bb for bb in b.v]
+        return sbitvec.from_vec(reduce(operator.add, (x.v for x in prod)))
 
 class bit(object):
     n = 1
@@ -1243,20 +1283,19 @@ class sbitintvec(sbitvec, _bitint, _number, _sbitintbase):
             return other * self.v[0]
         elif isinstance(other, sbitfixvec):
             return NotImplemented
-        _, other_bits = self.expand(other, False)
+        my_bits, other_bits = self.expand(other, False)
+        matrix = []
         m = float('inf')
-        for x in itertools.chain(self.v, other_bits):
+        for x in itertools.chain(my_bits, other_bits):
             try:
                 m = min(m, x.n)
             except:
                 pass
-        if m == 1:
-            op = operator.mul
-        else:
-            op = operator.and_
-        matrix = []
         for i, b in enumerate(other_bits):
-            matrix.append([op(x, b) for x in self.v[:len(self.v)-i]])
+            if m == 1:
+                matrix.append([x * b for x in my_bits[:len(self.v)-i]])
+            else:
+                matrix.append((sbitvec.from_vec(my_bits[:len(self.v)-i]) * b).v)
         v = sbitint.wallace_tree_from_matrix(matrix)
         return self.from_vec(v[:len(self.v)])
     __rmul__ = __mul__
@@ -1366,7 +1405,7 @@ class sbitfix(_fix):
         cls.set_precision(f, k)
         return cls._new(cls.int_type(other), k, f)
 
-class sbitfixvec(_fix):
+class sbitfixvec(_fix, _vec):
     """ Vector of fixed-point numbers for parallel binary computation.
 
     Use :py:obj:`set_precision()` to change the precision.

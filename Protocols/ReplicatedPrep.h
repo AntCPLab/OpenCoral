@@ -38,6 +38,8 @@ class BufferPrep : public Preprocessing<T>
     template<int>
     void buffer_inverses(false_type) { throw runtime_error("no inverses"); }
 
+    virtual bool bits_from_dabits() { return false; }
+
 protected:
     vector<array<T, 3>> triples;
     vector<array<T, 2>> squares;

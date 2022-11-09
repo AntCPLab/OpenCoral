@@ -9,6 +9,7 @@
 #include "Protocols/Shamir.h"
 #include "Protocols/ShamirInput.h"
 #include "Machines/ShamirMachine.h"
+#include "GC/NoShare.h"
 #include "ShareInterface.h"
 
 template<class T> class ReplicatedPrep;

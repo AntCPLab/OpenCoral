@@ -56,6 +56,13 @@ HemiPrep<T>::~HemiPrep()
 {
     for (auto& x : multipliers)
         delete x;
+
+    if (two_party_prep)
+    {
+        auto& usage = two_party_prep->usage;
+        delete two_party_prep;
+        delete &usage;
+    }
 }
 
 template<class T>
@@ -108,6 +115,53 @@ void HemiPrep<T>::buffer_triples()
     for (unsigned i = 0; i < a.num_slots(); i++)
         this->triples.push_back(
         {{ a.element(i), b.element(i), c.element(i) }});
+}
+
+template<class T>
+SemiPrep<T>& HemiPrep<T>::get_two_party_prep()
+{
+    assert(this->proc);
+    assert(this->proc->P.num_players() == 2);
+
+    if (not two_party_prep)
+    {
+        two_party_prep = new SemiPrep<T>(this->proc,
+                *new DataPositions(this->proc->P.num_players()));
+        two_party_prep->set_protocol(this->proc->protocol);
+    }
+
+    return *two_party_prep;
+}
+
+template<class T>
+void HemiPrep<T>::buffer_bits()
+{
+    assert(this->proc);
+    if (this->proc->P.num_players() == 2)
+    {
+        auto& prep = get_two_party_prep();
+        prep.buffer_dabits(0);
+        for (auto& x : prep.dabits)
+            this->bits.push_back(x.first);
+        prep.dabits.clear();
+    }
+    else
+        SemiHonestRingPrep<T>::buffer_bits();
+}
+
+template<class T>
+void HemiPrep<T>::buffer_dabits(ThreadQueues* queues)
+{
+    assert(this->proc);
+    if (this->proc->P.num_players() == 2)
+    {
+        auto& prep = get_two_party_prep();
+        prep.buffer_dabits(queues);
+        this->dabits = prep.dabits;
+        prep.dabits.clear();
+    }
+    else
+        SemiHonestRingPrep<T>::buffer_dabits(queues);
 }
 
 #endif

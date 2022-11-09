@@ -235,6 +235,9 @@ public:
 	template <class T>
 	static void ands(T& processor, const vector<int>& args) { processor.ands(args); }
 	template <class T>
+	static void andrsvec(T& processor, const vector<int>& args)
+	{ processor.andrsvec(args); }
+	template <class T>
 	static void xors(T& processor, const vector<int>& args) { processor.xors(args); }
 	template <class T>
 	static void inputb(T& processor, const vector<int>& args) { processor.input(args); }

@@ -18,6 +18,8 @@ class MamaRectangle
     typename T::Square squares[N];
 
 public:
+    typedef GC::NoValue RowType;
+
     static int n_rows() { return T::Square::n_rows(); }
     static int n_columns() { return T::Square::n_columns(); }
     static int n_row_bytes() { return T::Square::n_row_bytes(); }

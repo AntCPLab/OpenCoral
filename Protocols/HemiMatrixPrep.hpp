@@ -4,6 +4,7 @@
  */
 
 #include "HemiMatrixPrep.h"
+#include "MAC_Check.h"
 #include "FHE/Diagonalizer.h"
 #include "Tools/Bundle.h"
 
@@ -113,7 +114,8 @@ void HemiMatrixPrep<T>::buffer_triples()
         job.begin = start;
         job.end = n_matrices;
         matrix_rand_mult(job);
-        queues.wrap_up(job);
+        if (start)
+            queues.wrap_up(job);
     }
     else
     {
@@ -177,7 +179,8 @@ void HemiMatrixPrep<T>::buffer_triples()
 #endif
                 for (int i = start; i < n_inner; i++)
                     products[i] = multiplicands.at(i) * multiplicands2.at(i);
-                queues.wrap_up(job);
+                if (start)
+                    queues.wrap_up(job);
 #ifdef VERBOSE_HE
                 fprintf(stderr, "adding at %f\n", timer.elapsed());
                 fflush(stderr);

@@ -24,6 +24,11 @@ if test "$flags"; then
     if $flags | grep -q avx2; then
 	cpu=avx2
     else
+	if test `uname -m` != x86_64; then
+	    echo Binaries are not available for `uname -m`
+	    echo Use the source distribution: https://github.com/data61/MP-SPDZ/#tldr-source-distribution
+	    exit 1
+	fi
 	cpu=amd64
     fi
 

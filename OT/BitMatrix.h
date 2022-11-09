@@ -127,6 +127,9 @@ public:
 
     vector< U, aligned_allocator<U, 32> > squares;
 
+    typename U::RowType& operator[](int i)
+    { return squares[i / U::n_rows()].rows[i % U::n_rows()]; }
+
     size_t vertical_size();
 
     void resize_vertical(int length)

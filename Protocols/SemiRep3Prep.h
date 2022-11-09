@@ -3,8 +3,8 @@
  *
  */
 
-#ifndef PROTOCOLS_REPLICATEDPREP2K_H_
-#define PROTOCOLS_REPLICATEDPREP2K_H_
+#ifndef PROTOCOLS_SEMIREP3PREP_H_
+#define PROTOCOLS_SEMIREP3PREP_H_
 
 #include "ReplicatedPrep.h"
 
@@ -12,11 +12,13 @@
  * Preprocessing for three-party replicated secret sharing modulo a power of two
  */
 template<class T>
-class ReplicatedPrep2k : public virtual SemiHonestRingPrep<T>,
+class SemiRep3Prep : public virtual SemiHonestRingPrep<T>,
         public virtual ReplicatedRingPrep<T>
 {
+    void buffer_dabits(ThreadQueues*);
+
 public:
-    ReplicatedPrep2k(SubProcessor<T>* proc, DataPositions& usage) :
+    SemiRep3Prep(SubProcessor<T>* proc, DataPositions& usage) :
             BufferPrep<T>(usage), BitPrep<T>(proc, usage),
 			RingPrep<T>(proc, usage),
             SemiHonestRingPrep<T>(proc, usage), ReplicatedRingPrep<T>(proc, usage)
@@ -25,11 +27,14 @@ public:
 
     void buffer_bits() { this->buffer_bits_without_check(); }
 
-    void get_dabit_no_count(T& a, typename T::bit_type& b)
+    void get_one_no_count(Dtype dtype, T& a)
     {
-        this->get_one_no_count(DATA_BIT, a);
-        b = a & 1;
+        if (dtype != DATA_BIT)
+            throw not_implemented();
+
+        typename T::bit_type b;
+        this->get_dabit_no_count(a, b);
     }
 };
 
-#endif /* PROTOCOLS_REPLICATEDPREP2K_H_ */
+#endif /* PROTOCOLS_SEMIREP3PREP_H_ */

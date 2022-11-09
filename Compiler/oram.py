@@ -1034,8 +1034,9 @@ def get_n_threads_for_tree(size):
 
 class TreeORAM(AbstractORAM):
     """ Tree ORAM. """
-    def __init__(self, size, value_type=sint, value_length=1, entry_size=None, \
+    def __init__(self, size, value_type=None, value_length=1, entry_size=None, \
                      bucket_oram=TrivialORAM, init_rounds=-1):
+        value_type = value_type or sint
         print('create oram of size', size)
         self.bucket_oram = bucket_oram
         # heuristic bucket size
@@ -1722,6 +1723,8 @@ def OptimalORAM(size,*args,**kwargs):
     :param value_type: :py:class:`sint` (default) / :py:class:`sg2fn` /
       :py:class:`sfix`
     """
+    if not util.is_constant(size):
+        raise CompilerError('ORAM size has be a compile-time constant')
     if get_program().options.binary:
         return BinaryORAM(size, *args, **kwargs)
     if optimal_threshold is None:
@@ -1772,6 +1775,12 @@ class OptimalPackedORAMWithEmpty(PackedORAMWithEmpty):
 def test_oram(oram_type, N, value_type=sint, iterations=100):
     stop_grind()
     oram = oram_type(N, value_type=value_type, entry_size=32, init_rounds=0)
+    test_oram_initialized(oram, iterations)
+    return oram
+
+def test_oram_initialized(oram, iterations=100):
+    N = oram.size
+    value_type = oram.value_type
     value_type = value_type.get_type(32)
     index_type = value_type.get_type(log2(N))
     start_grind()

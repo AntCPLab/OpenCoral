@@ -7,6 +7,7 @@
 #define PROTOCOlS_REPLICATEDPREP_HPP_
 
 #include "ReplicatedPrep.h"
+#include "SemiRep3Prep.h"
 #include "DabitSacrifice.h"
 #include "Spdz2kPrep.h"
 
@@ -64,17 +65,24 @@ BufferPrep<T>::~BufferPrep()
                     * T::default_length);
 
     size_t used_bits = my_usage.at(DATA_BIT);
-    if (not T::clear::invertible and field_type == DATA_INT and not T::has_mac)
-        // add dabits with computation modulo power of two but without MAC
-        used_bits += my_usage.at(DATA_DABIT);
+    size_t used_dabits = my_usage.at(DATA_DABIT);
+    if (bits_from_dabits())
+    {
+        if (not T::clear::invertible and field_type == DATA_INT and not T::has_mac)
+            // add dabits with computation modulo power of two but without MAC
+            used_bits += my_usage.at(DATA_DABIT);
+    }
+    else
+        used_dabits += used_bits;
+
     this->print_left("bits", bits.size(), type_string, used_bits);
+    this->print_left("dabits", dabits.size(), type_string, used_dabits);
 
 #define X(KIND, TYPE) \
     this->print_left(#KIND, KIND.size(), type_string, \
             this->usage.files.at(T::clear::field_type()).at(TYPE));
     X(squares, DATA_SQUARE)
     X(inverses, DATA_INVERSE)
-    X(dabits, DATA_DABIT)
 #undef X
 
     for (auto& x : this->edabits)
@@ -549,7 +557,8 @@ void MaliciousRingPrep<T>::buffer_personal_edabits(int n_bits, vector<T>& wholes
         int start = queues->distribute(job, buffer_size, 0, BT::default_length);
         this->template buffer_personal_edabits_without_check<0>(n_bits, sums,
                 bits, proc, input_player, start, buffer_size);
-        queues->wrap_up(job);
+        if (start)
+            queues->wrap_up(job);
     }
     else
         this->template buffer_personal_edabits_without_check<0>(n_bits, sums,
@@ -651,10 +660,76 @@ void RingPrep<T>::buffer_dabits_without_check(vector<dabit<T>>& dabits,
         int start = queues->distribute(job, buffer_size, old_size);
         this->buffer_dabits_without_check(dabits,
                 start, dabits.size());
-        queues->wrap_up(job);
+        if (start > old_size)
+            queues->wrap_up(job);
     }
     else
         buffer_dabits_without_check(dabits, old_size, dabits.size());
+}
+
+template<class T>
+void SemiRep3Prep<T>::buffer_dabits(ThreadQueues*)
+{
+    assert(this->protocol);
+    assert(this->proc);
+
+    typedef typename T::bit_type BT;
+    int n_blocks = DIV_CEIL(this->buffer_size, BT::default_length);
+    int n_bits = n_blocks * BT::default_length;
+
+    vector<BT> b(n_blocks);
+
+    vector<array<T, 3>> a(n_bits);
+    Player& P = this->proc->P;
+
+    for (int i = 0; i < 2; i++)
+    {
+        for (auto& x : b)
+            x[i].randomize(this->protocol->shared_prngs[i]);
+
+        int j = P.get_offset(i);
+
+        for (int k = 0; k < n_bits; k++)
+            a[k][j][i] = b[k / BT::default_length][i].get_bit(
+                    k % BT::default_length);
+    }
+
+    // the first multiplication
+    vector<T> first(n_bits), second(n_bits);
+    typename T::Input input(P);
+
+    if (P.my_num() == 0)
+    {
+        for (auto& x : a)
+            input.add_mine(x[0][0] * x[1][1]);
+    }
+    else
+        input.add_other(0);
+
+    input.exchange();
+
+    for (int k = 0; k < n_bits; k++)
+        first[k] = a[k][0] + a[k][1] - 2 * input.finalize(0);
+
+    input.reset_all(P);
+
+    if (P.my_num() != 0)
+    {
+        for (int k = 0; k < n_bits; k++)
+            input.add_mine(first[k].local_mul(a[k][2]));
+    }
+
+    input.add_other(1);
+    input.add_other(2);
+    input.exchange();
+
+    for (int k = 0; k < n_bits; k++)
+    {
+        second[k] = first[k] + a[k][2]
+                - 2 * (input.finalize(1) + input.finalize(2));
+        this->dabits.push_back({second[k],
+            b[k / BT::default_length].get_bit(k % BT::default_length)});
+    }
 }
 
 template<class T>
@@ -718,7 +793,8 @@ void RingPrep<T>::buffer_edabits_without_check(int n_bits, vector<T>& sums,
         ThreadJob job(n_bits, &sums, &bits);
         int start = queues->distribute(job, rounded, 0, dl);
         buffer_edabits_without_check<0>(n_bits, sums, bits, start, rounded);
-        queues->wrap_up(job);
+        if (start)
+            queues->wrap_up(job);
     }
     else
         buffer_edabits_without_check<0>(n_bits, sums, bits, 0, rounded);
@@ -844,7 +920,8 @@ void RingPrep<T>::sanitize(vector<edabit<T>>& edabits, int n_bits,
         SanitizeJob job(&edabits, n_bits, player);
         int start = queues->distribute(job, edabits.size());
         sanitize<0>(edabits, n_bits, player, start, edabits.size());
-        queues->wrap_up(job);
+        if (start)
+            queues->wrap_up(job);
     }
     else
         sanitize<0>(edabits, n_bits, player, 0, edabits.size());
@@ -1027,6 +1104,7 @@ void BufferPrep<T>::get_dabit_no_count(T& a, typename T::bit_type& b)
         InScope in_scope(this->do_count, false);
         ThreadQueues* queues = 0;
         buffer_dabits(queues);
+        assert(not dabits.empty());
     }
     a = dabits.back().first;
     b = dabits.back().second;
@@ -1085,7 +1163,7 @@ template<class T>
 void BufferPrep<T>::buffer_edabits_with_queues(bool strict, int n_bits)
 {
     ThreadQueues* queues = 0;
-    if (BaseMachine::thread_num == 0)
+    if (BaseMachine::thread_num == 0 and BaseMachine::has_singleton())
         queues = &BaseMachine::s().queues;
     buffer_edabits(strict, n_bits, queues);
 }

@@ -10,9 +10,7 @@ from Compiler.GC.types import cbit, sbit, sbitint, sbits
 from Compiler.program import Program
 from Compiler.types import (Array, MemValue, MultiArray, _clear, _secret, cint,
                             regint, sint, sintbit)
-from oram import demux_array, get_n_threads
-
-program = Program.prog
+from Compiler.oram import demux_array, get_n_threads
 
 # Adds messages on completion of heavy computation steps
 debug = False
@@ -44,6 +42,13 @@ B = TypeVar("B", sintbit, sbit)
 
 
 class SqrtOram(Generic[T, B]):
+    """Oblivious RAM using the "Square-Root" algorithm.
+
+    :param MultiArray data: The data with which to initialize the ORAM. One may provide a MultiArray such that every "block" can hold multiple elements (an Array).
+    :param sint value_type: The secret type to use, defaults to sint.
+    :param int k: Leave at 0, this parameter is used to recursively pass down the depth of this ORAM.
+    :param int period: Leave at None, this parameter is used to recursively pass down the top-level period.
+    """
     # TODO: Preferably this is an Array of vectors, but this is currently not supported
     # One should regard these structures as Arrays where an entry may hold more
     # than one value (which is a nice property to have when using the ORAM in
@@ -69,14 +74,6 @@ class SqrtOram(Generic[T, B]):
     t: cint
 
     def __init__(self, data: T | MultiArray, entry_length: int = 1, value_type: Type[T] = sint, k: int = 0, period: int | None = None, initialize: bool = True, empty_data=False) -> None:
-        """Initialize a new Oblivious RAM using the "Square-Root" algorithm.
-
-        Args:
-            data (MultiArray): The data with which to initialize the ORAM. One may provide a MultiArray such that every "block" can hold multiple elements (an Array).
-            value_type (sint): The secret type to use, defaults to sint.
-            k (int): Leave at 0, this parameter is used to recursively pass down the depth of this ORAM.
-            period (int): Leave at None, this parameter is used to recursively pass down the top-level period.
-        """
         global debug, allow_memory_allocation
 
         # Correctly initialize the shuffle (memory) depending on the type of data
@@ -103,6 +100,7 @@ class SqrtOram(Generic[T, B]):
         self.index_size = util.log2(self.n) + 1 # +1 because signed
         self.index_type = value_type.get_type(self.index_size)
         self.entry_length = entry_length
+        self.size = self.n
 
         if debug:
             lib.print_ln(
@@ -632,6 +630,7 @@ class RecursivePositionMap(PositionMap[T, B], SqrtOram[T, B]):
         # The item at logical_address
         # will be in block with index h (block.<h>)
         # at position l in block.data (block.data<l>)
+        program = Program.prog
         h = MemValue(self.value_type.bit_compose(sbits.get_type(program.bit_length)(
             logical_address).right_shift(pack_log, program.bit_length)))
         l = self.value_type.bit_compose(sbits(logical_address) & (pack - 1))

@@ -11,8 +11,9 @@
 #include "Math/gf2n.h"
 
 #ifndef USE_KOS
-#include <libOTe/TwoChooseOne/SoftSpokenOT/TwoOneMalicious.h>
-#include <cryptoTools/Network/IOService.h>
+namespace osuCrypto {
+class Channel;
+}
 #endif
 
 template <class U>
@@ -57,7 +58,6 @@ class OTExtensionWithMatrix : public OTCorrelator<BitMatrix>
     int nsubloops;
 
 #ifndef USE_KOS
-    static osuCrypto::IOService ios;
     osuCrypto::Channel* channel;
 #endif
 

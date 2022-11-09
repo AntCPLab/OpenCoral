@@ -41,7 +41,7 @@ inline ReplicatedBase::ReplicatedBase(Player& P) : P(P)
 {
     assert(P.num_players() == 3);
 	if (not P.is_encrypted())
-		insecure("unencrypted communication");
+		insecure("unencrypted communication", false);
 
 	shared_prngs[0].ReSeed();
 	octetStream os;
@@ -119,6 +119,13 @@ T ProtocolBase<T>::mul(const T& x, const T& y)
     prepare_mul(x, y);
     exchange();
     return finalize_mul();
+}
+
+template<class T>
+void ProtocolBase<T>::prepare_mult(const T& x, const T& y, int n,
+		bool)
+{
+    prepare_mul(x, y, n);
 }
 
 template<class T>

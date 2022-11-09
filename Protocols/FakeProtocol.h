@@ -14,6 +14,51 @@
 #include <cmath>
 
 template<class T>
+class FakeShuffle
+{
+public:
+    FakeShuffle(SubProcessor<T>&)
+    {
+    }
+
+    FakeShuffle(vector<T>& a, size_t n, int unit_size, size_t output_base,
+            size_t input_base, SubProcessor<T>&)
+    {
+        apply(a, n, unit_size, output_base, input_base, 0, 0);
+    }
+
+    size_t generate(size_t)
+    {
+        return 0;
+    }
+
+    void apply(vector<T>& a, size_t n, int unit_size, size_t output_base,
+            size_t input_base, int, bool)
+    {
+        auto source = a.begin() + input_base;
+        auto dest = a.begin() + output_base;
+        for (size_t i = 0; i < n; i++)
+            // just copy
+            *dest++ = *source++;
+
+        if (n > 1)
+        {
+            // swap first two to pass check
+            for (int i = 0; i < unit_size; i++)
+                swap(a[output_base + i], a[output_base + i + unit_size]);
+        }
+    }
+
+    void del(size_t)
+    {
+    }
+
+    void inverse_permutation(vector<T>&, size_t, size_t, size_t)
+    {
+    }
+};
+
+template<class T>
 class FakeProtocol : public ProtocolBase<T>
 {
     PointerVector<T> results;
@@ -31,6 +76,8 @@ class FakeProtocol : public ProtocolBase<T>
     map<int, size_t> ltz_stats;
 
 public:
+    typedef FakeShuffle<T> Shuffler;
+
     Player& P;
 
     FakeProtocol(Player& P) :

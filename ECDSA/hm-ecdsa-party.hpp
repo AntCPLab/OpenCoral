@@ -30,6 +30,8 @@
 #include "GC/ThreadMaster.hpp"
 #include "GC/Secret.hpp"
 #include "Machines/ShamirMachine.hpp"
+#include "Machines/MalRep.hpp"
+#include "Machines/Rep.hpp"
 
 #include <assert.h>
 
@@ -69,4 +71,5 @@ void run(int argc, const char** argv)
     preprocessing(tuples, n_tuples, sk, proc, opts);
 //    check(tuples, sk, {}, P);
     sign_benchmark(tuples, sk, MCp, P, opts, prep_mul ? 0 : &proc);
+    P256Element::finish();
 }

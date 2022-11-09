@@ -36,7 +36,7 @@ public:
     {
         inner_MC.init_open(P, n);
     }
-    void prepare_open(const T& secret)
+    void prepare_open(const T& secret, int = -1)
     {
         inner_MC.prepare_open(secret.get_share());
     }

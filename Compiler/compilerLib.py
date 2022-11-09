@@ -126,6 +126,13 @@ class Compiler:
             help="bit length of sint in binary circuit (default: 0 for arithmetic)",
         )
         parser.add_option(
+            "-G",
+            "--garbled-circuit",
+            dest="garbled",
+            action="store_true",
+            help="compile for binary circuits only (default: false)",
+        )
+        parser.add_option(
             "-F",
             "--field",
             dest="field",

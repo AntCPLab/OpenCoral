@@ -67,7 +67,10 @@ endif
 # MOD = -DMAX_MOD_SZ=10 -DGFP_MOD_SZ=5
 
 LDLIBS = -lmpirxx -lmpir -lsodium $(MY_LDLIBS)
+LDLIBS +=  -Wl,-rpath -Wl,$(CURDIR)/local/lib -L$(CURDIR)/local/lib
 LDLIBS += -lboost_system -lssl -lcrypto
+
+CFLAGS += -I./local/include
 
 ifeq ($(USE_NTL),1)
 CFLAGS += -DUSE_NTL
@@ -100,5 +103,4 @@ ifeq ($(USE_KOS),1)
 CFLAGS += -DUSE_KOS
 else
 CFLAGS += -std=c++17
-LDLIBS += -llibOTe -lcryptoTools
 endif

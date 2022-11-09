@@ -32,6 +32,8 @@ class NonLinear:
             return shift_two(a, m)
         prog = program.Program.prog
         if prog.use_trunc_pr:
+            if not prog.options.ring:
+                prog.curr_tape.require_bit_length(k + prog.security)
             if signed and prog.use_trunc_pr != -1:
                 a += (1 << (k - 1))
             res = sint()

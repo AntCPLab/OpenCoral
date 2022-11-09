@@ -26,6 +26,7 @@ void ExecutionStats::print()
     {
         sorted_stats.insert({x.second, x.first});
     }
+    size_t total = 0;
     for (auto& x : sorted_stats)
     {
         auto opcode = x.second;
@@ -35,7 +36,7 @@ void ExecutionStats::print()
         switch (opcode)
         {
 #define X(NAME, PRE, CODE) case NAME: cerr << #NAME; n_fill -= strlen(#NAME); break;
-        ARITHMETIC_INSTRUCTIONS
+        ALL_INSTRUCTIONS
 #undef X
 #define X(NAME, CODE) case NAME: cerr << #NAME; n_fill -= strlen(#NAME); break;
         COMBI_INSTRUCTIONS
@@ -48,5 +49,7 @@ void ExecutionStats::print()
         for (int i = 0; i < n_fill; i++)
             cerr << " ";
         cerr << dec << calls << endl;
+        total += calls;
     }
+    cerr << "\tTotal:" << string(9, ' ') << total << endl;
 }

@@ -13,6 +13,7 @@ import Compiler.instructions as spdz
 import Compiler.tools as tools
 import collections
 import itertools
+import math
 
 class SecretBitsAF(base.RegisterArgFormat):
     reg_type = 'sb'
@@ -50,6 +51,7 @@ opcodes = dict(
     INPUTBVEC = 0x247,
     SPLIT = 0x248,
     CONVCBIT2S = 0x249,
+    ANDRSVEC = 0x24a,
     XORCBI = 0x210,
     BITDECC = 0x211,
     NOTCB = 0x212,
@@ -155,6 +157,52 @@ class andrs(BinaryVectorInstruction):
 
     def add_usage(self, req_node):
         req_node.increment(('bit', 'triple'), sum(self.args[::4]))
+        req_node.increment(('bit', 'mixed'),
+                           sum(int(math.ceil(x / 64)) for x in self.args[::4]))
+
+class andrsvec(base.VarArgsInstruction, base.Mergeable,
+               base.DynFormatInstruction):
+    """ Constant-vector AND of secret bit registers (vectorized version).
+
+    :param: total number of arguments to follow (int)
+    :param: number of arguments to follow for one operation /
+      operation vector size plus three (int)
+    :param: vector size (int)
+    :param: result vector (sbit)
+    :param: (repeat)...
+    :param: constant operand (sbits)
+    :param: vector operand
+    :param: (repeat)...
+    :param: (repeat from number of arguments to follow for one operation)...
+
+    """
+    code = opcodes['ANDRSVEC']
+
+    def __init__(self, *args, **kwargs):
+        super(andrsvec, self).__init__(*args, **kwargs)
+        for i, n in self.bases(iter(self.args)):
+            size = self.args[i + 1]
+            for x in self.args[i + 2:i + n]:
+                assert x.n == size
+
+    @classmethod
+    def dynamic_arg_format(cls, args):
+        yield 'int'
+        for i, n in cls.bases(args):
+            yield 'int'
+            n_args = (n - 3) // 2
+            assert n_args > 0
+            for j in range(n_args):
+                yield 'sbw'
+            for j in range(n_args + 1):
+                yield 'sb'
+            yield 'int'
+
+    def add_usage(self, req_node):
+        for i, n in self.bases(iter(self.args)):
+            size = self.args[i + 1]
+            req_node.increment(('bit', 'triple'), size * (n - 3) // 2)
+            req_node.increment(('bit', 'mixed'), size)
 
 class ands(BinaryVectorInstruction):
     """ Bitwise AND of secret bit register vector.
@@ -605,6 +653,7 @@ class inputbvec(base.DoNotEliminateInstruction, base.VarArgsInstruction,
         for i, n in cls.bases(args):
             yield 'int'
             yield 'p'
+            assert n > 3
             for j in range(n - 3):
                 yield 'sbw'
             yield 'int'

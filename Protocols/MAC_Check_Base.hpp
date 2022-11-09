@@ -53,7 +53,7 @@ void MAC_Check_Base<T>::init_open(const Player&, int n)
 }
 
 template<class T>
-void MAC_Check_Base<T>::prepare_open(const T& secret)
+void MAC_Check_Base<T>::prepare_open(const T& secret, int)
 {
     secrets.push_back(secret);
 }

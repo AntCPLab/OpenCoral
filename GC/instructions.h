@@ -45,6 +45,7 @@
     X(NOTS, processor.nots(INST)) \
     X(NOTCB, processor.notcb(INST)) \
     X(ANDRS, T::andrs(PROC, EXTRA)) \
+    X(ANDRSVEC, T::andrsvec(PROC, EXTRA)) \
     X(ANDS, T::ands(PROC, EXTRA)) \
     X(ANDM, T::andm(PROC, instruction)) \
     X(ADDCB, C0 = PC1 + PC2) \

@@ -46,7 +46,7 @@ public:
         sizes.reserve(n);
     }
 
-    void prepare_open(const T& secret)
+    void prepare_open(const T& secret, int = -1)
     {
         for (auto& part : secret.get_regs())
             part_MC.prepare_open(part);

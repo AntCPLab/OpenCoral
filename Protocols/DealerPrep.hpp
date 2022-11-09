@@ -7,6 +7,7 @@
 #define PROTOCOLS_DEALERPREP_HPP_
 
 #include "DealerPrep.h"
+#include "GC/SemiSecret.h"
 
 template<class T>
 void DealerPrep<T>::buffer_triples()

@@ -44,7 +44,8 @@ void BitAdder::add(vector<vector<T>>& res, const vector<vector<vector<T>>>& summ
                 &supplies);
         BitAdder().add(res, summands, start,
                 summands[0][0].size(), proc, T::default_length);
-        queues->wrap_up(job);
+        if (start)
+            queues->wrap_up(job);
     }
     else
         add(res, summands, 0, res.size(), proc, length);

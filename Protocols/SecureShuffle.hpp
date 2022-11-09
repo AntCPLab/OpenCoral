@@ -21,7 +21,7 @@ SecureShuffle<T>::SecureShuffle(SubProcessor<T>& proc) :
 template<class T>
 SecureShuffle<T>::SecureShuffle(vector<T>& a, size_t n, int unit_size,
         size_t output_base, size_t input_base, SubProcessor<T>& proc) :
-        proc(proc), unit_size(unit_size)
+        proc(proc), unit_size(unit_size), n_shuffle(0), exact(false)
 {
     pre(a, n, input_base);
 

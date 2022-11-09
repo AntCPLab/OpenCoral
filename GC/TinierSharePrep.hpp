@@ -8,7 +8,7 @@
 
 #include "TinierSharePrep.h"
 
-#include "PersonalPrep.h"
+#include "PersonalPrep.hpp"
 
 namespace GC
 {

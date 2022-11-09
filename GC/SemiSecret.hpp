@@ -8,6 +8,7 @@
 #include "Protocols/MAC_Check_Base.hpp"
 #include "Protocols/DealerMC.h"
 #include "SemiSecret.h"
+#include "Semi.h"
 
 namespace GC
 {
@@ -58,6 +59,60 @@ void SemiSecretBase<T, V>::trans(Processor<T>& processor, int n_outputs,
                 processor.S[args[i] + l] = square.rows[i - output_base];
             }
         }
+}
+
+inline
+void SemiSecret::andrsvec(Processor<SemiSecret>& processor,
+        const vector<int>& args)
+{
+    int N_BITS = default_length;
+    auto protocol = ShareThread<SemiSecret>::s().protocol;
+    assert(protocol);
+    protocol->init_mul();
+    auto it = args.begin();
+    while (it < args.end())
+    {
+        int n_args = (*it++ - 3) / 2;
+        int size = *it++;
+        it += n_args;
+        int base = *it++;
+        assert(n_args <= N_BITS);
+        for (int i = 0; i < size; i += N_BITS)
+        {
+            square64 square;
+            for (int j = 0; j < n_args; j++)
+                square.rows[j] = processor.S.at(*(it + j) + i / N_BITS).get();
+            int n_ops = min(N_BITS, size - i);
+            square.transpose(n_args, n_ops);
+            for (int j = 0; j < n_ops; j++)
+            {
+                long bit = processor.S.at(base + i / N_BITS).get_bit(j);
+                auto y_ext = SemiSecret(bit).extend_bit();
+                protocol->prepare_mult(square.rows[j], y_ext, n_args, true);
+            }
+        }
+        it += n_args;
+    }
+
+    protocol->exchange();
+
+    it = args.begin();
+    while (it < args.end())
+    {
+        int n_args = (*it++ - 3) / 2;
+        int size = *it++;
+        for (int i = 0; i < size; i += N_BITS)
+        {
+            int n_ops = min(N_BITS, size - i);
+            square64 square;
+            for (int j = 0; j < n_ops; j++)
+                square.rows[j] = protocol->finalize_mul(n_args).get();
+            square.transpose(n_ops, n_args);
+            for (int j = 0; j < n_args; j++)
+                processor.S.at(*(it + j) + i / N_BITS) = square.rows[j];
+        }
+        it += 2 * n_args + 1;
+    }
 }
 
 template<class T, class V>

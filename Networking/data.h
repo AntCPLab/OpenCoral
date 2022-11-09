@@ -26,7 +26,7 @@ inline void short_memcpy(void* out, void* in, size_t n_bytes)
     X(1) X(2) X(3) X(4) X(5) X(6) X(7) X(8)
 #undef X
     default:
-        throw invalid_length("length outside range");
+        throw invalid_length("length outside range: " + to_string(n_bytes));
     }
 }
 

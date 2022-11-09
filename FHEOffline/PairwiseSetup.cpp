@@ -116,6 +116,14 @@ void secure_init(T& setup, Player& P, U& machine,
         ofstream file(filename);
         os.output(file);
     }
+
+    if (OnlineOptions::singleton.verbose)
+    {
+        cerr << "Ciphertext length: " << params.p0().numBits();
+        for (size_t i = 1; i < params.FFTD().size(); i++)
+            cerr << "+" << params.FFTD()[i].get_prime().numBits();
+        cerr << endl;
+    }
 }
 
 template <class FD>

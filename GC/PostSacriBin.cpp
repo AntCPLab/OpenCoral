@@ -10,6 +10,7 @@
 #include "Protocols/Replicated.hpp"
 #include "Protocols/MaliciousRepMC.hpp"
 #include "Protocols/MalRepRingPrep.hpp"
+#include "Protocols/ReplicatedPrep.hpp"
 #include "ShareSecret.hpp"
 
 namespace GC

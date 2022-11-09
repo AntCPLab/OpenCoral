@@ -10,6 +10,7 @@ import util
 
 program.options_from_args()
 sfix.set_precision_from_args(program, adapt_ring=True)
+ml.use_mux = 'mux' in program.args
 MultiArray.disable_index_checks()
 
 if 'profile' in program.args:

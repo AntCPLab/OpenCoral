@@ -7,8 +7,7 @@
 #include "Protocols/dabit.h"
 #include "Math/Setup.h"
 #include "GC/BitPrepFiles.h"
-
-#include "Protocols/MascotPrep.hpp"
+#include "Tools/benchmarking.h"
 
 template<class T>
 Preprocessing<T>* Preprocessing<T>::get_live_prep(SubProcessor<T>* proc,
@@ -42,6 +41,20 @@ Preprocessing<T>* Preprocessing<T>::get_new(
     return new GC::BitPrepFiles<T>(N,
         get_prep_sub_dir<T>(PREP_DIR, N.num_players()), usage,
         BaseMachine::thread_num);
+}
+
+template<class T>
+T Preprocessing<T>::get_random_from_inputs(int nplayers)
+{
+  T res;
+  for (int j = 0; j < nplayers; j++)
+    {
+      T tmp;
+      typename T::open_type _;
+      this->get_input_no_count(tmp, _, j);
+      res += tmp;
+    }
+  return res;
 }
 
 template<class T>

@@ -7,9 +7,6 @@ from Compiler.GC.instructions import *
 
 bits.unit = 64
 
-program.to_merge = [ldmsdi, stmsdi, ldmsd, stmsd, stmsdci, xors, andrs]
-program.stop_class = type(None)
-
 from Compiler.circuit_oram import *
 from Compiler import circuit_oram
 

@@ -11,7 +11,7 @@
 #include "Math/Z2k.h"
 #include "GC/square64.h"
 
-template<class T> class ReplicatedPrep2k;
+template<class T> class SemiRep3Prep;
 
 template<int K>
 class Rep3Share2 : public Rep3Share<Z2<K>>
@@ -26,7 +26,7 @@ public:
     typedef ReplicatedInput<Rep3Share2> Input;
     typedef ReplicatedPO<This> PO;
     typedef SpecificPrivateOutput<This> PrivateOutput;
-    typedef ReplicatedPrep2k<Rep3Share2> LivePrep;
+    typedef SemiRep3Prep<Rep3Share2> LivePrep;
     typedef Rep3Share2 Honest;
     typedef SignedZ2<K> clear;
 

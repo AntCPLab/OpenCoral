@@ -614,6 +614,18 @@ class submr(base.SubBase):
     code = base.opcodes['SUBMR']
     arg_format = ['sw','c','s']
 
+@base.vectorize
+class prefixsums(base.Instruction):
+    """ Prefix sum.
+
+    :param: result (sint)
+    :param: input (sint)
+
+    """
+    __slots__ = []
+    code = base.opcodes['PREFIXSUMS']
+    arg_format = ['sw','s']
+
 @base.gf2n
 @base.vectorize
 class mulc(base.MulBase):
@@ -2301,6 +2313,7 @@ class dotprods(base.VarArgsInstruction, base.DataInstruction,
         yield 'int'
         for i, n in self.bases(args):
             yield 's' + field + 'w'
+            assert n > 2
             for j in range(n - 2):
                 yield 's' + field
             yield 'int'

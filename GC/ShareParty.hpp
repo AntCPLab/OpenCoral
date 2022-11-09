@@ -16,14 +16,12 @@
 #include "Protocols/fake-stuff.h"
 
 #include "ShareThread.hpp"
-#include "RepPrep.hpp"
 #include "ThreadMaster.hpp"
 #include "Thread.hpp"
 #include "ShareSecret.hpp"
 
 #include "Protocols/Replicated.hpp"
 #include "Protocols/ReplicatedPrep.hpp"
-#include "Protocols/MaliciousRepMC.hpp"
 #include "Protocols/fake-stuff.hpp"
 
 namespace GC

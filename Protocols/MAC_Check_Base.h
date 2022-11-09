@@ -59,7 +59,7 @@ public:
     /// Initialize opening round
     virtual void init_open(const Player& P, int n = 0);
     /// Add value to be opened
-    virtual void prepare_open(const T& secret);
+    virtual void prepare_open(const T& secret, int n_bits = -1);
     /// Run opening protocol
     virtual void exchange(const Player& P) = 0;
     /// Get next opened value

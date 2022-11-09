@@ -651,8 +651,9 @@ void SubProcessor<T>::conv2ds(const Instruction& instruction)
 template<class T>
 void SubProcessor<T>::secure_shuffle(const Instruction& instruction)
 {
-    SecureShuffle<T>(S, instruction.get_size(), instruction.get_n(),
-            instruction.get_r(0), instruction.get_r(1), *this);
+    typename T::Protocol::Shuffler(S, instruction.get_size(),
+            instruction.get_n(), instruction.get_r(0), instruction.get_r(1),
+            *this);
 }
 
 template<class T>

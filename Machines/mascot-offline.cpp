@@ -9,6 +9,7 @@
 #include "Math/gfp.hpp"
 #include "Processor/FieldMachine.hpp"
 #include "Processor/OfflineMachine.hpp"
+#include "Protocols/MascotPrep.hpp"
 
 int main(int argc, const char** argv)
 {

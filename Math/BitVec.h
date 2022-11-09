@@ -69,6 +69,8 @@ public:
     {
         if (n == -1)
             pack(os);
+        else if (n == 1)
+            os.store_int<1>(this->a & 1);
         else
             os.store_int(super::mask(n).get(), DIV_CEIL(n, 8));
     }
@@ -77,6 +79,8 @@ public:
     {
         if (n == -1)
             unpack(os);
+        else if (n == 1)
+            this->a = os.get_int<1>();
         else
             this->a = os.get_int(DIV_CEIL(n, 8));
     }

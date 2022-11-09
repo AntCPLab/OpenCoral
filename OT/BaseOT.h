@@ -68,7 +68,7 @@ public:
 	void set_receiver_inputs(const BitVector& new_inputs)
 	{
 		if ((int)new_inputs.size() != nOT)
-			throw invalid_length();
+			throw invalid_length("BaseOT");
 		receiver_inputs = new_inputs;
 	}
 

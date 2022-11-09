@@ -10,6 +10,7 @@
 
 #include "Machines/SPDZ.hpp"
 #include "ShareVector.hpp"
+#include "MascotPrep.hpp"
 
 template<int L>
 LowGearKeyGen<L>::LowGearKeyGen(Player& P, PairwiseMachine& machine,

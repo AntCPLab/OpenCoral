@@ -84,6 +84,7 @@ enum
     SUBSI = 0x2A,
     SUBCFI = 0x2B,
     SUBSFI = 0x2C,
+    PREFIXSUMS = 0x2D,
     // Multiplication/division/other arithmetic
     MULC = 0x30,
     MULM = 0x31,

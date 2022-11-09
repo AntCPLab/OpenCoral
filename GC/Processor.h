@@ -91,6 +91,7 @@ public:
     void and_(const vector<int>& args, bool repeat);
     void andrs(const vector<int>& args) { and_(args, true); }
     void ands(const vector<int>& args) { and_(args, false); }
+    void andrsvec(const vector<int>& args);
 
     void input(const vector<int>& args);
     void inputb(typename T::Input& input, ProcessorBase& input_processor,

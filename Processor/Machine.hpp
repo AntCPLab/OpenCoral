@@ -199,7 +199,7 @@ Machine<sint, sgf2n>::~Machine()
 }
 
 template<class sint, class sgf2n>
-void Machine<sint, sgf2n>::load_program(const string& threadname,
+size_t Machine<sint, sgf2n>::load_program(const string& threadname,
     const string& filename)
 {
   progs.push_back(N.num_players());
@@ -208,6 +208,7 @@ void Machine<sint, sgf2n>::load_program(const string& threadname,
   M2.minimum_size(SGF2N, CGF2N, progs[i], threadname);
   Mp.minimum_size(SINT, CINT, progs[i], threadname);
   Mi.minimum_size(NONE, INT, progs[i], threadname);
+  return progs.back().size();
 }
 
 template<class sint, class sgf2n>

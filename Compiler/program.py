@@ -29,6 +29,7 @@ data_types = dict(
     bit=2,
     inverse=3,
     dabit=4,
+    mixed=5,
 )
 
 field_types = dict(
@@ -45,6 +46,7 @@ class defaults:
     ring = 0
     field = 0
     binary = 0
+    garbled = False
     prime = None
     galois = 40
     budget = 100000
@@ -150,10 +152,11 @@ class Program(object):
             gc.ldmsd,
             gc.stmsd,
             gc.stmsdci,
-            gc.xors,
             gc.andrs,
             gc.ands,
             gc.inputb,
+            gc.inputbvec,
+            gc.reveal,
         ]
         self.use_trunc_pr = False
         """ Setting whether to use special probabilistic truncation. """
@@ -350,7 +353,8 @@ class Program(object):
         print("Writing to", sch_filename)
         sch_file.write(str(self.max_par_tapes()) + "\n")
         sch_file.write(str(len(nonempty_tapes)) + "\n")
-        sch_file.write(" ".join(tape.name for tape in nonempty_tapes) + "\n")
+        sch_file.write(" ".join("%s:%d" % (tape.name, len(tape))
+                                for tape in nonempty_tapes) + "\n")
         sch_file.write("1 0\n")
         sch_file.write("0\n")
         sch_file.write(" ".join(sys.argv) + "\n")
@@ -506,7 +510,8 @@ class Program(object):
         self.set_security(security)
 
     def optimize_for_gc(self):
-        pass
+        import Compiler.GC.instructions as gc
+        self.to_merge += [gc.xors]
 
     def get_tape_counter(self):
         res = self.tape_counter
@@ -686,6 +691,7 @@ class Tape:
             self.purged = False
             self.n_rounds = 0
             self.n_to_merge = 0
+            self.rounds = Tape.ReqNum()
             self.warn_about_mem = parent.program.warn_about_mem[-1]
 
         def __len__(self):
@@ -750,6 +756,7 @@ class Tape:
                 inst.add_usage(req_node)
             req_node.num["all", "round"] += self.n_rounds
             req_node.num["all", "inv"] += self.n_to_merge
+            req_node.num += self.rounds
 
         def expand_cisc(self):
             new_instructions = []
@@ -796,7 +803,14 @@ class Tape:
         self.name = name
         self.outfile = self.program.programs_dir + "/Bytecode/" + self.name + ".bc"
 
+    def __len__(self):
+        if self.purged:
+            return self.size
+        else:
+            return sum(len(block) for block in self.basicblocks)
+
     def purge(self):
+        self.size = len(self)
         for block in self.basicblocks:
             block.purge()
         self._is_empty = len(self.basicblocks) == 0
@@ -865,6 +879,8 @@ class Tape:
                     numrounds = merger.longest_paths_merge()
                     block.n_rounds = numrounds
                     block.n_to_merge = len(merger.open_nodes)
+                    if options.verbose:
+                        block.rounds = merger.req_num
                     if merger.counter and self.program.verbose:
                         print(
                             "Block requires",
@@ -1113,7 +1129,8 @@ class Tape:
         __rmul__ = __mul__
 
         def set_all(self, value):
-            if value == float("inf") and self["all", "inv"] > 0:
+            if Program.prog.options.verbose and \
+               value == float("inf") and self["all", "inv"] > 0:
                 print("Going to unknown from %s" % self)
             res = Tape.ReqNum()
             for i in self:
@@ -1142,6 +1159,8 @@ class Tape:
             res = []
             for req, num in self.items():
                 domain = t(req[0])
+                if num < 0:
+                    num = float('inf')
                 n = "%12.0f" % num
                 if req[1] == "input":
                     res += ["%s %s inputs from player %d" % (n, domain, req[2])]

@@ -8,16 +8,12 @@
 
 #include "ShareSecret.h"
 
-#include "MaliciousRepSecret.h"
-#include "Protocols/MaliciousRepMC.h"
 #include "ShareThread.h"
 #include "Thread.h"
 #include "square64.h"
 
 #include "Protocols/Share.h"
 
-#include "Protocols/ReplicatedMC.hpp"
-#include "Protocols/Beaver.hpp"
 #include "ShareParty.h"
 #include "ShareThread.hpp"
 #include "Thread.hpp"
@@ -286,6 +282,12 @@ void ShareSecret<U>::and_(
         bool repeat)
 {
     ShareThread<U>::s().and_(processor, args, repeat);
+}
+
+template<class U>
+void ShareSecret<U>::andrsvec(Processor<U>& processor, const vector<int>& args)
+{
+    ShareThread<U>::s().andrsvec(processor, args);
 }
 
 template<class U>

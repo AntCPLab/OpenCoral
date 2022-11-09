@@ -71,20 +71,6 @@ inline void mpn_add_fixed_n<2>(mp_limb_t* res, const mp_limb_t* x, const mp_limb
 }
 
 template <>
-inline void mpn_add_fixed_n<3>(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y)
-{
-    memcpy(res, y, 3 * sizeof(mp_limb_t));
-    __asm__ (
-            "add %3, %0 \n"
-            "adc %4, %1 \n"
-            "adc %5, %2 \n"
-            : "+&r"(res[0]), "+&r"(res[1]), "+r"(res[2])
-            : "rm"(x[0]), "rm"(x[1]), "rm"(x[2])
-            : "cc"
-    );
-}
-
-template <>
 inline void mpn_add_fixed_n<4>(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y)
 {
     memcpy(res, y, 4 * sizeof(mp_limb_t));

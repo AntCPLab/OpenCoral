@@ -18,6 +18,8 @@ using namespace std;
 
 class NoMemory
 {
+public:
+    void resize_min(size_t, const char*) {}
 };
 
 namespace GC

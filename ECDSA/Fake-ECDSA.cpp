@@ -22,4 +22,5 @@ int main()
     generate_mac_keys<Share<P256Element::Scalar>>(key, 2, prefix);
     make_mult_triples<Share<P256Element::Scalar>>(key, 2, 1000, false, prefix);
     make_inverse<Share<P256Element::Scalar>>(key, 2, 1000, false, prefix);
+    P256Element::finish();
 }

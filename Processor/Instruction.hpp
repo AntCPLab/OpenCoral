@@ -130,6 +130,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case DABIT:
       case SHUFFLE:
       case ACCEPTCLIENTCONNECTION:
+      case PREFIXSUMS:
         get_ints(r, s, 2);
         break;
       // instructions with 1 register operand
@@ -458,6 +459,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case STMSDCI:
       case XORS:
       case ANDRS:
+      case ANDRSVEC:
       case ANDS:
       case INPUTB:
       case INPUTBVEC:
@@ -646,6 +648,7 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
   int offset = 0;
   int size_offset = 0;
   int size = this->size;
+  bool n_prefix = 0;
 
   // special treatment for instructions writing to different types
   switch (opcode)
@@ -731,25 +734,17 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
       offset = 1;
       size_offset = -1;
       break;
+  case ANDRSVEC:
+      n_prefix = 2;
+      break;
   case INPUTB:
       skip = 4;
       offset = 3;
       size_offset = -2;
       break;
   case INPUTBVEC:
-  {
-	  int res = 0;
-	  auto it = start.begin();
-	  while (it < start.end())
-	  {
-		  int n = *it - 3;
-		  it += 3;
-		  assert(it + n <= start.end());
-		  for (int i = 0; i < n; i++)
-			  res = max(res, *it++);
-	  }
-	  return res + 1;
-  }
+      n_prefix = 3;
+      break;
   case ANDM:
   case NOTS:
   case NOTCB:
@@ -793,6 +788,22 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
   case WRITESOCKETINT:
       size = n;
       break;
+  }
+
+  if (n_prefix > 0)
+  {
+      int res = 0;
+      auto it = start.begin();
+      while (it < start.end())
+      {
+          int n = *it - n_prefix;
+          int size = DIV_CEIL(*(it + 1), 64);
+          it += n_prefix;
+          assert(it + n <= start.end());
+          for (int i = 0; i < n; i++)
+              res = max(res, *it++ + size);
+      }
+      return res;
   }
 
   if (skip > 0)
@@ -1323,7 +1334,12 @@ void Program::execute(Processor<sint, sgf2n>& Proc) const
       (void) start;
 
 #ifdef COUNT_INSTRUCTIONS
+#ifdef TIME_INSTRUCTIONS
+      RunningTimer timer;
+      int PC = Proc.PC;
+#else
       Proc.stats[p[Proc.PC].get_opcode()]++;
+#endif
 #endif
 
 #ifdef OUTPUT_INSTRUCTIONS
@@ -1352,6 +1368,10 @@ void Program::execute(Processor<sint, sgf2n>& Proc) const
         default:
           instruction.execute(Proc);
         }
+
+#if defined(COUNT_INSTRUCTIONS) and defined(TIME_INSTRUCTIONS)
+      Proc.stats[p[PC].get_opcode()] += timer.elapsed() * 1e9;
+#endif
     }
 }
 

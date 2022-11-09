@@ -68,6 +68,7 @@ void ThreadMaster<T>::run()
     P = new PlainPlayer(N, "main");
 
     machine.load_schedule(progname);
+    machine.reset(machine.progs[0], memory);
 
     for (int i = 0; i < machine.nthreads; i++)
         threads.push_back(new_thread(i));

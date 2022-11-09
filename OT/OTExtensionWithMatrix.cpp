@@ -9,7 +9,10 @@
 #ifndef USE_KOS
 #include "Networking/PlayerCtSocket.h"
 
-osuCrypto::IOService OTExtensionWithMatrix::ios;
+#include <libOTe/TwoChooseOne/SoftSpokenOT/TwoOneMalicious.h>
+#include <cryptoTools/Network/IOService.h>
+
+osuCrypto::IOService ot_extension_ios;
 #endif
 
 #include "OTCorrelator.hpp"
@@ -112,7 +115,7 @@ void OTExtensionWithMatrix::extend(int nOTs_requested, const BitVector& newRecei
     resize(nOTs_requested);
 
     if (not channel)
-        channel = new osuCrypto::Channel(ios, new PlayerCtSocket(*player));
+        channel = new osuCrypto::Channel(ot_extension_ios, new PlayerCtSocket(*player));
 
     if (player->my_num())
     {

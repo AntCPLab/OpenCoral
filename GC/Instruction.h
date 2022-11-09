@@ -64,6 +64,7 @@ enum
     INPUTBVEC = 0x247,
     SPLIT = 0x248,
     CONVCBIT2S = 0x249,
+    ANDRSVEC = 0x24a,
     // write to clear
     CLEAR_WRITE = 0x210,
     XORCBI = 0x210,

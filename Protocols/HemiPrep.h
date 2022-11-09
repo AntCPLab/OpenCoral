@@ -30,6 +30,10 @@ class HemiPrep : public SemiHonestRingPrep<T>
 
     map<string, Timer> timers;
 
+    SemiPrep<T>* two_party_prep;
+
+    SemiPrep<T>& get_two_party_prep();
+
 public:
     static void basic_setup(Player& P);
     static void teardown();
@@ -40,7 +44,7 @@ public:
     HemiPrep(SubProcessor<T>* proc, DataPositions& usage) :
             BufferPrep<T>(usage),
             BitPrep<T>(proc, usage), RingPrep<T>(proc, usage),
-            SemiHonestRingPrep<T>(proc, usage)
+            SemiHonestRingPrep<T>(proc, usage), two_party_prep(0)
     {
     }
     ~HemiPrep();
@@ -48,6 +52,9 @@ public:
     vector<Multiplier<FD>*>& get_multipliers();
 
     void buffer_triples();
+
+    void buffer_bits();
+    void buffer_dabits(ThreadQueues* queues);
 };
 
 #endif /* PROTOCOLS_HEMIPREP_H_ */

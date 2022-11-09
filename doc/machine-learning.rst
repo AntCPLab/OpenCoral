@@ -5,6 +5,9 @@ MP-SPDZ supports a limited subset of the Keras interface for machine
 learning. This includes the SGD and Adam optimizers and the following
 layer types: dense, 2D convolution, 2D max-pooling, and dropout.
 
+The machine learning code only works in with arithmetic machines, that
+is, you cannot compile it with ``-B``.
+
 In the following we will walk through the example code in
 ``keras_mnist_dense.mpc``, which trains a dense neural network for
 MNIST. It starts by defining tensors to hold data::

@@ -17,19 +17,17 @@ template <class T>
 class PrepLessInput : public InputBase<T>
 {
 protected:
-    vector<T> shares;
-    size_t i_share;
+    PointerVector<T> shares;
 
 public:
     PrepLessInput(SubProcessor<T>* proc) :
-            InputBase<T>(proc ? proc->Proc : 0), i_share(0) {}
+            InputBase<T>(proc ? proc->Proc : 0) {}
     virtual ~PrepLessInput() {}
 
     virtual void reset(int player) = 0;
     virtual void add_mine(const typename T::open_type& input,
             int n_bits = -1) = 0;
     virtual void add_other(int player, int n_bits = - 1) = 0;
-    virtual void send_mine() = 0;
     virtual void finalize_other(int player, T& target, octetStream& o,
             int n_bits = -1) = 0;
 

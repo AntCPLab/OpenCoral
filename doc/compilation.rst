@@ -54,6 +54,11 @@ The following options influence the computation domain:
 
    Compile for binary computation using *integer length* as default.
 
+.. cmdoption:: -G
+	       --garbled-circuit
+
+   Compile for garbled circuits (does not replace :option:`-B`).
+
 For arithmetic computation (:option:`-F`, :option:`-P`, and
 :option:`-R`) you can set the bit
 length during execution using ``program.set_bit_length(length)``. For

@@ -12,9 +12,15 @@
 
 template<class T>
 SemiInput<T>::SemiInput(SubProcessor<T>* proc, PlayerBase& P) :
-        InputBase<T>(proc), P(P)
+        PairwiseKeyInput<T>(proc, P), P(P)
 {
-    shares.resize(P.num_players());
+    this->reset_all(P);
+}
+
+template<class T>
+PairwiseKeyInput<T>::PairwiseKeyInput(SubProcessor<T>* proc, PlayerBase& P) :
+        PrepLessInput<T>(proc)
+{
     vector<octetStream> to_send(P.num_players()), to_receive;
     for (int i = 0; i < P.num_players(); i++)
     {
@@ -26,13 +32,13 @@ SemiInput<T>::SemiInput(SubProcessor<T>* proc, PlayerBase& P) :
     for (int i = 0; i < P.num_players(); i++)
         if (i != P.my_num())
             recv_prngs[i].SetSeed(to_receive[i].consume(SEED_SIZE));
-    this->reset_all(P);
 }
 
 template<class T>
 void SemiInput<T>::reset(int player)
 {
-    shares[player].clear();
+    if (player == P.my_num())
+        this->shares.clear();
 }
 
 template<class T>
@@ -43,9 +49,9 @@ void SemiInput<T>::add_mine(const typename T::clear& input, int)
 	for (int i = 0; i < P.num_players(); i++)
 	{
 	    if (i != P.my_num())
-	        sum += send_prngs[i].template get<typename T::open_type>();
+	        sum += this->send_prngs[i].template get<typename T::open_type>();
 	}
-    shares[P.my_num()].push_back(input - sum);
+	this->shares.push_back(input - sum);
 }
 
 template<class T>
@@ -62,13 +68,13 @@ template<class T>
 void SemiInput<T>::finalize_other(int player, T& target, octetStream&,
         int)
 {
-    target = recv_prngs[player].template get<T>();
+    target = this->recv_prngs[player].template get<T>();
 }
 
 template<class T>
 T SemiInput<T>::finalize_mine()
 {
-    return shares[P.my_num()].next();
+    return this->shares.next();
 }
 
 #endif

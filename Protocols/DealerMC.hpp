@@ -46,10 +46,10 @@ void DealerMC<T>::init_open(const Player& P, int n)
 }
 
 template<class T>
-void DealerMC<T>::prepare_open(const T& secret)
+void DealerMC<T>::prepare_open(const T& secret, int n_bits)
 {
     if (sub_player)
-        internal.prepare_open(secret);
+        internal.prepare_open(secret, n_bits);
     else
     {
         if (secret != T())

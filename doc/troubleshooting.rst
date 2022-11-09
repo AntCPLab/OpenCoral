@@ -140,6 +140,16 @@ This indicates an error in the internal accounting of
 preprocessing. Please file a bug report.
 
 
+Required prime bit length is not the same as ``-F`` parameter during compilation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is related to statistical masking that requires the prime to be a
+fair bit larger than the actual "payload". The technique goes to back
+to `Catrina and de Hoogh
+<https://www.researchgate.net/profile/Sebastiaan-Hoogh/publication/225092133_Improved_Primitives_for_Secure_Multiparty_Integer_Computation/links/0c960533585ad99868000000/Improved-Primitives-for-Secure-Multiparty-Integer-Computation.pdf>`_.
+See also the paragraph on unknown prime moduli in :ref:`nonlinear`.
+
+
 Windows/VirtualBox performance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

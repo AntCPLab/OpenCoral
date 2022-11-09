@@ -9,11 +9,13 @@
 #include "Math/FixedVec.h"
 #include "Math/Integer.h"
 #include "Protocols/Replicated.h"
+#include "Protocols/Rep3Shuffler.h"
 #include "GC/ShareSecret.h"
 #include "ShareInterface.h"
 #include "Processor/Instruction.h"
 
 template<class T> class ReplicatedPrep;
+template<class T> class SemiRep3Prep;
 template<class T> class ReplicatedRingPrep;
 template<class T> class ReplicatedPO;
 template<class T> class SpecificPrivateOutput;
@@ -109,7 +111,8 @@ public:
     typedef ReplicatedInput<Rep3Share> Input;
     typedef ReplicatedPO<This> PO;
     typedef SpecificPrivateOutput<This> PrivateOutput;
-    typedef ReplicatedPrep<Rep3Share> LivePrep;
+    typedef typename conditional<T::characteristic_two,
+            ReplicatedPrep<Rep3Share>, SemiRep3Prep<Rep3Share>>::type LivePrep;
     typedef ReplicatedRingPrep<Rep3Share> TriplePrep;
     typedef Rep3Share Honest;
 

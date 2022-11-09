@@ -261,6 +261,7 @@ class Merger:
         instructions = self.instructions
         merge_nodes = self.open_nodes
         depths = self.depths
+        self.req_num = defaultdict(lambda: 0)
         if not merge_nodes:
             return 0
 
@@ -281,6 +282,7 @@ class Merger:
                 print('Merging %d %s in round %d/%d' % \
                     (len(merge), t.__name__, i, len(merges)))
             self.do_merge(merge)
+            self.req_num[t.__name__, 'round'] += 1
 
         preorder = None
 
@@ -530,7 +532,9 @@ class Merger:
             can_eliminate_defs = True
             for reg in inst.get_def():
                 for dup in reg.duplicates:
-                    if not dup.can_eliminate:
+                    if not (dup.can_eliminate and reduce(
+                            operator.and_,
+                            (x.can_eliminate for x in dup.vector), True)):
                         can_eliminate_defs = False
                         break
             # remove if instruction has result that isn't used

@@ -139,7 +139,7 @@ def print_str_if(cond, ss, *args):
     """ Print string conditionally. See :py:func:`print_ln_if` for details. """
     if util.is_constant(cond):
         if cond:
-            print_ln(ss, *args)
+            print_str(ss, *args)
     else:
         subs = ss.split('%s')
         assert len(subs) == len(args) + 1
@@ -1021,9 +1021,11 @@ def map_reduce_single(n_parallel, n_loops, initializer=lambda *x: [],
             def f(i):
                 state = tuplify(initializer())
                 start_block = get_block()
+                j = i * n_parallel
+                one = regint(1)
                 for k in range(n_parallel):
-                    j = i * n_parallel + k
                     state = reducer(tuplify(loop_body(j)), state)
+                    j += one
                 if n_parallel > 1 and start_block != get_block():
                     print('WARNING: parallelization broken '
                           'by control flow instruction')

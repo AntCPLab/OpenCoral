@@ -128,6 +128,9 @@ void OTMultiplier<T>::multiply()
             case DATA_TRIPLE:
                 multiplyForTriples();
                 break;
+            case DATA_MIXED:
+                multiplyForMixed();
+                break;
             default:
                 throw not_implemented();
             }
@@ -184,6 +187,55 @@ void SemiMultiplier<T>::multiplyForBits()
 
     rot_ext.set_role(BOTH);
     otCorrelator.set_role(BOTH);
+
+    this->outbox.push({});
+}
+
+template<class T>
+void SemiMultiplier<T>::multiplyForMixed()
+{
+    auto& rot_ext = this->rot_ext;
+
+    typedef Square<BitVec> X;
+    OTCorrelator<Matrix<X>> otCorrelator(
+            this->generator.players[this->thread_num], BOTH, true);
+
+    BitVector aBits = this->generator.valueBits[0];
+    rot_ext.extend_correlated(aBits);
+
+    auto& baseSenderOutputs = otCorrelator.matrices;
+    auto& baseReceiverOutput = otCorrelator.senderOutputMatrices[0];
+
+    rot_ext.hash_outputs(aBits.size(), baseSenderOutputs, baseReceiverOutput);
+
+    if (this->generator.get_player().num_players() == 2)
+    {
+        c_output.clear();
+
+        for (unsigned j = 0; j < aBits.size(); j++)
+        {
+            this->generator.valueBits[1].set_portion(j,
+                    BitVec(baseSenderOutputs[0][j] ^ baseSenderOutputs[1][j]));
+            c_output.push_back(baseReceiverOutput[j] ^ baseSenderOutputs[0][j]);
+        }
+
+        this->outbox.push({});
+        return;
+    }
+
+    otCorrelator.setup_for_correlation(aBits, baseSenderOutputs,
+            baseReceiverOutput);
+    otCorrelator.correlate(0, otCorrelator.receiverOutputMatrix.squares.size(),
+            this->generator.valueBits[1], false, -1);
+
+    c_output.clear();
+
+    for (unsigned j = 0; j < aBits.size(); j++)
+    {
+        c_output.push_back(
+                otCorrelator.receiverOutputMatrix[j]
+                        ^ otCorrelator.senderOutputMatrices[0][j]);
+    }
 
     this->outbox.push({});
 }
@@ -591,4 +643,10 @@ template<class T>
 void OTMultiplier<T>::multiplyForBits()
 {
     throw runtime_error("bit generation not implemented in this case");
+}
+
+template<class T>
+void OTMultiplier<T>::multiplyForMixed()
+{
+    throw runtime_error("mixed generation not implemented in this case");
 }

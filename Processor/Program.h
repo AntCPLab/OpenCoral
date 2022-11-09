@@ -36,6 +36,8 @@ class Program
       unknown_usage(false), writes_persistence(false)
     { compute_constants(); }
 
+  size_t size() const { return p.size(); }
+
   // Read in a program
   void parse(string filename);
   void parse(istream& s);

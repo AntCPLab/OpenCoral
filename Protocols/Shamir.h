@@ -49,7 +49,8 @@ public:
     Player& P;
 
     static U get_rec_factor(int i, int n);
-    static U get_rec_factor(int i, int n_total, int start, int threshold);
+    static U get_rec_factor(int i, int n_total, int start, int threshold,
+            int target = -1);
 
     Shamir(Player& P, int threshold = 0);
     ~Shamir();

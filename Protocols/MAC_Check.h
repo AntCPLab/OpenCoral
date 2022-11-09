@@ -92,7 +92,7 @@ class Tree_MAC_Check : public TreeSum<typename U::open_type>, public MAC_Check_B
   virtual ~Tree_MAC_Check();
 
   virtual void init_open(const Player& P, int n = 0);
-  virtual void prepare_open(const U& secret);
+  virtual void prepare_open(const U& secret, int = -1);
   virtual void exchange(const Player& P);
 
   virtual void AddToCheck(const U& share, const T& value, const Player& P);
@@ -143,7 +143,7 @@ public:
   MAC_Check_Z2k(const T& ai, int opening_sum=10, int max_broadcast=10, int send_player=0);
   MAC_Check_Z2k(const T& ai, Names& Nms, int thread_num);
 
-  void prepare_open(const W& secret);
+  void prepare_open(const W& secret, int = -1);
   void prepare_open_no_mask(const W& secret);
 
   virtual void Check(const Player& P);
@@ -184,7 +184,7 @@ public:
   ~Direct_MAC_Check();
 
   void init_open(const Player& P, int n = 0);
-  void prepare_open(const T& secret);
+  void prepare_open(const T& secret, int = -1);
   void exchange(const Player& P);
 };
 

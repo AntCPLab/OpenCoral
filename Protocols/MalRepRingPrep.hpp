@@ -165,7 +165,8 @@ void TripleShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
         TripleSacrificeJob job(&triples, &check_triples);
         int start = queues->distribute(job, N);
         triple_sacrifice(triples, check_triples, P, MC, start, N);
-        queues->wrap_up(job);
+        if (start)
+            queues->wrap_up(job);
     }
     else
         triple_sacrifice(triples, check_triples, P, MC, 0, N);

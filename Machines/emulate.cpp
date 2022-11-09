@@ -17,6 +17,7 @@
 #include "Protocols/ReplicatedPrep.hpp"
 #include "Protocols/FakeShare.hpp"
 #include "Protocols/MalRepRingPrep.hpp"
+#include "Protocols/MAC_Check_Base.hpp"
 
 int main(int argc, const char** argv)
 {

@@ -109,7 +109,8 @@ void DabitSacrifice<T>::sacrifice_and_check_bits(vector<dabit<T> >& dabits,
         ThreadJob job(&products, &multiplicands);
         int start = queues->distribute(job, multiplicands.size());
         protocol.multiply(products, multiplicands, start, multiplicands.size(), proc);
-        queues->wrap_up(job);
+        if (start)
+            queues->wrap_up(job);
     }
     else
         protocol.multiply(products, multiplicands, 0, multiplicands.size(), proc);

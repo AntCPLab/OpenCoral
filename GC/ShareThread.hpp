@@ -107,7 +107,7 @@ void ShareThread<T>::and_(Processor<T>& processor,
             else
                 processor.S[right + j].mask(y_ext, n);
             processor.S[left + j].mask(x_ext, n);
-            protocol->prepare_mul(x_ext, y_ext, n);
+            protocol->prepare_mult(x_ext, y_ext, n, repeat);
         }
     }
 
@@ -124,6 +124,53 @@ void ShareThread<T>::and_(Processor<T>& processor,
             protocol->finalize_mult(res, n);
             res.mask(res, n);
         }
+    }
+}
+
+template<class T>
+void ShareThread<T>::andrsvec(Processor<T>& processor, const vector<int>& args)
+{
+    int N_BITS = T::default_length;
+    auto& protocol = this->protocol;
+    assert(protocol);
+    protocol->init_mul();
+    auto it = args.begin();
+    T x_ext, y_ext;
+    while (it < args.end())
+    {
+        int n_args = (*it++ - 3) / 2;
+        int size = *it++;
+        it += n_args;
+        int base = *it++;
+        assert(n_args <= N_BITS);
+        for (int i = 0; i < size; i += N_BITS)
+        {
+            int n_ops = min(N_BITS, size - i);
+            for (int j = 0; j < n_args; j++)
+            {
+                processor.S.at(*(it + j) + i / N_BITS).mask(x_ext, n_ops);
+                processor.S.at(base + i / N_BITS).mask(y_ext, n_ops);
+                protocol->prepare_mul(x_ext, y_ext, n_ops);
+            }
+        }
+        it += n_args;
+    }
+
+    protocol->exchange();
+
+    it = args.begin();
+    while (it < args.end())
+    {
+        int n_args = (*it++ - 3) / 2;
+        int size = *it++;
+        for (int i = 0; i < size; i += N_BITS)
+        {
+            int n_ops = min(N_BITS, size - i);
+            for (int j = 0; j < n_args; j++)
+                protocol->finalize_mul(n_ops).mask(
+                        processor.S.at(*(it + j) + i / N_BITS), n_ops);
+        }
+        it += 2 * n_args + 1;
     }
 }
 

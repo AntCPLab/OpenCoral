@@ -98,6 +98,9 @@ public:
     static void ands(Processor<U>& processor, const vector<int>& args)
     { T::ands(processor, args); }
     template<class U>
+    static void andrsvec(Processor<U>& processor, const vector<int>& args)
+    { T::andrsvec(processor, args); }
+    template<class U>
     static void xors(Processor<U>& processor, const vector<int>& args)
     { T::xors(processor, args); }
     template<class U>

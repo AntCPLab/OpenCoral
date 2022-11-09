@@ -9,6 +9,8 @@
 #include "Processor/Machine.hpp"
 #include "Protocols/Replicated.hpp"
 #include "Protocols/MalRepRingPrep.hpp"
+#include "Protocols/ReplicatedPrep.hpp"
+#include "Protocols/MAC_Check_Base.hpp"
 #include "Math/gfp.hpp"
 #include "Math/Z2k.hpp"
 

@@ -31,7 +31,8 @@ protected:
     string domain;
     string relevant_opts;
 
-    virtual void load_program(const string& threadname, const string& filename);
+    virtual size_t load_program(const string& threadname,
+            const string& filename);
 
 public:
     static thread_local int thread_num;

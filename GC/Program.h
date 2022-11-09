@@ -40,6 +40,8 @@ class Program
 
     Program();
 
+    size_t size() const { return p.size(); }
+
     // Read in a program
     void parse_file(const string& filename);
     void parse(const string& programe);

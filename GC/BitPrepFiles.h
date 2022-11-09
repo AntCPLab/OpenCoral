@@ -6,11 +6,11 @@
 #ifndef GC_BITPREPFILES_H_
 #define GC_BITPREPFILES_H_
 
-namespace GC
-{
-
 #include "ShiftableTripleBuffer.h"
 #include "Processor/Data_Files.h"
+
+namespace GC
+{
 
 template<class T>
 class BitPrepFiles : public ShiftableTripleBuffer<T>, public Sub_Data_Files<T>

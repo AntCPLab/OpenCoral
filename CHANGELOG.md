@@ -1,5 +1,16 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.3.4 (Nov 9, 2022)
+
+- Decision tree learning
+- Optimized oblivious shuffle in Rep3
+- Optimized daBit generation in Rep3 and semi-honest HE-based 2PC
+- Optimized element-vector AND in SemiBin
+- Optimized input protocol in Shamir-based protocols
+- Square-root ORAM (@Quitlox)
+- Improved ORAM in binary circuits
+- UTF-8 outputs
+
 ## 0.3.3 (Aug 25, 2022)
 
 - Use SoftSpokenOT to avoid unclear security of KOS OT extension candidate

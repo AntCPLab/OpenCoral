@@ -137,8 +137,6 @@ def sha3_256(x):
         0x4a43f8804b0ad882fa493be44dff80f562d661a05647c15166d71ebff8c6ffa7
         0xf0d7aa0ab2d92d580bb080e17cbb52627932ba37f085d3931270d31c39357067
 
-    Note that :py:obj:`sint` to :py:obj:`sbitvec` conversion is only
-    implemented for computation modulo a power of two.
     """
 
     global Keccak_f

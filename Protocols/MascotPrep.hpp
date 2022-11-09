@@ -108,18 +108,4 @@ void MascotInputPrep<T>::buffer_inputs(int player)
         this->inputs[player].push_back(input);
 }
 
-template<class T>
-T Preprocessing<T>::get_random_from_inputs(int nplayers)
-{
-    T res;
-    for (int j = 0; j < nplayers; j++)
-    {
-        T tmp;
-        typename T::open_type _;
-        this->get_input_no_count(tmp, _, j);
-        res += tmp;
-    }
-    return res;
-}
-
 #endif

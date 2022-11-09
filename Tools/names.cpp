@@ -2,4 +2,4 @@
 
 const char* DataPositions::dtype_names[N_DTYPE + 1] =
 { "Triples", "Squares", "Bits", "Inverses",
-        "daBits", "None" };
+        "daBits", "Mixed triples", "None" };

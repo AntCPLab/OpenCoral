@@ -15,7 +15,7 @@ make bankers-bonus-client.x
 ./compile.py bankers_bonus 1
 Scripts/setup-ssl.sh <nparties>
 Scripts/setup-clients.sh 3
-Scripts/<protocol>.sh bankers_bonus-1 &
+PLAYERS=<nparties> Scripts/<protocol>.sh bankers_bonus-1 &
 ./bankers-bonus-client.x 0 <nparties> 100 0 &
 ./bankers-bonus-client.x 1 <nparties> 200 0 &
 ./bankers-bonus-client.x 2 <nparties> 50 1

@@ -11,9 +11,18 @@
 #include "MAC_Check.hpp"
 
 template<class T>
-void SemiMC<T>::prepare_open(const T& secret)
+void SemiMC<T>::init_open(const Player& P, int n)
+{
+    MAC_Check_Base<T>::init_open(P, n);
+    lengths.clear();
+    lengths.reserve(n);
+}
+
+template<class T>
+void SemiMC<T>::prepare_open(const T& secret, int n_bits)
 {
     this->values.push_back(secret);
+    lengths.push_back(n_bits);
 }
 
 template<class T>
@@ -28,6 +37,8 @@ void DirectSemiMC<T>::POpen_(vector<typename T::open_type>& values,
 {
     this->values.clear();
     this->values.reserve(S.size());
+    this->lengths.clear();
+    this->lengths.reserve(S.size());
     for (auto& secret : S)
         this->prepare_open(secret);
     this->exchange_(P);
@@ -39,10 +50,20 @@ void DirectSemiMC<T>::exchange_(const PlayerBase& P)
 {
     Bundle<octetStream> oss(P);
     oss.mine.reserve(this->values.size());
-    for (auto& x : this->values)
-        x.pack(oss.mine);
+    assert(this->values.size() == this->lengths.size());
+    for (size_t i = 0; i < this->lengths.size(); i++)
+        this->values[i].pack(oss.mine, this->lengths[i]);
     P.unchecked_broadcast(oss);
-    direct_add_openings<typename T::open_type>(this->values, P, oss);
+    size_t n = P.num_players();
+    size_t me = P.my_num();
+    for (size_t i = 0; i < this->lengths.size(); i++)
+        for (size_t j = 0; j < n; j++)
+            if (j != me)
+            {
+                T tmp;
+                tmp.unpack(oss[j], this->lengths[i]);
+                this->values[i] += tmp;
+            }
 }
 
 template<class T>

@@ -19,7 +19,6 @@ void ReplicatedInput<T>::reset(int player)
     if (player == P.my_num())
     {
         this->shares.clear();
-        this->i_share = 0;
         os.resize(2);
         for (auto& o : os)
             o.reset_write_head();
@@ -89,7 +88,7 @@ inline void ReplicatedInput<T>::finalize_other(int player, T& target,
 template<class T>
 T PrepLessInput<T>::finalize_mine()
 {
-    return this->shares[this->i_share++];
+    return this->shares.next();
 }
 
 #endif

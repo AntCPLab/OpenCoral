@@ -65,6 +65,14 @@ public:
     {
         return mac_key;
     }
+
+    /**
+     * Set how much preprocessing is produced at once.
+     */
+    static void set_batch_size(size_t batch_size)
+    {
+        OnlineOptions::singleton.batch_size = batch_size;
+    }
 };
 
 /**

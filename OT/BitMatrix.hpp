@@ -19,7 +19,7 @@ template <class U>
 bool Matrix<U>::operator==(Matrix<U>& other)
 {
     if (squares.size() != other.squares.size())
-        throw invalid_length();
+        throw invalid_length("Matrix");
     for (size_t i = 0; i < squares.size(); i++)
         if (not(squares[i] == other.squares[i]))
             return false;
@@ -109,7 +109,7 @@ template <class U>
 Slice<U>& Slice<U>::rsub(Slice<U>& other)
 {
     if (bm.squares.size() < other.end)
-        throw invalid_length();
+        throw invalid_length("rsub");
     for (size_t i = other.start; i < other.end; i++)
         bm.squares[i].rsub(other.bm.squares[i]);
     return *this;

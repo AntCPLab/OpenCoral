@@ -7,6 +7,7 @@
 
 #include "Math/gfp.hpp"
 #include "Machines/SPDZ.hpp"
+#include "Protocols/MascotPrep.hpp"
 
 int main(int argc, char** argv)
 {

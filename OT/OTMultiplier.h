@@ -59,6 +59,7 @@ protected:
 
     void multiplyForTriples();
     virtual void multiplyForBits();
+    virtual void multiplyForMixed();
 	virtual void multiplyForInputs(MultJob job) = 0;
 
     virtual void after_correlation() = 0;
@@ -174,6 +175,7 @@ class SemiMultiplier : public OTMultiplier<T>
     }
 
     void multiplyForBits();
+    void multiplyForMixed();
 
     void after_correlation();
 

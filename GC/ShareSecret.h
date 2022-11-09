@@ -63,6 +63,7 @@ public:
     static void ands(Processor<U>& processor, const vector<int>& args)
     { and_(processor, args, false); }
     static void and_(Processor<U>& processor, const vector<int>& args, bool repeat);
+    static void andrsvec(Processor<U>& processor, const vector<int>& args);
     static void xors(Processor<U>& processor, const vector<int>& args);
     static void inputb(Processor<U>& processor, const vector<int>& args)
     { inputb(processor, processor, args); }

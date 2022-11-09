@@ -270,8 +270,8 @@ compute the preprocessing time for a particular computation.
 
 #### Requirements
 
- - GCC 5 or later (tested with up to 11) or LLVM/clang 5 or later
-   (tested with up to 12). We recommend clang because it performs
+ - GCC 5 or later (tested with up to 11) or LLVM/clang 6 or later
+   (tested with up to 14). We recommend clang because it performs
    better. Note that GCC 5/6 and clang 9 don't support libOTe, so you
    need to deactivate its use for these compilers (see the next
    section).
@@ -694,7 +694,7 @@ Compile the virtual machine:
 
 and the high-level program:
 
-`./compile.py -B <integer bit length> <program>`
+`./compile.py -G -B <integer bit length> <program>`
 
 Then run as follows:
 
@@ -874,7 +874,7 @@ three parties, change the definition of `MAX_N_PARTIES` in
 
 In order to compile a high-level program, use `./compile.py -B`:
 
-`./compile.py -B 32 tutorial`
+`./compile.py -G -B 32 tutorial`
 
 Finally, run the two parties as follows:
 
@@ -1004,7 +1004,7 @@ you entirely delete the definition, it will be able to run for any
 number of parties albeit slower.
 
 Compile the virtual machine:
-`make -j 8 libote`
+
 `make -j 8 bmr`
 
 After compiling the mpc file:
@@ -1020,7 +1020,7 @@ You can benchmark the ORAM implementation as follows:
 
 1) Edit `Program/Source/gc_oram.mpc` to change size and to choose
 Circuit ORAM or linear scan without ORAM.
-2) Run `./compile.py -D gc_oram`. The `-D` argument instructs the
+2) Run `./compile.py -G -D gc_oram`. The `-D` argument instructs the
 compiler to remove dead code. This is useful for more complex programs
 such as this one.
 3) Run `gc_oram` in the virtual machines as explained above.

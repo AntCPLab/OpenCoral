@@ -11,11 +11,13 @@
 #include "GC/Access.h"
 #include "GC/ArgTuples.h"
 #include "GC/NoShare.h"
+#include "GC/Processor.h"
 
 #include "Math/gf2nlong.h"
 #include "Tools/SwitchableOutput.h"
 
 #include "Processor/DummyProtocol.h"
+#include "Processor/Instruction.h"
 #include "Protocols/FakePrep.h"
 #include "Protocols/FakeMC.h"
 #include "Protocols/FakeProtocol.h"
@@ -84,6 +86,11 @@ public:
     static void andrs(T& processor, const vector<int>& args)
     { processor.andrs(args); }
     static void ands(GC::Processor<FakeSecret>& processor, const vector<int>& regs);
+    template <class T>
+    static void andrsvec(T&, const vector<int>&)
+    { throw runtime_error("andrsvec not implemented"); }
+    static void andm(GC::Processor<FakeSecret>& processor, const ::Instruction& instruction)
+    { processor.andm(instruction); }
     template <class T>
     static void xors(GC::Processor<T>& processor, const vector<int>& regs)
     { processor.xors(regs); }

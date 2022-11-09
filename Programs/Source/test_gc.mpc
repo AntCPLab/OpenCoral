@@ -71,7 +71,7 @@ test(r * sbit(1) + sbit(1) * r, 0)
 test(sbits.get_type(64)(2**64 - 1).popcnt(), 64)
 
 a = [sbits.new(x, 2) for x in range(4)]
-x, y = sbits.trans(a)
+x, y, *z = sbits.trans(a)
 test(x, 0xa)
 test(y, 0xc)
 

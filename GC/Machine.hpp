@@ -35,12 +35,14 @@ Machine<T>::~Machine()
 }
 
 template<class T>
-void Machine<T>::load_program(const string& threadname, const string& filename)
+size_t Machine<T>::load_program(const string& threadname,
+        const string& filename)
 {
     (void)threadname;
     progs.push_back({});
     progs.back().parse_file(filename);
     reset(progs.back());
+    return progs.back().size();
 }
 
 template<class T>

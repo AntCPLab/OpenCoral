@@ -77,6 +77,13 @@ Compiler.ml module
    :show-inheritance:
 .. autofunction:: approx_sigmoid
 
+Compiler.decision_tree module
+-----------------------------
+
+.. automodule:: Compiler.decision_tree
+   :members:
+   :no-undoc-members:
+
 Compiler.circuit module
 -----------------------
 
@@ -112,3 +119,13 @@ Compiler.oram module
 		     TrivialORAMIndexStructure, ValueTuple, demux,
 		     get_log_value_size, get_parallel, get_value_size,
 		     gf2nBlock, intBlock
+
+
+Compiler.sqrt_oram module
+-------------------------
+
+.. automodule:: Compiler.sqrt_oram
+   :members:
+   :no-undoc-members:
+   :exclude-members: LinearPositionMap, PositionMap, RecursivePositionMap,
+		     refresh, shuffle_the_shuffle

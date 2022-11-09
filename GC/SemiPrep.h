@@ -25,17 +25,21 @@ class SemiPrep : public BufferPrep<SemiSecret>, ShiftableTripleBuffer<SemiSecret
 
     SeededPRNG secure_prng;
 
+    vector<array<SemiSecret, 3>> mixed_triples;
+
 public:
     SemiPrep(DataPositions& usage, bool = true);
     ~SemiPrep();
 
-    void set_protocol(Beaver<SemiSecret>& protocol);
+    void set_protocol(SemiSecret::Protocol& protocol);
 
     void buffer_triples();
     void buffer_bits();
 
     void buffer_squares() { throw not_implemented(); }
     void buffer_inverses() { throw not_implemented(); }
+
+    array<SemiSecret, 3> get_mixed_triple(int n);
 
     void get(Dtype type, SemiSecret* data)
     {

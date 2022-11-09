@@ -6,6 +6,7 @@
 #include "Tools/random.h"
 #include "Tools/time-func.h"
 #include "Processor/InputTuple.h"
+#include "Protocols/dabit.h"
 
 #include "OT/OTTripleSetup.h"
 #include "OT/MascotParams.h"
@@ -98,7 +99,8 @@ public:
 
     vector<PlainTriple<open_type, N_AMPLIFY>> preampTriples;
     vector<array<open_type, 3>> plainTriples;
-    vector<open_type> plainBits;
+    vector<dabit<T>> plainBits;
+    vector<array<open_type, 3>> mixedTriples;
 
     typename T::MAC_Check* MC;
 
@@ -114,6 +116,7 @@ public:
     void plainTripleRound(int k = 0);
 
     void generatePlainBits();
+    void generateMixedTriples();
 
     void run_multipliers(MultJob job);
 

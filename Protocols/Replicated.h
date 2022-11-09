@@ -20,6 +20,8 @@ template<class T> class SubProcessor;
 template<class T> class ReplicatedMC;
 template<class T> class ReplicatedInput;
 template<class T> class Preprocessing;
+template<class T> class SecureShuffle;
+template<class T> class Rep3Shuffler;
 class Instruction;
 
 /**
@@ -59,6 +61,8 @@ protected:
 public:
     typedef T share_type;
 
+    typedef SecureShuffle<T> Shuffler;
+
     int counter;
 
     ProtocolBase();
@@ -81,6 +85,7 @@ public:
     virtual void init_mul() = 0;
     /// Schedule multiplication of operand pair
     virtual void prepare_mul(const T& x, const T& y, int n = -1) = 0;
+    virtual void prepare_mult(const T& x, const T& y, int n, bool repeat);
     /// Run multiplication protocol
     virtual void exchange() = 0;
     /// Get next multiplication result
@@ -142,6 +147,8 @@ class Replicated : public ReplicatedBase, public ProtocolBase<T>
 
 public:
     static const bool uses_triples = false;
+
+    typedef Rep3Shuffler<T> Shuffler;
 
     Replicated(Player& P);
     Replicated(const ReplicatedBase& other);

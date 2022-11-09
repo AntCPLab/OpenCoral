@@ -15,6 +15,7 @@
 #include "GC/TinierSecret.h"
 #include "GC/TinyMC.h"
 #include "GC/SemiSecret.h"
+#include "GC/RepPrep.h"
 
 #include "Math/Setup.h"
 #include "Processor/Data_Files.h"
