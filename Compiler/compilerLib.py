@@ -251,6 +251,10 @@ class Compiler:
         for op in instr_classes:
             self.VARS[op.__name__] = op
 
+        # backward compatibility for deprecated classes
+        self.VARS["sbitint"] = GC_types.sbitintvec
+        self.VARS["sbitfix"] = GC_types.sbitfixvec
+
         # add open and input separately due to name conflict
         self.VARS["vopen"] = instructions.vasm_open
         self.VARS["gopen"] = instructions.gasm_open

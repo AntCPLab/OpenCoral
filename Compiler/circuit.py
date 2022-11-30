@@ -234,10 +234,10 @@ class ieee_float:
         return cls._circuits[name]
 
     def __init__(self, value):
-        if isinstance(value, sbitvec):
+        if isinstance(value, (sbitint, sbitintvec)):
+            self.value = self.circuit('i2f')(sbitvec.conv(value))
+        elif isinstance(value, sbitvec):
             self.value = value
-        elif isinstance(value, (sbitint, sbitintvec)):
-            self.value = self.circuit('i2f')(sbitvec(value))
         elif util.is_constant_float(value):
             self.value = sbitvec(sbits.get_type(64)(
                 struct.unpack('Q', struct.pack('d', value))[0]))
