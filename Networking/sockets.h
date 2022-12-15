@@ -75,7 +75,11 @@ inline void receive(int socket,octet *msg,size_t len)
     { int j=recv(socket,msg+i,len-i,0);
       // success first
       if (j > 0)
-        i = i + j;
+	{
+	  i = i + j;
+	  fail = 0;
+	  wait = 1;
+	}
       else if (j < 0)
         {
           if (errno == EAGAIN or errno == EINTR)
