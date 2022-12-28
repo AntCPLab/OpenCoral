@@ -1276,6 +1276,10 @@ class sbitintvec(sbitvec, _bitint, _number, _sbitintbase):
         v = sbitint.bit_adder(a, b)
         return self.get_type(len(v)).from_vec(v)
     __radd__ = __add__
+    __sub__ = _bitint.__sub__
+    def __rsub__(self, other):
+        a, b = self.expand(other)
+        return self.from_vec(b) - self.from_vec(a)
     def __mul__(self, other):
         if isinstance(other, sbits):
             return self.from_vec(other * x for x in self.v)
