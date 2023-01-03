@@ -452,6 +452,8 @@ def log2_fx(x, use_division=True):
         p -= x.f
         vlen = x.f
         v = x._new(v, k=x.k, f=x.f)
+    elif isinstance(x, types._register):
+        return log2_fx(types.sfix(x), use_division)
     else:
         d = types.sfloat(x)
         v, p, vlen = d.v, d.p, d.vlen
