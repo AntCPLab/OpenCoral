@@ -863,6 +863,8 @@ class sbitvec(_vec, _bit):
         return self.from_vec(x ^ y for x, y in zip(*self.expand(other)))
     def __and__(self, other):
         return self.from_vec(x & y for x, y in zip(*self.expand(other)))
+    __rxor__ = __xor__
+    __rand__ = __and__
     def __invert__(self):
         return self.from_vec(~x for x in self.v)
     def if_else(self, x, y):
