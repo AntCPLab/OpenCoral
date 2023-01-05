@@ -250,7 +250,7 @@ inline void mpn_add_n_use_fixed(mp_limb_t* res, const mp_limb_t* x, const mp_lim
 	}
 }
 
-#ifdef __BMI2__
+#if defined(__BMI2__) and defined(__clang__)
 template <int L, int M, bool ADD>
 inline void mpn_addmul_1_fixed__(mp_limb_t* res, const mp_limb_t* y, mp_limb_t x)
 {
