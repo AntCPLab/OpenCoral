@@ -511,12 +511,15 @@ def odd_even_merge_sort(a):
     if len(a) == 1:
         return
     elif len(a) % 2 == 0:
+        aa = a
+        a = list(a)
         lower = a[:len(a)//2]
         upper = a[len(a)//2:]
         odd_even_merge_sort(lower)
         odd_even_merge_sort(upper)
         a[:] = lower + upper
         odd_even_merge(a)
+        aa[:] = a
     else:
         raise CompilerError('Length of list must be power of two')
 
