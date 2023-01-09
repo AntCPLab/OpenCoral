@@ -1448,14 +1448,19 @@ class sbitfixvec(_fix, _vec):
         super(sbitfixvec, cls).set_precision(f=f, k=k)
         cls.int_type = sbitintvec.get_type(cls.k)
     @classmethod
-    def get_input_from(cls, player):
+    def get_input_from(cls, player, size=1):
         """ Secret input from :py:obj:`player`.
 
         :param: player (int)
         """
-        v = [sbit() for i in range(sbitfix.k)]
+        v = [0] * sbitfix.k
         sbits._check_input_player(player)
-        inst.inputbvec(len(v) + 3, sbitfix.f, player, *v)
+        for i in range(size):
+            vv = [sbit() for i in range(sbitfix.k)]
+            inst.inputbvec(len(v) + 3, sbitfix.f, player, *vv)
+            for j in range(sbitfix.k):
+                tmp = vv[j] << i
+                v[j] = tmp ^ v[j]
         return cls._new(cls.int_type.from_vec(v))
     def __init__(self, value=None, *args, **kwargs):
         if isinstance(value, (list, tuple)):
