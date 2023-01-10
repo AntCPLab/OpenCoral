@@ -58,7 +58,7 @@ inline void avx_memcpy(void* dest, const void* source)
 
 inline void avx_memzero(void* dest, size_t length)
 {
-#ifdef __AVX__
+#if defined(__AVX__) and defined(__clang__)
 	__m256i* d = (__m256i*)dest;
 	__m256i s = _mm256_setzero_si256();
 	while (length >= 32)
