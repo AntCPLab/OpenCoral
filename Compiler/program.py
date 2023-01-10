@@ -469,7 +469,8 @@ class Program(object):
         if not self.options.noreallocate:
             self.curr_tape.init_registers()
         for mem_type, size in sorted(self.allocated_mem.items()):
-            if size:
+            if size and (not self.options.garbled or \
+                         mem_type not in ('s', 'sg', 'c', 'cg')):
                 # print "Memory of type '%s' of size %d" % (mem_type, size)
                 if mem_type in self.types:
                     self.types[mem_type].load_mem(size - 1, mem_type)
