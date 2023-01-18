@@ -220,6 +220,14 @@ def read_mem_value(operation):
     copy_doc(read_mem_operation, operation)
     return read_mem_operation
 
+def type_comp(operation):
+    def type_check(self, other, *args, **kwargs):
+        if not isinstance(other, (type(self), int, regint, self.clear_type)):
+            return NotImplemented
+        return operation(self, other, *args, **kwargs)
+    copy_doc(type_check, operation)
+    return type_check
+
 def inputmixed(*args):
     # helper to cover both cases
     if isinstance(args[-1], int):
@@ -2487,6 +2495,7 @@ class sint(_secret, _int):
         return (self >= 0).if_else(self, -self)
 
     @read_mem_value
+    @type_comp
     @vectorize
     def __lt__(self, other, bit_length=None, security=None):
         """ Secret comparison (signed).
@@ -2501,6 +2510,7 @@ class sint(_secret, _int):
         return res
 
     @read_mem_value
+    @type_comp
     @vectorize
     def __gt__(self, other, bit_length=None, security=None):
         res = sintbit()
@@ -2509,18 +2519,25 @@ class sint(_secret, _int):
                        security or program.security)
         return res
 
+    @read_mem_value
+    @type_comp
     def __le__(self, other, bit_length=None, security=None):
         return 1 - self.greater_than(other, bit_length, security)
 
+    @read_mem_value
+    @type_comp
     def __ge__(self, other, bit_length=None, security=None):
         return 1 - self.less_than(other, bit_length, security)
 
     @read_mem_value
+    @type_comp
     @vectorize
     def __eq__(self, other, bit_length=None, security=None):
         return floatingpoint.EQZ(self - other, bit_length or program.bit_length,
                                  security or program.security)
 
+    @read_mem_value
+    @type_comp
     def __ne__(self, other, bit_length=None, security=None):
         return 1 - self.equal(other, bit_length, security)
 
