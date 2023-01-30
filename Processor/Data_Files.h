@@ -311,6 +311,8 @@ class Data_Files
   }
 
   void reset_usage() { usage.reset(); skipped.reset(); }
+
+  void set_usage(const DataPositions& pos) { usage = pos; }
 };
 
 template<class T> inline

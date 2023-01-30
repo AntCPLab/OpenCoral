@@ -330,6 +330,8 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
 
   // wind down thread by thread
   machine.stats += Proc.stats;
+  // prevent faulty usage message
+  Proc.DataF.set_usage(actual_usage);
   delete processor;
 
   queues->finished(actual_usage, P.total_comm());

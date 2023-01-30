@@ -70,10 +70,10 @@ BufferPrep<T>::~BufferPrep()
     {
         if (not T::clear::invertible and field_type == DATA_INT and not T::has_mac)
             // add dabits with computation modulo power of two but without MAC
-            used_bits += my_usage.at(DATA_DABIT);
+            used_dabits += my_usage.at(DATA_BIT);
     }
     else
-        used_dabits += used_bits;
+        used_bits += used_dabits;
 
     this->print_left("bits", bits.size(), type_string, used_bits);
     this->print_left("dabits", dabits.size(), type_string, used_dabits);
