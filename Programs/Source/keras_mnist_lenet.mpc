@@ -55,3 +55,6 @@ opt = model.fit(
     batch_size=128,
     validation_data=(test_samples, test_labels)
 )
+
+for var in model.trainable_variables:
+    var.write_to_file()
