@@ -265,6 +265,9 @@ class set_by_id(object):
     def pop(self):
         return self.content.popitem()[1]
 
+    def remove(self, value):
+        del self.content[id(value)]
+
     def __ior__(self, values):
         for value in values:
             self.add(value)

@@ -101,6 +101,7 @@ class StraightlineAllocator:
             self.dealloc |= reg.vector
         else:
             self.dealloc.add(reg)
+        reg.duplicates.remove(reg)
         base = reg.vectorbase
 
         seen = set_by_id()
@@ -171,7 +172,7 @@ class StraightlineAllocator:
         for reg in self.alloc:
             for x in reg.get_all():
                 if x not in self.dealloc and reg not in self.dealloc \
-                   and len(x.duplicates) == 1:
+                   and len(x.duplicates) == 0:
                     print('Warning: read before write at register', x)
                     print('\tregister trace: %s' % format_trace(x.caller,
                                                                 '\t\t'))
