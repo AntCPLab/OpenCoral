@@ -372,5 +372,27 @@ endif
 deps/simde/simde:
 	git submodule update --init deps/simde || git clone https://github.com/simd-everywhere/simde deps/simde
 
+
+# Compile NTL
+
+ifeq ($(ARM), 1)
+NTL_NATIVE = off
+else
+NTL_NATIVE = on
+endif
+
+deps/ntl/ntl:
+	git submodule update --init deps/ntl || git clone https://github.com/libntl/ntl.git deps/ntl
+
+local/lib/libntl.a: deps/ntl/ntl
+	cd deps/ntl/src; \
+	./configure NTL_GMP_LIP=on PREFIX=$(CURDIR)/local NATIVE=$(NTL_NATIVE)
+	$(MAKE) -C deps/ntl/src -j8
+	$(MAKE) -C deps/ntl/src check
+	$(MAKE) -C deps/ntl/src install
+
+libntl:
+	$(MAKE) local/lib/libntl.a
+
 clean:
 	-rm -f */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o static/*.x *.so

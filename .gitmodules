@@ -16,3 +16,6 @@
 [submodule "deps/SimplestOT_C"]
 	path = deps/SimplestOT_C
 	url = https://github.com/mkskeller/SimplestOT_C
+[submodule "deps/ntl"]
+	path = deps/ntl
+	url = https://github.com/libntl/ntl.git
