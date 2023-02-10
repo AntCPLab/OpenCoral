@@ -128,6 +128,8 @@ public:
     { throw runtime_error("CISC instructions not implemented"); }
 
     virtual vector<int> get_relevant_players();
+
+    virtual int get_buffer_size() { return 0; }
 };
 
 /**
