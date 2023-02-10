@@ -388,11 +388,32 @@ local/lib/libntl.a: deps/ntl/ntl
 	cd deps/ntl/src; \
 	./configure NTL_GMP_LIP=on PREFIX=$(CURDIR)/local NATIVE=$(NTL_NATIVE)
 	$(MAKE) -C deps/ntl/src -j8
-	$(MAKE) -C deps/ntl/src check
+# 	$(MAKE) -C deps/ntl/src check
 	$(MAKE) -C deps/ntl/src install
 
 libntl:
 	$(MAKE) local/lib/libntl.a
+
+
+mfe = Math/mfe.o
+
+test_mfe: USE_NTL = 1 
+test_mfe: test/test_mfe.o $(mfe)
+	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
+
+zico: target1
+	echo "target1: $@; pre: $^"
+
+zico: target2
+	echo "target2: $@; pre: $^"
+	echo "USE_NTL: $(USE_NTL)"
+	echo "CFLAGS: $(CFLAGS)"
+	echo "LDLIBS: $(LDLIBS)"
+
+target1:
+	echo "hello"
+target2:
+	echo "world"
 
 clean:
 	-rm -f */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o static/*.x *.so

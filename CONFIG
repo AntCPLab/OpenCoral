@@ -73,8 +73,8 @@ LDLIBS += -lboost_system -lssl -lcrypto
 CFLAGS += -I./local/include
 
 ifeq ($(USE_NTL),1)
-CFLAGS += -DUSE_NTL
-LDLIBS := -lntl $(LDLIBS)
+CFLAGS += -DUSE_NTL -Wno-error=unused-parameter
+LDLIBS := -lntl -lgmp $(LDLIBS)
 endif
 
 ifeq ($(OS), Linux)
@@ -94,9 +94,6 @@ LD = $(CXX)
 ifeq ($(OS), Darwin)
 # for boost with OpenSSL 3
 CFLAGS += -Wno-error=deprecated-declarations
-ifeq ($(USE_NTL),1)
-CFLAGS += -Wno-error=unused-parameter -Wno-error=deprecated-copy
-endif
 endif
 
 ifeq ($(USE_KOS),1)
