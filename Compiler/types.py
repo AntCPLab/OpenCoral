@@ -5728,7 +5728,9 @@ class Array(_vectorizable):
         """ Reveal the whole array.
 
         :returns: Array of relevant clear type. """
-        return Array.create_from(self.get_vector().reveal())
+        res = Array.create_from(self.get_vector().reveal())
+        library.break_point()
+        return res
 
     def reveal_list(self):
         """ Reveal as list. """
