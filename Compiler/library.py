@@ -1881,6 +1881,7 @@ def sint_cint_division(a, b, k, f, kappa):
 
 def IntDiv(a, b, k, kappa=None):
     l = 2 * k + 1
+    b = a.conv(b)
     return FPDiv(a.extend(l) << k, b.extend(l) << k, l, k,
                  kappa, nearest=True)
 
