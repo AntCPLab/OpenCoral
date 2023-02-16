@@ -46,6 +46,8 @@ public:
 
     const static bool symmetric = true;
 
+    static const bool is_real = true;
+
     static const int default_length = 1;
 
     static string type_short() { throw runtime_error("shorthand undefined"); }

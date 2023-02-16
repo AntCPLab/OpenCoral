@@ -191,9 +191,7 @@ protected:
     }
   friend istream& operator>>(istream& s,gf2n_& x)
     {
-      word tmp;
-      s >> hex >> tmp >> dec;
-      x = tmp;
+      x.input(s, true);
       return s;
     }
 

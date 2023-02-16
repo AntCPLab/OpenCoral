@@ -34,6 +34,8 @@ public:
     typedef T part_type;
     typedef T small_type;
 
+    static const bool is_real = true;
+
     static const int default_length = sizeof(BitVec) * 8;
 
     static string type_string() { return "binary secret"; }

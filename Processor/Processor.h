@@ -118,6 +118,9 @@ class ArithmeticProcessor : public ProcessorBase
 protected:
   CheckVector<long> Ci;
 
+  ofstream public_output;
+  ofstream binary_output;
+
 public:
   int thread_num;
 
@@ -126,11 +129,11 @@ public:
 
   string private_input_filename;
   string public_input_filename;
+  string binary_input_filename;
 
   ifstream private_input;
   ifstream public_input;
-  ofstream public_output;
-  ofstream binary_output;
+  ifstream binary_input;
 
   int sent, rounds;
 
@@ -173,6 +176,15 @@ public:
     throw not_implemented();
   }
 
+  virtual ofstream& get_public_output()
+  {
+    throw not_implemented();
+  }
+  virtual ofstream& get_binary_output()
+  {
+    throw not_implemented();
+  }
+
   void shuffle(const Instruction& instruction);
   void bitdecint(const Instruction& instruction);
 };
@@ -203,8 +215,10 @@ class Processor : public ArithmeticProcessor
   unsigned int PC;
   TempVars<sint, sgf2n> temp;
 
-  ExternalClients external_clients;
+  ExternalClients& external_clients;
   Binary_File_IO binary_file_io;
+
+  Timer client_timer;
 
   void reset(const Program& program,int arg); // Reset the state of the processor
   string get_filename(const char* basename, bool use_number);
@@ -268,9 +282,14 @@ class Processor : public ArithmeticProcessor
   
   cint get_inverse2(unsigned m);
 
+  void fixinput(const Instruction& instruction);
+
   // synchronize in asymmetric protocols
   long sync_Ci(size_t i) const;
   long sync(long x) const;
+
+  ofstream& get_public_output();
+  ofstream& get_binary_output();
 
   private:
 

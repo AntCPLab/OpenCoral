@@ -281,7 +281,7 @@
     X(GCONVGF2N, auto dest = &Proc.get_Ci()[r[0]]; auto source = &C2[r[1]], \
             *dest++ = source->get_word(); source++) \
     X(GRAWOUTPUT, auto source = &C2[r[0]], \
-            (*source++).output(Proc.public_output, false)) \
+            (*source++).output(Proc.get_public_output(), false)) \
 
 #define REMAINING_INSTRUCTIONS \
     X(CONVMODP, throw not_implemented(),) \

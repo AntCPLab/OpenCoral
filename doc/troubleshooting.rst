@@ -25,6 +25,16 @@ lists only exists at compile time. Consider using
 :py:class:`~Compiler.types.Array`.
 
 
+Local variable referenced before assignment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This error can occur if you try to reassign a variable in a run-time
+loop like :py:func:`~Compiler.library.for_range`. Use
+:py:func:`~Compiler.program.Tape.Register.update` instead of assignment. See
+:py:func:`~Compiler.library.for_range` for an example.
+You can also use :py:func:`~Compiler.types.sint.iadd` instead of ``+=``.
+
+
 ``compile.py`` takes too long or runs out of memory
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -33,6 +43,16 @@ resulting in potentially too much virtual machine code. Consider using
 :py:func:`~Compiler.library.for_range` or similar. You can also use
 ``-l`` when compiling, which will replace simple loops by an optimized
 version.
+
+
+Incorrect results when using :py:class:`~Compiler.types.sfix`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is most likely caused by an overflow of the precision
+parameters because the default choice unlike accommodates numbers up
+to around 16,000. See :py:class:`~Compiler.types.sfix` for an
+introduction and :py:func:`~Compiler.types.sfix.set_precision` for how
+to change the precision.
 
 
 Order of memory instructions not preserved

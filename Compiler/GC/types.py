@@ -711,16 +711,23 @@ class sbitvec(_vec, _bit):
             def mem_size():
                 return n
             @classmethod
-            def get_input_from(cls, player):
+            def get_input_from(cls, player, size=1, f=0):
                 """ Secret input from :py:obj:`player`. The input is decomposed
                 into bits.
 
                 :param: player (int)
                 """
+                v = [0] * n
                 sbits._check_input_player(player)
-                res = cls.from_vec(sbit() for i in range(n))
-                inst.inputbvec(n + 3, 0, player, *res.v)
-                return res
+                instructions_base.check_vector_size(size)
+                for i in range(size):
+                    vv = [sbit() for i in range(n)]
+                    inst.inputbvec(n + 3, f, player, *vv)
+                    for j in range(n):
+                        tmp = vv[j] << i
+                        v[j] = tmp ^ v[j]
+                        sbits._check_input_player(player)
+                return cls.from_vec(v)
             get_raw_input_from = get_input_from
             @classmethod
             def from_vec(cls, vector):
@@ -728,6 +735,7 @@ class sbitvec(_vec, _bit):
                 res.v = _complement_two_extend(list(vector), n)[:n]
                 return res
             def __init__(self, other=None, size=None):
+                instructions_base.check_vector_size(size)
                 if other is not None:
                     if util.is_constant(other):
                         t = sbits.get_type(size or 1)
@@ -1148,6 +1156,9 @@ class sbitint(_bitint, _number, sbits, _sbitintbase):
         mul: 15
         lt: 0
 
+    This class is retained for compatibility, but development now
+    focuses on :py:class:`sbitintvec`.
+
     """
     n_bits = None
     bin_type = None
@@ -1347,8 +1358,11 @@ class cbitfix(object):
                                 cbits(0), cbits(0))
 
 class sbitfix(_fix):
-    """ Secret signed integer in one binary register.
+    """ Secret signed fixed-point number in one binary register.
     Use :py:obj:`set_precision()` to change the precision.
+
+    This class is retained for compatibility, but development now
+    focuses on :py:class:`sbitfixvec`.
 
     Example::
 
@@ -1453,15 +1467,8 @@ class sbitfixvec(_fix, _vec):
 
         :param: player (int)
         """
-        v = [0] * sbitfix.k
-        sbits._check_input_player(player)
-        for i in range(size):
-            vv = [sbit() for i in range(sbitfix.k)]
-            inst.inputbvec(len(v) + 3, sbitfix.f, player, *vv)
-            for j in range(sbitfix.k):
-                tmp = vv[j] << i
-                v[j] = tmp ^ v[j]
-        return cls._new(cls.int_type.from_vec(v))
+        return cls._new(cls.int_type.get_input_from(player, size=size,
+                                                    f=sbitfix.f))
     def __init__(self, value=None, *args, **kwargs):
         if isinstance(value, (list, tuple)):
             self.v = self.int_type.from_vec(sbitvec([x.v for x in value]))

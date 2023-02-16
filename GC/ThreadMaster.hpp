@@ -97,7 +97,8 @@ void ThreadMaster<T>::run()
         delete thread;
     }
 
-    exe_stats.print();
+    if (not exe_stats.empty())
+        exe_stats.print();
     stats.print();
 
     machine.print_timers();

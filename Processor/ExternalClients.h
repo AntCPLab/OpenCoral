@@ -4,6 +4,7 @@
 #include "Networking/sockets.h"
 #include "Networking/ssl_sockets.h"
 #include "Tools/Exceptions.h"
+#include "Tools/Lock.h"
 #include "ExternalIO/Client.h"
 #include <vector>
 #include <map>
@@ -31,6 +32,8 @@ class ExternalClients
 
   ssl_service io_service;
   client_ctx* ctx;
+
+  Lock lock;
 
   public:
 

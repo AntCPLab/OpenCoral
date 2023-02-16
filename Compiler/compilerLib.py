@@ -3,6 +3,7 @@ import os
 import re
 import sys
 import tempfile
+import subprocess
 from optparse import OptionParser
 
 from Compiler.exceptions import CompilerError
@@ -12,11 +13,12 @@ from .program import Program, defaults
 
 
 class Compiler:
-    def __init__(self, custom_args=None, usage=None):
+    def __init__(self, custom_args=None, usage=None, execute=False):
         if usage:
             self.usage = usage
         else:
             self.usage = "usage: %prog [options] filename [args]"
+        self.execute = execute
         self.custom_args = custom_args
         self.build_option_parser()
         self.VARS = {}
@@ -72,7 +74,8 @@ class Compiler:
             "--optimize-hard",
             action="store_true",
             dest="optimize_hard",
-            help="currently not in use",
+            help="lower number of rounds at higher compilation cost "
+            "(disables -C and increases the budget to 100000)",
         )
         parser.add_option(
             "-u",
@@ -157,8 +160,8 @@ class Compiler:
             "-b",
             "--budget",
             dest="budget",
-            default=defaults.budget,
-            help="set budget for optimized loop unrolling " "(default: 100000)",
+            help="set budget for optimized loop unrolling (default: %d)" % \
+            defaults.budget,
         )
         parser.add_option(
             "-X",
@@ -195,7 +198,8 @@ class Compiler:
             "--CISC",
             action="store_true",
             dest="cisc",
-            help="faster CISC compilation mode",
+            help="faster CISC compilation mode "
+            "(used by default unless -O is given)",
         )
         parser.add_option(
             "-K",
@@ -217,15 +221,62 @@ class Compiler:
             dest="verbose",
             help="more verbose output",
         )
+        if self.execute:
+            parser.add_option(
+                "-E",
+                "--execute",
+                dest="execute",
+                help="protocol to execute with",
+            )
+            parser.add_option(
+                "-H",
+                "--hostfile",
+                dest="hostfile",
+                help="hosts to execute with",
+            )
         self.parser = parser
 
     def parse_args(self):
         self.options, self.args = self.parser.parse_args(self.custom_args)
-        if self.options.optimize_hard:
-            print("Note that -O/--optimize-hard currently has no effect")
+        if self.execute:
+            if not self.options.execute:
+                raise CompilerError("must give name of protocol with '-E'")
+            protocol = self.options.execute
+            if protocol.find("ring") >= 0 or protocol.find("2k") >= 0 or \
+               protocol.find("brain") >= 0 or protocol == "emulate":
+                if not (self.options.ring or self.options.binary):
+                    self.options.ring = "64"
+                if self.options.field:
+                    raise CompilerError(
+                        "field option not compatible with %s" % protocol)
+            else:
+                if protocol.find("bin") >= 0 or  protocol.find("ccd") >= 0 or \
+                   protocol.find("bmr") >= 0 or \
+                   protocol in ("replicated", "tinier", "tiny", "yao"):
+                    if not self.options.binary:
+                        self.options.binary = "32"
+                    if self.options.ring or self.options.field:
+                        raise CompilerError(
+                            "ring/field options not compatible with %s" %
+                            protocol)
+                if self.options.ring:
+                    raise CompilerError(
+                        "ring option not compatible with %s" % protocol)
+            if protocol == "emulate":
+                self.options.keep_cisc = ''
 
     def build_program(self, name=None):
         self.prog = Program(self.args, self.options, name=name)
+        if self.execute:
+            if self.options.execute in \
+               ("emulate", "ring", "rep-field", "semi2k"):
+                self.prog.use_trunc_pr = True
+            if self.options.execute in ("ring",):
+                self.prog.use_split(3)
+            if self.options.execute in ("semi2k",):
+                self.prog.use_split(2)
+            if self.options.execute in ("rep4-ring",):
+                self.prog.use_split(4)
 
     def build_vars(self):
         from . import comparison, floatingpoint, instructions, library, types
@@ -283,11 +334,15 @@ class Compiler:
             ]:
                 del self.VARS[i]
 
-    def prep_compile(self, name=None):
+    def prep_compile(self, name=None, build=True):
         self.parse_args()
         if len(self.args) < 1 and name is None:
             self.parser.print_help()
             exit(1)
+        if build:
+            self.build(name=name)
+
+    def build(self, name=None):
         self.build_program(name=name)
         self.build_vars()
 
@@ -307,7 +362,7 @@ class Compiler:
                     if if_stack and not re.match(if_stack[-1][0], line):
                         if_stack.pop()
                     m = re.match(
-                        r"(\s*)for +([a-zA-Z_]+) +in " r"+range\(([0-9a-zA-Z_]+)\):",
+                        r"(\s*)for +([a-zA-Z_]+) +in " r"+range\(([0-9a-zA-Z_.]+)\):",
                         line,
                     )
                     if m:
@@ -403,3 +458,110 @@ class Compiler:
             print("Memory size:", dict(self.prog.allocated_mem))
 
         return self.prog
+
+    @staticmethod
+    def executable_from_protocol(protocol):
+        match = {
+            "ring": "replicated-ring",
+            "rep-field": "replicated-field",
+            "replicated": "replicated-bin"
+        }
+        if protocol in match:
+            protocol = match[protocol]
+        if protocol.find("bmr") == -1:
+            protocol = re.sub("^mal-", "malicious-", protocol)
+        if protocol == "emulate":
+            return protocol + ".x"
+        else:
+            return protocol + "-party.x"
+
+    def local_execution(self, args=[]):
+        executable = self.executable_from_protocol(self.options.execute)
+        if not os.path.exists(executable):
+            print("Creating binary for virtual machine...")
+            try:
+                subprocess.run(["make", executable], check=True)
+            except:
+                raise CompilerError(
+                    "Cannot produce %s. " % executable + \
+                    "Note that compilation requires a few GB of RAM.")
+        vm = 'Scripts/%s.sh' % self.options.execute
+        os.execl(vm, vm, self.prog.name, *args)
+
+    def remote_execution(self, args=[]):
+        vm = self.executable_from_protocol(self.options.execute)
+        hosts = list(x.strip()
+                     for x in filter(None, open(self.options.hostfile)))
+        # test availability before compilation
+        from fabric import Connection
+        import subprocess
+        print("Creating static binary for virtual machine...")
+        subprocess.run(["make", "static/%s" % vm], check=True)
+
+        # transfer files
+        import glob
+        hostnames = []
+        destinations = []
+        for host in hosts:
+            split = host.split('/', maxsplit=1)
+            hostnames.append(split[0])
+            if len(split) > 1:
+                destinations.append(split[1])
+            else:
+                destinations.append('.')
+        connections = [Connection(hostname) for hostname in hostnames]
+        print("Setting up players...")
+
+        def run(i):
+            dest = destinations[i]
+            connection = connections[i]
+            connection.run(
+                "mkdir -p %s/{Player-Data,Programs/{Bytecode,Schedules}} " % \
+                dest)
+            # executable
+            connection.put("static/%s" % vm, dest)
+            # program
+            dest += "/"
+            connection.put("Programs/Schedules/%s.sch" % self.prog.name,
+                           dest + "Programs/Schedules")
+            for filename in glob.glob(
+                    "Programs/Bytecode/%s-*.bc" % self.prog.name):
+                connection.put(filename, dest + "Programs/Bytecode")
+            # inputs
+            for filename in glob.glob("Player-Data/Input*-P%d-*" % i):
+                connection.put(filename, dest + "Player-Data")
+            # key and certificates
+            for suffix in ('key', 'pem'):
+                connection.put("Player-Data/P%d.%s" % (i, suffix),
+                               dest + "Player-Data")
+            for filename in glob.glob("Player-Data/*.0"):
+                connection.put(filename, dest + "Player-Data")
+
+        import threading
+        import random
+        threads = []
+        for i in range(len(hosts)):
+            threads.append(threading.Thread(target=run, args=(i,)))
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        # execution
+        threads = []
+        # random port numbers to avoid conflict
+        port = 10000 + random.randrange(40000)
+        if '@' in hostnames[0]:
+            party0 = hostnames[0].split('@')[1]
+        else:
+            party0 = hostnames[0]
+        for i in range(len(connections)):
+            run = lambda i: connections[i].run(
+                "cd %s; ./%s -p %d %s -h %s -pn %d %s" % \
+                (destinations[i], vm, i, self.prog.name, party0, port,
+                 ' '.join(args)))
+            threads.append(threading.Thread(target=run, args=(i,)))
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()

@@ -125,7 +125,7 @@ void set_up_client_socket(int& mysocket,const char* hostname,int Portnum)
   int flags = fcntl(mysocket, F_GETFL, 0);
   fl = fcntl(mysocket, F_SETFL, O_NONBLOCK |  flags);
   if (fl < 0)
-    error("set non-blocking");
+    error("set non-blocking on client");
 #endif
 }
 

@@ -48,9 +48,14 @@ void PrepBase::print_left(const char* name, size_t n, const string& type_string,
                 << endl;
 
     if (n > used / 10)
+    {
         cerr << "Significant amount of unused " << name << " of " << type_string
                 << ". For more accurate benchmarks, "
-                << "consider reducing the batch size with -b." << endl;
+                << "consider reducing the batch size with --batch-size." << endl;
+        cerr
+                << "Note that some protocols have larger minimum batch sizes."
+                << endl;
+    }
 }
 
 void PrepBase::print_left_edabits(size_t n, size_t n_batch, bool strict,
@@ -67,6 +72,6 @@ void PrepBase::print_left_edabits(size_t n, size_t n_batch, bool strict,
     if (n > used / 10)
         cerr << "Significant amount of unused edaBits of size " << n_bits
                 << ". For more accurate benchmarks, "
-                << "consider reducing the batch size with -b "
-                << "or increasing the bucket size with -B." << endl;
+                << "consider reducing the batch size with --batch-size "
+                << "or increasing the bucket size with --bucket-size." << endl;
 }

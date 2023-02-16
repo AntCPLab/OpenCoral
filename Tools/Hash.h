@@ -41,6 +41,7 @@ public:
 	        v[i].pack(tmp, bit_lengths[i]);
 	    update(tmp);
 	}
+	void update(const string& str);
 
 	void final(unsigned char hashout[hash_length])
 	{

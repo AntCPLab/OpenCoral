@@ -138,7 +138,7 @@
     X(PRINTINT, PROC.out << I0) \
     X(STARTGRIND, CALLGRIND_START_INSTRUMENTATION) \
     X(STOPGRIND, CALLGRIND_STOP_INSTRUMENTATION) \
-    X(RUN_TAPE, MACH->run_tapes(EXTRA)) \
+    X(RUN_TAPE, T::run_tapes(EXTRA)) \
     X(JOIN_TAPE, MACH->join_tape(R0)) \
     X(USE, ) \
     X(USE_INP, ) \

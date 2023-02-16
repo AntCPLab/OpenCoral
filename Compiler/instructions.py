@@ -295,6 +295,7 @@ class movint(base.Instruction):
 @base.vectorize
 class pushint(base.StackInstruction):
     """ Pushes clear integer register to the thread-local stack.
+    Considered obsolete.
 
     :param: source (regint)
     """
@@ -304,6 +305,7 @@ class pushint(base.StackInstruction):
 @base.vectorize
 class popint(base.StackInstruction):
     """ Pops from the thread-local stack to clear integer register.
+    Considered obsolete.
 
     :param: destination (regint)
     """
@@ -385,7 +387,7 @@ class use(base.Instruction):
     :param: number (int, -1 for unknown)
     """
     code = base.opcodes['USE']
-    arg_format = ['int','int','int']
+    arg_format = ['int','int','long']
 
     @classmethod
     def get_usage(cls, args):
@@ -404,7 +406,7 @@ class use_inp(base.Instruction):
     :param: number (int, -1 for unknown)
     """
     code = base.opcodes['USE_INP']
-    arg_format = ['int','int','int']
+    arg_format = ['int','int','long']
 
     @classmethod
     def get_usage(cls, args):
@@ -423,7 +425,7 @@ class use_edabit(base.Instruction):
     :param: number (int, -1 for unknown)
     """
     code = base.opcodes['USE_EDABIT']
-    arg_format = ['int','int','int']
+    arg_format = ['int','int','long']
 
     @classmethod
     def get_usage(cls, args):
@@ -439,7 +441,7 @@ class use_matmul(base.Instruction):
     :param: number (int, -1 for unknown)
     """
     code = base.opcodes['USE_MATMUL']
-    arg_format = ['int','int','int','int']
+    arg_format = ['int','int','int','long']
 
     @classmethod
     def get_usage(cls, args):
@@ -488,7 +490,7 @@ class use_prep(base.Instruction):
     :param: number of items to use (int, -1 for unknown)
     """
     code = base.opcodes['USE_PREP']
-    arg_format = ['str','int']
+    arg_format = ['str','long']
 
     @classmethod
     def get_usage(cls, args):
@@ -1872,6 +1874,20 @@ class floatoutput(base.PublicFileIOInstruction):
     __slots__ = []
     code = base.opcodes['FLOATOUTPUT']
     arg_format = ['p','c','c','c','c']
+
+@base.vectorize
+class fixinput(base.PublicFileIOInstruction):
+    """ Binary fixed-point input.
+
+    :param: player (int)
+    :param: destination (cint)
+    :param: exponent (int)
+    :param: input type (0: 64-bit integer, 1: float, 2: double)
+
+    """
+    __slots__ = []
+    code = base.opcodes['FIXINPUT']
+    arg_format = ['p','cw','int','int']
 
 @base.vectorize
 class rand(base.Instruction):

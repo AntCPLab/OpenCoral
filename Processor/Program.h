@@ -26,6 +26,8 @@ class Program
   // True if program contains variable-sized loop
   bool unknown_usage;
 
+  string hash;
+
   void compute_constants();
 
   public:
@@ -52,6 +54,9 @@ class Program
 
   size_t direct_mem(RegType reg_type) const
     { return max_mem[reg_type]; }
+
+  const string& get_hash() const
+    { return hash; }
 
   friend ostream& operator<<(ostream& s,const Program& P);
 

@@ -47,7 +47,7 @@ endif
 USE_KOS = 0
 
 # allow to set compiler in CONFIG.mine
-CXX = g++
+CXX = clang++
 
 # use CONFIG.mine to overwrite DIR settings
 -include CONFIG.mine

@@ -52,11 +52,11 @@ endif
 endif
 
 # used for dependency generation
-OBJS = $(BMR) $(FHEOBJS) $(TINYOTOFFLINE) $(YAO) $(COMPLETE) $(patsubst %.cpp,%.o,$(wildcard Machines/*.cpp Utils/*.cpp))
+OBJS = $(patsubst %.cpp,%.o,$(wildcard */*.cpp)) $(STATIC_OTE)
 DEPS := $(wildcard */*.d */*/*.d)
 
 # never delete
-.SECONDARY: $(OBJS) $(patsubst %.cpp,%.o,$(wildcard */*.cpp))
+.SECONDARY: $(OBJS)
 
 
 all: arithmetic binary gen_input online offline externalIO bmr ecdsa
@@ -74,6 +74,10 @@ arithmetic: semi-he gear
 
 -include $(DEPS)
 include $(wildcard *.d static/*.d)
+
+$(OBJS): CONFIG CONFIG.mine
+CONFIG.mine:
+	touch CONFIG.mine
 
 %.o: %.cpp
 	$(CXX) -o $@ $< $(CFLAGS) -MMD -MP -c
@@ -110,17 +114,17 @@ spdz2k: spdz2k-party.x ot-offline.x Check-Offline-Z2k.x galois-degree.x Fake-Off
 mascot: mascot-party.x spdz2k mama-party.x
 
 ifeq ($(OS), Darwin)
-tldr: mac-setup
+setup: mac-setup
 else
-tldr: mpir linux-machine-setup
+setup: boost mpir linux-machine-setup
 endif
 
-tldr: libote
+tldr: setup
 	$(MAKE) mascot-party.x
 	mkdir Player-Data 2> /dev/null; true
 
 ifeq ($(ARM), 1)
-Tools/intrinsics.h: deps/simde/simde
+$(patsubst %.cpp,%.o,$(wildcard */*.cpp)): deps/simde/simde
 endif
 
 shamir: shamir-party.x malicious-shamir-party.x atlas-party.x galois-degree.x
@@ -317,7 +321,17 @@ boost: deps/libOTe/libOTe
 	cd deps/libOTe; \
 	python3 build.py --setup --boost --install=$(CURDIR)/local
 
-OTE_OPTS = -DENABLE_SOFTSPOKEN_OT=ON -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_INSTALL_LIBDIR=lib
+OTE_OPTS += -DENABLE_SOFTSPOKEN_OT=ON -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_INSTALL_LIBDIR=lib
+
+ifeq ($(ARM), 1)
+OTE_OPTS += -DENABLE_AVX=OFF -DENABLE_SSE=OFF
+else
+ifeq ($(AVX_OT), 0)
+OTE_OPTS += -DENABLE_AVX=OFF
+else
+OTE_OPTS += -DENABLE_AVX=ON -DENABLE_SSE=ON
+endif
+endif
 
 ifeq ($(USE_SHARED_OTE), 1)
 OTE = $(SHARED_OTE)
@@ -331,17 +345,15 @@ libote:
 
 local/lib/libcryptoTools.a: $(STATIC_OTE)
 local/lib/libcryptoTools.so: $(SHARED_OTE)
-OT/OTExtensionWithMatrix.o: $(OTE)
 
-ifeq ($(ARM), 1)
-local/lib/liblibOTe.a: deps/libOTe/libOTe
-	cd deps/libOTe; \
-	PATH="$(CURDIR)/local/bin:$(PATH)" python3 build.py --install=$(CURDIR)/local -- -DBUILD_SHARED_LIBS=0 -DENABLE_AVX=OFF -DENABLE_SSE=OFF $(OTE_OPTS)
-else
-local/lib/liblibOTe.a: deps/libOTe/libOTe
-	cd deps/libOTe; \
-	PATH="$(CURDIR)/local/bin:$(PATH)" python3 build.py --install=$(CURDIR)/local -- -DBUILD_SHARED_LIBS=0 $(OTE_OPTS)
+ifeq ($(USE_KOS), 0)
+OT/OTExtensionWithMatrix.o: $(OTE)
 endif
+
+local/lib/liblibOTe.a: deps/libOTe/libOTe
+	cd deps/libOTe; \
+	PATH="$(CURDIR)/local/bin:$(PATH)" python3 build.py --install=$(CURDIR)/local -- -DBUILD_SHARED_LIBS=0 $(OTE_OPTS) && \
+	touch ../../local/lib/liblibOTe.a
 
 $(SHARED_OTE): deps/libOTe/libOTe
 	cd deps/libOTe; \
@@ -373,4 +385,4 @@ deps/simde/simde:
 	git submodule update --init deps/simde || git clone https://github.com/simd-everywhere/simde deps/simde
 
 clean:
-	-rm -f */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o static/*.x *.so
+	-rm -f */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o static/*.x *.so local/lib/liblibOTe.*

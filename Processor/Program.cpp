@@ -33,6 +33,18 @@ void Program::parse(string filename)
   if (pinp.fail())
     throw file_error(filename);
   parse(pinp);
+
+  // compute hash
+  pinp.clear();
+  pinp.seekg(0);
+  Hash hasher;
+  while (pinp.peek(), !pinp.eof())
+    {
+      char buf[1024];
+      size_t n = pinp.readsome(buf, 1024);
+      hasher.update(buf, n);
+    }
+  hash = hasher.final().str();
 }
 
 void Program::parse(istream& s)

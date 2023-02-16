@@ -78,8 +78,8 @@ Clients (Non-computing Parties)
 
 :py:func:`Compiler.types.sint.receive_from_client` and
 :py:func:`Compiler.types.sint.reveal_to_clients` allow
-communicating securely with the clients. See `this example
-<https://github.com/data61/MP-SPDZ/tree/master/ExternalIO>`_
+communicating securely with the clients. See `the relevant section
+<client-interface.html>`_
 covering both client code and server-side high-level code.
 :py:func:`Compiler.types.sint.input_tensor_from_client` and
 :py:func:`Compiler.types.MultiArray.reveal_to_clients`. The same

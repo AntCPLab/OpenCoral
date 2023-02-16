@@ -10,6 +10,7 @@ import math
 import os
 import re
 import sys
+import hashlib
 from collections import defaultdict, deque
 from functools import reduce
 
@@ -49,12 +50,12 @@ class defaults:
     garbled = False
     prime = None
     galois = 40
-    budget = 100000
+    budget = 1000
     mixed = False
     edabit = False
     invperm = False
     split = None
-    cisc = False
+    cisc = True
     comparison = None
     merge_opens = True
     preserve_mem_order = False
@@ -126,7 +127,13 @@ class Program(object):
         self.n_threads = 1
         self.public_input_file = None
         self.types = {}
-        self.budget = int(self.options.budget)
+        if self.options.budget:
+            self.budget = int(self.options.budget)
+        else:
+            if self.options.optimize_hard:
+                self.budget = 100000
+            else:
+                self.budget = defaults.budget
         self.to_merge = [
             Compiler.instructions.asm_open_class,
             Compiler.instructions.gasm_open_class,
@@ -175,6 +182,11 @@ class Program(object):
         self.relevant_opts = set()
         self.n_running_threads = None
         self.input_files = {}
+        self.base_addresses = {}
+        self._protect_memory = False
+        if not self.options.cisc:
+            self.options.cisc = not self.options.optimize_hard
+
         Program.prog = self
         from . import comparison, instructions, instructions_base, types
 
@@ -196,7 +208,7 @@ class Program(object):
         # ignore path to file - source must be in Programs/Source
         if "Programs" in os.listdir(os.getcwd()):
             # compile prog in ./Programs/Source directory
-            self.programs_dir = os.getcwd() + "/Programs"
+            self.programs_dir = "Programs"
         else:
             # assume source is in main SPDZ directory
             self.programs_dir = sys.path[0] + "/Programs"
@@ -367,8 +379,12 @@ class Program(object):
             sch_file.write("lgp:%s" % req)
         sch_file.write("\n")
         sch_file.write("opts: %s\n" % " ".join(self.relevant_opts))
+        sch_file.close()
+        h = hashlib.sha256()
         for tape in self.tapes:
             tape.write_bytes()
+            h.update(tape.hash)
+        print('Hash:', h.hexdigest())
 
     def finalize_tape(self, tape):
         if not tape.purged:
@@ -435,7 +451,9 @@ class Program(object):
 
             tn = get_thread_number()
             runtime_error_if(tn > self.n_running_threads, "malloc")
-            return addr + single_size * (tn - 1)
+            res = addr + single_size * (tn - 1)
+            self.base_addresses[str(res)] = addr
+            return res
         else:
             return addr
 
@@ -443,6 +461,8 @@ class Program(object):
         """Free memory"""
         if self.curr_block.alloc_pool is not self.curr_tape.basicblocks[0].alloc_pool:
             raise CompilerError("Cannot free memory within function block")
+        if not util.is_constant(addr):
+            addr = self.base_addresses[str(addr)]
         size = self.allocated_mem_blocks.pop((addr, mem_type))
         self.free_mem_blocks[mem_type].push(addr, size)
 
@@ -490,15 +510,26 @@ class Program(object):
             )
         self.public_input_file.write("%s\n" % str(x))
 
+    def get_binary_input_file(self, player):
+        key = player, 'bin'
+        if key not in self.input_files:
+            filename = 'Player-Data/Input-Binary-P%d-0' % player
+            print('Writing binary data to', filename)
+            self.input_files[key] = open(filename, 'wb')
+        return self.input_files[key]
+
     def set_bit_length(self, bit_length):
         """Change the integer bit length for non-linear functions."""
         self.bit_length = bit_length
         print("Changed bit length for comparisons etc. to", bit_length)
 
     def set_security(self, security):
+        changed = self._security != security
         self._security = security
         self.non_linear.set_security(security)
-        print("Changed statistical security for comparison etc. to", security)
+        if changed:
+            print("Changed statistical security for comparison etc. to",
+                  security)
 
     @property
     def security(self):
@@ -626,6 +657,19 @@ class Program(object):
         self.warn_about_mem.append(False)
         self.curr_block.warn_about_mem = False
 
+    def protect_memory(self, status):
+        """ Enable or disable memory protection. """
+        self._protect_memory = status
+
+    def use_cisc(self):
+        return self.options.cisc and (not self.prime or self.rabbit_gap())
+
+    def rabbit_gap(self):
+        assert self.prime
+        p = self.prime
+        logp = int(round(math.log(p, 2)))
+        return abs(p - 2 ** logp) / p < 2 ** -self.security
+
     @staticmethod
     def read_tapes(schedule):
         m = re.search(r"([^/]*)\.mpc", schedule)
@@ -644,7 +688,7 @@ class Program(object):
             sys.exit(1)
 
         for tapename in lines[2].split(" "):
-            yield tapename.strip()
+            yield tapename.strip().split(":")[0]
 
 
 class Tape:
@@ -672,6 +716,7 @@ class Tape:
         self.singular = True
         self.free_threads = set()
         self.loop_breaks = []
+        self.warned_about_mem = False
 
     class BasicBlock(object):
         def __init__(self, parent, name, scope, exit_condition=None):
@@ -984,7 +1029,7 @@ class Tape:
         if self.program.verbose:
             print("Tape requires", self.req_num)
         for req, num in sorted(self.req_num.items()):
-            if num == float("inf") or num >= 2**32:
+            if num == float("inf") or num >= 2**64:
                 num = -1
             if req[1] in data_types:
                 self.basicblocks[-1].instructions.append(
@@ -1092,10 +1137,14 @@ class Tape:
             filename = self.program.programs_dir + "/Bytecode/" + filename
         print("Writing to", filename)
         f = open(filename, "wb")
+        h = hashlib.sha256()
         for i in self._get_instructions():
             if i is not None:
-                f.write(i.get_bytes())
+                b = i.get_bytes()
+                f.write(b)
+                h.update(b)
         f.close()
+        self.hash = h.digest()
 
     def new_reg(self, reg_type, size=None):
         return self.Register(reg_type, self, size=size)
@@ -1274,8 +1323,11 @@ class Tape:
 
         def __bool__(self):
             raise CompilerError(
-                "Cannot derive truth value from register, "
-                "consider using 'compile.py -l'"
+                "Cannot derive truth value from register. "
+                "This is a catch-all error appearing if you try to use a "
+                "run-time value where the compiler expects a compile-time "
+                "value, most likely a Python integer. "
+                "In some cases, you can fix this by using 'compile.py -l'."
             )
 
     class Register(_no_truth):

@@ -209,6 +209,7 @@ enum
     CONDPRINTPLAIN = 0xE1,
     INTOUTPUT = 0xE6,
     FLOATOUTPUT = 0xE7,
+    FIXINPUT = 0xE8,
 
     // GF(2^n) versions
     

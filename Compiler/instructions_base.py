@@ -209,6 +209,7 @@ opcodes = dict(
     CONDPRINTPLAIN = 0xE1,
     INTOUTPUT = 0xE6,
     FLOATOUTPUT = 0xE7,
+    FIXINPUT = 0xE8,
     GBITDEC = 0x18A,
     GBITCOM = 0x18B,
     # Secure socket
@@ -226,8 +227,13 @@ def int_to_bytes(x):
 global_vector_size_stack = []
 global_instruction_type_stack = ['modp']
 
+def check_vector_size(size):
+    if isinstance(size, program.curr_tape.Register):
+        raise CompilerError('vector size must be known at compile time')
+
 def set_global_vector_size(size):
     stack = global_vector_size_stack
+    check_vector_size(size)
     if size == 1 and not stack:
         return
     stack.append(size)
@@ -420,6 +426,7 @@ def cisc(function):
         def __init__(self, *args, **kwargs):
             self.args = args
             self.kwargs = kwargs
+            self.security = program.security
             self.calls = [(args, kwargs)]
             self.params = []
             self.used = []
@@ -443,7 +450,7 @@ def cisc(function):
 
         def merge_id(self):
             return self.function, tuple(self.params), \
-                tuple(sorted(self.kwargs.items()))
+                tuple(sorted(self.kwargs.items())), self.security
 
         def merge(self, other):
             self.calls += other.calls
@@ -468,7 +475,10 @@ def cisc(function):
                     except:
                         args.append(arg)
                 program.options.cisc = False
+                old_security = program.security
+                program.security = self.security
                 self.function(*args, **self.kwargs)
+                program.security = old_security
                 program.options.cisc = True
                 reset_global_vector_size()
                 program.curr_tape = old_tape
@@ -579,7 +589,7 @@ def cisc(function):
                 same_sizes &= arg.size == args[0].size
             except:
                 pass
-        if program.options.cisc and same_sizes:
+        if program.use_cisc() and same_sizes:
             return MergeCISC(*args, **kwargs)
         else:
             return function(*args, **kwargs)
@@ -592,9 +602,9 @@ def ret_cisc(function):
     instruction = cisc(instruction)
 
     def wrapper(*args, **kwargs):
-        if not program.options.cisc:
-            return function(*args, **kwargs)
         from Compiler import types
+        if not (program.options.cisc and isinstance(args[0], types._register)):
+            return function(*args, **kwargs)
         if isinstance(args[0], types._clear):
             res_type = type(args[1])
         else:
@@ -671,7 +681,8 @@ class RegisterArgFormat(ArgFormat):
             raise ArgumentError(arg, 'Invalid register argument')
         if arg.program != program.curr_tape:
             raise ArgumentError(arg, 'Register from other tape, trace: %s' % \
-                                    util.format_trace(arg.caller))
+                                    util.format_trace(arg.caller) +
+                                '\nMaybe use MemValue')
         if arg.reg_type != cls.reg_type:
             raise ArgumentError(arg, "Wrong register type '%s', expected '%s'" % \
                                     (arg.reg_type, cls.reg_type))
@@ -729,10 +740,10 @@ class LongArgFormat(IntArgFormat):
 
     @classmethod
     def encode(cls, arg):
-        return list(struct.pack('>Q', arg))
+        return list(struct.pack('>q', arg))
 
     def __init__(self, f):
-        self.i = struct.unpack('>Q', f.read(8))[0]
+        self.i = struct.unpack('>q', f.read(8))[0]
 
 class ImmediateModpAF(IntArgFormat):
     @classmethod
@@ -1075,21 +1086,27 @@ class ClearImmediate(ImmediateBase):
 ### Memory access instructions
 ###
 
-class DirectMemoryInstruction(Instruction):
+class MemoryInstruction(Instruction):
+    __slots__ = ['_protect']
+    def __init__(self, *args, **kwargs):
+        super(MemoryInstruction, self).__init__(*args, **kwargs)
+        self._protect = program._protect_memory
+
+class DirectMemoryInstruction(MemoryInstruction):
     __slots__ = []
     def __init__(self, *args, **kwargs):
         super(DirectMemoryInstruction, self).__init__(*args, **kwargs)
 
-class IndirectMemoryInstruction(Instruction):
+class IndirectMemoryInstruction(MemoryInstruction):
     __slots__ = []
 
     def get_direct(self, address):
         return self.direct(self.args[0], address, add_to_prog=False)
 
-class ReadMemoryInstruction(Instruction):
+class ReadMemoryInstruction(MemoryInstruction):
     __slots__ = []
 
-class WriteMemoryInstruction(Instruction):
+class WriteMemoryInstruction(MemoryInstruction):
     __slots__ = []
 
 class DirectMemoryWriteInstruction(DirectMemoryInstruction, \

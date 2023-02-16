@@ -25,10 +25,10 @@ typename T::MatrixPrep& Hemi<T>::get_matrix_prep(const array<int, 3>& dims,
         SubProcessor<T>& processor)
 {
     if (matrix_preps.find(dims) == matrix_preps.end())
-        matrix_preps.insert({dims,
+        matrix_preps.insert(pair<array<int, 3>, typename T::MatrixPrep*>(dims,
             new typename T::MatrixPrep(dims[0], dims[1], dims[2],
                     dynamic_cast<typename T::LivePrep&>(processor.DataF),
-                    matrix_usage)});
+                    matrix_usage)));
     return *matrix_preps.at(dims);
 }
 

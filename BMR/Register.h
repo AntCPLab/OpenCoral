@@ -296,6 +296,8 @@ public:
     static void andm(GC::Processor<U>&, const BaseInstruction&)
     { throw runtime_error("andm not implemented"); }
 
+    static void run_tapes(const vector<int>&) { throw not_implemented(); }
+
 	// most BMR phases don't need actual input
 	template<class T>
 	static T get_input(GC::Processor<T>& processor, const InputArgs& args)

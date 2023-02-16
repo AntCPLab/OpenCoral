@@ -315,7 +315,6 @@ class Merger:
         last_def = defaultdict_by_id(lambda: -1)
         last_mem_write = []
         last_mem_read = []
-        warned_about_mem = []
         last_mem_write_of = defaultdict(list)
         last_mem_read_of = defaultdict(list)
         last_print_str = None
@@ -364,20 +363,22 @@ class Merger:
                     addr_i = addr + i
                     handle_mem_access(addr_i, reg_type, last_access_this_kind,
                                       last_access_other_kind)
-                if block.warn_about_mem and not warned_about_mem and \
-                   (instr.get_size() > 100):
+                if block.warn_about_mem and \
+                   not block.parent.warned_about_mem and \
+                   (instr.get_size() > 100) and not instr._protect:
                     print('WARNING: Order of memory instructions ' \
                         'not preserved due to long vector, errors possible')
-                    warned_about_mem.append(True)
+                    block.parent.warned_about_mem = True
             else:
                 handle_mem_access(addr, reg_type, last_access_this_kind,
                                   last_access_other_kind)
-            if block.warn_about_mem and not warned_about_mem and \
-               not isinstance(instr, DirectMemoryInstruction):
+            if block.warn_about_mem and \
+               not block.parent.warned_about_mem and \
+               not isinstance(instr, DirectMemoryInstruction) and \
+               not instr._protect:
                 print('WARNING: Order of memory instructions ' \
                     'not preserved, errors possible')
-                # hack
-                warned_about_mem.append(True)
+                block.parent.warned_about_mem = True
 
         def strict_mem_access(n, last_this_kind, last_other_kind):
             if last_other_kind and last_this_kind and \
@@ -473,14 +474,14 @@ class Merger:
                 depths[n] = depth
 
             if isinstance(instr, ReadMemoryInstruction):
-                if options.preserve_mem_order:
+                if options.preserve_mem_order or instr._protect:
                     strict_mem_access(n, last_mem_read, last_mem_write)
-                else:
+                elif not options.preserve_mem_order:
                     mem_access(n, instr, last_mem_read_of, last_mem_write_of)
             elif isinstance(instr, WriteMemoryInstruction):
-                if options.preserve_mem_order:
+                if options.preserve_mem_order or instr._protect:
                     strict_mem_access(n, last_mem_write, last_mem_read)
-                else:
+                elif not options.preserve_mem_order:
                     mem_access(n, instr, last_mem_write_of, last_mem_read_of)
             elif isinstance(instr, matmulsm):
                 if options.preserve_mem_order:
@@ -495,7 +496,7 @@ class Merger:
                     add_edge(last_print_str, n)
                 last_print_str = n
             elif isinstance(instr, PublicFileIOInstruction):
-                keep_order(instr, n, instr.__class__)
+                keep_order(instr, n, PublicFileIOInstruction)
             elif isinstance(instr, prep_class):
                 keep_order(instr, n, instr.args[0])
             elif isinstance(instr, StackInstruction):
@@ -586,7 +587,7 @@ class RegintOptimizer:
     def __init__(self):
         self.cache = util.dict_by_id()
 
-    def run(self, instructions):
+    def run(self, instructions, program):
         for i, inst in enumerate(instructions):
             if isinstance(inst, ldint_class):
                 self.cache[inst.args[0]] = inst.args[1]
@@ -601,6 +602,7 @@ class RegintOptimizer:
             elif isinstance(inst, IndirectMemoryInstruction):
                 if inst.args[1] in self.cache:
                     instructions[i] = inst.get_direct(self.cache[inst.args[1]])
+                    instructions[i]._protect = inst._protect
             elif type(inst) == convint_class:
                 if inst.args[1] in self.cache:
                     res = self.cache[inst.args[1]]
@@ -614,4 +616,13 @@ class RegintOptimizer:
                     if op == 0:
                         instructions[i] = ldsi(inst.args[0], 0,
                                                add_to_prog=False)
+            elif isinstance(inst, (crash, cond_print_str, cond_print_plain)):
+                if inst.args[0] in self.cache:
+                    cond = self.cache[inst.args[0]]
+                    if not cond:
+                        instructions[i] = None
+        pre = len(instructions)
         instructions[:] = list(filter(lambda x: x is not None, instructions))
+        post = len(instructions)
+        if pre != post and program.options.verbose:
+            print('regint optimizer removed %d instructions' % (pre - post))

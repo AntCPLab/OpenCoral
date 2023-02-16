@@ -68,7 +68,7 @@ template<class T>
 void SemiInput<T>::finalize_other(int player, T& target, octetStream&,
         int)
 {
-    target = this->recv_prngs[player].template get<T>();
+    target = this->recv_prngs.at(player).template get<T>();
 }
 
 template<class T>

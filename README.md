@@ -19,7 +19,9 @@ solutions](https://mp-spdz.readthedocs.io/en/latest/troubleshooting.html).
 ##### Filing Issues
 
 Please file complete code examples because it's usually not possible
-to reproduce problems from incomplete code.
+to reproduce problems from incomplete code, and please include which
+protocol you have used (if applicable) because there are considerable
+differences between the various protocols.
 
 #### Frequently Asked Questions
 
@@ -40,10 +42,9 @@ the top folder:
 
 ```
 Scripts/tldr.sh
-./compile.py tutorial
 echo 1 2 3 4 > Player-Data/Input-P0-0
 echo 1 2 3 4 > Player-Data/Input-P1-0
-Scripts/mascot.sh tutorial
+Scripts/compile-run.sh -E mascot tutorial
 ```
 
 This runs [the tutorial](Programs/Source/tutorial.mpc) with two
@@ -54,7 +55,7 @@ parties and malicious security.
 On Linux, this requires a working toolchain and [all
 requirements](#requirements). On Ubuntu, the following might suffice:
 ```
-sudo apt-get install automake build-essential cmake git libboost-dev libboost-thread-dev libntl-dev libsodium-dev libssl-dev libtool m4 python3 texinfo yasm
+sudo apt-get install automake build-essential clang cmake git libboost-dev libboost-thread-dev libntl-dev libsodium-dev libssl-dev libtool m4 python3 texinfo yasm
 ```
 On MacOS, this requires [brew](https://brew.sh) to be installed,
 which will be used for all dependencies.
@@ -62,16 +63,15 @@ It will execute [the
 tutorial](Programs/Source/tutorial.mpc) with two parties and malicious
 security.
 
-Note that this only works with a git clone but not with a binary
-release.
-
 ```
-make -j 8 tldr
-./compile.py tutorial
+make setup
 echo 1 2 3 4 > Player-Data/Input-P0-0
 echo 1 2 3 4 > Player-Data/Input-P1-0
-Scripts/mascot.sh tutorial
+Scripts/compile-run.sh -E mascot tutorial
 ```
+
+On strong enough hardware setups (several cores and GB of RAM), you
+can speed up the last step by running `make -j8 mascot-party.x` beforehand.
 
 #### TL;DR (Docker)
 Build a docker image for `mascot-party.x`:
@@ -271,7 +271,7 @@ compute the preprocessing time for a particular computation.
 #### Requirements
 
  - GCC 5 or later (tested with up to 11) or LLVM/clang 6 or later
-   (tested with up to 14). We recommend clang because it performs
+   (tested with up to 14). The default is to use clang because it performs
    better. Note that GCC 5/6 and clang 9 don't support libOTe, so you
    need to deactivate its use for these compilers (see the next
    section).
@@ -284,16 +284,16 @@ compute the preprocessing time for a particular computation.
    install it locally.
    libOTe also requires boost of version at least 1.75, which is not
    available by default on relatively recent systems such as Ubuntu
-   20.04. You can install it locally by running `make boost`.
+   22.04. You can install it locally by running `make boost`.
  - MPIR library, compiled with C++ support (use flag `--enable-cxx` when running configure). You can use `make -j8 mpir` to install it locally.
  - libsodium library, tested against 1.0.18
- - OpenSSL, tested against 1.1.1
- - Boost.Asio with SSL support (`libboost-dev` on Ubuntu), tested against 1.71
- - Boost.Thread for BMR (`libboost-thread-dev` on Ubuntu), tested against 1.71
+ - OpenSSL, tested against 3.0.2
+ - Boost.Asio with SSL support (`libboost-dev` on Ubuntu), tested against 1.81
+ - Boost.Thread for BMR (`libboost-thread-dev` on Ubuntu), tested against 1.81
  - x86 or ARM 64-bit CPU (the latter tested with AWS Gravitron and
    Apple Silicon)
  - Python 3.5 or later
- - NTL library for homomorphic encryption (optional; tested with NTL 10.5)
+ - NTL library for homomorphic encryption (optional; tested with NTL 11.5.1)
  - If using macOS, Sierra or later
  - Windows/VirtualBox: see [this
    issue](https://github.com/data61/MP-SPDZ/issues/557) for a discussion
@@ -328,14 +328,67 @@ compute the preprocessing time for a particular computation.
    parts only. Remember to run `make clean` first after changing `CONFIG`
    or `CONFIG.mine`.
 
-# Running computation
+# Running Computation
 
 See `Programs/Source/` for some example MPC programs, in particular
 `tutorial.mpc`. Furthermore, [Read the
 Docs](https://mp-spdz.readthedocs.io/en/latest/) hosts a more
-detailed reference of the high-level functionality extracted from the
-Python code in the `Compiler` directory as well as a summary of
-relevant compiler options.
+detailed reference of all aspects of MP-SPDZ.
+
+There are three ways of running computation:
+
+1. Separate compilation and execution. This is the default in the
+   further documentation. It allows to run the same program several
+   times while only compiling once, for example:
+
+   ```
+   ./compile.py <program> <argument>
+   Scripts/mascot.sh <program>-<argument> [<runtime-arg>...]
+   Scripts/mascot.sh <program>-<argument> [<runtime-arg>...]
+   ```
+
+2. One-command local execution. This compiles the program and the
+   virtual machine if necessary before executing it locally with the
+   given protocol. The name of the protocols correspond to the script
+   names below (without the `.sh`). Furthermore, some
+   protocol-specific optimization options are automatically used as
+   well as required options.
+
+   ```
+   Scripts/compile-run.py -E mascot <program> <argument> -- [<runtime-arg>...]
+   ```
+
+3. One-command remote execution. This compiles the program and the
+   virtual machine if necessary before uploading them together with
+   all necessary input and certificate files via SSH.
+
+   ```
+   Scripts/compile-run.py -HOSTS -E mascot <program> <argument> -- [<runtime-arg>...]
+   ```
+
+   `HOSTS` has to be a text file in the following format:
+
+   ```
+   [<user>@]<host0>[/<path>]
+   [<user>@]<host1>[/<path>]
+   ...
+   ```
+
+   If <path> does not start with `/` (only one `/` after the
+   hostname), the path with be relative to the home directory of the
+   user. Otherwise (`//` after the hostname it will be relative to the
+   root directory.
+
+Even with the integrated execution it is important to keep in mind
+that there are two different phases, the compilation and the run-time
+phase. Any secret data is only available in the second phase, when the
+Python compilation has concluded. Therefore, the types like `sint` and
+`sfix` are mere placeholders for data to be used later, and they don't
+contain any shares. See also [the
+documentation](https://mp-spdz.readthedocs.io/en/latest/compilation.html#compilation-vs-run-time)
+for what this means when using Python data structures and Python
+language features.
+
 
 ### Compiling high-level programs
 
@@ -347,8 +400,10 @@ to be compiled accordingly.
 ```./compile.py [-F <integer bit length>] [-P <prime>] <program>```
 
 The integer bit length defaults to 64, and the prime defaults to none
-given. If a prime is given, it has to be at least two bits longer
-than the integer length.
+given. If a prime is given, it has to be at least two bits longer than
+the integer length. Note that `-P` is optional, and it involves
+algorithms that are more expensive while allowing for a wider range of
+integer lengths.
 
 Note that in this context integers do not wrap around according to the
 bit integer bit length but the length is used for non-linear
@@ -763,7 +818,7 @@ for computation modulo a power of two. It involves sharing both a
 secret value and information-theoretic tag similar to SPDZ but not
 with additive secret sharing, hence the name.
 Rep4 refers to the four-party protocol by [Dalskov et
-al.](https://eprint.iacr.org/2020/1330).
+al.](https://eprint.iacr.org/2020/1330)
 `malicious-rep-bin-party.x` is based on cut-and-choose triple
 generation by [Furukawa et al.](https://eprint.iacr.org/2016/944) but
 using Beaver multiplication instead of their post-sacrifice

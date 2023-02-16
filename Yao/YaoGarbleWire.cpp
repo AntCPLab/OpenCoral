@@ -14,6 +14,7 @@
 #include "GC/Secret.hpp"
 #include "GC/Thread.hpp"
 #include "GC/ShareSecret.hpp"
+#include "GC/ThreadMaster.hpp"
 #include "YaoCommon.hpp"
 
 void YaoGarbleWire::random()
@@ -244,4 +245,12 @@ void YaoGarbleWire::convcbit2s(GC::Processor<whole_type>& processor,
 			dest.get_reg(j).public_input(
 					processor.C[instruction.get_r(1) + i].get_bit(j));
 	}
+}
+
+void YaoGarbleWire::run_tapes(const vector<int>& args)
+{
+	auto& garbler = YaoGarbler::s();
+	if (garbler.continuous())
+		garbler.untaint();
+	garbler.master.machine.run_tapes(args);
 }

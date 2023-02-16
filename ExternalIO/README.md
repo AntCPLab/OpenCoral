@@ -1,9 +1,12 @@
-The ExternalIO directory contains an example of managing I/O between external client processes and SPDZ parties running SPDZ engines. These instructions assume that SPDZ has been built as per the [project readme](../README.md).
+The ExternalIO directory contains an example of managing I/O between
+external client processes and parties running MP-SPDZ engines. These
+instructions assume that MP-SPDZ has been built as per the [project
+readme](../README.md).
 
 ## Working Examples
 
-[bankers-bonus-client.cpp](./bankers-bonus-client.cpp) and
-[bankers-bonus-client.py](./bankers-bonus-client.py) act as a
+[bankers-bonus-client.cpp](../ExternalIO/bankers-bonus-client.cpp) and
+[bankers-bonus-client.py](../ExternalIO/bankers-bonus-client.py) act as a
 client to [bankers_bonus.mpc](../Programs/Source/bankers_bonus.mpc)
 and demonstrates sending input and receiving output as described by
 [Damgård et al.](https://eprint.iacr.org/2015/1006) The computation
@@ -56,5 +59,5 @@ Only the `sint` methods used in the example are documented here, equivalent meth
 
 The example uses the `Client` class implemented in
 `ExternalIO/Client.hpp` to handle the communication, see
-https://mp-spdz.readthedocs.io/en/latest/io.html#reference for
+[this reference](https://mp-spdz.readthedocs.io/en/latest/io.html#reference) for
 documentation.

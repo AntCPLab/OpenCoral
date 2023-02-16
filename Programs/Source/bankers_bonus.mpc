@@ -20,6 +20,7 @@ from Compiler.util import if_else
 PORTNUM = 14000
 MAX_NUM_CLIENTS = 8
 n_rounds = 0
+n_threads = 2
 
 if len(program.args) > 1:
     n_rounds = int(program.args[1])
@@ -110,7 +111,7 @@ def main():
             # Clients secret input.
             client_values = t.Array(MAX_NUM_CLIENTS)
 
-            @for_range(number_clients)
+            @for_range_multithread(n_threads, 1, number_clients)
             def _(client_id):
                 client_values[client_id] = client_input(t, client_id)
 

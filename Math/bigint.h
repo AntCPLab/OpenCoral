@@ -37,6 +37,13 @@ namespace GC
   class Clear;
 }
 
+/**
+ * Type for arbitrarily large integers.
+ * This is a sub-class of ``mpz_class`` from MPIR. As such, it implements
+ * all integers operations and input/output via C++ streams. In addition,
+ * the ``get_ui()`` member function allows retrieving the least significant
+ * 64 bits.
+ */
 class bigint : public mpz_class
 {
 public:
@@ -51,15 +58,20 @@ public:
   template<class U, class T>
   static void output_float(U& o, const mpf_class& x, T nan);
 
+  /// Initialize to zero.
   bigint() : mpz_class() {}
   template <class T>
   bigint(const T& x) : mpz_class(x) {}
+  /// Convert to canonical representation as non-negative number.
   template<int X, int L>
   bigint(const gfp_<X, L>& x);
+  /// Convert to canonical representation as non-negative number.
   template<int X, int L>
   bigint(const gfpvar_<X, L>& x);
+  /// Convert to canonical representation as non-negative number.
   template <int K>
   bigint(const Z2<K>& x);
+  /// Convert to canonical representation as non-negative number.
   template <int K>
   bigint(const SignedZ2<K>& x);
   template <int L>

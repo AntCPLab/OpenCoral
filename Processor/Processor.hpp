@@ -55,6 +55,27 @@ SubProcessor<T>::~SubProcessor()
 }
 
 template<class sint, class sgf2n>
+inline ofstream& Processor<sint, sgf2n>::get_public_output()
+{
+  if (not public_output.is_open())
+    public_output.open(get_filename(PREP_DIR "Public-Output-", true).c_str(),
+        ios_base::out);
+
+  return public_output;
+}
+
+template<class sint, class sgf2n>
+inline ofstream& Processor<sint, sgf2n>::get_binary_output()
+{
+  if (not binary_output.is_open())
+    binary_output.open(
+        get_parameterized_filename(P.my_num(), thread_num,
+            PREP_DIR "Binary-Output"), ios_base::out);
+
+  return binary_output;
+}
+
+template<class sint, class sgf2n>
 Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
         typename sgf2n::MAC_Check& MC2,typename sint::MAC_Check& MCp,
         Machine<sint, sgf2n>& machine,
@@ -64,7 +85,7 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
   share_thread(DataF.DataFb, P, machine.get_bit_mac_key()),
   Procb(machine.bit_memories),
   Proc2(*this,MC2,DataF.DataF2,P),Procp(*this,MCp,DataF.DataFp,P),
-  external_clients(P.my_num()),
+  external_clients(machine.external_clients),
   binary_file_io(Binary_File_IO())
 {
   reset(program,0);
@@ -73,12 +94,18 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
   public_input.open(public_input_filename);
   private_input_filename = (get_filename(PREP_DIR "Private-Input-",true));
   private_input.open(private_input_filename.c_str());
-  public_output.open(get_filename(PREP_DIR "Public-Output-",true).c_str(), ios_base::out);
-  binary_output.open(
-      get_parameterized_filename(P.my_num(), thread_num,
-          PREP_DIR "Binary-Output"), ios_base::out);
 
   open_input_file(P.my_num(), thread_num, machine.opts.cmd_private_input_file);
+
+  string input_prefix = machine.opts.cmd_private_input_file;
+  if (input_prefix == OnlineOptions().cmd_private_input_file
+      or input_prefix == ".")
+    input_prefix = PREP_DIR "Input-Binary";
+  else
+    input_prefix += "-Binary";
+  binary_input_filename = get_parameterized_filename(P.my_num(), thread_num,
+      input_prefix);
+  binary_input.open(binary_input_filename);
 
   secure_prng.ReSeed();
   shared_prng.SeedGlobally(P, false);
@@ -96,6 +123,8 @@ Processor<sint, sgf2n>::~Processor()
   if (sent)
     cerr << "Opened " << sent << " elements in " << rounds << " rounds" << endl;
 #endif
+  if (OnlineOptions::singleton.verbose and client_timer.elapsed())
+    cerr << "Client communication time = " << client_timer.elapsed() << endl;
 }
 
 template<class sint, class sgf2n>
@@ -286,6 +315,7 @@ void Processor<sint, sgf2n>::write_socket(const RegType reg_type,
 #endif
 
   try {
+    TimeScope _(client_timer);
     socket_stream.Send(external_clients.get_socket(socket_id));
   }
     catch (bad_value& e) {
@@ -302,7 +332,9 @@ void Processor<sint, sgf2n>::read_socket_ints(int client_id,
 {
   int m = registers.size();
   socket_stream.reset_write_head();
+  client_timer.start();
   socket_stream.Receive(external_clients.get_socket(client_id));
+  client_timer.stop();
   for (int j = 0; j < size; j++)
     for (int i = 0; i < m; i++)
       {
@@ -319,7 +351,9 @@ void Processor<sint, sgf2n>::read_socket_vector(int client_id,
 {
   int m = registers.size();
   socket_stream.reset_write_head();
+  client_timer.start();
   socket_stream.Receive(external_clients.get_socket(client_id));
+  client_timer.stop();
   for (int j = 0; j < size; j++)
     for (int i = 0; i < m; i++)
       get_Cp_ref(registers[i] + j) =
@@ -333,7 +367,9 @@ void Processor<sint, sgf2n>::read_socket_private(int client_id,
 {
   int m = registers.size();
   socket_stream.reset_write_head();
+  client_timer.start();
   socket_stream.Receive(external_clients.get_socket(client_id));
+  client_timer.stop();
 
   for (int j = 0; j < size; j++)
     for (int i = 0; i < m; i++)
@@ -771,6 +807,56 @@ typename sint::clear Processor<sint, sgf2n>::get_inverse2(unsigned m)
   for (unsigned i = inverses2m.size(); i <= m; i++)
     inverses2m.push_back((cint(1) << i).invert());
   return inverses2m[m];
+}
+
+template<class sint, class sgf2n>
+void Processor<sint, sgf2n>::fixinput(const Instruction& instruction)
+{
+  int n = instruction.get_n();
+  if (n == P.my_num() or n == -1)
+    {
+      typename sint::clear tmp;
+      bool use_double = false;
+      switch (instruction.get_r(2))
+      {
+      case 0:
+      case 1:
+        break;
+      case 2:
+        use_double = true;
+        break;
+      default:
+        throw runtime_error("unknown format for fixed-point input");
+      }
+
+      for (int i = 0; i < instruction.get_size(); i++)
+        {
+          if (binary_input.peek() == EOF)
+            throw IO_Error("not enough inputs in " + binary_input_filename);
+          double buf;
+          if (instruction.get_r(2) == 0)
+            {
+              int64_t x;
+              binary_input.read((char*) &x, sizeof(x));
+              tmp = x;
+            }
+          else
+            {
+              if (use_double)
+                binary_input.read((char*) &buf, sizeof(double));
+              else
+                {
+                  float x;
+                  binary_input.read((char*) &x, sizeof(float));
+                  buf = x;
+                }
+              tmp = bigint::tmp = round(buf * exp2(instruction.get_r(1)));
+            }
+          if (binary_input.fail())
+            throw IO_Error("failure reading from " + binary_input_filename);
+          write_Cp(instruction.get_r(0) + i, tmp);
+        }
+    }
 }
 
 template<class sint, class sgf2n>

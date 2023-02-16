@@ -38,7 +38,7 @@ for var in model.trainable_variables:
     var.assign_all(0)
 #    start = var.read_from_file(start)
 
-guesses = model.predict(test_samples, batch_size=1)
+guesses = model.predict(test_samples)
 
 print_ln('guess %s', guesses.reveal_nested()[:3])
 print_ln('truth %s', test_labels.reveal_nested()[:3])

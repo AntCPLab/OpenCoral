@@ -9,6 +9,7 @@
 
 #include "GC/Processor.hpp"
 #include "GC/ShareSecret.hpp"
+#include "GC/ThreadMaster.hpp"
 #include "Processor/Input.hpp"
 
 namespace GC
@@ -119,6 +120,11 @@ void FakeSecret::other_input(Input&, int, int)
 void FakeSecret::finalize_input(Input& inputter, int from, int n_bits)
 {
     *this = inputter.finalize(from, n_bits);
+}
+
+void FakeSecret::run_tapes(const vector<int>& args)
+{
+    Thread<FakeSecret>::s().master.machine.run_tapes(args);
 }
 
 } /* namespace GC */

@@ -13,8 +13,9 @@ if len(sys.argv) <= 1:
 
 res = collections.defaultdict(lambda: 0)
 regs = collections.defaultdict(lambda: 0)
+thread_regs = collections.defaultdict(lambda: 0)
 
-for tapename in Program.read_tapes(sys.argv[1]):
+def process(tapename, res, regs):
     for inst in Tape.read_instructions(tapename):
         t = inst.type
         if issubclass(t, DirectMemoryInstruction):
@@ -24,7 +25,17 @@ for tapename in Program.read_tapes(sys.argv[1]):
             if isinstance(arg, RegisterArgFormat):
                 regs[type(arg)] = max(regs[type(arg)], arg.i + inst.size)
 
+tapes = Program.read_tapes(sys.argv[1])
+
+process(next(tapes), res, regs)
+
+for tapename in tapes:
+    process(tapename, res, thread_regs)
+
 reverse_formats = dict((v, k) for k, v in ArgFormats.items())
 
+regout = lambda regs: dict((reverse_formats[t], n) for t, n in regs.items())
+
 print ('Memory:', dict(res))
-print ('Registers:', dict((reverse_formats[t], n) for t, n in regs.items()))
+print ('Registers in main thread:', regout(regs))
+print ('Registers in other threads:', regout(thread_regs))

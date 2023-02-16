@@ -325,7 +325,10 @@ void Sub_Data_Files<T>::buffer_edabits_with_queues(bool strict, int n_bits,
     }
   auto& buffer = *edabit_buffers[n_bits];
   if (buffer.peek() == EOF)
-    buffer.seekg(file_signature<T>().get_length());
+    {
+      buffer.seekg(0);
+      check_file_signature<T>(buffer, "");
+    }
   edabitvec<T> eb;
   eb.input(n_bits, buffer);
   this->edabits[{strict, n_bits}].push_back(eb);

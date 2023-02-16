@@ -154,21 +154,6 @@ class gf2n_long : public gf2n_<int128>
   gf2n_long(int g) : gf2n_long(int128(unsigned(g))) {}
   template<class T>
   gf2n_long(IntBase<T> g) : super(g.get()) {}
-
-  friend ostream& operator<<(ostream& s,const gf2n_long& x)
-    { s << hex << x.get() << dec;
-      return s;
-    }
-  friend istream& operator>>(istream& s,gf2n_long& x)
-    { bigint tmp;
-      s >> hex >> tmp >> dec;
-      x = 0;
-      auto size = tmp.get_mpz_t()->_mp_size;
-      assert(size >= 0);
-      assert(size <= 2);
-      mpn_copyi((mp_limb_t*)x.get_ptr(), tmp.get_mpz_t()->_mp_d, size);
-      return s;
-    }
 };
 
 #if defined(__aarch64__) && defined(__clang__)

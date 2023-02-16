@@ -10,6 +10,16 @@ def dest_comp(B):
     return sum(Tt) - 1
 
 def reveal_sort(k, D, reverse=False):
+    """ Sort in place according to "perfect" key. The name hints at the fact
+    that a random order of the keys is revealed.
+
+    :param k: vector or Array of sint containing exactly :math:`0,\dots,n-1`
+      in any order
+    :param D: Array or MultiArray to sort
+    :param reverse: wether :py:obj:`key` is a permutation in forward or
+      backward order
+
+    """
     assert len(k) == len(D)
     library.break_point()
     shuffle = types.sint.get_secure_shuffle(len(k))
@@ -28,6 +38,14 @@ def reveal_sort(k, D, reverse=False):
     instructions.delshuffle(shuffle)
 
 def radix_sort(k, D, n_bits=None, signed=True):
+    """ Sort in place according to key.
+
+    :param k: keys (vector or Array of sint or sfix)
+    :param D: Array or MultiArray to sort
+    :param n_bits: number of bits in keys (int)
+    :param signed: whether keys are signed (bool)
+
+    """
     assert len(k) == len(D)
     bs = types.Matrix.create_from(k.get_vector().bit_decompose(n_bits))
     if signed and len(bs) > 1:

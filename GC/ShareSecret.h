@@ -84,6 +84,9 @@ public:
 
     static BitVec get_mask(int n) { return n >= 64 ? -1 : ((1L << n) - 1); }
 
+    static void run_tapes(const vector<int>& args)
+    { Thread<U>::s().master.machine.run_tapes(args); }
+
     void check_length(int n, const Integer& x);
 
     void invert(int n, const U& x);
@@ -160,7 +163,7 @@ public:
     void bitdec(Memory<U>& S, const vector<int>& regs) const;
 
     void xor_(int n, const This& x, const This& y)
-    { *this = x ^ y; (void)n; }
+    { *this = (x ^ y).mask(n); }
 
     This operator&(const Clear& other)
     { return super::operator&(BitVec(other)); }

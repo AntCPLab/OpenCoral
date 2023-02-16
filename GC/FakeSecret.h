@@ -119,6 +119,8 @@ public:
     static void andm(GC::Processor<U>&, const BaseInstruction&)
     { throw runtime_error("andm not implemented"); }
 
+    static void run_tapes(const vector<int>& args);
+
     static FakeSecret input(GC::Processor<FakeSecret>& processor, const InputArgs& args);
     static FakeSecret input(int from, word input, int n_bits);
 

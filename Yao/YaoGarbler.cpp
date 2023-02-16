@@ -94,8 +94,9 @@ void YaoGarbler::post_run()
 void YaoGarbler::send(Player& P)
 {
 #ifdef DEBUG_YAO
-    cerr << "sending " << gates.size() << " gates and " <<
-            output_masks.size() << " output masks at " << processor.PC << endl;
+	cerr << "sending " << gates.size() << " bytes for gates and "
+			<< output_masks.size() << " output masks at " << processor.PC
+			<< " in thread " << thread_num << endl;
 #endif
 	P.send_long(1, YaoCommon::MORE);
 	size_t size = gates.size();

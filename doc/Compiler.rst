@@ -75,6 +75,7 @@ Compiler.ml module
    :no-undoc-members:
    :exclude-members: Tensor
    :show-inheritance:
+   :inherited-members:
 .. autofunction:: approx_sigmoid
 
 Compiler.decision_tree module
@@ -129,3 +130,10 @@ Compiler.sqrt_oram module
    :no-undoc-members:
    :exclude-members: LinearPositionMap, PositionMap, RecursivePositionMap,
 		     refresh, shuffle_the_shuffle
+
+
+Compiler.sorting module
+-----------------------
+.. automodule:: Compiler.sorting
+   :members:
+   :no-undoc-members:

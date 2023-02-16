@@ -126,7 +126,7 @@ BreakType Program::execute(Processor<T>& Proc, U& dynamic_memory,
         cout << "complexity at " << time << ": " << Proc.complexity << endl;
 #endif
     }
-    while (Proc.complexity < (1 << 19));
+    while (Proc.complexity < (size_t) OnlineOptions::singleton.batch_size);
     Proc.time = time;
 #ifdef DEBUG_ROUNDS
     cout << "breaking at time " << Proc.time << endl;

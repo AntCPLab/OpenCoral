@@ -200,9 +200,6 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case GSHLCI:
       case GSHRCI:
       case GSHRSI:
-      case USE:
-      case USE_INP:
-      case USE_EDABIT:
       case DIGESTC:
       case INPUTMASK:
       case GINPUTMASK:
@@ -211,6 +208,12 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
         get_ints(r, s, 2);
         n = get_int(s);
         break;
+      case USE:
+      case USE_INP:
+      case USE_EDABIT:
+          get_ints(r, s, 2);
+          n = get_long(s);
+          break;
       case STARTPRIVATEOUTPUT:
       case GSTARTPRIVATEOUTPUT:
       case STOPPRIVATEOUTPUT:
@@ -218,7 +221,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
         throw runtime_error("two-stage private output not supported any more");
       case USE_MATMUL:
         get_ints(r, s, 3);
-        n = get_int(s);
+        n = get_long(s);
         break;
       // instructions with 1 register + 1 integer operand
       case LDI:
@@ -407,7 +410,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case USE_PREP:
       case GUSE_PREP:
         s.read((char*)r, sizeof(r));
-        n = get_int(s);
+        n = get_long(s);
         break;
       case REQBL:
         n = get_int(s);
@@ -425,6 +428,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case XORM:
       case ANDM:
       case XORCB:
+      case FIXINPUT:
         n = get_int(s);
         get_ints(r, s, 3);
         break;
@@ -507,7 +511,7 @@ bool Instruction::get_offline_data_usage(DataPositions& usage)
       if (r[1] >= N_DTYPE)
         throw invalid_program();
       usage.files[r[0]][r[1]] = n;
-      return int(n) >= 0;
+      return long(n) >= 0;
     case USE_INP:
       if (r[0] >= N_DATA_FIELD_TYPE)
         throw invalid_program();
@@ -517,19 +521,19 @@ bool Instruction::get_offline_data_usage(DataPositions& usage)
             throw Processor_Error("Player number too high");
           usage.inputs[r[1]][r[0]] = n;
         }
-      return int(n) >= 0;
+      return long(n) >= 0;
     case USE_EDABIT:
       usage.edabits[{r[0], r[1]}] = n;
-      return int(n) >= 0;
+      return long(n) >= 0;
     case USE_MATMUL:
       usage.matmuls[{{r[0], r[1], r[2]}}] = n;
-      return int(n) >= 0;
+      return long(n) >= 0;
     case USE_PREP:
       usage.extended[DATA_INT][r] = n;
-      return int(n) >= 0;
+      return long(n) >= 0;
     case GUSE_PREP:
       usage.extended[gf2n::field_type()][r] = n;
-      return int(n) >= 0;
+      return long(n) >= 0;
     default:
       return true;
   }
@@ -623,6 +627,7 @@ int BaseInstruction::get_reg_type() const
     case FLOATOUTPUT:
     case READSOCKETC:
     case PRIVATEOUTPUT:
+    case FIXINPUT:
       return CINT;
     default:
       if (is_gf2n_instruction())
@@ -812,7 +817,12 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
       for (size_t i = offset; i < start.size(); i += skip)
       {
           if (size_offset != 0)
-              size = DIV_CEIL(start[i + size_offset], 64);
+          {
+              if (opcode & 0x200)
+                  size = DIV_CEIL(start[i + size_offset], 64);
+              else
+                  size = start[i + size_offset];
+          }
           m = max(m, (unsigned)start[i] + size);
       }
       return m;
@@ -1206,6 +1216,7 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         break;
       case ACCEPTCLIENTCONNECTION:
       {
+        TimeScope _(Proc.client_timer);
         // get client connection at port number n + my_num())
         int client_handle = Proc.external_clients.get_client_connection(
             Proc.read_Ci(r[1]));
@@ -1261,11 +1272,11 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
             Proc.public_input, Proc.public_input_filename, 0).items[0];
         break;
       case RAWOUTPUT:
-        Proc.read_Cp(r[0]).output(Proc.public_output, false);
+        Proc.read_Cp(r[0]).output(Proc.get_public_output(), false);
         break;
       case INTOUTPUT:
         if (n == -1 or n == Proc.P.my_num())
-          Integer(Proc.read_Ci(r[0])).output(Proc.binary_output, false);
+          Integer(Proc.read_Ci(r[0])).output(Proc.get_binary_output(), false);
         break;
       case FLOATOUTPUT:
         if (n == -1 or n == Proc.P.my_num())
@@ -1273,9 +1284,13 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
             double tmp = bigint::get_float(Proc.read_Cp(start[0] + i),
               Proc.read_Cp(start[1] + i), Proc.read_Cp(start[2] + i),
               Proc.read_Cp(start[3] + i)).get_d();
-            Proc.binary_output.write((char*) &tmp, sizeof(double));
+            Proc.get_binary_output().write((char*) &tmp, sizeof(double));
+            Proc.get_binary_output().flush();
           }
         break;
+      case FIXINPUT:
+        Proc.fixinput(*this);
+        return;
       case PREP:
         Procp.DataF.get(Proc.Procp.get_S(), r, start, size);
         return;

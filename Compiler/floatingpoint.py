@@ -319,7 +319,7 @@ def Pow2(a, l, kappa):
 def Pow2_from_bits(bits):
     m = len(bits)
     t = list(bits)
-    pow2k = [types.cint() for i in range(m)]
+    pow2k = [None for i in range(m)]
     for i in range(m):
         pow2k[i] = two_power(2**i)
         t[i] = t[i]*pow2k[i] + 1 - t[i]
@@ -641,7 +641,7 @@ def BitDecFull(a, n_bits=None, maybe_mixed=False):
     n_bits = n_bits or bit_length
     assert n_bits <= bit_length
     logp = int(round(math.log(p, 2)))
-    if abs(p - 2 ** logp) / p < 2 ** -get_program().security:
+    if get_program().rabbit_gap():
         # inspired by Rabbit (https://eprint.iacr.org/2021/119)
         # no need for exact randomness generation
         # if modulo a power of two is close enough

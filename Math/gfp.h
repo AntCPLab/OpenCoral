@@ -49,6 +49,7 @@ template<class T> void generate_prime_setup(string, int, int);
  * ``L`` is the number of 64-bit limbs, that is,
  * the prime has to have bit length in `[64*L-63, 64*L]`.
  * See ``gfpvar_`` for a more flexible alternative.
+ * Convert to ``bigint`` to access the canonical integer representation.
  */
 template<int X, int L>
 class gfp_ : public ValueInterface

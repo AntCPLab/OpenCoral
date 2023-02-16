@@ -916,7 +916,7 @@ def SqrtComp(z, old=False):
     k = len(z)
     if isinstance(z[0], types.sint):
         return types.sfix._new(sum(z[i] * types.cfix(
-            2 ** (-(i - f + 1) / 2)).v for i in range(k)))
+            2 ** (-(i - f + 1) / 2), k=k, f=f).v for i in range(k)))
     k_prime = k // 2
     f_prime = f // 2
     c1 = types.sfix(2 ** ((f + 1) / 2 + 1))

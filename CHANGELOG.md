@@ -1,5 +1,17 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.3.5 (Feb 16, 2023)
+
+- Easier-to-use machine learning interface
+- Integrated compilation-execution facility
+- Import/export sequential models and parameters from/to PyTorch
+- Binary-format input files
+- Less aggressive round optimization for faster compilation by default
+- Multithreading with client interface
+- Functionality to protect order of specific memory accesses
+- Oblivious transfer works again on older (pre-2011) x86 CPUs
+- clang is used by default
+
 ## 0.3.4 (Nov 9, 2022)
 
 - Decision tree learning

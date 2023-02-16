@@ -57,9 +57,17 @@ Machine<sint, sgf2n>::Machine(Names& playerNames, bool use_encryption,
   : my_number(playerNames.my_num()), N(playerNames),
     direct(opts.direct), opening_sum(opts.opening_sum),
     receive_threads(opts.receive_threads), max_broadcast(opts.max_broadcast),
-    use_encryption(use_encryption), live_prep(opts.live_prep), opts(opts)
+    use_encryption(use_encryption), live_prep(opts.live_prep), opts(opts),
+    external_clients(my_number)
 {
   OnlineOptions::singleton = opts;
+
+  if (N.num_players() == 1 and sint::is_real)
+    {
+      cerr << "Need more than one player to run a protocol." << endl;
+      cerr << "Use 'emulate.x' for just running the virtual machine" << endl;
+      exit(1);
+    }
 
   if (opening_sum < 2)
     this->opening_sum = N.num_players();
@@ -129,6 +137,7 @@ void Machine<sint, sgf2n>::prepare(const string& progname_str)
   int old_n_threads = nthreads;
   progs.clear();
   load_schedule(progname_str);
+  check_program();
 
   // keep preprocessing
   nthreads = max(old_n_threads, nthreads);
@@ -467,17 +476,21 @@ void Machine<sint, sgf2n>::run(const string& progname)
 
   print_timers();
 
-  size_t rounds = 0;
-  for (auto& x : comm_stats)
-      rounds += x.second.rounds;
-  cerr << "Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
-      << " rounds (party " << my_number;
-  if (threads.size() > 1)
-      cerr << "; rounds counted double due to multi-threading";
-  cerr << ")" << endl;
+  if (sint::is_real)
+  {
+      size_t rounds = 0;
+      for (auto& x : comm_stats)
+          rounds += x.second.rounds;
+      cerr << "Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
+              << " rounds (party " << my_number;
+      if (threads.size() > 1)
+          cerr << "; rounds counted double due to multi-threading";
+      cerr << "; use '-v' for more details";
+      cerr << ")" << endl;
 
-  auto& P = *this->P;
-  this->print_global_comm(P, comm_stats);
+      auto& P = *this->P;
+      this->print_global_comm(P, comm_stats);
+  }
 
 #ifdef VERBOSE_OPTIONS
   if (opening_sum < N.num_players() && !direct)
@@ -582,12 +595,35 @@ void Machine<sint, sgf2n>::suggest_optimizations()
   if (relevant_opts.find("split") != string::npos and sint::has_split)
     optimizations.append(
         "\tprogram.use_split(" + to_string(N.num_players()) + ")\n");
-  if (relevant_opts.find("edabit") != string::npos and not sint::has_split)
+  if (relevant_opts.find("edabit") != string::npos and not sint::has_split and sint::is_real)
     optimizations.append("\tprogram.use_edabit(True)\n");
   if (not optimizations.empty())
     cerr << "This program might benefit from some protocol options." << endl
         << "Consider adding the following at the beginning of '" << progname
         << ".mpc':" << endl << optimizations;
+#ifndef __clang__
+  cerr << "This virtual machine was compiled with GCC. Recompile with "
+      "'CXX = clang++' in 'CONFIG.mine' for optimal performance." << endl;
+#endif
+}
+
+template<class sint, class sgf2n>
+void Machine<sint, sgf2n>::check_program()
+{
+  Hash hasher;
+  for (auto& prog : progs)
+    hasher.update(prog.get_hash());
+  assert(P);
+  Bundle<octetStream> bundle(*P);
+  hasher.final(bundle.mine);
+  try
+  {
+    bundle.compare(*P);
+  }
+  catch (mismatch_among_parties&)
+  {
+    throw runtime_error("program differs between parties");
+  }
 }
 
 #endif
