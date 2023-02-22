@@ -44,7 +44,7 @@ the top folder:
 Scripts/tldr.sh
 echo 1 2 3 4 > Player-Data/Input-P0-0
 echo 1 2 3 4 > Player-Data/Input-P1-0
-Scripts/compile-run.sh -E mascot tutorial
+Scripts/compile-run.py -E mascot tutorial
 ```
 
 This runs [the tutorial](Programs/Source/tutorial.mpc) with two
@@ -67,7 +67,7 @@ security.
 make setup
 echo 1 2 3 4 > Player-Data/Input-P0-0
 echo 1 2 3 4 > Player-Data/Input-P1-0
-Scripts/compile-run.sh -E mascot tutorial
+Scripts/compile-run.py -E mascot tutorial
 ```
 
 On strong enough hardware setups (several cores and GB of RAM), you
