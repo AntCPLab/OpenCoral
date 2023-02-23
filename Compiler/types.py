@@ -5703,8 +5703,9 @@ class Array(_vectorizable):
                     raise CompilerError('cannot assign vector to all elements')
             mem_value = MemValue(value)
         self.address = MemValue.if_necessary(self.address)
-        n_threads = 8 if use_threads and len(self) > 2**20 else None
-        @library.multithread(n_threads, len(self))
+        n_threads = 8 if use_threads and util.is_constant(self.length) and \
+            len(self) > 2**20 else None
+        @library.multithread(n_threads, self.length)
         def _(base, size):
             if use_vector:
                 self.assign_vector(self.value_type(value, size=size), base)
