@@ -5834,7 +5834,6 @@ class Array(_vectorizable):
         :param other: vector or container of same length and type that supports operations with type of this array """
         if is_zero(other):
             return self
-        assert len(self) == len(other)
         return self.get_vector() + other
 
     def __sub__(self, other):
