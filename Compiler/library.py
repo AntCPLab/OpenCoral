@@ -1200,21 +1200,19 @@ def while_loop(loop_body, condition, arg=None, g=None):
         raise CompilerError('Condition must be callable')
     if arg is None:
         pre_condition = condition()
-    else:
-        pre_condition = condition(arg)
-        arg = regint(arg)
-        cond = condition
-        condition = lambda: cond(arg)
-        tmp = loop_body
-        def loop_body():
-            result = tmp(arg)
-            if isinstance(result, MemValue):
-                result = result.read()
-            result.link(arg)
-    if not isinstance(pre_condition, (bool,int)) or pre_condition:
         def loop_fn():
             loop_body()
             return condition()
+    else:
+        pre_condition = condition(arg)
+        arg = regint(arg)
+        def loop_fn():
+            result = loop_body(arg)
+            if isinstance(result, MemValue):
+                result = result.read()
+            result.link(arg)
+            return condition(result)
+    if not isinstance(pre_condition, (bool,int)) or pre_condition:
         if_statement(pre_condition, lambda: do_while(loop_fn, g=g))
 
 def while_do(condition, *args):
