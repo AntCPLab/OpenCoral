@@ -27,7 +27,7 @@ The schedule file is as follows in ASCII text::
   opts: <potential optimizations>
 
 Domain requirements and potential optimizations are related to
-ref:`nonlinear`. Domain requirements is one of the following:
+:ref:`nonlinear`. Domain requirements is one of the following:
 
 ``lgp:<length>``
   minimum prime length
