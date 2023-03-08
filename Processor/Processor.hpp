@@ -86,7 +86,7 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
   Procb(machine.bit_memories),
   Proc2(*this,MC2,DataF.DataF2,P),Procp(*this,MCp,DataF.DataFp,P),
   external_clients(machine.external_clients),
-  binary_file_io(Binary_File_IO())
+  binary_file_io(Binary_File_IO()), client_timer(client_stats.timer)
 {
   reset(program,0);
 
@@ -124,7 +124,9 @@ Processor<sint, sgf2n>::~Processor()
     cerr << "Opened " << sent << " elements in " << rounds << " rounds" << endl;
 #endif
   if (OnlineOptions::singleton.verbose and client_timer.elapsed())
-    cerr << "Client communication time = " << client_timer.elapsed() << endl;
+    cerr << "Client communication: " << client_stats.data * 1e-6 << " MB in "
+        << client_timer.elapsed() << " seconds and " << client_stats.rounds
+        << " rounds " << endl;
 }
 
 template<class sint, class sgf2n>
@@ -315,7 +317,7 @@ void Processor<sint, sgf2n>::write_socket(const RegType reg_type,
 #endif
 
   try {
-    TimeScope _(client_timer);
+    TimeScope _(client_stats.add(socket_stream.get_length()));
     socket_stream.Send(external_clients.get_socket(socket_id));
   }
     catch (bad_value& e) {
@@ -335,6 +337,7 @@ void Processor<sint, sgf2n>::read_socket_ints(int client_id,
   client_timer.start();
   socket_stream.Receive(external_clients.get_socket(client_id));
   client_timer.stop();
+  client_stats.add(socket_stream.get_length());
   for (int j = 0; j < size; j++)
     for (int i = 0; i < m; i++)
       {
@@ -354,6 +357,7 @@ void Processor<sint, sgf2n>::read_socket_vector(int client_id,
   client_timer.start();
   socket_stream.Receive(external_clients.get_socket(client_id));
   client_timer.stop();
+  client_stats.add(socket_stream.get_length());
   for (int j = 0; j < size; j++)
     for (int i = 0; i < m; i++)
       get_Cp_ref(registers[i] + j) =
@@ -370,6 +374,7 @@ void Processor<sint, sgf2n>::read_socket_private(int client_id,
   client_timer.start();
   socket_stream.Receive(external_clients.get_socket(client_id));
   client_timer.stop();
+  client_stats.add(socket_stream.get_length());
 
   for (int j = 0; j < size; j++)
     for (int i = 0; i < m; i++)

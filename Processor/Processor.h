@@ -218,7 +218,8 @@ class Processor : public ArithmeticProcessor
   ExternalClients& external_clients;
   Binary_File_IO binary_file_io;
 
-  Timer client_timer;
+  CommStats client_stats;
+  Timer& client_timer;
 
   void reset(const Program& program,int arg); // Reset the state of the processor
   string get_filename(const char* basename, bool use_number);
