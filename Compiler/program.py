@@ -1462,7 +1462,7 @@ class Tape:
             :param other: any convertible type
 
             """
-            other = self.conv(other)
+            other = type(self)(other)
             if self.program != other.program:
                 raise CompilerError(
                     'cannot update register with one from another thread')
