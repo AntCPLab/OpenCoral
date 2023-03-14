@@ -1347,6 +1347,7 @@ class Tape:
             "caller",
             "can_eliminate",
             "duplicates",
+            "block",
         ]
         maximum_size = 2 ** (64 - inst_base.Instruction.code_length) - 1
 
@@ -1360,6 +1361,7 @@ class Tape:
                     reg_type = RegType.SecretGF2N
             self.reg_type = reg_type
             self.program = program
+            self.block = program.active_basicblock
             if size is None:
                 size = Compiler.instructions_base.get_global_vector_size()
             if size is not None and size > self.maximum_size:
@@ -1466,6 +1468,8 @@ class Tape:
             if self.program != other.program:
                 raise CompilerError(
                     'cannot update register with one from another thread')
+            if self.block == other.block:
+                self.program.start_new_basicblock()
             self.link(other)
 
         @property
