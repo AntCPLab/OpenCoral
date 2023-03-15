@@ -1468,7 +1468,7 @@ class Tape:
             if self.program != other.program:
                 raise CompilerError(
                     'cannot update register with one from another thread')
-            if self.block == other.block:
+            if other.block in [x.block for x in self.duplicates]:
                 self.program.start_new_basicblock()
             self.link(other)
 
