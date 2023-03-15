@@ -83,9 +83,9 @@ vertically::
 
 The three approaches in this section can be run as follows::
 
-  Scripts/emulate-run.py -E ring breast_logistic
-  Scripts/emulate-run.py -E ring breast_logistic horizontal
-  Scripts/emulate-run.py -E ring breast_logistic vertical
+  Scripts/compile-run.py -E ring breast_logistic
+  Scripts/compile-run.py -E ring breast_logistic horizontal
+  Scripts/compile-run.py -E ring breast_logistic vertical
 
 In the last variants, the labels are all input via party 0.
 
