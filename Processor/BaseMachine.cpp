@@ -160,6 +160,12 @@ string BaseMachine::memory_filename(const string& type_short, int my_number)
 
 string BaseMachine::get_domain(string progname)
 {
+  if (singleton)
+  {
+    assert(s().progname == progname);
+    return s().domain;
+  }
+
   assert(not singleton);
   BaseMachine machine;
   singleton = 0;

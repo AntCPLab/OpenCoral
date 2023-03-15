@@ -12,6 +12,7 @@
 #include "ShiftableTripleBuffer.h"
 
 template<class T> class Beaver;
+template<class T> class SubProcessor;
 
 namespace GC
 {
@@ -29,6 +30,7 @@ class SemiPrep : public BufferPrep<SemiSecret>, ShiftableTripleBuffer<SemiSecret
 
 public:
     SemiPrep(DataPositions& usage, bool = true);
+    SemiPrep(void*, DataPositions& usage) : SemiPrep(usage) {}
     ~SemiPrep();
 
     void set_protocol(SemiSecret::Protocol& protocol);

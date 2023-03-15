@@ -166,7 +166,9 @@ void OfflineMachine<W>::generate()
             {
                 ofstream out(filename, ios::binary);
                 file_signature<T>().output(out);
-                for (int i = 0; i < buffered_total(total, batch); i++)
+                auto& opts = OnlineOptions::singleton;
+                opts.batch_size = DIV_CEIL(opts.batch_size, batch) * batch;
+                for (int i = 0; i < buffered_total(total, batch) / batch; i++)
                     preprocessing.template get_edabitvec<0>(true, n_bits).output(n_bits,
                             out);
             }

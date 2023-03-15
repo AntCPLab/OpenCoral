@@ -1088,7 +1088,7 @@ the actual computation. First, compile the binary:
 `make <protocol>-offline.x`
 
 At the time of writing the supported protocols are `mascot`,
-`cowgear`, and `mal-shamir`.
+`cowgear`, mal-shamir`, `semi`, `semi2k`, and `hemi`.
 
 If you have not done so already, then compile your high-level program:
 

@@ -42,7 +42,7 @@ RingMachine<U, V, W>::RingMachine(int argc, const char** argv,
         ez::ezOptionParser& opt, OnlineOptions& online_opts, int nplayers)
 {
     RingOptions opts(opt, argc, argv);
-    W machine(argc, argv, opt, online_opts, nplayers);
+    W machine(argc, argv, opt, online_opts, gf2n(), nplayers);
     int R = opts.ring_size_from_opts_or_schedule(online_opts.progname);
     switch (R)
     {
