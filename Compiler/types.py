@@ -6401,6 +6401,7 @@ class SubMultiArray(_vectorizable):
             try:
                 try:
                     self.value_type.direct_matrix_mul
+                    assert self.value_type == other.value_type
                     max_size = _register.maximum_size // res_matrix.sizes[1]
                     @library.multithread(n_threads, self.sizes[0], max_size)
                     def _(base, size):
