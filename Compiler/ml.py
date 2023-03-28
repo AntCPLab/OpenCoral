@@ -1035,7 +1035,7 @@ class ElementWiseLayer(NoVariableLayer):
         return self.f(self.X.get_part_vector(base, size))
 
     def f_prime_part(self, base, size):
-        return self.f_prime(self.Y.get_part_vector(base, size))
+        return self.f_prime(self.Y.get_vector(base, size))
 
     def _forward(self, batch=[0]):
         n_per_item = reduce(operator.mul, self.X.sizes[1:])
