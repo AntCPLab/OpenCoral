@@ -52,13 +52,18 @@ void test_composite_to_binary() {
             cout << "c_:\t" << c_ << endl;
         }
     }
-}
+
+    GF2E one(1);
+    GF2EX one_ = converter.binary_to_composite(one);
+    cout << "one:\t" << one << endl;
+    cout << "one_:\t" << one_ << endl;
+ }
 
 void test_basic_mfe() {
     print_banner("test_basic_mfe");
 
-    long m = 3, t = 5, n = 2;
-    BasicMFE mfe(m, t, n);
+    long m = 3, n = 2;
+    BasicMFE mfe(m, n);
     GF2E::init(mfe.base_field_mod());
     GF2EX a = random_GF2EX(m), b = random_GF2EX(m);
     vec_GF2E enc_a = mfe.encode(a), enc_b = mfe.encode(b);
@@ -77,8 +82,8 @@ void test_basic_mfe() {
 
 void test_basic_gf2_mfe() {
     print_banner("test_basic_gf2_mfe");
-    long m = 2, t = 3;
-    BasicGf2MFE mfe(m, t);
+    long m = 2;
+    BasicGf2MFE mfe(m);
     GF2X a = random_GF2X(m), b = random_GF2X(m);
     vec_GF2 enc_a = mfe.encode(a), enc_b = mfe.encode(b);
 
@@ -96,10 +101,10 @@ void test_basic_gf2_mfe() {
 
 void test_composite_gf2_mfe() {
     print_banner("test_composite_gf2_mfe");
-    long m1 = 3, t1 = 5, m2 = 2, t2 = 3;
+    long m1 = 3, m2 = 2;
     shared_ptr<FieldConverter> converter = make_shared<FieldConverter>(m1 * m2, m1, m2);
-    shared_ptr<Gf2eMFE> mfe1 = make_shared<BasicMFE>(converter->base_field_poly(), converter->composite_field_poly(), t1);
-    shared_ptr<Gf2MFE> mfe2 = make_shared<BasicGf2MFE>(m2, t2);
+    shared_ptr<Gf2eMFE> mfe1 = make_shared<BasicMFE>(converter->base_field_poly(), converter->composite_field_poly());
+    shared_ptr<Gf2MFE> mfe2 = make_shared<BasicGf2MFE>(m2);
     CompositeGf2MFE mfe(converter, mfe1, mfe2);
 
     GF2X a = random_GF2X(mfe.m()), b = random_GF2X(mfe.m());
@@ -127,12 +132,88 @@ void test_composite_gf2_mfe() {
     // cout << "a_:\t" <<  << endl;
 }
 
+void test_basic_rmfe() {
+    print_banner("test_basic_rmfe");
+
+    long k = 7, n = 5;
+    BasicRMFE rmfe(k, n);
+    GF2E::init(rmfe.base_field_mod());
+    vec_GF2E a = random_vec_GF2E(k), b = random_vec_GF2E(k);
+    GF2EX enc_a = rmfe.encode(a), enc_b = rmfe.encode(b);
+
+    GF2EX enc_c = enc_a * enc_b;
+
+    vec_GF2E c = rmfe.decode(enc_c);
+    vec_GF2E c_({}, a.length());
+    for (int i = 0; i < a.length(); i++) {
+        c_[i] = a[i] * b[i];
+    }
+
+    cout << "c:\t" << c << endl;
+    cout << "c_:\t" << c_ << endl;
+
+    cout << "a:\t" << a << endl;
+    cout << "a_:\t" << rmfe.decode(enc_a) << endl;
+}
+
+void test_basic_gf2_rmfe() {
+    print_banner("test_basic_gf2_rmfe");
+    long k = 2;
+    BasicGf2RMFE rmfe(k);
+    vec_GF2 a = random_vec_GF2(k), b = random_vec_GF2(k);
+    GF2X enc_a = rmfe.encode(a), enc_b = rmfe.encode(b);
+
+    GF2X enc_c = MulMod(enc_a, enc_b, rmfe.ex_field_mod());
+
+    vec_GF2 c = rmfe.decode(enc_c);
+    vec_GF2 c_({}, a.length());
+    for (int i = 0; i < a.length(); i++) {
+        c_[i] = a[i] * b[i];
+    }
+
+    cout << "a:\t" << a << endl;
+    cout << "b:\t" << b << endl;
+    cout << "c:\t" << c << endl;
+    cout << "c_:\t" << c_ << endl;
+}
+
+void test_composite_gf2_rmfe() {
+    print_banner("test_composite_gf2_rmfe");
+    long k1 = 8, m1 = 2*k1 - 1, k2 = 2, m2 = 2*k2-1;
+    shared_ptr<FieldConverter> converter = make_shared<FieldConverter>(m1 * m2, m1, m2);
+    shared_ptr<Gf2eRMFE> rmfe1 = make_shared<BasicRMFE>(converter->base_field_poly(), converter->composite_field_poly());
+    shared_ptr<Gf2RMFE> rmfe2 = make_shared<BasicGf2RMFE>(k2);
+    CompositeGf2RMFE rmfe(converter, rmfe1, rmfe2);
+
+    vec_GF2 a = random_vec_GF2(rmfe.k()), b = random_vec_GF2(rmfe.k());
+    GF2X enc_a = rmfe.encode(a), enc_b = rmfe.encode(b);
+
+    GF2X enc_c = MulMod(enc_a, enc_b, rmfe.ex_field_mod());
+    vec_GF2 c = rmfe.decode(enc_c);
+
+    vec_GF2 c_({}, a.length());
+    for (int i = 0; i < a.length(); i++) {
+        c_[i] = a[i] * b[i];
+    }
+
+    cout << "k:\t" << rmfe.k() << ", m:\t" << rmfe.m() << endl;
+    cout << "a:\t" << a << endl;
+    cout << "b:\t" << b << endl;
+    cout << "c:\t" << c << endl;
+    cout << "c_:\t" << c_ << endl;
+
+    // mfe.encode(a);
+    // mfe.decode(enc_a);
+    cout << "a:\t" << a << endl;
+    cout << "a_:\t" << rmfe.decode(enc_a) << endl;
+}
+
 int main() {
-    // basic_mfe();
-    // basic_rmfe();
-    // composite_to_binary();
     test_composite_to_binary();
     test_basic_mfe();
-    // test_basic_gf2_mfe();
+    test_basic_gf2_mfe();
     test_composite_gf2_mfe();
+    test_basic_rmfe();
+    test_basic_gf2_rmfe();
+    test_composite_gf2_rmfe();
 }

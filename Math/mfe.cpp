@@ -29,13 +29,13 @@ void mul(vec_GF2E& x, const vec_GF2E& a, const vec_GF2E& b) {
         x[i] = a[i] * b[i];
 }
 
-void Enumerate_GF2X(vec_GF2X& x, size_t n) {
+void Enumerate_GF2X(vec_GF2X& x, size_t start, size_t n) {
     x.SetLength(n);
     if (n == 0)
         return;
 
     int len = int(log2(n)) + 1;
-    for (size_t i = 0; i < n; i++) {
+    for (size_t i = start; i < start + n; i++) {
         vec_GF2 a({}, len);
         for (int k = 0; k < len; k++)
             a[k] = (i >> k) & 1;
@@ -43,76 +43,15 @@ void Enumerate_GF2X(vec_GF2X& x, size_t n) {
     }
 }
 
-void Enumerate_GF2E(vec_GF2E& x, size_t n) {
-    if (n > GF2E::cardinality())
+void Enumerate_GF2E(vec_GF2E& x, size_t start, size_t n) {
+    if ((start + n) > GF2E::cardinality())
         LogicError("# of requested elements larger than field size");
     vec_GF2X y;
-    Enumerate_GF2X(y, n);
+    Enumerate_GF2X(y, start, n);
     x.SetLength(n);
     for (size_t i = 0; i < n; i++) {
         conv(x[i], y[i]);
     }
-}
-
-void basic_mfe() {
-    long n = 2, m = 3;//, t = 5;
-    GF2X base_field_poly_mod = BuildIrred_GF2X(n);
-    GF2E::init(base_field_poly_mod);
-
-    // construct basis
-    GF2EXModulus ex_field_poly_mod = GF2EXModulus(BuildIrred_GF2EX(m));
-    GF2EX alpha(1, 1); // alpha = 0 + 1*Y + 0*Y^2 + ... = Y
-    vec_GF2EX basis({}, m);
-    basis[0] = 1;
-    for (int i = 1; i < m; i++) {
-        MulMod(basis[i], basis[i-1], alpha, ex_field_poly_mod);
-    }
-    // TODO: actually, in this setting, the basis is just {1, Y, Y^2, ..., Y^(m-1)}
-    // Hence mu_1 and inv_mu_1 are both just identity functions (just run them to verify)
-    // So things can be simpfiled a lot. Keep algorithm code of mu_1 and inv_mu_1 here
-    // in case we could not use "alpha = Y" in some setting.
-
-    // get 2m-2 distinct elements
-    vec_GF2E beta;
-    Enumerate_GF2E(beta, 2*m-2);
-
-
-    GF2EX mu_1_f = random_GF2EX(m), mu_1_g, mu_1_f_;
-    mu_1(mu_1_g, mu_1_f, basis);
-    inv_mu_1(mu_1_f_, mu_1_g, basis);
-
-
-    GF2EX mu_2_f = random_GF2EX(2*m-1), mu_2_f_;
-    vec_GF2E mu_2_g;
-    mu_2(mu_2_g, mu_2_f, beta);
-    inv_mu_2(mu_2_f_, mu_2_g, beta);
-
-
-    GF2EX x = random_GF2EX(m), y = random_GF2EX(m), z, z_;
-    vec_GF2E a, b, c;
-    sigma(a, x, basis, beta);
-    sigma(b, y, basis, beta);
-    mul(c, a, b);
-    rho(z, c, basis, beta, ex_field_poly_mod);
-    MulMod(z_, x, y, ex_field_poly_mod);
-
-    cout << base_field_poly_mod << endl;
-    cout << ex_field_poly_mod << endl;
-    cout << beta << endl;
-    cout << basis << endl;
-    cout << "mu_1 f:\t" << mu_1_f << endl;
-    cout << "mu_1 g:\t" << mu_1_g << endl;
-    cout << "mu_1 f_:\t" << mu_1_f_ << endl;
-    cout << "mu_2 f:\t" << mu_2_f << endl;
-    cout << "mu_2 g:\t" << mu_2_g << endl;
-    cout << "mu_2 f_:\t" << mu_2_f_ << endl;
-    cout << "z:\t" << z <<endl;
-    cout << "z_:\t" << z_ << endl;
-
-    GF2EX x_;
-    rho(x_, a, basis, beta, ex_field_poly_mod);
-    cout << "x:\t" << x << endl;
-    cout << "x_:\t" << x_ << endl;
 }
 
 void sigma(vec_GF2E& h, const GF2EX& g, const vec_GF2EX& basis, const vec_GF2E& beta) {
@@ -183,6 +122,12 @@ void mu_2(vec_GF2E& g, const GF2EX& f, const vec_GF2E& beta) {
     GetCoeff(g[beta.length()], f, beta.length());
 }
 
+/**
+ * len(g) = m
+ * deg(f) = m-1
+ * len(beta) = m-1
+ * (f(beta[0]), f(beta[1]), ..., f(beta[m-2]), f_{m-1}) --> f
+*/
 void inv_mu_2(GF2EX& f, const vec_GF2E& g, const vec_GF2E& beta) {
     if (g.length() != beta.length() + 1)
         LogicError("Invalid input to inv_mu_2");
@@ -193,6 +138,24 @@ void inv_mu_2(GF2EX& f, const vec_GF2E& g, const vec_GF2E& beta) {
     interpolate(f, beta, corrected_g);
     SetCoeff(f, corrected_g.length(), g[g.length() - 1]);
 }
+
+// /**
+//  * len(g) = m
+//  * deg(f) = m-1
+//  * len(beta) = m-1
+//  * (f(beta[0]), f(beta[1]), ..., f(beta[m-2]), f_{0}) --> f
+// */
+// void inv_mu_2(GF2EX& f, const vec_GF2E& g, const vec_GF2E& beta) {
+//     if (g.length() != beta.length() + 1)
+//         LogicError("Invalid input to inv_mu_2");
+//     vec_GF2E corrected_g({}, g.length() - 1);
+//     for(int i = 0; i < corrected_g.length(); i++) {
+//         corrected_g[i] = g[i] - g[g.length() - 1];
+//     }
+//     interpolate(f, beta, corrected_g);
+//     f <<= 1;
+//     SetCoeff(f, 0, g[g.length() - 1]);
+// }
 
 void nu_2(GF2EX& g, const GF2EX& f, const vec_GF2EX& basis, const GF2EXModulus& modulus) {
     clear(g);
@@ -208,88 +171,60 @@ void nu_2(GF2EX& g, const GF2EX& f, const vec_GF2EX& basis, const GF2EXModulus& 
 }
 
 
-void basic_rmfe() {
-    long n = 2, k =3, m = 2*k-1;
-    GF2X base_field_poly_mod = BuildIrred_GF2X(n);
-    GF2E::init(base_field_poly_mod);
-
-    // construct basis
-    GF2EXModulus ex_field_poly_mod = GF2EXModulus(BuildIrred_GF2EX(m));
-    GF2EX alpha(1, 1); // alpha = 0 + 1*Y + 0*Y^2 + ... = Y
-    vec_GF2EX basis({}, m);
-    basis[0] = 1;
-    for (int i = 1; i < m; i++) {
-        MulMod(basis[i], basis[i-1], alpha, ex_field_poly_mod);
-    }
-    // TODO: actually, in this setting, the basis is just {1, Y, Y^2, ..., Y^(m-1)}
-    // Hence mu_1 and inv_mu_1 are both just identity functions (just run them to verify)
-    // So things can be simpfiled a lot. Keep algorithm code of mu_1 and inv_mu_1 here
-    // in case we could not use "alpha = Y" in some setting.
-
-    // get k-1 distinct elements
-    vec_GF2E beta;
-    Enumerate_GF2E(beta, k-1);
-
-
-    vec_GF2E x = random_vec_GF2E(k), y = random_vec_GF2E(k), z, z_;
-    GF2EX a, b, c;
-    phi(a, x, basis, beta);
-    phi(b, y, basis, beta);
-    MulMod(c, a, b, ex_field_poly_mod);
-    psi(z, c, basis, beta);
-    mul(z_, x, y);
-
-    cout << "base field poly mod:\t" << base_field_poly_mod << endl;
-    cout << "ex field poly mod:\t" << ex_field_poly_mod << endl;
-    // cout << beta << endl;
-    // cout << basis << endl;
-    // cout << "mu_1 f:\t" << mu_1_f << endl;
-    // cout << "mu_1 g:\t" << mu_1_g << endl;
-    // cout << "mu_1 f_:\t" << mu_1_f_ << endl;
-    // cout << "mu_2 f:\t" << mu_2_f << endl;
-    // cout << "mu_2 g:\t" << mu_2_g << endl;
-    // cout << "mu_2 f_:\t" << mu_2_f_ << endl;
-    cout << "x:\t" << x << endl;
-    cout << "y:\t" << y << endl;
-    cout << "z:\t" << z <<endl;
-    cout << "z_:\t" << z_ << endl;
-
-    vec_GF2E x_;
-    psi(x_, a, basis, beta);
-    cout << "x:\t" << x << endl;
-    cout << "x_:\t" << x_ << endl;
-
-    vec_GF2E one({}, k, GF2E(1));
-    GF2EX one_;
-    phi(one_, one, basis, beta);
-    cout << "one:\t" << one << endl;
-    cout << "one_:\t" << one_ << endl;
-    one_ = 1;
-    psi(one, one_, basis, beta);
-    cout << "one:\t" << one << endl;
-    cout << "one_:\t" << one_ << endl;
-}
 
 const auto& xi_1 = mu_2;
 
-const auto& inv_xi_1 = inv_mu_2;
+// const auto& inv_xi_1 = inv_mu_2;
+/**
+ * len(g) = m
+ * deg(f) = m-1
+ * len(beta) = m
+ * beta[0] = 0
+ * (f_{beta[0]}, f(beta[1]), f(beta[2]), ..., f(beta[m-1])) --> f
+*/
+void inv_xi_1(GF2EX& f, const vec_GF2E& g, const vec_GF2E& beta) {
+    if (g.length() != beta.length())
+        LogicError("Invalid input to inv_xi_1");
+    // Make sure beta[0] is 0 so that we can map identity to identity in RMFE
+    if (!IsZero(beta[0]))
+        LogicError("beta[0] must be zero in RMFE");
+
+    interpolate(f, beta, g);
+}
 
 const auto& pi_1 = mu_1;
 
 const auto& inv_pi_1 = inv_mu_1;
 
+// /**
+//  * deg(f) = 2m-2
+//  * len(beta) = m-1
+//  * f --> (f(beta[0]), f(beta[1]), ..., f(beta[m-2]), f_{2m-2})
+// */
+// void xi_2(vec_GF2E& g, const GF2EX& f, const vec_GF2E& beta) {
+//     long k = beta.length() + 1;
+//     g.SetLength(k);
+//     for(int i = 0; i < beta.length(); i++) {
+//         eval(g[i], f, beta[i]);
+//     }
+//     GetCoeff(g[k-1], f, 2*k-2);
+// }
+
 /**
- * deg(f) = 2m-2
- * len(beta) = m-1
- * f --> (f(beta[0]), f(beta[1]), ..., f(beta[m-2]), f_{2m-2})
+ * deg(f) = 2k-2
+ * len(beta) = k
+ * beta[0] = 0
+ * f --> (f(beta[0]), f(beta[1]), ..., f(beta[k-1]))
 */
 void xi_2(vec_GF2E& g, const GF2EX& f, const vec_GF2E& beta) {
-    long k = beta.length() + 1;
+    if (!IsZero(beta[0]))
+        LogicError("beta[0] must be zero in RMFE");
+
+    long k = beta.length();
     g.SetLength(k);
     for(int i = 0; i < beta.length(); i++) {
         eval(g[i], f, beta[i]);
     }
-    GetCoeff(g[beta.length()], f, 2*k-2);
 }
 
 void phi(GF2EX& g, const vec_GF2E& h, const vec_GF2EX& basis, const vec_GF2E& beta) {
@@ -345,8 +280,8 @@ vec_GF2 shrink(const vec_GF2E& x) {
 }
 
 
-BasicMFE::BasicMFE(long m, long t, long base_field_poly_mod_deg)
-    : m_(m), t_(t) {
+BasicMFE::BasicMFE(long m, long base_field_poly_mod_deg)
+    : m_(m), t_(2*m-1) {
     if (!ProbPrime(m))
         LogicError("m must be prime for construcing a basic MFE");
     base_field_poly_mod_ = BuildIrred_GF2X(base_field_poly_mod_deg);
@@ -358,14 +293,14 @@ BasicMFE::BasicMFE(long m, long t, long base_field_poly_mod_deg)
     initialize();
 }
 
-BasicMFE::BasicMFE(NTL::GF2X base_field_poly, NTL::GF2EX ex_field_poly, long t) {
+BasicMFE::BasicMFE(NTL::GF2X base_field_poly, NTL::GF2EX ex_field_poly) {
     base_field_poly_mod_ = move(base_field_poly);
     GF2EPush push;
     GF2E::init(base_field_poly_mod_);
     ex_field_poly_mod_ = GF2EXModulus(ex_field_poly);
 
     m_ = deg(ex_field_poly_mod_);
-    t_ = t;
+    t_ = 2 * m_ - 1;
 
     initialize();
 }
@@ -383,7 +318,7 @@ void BasicMFE::initialize() {
     // in case we could not use "alpha = Y" in some setting.
 
     // get 2m-2 distinct elements
-    Enumerate_GF2E(beta_, 2*m_-2);
+    Enumerate_GF2E(beta_, 0, 2*m_-2);
 }
 
 void BasicMFE::encode(vec_GF2E& h, const GF2EX& g) {
@@ -398,8 +333,8 @@ void BasicMFE::decode(GF2EX& g, const vec_GF2E& h) {
     ::rho(g, h, basis_, beta_, ex_field_poly_mod_);
 }
 
-BasicGf2MFE::BasicGf2MFE(long m, long t) {
-    internal_ = unique_ptr<BasicMFE>(new BasicMFE(m, t, 1));
+BasicGf2MFE::BasicGf2MFE(long m) {
+    internal_ = unique_ptr<BasicMFE>(new BasicMFE(m, 1));
     const GF2EX& f = internal_->ex_field_mod();
     ex_field_poly_ = GF2XModulus(shrink(f));
 }
@@ -668,100 +603,143 @@ GF2EX FieldConverter::binary_to_composite(const GF2E& x) {
     return to_GF2EX(raw_binary_to_composite(to_vec_GF2(x, k_)), base_field_poly());
 }
 
+BasicRMFE::BasicRMFE(long k, long base_field_poly_mod_deg): k_(k), m_(2*k-1) {
+    base_field_poly_mod_ = BuildIrred_GF2X(base_field_poly_mod_deg);
+    GF2EPush push;
+    GF2E::init(base_field_poly_mod_);
 
-// void test_composite_to_binary() {
+    ex_field_poly_mod_ = GF2EXModulus(BuildIrred_GF2EX(m_));
+
+    initialize();
+}
+
+BasicRMFE::BasicRMFE(NTL::GF2X base_field_poly, NTL::GF2EX ex_field_poly) {
+    base_field_poly_mod_ = move(base_field_poly);
+    GF2EPush push;
+    GF2E::init(base_field_poly_mod_);
+    ex_field_poly_mod_ = GF2EXModulus(ex_field_poly);
+
+    m_ = deg(ex_field_poly_mod_);
+    if (m_ % 2 != 1)
+        LogicError("Extension field polynomial modulus degree must be odd");
+    k_ = (m_ + 1) / 2;
+    // Different from Lemma 4 in [CCXY18], we require q >= k instead of q >= k+1, in order
+    // to make this RMFE have a mapping of identity to identity.
+    if (k_ > GF2E::cardinality())
+        LogicError("Constrait violation: q >= k");
+
+    initialize();
+}
+
+void BasicRMFE::initialize() {
+    alpha_ = GF2EX(1, 1); // alpha = 0 + 1*Y + 0*Y^2 + ... = Y
+    basis_ = vec_GF2EX({}, m_);
+    basis_[0] = 1;
+    for (int i = 1; i < m_; i++) {
+        MulMod(basis_[i], basis_[i-1], alpha_, ex_field_poly_mod_);
+    }
+    // TODO: actually, in this setting, the basis is just {1, Y, Y^2, ..., Y^(m-1)}
+    // Hence mu_1 and inv_mu_1 are both just identity functions (just run them to verify)
+    // So things can be simpfiled a lot. Keep algorithm code of mu_1 and inv_mu_1 here
+    // in case we could not use "alpha = Y" in some setting.
+
+    // get 2m-2 distinct elements
+    Enumerate_GF2E(beta_, 0, k_);
+}
+
+void BasicRMFE::encode(GF2EX& g, const vec_GF2E& h) {
+    GF2EPush push;
+    GF2E::init(base_field_poly_mod_);
+    ::phi(g, h, basis_, beta_);
+}
+
+void BasicRMFE::decode(vec_GF2E& h, const GF2EX& g) {
+    GF2EPush push;
+    GF2E::init(base_field_poly_mod_);
+    ::psi(h, g, basis_, beta_);
+}
+
+BasicGf2RMFE::BasicGf2RMFE(long k) {
+    internal_ = unique_ptr<BasicRMFE>(new BasicRMFE(k, 1));
+    const GF2EX& f = internal_->ex_field_mod();
+    ex_field_poly_ = GF2XModulus(shrink(f));
+}
+
+void BasicGf2RMFE::decode(vec_GF2& h, const GF2X& g) {
+    if (deg(g) + 1 > m())
+        LogicError("Input polynomial g has an invalid length");
+    GF2EPush push;
+    GF2E::init(GF2X(1, 1));
+    GF2EX g_ = lift(g);
+
+    vec_GF2E h_ = internal_->decode(g_);
+    if (h_.length() != k())
+        LogicError("Output vector h has an invalid length");
+
+    h = shrink(h_);
+}
+
+void BasicGf2RMFE::encode(GF2X& g, const vec_GF2& h) {
+    if (h.length() != k())
+        LogicError("Input vector h has an invalid length");
+
+    GF2EPush push;
+    GF2E::init(GF2X(1, 1));
+    vec_GF2E h_ = lift(h);
     
-//     long n = 6, m = 11, k = n*m;
-//     FieldConverter converter(k, m, n);
-//     cout << "q: " << converter.composite_field_poly() << endl;
+    GF2EX g_ = internal_->encode(h_);
+    if (deg(g_) + 1 > m())
+        LogicError("Output polynomial g has an invalid length");
 
-//     GF2E::init(converter.binary_field_poly());
-//     GF2E a = random_GF2E(), b = random_GF2E();
-//     GF2E c = a * b;
-//     GF2EX a_composite = converter.binary_to_composite(a);
-//     GF2EX b_composite = converter.binary_to_composite(b);
-//     GF2EX c_composite = converter.binary_to_composite(c);
+    g = shrink(g_);
+}
 
-//     {
-//         GF2EPush push;
-//         GF2E::init(converter.base_field_poly());
-//         GF2EX c_composite_ = MulMod(a_composite, b_composite, converter.composite_field_poly());
+CompositeGf2RMFE::CompositeGf2RMFE(std::shared_ptr<FieldConverter> converter, std::shared_ptr<Gf2eRMFE> rmfe1, std::shared_ptr<Gf2RMFE> rmfe2)
+    : converter_(converter), rmfe1_(rmfe1), rmfe2_(rmfe2) {
+    if (converter->base_field_poly() != rmfe1->base_field_mod())
+        LogicError("Converter and rmfe1's base field polys are different");
+    if (converter->composite_field_poly() != rmfe1->ex_field_mod())
+        LogicError("Converter and rmfe1's composite field polys are different");
+    if (rmfe1->base_field_size() != (long) pow(rmfe2->base_field_size(), rmfe2->m()))
+        LogicError("Cannot concatenate two RMFEs with incompatible field sizes");
+    if (rmfe2->base_field_size() != 2)
+        LogicError("rmfe2's base field must be GF(2)");
 
-//         cout << "c_composite:\t" << c_composite << endl;
-//         cout << "c_composite_:\t" << c_composite_ << endl;
-//         {
-//             GF2EPush push;
-//             GF2E::init(converter.binary_field_poly());
-//             GF2E c_ = converter.composite_to_binary(c_composite_);
-//             cout << "c:\t" << c << endl;
-//             cout << "c_:\t" << c_ << endl;
-//         }
-//     }
-// }
+    m_ = rmfe1->m() * rmfe2->m();
+    k_ = rmfe1->k() * rmfe2->k();
 
-void composite_to_binary() {
+    ex_field_poly_ = converter_->binary_field_poly();
+}
 
-    long n = 6, m = 11, k = n*m;
-    ZZ r = ((ZZ(1) << k) - 1) / ((ZZ(1) << n) - 1);
-    vector<long> poly_indices = {66, 55, 48, 39, 0};
-    GF2X binary_field_primitive_poly = indices_to_gf2x(poly_indices);
-    GF2E::init(binary_field_primitive_poly);
-    GF2E alpha = to_GF2E(GF2X(1, 1));
-    GF2E gamma = power(alpha, r);
+void CompositeGf2RMFE::encode(NTL::GF2X& g, const NTL::vec_GF2& h) {
+    if (h.length() != k())
+        LogicError("Input vector h has an invalid length");
+    GF2EPush push;
+    GF2E::init(converter_->base_field_poly());
+    vec_GF2E y({}, rmfe1_->k());
 
-    vec_vec_GF2E tmp({}, m);
-    for (long j = 0; j < m; j++) {
-        tmp[j].SetLength(n);
-        for (long i = 0; i < n; i++) {
-            tmp[j][i] = power(alpha, r * i + j);
-        }
+    for (int i = 0; i < y.length(); i++) {
+        vec_GF2 yi({}, rmfe2_->k());
+        for (int j = 0; j < yi.length(); j++)
+            yi.at(j) = h.at(i * rmfe2_->k() + j);
+        y.at(i) = to_GF2E(rmfe2_->encode(yi), converter_->base_field_poly());
     }
-    vec_vec_GF2 T({}, k);
-    for (long h = 0; h < k; h++) {
-        T[h].SetLength(k);
-        for (long j = 0; j < m; j++) {
-            for (long i = 0; i < n; i++) {
-                T[h][j*n + i] = coeff(rep(tmp[j][i]), h);
-            }
-        }
+    GF2EX g_comp = rmfe1_->encode(y);
+    g = rep(converter_->composite_to_binary(g_comp));
+}
+
+void CompositeGf2RMFE::decode(NTL::vec_GF2& h, const NTL::GF2X& g) {
+    if (deg(g) + 1 > m())
+        LogicError("Input polynomial g has an invalid length");
+    GF2E g_ = to_GF2E(g, converter_->binary_field_poly());
+    GF2EX g_comp = converter_->binary_to_composite(g_);
+
+    vec_GF2E y = rmfe1_->decode(g_comp);
+
+    h.SetLength(k());
+    for (int i = 0; i < y.length(); i++) {
+        vec_GF2 yi = rmfe2_->decode(rep(y.at(i)));
+        for (int j = 0; j < yi.length(); j++)
+            h.at(i * rmfe2_->k() + j) = yi.at(j);
     }
-    mat_GF2 mat_T;
-    MakeMatrix(mat_T, T);
-    mat_GF2 T_inv = inv(mat_T);
-
-    vec_GF2 gamma_vec = to_vec_GF2(rep(gamma));
-    gamma_vec.SetLength(k);
-
-    vec_GF2 x, y;
-    mul(x, T_inv, gamma_vec);
-    vec_GF2 alpha_vec = to_vec_GF2(rep(alpha));
-    alpha_vec.SetLength(k);
-    mul(y, T_inv, alpha_vec);
-
-
-    cout << "alpha:\t" << alpha << endl;
-    cout << "gamma:\t" << gamma << endl;
-    cout << power(alpha, (ZZ(1) << k) - 1) << endl;
-    cout << power(gamma, (ZZ(1) << n) - 1) << endl;
-    cout << power(gamma, (ZZ(1) << (n-1))) << endl;
-    cout << power(gamma, (ZZ(1) << (n-2))) << endl;
-    cout << power(gamma, (ZZ(1) << (n-3))) << endl;
-    cout << power(gamma, (ZZ(1) << (n-4))) << endl;
-    cout << power(gamma, (ZZ(1) << (n-5))) << endl;
-    cout << power(gamma, (ZZ(1) << (n-6))) << endl;
-
-    vec_GF2EX tmps({}, n);
-    for (long i = 0; i < n; i++) {
-        tmps[i].SetLength(2);
-        tmps[i][0] = power(gamma, (ZZ(1) << (n-i-1)));
-        tmps[i][1] = 1;
-    }
-    GF2EX result = tmps[0];
-    for (long i = 1; i < n; i++) {
-        result = result * tmps[i];
-    }
-    cout << result << endl;
-
-    cout << x << endl;
-    cout << y << endl;
 }
