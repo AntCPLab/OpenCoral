@@ -63,7 +63,7 @@ class Circuit:
         i = 0
         for l in self.n_output_wires:
             v = []
-            for i in range(l):
+            for j in range(l):
                 v.append(flat_res[i])
                 i += 1
             res.append(sbitvec.from_vec(v))
