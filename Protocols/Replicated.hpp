@@ -58,7 +58,7 @@ inline ReplicatedBase::ReplicatedBase(Player& P, array<PRNG, 2>& prngs) :
         shared_prngs[i].SetSeed(prngs[i]);
 }
 
-inline ReplicatedBase ReplicatedBase::branch()
+inline ReplicatedBase ReplicatedBase::branch() const
 {
     return {P, shared_prngs};
 }
@@ -302,7 +302,7 @@ void Replicated<T>::trunc_pr(const vector<int>& regs, int size, U& proc,
     auto& S = proc.get_S();
 
     octetStream cs;
-    ReplicatedInput<T> input(P);
+    ReplicatedInput<T> input(0, *this);
 
     if (generate)
     {

@@ -66,8 +66,9 @@ public:
             ReplicatedInput(0, P)
     {
     }
-    ReplicatedInput(SubProcessor<T>* proc, Player& P) :
-            PrepLessInput<T>(proc), proc(proc), P(P), protocol(P)
+    ReplicatedInput(SubProcessor<T>* proc, const ReplicatedBase& protocol) :
+            PrepLessInput<T>(proc), proc(proc), P(protocol.P),
+            protocol(protocol.branch())
     {
         assert(T::vector_length == 2);
         expect.resize(P.num_players());

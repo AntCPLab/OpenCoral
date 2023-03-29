@@ -30,14 +30,14 @@ class Instruction;
 class ReplicatedBase
 {
 public:
-    array<PRNG, 2> shared_prngs;
+    mutable array<PRNG, 2> shared_prngs;
 
     Player& P;
 
     ReplicatedBase(Player& P);
     ReplicatedBase(Player& P, array<PRNG, 2>& prngs);
 
-    ReplicatedBase branch();
+    ReplicatedBase branch() const;
 
     int get_n_relevant_players() { return P.num_players() - 1; }
 };
