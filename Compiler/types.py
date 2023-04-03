@@ -6396,7 +6396,10 @@ class SubMultiArray(_vectorizable):
                     pass
                 t.params = res_params
             else:
-                t = self.value_type
+                if issubclass(self.value_type, _secret_structure):
+                    t = self.value_type
+                else:
+                    t = type(self.value_type(0) * other.value_type(0))
             res_matrix = Matrix(self.sizes[0], other.sizes[1], t)
             try:
                 try:
