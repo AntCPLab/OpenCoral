@@ -171,11 +171,6 @@ public:
   CheckVector<long>& get_Ci()
     { return Ci; }
 
-  virtual long sync_Ci(size_t) const
-  {
-    throw not_implemented();
-  }
-
   virtual ofstream& get_public_output()
   {
     throw not_implemented();
@@ -286,7 +281,6 @@ class Processor : public ArithmeticProcessor
   void fixinput(const Instruction& instruction);
 
   // synchronize in asymmetric protocols
-  long sync_Ci(size_t i) const;
   long sync(long x) const;
 
   ofstream& get_public_output();

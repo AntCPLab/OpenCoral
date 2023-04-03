@@ -884,12 +884,6 @@ void Processor<sint, sgf2n>::fixinput(const Instruction& instruction)
 }
 
 template<class sint, class sgf2n>
-long Processor<sint, sgf2n>::sync_Ci(size_t i) const
-{
-  return sync(read_Ci(i));
-}
-
-template<class sint, class sgf2n>
 long Processor<sint, sgf2n>::sync(long x) const
 {
   if (not sint::symmetric)
