@@ -287,7 +287,7 @@ class _number(Tape._no_truth):
                 if i == '1':
                     res *= self
             return res
-        else:
+        elif isinstance(exp, _int):
             bits = exp.bit_decompose()
             powers = [self]
             while len(powers) < len(bits):
@@ -295,6 +295,9 @@ class _number(Tape._no_truth):
             multiplicands = [b.if_else(p, 1) for b, p in zip(bits, powers)]
             res = util.tree_reduce(operator.mul, multiplicands)
             return res
+        else:
+            from .mpc_math import pow_fx
+            return pow_fx(self, exp)
 
     def mul_no_reduce(self, other, res_params=None):
         return self * other
