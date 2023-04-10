@@ -69,6 +69,8 @@ void mu_1(GF2EX& g, const GF2EX& f, const vec_GF2EX& basis) {
 
 void inv_mu_1(GF2EX& f, const GF2EX& g, const vec_GF2EX& basis) {
     long m = basis.length();
+    if (deg(g) + 1 > m)
+        LogicError("inv_mu_1: Invalid input g");
     vec_vec_GF2E basis_({}, basis.length());
     for(int i = 0; i < basis.length(); i++) {
         conv(basis_[i], basis[i]);
@@ -211,7 +213,7 @@ const auto& inv_pi_1 = inv_mu_1;
 // }
 
 /**
- * deg(f) = 2k-2
+ * deg(f) = 2k-2 (type1) for 2k-1 (type2)
  * len(beta) = k
  * beta[0] = 0
  * f --> (f(beta[0]), f(beta[1]), ..., f(beta[k-1]))
@@ -643,7 +645,7 @@ void BasicRMFE::initialize() {
     // So things can be simpfiled a lot. Keep algorithm code of mu_1 and inv_mu_1 here
     // in case we could not use "alpha = Y" in some setting.
 
-    // get 2m-2 distinct elements
+    // get k distinct elements
     Enumerate_GF2E(beta_, 0, k_);
 }
 
