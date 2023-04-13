@@ -1204,7 +1204,7 @@ class randoms(base.Instruction):
     field_type = 'modp'
 
 @base.vectorize
-class randomfulls(base.Instruction):
+class randomfulls(base.DataInstruction):
     """ Store share(s) of a fresh secret random element in secret
     register (vectors).
 
@@ -1214,6 +1214,10 @@ class randomfulls(base.Instruction):
     code = base.opcodes['RANDOMFULLS']
     arg_format = ['sw']
     field_type = 'modp'
+    data_type = 'random'
+
+    def get_repeat(self):
+        return len(self.args)
 
 @base.gf2n
 @base.vectorize
@@ -1511,8 +1515,8 @@ class inputpersonal(personal_base):
     code = base.opcodes['INPUTPERSONAL']
     arg_format = tools.cycle(['int','p','sw','c'])
 
-class privateoutput(personal_base):
-    """ Private input from cint.
+class privateoutput(personal_base, base.DataInstruction):
+    """ Private output to cint.
 
     :param: vector size (int)
     :param: player (int)
@@ -1523,6 +1527,14 @@ class privateoutput(personal_base):
     __slots__ = []
     code = base.opcodes['PRIVATEOUTPUT']
     arg_format = tools.cycle(['int','p','cw','s'])
+    data_type = 'open'
+
+    def add_usage(self, req_node):
+        personal_base.add_usage(self, req_node)
+        base.DataInstruction.add_usage(self, req_node)
+
+    def get_repeat(self):
+        return sum(self.args[::4])
 
 class sendpersonal(base.Instruction, base.Mergeable):
     """ Private input from cint.
@@ -2202,7 +2214,7 @@ class gconvgf2n(base.Instruction):
 # rename 'open' to avoid conflict with built-in open function
 @base.gf2n
 @base.vectorize
-class asm_open(base.VarArgsInstruction):
+class asm_open(base.VarArgsInstruction, base.DataInstruction):
     """ Reveal secret registers (vectors) to clear registers (vectors).
 
     :param: number of argument to follow (odd number)
@@ -2214,6 +2226,10 @@ class asm_open(base.VarArgsInstruction):
     __slots__ = []
     code = base.opcodes['OPEN']
     arg_format = tools.chain(['int'], tools.cycle(['cw','s']))
+    data_type = 'open'
+
+    def get_repeat(self):
+        return (len(self.args) - 1) // 2
 
     def merge(self, other):
         self.args[0] |= other.args[0]

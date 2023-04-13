@@ -165,6 +165,8 @@ public:
   virtual T get_bit();
   /// Get fresh random value in domain
   virtual T get_random();
+  virtual T get_random_for_open();
+  virtual T get_random_no_count();
   /// Store fresh daBit in ``a`` (arithmetic part) and ``b`` (binary part)
   virtual void get_dabit(T& a, typename T::bit_type& b);
   virtual void get_dabit_no_count(T&, typename T::bit_type&) { throw runtime_error("no daBit"); }
@@ -225,6 +227,8 @@ public:
       int thread_num = -1);
   static string get_edabit_filename(const Names& N, int n_bits,
       int thread_num = -1);
+
+  static long additional_inputs(const DataPositions& usage);
 
   Sub_Data_Files(int my_num, int num_players, const string& prep_data_dir,
       DataPositions& usage, int thread_num = -1);
@@ -421,6 +425,21 @@ T Preprocessing<T>::get_bit()
 
 template<class T>
 T Preprocessing<T>::get_random()
+{
+  count(DATA_RANDOM);
+  return get_random_no_count();
+}
+
+template<class T>
+T Preprocessing<T>::get_random_for_open()
+{
+  assert(T::randoms_for_opens);
+  count(DATA_OPEN);
+  return get_random_no_count();
+}
+
+template<class T>
+T Preprocessing<T>::get_random_no_count()
 {
   assert(not usage.inputs.empty());
   return get_random_from_inputs(usage.inputs.size());

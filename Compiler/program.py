@@ -31,6 +31,8 @@ data_types = dict(
     inverse=3,
     dabit=4,
     mixed=5,
+    random=6,
+    open=7,
 )
 
 field_types = dict(

@@ -63,6 +63,8 @@ public:
     const static int k = K;
     const static int s = S;
 
+    const static bool randoms_for_opens = true;
+
     static string type_string() { return "SPDZ2^(" + to_string(K) + "+" + to_string(S) + ")"; }
     static string type_short() { return "Z" + to_string(K) + "," + to_string(S); }
 

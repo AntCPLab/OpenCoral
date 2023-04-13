@@ -84,7 +84,7 @@ protected:
 
   static int length()         { return n == 0 ? MAX_N_BITS : n; }
 
-  static bool allows(Dtype type) { (void) type; return true; }
+  static bool allows(Dtype type) { return type <= DATA_INVERSE; }
 
   static string options();
 

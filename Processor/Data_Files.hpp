@@ -188,6 +188,16 @@ Sub_Data_Files<T>::~Sub_Data_Files()
 }
 
 template<class T>
+long Sub_Data_Files<T>::additional_inputs(const DataPositions& usage)
+{
+  auto& domain_usage = usage.files[T::clear::field_type()];
+  long add_to_inputs = domain_usage[DATA_RANDOM];
+  if (T::randoms_for_opens)
+    add_to_inputs += domain_usage[DATA_OPEN];
+  return add_to_inputs;
+}
+
+template<class T>
 void Sub_Data_Files<T>::seekg(DataPositions& pos)
 {
   if (OnlineOptions::singleton.file_prep_per_thread)
@@ -203,11 +213,15 @@ void Sub_Data_Files<T>::seekg(DataPositions& pos)
   for (int dtype = 0; dtype < N_DTYPE; dtype++)
     if (T::clear::allows(Dtype(dtype)))
       buffers[dtype].seekg(pos.files[field_type][dtype]);
+
+  long add_to_inputs = additional_inputs(pos);
+
   for (int j = 0; j < num_players; j++)
     if (j == my_num)
-      my_input_buffers.seekg(pos.inputs[j][field_type]);
+      my_input_buffers.seekg(pos.inputs[j][field_type] + add_to_inputs);
     else
-      input_buffers[j].seekg(pos.inputs[j][field_type]);
+      input_buffers[j].seekg(pos.inputs[j][field_type] + add_to_inputs);
+
   for (map<DataTag, long long>::const_iterator it = pos.extended[field_type].begin();
       it != pos.extended[field_type].end(); it++)
     {
