@@ -387,5 +387,8 @@ endif
 deps/simde/simde:
 	git submodule update --init deps/simde || git clone https://github.com/simd-everywhere/simde deps/simde
 
-clean:
-	-rm -f */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o static/*.x *.so local/lib/liblibOTe.*
+clean-deps:
+	-rm -rf local deps/libOTe/out
+
+clean: clean-deps
+	-rm -f */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o static/*.x *.so
