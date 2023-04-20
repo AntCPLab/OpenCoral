@@ -1,0 +1,53 @@
+from Compiler.priority_queue import PathObliviousHeap, POHVariant
+from Compiler.dijkstra import HeapQ
+from Compiler import library as lib
+
+DEBUG = True
+
+# Benchmark parameters
+RANGE = [10**i for i in range(1, 6)]
+OPERATIONS_PER_STEP = 3
+
+timer_offset = 1000  # Hopefully run timers in an unused range
+
+
+# Timing with consecutive ids
+def start_fancy_timer() -> int:
+    global timer_offset
+    lib.start_timer(timer_offset)
+    id = timer_offset
+    timer_offset += 1
+    return id
+
+
+def stop_fancy_timer(id):
+    lib.stop_timer(id)
+
+
+def do_nothing(*args, **kwargs):
+    pass
+
+
+# Only print if DEBUG is enabled
+dprint = lib.print_ln if DEBUG else do_nothing
+
+# BENCHMARK
+for i, capacity in enumerate(RANGE):
+    # Benchmark binary heap built on ORAM
+    bin_heap = HeapQ(capacity)
+    id = start_fancy_timer()
+    for j in range(OPERATIONS_PER_STEP):
+        dprint(f"ORAM Heap: Update {j} for capacity {capacity}")
+        bin_heap.update(0, 0)
+    stop_fancy_timer(id)
+
+    # Benchmark Path Oblivious Heap
+    poh = PathObliviousHeap(capacity)
+    id = start_fancy_timer()
+    for j in range(OPERATIONS_PER_STEP):
+        dprint(f"Path Oblivious Heap: Update {j} for capacity {capacity}")
+        poh.update(0, 0)
+    stop_fancy_timer(id)
+    pq = PathObliviousHeap(
+        capacity, security=50, bucket_size=2, variant=POHVariant.PATH
+    )

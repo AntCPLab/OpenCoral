@@ -1,0 +1,5 @@
+from Compiler import oram, library as lib
+from Compiler.priority_queue import PathObliviousHeap
+from Compiler.types import sint, sintbit
+
+a = PathObliviousHeap(42)
