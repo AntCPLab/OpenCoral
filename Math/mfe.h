@@ -267,9 +267,13 @@ public:
 using RMFE::encode;
 using RMFE::decode;
 
-BasicRMFE(long k, long base_field_poly_mod_deg);
+BasicRMFE(long k, long base_field_poly_mod_deg, bool is_type1=true);
 
 BasicRMFE(NTL::GF2X base_field_poly, NTL::GF2EX ex_field_poly);
+
+bool is_type1() {
+    return m_ == 2 * k_ - 1;
+}
 
 long m() {
     return m_;
@@ -306,7 +310,11 @@ public:
 using RMFE::encode;
 using RMFE::decode;
 
-BasicGf2RMFE(long k);
+BasicGf2RMFE(long k, bool is_type1=true);
+
+bool is_type1() {
+    return internal_->is_type1();
+}
 
 long m() {
     return internal_->m();

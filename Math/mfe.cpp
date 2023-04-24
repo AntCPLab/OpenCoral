@@ -605,7 +605,11 @@ GF2EX FieldConverter::binary_to_composite(const GF2E& x) {
     return to_GF2EX(raw_binary_to_composite(to_vec_GF2(x, k_)), base_field_poly());
 }
 
-BasicRMFE::BasicRMFE(long k, long base_field_poly_mod_deg): k_(k), m_(2*k-1) {
+BasicRMFE::BasicRMFE(long k, long base_field_poly_mod_deg, bool is_type1): k_(k) {
+    if (is_type1)
+        m_ = 2*k-1;
+    else
+        m_ = 2*k;
     base_field_poly_mod_ = BuildIrred_GF2X(base_field_poly_mod_deg);
     GF2EPush push;
     GF2E::init(base_field_poly_mod_);
@@ -622,9 +626,10 @@ BasicRMFE::BasicRMFE(NTL::GF2X base_field_poly, NTL::GF2EX ex_field_poly) {
     ex_field_poly_mod_ = GF2EXModulus(ex_field_poly);
 
     m_ = deg(ex_field_poly_mod_);
-    if (m_ % 2 != 1)
-        LogicError("Extension field polynomial modulus degree must be odd");
-    k_ = (m_ + 1) / 2;
+    if (m_ % 2 == 1)
+        k_ = (m_ + 1) / 2;
+    else
+        k_ = m_ / 2;
     // Different from Lemma 4 in [CCXY18], we require q >= k instead of q >= k+1, in order
     // to make this RMFE have a mapping of identity to identity.
     if (k_ > GF2E::cardinality())
@@ -661,8 +666,8 @@ void BasicRMFE::decode(vec_GF2E& h, const GF2EX& g) {
     ::psi(h, g, basis_, beta_);
 }
 
-BasicGf2RMFE::BasicGf2RMFE(long k) {
-    internal_ = unique_ptr<BasicRMFE>(new BasicRMFE(k, 1));
+BasicGf2RMFE::BasicGf2RMFE(long k, bool is_type1) {
+    internal_ = unique_ptr<BasicRMFE>(new BasicRMFE(k, 1, is_type1));
     const GF2EX& f = internal_->ex_field_mod();
     ex_field_poly_ = GF2XModulus(shrink(f));
 }
