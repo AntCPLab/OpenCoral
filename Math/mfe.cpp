@@ -284,8 +284,8 @@ vec_GF2 shrink(const vec_GF2E& x) {
 
 BasicMFE::BasicMFE(long m, long base_field_poly_mod_deg)
     : m_(m), t_(2*m-1) {
-    if (!ProbPrime(m))
-        LogicError("m must be prime for construcing a basic MFE");
+    // if (!ProbPrime(m))
+    //     LogicError("m must be prime for construcing a basic MFE");
     base_field_poly_mod_ = BuildIrred_GF2X(base_field_poly_mod_deg);
     GF2EPush push;
     GF2E::init(base_field_poly_mod_);
