@@ -1,8 +1,16 @@
-from Compiler.priority_queue import PathObliviousHeap, POHVariant
+from Compiler.path_oblivious_heap import PathObliviousHeap, POHVariant
 from Compiler.dijkstra import HeapQ
 from Compiler import library as lib
 
 DEBUG = True
+
+
+def noop(*args, **kwargs):
+    pass
+
+
+# Only print if DEBUG is enabled
+dprint = lib.print_ln if DEBUG else noop
 
 # Benchmark parameters
 RANGE = [10**i for i in range(1, 6)]
@@ -24,30 +32,22 @@ def stop_fancy_timer(id):
     lib.stop_timer(id)
 
 
-def do_nothing(*args, **kwargs):
-    pass
-
-
-# Only print if DEBUG is enabled
-dprint = lib.print_ln if DEBUG else do_nothing
-
 # BENCHMARK
-for i, capacity in enumerate(RANGE):
+for capacity in RANGE:
     # Benchmark binary heap built on ORAM
     bin_heap = HeapQ(capacity)
     id = start_fancy_timer()
-    for j in range(OPERATIONS_PER_STEP):
-        dprint(f"ORAM Heap: Update {j} for capacity {capacity}")
+    for i in range(OPERATIONS_PER_STEP):
+        dprint(f"ORAM Binary Heap: Update {i} for capacity {capacity}")
         bin_heap.update(0, 0)
     stop_fancy_timer(id)
 
     # Benchmark Path Oblivious Heap
-    poh = PathObliviousHeap(capacity)
-    id = start_fancy_timer()
-    for j in range(OPERATIONS_PER_STEP):
-        dprint(f"Path Oblivious Heap: Update {j} for capacity {capacity}")
-        poh.update(0, 0)
-    stop_fancy_timer(id)
-    pq = PathObliviousHeap(
+    poh = PathObliviousHeap(
         capacity, security=50, bucket_size=2, variant=POHVariant.PATH
     )
+    id = start_fancy_timer()
+    for i in range(OPERATIONS_PER_STEP):
+        dprint(f"Path Oblivious Heap: Update {i} for capacity {capacity}")
+        poh.insert(0, 0)
+    stop_fancy_timer(id)
