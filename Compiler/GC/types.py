@@ -1017,6 +1017,11 @@ class sbitvec(_vec, _bit):
         """ Reveal and print in hexademical (one line per element). """
         for x in self.reverse_bytes().elements():
             x.reveal().print_reg()
+    def update(self, other):
+        other = self.conv(other)
+        assert len(self.v) == len(other.v)
+        for x, y in zip(self.v, other.v):
+            x.update(y)
 
 class bit(object):
     n = 1
