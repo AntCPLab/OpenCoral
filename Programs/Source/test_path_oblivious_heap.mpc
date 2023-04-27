@@ -1,14 +1,16 @@
 from Compiler.path_oblivious_heap import POHToHeapQAdapter, PathMinTree
 from Compiler import dijkstra
-from Compiler.oram import OptimalORAM
-from Compiler.types import sint
+from Compiler import oram
+from Compiler.path_oram import PathORAM
+from Compiler.types import sint, cint
 from Compiler.library import for_range, print_ln
 
 
 ### BASIC TEST ###
 
-n = 8
-q = POHToHeapQAdapter(n)
+q = POHToHeapQAdapter(100)
+print_ln("%s", q.find_min().reveal())
+q.tree.update_min(3)
 print_ln("%s", q.find_min().reveal())
 
 # ### DIJKSTRA ###
