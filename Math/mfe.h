@@ -7,6 +7,9 @@
 #include "NTL/GF2X.h"
 #include "Tools/Exceptions.h"
 #include <memory>
+#include <vector>
+
+NTL::GF2X indices_to_gf2x(const std::vector<long>& indices);
 
 
 void sigma(NTL::vec_GF2E& h, const NTL::GF2EX& g, const NTL::vec_GF2EX& basis, const NTL::vec_GF2E& beta);
@@ -45,8 +48,12 @@ NTL::GF2EX q_;
 NTL::mat_GF2 mat_T_;
 NTL::mat_GF2 mat_T_inv_;
 
+NTL::GF2X prespecified_base_field_poly_;
+NTL::mat_GF2 pre_isomorphic_mat_;
+NTL::mat_GF2 pre_isomorphic_mat_inv_;
+
 public:
-FieldConverter(long k, long m, long n);
+FieldConverter(long k, long m, long n, NTL::GF2X prespecified_base_field_poly=NTL::GF2X(0));
 const NTL::GF2X& binary_field_poly();
 const NTL::GF2X& base_field_poly();
 const NTL::GF2EX& composite_field_poly();

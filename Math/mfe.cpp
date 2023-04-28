@@ -39,7 +39,7 @@ void Enumerate_GF2X(vec_GF2X& x, size_t start, size_t n) {
         vec_GF2 a({}, len);
         for (int k = 0; k < len; k++)
             a[k] = (i >> k) & 1;
-        conv(x[i], a);
+        conv(x[i-start], a);
     }
 }
 
@@ -484,11 +484,14 @@ vec_GF2 to_vec_GF2(const GF2EX& x, const GF2X& base_field_poly, long target_len)
 
 
 
-FieldConverter::FieldConverter(long k, long m, long n): k_(k), m_(m), n_(n) {
+FieldConverter::FieldConverter(long k, long m, long n, GF2X prespecified_base_field_poly)
+    : k_(k), m_(m), n_(n), prespecified_base_field_poly_(prespecified_base_field_poly) {
     if (k != m * n)
         LogicError("Invalid field composition parameters");
     if (PRIMITIVE_POLYS.count(k) == 0)
         LogicError("No primitive polynomial is defined for this binary field");
+    if (prespecified_base_field_poly != GF2X(0) && deg(prespecified_base_field_poly) != n)
+        LogicError("Invalid degree of prespecified base field polynomial");
     ZZ r = ((ZZ(1) << k) - 1) / ((ZZ(1) << n) - 1);
 
     p_ = indices_to_gf2x(PRIMITIVE_POLYS[k]);
@@ -516,6 +519,8 @@ FieldConverter::FieldConverter(long k, long m, long n): k_(k), m_(m), n_(n) {
     }
     MakeMatrix(mat_T_, T);
     mat_T_inv_ = inv(mat_T_);
+    pre_isomorphic_mat_ = ident_mat_GF2(k_);
+    pre_isomorphic_mat_inv_ = ident_mat_GF2(k_);
 
     GF2EX u(1);
     for (long i = 0; i < n; i++) {
@@ -532,6 +537,61 @@ FieldConverter::FieldConverter(long k, long m, long n): k_(k), m_(m), n_(n) {
             LogicError("Error computing base field minimal polynomial");
         }
         u_[i] = coeff(rep(u[i]), 0);
+    }
+    std::cout << "u_: " << u_ << std::endl;
+
+    if (prespecified_base_field_poly != GF2X(0) && prespecified_base_field_poly != u_) {
+        // The isomorphic mapping is calculated based on this post:
+        // https://mathwiki.cs.ut.ee/finite_fields/04_isomorphisms
+        GF2EPush push;
+        GF2E::init(prespecified_base_field_poly);
+        vec_GF2E sb_vec;
+        Enumerate_GF2E(sb_vec, 2, (1<<n_) - 2);
+        int i = 0;
+        for (; i < sb_vec.length(); i++) {
+            if (IsZero(eval(u, sb_vec[i])))
+                break;
+        }
+        if (i >= sb_vec.length())
+            LogicError("Invalid prespecified base field polynomial: can't find a satisfying element");
+        GF2E sb = sb_vec[i];
+        std::cout << "sb: " << sb << std::endl;
+        vec_vec_GF2 mat({}, n_);
+        for (long h = 0; h < n_; h++) {
+            mat[h].SetLength(n_);
+            GF2E sb_power = power(sb, h);
+            std::cout << "sb power " << h << ": " << sb_power << std::endl;
+            for (long i = 0; i < n_; i++) {
+                mat[h][i] = coeff(rep(sb_power), i);
+            }
+        }
+        std::cout << "mat:\n" << mat << std::endl;
+        mat_GF2 single_mat, single_mat_inv, tmp;
+        MakeMatrix(single_mat, mat);
+        std::cout << "single mat:\n" << single_mat << std::endl;
+        transpose(tmp, single_mat);
+        std::cout << "tmp mat:\n" << tmp << std::endl;
+        transpose(single_mat, single_mat);
+        std::cout << "single mat:\n" << single_mat << std::endl;
+        single_mat_inv = inv(single_mat);
+        std::cout << "single mat:\n" << single_mat << std::endl;
+
+        // replicate the single matrix m times on the diagnal
+        pre_isomorphic_mat_ = mat_GF2({}, k_, k_);
+        pre_isomorphic_mat_inv_ = mat_GF2({}, k_, k_);
+        for (i = 0; i < m_; i++) {
+            for (int j = 0; j < n_; j++) {
+                for (int k = 0; k < n_; k++) {
+                    pre_isomorphic_mat_[i*n_+j][i*n_+k] = single_mat[j][k];
+                    pre_isomorphic_mat_inv_[i*n_+j][i*n_+k] = single_mat_inv[j][k];
+                }
+            }
+        }
+        std::cout << "pre mat:\n" << pre_isomorphic_mat_ << std::endl;
+
+        // MakeMatrix(pre_isomorphic_mat_, mat);
+        // transpose(pre_isomorphic_mat_, pre_isomorphic_mat_);
+        // pre_isomorphic_mat_inv_ = inv(pre_isomorphic_mat_);
     }
 
     GF2EX q(1);
@@ -558,13 +618,17 @@ FieldConverter::FieldConverter(long k, long m, long n): k_(k), m_(m), n_(n) {
         q_[i] = to_GF2E(c, u_);
     }
 
+
 }
 
 const GF2X& FieldConverter::binary_field_poly() {
     return p_;
 }
 const GF2X& FieldConverter::base_field_poly() {
-    return u_;
+    if (prespecified_base_field_poly_ == GF2X(0))
+        return u_;
+    else 
+        return prespecified_base_field_poly_;
 }
 const GF2EX& FieldConverter::composite_field_poly() {
     return q_;
@@ -574,7 +638,9 @@ void FieldConverter::raw_composite_to_binary(vec_GF2& y, const vec_GF2& x) {
     if (x.length() != k_) {
         LogicError("Input vector has invalid length");
     }
-    mul(y, mat_T_, x);
+    // isomorphic map
+    mul(y, pre_isomorphic_mat_inv_, x);
+    mul(y, mat_T_, y);
 }
 
 vec_GF2 FieldConverter::raw_composite_to_binary(const vec_GF2& x) {
@@ -593,6 +659,8 @@ void FieldConverter::raw_binary_to_composite(vec_GF2& y, const vec_GF2& x) {
         LogicError("Input vector has invalid length");
     }
     mul(y, mat_T_inv_, x);
+    // isomorphic map
+    mul(y, pre_isomorphic_mat_, y);
 }
 
 vec_GF2 FieldConverter::raw_binary_to_composite(const vec_GF2& x) {
