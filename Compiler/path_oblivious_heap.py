@@ -3,6 +3,8 @@ oblivious priority queue as proposed by
 `Shi <https://eprint.iacr.org/2019/274.pdf>`.
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Generic, List, Tuple, TypedDict, TypeVar
@@ -13,17 +15,11 @@ from Compiler.dijkstra import HeapEntry
 from Compiler.path_oram import PathORAM
 from Compiler.types import cint, regint, _secret, sint
 
-
 # TODO:
-# - How to represent subtree-min (separate RAM?)
-# - Implement update_min
-# - Implement/modify evict
 # - Implement queue operations
-
-
-def noop(*args, **kwargs):
-    pass
-
+# - Implement/modify evict
+# - Test!
+# - Benchmark
 
 ### SETTINGS ###
 
@@ -33,17 +29,77 @@ COMPILE_DEBUG = True
 # If enabled, high-level debugging messages are printed at runtime.
 DEBUG = True
 
-dprint_ln = lib.print_ln if DEBUG else noop
+# If enabled, low-level trace is printed at runtime
+# Warning: reveals secret information.
+TRACE = True
+
+
+def noop(*args, **kwargs):
+    pass
+
+
 cprint = print if COMPILE_DEBUG else noop
 
 ### IMPLEMENTATION ###
 
 # Types
 T = TypeVar("T")  # TODO: Should be more restrictive
-SubtreeMinEntry = TypedDict(
-    "SubtreeMinEntry",
-    {"empty": _secret, "prio": _secret, "value": _secret, "leaf": _secret},
-)
+
+
+class SubtreeMinEntry(HeapEntry):
+    fields = ["empty", "prio", "value", "leaf"]
+
+    empty: _secret
+    prio: _secret
+    value: _secret
+    leaf: _secret
+
+    def __init__(self, value_type: _secret, *args):
+        super().__init__(value_type, *args)
+
+    def __gt__(self, other: SubtreeMinEntry):
+        """Entries are never equal unless they are empty.
+        First, compare on emptiness.
+        Next, compare on priority.
+        Finally, tie break on value.
+        Returns 0 if first has highest priority,
+        and 1 if second has highest priority.
+        """
+        # TODO: Tie break is probably not secure if there are duplicates.
+        # Can be fixed with unique ids
+        one_empty = self.empty.bit_xor(other.empty)
+        empty_cmp = self.empty > other.empty
+        prio_equal = self.prio == other.prio
+        prio_cmp = self.prio > other.prio
+        value_cmp = self.value > other.value
+        return one_empty.if_else(
+            empty_cmp,
+            prio_equal.if_else(
+                value_cmp,
+                prio_cmp,
+            ),
+        )
+
+    @staticmethod
+    def from_entry(entry: oram.Entry) -> SubtreeMinEntry:
+        """Convert a RAM entry containing the fields
+        [empty, index, prio, value, leaf] into a SubtreeMinEntry.
+        """
+        entry = iter(entry)
+        empty = next(entry)
+        next(entry)  # disregard index
+        prio = next(entry)
+        value = next(entry)
+        leaf = next(entry)
+        return SubtreeMinEntry(value.basic_type, empty, prio, value, leaf)
+
+    def to_entry(self) -> oram.Entry:
+        return oram.Entry(
+            0,
+            (self.prio, self.value, self.leaf),
+            empty=self.empty,
+            value_type=self.value_type,
+        )
 
 
 class AbstractMinPriorityQueue(ABC, Generic[T]):
@@ -90,11 +146,10 @@ class BasicMinTree(NoIndexORAM):
             self.D + 1,
         )  # (prio, value, leaf)
 
-        empty_min_entry = self._get_empty_entry()
-
         # Maintain subtree-mins in a separate RAM
         # (some of the attributes we access are defined in the ORAM classes,
         # so no meta information is available when accessed in this constructor.)
+        empty_min_entry = self._get_empty_entry()
         self.subtree_mins = oram.RAM(
             2 ** (self.D + 1) + 1,  # +1 to make space for stash min (index -1)
             empty_min_entry.types(),
@@ -128,93 +183,67 @@ class BasicMinTree(NoIndexORAM):
             # TODO: Is the following oblivious?
 
             # Compare pairs
-            cmp_l_c = self._compare_entries(left, current)
-            cmp_c_r = self._compare_entries(current, right)
-            cmp_l_r = self._compare_entries(left, right)
+            cmp_c_l = current < left
+            cmp_c_r = current < right
+            cmp_l_r = left < right
 
             # Only one of the three has the highest priority
-            c_min = cmp_l_c * (1 - cmp_c_r)
-            l_min = (1 - cmp_l_c) * (1 - cmp_l_r)
-            r_min = cmp_c_r * cmp_l_r
+            c_min = cmp_c_l * cmp_c_r
+            l_min = (1 - cmp_c_l) * cmp_l_r
+            r_min = (1 - cmp_c_r) * (1 - cmp_l_r)
 
             # entry = min(current, left, right)
-            entry = dict()
-            for key in current.keys():
-                entry[key] = (
-                    c_min * current[key] + l_min * left[key] + r_min * right[key]
-                )
-            self._set_subtree_min(entry, c)
+            fields = [
+                c_min * current[key] + l_min * left[key] + r_min * right[key]
+                for key in current.fields
+            ]
+            self._set_subtree_min(SubtreeMinEntry(self.value_type, fields), c)
 
         # Degenerate case (stash): the only child of stash is the root
         # so only compare those two
         stash_min = self._get_stash_min(leaf_label)
         root_min = self.get_subtree_min(0)
 
-        cmp_s_r = self._compare_entries(stash_min, root_min)
+        s_min = stash_min < root_min
 
         # entry = min(stash_min, root_min)
-        entry = dict()
-        for key in stash_min.keys():
-            entry[key] = (1 - cmp_s_r) * stash_min[key] + cmp_s_r * root_min[key]
-        self._set_subtree_min(entry)
+        fields = [
+            s_min * stash_min[key] + (1 - s_min) * root_min[key]
+            for key in stash_min.fields
+        ]
+        self._set_subtree_min(SubtreeMinEntry(self.value_type, fields))
+
+    def insert(self, value: _secret, priority: _secret) -> None:
+        # TODO
+        # O(log n)
+        # Insert entry into stash
+        # Evict along two random non-overlapping paths
+        # UpdateMin along same paths
+        pass
+
+    def extract_min(self) -> _secret:
+        # TODO
+        # O(log n)
+        # Get label of min entry from stash
+        # Scan path and remove element
+        # Evict along path
+        # UpdateMin along path
+        pass
 
     def _get_empty_entry(self) -> oram.Entry:
         return oram.Entry.get_empty(self.value_type, self.subtree_min_entry_size)
-
-    def _compare_entries(
-        self, first: SubtreeMinEntry, second: SubtreeMinEntry
-    ) -> _secret:
-        """Entries are never equal unless they are empty.
-        First, compare on emptyness.
-        Next, compare on priority.
-        Finally, tie break on value.
-        Returns 0 if first has highest priority,
-        and 1 if second has highest priority.
-        """
-        # TODO: Tie break is probably not secure if there are duplicates.
-        # Can be fixed with unique ids
-
-        one_empty = first["empty"].bit_xor(second["empty"])
-        empty_cmp = first["empty"].greater_than(second["empty"])
-        prio_equal = first["prio"].equal(second["prio"])
-        prio_cmp = first["prio"].greater_than(second["prio"])
-        value_cmp = first["value"].greater_equal(second["value"])
-        return one_empty.if_else(
-            empty_cmp,
-            prio_equal.if_else(
-                value_cmp,
-                prio_cmp,
-            ),
-        )
 
     def get_subtree_min(self, index: int = -1) -> SubtreeMinEntry:
         """Returns a dictionary representing the subtree-min
         of the bucket with the specified index. If index is not specified,
         it returns the subtree-min of the stash (index -1),
-        which is the subtree-min of the complete tree."""
-        entry = iter(self.subtree_mins[index])
-        return self._entry_to_dict(entry)
+        which is the subtree-min of the complete tree.
+        """
+        entry = self.subtree_mins[index]
+        return SubtreeMinEntry.from_entry(entry)
 
     def _set_subtree_min(self, entry: SubtreeMinEntry, index: int = -1) -> None:
-        self.subtree_mins[index] = self._dict_to_entry(entry)
-
-    def _entry_to_dict(self, entry: oram.Entry) -> SubtreeMinEntry:
-        d = dict()
-        entry = iter(entry)
-        d["empty"] = next(entry)
-        next(entry)  # Disregard index
-        d["prio"] = next(entry)
-        d["value"] = next(entry)
-        d["leaf"] = next(entry)
-        return d
-
-    def _dict_to_entry(self, d: SubtreeMinEntry) -> oram.Entry:
-        return oram.Entry(
-            0,  # index isn't used
-            (d["prio"], d["value"], d["leaf"]),
-            empty=d["empty"],
-            value_type=self.value_type,
-        )
+        self.subtree_mins[index] = entry.to_entry()
 
     def _get_bucket_min(self, index: int, leaf_label: int) -> SubtreeMinEntry:
         return self._get_ram_min(
@@ -231,16 +260,16 @@ class BasicMinTree(NoIndexORAM):
         """Scan through bucket, finding the entry with highest priority."""
         leaf_label = self.value_type(leaf_label)
         start = start * self.bucket_size
-        res = self._entry_to_dict(ram[start])
-        res["leaf"] = self.value_type(leaf_label)
+        res = SubtreeMinEntry.from_entry(ram[start])
+        res.leaf = leaf_label
         if self.bucket_size == 1:
             return res
         end = start + self.bucket_size
         for i in range(start + 1, end):
-            entry = self._entry_to_dict(ram[i])
-            cmp_res_entry = self._compare_entries(res, entry)
-            for key in entry.keys() - {"leaf"}:
-                res[key] = (1 - cmp_res_entry) * res[key] + cmp_res_entry * entry[key]
+            entry = SubtreeMinEntry.from_entry(ram[i])
+            res_min = res < entry
+            for key in set(entry.fields) - {"leaf"}:
+                res[key] = res_min * res[key] + (1 - res_min) * entry[key]
         return res
 
     def _get_reversed_min_indices_and_children_on_path_to(
@@ -393,6 +422,7 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
             raise lib.CompilerError("POH: Only the PATH variant is supported.")
 
         # Initialize basic class fields
+        self.int_type = int_type
         self.type_hiding_security = type_hiding_security
 
         # TODO: Figure out what default should be (capacity = poly(security))
@@ -413,15 +443,15 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
             stash_size = util.log2(security) ** 2
 
         # Print debug messages
-        dprint_ln(
+        cprint(
             "POH: Initializing a queue with a capacity of %s and security parameter %s",
             capacity,
             security,
         )
-        dprint_ln(
+        cprint(
             f"POH: Type hiding security is {'en' if self.type_hiding_security else 'dis'}abled",
         )
-        dprint_ln("POH: Variant is %s", variant)
+        cprint("POH: Variant is %s", variant)
 
         # Initialize data structure with dummy elements
         self.tree = variant.get_tree_class()(
@@ -475,29 +505,28 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
             return self._find_min()
 
     def _insert(self, value: _secret, priority: _secret) -> None:
-        # TODO
-        # O(log n)
-        # Insert entry into root bucket
-        # Evict
-        # UpdateMin
-        raise NotImplementedError
+        if TRACE:
+            lib.print_ln(
+                "POH: insert: {value: %s, prio: %s}",
+                value.reveal(),
+                priority.reveal(),
+            )
+        self.tree.insert(value, priority)
 
     def _extract_min(self) -> _secret:
-        # TODO
-        # O(log n)
-        # Get label of min entry from root bucket
-        # Scan path and remove element
-        # Evict
-        # UpdateMin
-        raise NotImplementedError
+        return self.tree.extract_min()
 
     def _find_min(self) -> _secret:
-        # TODO
-        # O(1)
         # Get and return value of min entry from root bucket.
-        # Return -1 if empty
+        # Returns -1 if empty
         entry = self.tree.get_subtree_min()
-        return entry["empty"].if_else(sint(-1), entry["value"])
+        if TRACE:
+            lib.print_ln("POH: find_min:")
+            entry.dump()
+            lib.print_ln_if(
+                entry["empty"].reveal(), "POH: Found empty entry during find_min!"
+            )
+        return entry["empty"].if_else(self.int_type(-1), entry["value"])
 
     def _fake_insert(self) -> None:
         raise NotImplementedError
