@@ -1,6 +1,6 @@
 from Compiler.path_oblivious_heap import PathObliviousHeap, POHVariant
 from Compiler.dijkstra import HeapQ
-from Compiler import library as lib
+from Compiler import library as lib, oram
 
 DEBUG = True
 
@@ -22,10 +22,11 @@ timer_offset = 1000  # Hopefully run timers in an unused range
 # Timing with consecutive ids
 def start_fancy_timer(id: int | None = None) -> int:
     global timer_offset
-    id = id if id is not None else timer_offset
-    lib.start_timer(id)
-    timer_offset += 1
-    return id
+    _id = id if id is not None else timer_offset
+    lib.start_timer(_id)
+    if id is None:
+        timer_offset += 1
+    return _id
 
 
 def stop_fancy_timer(id):
@@ -37,12 +38,13 @@ for capacity in RANGE:
     # Benchmark binary heap built on ORAM
     dprint(f"[ORAM Heap] Initializing empty structure with capacity {capacity}")
     id = start_fancy_timer()
-    bin_heap = HeapQ(capacity)
+    bin_heap = HeapQ(capacity, oram_type=oram.RecursiveORAM)
     stop_fancy_timer(id)
+    dprint(f"[ORAM Heap] Running updates for capacity {capacity}")
     id = start_fancy_timer()
     for i in range(OPERATIONS_PER_STEP):
         stop_fancy_timer(id)
-        dprint(f"[ORAM Heap] Update {i} for capacity {capacity}")
+        dprint(f"\n[ORAM Heap] Update {i} for capacity {capacity}")
         start_fancy_timer(id)
         bin_heap.update(0, i)
     stop_fancy_timer(id)
@@ -51,9 +53,10 @@ for capacity in RANGE:
     dprint(f"[POH] Initializing empty structure with capacity {capacity}")
     id = start_fancy_timer()
     poh = PathObliviousHeap(
-        capacity, security=50, bucket_size=2, variant=POHVariant.PATH
+        capacity, bucket_size=2, variant=POHVariant.PATH
     )
     stop_fancy_timer(id)
+    dprint(f"[POH] Running updates for capacity {capacity}")
     id = start_fancy_timer()
     for i in range(OPERATIONS_PER_STEP):
         stop_fancy_timer(id)
