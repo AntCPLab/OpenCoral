@@ -1,73 +1,79 @@
-from Compiler.path_oblivious_heap import POHToHeapQAdapter
+from Compiler.path_oblivious_heap import POHToHeapQAdapter, SubtreeMinEntry, test_SubtreeMinEntry_cmp
 from Compiler.path_oram import OptimalORAM
 from Compiler import dijkstra
 from Compiler.types import sint
 from Compiler.library import for_range, print_ln
 
+### SETUP ###
+
+BASIC = False
+UNIT = False
+DIJKSTRA = True
 
 ### BASIC TEST ###
 
-# q = POHToHeapQAdapter(3)
-# print_ln("%s", q.find_min().reveal())
-# q.insert(sint(42), sint(100))
-# q.insert(sint(10), sint(9))
-# print_ln("%s", q.extract_min().reveal())
+if BASIC:
+    pass
 
-# ### DIJKSTRA ###
+if UNIT:
+    test_SubtreeMinEntry_cmp()
 
-dijkstra.HeapQ = POHToHeapQAdapter
+if DIJKSTRA:
+    # ### DIJKSTRA ###
 
-# 1 -> 2: 10
+    dijkstra.HeapQ = POHToHeapQAdapter
 
-# output should be the following
-# from 0 to 0 at cost 0 via vertex 0
-# from 0 to 1 at cost 5 via vertex 0
-# from 0 to 2 at cost 15 via vertex 1
+    # 1 -> 2: 10
 
-
-# structure for edges
-# contains tuples of form (neighbor, cost, last neighbor bit)
-edges = OptimalORAM(
-    4,  # number of edges
-    entry_size=(
-        2,  # enough bits for vertices
-        5,  # enough bits for costs
-        1,
-    ),  # always one
-)
-
-# first edge from vertex 0
-edges[0] = (1, 5, 0)
-# second and last edge from vertex 0
-edges[1] = (2, 20, 1)
-# edge from vertex 1
-edges[2] = (2, 10, 1)
-# dummy edge from vertex 2 to itself
-edges[3] = (2, 0, 1)
-
-# structure assigning edge list indices to vertices
-e_index = OptimalORAM(
-    3, entry_size=2  # number vertices
-)  # enough bits for edge indices
-
-# edges from 0 start at 0
-e_index[0] = 0
-# edges from 1 start at 2
-e_index[1] = 2
-# edges from 2 start at 3
-e_index[2] = 3
-
-source = sint(0)
-
-res = dijkstra.dijkstra(source, edges, e_index, OptimalORAM)
+    # output should be the following
+    # from 0 to 0 at cost 0 via vertex 0
+    # from 0 to 1 at cost 5 via vertex 0
+    # from 0 to 2 at cost 15 via vertex 1
 
 
-@for_range(res.size)
-def _(i):
-    print_ln(
-        "from %s to %s at cost %s via vertex %s",
-        source.reveal(),
-        i,
-        res[i][0].reveal(),
-        res[i][1].reveal(),
+    # structure for edges
+    # contains tuples of form (neighbor, cost, last neighbor bit)
+    edges = OptimalORAM(
+        4,  # number of edges
+        entry_size=(
+            2,  # enough bits for vertices
+            5,  # enough bits for costs
+            1,
+        ),  # always one
     )
+
+    # first edge from vertex 0
+    edges[0] = (1, 5, 0)
+    # second and last edge from vertex 0
+    edges[1] = (2, 20, 1)
+    # edge from vertex 1
+    edges[2] = (2, 10, 1)
+    # dummy edge from vertex 2 to itself
+    edges[3] = (2, 0, 1)
+
+    # structure assigning edge list indices to vertices
+    e_index = OptimalORAM(
+        3, entry_size=2  # number vertices
+    )  # enough bits for edge indices
+
+    # edges from 0 start at 0
+    e_index[0] = 0
+    # edges from 1 start at 2
+    e_index[1] = 2
+    # edges from 2 start at 3
+    e_index[2] = 3
+
+    source = sint(0)
+
+    res = dijkstra.dijkstra(source, edges, e_index, OptimalORAM)
+
+
+    @for_range(res.size)
+    def _(i):
+        print_ln(
+            "from %s to %s at cost %s via vertex %s",
+            source.reveal(),
+            i,
+            res[i][0].reveal(),
+            res[i][1].reveal(),
+        )

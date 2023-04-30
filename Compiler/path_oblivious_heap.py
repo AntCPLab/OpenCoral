@@ -7,17 +7,25 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Generic, List, Tuple, TypedDict, TypeVar
+from typing import Generic, List, Tuple, Type, TypeVar
 
 from Compiler import library as lib, oram, util
 from Compiler.circuit_oram import CircuitORAM
 from Compiler.dijkstra import HeapEntry
-from Compiler.path_oram import PathORAM, Counter
-from Compiler.types import _clear, _secret, MemValue, sint
+from Compiler.path_oram import Counter, PathORAM
+from Compiler.types import (
+    _arithmetic_register,
+    _clear,
+    _secret,
+    cint,
+    MemValue,
+    regint,
+    sint,
+)
 
 # TODO:
 # - Optimize "home-made" algorithms (update_min)
-# - Test and debug!
+#   - look at what evict does
 # - Benchmark
 # - Type hiding security (maybe)
 
@@ -27,11 +35,15 @@ from Compiler.types import _clear, _secret, MemValue, sint
 COMPILE_DEBUG = True
 
 # If enabled, high-level debugging messages are printed at runtime.
+# Warning: Reveals operation types.
 DEBUG = True
 
 # If enabled, low-level trace is printed at runtime
-# Warning: reveals secret information.
-TRACE = True
+# Warning: Reveals secret information.
+TRACE = False
+
+# DEBUG is enabled if TRACE is enabled
+DEBUG = DEBUG or TRACE
 
 
 def noop(*args, **kwargs):
@@ -43,95 +55,8 @@ cprint = print if COMPILE_DEBUG else noop
 ### IMPLEMENTATION ###
 
 # Types
-T = TypeVar("T")  # TODO: Should be more restrictive
-
-
-class SubtreeMinEntry(HeapEntry):
-    fields = ["empty", "prio", "value", "leaf"]
-
-    empty: _secret
-    prio: _secret
-    value: _secret
-    leaf: _secret
-
-    def __init__(self, value_type: _secret, *args):
-        super().__init__(value_type, *args)
-        self.value_type = value_type
-
-    def __gt__(self, other: SubtreeMinEntry) -> _secret:
-        """Entries are never equal unless they are empty.
-        First, compare on emptiness.
-        Next, compare on priority.
-        Finally, tie break on value.
-        Returns 0 if first has highest priority,
-        and 1 if second has highest priority.
-        """
-        # TODO: Tie break is probably not secure if there are duplicates.
-        # Can be fixed with unique ids
-        one_empty = self.empty.bit_xor(other.empty)
-        empty_cmp = self.empty > other.empty
-        prio_equal = self.prio == other.prio
-        prio_cmp = self.prio > other.prio
-        value_cmp = self.value > other.value
-        return one_empty.if_else(
-            empty_cmp,
-            prio_equal.if_else(
-                value_cmp,
-                prio_cmp,
-            ),
-        )
-
-    def __eq__(self, other: SubtreeMinEntry) -> _secret:
-        # Leaf label is only set on subtree-min elements so we don't use it for equality check
-        return (
-            (self.empty == other.empty)
-            * (self.prio == other.prio)
-            * (self.value == other.value)
-        )
-
-    def __getitem__(self, key):
-        return self.__dict__[key]
-
-    def __setitem__(self, key, value):
-        self.__dict__[key] = value
-
-    @staticmethod
-    def get_empty(value_type: _secret) -> SubtreeMinEntry:
-        return SubtreeMinEntry(
-            value_type, value_type(0), value_type(0), value_type(0), value_type(0)
-        )
-
-    @staticmethod
-    def from_entry(entry: oram.Entry) -> SubtreeMinEntry:
-        """Convert a RAM entry containing the fields
-        [empty, index, prio, value, leaf] into a SubtreeMinEntry.
-        """
-        entry = iter(entry)
-        empty = next(entry)
-        next(entry)  # disregard index
-        prio = next(entry)
-        value = next(entry)
-        leaf = next(entry)
-        return SubtreeMinEntry(value.basic_type, empty, prio, value, leaf)
-
-    def to_entry(self) -> oram.Entry:
-        return oram.Entry(
-            0,
-            (self.prio, self.value, self.leaf),
-            empty=self.empty,
-            value_type=self.value_type,
-        )
-
-    def write_if(self, cond, new) -> None:
-        for field in self.fields:
-            self[field] = cond * new[field] + (1 - cond) * self[field]
-
-    def dump(self):
-        """Reveal contents of entry (insecure)."""
-        if TRACE:
-            lib.print_ln(
-                "empty %s, prio %s, value %s, leaf %s", *(x.reveal() for x in self)
-            )
+T = TypeVar("T", _arithmetic_register, int)
+_Secret = Type[_secret]
 
 
 class AbstractMinPriorityQueue(ABC, Generic[T]):
@@ -170,14 +95,121 @@ class NoIndexORAM:
     index_structure = EmptyIndexStructure
 
 
+class SubtreeMinEntry(HeapEntry):
+    fields = ["empty", "leaf", "prio", "value"]
+
+    empty: _secret | MemValue
+    leaf: _secret | MemValue
+    prio: _secret | MemValue
+    value: _secret | MemValue
+
+    def __init__(
+        self,
+        value_type: _Secret,
+        empty: _secret | int,
+        leaf: _secret | int,
+        prio: _secret | int,
+        value: _secret | int,
+        mem: bool = False,
+    ):
+        empty = value_type.hard_conv(empty)
+        leaf = value_type.hard_conv(leaf)
+        prio = value_type.hard_conv(prio)
+        value = value_type.hard_conv(value)
+        if mem:
+            empty = MemValue(empty)
+            leaf = MemValue(leaf)
+            prio = MemValue(prio)
+            value = MemValue(value)
+        super().__init__(value_type, empty, leaf, prio, value)
+        self.value_type = value_type
+
+    def __eq__(self, other: SubtreeMinEntry) -> _secret:
+        # Leaf label is only set on subtree-min elements so we don't use it for equality check
+        return (self.empty * other.empty).max(
+            (self.empty == other.empty)
+            * (self.prio == other.prio)
+            * (self.value == other.value)
+        )
+
+    def __lt__(self, other: SubtreeMinEntry) -> _secret:
+        """Entries are always equal if they are empty.
+        Otherwise, compare on emptiness,
+        then on priority, and finally tie break on value.
+        Returns 1 if first has strictly higher priority (smaller value),
+        and 0 otherwise.
+        """
+        # TODO: Tie break is probably not secure if there are duplicates.
+        # Can be fixed with unique ids
+        prio_lt = self.prio < other.prio
+        prio_eq = self.prio == other.prio
+        value_lt = self.value < other.value
+        return (1 - self.empty) * other.empty.max(prio_lt + prio_eq * (value_lt))
+
+    def __gt__(self, other: SubtreeMinEntry) -> _secret:
+        return other < self
+
+    def __le__(self, other: SubtreeMinEntry) -> _secret:
+        return (self == other).max(self < other)
+
+    def __ge__(self, other: SubtreeMinEntry) -> _secret:
+        return (self == other).max(self > other)
+
+    def __getitem__(self, key):
+        return self.__dict__[key]
+
+    def __setitem__(self, key, value):
+        self.__dict__[key] = value
+
+    @staticmethod
+    def get_empty(value_type: _Secret, mem: bool = False) -> SubtreeMinEntry:
+        return SubtreeMinEntry(
+            value_type,
+            value_type(1),
+            value_type(0),
+            value_type(0),
+            value_type(0),
+            mem=mem,
+        )
+
+    @staticmethod
+    def from_entry(entry: oram.Entry, mem: bool = False) -> SubtreeMinEntry:
+        """Convert a RAM entry containing the fields
+        [empty, index, prio, value, leaf] into a SubtreeMinEntry.
+        """
+        entry = iter(entry)
+        empty = next(entry)
+        next(entry)  # disregard index
+        leaf = next(entry)
+        prio = next(entry)
+        value = next(entry)
+        return SubtreeMinEntry(value.basic_type, empty, leaf, prio, value, mem=mem)
+
+    def to_entry(self) -> oram.Entry:
+        return oram.Entry(
+            0,
+            (self.leaf, self.prio, self.value),
+            empty=self.empty,
+            value_type=self.value_type,
+        )
+
+    def write_if(self, cond, new) -> None:
+        for field in self.fields:
+            self[field] = cond * new[field] + (1 - cond) * self[field]
+
+    def dump(self, str=""):
+        """Reveal contents of entry (insecure)."""
+        if TRACE:
+            lib.print_ln(
+                str + "empty %s, leaf %s, prio %s, value %s",
+                *(x.reveal() for x in self),
+            )
+
+
 class BasicMinTree(NoIndexORAM):
     """Basic Min tree data structure behavior."""
 
     def __init__(self, init_rounds=-1):
-        self.subtree_min_entry_size = self.entry_size + (
-            self.D + 1,
-        )  # (prio, value, leaf)
-
         # Maintain subtree-mins in a separate RAM
         # (some of the attributes we access are defined in the ORAM classes,
         # so no meta information is available when accessed in this constructor.)
@@ -196,13 +228,15 @@ class BasicMinTree(NoIndexORAM):
             lib.start_timer()
 
         @lib.function_block
-        def evict(leaf):
+        def evict(leaf: self.value_type.clear_type):
             """Eviction reused from PathORAM, but this version accepts a leaf as input"""
+
+            if DEBUG:
+                lib.print_ln("[POH] evict: along path with label %s", leaf.reveal())
+
             self.use_shuffle_evict = True
 
             self.state.write(self.value_type(leaf))
-
-            print("eviction leaf =", leaf)
 
             # load the path
             for i, ram_indices in enumerate(self.bucket_indices_on_path_to(leaf)):
@@ -211,8 +245,7 @@ class BasicMinTree(NoIndexORAM):
                         ram_index
                     ]
                     self.temp_levels[i * self.bucket_size + j] = i
-                    ies = self.internal_entry_size()
-                    self.buckets[ram_index] = oram.Entry.get_empty(*ies)
+                    self.buckets[ram_index] = self._get_empty_entry()
 
             # load the stash
             for i in range(len(self.stash.ram)):
@@ -223,8 +256,7 @@ class BasicMinTree(NoIndexORAM):
                 entry = self.stash.ram[i]
                 self.temp_storage[i + self.bucket_size * (self.D + 1)] = entry
 
-                te = oram.Entry.get_empty(*self.internal_entry_size())
-                self.stash.ram[i] = te
+                self.stash.ram[i] = self._get_empty_entry()
 
             self.path_regs = [None] * self.bucket_size * (self.D + 1)
             self.stash_regs = [None] * len(self.stash.ram)
@@ -276,26 +308,37 @@ class BasicMinTree(NoIndexORAM):
 
         self.evict_along_path = evict
 
+    @lib.method_block
     def update_min(self, leaf_label: _clear = None) -> None:
         """Update subtree_min entries on the path from the specified leaf
-        to the root bucket (and stash).
+        to the root bucket (and stash) by finding the current min entry
+        of every bucket on the path and comparing it to the subtree-mins
+        of the bucket's two children.
         """
         if leaf_label is None:
             leaf_label = self.state.read().reveal()
-        if TRACE:
-            lib.print_ln("POH: update_min along path with label %s", leaf_label)
+        if DEBUG:
+            lib.print_ln("[POH] update_min: along path with label %s", leaf_label)
         indices = self._get_reversed_min_indices_and_children_on_path_to(leaf_label)
 
         # Degenerate case (leaf): no children to consider if we are at a leaf.
         # However, we must remember to set the leaf label of the entry.
         leaf_ram_index = indices[0][0]
-        leaf_min = self._get_bucket_min(leaf_ram_index, leaf_label)
+        leaf_min = self._get_bucket_min(leaf_ram_index)
         self._set_subtree_min(leaf_min, leaf_ram_index)
+        if TRACE:
+            leaf_min.dump("[POH] update_min: leaf min: ")
 
         # Iterate through internal path nodes and root
         for c, l, r in indices[1:]:
-            current = self._get_bucket_min(c, leaf_label)
+            if TRACE:
+                lib.print_ln("[POH] update_min: bucket %s", c)
+            current = self._get_bucket_min(c)
             left, right = map(self.get_subtree_min, [l, r])
+            if TRACE:
+                current.dump("[POH] update_min: current: ")
+                left.dump("[POH] update_min: left: ")
+                right.dump("[POH] update_min: right: ")
 
             # TODO: Is the following oblivious?
 
@@ -314,12 +357,20 @@ class BasicMinTree(NoIndexORAM):
                 c_min * current[key] + l_min * left[key] + r_min * right[key]
                 for key in current.fields
             ]
-            self._set_subtree_min(SubtreeMinEntry(self.value_type, fields), c)
+            entry = SubtreeMinEntry(self.value_type, *fields)
+            if TRACE:
+                entry.dump("[POH] update_min: updating min to: ")
+            self._set_subtree_min(SubtreeMinEntry(self.value_type, *fields), c)
 
         # Degenerate case (stash): the only child of stash is the root
         # so only compare those two
-        stash_min = self._get_stash_min(leaf_label)
+        if TRACE:
+            lib.print_ln("[POH] update_min: stash")
+        stash_min = self._get_stash_min()
         root_min = self.get_subtree_min(0)
+        if TRACE:
+            stash_min.dump("[POH] update_min: stash min: ")
+            root_min.dump("[POH] update_min: root min: ")
 
         s_min = stash_min < root_min
 
@@ -328,43 +379,74 @@ class BasicMinTree(NoIndexORAM):
             s_min * stash_min[key] + (1 - s_min) * root_min[key]
             for key in stash_min.fields
         ]
-        self._set_subtree_min(SubtreeMinEntry(self.value_type, fields))
+        self._set_subtree_min(SubtreeMinEntry(self.value_type, *fields))
 
-    def insert(self, value: _secret, priority: _secret, fake: _secret, empty: _secret = None) -> None:
+    @lib.method_block
+    def insert(
+        self, value: _secret, priority: _secret, fake: _secret, empty: _secret = None
+    ) -> None:
+        """Insert an entry in the stash, assigning it a random leaf label,
+        evict along two random, non-overlapping (except in the root) paths,
+        and update_min along the two same paths.
+        """
         # O(log n)
+
         if empty is None:
             empty = self.value_type(0)
 
-        # Insert entry into stash
-        self.stash.add(
+        # Insert entry into stash with random leaf
+        leaf_label = oram.random_block(self.D, self.value_type)
+        if TRACE:
+            lib.print_ln(
+                "[POH] insert: sampled random leaf label %s", leaf_label.reveal()
+            )
+        self.add(
             oram.Entry(
                 MemValue(sint(0)),
-                [MemValue(v) for v in (priority, value, 0)],
+                [MemValue(v) for v in ((1 - fake) * priority, (1 - fake) * value)],
                 empty=empty.max(fake),
                 value_type=self.value_type,
-            )
+            ),
+            state=MemValue((1 - fake) * leaf_label),
+            evict=False,
         )
+        if TRACE:
+            lib.print_ln("[POH] insert: stash:")
+            self.dump_stash()
 
         # Get two random, non-overlapping leaf paths (except in the root)
-        leaf_label_left = oram.random_block(self.D - 1, self.value_type).reveal()
-        leaf_label_right = oram.random_block(
-            self.D - 1, self.value_type
-        ).reveal() + 2 ** (self.D - 1)
+        # Due to Path ORAM using the leaf index bits for indexing in reversed
+        # order, we need to get a random even and uneven label
+        leaf_label_even = oram.random_block(self.D - 1, self.value_type).reveal() * 2
+        leaf_label_odd = oram.random_block(self.D - 1, self.value_type).reveal() * 2 + 1
 
         # Evict along two random non-overlapping paths
-        self.evict_along_path(leaf_label_left)
-        self.evict_along_path(leaf_label_right)
+        self.evict_along_path(leaf_label_even)
+        self.evict_along_path(leaf_label_odd)
+
+        if TRACE:
+            lib.print_ln("[POH] insert: stash:")
+            self.dump_stash()
+            lib.print_ln("[POH] insert: ram:")
+            self.dump_ram()
 
         # UpdateMin along same paths
-        self.update_min(leaf_label_left)
-        self.update_min(leaf_label_right)
+        self.update_min(leaf_label_even)
+        self.update_min(leaf_label_odd)
 
+    @lib.method_block
     def extract_min(self, fake: _secret) -> _secret:
+        """Look up subtree-min of stash and extract it by linear scanning the structure.
+        Then, evict along the extracted path, and finally, update_min along the path.
+        """
         # O(log n)
 
         # Get min entry from stash
         min_entry = self.get_subtree_min()
-        lib.crash(min_entry.empty.reveal())
+        if DEBUG:
+            min_entry.dump("[POH] extract_min")
+        if TRACE:
+            lib.crash(min_entry.empty.reveal())
         leaf_label = min_entry.leaf.reveal()
         empty_entry = SubtreeMinEntry.get_empty(self.value_type)
 
@@ -375,18 +457,25 @@ class BasicMinTree(NoIndexORAM):
             start = i * self.bucket_size
             stop = start + self.bucket_size
 
-            # TODO: Debug for_range
+            # TODO: Debug for_range (use MemValues?)
             @lib.for_range(start, stop=stop)
             def _(j):
                 current_entry = SubtreeMinEntry.from_entry(self.buckets[j])
+                if TRACE:
+                    lib.print_str("[POH] extract_min: current element (bucket %s): ", i)
+                    current_entry.dump()
                 found = min_entry == current_entry
                 current_entry.write_if((1 - fake) * found, empty_entry)
+                self.buckets[j] = current_entry.to_entry()
 
         @lib.for_range(0, self.stash.ram.size)
         def _(i):
             current_entry = SubtreeMinEntry.from_entry(self.stash.ram[i])
+            if TRACE:
+                current_entry.dump(f"[POH] extract_min: current element (stash): ")
             found = min_entry == current_entry
             current_entry.write_if(found, empty_entry)
+            self.stash.ram[i] = current_entry.to_entry()
 
         # Evict along path to leaf
         self.evict_along_path(leaf_label)
@@ -396,7 +485,7 @@ class BasicMinTree(NoIndexORAM):
         return min_entry.value
 
     def _get_empty_entry(self) -> oram.Entry:
-        return oram.Entry.get_empty(self.value_type, self.subtree_min_entry_size)
+        return oram.Entry.get_empty(*self.internal_entry_size())
 
     def get_subtree_min(self, index: int = -1) -> SubtreeMinEntry:
         """Returns a SubtreeMinEntry representing the subtree-min
@@ -404,8 +493,7 @@ class BasicMinTree(NoIndexORAM):
         it returns the subtree-min of the stash (index -1),
         which is the subtree-min of the complete tree.
         """
-        entry = self.subtree_mins[index]
-        return SubtreeMinEntry.from_entry(entry)
+        return SubtreeMinEntry.from_entry(self.subtree_mins[index])
 
     def _set_subtree_min(self, entry: SubtreeMinEntry, index: int = -1) -> None:
         """Sets the subtree-min of the bucket with the specified index
@@ -413,50 +501,98 @@ class BasicMinTree(NoIndexORAM):
         """
         self.subtree_mins[index] = entry.to_entry()
 
-    def _get_bucket_min(self, index: _clear, leaf_label: _clear) -> SubtreeMinEntry:
+    def _get_bucket_min(self, index: _clear) -> SubtreeMinEntry:
         """Get the min entry of a bucket by linear scan."""
         start = index * self.bucket_size
         stop = start + self.bucket_size
-        return self._get_ram_min(self.buckets, start, stop, leaf_label)
+        return self._get_ram_min(self.buckets, start, stop)
 
-    def _get_stash_min(self, leaf_label: _clear) -> SubtreeMinEntry:
+    def _get_stash_min(self) -> SubtreeMinEntry:
+        """Get the min entry of the stash by linear scan."""
         # TODO: Is this secure? We touch every entry so probably.
-        return self._get_ram_min(self.stash.ram, 0, self.stash.size, leaf_label)
+        return self._get_ram_min(self.stash.ram, 0, self.stash.size)
 
-    def _get_ram_min(
-        self, ram: oram.RAM, start: _clear, stop: _clear, leaf_label: _clear
-    ) -> SubtreeMinEntry:
-        """Scan through bucket, finding the entry with highest priority."""
-        leaf_label = self.value_type(leaf_label)
-        res = SubtreeMinEntry.from_entry(ram[start])
-        res.leaf = leaf_label
+    def _get_ram_min(self, ram: oram.RAM, start: int, stop: int) -> SubtreeMinEntry:
+        """Scan through RAM indices, finding the entry with highest priority."""
+        # TODO: Write cleaner. Need to use memvalues due to for_range.
 
-        @lib.for_range(start + 1, stop=stop)
+        min_empty = MemValue(self.value_type(1))
+        min_leaf = MemValue(self.value_type(0))
+        min_prio = MemValue(self.value_type(0))
+        min_value = MemValue(self.value_type(0))
+
+        @lib.for_range(start, stop=stop)
         def _(i):
+            res = SubtreeMinEntry(
+                self.value_type,
+                min_empty.read(),
+                min_leaf.read(),
+                min_prio.read(),
+                min_value.read(),
+            )
             entry = SubtreeMinEntry.from_entry(ram[i])
-            res_min = res < entry
-            for key in set(entry.fields) - {"leaf"}:
-                res[key] = res_min * res[key] + (1 - res_min) * entry[key]
+            entry_min = entry < res
+            min_empty.write(entry_min * entry.empty + (1 - entry_min) * res.empty)
+            min_leaf.write(entry_min * entry.leaf + (1 - entry_min) * res.leaf)
+            min_prio.write(entry_min * entry.prio + (1 - entry_min) * res.prio)
+            min_value.write(entry_min * entry.value + (1 - entry_min) * res.value)
+            if TRACE:
+                res.dump("[POH] _get_ram_min: res: ")
+                entry.dump("[POH] _get_ram_min: entry: ")
+                lib.print_ln("[POH] _get_ram_min: entry_min: %s", entry_min.reveal())
 
-        return res
+        return SubtreeMinEntry(
+            self.value_type,
+            min_empty.read(),
+            min_leaf.read(),
+            min_prio.read(),
+            min_value.read(),
+        )
 
     def _get_reversed_min_indices_and_children_on_path_to(
-        self, leaf_label: int
+        self, leaf_label: _clear
     ) -> List[Tuple[int, int, int]]:
         """Returns a list from leaf to root of tuples of (index, left_child, right_child).
         Used for update_min.
+        Note that leaf label bits are used from least to most significant bit,
+        so even leaves are indexed first, then odd, e.g. (for 8 leaves):
+
+            leaf_label    leaf_index (left to right)
+            000           000 (0)
+            001           100 (4)
+            010           010 (2)
+            011           110 (6)
+            100           001 (1)
+            101           101 (5)
+            110           011 (3)
+            111           111 (7)
+
+        In other words, leaf indices are reversed.
         """
+        leaf_label = regint(leaf_label)
         indices = [(0, 1, 2)]
         index = 0
         for _ in range(self.D):
-            index = 2 * index + 1 + (leaf_label & 1)
+            index = 2 * index + 1 + (cint(leaf_label) & 1)
             leaf_label >>= 1
             indices += [(index,) + self._get_child_indices(index)]
+        # if TRACE:
+        #     [lib.print_ln("%s", i) for i in indices]
         return list(reversed(indices))
 
     def _get_child_indices(self, i) -> Tuple[int, int]:
         """This is how a binary tree works."""
         return 2 * i + 1, 2 * i + 2
+
+    def dump_stash(self):
+        for i in range(len(self.stash.ram)):
+            SubtreeMinEntry.from_entry(self.stash.ram[i]).dump()
+
+    def dump_ram(self):
+        for i in range(len(self.ram)):
+            if i % self.bucket_size == 0:
+                lib.print_ln("bucket %s", i // self.bucket_size)
+            SubtreeMinEntry.from_entry(self.ram[i]).dump()
 
 
 class CircuitMinTree(CircuitORAM, BasicMinTree):
@@ -467,7 +603,7 @@ class CircuitMinTree(CircuitORAM, BasicMinTree):
     def __init__(
         self,
         capacity: int,
-        int_type: _secret = sint,
+        int_type: _Secret = sint,
         entry_size: Tuple[int] | None = None,
         bucket_size: int = 3,
         stash_size: int | None = None,
@@ -493,7 +629,7 @@ class PathMinTree(PathORAM, BasicMinTree):
     def __init__(
         self,
         capacity: int,
-        int_type: _secret = sint,
+        int_type: _Secret = sint,
         entry_size: Tuple[int] | None = None,
         bucket_oram: oram.AbstractORAM = oram.TrivialORAM,
         bucket_size: int = 2,
@@ -544,6 +680,7 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
         makes the cost of every operation equal to the
         sum of the costs of all operations. This is initially
         set by passing an argument to the class constructor.
+    :ivar int_type: the secret integer type of entry members.
     """
 
     def __init__(
@@ -551,7 +688,7 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
         capacity: int,
         security: int | None = None,
         type_hiding_security: bool = False,
-        int_type: _secret = sint,
+        int_type: _Secret = sint,
         entry_size: Tuple[int] | None = None,
         variant: POHVariant = POHVariant.PATH,
         bucket_oram: oram.AbstractORAM = oram.TrivialORAM,
@@ -561,6 +698,7 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
     ):
         """
         Initializes a Path Oblivious Heap priority queue.
+        The queue supports non-negative priorities only.
 
         :param capacity: The max capacity of the queue.
         :param security: A security parameter, used for determining the stash size
@@ -584,10 +722,14 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
         """
         # Check inputs
         if int_type != sint:
-            raise lib.CompilerError("POH: Only sint is supported as int_type.")
+            raise lib.CompilerError(
+                "[POH] __init__: Only sint is supported as int_type."
+            )
 
         if variant is not POHVariant.PATH:
-            raise lib.CompilerError("POH: Only the PATH variant is supported.")
+            raise lib.CompilerError(
+                "[POH] __init__: Only the PATH variant is supported."
+            )
 
         # Initialize basic class fields
         self.int_type = int_type
@@ -612,14 +754,14 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
 
         # Print debug messages
         cprint(
-            "POH: Initializing a queue with a capacity of %s and security parameter %s",
+            "[POH] __init__: Initializing a queue with a capacity of %s and security parameter %s",
             capacity,
             security,
         )
         cprint(
-            f"POH: Type hiding security is {'en' if self.type_hiding_security else 'dis'}abled",
+            f"[POH] __init__: Type hiding security is {'en' if self.type_hiding_security else 'dis'}abled",
         )
-        cprint("POH: Variant is %s", variant)
+        cprint("[POH] __init__: Variant is %s", variant)
 
         # Initialize data structure with dummy elements
         self.tree = variant.get_tree_class()(
@@ -649,37 +791,39 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
     def find_min(self, fake: bool = False) -> _secret | None:
         """Find the element with the smallest (ie. highest)
         priority in the queue and return its value and priority.
+        Returns -1 if empty.
         """
-        fake = self.int_type.hard_conv(fake) # Not supported
+        fake = self.int_type.hard_conv(fake)  # Not supported
         return self._find_min()
 
     def _insert(self, value: _secret, priority: _secret, fake: _secret) -> None:
         if TRACE:
             lib.print_ln(
-                "POH: insert: {value: %s, prio: %s}",
+                "[POH] insert: {value: %s, prio: %s}",
                 value.reveal(),
                 priority.reveal(),
             )
+        elif DEBUG:
+            lib.print_ln("[POH] insert")
         self.tree.insert(value, priority, fake)
 
     def _extract_min(self, fake: _secret) -> _secret:
-        if TRACE:
-            lib.print_ln("POH: extract_min")
+        if DEBUG:
+            lib.print_ln("[POH] extract_min")
         value = self.tree.extract_min(fake)
         if TRACE:
-            lib.print_ln("POH: extract_min found value %s", value.reveal())
+            lib.print_ln("[POH] extract_min: extracted value %s", value.reveal())
         return value
 
     def _find_min(self) -> _secret:
-        # Get and return value of min entry from root bucket.
-        # Returns -1 if empty
         entry = self.tree.get_subtree_min()
         if TRACE:
-            lib.print_ln("POH: find_min:")
-            entry.dump()
+            entry.dump("[POH] find_min: ")
             lib.print_ln_if(
-                entry["empty"].reveal(), "POH: Found empty entry during find_min!"
+                entry["empty"].reveal(), "[POH] Found empty entry during find_min!"
             )
+        elif DEBUG:
+            lib.print_ln("[POH] find_min")
         return entry["empty"].if_else(self.int_type(-1), entry["value"])
 
 
@@ -706,3 +850,41 @@ class POHToHeapQAdapter(PathObliviousHeap):
     def pop(self, for_real=True):
         """Renaming of pop to extract_min."""
         return self.extract_min(fake=(1 - for_real))
+
+
+def test_SubtreeMinEntry_cmp():
+    a = SubtreeMinEntry(sint, 0, 42, 6, 14)
+    b = SubtreeMinEntry(sint, 0, 42, 6, 13)
+    c = SubtreeMinEntry(sint, 0, 42, 5, 13)
+    d = SubtreeMinEntry(sint, 1, 10, 0, 0)
+    e = SubtreeMinEntry(sint, 0, 17, 0, 7, mem=True)
+    f = SubtreeMinEntry(sint, 0, 17, 0, 6, mem=True)
+
+    lib.print_ln("a < a: %s", (a < a).reveal())  # 0
+    lib.print_ln("a > a: %s", (a > a).reveal())  # 0
+    lib.print_ln("a == a: %s", (a == a).reveal())  # 1
+    lib.print_ln("a <= a: %s", (a <= a).reveal())  # 1
+    lib.print_ln("a >= a: %s", (a >= a).reveal())  # 1
+    lib.print_ln("a < b: %s", (a < b).reveal())  # 0
+    lib.print_ln("a == b: %s", (a == b).reveal())  # 0
+    lib.print_ln("b < a: %s", (b < a).reveal())  # 1
+    lib.print_ln("b > a: %s", (b > a).reveal())  # 0
+    lib.print_ln("a < c: %s", (a < c).reveal())  # 0
+    lib.print_ln("a == c: %s", (a == c).reveal())  # 0
+    lib.print_ln("a > c: %s", (a > c).reveal())  # 1
+    lib.print_ln("c > a: %s", (c > a).reveal())  # 0
+    lib.print_ln("a < d: %s", (a < d).reveal())  # 1
+    lib.print_ln("d > a: %s", (d > a).reveal())  # 1
+    lib.print_ln("d == a: %s", (d == a).reveal())  # 0
+    lib.print_ln("c < b: %s", (c < b).reveal())  # 1
+    lib.print_ln("b < c: %s", (b < c).reveal())  # 0
+    lib.print_ln("b > c: %s", (b > c).reveal())  # 1
+    lib.print_ln("b == c: %s", (b == c).reveal())  # 0
+
+    # MemValues
+    lib.print_ln("e < f: %s", (e < f).reveal())  # 0
+    lib.print_ln("f < e: %s", (f < e).reveal())  # 1
+    lib.print_ln("e == f: %s", (e == f).reveal())  # 0
+
+    # MemValues and basic types
+    lib.print_ln("e < a: %s", (e < a).reveal())  # 1

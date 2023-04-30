@@ -13,17 +13,17 @@ def noop(*args, **kwargs):
 dprint = lib.print_ln if DEBUG else noop
 
 # Benchmark parameters
-RANGE = [10**i for i in range(1, 6)]
-OPERATIONS_PER_STEP = 3
+RANGE = [2**i for i in range(2, 11)]
+OPERATIONS_PER_STEP = 1
 
 timer_offset = 1000  # Hopefully run timers in an unused range
 
 
 # Timing with consecutive ids
-def start_fancy_timer() -> int:
+def start_fancy_timer(id: int | None = None) -> int:
     global timer_offset
-    lib.start_timer(timer_offset)
-    id = timer_offset
+    id = id if id is not None else timer_offset
+    lib.start_timer(id)
     timer_offset += 1
     return id
 
@@ -35,19 +35,29 @@ def stop_fancy_timer(id):
 # BENCHMARK
 for capacity in RANGE:
     # Benchmark binary heap built on ORAM
+    dprint(f"[ORAM Heap] Initializing empty structure with capacity {capacity}")
+    id = start_fancy_timer()
     bin_heap = HeapQ(capacity)
+    stop_fancy_timer(id)
     id = start_fancy_timer()
     for i in range(OPERATIONS_PER_STEP):
-        dprint(f"ORAM Binary Heap: Update {i} for capacity {capacity}")
-        bin_heap.update(0, 0)
+        stop_fancy_timer(id)
+        dprint(f"[ORAM Heap] Update {i} for capacity {capacity}")
+        start_fancy_timer(id)
+        bin_heap.update(0, i)
     stop_fancy_timer(id)
 
     # Benchmark Path Oblivious Heap
+    dprint(f"[POH] Initializing empty structure with capacity {capacity}")
+    id = start_fancy_timer()
     poh = PathObliviousHeap(
         capacity, security=50, bucket_size=2, variant=POHVariant.PATH
     )
+    stop_fancy_timer(id)
     id = start_fancy_timer()
     for i in range(OPERATIONS_PER_STEP):
-        dprint(f"Path Oblivious Heap: Update {i} for capacity {capacity}")
-        poh.insert(0, 0)
+        stop_fancy_timer(id)
+        dprint(f"[POH] Update {i} for capacity {capacity}")
+        start_fancy_timer(id)
+        poh.insert(0, i)
     stop_fancy_timer(id)
