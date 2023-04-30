@@ -1,14 +1,19 @@
-from Compiler.path_oblivious_heap import POHToHeapQAdapter, SubtreeMinEntry, test_SubtreeMinEntry_cmp
+from Compiler.path_oblivious_heap import (
+    POHToHeapQAdapter,
+    path_oblivious_sort,
+    test_SubtreeMinEntry_cmp,
+)
 from Compiler.path_oram import OptimalORAM
 from Compiler import dijkstra
-from Compiler.types import sint
+from Compiler.types import Array, sint
 from Compiler.library import for_range, print_ln
 
 ### SETUP ###
 
 BASIC = False
 UNIT = False
-DIJKSTRA = True
+DIJKSTRA = False
+SORTING = True
 
 ### BASIC TEST ###
 
@@ -29,7 +34,6 @@ if DIJKSTRA:
     # from 0 to 0 at cost 0 via vertex 0
     # from 0 to 1 at cost 5 via vertex 0
     # from 0 to 2 at cost 15 via vertex 1
-
 
     # structure for edges
     # contains tuples of form (neighbor, cost, last neighbor bit)
@@ -67,7 +71,6 @@ if DIJKSTRA:
 
     res = dijkstra.dijkstra(source, edges, e_index, OptimalORAM)
 
-
     @for_range(res.size)
     def _(i):
         print_ln(
@@ -77,3 +80,24 @@ if DIJKSTRA:
             res[i][0].reveal(),
             res[i][1].reveal(),
         )
+
+
+if SORTING:
+    n = 5
+    a = Array(n, sint)
+    b = Array(n, sint)
+
+    @for_range(n)
+    def _(i):
+        a[i] = 2**4 + sint.get_random_int(5)
+        b[i] = 2**4 + sint.get_random_int(5)
+
+    print_ln("[Sorting (Radix)] Unsorted array: %s", b.reveal())
+    print_ln("[Sorting (Radix)] Sorting array...")
+    b.sort()
+    print_ln("[Sorting (Radix)] Sorted array: %s", b.reveal())
+
+    print_ln("[Sorting (POH)] Unsorted array: %s", a.reveal())
+    print_ln("[Sorting (POH)] Sorting array...")
+    path_oblivious_sort(a, a)
+    print_ln("[Sorting (POH)] Sorted array: %s", a.reveal())

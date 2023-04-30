@@ -17,6 +17,7 @@ from Compiler.types import (
     _arithmetic_register,
     _clear,
     _secret,
+    Array,
     cint,
     MemValue,
     regint,
@@ -850,6 +851,23 @@ class POHToHeapQAdapter(PathObliviousHeap):
     def pop(self, for_real=True):
         """Renaming of pop to extract_min."""
         return self.extract_min(fake=(1 - for_real))
+
+
+def path_oblivious_sort(keys: Array, values: Array):
+    """Sort values in place according to keys using Path Oblivious Heap
+    by calling insert followed by extract min.
+    """
+    assert len(keys) == len(values)
+    n = len(keys)
+    q = PathObliviousHeap(n, entry_size=(64, util.log2(n)))
+
+    @lib.for_range(n)
+    def _(i):
+        q.insert(values[i], keys[i])
+
+    @lib.for_range(n)
+    def _(i):
+        values[i] = q.extract_min()
 
 
 def test_SubtreeMinEntry_cmp():
