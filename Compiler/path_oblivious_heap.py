@@ -922,9 +922,9 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
         if TRACE:
             entry.dump("[POH] find_min: found entry: ")
             dprint_ln_if(
-                entry["empty"].reveal(), "[POH] Found empty entry during find_min!"
+                entry.empty.reveal(), "[POH] Found empty entry during find_min!"
             )
-        return entry["empty"].if_else(self.int_type(-1), entry["value"])
+        return entry.empty.if_else(self.int_type(-1), entry.value)
 
 
 class POHToHeapQAdapter(PathObliviousHeap):
@@ -937,11 +937,11 @@ class POHToHeapQAdapter(PathObliviousHeap):
     def __init__(
         self,
         max_size,
+        *args,
         init_rounds=-1,
         int_type=sint,
         bucket_size=2,
         variant=POHVariant.PATH,
-        *args,
         **kwargs,
     ):
         """Initialize a POH with the required capacity
