@@ -12,7 +12,7 @@ from Compiler.types import sint
 ### SETUP ###
 
 # Which tests are we running?
-BASIC = False
+BASIC = True
 UNIT = False
 DIJKSTRA = True
 
@@ -47,6 +47,8 @@ def stop_fancy_timer(id):
 ### BASIC TEST ###
 
 if BASIC:
+    q = dijkstra.HeapQ(2048)
+    q.update(sint(0), 0)
 
     q = PathObliviousHeap(1)
     lib.print_ln(
