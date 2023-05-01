@@ -20,7 +20,7 @@ DIJKSTRA = False
 if BASIC:
     from Compiler import oram
     oram.crash_on_overflow = True
-    q = PathObliviousHeap(2)
+    q = PathObliviousHeap(1)
     lib.print_ln("tree depth: %s, stash length: %s, bucket length: %s", q.tree.D, len(q.tree.stash.ram), q.tree.bucket_size)
     q.insert(120, 0)
     q.insert(4, 100)

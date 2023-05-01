@@ -833,6 +833,9 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
         self.int_type = int_type
         self.type_hiding_security = type_hiding_security
 
+        # Path ORAM does not support capacity < 2
+        capacity = max(capacity, 2)
+
         # TODO: Figure out what default should be (capacity = poly(security))
         if security is None:
             security = capacity
