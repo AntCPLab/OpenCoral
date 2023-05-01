@@ -11,30 +11,59 @@ from Compiler.types import sint
 
 ### SETUP ###
 
-BASIC = True
+# Which tests are we running?
+BASIC = False
 UNIT = False
-DIJKSTRA = False
+DIJKSTRA = True
+
+# Module settings
+from Compiler import oram, path_oblivious_heap
+
+oram.crash_on_overflow = False
+path_oblivious_heap.CRASH_ON_EMPTY = True
+path_oblivious_heap.TRACE = False
+path_oblivious_heap.DEBUG = True
+
+### UTILITY ###
+
+# Timing with consecutive ids
+
+timer_offset = 1000  # Hopefully run timers in an unused range
+
+
+def start_fancy_timer(id: int | None = None) -> int:
+    global timer_offset
+    _id = id if id is not None else timer_offset
+    lib.start_timer(_id)
+    if id is None:
+        timer_offset += 1
+    return _id
+
+
+def stop_fancy_timer(id):
+    lib.stop_timer(id)
+
 
 ### BASIC TEST ###
 
 if BASIC:
-    from Compiler import oram
-    oram.crash_on_overflow = True
+
     q = PathObliviousHeap(1)
-    lib.print_ln("tree depth: %s, stash length: %s, bucket length: %s", q.tree.D, len(q.tree.stash.ram), q.tree.bucket_size)
+    lib.print_ln(
+        "tree depth: %s, stash length: %s, bucket length: %s",
+        q.tree.D,
+        len(q.tree.stash.ram),
+        q.tree.bucket_size,
+    )
     q.insert(120, 0)
-    q.insert(4, 100)
-    q.insert(5, 100)
-    q.insert(3, 2000)
-    q.insert(8, 420)
-    q.insert(42, -19)
-    q.insert(7, 7)
-    q.insert(8, 5) # guaranteed to crash here, maybe before
-    q.find_min()
-    lib.print_ln("\nExtracted value: %s", q.extract_min().reveal())
+    q.insert(120, 0)
+    q.extract_min()
+    q.extract_min()  # Crashes if both entries get same leaf label
 
 if UNIT:
+    id = start_fancy_timer()
     test_SubtreeMinEntry_cmp()
+    stop_fancy_timer(id)
 
 if DIJKSTRA:
     # ### DIJKSTRA ###
