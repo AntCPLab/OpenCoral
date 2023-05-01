@@ -1,24 +1,37 @@
 from Compiler.path_oblivious_heap import (
+    PathObliviousHeap,
     POHToHeapQAdapter,
-    path_oblivious_sort,
     test_SubtreeMinEntry_cmp,
 )
+
+from Compiler import library as lib
 from Compiler.path_oram import OptimalORAM
 from Compiler import dijkstra
-from Compiler.types import Array, sint
-from Compiler.library import for_range, print_ln
+from Compiler.types import sint
 
 ### SETUP ###
 
-BASIC = False
+BASIC = True
 UNIT = False
 DIJKSTRA = False
-SORTING = True
 
 ### BASIC TEST ###
 
 if BASIC:
-    pass
+    from Compiler import oram
+    oram.crash_on_overflow = True
+    q = PathObliviousHeap(2)
+    lib.print_ln("tree depth: %s, stash length: %s, bucket length: %s", q.tree.D, len(q.tree.stash.ram), q.tree.bucket_size)
+    q.insert(120, 0)
+    q.insert(4, 100)
+    q.insert(5, 100)
+    q.insert(3, 2000)
+    q.insert(8, 420)
+    q.insert(42, -19)
+    q.insert(7, 7)
+    q.insert(8, 5) # guaranteed to crash here, maybe before
+    q.find_min()
+    lib.print_ln("\nExtracted value: %s", q.extract_min().reveal())
 
 if UNIT:
     test_SubtreeMinEntry_cmp()
@@ -71,33 +84,12 @@ if DIJKSTRA:
 
     res = dijkstra.dijkstra(source, edges, e_index, OptimalORAM)
 
-    @for_range(res.size)
+    @lib.for_range(res.size)
     def _(i):
-        print_ln(
+        lib.print_ln(
             "from %s to %s at cost %s via vertex %s",
             source.reveal(),
             i,
             res[i][0].reveal(),
             res[i][1].reveal(),
         )
-
-
-if SORTING:
-    n = 5
-    a = Array(n, sint)
-    b = Array(n, sint)
-
-    @for_range(n)
-    def _(i):
-        a[i] = 2**4 + sint.get_random_int(5)
-        b[i] = 2**4 + sint.get_random_int(5)
-
-    print_ln("[Sorting (Radix)] Unsorted array: %s", b.reveal())
-    print_ln("[Sorting (Radix)] Sorting array...")
-    b.sort()
-    print_ln("[Sorting (Radix)] Sorted array: %s", b.reveal())
-
-    print_ln("[Sorting (POH)] Unsorted array: %s", a.reveal())
-    print_ln("[Sorting (POH)] Sorting array...")
-    path_oblivious_sort(a, a)
-    print_ln("[Sorting (POH)] Sorted array: %s", a.reveal())

@@ -1,6 +1,11 @@
-from Compiler.path_oblivious_heap import PathObliviousHeap, POHVariant
-from Compiler.dijkstra import HeapQ
 from Compiler import library as lib, oram
+from Compiler.dijkstra import HeapQ
+from Compiler.path_oblivious_heap import (
+    PathObliviousHeap,
+    POHVariant,
+    path_oblivious_sort,
+)
+from Compiler.types import Array, sint
 
 DEBUG = True
 
@@ -12,9 +17,16 @@ def noop(*args, **kwargs):
 # Only print if DEBUG is enabled
 dprint = lib.print_ln if DEBUG else noop
 
+# Benchmark types
+INSERT = False
+SORTING = True
+
 # Benchmark parameters
+## Insert
 RANGE = [2**i for i in range(2, 11)]
 OPERATIONS_PER_STEP = 1
+## Sorting
+LENGTHS = [2, 4, 6, 8, 10]
 
 timer_offset = 1000  # Hopefully run timers in an unused range
 
@@ -34,33 +46,57 @@ def stop_fancy_timer(id):
 
 
 # BENCHMARK
-for capacity in RANGE:
-    # Benchmark binary heap built on ORAM
-    dprint(f"[ORAM Heap] Initializing empty structure with capacity {capacity}")
-    id = start_fancy_timer()
-    bin_heap = HeapQ(capacity, oram_type=oram.RecursiveORAM)
-    stop_fancy_timer(id)
-    dprint(f"[ORAM Heap] Running updates for capacity {capacity}")
-    id = start_fancy_timer()
-    for i in range(OPERATIONS_PER_STEP):
-        stop_fancy_timer(id)
-        dprint(f"\n[ORAM Heap] Update {i} for capacity {capacity}")
-        start_fancy_timer(id)
-        bin_heap.update(0, i)
-    stop_fancy_timer(id)
 
-    # Benchmark Path Oblivious Heap
-    dprint(f"[POH] Initializing empty structure with capacity {capacity}")
-    id = start_fancy_timer()
-    poh = PathObliviousHeap(
-        capacity, bucket_size=2, variant=POHVariant.PATH
-    )
-    stop_fancy_timer(id)
-    dprint(f"[POH] Running updates for capacity {capacity}")
-    id = start_fancy_timer()
-    for i in range(OPERATIONS_PER_STEP):
+if INSERT:
+    for capacity in RANGE:
+        # Benchmark binary heap built on ORAM
+        dprint(f"[ORAM Heap] Initializing empty structure with capacity {capacity}")
+        id = start_fancy_timer()
+        bin_heap = HeapQ(capacity, oram_type=oram.RecursiveORAM)
         stop_fancy_timer(id)
-        dprint(f"[POH] Update {i} for capacity {capacity}")
-        start_fancy_timer(id)
-        poh.insert(0, i)
-    stop_fancy_timer(id)
+        dprint(f"[ORAM Heap] Running updates for capacity {capacity}")
+        id = start_fancy_timer()
+        for i in range(OPERATIONS_PER_STEP):
+            stop_fancy_timer(id)
+            dprint(f"\n[ORAM Heap] Update {i} for capacity {capacity}")
+            start_fancy_timer(id)
+            bin_heap.update(0, i)
+        stop_fancy_timer(id)
+
+        # Benchmark Path Oblivious Heap
+        dprint(f"[POH] Initializing empty structure with capacity {capacity}")
+        id = start_fancy_timer()
+        poh = PathObliviousHeap(capacity, bucket_size=2, variant=POHVariant.PATH)
+        stop_fancy_timer(id)
+        dprint(f"[POH] Running updates for capacity {capacity}")
+        id = start_fancy_timer()
+        for i in range(OPERATIONS_PER_STEP):
+            stop_fancy_timer(id)
+            dprint(f"[POH] Update {i} for capacity {capacity}")
+            start_fancy_timer(id)
+            poh.insert(0, i)
+        stop_fancy_timer(id)
+
+if SORTING:
+    for n in LENGTHS:
+        a = Array(n, sint)
+        b = Array(n, sint)
+
+        @lib.for_range(n)
+        def _(i):
+            a[i] = 2**4 + sint.get_random_int(5)
+            b[i] = 2**4 + sint.get_random_int(5)
+
+        lib.print_ln("[Sorting (Radix)] Unsorted array of length %s: %s", n, b.reveal())
+        lib.print_ln("[Sorting (Radix)] Sorting array...")
+        id = start_fancy_timer()
+        b.sort()
+        stop_fancy_timer(id)
+        lib.print_ln("[Sorting (Radix)] Sorted array: %s", b.reveal())
+
+        lib.print_ln("[Sorting (POH)] Unsorted array of length %s: %s", n, a.reveal())
+        lib.print_ln("[Sorting (POH)] Sorting array...")
+        id = start_fancy_timer()
+        path_oblivious_sort(a, a)
+        stop_fancy_timer(id)
+        lib.print_ln("[Sorting (POH)] Sorted array: %s", a.reveal())
