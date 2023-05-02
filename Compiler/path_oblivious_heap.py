@@ -943,6 +943,7 @@ class POHToHeapQAdapter(PathObliviousHeap):
         bucket_size=None,
         stash_size=None,
         init_rounds=-1,
+        entry_size=None,
         **kwargs,
     ):
         """Initialize a POH with the required capacity
@@ -955,6 +956,7 @@ class POHToHeapQAdapter(PathObliviousHeap):
             bucket_size=bucket_size,
             stash_size=stash_size,
             init_rounds=init_rounds,
+            entry_size=entry_size
         )
 
     def update(self, value, priority, for_real=True):
