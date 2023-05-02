@@ -12,7 +12,7 @@ DEBUG = True
 
 from Compiler import path_oblivious_heap
 
-path_oblivious_heap.DEBUG = DEBUG
+path_oblivious_heap.DEBUG = False
 
 
 def noop(*args, **kwargs):
@@ -71,10 +71,6 @@ if INSERT:
         global timer_offset
         dprint(f"\n[{tag}] Initializing empty structure with capacity {capacity}")
         id = None
-        if TIME_INIT:
-            id = start_fancy_timer()
-        if TIME_INIT:
-            stop_fancy_timer(id)
         dprint(f"\n[{tag}] Running updates for capacity {capacity}")
         id = timer_offset  # Handle id manually to avoid incrementing for each operation
         for i in range(OPERATIONS_PER_STEP):
@@ -87,7 +83,11 @@ if INSERT:
     def benchmark_operations(q_init, capacity, *args, tag="", **kwargs):
         apply_insert = lambda q, i: q.update(0, i)
         apply_extract = lambda q, _: q.pop()
+        if TIME_INIT:
+            id = start_fancy_timer()
         q = q_init(capacity, *args, **kwargs)
+        if TIME_INIT:
+            stop_fancy_timer(id)
         if INSERT:
             operation_round(q, apply_insert, capacity, tag=tag + " insert")
             if EXTRACT:
