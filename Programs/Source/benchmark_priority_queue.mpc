@@ -25,20 +25,22 @@ dprint = lib.print_ln if DEBUG else noop
 # Benchmark types
 INSERT = True
 EXTRACT = True
-SORTING = True
+SORTING = False
 
 INSERT = INSERT or EXTRACT  # Always insert if we are going to extract
 
 # Benchmark parameters
 ## Insert / ExtractMin
-RANGE = [2**i for i in range(1, 14)]  # TODO: Test this range
+RANGE = [2**i for i in range(1, 10)]
 OPERATIONS_PER_STEP = 3
 TIME_INIT = True
-TREE = False
-TREE_PATH = False
-OPTIMAL_TREE = True
-OPTIMAL_PATH = True
+TREE_HEAP = True
+TREE_PATH_HEAP = True
+LINEAR_HEAP = True
+OPTIMAL_TREE_HEAP = False
+OPTIMAL_PATH_HEAP = False
 POH_PATH = True
+POH_PATH_CONSTANT_STASH = True
 
 ## Sorting
 LENGTHS = [5, 10, 15, 20, 25, 30]
@@ -91,12 +93,12 @@ if INSERT:
             if EXTRACT:
                 operation_round(q, apply_extract, capacity, tag=tag + " extract_min")
 
-    dprint(f"\n\nBENCHMARKING INSERT{'AND EXTRACT ' if EXTRACT else ''} TIME")
+    dprint(f"\n\nBENCHMARKING INSERT {'AND EXTRACT ' if EXTRACT else ''}TIME")
     for capacity in RANGE:
 
         dprint(f"\nCAPACITY {capacity}")
 
-        if TREE:
+        if TREE_HEAP:
             # Benchmark binary heap built on ORAM (Tree ORAM variant)
             benchmark_operations(
                 HeapQ,
@@ -105,7 +107,7 @@ if INSERT:
                 tag="ORAM Heap (Tree)",
             )
 
-        if TREE_PATH:
+        if TREE_PATH_HEAP:
             # Benchmark binary heap built on ORAM (Path ORAM variant)
             benchmark_operations(
                 HeapQ,
@@ -114,7 +116,16 @@ if INSERT:
                 tag="ORAM Heap (Path)",
             )
 
-        if OPTIMAL_TREE:
+        if LINEAR_HEAP:
+            # Benchmark binary heap built on ORAM (Linear ORAM variant)
+            benchmark_operations(
+                HeapQ,
+                capacity,
+                oram_type=oram.LinearORAM,
+                tag="ORAM Heap (Linear)",
+            )
+
+        if OPTIMAL_TREE_HEAP:
             # Benchmark binary heap built on ORAM (OptimalORAM variant)
             benchmark_operations(
                 HeapQ,
@@ -123,7 +134,7 @@ if INSERT:
                 tag="ORAM Heap (Optimal Tree)",
             )
 
-        if OPTIMAL_PATH:
+        if OPTIMAL_PATH_HEAP:
             # Benchmark binary heap built on ORAM (OptimalORAM Path variant)
             benchmark_operations(
                 HeapQ,
@@ -140,6 +151,17 @@ if INSERT:
                 bucket_size=2,
                 variant=POHVariant.PATH,
                 tag="POH (Path)",
+            )
+
+        if POH_PATH_CONSTANT_STASH:
+            # Benchmark Path Oblivious Heap (Path variant with constant stash size)
+            benchmark_operations(
+                POHToHeapQAdapter,
+                capacity,
+                bucket_size=2,
+                stash_size=20, # based on empirical analysis by Keller and Scholl
+                variant=POHVariant.PATH,
+                tag="POH (Path (constant stash size))",
             )
 
 if SORTING:

@@ -857,7 +857,7 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
         dprint(
             f"[POH] __init__: Type hiding security is {'en' if self.type_hiding_security else 'dis'}abled",
         )
-        dprint("[POH] __init__: Variant is %s", variant)
+        dprint(f"[POH] __init__: Variant is {variant}")
 
         # Initialize data structure with dummy elements
         self.tree = variant.get_tree_class()(
@@ -938,10 +938,11 @@ class POHToHeapQAdapter(PathObliviousHeap):
         self,
         max_size,
         *args,
-        init_rounds=-1,
         int_type=sint,
-        bucket_size=2,
         variant=POHVariant.PATH,
+        bucket_size=None,
+        stash_size=None,
+        init_rounds=-1,
         **kwargs,
     ):
         """Initialize a POH with the required capacity
@@ -949,10 +950,11 @@ class POHToHeapQAdapter(PathObliviousHeap):
         """
         super().__init__(
             max_size,
-            init_rounds=init_rounds,
             int_type=int_type,
-            bucket_size=bucket_size,
             variant=variant,
+            bucket_size=bucket_size,
+            stash_size=stash_size,
+            init_rounds=init_rounds,
         )
 
     def update(self, value, priority, for_real=True):
