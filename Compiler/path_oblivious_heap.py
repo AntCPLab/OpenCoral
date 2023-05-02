@@ -956,7 +956,7 @@ class POHToHeapQAdapter(PathObliviousHeap):
             bucket_size=bucket_size,
             stash_size=stash_size,
             init_rounds=init_rounds,
-            entry_size=entry_size
+            entry_size=entry_size,
         )
 
     def update(self, value, priority, for_real=True):

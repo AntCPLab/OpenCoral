@@ -1,7 +1,6 @@
 from Compiler import library as lib, oram, path_oram
 from Compiler.dijkstra import HeapQ
 from Compiler.path_oblivious_heap import (
-    PathObliviousHeap,
     POHToHeapQAdapter,
     POHVariant,
     path_oblivious_sort,
@@ -32,8 +31,8 @@ INSERT = INSERT or EXTRACT  # Always insert if we are going to extract
 
 # Benchmark parameters
 ## General
-KEY_SIZE = lambda n: log2(n)
-VALUE_SIZE = lambda n: 64
+KEY_SIZE = lambda n: 32
+VALUE_SIZE = lambda n: log2(n)
 
 ## Insert / ExtractMin
 RANGE = [2**i for i in range(1, 5)]
@@ -74,7 +73,6 @@ if INSERT:
 
     def operation_round(q, apply_op, capacity, tag=""):
         global timer_offset
-        dprint(f"\n[{tag}] Initializing empty structure with capacity {capacity}")
         id = None
         dprint(f"\n[{tag}] Running updates for capacity {capacity}")
         id = timer_offset  # Handle id manually to avoid incrementing for each operation
@@ -88,6 +86,7 @@ if INSERT:
     def benchmark_operations(q_init, capacity, *args, tag="", **kwargs):
         apply_insert = lambda q, i: q.update(0, i)
         apply_extract = lambda q, _: q.pop()
+        dprint(f"\n[{tag}] Initializing empty structure with capacity {capacity}")
         if TIME_INIT:
             id = start_fancy_timer()
         q = q_init(capacity, *args, **kwargs)
@@ -98,10 +97,9 @@ if INSERT:
             if EXTRACT:
                 operation_round(q, apply_extract, capacity, tag=tag + " extract_min")
 
-
     dprint(f"\n\nBENCHMARKING INSERT {'AND EXTRACT ' if EXTRACT else ''}TIME")
     for capacity in RANGE:
-        entry_size=(KEY_SIZE(capacity), VALUE_SIZE(capacity))
+        entry_size = (KEY_SIZE(capacity), VALUE_SIZE(capacity))
 
         dprint(f"\nCAPACITY {capacity}")
 
@@ -172,7 +170,7 @@ if INSERT:
                 POHToHeapQAdapter,
                 capacity,
                 bucket_size=2,
-                stash_size=20, # based on empirical analysis by Keller and Scholl
+                stash_size=20,  # based on empirical analysis by Keller and Scholl
                 variant=POHVariant.PATH,
                 entry_size=entry_size,
                 tag="POH (Path (constant stash size))",
