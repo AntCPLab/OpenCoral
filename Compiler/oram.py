@@ -869,7 +869,7 @@ class LinearORAM(TrivialORAM):
             entry = self.ram[i]
             access_here = self.index_vector[i]
             return access_here * ValueTuple((entry.empty(),) + entry.x)
-        not_found = self.value_type(f()[0])
+        not_found = self.value_type.bit_type(f()[0])
         read_value = ValueTuple(self.value_type.get_type(l)(x) for l, x in zip(self.entry_size, f()[1:])) + \
             not_found * empty_entry.x
         maybe_stop_timer(6)
