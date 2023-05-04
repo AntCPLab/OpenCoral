@@ -23,9 +23,9 @@ def noop(*args, **kwargs):
 dprint = lib.print_ln if DEBUG else noop
 
 # Benchmark types
-INSERT = True
-EXTRACT = True
-SORTING = False
+INSERT = False
+EXTRACT = False
+SORTING = True
 
 INSERT = INSERT or EXTRACT  # Always insert if we are going to extract
 
@@ -41,15 +41,19 @@ RANGE = [2**i for i in range(1, 15)]
 OPERATIONS_PER_STEP = 2
 TIME_INIT = True
 TREE_HEAP = False
-TREE_PATH_HEAP = True
-LINEAR_HEAP = True
+TREE_PATH_HEAP = False
+LINEAR_HEAP = False
 OPTIMAL_TREE_HEAP = False
 OPTIMAL_PATH_HEAP = False
 POH_PATH = True
 POH_PATH_CONSTANT_STASH = True
 
 ## Sorting
-LENGTHS = [5, 10, 15, 20, 25, 30]
+LENGTHS = [5, 10, 15, 20]
+SORTING_BITS = 32
+RADIX_SORT = True
+POS = True
+POS_CONSTANT_STASH = True
 
 # Set module variables based on parameters
 oram.n_threads = N_THREADS
@@ -187,24 +191,51 @@ if INSERT:
 if SORTING:
     dprint("\n\nBENCHMARKING SORTING TIME")
     for n in LENGTHS:
+        dprint(f"\nLENGTH {n}")
         a = Array(n, sint)
-        b = Array(n, sint)
 
         @lib.for_range(n)
         def _(i):
-            a[i] = 2**4 + sint.get_random_int(5)
-            b[i] = 2**4 + sint.get_random_int(5)
+            a[i] = sint.get_random_int(SORTING_BITS)
 
-        lib.print_ln("[Sorting (Radix)] Unsorted array of length %s: %s", n, b.reveal())
-        lib.print_ln("[Sorting (Radix)] Sorting array...")
-        id = start_fancy_timer()
-        b.sort()
-        stop_fancy_timer(id)
-        lib.print_ln("[Sorting (Radix)] Sorted array: %s", b.reveal())
+        if RADIX_SORT:
+            a_ = Array(n, sint).assign(a)
+            lib.print_ln(
+                "\n[Sorting (Radix)] Unsorted array of length %s: %s", n, a_.reveal()
+            )
+            lib.print_ln("[Sorting (Radix)] Sorting array...")
+            id = start_fancy_timer()
+            a_.sort()
+            stop_fancy_timer(id)
+            lib.print_ln("[Sorting (Radix)] Sorted array: %s", a_.reveal())
 
-        lib.print_ln("[Sorting (POH)] Unsorted array of length %s: %s", n, a.reveal())
-        lib.print_ln("[Sorting (POH)] Sorting array...")
-        id = start_fancy_timer()
-        path_oblivious_sort(a, a)
-        stop_fancy_timer(id)
-        lib.print_ln("[Sorting (POH)] Sorted array: %s", a.reveal())
+        if POS:
+            a_ = Array(n, sint).assign(a)
+            lib.print_ln(
+                "\n[Sorting (POH) superlogarithmic stash size] Unsorted array of length %s: %s",
+                n,
+                a_.reveal(),
+            )
+            lib.print_ln("[Sorting (POH) superlogarithmic stash size] Sorting array...")
+            id = start_fancy_timer()
+            path_oblivious_sort(a_, a_, SORTING_BITS)
+            stop_fancy_timer(id)
+            lib.print_ln(
+                "[Sorting (POH) superlogarithmic stash size] Sorted array: %s",
+                a_.reveal(),
+            )
+
+        if POS_CONSTANT_STASH:
+            a_ = Array(n, sint).assign(a)
+            lib.print_ln(
+                "\n[Sorting (POH) constant stash size] Unsorted array of length %s: %s",
+                n,
+                a_.reveal(),
+            )
+            lib.print_ln("[Sorting (POH) constant stash size] Sorting array...")
+            id = start_fancy_timer()
+            path_oblivious_sort(a_, a_, SORTING_BITS, stash_size=20)
+            stop_fancy_timer(id)
+            lib.print_ln(
+                "[Sorting (POH) constant stash size] Sorted array: %s", a_.reveal()
+            )

@@ -971,13 +971,22 @@ class POHToHeapQAdapter(PathObliviousHeap):
         return self.extract_min(fake=(1 - for_real))
 
 
-def path_oblivious_sort(keys: Array, values: Array):
+def path_oblivious_sort(
+    keys: Array,
+    values: Array,
+    key_length: int,
+    *args,
+    value_length: int | None = None,
+    **kwargs,
+):
     """Sort values in place according to keys using Path Oblivious Heap
     by calling insert followed by extract min.
     """
     assert len(keys) == len(values)
     n = len(keys)
-    q = PathObliviousHeap(n, entry_size=(64, util.log2(n)))
+    if value_length is None:
+        value_length = key_length
+    q = PathObliviousHeap(n, entry_size=(key_length, value_length))
 
     @lib.for_range(n)
     def _(i):
