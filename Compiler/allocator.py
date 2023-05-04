@@ -313,6 +313,7 @@ class Merger:
 
         reg_nodes = {}
         last_def = defaultdict_by_id(lambda: -1)
+        last_read = defaultdict_by_id(lambda: -1)
         last_mem_write = []
         last_mem_read = []
         last_mem_write_of = defaultdict(list)
@@ -337,12 +338,16 @@ class Merger:
                     d[j] = d[i]
 
         def read(reg, n):
+            last_read[reg] = n
             for dup in reg.duplicates:
                 if last_def[dup] != -1:
                     add_edge(last_def[dup], n)
 
         def write(reg, n):
             last_def[reg] = n
+            for dup in reg.duplicates:
+                if last_read[dup] not in (-1, n):
+                    add_edge(last_read[dup], n)
 
         def handle_mem_access(addr, reg_type, last_access_this_kind,
                               last_access_other_kind):
