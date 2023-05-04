@@ -746,7 +746,7 @@ class sbitvec(_vec, _bit):
                         self.v = [t(((other >> i) & 1) * ((1 << t.n) - 1))
                                   for i in range(n)]
                     elif isinstance(other, _vec):
-                        self.v = self.bit_extend(other.v, n)
+                        self.v = [type(x)(x) for x in self.bit_extend(other.v, n)]
                     elif isinstance(other, (list, tuple)):
                         self.v = self.bit_extend(sbitvec(other).v, n)
                     else:
