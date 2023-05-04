@@ -2943,6 +2943,7 @@ class sintbit(sint):
     def prep_res(cls, other):
         return sint()
 
+    @read_mem_value
     def load_other(self, other):
         if isinstance(other, sint):
             movs(self, other)
