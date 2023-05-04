@@ -370,16 +370,16 @@ void BasicGf2MFE::decode(GF2X& g, const vec_GF2& h) {
     g = shrink(g_);
 }
 
-CompositeGf2MFE::CompositeGf2MFE(std::shared_ptr<FieldConverter> converter, std::shared_ptr<Gf2eMFE> mfe1, std::shared_ptr<Gf2MFE> mfe2)
+CompositeGf2MFE::CompositeGf2MFE(std::shared_ptr<FieldConverter> converter, std::shared_ptr<Gf2MFE> mfe1, std::shared_ptr<Gf2eMFE> mfe2)
     : converter_(converter), mfe1_(mfe1), mfe2_(mfe2) {
-    if (converter->base_field_poly() != mfe1->base_field_mod())
-        LogicError("Converter and mfe1's base field polys are different");
-    if (converter->composite_field_poly() != mfe1->ex_field_mod())
-        LogicError("Converter and mfe1's composite field polys are different");
-    if (mfe1->base_field_size() != (long) pow(mfe2->base_field_size(), mfe2->m()))
+    if (converter->base_field_poly() != mfe2->base_field_mod())
+        LogicError("Converter and mfe2's base field polys are different");
+    if (converter->composite_field_poly() != mfe2->ex_field_mod())
+        LogicError("Converter and mfe2's composite field polys are different");
+    if (mfe2->base_field_size() != (long) pow(mfe1->base_field_size(), mfe1->m()))
         LogicError("Cannot concatenate two MFEs with incompatible field sizes");
-    if (mfe2->base_field_size() != 2)
-        LogicError("mfe2's base field must be GF(2)");
+    if (mfe1->base_field_size() != 2)
+        LogicError("mfe1's base field must be GF(2)");
 
     m_ = mfe1->m() * mfe2->m();
     t_ = mfe1->t() * mfe2->t();
@@ -393,13 +393,13 @@ void CompositeGf2MFE::encode(NTL::vec_GF2& h, const NTL::GF2X& g) {
     GF2E g_ = to_GF2E(g, converter_->binary_field_poly());
     GF2EX g_comp = converter_->binary_to_composite(g_);
 
-    vec_GF2E y = mfe1_->encode(g_comp);
+    vec_GF2E y = mfe2_->encode(g_comp);
 
     h.SetLength(t());
     for (int i = 0; i < y.length(); i++) {
-        vec_GF2 yi = mfe2_->encode(rep(y.at(i)));
+        vec_GF2 yi = mfe1_->encode(rep(y.at(i)));
         for (int j = 0; j < yi.length(); j++)
-            h.at(i * mfe2_->t() + j) = yi.at(j);
+            h.at(i * mfe1_->t() + j) = yi.at(j);
     }
 }
 
@@ -408,15 +408,15 @@ void CompositeGf2MFE::decode(NTL::GF2X& g, const NTL::vec_GF2& h) {
         LogicError("Input vector h has an invalid length");
     GF2EPush push;
     GF2E::init(converter_->base_field_poly());
-    vec_GF2E y({}, mfe1_->t());
+    vec_GF2E y({}, mfe2_->t());
 
     for (int i = 0; i < y.length(); i++) {
-        vec_GF2 yi({}, mfe2_->t());
+        vec_GF2 yi({}, mfe1_->t());
         for (int j = 0; j < yi.length(); j++)
-            yi.at(j) = h.at(i * mfe2_->t() + j);
-        y.at(i) = to_GF2E(mfe2_->decode(yi), converter_->base_field_poly());
+            yi.at(j) = h.at(i * mfe1_->t() + j);
+        y.at(i) = to_GF2E(mfe1_->decode(yi), converter_->base_field_poly());
     }
-    GF2EX g_comp = mfe1_->decode(y);
+    GF2EX g_comp = mfe2_->decode(y);
     g = rep(converter_->composite_to_binary(g_comp));
 }
 
@@ -484,36 +484,36 @@ vec_GF2 to_vec_GF2(const GF2EX& x, const GF2X& base_field_poly, long target_len)
 
 
 
-FieldConverter::FieldConverter(long k, long m, long n, GF2X prespecified_base_field_poly)
-    : k_(k), m_(m), n_(n), prespecified_base_field_poly_(prespecified_base_field_poly) {
-    if (k != m * n)
+FieldConverter::FieldConverter(long binary_field_deg, long base_field_deg, long extension_deg, GF2X prespecified_base_field_poly)
+    : k_(binary_field_deg), n_(base_field_deg), m_(extension_deg), prespecified_base_field_poly_(prespecified_base_field_poly) {
+    if (k_ != m_ * n_)
         LogicError("Invalid field composition parameters");
-    if (PRIMITIVE_POLYS.count(k) == 0)
+    if (PRIMITIVE_POLYS.count(k_) == 0)
         LogicError("No primitive polynomial is defined for this binary field");
-    if (prespecified_base_field_poly != GF2X(0) && deg(prespecified_base_field_poly) != n)
+    if (prespecified_base_field_poly != GF2X(0) && deg(prespecified_base_field_poly) != n_)
         LogicError("Invalid degree of prespecified base field polynomial");
-    ZZ r = ((ZZ(1) << k) - 1) / ((ZZ(1) << n) - 1);
+    ZZ r = ((ZZ(1) << k_) - 1) / ((ZZ(1) << n_) - 1);
 
-    p_ = indices_to_gf2x(PRIMITIVE_POLYS[k]);
+    p_ = indices_to_gf2x(PRIMITIVE_POLYS[k_]);
     GF2EPush push;
     GF2E::init(p_);
 
     GF2E alpha = to_GF2E(GF2X(1, 1));
     GF2E gamma = power(alpha, r);
 
-    vec_vec_GF2E alpha_power({}, m);
-    for (long j = 0; j < m; j++) {
-        alpha_power[j].SetLength(n);
-        for (long i = 0; i < n; i++) {
+    vec_vec_GF2E alpha_power({}, m_);
+    for (long j = 0; j < m_; j++) {
+        alpha_power[j].SetLength(n_);
+        for (long i = 0; i < n_; i++) {
             alpha_power[j][i] = power(alpha, r * i + j);
         }
     }
-    vec_vec_GF2 T({}, k);
-    for (long h = 0; h < k; h++) {
-        T[h].SetLength(k);
-        for (long j = 0; j < m; j++) {
-            for (long i = 0; i < n; i++) {
-                T[h][j*n + i] = coeff(rep(alpha_power[j][i]), h);
+    vec_vec_GF2 T({}, k_);
+    for (long h = 0; h < k_; h++) {
+        T[h].SetLength(k_);
+        for (long j = 0; j < m_; j++) {
+            for (long i = 0; i < n_; i++) {
+                T[h][j*n_ + i] = coeff(rep(alpha_power[j][i]), h);
             }
         }
     }
@@ -523,10 +523,10 @@ FieldConverter::FieldConverter(long k, long m, long n, GF2X prespecified_base_fi
     pre_isomorphic_mat_inv_ = ident_mat_GF2(k_);
 
     GF2EX u(1);
-    for (long i = 0; i < n; i++) {
+    for (long i = 0; i < n_; i++) {
         GF2EX tmp;
         tmp.SetLength(2);
-        tmp[0] = power(gamma, (ZZ(1) << (n-i-1)));
+        tmp[0] = power(gamma, (ZZ(1) << (n_-i-1)));
         tmp[1] = 1;
         u = u * tmp;
     }
@@ -538,7 +538,6 @@ FieldConverter::FieldConverter(long k, long m, long n, GF2X prespecified_base_fi
         }
         u_[i] = coeff(rep(u[i]), 0);
     }
-    std::cout << "u_: " << u_ << std::endl;
 
     if (prespecified_base_field_poly != GF2X(0) && prespecified_base_field_poly != u_) {
         // The isomorphic mapping is calculated based on this post:
@@ -555,26 +554,19 @@ FieldConverter::FieldConverter(long k, long m, long n, GF2X prespecified_base_fi
         if (i >= sb_vec.length())
             LogicError("Invalid prespecified base field polynomial: can't find a satisfying element");
         GF2E sb = sb_vec[i];
-        std::cout << "sb: " << sb << std::endl;
         vec_vec_GF2 mat({}, n_);
         for (long h = 0; h < n_; h++) {
             mat[h].SetLength(n_);
             GF2E sb_power = power(sb, h);
-            std::cout << "sb power " << h << ": " << sb_power << std::endl;
             for (long i = 0; i < n_; i++) {
                 mat[h][i] = coeff(rep(sb_power), i);
             }
         }
-        std::cout << "mat:\n" << mat << std::endl;
         mat_GF2 single_mat, single_mat_inv, tmp;
         MakeMatrix(single_mat, mat);
-        std::cout << "single mat:\n" << single_mat << std::endl;
         transpose(tmp, single_mat);
-        std::cout << "tmp mat:\n" << tmp << std::endl;
         transpose(single_mat, single_mat);
-        std::cout << "single mat:\n" << single_mat << std::endl;
         single_mat_inv = inv(single_mat);
-        std::cout << "single mat:\n" << single_mat << std::endl;
 
         // replicate the single matrix m times on the diagnal
         pre_isomorphic_mat_ = mat_GF2({}, k_, k_);
@@ -587,7 +579,6 @@ FieldConverter::FieldConverter(long k, long m, long n, GF2X prespecified_base_fi
                 }
             }
         }
-        std::cout << "pre mat:\n" << pre_isomorphic_mat_ << std::endl;
 
         // MakeMatrix(pre_isomorphic_mat_, mat);
         // transpose(pre_isomorphic_mat_, pre_isomorphic_mat_);
@@ -595,10 +586,10 @@ FieldConverter::FieldConverter(long k, long m, long n, GF2X prespecified_base_fi
     }
 
     GF2EX q(1);
-    for (long i = 0; i < m; i++) {
+    for (long i = 0; i < m_; i++) {
         GF2EX tmp;
         tmp.SetLength(2);
-        tmp[0] = power(alpha, (ZZ(1) << (i*n)));
+        tmp[0] = power(alpha, (ZZ(1) << (i*n_)));
         tmp[1] = 1;
         q = q * tmp;
     }
@@ -607,12 +598,12 @@ FieldConverter::FieldConverter(long k, long m, long n, GF2X prespecified_base_fi
         vec_GF2 a = to_vec_GF2(q[i], k_), b;
         raw_binary_to_composite(b, a);
         // All coefficients of q should belong to GF(2^n), hence any value after index n should be 0.
-        for (long j = n; j < k; j++) {
+        for (long j = n_; j < k_; j++) {
             if (IsOne(b[j])) {
                 LogicError("Error computing composite field polynomial");
             }
         }
-        vec_GF2 c = VectorCopy(b, n);
+        vec_GF2 c = VectorCopy(b, n_);
         // Here we should use u_ as the base field irreducible polynomial for q_'s coefficients,
         // but since deg(u_) < deg(p_), the conversion here should be fine.
         q_[i] = to_GF2E(c, u_);
@@ -769,15 +760,15 @@ void BasicGf2RMFE::encode(GF2X& g, const vec_GF2& h) {
     g = shrink(g_);
 }
 
-CompositeGf2RMFE::CompositeGf2RMFE(std::shared_ptr<FieldConverter> converter, std::shared_ptr<Gf2eRMFE> rmfe1, std::shared_ptr<Gf2RMFE> rmfe2)
+CompositeGf2RMFE::CompositeGf2RMFE(std::shared_ptr<FieldConverter> converter, std::shared_ptr<Gf2RMFE> rmfe1, std::shared_ptr<Gf2eRMFE> rmfe2)
     : converter_(converter), rmfe1_(rmfe1), rmfe2_(rmfe2) {
-    if (converter->base_field_poly() != rmfe1->base_field_mod())
+    if (converter->base_field_poly() != rmfe2->base_field_mod())
         LogicError("Converter and rmfe1's base field polys are different");
-    if (converter->composite_field_poly() != rmfe1->ex_field_mod())
+    if (converter->composite_field_poly() != rmfe2->ex_field_mod())
         LogicError("Converter and rmfe1's composite field polys are different");
-    if (rmfe1->base_field_size() != (long) pow(rmfe2->base_field_size(), rmfe2->m()))
+    if (rmfe2->base_field_size() != (long) pow(rmfe1->base_field_size(), rmfe1->m()))
         LogicError("Cannot concatenate two RMFEs with incompatible field sizes");
-    if (rmfe2->base_field_size() != 2)
+    if (rmfe1->base_field_size() != 2)
         LogicError("rmfe2's base field must be GF(2)");
 
     m_ = rmfe1->m() * rmfe2->m();
@@ -791,15 +782,15 @@ void CompositeGf2RMFE::encode(NTL::GF2X& g, const NTL::vec_GF2& h) {
         LogicError("Input vector h has an invalid length");
     GF2EPush push;
     GF2E::init(converter_->base_field_poly());
-    vec_GF2E y({}, rmfe1_->k());
+    vec_GF2E y({}, rmfe2_->k());
 
     for (int i = 0; i < y.length(); i++) {
-        vec_GF2 yi({}, rmfe2_->k());
+        vec_GF2 yi({}, rmfe1_->k());
         for (int j = 0; j < yi.length(); j++)
-            yi.at(j) = h.at(i * rmfe2_->k() + j);
-        y.at(i) = to_GF2E(rmfe2_->encode(yi), converter_->base_field_poly());
+            yi.at(j) = h.at(i * rmfe1_->k() + j);
+        y.at(i) = to_GF2E(rmfe1_->encode(yi), converter_->base_field_poly());
     }
-    GF2EX g_comp = rmfe1_->encode(y);
+    GF2EX g_comp = rmfe2_->encode(y);
     g = rep(converter_->composite_to_binary(g_comp));
 }
 
@@ -809,12 +800,12 @@ void CompositeGf2RMFE::decode(NTL::vec_GF2& h, const NTL::GF2X& g) {
     GF2E g_ = to_GF2E(g, converter_->binary_field_poly());
     GF2EX g_comp = converter_->binary_to_composite(g_);
 
-    vec_GF2E y = rmfe1_->decode(g_comp);
+    vec_GF2E y = rmfe2_->decode(g_comp);
 
     h.SetLength(k());
     for (int i = 0; i < y.length(); i++) {
-        vec_GF2 yi = rmfe2_->decode(rep(y.at(i)));
+        vec_GF2 yi = rmfe1_->decode(rep(y.at(i)));
         for (int j = 0; j < yi.length(); j++)
-            h.at(i * rmfe2_->k() + j) = yi.at(j);
+            h.at(i * rmfe1_->k() + j) = yi.at(j);
     }
 }

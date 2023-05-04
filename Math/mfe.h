@@ -41,7 +41,7 @@ NTL::GF2E to_GF2E(const NTL::vec_GF2& x, const NTL::GF2X& poly_mod);
 
 class FieldConverter {
 private:
-long k_, m_, n_;
+long k_, n_, m_;
 NTL::GF2X p_;
 NTL::GF2X u_;
 NTL::GF2EX q_;
@@ -53,7 +53,7 @@ NTL::mat_GF2 pre_isomorphic_mat_;
 NTL::mat_GF2 pre_isomorphic_mat_inv_;
 
 public:
-FieldConverter(long k, long m, long n, NTL::GF2X prespecified_base_field_poly=NTL::GF2X(0));
+FieldConverter(long binary_field_deg, long base_field_deg, long extension_deg, NTL::GF2X prespecified_base_field_poly=NTL::GF2X(0));
 const NTL::GF2X& binary_field_poly();
 const NTL::GF2X& base_field_poly();
 const NTL::GF2EX& composite_field_poly();
@@ -187,8 +187,8 @@ long m_;
 long t_;
 
 std::shared_ptr<FieldConverter> converter_;
-std::shared_ptr<Gf2eMFE> mfe1_;
-std::shared_ptr<Gf2MFE> mfe2_;
+std::shared_ptr<Gf2MFE> mfe1_;
+std::shared_ptr<Gf2eMFE> mfe2_;
 
 long base_field_mod_ = 2;
 NTL::GF2XModulus ex_field_poly_;
@@ -197,7 +197,7 @@ public:
 using MFE::encode;
 using MFE::decode;
 
-CompositeGf2MFE(std::shared_ptr<FieldConverter> converter, std::shared_ptr<Gf2eMFE> mfe1, std::shared_ptr<Gf2MFE> mfe2);
+CompositeGf2MFE(std::shared_ptr<FieldConverter> converter, std::shared_ptr<Gf2MFE> mfe1, std::shared_ptr<Gf2eMFE> mfe2);
 
 long m() {
     return m_;
@@ -353,8 +353,8 @@ long k_;
 long m_;
 
 std::shared_ptr<FieldConverter> converter_;
-std::shared_ptr<Gf2eRMFE> rmfe1_;
-std::shared_ptr<Gf2RMFE> rmfe2_;
+std::shared_ptr<Gf2RMFE> rmfe1_;
+std::shared_ptr<Gf2eRMFE> rmfe2_;
 
 long base_field_mod_ = 2;
 NTL::GF2XModulus ex_field_poly_;
@@ -363,7 +363,7 @@ public:
 using RMFE::encode;
 using RMFE::decode;
 
-CompositeGf2RMFE(std::shared_ptr<FieldConverter> converter, std::shared_ptr<Gf2eRMFE> rmfe1, std::shared_ptr<Gf2RMFE> rmfe2);
+CompositeGf2RMFE(std::shared_ptr<FieldConverter> converter, std::shared_ptr<Gf2RMFE> rmfe1, std::shared_ptr<Gf2eRMFE> rmfe2);
 
 long m() {
     return m_;
