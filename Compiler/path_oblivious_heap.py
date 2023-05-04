@@ -845,19 +845,22 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
         if bucket_size is None:
             bucket_size = variant.get_default_bucket_size()
 
-        # TODO: How to do superlogarithmic?
-        # TODO: Experiment with constant stash size as in Path ORAM
+        # Theoretically, the stash size should be superlogarithmic
+        # in the security parameter. But empirically, a constant size
+        # 20 works.
         if stash_size is None:
-            stash_size = util.log2(security) ** 2
+            stash_size = 20
 
         # Print debug messages
-        dprint(
-            f"[POH] __init__: Initializing a queue with a capacity of {capacity}, security parameter {security}, and stash size {stash_size}"
-        )
+        dprint(f"[POH] __init__: Initializing a queue...")
+        dprint(f"[POH] __init__: Variant is {variant}")
+        dprint(f"[POH] __init__: Capacity is {capacity}")
+        dprint(f"[POH] __init__: Security is {security}")
+        dprint(f"[POH] __init__: Stash size is {stash_size}")
+        dprint(f"[POH] __init__: Entry size is {entry_size}")
         dprint(
             f"[POH] __init__: Type hiding security is {'en' if self.type_hiding_security else 'dis'}abled",
         )
-        dprint(f"[POH] __init__: Variant is {variant}")
 
         # Initialize data structure with dummy elements
         self.tree = variant.get_tree_class()(
@@ -975,7 +978,6 @@ def path_oblivious_sort(
     keys: Array,
     values: Array,
     key_length: int,
-    *args,
     value_length: int | None = None,
     **kwargs,
 ):
@@ -986,7 +988,7 @@ def path_oblivious_sort(
     n = len(keys)
     if value_length is None:
         value_length = key_length
-    q = PathObliviousHeap(n, entry_size=(key_length, value_length))
+    q = PathObliviousHeap(n, entry_size=(key_length, value_length), **kwargs)
 
     @lib.for_range(n)
     def _(i):

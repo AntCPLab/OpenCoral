@@ -49,7 +49,7 @@ POH_PATH = True
 POH_PATH_CONSTANT_STASH = True
 
 ## Sorting
-LENGTHS = [5, 10, 15, 20]
+LENGTHS = [3, 6, 9]
 SORTING_BITS = 32
 RADIX_SORT = True
 POS = True
@@ -218,7 +218,9 @@ if SORTING:
             )
             lib.print_ln("[Sorting (POH) superlogarithmic stash size] Sorting array...")
             id = start_fancy_timer()
-            path_oblivious_sort(a_, a_, SORTING_BITS)
+            path_oblivious_sort(
+                a_, a_, SORTING_BITS, stash_size=log2(n) ** 2, variant=POHVariant.PATH
+            )
             stop_fancy_timer(id)
             lib.print_ln(
                 "[Sorting (POH) superlogarithmic stash size] Sorted array: %s",
@@ -234,7 +236,7 @@ if SORTING:
             )
             lib.print_ln("[Sorting (POH) constant stash size] Sorting array...")
             id = start_fancy_timer()
-            path_oblivious_sort(a_, a_, SORTING_BITS, stash_size=20)
+            path_oblivious_sort(a_, a_, SORTING_BITS, stash_size=20, variant=POHVariant.PATH)
             stop_fancy_timer(id)
             lib.print_ln(
                 "[Sorting (POH) constant stash size] Sorted array: %s", a_.reveal()
