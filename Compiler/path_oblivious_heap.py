@@ -468,7 +468,7 @@ class BasicMinTree(NoIndexORAM):
             empty = self.value_type(0)
 
         # Insert entry into stash with random leaf
-        leaf_label = random_block(self.D, self.value_type)
+        leaf_label = self._get_random_leaf_label()
         if TRACE:
             dprint_ln("[POH] insert: sampled random leaf label %s", leaf_label.reveal())
         self.add(
@@ -599,7 +599,10 @@ class BasicMinTree(NoIndexORAM):
             empty = min_entry.empty.reveal()
             dprint_ln_if(empty, "[POH] extract_min: empty subtree-min! Crashing...")
             lib.crash(empty)
-        leaf_label = min_entry.leaf.reveal()
+        random_leaf_label = self._get_random_leaf_label()
+        leaf_label = (
+            min_entry.empty * random_leaf_label + (1 - min_entry.empty) * min_entry.leaf
+        ).reveal()
         empty_entry = SubtreeMinEntry.get_empty(self.value_type)
 
         if DEBUG:
@@ -735,6 +738,9 @@ class BasicMinTree(NoIndexORAM):
     def _get_child_indices(self, i) -> Tuple[int, int]:
         """This is how a binary tree works."""
         return 2 * i + 1, 2 * i + 2
+
+    def _get_random_leaf_label(self) -> _secret:
+        return random_block(self.D, self.value_type)
 
     def dump_stash(self):
         for i in range(len(self.stash.ram)):
@@ -1042,8 +1048,11 @@ class UniquePathObliviousHeap(PathObliviousHeap):
         leaf_label, not_found = self.value_leaf_index.read(value)
         assert len(leaf_label) == 1
         leaf_label = leaf_label[0]
-        random_leaf_label = random_block(util.log2(self.capacity), self.int_type)
-        leaf_label = (fake * random_leaf_label + (1 - fake) * leaf_label).reveal()
+        random_leaf_label = self.tree._get_random_leaf_label()
+        leaf_label = (
+            fake.max(not_found) * random_leaf_label
+            + (1 - fake.max(not_found)) * leaf_label
+        ).reveal()
         indent()
         self.tree.update(value, priority, leaf_label, fake.max(not_found), empty)
         insert_label = self.tree.insert(value, priority, fake.max(1 - not_found), empty)
@@ -1056,7 +1065,7 @@ class UniquePathObliviousHeap(PathObliviousHeap):
         outdent()
 
     def extract_min(self, fake: bool = False) -> _secret | None:
-        value = super().extract_min(fake)
+        value = super().extract_min(fake=fake)
         self.value_leaf_index.access(
             value,
             0,
@@ -1153,6 +1162,9 @@ class UniquePOHToHeapQAdapter(UniquePathObliviousHeap):
     def pop(self, for_real=True):
         """Renaming of pop to extract_min."""
         return self.extract_min(fake=(1 - for_real))
+
+    def insert(self, value, priority, for_real=True) -> None:
+        self.update(value, priority, for_real=for_real)
 
 
 def path_oblivious_sort(
