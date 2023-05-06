@@ -1,10 +1,4 @@
-from Compiler.path_oblivious_heap import (
-    PathObliviousHeap,
-    POHToHeapQAdapter,
-    test_SubtreeMinEntry_cmp,
-)
-
-from Compiler import library as lib
+from Compiler import library as lib, path_oblivious_heap as poh
 from Compiler.path_oram import OptimalORAM
 from Compiler import dijkstra
 from Compiler.types import sint
@@ -12,7 +6,7 @@ from Compiler.types import sint
 ### SETUP ###
 
 # Which tests are we running?
-BASIC = True
+SCRATCHPAD = False
 UNIT = False
 DIJKSTRA = True
 
@@ -20,9 +14,9 @@ DIJKSTRA = True
 from Compiler import oram, path_oblivious_heap
 
 oram.crash_on_overflow = False
-path_oblivious_heap.CRASH_ON_EMPTY = True
-path_oblivious_heap.TRACE = False
-path_oblivious_heap.DEBUG = True
+poh.CRASH_ON_EMPTY = True
+poh.TRACE = False
+poh.DEBUG = True
 
 ### UTILITY ###
 
@@ -44,33 +38,58 @@ def stop_fancy_timer(id):
     lib.stop_timer(id)
 
 
-### BASIC TEST ###
-
-if BASIC:
-    q = dijkstra.HeapQ(2048)
-    q.update(sint(0), 0)
-
-    q = PathObliviousHeap(1)
-    lib.print_ln(
-        "tree depth: %s, stash length: %s, bucket length: %s",
-        q.tree.D,
-        len(q.tree.stash.ram),
-        q.tree.bucket_size,
-    )
-    q.insert(120, 0)
-    q.insert(120, 0)
-    q.extract_min()
-    q.extract_min()  # Crashes if both entries get same leaf label
+if SCRATCHPAD:
+    q = dijkstra.HeapQ(4)
+    q.update(10, 4)
+    q.update(10, 2)
+    lib.print_ln("%s", q.pop().reveal())
+    lib.print_ln("%s", q.pop().reveal())
 
 if UNIT:
+    # POH
+    lib.print_ln("Testing PathObliviousHeap.__init__...")
+    q = poh.PathObliviousHeap(10)
+
+    lib.print_ln("Testing PathObliviousHeap.insert...")
+    lib.print_ln("Inserting {value: 5, priority: 10}...")
+    q.insert(5, 10)
+
+    lib.print_ln("Testing PathObliviousHeap.extract_min...")
+    v = q.extract_min()
+    lib.print_ln("Extracted value %s", v.reveal())
+
+    # UniquePOH
+    lib.print_ln("Testing UniquePathObliviousHeap.__init__...")
+    q = poh.UniquePathObliviousHeap(4)
+    lib.print_ln("Testing UniquePathObliviousHeap.insert...")
+    lib.print_ln("Inserting {value: 5, priority: 10}...")
+    q.insert(5, 10)
+    lib.print_ln("Inserting {value: 5, priority: 12}...")
+    q.insert(5, 12)
+
+    lib.print_ln("Testing UniquePathObliviousHeap.extract_min...")
+    v = q.extract_min()
+    lib.print_ln("Extracted value %s", v.reveal())
+
+    lib.print_ln("Testing UniquePathObliviousHeap.insert and update...")
+    lib.print_ln("Inserting {value: 7, priority: 14}...")
+    q.insert(7, 14)
+    lib.print_ln("Updating {value: 7, priority: 20}...")
+    q.update(7, 20)
+
+    lib.print_ln("testing uniquepathobliviousheap.find_min...")
+    v = q.find_min()
+    lib.print_ln("Found value %s", v.reveal())  # Should be 7
+
+    # SubtreeMinEntry
+    lib.print_ln("Testing SubtreeMinEntry comparisons...")
     id = start_fancy_timer()
-    test_SubtreeMinEntry_cmp()
+    poh.test_SubtreeMinEntry_cmp()
     stop_fancy_timer(id)
 
 if DIJKSTRA:
-    # ### DIJKSTRA ###
 
-    dijkstra.HeapQ = POHToHeapQAdapter
+    dijkstra.HeapQ = poh.POHToHeapQAdapter
 
     # 1 -> 2: 10
 
