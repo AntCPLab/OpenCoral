@@ -605,6 +605,9 @@ class BasicMinTree(NoIndexORAM):
         if DEBUG:
             dprint_ln("[POH] extract_min: searching path to leaf %s", leaf_label)
 
+        # If duplicates, ensure we only remove one.
+        done = MemValue(sint(0))
+
         # Scan path and remove element (unless fake)
         for i, _, _ in self._get_reversed_min_indices_and_children_on_path_to(
             leaf_label
@@ -619,7 +622,8 @@ class BasicMinTree(NoIndexORAM):
                     dprint_str("[POH] extract_min: current element (bucket %s): ", i)
                     current_entry.dump(indent=False)
                 found = min_entry == current_entry
-                current_entry.write_if((1 - fake) * found, empty_entry)
+                done.write(found.max(done.read()))
+                current_entry.write_if((1 - fake) * found * (1 - done), empty_entry)
                 self.buckets[j] = current_entry.to_entry()
 
         # Scan stash and remove element (unless fake)
@@ -629,7 +633,8 @@ class BasicMinTree(NoIndexORAM):
             if TRACE:
                 current_entry.dump(f"[POH] extract_min: current element (stash): ")
             found = min_entry == current_entry
-            current_entry.write_if((1 - fake) * found, empty_entry)
+            done.write(found.max(done.read()))
+            current_entry.write_if((1 - fake) * found * (1 - done), empty_entry)
             self.stash.ram[i] = current_entry.to_entry()
 
         # evict along path to leaf
@@ -832,10 +837,7 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
     If the flag is set, the program crashes. Otherwise, the entry is simply
     not inserted.
 
-    The queue does not support duplicates; extract_min removes all entries
-    that are equal to the global min entry on the traversed path.
-
-    :ivar capacity: The max capacity of the queue.
+    :ivar capacity: The capacity of the queue.
     :ivar type_hiding_security: A boolean indicating whether
         type hiding security is enabled. Enabling this
         makes the cost of every operation equal to the
@@ -1066,6 +1068,7 @@ class UniquePathObliviousHeap(PathObliviousHeap):
     def insert(self, value, priority, fake: bool = False) -> None:
         self.update(value, priority, fake=fake)
 
+
 class POHToHeapQAdapter(PathObliviousHeap):
     """
     Adapts Path Oblivious Heap to the HeapQ interface,
@@ -1108,6 +1111,7 @@ class POHToHeapQAdapter(PathObliviousHeap):
     def pop(self, for_real=True):
         """Renaming of pop to extract_min."""
         return self.extract_min(fake=(1 - for_real))
+
 
 class UniquePOHToHeapQAdapter(UniquePathObliviousHeap):
     """
