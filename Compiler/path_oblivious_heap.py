@@ -622,8 +622,8 @@ class BasicMinTree(NoIndexORAM):
                     dprint_str("[POH] extract_min: current element (bucket %s): ", i)
                     current_entry.dump(indent=False)
                 found = min_entry == current_entry
-                done.write(found.max(done.read()))
                 current_entry.write_if((1 - fake) * found * (1 - done), empty_entry)
+                done.write(found.max(done.read()))
                 self.buckets[j] = current_entry.to_entry()
 
         # Scan stash and remove element (unless fake)
@@ -633,8 +633,8 @@ class BasicMinTree(NoIndexORAM):
             if TRACE:
                 current_entry.dump(f"[POH] extract_min: current element (stash): ")
             found = min_entry == current_entry
-            done.write(found.max(done.read()))
             current_entry.write_if((1 - fake) * found * (1 - done), empty_entry)
+            done.write(found.max(done.read()))
             self.stash.ram[i] = current_entry.to_entry()
 
         # evict along path to leaf
