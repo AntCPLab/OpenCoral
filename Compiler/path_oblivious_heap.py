@@ -25,8 +25,9 @@ from Compiler.types import (
 )
 
 # TODO:
-# - Benchmark
+# - Update (open and closed ref)
 # - Type hiding security (maybe)
+# - Benchmark
 
 ### SETTINGS ###
 
@@ -186,6 +187,9 @@ class SubtreeMinEntry(HeapEntry):
             * (self.prio == other.prio)
             * (self.value == other.value)
         )
+
+    def value_cmp(self, other: SubtreeMinEntry) -> _secret:
+        return (self.empty == other.empty) * (self.value == other.value)
 
     def __lt__(self, other: SubtreeMinEntry) -> _secret:
         """Entries are always equal if they are empty.
@@ -518,6 +522,66 @@ class BasicMinTree(NoIndexORAM):
             self.update_min(leaf_label_odd)
         outdent()
 
+        return leaf_label
+
+    @lib.method_block
+    def update(
+        self,
+        value: _secret,
+        priority: _secret,
+        leaf_label: _clear,
+        fake: _secret,
+        empty=None,
+    ):
+        """Update an existing value that resides on the path to `leaf`.
+        Then update_min along the path.
+        Important: Assumes that values in the queue are unique.
+        """
+        # O(log n)
+        if empty is None:
+            empty = self.value_type(0)
+
+        new_entry = SubtreeMinEntry(
+            self.value_type, empty, leaf_label, priority, value, mem=True
+        )
+
+        # Scan path and remove element (unless fake)
+        for i, _, _ in self._get_reversed_min_indices_and_children_on_path_to(
+            leaf_label
+        ):
+            start = i * self.bucket_size
+            stop = start + self.bucket_size
+
+            @lib.for_range(start, stop=stop)
+            def _(j):
+                current_entry = SubtreeMinEntry.from_entry(self.buckets[j], mem=True)
+                if TRACE:
+                    dprint_str("[POH] update: current element (bucket %s): ", i)
+                    current_entry.dump(indent=False)
+                found = current_entry.value_cmp(new_entry)
+                current_entry.write_if((1 - fake) * found, new_entry)
+                self.buckets[j] = current_entry.to_entry()
+
+        # Scan stash and remove element (unless fake)
+        @lib.for_range(0, len(self.stash.ram))
+        def _(i):
+            current_entry = SubtreeMinEntry.from_entry(self.stash.ram[i])
+            if TRACE:
+                current_entry.dump(f"[POH] update: current element (stash): ")
+            found = new_entry.value_cmp(current_entry)
+            current_entry.write_if((1 - fake) * found, new_entry)
+            self.stash.ram[i] = current_entry.to_entry()
+
+        # evict along path to leaf
+        indent()
+        self.evict_along_path(leaf_label)
+        outdent()
+
+        # update_min along path to leaf
+        indent()
+        self.update_min(leaf_label)
+        outdent()
+
     @lib.method_block
     def extract_min(self, fake: _secret) -> _secret:
         """Look up subtree-min of stash and extract it by linear scanning the structure.
@@ -771,12 +835,15 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
     The queue does not support duplicates; extract_min removes all entries
     that are equal to the global min entry on the traversed path.
 
+    :ivar capacity: The max capacity of the queue.
     :ivar type_hiding_security: A boolean indicating whether
         type hiding security is enabled. Enabling this
         makes the cost of every operation equal to the
         sum of the costs of all operations. This is initially
         set by passing an argument to the class constructor.
-    :ivar int_type: the secret integer type of entry members.
+    :ivar int_type: The secret integer type of entry members.
+    :ivar entry_size: A tuple specifying the bit lengths of the entries
+        in the order (priority, value).
     """
 
     def __init__(
@@ -804,7 +871,8 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
         :param int_type: The data type of the queue, used for both key and value.
             Defaults to `sint`.
         :param entry_size: A tuple containing an integer per entry value that specifies
-            the bit length of that value. Defaults to `(32, util.log2(capacity))`.
+            the bit length of that value. The last tuple index specifies the value size.
+            Defaults to `(32, util.log2(capacity))`.
         :param variant: A `POHVariant` enum class member specifying the variant (either
             `PATH` or `CIRCUIT`). Defaults to `PATH`.
         :param bucket_oram: The ORAM used in every bucket. Defaults to `oram.TrivialORAM`.
@@ -826,10 +894,6 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
                 "[POH] __init__: Only the PATH variant is supported."
             )
 
-        # Initialize basic class fields
-        self.int_type = int_type
-        self.type_hiding_security = type_hiding_security
-
         # Path ORAM does not support capacity < 2
         capacity = max(capacity, 2)
 
@@ -839,7 +903,7 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
 
         # Use default entry size (for Dijkstra) if not specified (distance, node)
         if entry_size is None:
-            entry_size = (32, util.log2(capacity))  # TODO: Why 32?
+            entry_size = (32, util.log2(capacity))
 
         # Use default bucket size if not specified
         if bucket_size is None:
@@ -850,6 +914,12 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
         # 20 works.
         if stash_size is None:
             stash_size = 20
+
+        # Initialize basic class fields
+        self.int_type = int_type
+        self.type_hiding_security = type_hiding_security
+        self.capacity = capacity
+        self.entry_size = entry_size
 
         # Print debug messages
         dprint(f"[POH] __init__: Initializing a queue...")
@@ -930,6 +1000,72 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
         return entry.empty.if_else(self.int_type(-1), entry.value)
 
 
+class UniquePathObliviousHeap(PathObliviousHeap):
+    """A Path Oblivious Heap that ensures that all values in the queue are unique
+    and supports updating a value with a new priority.
+    """
+
+    def __init__(self, *args, oram_type=oram.OptimalORAM, init_rounds=-1, **kwargs):
+        super().__init__(*args, init_rounds=init_rounds, **kwargs)
+        self.value_leaf_index = oram_type(
+            self.capacity,
+            entry_size=util.log2(self.capacity),
+            init_rounds=init_rounds,
+            value_type=self.int_type,
+        )
+
+    def update(self, value, priority, empty=0, fake=False):
+        """Update the priority of an entry with a given value.
+        If such an entry does not already exist, it is inserted.
+        """
+        value = self.int_type.hard_conv(value)
+        priority = self.int_type.hard_conv(priority)
+        empty = self.int_type.hard_conv(empty)
+        fake = self.int_type.hard_conv(fake)
+        self._update(value, priority, empty, fake)
+
+    def _update(
+        self, value: _secret, priority: _secret, empty: _secret, fake: _secret
+    ) -> None:
+        if TRACE:
+            dprint_ln(
+                "\n[POH] update: {value: %s, prio: %s, empty: %s, fake: %s}",
+                value.reveal(),
+                priority.reveal(),
+                empty.reveal(),
+                fake.reveal(),
+            )
+        elif DEBUG:
+            dprint_ln("\n[POH] update")
+        leaf_label, not_found = self.value_leaf_index.read(value)
+        assert len(leaf_label) == 1
+        leaf_label = leaf_label[0]
+        random_leaf_label = random_block(util.log2(self.capacity), self.int_type)
+        leaf_label = (fake * random_leaf_label + (1 - fake) * leaf_label).reveal()
+        indent()
+        self.tree.update(value, priority, leaf_label, fake.max(not_found), empty)
+        insert_label = self.tree.insert(value, priority, fake.max(1 - not_found), empty)
+        self.value_leaf_index.access(
+            value,
+            not_found * insert_label + (1 - not_found) * leaf_label,
+            (1 - fake),
+            empty,
+        )
+        outdent()
+
+    def extract_min(self, fake: bool = False) -> _secret | None:
+        value = super().extract_min(fake)
+        self.value_leaf_index.access(
+            value,
+            0,
+            (1 - self.int_type.hard_conv(fake)),
+            self.int_type(1),
+        )
+        return value
+
+    def insert(self, value, priority, fake: bool = False) -> None:
+        self.update(value, priority, fake=fake)
+
 class POHToHeapQAdapter(PathObliviousHeap):
     """
     Adapts Path Oblivious Heap to the HeapQ interface,
@@ -968,6 +1104,47 @@ class POHToHeapQAdapter(PathObliviousHeap):
         allowed to be inserted, and no values are ever updated.
         """
         self.insert(value, priority, fake=(1 - for_real))
+
+    def pop(self, for_real=True):
+        """Renaming of pop to extract_min."""
+        return self.extract_min(fake=(1 - for_real))
+
+class UniquePOHToHeapQAdapter(UniquePathObliviousHeap):
+    """
+    Adapts Unique Path Oblivious Heap to the HeapQ interface,
+    allowing plug-and-play replacement in the Dijkstra
+    implementation.
+    """
+
+    def __init__(
+        self,
+        max_size,
+        *args,
+        int_type=sint,
+        variant=POHVariant.PATH,
+        oram_type=oram.OptimalORAM,
+        bucket_size=None,
+        stash_size=None,
+        init_rounds=-1,
+        entry_size=None,
+        **kwargs,
+    ):
+        """Initialize a POH with the required capacity
+        and disregard all irrelevant parameters.
+        """
+        super().__init__(
+            max_size,
+            int_type=int_type,
+            variant=variant,
+            oram_type=oram_type,
+            bucket_size=bucket_size,
+            stash_size=stash_size,
+            init_rounds=init_rounds,
+            entry_size=entry_size,
+        )
+
+    def update(self, value, priority, for_real=True):
+        super().update(value, priority, fake=(1 - for_real))
 
     def pop(self, for_real=True):
         """Renaming of pop to extract_min."""
