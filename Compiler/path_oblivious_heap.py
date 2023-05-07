@@ -24,10 +24,9 @@ from Compiler.types import (
     sint,
 )
 
-# TODO:
-# - Update (open and closed ref)
-# - Type hiding security (maybe)
-# - Benchmark
+# Possible extensions:
+# - Type hiding security
+# - Implement circuit variant
 
 ### SETTINGS ###
 
@@ -181,6 +180,9 @@ class SubtreeMinEntry(HeapEntry):
         self.mem = mem
 
     def __eq__(self, other: SubtreeMinEntry) -> _secret:
+        """Return 1 if both are empty or if
+        (both are non-empty and prio and value are equal).
+        """
         both_empty = self.empty * other.empty
         return both_empty + (1 - both_empty) * (
             (self.empty == other.empty)
@@ -189,6 +191,7 @@ class SubtreeMinEntry(HeapEntry):
         )
 
     def value_cmp(self, other: SubtreeMinEntry) -> _secret:
+        """Return 1 if both are non-empty and have the same value."""
         return (1 - self.empty) * (1 - other.empty) * (self.value == other.value)
 
     def __lt__(self, other: SubtreeMinEntry) -> _secret:
@@ -256,13 +259,14 @@ class SubtreeMinEntry(HeapEntry):
 
     def to_entry(self) -> oram.Entry:
         return oram.Entry(
-            0,
+            0,  # Index is not used
             (self.leaf, self.prio, self.value),
             empty=self.empty,
             value_type=self.value_type,
         )
 
     def write_if(self, cond, new) -> None:
+        """Conditional overwriting by a new entry."""
         for field in self.fields:
             self[field] = cond * new[field] + (1 - cond) * self[field]
 
@@ -304,7 +308,9 @@ class BasicMinTree(NoIndexORAM):
 
         @lib.function_block
         def evict(leaf: self.value_type.clear_type):
-            """Eviction reused from PathORAM, but this version accepts a leaf as input"""
+            """Eviction reused from PathORAM,
+            but this version accepts a leaf as input.
+            """
 
             if DEBUG:
                 dprint_ln("[POH] evict: along path with label %s", leaf.reveal())
@@ -433,7 +439,7 @@ class BasicMinTree(NoIndexORAM):
             self._set_subtree_min(new, index=c)
 
         # Edge case (stash): the only child of stash is the root
-        # so only compare those two
+        # so only compare those two.
         if TRACE:
             dprint_ln("[POH] update_min: stash")
         indent()
@@ -534,8 +540,9 @@ class BasicMinTree(NoIndexORAM):
         empty=None,
     ):
         """Update an existing value that resides on the path to `leaf`.
-        Then update_min along the path.
-        Important: Assumes that values in the queue are unique.
+        Then evict and update_min along the path.
+        Important: Assumes that values in the queue are unique
+        (otherwise all entries with the specified value are updated).
         """
         # O(log n)
         if empty is None:
@@ -730,7 +737,7 @@ class BasicMinTree(NoIndexORAM):
             110           011 (3)
             111           111 (7)
 
-        In other words, leaf indices are reversed.
+        In other words, leaf indice bits are reversed.
         """
         leaf_label = regint(leaf_label)
         indices = [(0, 1, 2)]
@@ -751,10 +758,12 @@ class BasicMinTree(NoIndexORAM):
         return random_block(self.D, self.value_type)
 
     def dump_stash(self):
+        """Insecure."""
         for i in range(len(self.stash.ram)):
             SubtreeMinEntry.from_entry(self.stash.ram[i]).dump()
 
     def dump_ram(self):
+        """Insecure."""
         for i in range(len(self.ram)):
             if i % self.bucket_size == 0:
                 dprint_ln("bucket %s", i // self.bucket_size)
@@ -766,6 +775,8 @@ class BasicMinTree(NoIndexORAM):
 class CircuitMinTree(CircuitORAM, BasicMinTree):
     """Binary Bucket Tree data structure
     using Circuit ORAM as underlying data structure.
+
+    NOT TESTED.
     """
 
     def __init__(
@@ -860,6 +871,7 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
     :ivar int_type: The secret integer type of entry members.
     :ivar entry_size: A tuple specifying the bit lengths of the entries
         in the order (priority, value).
+    :iver tree: The MinTree data structure storing subtree-mins
     """
 
     def __init__(
@@ -1018,7 +1030,8 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
 
 class UniquePathObliviousHeap(PathObliviousHeap):
     """A Path Oblivious Heap that ensures that all values in the queue are unique
-    and supports updating a value with a new priority.
+    and supports updating a value with a new priority by maintaining a value to
+    leaf index map using ORAM.
     """
 
     def __init__(self, *args, oram_type=oram.OptimalORAM, init_rounds=-1, **kwargs):
@@ -1027,7 +1040,7 @@ class UniquePathObliviousHeap(PathObliviousHeap):
         # Capacity depends on the bit size of values,
         # and entry size needs to be big enough to store a leaf label
         self.value_leaf_index = oram_type(
-            self.entry_size[1]**2,
+            self.entry_size[1] ** 2,
             entry_size=util.log2(self.capacity),
             init_rounds=init_rounds,
             value_type=self.int_type,
@@ -1102,8 +1115,7 @@ class UniquePathObliviousHeap(PathObliviousHeap):
 
 
 class POHToHeapQAdapter(PathObliviousHeap):
-    """
-    Adapts Path Oblivious Heap to the HeapQ interface,
+    """Adapts Path Oblivious Heap to the HeapQ interface,
     allowing plug-and-play replacement in the Dijkstra
     implementation.
     """
