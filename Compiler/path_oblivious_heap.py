@@ -189,7 +189,7 @@ class SubtreeMinEntry(HeapEntry):
         )
 
     def value_cmp(self, other: SubtreeMinEntry) -> _secret:
-        return (self.empty == other.empty) * (self.value == other.value)
+        return (1 - self.empty) * (1 - other.empty) * (self.value == other.value)
 
     def __lt__(self, other: SubtreeMinEntry) -> _secret:
         """Entries are always equal if they are empty.
@@ -545,6 +545,13 @@ class BasicMinTree(NoIndexORAM):
             self.value_type, empty, leaf_label, priority, value, mem=True
         )
 
+        if TRACE:
+            dprint_ln(
+                "[POH] update: fake = %s, leaf_label = %s",
+                fake.reveal(),
+                leaf_label.reveal(),
+            )
+
         # Scan path and remove element (unless fake)
         for i, _, _ in self._get_reversed_min_indices_and_children_on_path_to(
             leaf_label
@@ -568,7 +575,7 @@ class BasicMinTree(NoIndexORAM):
             current_entry = SubtreeMinEntry.from_entry(self.stash.ram[i])
             if TRACE:
                 current_entry.dump(f"[POH] update: current element (stash): ")
-            found = new_entry.value_cmp(current_entry)
+            found = current_entry.value_cmp(new_entry)
             current_entry.write_if((1 - fake) * found, new_entry)
             self.stash.ram[i] = current_entry.to_entry()
 
@@ -625,7 +632,8 @@ class BasicMinTree(NoIndexORAM):
                     dprint_str("[POH] extract_min: current element (bucket %s): ", i)
                     current_entry.dump(indent=False)
                 found = min_entry == current_entry
-                current_entry.write_if((1 - fake) * found * (1 - done), empty_entry)
+                write = (1 - fake) * found * (1 - done)
+                current_entry.write_if(write, empty_entry)
                 done.write(found.max(done.read()))
                 self.buckets[j] = current_entry.to_entry()
 
@@ -1015,8 +1023,11 @@ class UniquePathObliviousHeap(PathObliviousHeap):
 
     def __init__(self, *args, oram_type=oram.OptimalORAM, init_rounds=-1, **kwargs):
         super().__init__(*args, init_rounds=init_rounds, **kwargs)
+        # Keep track of leaf_labels of every value in the queue
+        # Capacity depends on the bit size of values,
+        # and entry size needs to be big enough to store a leaf label
         self.value_leaf_index = oram_type(
-            self.capacity,
+            self.entry_size[1]**2,
             entry_size=util.log2(self.capacity),
             init_rounds=init_rounds,
             value_type=self.int_type,
@@ -1048,6 +1059,12 @@ class UniquePathObliviousHeap(PathObliviousHeap):
         leaf_label, not_found = self.value_leaf_index.read(value)
         assert len(leaf_label) == 1
         leaf_label = leaf_label[0]
+        if TRACE:
+            dprint_ln(
+                "[POH] update: leaf_label = %s, not_found = %s",
+                leaf_label.reveal(),
+                not_found.reveal(),
+            )
         random_leaf_label = self.tree._get_random_leaf_label()
         leaf_label = (
             fake.max(not_found) * random_leaf_label
@@ -1063,6 +1080,9 @@ class UniquePathObliviousHeap(PathObliviousHeap):
             empty,
         )
         outdent()
+        if TRACE:
+            dprint_ln("[POH] update: value_leaf_index:")
+            dprint_ln("%s", self.value_leaf_index.ram)
 
     def extract_min(self, fake: bool = False) -> _secret | None:
         value = super().extract_min(fake=fake)
@@ -1072,6 +1092,9 @@ class UniquePathObliviousHeap(PathObliviousHeap):
             (1 - self.int_type.hard_conv(fake)),
             self.int_type(1),
         )
+        if TRACE:
+            dprint_ln("[POH] extract_min: value_leaf_index:")
+            dprint_ln("%s", self.value_leaf_index.ram)
         return value
 
     def insert(self, value, priority, fake: bool = False) -> None:
