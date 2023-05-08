@@ -6,16 +6,16 @@ from Compiler.types import sint
 ### SETUP ###
 
 # Which tests are we running?
-SCRATCHPAD = False
+SCRATCHPAD = True
 UNIT = False
-DIJKSTRA = True
+DIJKSTRA = False
 
 # Module settings
 from Compiler import oram, path_oblivious_heap
 
 oram.crash_on_overflow = False
 poh.CRASH_ON_EMPTY = True
-poh.TRACE = False
+poh.TRACE = True
 poh.DEBUG = True
 
 ### UTILITY ###
@@ -39,11 +39,14 @@ def stop_fancy_timer(id):
 
 
 if SCRATCHPAD:
-    q = dijkstra.HeapQ(4)
-    q.update(10, 4)
-    q.update(10, 2)
-    lib.print_ln("%s", q.pop().reveal())
-    lib.print_ln("%s", q.pop().reveal())
+    q = poh.UniquePOHToHeapQAdapter(3)
+    q.insert(0, 10)
+    q.insert(1, 1)
+    q.insert(2, 1)
+
+    lib.print_ln("%s", q.extract_min().reveal())
+    lib.print_ln("%s", q.extract_min().reveal())
+    lib.print_ln("%s", q.extract_min().reveal())
 
 if UNIT:
     # POH
@@ -53,8 +56,11 @@ if UNIT:
     lib.print_ln("Testing PathObliviousHeap.insert...")
     lib.print_ln("Inserting {value: 5, priority: 10}...")
     q.insert(5, 10)
+    q.insert(5, 10)
 
     lib.print_ln("Testing PathObliviousHeap.extract_min...")
+    v = q.extract_min()
+    lib.print_ln("Extracted value %s", v.reveal())
     v = q.extract_min()
     lib.print_ln("Extracted value %s", v.reveal())
 
