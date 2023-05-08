@@ -1040,7 +1040,7 @@ class UniquePathObliviousHeap(PathObliviousHeap):
         # Capacity depends on the bit size of values,
         # and entry size needs to be big enough to store a leaf label
         self.value_leaf_index = oram_type(
-            self.entry_size[1] ** 2,
+            2 ** self.entry_size[1],
             entry_size=util.log2(self.capacity),
             init_rounds=init_rounds,
             value_type=self.int_type,
