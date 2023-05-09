@@ -259,6 +259,3 @@ void BFFT(vector<modp>& ans,const vector<modp>& a,const FFT_Data& FFTD,bool forw
   else
      { throw crash_requested(); }
 }
-
-
-

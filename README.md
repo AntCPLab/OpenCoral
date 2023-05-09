@@ -55,7 +55,7 @@ parties and malicious security.
 On Linux, this requires a working toolchain and [all
 requirements](#requirements). On Ubuntu, the following might suffice:
 ```
-sudo apt-get install automake build-essential clang cmake git libboost-dev libboost-thread-dev libntl-dev libsodium-dev libssl-dev libtool m4 python3 texinfo yasm
+sudo apt-get install automake build-essential clang cmake git libboost-dev libboost-thread-dev libgmp libntl-dev libsodium-dev libssl-dev libtool python3
 ```
 On MacOS, this requires [brew](https://brew.sh) to be installed,
 which will be used for all dependencies.
@@ -285,7 +285,9 @@ compute the preprocessing time for a particular computation.
    libOTe also requires boost of version at least 1.75, which is not
    available by default on relatively recent systems such as Ubuntu
    22.04. You can install it locally by running `make boost`.
- - MPIR library, compiled with C++ support (use flag `--enable-cxx` when running configure). You can use `make -j8 mpir` to install it locally.
+ - GMP library, compiled with C++ support (use flag `--enable-cxx`
+   when running configure). Tested against 6.2.1 as supplied by
+   Ubuntu.
  - libsodium library, tested against 1.0.18
  - OpenSSL, tested against 3.0.2
  - Boost.Asio with SSL support (`libboost-dev` on Ubuntu), tested against 1.81
@@ -311,6 +313,8 @@ compute the preprocessing time for a particular computation.
       [GCC
       documentation](https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html)
       for the possible options.
+      To run on CPUs without AVX2 (CPUs from before 2014), you should
+      also add `AVX_OT = 0` to `CONFIG.mine`.
     - For optimal results on Linux on ARM, add `ARCH = -march=armv8.2-a+crypto`
       to `CONFIG.mine`. This enables the hardware support for AES. See the [GCC
       documentation](https://gcc.gnu.org/onlinedocs/gcc/AArch64-Options.html#AArch64-Options) on available options.
@@ -322,6 +326,8 @@ compute the preprocessing time for a particular computation.
       `SECURE = -DINSECURE` to `CONFIG.mine`. This is necessary with
       GCC 5 and 6 because these compilers don't support the C++
       standard used by libOTe.
+    - On macOS, there have been issues with non-system compilers. Add
+      `CXX = /usr/bin/g++` to fix them.
 
 2. Run `make` to compile all the software (use the flag `-j` for faster
    compilation using multiple threads). See below on how to compile specific

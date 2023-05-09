@@ -36,14 +36,15 @@ void ShamirMC<T>::POpen_Begin(vector<typename T::open_type>& values,
 
 template<class T>
 vector<typename T::open_type::Scalar> ShamirMC<T>::get_reconstruction(
-        const Player& P)
+        const Player& P, int n_relevant_players)
 {
-    int n_relevant_players = threshold + 1;
+    if (n_relevant_players == 0)
+        n_relevant_players = threshold + 1;
     vector<rec_type> reconstruction(n_relevant_players);
+    vector<int> points(n_relevant_players);
     for (int i = 0; i < n_relevant_players; i++)
-        reconstruction[i] = Shamir<T>::get_rec_factor(P.get_player(i),
-                P.num_players(), P.my_num(), n_relevant_players);
-    return reconstruction;
+        points[i] = P.get_player(i);
+    return Shamir<T>::get_rec_factors(points);
 }
 
 template<class T>

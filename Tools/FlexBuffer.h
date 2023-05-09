@@ -231,7 +231,7 @@ inline void SendBuffer::serialize_no_allocate(const void* source, size_t size)
 inline void ReceivedMsg::check_buffer(size_t size)
 {
 	(void)size;
-#ifdef CHECK_BUFFER
+#ifndef NO_CHECK_BUFFER
 	if (ptr + size > buf + len)
 		throw overflow_error("not enough data in buffer");
 #endif

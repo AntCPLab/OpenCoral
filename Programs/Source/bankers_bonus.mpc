@@ -25,6 +25,9 @@ n_threads = 2
 if len(program.args) > 1:
     n_rounds = int(program.args[1])
 
+if len(program.args) > 2:
+    program.active = bool(int(program.args[2]))
+
 def accept_client():
     client_socket_id = accept_client_connection(PORTNUM)
     last = regint.read_from_socket(client_socket_id)

@@ -64,6 +64,11 @@ double Timer::idle()
     return convert_ns_to_seconds(elapsed_since_last_start());
 }
 
+bool Timer::is_running()
+{
+  return running;
+}
+
 Timer& Timer::operator -=(const Timer& other)
 {
   assert(clock_id == other.clock_id);
@@ -88,4 +93,11 @@ Timer& Timer::operator +=(const TimeScope& other)
   assert(not running);
   elapsed_time += other.timer.elapsed_since_last_start();
   return *this;
+}
+
+Timer Timer::operator +(const Timer& other) const
+{
+  Timer res = *this;
+  res += other;
+  return res;
 }

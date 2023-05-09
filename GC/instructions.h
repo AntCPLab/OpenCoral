@@ -146,6 +146,7 @@
     X(THRESHOLD, I0 = T::threshold(Thread<T>::s().P->num_players())) \
     X(PLAYERID, I0 = Thread<T>::s().P->my_num()) \
     X(CRASH, if (I0.get()) throw crash_requested()) \
+    X(ACTIVE, ) \
 
 #define INSTRUCTIONS BIT_INSTRUCTIONS GC_INSTRUCTIONS
 

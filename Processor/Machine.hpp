@@ -415,6 +415,9 @@ pair<DataPositions, NamedCommStats> Machine<sint, sgf2n>::stop_threads()
 
   auto comm_stats = total_comm();
 
+  if (OnlineOptions::singleton.verbose)
+    queues.print_breakdown();
+
   for (auto& queue : queues)
     delete queue;
 
@@ -477,20 +480,7 @@ void Machine<sint, sgf2n>::run(const string& progname)
   print_timers();
 
   if (sint::is_real)
-  {
-      size_t rounds = 0;
-      for (auto& x : comm_stats)
-          rounds += x.second.rounds;
-      cerr << "Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
-              << " rounds (party " << my_number;
-      if (threads.size() > 1)
-          cerr << "; rounds counted double due to multi-threading";
-      cerr << "; use '-v' for more details";
-      cerr << ")" << endl;
-
-      auto& P = *this->P;
-      this->print_global_comm(P, comm_stats);
-  }
+    this->print_comm(*this->P, comm_stats);
 
 #ifdef VERBOSE_OPTIONS
   if (opening_sum < N.num_players() && !direct)
@@ -520,23 +510,6 @@ void Machine<sint, sgf2n>::run(const string& progname)
   outf.close();
 
   bit_memories.write_memory(N.my_num());
-
-#ifdef OLD_USAGE
-  for (int dtype = 0; dtype < N_DTYPE; dtype++)
-    {
-      cerr << "Num " << DataPositions::dtype_names[dtype] << "\t=";
-      for (int field_type = 0; field_type < N_DATA_FIELD_TYPE; field_type++)
-        cerr << " " << pos.files[field_type][dtype];
-      cerr << endl;
-   }
-  for (int field_type = 0; field_type < N_DATA_FIELD_TYPE; field_type++)
-    {
-      cerr << "Num " << DataPositions::field_names[field_type] << " Inputs\t=";
-      for (int i = 0; i < N.num_players(); i++)
-        cerr << " " << pos.inputs[i][field_type];
-      cerr << endl;
-    }
-#endif
 
   if (opts.verbose)
     {
@@ -587,6 +560,17 @@ void Machine<sint, sgf2n>::reqbl(int n)
 }
 
 template<class sint, class sgf2n>
+void Machine<sint, sgf2n>::active(int n)
+{
+
+  if (sint::malicious and n == 0)
+    {
+      cerr << "Program requires a semi-honest protocol" << endl;
+      exit(1);
+    }
+}
+
+template<class sint, class sgf2n>
 void Machine<sint, sgf2n>::suggest_optimizations()
 {
   string optimizations;
@@ -599,8 +583,8 @@ void Machine<sint, sgf2n>::suggest_optimizations()
     optimizations.append("\tprogram.use_edabit(True)\n");
   if (not optimizations.empty())
     cerr << "This program might benefit from some protocol options." << endl
-        << "Consider adding the following at the beginning of '" << progname
-        << ".mpc':" << endl << optimizations;
+        << "Consider adding the following at the beginning of your code:"
+        << endl << optimizations;
 #ifndef __clang__
   cerr << "This virtual machine was compiled with GCC. Recompile with "
       "'CXX = clang++' in 'CONFIG.mine' for optimal performance." << endl;

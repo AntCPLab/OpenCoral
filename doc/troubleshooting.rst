@@ -6,8 +6,8 @@ Troubleshooting
 This section shows how to solve some common issues.
 
 
-Crash without error message or ``bad_alloc``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Crash without error message, ``Killed``, or ``bad_alloc``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some protocols require several gigabytes of memory, and the virtual
 machine will crash if there is not enough RAM. You can reduce the
@@ -55,14 +55,26 @@ introduction and :py:func:`~Compiler.types.sfix.set_precision` for how
 to change the precision.
 
 
+Variable results when using :py:class:`~Compiler.types.sfix`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is caused the usage of probablistic rounding, which is used to
+restore the representation after a multiplication. See `Catrina and Saxena
+<https://www.ifca.ai/pub/fc10/31_47.pdf>`_ for details. You can switch
+to deterministic rounding by calling ``sfix.round_nearest = True``.
+
+
 Order of memory instructions not preserved
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, the compiler runs optimizations that in some corner case
 can introduce errors with memory accesses such as accessing an
-:py:class:`~Compiler.types.Array`. If you encounter such errors, you
-can fix this either  with ``-M`` when compiling or placing
-`break_point()` around memory accesses.
+:py:class:`~Compiler.types.Array`. The error message does not
+necessarily mean there will be errors, but the compiler cannot
+guarantee that there will not. If you encounter such errors, you
+can fix this either with ``-M`` when compiling or enable memory
+protection (:py:func:`~Compiler.program.Program.protect_memory`)
+around specific memory accesses.
 
 
 Odd timings
@@ -164,7 +176,8 @@ Required prime bit length is not the same as ``-F`` parameter during compilation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is related to statistical masking that requires the prime to be a
-fair bit larger than the actual "payload". The technique goes to back
+fair bit larger than the actual "payload" (40 by default).
+The technique goes to back
 to `Catrina and de Hoogh
 <https://www.researchgate.net/profile/Sebastiaan-Hoogh/publication/225092133_Improved_Primitives_for_Secure_Multiparty_Integer_Computation/links/0c960533585ad99868000000/Improved-Primitives-for-Secure-Multiparty-Integer-Computation.pdf>`_.
 See also the paragraph on unknown prime moduli in :ref:`nonlinear`.

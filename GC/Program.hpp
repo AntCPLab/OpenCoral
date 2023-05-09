@@ -123,7 +123,9 @@ BreakType Program::execute(Processor<T>& Proc, U& dynamic_memory,
         }
         time++;
 #ifdef DEBUG_COMPLEXITY
-        cout << "complexity at " << time << ": " << Proc.complexity << endl;
+        cout << T::part_type::name() << " complexity at " << time << ": " <<
+                Proc.complexity << " after " << hex <<
+                instruction.get_opcode() << dec << endl;
 #endif
     }
     while (Proc.complexity < (size_t) OnlineOptions::singleton.batch_size);

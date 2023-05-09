@@ -31,8 +31,8 @@ run_player() {
     prog=${prog##*/}
     prog=${prog%.sch}
     shift
-    if ! test -e $SPDZROOT/logs; then
-        mkdir $SPDZROOT/logs
+    if ! test -e logs; then
+        mkdir logs
     fi
     params="$prog $* -pn $port -h localhost"
     if $SPDZROOT/$bin 2>&1 | grep -q '^-N,'; then
@@ -47,7 +47,7 @@ run_player() {
     set -o pipefail
     for i in $(seq 0 $[players-1]); do
       >&2 echo Running $prefix $SPDZROOT/$bin $i $params
-      log=$SPDZROOT/logs/$log_prefix$i
+      log=logs/$log_prefix$i
       $prefix $SPDZROOT/$bin $i $params 2>&1 |
 	  {
 	      if test "$BENCH"; then
@@ -58,10 +58,26 @@ run_player() {
 	  } &
       codes[$i]=$!
     done
+    ctrlc()
+    {
+	pkill -P $$
+    }
+    trap ctrlc SIGINT
     for i in $(seq 0 $[players-1]); do
-	wait ${codes[$i]} || return 1
+	if ! wait ${codes[$i]}; then
+	    for i in $(seq 1 $[players-1]); do
+		echo === Party $i
+		tail -n 3 logs/$log_prefix$i
+	    done
+	    return 1
+	fi
     done
 }
+
+getopts N: opt $(getopt N: $* 2>/dev/null)
+if test "$opt" = N; then
+    PLAYERS=$OPTARG
+fi
 
 players=${PLAYERS:-2}
 

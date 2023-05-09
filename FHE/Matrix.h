@@ -10,7 +10,6 @@ using namespace std;
 #include "Tools/BitVector.h"
 
 typedef vector< vector<bigint> > matrix;
-typedef vector< vector<modp> > modp_matrix;
 
 class imatrix : public vector< BitVector >
 {
@@ -38,13 +37,6 @@ void print(const imatrix& S);
 // Special inverse routine, assumes A is unimodular and only
 // requires column operations to create the inverse
 matrix inv(const matrix& A);
-
-// Another special routine for modp matrices. 
-// Solves
-// 	Ax=b
-// Assumes A is unimodular, square and only requires row operations to
-// create the inverse. In put is C=(A||b) and the routines alters A
-vector<modp> solve(modp_matrix& C,const Zp_Data& PrD);
 
 // Finds a pseudo-inverse of a matrix A modulo 2
 //   - Input matrix is assumed to have more rows than columns

@@ -22,6 +22,7 @@ class Compiler:
         self.custom_args = custom_args
         self.build_option_parser()
         self.VARS = {}
+        self.root = os.path.dirname(__file__) + '/..'
 
     def build_option_parser(self):
         parser = OptionParser(usage=self.usage)
@@ -269,7 +270,7 @@ class Compiler:
         self.prog = Program(self.args, self.options, name=name)
         if self.execute:
             if self.options.execute in \
-               ("emulate", "ring", "rep-field", "semi2k"):
+               ("emulate", "ring", "rep-field"):
                 self.prog.use_trunc_pr = True
             if self.options.execute in ("ring",):
                 self.prog.use_split(3)
@@ -405,7 +406,7 @@ class Compiler:
                 infile = open(self.prog.infile)
 
         # make compiler modules directly accessible
-        sys.path.insert(0, "Compiler")
+        sys.path.insert(0, "%s/Compiler" % self.root)
         # create the tapes
         exec(compile(infile.read(), infile.name, "exec"), self.VARS)
 
@@ -477,15 +478,15 @@ class Compiler:
 
     def local_execution(self, args=[]):
         executable = self.executable_from_protocol(self.options.execute)
-        if not os.path.exists(executable):
+        if not os.path.exists("%s/%s" % (self.root, executable)):
             print("Creating binary for virtual machine...")
             try:
-                subprocess.run(["make", executable], check=True)
+                subprocess.run(["make", executable], check=True, cwd=self.root)
             except:
                 raise CompilerError(
                     "Cannot produce %s. " % executable + \
                     "Note that compilation requires a few GB of RAM.")
-        vm = 'Scripts/%s.sh' % self.options.execute
+        vm = "%s/Scripts/%s.sh" % (self.root, self.options.execute)
         os.execl(vm, vm, self.prog.name, *args)
 
     def remote_execution(self, args=[]):
@@ -496,7 +497,7 @@ class Compiler:
         from fabric import Connection
         import subprocess
         print("Creating static binary for virtual machine...")
-        subprocess.run(["make", "static/%s" % vm], check=True)
+        subprocess.run(["make", "static/%s" % vm], check=True, cwd=self.root)
 
         # transfer files
         import glob
@@ -519,7 +520,7 @@ class Compiler:
                 "mkdir -p %s/{Player-Data,Programs/{Bytecode,Schedules}} " % \
                 dest)
             # executable
-            connection.put("static/%s" % vm, dest)
+            connection.put("%s/static/%s" % (self.root, vm), dest)
             # program
             dest += "/"
             connection.put("Programs/Schedules/%s.sch" % self.prog.name,

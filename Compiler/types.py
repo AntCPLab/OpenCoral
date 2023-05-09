@@ -659,6 +659,7 @@ class _secret_structure(_structure):
                             traverse(x, level + 1)
                 traverse(content, 0)
                 f.write('\n')
+                f.flush()
             if requested_shape is not None and \
                list(shape) != list(requested_shape):
                 raise CompilerError('content contradicts shape')
@@ -2415,26 +2416,34 @@ class sint(_secret, _int):
     def receive_from_client(cls, n, client_id, message_type=ClientMessageType.NoType):
         """ Securely obtain shares of values input by a client.
         This uses the triple-based input protocol introduced by
-        `Damgård et al. <http://eprint.iacr.org/2015/1006>`_
+        `Damgård et al. <http://eprint.iacr.org/2015/1006>`_ unless
+        :py:obj:`program.active` is set to false, in which case
+        it uses random values to mask the clients' input.
 
         :param n: number of inputs (int)
         :param client_id: regint
         :param size: vector size (default 1)
         :returns: list of sint
         """
-        # send shares of a triple to client
-        triples = list(itertools.chain(*(sint.get_random_triple() for i in range(n))))
+        if program.active:
+            # send shares of a triple to client
+            triples = list(itertools.chain(*(sint.get_random_triple() for i in range(n))))
+        else:
+            triples = [sint.get_random() for i in range(n)]
+
         sint.write_shares_to_socket(client_id, triples, message_type)
 
         received = util.tuplify(cint.read_from_socket(client_id, n))
         y = [0] * n
         for i in range(n):
-            y[i] = received[i] - triples[i * 3]
+            y[i] = received[i] - triples[i * 3 if program.active else i]
         return y
 
     @classmethod
     def reveal_to_clients(cls, clients, values):
         """ Reveal securely to clients.
+        Uses :py:obj:`program.active` to determine whether to use
+        triples for active security.
 
         :param clients: client ids (list or array)
         :param values: list of sint to reveal
@@ -2445,8 +2454,11 @@ class sint(_secret, _int):
 
         for value in values:
             assert(value.size == values[0].size)
-            r = sint.get_random()
-            to_send += [value, r, value * r]
+            if program.active:
+                r = sint.get_random()
+                to_send += [value, r, value * r]
+            else:
+                to_send += [value]
 
         if isinstance(clients, Array):
             n_clients = clients.length
@@ -2844,7 +2856,7 @@ class sint(_secret, _int):
             privateoutput(self.size, player, res._v, self)
             return res
 
-    def private_division(self, divisor, active=True, dividend_length=None,
+    def private_division(self, divisor, active=None, dividend_length=None,
                          divisor_length=None):
         """ Private integer division as per `Veugen and Abspoel
         <https://doi.org/10.2478/popets-2021-0073>`_
@@ -2878,6 +2890,9 @@ class sint(_secret, _int):
         z_shared = ((self << (l + sigma)) + h + r_pprime)
         z = z_shared.reveal_to(0)
 
+        if active is None:
+            active = program.active
+
         if active:
             z_prime = [sint(x) for x in (z // d).bit_decompose(min_length)]
             check = [(x * (1 - x)).reveal() == 0 for x in z_prime]
@@ -2893,6 +2908,7 @@ class sint(_secret, _int):
             y_prime = sint.bit_compose(z_prime[:l + sigma])
             y = sint.bit_compose(z_prime[l + sigma:])
         else:
+            program.semi_honest()
             y = sint(z // (d << (l + sigma)))
             y_prime = sint((z // d) % (2 ** (l + sigma)))
 
@@ -3147,7 +3163,9 @@ class sgf2n(_secret, _gf2n):
                            for i in range(0, bit_length, step)]
 
         one = cgf2n(1)
-        masked = sum([b * (one << (i * step)) for i,b in enumerate(random_bits)], self).reveal()
+        masked = sum([b * (one << (i * step))
+                      for i,b in enumerate(random_bits)], self).reveal(
+                              check=False)
         masked_bits = masked.bit_decompose(bit_length,step=step)
         return [m + r for m,r in zip(masked_bits, random_bits)]
 
@@ -3157,7 +3175,9 @@ class sgf2n(_secret, _gf2n):
                            for i in range(8)]
         one = cgf2n(1)
         wanted_positions = [0, 5, 10, 15, 20, 25, 30, 35]
-        masked = sum([b * (one << wanted_positions[i]) for i,b in enumerate(random_bits)], self).reveal()
+        masked = sum([b * (one << wanted_positions[i])
+                      for i,b in enumerate(random_bits)], self).reveal(
+                              check=False)
         return [self.clear_type((masked >> wanted_positions[i]) & one) + r for i,r in enumerate(random_bits)]
 
 for t in (sint, sgf2n):
@@ -4080,7 +4100,8 @@ class _single(_number, _secret_structure):
     @vectorized_classmethod
     def receive_from_client(cls, n, client_id, message_type=ClientMessageType.NoType):
         """
-        Securely obtain shares of values input by a client. Assumes client
+        Securely obtain shares of values input by a client via
+        :py:func:`sint.receive_from_client`. Assumes client
         has already converted values to integer representation.
 
         :param n: number of inputs (int)
@@ -4095,7 +4116,7 @@ class _single(_number, _secret_structure):
 
     @classmethod
     def reveal_to_clients(cls, clients, values):
-        """ Reveal securely to clients.
+        """ Reveal securely to clients via :py:func:`sint.reveal_to_clients`.
 
         :param clients: client ids (list or array)
         :param values: list of values of this class
@@ -4556,7 +4577,7 @@ class sfix(_fix):
     :py:class:`sfix`, and comparisons (``==, !=, <, <=, >, >=``),
     returning :py:class:`sbitint`. The other operand can be any of
     sfix/sint/cfix/regint/cint/int/float. It also supports ``abs()``
-    and ``**``, the latter for integer exponents.
+    and ``**``.
 
     Note that the default precision (16 bits after the dot, 31 bits in
     total) only allows numbers up to :math:`2^{31-16-1} \\approx
@@ -4669,6 +4690,8 @@ class sfix(_fix):
         return self.v
 
     def mul_no_reduce(self, other, res_params=None):
+        if not isinstance(other, type(self)):
+            return self * other
         assert self.f == other.f
         assert self.k == other.k
         return self.unreduced(self.v * other.v)
@@ -4733,6 +4756,11 @@ class unreduced_sfix(_single):
         v = sfix.int_type.round(self.v, self.k, self.m, self.kappa,
                                 nearest=sfix.round_nearest, signed=True)
         return sfix._new(v, k=self.k - self.m, f=self.m)
+
+    def update(self, other):
+        assert self.k == other.k
+        assert self.m == other.m
+        self.v.update(other.v)
 
 sfix.unreduced_type = unreduced_sfix
 
@@ -4953,6 +4981,8 @@ class sfloat(_number, _secret_structure):
 
     This uses integer operations internally, see :py:class:`sint` for security
     considerations.
+    See `Aliasgari et al. <https://eprint.iacr.org/2012/405.pdf>`_ for
+    details.
 
     The type supports basic arithmetic (``+, -, *, /``), returning
     :py:class:`sfloat`, and comparisons (``==, !=, <, <=, >, >=``),
@@ -5459,6 +5489,9 @@ class Array(_vectorizable):
       b.input_from(1)
       a[:] += b[:]
 
+    Arrays aren't initialized on creation, you need to call
+    :py:func:`assign_all` to initialize them to a constant value.
+
     """
     check_indices = True
 
@@ -5708,7 +5741,7 @@ class Array(_vectorizable):
             mem_value = MemValue(value)
         self.address = MemValue.if_necessary(self.address)
         n_threads = 8 if use_threads and util.is_constant(self.length) and \
-            len(self) > 2**20 else None
+            len(self) > 2**20 and not program.options.garbled else None
         @library.multithread(n_threads, self.length)
         def _(base, size):
             if use_vector:
@@ -5896,7 +5929,7 @@ class Array(_vectorizable):
         self.assign_vector(self.get_vector().secure_shuffle())
 
     def secure_permute(self, *args, **kwargs):
-        """ Secure permutate in place according to the security model.
+        """ Secure permute in place according to the security model.
         See :py:func:`MultiArray.secure_shuffle` for references.
 
         :param permutation: output of :py:func:`sint.get_secure_shuffle()`
@@ -6227,7 +6260,10 @@ class SubMultiArray(_vectorizable):
 
     def same_shape(self):
         """ :return: new multidimensional array with same shape and basic type """
-        return MultiArray(self.sizes, self.value_type)
+        if len(self.sizes) == 2:
+            return Matrix(*self.sizes, self.value_type)
+        else:
+            return MultiArray(self.sizes, self.value_type)
 
     def get_part(self, start, size):
         """ Part multi-array.
@@ -6400,7 +6436,7 @@ class SubMultiArray(_vectorizable):
                     pass
                 t.params = res_params
             else:
-                if issubclass(self.value_type, _secret_structure):
+                if self.value_type == other.value_type:
                     t = self.value_type
                 else:
                     t = type(self.value_type(0) * other.value_type(0))
@@ -6435,10 +6471,12 @@ class SubMultiArray(_vectorizable):
                         # fallback for binary circuits
                         @library.for_range_opt(other.sizes[1])
                         def _(j):
-                            res_matrix[i][j] = 0
-                            @library.for_range_opt(self.sizes[1])
+                            tmp = self[i][0].mul_no_reduce(other[0][j])
+                            @library.for_range_opt(1, self.sizes[1])
                             def _(k):
-                                res_matrix[i][j] += self[i][k] * other[k][j]
+                                prod = self[i][k].mul_no_reduce(other[k][j])
+                                tmp.iadd(prod)
+                            res_matrix[i][j] = tmp.reduce_after_mul()
             return res_matrix
         elif isinstance(other, self.value_type):
             return self * Array.create_from(other)
@@ -6780,6 +6818,9 @@ class MultiArray(SubMultiArray):
       a[1].input_from(1)
       a[2][:] = a[0][:] * a[1][:]
 
+    Arrays aren't initialized on creation, you need to call
+    :py:func:`assign_all` to initialize them to a constant value.
+
     """
     @staticmethod
     def disable_index_checks():
@@ -6816,6 +6857,9 @@ class Matrix(MultiArray):
     :param rows: compile-time (int)
     :param columns: compile-time (int)
     :param value_type: basic type of entries
+
+    Matrices aren't initialized on creation, you need to call
+    :py:func:`assign_all` to initialize them to a constant value.
 
     """
     def __init__(self, rows, columns, value_type, debug=None, address=None):

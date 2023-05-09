@@ -116,7 +116,7 @@ mascot: mascot-party.x spdz2k mama-party.x
 ifeq ($(OS), Darwin)
 setup: mac-setup
 else
-setup: boost mpir linux-machine-setup
+setup: boost linux-machine-setup
 endif
 
 tldr: setup
@@ -297,27 +297,6 @@ deps/SimplestOT_C/ref10/Makefile:
 Programs/Circuits:
 	git submodule update --init Programs/Circuits
 
-.PHONY: mpir-setup mpir-global
-mpir-setup: deps/mpir/Makefile
-deps/mpir/Makefile:
-	git submodule update --init deps/mpir || git clone https://github.com/wbhart/mpir deps/mpir
-	cd deps/mpir; \
-	autoreconf -i; \
-	autoreconf -i
-	- $(MAKE) -C deps/mpir clean
-
-mpir-global: mpir-setup
-	cd deps/mpir; \
-	./configure --enable-cxx;
-	$(MAKE) -C deps/mpir
-	sudo $(MAKE) -C deps/mpir install
-
-mpir: local/lib/libmpirxx.so
-local/lib/libmpirxx.so: deps/mpir/Makefile
-	cd deps/mpir; \
-	./configure --enable-cxx --prefix=$(CURDIR)/local
-	$(MAKE) -C deps/mpir install
-
 deps/libOTe/libOTe:
 	git submodule update --init --recursive deps/libOTe || git clone --recurse-submodules https://github.com/mkskeller/softspoken-implementation deps/libOTe
 boost: deps/libOTe/libOTe
@@ -369,26 +348,16 @@ cmake:
 	./bootstrap --parallel=8 --prefix=../local && make && make install
 
 mac-setup: mac-machine-setup
-	brew install openssl boost libsodium mpir yasm ntl cmake
-	-echo MY_CFLAGS += -I/usr/local/opt/openssl/include -I`brew --prefix`/opt/openssl/include -I`brew --prefix`/include >> CONFIG.mine
-	-echo MY_LDLIBS += -L/usr/local/opt/openssl/lib -L`brew --prefix`/lib -L`brew --prefix`/opt/openssl/lib >> CONFIG.mine
-#	-echo USE_NTL = 1 >> CONFIG.mine
+	brew install openssl boost libsodium gmp yasm ntl cmake
 
-ifeq ($(ARM), 1)
-mac-machine-setup:
-	-echo ARCH = >> CONFIG.mine
 linux-machine-setup:
-	-echo ARCH = -march=armv8.2-a+crypto >> CONFIG.mine
-else
 mac-machine-setup:
-linux-machine-setup:
-endif
 
 deps/simde/simde:
 	git submodule update --init deps/simde || git clone https://github.com/simd-everywhere/simde deps/simde
 
 clean-deps:
-	-rm -rf local deps/libOTe/out
+	-rm -rf local/lib/liblibOTe.* deps/libOTe/out
 
 clean: clean-deps
 	-rm -f */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o static/*.x *.so

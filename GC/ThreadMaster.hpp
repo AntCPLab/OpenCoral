@@ -103,9 +103,7 @@ void ThreadMaster<T>::run()
 
     machine.print_timers();
 
-    cerr << "Data sent = " << stats.sent * 1e-6 << " MB" << endl;
-
-    machine.print_global_comm(*P, stats);
+    machine.print_comm(*P, stats);
 
     delete P;
 }

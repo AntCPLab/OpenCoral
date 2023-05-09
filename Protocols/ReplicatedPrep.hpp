@@ -24,24 +24,44 @@ class InScope
 {
     bool& variable;
     bool backup;
+    TimerWithComm& timer;
+    bool running;
+    Player* P;
 
 public:
-    InScope(bool& variable, bool value) :
-            variable(variable)
+    template<class T>
+    InScope(bool& variable, bool value, BufferPrep<T>& prep) :
+            variable(variable), timer(prep.prep_timer),
+            P(prep.proc ? &prep.proc->P : (prep.P ? prep.P : 0))
     {
         backup = variable;
         variable = value;
+        running = timer.is_running();
+        if (not running)
+        {
+            if (P)
+                timer.start(P->total_comm());
+            else
+                timer.start({});
+        }
     }
     ~InScope()
     {
         variable = backup;
+        if (not running)
+        {
+            if (P)
+                timer.stop(P->total_comm());
+            else
+                timer.stop({});
+        }
     }
 };
 
 template<class T>
 BufferPrep<T>::BufferPrep(DataPositions& usage) :
         Preprocessing<T>(usage), n_bit_rounds(0),
-		proc(0),
+		proc(0), P(0),
         buffer_size(OnlineOptions::singleton.batch_size)
 {
 }
@@ -90,6 +110,17 @@ BufferPrep<T>::~BufferPrep()
         this->print_left_edabits(x.second.size(), x.second[0].size(),
                 x.first.first, x.first.second, this->usage.edabits[x.first]);
     }
+
+#ifdef VERBOSE
+    if (OnlineOptions::singleton.verbose and this->prep_timer.elapsed())
+    {
+        cerr << type_string << " preprocessing time = "
+                << this->prep_timer.elapsed();
+        if (this->prep_timer.mb_sent())
+            cerr << " (" << this->prep_timer.mb_sent() << " MB)";
+        cerr << endl;
+    }
+#endif
 }
 
 template<class T>
@@ -186,6 +217,7 @@ void BufferPrep<T>::get_three_no_count(Dtype dtype, T& a, T& b, T& c)
 
     if (triples.empty())
     {
+        InScope in_scope(this->do_count, false, *this);
         buffer_triples();
         assert(not triples.empty());
     }
@@ -277,6 +309,7 @@ void BufferPrep<T>::buffer_inverses(true_type)
 template<class T>
 void BufferPrep<T>::get_two_no_count(Dtype dtype, T& a, T& b)
 {
+    InScope in_scope(this->do_count, false, *this);
     switch (dtype)
     {
     case DATA_SQUARE:
@@ -464,7 +497,7 @@ void RingPrep<T>::buffer_personal_edabits_without_check(int n_bits,
 #ifdef VERBOSE_EDA
     fprintf(stderr, "generate personal edaBits %d to %d\n", begin, end);
 #endif
-    InScope in_scope(this->do_count, false);
+    InScope in_scope(this->do_count, false, *this);
     assert(this->proc != 0);
     auto& P = proc.P;
     typename T::Input input(*this->proc, this->proc->MC);
@@ -760,8 +793,10 @@ void RingPrep<T>::buffer_dabits_without_check(vector<dabit<T>>& dabits,
     typedef typename T::bit_type::part_type bit_type;
     vector<vector<bit_type>> player_bits;
     auto& party = GC::ShareThread<typename T::bit_type>::s();
-    SubProcessor<bit_type> bit_proc(party.MC->get_part_MC(),
-            bit_prep, proc->P);
+    if (not bit_part_proc)
+        bit_part_proc = new SubProcessor<bit_type>(party.MC->get_part_MC(),
+                bit_prep, proc->P);
+    auto& bit_proc = *bit_part_proc;
     buffer_bits_from_players(player_bits, G, bit_proc, this->base_player,
             buffer_size, 1);
     vector<T> int_bits;
@@ -828,7 +863,7 @@ void RingPrep<T>::buffer_edabits_without_check(int n_bits, vector<T>& sums,
     vector<vector<T>> player_ints(n_relevant, vector<T>(buffer_size));
     vector<vector<vector<bit_type>>> parts(n_relevant,
             vector<vector<bit_type>>(n_bits, vector<bit_type>(buffer_size / dl)));
-    InScope in_scope(this->do_count, false);
+    InScope in_scope(this->do_count, false, *this);
     assert(this->proc != 0);
     auto& P = proc->P;
     typename T::Input input(*this->proc, this->proc->MC);
@@ -1074,7 +1109,7 @@ void BufferPrep<T>::get_one_no_count(Dtype dtype, T& a)
 
     while (bits.empty())
     {
-        InScope in_scope(this->do_count, false);
+        InScope in_scope(this->do_count, false, *this);
         buffer_bits();
         n_bit_rounds++;
     }
@@ -1086,6 +1121,7 @@ void BufferPrep<T>::get_one_no_count(Dtype dtype, T& a)
 template<class T>
 void BufferPrep<T>::get_input_no_count(T& a, typename T::open_type& x, int i)
 {
+    InScope in_scope(this->do_count, false, *this);
     (void) a, (void) x, (void) i;
     if (inputs.size() <= (size_t)i)
         inputs.resize(i + 1);
@@ -1101,7 +1137,7 @@ void BufferPrep<T>::get_dabit_no_count(T& a, typename T::bit_type& b)
 {
     if (dabits.empty())
     {
-        InScope in_scope(this->do_count, false);
+        InScope in_scope(this->do_count, false, *this);
         ThreadQueues* queues = 0;
         buffer_dabits(queues);
         assert(not dabits.empty());
@@ -1117,7 +1153,7 @@ void BufferPrep<T>::get_personal_dabit(int player, T& a, typename T::bit_type& b
     auto& buffer = personal_dabits[player];
     if (buffer.empty())
     {
-        InScope in_scope(this->do_count, false);
+        InScope in_scope(this->do_count, false, *this);
         buffer_personal_dabits(player);
     }
     a = buffer.back().first;
@@ -1133,28 +1169,39 @@ void Preprocessing<T>::get_dabit(T& a, typename T::bit_type& b)
 }
 
 template<class T>
-template<int>
-edabitvec<T> Preprocessing<T>::get_edabitvec(bool strict, int n_bits)
+edabitvec<T> BufferPrep<T>::get_edabitvec(bool strict, int n_bits)
 {
     auto& buffer = this->edabits[{strict, n_bits}];
     if (buffer.empty())
     {
-        InScope in_scope(this->do_count, false);
+        InScope in_scope(this->do_count, false, *this);
         buffer_edabits_with_queues(strict, n_bits);
     }
     auto res = buffer.back();
     buffer.pop_back();
+    this->fill(res, strict, n_bits);
     return res;
 }
 
 template<class T>
-template<int>
-void Preprocessing<T>::get_edabit_no_count(bool strict, int n_bits, edabit<T>& a)
+void BufferPrep<T>::get_edabit_no_count(bool strict, int n_bits, edabit<T>& a)
 {
     auto& my_edabit = my_edabits[{strict, n_bits}];
     if (my_edabit.empty())
     {
-        my_edabit = this->template get_edabitvec<0>(strict, n_bits);
+        my_edabit = this->get_edabitvec(strict, n_bits);
+    }
+    a = my_edabit.next();
+}
+
+template<class T>
+void Sub_Data_Files<T>::get_edabit_no_count(bool strict, int n_bits,
+        edabit<T>& a)
+{
+    auto& my_edabit = my_edabits[n_bits];
+    if (my_edabit.empty())
+    {
+        my_edabit = this->get_edabitvec(strict, n_bits);
     }
     a = my_edabit.next();
 }
@@ -1174,24 +1221,25 @@ void Preprocessing<T>::get_edabits(bool strict, size_t size, T* a,
         vector<typename T::bit_type>& Sb, const vector<int>& regs, false_type)
 {
     int n_bits = regs.size();
-    auto& buffer = edabits[{strict, n_bits}];
     edabit<T> eb;
     size_t unit = T::bit_type::default_length;
     for (int k = 0; k < DIV_CEIL(size, unit); k++)
     {
-        if (not buffer.empty() and buffer.back().size() == unit and (k + 1) * unit <= size)
+
+        if (unit == edabitvec<T>::MAX_SIZE and (k + 1) * unit <= size)
         {
+            auto buffer = get_edabitvec(strict, n_bits);
+            assert(unit == buffer.size());
             for (int j = 0; j < n_bits; j++)
-                Sb[regs[j] + k] = buffer.back().get_b(j);
+                Sb[regs[j] + k] = buffer.get_b(j);
             for (size_t j = 0; j < unit; j++)
-                a[k * unit + j] = buffer.back().get_a(j);
-            buffer.pop_back();
+                a[k * unit + j] = buffer.get_a(j);
         }
         else
         {
             for (size_t i = k * unit; i < min(size, (k + 1) * unit); i++)
             {
-                this->template get_edabit_no_count<0>(strict, n_bits, eb);
+                get_edabit_no_count(strict, n_bits, eb);
                 a[i] = eb.first;
                 for (int j = 0; j < n_bits; j++)
                 {

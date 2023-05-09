@@ -1,7 +1,6 @@
 
 #include "FHE/Plaintext.h"
 #include "FHE/Ring_Element.h"
-#include "FHE/PPData.h"
 #include "FHE/P2Data.h"
 #include "FHE/Rq_Element.h"
 #include "FHE_Keys.h"
@@ -81,39 +80,6 @@ void Plaintext<gfp,FFT_Data,bigint>::to_poly() const
     { e.set_element(i,a[i].get()); }
   e.change_rep(polynomial);
   from(e.get_iterator());
-  type=Both;
-}
-
-
-template<>
-void Plaintext<gfp,PPData,bigint>::from_poly() const
-{
-  if (type!=Polynomial) { return; }
-  vector<modp> aa((*Field_Data).phi_m());
-  for (unsigned int i=0; i<aa.size(); i++)
-    { to_modp(aa[i], bigint::tmp = b[i], (*Field_Data).prData); }
-  (*Field_Data).to_eval(aa);
-  a.resize(num_slots());
-  for (unsigned int i=0; i<aa.size(); i++)
-    a[i] = {aa[i], Field_Data->get_prD()};
-  type=Both;
-}
-
-
-template<>
-void Plaintext<gfp,PPData,bigint>::to_poly() const
-{
-  if (type!=Evaluation) { return; }
-  cout << "This is VERY inefficient to convert a plaintext to poly representation" << endl;
-  vector<modp> bb((*Field_Data).phi_m());
-  for (unsigned int i=0; i<bb.size(); i++)
-    { bb[i]=a[i].get(); }
-  (*Field_Data).from_eval(bb);
-  for (unsigned int i=0; i<bb.size(); i++)
-    {
-      to_bigint(bigint::tmp,bb[i],(*Field_Data).prData);
-      b[i] = bigint::tmp;
-    }
   type=Both;
 }
 
@@ -385,34 +351,6 @@ void add(Plaintext<gfp,FFT_Data,bigint>& z,const Plaintext<gfp,FFT_Data,bigint>&
 }
 
 
-template<>
-void add(Plaintext<gfp,PPData,bigint>& z,const Plaintext<gfp,PPData,bigint>& x,
-                                         const Plaintext<gfp,PPData,bigint>& y)
-{
-  if (z.Field_Data!=x.Field_Data)  { throw field_mismatch(); }
-  if (z.Field_Data!=y.Field_Data)  { throw field_mismatch(); }
-
-  if (x.type==Both && y.type!=Both)      { z.type=y.type; }
-  else if (y.type==Both && x.type!=Both) { z.type=x.type; }
-  else if (x.type!=y.type)               { throw rep_mismatch(); }
-  else                                   { z.type=x.type; }
-
-  if (z.type!=Polynomial)
-    {
-      z.a.resize(z.num_slots());
-      for (unsigned int i=0; i<z.a.size(); i++)
-        { z.a[i] = (x.a[i] + y.a[i]); }
-    }
-  if (z.type!=Evaluation)
-    { for (unsigned int i=0; i<z.b.size(); i++)
-        { z.b[i]=x.b[i]+y.b[i];
-          if (z.b[i]>(*z.Field_Data).get_prime())
-	    { z.b[i]-=(*z.Field_Data).get_prime(); }
-	}
-    }
-}
-
-
 
 
 template<>
@@ -467,36 +405,6 @@ void sub(Plaintext<gfp,FFT_Data,bigint>& z,const Plaintext<gfp,FFT_Data,bigint>&
         {
           z.b[i]=x.b[i];
           z.b[i]-=y.b[i];
-          if (z.b[i]<0)
-            { z.b[i]+=(*z.Field_Data).get_prime(); }
-        }
-    }
-}
-
-
-
-template<>
-void sub(Plaintext<gfp,PPData,bigint>& z,const Plaintext<gfp,PPData,bigint>& x,
-                                         const Plaintext<gfp,PPData,bigint>& y)
-{
-  if (z.Field_Data!=x.Field_Data)  { throw field_mismatch(); }
-  if (z.Field_Data!=y.Field_Data)  { throw field_mismatch(); }
-
-  if (x.type==Both && y.type!=Both)      { z.type=y.type; }
-  else if (y.type==Both && x.type!=Both) { z.type=x.type; }
-  else if (x.type!=y.type)               { throw rep_mismatch(); }
-  else                                   { z.type=x.type; }
-
-  z.allocate();
-  if (z.type!=Polynomial)
-    {
-      z.a.resize(z.num_slots());
-      for (unsigned int i=0; i<z.a.size(); i++)
-        { z.a[i] = (x.a[i] - y.a[i]); }
-    }
-  if (z.type!=Evaluation)
-    { for (unsigned int i=0; i<z.b.size(); i++)
-        { z.b[i]=x.b[i]-y.b[i];
           if (z.b[i]<0)
             { z.b[i]+=(*z.Field_Data).get_prime(); }
         }
@@ -568,23 +476,6 @@ void Plaintext<gfp,FFT_Data,bigint>::negate()
               b[i]-=(*Field_Data).get_prime();
               b[i].negate();
             }
-	}
-    }
-}
-
-template<>
-void Plaintext<gfp,PPData,bigint>::negate()
-{
-  if (type!=Polynomial)
-    {
-      a.resize(num_slots());
-      for (unsigned int i=0; i<a.size(); i++)
-        { a[i].negate(); }
-    }
-  if (type!=Evaluation)
-    { for (unsigned int i=0; i<b.size(); i++)
-        { if (b[i]!=0)
-            { b[i]=(*Field_Data).get_prime()-b[i]; }
 	}
     }
 }
@@ -728,12 +619,6 @@ void Plaintext<T, FD, S>::print_evaluation(int n_elements, string desc) const
 template class Plaintext<gfp,FFT_Data,bigint>;
 
 template void mul(Plaintext<gfp,FFT_Data,bigint>& z,const Plaintext<gfp,FFT_Data,bigint>& x,const Plaintext<gfp,FFT_Data,bigint>& y);
-
-
-
-template class Plaintext<gfp,PPData,bigint>;
-
-template void mul(Plaintext<gfp,PPData,bigint>& z,const Plaintext<gfp,PPData,bigint>& x,const Plaintext<gfp,PPData,bigint>& y);
 
 
 

@@ -46,6 +46,7 @@ void Client::send_private_inputs(const vector<T>& values)
     octetStream os;
     vector< vector<T> > triples(num_inputs, vector<T>(3));
     vector<T> triple_shares(3);
+    bool active = true;
 
     // Receive num_inputs triples from SPDZ
     for (size_t j = 0; j < sockets.size(); j++)
@@ -61,9 +62,21 @@ void Client::send_private_inputs(const vector<T>& values)
         cerr << "received " << os.get_length() << " from " << j << endl << flush;
 #endif
 
+        if (j == 0)
+        {
+            if (os.get_length() == 3 * values.size() * T::size())
+                active = true;
+            else
+                active = false;
+        }
+
+        int n_expected = active ? 3 : 1;
+        if (os.get_length() != n_expected * T::size() * values.size())
+            throw runtime_error("unexpected data length in sending");
+
         for (int j = 0; j < num_inputs; j++)
         {
-            for (int k = 0; k < 3; k++)
+            for (int k = 0; k < n_expected; k++)
             {
                 triple_shares[k].unpack(os);
                 triples[j][k] += triple_shares[k];
@@ -71,16 +84,18 @@ void Client::send_private_inputs(const vector<T>& values)
         }
     }
 
-    // Check triple relations (is a party cheating?)
-    for (int i = 0; i < num_inputs; i++)
-    {
-        if (T(triples[i][0] * triples[i][1]) != triples[i][2])
+    if (active)
+        // Check triple relations (is a party cheating?)
+        for (int i = 0; i < num_inputs; i++)
         {
-            cerr << triples[i][2] << " != " << triples[i][0] << " * " << triples[i][1] << endl;
-            cerr << "Incorrect triple at " << i << ", aborting\n";
-            throw mac_fail();
+            if (T(triples[i][0] * triples[i][1]) != triples[i][2])
+            {
+                cerr << triples[i][2] << " != " << triples[i][0] << " * " << triples[i][1] << endl;
+                cerr << "Incorrect triple at " << i << ", aborting\n";
+                throw mac_fail();
+            }
         }
-    }
+
     // Send inputs + triple[0], so SPDZ can compute shares of each value
     os.reset_write_head();
     for (int i = 0; i < num_inputs; i++)
@@ -100,6 +115,7 @@ vector<U> Client::receive_outputs(int n)
 {
     vector<T> triples(3 * n);
     octetStream os;
+    bool active = true;
     for (auto& socket : sockets)
     {
         os.reset_write_head();
@@ -107,7 +123,20 @@ vector<U> Client::receive_outputs(int n)
 #ifdef VERBOSE_COMM
         cout << "received " << os.get_length() << endl << flush;
 #endif
-        for (int j = 0; j < 3 * n; j++)
+
+        if (socket == sockets[0])
+        {
+            if (os.get_length() == (size_t) 3 * n * T::size())
+                active = true;
+            else
+                active = false;
+        }
+
+        int n_expected = n * (active ? 3 : 1);
+        if (os.get_length() != (size_t) n_expected * T::size())
+            throw runtime_error("unexpected data length in receiving");
+
+        for (int j = 0; j < n_expected; j++)
         {
             T value;
             value.unpack(os);
@@ -115,16 +144,24 @@ vector<U> Client::receive_outputs(int n)
         }
     }
 
-    vector<U> output_values;
-    for (int i = 0; i < 3 * n; i += 3)
+    if (active)
     {
-        if (T(triples[i] * triples[i + 1]) != triples[i + 2])
+        vector<U> output_values;
+        for (int i = 0; i < 3 * n; i += 3)
         {
-            cerr << "Unable to authenticate output value as correct, aborting." << endl;
-            throw mac_fail();
+            if (T(triples[i] * triples[i + 1]) != triples[i + 2])
+            {
+                cerr << "Unable to authenticate output value as correct, aborting." << endl;
+                throw mac_fail();
+            }
+            output_values.push_back(triples[i]);
         }
-        output_values.push_back(triples[i]);
-    }
 
-    return output_values;
+        return output_values;
+    }
+    else
+    {
+        triples.resize(n);
+        return triples;
+    }
 }

@@ -49,7 +49,7 @@ public:
   Files(int N, const typename T::mac_type& key, const string& prep_data_prefix,
       Dtype type, int thread_num = -1) :
       Files(N, key,
-          get_prep_sub_dir<T>(prep_data_prefix, N)
+          get_prep_sub_dir<T>(prep_data_prefix, N, true)
               + DataPositions::dtype_names[type] + "-" + T::type_short(),
           thread_num)
   {

@@ -70,6 +70,7 @@ enum
     PLAYERID = 0xE4,
     USE_EDABIT = 0xE5,
     USE_MATMUL = 0x1F,
+    ACTIVE = 0xE9,
     // Addition
     ADDC = 0x20,
     ADDS = 0x21,

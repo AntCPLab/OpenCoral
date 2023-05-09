@@ -1,5 +1,4 @@
 #include "Ciphertext.h"
-#include "PPData.h"
 #include "P2Data.h"
 #include "Tools/Exceptions.h"
 
@@ -143,6 +142,5 @@ void Ciphertext::rerandomize(const FHE_PK& pk)
 
 
 template void mul(Ciphertext& ans,const Plaintext<gfp,FFT_Data,bigint>& a,const Ciphertext& c);
-template void mul(Ciphertext& ans,const Plaintext<gfp,PPData,bigint>& a,const Ciphertext& c);
 template void mul(Ciphertext& ans, const Plaintext<gf2n_short, P2Data, int>& a,
         const Ciphertext& c);

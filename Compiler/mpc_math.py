@@ -661,7 +661,7 @@ def sqrt_simplified_fx(x):
     h = h * r
     H = 4 * (h * h)
 
-    if not x.round_nearest or (2 * f < k - 1):
+    if not x.round_nearest or (2 * x.f < x.k - 1):
         H = (h < 2 ** (-x.f / 2) / 2).if_else(0, H)
 
     H = H * x
@@ -806,9 +806,7 @@ def sqrt_fx(x_l, k, f):
 @instructions_base.sfix_cisc
 def sqrt(x, k=None, f=None):
     """
-    Returns the square root (sfix) of any given fractional
-    value as long as it can be rounded to a integral value
-    with :py:obj:`f` bits of decimal precision.
+    Square root.
 
     :param x: fractional input (sfix).
 

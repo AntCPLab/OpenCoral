@@ -387,6 +387,7 @@
     X(GENSECSHUFFLE, throw not_implemented(),) \
     X(APPLYSHUFFLE, throw not_implemented(),) \
     X(DELSHUFFLE, throw not_implemented(),) \
+    X(ACTIVE, throw not_implemented(),) \
 
 #define ALL_INSTRUCTIONS ARITHMETIC_INSTRUCTIONS REGINT_INSTRUCTIONS \
     CLEAR_GF2N_INSTRUCTIONS REMAINING_INSTRUCTIONS

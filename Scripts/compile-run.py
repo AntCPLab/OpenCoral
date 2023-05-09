@@ -2,7 +2,7 @@
 
 import os, sys
 
-sys.path.append('.')
+sys.path.insert(0, os.path.dirname(sys.argv[0]) + '/..')
 
 from Compiler.compilerLib import Compiler
 

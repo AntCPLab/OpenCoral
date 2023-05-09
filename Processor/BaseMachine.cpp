@@ -126,7 +126,7 @@ void BaseMachine::time()
 void BaseMachine::start(int n)
 {
   cout << "Starting timer " << n << " at " << timer[n].elapsed()
-    << " (" << timer[n].mb_sent() << " MB)"
+    << " (" << timer[n] << ")"
     << " after " << timer[n].idle() << endl;
   timer[n].start(total_comm());
 }
@@ -135,7 +135,7 @@ void BaseMachine::stop(int n)
 {
   timer[n].stop(total_comm());
   cout << "Stopped timer " << n << " at " << timer[n].elapsed() << " ("
-      << timer[n].mb_sent() << " MB)" << endl;
+      << timer[n] << ")" << endl;
 }
 
 void BaseMachine::print_timers()
@@ -150,7 +150,7 @@ void BaseMachine::print_timers()
   timer.erase(0);
   for (auto it = timer.begin(); it != timer.end(); it++)
     cerr << "Time" << it->first << " = " << it->second.elapsed() << " seconds ("
-        << it->second.mb_sent() << " MB)" << endl;
+        << it->second << ")" << endl;
 }
 
 string BaseMachine::memory_filename(const string& type_short, int my_number)
@@ -226,4 +226,20 @@ void BaseMachine::print_global_comm(Player& P, const NamedCommStats& stats)
   for (auto& os : bundle)
     global += os.get_int(8);
   cerr << "Global data sent = " << global / 1e6 << " MB (all parties)" << endl;
+}
+
+void BaseMachine::print_comm(Player& P, const NamedCommStats& comm_stats)
+{
+  size_t rounds = 0;
+  for (auto& x : comm_stats)
+    rounds += x.second.rounds;
+  cerr << "Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
+      << " rounds (party " << P.my_num() << " only";
+  if (nthreads > 1)
+    cerr << "; rounds counted double due to multi-threading";
+  if (not OnlineOptions::singleton.verbose)
+    cerr << "; use '-v' for more details";
+  cerr << ")" << endl;
+
+  print_global_comm(P, comm_stats);
 }

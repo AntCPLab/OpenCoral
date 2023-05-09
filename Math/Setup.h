@@ -38,26 +38,28 @@ bigint generate_prime(int lgp, int m);
 int default_m(int& lgp, int& idx);
 
 string get_prep_sub_dir(const string& prep_dir, int nparties, int log2mod,
-        const string& type_short);
+        const string& type_short, bool create = false);
 
 template<class T>
-string get_prep_sub_dir(const string& prep_dir, int nparties, int log2mod)
+string get_prep_sub_dir(const string& prep_dir, int nparties, int log2mod,
+        bool create = false)
 {
     if (T::clear::length() > 1)
         log2mod = T::clear::length();
-    return get_prep_sub_dir(prep_dir, nparties, log2mod, T::type_short());
+    return get_prep_sub_dir(prep_dir, nparties, log2mod, T::type_short(), create);
 }
 
 template<class T>
-string get_prep_sub_dir(const string& prep_dir, int nparties)
+string get_prep_sub_dir(const string& prep_dir, int nparties, bool create =
+        false)
 {
-    return get_prep_sub_dir<T>(prep_dir, nparties, T::clear::length());
+    return get_prep_sub_dir<T>(prep_dir, nparties, T::clear::length(), create);
 }
 
 template<class T>
-string get_prep_sub_dir(int nparties)
+string get_prep_sub_dir(int nparties, bool create = false)
 {
-    return get_prep_sub_dir<T>(PREP_DIR, nparties);
+    return get_prep_sub_dir<T>(PREP_DIR, nparties, create);
 }
 
 template<class T>

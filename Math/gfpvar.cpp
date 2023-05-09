@@ -312,8 +312,8 @@ gfpvar_<X, L> gfpvar_<X, L>::invert() const
 template<int X, int L>
 gfpvar_<X, L> gfpvar_<X, L>::sqrRoot() const
 {
-    bigint ti = *this;
-    ti = sqrRootMod(ti, ZpD.pr);
+    bigint ti;
+    ti = sqrRootMod(*this);
     if (!isOdd(ti))
         ti = ZpD.pr - ti;
     return ti;

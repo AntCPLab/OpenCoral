@@ -105,6 +105,11 @@ public:
         *this = a + b;
     }
 
+    This operator^(const This& other) const
+    {
+        return *this + other;
+    }
+
     This& operator^=(const This& other)
     {
         *this += other;

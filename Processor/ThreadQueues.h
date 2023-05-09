@@ -24,6 +24,10 @@ public:
     int distribute_no_setup(ThreadJob job, int n_items, int base = 0,
             int granularity = 1, const vector<void*>* supplies = 0);
     void wrap_up(ThreadJob job);
+
+    TimerWithComm sum(const string& phase);
+
+    void print_breakdown();
 };
 
 #endif /* PROCESSOR_THREADQUEUES_H_ */

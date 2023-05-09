@@ -103,6 +103,7 @@ void BufferBase::prune()
         string tmp_name = filename + ".new";
         ofstream tmp(tmp_name.c_str());
         size_t start = file->tellg();
+        start -= element_length() * (BUFFER_SIZE - next);
         char buf[header_length];
         file->seekg(0);
         file->read(buf, header_length);

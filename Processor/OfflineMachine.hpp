@@ -172,7 +172,7 @@ void OfflineMachine<W>::generate()
                 auto& opts = OnlineOptions::singleton;
                 opts.batch_size = DIV_CEIL(opts.batch_size, batch) * batch;
                 for (int i = 0; i < buffered_total(total, batch) / batch; i++)
-                    preprocessing.template get_edabitvec<0>(true, n_bits).output(n_bits,
+                    preprocessing.get_edabitvec(true, n_bits).output(n_bits,
                             out);
             }
             else

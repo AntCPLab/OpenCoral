@@ -17,6 +17,7 @@ class gf2n_short;
 class P2Data;
 class Bit;
 class int128;
+template<class T> class IntBase;
 template<class T> class Square;
 typedef Square<gf2n_short> gf2n_short_square;
 
@@ -87,6 +88,8 @@ protected:
   static bool allows(Dtype type) { return type <= DATA_INVERSE; }
 
   static string options();
+
+  static string fake_opts() { return " -lg2 " + to_string(length()); }
 
   static const true_type invertible;
   static const true_type characteristic_two;

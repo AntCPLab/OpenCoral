@@ -1,5 +1,20 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.3.6 (May 9, 2023)
+
+- More extensive benchmarking outputs
+- Replace MPIR by GMP
+- Secure reading of edaBits from files
+- Semi-honest client communication
+- Back-propagation for average pooling
+- Parallelized convolution
+- Probabilistic truncation as in ABY3
+- More balanced communication in Shamir secret sharing
+- Avoid unnecessary communication in Dealer protocol
+- Linear solver using Cholesky decomposition
+- Accept .py files for compilation
+- Fixed security bug: proper accounting for random elements
+
 ## 0.3.5 (Feb 16, 2023)
 
 - Easier-to-use machine learning interface

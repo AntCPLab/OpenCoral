@@ -50,6 +50,9 @@ def set_variant(options):
         do_precomp = False
     elif variant is not None:
         raise CompilerError('Unknown comparison variant: %s' % variant)
+    if const_rounds and instructions_base.program.options.binary:
+        raise CompilerError(
+            'Comparison variant choice incompatible with binary circuits')
 
 def ld2i(c, n):
     """ Load immediate 2^n into clear GF(p) register c """

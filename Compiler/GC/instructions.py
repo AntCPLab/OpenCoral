@@ -17,8 +17,10 @@ import math
 
 class SecretBitsAF(base.RegisterArgFormat):
     reg_type = 'sb'
+    name = 'sbit'
 class ClearBitsAF(base.RegisterArgFormat):
     reg_type = 'cb'
+    name = 'cbit'
 
 base.ArgFormats['sb'] = SecretBitsAF
 base.ArgFormats['sbw'] = SecretBitsAF

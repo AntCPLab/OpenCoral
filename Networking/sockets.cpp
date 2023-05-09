@@ -134,7 +134,7 @@ void close_client_socket(int socket)
   if (close(socket))
     {
       char tmp[1000];
-      sprintf(tmp, "close(%d)", socket);
+      snprintf(tmp, 1000, "close(%d)", socket);
       error(tmp);
     }
 }

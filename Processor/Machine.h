@@ -109,6 +109,7 @@ class Machine : public BaseMachine
   string prep_dir_prefix();
 
   void reqbl(int n);
+  void active(int n);
 
   typename sint::bit_type::mac_key_type get_bit_mac_key() { return alphabi; }
   typename sint::mac_key_type get_sint_mac_key() { return alphapi; }

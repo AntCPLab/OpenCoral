@@ -34,17 +34,25 @@ class Client:
         os = octetStream()
         for socket in self.sockets:
             os.Receive(socket)
+            if socket == self.sockets[0]:
+                active = os.get_length() == 3 * n * T.size()
+            n_expected = 3 if active else 1
+            if os.get_length() != n_expected * T.size() * n:
+                import sys
+                print (os.get_length(), n_expected, T.size(), n, active, file=sys.stderr)
+                raise Exception('unexpected data length')
             for triple in triples:
-                for i in range(3):
+                for i in range(n_expected):
                     t = T()
                     t.unpack(os)
                     triple[i] += t
         res = []
-        for triple in triples:
-            prod = triple[0] * triple[1]
-            if prod != triple[2]:
-                raise Exception(
-                    'invalid triple, diff %s' % hex(prod.v - triple[2].v))
+        if active:
+            for triple in triples:
+                prod = triple[0] * triple[1]
+                if prod != triple[2]:
+                    raise Exception(
+                        'invalid triple, diff %s' % hex(prod.v - triple[2].v))
         return triples
 
     def send_private_inputs(self, values):
@@ -67,6 +75,9 @@ class octetStream:
         self.ptr = 0
         if value is not None:
             self.buf += value
+
+    def get_length(self):
+        return len(self.buf)
 
     def reset_write_head(self):
         self.buf = b''

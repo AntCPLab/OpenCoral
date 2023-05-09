@@ -183,6 +183,8 @@ public:
     NoShare operator-(const NoShare&) const { fail(); return {}; }
     NoShare operator*(const NoValue&) const { fail(); return {}; }
 
+    NoShare operator^(const NoShare&) const { fail(); return {}; }
+
     NoShare operator&(int) const { fail(); return {}; }
     NoShare operator>>(int) const { fail(); return {}; }
 

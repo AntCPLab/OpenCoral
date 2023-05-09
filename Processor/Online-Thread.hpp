@@ -44,6 +44,7 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
 
   auto& queues = machine.queues[num];
   queues->next();
+  ThreadQueue::thread_queue = queues;
 
 #ifdef DEBUG_THREADS
   fprintf(stderr, "\tI am in thread %d\n",num);
@@ -118,6 +119,8 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
   DataPositions actual_usage(P.num_players());
   Timer thread_timer(CLOCK_THREAD_CPUTIME_ID), wait_timer;
   thread_timer.start();
+  TimerWithComm timer, online_timer, online_prep_timer;
+  timer.start();
 
   while (flag)
     { // Wait until I have a program to run
@@ -262,6 +265,8 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
 #ifdef DEBUG_THREADS
           printf("\tClient %d about to run %d\n",num,program);
 #endif
+          online_timer.start(P.total_comm());
+          online_prep_timer -= Proc.DataF.total_time();
           Proc.reset(progs[program], job.arg);
 
           // Bits, Triples, Squares, and Inverses skipping
@@ -290,6 +295,8 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
           printf("\tSignalling I have finished with program %d"
               "in thread %d\n", program, num);
 #endif
+          online_timer.stop(P.total_comm());
+          online_prep_timer += Proc.DataF.total_time();
           wait_timer.start();
           queues->finished(job, P.total_comm());
 	 wait_timer.stop();
@@ -297,7 +304,11 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
     }
 
   // final check
+  online_timer.start(P.total_comm());
+  online_prep_timer -= Proc.DataF.total_time();
   Proc.check();
+  online_timer.stop(P.total_comm());
+  online_prep_timer += Proc.DataF.total_time();
 
   if (machine.opts.file_prep_per_thread)
     Proc.DataF.prune();
@@ -330,6 +341,11 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
 
   // wind down thread by thread
   machine.stats += Proc.stats;
+  queues->timers["wait"] = wait_timer + queues->wait_timer;
+  timer.stop(P.total_comm());
+  queues->timers["online"] = online_timer - online_prep_timer - queues->wait_timer;
+  queues->timers["prep"] = timer - queues->timers["wait"] - queues->timers["online"];
+
   // prevent faulty usage message
   Proc.DataF.set_usage(actual_usage);
   delete processor;

@@ -40,7 +40,7 @@ void ReceivedMsgStore::push(ReceivedMsg& msg)
 	else
 	{
 		char filename[1000];
-		sprintf(filename, "%s/%d.XXXXXX", BUFFER_DIR, getpid());
+		snprintf(filename, 1000, "%s/%d.XXXXXX", BUFFER_DIR, getpid());
 		FILE* file = fdopen(mkstemp(filename), "w");
 		if (!file)
 			throw runtime_error("can't open file, check space on "

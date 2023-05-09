@@ -69,7 +69,7 @@ void PrepBase::print_left_edabits(size_t n, size_t n_batch, bool strict,
         cerr << " edaBits of size " << n_bits << " left" << endl;
     }
 
-    if (n > used / 10)
+    if (n * n_batch > used / 10)
         cerr << "Significant amount of unused edaBits of size " << n_bits
                 << ". For more accurate benchmarks, "
                 << "consider reducing the batch size with --batch-size "

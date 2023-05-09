@@ -37,6 +37,8 @@ public:
         if (swapped)
             std::swap(this->n_rows, this->n_cols);
         assert(this->n_cols >= this->n_rows);
+        assert(prep.proc);
+        this->P = &prep.proc->P;
     }
 
     void set_protocol(typename ShareMatrix<T>::Protocol&)

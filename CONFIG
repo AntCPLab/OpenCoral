@@ -35,13 +35,30 @@ ARM := $(shell uname -m | grep x86; echo $$?)
 OS := $(shell uname -s)
 ifeq ($(MACHINE), x86_64)
 ifeq ($(OS), Linux)
+ifeq ($(shell cat /proc/cpuinfo | grep -q avx2; echo $$?), 0)
 AVX_OT = 1
+else
+AVX_OT = 0
+endif
 else
 AVX_OT = 0
 endif
 else
 ARCH =
 AVX_OT = 0
+endif
+
+ifeq ($(OS), Darwin)
+BREW_CFLAGS += -I/usr/local/opt/openssl/include -I`brew --prefix`/opt/openssl/include -I`brew --prefix`/include
+BREW_LDLIBS += -L/usr/local/opt/openssl/lib -L`brew --prefix`/lib -L`brew --prefix`/opt/openssl/lib
+endif
+
+ifeq ($(OS), Linux)
+ifeq ($(ARM), 1)
+ifeq ($(shell cat /proc/cpuinfo | grep -q aes; echo $$?), 0)
+ARCH = -march=armv8.2-a+crypto
+endif
+endif
 endif
 
 USE_KOS = 0
@@ -66,7 +83,8 @@ endif
 # Default for MAX_MOD_SZ is 10, which suffices for all Overdrive protocols
 # MOD = -DMAX_MOD_SZ=10 -DGFP_MOD_SZ=5
 
-LDLIBS = -lmpirxx -lmpir -lsodium $(MY_LDLIBS)
+LDLIBS = -lgmpxx -lgmp -lsodium $(MY_LDLIBS)
+LDLIBS += $(BREW_LDLIBS)
 LDLIBS +=  -Wl,-rpath -Wl,$(CURDIR)/local/lib -L$(CURDIR)/local/lib
 LDLIBS += -lboost_system -lssl -lcrypto
 
@@ -88,6 +106,7 @@ BOOST = -lboost_thread $(MY_BOOST)
 endif
 
 CFLAGS += $(ARCH) $(MY_CFLAGS) $(GDEBUG) -Wextra -Wall $(OPTIM) -I$(ROOT) -I$(ROOT)/deps -pthread $(PROF) $(DEBUG) $(MOD) $(GF2N_LONG) $(PREP_DIR) $(SSL_DIR) $(SECURE) -std=c++11 -Werror
+CFLAGS += $(BREW_CFLAGS)
 CPPFLAGS = $(CFLAGS)
 LD = $(CXX)
 

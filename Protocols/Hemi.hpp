@@ -130,37 +130,23 @@ void Hemi<T>::conv2ds(SubProcessor<T>& processor,
     }
 
     auto& args = instruction.get_start();
-    int output_h = args[0], output_w = args[1];
-    int inputs_h = args[2], inputs_w = args[3];
-    int weights_h = args[4], weights_w = args[5];
-    int stride_h = args[6], stride_w = args[7];
-    int n_channels_in = args[8];
-    int padding_h = args[9];
-    int padding_w = args[10];
-    int batch_size = args[11];
-    size_t r0 = instruction.get_r(0);
-    size_t r1 = instruction.get_r(1);
-    int r2 = instruction.get_r(2);
-    int filter_stride_h = 1;
-    int filter_stride_w = 1;
-    if (stride_h < 0)
-    {
-        filter_stride_h = -stride_h;
-        stride_h = 1;
-    }
-    if (stride_w < 0)
-    {
-        filter_stride_w = -stride_w;
-        stride_w = 1;
-    }
+    vector<Conv2dTuple> tuples;
+    for (size_t i = 0; i < args.size(); i += 15)
+        tuples.push_back(Conv2dTuple(args, i));
+    for (auto& tuple : tuples)
+        tuple.run_matrix(processor);
+}
 
+template<class T>
+void Conv2dTuple::run_matrix(SubProcessor<T>& processor)
+{
     auto& S = processor.get_S();
     array<int, 3> dim({{1, weights_h * weights_w * n_channels_in, batch_size * output_h * output_w}});
     ShareMatrix<T> A(dim[0], dim[1]), B(dim[1], dim[2]);
 
     if (not T::real_shares(processor.P))
     {
-        matrix_multiply(A, B, processor);
+        processor.protocol.matrix_multiply(A, B, processor);
         return;
     }
 
@@ -208,7 +194,7 @@ void Hemi<T>::conv2ds(SubProcessor<T>& processor,
             }
     }
 
-    auto C = matrix_multiply(A, B, processor);
+    auto C = processor.protocol.matrix_multiply(A, B, processor);
 
     for (int i_batch = 0; i_batch < batch_size; i_batch ++)
     {

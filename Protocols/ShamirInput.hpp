@@ -52,10 +52,12 @@ void ShamirInput<T>::init()
     for (size_t i = 0; i < reconstruction.size(); i++)
     {
         auto& x = reconstruction[i];
-        for (int j = 0; j <= threshold; j++)
-            x.push_back(
-                    Shamir<T>::get_rec_factor(j - 1, 0, -1, threshold + 1,
-                            i + threshold));
+        vector<int> points(threshold + 1);
+        points[0] = -1;
+        for (int i = 0; i < threshold; i++)
+            points[1 + i] = this->P.get_player(1 + i);
+        x = Shamir<T>::get_rec_factors(points,
+                this->P.get_player(1 + i + threshold));
     }
 }
 
@@ -68,23 +70,24 @@ void ShamirInput<T>::add_mine(const typename T::open_type& input, int n_bits)
     int t = threshold;
 
     randomness.resize(t);
-    for (int i = 0; i < t; i++)
+    for (int offset = 0; offset < t; offset++)
     {
-        randomness[i].randomize(this->send_prngs[i]);
-        if (i == P.my_num())
-            this->shares.push_back(randomness[i]);
+        int i = P.get_player(1 + offset);
+        assert(i != P.my_num());
+        randomness[offset].randomize(this->send_prngs[i]);
     }
 
     for (int i = threshold; i < n; i++)
     {
+        int player = P.get_player(1 + i);
         typename T::open_type x = input
                 * reconstruction.at(i - threshold).at(0);
         for (int j = 0; j < t; j++)
             x += randomness[j] * reconstruction.at(i - threshold).at(j + 1);
-        if (i == P.my_num())
+        if (player == P.my_num())
             this->shares.push_back(x);
         else
-            x.pack(this->os[i]);
+            x.pack(this->os[player]);
     }
 
     this->senders[P.my_num()] = true;
@@ -94,7 +97,7 @@ template<class T>
 void ShamirInput<T>::finalize_other(int player, T& target,
         octetStream& o, int n_bits)
 {
-    if (this->P.my_num() < threshold)
+    if (this->P.get_offset(player) >= this->P.num_players() - threshold)
         target.randomize(this->recv_prngs.at(player));
     else
         IndividualInput<T>::finalize_other(player, target, o, n_bits);

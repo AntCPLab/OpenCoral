@@ -289,7 +289,7 @@ def BitDecRingRaw(a, k, m):
 def BitDecRing(a, k, m):
     bits = BitDecRingRaw(a, k, m)
     # reversing to reduce number of rounds
-    return [types.sint.conv(bit) for bit in reversed(bits)][::-1]
+    return [types.sintbit.conv(bit) for bit in reversed(bits)][::-1]
 
 def BitDecFieldRaw(a, k, m, kappa, bits_to_compute=None):
     instructions_base.set_global_vector_size(a.size)
@@ -306,7 +306,7 @@ def BitDecFieldRaw(a, k, m, kappa, bits_to_compute=None):
 
 def BitDecField(a, k, m, kappa, bits_to_compute=None):
     res = BitDecFieldRaw(a, k, m, kappa, bits_to_compute)
-    return [types.sint.conv(bit) for bit in res]
+    return [types.sintbit.conv(bit) for bit in res]
 
 
 @instructions_base.ret_cisc

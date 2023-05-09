@@ -32,8 +32,8 @@ Spdz2kPrep<T>::~Spdz2kPrep()
 {
     if (bit_prep != 0)
     {
-        delete bit_prep;
         delete bit_proc;
+        delete bit_prep;
         delete bit_MC;
     }
 }
@@ -51,7 +51,6 @@ void Spdz2kPrep<T>::set_protocol(typename T::Protocol& protocol)
     bit_prep->params.amplify = false;
     bit_proc = new SubProcessor<BitShare>(*bit_MC, *bit_prep, proc->P);
     bit_MC->set_prep(*bit_prep);
-    this->proc->MC.set_prep(*this);
 }
 
 template<class T>

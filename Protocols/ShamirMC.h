@@ -73,7 +73,7 @@ public:
 
     void Check(const Player& P) { (void)P; }
 
-    vector<rec_type> get_reconstruction(const Player& P);
+    vector<rec_type> get_reconstruction(const Player& P, int n = 0);
     open_type reconstruct(const vector<open_type>& shares);
 };
 

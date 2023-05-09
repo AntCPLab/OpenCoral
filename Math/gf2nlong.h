@@ -154,6 +154,8 @@ class gf2n_long : public gf2n_<int128>
   gf2n_long(int g) : gf2n_long(int128(unsigned(g))) {}
   template<class T>
   gf2n_long(IntBase<T> g) : super(g.get()) {}
+  template<class T>
+  gf2n_long(const gf2n_<T>& a) : super(int128(a.get())) {}
 };
 
 #if defined(__aarch64__) && defined(__clang__)

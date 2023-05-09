@@ -15,21 +15,20 @@
 template<class T>
 typename T::open_type::Scalar Shamir<T>::get_rec_factor(int i, int n)
 {
-    return get_rec_factor(i, n, 0, n);
+    vector<int> points(n);
+    for (int j = 0; j < n; j++)
+        points[j] = j;
+    return get_rec_factor(i, points);
 }
 
 template<class T>
-typename T::open_type::Scalar Shamir<T>::get_rec_factor(int i, int n_total,
-        int start, int n_points, int target)
+typename T::open_type::Scalar Shamir<T>::get_rec_factor(int i,
+        const vector<int>& points, int target)
 {
+    assert(find(points.begin(), points.end(), i) != points.end());
     U res = 1;
-    for (int j = 0; j < n_points; j++)
+    for (auto& other : points)
     {
-        int other;
-        if (n_total > 0)
-            other = positive_modulo(start + j, n_total);
-        else
-            other = start + j;
         if (i != other)
         {
             res *= (U(other + 1) - U(target + 1)) / (U(other + 1) - U(i + 1));
@@ -39,6 +38,16 @@ typename T::open_type::Scalar Shamir<T>::get_rec_factor(int i, int n_total,
 #endif
         }
     }
+    return res;
+}
+
+template<class T>
+vector<typename T::open_type::Scalar> Shamir<T>::get_rec_factors(
+        const vector<int>& points, int target)
+{
+    vector<U> res;
+    for (auto& point : points)
+        res.push_back(get_rec_factor(point, points, target));
     return res;
 }
 

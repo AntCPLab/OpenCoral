@@ -338,16 +338,19 @@ class Merger:
                     d[j] = d[i]
 
         def read(reg, n):
-            last_read[reg] = n
             for dup in reg.duplicates:
-                if last_def[dup] != -1:
+                if last_def[dup] not in (-1, n):
                     add_edge(last_def[dup], n)
+            last_read[reg] = n
 
         def write(reg, n):
-            last_def[reg] = n
             for dup in reg.duplicates:
                 if last_read[dup] not in (-1, n):
                     add_edge(last_read[dup], n)
+                if id(dup) in [id(x) for x in block.instructions[n].get_used()] and \
+                   last_read[dup] not in (-1, n):
+                    add_edge(last_read[dup], n)
+            last_def[reg] = n
 
         def handle_mem_access(addr, reg_type, last_access_this_kind,
                               last_access_other_kind):
@@ -434,19 +437,19 @@ class Merger:
             # if options.debug:
             #     col = colordict[instr.__class__.__name__]
             #     G.add_node(n, color=col, label=str(instr))
-            for reg in inputs:
-                if reg.vector and instr.is_vec():
-                    for i in reg.vector:
-                        read(i, n)
-                else:
-                    read(reg, n)
-
             for reg in outputs:
                 if reg.vector and instr.is_vec():
                     for i in reg.vector:
                         write(i, n)
                 else:
                     write(reg, n)
+
+            for reg in inputs:
+                if reg.vector and instr.is_vec():
+                    for i in reg.vector:
+                        read(i, n)
+                else:
+                    read(reg, n)
 
             # will be merged
             if isinstance(instr, TextInputInstruction):
@@ -556,18 +559,6 @@ class Merger:
             if unused_result:
                 eliminate(i)
                 count += 1
-            # remove unnecessary stack instructions
-            # left by optimization with budget
-            if isinstance(inst, popint_class) and \
-               (not G.degree(i) or (G.degree(i) == 1 and
-                isinstance(instructions[list(G[i])[0]], StackInstruction))) \
-                and \
-               inst.args[0].can_eliminate and \
-               len(G.pred[i]) == 1 and \
-               isinstance(instructions[list(G.pred[i])[0]], pushint_class):
-                eliminate(list(G.pred[i])[0])
-                eliminate(i)
-                count += 2
         if count > 0 and self.block.parent.program.verbose:
             print('Eliminated %d dead instructions, among which %d opens: %s' \
                 % (count, open_count, dict(stats)))

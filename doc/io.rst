@@ -48,7 +48,8 @@ By default, :py:func:`~Compiler.library.print_ln` and related
 functions only output to the terminal on party 0. This allows to run
 several parties in one terminal without spoiling the output. You can
 use interactive mode with option ``-I`` in order to output on all
-parties. Note that this also to reading inputs from the command line
+parties or ``-OF .`` to activate the output without interactive mode.
+Note that the former also causes to inputs from the command line
 unless you specify ``-IF`` as well. You can also specify a file prefix
 with ``-OF``, so that outputs are written to
 ``<prefix>-P<player>-<thread>``.

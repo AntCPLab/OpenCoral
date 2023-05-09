@@ -19,38 +19,49 @@ except (ValueError, IndexError):
 #Instantiation
 AlexNet = []
 
-padding = 'same'
+padding = 1
 batchnorm = 'batchnorm' in program.args
+bn1 = 'bn1' in program.args
+bn2 = 'bn2' in program.args
+
+MultiArray.disable_index_checks()
 
 #1st Convolutional Layer
-AlexNet.append(keras.layers.Conv2D(filters=96, input_shape=(32,32,3), kernel_size=(11,11), strides=(4,4), padding=9))
+AlexNet.append(keras.layers.Conv2D(filters=64, input_shape=(32,32,3), kernel_size=3, strides=1, padding=2))
 AlexNet.append(keras.layers.Activation('relu'))
-AlexNet.append(keras.layers.MaxPooling2D(pool_size=3, strides=(2,2)))
 if batchnorm:
     AlexNet.append(keras.layers.BatchNormalization())
+AlexNet.append(keras.layers.MaxPooling2D(pool_size=(2,2), strides=(2,2), padding=0))
 
 #2nd Convolutional Layer
-AlexNet.append(keras.layers.Conv2D(filters=256, kernel_size=(5, 5), strides=(1,1), padding=1))
+AlexNet.append(keras.layers.Conv2D(filters=96, kernel_size=3, strides=1, padding=2))
+AlexNet.append(keras.layers.Activation('relu'))
+if batchnorm or bn2:
+    AlexNet.append(keras.layers.BatchNormalization())
+AlexNet.append(keras.layers.MaxPooling2D(pool_size=(2,2), strides=(2,2), padding='same'))
+
+#3rd Convolutional Layer
+AlexNet.append(keras.layers.Conv2D(filters=96, kernel_size=(3,3), strides=(1,1), padding=padding))
 AlexNet.append(keras.layers.Activation('relu'))
 if batchnorm:
     AlexNet.append(keras.layers.BatchNormalization())
-AlexNet.append(keras.layers.MaxPooling2D(pool_size=(2,2), strides=1))
-
-#3rd Convolutional Layer
-AlexNet.append(keras.layers.Conv2D(filters=384, kernel_size=(3,3), strides=(1,1), padding=1))
-AlexNet.append(keras.layers.Activation('relu'))
 
 #4th Convolutional Layer
-AlexNet.append(keras.layers.Conv2D(filters=384, kernel_size=(3,3), strides=(1,1), padding=1))
+AlexNet.append(keras.layers.Conv2D(filters=64, kernel_size=(3,3), strides=(1,1), padding=padding))
 AlexNet.append(keras.layers.Activation('relu'))
+if batchnorm or bn1:
+    AlexNet.append(keras.layers.BatchNormalization())
 
 #5th Convolutional Layer
-AlexNet.append(keras.layers.Conv2D(filters=256, kernel_size=(3,3), strides=(1,1), padding=1))
+AlexNet.append(keras.layers.Conv2D(filters=64, kernel_size=(3,3), strides=(1,1), padding=padding))
 AlexNet.append(keras.layers.Activation('relu'))
+if batchnorm or bn2:
+    AlexNet.append(keras.layers.BatchNormalization())
+AlexNet.append(keras.layers.MaxPooling2D(pool_size=(3,3), strides=(2,2), padding=0))
 
 #Passing it to a Fully Connected layer
 # 1st Fully Connected Layer
-AlexNet.append(keras.layers.Dense(256))
+AlexNet.append(keras.layers.Dense(128))
 AlexNet.append(keras.layers.Activation('relu'))
 
 if 'dropout' in program.args:
@@ -66,7 +77,6 @@ if 'dropout' in program.args:
 #Output Layer
 AlexNet.append(keras.layers.Dense(10))
 
-
 tf.set_n_threads(n_threads)
 program.options_from_args()
 sfix.set_precision_from_args(program, adapt_ring=True)
@@ -77,12 +87,11 @@ training_labels = MultiArray([50000, 10], sint)
 test_samples = MultiArray([10000, 32, 32, 3], sfix)
 test_labels = MultiArray([10000, 10], sint)
 
-if 'no_acc' not in program.args:
-    training_labels.input_from(0)
-    training_samples.input_from(0)
+training_labels.input_from(0)
+training_samples.input_from(0, binary='binary_samples' in program.args)
 
-    test_labels.input_from(0)
-    test_samples.input_from(0)
+test_labels.input_from(0)
+test_samples.input_from(0, binary='binary_samples' in program.args)
 
 model = tf.keras.models.Sequential(AlexNet)
 
@@ -90,6 +99,11 @@ model.compile_by_args(program)
 
 model.build(training_samples.sizes)
 model.summary()
+
+model.opt.output_diff = 'output_diff' in program.args
+model.opt.output_grad = 'output_grad' in program.args
+model.opt.output_stats = 100 if 'output_stats' in program.args else 0
+model.opt.shuffle = not 'noshuffle' in program.args
 
 opt = model.fit(
     training_samples,

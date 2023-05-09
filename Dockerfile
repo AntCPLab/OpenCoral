@@ -47,22 +47,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
                 libboost-dev \
                 libboost-thread-dev \
                 libclang-dev \
+                libgmp-dev \
                 libntl-dev \
                 libsodium-dev \
                 libssl-dev \
                 libtool \
-                m4 \
-                texinfo \
-                yasm \
                 vim \
                 gdb \
                 valgrind \
         && rm -rf /var/lib/apt/lists/*
-
-# mpir
-COPY --from=initc3/mpir:55fe6a9 /usr/local/mpir/include/* /usr/local/include/
-COPY --from=initc3/mpir:55fe6a9 /usr/local/mpir/lib/* /usr/local/lib/
-COPY --from=initc3/mpir:55fe6a9 /usr/local/mpir/share/info/* /usr/local/share/info/
 
 ENV MP_SPDZ_HOME /usr/src/MP-SPDZ
 WORKDIR $MP_SPDZ_HOME

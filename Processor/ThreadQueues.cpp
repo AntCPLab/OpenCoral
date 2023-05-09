@@ -85,3 +85,32 @@ void ThreadQueues::wrap_up(ThreadJob job)
     }
     available.clear();
 }
+
+TimerWithComm ThreadQueues::sum(const string& phase)
+{
+    TimerWithComm res;
+    for (auto& x : *this)
+        res += x->timers[phase];
+    return res;
+}
+
+void ThreadQueues::print_breakdown()
+{
+    if (size() > 0)
+    {
+        if (size() == 1)
+        {
+            cerr << "Spent " << (*this)[0]->timers["online"].full()
+                    << " on the online phase and "
+                    << (*this)[0]->timers["prep"].full()
+                    << " on the preprocessing/offline phase." << endl;
+        }
+        else
+        {
+            cerr << size() << " threads spent a total of " << sum("online").full()
+                    << " on the online phase, " << sum("prep").full()
+                    << " on the preprocessing/offline phase, and "
+                    << sum("wait").full() << " idling." << endl;
+        }
+    }
+}

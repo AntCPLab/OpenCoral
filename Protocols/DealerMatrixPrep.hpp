@@ -11,6 +11,8 @@ DealerMatrixPrep<T>::DealerMatrixPrep(int n_rows, int n_inner, int n_cols,
         super(usage), n_rows(n_rows), n_inner(n_inner), n_cols(n_cols),
         prep(&prep)
 {
+    assert(prep.proc);
+    this->P = &prep.proc->P;
 }
 
 template<class T>

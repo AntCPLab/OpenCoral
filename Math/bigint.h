@@ -5,7 +5,7 @@
 using namespace std;
 
 #include <stddef.h>
-#include <mpirxx.h>
+#include <gmpxx.h>
 
 #include "Tools/Exceptions.h"
 #include "Tools/int.h"
@@ -39,7 +39,7 @@ namespace GC
 
 /**
  * Type for arbitrarily large integers.
- * This is a sub-class of ``mpz_class`` from MPIR. As such, it implements
+ * This is a sub-class of ``mpz_class`` from GMP. As such, it implements
  * all integers operations and input/output via C++ streams. In addition,
  * the ``get_ui()`` member function allows retrieving the least significant
  * 64 bits.
@@ -138,8 +138,6 @@ public:
 
 void inline_mpn_zero(mp_limb_t* x, mp_size_t size);
 void inline_mpn_copyi(mp_limb_t* dest, const mp_limb_t* src, mp_size_t size);
-
-#include "Z2k.h"
 
 
 inline bigint& bigint::operator=(int n)
@@ -281,11 +279,7 @@ inline int numBytes(const bigint& m)
 
 inline int probPrime(const bigint& x)
 {
-  gmp_randstate_t rand_state;
-  gmp_randinit_default(rand_state);
-  int ans = mpz_probable_prime_p(x.get_mpz_t(), rand_state,
-      max(40, DEFAULT_SECURITY), 0);
-  gmp_randclear(rand_state);
+  int ans = mpz_probab_prime_p(x.get_mpz_t(), max(40, DEFAULT_SECURITY) / 2);
   return ans;
 }
 
@@ -318,7 +312,8 @@ inline int isOdd(const bigint& x)
 }
 
 
-bigint sqrRootMod(const bigint& x,const bigint& p);
+template<class T>
+bigint sqrRootMod(const T& x);
 
 bigint powerMod(const bigint& x,const bigint& e,const bigint& p);
 

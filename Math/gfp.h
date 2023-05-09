@@ -105,6 +105,7 @@ class gfp_ : public ValueInterface
   static void write_setup(string dir)
     { write_online_setup(dir, pr()); }
   static void check_setup(string dir);
+  static string fake_opts() { return " -lgp " + to_string(length()); }
 
   /**
    * Get the prime modulus
@@ -314,6 +315,8 @@ gfp_<X, L>::gfp_(long x)
 {
   if (x == 0)
     assign_zero();
+  else if (x == 1)
+    assign_one();
   else
     *this = bigint::tmp = x;
 }

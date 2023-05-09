@@ -62,11 +62,13 @@ private:
 #endif
 };
 #else
-class BaseKeyVector : public vector<Key>
+class BaseKeyVector : public CheckVector<Key>
 {
+    typedef CheckVector<Key> super;
+
 public:
-	BaseKeyVector(int size = 0) : vector<Key>(size, Key(0)) {}
-	void resize(int size) { vector<Key>::resize(size, Key(0)); }
+	BaseKeyVector(int size = 0) : super(size, Key(0)) {}
+	void resize(int size) { super::resize(size, Key(0)); }
 };
 #endif
 
@@ -296,7 +298,8 @@ public:
     static void andm(GC::Processor<U>&, const BaseInstruction&)
     { throw runtime_error("andm not implemented"); }
 
-    static void run_tapes(const vector<int>&) { throw not_implemented(); }
+    static void run_tapes(const vector<int>&)
+    { throw runtime_error("multi-threading not implemented"); }
 
 	// most BMR phases don't need actual input
 	template<class T>
