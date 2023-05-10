@@ -260,6 +260,8 @@ ProgramParty::~ProgramParty()
 	reset();
 	if (P)
 	{
+        cerr << "Data sent in online phase = " << P->total_comm().sent * 1e-6
+                << " MB (this party only)" << endl;
 		delete P;
 	}
 	delete[] eval_threads;
