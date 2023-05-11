@@ -1501,11 +1501,9 @@ class Tape:
             :param other: any convertible type
 
             """
-            if isinstance(other, Tape.Register) and other.block != Program.prog.curr_block:
-                other = type(self)(other)
-            else:
-                other = self.conv(other)
-            if Program.prog.curr_block in [x.block for x in self.duplicates]:
+            diff_block = isinstance(other, Tape.Register) and self.block != other.block
+            other = type(self)(other)
+            if not diff_block:
                 self.program.start_new_basicblock()
             if self.program != other.program:
                 raise CompilerError(
