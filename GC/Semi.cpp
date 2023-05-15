@@ -33,4 +33,9 @@ void Semi::prepare_mult(const SemiSecret& x, const SemiSecret& y, int n,
         prepare_mul(x, y, n);
 }
 
+void Semi::prepare_mul(const SemiSecret& x, const SemiSecret& y, int n)
+{
+    super::prepare_mul(x.mask(n), y.mask(n), n);
+}
+
 } /* namespace GC */

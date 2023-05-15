@@ -35,11 +35,16 @@ class TreeSum
   void start(vector<T>& values, const Player& P);
   void finish(vector<T>& values, const Player& P);
 
+  void add_openings(vector<T>& values, const Player& P, int sum_players,
+      int last_sum_players, int send_player);
+
 protected:
   int base_player;
   int opening_sum;
   int max_broadcast;
   octetStream os;
+
+  vector<int> lengths;
 
   void ReceiveValues(vector<T>& values, const Player& P, int sender);
   virtual void AddToValues(vector<T>& values) { (void)values; }
@@ -157,10 +162,6 @@ using MAC_Check_Z2k_ = MAC_Check_Z2k<typename W::open_type,
         typename W::mac_key_type, typename W::open_type, W>;
 
 
-template<class T>
-  void add_openings(vector<T>& values, const Player& P, int sum_players, int last_sum_players, int send_player, TreeSum<T>& MC);
-
-
 /**
  * SPDZ opening protocol with MAC check (pairwise communication)
  */
@@ -239,13 +240,16 @@ size_t TreeSum<T>::report_size(ReportType type)
 }
 
 template<class T>
-void add_openings(vector<T>& values, const Player& P, int sum_players, int last_sum_players, int send_player, TreeSum<T>& MC)
+void TreeSum<T>::add_openings(vector<T>& values, const Player& P,
+    int sum_players, int last_sum_players, int send_player)
 {
+  auto& MC = *this;
   MC.player_timers.resize(P.num_players());
   vector<octetStream>& oss = MC.oss;
   oss.resize(P.num_players());
   vector<int> senders;
   senders.reserve(P.num_players());
+  bool use_lengths = values.size() == lengths.size();
 
   for (int relative_sender = positive_modulo(P.my_num() - send_player, P.num_players()) + sum_players;
       relative_sender < last_sum_players; relative_sender += sum_players)
@@ -266,7 +270,7 @@ void add_openings(vector<T>& values, const Player& P, int sum_players, int last_
       MC.timers[SUM].start();
       for (unsigned int i=0; i<values.size(); i++)
         {
-          values[i].add(oss[j]);
+          values[i].add(oss[j], use_lengths ? lengths[i] : -1);
         }
       MC.timers[SUM].stop();
     }
@@ -278,6 +282,7 @@ void TreeSum<T>::start(vector<T>& values, const Player& P)
   os.reset_write_head();
   int sum_players = P.num_players();
   int my_relative_num = positive_modulo(P.my_num() - base_player, P.num_players());
+  bool use_lengths = values.size() == lengths.size();
   while (true)
     {
       // summing phase
@@ -289,7 +294,8 @@ void TreeSum<T>::start(vector<T>& values, const Player& P)
         {
           // send to the player up the tree
           for (unsigned int i=0; i<values.size(); i++)
-            { values[i].pack(os); }
+            values[i].pack(os, use_lengths ? lengths[i] : -1);
+          os.append(0);
           int receiver = positive_modulo(base_player + my_relative_num % sum_players, P.num_players());
           timers[SEND].start();
           P.send_to(receiver,os);
@@ -300,7 +306,7 @@ void TreeSum<T>::start(vector<T>& values, const Player& P)
         {
           // if receiving, add the values
           timers[RECV_ADD].start();
-          add_openings<T>(values, P, sum_players, last_sum_players, base_player, *this);
+          add_openings(values, P, sum_players, last_sum_players, base_player);
           timers[RECV_ADD].stop();
         }
     }
@@ -311,7 +317,8 @@ void TreeSum<T>::start(vector<T>& values, const Player& P)
       os.reset_write_head();
       size_t n = values.size();
       for (unsigned int i=0; i<n; i++)
-        { values[i].pack(os); }
+        values[i].pack(os, use_lengths ? lengths[i] : -1);
+      os.append(0);
       timers[BCAST].start();
       for (int i = 1; i < max_broadcast && i < P.num_players(); i++)
         {
@@ -357,8 +364,9 @@ void TreeSum<T>::ReceiveValues(vector<T>& values, const Player& P, int sender)
   timers[RECV_SUM].start();
   P.receive_player(sender, os);
   timers[RECV_SUM].stop();
+  bool use_lengths = values.size() == lengths.size();
   for (unsigned int i = 0; i < values.size(); i++)
-    values[i].unpack(os);
+    values[i].unpack(os, use_lengths ? lengths[i] : -1);
   AddToValues(values);
 }
 

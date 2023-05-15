@@ -136,6 +136,9 @@ void Rep4<T>::prepare_joint_input(int sender, int backup, int receiver,
             throw not_implemented();
         }
     }
+
+    for (auto& x : send_os)
+        x.append(0);
 }
 
 template<class T>
@@ -176,6 +179,7 @@ void Rep4<T>::finalize_joint_input(int sender, int backup, int receiver,
             x.res[index] += res[1];
         }
 
+        os->consume(0);
         receive_hashes[sender][backup].update(start,
                 os->get_data_ptr() - start);
     }

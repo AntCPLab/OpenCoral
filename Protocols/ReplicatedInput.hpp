@@ -47,12 +47,16 @@ void ReplicatedInput<T>::add_other(int player, int)
 template<class T>
 void ReplicatedInput<T>::send_mine()
 {
+    for (auto& x : os)
+        x.append(0);
     P.send_relative(os);
 }
 
 template<class T>
 void ReplicatedInput<T>::exchange()
 {
+    for (auto& x : os)
+        x.append(0);
     bool receive = expect[P.get_player(1)];
     bool send = not os[1].empty();
     auto& dest =  InputBase<T>::os[P.get_player(1)];

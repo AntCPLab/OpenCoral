@@ -125,6 +125,7 @@ void InputBase<T>::add_from_all(const typename T::open_type& input, int n_bits)
 template<class T>
 void Input<T>::send_mine()
 {
+    this->os[P.my_num()].append(0);
     P.send_all(this->os[P.my_num()]);
 }
 

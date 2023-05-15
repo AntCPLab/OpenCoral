@@ -16,7 +16,6 @@ template<class T>
 class SemiMC : public TreeSum<typename T::open_type>, public MAC_Check_Base<T>
 {
 protected:
-    vector<int> lengths;
 
 public:
     // emulate MAC_Check

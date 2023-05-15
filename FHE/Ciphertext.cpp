@@ -113,7 +113,7 @@ void Ciphertext::mul(const Ciphertext& c, const Rq_Element& ra)
   ::mul(cc1,ra,c.cc1);
 }
 
-void Ciphertext::add(octetStream& os)
+void Ciphertext::add(octetStream& os, int)
 {
   Ciphertext tmp(*params);
   tmp.unpack(os);

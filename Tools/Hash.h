@@ -39,6 +39,7 @@ public:
 	    octetStream tmp(v.size() * sizeof(T));
 	    for (size_t i = 0; i < v.size(); i++)
 	        v[i].pack(tmp, bit_lengths[i]);
+	    tmp.append(0);
 	    update(tmp);
 	}
 	void update(const string& str);

@@ -45,10 +45,11 @@ class FHE_SK
   const Rq_Element& s() const { return sk; }
 
   /// Append to buffer
-  void pack(octetStream& os) const { sk.pack(os); pr.pack(os); }
+  void pack(octetStream& os, int = -1) const { sk.pack(os); pr.pack(os); }
 
   /// Read from buffer. Assumes parameters are set correctly
-  void unpack(octetStream& os)     { sk.unpack(os, *params); pr.unpack(os); }
+  void unpack(octetStream& os, int = -1)
+  { sk.unpack(os, *params); pr.unpack(os); }
 
   // Assumes Ring and prime of mess have already been set correctly
   // Ciphertext c must be at level 0 or an error occurs
@@ -88,7 +89,8 @@ class FHE_SK
 
   bool operator!=(const FHE_SK& x) const { return pr != x.pr or sk != x.sk; }
 
-  void add(octetStream& os) { FHE_SK tmp(*this); tmp.unpack(os); *this += tmp; }
+  void add(octetStream& os, int = -1)
+  { FHE_SK tmp(*this); tmp.unpack(os); *this += tmp; }
 
   void check(const FHE_Params& params, const FHE_PK& pk, const bigint& pr) const;
 

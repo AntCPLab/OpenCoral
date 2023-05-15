@@ -138,7 +138,7 @@ protected:
     { a=x.a^y.a; }  
   void add(octet* x)
     { a^=*(U*)(x); }
-  void add(octetStream& os)
+  void add(octetStream& os, int = -1)
     { add(os.consume(size())); }
   void sub(const gf2n_& x,const gf2n_& y)
     { a=x.a^y.a; }

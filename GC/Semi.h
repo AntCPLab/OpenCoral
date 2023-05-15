@@ -24,6 +24,7 @@ public:
 
     void prepare_mult(const SemiSecret& x, const SemiSecret& y, int n,
             bool repeat);
+    void prepare_mul(const SemiSecret& x, const SemiSecret& y, int n);
 };
 
 } /* namespace GC */

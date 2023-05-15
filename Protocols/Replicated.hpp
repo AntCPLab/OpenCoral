@@ -200,6 +200,7 @@ void Replicated<T>::prepare_reshare(const typename T::clear& share,
 template<class T>
 void Replicated<T>::exchange()
 {
+    os[0].append(0);
     if (os[0].get_length() > 0)
         P.pass_around(os[0], os[1], 1);
     this->rounds++;
@@ -208,6 +209,7 @@ void Replicated<T>::exchange()
 template<class T>
 void Replicated<T>::start_exchange()
 {
+    os[0].append(0);
     P.send_relative(1, os[0]);
     this->rounds++;
 }
