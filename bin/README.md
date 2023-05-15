@@ -4,7 +4,7 @@ are thus provided in separate files:
 - Boost
 - glibc
 - libsodium
-- MPIR
+- GMP
 - OpenSSl
 - NTL
 
