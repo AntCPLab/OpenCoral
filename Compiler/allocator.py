@@ -349,6 +349,7 @@ class Merger:
 
         def write(reg, n):
             for dup in reg.duplicates:
+                add_edge(last_def[dup], n)
                 add_edge(last_read[dup], n)
                 add_edge(second_last_read[dup], n)
             last_def[reg] = n
