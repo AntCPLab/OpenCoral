@@ -1235,31 +1235,55 @@ def test_SubtreeMinEntry_cmp():
     e = SubtreeMinEntry(sint, 0, 17, 0, 7, mem=True)
     f = SubtreeMinEntry(sint, 0, 17, 0, 6, mem=True)
 
-    dprint_ln("a < a: %s", (a < a).reveal())  # 0
-    dprint_ln("a > a: %s", (a > a).reveal())  # 0
-    dprint_ln("a == a: %s", (a == a).reveal())  # 1
-    dprint_ln("a <= a: %s", (a <= a).reveal())  # 1
-    dprint_ln("a >= a: %s", (a >= a).reveal())  # 1
-    dprint_ln("a < b: %s", (a < b).reveal())  # 0
-    dprint_ln("a == b: %s", (a == b).reveal())  # 0
-    dprint_ln("b < a: %s", (b < a).reveal())  # 1
-    dprint_ln("b > a: %s", (b > a).reveal())  # 0
-    dprint_ln("a < c: %s", (a < c).reveal())  # 0
-    dprint_ln("a == c: %s", (a == c).reveal())  # 0
-    dprint_ln("a > c: %s", (a > c).reveal())  # 1
-    dprint_ln("c > a: %s", (c > a).reveal())  # 0
-    dprint_ln("a < d: %s", (a < d).reveal())  # 1
-    dprint_ln("d > a: %s", (d > a).reveal())  # 1
-    dprint_ln("d == a: %s", (d == a).reveal())  # 0
-    dprint_ln("c < b: %s", (c < b).reveal())  # 1
-    dprint_ln("b < c: %s", (b < c).reveal())  # 0
-    dprint_ln("b > c: %s", (b > c).reveal())  # 1
-    dprint_ln("b == c: %s", (b == c).reveal())  # 0
+    dprint("a < a: %s", (a < a).reveal())  # 0
+    dprint_ln(", expected output: 0")
+    dprint("a > a: %s", (a > a).reveal())  # 0
+    dprint_ln(", expected output: 0")
+    dprint("a == a: %s", (a == a).reveal())  # 1
+    dprint_ln(", expected output: 1")
+    dprint("a <= a: %s", (a <= a).reveal())  # 1
+    dprint_ln(", expected output: 1")
+    dprint("a >= a: %s", (a >= a).reveal())  # 1
+    dprint_ln(", expected output: 1")
+    dprint("a < b: %s", (a < b).reveal())  # 0
+    dprint_ln(", expected output: 0")
+    dprint("a == b: %s", (a == b).reveal())  # 0
+    dprint_ln(", expected output: 0")
+    dprint("b < a: %s", (b < a).reveal())  # 1
+    dprint_ln(", expected output: 1")
+    dprint("b > a: %s", (b > a).reveal())  # 0
+    dprint_ln(", expected output: 0")
+    dprint("a < c: %s", (a < c).reveal())  # 0
+    dprint_ln(", expected output: 0")
+    dprint("a == c: %s", (a == c).reveal())  # 0
+    dprint_ln(", expected output: 0")
+    dprint("a > c: %s", (a > c).reveal())  # 1
+    dprint_ln(", expected output: 1")
+    dprint("c > a: %s", (c > a).reveal())  # 0
+    dprint_ln(", expected output: 0")
+    dprint("a < d: %s", (a < d).reveal())  # 1
+    dprint_ln(", expected output: 1")
+    dprint("d > a: %s", (d > a).reveal())  # 1
+    dprint_ln(", expected output: 1")
+    dprint("d == a: %s", (d == a).reveal())  # 0
+    dprint_ln(", expected output: 0")
+    dprint("c < b: %s", (c < b).reveal())  # 1
+    dprint_ln(", expected output: 1")
+    dprint("b < c: %s", (b < c).reveal())  # 0
+    dprint_ln(", expected output: 0")
+    dprint("b > c: %s", (b > c).reveal())  # 1
+    dprint_ln(", expected output: 1")
+    dprint("b == c: %s", (b == c).reveal())  # 0
+    dprint_ln(", expected output: 0")
 
     # MemValues
-    dprint_ln("e < f: %s", (e < f).reveal())  # 0
-    dprint_ln("f < e: %s", (f < e).reveal())  # 1
-    dprint_ln("e == f: %s", (e == f).reveal())  # 0
+    dprint("e < f: %s", (e < f).reveal())  # 0
+    dprint_ln(", expected output: 0")
+    dprint("f < e: %s", (f < e).reveal())  # 1
+    dprint_ln(", expected output: 1")
+    dprint("e == f: %s", (e == f).reveal())  # 0
+    dprint_ln(", expected output: 0")
 
     # MemValues and basic types
-    dprint_ln("e < a: %s", (e < a).reveal())  # 1
+    dprint("e < a: %s", (e < a).reveal())  # 1
+    dprint_ln(", expected output: 1")
