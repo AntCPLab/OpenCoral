@@ -766,8 +766,19 @@ int FakeParams::generate()
   make_edabits<T>(keyp, nplayers, default_num, zero, false_type(), keytt);
 
   if (T::clear::prime_field)
-    make_with_mac_key<MamaShare<typename T::clear, 1>>(nplayers, default_num,
-        zero, keytt);
+    {
+      int n_macs = DIV_CEIL(DEFAULT_SECURITY, T::clear::length() - 1);
+      n_macs = 1 << int(ceil(log2(n_macs)));
+      if (n_macs > 4)
+          n_macs = 10;
+
+#define X(N) if (N == n_macs) \
+  make_with_mac_key<MamaShare<typename T::clear, N>>(nplayers, \
+    default_num, zero, keytt);
+
+      X(1) X(2) X(4) X(10)
+#undef X
+    }
 
   if (nplayers > 2)
     {
