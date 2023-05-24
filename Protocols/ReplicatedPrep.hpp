@@ -309,13 +309,15 @@ void BufferPrep<T>::buffer_inverses(true_type)
 template<class T>
 void BufferPrep<T>::get_two_no_count(Dtype dtype, T& a, T& b)
 {
-    InScope in_scope(this->do_count, false, *this);
     switch (dtype)
     {
     case DATA_SQUARE:
     {
         if (squares.empty())
+        {
+            InScope in_scope(this->do_count, false, *this);
             buffer_squares();
+        }
 
         a = squares.back()[0];
         b = squares.back()[1];
@@ -325,7 +327,10 @@ void BufferPrep<T>::get_two_no_count(Dtype dtype, T& a, T& b)
     case DATA_INVERSE:
     {
         while (inverses.empty())
+        {
+            InScope in_scope(this->do_count, false, *this);
             buffer_inverses();
+        }
 
         a = inverses.back()[0];
         b = inverses.back()[1];
@@ -1121,12 +1126,14 @@ void BufferPrep<T>::get_one_no_count(Dtype dtype, T& a)
 template<class T>
 void BufferPrep<T>::get_input_no_count(T& a, typename T::open_type& x, int i)
 {
-    InScope in_scope(this->do_count, false, *this);
     (void) a, (void) x, (void) i;
     if (inputs.size() <= (size_t)i)
         inputs.resize(i + 1);
     if (inputs.at(i).empty())
+    {
+        InScope in_scope(this->do_count, false, *this);
         buffer_inputs(i);
+    }
     a = inputs[i].back().share;
     x = inputs[i].back().value;
     inputs[i].pop_back();
