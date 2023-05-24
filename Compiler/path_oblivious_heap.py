@@ -1,6 +1,29 @@
-"""This module contains a basic implementation of the Path Oblivious Heap'
+"""This module contains an implementation of the Path Oblivious Heap'
 oblivious priority queue as proposed by 
 `Shi <https://eprint.iacr.org/2019/274.pdf>`.
+
+Path Oblivious Heap comes in two variants that build on either Path ORAM
+or Circuit ORAM. Both variants support inserting an element and extracting
+the element with the highest priority in time `O(max(log(n) + s, e))` where `n`
+is the queue capacity, `s` is the ORAM stash size, and `e` is the ORAM eviction
+complexity. Assuming `s = O(1)` and `e = O(log(n))`, the operations are in O(log n).
+Currently, only the Path ORAM variant is implemented and tested (the `PathObliviousHeap`).
+However, the structure is laid out for the circuit variant, so it should primarily
+be a matter of reusing the Circuit ORAM eviction the right way.
+
+Furthermore, the `UniquePathObliviousHeap` class implements an `update(value, priority)`
+operation that is comparable to that of `HeapQ` from `dijkstra.py`, in that it ensures
+that every value inserted in the queue is unique, and if `update(value, priority)` is called
+with a value that is already in the queue, the priority of that value is updated to be equal
+to the new priority.
+
+The following benchmark compares the online time of updating an element in `HeapQ` on top of Path
+ORAM and updating an element in `UniquePathObliviousHeap` on top of Path ORAM. `PathObliviousHeap`
+indeed seems to outperform HeapQ from around `n = 2^4`.
+
+(The subtitle indicating that the benchmark is run with 1 thread and 1 parallel loop body is probably
+not true. I haven't been able to locate all the places in `PathORAM` where multithreading is used and
+don't know of any easy way to completely disable parallelism and multithreading when running benchmarks.)
 """
 
 from __future__ import annotations
