@@ -1,29 +1,26 @@
-"""This module contains an implementation of the Path Oblivious Heap'
+"""This module contains an implementation of the "Path Oblivious Heap"
 oblivious priority queue as proposed by 
-`Shi <https://eprint.iacr.org/2019/274.pdf>`.
+`Shi <https://eprint.iacr.org/2019/274.pdf>`_.
 
 Path Oblivious Heap comes in two variants that build on either Path ORAM
 or Circuit ORAM. Both variants support inserting an element and extracting
-the element with the highest priority in time `O(max(log(n) + s, e))` where `n`
-is the queue capacity, `s` is the ORAM stash size, and `e` is the ORAM eviction
-complexity. Assuming `s = O(1)` and `e = O(log(n))`, the operations are in O(log n).
-Currently, only the Path ORAM variant is implemented and tested (the `PathObliviousHeap`).
-However, the structure is laid out for the circuit variant, so it should primarily
-be a matter of reusing the Circuit ORAM eviction the right way.
+the element with the highest priority in time :math:`O(\max(\log(n) + s, e))` where :math:`n`
+is the queue capacity, :math:`s` is the ORAM stash size, and :math:`e` is the ORAM eviction
+complexity. Assuming :math:`s = O(1)` and :math:`e = O(\log(n))`, the operations are in :math:`O(\log n)`.
+Currently, only the Path ORAM variant is implemented and tested (the :py:class:`PathObliviousHeap`).
 
-Furthermore, the `UniquePathObliviousHeap` class implements an `update(value, priority)`
-operation that is comparable to that of `HeapQ` from `dijkstra.py`, in that it ensures
-that every value inserted in the queue is unique, and if `update(value, priority)` is called
+Furthermore, the :py:class:`UniquePathObliviousHeap` class implements an :py:func:`~UniquePathObliviousHeap.update`
+operation that is comparable to that of :py:class:`HeapQ` from :py:mod:`dijkstra`, in that it ensures
+that every value inserted in the queue is unique, and if :py:func:`~UniquePathObliviousHeap.update` is called
 with a value that is already in the queue, the priority of that value is updated to be equal
 to the new priority.
 
-The following benchmark compares the online time of updating an element in `HeapQ` on top of Path
-ORAM and updating an element in `UniquePathObliviousHeap` on top of Path ORAM. `PathObliviousHeap`
-indeed seems to outperform HeapQ from around `n = 2^4`.
+The following benchmark compares the online time of updating an element in :py:class:`HeapQ` on top of Path
+ORAM and updating an element in :py:class:`UniquePathObliviousHeap` on top of Path ORAM. :py:class:`PathObliviousHeap`
+indeed seems to outperform HeapQ from around :math:`n = 2^4`.
 
-(The subtitle indicating that the benchmark is run with 1 thread and 1 parallel loop body is probably
-not true. I haven't been able to locate all the places in `PathORAM` where multithreading is used and
-don't know of any easy way to completely disable parallelism and multithreading when running benchmarks.)
+.. image:: poh-graph.png
+
 """
 
 from __future__ import annotations
@@ -881,7 +878,7 @@ class PathObliviousHeap(AbstractMinPriorityQueue[_secret]):
     with negligible error probability.
 
     If inserting more entries than there is capacity for,
-    the behavior depends on the value of the flag `oram.crash_on_overflow`.
+    the behavior depends on the value of the flag :py:obj:`oram.crash_on_overflow`.
     If the flag is set, the program crashes. Otherwise, the entry is simply
     not inserted.
 
@@ -1169,14 +1166,14 @@ class POHToHeapQAdapter(PathObliviousHeap):
         )
 
     def update(self, value, priority, for_real=True):
-        """Call insert instead of update.
+        """Call :py:func:`insert` instead of update.
         Warning: When using this adapter, duplicate values are
         allowed to be inserted, and no values are ever updated.
         """
         self.insert(value, priority, fake=(1 - for_real))
 
     def pop(self, for_real=True):
-        """Renaming of pop to extract_min."""
+        """Renaming of pop to :py:func:`extract_min`."""
         return self.extract_min(fake=(1 - for_real))
 
 
@@ -1218,7 +1215,7 @@ class UniquePOHToHeapQAdapter(UniquePathObliviousHeap):
         super().update(value, priority, fake=(1 - for_real))
 
     def pop(self, for_real=True):
-        """Renaming of pop to extract_min."""
+        """Renaming of pop to :py:func:`extract_min`."""
         return self.extract_min(fake=(1 - for_real))
 
     def insert(self, value, priority, for_real=True) -> None:

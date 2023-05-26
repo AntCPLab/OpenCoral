@@ -8,8 +8,11 @@ from functools import reduce
 
 #import pdb
 
-prog = program.Program.prog
-prog.set_bit_length(min(64, prog.bit_length))
+try:
+    prog = program.Program.prog
+    prog.set_bit_length(min(64, prog.bit_length))
+except AttributeError:
+    pass
 
 class Counter(object):
     def __init__(self, val=0, max_val=None, size=None, value_type=sgf2n):

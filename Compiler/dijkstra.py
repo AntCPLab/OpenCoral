@@ -4,8 +4,11 @@ from Compiler.program import Program
 
 ORAM = OptimalORAM
 
-prog = program.Program.prog
-prog.set_bit_length(min(64, prog.bit_length))
+try:
+    prog = program.Program.prog
+    prog.set_bit_length(min(64, prog.bit_length))
+except AttributeError:
+    pass
 
 class HeapEntry(object):
     fields = ['empty', 'prio', 'value']

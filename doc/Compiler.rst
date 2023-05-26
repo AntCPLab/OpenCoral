@@ -132,6 +132,18 @@ Compiler.sqrt_oram module
 		     refresh, shuffle_the_shuffle
 
 
+Compiler.path_oblivious_heap module
+-----------------------------------
+
+.. automodule:: Compiler.path_oblivious_heap
+   :members:
+   :no-undoc-members:
+   :inherited-members:
+   :exclude-members: AbstractMinPriorityQueue, BasicMinTree, CircuitMinTree,
+		     EmptyIndexStructure, POHVariant, PathMinTree, dprint,
+		     dprint_ln, dprint_ln_if, dprint_str, indent, outdent,
+
+
 Compiler.sorting module
 -----------------------
 .. automodule:: Compiler.sorting
