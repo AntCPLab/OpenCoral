@@ -47,9 +47,11 @@ class HeapEntry(object):
         print_ln('empty %s, prio %s, value %s', *(reveal(x) for x in self))
 
 class HeapORAM(object):
-    def __init__(self, size, oram_type, init_rounds, int_type):
+    def __init__(self, size, oram_type, init_rounds, int_type, entry_size=None):
+        if entry_size is None:
+            entry_size = (32,log2(size))
         self.int_type = int_type
-        self.oram = oram_type(size, entry_size=(32,log2(size)), \
+        self.oram = oram_type(size, entry_size=entry_size, \
                                   init_rounds=init_rounds, \
                                   value_type=int_type.basic_type)
     def __getitem__(self, index):
@@ -74,13 +76,15 @@ class HeapORAM(object):
         return len(self.oram)
 
 class HeapQ(object):
-    def __init__(self, max_size, oram_type=ORAM, init_rounds=-1, int_type=sint):
+    def __init__(self, max_size, oram_type=ORAM, init_rounds=-1, int_type=sint, entry_size=None):
+        if entry_size is None:
+            entry_size = (32, log2(max_size))
         basic_type = int_type.basic_type
         self.max_size = max_size
         self.levels = log2(max_size)
         self.depth = self.levels - 1
-        self.heap = HeapORAM(2**self.levels, oram_type, init_rounds, int_type)
-        self.value_index = oram_type(max_size, entry_size=log2(max_size), \
+        self.heap = HeapORAM(2**self.levels, oram_type, init_rounds, int_type, entry_size=entry_size)
+        self.value_index = oram_type(max_size, entry_size=entry_size[1], \
                                          init_rounds=init_rounds, \
                                          value_type=basic_type)
         self.size = MemValue(int_type(0))
