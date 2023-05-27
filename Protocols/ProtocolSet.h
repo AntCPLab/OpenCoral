@@ -59,11 +59,10 @@ public:
 template<class T>
 class BinaryProtocolSet
 {
+public:
     DataPositions usage;
     typename T::LivePrep prep;
     GC::ShareThread<T> thread;
-
-public:
     typename T::MAC_Check& output;
     typename T::Protocol& protocol;
     typename T::Input input;
@@ -77,6 +76,7 @@ public:
                     setup.get_mac_key()), output(*thread.MC), protocol(
                     *thread.protocol), input(output, prep, P)
     {
+        thread.MC->get_part_MC().set_prep(prep.get_part());
     }
 
     /**
@@ -84,8 +84,11 @@ public:
      */
     void check()
     {
+        std::cout << "start checking" << std::endl;
         protocol.check();
+        std::cout << "protocol is checked" << std::endl;
         output.Check(protocol.P);
+        std::cout << "output is checked" << std::endl;
     }
 };
 

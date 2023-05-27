@@ -60,6 +60,7 @@ void TinierSharePrep<T>::set_protocol(typename T::Protocol& protocol)
 template<class T>
 void TinierSharePrep<T>::buffer_triples()
 {
+    std::cout << "TinierShare prep buffer triples. input_player: " << this->input_player << ", SECURE: " << this->SECURE << std::endl;
     if (this->input_player != this->SECURE)
     {
         this->buffer_personal_triples();

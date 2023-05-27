@@ -133,7 +133,9 @@ template<class T, class U, class V, class W>
 class MAC_Check_Z2k : public Tree_MAC_Check<W>
 {
 protected:
-  Preprocessing<W>* prep;
+  // This is a difference wrt MAC_CHECK_ who does NOT need this field. It is also why Tiny party fails running, because this 
+  // field is not set anywhere. Tiny party use this class as the `part_MC`, while Tinier use MAC_CHECK_ as the `part_MC`.
+  Preprocessing<W>* prep; 
 
   W get_random_element();
 

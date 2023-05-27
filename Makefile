@@ -115,7 +115,7 @@ else
 tldr: mpir linux-machine-setup
 endif
 
-tldr: libote
+tldr: libote libntl
 	$(MAKE) mascot-party.x
 	mkdir Player-Data 2> /dev/null; true
 
@@ -384,21 +384,54 @@ endif
 deps/ntl/ntl:
 	git submodule update --init deps/ntl || git clone https://github.com/libntl/ntl.git deps/ntl
 
-local/lib/libntl.a: deps/ntl/ntl
+local/lib/libntl.so: deps/ntl/ntl
 	cd deps/ntl/src; \
-	./configure NTL_GMP_LIP=on PREFIX=$(CURDIR)/local NATIVE=$(NTL_NATIVE)
+	./configure NTL_GMP_LIP=on PREFIX=$(CURDIR)/local NATIVE=$(NTL_NATIVE) SHARED=on
 	$(MAKE) -C deps/ntl/src -j8
 # 	$(MAKE) -C deps/ntl/src check
 	$(MAKE) -C deps/ntl/src install
 
 libntl:
-	$(MAKE) local/lib/libntl.a
+	$(MAKE) local/lib/libntl.so
+
+
+# Include EMP
+
+deps/emp/emp-tool:
+	git submodule update --init deps/emp-tool || git clone https://github.com/emp-toolkit/emp-tool.git deps/emp-tool
+
+local/lib/libemp-tool.so: deps/emp/emp-tool
+	cd deps/emp-tool/; \
+	cmake -DCMAKE_INSTALL_PREFIX=$(CURDIR)/local/ .
+	$(MAKE) -C deps/emp-tool -j4
+	$(MAKE) -C deps/emp-tool install
+
+libemp-tool:
+	$(MAKE) local/lib/libemp-tool.so
+
+deps/emp/emp-ot:
+	git submodule update --init deps/emp-ot || git clone https://github.com/emp-toolkit/emp-ot.git deps/emp-ot
+
+libemp-ot: deps/emp/emp-ot
+	cd deps/emp-ot/; \
+	cmake -DCMAKE_INSTALL_PREFIX=$(CURDIR)/local/ .
+	$(MAKE) -C deps/emp-ot -j4
+	$(MAKE) -C deps/emp-ot install
 
 
 mfe = Math/mfe.o
 
 test_mfe: USE_NTL = 1 
 test_mfe: test/test_mfe.o $(mfe)
+	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
+
+test_tinyot: test/test_tinyot.o
+	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
+
+test_spdz2k_offline: test/test_spdz2k_offline.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE)
+	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
+
+test_spdz2k_offline_binary: test/test_spdz2k_offline_binary.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE) GC/PostSacriBin.o $(GC_SEMI) GC/AtlasSecret.o
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
 
 zico: target1

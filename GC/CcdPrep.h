@@ -49,6 +49,7 @@ public:
         this->triples.push_back({});
         for (auto& x : this->triples.back())
             x.resize_regs(T::default_length);
+        std::cout << "CCD prep buffer triples" << std::endl;
         for (int i = 0; i < T::default_length; i++)
         {
             auto triple = part_prep.get_triple(1);

@@ -19,3 +19,9 @@
 [submodule "deps/ntl"]
 	path = deps/ntl
 	url = https://github.com/libntl/ntl.git
+[submodule "deps/emp-tool"]
+	path = deps/emp-tool
+	url = https://github.com/emp-toolkit/emp-tool.git
+[submodule "deps/emp-ot"]
+	path = deps/emp-ot
+	url = https://github.com/emp-toolkit/emp-ot.git

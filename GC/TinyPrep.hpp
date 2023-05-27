@@ -27,6 +27,7 @@ void TinierSharePrep<T>::init_real(Player& P)
 template<class T>
 void TinierSharePrep<T>::buffer_secret_triples()
 {
+    std::cout << "TinierShare buffer secret triples" << std::endl;
     auto& thread = ShareThread<secret_type>::s();
     auto& triple_generator = real_triple_generator;
     assert(triple_generator != 0);
@@ -66,12 +67,15 @@ void TinierSharePrep<T>::buffer_secret_triples()
             }
         }
     }
+    std::cout << "TinierShare buffer secret triples: before sacrifice" << std::endl;
     sacrifice.triple_sacrifice(triples, triples,
             *thread.P, thread.MC->get_part_MC());
+    std::cout << "TinierShare buffer secret triples: before combine" << std::endl;
     sacrifice.triple_combine(triples, triples, *thread.P,
             thread.MC->get_part_MC());
     for (auto& triple : triples)
         this->triples.push_back(triple);
+    std::cout << "Tinier buffer secret triples. Required: " << required << ", Final: " << triples.size() << std::endl;
 }
 
 } /* namespace GC */

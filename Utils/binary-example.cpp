@@ -51,6 +51,8 @@ int main(int argc, char** argv)
 
     if (protocol == "Tinier")
         run<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
+    else if (protocol == "Tiny")
+        run<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
     else if (protocol == "Rep3")
         run<GC::SemiHonestRepSecret>(argc, argv);
     else if (protocol == "Rep4")
@@ -96,7 +98,7 @@ void run(int argc, char** argv)
     int n_parties = atoi(argv[2]);
     int port_base = 9999;
     Names N(my_number, n_parties, "localhost", port_base);
-    CryptoPlayer P(N);
+    PlainPlayer P(N);
 
     // protocol setup (domain, MAC key if needed etc)
     BinaryProtocolSetup<T> setup(P);

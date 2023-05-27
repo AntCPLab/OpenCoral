@@ -151,7 +151,9 @@ void TripleShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
         check_triples.pop_back();
     }
     vector<typename T::open_type> opened;
+    std::cout << "Sacrifice: before MC.POpen" << std::endl;
     MC.POpen(opened, shares, P);
+    std::cout << "Sacrifice: after MC.POpen" << std::endl;
     for (int i = 0; i < C; i++)
         if (typename T::clear(opened[3 * i] * opened[3 * i + 1]) != opened[3 * i + 2])
             throw Offline_Check_Error("shuffle opening");
