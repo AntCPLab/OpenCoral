@@ -138,9 +138,14 @@ void ShareThread<T>::andrsvec(Processor<T>& processor, const vector<int>& args)
     T x_ext, y_ext;
     while (it < args.end())
     {
-        int n_args = (*it++ - 3) / 2;
+        // [zico] The logic of -3 then / 2: 
+        // The is how the args are storing things:
+        // (#total_args)(size){n result args}(1 right arg){n left args}
+        // where `#total_args` includes the total number of arguments, including itself.
+        // Hence n = (#total_args - 3) / 2, the '3' represents the `int` for #total_args, size, and 1 right arg
+        int n_args = (*it++ - 3) / 2;  
         int size = *it++;
-        it += n_args;
+        it += n_args;  // Skip the result part
         int base = *it++;
         assert(n_args <= N_BITS);
         for (int i = 0; i < size; i += N_BITS)
