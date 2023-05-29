@@ -39,6 +39,7 @@ void RepPrep<T>::set_protocol(typename T::Protocol& protocol)
         return;
 
     this->protocol = new ReplicatedBase(protocol.P);
+    this->P = &protocol.P;
 }
 
 template<class T>

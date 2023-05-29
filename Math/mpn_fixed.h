@@ -6,7 +6,7 @@
 #ifndef MATH_MPN_FIXED_H_
 #define MATH_MPN_FIXED_H_
 
-#include <mpir.h>
+#include <gmp.h>
 #include <string.h>
 #include <assert.h>
 

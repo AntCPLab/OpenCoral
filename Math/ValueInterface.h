@@ -7,6 +7,7 @@
 #define MATH_VALUEINTERFACE_H_
 
 #include "Tools/Exceptions.h"
+#include "Math/Setup.h"
 
 class OnlineOptions;
 class bigint;
@@ -31,9 +32,10 @@ public:
     template<class T>
     static void generate_setup(string, int, int) {}
     template<class T>
-    static void write_setup(int) {}
+    static void write_setup(int nplayers) { get_prep_sub_dir<T>(nplayers, true); }
     static void write_setup(string) {}
-    static void check_setup(string) {}
+    static void check_setup(const string& directory);
+    static const char* fake_opts() { return ""; }
 
     static bigint pr() { throw runtime_error("no prime modulus"); }
 

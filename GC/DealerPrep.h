@@ -26,6 +26,7 @@ public:
     void set_protocol(DealerSecret::Protocol& protocol)
     {
         P = &protocol.P;
+        BufferPrep<DealerSecret>::P = P;
     }
 
     void buffer_triples()

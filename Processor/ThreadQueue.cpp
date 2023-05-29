@@ -6,6 +6,8 @@
 
 #include "ThreadQueue.h"
 
+thread_local ThreadQueue* ThreadQueue::thread_queue = 0;
+
 void ThreadQueue::schedule(const ThreadJob& job)
 {
     lock.lock();
@@ -14,7 +16,11 @@ void ThreadQueue::schedule(const ThreadJob& job)
         cerr << this << ": " << left << " left" << endl;
 #endif
     lock.unlock();
+    if (thread_queue)
+        thread_queue->wait_timer.start();
     in.push(job);
+    if (thread_queue)
+        thread_queue->wait_timer.stop();
 }
 
 ThreadJob ThreadQueue::next()
@@ -42,7 +48,11 @@ void ThreadQueue::set_comm_stats(const NamedCommStats& new_comm_stats)
 
 ThreadJob ThreadQueue::result()
 {
+    if (thread_queue)
+        thread_queue->wait_timer.start();
     auto res = out.pop();
+    if (thread_queue)
+        thread_queue->wait_timer.stop();
     lock.lock();
     left--;
 #ifdef DEBUG_THREAD_QUEUE

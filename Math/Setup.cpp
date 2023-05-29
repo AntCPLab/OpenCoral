@@ -160,13 +160,13 @@ void check_setup(string dir, bigint pr)
 }
 
 string get_prep_sub_dir(const string& prep_dir, int nparties, int log2mod,
-        const string& type_short)
+        const string& type_short, bool create)
 {
   string res = prep_dir + "/" + to_string(nparties) + "-" + type_short;
   if (log2mod > 1)
     res += "-" + to_string(log2mod);
   res += "/";
-  if (mkdir_p(res.c_str()) < 0)
+  if (create and mkdir_p(res.c_str()) < 0)
     throw file_error("cannot create " + res);
   return res;
 }

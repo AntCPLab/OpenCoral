@@ -49,6 +49,7 @@ template<class T> void generate_prime_setup(string, int, int);
  * ``L`` is the number of 64-bit limbs, that is,
  * the prime has to have bit length in `[64*L-63, 64*L]`.
  * See ``gfpvar_`` for a more flexible alternative.
+ * Convert to ``bigint`` to access the canonical integer representation.
  */
 template<int X, int L>
 class gfp_ : public ValueInterface
@@ -104,6 +105,7 @@ class gfp_ : public ValueInterface
   static void write_setup(string dir)
     { write_online_setup(dir, pr()); }
   static void check_setup(string dir);
+  static string fake_opts() { return " -lgp " + to_string(length()); }
 
   /**
    * Get the prime modulus
@@ -185,7 +187,7 @@ class gfp_ : public ValueInterface
   bool operator!=(const gfp_& y) const { return !equal(y); }
 
   // x+y
-  void add(octetStream& os)
+  void add(octetStream& os, int = -1)
     { add(os.consume(size())); }
   void add(const gfp_& x,const gfp_& y)
     { ZpD.Add<L>(a.x,x.a.x,y.a.x); }
@@ -313,6 +315,8 @@ gfp_<X, L>::gfp_(long x)
 {
   if (x == 0)
     assign_zero();
+  else if (x == 1)
+    assign_one();
   else
     *this = bigint::tmp = x;
 }

@@ -52,9 +52,18 @@ inline size_t send_non_blocking(int socket, octet* msg, size_t len)
 inline void send(int socket,octet *msg,size_t len)
 {
   size_t i = 0;
+  long wait = 1;
   while (i < len)
     {
-      i += send_non_blocking(socket, msg + i, len - i);
+      size_t j = send_non_blocking(socket, msg + i, len - i);
+      i += j;
+      if (i > 0)
+	wait = 1;
+      else
+	{
+	  usleep(wait);
+	  wait *= 2;
+	}
     }
 }
 
@@ -107,7 +116,7 @@ inline void receive(T& socket, size_t& a, size_t len)
   a = decode_length(blen, len);
 }
 
-inline size_t check_non_blocking_result(int res)
+inline ssize_t check_non_blocking_result(ssize_t res)
 {
   if (res < 0)
     {
@@ -118,15 +127,15 @@ inline size_t check_non_blocking_result(int res)
   return res;
 }
 
-inline size_t receive_non_blocking(int socket,octet *msg,int len)
+inline ssize_t receive_non_blocking(int socket, octet *msg, size_t len)
 {
-  int res = recv(socket, msg, len, MSG_DONTWAIT);
+  ssize_t res = recv(socket, msg, len, MSG_DONTWAIT);
   return check_non_blocking_result(res);
 }
 
-inline size_t receive_all_or_nothing(int socket,octet *msg,int len)
+inline ssize_t receive_all_or_nothing(int socket, octet *msg, ssize_t len)
 {
-  int res = recv(socket, msg, len, MSG_DONTWAIT | MSG_PEEK);
+  ssize_t res = recv(socket, msg, len, MSG_DONTWAIT | MSG_PEEK);
   check_non_blocking_result(res);
   if (res == len)
     {

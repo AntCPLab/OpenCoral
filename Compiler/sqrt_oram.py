@@ -764,9 +764,8 @@ class LinearPositionMap(PositionMap):
         # We only need once, so we pick the first one we find
         @lib.for_range_opt(self.n)
         def _(i):
-            nonlocal done
             self.physical_demux[i] &= done.bit_not()
-            done |= self.physical_demux[i]
+            done.update(done | self.physical_demux[i])
 
         # Retrieve the value from the physical memory obliviously
         @lib.map_sum_opt(get_n_threads(self.n), self.n, [self.value_type])

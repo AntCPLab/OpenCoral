@@ -11,6 +11,8 @@ DealerMatrixPrep<T>::DealerMatrixPrep(int n_rows, int n_inner, int n_cols,
         super(usage), n_rows(n_rows), n_inner(n_inner), n_cols(n_cols),
         prep(&prep)
 {
+    assert(prep.proc);
+    this->P = &prep.proc->P;
 }
 
 template<class T>
@@ -49,7 +51,7 @@ void DealerMatrixPrep<T>::buffer_triples()
     vector<bool> senders(P.num_players());
     senders.back() = true;
     octetStreams os(P), to_receive(P);
-    int batch_size = 100;
+    int batch_size = min(100, OnlineOptions::singleton.batch_size);
     if (not T::real_shares(P))
     {
         SeededPRNG G;

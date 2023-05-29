@@ -11,9 +11,10 @@ elif test `uname` = Darwin; then
 	    echo Aborting
 	    exit 1
 	else
-	    /usr/bin/env ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+	    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 	fi
     fi
+    make mac-setup
     make tldr
 else
     echo OS unknown

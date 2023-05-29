@@ -4,7 +4,6 @@
 #include "FHE/Ring.h"
 #include "FHE/FFT_Data.h"
 #include "FHE/P2Data.h"
-#include "FHE/PPData.h"
 #include "FHE/FHE_Params.h"
 
 /* Routines to set up key sizes given the number of players n
@@ -67,10 +66,6 @@ class GF2X;
 }
 
 NTL::GF2X get_F(const Ring& Rg);
-
-// For use when we want p to be a specific value 
-void SPDZ_Data_Setup_Char_p_General(Ring& R, PPData& PPD, bigint& pr0,
-    bigint& pr1, int n, int sec, bigint& p, FHE_Params& params);
 
 // generate moduli according to lengths and other parameters
 void generate_moduli(bigint& pr0, bigint& pr1, const int m,

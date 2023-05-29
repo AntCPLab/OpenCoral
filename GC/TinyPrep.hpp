@@ -67,10 +67,8 @@ void TinierSharePrep<T>::buffer_secret_triples()
             }
         }
     }
-    std::cout << "TinierShare buffer secret triples: before sacrifice" << std::endl;
     sacrifice.triple_sacrifice(triples, triples,
             *thread.P, thread.MC->get_part_MC());
-    std::cout << "TinierShare buffer secret triples: before combine" << std::endl;
     sacrifice.triple_combine(triples, triples, *thread.P,
             thread.MC->get_part_MC());
     for (auto& triple : triples)

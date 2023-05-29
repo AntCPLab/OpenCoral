@@ -3,7 +3,7 @@
  *
  */
 
-#include <mpirxx.h>
+#include <gmpxx.h>
 
 #include "OT/BitMatrix.h"
 #include "Tools/random.h"

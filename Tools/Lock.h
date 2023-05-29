@@ -19,4 +19,21 @@ public:
     void unlock();
 };
 
+class ScopeLock
+{
+    Lock& lock;
+
+public:
+    ScopeLock(Lock& lock) :
+            lock(lock)
+    {
+        lock.lock();
+    }
+
+    ~ScopeLock()
+    {
+        lock.unlock();
+    }
+};
+
 #endif /* TOOLS_LOCK_H_ */

@@ -4,7 +4,7 @@ import Compiler.ml as tf
 try:
     n_epochs = int(program.args[1])
 except (ValueError, IndexError):
-    n_epochs = 10
+    n_epochs = 20
 
 try:
     batch_size = int(program.args[2])

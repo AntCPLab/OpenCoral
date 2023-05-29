@@ -13,6 +13,7 @@
 #include "Protocols/ShuffleSacrifice.h"
 #include "Protocols/MAC_Check_Base.h"
 #include "Protocols/ShuffleSacrifice.h"
+#include "Tools/TimerWithComm.h"
 #include "edabit.h"
 
 #include <array>
@@ -33,6 +34,8 @@ class BufferPrep : public Preprocessing<T>
 {
     template<class U, class V> friend class Machine;
 
+    friend class InScope;
+
     template<int>
     void buffer_inverses(true_type);
     template<int>
@@ -49,9 +52,13 @@ protected:
 
     vector<dabit<T>> dabits;
 
+    map<pair<bool, int>, vector<edabitvec<T>>> edabits;
+    map<pair<bool, int>, edabitvec<T>> my_edabits;
+
     int n_bit_rounds;
 
     SubProcessor<T>* proc;
+    Player* P;
 
     virtual void buffer_triples() { throw runtime_error("no triples"); }
     virtual void buffer_squares() { throw runtime_error("no squares"); }
@@ -109,6 +116,9 @@ public:
             int vector_size);
 
     virtual void get_dabit_no_count(T& a, typename T::bit_type& b);
+
+    edabitvec<T> get_edabitvec(bool strict, int n_bits);
+    void get_edabit_no_count(bool strict, int n_bits, edabit<T>& eb);
 
     /// Get fresh random value
     virtual T get_random();

@@ -212,6 +212,10 @@ void TripleMachine::run()
                 generators[i] = new_generator<Spdz2kShare<66, 64>>(setup, i, mac_keyz);
             else if (z2k == 66 and z2s == 48)
                 generators[i] = new_generator<Spdz2kShare<66, 48>>(setup, i, mac_keyz);
+#ifdef RING_SIZE
+            else if (z2k == RING_SIZE and z2s == SPDZ2K_DEFAULT_SECURITY)
+                generators[i] = new_generator<Spdz2kShare<RING_SIZE, SPDZ2K_DEFAULT_SECURITY>>(setup, i, mac_keyz);
+#endif
             else
                 throw runtime_error("not compiled for k=" + to_string(z2k) + " and s=" + to_string(z2s));
         }

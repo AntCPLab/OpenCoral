@@ -94,7 +94,7 @@ protected:
   friend void mul(Rq_Element& ans,const Rq_Element& a,const Rq_Element& b);
   friend void mul(Rq_Element& ans,const Rq_Element& a,const bigint& b);
 
-  void add(octetStream& os);
+  void add(octetStream& os, int = -1);
 
   template<class S>
   Rq_Element& operator+=(const vector<S>& other);
@@ -157,8 +157,8 @@ protected:
    *   For unpack we assume the prData for a0 and a1 has been assigned 
    *   correctly already
    */
-  void pack(octetStream& o) const;
-  void unpack(octetStream& o);
+  void pack(octetStream& o, int = -1) const;
+  void unpack(octetStream& o, int = -1);
 
   // without prior initialization
   void unpack(octetStream& o, const FHE_Params& params);

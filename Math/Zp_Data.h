@@ -38,6 +38,8 @@ class Zp_Data
   int         t;           // More Montgomery data
   mp_limb_t   overhang;
   Lock        lock;
+  mutable bigint shanks_y, shanks_q_half;
+  mutable int    shanks_r;
 
   template <int T>
   void Mont_Mult_(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const;
@@ -88,6 +90,8 @@ class Zp_Data
 
   bool operator!=(const Zp_Data& other) const;
   bool operator==(const Zp_Data& other) const;
+
+  void get_shanks_parameters(bigint& y, bigint& q_half, int& r) const;
 
    template<int L> friend void to_modp(modp_<L>& ans,int x,const Zp_Data& ZpD);
    template<int L> friend void to_modp(modp_<L>& ans,const mpz_class& x,const Zp_Data& ZpD);

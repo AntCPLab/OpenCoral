@@ -53,7 +53,7 @@ void Zp_Data::init(const bigint& p,bool mont)
       mpn_copyi(R3,r3.get_mpz_t()->_mp_d,mpz_size(r3.get_mpz_t()));
 
       if (sizeof(unsigned long)!=sizeof(mp_limb_t))
-	{ cout << "The underlying types of MPIR mean we cannot use our Montgomery code" << endl;
+	{ cout << "The underlying types of GMP mean we cannot use our Montgomery code" << endl;
           throw not_implemented();
         }
     }
@@ -193,4 +193,38 @@ bool Zp_Data::operator!=(const Zp_Data& other) const
 bool Zp_Data::operator==(const Zp_Data& other) const
 {
   return not (*this != other);
+}
+
+void Zp_Data::get_shanks_parameters(bigint& y, bigint& q_half, int& r) const
+{
+  if (shanks_y == 0)
+    {
+      auto& p = pr;
+      bigint n, q, yy, xx, temp;
+      // Find n such that (n/p)=-1
+      int leg = 1;
+      gmp_randclass Gen(gmp_randinit_default);
+      Gen.seed(0);
+      while (leg != -1)
+        {
+          n = Gen.get_z_range(p);
+          leg = mpz_legendre(n.get_mpz_t(), p.get_mpz_t());
+        }
+      // Split p-1 = 2^e q
+      q = p - 1;
+      int e = 0;
+      while (mpz_even_p(q.get_mpz_t()))
+        {
+          e++;
+          q = q / 2;
+        }
+      // y=n^q mod p, x=a^((q-1)/2) mod p, r=e
+      shanks_r = e;
+      mpz_powm(shanks_y.get_mpz_t(), n.get_mpz_t(), q.get_mpz_t(), p.get_mpz_t());
+      shanks_q_half = (q - 1) / 2;
+    }
+
+  y = shanks_y;
+  q_half = shanks_q_half;
+  r = shanks_r;
 }

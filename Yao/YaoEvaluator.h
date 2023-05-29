@@ -43,7 +43,7 @@ public:
 
 	YaoEvaluator(int thread_num, YaoEvalMaster& master);
 
-	bool continuous() { return master.continuous and master.machine.nthreads == 1; }
+	bool continuous() { return master.continuous; }
 
 	void pre_run();
 	void run(GC::Program& program);

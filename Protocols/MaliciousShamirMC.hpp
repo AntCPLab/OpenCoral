@@ -21,11 +21,7 @@ void MaliciousShamirMC<T>::init_open(const Player& P, int n)
         reconstructions.resize(2 * threshold + 2);
         for (int i = threshold + 1; i <= 2 * threshold + 1; i++)
         {
-            reconstructions[i].resize(i);
-            for (int j = 0; j < i; j++)
-                reconstructions[i][j] =
-                        Shamir<T>::get_rec_factor(P.get_player(j),
-                        P.num_players(), P.my_num(), i);
+            reconstructions[i] = ShamirMC<T>::get_reconstruction(P, i);
         }
     }
 

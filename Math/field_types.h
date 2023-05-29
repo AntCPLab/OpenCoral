@@ -17,6 +17,8 @@ enum Dtype
     DATA_INVERSE,
     DATA_DABIT,
     DATA_MIXED,
+    DATA_RANDOM,
+    DATA_OPEN,
     N_DTYPE,
 };
 

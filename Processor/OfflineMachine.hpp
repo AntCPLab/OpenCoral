@@ -111,7 +111,7 @@ void OfflineMachine<W>::generate()
                     dabit<T>(a, b).output(out, false);
                 }
             }
-            else
+            else if (not (i == DATA_RANDOM or i == DATA_OPEN))
             {
                 vector<T> tuple(DataPositions::tuple_size[i]);
                 for (long long j = 0;
@@ -127,9 +127,12 @@ void OfflineMachine<W>::generate()
             remove(filename.c_str());
     }
 
+    long additional_inputs = Sub_Data_Files<T>::additional_inputs(usage);
+
     for (int i = 0; i < P.num_players(); i++)
     {
-        auto n_inputs = usage.inputs[i][T::clear::field_type()];
+        auto n_inputs = usage.inputs[i][T::clear::field_type()]
+                + additional_inputs;
         string filename = Sub_Data_Files<T>::get_input_filename(playerNames, i, 0);
         if (n_inputs > 0)
         {
@@ -166,8 +169,10 @@ void OfflineMachine<W>::generate()
             {
                 ofstream out(filename, ios::binary);
                 file_signature<T>().output(out);
-                for (int i = 0; i < buffered_total(total, batch); i++)
-                    preprocessing.template get_edabitvec<0>(true, n_bits).output(n_bits,
+                auto& opts = OnlineOptions::singleton;
+                opts.batch_size = DIV_CEIL(opts.batch_size, batch) * batch;
+                for (int i = 0; i < buffered_total(total, batch) / batch; i++)
+                    preprocessing.get_edabitvec(true, n_bits).output(n_bits,
                             out);
             }
             else

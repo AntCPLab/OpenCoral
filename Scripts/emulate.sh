@@ -1,7 +1,9 @@
 #!/bin/bash
 
-. $(dirname $0)/run-common.sh
+dir="$(dirname $0)"
+. "$dir"/run-common.sh
 prog=${1%.sch}
 prog=${prog##*/}
 shift
-$prefix ./emulate.x $prog $* 2>&1 | tee logs/emulate-$prog
+mkdir logs 2> /dev/null
+$prefix "$dir"/../emulate.x $prog $* 2>&1 | tee logs/emulate-$prog

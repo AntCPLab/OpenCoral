@@ -17,6 +17,7 @@ class gf2n_short;
 class P2Data;
 class Bit;
 class int128;
+template<class T> class IntBase;
 template<class T> class Square;
 typedef Square<gf2n_short> gf2n_short_square;
 
@@ -84,9 +85,11 @@ protected:
 
   static int length()         { return n == 0 ? MAX_N_BITS : n; }
 
-  static bool allows(Dtype type) { (void) type; return true; }
+  static bool allows(Dtype type) { return type <= DATA_INVERSE; }
 
   static string options();
+
+  static string fake_opts() { return " -lg2 " + to_string(length()); }
 
   static const true_type invertible;
   static const true_type characteristic_two;
@@ -135,7 +138,7 @@ protected:
     { a=x.a^y.a; }  
   void add(octet* x)
     { a^=*(U*)(x); }
-  void add(octetStream& os)
+  void add(octetStream& os, int = -1)
     { add(os.consume(size())); }
   void sub(const gf2n_& x,const gf2n_& y)
     { a=x.a^y.a; }
@@ -191,9 +194,7 @@ protected:
     }
   friend istream& operator>>(istream& s,gf2n_& x)
     {
-      word tmp;
-      s >> hex >> tmp >> dec;
-      x = tmp;
+      x.input(s, true);
       return s;
     }
 

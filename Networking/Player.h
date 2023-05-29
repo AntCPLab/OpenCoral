@@ -136,11 +136,15 @@ struct CommStats
   CommStats() : data(0), rounds(0) {}
   Timer& add(size_t length)
     {
+      rounds++;
+      return add_length_only(length);
+    }
+  Timer& add_length_only(size_t length)
+    {
 #ifdef VERBOSE_COMM
       cout << "add " << length << endl;
 #endif
       data += length;
-      rounds++;
       return timer;
     }
   Timer& add(const octetStream& os) { return add(os.get_length()); }
@@ -153,6 +157,7 @@ class NamedCommStats : public map<string, CommStats>
 {
 public:
   size_t sent;
+  string last;
 
   NamedCommStats();
 
@@ -161,6 +166,7 @@ public:
   NamedCommStats operator-(const NamedCommStats& other) const;
   void print(bool newline = false);
   void reset();
+  Timer& add_to_last_round(const string& name, size_t length);
 #ifdef VERBOSE_COMM
   CommStats& operator[](const string& name)
   {

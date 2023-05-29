@@ -29,6 +29,7 @@ ExternalClients::~ExternalClients()
 
 void ExternalClients::start_listening(int portnum_base)
 {
+  ScopeLock _(lock);
   client_connection_servers[portnum_base] = new AnonymousServerSocket(portnum_base + get_party_num());
   client_connection_servers[portnum_base]->init();
   cerr << "Start listening on thread " << this_thread::get_id() << endl;
@@ -38,6 +39,7 @@ void ExternalClients::start_listening(int portnum_base)
 
 int ExternalClients::get_client_connection(int portnum_base)
 {
+  ScopeLock _(lock);
   map<int,AnonymousServerSocket*>::iterator it = client_connection_servers.find(portnum_base);
   if (it == client_connection_servers.end())
   {
@@ -61,6 +63,7 @@ int ExternalClients::get_client_connection(int portnum_base)
 
 void ExternalClients::close_connection(int client_id)
 {
+  ScopeLock _(lock);
   auto it = external_client_sockets.find(client_id);
   if (it == external_client_sockets.end())
     throw runtime_error("client id not active: " + to_string(client_id));
@@ -77,6 +80,7 @@ int ExternalClients::get_party_num()
 
 client_socket* ExternalClients::get_socket(int id)
 {
+  ScopeLock _(lock);
   if (external_client_sockets.find(id) == external_client_sockets.end())
     throw runtime_error("external connection not found for id " + to_string(id));
   return external_client_sockets[id];

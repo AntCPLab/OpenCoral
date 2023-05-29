@@ -12,9 +12,9 @@ pool:
 
 steps:
   - script: |
-      bash -c "sudo apt-get update && sudo apt-get install libsodium-dev libntl-dev yasm texinfo libboost-dev libboost-thread-dev python3-gmpy2 python3-networkx python3-sphinx clang"
+      bash -c "sudo apt-get update && sudo apt-get install libsodium-dev libntl-dev python3-gmpy2 python3-networkx"
   - script: |
-      make boost libote mpir
+      make boost libote
   - script:
       echo USE_NTL=1 >> CONFIG.mine
   - script:

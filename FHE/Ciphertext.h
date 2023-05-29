@@ -117,11 +117,11 @@ class Ciphertext
   int level() const { return cc0.level(); }
 
   /// Append to buffer
-  void pack(octetStream& o) const
+  void pack(octetStream& o, int = -1) const
     { cc0.pack(o); cc1.pack(o); o.store(pk_id); }
 
   /// Read from buffer. Assumes parameters are set correctly
-  void unpack(octetStream& o)
+  void unpack(octetStream& o, int = -1)
     { cc0.unpack(o, *params); cc1.unpack(o, *params); o.get(pk_id); }
 
   void output(ostream& s) const
@@ -129,7 +129,7 @@ class Ciphertext
   void input(istream& s)
     { cc0.input(s); cc1.input(s); s.read((char*)&pk_id, sizeof(pk_id)); }
 
-  void add(octetStream& os);
+  void add(octetStream& os, int = -1);
 
   size_t report_size(ReportType type) const { return cc0.report_size(type) + cc1.report_size(type); }
 };

@@ -20,6 +20,8 @@ ReceivedMsgStore::~ReceivedMsgStore()
 			<< push_timer.elapsed() << " seconds and retrieved them in "
 			<< pop_timer.elapsed() << " seconds " << endl;
 #endif
+	for (auto& file : files)
+	    remove(file.c_str());
 }
 
 void ReceivedMsgStore::push(ReceivedMsg& msg)
@@ -38,10 +40,11 @@ void ReceivedMsgStore::push(ReceivedMsg& msg)
 	else
 	{
 		char filename[1000];
-		sprintf(filename, "%s/%d.XXXXXX", BUFFER_DIR, getpid());
+		snprintf(filename, 1000, "%s/%d.XXXXXX", BUFFER_DIR, getpid());
 		FILE* file = fdopen(mkstemp(filename), "w");
 		if (!file)
-			throw runtime_error("can't open file");
+			throw runtime_error("can't open file, check space on "
+					BUFFER_DIR);
 		size_t len = msg.size();
 		size_t ptr = msg.ptr - msg.buf;
 		if (fwrite(&len, sizeof(len), 1, file) != 1)

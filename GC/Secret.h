@@ -133,6 +133,8 @@ public:
     static void andm(Processor<U>& processor, const BaseInstruction& instruction)
     { T::andm(processor, instruction); }
 
+    static void run_tapes(const vector<int>& args) { T::run_tapes(args); }
+
     Secret();
     Secret(const Integer& x) { *this = x; }
 

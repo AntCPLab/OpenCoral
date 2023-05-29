@@ -16,6 +16,7 @@
 #include "GC/Secret.hpp"
 #include "GC/Thread.hpp"
 #include "GC/ShareSecret.hpp"
+#include "GC/ThreadMaster.hpp"
 #include "YaoCommon.hpp"
 
 void YaoEvalWire::random()
@@ -254,6 +255,14 @@ void YaoEvalWire::convcbit2s(GC::Processor<whole_type>& processor,
 		for (auto& reg : dest.get_regs())
 			reg.set(0);
 	}
+}
+
+void YaoEvalWire::run_tapes(const vector<int>& args)
+{
+	auto& party = YaoEvaluator::s();
+	party.master.machine.run_tapes(args);
+	if (party.continuous())
+		party.untaint();
 }
 
 template void YaoEvalWire::and_<false>(

@@ -248,49 +248,6 @@ matrix inv(const matrix& A)
 }
 
 
-vector<modp> solve(modp_matrix& A,const Zp_Data& PrD)
-{
-  unsigned int n=A.size();
-  if ((n+1)!=A[0].size())  { throw invalid_params(); }
-
-  modp t,ti;
-  for (unsigned int r=0; r<n; r++)
-    { // Find pivot
-      unsigned int p=r;
-      while (isZero(A[p][r],PrD)) { p++; }
-      // Do pivoting
-      if (p!=r) 
-        { for (unsigned int c=0; c<n+1; c++)
-	    { t=A[p][c];  A[p][c]=A[r][c];   A[r][c]=t; }
-        }
-      // Make Lcoeff=1
-      Inv(ti,A[r][r],PrD);
-      for (unsigned int c=0; c<n+1; c++)
-	{ Mul(A[r][c],A[r][c],ti,PrD); }
-      // Now kill off other entries in this column
-      for (unsigned int rr=0; rr<n; rr++)
-	{ if (r!=rr) 
-	    { for (unsigned int c=0; c<n+1; c++)
-	        { Mul(t,A[rr][c],A[r][r],PrD); 
-                  Sub(A[rr][c],A[rr][c],t,PrD);
-	        }
-            }
-        }
-   }
-  // Sanity check and extract answer
-  vector<modp> ans;
-  ans.resize(n);
-  for (unsigned int i=0; i<n; i++)
-    { for (unsigned int j=0; j<n; j++)
-	{ if (i!=j && !isZero(A[i][j],PrD)) { throw bad_value(); }
-	  else if (!isOne(A[i][j],PrD))     { throw bad_value(); }
-        }
-       ans[i]=A[i][n];
-    }
-  return ans;
-}
-
-
 
 /* Input matrix is assumed to have more rows than columns */
 void pinv(imatrix& Ai,const imatrix& B)

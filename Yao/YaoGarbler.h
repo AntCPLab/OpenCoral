@@ -56,7 +56,7 @@ public:
 	YaoGarbler(int thread_num, YaoGarbleMaster& master);
 	~YaoGarbler();
 
-	bool continuous() { return master.continuous and master.machine.nthreads == 1; }
+	bool continuous() { return master.continuous; }
 
 	void run(GC::Program& program);
 	void run(Player& P, bool continuous);

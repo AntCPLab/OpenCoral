@@ -52,11 +52,11 @@ endif
 endif
 
 # used for dependency generation
-OBJS = $(BMR) $(FHEOBJS) $(TINYOTOFFLINE) $(YAO) $(COMPLETE) $(patsubst %.cpp,%.o,$(wildcard Machines/*.cpp Utils/*.cpp))
+OBJS = $(patsubst %.cpp,%.o,$(wildcard */*.cpp)) $(STATIC_OTE)
 DEPS := $(wildcard */*.d */*/*.d)
 
 # never delete
-.SECONDARY: $(OBJS) $(patsubst %.cpp,%.o,$(wildcard */*.cpp))
+.SECONDARY: $(OBJS)
 
 
 all: arithmetic binary gen_input online offline externalIO bmr ecdsa
@@ -74,6 +74,10 @@ arithmetic: semi-he gear
 
 -include $(DEPS)
 include $(wildcard *.d static/*.d)
+
+$(OBJS): CONFIG CONFIG.mine
+CONFIG.mine:
+	touch CONFIG.mine
 
 %.o: %.cpp
 	$(CXX) -o $@ $< $(CFLAGS) -MMD -MP -c
@@ -110,17 +114,17 @@ spdz2k: spdz2k-party.x ot-offline.x Check-Offline-Z2k.x galois-degree.x Fake-Off
 mascot: mascot-party.x spdz2k mama-party.x
 
 ifeq ($(OS), Darwin)
-tldr: mac-setup
+setup: mac-setup
 else
-tldr: mpir linux-machine-setup
+setup: boost linux-machine-setup
 endif
 
-tldr: libote libntl
+tldr: setup
 	$(MAKE) mascot-party.x
 	mkdir Player-Data 2> /dev/null; true
 
 ifeq ($(ARM), 1)
-Tools/intrinsics.h: deps/simde/simde
+$(patsubst %.cpp,%.o,$(wildcard */*.cpp)): deps/simde/simde
 endif
 
 shamir: shamir-party.x malicious-shamir-party.x atlas-party.x galois-degree.x
@@ -257,6 +261,9 @@ l2h-example.x: $(VM) $(OT) Machines/Tinier.o
 he-example.x: $(FHEOFFLINE)
 mascot-offline.x: $(VM) $(TINIER)
 cowgear-offline.x: $(TINIER) $(FHEOFFLINE)
+semi-offline.x: $(GC_SEMI) $(OT)
+semi2k-offline.x: $(GC_SEMI) $(OT)
+hemi-offline.x: $(GC_SEMI) $(FHEOFFLINE) $(OT)
 static/rep-bmr-party.x: $(BMR)
 static/mal-rep-bmr-party.x: $(BMR)
 static/shamir-bmr-party.x: $(BMR)
@@ -284,32 +291,11 @@ OT/BaseOT.o: deps/SimplestOT_C/ref10/Makefile
 
 deps/SimplestOT_C/ref10/Makefile:
 	git submodule update --init deps/SimplestOT_C || git clone https://github.com/mkskeller/SimplestOT_C deps/SimplestOT_C
-	cd deps/SimplestOT_C/ref10; PATH=$(CURDIR)/local/bin:$(PATH) cmake .
+	cd deps/SimplestOT_C/ref10; PATH="$(CURDIR)/local/bin:$(PATH)" cmake .
 
 .PHONY: Programs/Circuits
 Programs/Circuits:
 	git submodule update --init Programs/Circuits
-
-.PHONY: mpir-setup mpir-global
-mpir-setup: deps/mpir/Makefile
-deps/mpir/Makefile:
-	git submodule update --init deps/mpir || git clone https://github.com/wbhart/mpir deps/mpir
-	cd deps/mpir; \
-	autoreconf -i; \
-	autoreconf -i
-	- $(MAKE) -C deps/mpir clean
-
-mpir-global: mpir-setup
-	cd deps/mpir; \
-	./configure --enable-cxx;
-	$(MAKE) -C deps/mpir
-	sudo $(MAKE) -C deps/mpir install
-
-mpir: local/lib/libmpirxx.so
-local/lib/libmpirxx.so: deps/mpir/Makefile
-	cd deps/mpir; \
-	./configure --enable-cxx --prefix=$(CURDIR)/local
-	$(MAKE) -C deps/mpir install
 
 deps/libOTe/libOTe:
 	git submodule update --init --recursive deps/libOTe || git clone --recurse-submodules https://github.com/mkskeller/softspoken-implementation deps/libOTe
@@ -317,7 +303,17 @@ boost: deps/libOTe/libOTe
 	cd deps/libOTe; \
 	python3 build.py --setup --boost --install=$(CURDIR)/local
 
-OTE_OPTS = -DENABLE_SOFTSPOKEN_OT=ON -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_INSTALL_LIBDIR=lib
+OTE_OPTS += -DENABLE_SOFTSPOKEN_OT=ON -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_INSTALL_LIBDIR=lib
+
+ifeq ($(ARM), 1)
+OTE_OPTS += -DENABLE_AVX=OFF -DENABLE_SSE=OFF
+else
+ifeq ($(AVX_OT), 0)
+OTE_OPTS += -DENABLE_AVX=OFF
+else
+OTE_OPTS += -DENABLE_AVX=ON -DENABLE_SSE=ON
+endif
+endif
 
 ifeq ($(USE_SHARED_OTE), 1)
 OTE = $(SHARED_OTE)
@@ -331,17 +327,15 @@ libote:
 
 local/lib/libcryptoTools.a: $(STATIC_OTE)
 local/lib/libcryptoTools.so: $(SHARED_OTE)
-OT/OTExtensionWithMatrix.o: $(OTE)
 
-ifeq ($(ARM), 1)
-local/lib/liblibOTe.a: deps/libOTe/libOTe
-	cd deps/libOTe; \
-	PATH="$(CURDIR)/local/bin:$(PATH)" python3 build.py --install=$(CURDIR)/local -- -DBUILD_SHARED_LIBS=0 -DENABLE_AVX=OFF -DENABLE_SSE=OFF $(OTE_OPTS)
-else
-local/lib/liblibOTe.a: deps/libOTe/libOTe
-	cd deps/libOTe; \
-	PATH="$(CURDIR)/local/bin:$(PATH)" python3 build.py --install=$(CURDIR)/local -- -DBUILD_SHARED_LIBS=0 $(OTE_OPTS)
+ifeq ($(USE_KOS), 0)
+OT/OTExtensionWithMatrix.o: $(OTE)
 endif
+
+local/lib/liblibOTe.a: deps/libOTe/libOTe
+	cd deps/libOTe; \
+	PATH="$(CURDIR)/local/bin:$(PATH)" python3 build.py --install=$(CURDIR)/local -- -DBUILD_SHARED_LIBS=0 $(OTE_OPTS) && \
+	touch ../../local/lib/liblibOTe.a
 
 $(SHARED_OTE): deps/libOTe/libOTe
 	cd deps/libOTe; \
@@ -354,20 +348,10 @@ cmake:
 	./bootstrap --parallel=8 --prefix=../local && make && make install
 
 mac-setup: mac-machine-setup
-	brew install openssl boost libsodium mpir yasm ntl cmake
-	-echo MY_CFLAGS += -I/usr/local/opt/openssl/include -I`brew --prefix`/opt/openssl/include -I`brew --prefix`/include >> CONFIG.mine
-	-echo MY_LDLIBS += -L/usr/local/opt/openssl/lib -L`brew --prefix`/lib -L`brew --prefix`/opt/openssl/lib >> CONFIG.mine
-#	-echo USE_NTL = 1 >> CONFIG.mine
+	brew install openssl boost libsodium gmp yasm ntl cmake
 
-ifeq ($(ARM), 1)
-mac-machine-setup:
-	-echo ARCH = >> CONFIG.mine
 linux-machine-setup:
-	-echo ARCH = -march=armv8.2-a+crypto >> CONFIG.mine
-else
 mac-machine-setup:
-linux-machine-setup:
-endif
 
 deps/simde/simde:
 	git submodule update --init deps/simde || git clone https://github.com/simd-everywhere/simde deps/simde
@@ -448,5 +432,9 @@ target1:
 target2:
 	echo "world"
 
-clean:
+
+clean-deps:
+	-rm -rf local/lib/liblibOTe.* deps/libOTe/out
+
+clean: clean-deps
 	-rm -f */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o static/*.x *.so

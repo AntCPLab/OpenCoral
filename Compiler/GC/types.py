@@ -9,7 +9,7 @@ circuit. See :ref:`protocol-pairs` for the exact protocols.
 """
 
 from Compiler.types import MemValue, read_mem_value, regint, Array, cint
-from Compiler.types import _bitint, _number, _fix, _structure, _bit, _vec, sint
+from Compiler.types import _bitint, _number, _fix, _structure, _bit, _vec, sint, sintbit
 from Compiler.program import Tape, Program
 from Compiler.exceptions import *
 from Compiler import util, oram, floatingpoint, library
@@ -168,6 +168,10 @@ class bits(Tape.Register, _structure, _bit):
              and self.n == other.n:
             for i in range(math.ceil(self.n / self.unit)):
                 self.mov(self[i], other[i])
+        elif isinstance(other, sintbit) and isinstance(self, sbits):
+            assert len(other) == 1
+            r = sint.get_dabit()
+            self.mov(self, r[1] ^ other.bit_xor(r[0]).reveal())
         elif isinstance(other, sint) and isinstance(self, sbits):
             self.mov(self, sbitvec(other, self.n).elements()[0])
         else:
@@ -711,16 +715,23 @@ class sbitvec(_vec, _bit):
             def mem_size():
                 return n
             @classmethod
-            def get_input_from(cls, player):
+            def get_input_from(cls, player, size=1, f=0):
                 """ Secret input from :py:obj:`player`. The input is decomposed
                 into bits.
 
                 :param: player (int)
                 """
+                v = [0] * n
                 sbits._check_input_player(player)
-                res = cls.from_vec(sbit() for i in range(n))
-                inst.inputbvec(n + 3, 0, player, *res.v)
-                return res
+                instructions_base.check_vector_size(size)
+                for i in range(size):
+                    vv = [sbit() for i in range(n)]
+                    inst.inputbvec(n + 3, f, player, *vv)
+                    for j in range(n):
+                        tmp = vv[j] << i
+                        v[j] = tmp ^ v[j]
+                        sbits._check_input_player(player)
+                return cls.from_vec(v)
             get_raw_input_from = get_input_from
             @classmethod
             def from_vec(cls, vector):
@@ -728,13 +739,14 @@ class sbitvec(_vec, _bit):
                 res.v = _complement_two_extend(list(vector), n)[:n]
                 return res
             def __init__(self, other=None, size=None):
+                instructions_base.check_vector_size(size)
                 if other is not None:
                     if util.is_constant(other):
                         t = sbits.get_type(size or 1)
                         self.v = [t(((other >> i) & 1) * ((1 << t.n) - 1))
                                   for i in range(n)]
                     elif isinstance(other, _vec):
-                        self.v = self.bit_extend(other.v, n)
+                        self.v = [type(x)(x) for x in self.bit_extend(other.v, n)]
                     elif isinstance(other, (list, tuple)):
                         self.v = self.bit_extend(sbitvec(other).v, n)
                     else:
@@ -809,6 +821,15 @@ class sbitvec(_vec, _bit):
     def from_matrix(cls, matrix):
         # any number of rows, limited number of columns
         return cls.combine(cls(row) for row in matrix)
+    @classmethod
+    def from_hex(cls, string):
+        """ Create from hexadecimal string (little-endian). """
+        assert len(string) % 2 == 0
+        v = []
+        for i in range(0, len(string), 2):
+            v += [sbit(int(x))
+                  for x in reversed(bin(int(string[i:i + 2], 16))[2:].zfill(8))]
+        return cls.from_vec(v)
     def __init__(self, elements=None, length=None, input_length=None):
         if length:
             assert isinstance(elements, sint)
@@ -987,6 +1008,20 @@ class sbitvec(_vec, _bit):
         b = sbitvec.from_vec(self.v[len(self) // 2:]).demux()
         prod = [a * bb for bb in b.v]
         return sbitvec.from_vec(reduce(operator.add, (x.v for x in prod)))
+    def reverse_bytes(self):
+        if len(self.v) % 8 != 0:
+            raise CompilerError('bit length not divisible by eight')
+        return self.from_vec(sum(reversed(
+            [self.v[i:i + 8] for i in range(0, len(self.v), 8)]), []))
+    def reveal_print_hex(self):
+        """ Reveal and print in hexademical (one line per element). """
+        for x in self.reverse_bytes().elements():
+            x.reveal().print_reg()
+    def update(self, other):
+        other = self.conv(other)
+        assert len(self.v) == len(other.v)
+        for x, y in zip(self.v, other.v):
+            x.update(y)
 
 class bit(object):
     n = 1
@@ -1147,6 +1182,9 @@ class sbitint(_bitint, _number, sbits, _sbitintbase):
         sub: 2
         mul: 15
         lt: 0
+
+    This class is retained for compatibility, but development now
+    focuses on :py:class:`sbitintvec`.
 
     """
     n_bits = None
@@ -1347,8 +1385,11 @@ class cbitfix(object):
                                 cbits(0), cbits(0))
 
 class sbitfix(_fix):
-    """ Secret signed integer in one binary register.
+    """ Secret signed fixed-point number in one binary register.
     Use :py:obj:`set_precision()` to change the precision.
+
+    This class is retained for compatibility, but development now
+    focuses on :py:class:`sbitfixvec`.
 
     Example::
 
@@ -1453,15 +1494,8 @@ class sbitfixvec(_fix, _vec):
 
         :param: player (int)
         """
-        v = [0] * sbitfix.k
-        sbits._check_input_player(player)
-        for i in range(size):
-            vv = [sbit() for i in range(sbitfix.k)]
-            inst.inputbvec(len(v) + 3, sbitfix.f, player, *vv)
-            for j in range(sbitfix.k):
-                tmp = vv[j] << i
-                v[j] = tmp ^ v[j]
-        return cls._new(cls.int_type.from_vec(v))
+        return cls._new(cls.int_type.get_input_from(player, size=size,
+                                                    f=sbitfix.f))
     def __init__(self, value=None, *args, **kwargs):
         if isinstance(value, (list, tuple)):
             self.v = self.int_type.from_vec(sbitvec([x.v for x in value]))

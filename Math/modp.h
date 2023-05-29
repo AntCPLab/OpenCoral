@@ -2,7 +2,7 @@
 #define _Modp
 
 /* 
- * Currently we only support an MPIR based implementation.
+ * Currently we only support an GMP based implementation.
  *
  * What ever is type-def'd to bigint is assumed to have
  * operator overloading for all standard operators, has

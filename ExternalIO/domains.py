@@ -27,6 +27,10 @@ class Domain:
     def __neq__(self, other):
         return self.v != other.v
 
+    @classmethod
+    def size(cls):
+        return cls.n_bytes
+
     def unpack(self, os):
         self.v = 0
         buf = os.consume(self.n_bytes)

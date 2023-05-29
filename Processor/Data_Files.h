@@ -12,6 +12,8 @@
 #include "Networking/Player.h"
 #include "Protocols/edabit.h"
 #include "PrepBase.h"
+#include "EdabitBuffer.h"
+#include "Tools/TimerWithComm.h"
 
 #include <fstream>
 #include <map>
@@ -102,9 +104,6 @@ protected:
 
   DataPositions& usage;
 
-  map<pair<bool, int>, vector<edabitvec<T>>> edabits;
-  map<pair<bool, int>, edabitvec<T>> my_edabits;
-
   bool do_count;
 
   void count(Dtype dtype, int n = 1)
@@ -119,6 +118,8 @@ protected:
   void get_edabits(bool, size_t, T*, vector<typename T::bit_type>&,
       const vector<int>&, true_type)
   { throw not_implemented(); }
+
+  void fill(edabitvec<T>& res, bool strict, int n_bits);
 
   T get_random_from_inputs(int nplayers);
 
@@ -165,18 +166,19 @@ public:
   virtual T get_bit();
   /// Get fresh random value in domain
   virtual T get_random();
+  virtual T get_random_for_open();
+  virtual T get_random_no_count();
   /// Store fresh daBit in ``a`` (arithmetic part) and ``b`` (binary part)
   virtual void get_dabit(T& a, typename T::bit_type& b);
   virtual void get_dabit_no_count(T&, typename T::bit_type&) { throw runtime_error("no daBit"); }
   virtual void get_edabits(bool strict, size_t size, T* a,
           vector<typename T::bit_type>& Sb, const vector<int>& regs)
   { get_edabits<0>(strict, size, a, Sb, regs, T::clear::characteristic_two); }
-  template<int>
-  void get_edabit_no_count(bool, int n_bits, edabit<T>& eb);
-  template<int>
+  virtual void get_edabit_no_count(bool, int, edabit<T>&)
+  { throw runtime_error("no edaBits"); }
   /// Get fresh edaBit chunk
-  edabitvec<T> get_edabitvec(bool strict, int n_bits);
-  virtual void buffer_edabits_with_queues(bool, int) { throw runtime_error("no edaBits"); }
+  virtual edabitvec<T> get_edabitvec(bool, int)
+  { throw runtime_error("no edabitvec"); }
 
   virtual void push_triples(const vector<array<T, 3>>&)
   { throw runtime_error("no pushing"); }
@@ -202,7 +204,8 @@ class Sub_Data_Files : public Preprocessing<T>
   BufferOwner<InputTuple<T>, RefInputTuple<T>> my_input_buffers;
   map<DataTag, BufferOwner<T, T> > extended;
   BufferOwner<dabit<T>, dabit<T>> dabit_buffer;
-  map<int, ifstream*> edabit_buffers;
+  map<int, EdabitBuffer<T>> edabit_buffers;
+  map<int, edabitvec<T>> my_edabits;
 
   int my_num,num_players;
 
@@ -211,13 +214,11 @@ class Sub_Data_Files : public Preprocessing<T>
 
   part_type* part;
 
-  void buffer_edabits_with_queues(bool strict, int n_bits)
-  { buffer_edabits_with_queues<0>(strict, n_bits, T::clear::characteristic_two); }
-  template<int>
-  void buffer_edabits_with_queues(bool strict, int n_bits, false_type);
-  template<int>
-  void buffer_edabits_with_queues(bool, int, true_type)
-  { throw not_implemented(); }
+  EdabitBuffer<T>& get_edabit_buffer(int n_bits);
+
+  /// Get fresh edaBit chunk
+  edabitvec<T> get_edabitvec(bool strict, int n_bits);
+  void get_edabit_no_count(bool strict, int n_bits, edabit<T>& eb);
 
 public:
   static string get_filename(const Names& N, Dtype type, int thread_num = -1);
@@ -225,6 +226,8 @@ public:
       int thread_num = -1);
   static string get_edabit_filename(const Names& N, int n_bits,
       int thread_num = -1);
+
+  static long additional_inputs(const DataPositions& usage);
 
   Sub_Data_Files(int my_num, int num_players, const string& prep_data_dir,
       DataPositions& usage, int thread_num = -1);
@@ -313,6 +316,8 @@ class Data_Files
   void reset_usage() { usage.reset(); skipped.reset(); }
 
   void set_usage(const DataPositions& pos) { usage = pos; }
+
+  TimerWithComm total_time();
 };
 
 template<class T> inline
@@ -421,6 +426,21 @@ T Preprocessing<T>::get_bit()
 
 template<class T>
 T Preprocessing<T>::get_random()
+{
+  count(DATA_RANDOM);
+  return get_random_no_count();
+}
+
+template<class T>
+T Preprocessing<T>::get_random_for_open()
+{
+  assert(T::randoms_for_opens);
+  count(DATA_OPEN);
+  return get_random_no_count();
+}
+
+template<class T>
+T Preprocessing<T>::get_random_no_count()
 {
   assert(not usage.inputs.empty());
   return get_random_from_inputs(usage.inputs.size());

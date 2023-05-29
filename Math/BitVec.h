@@ -56,7 +56,12 @@ public:
 
     void extend_bit(BitVec_& res, int) const { res = extend_bit(); }
 
-    void add(octetStream& os) { *this += os.get<BitVec_>(); }
+    void add(octetStream& os, int n_bits)
+    {
+        BitVec_ tmp;
+        tmp.unpack(os, n_bits);
+        *this += tmp;
+    }
 
     void mul(const BitVec_& a, const BitVec_& b) { *this = a * b; }
 
@@ -70,7 +75,7 @@ public:
         if (n == -1)
             pack(os);
         else if (n == 1)
-            os.store_int<1>(this->a & 1);
+            os.store_bit(this->a);
         else
             os.store_int(super::mask(n).get(), DIV_CEIL(n, 8));
     }
@@ -80,7 +85,7 @@ public:
         if (n == -1)
             unpack(os);
         else if (n == 1)
-            this->a = os.get_int<1>();
+            this->a = os.get_bit();
         else
             this->a = os.get_int(DIV_CEIL(n, 8));
     }

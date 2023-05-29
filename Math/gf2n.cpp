@@ -454,20 +454,16 @@ void gf2n_<U>::randomize(PRNG& G, int n)
   a&=mask;
 }
 
-template<>
-void gf2n_<octet>::output(ostream& s,bool human) const
-{
-  if (human)
-    s << hex << showbase << word(a) << dec;
-  else
-    s.write((char*) &a, sizeof(octet));
-}
-
 template<class U>
 void gf2n_<U>::output(ostream& s,bool human) const
 {
   if (human)
-    { s << hex << showbase << a << dec; }
+    {
+      if (n > 64)
+        s << hex << a << dec;
+      else
+        s << hex << to_word(a) << dec;
+    }
   else
     { s.write((char*) &a, (sizeof(U))); }
 }
@@ -484,7 +480,16 @@ void gf2n_<U>::input(istream& s,bool human)
     }
 
   if (human)
-    { s >> hex >> a >> dec; } 
+    {
+      if (n > 64)
+        s >> hex >> a >> dec;
+      else
+        {
+          word tmp;
+          s >> hex >> tmp >> dec;
+          *this = U(tmp);
+        }
+    }
   else
     { s.read((char*) &a, sizeof(U)); }
 

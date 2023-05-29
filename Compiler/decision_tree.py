@@ -8,7 +8,6 @@ import math
 
 debug = False
 debug_split = False
-debug_layers = False
 max_leaves = None
 
 def get_type(x):
@@ -70,26 +69,35 @@ def Sort(keys, *to_sort, n_bits=None, time=False):
     bs = Matrix.create_from(
         sum([k.get_vector().bit_decompose(nb)
              for k, nb in reversed(list(zip(keys, n_bits)))], []))
-    res = Matrix.create_from(to_sort)
+    get_vec = lambda x: x[:] if isinstance(x, Array) else x
+    res = Matrix.create_from(get_vec(x).v if isinstance(get_vec(x), sfix) else x
+                             for x in to_sort)
     res = res.transpose()
     if time:
         start_timer(11)
-    print_ln('sort')
     radix_sort_from_matrix(bs, res)
     if time:
         stop_timer(11)
         stop_timer(1)
-    return res.transpose()
+    res = res.transpose()
+    return [sfix._new(get_vec(x), k=get_vec(y).k, f=get_vec(y).f)
+            if isinstance(get_vec(y), sfix)
+            else x for (x, y) in zip(res, to_sort)]
 
-def VectMax(key, *data):
+def VectMax(key, *data, debug=False):
     def reducer(x, y):
         b = x[0] > y[0]
+        if debug:
+            print_ln('max b=%s', b.reveal())
         return [b.if_else(xx, yy) for xx, yy in zip(x, y)]
     if debug:
         key = list(key)
         data = [list(x) for x in data]
         print_ln('vect max key=%s data=%s', util.reveal(key), util.reveal(data))
-    return util.tree_reduce(reducer, zip(key, *data))[1:]
+    res = util.tree_reduce(reducer, zip(key, *data))[1:]
+    if debug:
+        print_ln('vect max res=%s', util.reveal(res))
+    return res
 
 def GroupSum(g, x):
     assert len(g) == len(x)
@@ -161,19 +169,19 @@ def ModifiedGini(g, y, debug=False):
     wqs = w[0] ** 2 + w[1] ** 2
     res = sfix(uqs) / us + sfix(wqs) / ws
     if debug:
+        print_ln('g=%s y=%s s=%s',
+                 util.reveal(g), util.reveal(y),
+                 util.reveal(s))
         print_ln('u0=%s', util.reveal(u[0]))
         print_ln('u0=%s', util.reveal(u[1]))
         print_ln('us=%s', util.reveal(us))
         print_ln('w0=%s', util.reveal(w[0]))
         print_ln('w1=%s', util.reveal(w[1]))
         print_ln('ws=%s', util.reveal(ws))
-        print_ln('p=%s', util.reveal(p))
-        print_ln('q=%s', util.reveal(q))
-        print_ln('g=%s y=%s s=%s',
-                 util.reveal(g), util.reveal(y),
-                 util.reveal(s))
+        print_ln('uqs=%s', util.reveal(uqs))
+        print_ln('wqs=%s', util.reveal(wqs))
     if debug:
-        print_ln('gini %s %s', str(res), util.reveal(res))
+        print_ln('gini %s %s', type(res), util.reveal(res))
     return res
 
 MIN_VALUE = -10000
@@ -181,11 +189,16 @@ MIN_VALUE = -10000
 def FormatLayer(h, g, *a):
     return CropLayer(h, *FormatLayer_without_crop(g, *a))
 
-def FormatLayer_without_crop(g, *a):
+def FormatLayer_without_crop(g, *a, debug=False):
     for x in a:
         assert len(x) == len(g)
     v = [g.if_else(aa, 0) for aa in a]
+    if debug:
+        print_ln('format in %s', util.reveal(a))
+        print_ln('format mux %s', util.reveal(v))
     v = Sort([g.bit_not()], *v, n_bits=[1])
+    if debug:
+        print_ln('format sort %s', util.reveal(v))
     return v
 
 def CropLayer(k, *v):
@@ -243,8 +256,9 @@ class TreeTrainer:
         def _(j):
             e[j][:] = AID[:] == j
         xx = sum(x[j] * e[j] for j in range(m))
-        if debug:
+        if self.debug > 1:
             print_ln('apply e=%s xx=%s', util.reveal(e), util.reveal(xx))
+            print_ln('threshold %s', util.reveal(Threshold))
         return 2 * xx < Threshold
 
     def AttributeWiseTestSelection(self, g, x, y, time=False, debug=False):
@@ -252,10 +266,10 @@ class TreeTrainer:
         assert len(g) == len(y)
         if time:
             start_timer(2)
-        s = ModifiedGini(g, y, debug=debug)
+        s = ModifiedGini(g, y, debug=debug or self.debug > 2)
         if time:
             stop_timer(2)
-        if debug:
+        if debug or self.debug > 1:
             print_ln('gini %s', s.reveal())
         xx = x
         t = get_type(x).Array(len(x))
@@ -296,35 +310,46 @@ class TreeTrainer:
         @for_range_multithread(self.n_threads, 1, m)
         def _(j):
             single = not self.n_threads or self.n_threads == 1
-            print_ln('run %s', j)
+            time = self.time and single
+            if debug:
+                print_ln('run %s', j)
             @if_e(self.attr_lengths[j])
             def _():
                 u[j][:], v[j][:] = Sort((PrefixSum(g), x[j]), x[j], y,
-                                        n_bits=[util.log2(n), 1], time=single)
+                                        n_bits=[util.log2(n), 1], time=time)
             @else_
             def _():
                 u[j][:], v[j][:] = Sort((PrefixSum(g), x[j]), x[j], y,
                                         n_bits=[util.log2(n), None],
-                                        time=single)
+                                        time=time)
             if self.debug_threading:
                 print_ln('global sort %s %s %s', j, util.reveal(u[j]),
                          util.reveal(v[j]))
             t[j][:], s[j][:] = self.AttributeWiseTestSelection(
-                g, u[j], v[j], time=single, debug=self.debug_selection)
+                g, u[j], v[j], time=time, debug=self.debug_selection)
             if self.debug_threading:
                 print_ln('global attribute %s %s %s', j, util.reveal(t[j]),
                          util.reveal(s[j]))
         n = len(g)
-        a, tt = [sint.Array(n) for i in range(2)]
+        a = sint.Array(n)
         if self.debug_threading:
             print_ln('global s=%s', util.reveal(s))
         if self.debug_gini:
             print_ln('Gini indices ' + ' '.join(str(i) + ':%s' for i in range(m)),
                      *(ss[0].reveal() for ss in s))
-        start_timer(4)
-        a[:], tt[:] = VectMax((s[j][:] for j in range(m)), range(m),
-                              (t[j][:] for j in range(m)))
-        stop_timer(4)
+        if self.time:
+            start_timer(4)
+        if self.debug > 1:
+            print_ln('s=%s', s.reveal_nested())
+            print_ln('t=%s', t.reveal_nested())
+        a[:], tt = VectMax((s[j][:] for j in range(m)), range(m),
+                           (t[j][:] for j in range(m)), debug=self.debug > 1)
+        tt = Array.create_from(tt)
+        if self.time:
+            stop_timer(4)
+        if self.debug > 1:
+            print_ln('a=%s', util.reveal(a))
+            print_ln('tt=%s', util.reveal(tt))
         return a[:], tt[:]
 
     def TrainInternalNodes(self, k, x, y, g, NID):
@@ -333,13 +358,18 @@ class TreeTrainer:
             assert len(xx) == len(g)
         AID, Threshold = self.GlobalTestSelection(x, y, g)
         s = GroupSame(g[:], y[:])
-        if debug or debug_split:
+        if self.debug > 1 or debug_split:
             print_ln('AID=%s', util.reveal(AID))
             print_ln('Threshold=%s', util.reveal(Threshold))
             print_ln('GroupSame=%s', util.reveal(s))
         AID, Threshold = s.if_else(0, AID), s.if_else(MIN_VALUE, Threshold)
+        if self.debug > 1 or debug_split:
+            print_ln('AID=%s', util.reveal(AID))
+            print_ln('Threshold=%s', util.reveal(Threshold))
         b = self.ApplyTests(x, AID, Threshold)
-        return FormatLayer_without_crop(g[:], NID, AID, Threshold), b
+        layer = FormatLayer_without_crop(g[:], NID, AID, Threshold,
+                                         debug=self.debug > 1)
+        return *layer, b
 
     @method_block
     def train_layer(self, k):
@@ -347,19 +377,21 @@ class TreeTrainer:
         y = self.y
         g = self.g
         NID = self.NID
-        layer_matrix = self.layer_matrix
-        self.layer_matrix[k], b = \
+        if self.debug > 1:
+            print_ln('g=%s', g.reveal())
+            print_ln('y=%s', y.reveal())
+            print_ln('x=%s', x.reveal_nested())
+        self.nids[k], self.aids[k], self.thresholds[k], b = \
             self.TrainInternalNodes(k, x, y, g, NID)
-        if debug:
-            print_ln('internal %s %s',
-                     util.reveal(layer_matrix[k]), util.reveal(b))
-        if debug_layers:
+        if self.debug > 1:
             print_ln('layer %s:', k)
-            for name, data in zip(('NID', 'AID', 'Thr'), layer_matrix[k]):
+            for name, data in zip(('NID', 'AID', 'Thr'),
+                                  (self.nids[k], self.aids[k],
+                                   self.thresholds[k])):
                 print_ln(' %s: %s', name, data.reveal())
         NID[:] = 2 ** k * b + NID
         b_not = b.bit_not()
-        if debug:
+        if self.debug > 1:
             print_ln('b_not=%s', b_not.reveal())
         g[:] = GroupFirstOne(g, b_not) + GroupFirstOne(g, b)
         y[:], g[:], NID[:], *xx = Sort([b], y, g, NID, *x, n_bits=[1])
@@ -388,33 +420,38 @@ class TreeTrainer:
         self.NID.assign_all(1)
         self.y = Array.create_from(y)
         self.x = Matrix.create_from(x)
-        self.layer_matrix = sint.Tensor([h, 3, n])
+        self.nids, self.aids = [sint.Matrix(h, n) for i in range(2)]
+        self.thresholds = self.x.value_type.Matrix(h, n)
         self.n_threads = n_threads
         self.debug_selection = False
         self.debug_threading = False
-        self.debug_gini = True
+        self.debug_gini = False
+        self.debug = False
+        self.time = False
 
     def train(self):
         """ Train and return decision tree. """
-        h = len(self.layer_matrix)
+        h = len(self.nids)
         @for_range(h)
         def _(k):
             self.train_layer(k)
         return self.get_tree(h)
 
-    def train_with_testing(self, *test_set):
+    def train_with_testing(self, *test_set, output=False):
         """ Train decision tree and test against test data.
 
         :param y: binary labels (list or sint vector)
         :param x: sample data (by attribute, list or
           :py:obj:`~Compiler.types.Matrix`)
+        :param output: output tree after every level
         :returns: tree
 
         """
-        for k in range(len(self.layer_matrix)):
+        for k in range(len(self.nids)):
             self.train_layer(k)
             tree = self.get_tree(k + 1)
-            output_decision_tree(tree)
+            if output:
+                output_decision_tree(tree)
             test_decision_tree('train', tree, self.y, self.x,
                                n_threads=self.n_threads)
             if test_set:
@@ -425,7 +462,8 @@ class TreeTrainer:
     def get_tree(self, h):
         Layer = [None] * (h + 1)
         for k in range(h):
-            Layer[k] = CropLayer(k, *self.layer_matrix[k])
+            Layer[k] = CropLayer(k, self.nids[k], self.aids[k],
+                                 self.thresholds[k])
         Layer[h] = TrainLeafNodes(h, self.g[:], self.y[:], self.NID)
         return Layer
 
@@ -479,8 +517,9 @@ def run_decision_tree(layers, data):
     bits = layers[h][0].equal(index, h)
     return pick(bits, layers[h][1])
 
-def test_decision_tree(name, layers, y, x, n_threads=None):
-    start_timer(100)
+def test_decision_tree(name, layers, y, x, n_threads=None, time=False):
+    if time:
+        start_timer(100)
     n = len(y)
     x = x.transpose().reveal()
     y = y.reveal()
@@ -488,7 +527,8 @@ def test_decision_tree(name, layers, y, x, n_threads=None):
     truth = regint.Array(n)
     correct = regint.Array(2)
     parts = regint.Array(2)
-    layers = [Matrix.create_from(util.reveal(layer)) for layer in layers]
+    layers = [[Array.create_from(util.reveal(x)) for x in layer]
+              for layer in layers]
     @for_range_multithread(n_threads, 1, n)
     def _(i):
         guess[i] = run_decision_tree([[part[:] for part in layer]
@@ -501,4 +541,105 @@ def test_decision_tree(name, layers, y, x, n_threads=None):
         correct[truth[i]] += c
     print_ln('%s for height %s: %s/%s (%s/%s, %s/%s)', name, len(layers) - 1,
              sum(correct), n, correct[0], parts[0], correct[1], parts[1])
-    stop_timer(100)
+    if time:
+        stop_timer(100)
+
+class TreeClassifier:
+    """ Tree classification with convenient interface. Uses
+    :py:class:`TreeTrainer` internally.
+
+    :param max_depth: the depth of the decision tree
+
+    """
+    def __init__(self, max_depth):
+        self.max_depth = max_depth
+
+    @staticmethod
+    def get_attr_lengths(attr_types):
+        if attr_types == None:
+            return None
+        else:
+            return [1 if x == 'b' else 0 for x in attr_types]
+
+    def fit(self, X, y, attr_types=None):
+        """ Train tree.
+
+        :param X: sample data with row-wise samples (sint/sfix matrix)
+        :param y: binary labels (sint list/array)
+
+        """
+        self.tree = TreeTrainer(
+            X.transpose(), y, self.max_depth,
+            attr_lengths=self.get_attr_lengths(attr_types)).train()
+
+    def fit_with_testing(self, X_train, y_train, X_test, y_test,
+                         attr_types=None, output_trees=False, debug=False):
+        """ Train tree with accuracy output after every level.
+
+        :param X_train: training data with row-wise samples (sint/sfix matrix)
+        :param y_train: training binary labels (sint list/array)
+        :param X_test: testing data with row-wise samples (sint/sfix matrix)
+        :param y_test: testing binary labels (sint list/array)
+        :param attr_types: attributes types (list of 'b'/'c' for
+          binary/continuous; default is all continuous)
+        :param output_trees: output tree after every level
+        :param debug: output debugging information
+
+        """
+        trainer = TreeTrainer(X_train.transpose(), y_train, self.max_depth,
+                              attr_lengths=self.get_attr_lengths(attr_types))
+        trainer.debug = debug
+        trainer.debug_gini = debug
+        trainer.debug_threading = debug > 1
+        self.tree = trainer.train_with_testing(y_test, X_test.transpose(),
+                                               output=output_trees)
+
+    def predict(self, X):
+        """ Use tree for prediction.
+
+        :param X: sample data with row-wise samples (sint/sfix matrix)
+        :returns: sint array
+
+        """
+        res = sint.Array(len(X))
+        @for_range(len(X))
+        def _(i):
+            res[i] = run_decision_tree(self.tree, X[i])
+        return res
+
+    def output(self):
+        """ Output decision tree. """
+        output_decision_tree(self.tree)
+
+def preprocess_pandas(data):
+    """ Preprocess pandas data frame to suit
+    :py:class:`TreeClassifier` by expanding non-continuous attributes
+    to several binary attributes as a unary encoding.
+
+    :returns: a tuple of the processed data and a type list for the
+      :py:obj:`attr_types` argument.
+
+    """
+    import pandas
+    import numpy
+    res = []
+    types = []
+    for i, t in enumerate(data.dtypes):
+        if pandas.api.types.is_int64_dtype(t):
+            res.append(data.iloc[:,i].to_numpy())
+            types.append('c')
+        elif pandas.api.types.is_object_dtype(t):
+            values = data.iloc[:,i].unique()
+            print('converting the following to unary:', values)
+            if len(values) == 2:
+                res.append(data.iloc[:,i].to_numpy() == values[1])
+                types.append('b')
+            else:
+                for value in values:
+                    res.append(data.iloc[:,i].to_numpy() == value)
+                    types.append('b')
+        else:
+            raise CompilerError('unknown pandas type: ' + t)
+    res = numpy.array(res)
+    res = numpy.swapaxes(res, 0, 1)
+    return res, types

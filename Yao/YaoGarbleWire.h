@@ -66,6 +66,8 @@ public:
 	static void convcbit2s(GC::Processor<whole_type>& processor,
 			const BaseInstruction& instruction);
 
+	static void run_tapes(const vector<int>& args);
+
 	void randomize(PRNG& prng);
 	void set(Key key, bool mask);
 

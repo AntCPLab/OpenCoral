@@ -83,15 +83,17 @@ fi
 
 ./compile.py tutorial
 
-for i in cowgear chaigear; do
-    test_vm $i $run_opts -S 3 -c 2 -J
-done
+if test $no_top_gear; then
+    for i in cowgear chaigear; do
+	test_vm $i $run_opts -S 3 -c 2 -J
+    done
+fi
 
 if test $skip_binary; then
    exit
 fi
 
-./compile.py -B 16  $compile_opts tutorial
+./compile.py -GB 16  $compile_opts tutorial
 
 for i in replicated mal-rep-bin ps-rep-bin semi-bin ccd mal-ccd; do
     test_vm $i $run_opts

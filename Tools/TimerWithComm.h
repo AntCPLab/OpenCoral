@@ -14,10 +14,23 @@ class TimerWithComm : public Timer
     NamedCommStats total_stats, last_stats;
 
 public:
+    TimerWithComm();
+    TimerWithComm(const Timer& other);
+
     void start(const NamedCommStats& stats = {});
     void stop(const NamedCommStats& stats = {});
 
-    double mb_sent();
+    double mb_sent() const;
+    size_t rounds() const;
+
+    TimerWithComm operator+(const TimerWithComm& other);
+    TimerWithComm operator-(const TimerWithComm& other);
+    TimerWithComm& operator+=(const TimerWithComm& other);
+    TimerWithComm& operator-=(const TimerWithComm& other);
+
+    string full();
+
+    friend ostream& operator<<(ostream& os, const TimerWithComm& stats);
 };
 
 #endif /* TOOLS_TIMERWITHCOMM_H_ */

@@ -70,6 +70,7 @@ enum
     PLAYERID = 0xE4,
     USE_EDABIT = 0xE5,
     USE_MATMUL = 0x1F,
+    ACTIVE = 0xE9,
     // Addition
     ADDC = 0x20,
     ADDS = 0x21,
@@ -209,6 +210,7 @@ enum
     CONDPRINTPLAIN = 0xE1,
     INTOUTPUT = 0xE6,
     FLOATOUTPUT = 0xE7,
+    FIXINPUT = 0xE8,
 
     // GF(2^n) versions
     

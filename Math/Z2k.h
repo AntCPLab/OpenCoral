@@ -6,7 +6,7 @@
 #ifndef MATH_Z2K_H_
 #define MATH_Z2K_H_
 
-#include <mpirxx.h>
+#include <gmpxx.h>
 #include <string>
 using namespace std;
 
@@ -73,6 +73,8 @@ public:
 	static void specification(octetStream& os);
 
 	static Z2 power_of_two(bool bit, int exp) { return Z2(bit) << exp; }
+
+	static string fake_opts() { return " -lgp " + to_string(K); }
 
 	typedef Z2 next;
 	typedef Z2 Scalar;
@@ -149,7 +151,7 @@ public:
 	bool operator==(const Z2<K>& other) const;
 	bool operator!=(const Z2<K>& other) const { return not (*this == other); }
 
-	void add(octetStream& os) { *this += (os.consume(size())); }
+	void add(octetStream& os, int = -1) { *this += (os.consume(size())); }
 
 	Z2 lazy_add(const Z2& x) const;
 	Z2 lazy_mul(const Z2& x) const;

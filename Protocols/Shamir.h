@@ -49,8 +49,8 @@ public:
     Player& P;
 
     static U get_rec_factor(int i, int n);
-    static U get_rec_factor(int i, int n_total, int start, int threshold,
-            int target = -1);
+    static U get_rec_factor(int i, const vector<int>& points, int target = -1);
+    static vector<U> get_rec_factors(const vector<int>& points, int target = -1);
 
     Shamir(Player& P, int threshold = 0);
     ~Shamir();

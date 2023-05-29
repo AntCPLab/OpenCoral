@@ -11,6 +11,64 @@ computation of one thread, also called tape. The computation of the
 main thread is always ``Programs/Bytecode/<progname>-0.bc`` when
 compiled by the compiler.
 
+
+Schedule File
+-------------
+
+The schedule file is as follows in ASCII text::
+
+  <maximum number of threads>
+  <number of bytecode files>
+  <bytecode name>:<no of instructions>[ <bytecode name>:<no of instructions>...]
+  1 0
+  0
+  <compilation command line>
+  <domain requirements>
+  opts: <potential optimizations>
+
+Domain requirements and potential optimizations are related to
+:ref:`nonlinear`. Domain requirements is one of the following:
+
+``lgp:<length>``
+  minimum prime length
+
+``p:<prime>``
+  exact prime
+
+``R:<length>``
+  exact power of two
+
+Potential optimizations is a any combination of ``trunc_pr``
+(probabilistic truncation), ``edabit`` (edaBits), and ``split`` (share
+splitting). Presence indicates that they would change the compiled
+bytecode if used. This is used to indicate available optimizations
+when running a virtual machine.
+
+For example, ``./compile.py tutorial`` generates the following
+schedule file::
+
+  1
+  1
+  tutorial-0:19444
+  1 0
+  0
+  ./compile.py tutorial
+  lgp:106
+  opts: edabit trunc_pr split
+
+This says that program has only one thread running one bytecode file,
+which is stored in ``tutorial-0.bc`` and has 19444 instructions. It
+requires a prime of length 106, and all protocol optimizations could
+potentially be used. The length 106 is composed as follows: assuming
+64-bit integers, the difference used for comparison is a 65-bit
+integer, to which 40 bits are added for statistical masking, resulting
+in a 105 bits, and it takes a 106-bit prime to able to contain all
+105-bit numbers.
+
+
+Bytecode
+--------
+
 The bytecode is made up of 32-bit units in big-endian byte
 order. Every unit represents an instruction code (possibly including
 vector size), register number, or immediate value.
@@ -65,6 +123,16 @@ of function arguments. The example above would this simply be called
 as follows::
 
   muls(s0, s2, s3, s1, s4, s5)
+
+
+Memory size indication
+~~~~~~~~~~~~~~~~~~~~~~
+
+By default, the compiler adds memory read instructions such as
+``ldms`` at the end of the main bytecode file to indicate the memory
+size. This is to make sure that even when using memory with run-time
+addresses, the virtual machine is aware of the memory sizes.
+
 
 Instructions
 ------------

@@ -16,6 +16,11 @@ class ThreadQueue
     NamedCommStats comm_stats;
 
 public:
+    static thread_local ThreadQueue* thread_queue;
+
+    map<string, TimerWithComm> timers;
+    Timer wait_timer;
+
     ThreadQueue() :
             left(0)
     {

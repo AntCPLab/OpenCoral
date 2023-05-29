@@ -33,6 +33,8 @@ protected:
     string filename;
     int header_length;
 
+    virtual int element_length() = 0;
+
 public:
     bool eof;
 
@@ -58,6 +60,8 @@ class Buffer : public BufferBase
     T buffer[BUFFER_SIZE];
 
     void read(char* read_buffer);
+
+    int element_length() { return T::size(); }
 
 public:
     virtual ~Buffer();
@@ -109,7 +113,7 @@ public:
     BufferOwner(const BufferOwner& other) :
             file(0)
     {
-        assert(other.file == 0);
+        *this = other;
     }
 
     ~BufferOwner()
@@ -117,9 +121,18 @@ public:
         close();
     }
 
+    BufferOwner& operator=(const BufferOwner& other)
+    {
+        assert(other.file == 0);
+        file = 0;
+        Buffer<U, V>::operator=(other);
+        return *this;
+    }
+
     ifstream* open()
     {
         file = new ifstream(this->filename, ios::in | ios::binary);
+        BufferBase::file = file;
         if (file->good())
         {
             auto file_spec = check_file_signature<U>(*file, this->filename);

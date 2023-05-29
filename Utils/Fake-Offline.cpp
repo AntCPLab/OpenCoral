@@ -189,13 +189,15 @@ void make_inputs(const typename T::mac_type& key,int N,int ntrip,const string& s
   /* Generate Inputs */
   for (int player=0; player<N; player++)
     { for (int i=0; i<N; i++)
-        { stringstream filename;
-          filename << get_prep_sub_dir<T>(prep_data_prefix, N) << "Inputs-"
-              << T::type_short() << "-P" << i << "-" << player;
-          cout << "Opening " << filename.str() << endl;
-          outf[i].open(filename.str().c_str(),ios::out | ios::binary);
+        {
+          string filename = PrepBase::get_input_filename(
+              get_prep_sub_dir<T>(prep_data_prefix, N), T::type_short(), player,
+              i);
+          cout << "Opening " << filename << endl;
+          outf[i].open(filename, ios::out | ios::binary);
           file_signature<T>().output(outf[i]);
-          if (outf[i].fail()) { throw file_error(filename.str().c_str()); }
+          if (outf[i].fail())
+            throw file_error(filename);
         }
       for (int i=0; i<ntrip; i++)
         {
@@ -329,15 +331,15 @@ void make_DES(const typename T::mac_type& key, int N, int ntrip, bool zero)
 }
 
 template<class T>
-void make_Sbox(const typename T::mac_type& key, int N, int ntrip, bool zero, T, gf2n_short)
+void make_Sbox(const typename T::mac_type& key, int N, int ntrip, bool zero, T, true_type)
 {
   make_AES<T>(key, N, ntrip, zero);
   make_DES<T>(key, N, ntrip, zero);
 }
 
 
-template<class T, class U>
-void make_Sbox(const typename T::mac_type& key, int N, int ntrip, bool zero, T, U)
+template<class T>
+void make_Sbox(const typename T::mac_type& key, int N, int ntrip, bool zero, T, false_type)
 {
   (void)key, (void)N, (void)ntrip, (void)zero;
 }
@@ -345,7 +347,7 @@ void make_Sbox(const typename T::mac_type& key, int N, int ntrip, bool zero, T, 
 template<class T>
 void make_Sbox(const typename T::mac_type& key, int N, int ntrip, bool zero)
 {
-  make_Sbox(key, N, ntrip, zero, T(), typename T::clear());
+  make_Sbox(key, N, ntrip, zero, T(), T::clear::characteristic_two);
 }
 
 template<class T>
@@ -764,8 +766,19 @@ int FakeParams::generate()
   make_edabits<T>(keyp, nplayers, default_num, zero, false_type(), keytt);
 
   if (T::clear::prime_field)
-    make_with_mac_key<MamaShare<typename T::clear, 1>>(nplayers, default_num,
-        zero, keytt);
+    {
+      int n_macs = DIV_CEIL(DEFAULT_SECURITY, T::clear::length() - 1);
+      n_macs = 1 << int(ceil(log2(n_macs)));
+      if (n_macs > 4)
+          n_macs = 10;
+
+#define X(N) if (N == n_macs) \
+  make_with_mac_key<MamaShare<typename T::clear, N>>(nplayers, \
+    default_num, zero, keytt);
+
+      X(1) X(2) X(4) X(10)
+#undef X
+    }
 
   if (nplayers > 2)
     {
@@ -777,6 +790,8 @@ int FakeParams::generate()
 
   generate_field<typename T::clear>(T::clear::prime_field);
   generate_field<gf2n>(true_type());
+  if (gf2n::degree() != gf2n_short::degree())
+    generate_field<gf2n_short>(true_type());
 
   // default
   generate_ring<64>();
@@ -807,8 +822,11 @@ void FakeParams::generate_field(true_type)
       make_basic<PostSacriRepFieldShare<U>>({}, nplayers, default_num, zero);
       make_with_mac_key<SpdzWiseShare<MaliciousRep3Share<U>>>(nplayers, default_num, zero);
     }
+  else if (nplayers == 4)
+    make_basic<Rep4Share<U>>({}, nplayers, default_num, zero);
 
   make_basic<SemiShare<U>>({}, nplayers, default_num, zero);
+  make_basic<DealerShare<U>>({}, nplayers, default_num, zero);
 
   if (nplayers > 2)
     {

@@ -17,6 +17,10 @@ using namespace std;
 #include "ValueInterface.h"
 #include "gf2nlong.h"
 
+// Fix false warning
+#if __GNUC__ == 10
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 
 // Functionality shared between integers and bit vectors
 template<class T>
@@ -38,6 +42,8 @@ public:
   static void specification(octetStream& os);
 
   static bool allows(Dtype type) { return type <= DATA_BIT; }
+
+  static void check_setup(const string&) {}
 
   IntBase()                 { a = 0; }
   IntBase(T a) : a(a)    {}

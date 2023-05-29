@@ -138,7 +138,7 @@
     X(PRINTINT, PROC.out << I0) \
     X(STARTGRIND, CALLGRIND_START_INSTRUMENTATION) \
     X(STOPGRIND, CALLGRIND_STOP_INSTRUMENTATION) \
-    X(RUN_TAPE, MACH->run_tapes(EXTRA)) \
+    X(RUN_TAPE, T::run_tapes(EXTRA)) \
     X(JOIN_TAPE, MACH->join_tape(R0)) \
     X(USE, ) \
     X(USE_INP, ) \
@@ -146,6 +146,7 @@
     X(THRESHOLD, I0 = T::threshold(Thread<T>::s().P->num_players())) \
     X(PLAYERID, I0 = Thread<T>::s().P->my_num()) \
     X(CRASH, if (I0.get()) throw crash_requested()) \
+    X(ACTIVE, ) \
 
 #define INSTRUCTIONS BIT_INSTRUCTIONS GC_INSTRUCTIONS
 

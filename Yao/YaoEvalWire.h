@@ -65,6 +65,8 @@ public:
 	static void convcbit2s(GC::Processor<whole_type>& processor,
 			const BaseInstruction& instruction);
 
+	static void run_tapes(const vector<int>& args);
+
 	void set(const Key& key);
 	void set(Key key, bool external);
 

@@ -296,7 +296,7 @@ BasicMFE::BasicMFE(long m, long base_field_poly_mod_deg)
 }
 
 BasicMFE::BasicMFE(NTL::GF2X base_field_poly, NTL::GF2EX ex_field_poly) {
-    base_field_poly_mod_ = move(base_field_poly);
+    base_field_poly_mod_ = std::move(base_field_poly);
     GF2EPush push;
     GF2E::init(base_field_poly_mod_);
     ex_field_poly_mod_ = GF2EXModulus(ex_field_poly);
@@ -679,7 +679,7 @@ BasicRMFE::BasicRMFE(long k, long base_field_poly_mod_deg, bool is_type1): k_(k)
 }
 
 BasicRMFE::BasicRMFE(NTL::GF2X base_field_poly, NTL::GF2EX ex_field_poly) {
-    base_field_poly_mod_ = move(base_field_poly);
+    base_field_poly_mod_ = std::move(base_field_poly);
     GF2EPush push;
     GF2E::init(base_field_poly_mod_);
     ex_field_poly_mod_ = GF2EXModulus(ex_field_poly);

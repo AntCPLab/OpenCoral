@@ -55,6 +55,8 @@ public:
     void stop_exchange();
 
     int get_n_relevant_players() { return 1 + T::threshold(P.num_players()); }
+
+    int get_buffer_size() { return triples.size(); }
 };
 
 #endif /* PROTOCOLS_BEAVER_H_ */

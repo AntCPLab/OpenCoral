@@ -6,6 +6,8 @@
 #include "Tools/random.h"
 #include "Tools/time-func.h"
 
+#include <map>
+
 /*
  * Class for creating and storing base OTs between every pair of parties.
  */
@@ -84,25 +86,20 @@ public:
 
 class OnDemandOTTripleSetup
 {
-    OTTripleSetup* setup;
+    map<Player*, OTTripleSetup*> setups;
 
 public:
-    OnDemandOTTripleSetup() :
-            setup(0)
-    {
-    }
-
     ~OnDemandOTTripleSetup()
     {
-        if (setup)
-            delete setup;
+        for (auto& setup : setups)
+            delete setup.second;
     }
 
     OTTripleSetup get_fresh(Player& P)
     {
-        if (not setup)
-            setup = new OTTripleSetup(P, true);
-        return setup->get_fresh();
+        if (setups.find(&P) == setups.end())
+            setups[&P] = new OTTripleSetup(P, true);
+        return setups[&P]->get_fresh();
     }
 };
 

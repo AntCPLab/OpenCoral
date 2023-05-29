@@ -365,11 +365,11 @@ void OTMachine::run()
     {
         BitVector receiver_output, sender_output;
         char filename[1024];
-        sprintf(filename, RECEIVER_INPUT, my_num);
+        snprintf(filename, 1024, RECEIVER_INPUT, my_num);
         ofstream outf(filename);
         receiverInput.output(outf, false);
         outf.close();
-        sprintf(filename, RECEIVER_OUTPUT, my_num);
+        snprintf(filename, 1024, RECEIVER_OUTPUT, my_num);
         outf.open(filename);
         for (unsigned int i = 0; i < nOTs; i++)
         {
@@ -380,7 +380,7 @@ void OTMachine::run()
 
         for (int i = 0; i < 2; i++)
         {
-            sprintf(filename, SENDER_OUTPUT, my_num, i);
+            snprintf(filename,1024, SENDER_OUTPUT, my_num, i);
             outf.open(filename);
             for (int j = 0; j < nOTs; j++)
             {

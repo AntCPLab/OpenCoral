@@ -109,7 +109,7 @@ inline void receive(ssl_socket* socket, octet* data, size_t length)
         received += socket->read_some(boost::asio::buffer(data + received, length - received));
 }
 
-inline size_t receive_non_blocking(ssl_socket* socket, octet* data, int length)
+inline size_t receive_non_blocking(ssl_socket* socket, octet* data, size_t length)
 {
     return socket->read_some(boost::asio::buffer(data, length));
 }

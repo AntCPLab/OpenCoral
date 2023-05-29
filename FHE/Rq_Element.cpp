@@ -109,7 +109,7 @@ void mul(Rq_Element& ans,const Rq_Element& a,const bigint& b)
   }
 }
 
-void Rq_Element::add(octetStream& os)
+void Rq_Element::add(octetStream& os, int)
 {
   Rq_Element tmp(*this);
   tmp.unpack(os);
@@ -298,7 +298,7 @@ void Rq_Element::partial_assign(const Rq_Element& x, const Rq_Element& y)
   partial_assign(x);
 }
 
-void Rq_Element::pack(octetStream& o) const
+void Rq_Element::pack(octetStream& o, int) const
 {
   check_level();
   o.store(lev);
@@ -306,7 +306,7 @@ void Rq_Element::pack(octetStream& o) const
 	  a[i].pack(o);
 }
 
-void Rq_Element::unpack(octetStream& o)
+void Rq_Element::unpack(octetStream& o, int)
 {
   unsigned int ll;  o.get(ll); lev=ll;
   check_level();

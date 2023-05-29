@@ -48,7 +48,8 @@ By default, :py:func:`~Compiler.library.print_ln` and related
 functions only output to the terminal on party 0. This allows to run
 several parties in one terminal without spoiling the output. You can
 use interactive mode with option ``-I`` in order to output on all
-parties. Note that this also to reading inputs from the command line
+parties or ``-OF .`` to activate the output without interactive mode.
+Note that the former also causes to inputs from the command line
 unless you specify ``-IF`` as well. You can also specify a file prefix
 with ``-OF``, so that outputs are written to
 ``<prefix>-P<player>-<thread>``.
@@ -78,8 +79,8 @@ Clients (Non-computing Parties)
 
 :py:func:`Compiler.types.sint.receive_from_client` and
 :py:func:`Compiler.types.sint.reveal_to_clients` allow
-communicating securely with the clients. See `this example
-<https://github.com/data61/MP-SPDZ/tree/master/ExternalIO>`_
+communicating securely with the clients. See `the relevant section
+<client-interface.html>`_
 covering both client code and server-side high-level code.
 :py:func:`Compiler.types.sint.input_tensor_from_client` and
 :py:func:`Compiler.types.MultiArray.reveal_to_clients`. The same

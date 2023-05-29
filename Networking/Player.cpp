@@ -78,7 +78,7 @@ void Names::init(int player, int pnb, const string& filename, int nplayers_wante
     }
   }
   if (nplayers_wanted > 0 and nplayers_wanted != nplayers)
-    throw runtime_error("not enought hosts in HOSTS");
+    throw runtime_error("not enough hosts in " + filename);
 #ifdef DEBUG_NETWORKING
   cerr << "Got list of " << nplayers << " players from file: " << endl;
   for (unsigned int i = 0; i < names.size(); i++)
@@ -324,7 +324,9 @@ void PlainPlayer::setup_sockets(const vector<string>& names,
 template<class T>
 void MultiPlayer<T>::send_long(int i, long a) const
 {
+  TimeScope ts(comm_stats["Sending by number"].add(sizeof(long)));
   send(sockets[i], (octet*)&a, sizeof(long));
+  sent += sizeof(long);
 }
 
 template<class T>
@@ -716,7 +718,7 @@ size_t VirtualTwoPartyPlayer::send(const PlayerBuffer& buffer, bool block) const
 {
   auto sent = P.send_no_stats(other_player, buffer, block);
   lock.lock();
-  comm_stats["Sending one-to-one"].add(sent);
+  comm_stats.add_to_last_round("Sending one-to-one", sent);
   comm_stats.sent += sent;
   lock.unlock();
   return sent;
@@ -726,7 +728,7 @@ size_t VirtualTwoPartyPlayer::recv(const PlayerBuffer& buffer, bool block) const
 {
   auto received = P.recv_no_stats(other_player, buffer, block);
   lock.lock();
-  comm_stats["Receiving one-to-one"].add(received);
+  comm_stats.add_to_last_round("Receiving one-to-one", received);
   lock.unlock();
   return received;
 }
@@ -803,6 +805,17 @@ void NamedCommStats::reset()
 {
   clear();
   sent = 0;
+}
+
+Timer& NamedCommStats::add_to_last_round(const string& name, size_t length)
+{
+  if (name == last)
+    return (*this)[name].add_length_only(length);
+  else
+    {
+      last = name;
+      return (*this)[name].add(length);
+    }
 }
 
 void PlayerBase::reset_stats()

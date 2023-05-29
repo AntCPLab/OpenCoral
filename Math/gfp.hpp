@@ -146,8 +146,7 @@ gfp_<X, L> gfp_<X, L>::sqrRoot()
 {
     // Temp move to bigint so as to call sqrRootMod
     bigint ti;
-    to_bigint(ti, *this);
-    ti = sqrRootMod(ti, ZpD.pr);
+    ti = sqrRootMod(*this);
     if (!isOdd(ti))
         ti = ZpD.pr - ti;
     gfp_<X, L> temp;
@@ -172,9 +171,9 @@ void gfp_<X, L>::reqbl(int n)
 }
 
 template<int X, int L>
-bool gfp_<X, L>::allows(Dtype)
+bool gfp_<X, L>::allows(Dtype type)
 {
-    return true;
+    return type <= DATA_INVERSE;
 }
 
 template<int X, int L>

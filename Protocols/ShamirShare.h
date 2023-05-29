@@ -50,7 +50,7 @@ public:
     const static bool dishonest_majority = false;
     const static bool variable_players = true;
     const static bool expensive = false;
-    const static bool malicious = true;
+    const static bool malicious = false;
 
     static string type_short()
     {

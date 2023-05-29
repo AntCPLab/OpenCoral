@@ -3,21 +3,38 @@
 
 program.options_from_args()
 
-training_samples = MultiArray([50000, 32, 32, 3], sfix)
-training_labels = MultiArray([50000, 10], sint)
-
-test_samples = MultiArray([10000, 32, 32, 3], sfix)
-test_labels = MultiArray([10000, 10], sint)
-
-training_labels.input_from(0)
-training_samples.input_from(0)
-
-test_labels.input_from(0)
-test_samples.input_from(0)
-
 from Compiler import ml
 tf = ml
 ml.set_n_threads(36)
+
+try:
+    ml.set_n_threads(int(program.args[1]))
+except:
+    pass
+
+if 'torch' in program.args:
+    import torchvision, numpy
+    data = []
+    for train in True, False:
+        ds = torchvision.datasets.CIFAR10(root='/tmp', train=train, download=True)
+        # normalize to [-1,1] before input
+        samples = sfix.input_tensor_via(0, ds.data / 255 * 2 - 1, binary=True)
+        labels = sint.input_tensor_via(0, ds.targets, binary=True, one_hot=True)
+        data += [(labels, samples)]
+
+    (training_labels, training_samples), (test_labels, test_samples) = data
+else:
+    training_samples = MultiArray([50000, 32, 32, 3], sfix)
+    training_labels = MultiArray([50000, 10], sint)
+
+    test_samples = MultiArray([10000, 32, 32, 3], sfix)
+    test_labels = MultiArray([10000, 10], sint)
+
+    training_labels.input_from(0)
+    training_samples.input_from(0)
+
+    test_labels.input_from(0)
+    test_samples.input_from(0)
 
 layers = [
     tf.keras.layers.Conv2D(20, 5, 1, 'valid', activation='relu'),

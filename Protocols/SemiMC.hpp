@@ -14,15 +14,15 @@ template<class T>
 void SemiMC<T>::init_open(const Player& P, int n)
 {
     MAC_Check_Base<T>::init_open(P, n);
-    lengths.clear();
-    lengths.reserve(n);
+    this->lengths.clear();
+    this->lengths.reserve(n);
 }
 
 template<class T>
 void SemiMC<T>::prepare_open(const T& secret, int n_bits)
 {
     this->values.push_back(secret);
-    lengths.push_back(n_bits);
+    this->lengths.push_back(n_bits);
 }
 
 template<class T>
@@ -53,6 +53,7 @@ void DirectSemiMC<T>::exchange_(const PlayerBase& P)
     assert(this->values.size() == this->lengths.size());
     for (size_t i = 0; i < this->lengths.size(); i++)
         this->values[i].pack(oss.mine, this->lengths[i]);
+    oss.mine.append(0);
     P.unchecked_broadcast(oss);
     size_t n = P.num_players();
     size_t me = P.my_num();

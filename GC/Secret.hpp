@@ -89,7 +89,7 @@ void Secret<T>::random(int n_bits, int128 share)
 {
     (void)share;
     if (n_bits > 128)
-        throw not_implemented();
+        throw runtime_error("too many bits");
     resize_regs(n_bits);
     for (int i = 0; i < n_bits; i++)
     	get_reg(i).random();

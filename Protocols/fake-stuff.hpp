@@ -295,9 +295,13 @@ void write_mac_key(const string& directory, int i, int nplayers, U key)
 #ifdef VERBOSE
   cout << "Writing to " << filename.str().c_str() << endl;
 #endif
+  if (not directory.empty())
+    mkdir_p(directory.c_str());
   outf.open(filename.str().c_str());
   outf << nplayers << endl;
   key.output(outf,true);
+  if (outf.fail())
+    throw IO_Error("cannot write to " + filename.str());
   outf.close();
 }
 
@@ -469,16 +473,16 @@ void generate_mac_keys(typename T::mac_share_type::open_type& key,
   key.assign_zero();
   int tmpN = 0;
   ifstream inpf;
-  prep_data_prefix = get_prep_sub_dir<T>(prep_data_prefix, nplayers);
+  prep_data_prefix = get_prep_sub_dir<T>(prep_data_prefix, nplayers, true);
   bool generate = false;
   vector<typename T::mac_share_type> key_shares(nplayers);
 
   for (int i = 0; i < nplayers; i++)
     {
       auto& pp = key_shares[i];
-      stringstream filename;
-      filename << mac_filename<typename T::mac_key_type>(prep_data_prefix, i);
-      inpf.open(filename.str().c_str());
+      string filename;
+      filename = mac_filename<typename T::mac_key_type>(prep_data_prefix, i);
+      inpf.open(filename);
       if (inpf.fail())
         {
           inpf.close();
@@ -509,15 +513,15 @@ void generate_mac_keys(typename T::mac_share_type::open_type& key,
       for (int i = 0; i < nplayers; i++)
         {
           auto& pp = key_shares[i];
-          stringstream filename;
-          filename
-              << mac_filename<typename T::mac_key_type>(prep_data_prefix, i);
-          ofstream outf(filename.str().c_str());
+          string filename;
+          filename = mac_filename<typename T::mac_key_type>(prep_data_prefix,
+              i);
+          ofstream outf(filename);
           if (outf.fail())
-            throw file_error(filename.str().c_str());
+            throw file_error(filename);
           outf << nplayers << " " << pp << endl;
           outf.close();
-          cout << "Written new MAC key share to " << filename.str() << endl;
+          cout << "Written new MAC key share to " << filename << endl;
           cout << " Key " << i << ": " << pp << endl;
         }
     }

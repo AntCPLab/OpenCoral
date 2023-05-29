@@ -20,9 +20,6 @@ class Hemi : public T::BasicProtocol
 
     MatrixMC<T> mc;
 
-    ShareMatrix<T> matrix_multiply(const ShareMatrix<T>& A, const ShareMatrix<T>& B,
-            SubProcessor<T>& processor);
-
 public:
     Hemi(Player& P) :
             T::BasicProtocol(P)
@@ -31,6 +28,9 @@ public:
     ~Hemi();
 
     typename T::MatrixPrep& get_matrix_prep(const array<int, 3>& dimensions,
+            SubProcessor<T>& processor);
+
+    ShareMatrix<T> matrix_multiply(const ShareMatrix<T>& A, const ShareMatrix<T>& B,
             SubProcessor<T>& processor);
 
     void matmulsm(SubProcessor<T>& processor, CheckVector<T>& source,

@@ -265,7 +265,7 @@ W MAC_Check_Z2k<T, U, V, W>::get_random_element() {
   else
     {
       if (prep)
-        return prep->get_random();
+        return prep->get_random_for_open();
       else
       {
         insecure("random dummy");

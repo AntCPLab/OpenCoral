@@ -2,7 +2,6 @@
 #include "FHE_Keys.h"
 #include "Ciphertext.h"
 #include "P2Data.h"
-#include "PPData.h"
 #include "FFT_Data.h"
 
 #include "Math/modp.hpp"
@@ -406,29 +405,17 @@ bigint FHE_SK::get_noise(const Ciphertext& c)
 }
 
 
+#define X(FD) \
+        template void FHE_PK::encrypt(Ciphertext&, const Plaintext_<FD>& mess, \
+                const Random_Coins& rc) const; \
+        template Ciphertext FHE_PK::encrypt(const Plaintext_<FD>& mess) const; \
+        template Plaintext_<FD> FHE_SK::decrypt(const Ciphertext& c, \
+                const FD& FieldD); \
+        template void FHE_SK::decrypt(Plaintext_<FD>& res, \
+		const Ciphertext& c) const; \
+        template void FHE_SK::decrypt_any(Plaintext_<FD>& res, \
+		const Ciphertext& c); \
+        template void FHE_SK::check(const FHE_PK& pk, const FD&);
 
-template void FHE_PK::encrypt(Ciphertext&, const Plaintext_<FFT_Data>& mess,
-    const Random_Coins& rc) const;
-template void FHE_PK::encrypt(Ciphertext&, const Plaintext_<P2Data>& mess,
-    const Random_Coins& rc) const;
-
-template Ciphertext FHE_PK::encrypt(const Plaintext_<FFT_Data>& mess,
-    const Random_Coins& rc) const;
-template Ciphertext FHE_PK::encrypt(const Plaintext_<FFT_Data>& mess) const;
-template Ciphertext FHE_PK::encrypt(const Plaintext_<P2Data>& mess) const;
-
-template void FHE_SK::decrypt(Plaintext_<FFT_Data>&, const Ciphertext& c) const;
-template void FHE_SK::decrypt(Plaintext_<P2Data>&, const Ciphertext& c) const;
-
-template Plaintext_<FFT_Data> FHE_SK::decrypt(const Ciphertext& c,
-        const FFT_Data& FieldD);
-template Plaintext_<P2Data> FHE_SK::decrypt(const Ciphertext& c,
-        const P2Data& FieldD);
-
-template void FHE_SK::decrypt_any(Plaintext_<FFT_Data>& res,
-        const Ciphertext& c);
-template void FHE_SK::decrypt_any(Plaintext_<P2Data>& res,
-        const Ciphertext& c);
-
-template void FHE_SK::check(const FHE_PK& pk, const FFT_Data&);
-template void FHE_SK::check(const FHE_PK& pk, const P2Data&);
+X(FFT_Data)
+X(P2Data)

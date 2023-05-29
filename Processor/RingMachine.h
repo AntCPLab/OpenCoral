@@ -39,7 +39,8 @@ public:
             ez::ezOptionParser& opt);
 };
 
-template<template<int K> class T, template<class V> class U>
+template<template<int K> class T, template<class V> class U,
+        class W = DishonestMajorityMachine>
 class DishonestMajorityRingMachine
 {
 public:
@@ -49,7 +50,7 @@ public:
         OnlineOptions& online_opts = OnlineOptions::singleton;
         online_opts = {opt, argc, argv, T<64>(), live_prep_default};
 
-        RingMachine<T, U, DishonestMajorityMachine>(argc, argv, opt, online_opts);
+        RingMachine<T, U, W>(argc, argv, opt, online_opts);
     }
 };
 

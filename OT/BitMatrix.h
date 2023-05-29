@@ -99,9 +99,6 @@ public:
     _Tp*
     allocate(size_t __n, const void* = 0)
     {
-        if (__n > this->max_size())
-            std::__throw_bad_alloc();
-
         _Tp* res = 0;
         int err = posix_memalign((void**)&res, ALIGN, __n * sizeof(_Tp));
         if (err != 0 or res == 0)

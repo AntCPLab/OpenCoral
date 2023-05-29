@@ -62,8 +62,9 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
           0, // Required?
           1, // Number of args expected.
           0, // Delimiter if expecting multiple args.
-          "Prefix for input file path (default: Player-Data/Private-Input). "
-          "Input will be read from {prefix}-P{id}-{thread_id}.", // Help description.
+          "Prefix for input file path (default: Player-Data/Input). "
+          "Text input will be read from {prefix}-P{id}-{thread_id} and "
+          "binary input from {prefix}-Binary-P{id}-{thread_id}", // Help description.
           "-IF", // Flag token.
           "--input-file" // Flag token.
     );
@@ -95,7 +96,7 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
             0, // Required?
             0, // Number of args expected.
             0, // Delimiter if expecting multiple args.
-            "Verbose output", // Help description.
+            "Verbose output, in particular more data on communication", // Help description.
             "-v", // Flag token.
             "--verbose" // Flag token.
     );

@@ -381,3 +381,9 @@ Domain Reference
 
 .. doxygenclass:: SignedZ2
    :members:
+
+The following is not used as a domain, but it helps using the above types,
+in particular ``gfp_<X, L>`` and ``gfpvar_<X, L>``.
+
+.. doxygenclass:: bigint
+   :members:

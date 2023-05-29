@@ -125,6 +125,7 @@ void InputBase<T>::add_from_all(const typename T::open_type& input, int n_bits)
 template<class T>
 void Input<T>::send_mine()
 {
+    this->os[P.my_num()].append(0);
     P.send_all(this->os[P.my_num()]);
 }
 
@@ -293,7 +294,7 @@ int InputBase<T>::get_player(SubProcessor<T>& Proc, int arg, bool player_from_re
    if (player_from_reg)
    {
        assert(Proc.Proc);
-       auto res = Proc.Proc->sync_Ci(arg);
+       auto res = Proc.Proc->read_Ci(arg);
        if (res >= Proc.P.num_players())
            throw runtime_error("player id too large: " + to_string(res));
        return res;

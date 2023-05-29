@@ -119,12 +119,6 @@ const P2Data& FHE_Params::get_plaintext_field_data() const
   throw not_implemented();
 }
 
-template<>
-const PPData& FHE_Params::get_plaintext_field_data() const
-{
-  throw not_implemented();
-}
-
 bigint FHE_Params::get_plaintext_modulus() const
 {
   return fd.get_prime();
