@@ -48,7 +48,7 @@ public:
 
     void finalize_other(int, T&, octetStream&, int = -1)
     {
-        throw not_implemented();
+        throw runtime_error("input from other parties not implemented");
     }
 };
 

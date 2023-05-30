@@ -116,3 +116,10 @@ Thumbs.db
 
 # Sphinx build
 _build/
+
+# environment
+.env
+
+# temp doc files
+doc/readme.md
+doc/xml

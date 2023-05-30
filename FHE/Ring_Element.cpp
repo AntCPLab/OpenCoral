@@ -50,6 +50,7 @@ void Ring_Element::prepare_push()
 
 void Ring_Element::allocate()
 {
+  assert(FFTD);
   element.resize(FFTD->phi_m());
 }
 
@@ -86,7 +87,6 @@ void Ring_Element::negate()
 
 void add(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b)
 {
-  if (a.rep!=b.rep)   { throw rep_mismatch(); }
   if (a.FFTD!=b.FFTD) { throw pr_mismatch();  }  
   if (a.element.empty())
     {
@@ -98,6 +98,8 @@ void add(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b)
       ans = a;
       return;
     }
+
+  if (a.rep!=b.rep)   { throw rep_mismatch(); }
 
   if (&ans == &a)
     {
@@ -401,15 +403,25 @@ void Ring_Element::change_rep(RepType r)
 
 bool Ring_Element::equals(const Ring_Element& a) const
 {
-  if (element.empty() and a.element.empty())
-    return true;
-  else if (element.empty() or a.element.empty())
-    throw not_implemented();
-
   if (rep!=a.rep)   { throw rep_mismatch(); }
   if (*FFTD!=*a.FFTD) { throw pr_mismatch();  }
+
+  if (is_zero() or a.is_zero())
+    return is_zero() and a.is_zero();
+
   for (int i=0; i<(*FFTD).phi_m(); i++)
     { if (!areEqual(element[i],a.element[i],(*FFTD).get_prD())) { return false; } }
+  return true;
+}
+
+
+bool Ring_Element::is_zero() const
+{
+  if (element.empty())
+    return true;
+  for (auto& x : element)
+    if (not ::isZero(x, FFTD->get_prD()))
+      return false;
   return true;
 }
 
@@ -560,6 +572,8 @@ void Ring_Element::check(const FFT_Data& FFTD) const
 {
   if (&FFTD != this->FFTD)
     throw params_mismatch();
+  if (is_zero())
+    throw runtime_error("element is zero");
 }
 
 

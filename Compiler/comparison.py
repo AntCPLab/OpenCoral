@@ -50,6 +50,9 @@ def set_variant(options):
         do_precomp = False
     elif variant is not None:
         raise CompilerError('Unknown comparison variant: %s' % variant)
+    if const_rounds and instructions_base.program.options.binary:
+        raise CompilerError(
+            'Comparison variant choice incompatible with binary circuits')
 
 def ld2i(c, n):
     """ Load immediate 2^n into clear GF(p) register c """
@@ -77,30 +80,28 @@ def LTZ(s, a, k, kappa):
 
     k: bit length of a
     """
+    movs(s, program.non_linear.ltz(a, k, kappa))
+
+def LtzRing(a, k):
     from .types import sint, _bitint
     from .GC.types import sbitvec
     if program.use_split():
         summands = a.split_to_two_summands(k)
         carry = CarryOutRawLE(*reversed(list(x[:-1] for x in summands)))
         msb = carry ^ summands[0][-1] ^ summands[1][-1]
-        movs(s, sint.conv(msb))
-        return
-    elif program.options.ring:
+        return sint.conv(msb)
+    else:
         from . import floatingpoint
         require_ring_size(k, 'comparison')
         m = k - 1
         shift = int(program.options.ring) - k
         r_prime, r_bin = MaskingBitsInRing(k)
         tmp = a - r_prime
-        c_prime = (tmp << shift).reveal() >> shift
+        c_prime = (tmp << shift).reveal(False) >> shift
         a = r_bin[0].bit_decompose_clear(c_prime, m)
         b = r_bin[:m]
         u = CarryOutRaw(a[::-1], b[::-1])
-        movs(s, sint.conv(r_bin[m].bit_xor(c_prime >> m).bit_xor(u)))
-        return
-    t = sint()
-    Trunc(t, a, k, k - 1, kappa, True)
-    subsfi(s, t, 0)
+        return sint.conv(r_bin[m].bit_xor(c_prime >> m).bit_xor(u))
 
 def LessThanZero(a, k, kappa):
     from . import types
@@ -191,7 +192,7 @@ def TruncLeakyInRing(a, k, m, signed):
         r = sint.bit_compose(r_bits)
     if signed:
         a += (1 << (k - 1))
-    shifted = ((a << (n_shift - m)) + (r << n_shift)).reveal()
+    shifted = ((a << (n_shift - m)) + (r << n_shift)).reveal(False)
     masked = shifted >> n_shift
     u = sint()
     BitLTL(u, masked, r_bits[:n_bits], 0)
@@ -232,7 +233,7 @@ def Mod2mRing(a_prime, a, k, m, signed):
     shift = int(program.options.ring) - m
     r_prime, r_bin = MaskingBitsInRing(m, True)
     tmp = a + r_prime
-    c_prime = (tmp << shift).reveal() >> shift
+    c_prime = (tmp << shift).reveal(False) >> shift
     u = sint()
     BitLTL(u, c_prime, r_bin[:m], 0)
     res = (u << m) + c_prime - r_prime
@@ -262,7 +263,7 @@ def Mod2mField(a_prime, a, k, m, kappa, signed):
         t[1] = a
     adds(t[2], t[0], t[1])
     adds(t[3], t[2], r_prime)
-    asm_open(c, t[3])
+    asm_open(True, c, t[3])
     modc(c_prime, c, c2m)
     if const_rounds:
         BitLTC1(u, c_prime, r, kappa)
@@ -293,7 +294,7 @@ def PRandM(r_dprime, r_prime, b, k, m, kappa, use_dabit=True):
     """
     program.curr_tape.require_bit_length(k + kappa)
     from .types import sint
-    if program.use_edabit() and m > 1 and not const_rounds:
+    if program.use_edabit() and not const_rounds:
         movs(r_dprime, sint.get_edabit(k + kappa - m, True)[0])
         tmp, b[:] = sint.get_edabit(m, True)
         movs(r_prime, tmp)
@@ -511,7 +512,7 @@ def PreMulC_with_inverses_and_vectors(p, a):
     movs(w[0], r[0])
     movs(a_vec[0], a[0])
     vmuls(k, t[0], w, a_vec)
-    vasm_open(k, m, t[0])
+    vasm_open(k, True, m, t[0])
     PreMulC_end(p, a, c, m, z)
 
 def PreMulC_with_inverses(p, a):
@@ -539,7 +540,7 @@ def PreMulC_with_inverses(p, a):
     w[1][0] = r[0][0]
     for i in range(k):
         muls(t[0][i], w[1][i], a[i])
-        asm_open(m[i], t[0][i])
+        asm_open(True, m[i], t[0][i])
     PreMulC_end(p, a, c, m, z)
 
 def PreMulC_without_inverses(p, a):
@@ -564,7 +565,7 @@ def PreMulC_without_inverses(p, a):
         #adds(tt[0][i], t[0][i], a[i])
         #subs(tt[1][i], tt[0][i], a[i])
         #startopen(tt[1][i])
-        asm_open(u[i], t[0][i])
+        asm_open(True, u[i], t[0][i])
     for i in range(k-1):
         muls(v[i], r[i+1], s[i])
     w[0] = r[0]
@@ -580,7 +581,7 @@ def PreMulC_without_inverses(p, a):
         mulm(z[i], s[i], u_inv[i])
     for i in range(k):
         muls(t[1][i], w[i], a[i])
-        asm_open(m[i], t[1][i])
+        asm_open(True, m[i], t[1][i])
     PreMulC_end(p, a, c, m, z)
 
 def PreMulC_end(p, a, c, m, z):
@@ -638,6 +639,7 @@ def Mod2(a_0, a, k, kappa, signed):
     t = [program.curr_block.new_reg('s') for i in range(6)]
     c2k1 = program.curr_block.new_reg('c')
     PRandM(r_dprime, r_prime, [r_0], k, 1, kappa)
+    r_0 = r_prime
     mulsi(t[0], r_dprime, 2)
     if signed:
         ld2i(c2k1, k - 1)
@@ -646,7 +648,7 @@ def Mod2(a_0, a, k, kappa, signed):
         t[1] = a
     adds(t[2], t[0], t[1])
     adds(t[3], t[2], r_prime)
-    asm_open(c, t[3])
+    asm_open(True, c, t[3])
     from . import floatingpoint
     c_0 = floatingpoint.bits(c, 1)[0]
     mulci(tc, c_0, 2)

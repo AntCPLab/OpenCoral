@@ -10,12 +10,11 @@
 #include "Tools/PointerVector.h"
 #include "GC/BitAdder.h"
 
-#include "MalRepRingPrep.hpp"
 #include "LimitedPrep.hpp"
 
 inline
 ShuffleSacrifice::ShuffleSacrifice() :
-        B(OnlineOptions::singleton.bucket_size), C(this->B)
+        ShuffleSacrifice(OnlineOptions::singleton.bucket_size, 3)
 {
 }
 
@@ -23,6 +22,24 @@ inline
 ShuffleSacrifice::ShuffleSacrifice(int B, int C) :
         B(B), C(C)
 {
+    if (OnlineOptions::singleton.security_parameter > 40)
+        throw runtime_error("shuffle sacrifice not implemented for more than "
+                "40-bit security");
+}
+
+template<class U>
+void ShuffleSacrifice::shuffle(vector<U>& check_triples, Player& P)
+{
+    int buffer_size = check_triples.size();
+
+    // shuffle
+    GlobalPRNG G(P);
+    for (int i = 0; i < buffer_size; i++)
+    {
+        int remaining = buffer_size - i;
+        int pos = G.get_uint(remaining);
+        swap(check_triples[i], check_triples[i + pos]);
+    }
 }
 
 template<class T>
@@ -124,7 +141,8 @@ void DabitShuffleSacrifice<T>::dabit_sacrifice(vector<dabit<T> >& output,
         int start = queues->distribute(job, products.size());
         protocol.multiply(products, multiplicands,
                 start, products.size(), proc);
-        queues->wrap_up(job);
+        if (start)
+            queues->wrap_up(job);
     }
     else
         protocol.multiply(products, multiplicands, 0, products.size(), proc);
@@ -294,7 +312,8 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
                 &supplies);
         edabit_sacrifice_buckets(to_check, n_bits, strict, player, proc, start,
                 N, personal_prep);
-        queues->wrap_up(job);
+        if (start)
+            queues->wrap_up(job);
     }
     else
         edabit_sacrifice_buckets(to_check, n_bits, strict, player, proc, 0, N,

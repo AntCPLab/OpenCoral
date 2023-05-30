@@ -17,16 +17,16 @@ class PrivateOutput
     typedef typename T::open_type open_type;
 
     SubProcessor<T>& proc;
+    typename T::MAC_Check MC;
     deque<open_type> masks;
 
 public:
-    PrivateOutput(SubProcessor<T>& proc) : proc(proc) { };
+    PrivateOutput(SubProcessor<T>& proc);
+    ~PrivateOutput();
 
-    void start(int player, int target, int source);
-    void stop(int player, int dest, int source);
-
-    T start(int player, const T& source);
-    typename T::clear stop(int player, const typename T::clear& masked);
+    void prepare_sending(const T& source, int player);
+    void exchange();
+    typename T::clear finalize(int player);
 };
 
 #endif /* PROCESSOR_PRIVATEOUTPUT_H_ */

@@ -55,6 +55,9 @@ public:
     size_t report_size(ReportType type);
     void report_size(ReportType type, MemoryUsage& res);
     size_t report_volatile() { return volatile_capacity; }
+
+    const vector<Ciphertext>& get_multiplicands(
+            const vector<vector<Ciphertext>>& others_ct, const FHE_PK&);
 };
 
 #endif /* FHEOFFLINE_MULTIPLIER_H_ */

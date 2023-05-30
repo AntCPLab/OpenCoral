@@ -18,6 +18,7 @@
 #include "Math/gf2nlong.h"
 
 #include "Processor/DummyProtocol.h"
+#include "Processor/Instruction.h"
 
 #include "Tools/FixedVector.h"
 
@@ -97,6 +98,9 @@ public:
     static void ands(Processor<U>& processor, const vector<int>& args)
     { T::ands(processor, args); }
     template<class U>
+    static void andrsvec(Processor<U>& processor, const vector<int>& args)
+    { T::andrsvec(processor, args); }
+    template<class U>
     static void xors(Processor<U>& processor, const vector<int>& args)
     { T::xors(processor, args); }
     template<class U>
@@ -121,6 +125,15 @@ public:
     static void convcbit(Integer& dest, const Clear& source,
             Processor<U>& proc)
     { T::convcbit(dest, source, proc); }
+
+    template<class U>
+    static void convcbit2s(Processor<U>& processor, const BaseInstruction& instruction)
+    { T::convcbit2s(processor, instruction); }
+    template<class U>
+    static void andm(Processor<U>& processor, const BaseInstruction& instruction)
+    { T::andm(processor, instruction); }
+
+    static void run_tapes(const vector<int>& args) { T::run_tapes(args); }
 
     Secret();
     Secret(const Integer& x) { *this = x; }

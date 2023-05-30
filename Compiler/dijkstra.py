@@ -4,8 +4,11 @@ from Compiler.program import Program
 
 ORAM = OptimalORAM
 
-prog = program.Program.prog
-prog.set_bit_length(min(64, prog.bit_length))
+try:
+    prog = program.Program.prog
+    prog.set_bit_length(min(64, prog.bit_length))
+except AttributeError:
+    pass
 
 class HeapEntry(object):
     fields = ['empty', 'prio', 'value']
@@ -47,9 +50,11 @@ class HeapEntry(object):
         print_ln('empty %s, prio %s, value %s', *(reveal(x) for x in self))
 
 class HeapORAM(object):
-    def __init__(self, size, oram_type, init_rounds, int_type):
+    def __init__(self, size, oram_type, init_rounds, int_type, entry_size=None):
+        if entry_size is None:
+            entry_size = (32,log2(size))
         self.int_type = int_type
-        self.oram = oram_type(size, entry_size=(32,log2(size)), \
+        self.oram = oram_type(size, entry_size=entry_size, \
                                   init_rounds=init_rounds, \
                                   value_type=int_type.basic_type)
     def __getitem__(self, index):
@@ -74,13 +79,15 @@ class HeapORAM(object):
         return len(self.oram)
 
 class HeapQ(object):
-    def __init__(self, max_size, oram_type=ORAM, init_rounds=-1, int_type=sint):
+    def __init__(self, max_size, oram_type=ORAM, init_rounds=-1, int_type=sint, entry_size=None):
+        if entry_size is None:
+            entry_size = (32, log2(max_size))
         basic_type = int_type.basic_type
         self.max_size = max_size
         self.levels = log2(max_size)
         self.depth = self.levels - 1
-        self.heap = HeapORAM(2**self.levels, oram_type, init_rounds, int_type)
-        self.value_index = oram_type(max_size, entry_size=log2(max_size), \
+        self.heap = HeapORAM(2**self.levels, oram_type, init_rounds, int_type, entry_size=entry_size)
+        self.value_index = oram_type(max_size, entry_size=entry_size[1], \
                                          init_rounds=init_rounds, \
                                          value_type=basic_type)
         self.size = MemValue(int_type(0))
@@ -99,7 +106,7 @@ class HeapQ(object):
         bits.reverse()
         bits = [0] + floatingpoint.PreOR(bits, self.levels)
         bits = [bits[i+1] - bits[i] for i in range(self.levels)]
-        shift = sum([bit << i for i,bit in enumerate(bits)])
+        shift = self.int_type.bit_compose(bits)
         childpos = MemValue(start * shift)
         @for_range(self.levels - 1)
         def f(i):
@@ -215,12 +222,13 @@ class HeapQ(object):
         print_ln()
         print_ln()
 
-def dijkstra(source, edges, e_index, oram_type, n_loops=None, int_type=sint):
-    basic_type = int_type.basic_type
+def dijkstra(source, edges, e_index, oram_type, n_loops=None, int_type=None):
     vert_loops = n_loops * e_index.size // edges.size \
         if n_loops else -1
     dist = oram_type(e_index.size, entry_size=(32,log2(e_index.size)), \
-                         init_rounds=vert_loops, value_type=basic_type)
+                         init_rounds=vert_loops, value_type=int_type)
+    int_type = dist.value_type
+    basic_type = int_type.basic_type
     #visited = ORAM(e_index.size)
     #previous = oram_type(e_index.size)
     Q = HeapQ(e_index.size, oram_type, init_rounds=vert_loops, \
@@ -240,7 +248,7 @@ def dijkstra(source, edges, e_index, oram_type, n_loops=None, int_type=sint):
     u = MemValue(basic_type(0))
     @for_range(n_loops or edges.size)
     def f(i):
-        cint(i).print_reg('loop')
+        print_ln('loop %s', i)
         time()
         u.write(if_else(last_edge, Q.pop(last_edge), u))
         #visited.access(u, True, last_edge)

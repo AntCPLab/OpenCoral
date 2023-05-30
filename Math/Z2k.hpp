@@ -67,7 +67,10 @@ Z2<K>::Z2(const IntBase<T>& x) :
 template<int K>
 bool Z2<K>::get_bit(int i) const
 {
-	return 1 & (a[i / N_LIMB_BITS] >> (i % N_LIMB_BITS));
+	if (i < N_BITS)
+		return 1 & (a[i / N_LIMB_BITS] >> (i % N_LIMB_BITS));
+	else
+		return false;
 }
 
 template<int K>

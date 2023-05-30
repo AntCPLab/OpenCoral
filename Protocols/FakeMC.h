@@ -12,7 +12,7 @@ template<class T>
 class FakeMC : public MAC_Check_Base<T>
 {
 public:
-    FakeMC(T, int = 0, int = 0)
+    FakeMC(typename T::mac_key_type, int = 0, int = 0)
     {
     }
 

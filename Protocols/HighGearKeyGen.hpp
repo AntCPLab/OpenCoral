@@ -168,7 +168,7 @@ void HighGearKeyGen<L, M>::run(PartSetup<FD>& setup, MachineBase& machine)
     timer.reset();
 
     map<string, Timer> timers;
-    SimpleEncCommit_<FD> EC(P, setup.pk, setup.FieldD, timers, machine, 0, true);
+    SummingEncCommit<FD> EC(P, setup.pk, setup.FieldD, timers, machine, 0, true);
     Plaintext_<FD> alpha(setup.FieldD);
     EC.next(alpha, setup.calpha);
     assert(alpha.is_diagonal());

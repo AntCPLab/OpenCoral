@@ -38,7 +38,7 @@ array<T, 2> Atlas<T>::get_double_sharing()
 }
 
 template<class T>
-void Atlas<T>::init_mul(SubProcessor<T>*)
+void Atlas<T>::init_mul()
 {
     oss.reset();
     oss2.reset();
@@ -47,10 +47,9 @@ void Atlas<T>::init_mul(SubProcessor<T>*)
 }
 
 template<class T>
-typename T::clear Atlas<T>::prepare_mul(const T& x, const T& y, int)
+void Atlas<T>::prepare_mul(const T& x, const T& y, int)
 {
     prepare(x * y);
-    return {};
 }
 
 template<class T>
@@ -86,6 +85,12 @@ void Atlas<T>::exchange()
         resharing.add_mine(e);
     }
 
+    for (size_t i = 0; i < min(masks.size(), size_t(P.num_players())); i++)
+    {
+        int j = (base_king + i) % P.num_players();
+        resharing.add_sender(j);
+    }
+
     resharing.exchange();
 }
 
@@ -98,9 +103,9 @@ T Atlas<T>::finalize_mul(int)
 }
 
 template<class T>
-void Atlas<T>::init_dotprod(SubProcessor<T>* proc)
+void Atlas<T>::init_dotprod()
 {
-    init_mul(proc);
+    init_mul();
     dotprod_share = 0;
 }
 

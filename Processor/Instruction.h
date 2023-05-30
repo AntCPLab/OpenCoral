@@ -13,6 +13,7 @@ using namespace std;
 
 template<class sint, class sgf2n> class Machine;
 template<class sint, class sgf2n> class Processor;
+template<class T> class SubProcessor;
 class ArithmeticProcessor;
 class SwitchableOutput;
 
@@ -69,6 +70,7 @@ enum
     PLAYERID = 0xE4,
     USE_EDABIT = 0xE5,
     USE_MATMUL = 0x1F,
+    ACTIVE = 0xE9,
     // Addition
     ADDC = 0x20,
     ADDS = 0x21,
@@ -83,6 +85,7 @@ enum
     SUBSI = 0x2A,
     SUBCFI = 0x2B,
     SUBSFI = 0x2C,
+    PREFIXSUMS = 0x2D,
     // Multiplication/division/other arithmetic
     MULC = 0x30,
     MULM = 0x31,
@@ -106,6 +109,13 @@ enum
     MATMULSM = 0xAB,
     CONV2DS = 0xAC,
     CHECK = 0xAF,
+    PRIVATEOUTPUT = 0xAD,
+    // Shuffling
+    SECSHUFFLE = 0xFA,
+    GENSECSHUFFLE = 0xFB,
+    APPLYSHUFFLE = 0xFC,
+    DELSHUFFLE = 0xFD,
+    INVPERM = 0xFE,
     // Data access
     TRIPLE = 0x50,
     BIT = 0x51,
@@ -127,6 +137,7 @@ enum
     INPUTMIXEDREG = 0xF3,
     RAWINPUT = 0xF4,
     INPUTPERSONAL = 0xF5,
+    SENDPERSONAL = 0xF6,
     STARTINPUT = 0x61,
     STOPINPUT = 0x62,
     READSOCKETC = 0x63,
@@ -199,6 +210,7 @@ enum
     CONDPRINTPLAIN = 0xE1,
     INTOUTPUT = 0xE6,
     FLOATOUTPUT = 0xE7,
+    FIXINPUT = 0xE8,
 
     // GF(2^n) versions
     
@@ -248,6 +260,7 @@ enum
     GMULS = 0x1A6,
     GMULRS = 0x1A7,
     GDOTPRODS = 0x1A8,
+    GSECSHUFFLE = 0x1FA,
     // Data access
     GTRIPLE = 0x150,
     GBIT = 0x151,
@@ -275,8 +288,9 @@ enum
     // Bitwise shifts
     GSHLCI = 0x182,
     GSHRCI = 0x183,
-    GBITDEC = 0x184,
-    GBITCOM = 0x185,
+    GSHRSI = 0x184,
+    GBITDEC = 0x18A,
+    GBITCOM = 0x18B,
     // Conversion
     GCONVINT = 0x1C0,
     GCONVGF2N = 0x1C1,
@@ -326,14 +340,14 @@ protected:
   int opcode;         // The code
   int size;           // Vector size
   int r[4];           // Fixed parameter registers
-  unsigned int n;     // Possible immediate value
+  size_t n;             // Possible immediate value
   vector<int>  start; // Values for a start/stop open
 
 public:
   virtual ~BaseInstruction() {};
 
   int get_r(int i) const { return r[i]; }
-  unsigned int get_n() const { return n; }
+  size_t get_n() const { return n; }
   const vector<int>& get_start() const { return start; }
   int get_opcode() const { return opcode; }
   int get_size() const { return size; }
@@ -348,7 +362,7 @@ public:
   bool is_direct_memory_access() const;
 
   // Returns the memory size used if applicable and known
-  unsigned get_mem(RegType reg_type) const;
+  size_t get_mem(RegType reg_type) const;
 
   // Returns the maximal register used
   unsigned get_max_reg(int reg_type) const;
@@ -386,6 +400,9 @@ public:
   template<class T>
   void print(SwitchableOutput& out, T* v, T* p = 0, T* s = 0, T* z = 0,
       T* nan = 0) const;
+
+  template<class T>
+  typename T::clear sanitize(SubProcessor<T>& proc, int reg) const;
 };
 
 #endif

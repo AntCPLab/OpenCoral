@@ -1,5 +1,101 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.3.6 (May 9, 2023)
+
+- More extensive benchmarking outputs
+- Replace MPIR by GMP
+- Secure reading of edaBits from files
+- Semi-honest client communication
+- Back-propagation for average pooling
+- Parallelized convolution
+- Probabilistic truncation as in ABY3
+- More balanced communication in Shamir secret sharing
+- Avoid unnecessary communication in Dealer protocol
+- Linear solver using Cholesky decomposition
+- Accept .py files for compilation
+- Fixed security bug: proper accounting for random elements
+
+## 0.3.5 (Feb 16, 2023)
+
+- Easier-to-use machine learning interface
+- Integrated compilation-execution facility
+- Import/export sequential models and parameters from/to PyTorch
+- Binary-format input files
+- Less aggressive round optimization for faster compilation by default
+- Multithreading with client interface
+- Functionality to protect order of specific memory accesses
+- Oblivious transfer works again on older (pre-2011) x86 CPUs
+- clang is used by default
+
+## 0.3.4 (Nov 9, 2022)
+
+- Decision tree learning
+- Optimized oblivious shuffle in Rep3
+- Optimized daBit generation in Rep3 and semi-honest HE-based 2PC
+- Optimized element-vector AND in SemiBin
+- Optimized input protocol in Shamir-based protocols
+- Square-root ORAM (@Quitlox)
+- Improved ORAM in binary circuits
+- UTF-8 outputs
+
+## 0.3.3 (Aug 25, 2022)
+
+- Use SoftSpokenOT to avoid unclear security of KOS OT extension candidate
+- Fix security bug in MAC check when using multithreading
+- Fix security bug to prevent selective failure attack by checking earlier
+- Fix security bug in Mama: insufficient sacrifice.
+- Inverse permutation (@Quitlox)
+- Easier direct compilation (@eriktaubeneck)
+- Generally allow element-vector operations
+- Increase maximum register size to 2^54
+- Client example in Python
+- Uniform base OTs across platforms
+- Multithreaded base OT computation
+- Faster random bit generation in two-player Semi(2k)
+
+## 0.3.2 (May 27, 2022)
+
+- Secure shuffling
+- O(n log n) radix sorting
+- Documented BGV encryption interface
+- Optimized matrix multiplication in dealer protocol
+- Fixed security bug in homomorphic encryption parameter generation
+- Fixed security bug in Temi matrix multiplication
+
+## 0.3.1 (Apr 19, 2022)
+
+- Protocol in dealer model
+- Command-line option for security parameter
+- Fixed security bug in SPDZ2k (see Section 3.4 of [the updated paper](https://eprint.iacr.org/2018/482))
+- Ability to run high-level (Python) code from C++
+- More memory capacity due to 64-bit addressing
+- Homomorphic encryption for more fields of characteristic two
+- Docker container
+
+## 0.3.0 (Feb 17, 2022)
+
+- Semi-honest computation based on threshold semi-homomorphic encryption
+- Batch normalization backward propagation
+- AlexNet for CIFAR-10
+- Specific private output protocols
+- Semi-honest additive secret sharing without communication
+- Sending of personal values
+- Allow overwriting of persistence files
+- Protocol signature in persistence files
+
+## 0.2.9 (Jan 11, 2022)
+
+- Disassembler
+- Run-time parameter for probabilistic truncation error
+- Probabilistic truncation for some protocols computing modulo a prime
+- Simplified C++ interface
+- Comparison as in [ACCO](https://dl.acm.org/doi/10.1145/3474123.3486757)
+- More general scalar-vector multiplication
+- Complete memory support for clear bits
+- Extended clear bit functionality with Yao's garbled circuits
+- Allow preprocessing information to be supplied via named pipes
+- In-place operations for containers
+
 ## 0.2.8 (Nov 4, 2021)
 
 - Tested on Apple laptop with ARM chip

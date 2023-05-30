@@ -13,10 +13,10 @@
 #include "Math/gf2n.h"
 #include "Tools/ezOptionParser.h"
 #include "GC/MaliciousCcdSecret.h"
+#include "GC/SemiHonestRepPrep.h"
 
 #include "Processor/FieldMachine.hpp"
 #include "Protocols/Replicated.hpp"
-#include "Protocols/MaliciousRepMC.hpp"
 #include "Protocols/Share.hpp"
 #include "Protocols/fake-stuff.hpp"
 #include "Protocols/SpdzWise.hpp"
@@ -30,6 +30,7 @@
 #include "GC/RepPrep.hpp"
 #include "GC/ThreadMaster.hpp"
 #include "Math/gfp.hpp"
+#include "MalRep.hpp"
 
 int main(int argc, const char** argv)
 {

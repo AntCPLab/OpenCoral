@@ -8,6 +8,8 @@
 
 #include "PersonalPrep.h"
 
+#include "Protocols/ShuffleSacrifice.hpp"
+
 namespace GC
 {
 
@@ -36,7 +38,8 @@ void PersonalPrep<T>::buffer_personal_triples(size_t batch_size, ThreadQueues* q
         PersonalTripleJob job(&triples, input_player);
         int start = queues->distribute(job, batch_size);
         buffer_personal_triples(triples, start, batch_size);
-        queues->wrap_up(job);
+        if (start)
+            queues->wrap_up(job);
     }
     else
         buffer_personal_triples(triples, 0, batch_size);

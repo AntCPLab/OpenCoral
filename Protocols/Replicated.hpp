@@ -10,25 +10,25 @@
 #include "Processor/Processor.h"
 #include "Processor/TruncPrTuple.h"
 #include "Tools/benchmarking.h"
+#include "Tools/Bundle.h"
 
-#include "SemiShare.h"
-#include "SemiMC.h"
 #include "ReplicatedInput.h"
 #include "Rep3Share2k.h"
 
-#include "SemiMC.hpp"
+#include "ReplicatedPO.hpp"
 #include "Math/Z2k.hpp"
 
 template<class T>
 ProtocolBase<T>::ProtocolBase() :
-        trunc_pr_counter(0), rounds(0), trunc_rounds(0), counter(0)
+        trunc_pr_counter(0), rounds(0), trunc_rounds(0), dot_counter(0),
+        bit_counter(0), counter(0)
 {
 }
 
 template<class T>
 Replicated<T>::Replicated(Player& P) : ReplicatedBase(P)
 {
-    assert(T::length == 2);
+    assert(T::vector_length == 2);
 }
 
 template<class T>
@@ -41,7 +41,7 @@ inline ReplicatedBase::ReplicatedBase(Player& P) : P(P)
 {
     assert(P.num_players() == 3);
 	if (not P.is_encrypted())
-		insecure("unencrypted communication");
+		insecure("unencrypted communication", false);
 
 	shared_prngs[0].ReSeed();
 	octetStream os;
@@ -58,7 +58,7 @@ inline ReplicatedBase::ReplicatedBase(Player& P, array<PRNG, 2>& prngs) :
         shared_prngs[i].SetSeed(prngs[i]);
 }
 
-inline ReplicatedBase ReplicatedBase::branch()
+inline ReplicatedBase ReplicatedBase::branch() const
 {
     return {P, shared_prngs};
 }
@@ -68,7 +68,11 @@ ProtocolBase<T>::~ProtocolBase()
 {
 #ifdef VERBOSE_COUNT
     if (counter or rounds)
-        cerr << "Number of " << T::type_string() << " multiplications: " << counter << " in " << rounds << " rounds" << endl;
+        cerr << "Number of " << T::type_string() << " multiplications: "
+                << counter << " (" << bit_counter << " bits) in " << rounds
+                << " rounds" << endl;
+    if (counter or rounds)
+        cerr << "Number of " << T::type_string() << " dot products: " << dot_counter << endl;
     if (trunc_pr_counter or trunc_rounds)
         cerr << "Number of probabilistic truncations: " << trunc_pr_counter << " in " << trunc_rounds << " rounds" << endl;
 #endif
@@ -99,7 +103,8 @@ void ProtocolBase<T>::multiply(vector<T>& products,
             BaseMachine::thread_num);
 #endif
 
-    init_mul(&proc);
+    init(proc.DataF, proc.MC);
+    init_mul();
     for (int i = begin; i < end; i++)
         prepare_mul(multiplicands[i].first, multiplicands[i].second);
     exchange();
@@ -110,10 +115,17 @@ void ProtocolBase<T>::multiply(vector<T>& products,
 template<class T>
 T ProtocolBase<T>::mul(const T& x, const T& y)
 {
-    init_mul(0);
+    init_mul();
     prepare_mul(x, y);
     exchange();
     return finalize_mul();
+}
+
+template<class T>
+void ProtocolBase<T>::prepare_mult(const T& x, const T& y, int n,
+		bool)
+{
+    prepare_mul(x, y, n);
 }
 
 template<class T>
@@ -126,6 +138,7 @@ template<class T>
 T ProtocolBase<T>::finalize_dotprod(int length)
 {
     counter += length;
+    dot_counter++;
     T res;
     for (int i = 0; i < length; i++)
         res += finalize_mul();
@@ -147,17 +160,13 @@ T ProtocolBase<T>::get_random()
 }
 
 template<class T>
-void Replicated<T>::init_mul(SubProcessor<T>* proc)
+vector<int> ProtocolBase<T>::get_relevant_players()
 {
-    (void) proc;
-    init_mul();
-}
-
-template<class T>
-void Replicated<T>::init_mul(Preprocessing<T>& prep, typename T::MAC_Check& MC)
-{
-    (void) prep, (void) MC;
-    init_mul();
+    vector<int> res;
+    int n = dynamic_cast<typename T::Protocol&>(*this).P.num_players();
+    for (int i = 0; i < T::threshold(n) + 1; i++)
+        res.push_back(i);
+    return res;
 }
 
 template<class T>
@@ -169,23 +178,21 @@ void Replicated<T>::init_mul()
 }
 
 template<class T>
-inline typename T::clear Replicated<T>::prepare_mul(const T& x,
+void Replicated<T>::prepare_mul(const T& x,
         const T& y, int n)
 {
     typename T::value_type add_share = x.local_mul(y);
     prepare_reshare(add_share, n);
-    return add_share;
 }
 
 template<class T>
-inline void Replicated<T>::prepare_reshare(const typename T::clear& share,
+void Replicated<T>::prepare_reshare(const typename T::clear& share,
         int n)
 {
-    auto add_share = share;
     typename T::value_type tmp[2];
     for (int i = 0; i < 2; i++)
         tmp[i].randomize(shared_prngs[i], n);
-    add_share += tmp[0] - tmp[1];
+    auto add_share = share + tmp[0] - tmp[1];
     add_share.pack(os[0], n);
     add_shares.push_back(add_share);
 }
@@ -193,6 +200,7 @@ inline void Replicated<T>::prepare_reshare(const typename T::clear& share,
 template<class T>
 void Replicated<T>::exchange()
 {
+    os[0].append(0);
     if (os[0].get_length() > 0)
         P.pass_around(os[0], os[1], 1);
     this->rounds++;
@@ -201,6 +209,7 @@ void Replicated<T>::exchange()
 template<class T>
 void Replicated<T>::start_exchange()
 {
+    os[0].append(0);
     P.send_relative(1, os[0]);
     this->rounds++;
 }
@@ -215,6 +224,7 @@ template<class T>
 inline T Replicated<T>::finalize_mul(int n)
 {
     this->counter++;
+    this->bit_counter += n;
     T result;
     result[0] = add_shares.next();
     result[1].unpack(os[1], n);
@@ -246,6 +256,7 @@ template<class T>
 inline T Replicated<T>::finalize_dotprod(int length)
 {
     (void) length;
+    this->dot_counter++;
     return finalize_mul();
 }
 
@@ -276,109 +287,138 @@ void Replicated<T>::randoms(T& res, int n_bits)
         res[i].randomize_part(shared_prngs[i], n_bits);
 }
 
-template<int K>
-void trunc_pr(const vector<int>& regs, int size,
-        SubProcessor<Rep3Share2<K>>& proc)
+template<class T>
+template<class U>
+void Replicated<T>::trunc_pr(const vector<int>& regs, int size, U& proc,
+        false_type)
 {
     assert(regs.size() % 4 == 0);
     assert(proc.P.num_players() == 3);
     assert(proc.Proc != 0);
-    typedef SignedZ2<K> value_type;
-    typedef Rep3Share<value_type> T;
-    bool generate = proc.P.my_num() == 2;
+    typedef typename T::clear value_type;
+    int gen_player = 2;
+    int comp_player = 1;
+    bool generate = P.my_num() == gen_player;
+    bool compute = P.my_num() == comp_player;
+    ArgList<TruncPrTupleWithGap<value_type>> infos(regs);
+    auto& S = proc.get_S();
+
+    octetStream cs;
+    ReplicatedInput<T> input(0, *this);
+
+    // use https://eprint.iacr.org/2019/131
+    bool have_small_gap = false;
+    // use https://eprint.iacr.org/2018/403
+    bool have_big_gap = false;
+
+    for (auto info : infos)
+        if (info.small_gap())
+            have_small_gap = true;
+        else
+            have_big_gap = true;
+
     if (generate)
     {
-        octetStream os[2];
-        for (size_t i = 0; i < regs.size(); i += 4)
-        {
-            TruncPrTuple<value_type> info(regs, i);
-            for (int l = 0; l < size; l++)
+        SeededPRNG G;
+        for (auto info : infos)
+            for (int i = 0; i < size; i++)
             {
-                auto& res = proc.get_S_ref(regs[i] + l);
-                auto& G = proc.Proc->secure_prng;
-                auto mask = G.template get<value_type>();
-                auto unmask = info.upper(mask);
-                T shares[4];
-                shares[0].randomize_to_sum(mask, G);
-                shares[1].randomize_to_sum(unmask, G);
-                shares[2].randomize_to_sum(info.msb(mask), G);
-                res.randomize(G);
-                shares[3] = res;
-                for (int i = 0; i < 2; i++)
+                auto& x = S[info.source_base + i];
+                if (info.small_gap())
                 {
-                    for (int j = 0; j < 4; j++)
-                        shares[j][i].pack(os[i]);
+                    auto r = G.get<value_type>();
+                    input.add_mine(info.upper(r));
+                    input.add_mine(info.msb(r));
+                    (r + x[0]).pack(cs);
+                }
+                else
+                {
+                    auto& y = S[info.dest_base + i];
+                    auto r = this->shared_prngs[0].template get<value_type>();
+                    y[1] = -value_type(-value_type(x.sum()) >> info.m) - r;
+                    y[1].pack(cs);
+                    y[0] = r;
                 }
             }
-        }
-        for (int i = 0; i < 2; i++)
-            proc.P.send_to(i, os[i]);
+
+        P.send_to(comp_player, cs);
     }
-    else
+    else if (have_small_gap)
+        input.add_other(gen_player);
+
+    if (compute)
     {
-        octetStream os;
-        proc.P.receive_player(2, os);
-        OffsetPlayer player(proc.P, 1 - 2 * proc.P.my_num());
-        typedef SemiShare<value_type> semi_type;
-        vector<SemiShare<value_type>> to_open;
-        PointerVector<SemiShare<value_type>> mask_shares[3];
-        for (size_t i = 0; i < regs.size(); i += 4)
-            for (int l = 0; l < size; l++)
+        P.receive_player(gen_player, cs);
+        for (auto info : infos)
+            for (int i = 0; i < size; i++)
             {
-                SemiShare<value_type> share;
-                auto& x = proc.get_S_ref(regs[i + 1] + l);
-                if (proc.P.my_num() == 0)
-                    share = x.sum();
+                auto& x = S[info.source_base + i];
+                if (info.small_gap())
+                {
+                    auto c = cs.get<value_type>() + x.sum();
+                    input.add_mine(info.upper(c));
+                    input.add_mine(info.msb(c));
+                }
                 else
-                    share = x[0];
-                for (auto& mask_share : mask_shares)
-                    mask_share.push_back(os.get<semi_type>());
-                to_open.push_back(share + mask_shares[0].next());
-                auto& res = proc.get_S_ref(regs[i] + l);
-                auto& a = res[1 - proc.P.my_num()];
-                a.unpack(os);
+                {
+                    auto& y = S[info.dest_base + i];
+                    y[0] = cs.get<value_type>();
+                    y[1] = x[1] >> info.m;
+                }
             }
-        PointerVector<value_type> opened;
-        DirectSemiMC<SemiShare<value_type>> MC;
-        MC.POpen_(opened, to_open, player);
-        os.reset_write_head();
-        for (size_t i = 0; i < regs.size(); i += 4)
-        {
-            int k = regs[i + 2];
-            int m = regs[i + 3];
-            int n_shift = value_type::N_BITS - 1 - k;
-            assert(m < k);
-            assert(0 < k);
-            assert(m < value_type::N_BITS);
-            for (int l = 0; l < size; l++)
+    }
+
+    if (have_big_gap and not (compute or generate))
+    {
+        for (auto info : infos)
+            if (info.big_gap())
+                for (int i = 0; i < size; i++)
+                {
+                    auto& x = S[info.source_base + i];
+                    auto& y = S[info.dest_base + i];
+                    y[0] = x[0] >> info.m;
+                    y[1] = this->shared_prngs[1].template get<value_type>();
+                }
+    }
+
+    if (have_small_gap)
+    {
+        input.add_other(comp_player);
+        input.exchange();
+        init_mul();
+
+        for (auto info : infos)
+            for (int i = 0; i < size; i++)
             {
-                auto& res = proc.get_S_ref(regs[i] + l);
-                auto masked = opened.next() << n_shift;
-                auto shifted = (masked << 1) >> (n_shift + m + 1);
-                auto diff = SemiShare<value_type>::constant(shifted,
-                        player.my_num()) - mask_shares[1].next();
-                auto msb = masked >> (value_type::N_BITS - 1);
-                auto bit_mask = mask_shares[2].next();
-                auto overflow = (bit_mask
-                        + SemiShare<value_type>::constant(msb, player.my_num())
-                        - bit_mask * msb * 2);
-                auto res_share = diff + (overflow << (k - m));
-                auto& a = res[1 - proc.P.my_num()];
-                auto& b = res[proc.P.my_num()];
-                b = res_share - a;
-                b.pack(os);
+                if (info.small_gap())
+                {
+                    this->trunc_pr_counter++;
+                    auto c_prime = input.finalize(comp_player);
+                    auto r_prime = input.finalize(gen_player);
+                    S[info.dest_base + i] = c_prime - r_prime;
+
+                    auto c_dprime = input.finalize(comp_player);
+                    auto r_msb = input.finalize(gen_player);
+                    S[info.dest_base + i] += ((r_msb + c_dprime)
+                            << (info.k - info.m));
+                    prepare_mul(r_msb, c_dprime);
+                }
             }
-        }
-        player.exchange(os);
-        for (size_t i = 0; i < regs.size(); i += 4)
-            for (int l = 0; l < size; l++)
-                proc.get_S_ref(regs[i] + l)[proc.P.my_num()] +=
-                        os.get<value_type>();
+
+        exchange();
+
+        for (auto info : infos)
+            for (int i = 0; i < size; i++)
+                if (info.small_gap())
+                    S[info.dest_base + i] -= finalize_mul()
+                            << (info.k - info.m + 1);
     }
 }
 
 template<class T>
-void trunc_pr(const vector<int>& regs, int size, SubProcessor<T>& proc)
+template<class U>
+void Replicated<T>::trunc_pr(const vector<int>& regs, int size, U& proc,
+        true_type)
 {
     (void) regs, (void) size, (void) proc;
     throw runtime_error("trunc_pr not implemented");
@@ -390,7 +430,7 @@ void Replicated<T>::trunc_pr(const vector<int>& regs, int size,
         U& proc)
 {
     this->trunc_rounds++;
-    ::trunc_pr(regs, size, proc);
+    trunc_pr(regs, size, proc, T::clear::characteristic_two);
 }
 
 #endif

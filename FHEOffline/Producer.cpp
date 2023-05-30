@@ -577,7 +577,7 @@ void InputProducer<FD>::run(const Player& P, const FHE_PK& pk,
     for (int j = min; j < max; j++)
     {
         AddableVector<Ciphertext> C;
-        vector<Plaintext_<FD>> m(EC.machine->sec, FieldD);
+        vector<Plaintext_<FD>> m(personal_EC.proof.U, FieldD);
         if (j == P.my_num())
         {
             for (auto& x : m)

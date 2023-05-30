@@ -12,7 +12,7 @@ void FixInput_<Integer>::read(std::istream& in, const int* params)
 {
     double x;
     in >> x;
-    items[0] = x * exp2(*params);
+    items[0] = round(x * exp2(*params));
 }
 
 template<>
@@ -25,6 +25,6 @@ void FixInput_<bigint>::read(std::istream& in, const int* params)
 #else
     double x;
     in >> x;
-    items[0] = x * exp2(*params);
+    items[0] = round(x * exp2(*params));
 #endif
 }

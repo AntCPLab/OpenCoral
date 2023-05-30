@@ -14,6 +14,14 @@
 class FFT_Data;
 template<class T> class BitVec_;
 
+/**
+ * Type for values in a field defined by integers modulo a prime
+ * up to a certain length for fixed storage.
+ * ``X`` is a counter to allow several moduli being used at the same time.
+ * ``L`` is the maximum number of 64-bit limbs, that is,
+ * the prime has to have bit length at most `64*L`.
+ * The interface replicates ``gfp_``.
+ */
 template<int X, int L>
 class gfpvar_
 {
@@ -73,6 +81,7 @@ public:
     {
         write_setup(get_prep_sub_dir<T>(nplayers));
     }
+    static string fake_opts() { return " -lgp " + to_string(length()); }
 
     gfpvar_();
     gfpvar_(int other);
@@ -97,6 +106,12 @@ public:
     {
         assert(pr() == other.pr());
         a = other.get();
+    }
+
+    template<int K>
+    gfpvar_(const Z2<K>& other) :
+            gfpvar_(bigint(other))
+    {
     }
 
     void assign(const void* buffer);
@@ -133,7 +148,7 @@ public:
     bool operator==(const gfpvar_& other) const;
     bool operator!=(const gfpvar_& other) const;
 
-    void add(octetStream& other);
+    void add(octetStream& other, int = -1);
 
     void negate();
 

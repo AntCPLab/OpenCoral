@@ -13,6 +13,7 @@
 
 #include "Processor/Online-Thread.h"
 #include "Processor/ThreadJob.h"
+#include "Processor/ExternalClients.h"
 
 #include "GC/Machine.h"
 
@@ -44,7 +45,9 @@ class Machine : public BaseMachine
 
   Player* P;
 
-  void load_program(const string& threadname, const string& filename);
+  size_t load_program(const string& threadname, const string& filename);
+
+  void prepare(const string& progname_str);
 
   void suggest_optimizations();
 
@@ -69,13 +72,14 @@ class Machine : public BaseMachine
 
   OnlineOptions opts;
 
-  NamedCommStats comm_stats;
   ExecutionStats stats;
 
-  Machine(int my_number, Names& playerNames, const string& progname,
-      const string& memtype, int lg2, bool direct, int opening_sum,
-      bool receive_threads, int max_broadcast, bool use_encryption, bool live_prep,
-      OnlineOptions opts);
+  ExternalClients external_clients;
+
+  static void init_binary_domains(int security_parameter, int lg2);
+
+  Machine(Names& playerNames, bool use_encryption = true,
+          const OnlineOptions opts = sint(), int lg2 = 0);
   ~Machine();
 
   const Names& get_N() { return N; }
@@ -93,7 +97,11 @@ class Machine : public BaseMachine
   DataPositions run_tape(int thread_number, int tape_number, int arg,
       const DataPositions& pos);
   DataPositions join_tape(int thread_number);
-  void run();
+
+  void run(const string& progname);
+
+  void run_step(const string& progname);
+  pair<DataPositions, NamedCommStats> stop_threads();
 
   string memory_filename();
 
@@ -101,8 +109,14 @@ class Machine : public BaseMachine
   string prep_dir_prefix();
 
   void reqbl(int n);
+  void active(int n);
 
   typename sint::bit_type::mac_key_type get_bit_mac_key() { return alphabi; }
+  typename sint::mac_key_type get_sint_mac_key() { return alphapi; }
+
+  Player& get_player() { return *P; }
+
+  void check_program();
 };
 
 #endif /* MACHINE_H_ */

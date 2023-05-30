@@ -25,6 +25,14 @@ void CcdPrep<T>::set_protocol(typename T::Protocol& protocol)
 {
     auto& thread = ShareThread<T>::s();
     assert(thread.MC);
+
+    if (part_proc)
+    {
+        assert(&part_proc->MC == &thread.MC->get_part_MC());
+        assert(&part_proc->P == &protocol.get_part().P);
+        return;
+    }
+
     part_proc = new SubProcessor<typename T::part_type>(
             thread.MC->get_part_MC(), part_prep, protocol.get_part().P);
 }

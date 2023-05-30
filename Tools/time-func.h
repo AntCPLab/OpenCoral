@@ -27,9 +27,13 @@ class Timer
   double elapsed_then_reset();
   double idle();
 
+  bool is_running();
+
   Timer& operator-=(const Timer& other);
   Timer& operator+=(const Timer& other);
   Timer& operator+=(const TimeScope& other);
+
+  Timer operator+(const Timer& other) const;
 
   private:
   timespec startv;

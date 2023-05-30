@@ -89,7 +89,7 @@ void MalRepRingPrep<T>::simple_buffer_triples()
 template<class T>
 void MalRepRingPrep<T>::shuffle_buffer_triples()
 {
-    assert(T::SECURITY <= 40);
+    assert(T::SECURITY <= OnlineOptions::singleton.security_parameter);
     assert(this->proc != 0);
     typename T::MAC_Check MC;
     shuffle_triple_generation(this->triples, this->proc->P, MC);
@@ -119,21 +119,6 @@ void shuffle_triple_generation(vector<array<T, 3>>& triples, Player& P,
     cerr << "Triple sacrifice took " << timer.elapsed() - gen_time << " seconds" << endl;
     cerr << "Total shuffle triple generation took " << timer.elapsed() << " seconds" << endl;
 #endif
-}
-
-template<class U>
-void ShuffleSacrifice::shuffle(vector<U>& check_triples, Player& P)
-{
-    int buffer_size = check_triples.size();
-
-    // shuffle
-    GlobalPRNG G(P);
-    for (int i = 0; i < buffer_size; i++)
-    {
-        int remaining = buffer_size - i;
-        int pos = G.get_uint(remaining);
-        swap(check_triples[i], check_triples[i + pos]);
-    }
 }
 
 template<class T>
@@ -180,7 +165,8 @@ void TripleShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
         TripleSacrificeJob job(&triples, &check_triples);
         int start = queues->distribute(job, N);
         triple_sacrifice(triples, check_triples, P, MC, start, N);
-        queues->wrap_up(job);
+        if (start)
+            queues->wrap_up(job);
     }
     else
         triple_sacrifice(triples, check_triples, P, MC, 0, N);
@@ -249,32 +235,6 @@ void RingOnlyBitsFromSquaresPrep<T>::buffer_bits()
     SubProcessor<BitShare> bit_proc(MC, prep, proc->P);
     prep.set_proc(&bit_proc);
     bits_from_square_in_ring(this->bits, this->buffer_size, &prep);
-}
-
-template<class T>
-void MaliciousRingPrep<T>::buffer_edabits(bool strict, int n_bits,
-        ThreadQueues* queues)
-{
-    RunningTimer timer;
-#ifndef NONPERSONAL_EDA
-    this->buffer_edabits_from_personal(strict, n_bits, queues);
-#else
-    assert(this->proc != 0);
-    ShuffleSacrifice<T> shuffle_sacrifice;
-    typedef typename T::bit_type::part_type bit_type;
-    vector<vector<bit_type>> bits;
-    vector<T> sums;
-    this->buffer_edabits_without_check(n_bits, sums, bits,
-            shuffle_sacrifice.minimum_n_inputs(), queues);
-    vector<edabit<T>>& checked = this->edabits[{strict, n_bits}];
-    shuffle_sacrifice.edabit_sacrifice(checked, sums, bits,
-            n_bits, *this->proc, strict, -1, queues);
-    if (strict)
-        this->sanitize(checked, n_bits, -1, queues);
-#endif
-#ifdef VERBOSE_EDA
-    cerr << "Total edaBit generation took " << timer.elapsed() << " seconds" << endl;
-#endif
 }
 
 template<class T>

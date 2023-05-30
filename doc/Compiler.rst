@@ -28,12 +28,16 @@ Compiler.GC.types module
 .. automodule:: Compiler.GC.types
    :members:
    :no-undoc-members:
-   :no-inherited-members:
-   :show-inheritance:
+   :inherited-members:
    :exclude-members: PreOp, cbit, dynamic_array, conv_cint_vec, bitdec,
 		     bit_type, bitcom, clear_type, conv_regint, default_type,
 		     mov, dyn_sbits, int_type, mul, vec, load_mem,
-		     DynamicArray, get_raw_input_from
+		     DynamicArray, get_raw_input_from, bits,
+		     input_tensor_from, input_tensor_from_client,
+		     input_tensor_via, dot_product, Matrix, Tensor,
+		     from_sint, read_from_file, receive_from_client,
+		     reveal_to_clients, write_shares_to_socket,
+		     write_to_file
 
 Compiler.library module
 -----------------------
@@ -71,7 +75,15 @@ Compiler.ml module
    :no-undoc-members:
    :exclude-members: Tensor
    :show-inheritance:
+   :inherited-members:
 .. autofunction:: approx_sigmoid
+
+Compiler.decision_tree module
+-----------------------------
+
+.. automodule:: Compiler.decision_tree
+   :members:
+   :no-undoc-members:
 
 Compiler.circuit module
 -----------------------
@@ -108,3 +120,32 @@ Compiler.oram module
 		     TrivialORAMIndexStructure, ValueTuple, demux,
 		     get_log_value_size, get_parallel, get_value_size,
 		     gf2nBlock, intBlock
+
+
+Compiler.sqrt_oram module
+-------------------------
+
+.. automodule:: Compiler.sqrt_oram
+   :members:
+   :no-undoc-members:
+   :exclude-members: LinearPositionMap, PositionMap, RecursivePositionMap,
+		     refresh, shuffle_the_shuffle
+
+
+Compiler.path_oblivious_heap module
+-----------------------------------
+
+.. automodule:: Compiler.path_oblivious_heap
+   :members:
+   :no-undoc-members:
+   :inherited-members:
+   :exclude-members: AbstractMinPriorityQueue, BasicMinTree, CircuitMinTree,
+		     EmptyIndexStructure, POHVariant, PathMinTree, dprint,
+		     dprint_ln, dprint_ln_if, dprint_str, indent, outdent,
+
+
+Compiler.sorting module
+-----------------------
+.. automodule:: Compiler.sorting
+   :members:
+   :no-undoc-members:

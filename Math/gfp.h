@@ -11,7 +11,6 @@ using namespace std;
 #include "Math/Bit.h"
 #include "Math/Setup.h"
 #include "Tools/random.h"
-#include "GC/NoShare.h"
 #include "Processor/OnlineOptions.h"
 
 #include "Math/modp.hpp"
@@ -41,6 +40,17 @@ template<class T> void generate_prime_setup(string, int, int);
 #error GFP_MOD_SZ must be at most MAX_MOD_SZ
 #endif
 
+/**
+ * Type for values in a field defined by integers modulo a prime
+ * in a specific range for fixed storage.
+ * It supports basic arithmetic operations and bit-wise operations.
+ * The latter use the canonical representation in the range `[0, p-1]`.
+ * ``X`` is a counter to allow several moduli being used at the same time.
+ * ``L`` is the number of 64-bit limbs, that is,
+ * the prime has to have bit length in `[64*L-63, 64*L]`.
+ * See ``gfpvar_`` for a more flexible alternative.
+ * Convert to ``bigint`` to access the canonical integer representation.
+ */
 template<int X, int L>
 class gfp_ : public ValueInterface
 {
@@ -73,7 +83,17 @@ class gfp_ : public ValueInterface
   template<class T>
   static void init(bool mont = true)
     { init_field(T::pr(), mont); }
+  /**
+   * Initialize the field.
+   * @param p: prime modulus
+   * @param mont: whether to use Montgomery representation
+   */
   static void init_field(const bigint& p,bool mont=true);
+  /**
+   * Initialize the field to a prime of a given bit length.
+   * @param lgp: bit length
+   * @param mont: whether to use Montgomery representation
+   */
   static void init_default(int lgp, bool mont = true);
   static void read_or_generate_setup(string dir, const OnlineOptions& opts);
   template<class T>
@@ -85,7 +105,11 @@ class gfp_ : public ValueInterface
   static void write_setup(string dir)
     { write_online_setup(dir, pr()); }
   static void check_setup(string dir);
+  static string fake_opts() { return " -lgp " + to_string(length()); }
 
+  /**
+   * Get the prime modulus
+   */
   static const bigint& pr()
     { return ZpD.pr; }
   static int t()
@@ -101,6 +125,7 @@ class gfp_ : public ValueInterface
   static int size() { return t() * sizeof(mp_limb_t); }
   static int size_in_bits() { return 8 * size(); }
   static int length() { return ZpD.pr_bit_length; }
+  static int n_bits() { return length() - 1; }
 
   static void reqbl(int n);
 
@@ -126,15 +151,25 @@ class gfp_ : public ValueInterface
   const void* get_ptr() const { return &a.x; }
   void* get_ptr()             { return &a.x; }
 
+  /**
+   * Initialize to zero.
+   */
   gfp_()              { assignZero(a,ZpD); }
   template<int LL>
   gfp_(const modp_<LL>& g) { a=g; }
+  /**
+   * Convert from integer without range restrictions.
+   */
   gfp_(const mpz_class& x) { to_modp(a, x, ZpD); }
   gfp_(int x) : gfp_(long(x)) {}
   gfp_(long x);
+  gfp_(long long x) : gfp_(long(x)) {}
   gfp_(word x) : gfp_(bigint::tmp = x) {}
   template<class T>
   gfp_(IntBase<T> x) : gfp_(x.get()) {}
+  /**
+   * Convert from different domain via canonical integer representation.
+   */
   template<int Y>
   gfp_(const gfp_<Y, L>& x);
   gfp_(const gfpvar& other);
@@ -152,7 +187,7 @@ class gfp_ : public ValueInterface
   bool operator!=(const gfp_& y) const { return !equal(y); }
 
   // x+y
-  void add(octetStream& os)
+  void add(octetStream& os, int = -1)
     { add(os.consume(size())); }
   void add(const gfp_& x,const gfp_& y)
     { ZpD.Add<L>(a.x,x.a.x,y.a.x); }
@@ -181,9 +216,16 @@ class gfp_ : public ValueInterface
   void negate() 
     { Negate(a,a,ZpD); }
 
-  // deterministic square root
+  /**
+   * Deterministic square root.
+   */
   gfp_ sqrRoot();
 
+  /**
+   * Sample with uniform distribution.
+   * @param G randomness generator
+   * @param n (unused)
+   */
   void randomize(PRNG& G, int n = -1)
     { (void) n; a.randomize(G,ZpD); }
   // faster randomization, see implementation for explanation
@@ -194,10 +236,20 @@ class gfp_ : public ValueInterface
   void input(istream& s,bool human)
     { a.input(s,ZpD,human); }
 
+  /**
+   * Human-readable output in the range `[-p/2, p/2]`.
+   * @param s output stream
+   * @param x value
+   */
   friend ostream& operator<<(ostream& s,const gfp_& x)
     { x.output(s,true);
       return s;
     }
+  /**
+   * Human-readable input without range restrictions
+   * @param s input stream
+   * @param x value
+   */
   friend istream& operator>>(istream& s,gfp_& x)
     { x.input(s,true);
       return s;
@@ -220,10 +272,18 @@ class gfp_ : public ValueInterface
 
   void force_to_bit() { throw runtime_error("impossible"); }
 
-  // Pack and unpack in native format
-  //   i.e. Dont care about conversion to human readable form
+  /**
+   * Append to buffer in native format.
+   * @param o buffer
+   * @param n (unused)
+   */
   void pack(octetStream& o, int n = -1) const
     { (void) n; a.pack(o); }
+  /**
+   * Read from buffer in native format
+   * @param o buffer
+   * @param n (unused)
+   */
   void unpack(octetStream& o, int n = -1)
     { (void) n; a.unpack(o); }
 
@@ -255,6 +315,8 @@ gfp_<X, L>::gfp_(long x)
 {
   if (x == 0)
     assign_zero();
+  else if (x == 1)
+    assign_one();
   else
     *this = bigint::tmp = x;
 }

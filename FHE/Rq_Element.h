@@ -69,8 +69,9 @@ protected:
     a({b0}), lev(n_mults()) {}
 
   template<class T, class FD, class S>
-  Rq_Element(const FHE_Params& params, const Plaintext<T, FD, S>& plaintext) :
-      Rq_Element(params)
+  Rq_Element(const FHE_Params& params, const Plaintext<T, FD, S>& plaintext,
+      RepType r0 = polynomial, RepType r1 = polynomial) :
+      Rq_Element(params, r0, r1)
   {
     from(plaintext.get_iterator());
   }
@@ -93,12 +94,14 @@ protected:
   friend void mul(Rq_Element& ans,const Rq_Element& a,const Rq_Element& b);
   friend void mul(Rq_Element& ans,const Rq_Element& a,const bigint& b);
 
+  void add(octetStream& os, int = -1);
+
   template<class S>
   Rq_Element& operator+=(const vector<S>& other);
 
-  Rq_Element& operator+=(const Rq_Element& other) { add(*this, *this, other); return *this; }
+  Rq_Element& operator+=(const Rq_Element& other) { ::add(*this, *this, other); return *this; }
 
-  Rq_Element operator+(const Rq_Element& b) const { Rq_Element res(*this); add(res, *this, b); return res; }
+  Rq_Element operator+(const Rq_Element& b) const { Rq_Element res(*this); ::add(res, *this, b); return res; }
   Rq_Element operator-(const Rq_Element& b) const { Rq_Element res(*this); sub(res, *this, b); return res; }
   template <class T>
   Rq_Element operator*(const T& b) const { Rq_Element res(*this); mul(res, *this, b); return res; }
@@ -154,8 +157,11 @@ protected:
    *   For unpack we assume the prData for a0 and a1 has been assigned 
    *   correctly already
    */
-  void pack(octetStream& o) const;
-  void unpack(octetStream& o);
+  void pack(octetStream& o, int = -1) const;
+  void unpack(octetStream& o, int = -1);
+
+  // without prior initialization
+  void unpack(octetStream& o, const FHE_Params& params);
 
   void output(ostream& s) const;
   void input(istream& s);
@@ -176,7 +182,7 @@ Rq_Element& Rq_Element::operator+=(const vector<S>& other)
 {
   Rq_Element tmp = *this;
   tmp.from(Iterator<S>(other), lev);
-  add(*this, *this, tmp);
+  ::add(*this, *this, tmp);
   return *this;
 }
 

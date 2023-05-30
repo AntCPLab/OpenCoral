@@ -10,6 +10,12 @@
 #include "BitMatrix.h"
 #include "Math/gf2n.h"
 
+#ifndef USE_KOS
+namespace osuCrypto {
+class Channel;
+}
+#endif
+
 template <class U>
 class OTCorrelator : public OTExtension
 {
@@ -47,7 +53,15 @@ public:
 
 class OTExtensionWithMatrix : public OTCorrelator<BitMatrix>
 {
+    static bool warned;
+
     int nsubloops;
+
+#ifndef USE_KOS
+    osuCrypto::Channel* channel;
+#endif
+
+    bool agreed;
 
 public:
     PRNG G;
@@ -63,12 +77,20 @@ public:
             nsubloops(nsubloops)
     {
       G.ReSeed();
+      agreed = false;
+#ifndef USE_KOS
+      channel = 0;
+#endif
     }
 
     OTExtensionWithMatrix(BaseOT& baseOT, TwoPartyPlayer* player, bool passive);
 
+    ~OTExtensionWithMatrix();
+
+    void protocol_agreement();
+
     void transfer(int nOTs, const BitVector& receiverInput, int nloops);
-    void extend(int nOTs, BitVector& newReceiverInput);
+    void extend(int nOTs, const BitVector& newReceiverInput);
     void extend_correlated(const BitVector& newReceiverInput);
     void extend_correlated(int nOTs, const BitVector& newReceiverInput);
     void transpose(int start = 0, int slice = -1);
@@ -76,6 +98,10 @@ public:
     template <class V>
     void hash_outputs(int nOTs, vector<V>& senderOutput, V& receiverOutput,
             bool correlated = true);
+
+    // SoftSpokenOT
+    void soft_sender(size_t nOTs);
+    void soft_receiver(size_t nOTs, const BitVector& newReceiverInput);
 
     void print(BitVector& newReceiverInput, int i = 0);
     template <class T>

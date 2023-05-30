@@ -30,6 +30,8 @@ public:
     Square& rsub(const Square& other);
     Square& sub(const void* other);
 
+    void bit_sub(const BitVector& bits, int start);
+
     void randomize(int row, PRNG& G) { rows[row].randomize(G); }
     void conditional_add(BitVector& conditions, Square& other,
             int offset);

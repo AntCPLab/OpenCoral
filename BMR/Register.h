@@ -23,6 +23,7 @@ using namespace std;
 #include "Tools/PointerVector.h"
 #include "Tools/Bundle.h"
 #include "Tools/SwitchableOutput.h"
+#include "Processor/Instruction.h"
 
 //#define PAD_TO_8(n) (n+8-n%8)
 #define PAD_TO_8(n) (n)
@@ -61,11 +62,13 @@ private:
 #endif
 };
 #else
-class BaseKeyVector : public vector<Key>
+class BaseKeyVector : public CheckVector<Key>
 {
+    typedef CheckVector<Key> super;
+
 public:
-	BaseKeyVector(int size = 0) : vector<Key>(size, Key(0)) {}
-	void resize(int size) { vector<Key>::resize(size, Key(0)); }
+	BaseKeyVector(int size = 0) : super(size, Key(0)) {}
+	void resize(int size) { super::resize(size, Key(0)); }
 };
 #endif
 
@@ -151,7 +154,7 @@ public:
 	                   *  for pipelining matters.
 	                   */
 
-	Register(int n_parties);
+	Register();
 
 	void init(int n_parties);
 	void init(int rfd, int n_parties);
@@ -234,6 +237,9 @@ public:
 	template <class T>
 	static void ands(T& processor, const vector<int>& args) { processor.ands(args); }
 	template <class T>
+	static void andrsvec(T& processor, const vector<int>& args)
+	{ processor.andrsvec(args); }
+	template <class T>
 	static void xors(T& processor, const vector<int>& args) { processor.xors(args); }
 	template <class T>
 	static void inputb(T& processor, const vector<int>& args) { processor.input(args); }
@@ -277,10 +283,6 @@ public:
 
 	static int threshold(int) { throw not_implemented(); }
 
-	static Register new_reg();
-	static Register tmp_reg() { return new_reg(); }
-	static Register and_reg() { return new_reg(); }
-
 	template<class T>
 	static void store(NoMemory& dest,
 			const vector<GC::WriteAccess<T> >& accesses) { (void)dest; (void)accesses; }
@@ -288,6 +290,16 @@ public:
 	template <class T>
 	static void inputbvec(T& processor, ProcessorBase& input_processor,
 			const vector<int>& args);
+
+    template<class U>
+    static void convcbit2s(GC::Processor<U>&, const BaseInstruction&)
+    { throw runtime_error("convcbit2s not implemented"); }
+    template<class U>
+    static void andm(GC::Processor<U>&, const BaseInstruction&)
+    { throw runtime_error("andm not implemented"); }
+
+    static void run_tapes(const vector<int>&)
+    { throw runtime_error("multi-threading not implemented"); }
 
 	// most BMR phases don't need actual input
 	template<class T>
@@ -298,8 +310,6 @@ public:
 	void other_input(Input&, int) {}
 
 	char get_output() { return 0; }
-
-	ProgramRegister(const Register& reg) : Register(reg) {}
 };
 
 class PRFRegister : public ProgramRegister
@@ -310,8 +320,6 @@ public:
 	template<class T>
 	static void load(vector<GC::ReadAccess<T> >& accesses,
 			const NoMemory& source);
-
-	PRFRegister(const Register& reg) : ProgramRegister(reg) {}
 
 	void op(const PRFRegister& left, const PRFRegister& right, Function func);
 	void XOR(const Register& left, const Register& right);
@@ -388,8 +396,6 @@ public:
 	static void convcbit(Integer& dest, const GC::Clear& source,
 	        GC::Processor<GC::Secret<EvalRegister>>& proc);
 
-	EvalRegister(const Register& reg) : ProgramRegister(reg) {}
-
 	void op(const ProgramRegister& left, const ProgramRegister& right, Function func);
 	void XOR(const Register& left, const Register& right);
 
@@ -419,8 +425,6 @@ public:
 	static void load(vector<GC::ReadAccess<T> >& accesses,
 			const NoMemory& source);
 
-	GarbleRegister(const Register& reg) : ProgramRegister(reg) {}
-
 	void op(const Register& left, const Register& right, Function func);
 	void XOR(const Register& left, const Register& right);
         void input(party_id_t from, char value = -1);
@@ -444,8 +448,6 @@ public:
 	static void load(vector<GC::ReadAccess<T> >& accesses,
 			const NoMemory& source);
 
-	RandomRegister(const Register& reg) : ProgramRegister(reg) {}
-
 	void randomize();
 
 	void op(const Register& left, const Register& right, Function func);
@@ -460,12 +462,6 @@ public:
 	{ input(from + 1, -1); }
 };
 
-
-inline Register::Register(int n_parties) :
-		garbled_entry(n_parties), external(NO_SIGNAL),
-		mask(NO_SIGNAL), keys(n_parties)
-{
-}
 
 inline void KeyVector::operator=(const KeyVector& other)
 {

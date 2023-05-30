@@ -33,14 +33,7 @@ class BitVector
 
     public:
 
-    void assign(const BitVector& K)
-    {
-        if (nbits != K.nbits)
-        {
-            resize(K.nbits);
-        }
-        memcpy(bytes, K.bytes, nbytes);
-    }
+    void assign(const BitVector& K);
     void assign_bytes(char* new_bytes, int len)
     {
         resize(len*8);

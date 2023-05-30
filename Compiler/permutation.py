@@ -10,16 +10,6 @@ if '_Array' not in dir():
     from Compiler.program import Program
     _Array = Array
 
-SORT_BITS = []
-insecure_random = Random(0)
-
-def predefined_comparator(x, y):
-    """ Assumes SORT_BITS is populated with the required sorting network bits """
-    if predefined_comparator.sort_bits_iter is None:
-        predefined_comparator.sort_bits_iter = iter(SORT_BITS)
-    return next(predefined_comparator.sort_bits_iter)
-predefined_comparator.sort_bits_iter = None
-
 def list_comparator(x, y):
     """ Uses the first element in the list for comparison """
     return x[0] < y[0]
@@ -37,10 +27,6 @@ def bitwise_comparator(x, y):
 
 def cond_swap_bit(x,y, b):
     """ swap if b == 1 """
-    if x is None:
-        return y, None
-    elif y is None:
-        return x, None
     if isinstance(x, list):
         t = [(xi - yi) * b for xi,yi in zip(x, y)]
         return [xi - ti for xi,ti in zip(x, t)], \
@@ -87,23 +73,6 @@ def odd_even_merge_sort(a, comp=bitwise_comparator):
     else:
         raise CompilerError('Length of list must be power of two')
 
-def merge(a, b, comp):
-    """ General length merge (pads to power of 2) """
-    while len(a) & (len(a)-1) != 0:
-        a.append(None)
-    while len(b) & (len(b)-1) != 0:
-        b.append(None)
-    if len(a) < len(b):
-        a += [None] * (len(b) - len(a))
-    elif len(b) < len(a):
-        b += [None] * (len(b) - len(b))
-    t = a + b
-    odd_even_merge(t, comp)
-    for i,v in enumerate(t[::]):
-        if v is None:
-            t.remove(None)
-    return t
-
 def sort(a, comp):
     """ Pads to power of 2, sorts, removes padding """
     length = len(a)
@@ -112,47 +81,12 @@ def sort(a, comp):
     odd_even_merge_sort(a, comp)
     del a[length:]
 
-def recursive_merge(a, comp):
-    """ Recursively merge a list of sorted lists (initially sorted by size) """
-    if len(a) == 1:
-        return
-    # merge smallest two lists, place result in correct position, recurse
-    t = merge(a[0], a[1], comp)
-    del a[0]
-    del a[0]
-    added = False
-    for i,c in enumerate(a):
-        if len(c) >= len(t):
-            a.insert(i, t)
-            added = True
-            break
-    if not added:
-        a.append(t)
-    recursive_merge(a, comp)
+# The following functionality for shuffling isn't used any more as it
+# has been moved to the virtual machine. The code has been kept for
+# reference.
 
-def random_perm(n):
-    """ Generate a random permutation of length n
-
-    WARNING: randomness fixed at compile-time, this is NOT secure
-    """
-    if not Program.prog.options.insecure:
-        raise CompilerError('no secure implementation of Waksman permution, '
-                            'use --insecure to activate')
-    a = list(range(n))
-    for i in range(n-1, 0, -1):
-        j = insecure_random.randint(0, i)
-        t = a[i]
-        a[i] = a[j]
-        a[j] = t
-    return a
-
-def inverse(perm):
-    inv = [None] * len(perm)
-    for i, p in enumerate(perm):
-        inv[p] = i
-    return inv
-
-def configure_waksman(perm):
+def configure_waksman(perm, n_iter=[0]):
+    top = n_iter == [0]
     n = len(perm)
     if n == 2:
         return [(perm[0], perm[0])]
@@ -175,6 +109,7 @@ def configure_waksman(perm):
         via = 0
         j0 = j
         while True:
+            n_iter[0] += 1
             #print '    I[%d] = %d' % (inv_perm[j]/2, ((inv_perm[j] % 2) + via) % 2)
 
             i = inv_perm[j]
@@ -209,8 +144,11 @@ def configure_waksman(perm):
 
     assert sorted(p0) == list(range(n//2))
     assert sorted(p1) == list(range(n//2))
-    p0_config = configure_waksman(p0)
-    p1_config = configure_waksman(p1)
+    p0_config = configure_waksman(p0, n_iter)
+    p1_config = configure_waksman(p1, n_iter)
+    if top:
+        print(n_iter[0], 'iterations for Waksman')
+    assert O[0] == 0, 'not a Waksman network'
     return [I + O] + [a+b for a,b in zip(p0_config, p1_config)]
 
 def waksman(a, config, depth=0, start=0, reverse=False):
@@ -358,23 +296,10 @@ def iter_waksman(a, config, reverse=False):
     #    nblocks /= 2
     #    depth -= 1
 
-def rec_shuffle(x, config=None, value_type=sgf2n, reverse=False):
-    n = len(x)
-    if n & (n-1) != 0:
-        raise CompilerError('shuffle requires n a power of 2')
-    if config is None:
-        config = configure_waksman(random_perm(n))
-        for i,c in enumerate(config):
-            config[i] = [value_type.bit_type(b) for b in c]
-    waksman(x, config, reverse=reverse)
-    waksman(x, config, reverse=reverse)
 
-
-def config_shuffle(n, value_type):
-    """ Compute config for oblivious shuffling.
-    
-    Take mod 2 for active sec. """
-    perm = random_perm(n)
+def config_from_perm(perm, value_type):
+    n = len(perm)
+    assert(list(sorted(perm))) == list(range(n))
     if n & (n-1) != 0:
         # pad permutation to power of 2
         m = 2**int(math.ceil(math.log(n, 2)))
@@ -394,103 +319,3 @@ def config_shuffle(n, value_type):
         for j,b in enumerate(c):
             config[i * len(perm) + j] = b
     return config
-
-def shuffle(x, config=None, value_type=sgf2n, reverse=False):
-    """ Simulate secure shuffling with Waksman network for 2 players.
-    WARNING: This is not a properly secure implementation but has roughly the right complexity.
-
-    Returns the network switching config so it may be re-used later.  """
-    n = len(x)
-    m = 2**int(math.ceil(math.log(n, 2)))
-    assert n == m, 'only working for powers of two'
-    if config is None:
-        config = config_shuffle(n, value_type)
-
-    if isinstance(x, list):
-        if isinstance(x[0], list):
-            length = len(x[0])
-            assert len(x) == length
-            for i in range(length):
-                xi = Array(m, value_type.reg_type)
-                for j in range(n):
-                    xi[j] = x[j][i]
-                for j in range(n, m):
-                    xi[j] = value_type(0)
-                iter_waksman(xi, config, reverse=reverse)
-                iter_waksman(xi, config, reverse=reverse)
-                for j, y in enumerate(xi):
-                    x[j][i] = y
-        else:
-            xa = Array(m, value_type.reg_type)
-            for i in range(n):
-                xa[i] = x[i]
-            for i in range(n, m):
-                xa[i] = value_type(0)
-            iter_waksman(xa, config, reverse=reverse)
-            iter_waksman(xa, config, reverse=reverse)
-            x[:] = xa
-    elif isinstance(x, Array):
-        if len(x) != m and config is None:
-            raise CompilerError('Non-power of 2 Array input not yet supported')
-        iter_waksman(x, config, reverse=reverse)
-        iter_waksman(x, config, reverse=reverse)
-    else:
-        raise CompilerError('Invalid type for shuffle:', type(x))
-
-    return config
-
-def shuffle_entries(x, entry_cls, config=None, value_type=sgf2n, reverse=False, perm_size=None):
-    """ Shuffle a list of ORAM entries.
-
-        Randomly permutes the first "perm_size" entries, leaving the rest (empty
-        entry padding) in the same position. """
-    n = len(x)
-    l = len(x[0])
-    if n & (n-1) != 0:
-        raise CompilerError('Entries must be padded to power of two length.')
-    if perm_size is None:
-        perm_size = n
-
-    xarrays = [Array(n, value_type.reg_type) for i in range(l)]
-    for i in range(n):
-        for j,value in enumerate(x[i]):
-            if isinstance(value, MemValue):
-                xarrays[j][i] = value.read()
-            else:
-                xarrays[j][i] = value
-
-    if config is None:
-        config = config_shuffle(perm_size, value_type)
-    for xi in xarrays:
-        shuffle(xi, config, value_type, reverse)
-    for i in range(n):
-        x[i] = entry_cls(xarrays[j][i] for j in range(l))
-    return config
-
-
-def sort_zeroes(bits, x, n_ones, value_type):
-    """ Return Array of values in "x" where the corresponding bit in "bits" is
-    a 0.
-
-    The total number of zeroes in "bits" must be known.
-    "bits" and "x" must be Arrays. """
-    config = config_shuffle(len(x), value_type)
-    shuffle(bits, config=config, value_type=value_type)
-    shuffle(x, config=config, value_type=value_type)
-    result = Array(n_ones, value_type.reg_type)
-
-    sz = MemValue(0)
-    last_x = MemValue(value_type(0))
-    #for i,b in enumerate(bits):
-        #if_then(b.reveal() == 0)
-        #result[sz.read()] = x[i]
-        #sz += 1
-        #end_if()
-    @for_range(len(bits))
-    def f(i):
-        found = (bits[i].reveal() == 0)
-        szval = sz.read()
-        result[szval] = last_x + (x[i] - last_x) * found
-        sz.write(sz + found)
-        last_x.write(result[szval])
-    return result

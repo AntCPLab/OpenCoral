@@ -44,7 +44,8 @@ void BitAdder::add(vector<vector<T>>& res, const vector<vector<vector<T>>>& summ
                 &supplies);
         BitAdder().add(res, summands, start,
                 summands[0][0].size(), proc, T::default_length);
-        queues->wrap_up(job);
+        if (start)
+            queues->wrap_up(job);
     }
     else
         add(res, summands, 0, res.size(), proc, length);
@@ -96,7 +97,7 @@ void BitAdder::add(vector<vector<T> >& res,
             b[j] = summands[i][1][input_begin + j];
         }
 
-        protocol.init_mul(&proc);
+        protocol.init_mul();
         for (size_t j = 0; j < n_items; j++)
         {
             res[begin + j][i] = a[j] + b[j] + carries[j];

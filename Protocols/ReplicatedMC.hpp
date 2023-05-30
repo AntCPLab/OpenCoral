@@ -28,7 +28,7 @@ void ReplicatedMC<T>::POpen_Begin(vector<typename T::open_type>&,
 template<class T>
 void ReplicatedMC<T>::prepare(const vector<T>& S)
 {
-    assert(T::length == 2);
+    assert(T::vector_length == 2);
     o.reset_write_head();
     to_send.reset_write_head();
     to_send.reserve(S.size() * T::value_type::size());
@@ -65,7 +65,7 @@ void ReplicatedMC<T>::finalize(vector<typename T::open_type>& values,
 }
 
 template<class T>
-typename T::open_type ReplicatedMC<T>::finalize_open()
+typename T::open_type ReplicatedMC<T>::finalize_raw()
 {
     auto a = this->secrets.next().sum();
     return a + o.get<typename T::open_type>();

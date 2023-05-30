@@ -5,7 +5,7 @@
 #include "Math/modp.hpp"
 
 Rq_Element::Rq_Element(const FHE_PK& pk) :
-        Rq_Element(pk.get_params().FFTD())
+        Rq_Element(pk.get_params().FFTD(), evaluation, evaluation)
 {
 }
 
@@ -107,6 +107,13 @@ void mul(Rq_Element& ans,const Rq_Element& a,const bigint& b)
 	  to_modp(bp,b,a.a[i].get_prD());
 	  mul(ans.a[i],a.a[i],bp);
   }
+}
+
+void Rq_Element::add(octetStream& os, int)
+{
+  Rq_Element tmp(*this);
+  tmp.unpack(os);
+  *this += tmp;
 }
 
 void Rq_Element::randomize(PRNG& G,int l)
@@ -246,7 +253,7 @@ void Rq_Element::Scale(const bigint& p)
 
   // Now add delta back onto a0
   Rq_Element bb(b0,b1);
-  add(*this,*this,bb);
+  ::add(*this,*this,bb);
 
   // Now divide by p1 mod p0
   modp p1_inv,pp;
@@ -291,7 +298,7 @@ void Rq_Element::partial_assign(const Rq_Element& x, const Rq_Element& y)
   partial_assign(x);
 }
 
-void Rq_Element::pack(octetStream& o) const
+void Rq_Element::pack(octetStream& o, int) const
 {
   check_level();
   o.store(lev);
@@ -299,7 +306,7 @@ void Rq_Element::pack(octetStream& o) const
 	  a[i].pack(o);
 }
 
-void Rq_Element::unpack(octetStream& o)
+void Rq_Element::unpack(octetStream& o, int)
 {
   unsigned int ll;  o.get(ll); lev=ll;
   check_level();
@@ -338,6 +345,12 @@ size_t Rq_Element::report_size(ReportType type) const
 	  if (n_mults() == 1)
 		  sz += a[1].report_size(type);
   return sz;
+}
+
+void Rq_Element::unpack(octetStream& o, const FHE_Params& params)
+{
+  set_data(params.FFTD());
+  unpack(o);
 }
 
 void Rq_Element::print_first_non_zero() const

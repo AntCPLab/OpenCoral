@@ -25,9 +25,12 @@
 #include "Protocols/MAC_Check_Base.hpp"
 #include "Protocols/Beaver.hpp"
 #include "Protocols/MascotPrep.hpp"
+#include "Protocols/MalRepRingPrep.hpp"
 
 int main(int argc, const char** argv)
 {
-    gf2n_short::init_field(40);
-    GC::simple_binary_main<GC::TinierSecret<gf2n_short>>(argc, argv, 1000);
+    ez::ezOptionParser opt;
+    OnlineOptions opts(opt, argc, argv);
+    gf2n_mac_key::init_minimum(opts.security_parameter);
+    GC::simple_binary_main<GC::TinierSecret<gf2n_mac_key>>(argc, argv, 1000);
 }

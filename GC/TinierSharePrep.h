@@ -44,8 +44,6 @@ public:
     ~TinierSharePrep();
 
     void set_protocol(typename T::Protocol& protocol);
-
-    NamedCommStats comm_stats();
 };
 
 }

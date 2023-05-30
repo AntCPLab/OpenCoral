@@ -16,14 +16,12 @@
 #include "Protocols/fake-stuff.h"
 
 #include "ShareThread.hpp"
-#include "RepPrep.hpp"
 #include "ThreadMaster.hpp"
 #include "Thread.hpp"
 #include "ShareSecret.hpp"
 
 #include "Protocols/Replicated.hpp"
 #include "Protocols/ReplicatedPrep.hpp"
-#include "Protocols/MaliciousRepMC.hpp"
 #include "Protocols/fake-stuff.hpp"
 
 namespace GC
@@ -104,18 +102,11 @@ ShareParty<T>::ShareParty(int argc, const char** argv, ez::ezOptionParser& opt,
 
     network_opts.start_networking(this->N, my_num);
 
-    if (online_opts.live_prep)
-        if (T::needs_ot)
-        {
-            Player* P;
-            if (this->machine.use_encryption)
-                P = new CryptoPlayer(this->N, "shareparty");
-            else
-                P = new PlainPlayer(this->N, "shareparty");
-            for (int i = 0; i < this->machine.nthreads; i++)
-                this->machine.ot_setups.push_back({*P, true});
-            delete P;
-        }
+    Player* P;
+    if (this->machine.use_encryption)
+        P = new CryptoPlayer(this->N, "shareparty");
+    else
+        P = new PlainPlayer(this->N, "shareparty");
 
     try
     {
@@ -130,7 +121,12 @@ ShareParty<T>::ShareParty(int argc, const char** argv, ez::ezOptionParser& opt,
         this->mac_key.randomize(G);
     }
 
+    T::MC::setup(*P);
+
     this->run();
+
+    T::MC::teardown();
+    delete P;
 
     this->machine.write_memory(this->N.my_num());
 }

@@ -31,7 +31,6 @@ public:
     void add_mine(const typename T::open_type& input, int n_bits = -1);
     void add_other(int player, int n_bits = -1);
 
-    void send_mine();
     void exchange();
 
     T finalize_mine();

@@ -49,7 +49,9 @@ public:
     static const bool dishonest_majority = T::dishonest_majority;
     static const bool variable_players = T::variable_players;
     static const bool needs_ot = T::needs_ot;
+    static const bool has_mac = T::has_mac;
     static const bool expensive_triples = false;
+    static const bool randoms_for_opens = false;
 
     static const int default_length = 64;
 
@@ -145,7 +147,7 @@ public:
         if (this != &res)
             res.get_regs().assign(this->get_regs().begin(),
                     this->get_regs().begin()
-                            + max(size_t(n_bits), this->get_regs().size()));
+                            + min(size_t(n_bits), this->get_regs().size()));
 
         res.resize_regs(n_bits);
     }

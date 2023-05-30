@@ -18,6 +18,8 @@ class MamaRectangle
     typename T::Square squares[N];
 
 public:
+    typedef GC::NoValue RowType;
+
     static int n_rows() { return T::Square::n_rows(); }
     static int n_columns() { return T::Square::n_columns(); }
     static int n_row_bytes() { return T::Square::n_row_bytes(); }
@@ -54,6 +56,11 @@ public:
         for (int i = 0; i < N; i++)
             squares[i].sub(other);
         return *this;
+    }
+
+    void bit_sub(const BitVector&, int)
+    {
+        throw not_implemented();
     }
 
     void randomize(int row, PRNG& G)

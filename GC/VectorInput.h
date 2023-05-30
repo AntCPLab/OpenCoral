@@ -36,6 +36,8 @@ public:
 
     void add_mine(const typename T::open_type& input, int n_bits)
     {
+        if (n_bits == -1)
+            n_bits = T::default_length;
         for (int i = 0; i < n_bits; i++)
             part_input.add_mine(input.get_bit(i));
         input_lengths.push_back(n_bits);
@@ -43,6 +45,8 @@ public:
 
     void add_other(int player, int n_bits)
     {
+        if (n_bits == -1)
+            n_bits = T::default_length;
         for (int i = 0; i < n_bits; i++)
             part_input.add_other(player);
     }
@@ -69,6 +73,8 @@ public:
 
     void finalize_other(int player, T& target, octetStream&, int n_bits)
     {
+        if (n_bits == -1)
+            n_bits = T::default_length;
         target.resize_regs(n_bits);
         for (int i = 0; i < n_bits; i++)
             part_input.finalize_other(player, target.get_reg(i),

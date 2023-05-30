@@ -62,6 +62,9 @@
     X(SUBCFI, auto dest = &Procp.get_C()[r[0]]; auto op1 = &Procp.get_C()[r[1]]; \
             typename sint::clear op2 = int(n), \
             *dest++ = op2 - *op1++) \
+    X(PREFIXSUMS, auto dest = &Procp.get_S()[r[0]]; auto op1 = &Procp.get_S()[r[1]]; \
+            sint s, \
+            s += *op1++; *dest++ = s) \
     X(MULM, auto dest = &Procp.get_S()[r[0]]; auto op1 = &Procp.get_S()[r[1]]; \
             auto op2 = &Procp.get_C()[r[2]], \
             *dest++ = *op1++ * *op2++) \
@@ -203,7 +206,7 @@
             *dest++ = *op1++ == *op2++) \
     X(PRINTINT, Proc.out << Proc.read_Ci(r[0]) << flush,) \
     X(PRINTFLOATPREC, Proc.out << setprecision(n),) \
-    X(PRINTSTR, Proc.out << string((char*)&n,sizeof(n)) << flush,) \
+    X(PRINTSTR, Proc.out << string((char*)&n,4) << flush,) \
     X(PRINTCHR, Proc.out << string((char*)&n,1) << flush,) \
     X(SHUFFLE, shuffle(Proc),) \
     X(BITDECINT, bitdecint(Proc),) \
@@ -270,7 +273,7 @@
             *dest++ = *op1++ >> n) \
     X(GPRINTREG, auto source = &C2[r[0]], \
             Proc.out << "Reg[" << r[0] << "] = " << *source++ \
-            << " # " << string((char*)&n,sizeof(n)) << endl) \
+            << " # " << string((char*)&n, 4) << endl) \
     X(GPRINTREGPLAIN, auto source = &C2[r[0]], \
             Proc.out << *source++ << flush) \
     X(GBITDEC, gbitdec(C2),) \
@@ -278,6 +281,115 @@
     X(GCONVGF2N, auto dest = &Proc.get_Ci()[r[0]]; auto source = &C2[r[1]], \
             *dest++ = source->get_word(); source++) \
     X(GRAWOUTPUT, auto source = &C2[r[0]], \
-            (*source++).output(Proc.public_output, false)) \
+            (*source++).output(Proc.get_public_output(), false)) \
+
+#define REMAINING_INSTRUCTIONS \
+    X(CONVMODP, throw not_implemented(),) \
+    X(LDMC, throw not_implemented(),) \
+    X(LDMCI, throw not_implemented(),) \
+    X(STMC, throw not_implemented(),) \
+    X(STMCI, throw not_implemented(),) \
+    X(MOVC, throw not_implemented(),) \
+    X(DIVC, throw not_implemented(),) \
+    X(GDIVC, throw not_implemented(),) \
+    X(FLOORDIVC, throw not_implemented(),) \
+    X(MODC, throw not_implemented(),) \
+    X(LEGENDREC, throw not_implemented(),) \
+    X(DIGESTC, throw not_implemented(),) \
+    X(DIVCI, throw not_implemented(),) \
+    X(GDIVCI, throw not_implemented(),) \
+    X(INV2M, throw not_implemented(),) \
+    X(MODCI, throw not_implemented(),) \
+    X(SQUARE, throw not_implemented(),) \
+    X(GSQUARE, throw not_implemented(),) \
+    X(INV, throw not_implemented(),) \
+    X(GINV, throw not_implemented(),) \
+    X(RANDOMS, throw not_implemented(),) \
+    X(INPUTMASKREG, throw not_implemented(),) \
+    X(INPUTMASK, throw not_implemented(),) \
+    X(GINPUTMASK, throw not_implemented(),) \
+    X(INPUT, throw not_implemented(),) \
+    X(GINPUT, throw not_implemented(),) \
+    X(INPUTFIX, throw not_implemented(),) \
+    X(INPUTFLOAT, throw not_implemented(),) \
+    X(INPUTMIXED, throw not_implemented(),) \
+    X(INPUTMIXEDREG, throw not_implemented(),) \
+    X(RAWINPUT, throw not_implemented(),) \
+    X(GRAWINPUT, throw not_implemented(),) \
+    X(INPUTPERSONAL, throw not_implemented(),) \
+    X(NOTC, throw not_implemented(),) \
+    X(SHRSI, throw not_implemented(),) \
+    X(OPEN, throw not_implemented(),) \
+    X(GOPEN, throw not_implemented(),) \
+    X(MULS, throw not_implemented(),) \
+    X(GMULS, throw not_implemented(),) \
+    X(MULRS, throw not_implemented(),) \
+    X(GMULRS, throw not_implemented(),) \
+    X(DOTPRODS, throw not_implemented(),) \
+    X(GDOTPRODS, throw not_implemented(),) \
+    X(MATMULS, throw not_implemented(),) \
+    X(MATMULSM, throw not_implemented(),) \
+    X(CONV2DS, throw not_implemented(),) \
+    X(TRUNC_PR, throw not_implemented(),) \
+    X(CHECK, throw not_implemented(),) \
+    X(JMP, throw not_implemented(),) \
+    X(JMPI, throw not_implemented(),) \
+    X(JMPNZ, throw not_implemented(),) \
+    X(JMPEQZ, throw not_implemented(),) \
+    X(PRINTREG, throw not_implemented(),) \
+    X(PRINTREGPLAIN, throw not_implemented(),) \
+    X(CONDPRINTPLAIN, throw not_implemented(),) \
+    X(PRINTFLOATPLAIN, throw not_implemented(),) \
+    X(CONDPRINTSTR, throw not_implemented(),) \
+    X(REQBL, throw not_implemented(),) \
+    X(GREQBL, throw not_implemented(),) \
+    X(USE, throw not_implemented(),) \
+    X(USE_INP, throw not_implemented(),) \
+    X(USE_EDABIT, throw not_implemented(),) \
+    X(USE_MATMUL, throw not_implemented(),) \
+    X(USE_PREP, throw not_implemented(),) \
+    X(GUSE_PREP, throw not_implemented(),) \
+    X(TIME, throw not_implemented(),) \
+    X(START, throw not_implemented(),) \
+    X(STOP, throw not_implemented(),) \
+    X(RUN_TAPE, throw not_implemented(),) \
+    X(JOIN_TAPE, throw not_implemented(),) \
+    X(CRASH, throw not_implemented(),) \
+    X(STARTGRIND, throw not_implemented(),) \
+    X(STOPGRIND, throw not_implemented(),) \
+    X(NPLAYERS, throw not_implemented(),) \
+    X(THRESHOLD, throw not_implemented(),) \
+    X(PLAYERID, throw not_implemented(),) \
+    X(LISTEN, throw not_implemented(),) \
+    X(ACCEPTCLIENTCONNECTION, throw not_implemented(),) \
+    X(CLOSECLIENTCONNECTION, throw not_implemented(),) \
+    X(READSOCKETINT, throw not_implemented(),) \
+    X(READSOCKETC, throw not_implemented(),) \
+    X(READSOCKETS, throw not_implemented(),) \
+    X(WRITESOCKETINT, throw not_implemented(),) \
+    X(WRITESOCKETC, throw not_implemented(),) \
+    X(WRITESOCKETS, throw not_implemented(),) \
+    X(WRITESOCKETSHARE, throw not_implemented(),) \
+    X(WRITEFILESHARE, throw not_implemented(),) \
+    X(READFILESHARE, throw not_implemented(),) \
+    X(PUBINPUT, throw not_implemented(),) \
+    X(RAWOUTPUT, throw not_implemented(),) \
+    X(INTOUTPUT, throw not_implemented(),) \
+    X(FLOATOUTPUT, throw not_implemented(),) \
+    X(STARTPRIVATEOUTPUT, throw not_implemented(),) \
+    X(GSTARTPRIVATEOUTPUT, throw not_implemented(),) \
+    X(STOPPRIVATEOUTPUT, throw not_implemented(),) \
+    X(GSTOPPRIVATEOUTPUT, throw not_implemented(),) \
+    X(PREP, throw not_implemented(),) \
+    X(GPREP, throw not_implemented(),) \
+    X(CISC, throw not_implemented(),) \
+    X(SECSHUFFLE, throw not_implemented(),) \
+    X(GENSECSHUFFLE, throw not_implemented(),) \
+    X(APPLYSHUFFLE, throw not_implemented(),) \
+    X(DELSHUFFLE, throw not_implemented(),) \
+    X(ACTIVE, throw not_implemented(),) \
+
+#define ALL_INSTRUCTIONS ARITHMETIC_INSTRUCTIONS REGINT_INSTRUCTIONS \
+    CLEAR_GF2N_INSTRUCTIONS REMAINING_INSTRUCTIONS
 
 #endif /* PROCESSOR_INSTRUCTIONS_H_ */

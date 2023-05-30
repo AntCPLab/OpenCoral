@@ -249,6 +249,7 @@ FakeProgramParty::FakeProgramParty(int argc, const char** argv) :
 	}
 	cout << "Compiler: " << prev << endl;
 	P = new PlainPlayer(N, 0);
+	Share<gf2n_long>::MAC_Check::setup(*P);
 	if (argc > 4)
 		threshold = atoi(argv[4]);
 	cout << "Threshold for multi-threaded evaluation: " << threshold << endl;
@@ -259,7 +260,8 @@ ProgramParty::~ProgramParty()
 	reset();
 	if (P)
 	{
-		cerr << "Data sent: " << 1e-6 * P->comm_stats.total_data() << " MB" << endl;
+        cerr << "Data sent in online phase = " << P->total_comm().sent * 1e-6
+                << " MB (this party only)" << endl;
 		delete P;
 	}
 	delete[] eval_threads;
@@ -281,6 +283,7 @@ FakeProgramParty::~FakeProgramParty()
         cerr << "Dynamic storage: " << 1e-9 * dynamic_memory.capacity_in_bytes()
                 << " GB" << endl;
 #endif
+    Share<gf2n_long>::MAC_Check::teardown();
 }
 
 void FakeProgramParty::_compute_prfs_outputs(Key* keys)

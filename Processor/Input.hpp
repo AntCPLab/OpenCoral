@@ -19,6 +19,7 @@ template<class T>
 InputBase<T>::InputBase(ArithmeticProcessor* proc) :
         P(0), values_input(0)
 {
+    my_num = -1;
     if (proc)
         buffer.setup(&proc->private_input, -1, proc->private_input_filename);
 }
@@ -80,9 +81,10 @@ void InputBase<T>::reset(int player)
 }
 
 template<class T>
-void InputBase<T>::reset_all(Player& P)
+void InputBase<T>::reset_all(PlayerBase& P)
 {
     this->P = &P;
+    my_num = P.my_num();
     os.resize(P.num_players());
     for (int i = 0; i < P.num_players(); i++)
         reset(i);
@@ -111,18 +113,19 @@ void Input<T>::add_other(int player, int)
 }
 
 template<class T>
-void InputBase<T>::add_from_all(const clear& input)
+void InputBase<T>::add_from_all(const typename T::open_type& input, int n_bits)
 {
     for (int i = 0; i < P->num_players(); i++)
         if (i == P->my_num())
-            add_mine(input);
+            add_mine(input, n_bits);
         else
-            add_other(i);
+            add_other(i, n_bits);
 }
 
 template<class T>
 void Input<T>::send_mine()
 {
+    this->os[P.my_num()].append(0);
     P.send_all(this->os[P.my_num()]);
 }
 
@@ -202,7 +205,7 @@ void Input<T>::finalize_other(int player, T& target,
 template<class T>
 T InputBase<T>::finalize(int player, int n_bits)
 {
-    if (player == P->my_num())
+    if (player == my_num)
         return finalize_mine();
     else
     {

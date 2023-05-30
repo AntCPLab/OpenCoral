@@ -29,6 +29,7 @@ ExternalClients::~ExternalClients()
 
 void ExternalClients::start_listening(int portnum_base)
 {
+  ScopeLock _(lock);
   client_connection_servers[portnum_base] = new AnonymousServerSocket(portnum_base + get_party_num());
   client_connection_servers[portnum_base]->init();
   cerr << "Start listening on thread " << this_thread::get_id() << endl;
@@ -38,6 +39,7 @@ void ExternalClients::start_listening(int portnum_base)
 
 int ExternalClients::get_client_connection(int portnum_base)
 {
+  ScopeLock _(lock);
   map<int,AnonymousServerSocket*>::iterator it = client_connection_servers.find(portnum_base);
   if (it == client_connection_servers.end())
   {
@@ -51,8 +53,8 @@ int ExternalClients::get_client_connection(int portnum_base)
       client);
   client_id = stoi(client);
   if (ctx == 0)
-    ctx = new ssl_ctx("P" + to_string(get_party_num()));
-  external_client_sockets[client_id] = new ssl_socket(io_service, *ctx, socket,
+    ctx = new client_ctx("P" + to_string(get_party_num()));
+  external_client_sockets[client_id] = new client_socket(io_service, *ctx, socket,
       "C" + to_string(client_id), "P" + to_string(get_party_num()), false);
   client_ports[client_id] = portnum_base;
   cerr << "Party " << get_party_num() << " received external client connection from client id: " << dec << client_id << endl;
@@ -61,6 +63,7 @@ int ExternalClients::get_client_connection(int portnum_base)
 
 void ExternalClients::close_connection(int client_id)
 {
+  ScopeLock _(lock);
   auto it = external_client_sockets.find(client_id);
   if (it == external_client_sockets.end())
     throw runtime_error("client id not active: " + to_string(client_id));
@@ -75,8 +78,9 @@ int ExternalClients::get_party_num()
   return party_num;
 }
 
-ssl_socket* ExternalClients::get_socket(int id)
+client_socket* ExternalClients::get_socket(int id)
 {
+  ScopeLock _(lock);
   if (external_client_sockets.find(id) == external_client_sockets.end())
     throw runtime_error("external connection not found for id " + to_string(id));
   return external_client_sockets[id];

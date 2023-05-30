@@ -9,6 +9,7 @@
 #include "Protocols/MaliciousRep3Share.h"
 #include "Protocols/MalRepRingShare.h"
 #include "Protocols/Rep3Share2k.h"
+#include "GC/MaliciousRepSecret.h"
 
 template<class T> class MalRepRingPrepWithBits;
 template<class T> class PostSacrifice;
@@ -17,10 +18,13 @@ template<int K, int S>
 class PostSacriRepRingShare : public Rep3Share2<K>
 {
     typedef Rep3Share2<K> super;
+    typedef PostSacriRepRingShare This;
 
 public:
     static const int BIT_LENGTH = K;
     static const int SECURITY = S;
+
+    static const bool has_trunc_pr = false;
 
     typedef SignedZ2<K> clear;
     typedef MaliciousRep3Share<Z2<K + S>> prep_type;
@@ -31,7 +35,8 @@ public:
     typedef HashMaliciousRepMC<PostSacriRepRingShare> MAC_Check;
     typedef MAC_Check Direct_MC;
     typedef ReplicatedInput<PostSacriRepRingShare> Input;
-    typedef ::PrivateOutput<PostSacriRepRingShare> PrivateOutput;
+    typedef ReplicatedPO<This> PO;
+    typedef SpecificPrivateOutput<This> PrivateOutput;
     typedef MalRepRingPrepWithBits<PostSacriRepRingShare> LivePrep;
 
     typedef GC::MaliciousRepSecret bit_type;

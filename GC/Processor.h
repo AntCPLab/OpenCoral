@@ -91,14 +91,18 @@ public:
     void and_(const vector<int>& args, bool repeat);
     void andrs(const vector<int>& args) { and_(args, true); }
     void ands(const vector<int>& args) { and_(args, false); }
+    void andrsvec(const vector<int>& args);
 
     void input(const vector<int>& args);
     void inputb(typename T::Input& input, ProcessorBase& input_processor,
             const vector<int>& args, int my_num);
     void inputbvec(typename T::Input& input, ProcessorBase& input_processor,
-            const vector<int>& args, int my_num);
+            const vector<int>& args, PlayerBase& P);
 
     void reveal(const vector<int>& args);
+
+    template<int = 0>
+    void convcbit2s(const BaseInstruction& instruction);
 
     void print_reg(int reg, int n, int size);
     void print_reg_plain(Clear& value);

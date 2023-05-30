@@ -12,6 +12,12 @@
 #include <math.h>
 
 template<class T>
+DabitSacrifice<T>::DabitSacrifice() :
+        S(OnlineOptions::singleton.security_parameter)
+{
+}
+
+template<class T>
 dabit<T>& operator+=(dabit<T>& x, const dabit<T>& y)
 {
     x.first += y.first;
@@ -103,7 +109,8 @@ void DabitSacrifice<T>::sacrifice_and_check_bits(vector<dabit<T> >& dabits,
         ThreadJob job(&products, &multiplicands);
         int start = queues->distribute(job, multiplicands.size());
         protocol.multiply(products, multiplicands, start, multiplicands.size(), proc);
-        queues->wrap_up(job);
+        if (start)
+            queues->wrap_up(job);
     }
     else
         protocol.multiply(products, multiplicands, 0, multiplicands.size(), proc);

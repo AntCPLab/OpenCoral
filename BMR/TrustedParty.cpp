@@ -42,6 +42,12 @@ BaseTrustedParty::BaseTrustedParty()
 	_received_gc_received = 0;
 	n_received = 0;
 	randomfd = open("/dev/urandom", O_RDONLY);
+	done_filling = false;
+}
+
+BaseTrustedParty::~BaseTrustedParty()
+{
+    close(randomfd);
 }
 
 TrustedProgramParty::TrustedProgramParty(int argc, char** argv) :

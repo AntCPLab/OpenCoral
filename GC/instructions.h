@@ -45,7 +45,9 @@
     X(NOTS, processor.nots(INST)) \
     X(NOTCB, processor.notcb(INST)) \
     X(ANDRS, T::andrs(PROC, EXTRA)) \
+    X(ANDRSVEC, T::andrsvec(PROC, EXTRA)) \
     X(ANDS, T::ands(PROC, EXTRA)) \
+    X(ANDM, T::andm(PROC, instruction)) \
     X(ADDCB, C0 = PC1 + PC2) \
     X(ADDCBI, C0 = PC1 + int(IMM)) \
     X(MULCBI, C0 = PC1 * int(IMM)) \
@@ -54,13 +56,15 @@
     X(BITDECC, PROC.bitdecc(EXTRA, C0)) \
     X(SHRCBI, C0 = PC1 >> IMM) \
     X(SHLCBI, C0 = PC1 << IMM) \
-    X(LDBITS, S0.load_clear(REG1, IMM)) \
+    X(LDBITS, S0.load_clear(REG1, int(IMM))) \
     X(LDMSB, PROC.mem_op(SIZE, PROC.S, MMS, R0, IMM)) \
     X(STMSB, PROC.mem_op(SIZE, MMS, PROC.S, IMM, R0)) \
     X(LDMCB, PROC.mem_op(SIZE, PROC.C, MMC, R0, IMM)) \
     X(STMCB, PROC.mem_op(SIZE, MMC, PROC.C, IMM, R0)) \
     X(LDMSBI, PROC.mem_op(SIZE, PROC.S, MMS, R0, Ci[REG1])) \
     X(STMSBI, PROC.mem_op(SIZE, MMS, PROC.S, Ci[REG1], R0)) \
+    X(LDMCBI, PROC.mem_op(SIZE, PROC.C, MMC, R0, Ci[REG1])) \
+    X(STMCBI, PROC.mem_op(SIZE, MMC, PROC.C, Ci[REG1], R0)) \
     X(MOVSB, S0 = PS1) \
     X(TRANS, T::trans(PROC, IMM, EXTRA)) \
     X(BITB, PROC.random_bit(S0)) \
@@ -74,13 +78,12 @@
 #define COMBI_INSTRUCTIONS BIT_INSTRUCTIONS \
     X(INPUTB, T::inputb(PROC, Proc, EXTRA)) \
     X(INPUTBVEC, T::inputbvec(PROC, Proc, EXTRA)) \
-    X(ANDM, processor.andm(instruction)) \
     X(CONVSINT, S0.load_clear(IMM, Proc.read_Ci(REG1))) \
     X(CONVCINT, C0 = Proc.read_Ci(REG1)) \
     X(CONVCBIT, Proc.write_Ci(R0, PC1.get())) \
     X(CONVCINTVEC, Proc.convcintvec(instruction)) \
     X(CONVCBITVEC, Proc.convcbitvec(instruction)) \
-    X(CONVCBIT2S, Proc.convcbit2s(instruction)) \
+    X(CONVCBIT2S, PROC.convcbit2s(instruction)) \
     X(DABIT, Proc.dabit(INST)) \
     X(EDABIT, Proc.edabit(INST)) \
     X(SEDABIT, Proc.edabit(INST, true)) \
@@ -97,6 +100,7 @@
     X(CONVSINT, S0.load_clear(IMM, PI1)) \
     X(CONVCINT, C0 = PI1) \
     X(CONVCBIT, T::convcbit(I0, PC1, PROC)) \
+    X(CONVCBIT2S, T::convcbit2s(PROC, instruction)) \
     X(PRINTCHR, PROC.print_chr(IMM)) \
     X(PRINTSTR, PROC.print_str(IMM)) \
     X(PRINTFLOATPREC, PROC.print_float_prec(IMM)) \
@@ -134,7 +138,7 @@
     X(PRINTINT, PROC.out << I0) \
     X(STARTGRIND, CALLGRIND_START_INSTRUMENTATION) \
     X(STOPGRIND, CALLGRIND_STOP_INSTRUMENTATION) \
-    X(RUN_TAPE, MACH->run_tapes(EXTRA)) \
+    X(RUN_TAPE, T::run_tapes(EXTRA)) \
     X(JOIN_TAPE, MACH->join_tape(R0)) \
     X(USE, ) \
     X(USE_INP, ) \
@@ -142,6 +146,7 @@
     X(THRESHOLD, I0 = T::threshold(Thread<T>::s().P->num_players())) \
     X(PLAYERID, I0 = Thread<T>::s().P->my_num()) \
     X(CRASH, if (I0.get()) throw crash_requested()) \
+    X(ACTIVE, ) \
 
 #define INSTRUCTIONS BIT_INSTRUCTIONS GC_INSTRUCTIONS
 

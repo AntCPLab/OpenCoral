@@ -36,10 +36,12 @@ SemiHomomorphicNoiseBounds::SemiHomomorphicNoiseBounds(const bigint& p,
             * (20.5 + c1 * sigma * sqrt(phi_m) + 20 * c1 * V_s);
     // unify parameters by taking maximum over TopGear or not
     bigint B_clean_top_gear = B_clean * 2;
-    bigint B_clean_not_top_gear = B_clean << int(ceil(sec / 2.));
+    bigint B_clean_not_top_gear = B_clean << max(slack - sec, 0);
     B_clean = max(B_clean_not_top_gear, B_clean_top_gear);
     B_scale = (c1 + c2 * V_s) * p * sqrt(phi_m / 12.0);
+    int matrix_dim = params.get_matrix_dim();
 #ifdef NOISY
+    cout << "phi(m): " << phi_m << endl;
     cout << "p * sqrt(phi(m) / 12): " << p * sqrt(phi_m / 12.0) << endl;
     cout << "V_s: " << V_s << endl;
     cout << "c1: " << c1 << endl;
@@ -48,9 +50,14 @@ SemiHomomorphicNoiseBounds::SemiHomomorphicNoiseBounds(const bigint& p,
     cout << "log(slack): " << slack << endl;
     cout << "B_clean: " << B_clean << endl;
     cout << "B_scale: " << B_scale << endl;
+    cout << "matrix dimension: " << matrix_dim << endl;
+    cout << "drown sec: " << params.secp() << endl;
+    cout << "sec: " << sec << endl;
 #endif
 
-    drown = 1 + n * (bigint(1) << sec);
+    assert(matrix_dim > 0);
+    assert(params.secp() >= 0);
+    drown = 1 + (p > 2 ? matrix_dim : 1) * n * (bigint(1) << params.secp());
 }
 
 bigint SemiHomomorphicNoiseBounds::min_p0(const bigint& p1)
@@ -68,8 +75,14 @@ double SemiHomomorphicNoiseBounds::min_phi_m(int log_q, double sigma)
 {
     if (sigma <= 0)
         sigma = FHE_Params().get_R();
-    // the constant was updated using Martin Albrecht's LWE estimator in Sep 2019
-    return 37.8 * (log_q - log2(sigma));
+    // the constant was updated using Martin Albrecht's LWE estimator in Mar 2022
+    // found the following pairs for 128-bit security
+    // and alpha = 0.7 * sqrt(2*pi) / q
+    // m = 2048, log_2(q) = 68
+    // m = 4096, log_2(q) = 138
+    // m = 8192, log_2(q) = 302
+    // m = 16384, log_2(q) = 560
+    return 15.1 * log_q;
 }
 
 double SemiHomomorphicNoiseBounds::min_phi_m(int log_q, const FHE_Params& params)
@@ -92,7 +105,7 @@ void SemiHomomorphicNoiseBounds::produce_epsilon_constants()
         {
             tp *= t;
             double lgtp = log(tp) / log(2.0);
-            if (C[i] < 0 && lgtp < FHE_epsilon)
+            if (C[i] < 0 && lgtp < -FHE_epsilon)
             {
                 C[i] = pow(x, i);
             }
@@ -114,7 +127,6 @@ NoiseBounds::NoiseBounds(const bigint& p, int phi_m, int n, int sec, int slack,
     cout << "n: " << n << endl;
     cout << "sec: " << sec << endl;
     cout << "sigma: " << this->sigma << endl;
-    cout << "h: " << h << endl;
     cout << "B_clean size: " << numBits(B_clean) << endl;
     cout << "B_scale size: " << numBits(B_scale) << endl;
     cout << "B_KS size: " << numBits(B_KS) << endl;
@@ -155,7 +167,7 @@ bigint NoiseBounds::min_p0(const bigint& p1)
 
 bigint NoiseBounds::min_p1()
 {
-    return drown * B_KS + 1;
+    return max(bigint(drown * B_KS), bigint((phi_m * p) << 10));
 }
 
 bigint NoiseBounds::opt_p1()
@@ -169,8 +181,10 @@ bigint NoiseBounds::opt_p1()
     // solve
     mpf_class s = (-b + sqrt(b * b - 4 * a * c)) / (2 * a);
     bigint res = ceil(s);
+#ifdef VERBOSE
     cout << "Optimal p1 vs minimal: " << numBits(res) << "/"
             << numBits(min_p1()) << endl;
+#endif
     return res;
 }
 
@@ -182,8 +196,10 @@ double NoiseBounds::optimize(int& lg2p0, int& lg2p1)
       {
         min_p0 *= 2;
         min_p1 *= 2;
+#ifdef VERBOSE
         cout << "increasing lengths: " << numBits(min_p0) << "/"
             << numBits(min_p1) << endl;
+#endif
       }
     lg2p1 = numBits(min_p1);
     lg2p0 = numBits(min_p0);

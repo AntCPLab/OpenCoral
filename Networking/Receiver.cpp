@@ -51,9 +51,17 @@ void Receiver<T>::run()
     while (in.pop(os))
     {
         os->reset_write_head();
+#ifdef VERBOSE_SSL
         timer.start();
+        RunningTimer mytimer;
+#endif
         os->Receive(socket);
+#ifdef VERBOSE_SSL
+        cout << "receiving " << os->get_length() * 1e-6 << " MB on " << socket
+                << " took " << mytimer.elapsed() << ", total "
+                << timer.elapsed() << endl;
         timer.stop();
+#endif
         out.push(os);
     }
 }

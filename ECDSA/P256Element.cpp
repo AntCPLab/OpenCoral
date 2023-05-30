@@ -14,7 +14,14 @@ void P256Element::init()
     curve = EC_GROUP_new_by_curve_name(NID_secp256k1);
     assert(curve != 0);
     auto modulus = EC_GROUP_get0_order(curve);
-    Scalar::init_field(BN_bn2dec(modulus), false);
+    auto mod = BN_bn2dec(modulus);
+    Scalar::init_field(mod, false);
+    free(mod);
+}
+
+void P256Element::finish()
+{
+    EC_GROUP_free(curve);
 }
 
 P256Element::P256Element()
@@ -29,7 +36,7 @@ P256Element::P256Element(const Scalar& other) :
 {
     BIGNUM* exp = BN_new();
     BN_dec2bn(&exp, bigint(other).get_str().c_str());
-    assert(EC_POINTs_mul(curve, point, exp, 0, 0, 0, 0) != 0);
+    assert(EC_POINT_mul(curve, point, exp, 0, 0, 0) != 0);
     BN_free(exp);
 }
 
@@ -38,8 +45,13 @@ P256Element::P256Element(word other) :
 {
     BIGNUM* exp = BN_new();
     BN_dec2bn(&exp, to_string(other).c_str());
-    assert(EC_POINTs_mul(curve, point, exp, 0, 0, 0, 0) != 0);
+    assert(EC_POINT_mul(curve, point, exp, 0, 0, 0) != 0);
     BN_free(exp);
+}
+
+P256Element::~P256Element()
+{
+    EC_POINT_free(point);
 }
 
 P256Element& P256Element::operator =(const P256Element& other)
@@ -56,7 +68,11 @@ void P256Element::check()
 P256Element::Scalar P256Element::x() const
 {
     BIGNUM* x = BN_new();
+#if OPENSSL_VERSION_MAJOR >= 3
+    assert(EC_POINT_get_affine_coordinates(curve, point, x, 0, 0) != 0);
+#else
     assert(EC_POINT_get_affine_coordinates_GFp(curve, point, x, 0, 0) != 0);
+#endif
     char* xx = BN_bn2dec(x);
     Scalar res((bigint(xx)));
     OPENSSL_free(xx);
@@ -95,7 +111,7 @@ bool P256Element::operator ==(const P256Element& other) const
     return not cmp;
 }
 
-void P256Element::pack(octetStream& os) const
+void P256Element::pack(octetStream& os, int) const
 {
     octet* buffer;
     size_t length = EC_POINT_point2buf(curve, point,
@@ -103,9 +119,10 @@ void P256Element::pack(octetStream& os) const
     assert(length != 0);
     os.store_int(length, 8);
     os.append(buffer, length);
+    free(buffer);
 }
 
-void P256Element::unpack(octetStream& os)
+void P256Element::unpack(octetStream& os, int)
 {
     size_t length = os.get_int(8);
     assert(

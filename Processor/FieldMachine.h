@@ -9,6 +9,9 @@
 #include "RingMachine.h"
 #include "HonestMajorityMachine.h"
 #include "Tools/ezOptionParser.h"
+#include "Math/gfp.h"
+
+#include "OnlineOptions.hpp"
 
 template<template<class T> class U, class V = HonestMajorityMachine>
 class HonestMajorityFieldMachine
@@ -36,7 +39,7 @@ public:
             ez::ezOptionParser& opt, bool live_prep_default = true)
     {
         OnlineOptions& online_opts = OnlineOptions::singleton;
-        online_opts = {opt, argc, argv, 1000, live_prep_default, true};
+        online_opts = {opt, argc, argv, T<gfp0>(), live_prep_default};
 
         FieldMachine<T, V, X, W>(argc, argv, opt, online_opts);
     }

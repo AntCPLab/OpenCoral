@@ -13,6 +13,7 @@
 #include "Protocols/ShuffleSacrifice.h"
 #include "Protocols/MAC_Check_Base.h"
 #include "Protocols/ShuffleSacrifice.h"
+#include "Tools/TimerWithComm.h"
 #include "edabit.h"
 
 #include <array>
@@ -33,10 +34,14 @@ class BufferPrep : public Preprocessing<T>
 {
     template<class U, class V> friend class Machine;
 
+    friend class InScope;
+
     template<int>
     void buffer_inverses(true_type);
     template<int>
     void buffer_inverses(false_type) { throw runtime_error("no inverses"); }
+
+    virtual bool bits_from_dabits() { return false; }
 
 protected:
     vector<array<T, 3>> triples;
@@ -47,9 +52,13 @@ protected:
 
     vector<dabit<T>> dabits;
 
+    map<pair<bool, int>, vector<edabitvec<T>>> edabits;
+    map<pair<bool, int>, edabitvec<T>> my_edabits;
+
     int n_bit_rounds;
 
     SubProcessor<T>* proc;
+    Player* P;
 
     virtual void buffer_triples() { throw runtime_error("no triples"); }
     virtual void buffer_squares() { throw runtime_error("no squares"); }
@@ -107,6 +116,9 @@ public:
             int vector_size);
 
     virtual void get_dabit_no_count(T& a, typename T::bit_type& b);
+
+    edabitvec<T> get_edabitvec(bool strict, int n_bits);
+    void get_edabit_no_count(bool strict, int n_bits, edabit<T>& eb);
 
     /// Get fresh random value
     virtual T get_random();
@@ -184,6 +196,15 @@ protected:
     template<int>
     void sanitize(vector<edabitvec<T>>& edabits, int n_bits);
 
+    template<int = 0>
+    void buffer_personal_edabits_without_check_pre(int n_bits,
+            Player& P, typename T::Input& input, typename BT::Input& bit_input,
+            int input_player, int buffer_size);
+    template<int = 0>
+    void buffer_personal_edabits_without_check_post(int n_bits,
+            vector<T>& sums, vector<vector<BT> >& bits, typename T::Input& input,
+            typename BT::Input& bit_input, int input_player, int begin, int end);
+
 public:
     RingPrep(SubProcessor<T>* proc, DataPositions& usage);
     virtual ~RingPrep();
@@ -224,6 +245,13 @@ public:
 template<class T>
 class SemiHonestRingPrep : public virtual RingPrep<T>
 {
+    template<int = 0>
+    void buffer_bits(false_type, false_type);
+    template<int = 0>
+    void buffer_bits(true_type, false_type);
+    template<int = 0>
+    void buffer_bits(false_type, true_type);
+
 public:
     SemiHonestRingPrep(SubProcessor<T>* proc, DataPositions& usage) :
             BufferPrep<T>(usage), BitPrep<T>(proc, usage),
@@ -232,7 +260,7 @@ public:
     }
     virtual ~SemiHonestRingPrep() {}
 
-    virtual void buffer_bits() { this->buffer_bits_without_check(); }
+    virtual void buffer_bits();
     virtual void buffer_inputs(int player)
     { this->buffer_inputs_as_usual(player, this->proc); }
 
@@ -358,11 +386,6 @@ template<class T>
 class ReplicatedPrep : public virtual ReplicatedRingPrep<T>,
         public virtual SemiHonestRingPrep<T>
 {
-    template<int>
-    void buffer_bits(false_type);
-    template<int>
-    void buffer_bits(true_type);
-
 public:
     ReplicatedPrep(SubProcessor<T>* proc, DataPositions& usage) :
             BufferPrep<T>(usage), BitPrep<T>(proc, usage),
@@ -384,7 +407,7 @@ public:
     }
 
     void buffer_squares() { ReplicatedRingPrep<T>::buffer_squares(); }
-    void buffer_bits();
+    void buffer_bits() { SemiHonestRingPrep<T>::buffer_bits(); }
 };
 
 #endif /* PROTOCOLS_REPLICATEDPREP_H_ */

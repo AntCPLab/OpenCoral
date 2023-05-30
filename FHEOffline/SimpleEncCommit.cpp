@@ -26,9 +26,10 @@ SimpleEncCommit<T, FD, S>::SimpleEncCommit(const PlayerBase& P, const FHE_PK& pk
         int thread_num, bool diagonal) :
     NonInteractiveProofSimpleEncCommit<FD>(P, pk, FTD, timers, machine,
             diagonal),
-    SimpleEncCommitFactory<FD>(pk, FTD, machine, diagonal)
+    SimpleEncCommitFactory<FD>(pk)
 {
     (void)thread_num;
+    this->init(this->proof, FTD);
 }
 
 template <class FD>
@@ -48,11 +49,15 @@ NonInteractiveProofSimpleEncCommit<FD>::NonInteractiveProofSimpleEncCommit(
 }
 
 template <class FD>
-SimpleEncCommitFactory<FD>::SimpleEncCommitFactory(const FHE_PK& pk,
-        const FD& FTD, const MachineBase& machine, bool diagonal) :
+SimpleEncCommitFactory<FD>::SimpleEncCommitFactory(const FHE_PK& pk) :
         cnt(-1), n_calls(0), pk(pk)
 {
-    int sec = Proof::n_ciphertext_per_proof(machine.sec, pk, diagonal);
+}
+
+template<class FD>
+void SimpleEncCommitFactory<FD>::init(const Proof& proof, const FD& FTD)
+{
+    int sec = proof.U;
     c.resize(sec, pk.get_params());
     m.resize(sec, FTD);
     for (int i = 0; i < sec; i++)
@@ -224,7 +229,7 @@ template<class FD>
 SummingEncCommit<FD>::SummingEncCommit(const Player& P, const FHE_PK& pk,
         const FD& FTD, map<string, Timer>& timers, const MachineBase& machine,
         int thread_num, bool diagonal) :
-        SimpleEncCommitFactory<FD>(pk, FTD, machine, diagonal), SimpleEncCommitBase_<FD>(
+        SimpleEncCommitFactory<FD>(pk), SimpleEncCommitBase_<FD>(
                 machine), proof(machine.sec, pk, P.num_players(), diagonal), pk(pk), FTD(
                 FTD), P(P), thread_num(thread_num),
 #ifdef LESS_ALLOC_MORE_MEM
@@ -233,6 +238,7 @@ SummingEncCommit<FD>::SummingEncCommit(const Player& P, const FHE_PK& pk,
 #endif
                 timers(timers)
 {
+    this->init(proof, FTD);
 }
 
 template<class FD>

@@ -1,24 +1,21 @@
 #include "OT/BaseOT.h"
 #include "Tools/random.h"
 #include "Tools/benchmarking.h"
+#include "Tools/Bundle.h"
 
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
 #include <pthread.h>
 
-#ifndef NO_AVX_OT
 extern "C" {
+#ifndef NO_AVX_OT
 #include "SimpleOT/ot_sender.h"
 #include "SimpleOT/ot_receiver.h"
+#endif
+#include "SimplestOT_C/ref10/ot_sender.h"
+#include "SimplestOT_C/ref10/ot_receiver.h"
 }
-#endif
-
-#include "ECDSA/P256Element.h"
-
-#ifdef USE_RISTRETTO
-#include "ECDSA/CurveElement.h"
-#endif
 
 using namespace std;
 
@@ -75,69 +72,60 @@ void send_if_ot_receiver(TwoPartyPlayer* P, vector<octetStream>& os, OT_ROLE rol
     }
 }
 
+// type-dependent redirection
+
+void sender_genS(ref10_SENDER* s, unsigned char* S_pack)
+{
+    ref10_sender_genS(s, S_pack);
+}
+
+void sender_keygen(ref10_SENDER* s, unsigned char* Rs_pack,
+        unsigned char (*keys)[4][HASHBYTES])
+{
+    ref10_sender_keygen(s, Rs_pack, keys);
+}
+
+void receiver_maketable(ref10_RECEIVER* r)
+{
+    ref10_receiver_maketable(r);
+}
+
+void receiver_procS(ref10_RECEIVER* r)
+{
+    ref10_receiver_procS(r);
+}
+
+void receiver_rsgen(ref10_RECEIVER* r, unsigned char* Rs_pack,
+        unsigned char* cs)
+{
+    ref10_receiver_rsgen(r, Rs_pack, cs);
+}
+
+void receiver_keygen(ref10_RECEIVER* r, unsigned char (*keys)[HASHBYTES])
+{
+    ref10_receiver_keygen(r, keys);
+}
 
 void BaseOT::exec_base(bool new_receiver_inputs)
 {
-#ifdef NO_AVX_OT
-#ifdef USE_RISTRETTO
-    typedef CurveElement Element;
-#else
-    typedef P256Element Element;
+#ifndef NO_AVX_OT
+    if (cpu_has_avx(true))
+        exec_base<SIMPLEOT_SENDER, SIMPLEOT_RECEIVER>(new_receiver_inputs);
+    else
 #endif
+        exec_base<ref10_SENDER, ref10_RECEIVER>(new_receiver_inputs);
+}
 
-    Element::init();
-
-    vector<Element::Scalar> as, bs;
-    vector<Element> As;
-    SeededPRNG G;
-    vector<octetStream> os(2);
-
-    if (ot_role & SENDER)
-        for (int i = 0; i < nOT; i++)
-        {
-            as.push_back(G.get<Element::Scalar>());
-            As.push_back(as.back());
-            As.back().pack(os[0]);
-        }
-
-    send_if_ot_sender(P, os, ot_role);
-    os[0].reset_write_head();
-
-    if (ot_role & RECEIVER)
-        for (int i = 0; i < nOT; i++)
-        {
-            if (new_receiver_inputs)
-                receiver_inputs[i] = G.get_bit();
-            auto b = G.get<Element::Scalar>();
-            Element B = b;
-            auto A = os[1].get<Element>();
-            if (receiver_inputs[i])
-                B += A;
-            B.pack(os[0]);
-            receiver_outputs[i] = (A * b).hash(AES_BLK_SIZE);
-        }
-
-    send_if_ot_receiver(P, os, ot_role);
-
-    if (ot_role & SENDER)
-        for (int i = 0; i < nOT; i++)
-        {
-            auto B = os[1].get<Element>();
-            sender_inputs.at(i).at(0) = (B * as[i]).hash(AES_BLK_SIZE);
-            sender_inputs.at(i).at(1) = ((B - As[i]) * as[i]).hash(AES_BLK_SIZE);
-        }
-
-#else
-    if (not cpu_has_avx(true))
-        throw runtime_error("SimpleOT needs AVX support");
-
+template<class T, class U>
+void BaseOT::exec_base(bool new_receiver_inputs)
+{
     int i, j, k;
     size_t len;
     PRNG G;
     G.ReSeed();
     vector<octetStream> os(2);
-    SIMPLEOT_SENDER sender;
-    SIMPLEOT_RECEIVER receiver;
+    T sender;
+    U receiver;
 
     unsigned char S_pack[ PACKBYTES ];
     unsigned char Rs_pack[ 2 ][ 4 * PACKBYTES ];
@@ -170,7 +158,7 @@ void BaseOT::exec_base(bool new_receiver_inputs)
     {
         if (ot_role & RECEIVER)
         {
-            for (j = 0; j < 4; j++)
+            for (j = 0; j < 4 and (i + j) < nOT; j++)
             {
                 if (new_receiver_inputs)
                     receiver_inputs[i + j] = G.get_uchar()&1;
@@ -181,13 +169,25 @@ void BaseOT::exec_base(bool new_receiver_inputs)
             receiver_keygen(&receiver, receiver_keys);
 
             // Copy keys to receiver_outputs
-            for (j = 0; j < 4; j++)
+            for (j = 0; j < 4 and (i + j) < nOT; j++)
             {
                 for (k = 0; k < AES_BLK_SIZE; k++)
                 {
                     receiver_outputs[i + j].set_byte(k, receiver_keys[j][k]);
                 }
             }
+
+#ifdef BASE_OT_DEBUG
+            for (j = 0; j < 4; j++)
+                for (k = 0; k < AES_BLK_SIZE; k++)
+                {
+                    printf("%4d-th receiver key:", i+j);
+                    for (k = 0; k < HASHBYTES; k++) printf("%.2X", receiver_keys[j][k]);
+                    printf("\n");
+                }
+
+            printf("\n");
+#endif
         }
     }
 
@@ -206,7 +206,7 @@ void BaseOT::exec_base(bool new_receiver_inputs)
             sender_keygen(&sender, Rs_pack[1], sender_keys);
 
             // Copy 128 bits of keys to sender_inputs
-            for (j = 0; j < 4; j++)
+            for (j = 0; j < 4 and (i + j) < nOT; j++)
             {
                 for (k = 0; k < AES_BLK_SIZE; k++)
                 {
@@ -226,18 +226,11 @@ void BaseOT::exec_base(bool new_receiver_inputs)
                 for (k = 0; k < HASHBYTES; k++) printf("%.2X", sender_keys[1][j][k]);
                 printf("\n");
             }
-            if (ot_role & RECEIVER)
-            {
-                printf("%4d-th receiver key:", i+j);
-                for (k = 0; k < HASHBYTES; k++) printf("%.2X", receiver_keys[j][k]);
-                printf("\n");
-            }
         }
 
         printf("\n");
         #endif
     }
-#endif
 
     for (int i = 0; i < nOT; i++)
     {

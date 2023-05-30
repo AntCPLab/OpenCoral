@@ -128,6 +128,7 @@ size_t Prover<FD,U>::NIZKPoK(Proof& P, octetStream& ciphertexts, octetStream& cl
 
   bool ok=false;
   int cnt=0;
+  (void) cnt;
   while (!ok)
     { cnt++;
       Stage_1(P,ciphertexts,c,pk);

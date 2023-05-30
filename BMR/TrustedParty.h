@@ -20,7 +20,7 @@ public:
 	vector<SendBuffer> msg_input_masks;
 
 	BaseTrustedParty();
-	virtual ~BaseTrustedParty() {}
+	virtual ~BaseTrustedParty();
 
 	/* From NodeUpdatable class */
 	virtual void NodeReady();
@@ -103,7 +103,6 @@ private:
 
 	void add_all_keys(const Register& reg, bool external);
 };
-
 
 inline void BaseTrustedParty::add_keys(const Register& reg)
 {

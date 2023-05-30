@@ -10,7 +10,7 @@
 
 template<class T, class U>
 void generate_squares(vector<array<T, 2>>& squares, int n_squares,
-        U* protocol, SubProcessor<T>* proc);
+        U* protocol);
 
 template<class T>
 class SquarePrep : public BufferPrep<T>
@@ -22,8 +22,8 @@ class SquarePrep : public BufferPrep<T>
 
     void buffer_squares()
     {
-        generate_squares(this->squares, this->buffer_size, &this->proc->protocol,
-                this->proc);
+        generate_squares(this->squares, this->buffer_size,
+                &this->proc->protocol);
     }
 
 public:

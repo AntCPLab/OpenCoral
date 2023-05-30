@@ -14,11 +14,6 @@ using namespace std;
 #include "Tools/random.h"
 #include "field_types.h"
 
-template<class T> class ReplicatedMC;
-template<class T> class ReplicatedInput;
-template<class T> class ReplicatedPrivateOutput;
-template<class T> class Replicated;
-
 template <class T, int L>
 class FixedVec
 {
@@ -29,7 +24,12 @@ public:
     typedef T value_type;
     typedef FixedVec Scalar;
 
-    static const int length = L;
+    static const int vector_length = L;
+
+    static int length()
+    {
+        return L * T::length();
+    }
 
     static int size()
     {

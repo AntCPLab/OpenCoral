@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef GC_REPPREP_HPP_
+#define GC_REPPREP_HPP_
+
 #include "RepPrep.h"
 #include "ShareThread.h"
 #include "Processor/OnlineOptions.h"
@@ -36,6 +39,7 @@ void RepPrep<T>::set_protocol(typename T::Protocol& protocol)
         return;
 
     this->protocol = new ReplicatedBase(protocol.P);
+    this->P = &protocol.P;
 }
 
 template<class T>
@@ -98,3 +102,5 @@ void RepPrep<T>::buffer_inputs(int player)
 }
 
 } /* namespace GC */
+
+#endif

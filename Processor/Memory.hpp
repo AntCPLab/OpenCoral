@@ -19,6 +19,9 @@ void MemoryPart<T>::minimum_size(size_t size)
   {
       if (size > this->size())
           this->resize(size);
+#ifdef DEBUG_MEMORY_SIZE
+      cerr << T::type_string() << " memory has now size " << this->size() << endl;
+#endif
   }
   catch (bad_alloc&)
   {
@@ -58,9 +61,9 @@ istream& operator>>(istream& s,Memory<T>& M)
   int len;
 
   s >> len;  
-  M.resize_s(len);
+  M.MS.minimum_size(len);
   s >> len;
-  M.resize_c(len);
+  M.MC.minimum_size(len);
   s.seekg(1, istream::cur);
 
   for (unsigned int i=0; i<M.MS.size(); i++)

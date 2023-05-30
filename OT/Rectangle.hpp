@@ -59,6 +59,13 @@ Rectangle<U, V>& Rectangle<U, V>::sub_(const void* other)
 }
 
 template<class U, class V>
+void Rectangle<U, V>::bit_sub(const BitVector& bits, int start)
+{
+    for (int i = 0; i < N_ROWS; i++)
+        rows[i] = rows[i] - bits.get_bit(start + i);
+}
+
+template<class U, class V>
 void Rectangle<U, V>::mul(const BitVector& a, const V& b)
 {
 	assert(a.size() == N_ROWS);

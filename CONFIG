@@ -8,6 +8,9 @@ GDEBUG = -g
 # set this to your preferred local storage directory
 PREP_DIR = '-DPREP_DIR="Player-Data/"'
 
+# directory to store SSL keys
+SSL_DIR = '-DSSL_DIR="Player-Data/"'
+
 # set for SHE preprocessing (SPDZ and Overdrive)
 USE_NTL = 0
 
@@ -28,25 +31,40 @@ ARCH = -mtune=native -msse4.1 -msse4.2 -maes -mpclmul -mavx -mavx2 -mbmi2 -madx
 ARCH = -march=native
 
 MACHINE := $(shell uname -m)
+ARM := $(shell uname -m | grep x86; echo $$?)
 OS := $(shell uname -s)
 ifeq ($(MACHINE), x86_64)
-# set this to 0 to avoid using AVX for OT
 ifeq ($(OS), Linux)
-CHECK_AVX := $(shell grep -q avx /proc/cpuinfo; echo $$?)
-ifeq ($(CHECK_AVX), 0)
+ifeq ($(shell cat /proc/cpuinfo | grep -q avx2; echo $$?), 0)
 AVX_OT = 1
 else
 AVX_OT = 0
 endif
 else
-AVX_OT = 1
+AVX_OT = 0
 endif
 else
+ARCH =
 AVX_OT = 0
 endif
 
+ifeq ($(OS), Darwin)
+BREW_CFLAGS += -I/usr/local/opt/openssl/include -I`brew --prefix`/opt/openssl/include -I`brew --prefix`/include
+BREW_LDLIBS += -L/usr/local/opt/openssl/lib -L`brew --prefix`/lib -L`brew --prefix`/opt/openssl/lib
+endif
+
+ifeq ($(OS), Linux)
+ifeq ($(ARM), 1)
+ifeq ($(shell cat /proc/cpuinfo | grep -q aes; echo $$?), 0)
+ARCH = -march=armv8.2-a+crypto
+endif
+endif
+endif
+
+USE_KOS = 0
+
 # allow to set compiler in CONFIG.mine
-CXX = g++
+CXX = clang++
 
 # use CONFIG.mine to overwrite DIR settings
 -include CONFIG.mine
@@ -65,8 +83,12 @@ endif
 # Default for MAX_MOD_SZ is 10, which suffices for all Overdrive protocols
 # MOD = -DMAX_MOD_SZ=10 -DGFP_MOD_SZ=5
 
-LDLIBS = -lmpirxx -lmpir -lsodium $(MY_LDLIBS)
+LDLIBS = -lgmpxx -lgmp -lsodium $(MY_LDLIBS)
+LDLIBS += $(BREW_LDLIBS)
+LDLIBS +=  -Wl,-rpath -Wl,$(CURDIR)/local/lib -L$(CURDIR)/local/lib
 LDLIBS += -lboost_system -lssl -lcrypto
+
+CFLAGS += -I./local/include
 
 ifeq ($(USE_NTL),1)
 CFLAGS += -DUSE_NTL
@@ -83,7 +105,8 @@ else
 BOOST = -lboost_thread $(MY_BOOST)
 endif
 
-CFLAGS += $(ARCH) $(MY_CFLAGS) $(GDEBUG) -Wextra -Wall $(OPTIM) -I$(ROOT) -pthread $(PROF) $(DEBUG) $(MOD) $(GF2N_LONG) $(PREP_DIR) $(SECURE) -std=c++11 -Werror
+CFLAGS += $(ARCH) $(MY_CFLAGS) $(GDEBUG) -Wextra -Wall $(OPTIM) -I$(ROOT) -I$(ROOT)/deps -pthread $(PROF) $(DEBUG) $(MOD) $(GF2N_LONG) $(PREP_DIR) $(SSL_DIR) $(SECURE) -std=c++11 -Werror
+CFLAGS += $(BREW_CFLAGS)
 CPPFLAGS = $(CFLAGS)
 LD = $(CXX)
 
@@ -93,4 +116,10 @@ CFLAGS += -Wno-error=deprecated-declarations
 ifeq ($(USE_NTL),1)
 CFLAGS += -Wno-error=unused-parameter -Wno-error=deprecated-copy
 endif
+endif
+
+ifeq ($(USE_KOS),1)
+CFLAGS += -DUSE_KOS
+else
+CFLAGS += -std=c++17
 endif

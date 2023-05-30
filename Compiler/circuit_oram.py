@@ -1,5 +1,6 @@
 
-from Compiler.path_oram import *
+from Compiler.oram import *
+from Compiler.path_oram import PathORAM, XOR
 from Compiler.util import bit_compose
 
 def first_diff(a_bits, b_bits):

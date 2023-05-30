@@ -49,10 +49,20 @@ found in ``Protocols/Replicated.h``.
    Constant sharing and public output allows to execute the
    following program::
 
-     print_ln('%s', sint(123).reveal())
+     print_ln('result: %s', sint(123).reveal())
 
    This allows to check the correct execution of further
    functionality.
+
+   Put the above code in ``Programs/Source/test.mpc`` and run the
+   following if your protocol works for two parties (otherwise add
+   more parties and change the ``-N`` argument accordingly)::
+
+     make no-party.x
+     ./compile.py test
+     ./no-party.x 0 test -N 2 & ./no-party.1 test -N 2
+
+   This should output ``result: 123``.
 
 2. Fill in the operator functions in :c:type:`NoShare` and check
    them::
@@ -82,3 +92,20 @@ found in ``Protocols/Replicated.h``.
    execute::
 
      print_ln('%s', (sint(2) < sint(3)).reveal()
+
+
+Reference
+=========
+
+The following classes are fundamental building blocks in
+protocols. See also the :ref:`this reference <network-reference>`
+for networking-related classes.
+
+.. doxygenclass:: PRNG
+   :members:
+
+.. doxygenclass:: SeededPRNG
+   :members:
+
+.. doxygenclass:: GlobalPRNG
+   :members:

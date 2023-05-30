@@ -6,6 +6,7 @@
 #include "Tools/random.h"
 #include "Tools/time-func.h"
 #include "Processor/InputTuple.h"
+#include "Protocols/dabit.h"
 
 #include "OT/OTTripleSetup.h"
 #include "OT/MascotParams.h"
@@ -80,7 +81,7 @@ public:
     vector<typename T::Multiplier*> ot_multipliers;
     //vector<OTMachine*> machines;
     BitVector baseReceiverInput; // same for every set of OTs
-    vector< vector< vector<BitVector> > > baseSenderInputs;
+    vector< vector< array<BitVector, 2> > > baseSenderInputs;
     vector< vector<BitVector> > baseReceiverOutputs;
     vector<BitVector> valueBits;
     BitVector b_padded_bits;
@@ -98,6 +99,8 @@ public:
 
     vector<PlainTriple<open_type, N_AMPLIFY>> preampTriples;
     vector<array<open_type, 3>> plainTriples;
+    vector<dabit<T>> plainBits;
+    vector<array<open_type, 3>> mixedTriples;
 
     typename T::MAC_Check* MC;
 
@@ -112,11 +115,14 @@ public:
     void generatePlainTriples();
     void plainTripleRound(int k = 0);
 
+    void generatePlainBits();
+    void generateMixedTriples();
+
     void run_multipliers(MultJob job);
 
     mac_key_type get_mac_key() const { return mac_key; }
 
-    NamedCommStats comm_stats();
+    Player& get_player() { return globalPlayer; }
 };
 
 template<class T>
@@ -208,16 +214,5 @@ public:
 
     void generateTriples();
 };
-
-template<class T>
-NamedCommStats OTTripleGenerator<T>::comm_stats()
-{
-    NamedCommStats res;
-    if (parentPlayer != &globalPlayer)
-        res = globalPlayer.comm_stats;
-    for (auto& player : players)
-        res += player->comm_stats;
-    return res;
-}
 
 #endif

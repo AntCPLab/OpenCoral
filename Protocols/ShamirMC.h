@@ -33,8 +33,11 @@ public:
 template<class T>
 class ShamirMC : public IndirectShamirMC<T>
 {
+    typedef typename T::open_type open_type;
     typedef typename T::open_type::Scalar rec_type;
     vector<typename T::open_type::Scalar> reconstruction;
+
+    ShamirMC(const ShamirMC&);
 
     void finalize(vector<typename T::open_type>& values, const vector<T>& S);
 
@@ -64,13 +67,14 @@ public:
     void POpen_End(vector<typename T::open_type>& values,const vector<T>& S,const Player& P);
 
     virtual void init_open(const Player& P, int n = 0);
-    virtual void prepare_open(const T& secret);
+    virtual void prepare_open(const T& secret, int = -1);
     virtual void exchange(const Player& P);
-    virtual typename T::open_type finalize_open();
+    virtual typename T::open_type finalize_raw();
 
     void Check(const Player& P) { (void)P; }
 
-    vector<rec_type> get_reconstruction(const Player& P);
+    vector<rec_type> get_reconstruction(const Player& P, int n = 0);
+    open_type reconstruct(const vector<open_type>& shares);
 };
 
 #endif /* PROTOCOLS_SHAMIRMC_H_ */

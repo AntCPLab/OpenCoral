@@ -54,16 +54,17 @@ class OTMultiplier : public OTMultiplierMac<typename T::sacri_type, typename T::
 {
 protected:
     BitVector keyBits;
-    vector< vector<BitVector> > senderOutput;
+    vector< array<BitVector, 2> > senderOutput;
     vector<BitVector> receiverOutput;
 
     void multiplyForTriples();
     virtual void multiplyForBits();
+    virtual void multiplyForMixed();
 	virtual void multiplyForInputs(MultJob job) = 0;
 
     virtual void after_correlation() = 0;
     virtual void init_authenticator(const BitVector& baseReceiverInput,
-            const vector< vector<BitVector> >& baseSenderInput,
+            const vector< array<BitVector, 2> >& baseSenderInput,
             const vector<BitVector>& baseReceiverOutput) = 0;
 
 public:
@@ -84,7 +85,7 @@ class MascotMultiplier : public OTMultiplier<T>
     OTCorrelator<Matrix<typename T::Square> > auth_ot_ext;
     void after_correlation();
     void init_authenticator(const BitVector& baseReceiverInput,
-            const vector< vector<BitVector> >& baseSenderInput,
+            const vector< array<BitVector, 2> >& baseSenderInput,
             const vector<BitVector>& baseReceiverOutput);
 
     void multiplyForBits();
@@ -108,7 +109,7 @@ class TinyMultiplier : public OTMultiplier<T>
 
     void after_correlation();
     void init_authenticator(const BitVector& baseReceiverInput,
-            const vector< vector<BitVector> >& baseSenderInput,
+            const vector< array<BitVector, 2> >& baseSenderInput,
             const vector<BitVector>& baseReceiverOutput);
 
 public:
@@ -126,7 +127,7 @@ class TinierMultiplier : public OTMultiplier<T>
 
     void after_correlation();
     void init_authenticator(const BitVector& baseReceiverInput,
-            const vector< vector<BitVector> >& baseSenderInput,
+            const vector< array<BitVector, 2> >& baseSenderInput,
             const vector<BitVector>& baseReceiverOutput);
 
 public:
@@ -146,7 +147,7 @@ class Spdz2kMultiplier: public OTMultiplier<Spdz2kShare<K, S>>
 
     void after_correlation();
     void init_authenticator(const BitVector& baseReceiverInput,
-            const vector< vector<BitVector> >& baseSenderInput,
+            const vector< array<BitVector, 2> >& baseSenderInput,
             const vector<BitVector>& baseReceiverOutput);
 
     void multiplyForInputs(MultJob job);
@@ -173,10 +174,13 @@ class SemiMultiplier : public OTMultiplier<T>
         throw not_implemented();
     }
 
+    void multiplyForBits();
+    void multiplyForMixed();
+
     void after_correlation();
 
     void init_authenticator(const BitVector& baseReceiverInput,
-            const vector< vector<BitVector> >& baseSenderInput,
+            const vector< array<BitVector, 2> >& baseSenderInput,
             const vector<BitVector>& baseReceiverOutput)
     {
         (void) baseReceiverInput, (void) baseReceiverOutput, (void) baseSenderInput;

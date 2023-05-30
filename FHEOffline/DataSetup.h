@@ -57,7 +57,7 @@ public:
 
   void init_field();
 
-  void check(int sec) const;
+  void check() const;
   bool operator!=(const PartSetup<FD>& other);
 
   void secure_init(Player& P, MachineBase& machine, int plaintext_length,

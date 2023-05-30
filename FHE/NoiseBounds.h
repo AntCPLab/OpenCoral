@@ -42,6 +42,8 @@ public:
     bigint min_p0(bool scale, const bigint& p1) { return scale ? min_p0(p1) : min_p0(); }
     static double min_phi_m(int log_q, double sigma);
     static double min_phi_m(int log_q, const FHE_Params& params);
+
+    bigint get_B_clean() { return B_clean; }
 };
 
 // as per ePrint 2012:642 for slack = 0

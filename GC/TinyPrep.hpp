@@ -6,6 +6,8 @@
 #include "TinierSharePrep.h"
 
 #include "Protocols/MascotPrep.hpp"
+#include "Protocols/ShuffleSacrifice.hpp"
+#include "Protocols/MalRepRingPrep.hpp"
 
 namespace GC
 {
@@ -16,7 +18,7 @@ void TinierSharePrep<T>::init_real(Player& P)
     assert(real_triple_generator == 0);
     auto& thread = ShareThread<secret_type>::s();
     real_triple_generator = new typename T::whole_type::TripleGenerator(
-            BaseMachine::s().fresh_ot_setup(), P.N, -1,
+            BaseMachine::fresh_ot_setup(P), P.N, -1,
             OnlineOptions::singleton.batch_size, 1, params,
             thread.MC->get_alphai(), &P);
     real_triple_generator->multi_threaded = false;

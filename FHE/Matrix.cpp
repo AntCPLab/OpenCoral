@@ -68,6 +68,10 @@ void HNF(matrix& H,matrix& U,const matrix& A)
 {
   int m=A.size(),n=A[0].size(),r,i,j,k;
   
+#ifdef VERBOSE
+  cerr << "HNF m=" << m << ", n=" << n << endl;
+#endif
+
   H=A;
   ident(U,n);
   r=min(m,n);
@@ -79,9 +83,9 @@ void HNF(matrix& H,matrix& U,const matrix& A)
     { if (step==2)
         { // Step 2
           k=-1;
-          mn=bigint(1)<<256;
+          mn=bigint(0);
           for (j=i; j<n; j++)
-	    { if (H[i][j]!=0 && abs(H[i][j])<mn)
+	    { if (H[i][j]!=0 && (abs(H[i][j])<mn || mn == 0))
 	        { k=j; mn=abs(H[i][j]); }
             }
           if (k!=-1)
@@ -207,6 +211,11 @@ void SNF_Step(matrix& S,matrix& V)
 void SNF(matrix& S,const matrix& A,matrix& V)
 {
   int m=A.size(),n=A[0].size();
+
+#ifdef VERBOSE
+  cerr << "SNF m=" << m << ", n=" << n << endl;
+#endif
+
   S=A;
   ident(V,n);
 
@@ -236,49 +245,6 @@ matrix inv(const matrix& A)
 
   if (!IsIdent(HA)) { cout << "Error in inverse" << endl; throw bad_value(); }
   return UA;
-}
-
-
-vector<modp> solve(modp_matrix& A,const Zp_Data& PrD)
-{
-  unsigned int n=A.size();
-  if ((n+1)!=A[0].size())  { throw invalid_params(); }
-
-  modp t,ti;
-  for (unsigned int r=0; r<n; r++)
-    { // Find pivot
-      unsigned int p=r;
-      while (isZero(A[p][r],PrD)) { p++; }
-      // Do pivoting
-      if (p!=r) 
-        { for (unsigned int c=0; c<n+1; c++)
-	    { t=A[p][c];  A[p][c]=A[r][c];   A[r][c]=t; }
-        }
-      // Make Lcoeff=1
-      Inv(ti,A[r][r],PrD);
-      for (unsigned int c=0; c<n+1; c++)
-	{ Mul(A[r][c],A[r][c],ti,PrD); }
-      // Now kill off other entries in this column
-      for (unsigned int rr=0; rr<n; rr++)
-	{ if (r!=rr) 
-	    { for (unsigned int c=0; c<n+1; c++)
-	        { Mul(t,A[rr][c],A[r][r],PrD); 
-                  Sub(A[rr][c],A[rr][c],t,PrD);
-	        }
-            }
-        }
-   }
-  // Sanity check and extract answer
-  vector<modp> ans;
-  ans.resize(n);
-  for (unsigned int i=0; i<n; i++)
-    { for (unsigned int j=0; j<n; j++)
-	{ if (i!=j && !isZero(A[i][j],PrD)) { throw bad_value(); }
-	  else if (!isOne(A[i][j],PrD))     { throw bad_value(); }
-        }
-       ans[i]=A[i][n];
-    }
-  return ans;
 }
 
 

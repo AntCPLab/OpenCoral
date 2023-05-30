@@ -28,9 +28,7 @@ void Server::get_ip(int num)
       inet_ntop(AF_INET6, &s->sin6_addr, ipstr, sizeof ipstr);
   }
 
-  names[num]=new octet[512];
-  memset(names[num], 0, 512);
-  strncpy((char*)names[num], ipstr, INET6_ADDRSTRLEN);
+  names[num] = ipstr;
 
 #ifdef DEBUG_NETWORKING
   cerr << "Client IP address: " << names[num] << endl;
@@ -45,11 +43,11 @@ void Server::get_name(int num)
 #endif
 
   // Receive name sent by client (legacy) - not used here
-  octet my_name[512];
-  receive(socket_num[num],my_name,512);
+  octetStream os;
+  os.Receive(socket_num[num]);
   receive(socket_num[num],(octet*)&ports[num],4);
 #ifdef DEBUG_NETWORKING
-  cerr << "Player " << num << " sent (IP for info only) " << my_name << ":"
+  cerr << "Player " << num << " sent (IP for info only) " << os.str() << ":"
       << ports[num] << endl;
 #endif
 
@@ -58,16 +56,18 @@ void Server::get_name(int num)
 }
 
 
-void Server::send_names(int num)
+void Server::send_names()
 {
   /* Now send the machine names back to each client 
    * and the number of machines
    */
-  send(socket_num[num],nmachines,4);
+  RunningTimer timer;
+  octetStream addresses;
+  addresses.store(names);
+  addresses.store(ports);
   for (int i=0; i<nmachines; i++)
     {
-      send(socket_num[num],names[i],512);
-      send(socket_num[num],(octet*)&ports[i],4);
+      addresses.Send(socket_num[i]);
     }
 }
 
@@ -88,11 +88,18 @@ Server::Server(int argc,char **argv)
     }
   nmachines=atoi(argv[1]);
   PortnumBase=atoi(argv[2]);
+  server_socket = 0;
 }
 
 Server::Server(int nmachines, int PortnumBase) :
-    nmachines(nmachines), PortnumBase(PortnumBase)
+    nmachines(nmachines), PortnumBase(PortnumBase), server_socket(0)
 {
+}
+
+Server::~Server()
+{
+  if (server_socket)
+    delete server_socket;
 }
 
 void Server::start()
@@ -107,7 +114,8 @@ void Server::start()
   for (i=0; i<nmachines; i++) { socket_num[i]=-1; }
 
   // port number one lower to avoid conflict with players
-  ServerSocket server(PortnumBase - 1);
+  server_socket = new ServerSocket(PortnumBase);
+  auto& server = *server_socket;
   server.init();
 
   // set up connections
@@ -130,7 +138,7 @@ void Server::start()
   bool all_on_local = true, none_on_local = true;
   for (i = 1; i < nmachines; i++)
     {
-      bool on_local = string((char*)names[i]).compare("127.0.0.1");
+      bool on_local = names[i].compare("127.0.0.1");
       all_on_local &= on_local;
       none_on_local &= not on_local;
     }
@@ -141,11 +149,7 @@ void Server::start()
     }
 
   // send names
-  for (i=0; i<nmachines; i++)
-    send_names(i);
-
-  for (i=0; i<nmachines; i++) 
-    { delete[] names[i]; }
+  send_names();
 
   for (int i = 0; i < nmachines; i++)
     close(socket_num[i]);
@@ -162,7 +166,7 @@ Server* Server::start_networking(Names& N, int my_num, int nplayers,
 {
 #ifdef DEBUG_NETWORKING
   cerr << "Starting networking for " << my_num << "/" << nplayers
-      << " with server on " << hostname << ":" << (portnum - 1) << endl;
+      << " with server on " << hostname << ":" << (portnum) << endl;
 #endif
   assert(my_num >= 0);
   assert(my_num < nplayers);
@@ -172,12 +176,21 @@ Server* Server::start_networking(Names& N, int my_num, int nplayers,
     {
       pthread_create(&thread, 0, Server::start_in_thread,
           server = new Server(nplayers, portnum));
-    }
-  N.init(my_num, portnum, my_port, hostname.c_str());
-  if (my_num == 0)
-    {
+      bool default_port = my_port == Names::DEFAULT_PORT or my_port == portnum;
+      N.init(my_num, portnum, my_port, hostname.c_str(), not default_port);
       pthread_join(thread, 0);
+      if (default_port)
+        N.set_server(server->get_socket());
       delete server;
     }
+  else
+      N.init(my_num, portnum, my_port, hostname.c_str());
   return 0;
+}
+
+ServerSocket* Server::get_socket()
+{
+  auto res = server_socket;
+  server_socket = 0;
+  return res;
 }

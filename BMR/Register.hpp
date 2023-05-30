@@ -14,15 +14,7 @@ void ProgramRegister::inputbvec(T& processor, ProcessorBase& input_processor,
 		const vector<int>& args)
 {
 	NoOpInputter inputter;
-	int my_num = -1;
-	try
-	{
-		my_num = ProgramParty::s().P->my_num();
-	}
-	catch (exception&)
-	{
-	}
-	processor.inputbvec(inputter, input_processor, args, my_num);
+	processor.inputbvec(inputter, input_processor, args, *ProgramParty::s().P);
 }
 
 template<class T>
@@ -31,7 +23,7 @@ void EvalRegister::inputbvec(T& processor, ProcessorBase& input_processor,
 {
 	EvalInputter inputter;
 	processor.inputbvec(inputter, input_processor, args,
-			ProgramParty::s().P->my_num());
+			*ProgramParty::s().P);
 }
 
 template <class T>

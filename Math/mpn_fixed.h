@@ -6,7 +6,7 @@
 #ifndef MATH_MPN_FIXED_H_
 #define MATH_MPN_FIXED_H_
 
-#include <mpir.h>
+#include <gmp.h>
 #include <string.h>
 #include <assert.h>
 
@@ -22,6 +22,12 @@ inline void inline_mpn_zero(mp_limb_t* x, mp_size_t size)
 inline void inline_mpn_copyi(mp_limb_t* dest, const mp_limb_t* src, mp_size_t size)
 {
     avx_memcpy(dest, src, size * sizeof(mp_limb_t));
+}
+
+template<int N>
+inline void inline_mpn_copyi(mp_limb_t* dest, const mp_limb_t* src)
+{
+    avx_memcpy<N * sizeof(mp_limb_t)>(dest, src);
 }
 
 inline void debug_print(const char* name, const mp_limb_t* x, int n)
@@ -60,20 +66,6 @@ inline void mpn_add_fixed_n<2>(mp_limb_t* res, const mp_limb_t* x, const mp_limb
             "adc %3, %1 \n"
             : "+&r"(res[0]), "+r"(res[1])
             : "rm"(x[0]), "rm"(x[1])
-            : "cc"
-    );
-}
-
-template <>
-inline void mpn_add_fixed_n<3>(mp_limb_t* res, const mp_limb_t* x, const mp_limb_t* y)
-{
-    memcpy(res, y, 3 * sizeof(mp_limb_t));
-    __asm__ (
-            "add %3, %0 \n"
-            "adc %4, %1 \n"
-            "adc %5, %2 \n"
-            : "+&r"(res[0]), "+&r"(res[1]), "+r"(res[2])
-            : "rm"(x[0]), "rm"(x[1]), "rm"(x[2])
             : "cc"
     );
 }
@@ -258,7 +250,7 @@ inline void mpn_add_n_use_fixed(mp_limb_t* res, const mp_limb_t* x, const mp_lim
 	}
 }
 
-#ifdef __BMI2__
+#if defined(__BMI2__) and defined(__clang__)
 template <int L, int M, bool ADD>
 inline void mpn_addmul_1_fixed__(mp_limb_t* res, const mp_limb_t* y, mp_limb_t x)
 {

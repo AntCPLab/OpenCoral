@@ -33,6 +33,8 @@ protected:
     string filename;
     int header_length;
 
+    virtual int element_length() = 0;
+
 public:
     bool eof;
 
@@ -44,6 +46,7 @@ public:
             const char* type = "", const string& field = {});
     void seekg(int pos);
     bool is_up() { return file != 0; }
+    bool is_pipe();
     void try_rewind();
     void prune();
     void purge();
@@ -57,6 +60,8 @@ class Buffer : public BufferBase
     T buffer[BUFFER_SIZE];
 
     void read(char* read_buffer);
+
+    int element_length() { return T::size(); }
 
 public:
     virtual ~Buffer();
@@ -85,6 +90,10 @@ octetStream check_file_signature(ifstream& file, const string& filename)
     {
         throw signature_mismatch(filename);
     }
+    catch (IO_Error&)
+    {
+        throw signature_mismatch(filename);
+    }
     if (file_signature<T>() != file_spec)
         throw signature_mismatch(filename);
     return file_spec;
@@ -104,7 +113,7 @@ public:
     BufferOwner(const BufferOwner& other) :
             file(0)
     {
-        assert(other.file == 0);
+        *this = other;
     }
 
     ~BufferOwner()
@@ -112,9 +121,18 @@ public:
         close();
     }
 
+    BufferOwner& operator=(const BufferOwner& other)
+    {
+        assert(other.file == 0);
+        file = 0;
+        Buffer<U, V>::operator=(other);
+        return *this;
+    }
+
     ifstream* open()
     {
         file = new ifstream(this->filename, ios::in | ios::binary);
+        BufferBase::file = file;
         if (file->good())
         {
             auto file_spec = check_file_signature<U>(*file, this->filename);

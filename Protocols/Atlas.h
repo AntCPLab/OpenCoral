@@ -53,18 +53,13 @@ public:
         return shamir.get_n_relevant_players();
     }
 
-    void init_mul(Preprocessing<T>&, typename T::MAC_Check&)
-    {
-        init_mul();
-    }
-
-    void init_mul(SubProcessor<T>* proc = 0);
-    typename T::clear prepare_mul(const T& x, const T& y, int n = -1);
+    void init_mul();
+    void prepare_mul(const T& x, const T& y, int n = -1);
     void prepare(const typename T::open_type& product);
     void exchange();
     T finalize_mul(int n = -1);
 
-    void init_dotprod(SubProcessor<T>* proc);
+    void init_dotprod();
     void prepare_dotprod(const T& x, const T& y);
     void next_dotprod();
     T finalize_dotprod(int length);

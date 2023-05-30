@@ -89,7 +89,7 @@ void Secret<T>::random(int n_bits, int128 share)
 {
     (void)share;
     if (n_bits > 128)
-        throw not_implemented();
+        throw runtime_error("too many bits");
     resize_regs(n_bits);
     for (int i = 0; i < n_bits; i++)
     	get_reg(i).random();
@@ -129,7 +129,7 @@ Secret<T>::Secret()
 template<class T>
 T& GC::Secret<T>::get_new_reg()
 {
-	registers.push_back(T::new_reg());
+	registers.push_back(T());
 	T& res = registers.back();
 #ifdef DEBUG_REGS
 	cout << "Secret: new " << typeid(T).name() << " " << res.get_id() << " at " << &res << endl;
@@ -140,7 +140,7 @@ T& GC::Secret<T>::get_new_reg()
 template <class T>
 void Secret<T>::load_clear(int n, const Integer& x)
 {
-    if ((unsigned)n < 8 * sizeof(x) and abs(x.get()) > (1LL << n))
+    if ((unsigned)n < 8 * sizeof(x) and (unsigned long) abs(x.get()) > (1ul << n))
         throw out_of_range("public value too long");
 #ifdef DEBUG_ROUNDS2
     cout << "secret from integer " << hex << this << dec << " " << endl;

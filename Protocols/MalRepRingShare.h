@@ -17,6 +17,7 @@ class MalRepRingShare : public MaliciousRep3Share<SignedZ2<K>>
 {
     typedef SignedZ2<K> T;
     typedef MaliciousRep3Share<T> super;
+    typedef MalRepRingShare This;
 
 public:
     const static int BIT_LENGTH = K;
@@ -26,7 +27,8 @@ public:
     typedef HashMaliciousRepMC<MalRepRingShare> MAC_Check;
     typedef MAC_Check Direct_MC;
     typedef ReplicatedInput<MalRepRingShare> Input;
-    typedef ::PrivateOutput<MalRepRingShare> PrivateOutput;
+    typedef ReplicatedPO<This> PO;
+    typedef SpecificPrivateOutput<This> PrivateOutput;
     typedef MalRepRingPrepWithBits<MalRepRingShare> LivePrep;
     typedef MaliciousRep3Share<Z2<K + S>> prep_type;
     typedef Z2<S> random_type;

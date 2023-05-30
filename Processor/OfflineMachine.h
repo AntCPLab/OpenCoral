@@ -18,9 +18,12 @@ class OfflineMachine : public W
     BaseMachine machine;
     Names& playerNames;
     Player& P;
+    int n_threads;
 
     template<class T>
     void generate();
+
+    int buffered_total(size_t required, size_t batch);
 
 public:
     template<class V>

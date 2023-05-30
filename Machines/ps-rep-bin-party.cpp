@@ -5,8 +5,11 @@
 
 #include "GC/PostSacriBin.h"
 #include "GC/PostSacriSecret.h"
+#include "GC/RepPrep.h"
 
 #include "GC/ShareParty.hpp"
+#include "GC/RepPrep.hpp"
+#include "Protocols/MaliciousRepMC.hpp"
 
 int main(int argc, const char** argv)
 {

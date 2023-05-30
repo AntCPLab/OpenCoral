@@ -91,7 +91,8 @@ public:
     {
         for (size_t i = 0; i < x.second.size(); i++)
         {
-            b[i] ^= typename T::bit_type::part_type(x.second[i]) << a.size();
+            b[i] ^= (typename T::bit_type::part_type(x.second[i])
+                    ^ b[i].get_bit(a.size())) << a.size();
         }
         a.push_back(x.first);
     }

@@ -25,7 +25,7 @@ void MAC_Check_Base<T>::POpen_End(vector<typename T::open_type>& values,
     values.clear();
     values.reserve(S.size());
     for (size_t i = 0; i < S.size(); i++)
-        values.push_back(finalize_open());
+        values.push_back(finalize_raw());
 }
 
 template<class T>
@@ -53,15 +53,28 @@ void MAC_Check_Base<T>::init_open(const Player&, int n)
 }
 
 template<class T>
-void MAC_Check_Base<T>::prepare_open(const T& secret)
+void MAC_Check_Base<T>::prepare_open(const T& secret, int)
 {
     secrets.push_back(secret);
 }
 
 template<class T>
-typename T::open_type MAC_Check_Base<T>::finalize_open()
+typename T::clear MAC_Check_Base<T>::finalize_open()
+{
+    return finalize_raw();
+}
+
+template<class T>
+typename T::open_type MAC_Check_Base<T>::finalize_raw()
 {
     return values.next();
+}
+
+template<class T>
+array<typename T::open_type*, 2> MAC_Check_Base<T>::finalize_several(size_t n)
+{
+    assert(values.left() >= n);
+    return {{values.skip(0), values.skip(n)}};
 }
 
 template<class T>

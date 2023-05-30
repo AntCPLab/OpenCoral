@@ -11,10 +11,10 @@
 #include "Protocols/MalRepRingPrep.h"
 #include "Processor/RingOptions.h"
 #include "GC/MaliciousCcdSecret.h"
+#include "GC/SemiHonestRepPrep.h"
 
 #include "Processor/RingMachine.hpp"
 #include "Protocols/Replicated.hpp"
-#include "Protocols/MaliciousRepMC.hpp"
 #include "Protocols/Share.hpp"
 #include "Protocols/fake-stuff.hpp"
 #include "Protocols/SpdzWise.hpp"
@@ -32,6 +32,7 @@
 #include "GC/ShareSecret.hpp"
 #include "GC/RepPrep.hpp"
 #include "GC/ThreadMaster.hpp"
+#include "MalRep.hpp"
 
 int main(int argc, const char** argv)
 {

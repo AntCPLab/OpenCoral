@@ -12,6 +12,7 @@ SpdzWiseInput<T>::SpdzWiseInput(SubProcessor<T>* proc, Player& P) :
 {
     assert(proc != 0);
     mac_key = proc->MC.get_alphai();
+    checker.init(proc->DataF, proc->MC);
 }
 
 template<class T>
@@ -76,29 +77,11 @@ void SpdzWiseInput<T>::exchange()
             shares[i][j].set_mac(honest_mult.finalize_mul());
             checker.results.push_back(shares[i][j]);
         }
-    checker.init(proc);
+    checker.maybe_check();
 }
 
 template<class T>
 T SpdzWiseInput<T>::finalize(int player, int)
 {
     return shares[player].next();
-}
-
-template<class T>
-void SpdzWiseInput<T>::send_mine()
-{
-    throw runtime_error("use exchange()");
-}
-
-template<class T>
-T SpdzWiseInput<T>::finalize_mine()
-{
-    throw runtime_error("use finalize()");
-}
-
-template<class T>
-void SpdzWiseInput<T>::finalize_other(int, T&, octetStream&, int)
-{
-    throw runtime_error("use finalize()");
 }

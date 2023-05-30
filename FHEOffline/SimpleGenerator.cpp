@@ -12,7 +12,7 @@
 
 template <template <class> class T, class FD>
 SimpleGenerator<T,FD>::SimpleGenerator(const Names& N, const PartSetup<FD>& setup,
-        const MultiplicativeMachine& machine,
+        const MultiplicativeMachineParams& machine,
         int thread_num, Dtype data_type, Player* player) :
         GeneratorBase(thread_num, N, player),
         setup(setup), machine(machine),

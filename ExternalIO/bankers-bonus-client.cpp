@@ -46,7 +46,7 @@
 #include <sstream>
 #include <fstream>
 
-template<class T>
+template<class T, class U>
 void one_run(T salary_value, Client& client)
 {
     // Run the computation
@@ -54,18 +54,18 @@ void one_run(T salary_value, Client& client)
     cout << "Sent private inputs to each SPDZ engine, waiting for result..." << endl;
 
     // Get the result back (client_id of winning client)
-    T result = client.receive_outputs<T>(1)[0];
+    U result = client.receive_outputs<T>(1)[0];
 
     cout << "Winning client id is : " << result << endl;
 }
 
-template<class T>
+template<class T, class U>
 void run(double salary_value, Client& client)
 {
     // sint
-    one_run<T>(long(round(salary_value)), client);
+    one_run<T, U>(long(round(salary_value)), client);
     // sfix with f = 16
-    one_run<T>(long(round(salary_value * exp2(16))), client);
+    one_run<T, U>(long(round(salary_value * exp2(16))), client);
 }
 
 int main(int argc, char** argv)
@@ -125,7 +125,7 @@ int main(int argc, char** argv)
     {
         gfp::init_field(specification.get<bigint>());
         cerr << "using prime " << gfp::pr() << endl;
-        run<gfp>(salary_value, client);
+        run<gfp, gfp>(salary_value, client);
         break;
     }
     case 'R':
@@ -134,13 +134,13 @@ int main(int argc, char** argv)
         switch (R)
         {
         case 64:
-            run<Z2<64>>(salary_value, client);
+            run<Z2<64>, Z2<64>>(salary_value, client);
             break;
         case 104:
-            run<Z2<104>>(salary_value, client);
+            run<Z2<104>, Z2<64>>(salary_value, client);
             break;
         case 128:
-            run<Z2<128>>(salary_value, client);
+            run<Z2<128>, Z2<64>>(salary_value, client);
             break;
         default:
             cerr << R << "-bit ring not implemented";

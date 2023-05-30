@@ -23,6 +23,10 @@ public:
 	static void xors(GC::Processor<T>& processor, const vector<int>& args,
 			size_t start, size_t end);
 
+	template<class T>
+	static void andm(GC::Processor<T>& processor,
+			const BaseInstruction& instruction);
+
 	void XOR(const YaoWire& left, const YaoWire& right)
 	{
 		key_ = left.key_ ^ right.key_;

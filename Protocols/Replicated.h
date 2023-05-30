@@ -19,11 +19,9 @@ using namespace std;
 template<class T> class SubProcessor;
 template<class T> class ReplicatedMC;
 template<class T> class ReplicatedInput;
-template<class T> class ReplicatedPrivateOutput;
-template<class T> class Share;
-template<class T> class Rep3Share;
-template<class T> class MAC_Check_Base;
 template<class T> class Preprocessing;
+template<class T> class SecureShuffle;
+template<class T> class Rep3Shuffler;
 class Instruction;
 
 /**
@@ -32,14 +30,14 @@ class Instruction;
 class ReplicatedBase
 {
 public:
-    array<PRNG, 2> shared_prngs;
+    mutable array<PRNG, 2> shared_prngs;
 
     Player& P;
 
     ReplicatedBase(Player& P);
     ReplicatedBase(Player& P, array<PRNG, 2>& prngs);
 
-    ReplicatedBase branch();
+    ReplicatedBase branch() const;
 
     int get_n_relevant_players() { return P.num_players() - 1; }
 };
@@ -57,9 +55,13 @@ protected:
 
     int trunc_pr_counter;
     int rounds, trunc_rounds;
+    int dot_counter;
+    int bit_counter;
 
 public:
     typedef T share_type;
+
+    typedef SecureShuffle<T> Shuffler;
 
     int counter;
 
@@ -76,10 +78,14 @@ public:
     /// Single multiplication
     T mul(const T& x, const T& y);
 
+    /// Initialize protocol if needed (repeated call possible)
+    virtual void init(Preprocessing<T>&, typename T::MAC_Check&) {}
+
     /// Initialize multiplication round
-    virtual void init_mul(SubProcessor<T>* proc) = 0;
+    virtual void init_mul() = 0;
     /// Schedule multiplication of operand pair
-    virtual typename T::clear prepare_mul(const T& x, const T& y, int n = -1) = 0;
+    virtual void prepare_mul(const T& x, const T& y, int n = -1) = 0;
+    virtual void prepare_mult(const T& x, const T& y, int n, bool repeat);
     /// Run multiplication protocol
     virtual void exchange() = 0;
     /// Get next multiplication result
@@ -88,7 +94,7 @@ public:
     virtual void finalize_mult(T& res, int n = -1);
 
     /// Initialize dot product round
-    void init_dotprod(SubProcessor<T>* proc) { init_mul(proc); }
+    void init_dotprod() { init_mul(); }
     /// Add operand pair to current dot product
     void prepare_dotprod(const T& x, const T& y) { prepare_mul(x, y); }
     /// Finish dot product
@@ -120,6 +126,10 @@ public:
 
     virtual void cisc(SubProcessor<T>&, const Instruction&)
     { throw runtime_error("CISC instructions not implemented"); }
+
+    virtual vector<int> get_relevant_players();
+
+    virtual int get_buffer_size() { return 0; }
 };
 
 /**
@@ -132,34 +142,34 @@ class Replicated : public ReplicatedBase, public ProtocolBase<T>
     PointerVector<typename T::clear> add_shares;
     typename T::clear dotprod_share;
 
-public:
-    typedef ReplicatedMC<T> MAC_Check;
-    typedef ReplicatedInput<T> Input;
+    template<class U>
+    void trunc_pr(const vector<int>& regs, int size, U& proc, true_type);
+    template<class U>
+    void trunc_pr(const vector<int>& regs, int size, U& proc, false_type);
 
+public:
     static const bool uses_triples = false;
+
+    typedef Rep3Shuffler<T> Shuffler;
 
     Replicated(Player& P);
     Replicated(const ReplicatedBase& other);
 
     static void assign(T& share, const typename T::clear& value, int my_num)
     {
-        assert(T::length == 2);
+        assert(T::vector_length == 2);
         share.assign_zero();
         if (my_num < 2)
             share[my_num] = value;
     }
 
-    void init_mul(SubProcessor<T>* proc);
-    void init_mul(Preprocessing<T>& prep, typename T::MAC_Check& MC);
-
     void init_mul();
-    typename T::clear prepare_mul(const T& x, const T& y, int n = -1);
+    void prepare_mul(const T& x, const T& y, int n = -1);
     void exchange();
     T finalize_mul(int n = -1);
 
     void prepare_reshare(const typename T::clear& share, int n = -1);
 
-    void init_dotprod(SubProcessor<T>*) { init_mul(); }
     void init_dotprod();
     void prepare_dotprod(const T& x, const T& y);
     void next_dotprod();

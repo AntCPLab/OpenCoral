@@ -4,7 +4,6 @@
  */
 
 #include "Protocols/Rep3Share2k.h"
-#include "Protocols/ReplicatedPrep2k.h"
 #include "Processor/RingOptions.h"
 #include "Math/Integer.h"
 #include "Machines/RepRing.hpp"

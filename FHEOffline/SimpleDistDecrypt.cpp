@@ -18,7 +18,12 @@ void SimpleDistDecrypt<FD>::reshare(Plaintext<typename FD::T, FD, typename FD::S
         EncCommitBase<typename FD::T, FD, typename FD::S>& EC)
 {
     (void)EC;
+    m = reshare(cm);
+}
 
+template <class FD>
+Plaintext_<FD> SimpleDistDecrypt<FD>::reshare(const Ciphertext& cm)
+{
     PRNG G;
     G.ReSeed();
     this->f.randomize(G, Full);
@@ -27,10 +32,13 @@ void SimpleDistDecrypt<FD>::reshare(Plaintext<typename FD::T, FD, typename FD::S
     this->run(cm);
 
     // Step 4
+    Plaintext_<FD> m(this->f.get_field());
     if (this->P.my_num()==0)
       { sub(m,this->mf,this->f); }
     else
       { m=this->f; m.negate(); }
+
+    return m;
 }
 
 

@@ -5,6 +5,8 @@
 
 #include "SpdzWise.h"
 
+#include "mac_key.hpp"
+
 template<class T>
 SpdzWise<T>::SpdzWise(Player& P) :
         internal(P), internal2(P), P(P)
@@ -19,34 +21,40 @@ SpdzWise<T>::~SpdzWise()
 }
 
 template<class T>
-Player& SpdzWise<T>::branch()
+typename T::Protocol SpdzWise<T>::branch()
 {
-    return P;
+    typename T::Protocol res(P);
+    res.mac_key = mac_key;
+    return res;
 }
 
 template<class T>
-void SpdzWise<T>::init(SubProcessor<T>* proc)
+void SpdzWise<T>::init(Preprocessing<T>&, typename T::MAC_Check& MC)
 {
-    assert(proc != 0);
-    mac_key = proc->MC.get_alphai();
+    mac_key = MC.get_alphai();
+}
+
+template<class T>
+void SpdzWise<T>::maybe_check()
+{
+    assert(not mac_key.is_zero());
     if ((int) results.size() >= OnlineOptions::singleton.batch_size)
         check();
 }
 
 template<class T>
-void SpdzWise<T>::init_mul(SubProcessor<T>* proc)
+void SpdzWise<T>::init_mul()
 {
-    init(proc);
+    maybe_check();
     internal.init_mul();
     internal2.init_mul();
 }
 
 template<class T>
-typename T::clear SpdzWise<T>::prepare_mul(const T& x, const T& y, int)
+void SpdzWise<T>::prepare_mul(const T& x, const T& y, int)
 {
     internal.prepare_mul(x.get_share(), y.get_share());
     internal.prepare_mul(x.get_mac(), y.get_share());
-    return {};
 }
 
 template<class T>
@@ -67,9 +75,9 @@ void SpdzWise<T>::exchange()
 }
 
 template<class T>
-void SpdzWise<T>::init_dotprod(SubProcessor<T>* proc)
+void SpdzWise<T>::init_dotprod()
 {
-    init(proc);
+    maybe_check();
     internal.init_dotprod();
     internal2.init_dotprod();
 }
@@ -136,6 +144,7 @@ template<class T>
 void SpdzWise<T>::zero_check(check_type t)
 {
     assert(T::clear::invertible);
+    check_field_size<typename T::clear>();
     auto r = internal.get_random();
     internal.init_mul();
     internal.prepare_mul(t, r);

@@ -26,6 +26,8 @@ template<class T> class MascotTriplePrep;
 
 union square128;
 
+class gf2n_mac_key;
+
 namespace GC
 {
 template<class T> class TinierSecret;
@@ -49,12 +51,14 @@ class Share_ : public ShareInterface
    typedef typename T::clear clear;
 
 #ifndef NO_MIXED_CIRCUITS
-   typedef GC::TinierSecret<gf2n_short> bit_type;
+   typedef GC::TinierSecret<gf2n_mac_key> bit_type;
 #endif
 
    const static bool needs_ot = T::needs_ot;
    const static bool dishonest_majority = T::dishonest_majority;
    const static bool variable_players = T::variable_players;
+   const static bool has_mac = true;
+   static const bool malicious = true;
 
    static int size()
      { return T::size() + V::size(); }
@@ -72,7 +76,7 @@ class Share_ : public ShareInterface
    static void specification(octetStream& os)
      { T::specification(os); }
 
-   static Share_ constant(const clear& aa, int my_num, const typename V::Scalar& alphai)
+   static Share_ constant(const open_type& aa, int my_num, const typename V::Scalar& alphai)
      { return Share_(aa, my_num, alphai); }
 
    template<class U, class W>
@@ -84,12 +88,12 @@ class Share_ : public ShareInterface
      { a.assign_zero(); 
        mac.assign_zero(); 
      }
-   void assign(const clear& aa, int my_num, const typename V::Scalar& alphai);
+   void assign(const open_type& aa, int my_num, const typename V::Scalar& alphai);
 
    Share_()                   { assign_zero(); }
    template<class U, class W>
    Share_(const Share_<U, W>& S) { assign(S); }
-   Share_(const clear& aa, int my_num, const typename V::Scalar& alphai)
+   Share_(const open_type& aa, int my_num, const typename V::Scalar& alphai)
      { assign(aa, my_num, alphai); }
    Share_(const T& share, const V& mac) : a(share), mac(mac) {}
 
@@ -127,6 +131,8 @@ class Share_ : public ShareInterface
 
    void force_to_bit() { a.force_to_bit(); }
 
+   void randomize(PRNG& G);
+
    // Input and output from a stream
    //  - Can do in human or machine only format (later should be faster)
    void output(ostream& s,bool human) const
@@ -155,6 +161,8 @@ public:
     typedef T mac_type;
 
     typedef Share<typename T::next> prep_type;
+    typedef Share prep_check_type;
+    typedef Share bit_prep_type;
     typedef Share input_check_type;
     typedef Share input_type;
     typedef MascotMultiplier<Share> Multiplier;
@@ -234,7 +242,7 @@ inline void Share_<T, V>::mul(const Share_<T, V>& S,const clear& aa)
 }
 
 template<class T, class V>
-inline void Share_<T, V>::assign(const clear& aa, int my_num,
+inline void Share_<T, V>::assign(const open_type& aa, int my_num,
     const typename V::Scalar& alphai)
 {
   a = T::constant(aa, my_num);

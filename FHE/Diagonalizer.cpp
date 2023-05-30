@@ -64,8 +64,11 @@ Diagonalizer::MatrixVector Diagonalizer::dediag(
     {
         auto& c = products.at(i);
         for (int j = 0; j < n_matrices; j++)
+        {
+            res.at(j).entries.init();
             for (size_t k = 0; k < n_rows; k++)
                 res.at(j)[{k, i}] = c.element(j * n_rows + k);
+        }
     }
     return res;
 }

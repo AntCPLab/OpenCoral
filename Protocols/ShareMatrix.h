@@ -15,13 +15,131 @@ using namespace std;
 template<class T> class MatrixMC;
 
 template<class T>
+class NonInitVector
+{
+    template<class U> friend class NonInitVector;
+
+    size_t size_;
+public:
+    AddableVector<T> v;
+
+    NonInitVector(size_t size) :
+            size_(size)
+    {
+        v.reserve(size);
+    }
+
+    template<class U>
+    NonInitVector(const NonInitVector<U>& other) :
+            size_(other.size()), v(other.v)
+    {
+    }
+
+    size_t size() const
+    {
+        return size_;
+    }
+
+    void init()
+    {
+        v.resize(size_);
+    }
+
+    void check() const
+    {
+#ifdef DEBUG_MATRIX
+        assert(not v.empty());
+#endif
+    }
+
+    typename vector<T>::iterator begin()
+    {
+        check();
+        return v.begin();
+    }
+
+    typename vector<T>::iterator end()
+    {
+        check();
+        return v.end();
+    }
+
+    T& at(size_t index)
+    {
+        check();
+        return v.at(index);
+    }
+
+    const T& at(size_t index) const
+    {
+#ifdef DEBUG_MATRIX
+        assert(index < size());
+#endif
+        return (*this)[index];
+    }
+
+    T& operator[](size_t index)
+    {
+        check();
+        return v[index];
+    }
+
+    const T& operator[](size_t index) const
+    {
+        check();
+        return v[index];
+    }
+
+    NonInitVector operator-(const NonInitVector& other) const
+    {
+        assert(size() == other.size());
+        NonInitVector res(size());
+        if (other.v.empty())
+            return *this;
+        else if (v.empty())
+        {
+            res.init();
+            res.v = res.v - other.v;
+        }
+        else
+            res.v = v - other.v;
+        return res;
+    }
+
+    NonInitVector& operator+=(const NonInitVector& other)
+    {
+        assert(size() == other.size());
+        if (not other.v.empty())
+        {
+            if (v.empty())
+                *this = other;
+            else
+                v += other.v;
+        }
+        return *this;
+    }
+
+    bool operator!=(const NonInitVector& other) const
+    {
+        return v != other.v;
+    }
+
+    void randomize(PRNG& G)
+    {
+        v.clear();
+        for (size_t i = 0; i < size(); i++)
+            v.push_back(G.get<T>());
+    }
+};
+
+template<class T>
 class ValueMatrix : public ValueInterface
 {
     typedef ValueMatrix This;
 
 public:
     int n_rows, n_cols;
-    AddableVector<T> entries;
+    NonInitVector<T> entries;
 
     static DataFieldType field_type()
     {
@@ -48,15 +166,19 @@ public:
 
     T& operator[](const pair<int, int>& indices)
     {
+#ifdef DEBUG_MATRIX
         assert(indices.first < n_rows);
         assert(indices.second < n_cols);
+#endif
         return entries.at(indices.first * n_cols + indices.second);
     }
 
     const T& operator[](const pair<int, int>& indices) const
     {
+#ifdef DEBUG_MATRIX
         assert(indices.first < n_rows);
         assert(indices.second < n_cols);
+#endif
         return entries.at(indices.first * n_cols + indices.second);
     }
 
@@ -80,6 +202,9 @@ public:
     {
         assert(n_cols == other.n_rows);
         This res(n_rows, other.n_cols);
+        if (entries.v.empty() or other.entries.v.empty())
+            return res;
+        res.entries.init();
         for (int i = 0; i < n_rows; i++)
             for (int j = 0; j < other.n_cols; j++)
                 for (int k = 0; k < n_cols; k++)
@@ -103,9 +228,9 @@ public:
     ValueMatrix transpose() const
     {
         ValueMatrix res(this->n_cols, this->n_rows);
-        for (int i = 0; i < this->n_rows; i++)
-            for (int j = 0; j < this->n_cols; j++)
-                res[{j, i}] = (*this)[{i, j}];
+        for (int j = 0; j < this->n_cols; j++)
+            for (int i = 0; i < this->n_rows; i++)
+                res.entries.v.push_back((*this)[{i, j}]);
         return res;
     }
 
@@ -128,7 +253,7 @@ public:
 
     typedef ValueMatrix<typename T::clear> clear;
     typedef clear open_type;
-    typedef typename T::clear mac_key_type;
+    typedef typename T::mac_key_type mac_key_type;
 
     static string type_string()
     {
@@ -139,7 +264,7 @@ public:
     {
         This res(other.n_rows, other.n_cols);
         for (size_t i = 0; i < other.entries.size(); i++)
-            res.entries[i] = T::constant(other.entries[i], my_num, key);
+            res.entries.v.push_back(T::constant(other.entries[i], my_num, key));
         res.check();
         return res;
     }
@@ -167,24 +292,29 @@ public:
     ShareMatrix from_col(int start, int size) const
     {
         ShareMatrix res(this->n_rows, min(size, this->n_cols - start));
+        res.entries.clear();
         for (int i = 0; i < res.n_rows; i++)
             for (int j = 0; j < res.n_cols; j++)
-                res[{i, j}] = (*this)[{i, start + j}];
+                res.entries.v.push_back((*this)[{i, start + j}]);
         return res;
     }
 
-    ShareMatrix from(int start_row, int start_col, int* sizes) const
+    ShareMatrix from(int start_row, int start_col, int* sizes, bool for_real =
+            true) const
     {
         ShareMatrix res(min(sizes[0], this->n_rows - start_row),
                 min(sizes[1], this->n_cols - start_col));
+        if (not for_real)
+            return res;
         for (int i = 0; i < res.n_rows; i++)
             for (int j = 0; j < res.n_cols; j++)
-                res[{i, j}] = (*this)[{start_row + i, start_col + j}];
+                res.entries.v.push_back((*this)[{start_row + i, start_col + j}]);
         return res;
     }
 
     void add_from_col(int start, const ShareMatrix& other)
     {
+        this->entries.init();
         for (int i = 0; i < this->n_rows; i++)
             for (int j = 0; j < other.n_cols; j++)
                 (*this)[{i, start + j}] += other[{i, j}];
@@ -197,6 +327,9 @@ ShareMatrix<T> operator*(const ValueMatrix<typename T::clear>& a,
 {
     assert(a.n_cols == b.n_rows);
     ShareMatrix<T> res(a.n_rows, b.n_cols);
+    if (a.entries.v.empty() or b.entries.v.empty())
+        return res;
+    res.entries.init();
     for (int i = 0; i < a.n_rows; i++)
         for (int j = 0; j < b.n_cols; j++)
             for (int k = 0; k < a.n_cols; k++)
@@ -208,9 +341,22 @@ ShareMatrix<T> operator*(const ValueMatrix<typename T::clear>& a,
 template<class T>
 class MatrixMC : public MAC_Check_Base<ShareMatrix<T>>
 {
-    typename T::MAC_Check inner;
+    typename T::MAC_Check& inner;
 
 public:
+    MatrixMC() :
+            inner(
+                    *(OnlineOptions::singleton.direct ?
+                            new typename T::Direct_MC :
+                            new typename T::MAC_Check))
+    {
+    }
+
+    ~MatrixMC()
+    {
+        delete &inner;
+    }
+
     void exchange(const Player& P)
     {
         inner.init_open(P);
@@ -224,8 +370,15 @@ public:
         for (auto& share : this->secrets)
         {
             this->values.push_back({share.n_rows, share.n_cols});
-            for (auto& entry : this->values.back().entries)
-                entry = inner.finalize_open();
+            if (share.entries.v.empty())
+                for (size_t i = 0; i < share.entries.size(); i++)
+                    inner.finalize_open();
+            else
+            {
+                auto range = inner.finalize_several(share.entries.size());
+                auto& v = this->values.back().entries.v;
+                v.insert(v.begin(), range[0], range[1]);
+            }
         }
     }
 };

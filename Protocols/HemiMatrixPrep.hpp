@@ -4,7 +4,9 @@
  */
 
 #include "HemiMatrixPrep.h"
+#include "MAC_Check.h"
 #include "FHE/Diagonalizer.h"
+#include "Tools/Bundle.h"
 
 class CipherPlainMultJob : public ThreadJob
 {
@@ -52,12 +54,14 @@ class MatrixRandMultJob : public ThreadJob
 public:
     MatrixRandMultJob(vector<ValueMatrix<gfpvar>>& C,
             const vector<ValueMatrix<gfpvar>>& A,
-            vector<ValueMatrix<gfpvar>>& B)
+            vector<ValueMatrix<gfpvar>>& B,
+            bool local_mul)
     {
         type = MATRX_RAND_MULT_JOB;
         output = &C;
         input = &A;
         supply = &B;
+        length = local_mul;
     }
 };
 
@@ -72,7 +76,8 @@ inline void matrix_rand_mult(ThreadJob job, true_type = {})
     {
         A[i].randomize(G);
         B[i].randomize(G);
-        C[i] = A[i] * B[i];
+        if (job.length)
+            C[i] = A[i] * B[i];
     }
 }
 
@@ -87,11 +92,10 @@ void HemiMatrixPrep<T>::buffer_triples()
 
     assert(prep);
     auto& multipliers = prep->get_multipliers();
-    assert(prep->pairwise_machine);
-    auto& FTD = prep->pairwise_machine->setup_p.FieldD;
-    auto& pk = prep->pairwise_machine->pk;
+    auto& FTD = prep->get_FTD();
+    auto& pk = prep->get_pk();
     int n_matrices = FTD.num_slots() / n_rows;
-#ifdef VERBOSE
+#ifdef VERBOSE_HE
     fprintf(stderr, "creating %d %dx%d * %dx%d triples\n", n_matrices, n_rows, n_inner,
             n_inner, n_cols);
     fflush(stderr);
@@ -101,7 +105,7 @@ void HemiMatrixPrep<T>::buffer_triples()
             B(n_matrices, {n_inner, n_cols});
     SeededPRNG G;
     AddableVector<ValueMatrix<gfpvar>> C(n_matrices);
-    MatrixRandMultJob job(C, A, B);
+    MatrixRandMultJob job(C, A, B, T::local_mul);
 
     if (BaseMachine::thread_num == 0 and BaseMachine::has_singleton())
     {
@@ -110,7 +114,8 @@ void HemiMatrixPrep<T>::buffer_triples()
         job.begin = start;
         job.end = n_matrices;
         matrix_rand_mult(job);
-        queues.wrap_up(job);
+        if (start)
+            queues.wrap_up(job);
     }
     else
     {
@@ -130,26 +135,35 @@ void HemiMatrixPrep<T>::buffer_triples()
     assert(prep->proc);
     auto& P = prep->proc->P;
 
-    Bundle<octetStream> bundle(P);
-    bundle.mine.store(diag.ciphertexts);
-    P.unchecked_broadcast(bundle);
     vector<vector<Ciphertext>> others_ct;
-    for (auto& os : bundle)
+
+    if (T::local_mul or OnlineOptions::singleton.direct)
     {
-        others_ct.push_back({});
-        os.get(others_ct.back(), Ciphertext(pk));
+        Bundle<octetStream> bundle(P);
+        bundle.mine.store(diag.ciphertexts);
+        P.unchecked_broadcast(bundle);
+        for (auto& os : bundle)
+        {
+            others_ct.push_back({});
+            os.get(others_ct.back(), Ciphertext(pk));
+        }
+    }
+    else
+    {
+        others_ct.push_back(diag.ciphertexts);
+        TreeSum<Ciphertext>().run(others_ct[0], P);
     }
 
     for (int j = 0; j < n_cols; j++)
         for (auto m : multipliers)
         {
-#ifdef VERBOSE
+#ifdef VERBOSE_HE
             fprintf(stderr, "column %d with party offset %d at %f\n", j,
                     m->get_offset(), timer.elapsed());
             fflush(stderr);
 #endif
             Ciphertext C(pk);
-            auto& multiplicands = others_ct[P.get_player(-m->get_offset())];
+            auto& multiplicands = m->get_multiplicands(others_ct, pk);
             if (BaseMachine::thread_num == 0 and BaseMachine::has_singleton())
             {
                 auto& queues = BaseMachine::s().queues;
@@ -160,12 +174,13 @@ void HemiMatrixPrep<T>::buffer_triples()
                 CipherPlainMultJob job(products, multiplicands, multiplicands2, true);
                 int start = queues.distribute(job, n_inner);
 #ifdef VERBOSE_HE
-                fprintf(stderr, "from %d in central thread\n", start);
+                fprintf(stderr, "from %d in central thread at %f\n", start, timer.elapsed());
                 fflush(stderr);
 #endif
                 for (int i = start; i < n_inner; i++)
                     products[i] = multiplicands.at(i) * multiplicands2.at(i);
-                queues.wrap_up(job);
+                if (start)
+                    queues.wrap_up(job);
 #ifdef VERBOSE_HE
                 fprintf(stderr, "adding at %f\n", timer.elapsed());
                 fflush(stderr);
@@ -185,7 +200,10 @@ void HemiMatrixPrep<T>::buffer_triples()
             m->add(products[j], C, BOTH, n_inner);
         }
 
-    C += diag.dediag(products, n_matrices);
+    if (T::local_mul)
+        C += diag.dediag(products, n_matrices);
+    else
+        C = diag.dediag(products, n_matrices);
 
     for (int i = 0; i < n_matrices; i++)
         if (swapped)

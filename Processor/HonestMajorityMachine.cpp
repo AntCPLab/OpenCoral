@@ -18,7 +18,6 @@ HonestMajorityMachine::HonestMajorityMachine(int argc, const char** argv,
         ez::ezOptionParser& opt, OnlineOptions& online_opts, int nplayers) :
         OnlineMachine(argc, argv, opt, online_opts, nplayers)
 {
-    OnlineOptions::singleton = online_opts;
     opt.add(
             "", // Default.
             0, // Required?
@@ -29,6 +28,7 @@ HonestMajorityMachine::HonestMajorityMachine(int argc, const char** argv,
             "--unencrypted" // Flag token.
     );
     online_opts.finalize(opt, argc, argv);
+    OnlineOptions::singleton = online_opts;
 
     use_encryption = not opt.get("-u")->isSet;
 

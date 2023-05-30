@@ -7,6 +7,11 @@
 
 
 
+FFT_Data::FFT_Data() :
+    twop(-1)
+{
+}
+
 void FFT_Data::init(const Ring& Rg,const Zp_Data& PrD)
 {
   R=Rg;
@@ -78,6 +83,8 @@ void FFT_Data::init(const Ring& Rg,const Zp_Data& PrD)
           for (int r=0; r<2; r++)
             { FFT_Iter(b[r],twop,two_root[0],PrD);  }
         }
+      else
+        throw bad_value();
     }
 }
 

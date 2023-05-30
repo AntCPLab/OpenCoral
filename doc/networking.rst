@@ -1,3 +1,5 @@
+.. _networking:
+
 Networking
 ----------
 
@@ -13,12 +15,12 @@ base port number, which can be changed using the same option.
 There are two ways of communicating hosts and
 individually setting ports:
 
-1. All parties first to connect to a coordination server, which
+1. All parties first connect to a coordination server, which
    broadcasts the data for all parties. This is the default with the
    coordination server being run as a thread of party 0. The hostname
    of the coordination server has to be given with the command-line
    parameter ``--hostname``, and the coordination server runs on the
-   base port number minus one, thus defaulting to 4999. Furthermore, you
+   base port number, thus defaulting to 5000. Furthermore, you
    can specify a party's listening port using ``--my-port``.
 
 2. The parties read the information from a local file, which needs to
@@ -40,7 +42,9 @@ change this by either using ``--encrypted/-e`` or
 
 If using encryption, the certificates (``Player-Data/*.pem``) must be
 the same on all hosts, and you have to run ``c_rehash Player-Data`` on
-all of them.
+all of them. ``Scripts/setup-ssl.sh`` can be used to generate the
+necessary certificates. The common name has to be ``P<player number>``
+for computing parties and ``C<client number>`` for clients.
 
 
 .. _network-reference:

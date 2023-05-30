@@ -43,8 +43,11 @@ class Memory
   template<class U>
   static void check_index(const vector<U>& M, size_t i)
     {
+      (void) M, (void) i;
+#ifndef NO_CHECK_INDEX
       if (i >= M.size())
-        throw overflow("memory", i, M.size());
+        throw overflow(U::type_string() + " memory", i, M.size());
+#endif
     }
 
   const typename T::clear& read_C(size_t i) const

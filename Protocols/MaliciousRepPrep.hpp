@@ -3,9 +3,14 @@
  *
  */
 
+#ifndef PROTOCOLS_MALICIOUSREPPREP_HPP_
+#define PROTOCOLS_MALICIOUSREPPREP_HPP_
+
 #include "MaliciousRepPrep.h"
 #include "Tools/Subroutines.h"
 #include "Processor/OnlineOptions.h"
+
+#include "mac_key.hpp"
 
 template<class T>
 MaliciousBitOnlyRepPrep<T>::MaliciousBitOnlyRepPrep(SubProcessor<T>* proc, DataPositions& usage) :
@@ -61,14 +66,15 @@ void MaliciousBitOnlyRepPrep<T>::set_protocol(typename T::Protocol& protocol)
 template<class T>
 void MaliciousBitOnlyRepPrep<T>::init_honest(Player& P)
 {
-    honest_proc = new SubProcessor<typename T::Honest>(honest_mc, honest_prep,
-            P);
+    if (not honest_proc)
+        honest_proc = new SubProcessor<typename T::Honest>(honest_mc,
+                honest_prep, P);
 }
 
 template<class T>
 void MaliciousRepPrep<T>::buffer_triples()
 {
-    assert(T::open_type::length() >= 40);
+    check_field_size<typename T::open_type>();
     auto& triples = this->triples;
     auto buffer_size = this->buffer_size;
     auto& honest_proc = this->honest_proc;
@@ -99,6 +105,7 @@ void MaliciousRepPrep<T>::buffer_triples()
 template<class T, class U>
 void sacrifice(const vector<array<T, 5>>& check_triples, Player& P)
 {
+    check_field_size<U>();
     vector<T> masked, checks;
     vector <typename T::open_type> opened;
     typename T::MAC_Check MC;
@@ -201,7 +208,7 @@ void MaliciousBitOnlyRepPrep<T>::buffer_bits()
         assert(MC.open(f, P) * MC.open(f, P) == MC.open(h, P));
 #endif
     }
-    auto t = Create_Random<typename T::clear>(P);
+    auto t = Create_Random<typename T::open_type>(P);
     for (int i = 0; i < buffer_size; i++)
     {
         T& a = bits[i];
@@ -209,7 +216,7 @@ void MaliciousBitOnlyRepPrep<T>::buffer_bits()
         masked.push_back(t * a - f);
     }
     MC.POpen(opened, masked, P);
-    typename T::clear t2 = t * t;
+    typename T::open_type t2 = t * t;
     for (int i = 0; i < buffer_size; i++)
     {
         T& a = bits[i];
@@ -228,3 +235,5 @@ void MaliciousRepPrep<T>::buffer_inputs(int player)
     assert(proc);
     this->buffer_inputs_as_usual(player, proc);
 }
+
+#endif

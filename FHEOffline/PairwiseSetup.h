@@ -15,7 +15,7 @@ class MachineBase;
 
 template <class T, class U>
 void secure_init(T& setup, Player& P, U& machine,
-        int plaintext_length, int sec);
+        int plaintext_length, int sec, FHE_Params& params);
 
 template <class FD>
 class PairwiseSetup

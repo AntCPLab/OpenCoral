@@ -47,9 +47,17 @@ void Sender<T>::run()
     const octetStream* os = 0;
     while (in.pop(os))
     {
-//        timer.start();
+#ifdef VERBOSE_SSL
+        timer.start();
+        RunningTimer mytimer;
+#endif
         os->Send(socket);
-//        timer.stop();
+#ifdef VERBOSE_SSL
+        cout << "sending " << os->get_length() * 1e-6 << " MB on " << socket
+                << " took " << mytimer.elapsed() << ", total "
+                << timer.elapsed() << endl;
+        timer.stop();
+#endif
         out.push(os);
     }
 }

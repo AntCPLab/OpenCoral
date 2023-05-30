@@ -13,6 +13,7 @@ template<class T> class Beaver;
 template<class T> class MaliciousRepPrepWithBits;
 template<class T> class MaliciousRepPO;
 template<class T> class MaliciousRepPrep;
+template<class T> class SpecificPrivateOutput;
 
 namespace GC
 {
@@ -30,8 +31,8 @@ public:
     typedef HashMaliciousRepMC<MaliciousRep3Share<T>> MAC_Check;
     typedef MAC_Check Direct_MC;
     typedef ReplicatedInput<MaliciousRep3Share<T>> Input;
-    typedef ::PrivateOutput<MaliciousRep3Share<T>> PrivateOutput;
     typedef MaliciousRepPO<MaliciousRep3Share> PO;
+    typedef SpecificPrivateOutput<This> PrivateOutput;
     typedef Rep3Share<T> Honest;
     typedef MaliciousRepPrepWithBits<MaliciousRep3Share> LivePrep;
     typedef MaliciousRepPrep<MaliciousRep3Share> TriplePrep;
@@ -41,7 +42,12 @@ public:
 
     typedef GC::MaliciousRepSecret bit_type;
 
+    // indicate security relevance of field size
+    typedef T mac_key_type;
+
     const static bool expensive = true;
+    static const bool has_trunc_pr = false;
+    static const bool malicious = true;
 
     static string type_short()
     {

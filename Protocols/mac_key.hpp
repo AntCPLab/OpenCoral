@@ -22,4 +22,12 @@ typename T::mac_key_type read_or_generate_mac_key(const Player& P,
     return res;
 }
 
+template<class T>
+void check_field_size()
+{
+    if (T::length() < OnlineOptions::singleton.security_parameter)
+        throw runtime_error("Field too small for chosen security. "
+                "Increase size with -lgp or decrease security with -S");
+}
+
 #endif /* PROTOCOLS_MAC_KEY_HPP_ */

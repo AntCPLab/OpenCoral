@@ -12,7 +12,7 @@
  * MASCOT triple generation with multiple MACs
  */
 template<class T>
-class MamaPrep : public OTPrep<T>, public MaliciousRingPrep<T>
+class MamaPrep : public MascotInputPrep<T>, public MaliciousRingPrep<T>
 {
 public:
     static void basic_setup(Player&) {};
@@ -21,7 +21,6 @@ public:
     MamaPrep<T>(SubProcessor<T>* proc, DataPositions& usage);
 
     void buffer_triples();
-
 };
 
 #endif /* PROTOCOLS_MAMAPREP_H_ */

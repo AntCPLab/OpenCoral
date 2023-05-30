@@ -61,8 +61,7 @@ EcSignature sign(const unsigned char* message, size_t length,
     (void) pk;
     Timer timer;
     timer.start();
-    size_t start = P.sent;
-    auto stats = P.comm_stats;
+    auto stats = P.total_comm();
     EcSignature signature;
     vector<P256Element> opened_R;
     if (opts.R_after_msg)
@@ -71,7 +70,7 @@ EcSignature sign(const unsigned char* message, size_t length,
     auto& protocol = proc->protocol;
     if (proc)
     {
-        protocol.init_mul(proc);
+        protocol.init_mul();
         protocol.prepare_mul(sk, tuple.a);
         protocol.start_exchange();
     }
@@ -91,9 +90,9 @@ EcSignature sign(const unsigned char* message, size_t length,
     auto rx = tuple.R.x();
     signature.s = MC.open(
             tuple.a * hash_to_scalar(message, length) + prod * rx, P);
+    auto diff = (P.total_comm() - stats);
     cout << "Minimal signing took " << timer.elapsed() * 1e3 << " ms and sending "
-            << (P.sent - start) << " bytes" << endl;
-    auto diff = (P.comm_stats - stats);
+            << diff.sent << " bytes" << endl;
     diff.print(true);
     return signature;
 }
@@ -139,11 +138,11 @@ void sign_benchmark(vector<EcTuple<T>>& tuples, T<P256Element::Scalar> sk,
     P.unchecked_broadcast(bundle);
     Timer timer;
     timer.start();
-    auto stats = P.comm_stats;
+    auto stats = P.total_comm();
     P256Element pk = MCc.open(sk, P);
     MCc.Check(P);
     cout << "Public key generation took " << timer.elapsed() * 1e3 << " ms" << endl;
-    (P.comm_stats - stats).print(true);
+    (P.total_comm() - stats).print(true);
 
     for (size_t i = 0; i < min(10lu, tuples.size()); i++)
     {
@@ -154,13 +153,12 @@ void sign_benchmark(vector<EcTuple<T>>& tuples, T<P256Element::Scalar> sk,
         Timer timer;
         timer.start();
         auto& check_player = MCp.get_check_player(P);
-        auto stats = check_player.comm_stats;
-        auto start = check_player.sent;
+        auto stats = check_player.total_comm();
         MCp.Check(P);
         MCc.Check(P);
+        auto diff = (check_player.total_comm() - stats);
         cout << "Online checking took " << timer.elapsed() * 1e3 << " ms and sending "
-            << (check_player.sent - start) << " bytes" << endl;
-        auto diff = (check_player.comm_stats - stats);
+            << diff.sent << " bytes" << endl;
         diff.print();
     }
 }

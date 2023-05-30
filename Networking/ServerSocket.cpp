@@ -139,8 +139,24 @@ void ServerSocket::accept_clients()
 #ifdef DEBUG_NETWORKING
       fprintf(stderr, "Accepting...\n");
 #endif
-      int consocket = accept(main_socket, (struct sockaddr *)&dest, (socklen_t*) &socksize);
+      int consocket;
+      for (int i = 0; i < 25; i++)
+      {
+        consocket = accept(main_socket, (struct sockaddr*) &dest,
+          (socklen_t*) &socksize);
+        if (consocket < 0)
+          usleep(1 << i);
+        else
+          break;
+      }
       if (consocket<0) { error("set_up_socket:accept"); }
+
+#ifdef __APPLE__
+      int flags = fcntl(consocket, F_GETFL, 0);
+      int fl = fcntl(consocket, F_SETFL, O_NONBLOCK |  flags);
+      if (fl < 0)
+          error("set non-blocking on server");
+#endif
 
       octetStream client_id;
       char buf[1];
@@ -160,13 +176,6 @@ void ServerSocket::accept_clients()
           auto job = (new ServerJob(*this, consocket, dest));
           pthread_create(&job->thread, 0, ServerJob::run, job);
         }
-
-#ifdef __APPLE__
-      int flags = fcntl(consocket, F_GETFL, 0);
-      int fl = fcntl(consocket, F_SETFL, O_NONBLOCK |  flags);
-      if (fl < 0)
-          error("set non-blocking");
-#endif
     }
 }
 
