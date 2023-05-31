@@ -1,7 +1,6 @@
 
 #include "FHE/Plaintext.h"
 #include "FHE/Ring_Element.h"
-#include "FHE/PPData.h"
 #include "FHE/P2Data.h"
 #include "FHE/Rq_Element.h"
 #include "FHE_Keys.h"
@@ -11,10 +10,43 @@
 
 
 
+template<class T, class FD, class S>
+Plaintext<T, FD, S>::Plaintext(const FHE_Params& params) :
+    Plaintext(params.get_plaintext_field_data<FD>(), Both)
+{
+}
+
+
+template<class T, class FD, class S>
+unsigned int Plaintext<T, FD, S>::num_slots() const
+{
+  return (*Field_Data).phi_m();
+}
+
+template<class T, class FD, class S>
+int Plaintext<T, FD, S>::degree() const
+{
+  return (*Field_Data).phi_m();
+}
+
+
+template<>
+unsigned int Plaintext<gf2n_short,P2Data,int>::num_slots() const
+{
+  return (*Field_Data).num_slots();
+}
+
+template<>
+int Plaintext<gf2n_short,P2Data,int>::degree() const
+{
+  return (*Field_Data).degree();
+}
+
+
 template<>
 void Plaintext<gfp, FFT_Data, bigint>::from(const Generator<bigint>& source) const
 {
-  b.resize(degree);
+  b.resize(degree());
   for (auto& x : b)
     {
       source.get(bigint::tmp);
@@ -31,7 +63,7 @@ void Plaintext<gfp,FFT_Data,bigint>::from_poly() const
   Ring_Element e(*Field_Data,polynomial);
   e.from(b);
   e.change_rep(evaluation);
-  a.resize(n_slots);
+  a.resize(num_slots());
   for (unsigned int i=0; i<a.size(); i++)
     a[i] = gfp(e.get_element(i), e.get_FFTD().get_prD());
   type=Both;
@@ -52,45 +84,12 @@ void Plaintext<gfp,FFT_Data,bigint>::to_poly() const
 }
 
 
-template<>
-void Plaintext<gfp,PPData,bigint>::from_poly() const
-{
-  if (type!=Polynomial) { return; }
-  vector<modp> aa((*Field_Data).phi_m());
-  for (unsigned int i=0; i<aa.size(); i++)
-    { to_modp(aa[i], bigint::tmp = b[i], (*Field_Data).prData); }
-  (*Field_Data).to_eval(aa);
-  a.resize(n_slots);
-  for (unsigned int i=0; i<aa.size(); i++)
-    a[i] = {aa[i], Field_Data->get_prD()};
-  type=Both;
-}
-
-
-template<>
-void Plaintext<gfp,PPData,bigint>::to_poly() const
-{
-  if (type!=Evaluation) { return; }
-  cout << "This is VERY inefficient to convert a plaintext to poly representation" << endl;
-  vector<modp> bb((*Field_Data).phi_m());
-  for (unsigned int i=0; i<bb.size(); i++)
-    { bb[i]=a[i].get(); }
-  (*Field_Data).from_eval(bb);
-  for (unsigned int i=0; i<bb.size(); i++)
-    {
-      to_bigint(bigint::tmp,bb[i],(*Field_Data).prData);
-      b[i] = bigint::tmp;
-    }
-  type=Both;
-}
-
-
 
 template<>
 void Plaintext<gf2n_short,P2Data,int>::from_poly() const
 { 
   if (type!=Polynomial) { return; }
-  a.resize(n_slots);
+  a.resize(num_slots());
   (*Field_Data).backward(a,b); 
   type=Both;
 }
@@ -106,34 +105,13 @@ void Plaintext<gf2n_short,P2Data,int>::to_poly() const
 
 
 
-template<>
-void Plaintext<gfp,FFT_Data,bigint>::set_sizes()
-{ n_slots = (*Field_Data).phi_m();
-  degree = n_slots;
-}
-
-
-template<>
-void Plaintext<gfp,PPData,bigint>::set_sizes()
-{ n_slots = (*Field_Data).phi_m();
-  degree = n_slots;
-}
-
-
-template<>
-void Plaintext<gf2n_short,P2Data,int>::set_sizes()
-{ n_slots = (*Field_Data).num_slots();
-  degree = (*Field_Data).degree();
-}
-
-
 template<class T, class FD, class S>
 void Plaintext<T, FD, S>::allocate(PT_Type type) const
 {
   if (type != Evaluation)
-    b.resize(degree);
+    b.resize(degree());
   if (type != Polynomial)
-    a.resize(n_slots);
+    a.resize(num_slots());
   this->type = type;
 }
 
@@ -141,7 +119,7 @@ void Plaintext<T, FD, S>::allocate(PT_Type type) const
 template<class T, class FD, class S>
 void Plaintext<T, FD, S>::allocate_slots(const bigint& value)
 {
-  b.resize(degree);
+  b.resize(degree());
   for (auto& x : b)
     x.allocate_slots(value);
 }
@@ -236,7 +214,7 @@ void Plaintext<T,FD,S>::randomize(PRNG& G,condition cond)
         type=Polynomial;
         break;
       case Diagonal:
-        a.resize(n_slots);
+        a.resize(num_slots());
         a[0].randomize(G);
         for (unsigned int i=1; i<a.size(); i++)
            { a[i]=a[0]; }
@@ -244,7 +222,7 @@ void Plaintext<T,FD,S>::randomize(PRNG& G,condition cond)
         break;
       default:
         // Gen a plaintext with 0/1 in each slot
-        a.resize(n_slots);
+        a.resize(num_slots());
 	for (unsigned int i=0; i<a.size(); i++)
            {
              if (G.get_bit())
@@ -272,7 +250,7 @@ void Plaintext<T,FD,S>::randomize(PRNG& G, int n_bits, bool Diag, PT_Type t)
           b[0].generateUniform(G, n_bits, false);
         }
       else
-        for (int i = 0; i < n_slots; i++)
+        for (size_t i = 0; i < num_slots(); i++)
           b[i].generateUniform(G, n_bits, false);
       break;
     default:
@@ -288,7 +266,7 @@ void Plaintext<T,FD,S>::assign_zero(PT_Type t)
   allocate();
   if (type!=Polynomial)
     {
-      a.resize(n_slots);
+      a.resize(num_slots());
       for (unsigned int i=0; i<a.size(); i++)
         { a[i].assign_zero(); }
     }
@@ -306,7 +284,7 @@ void Plaintext<T,FD,S>::assign_one(PT_Type t)
   allocate();
   if (type!=Polynomial)
     {
-      a.resize(n_slots);
+      a.resize(num_slots());
       for (unsigned int i=0; i<a.size(); i++)
         { a[i].assign_one(); }
     }
@@ -359,35 +337,7 @@ void add(Plaintext<gfp,FFT_Data,bigint>& z,const Plaintext<gfp,FFT_Data,bigint>&
   z.allocate();
   if (z.type!=Polynomial)
     {
-      z.a.resize(z.n_slots);
-      for (unsigned int i=0; i<z.a.size(); i++)
-        { z.a[i] = (x.a[i] + y.a[i]); }
-    }
-  if (z.type!=Evaluation)
-    { for (unsigned int i=0; i<z.b.size(); i++)
-        { z.b[i]=x.b[i]+y.b[i];
-          if (z.b[i]>(*z.Field_Data).get_prime())
-	    { z.b[i]-=(*z.Field_Data).get_prime(); }
-	}
-    }
-}
-
-
-template<>
-void add(Plaintext<gfp,PPData,bigint>& z,const Plaintext<gfp,PPData,bigint>& x,
-                                         const Plaintext<gfp,PPData,bigint>& y)
-{
-  if (z.Field_Data!=x.Field_Data)  { throw field_mismatch(); }
-  if (z.Field_Data!=y.Field_Data)  { throw field_mismatch(); }
-
-  if (x.type==Both && y.type!=Both)      { z.type=y.type; }
-  else if (y.type==Both && x.type!=Both) { z.type=x.type; }
-  else if (x.type!=y.type)               { throw rep_mismatch(); }
-  else                                   { z.type=x.type; }
-
-  if (z.type!=Polynomial)
-    {
-      z.a.resize(z.n_slots);
+      z.a.resize(z.num_slots());
       for (unsigned int i=0; i<z.a.size(); i++)
         { z.a[i] = (x.a[i] + y.a[i]); }
     }
@@ -418,7 +368,7 @@ void add(Plaintext<gf2n_short,P2Data,int>& z,const Plaintext<gf2n_short,P2Data,i
   z.allocate();
   if (z.type!=Polynomial)
     {
-      z.a.resize(z.n_slots);
+      z.a.resize(z.num_slots());
       for (unsigned int i=0; i<z.a.size(); i++)
         { z.a[i].add(x.a[i],y.a[i]); }
     }
@@ -446,7 +396,7 @@ void sub(Plaintext<gfp,FFT_Data,bigint>& z,const Plaintext<gfp,FFT_Data,bigint>&
   z.allocate();
   if (z.type!=Polynomial)
     {
-      z.a.resize(z.n_slots);
+      z.a.resize(z.num_slots());
       for (unsigned int i=0; i<z.a.size(); i++)
         { z.a[i]= (x.a[i] - y.a[i]); }
     }
@@ -455,36 +405,6 @@ void sub(Plaintext<gfp,FFT_Data,bigint>& z,const Plaintext<gfp,FFT_Data,bigint>&
         {
           z.b[i]=x.b[i];
           z.b[i]-=y.b[i];
-          if (z.b[i]<0)
-            { z.b[i]+=(*z.Field_Data).get_prime(); }
-        }
-    }
-}
-
-
-
-template<>
-void sub(Plaintext<gfp,PPData,bigint>& z,const Plaintext<gfp,PPData,bigint>& x,
-                                         const Plaintext<gfp,PPData,bigint>& y)
-{
-  if (z.Field_Data!=x.Field_Data)  { throw field_mismatch(); }
-  if (z.Field_Data!=y.Field_Data)  { throw field_mismatch(); }
-
-  if (x.type==Both && y.type!=Both)      { z.type=y.type; }
-  else if (y.type==Both && x.type!=Both) { z.type=x.type; }
-  else if (x.type!=y.type)               { throw rep_mismatch(); }
-  else                                   { z.type=x.type; }
-
-  z.allocate();
-  if (z.type!=Polynomial)
-    {
-      z.a.resize(z.n_slots);
-      for (unsigned int i=0; i<z.a.size(); i++)
-        { z.a[i] = (x.a[i] - y.a[i]); }
-    }
-  if (z.type!=Evaluation)
-    { for (unsigned int i=0; i<z.b.size(); i++)
-        { z.b[i]=x.b[i]-y.b[i];
           if (z.b[i]<0)
             { z.b[i]+=(*z.Field_Data).get_prime(); }
         }
@@ -510,7 +430,7 @@ void sub(Plaintext<gf2n_short,P2Data,int>& z,const Plaintext<gf2n_short,P2Data,i
   z.allocate();
   if (z.type!=Polynomial)
     {
-      z.a.resize(z.n_slots);
+      z.a.resize(z.num_slots());
       for (unsigned int i=0; i<z.a.size(); i++)
         { z.a[i].sub(x.a[i],y.a[i]); }
     }
@@ -545,7 +465,7 @@ void Plaintext<gfp,FFT_Data,bigint>::negate()
 {
   if (type!=Polynomial)
     {
-      a.resize(n_slots);
+      a.resize(num_slots());
       for (unsigned int i=0; i<a.size(); i++)
         { a[i].negate(); }
     }
@@ -556,23 +476,6 @@ void Plaintext<gfp,FFT_Data,bigint>::negate()
               b[i]-=(*Field_Data).get_prime();
               b[i].negate();
             }
-	}
-    }
-}
-
-template<>
-void Plaintext<gfp,PPData,bigint>::negate()
-{
-  if (type!=Polynomial)
-    {
-      a.resize(n_slots);
-      for (unsigned int i=0; i<a.size(); i++)
-        { a[i].negate(); }
-    }
-  if (type!=Evaluation)
-    { for (unsigned int i=0; i<b.size(); i++)
-        { if (b[i]!=0)
-            { b[i]=(*Field_Data).get_prime()-b[i]; }
 	}
     }
 }
@@ -607,7 +510,7 @@ bool Plaintext<T,FD,S>::equals(const Plaintext& x) const
 
   if (type!=Polynomial and x.type!=Polynomial)
     {
-      a.resize(n_slots);
+      a.resize(num_slots());
       for (unsigned int i=0; i<a.size(); i++)
        { if (!(a[i] == x.a[i])) { return false; } }
     }
@@ -671,9 +574,9 @@ void Plaintext<T,FD,S>::unpack(octetStream& o)
   unsigned int size;
   o.get(size);
   allocate();
-  if (size != b.size())
+  if (size != b.size() and size != 0)
     throw length_error("unexpected length received");
-  for (unsigned int i = 0; i < b.size(); i++)
+  for (unsigned int i = 0; i < size; i++)
     b[i] = o.get<S>();
 }
 
@@ -716,12 +619,6 @@ void Plaintext<T, FD, S>::print_evaluation(int n_elements, string desc) const
 template class Plaintext<gfp,FFT_Data,bigint>;
 
 template void mul(Plaintext<gfp,FFT_Data,bigint>& z,const Plaintext<gfp,FFT_Data,bigint>& x,const Plaintext<gfp,FFT_Data,bigint>& y);
-
-
-
-template class Plaintext<gfp,PPData,bigint>;
-
-template void mul(Plaintext<gfp,PPData,bigint>& z,const Plaintext<gfp,PPData,bigint>& x,const Plaintext<gfp,PPData,bigint>& y);
 
 
 

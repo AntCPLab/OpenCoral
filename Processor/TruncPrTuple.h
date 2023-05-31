@@ -10,26 +10,35 @@
 #include <assert.h>
 using namespace std;
 
+#include "OnlineOptions.h"
+
 template<class T>
 class TruncPrTuple
 {
 public:
+    const static int n = 4;
+
     int dest_base;
     int source_base;
     int k;
     int m;
     int n_shift;
 
-    TruncPrTuple(const vector<int>& regs, size_t base)
+    TruncPrTuple(const vector<int>& regs, size_t base) :
+            TruncPrTuple(regs.begin() + base)
     {
-        dest_base = regs[base];
-        source_base = regs[base + 1];
-        k = regs[base + 2];
-        m = regs[base + 3];
+    }
+
+    TruncPrTuple(vector<int>::const_iterator it)
+    {
+        dest_base = *it++;
+        source_base = *it++;
+        k = *it++;
+        m = *it++;
         n_shift = T::N_BITS - 1 - k;
         assert(m < k);
         assert(0 < k);
-        assert(m < T::N_BITS);
+        assert(m < T::n_bits());
     }
 
     T upper(T mask)
@@ -49,8 +58,15 @@ class TruncPrTupleWithGap : public TruncPrTuple<T>
 {
 public:
     TruncPrTupleWithGap(const vector<int>& regs, size_t base) :
-            TruncPrTuple<T>(regs, base)
+            TruncPrTupleWithGap<T>(regs.begin() + base)
     {
+    }
+
+    TruncPrTupleWithGap(vector<int>::const_iterator it) :
+            TruncPrTuple<T>(it)
+    {
+        if (T::prime_field and small_gap())
+            throw runtime_error("domain too small for chosen truncation error");
     }
 
     T upper(T mask)
@@ -69,7 +85,12 @@ public:
 
     bool big_gap()
     {
-        return this->k <= T::N_BITS - 40;
+        return this->k <= T::n_bits() - OnlineOptions::singleton.trunc_error;
+    }
+
+    bool small_gap()
+    {
+        return not big_gap();
     }
 };
 

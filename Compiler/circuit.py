@@ -63,7 +63,7 @@ class Circuit:
         i = 0
         for l in self.n_output_wires:
             v = []
-            for i in range(l):
+            for j in range(l):
                 v.append(flat_res[i])
                 i += 1
             res.append(sbitvec.from_vec(v))
@@ -127,18 +127,24 @@ def sha3_256(x):
 
         from circuit import sha3_256
         a = sbitvec.from_vec([])
-        b = sbitvec(sint(0xcc), 8, 8)
-        for x in a, b:
-            sha3_256(x).elements()[0].reveal().print_reg()
+        b = sbitvec.from_hex('cc')
+        c = sbitvec.from_hex('41fb')
+        d = sbitvec.from_hex('1f877c')
+        e = sbitvec.from_vec([sbit(0)] * 8)
+        for x in a, b, c, d, e:
+            sha3_256(x).reveal_print_hex()
 
-    This should output the first two test vectors of SHA3-256 in
-    byte-reversed order::
+    This should output the `test vectors
+    <https://github.com/XKCP/XKCP/blob/master/tests/TestVectors/ShortMsgKAT_SHA3-256.txt>`_
+    of SHA3-256 for 0, 8, 16, and 24 bits as well as the hash of the
+    0 byte::
 
-        0x4a43f8804b0ad882fa493be44dff80f562d661a05647c15166d71ebff8c6ffa7
-        0xf0d7aa0ab2d92d580bb080e17cbb52627932ba37f085d3931270d31c39357067
+        Reg[0] = 0xa7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a #
+        Reg[0] = 0x677035391cd3701293d385f037ba32796252bb7ce180b00b582dd9b20aaad7f0 #
+        Reg[0] = 0x39f31b6e653dfcd9caed2602fd87f61b6254f581312fb6eeec4d7148fa2e72aa #
+        Reg[0] = 0xbc22345e4bd3f792a341cf18ac0789f1c9c966712a501b19d1b6632ccd408ec5 #
+        Reg[0] = 0x5d53469f20fef4f8eab52b88044ede69c77a6a68a60728609fc4a65ff531e7d0 #
 
-    Note that :py:obj:`sint` to :py:obj:`sbitvec` conversion is only
-    implemented for computation modulo a power of two.
     """
 
     global Keccak_f
@@ -236,10 +242,10 @@ class ieee_float:
         return cls._circuits[name]
 
     def __init__(self, value):
-        if isinstance(value, sbitvec):
+        if isinstance(value, (sbitint, sbitintvec)):
+            self.value = self.circuit('i2f')(sbitvec.conv(value))
+        elif isinstance(value, sbitvec):
             self.value = value
-        elif isinstance(value, (sbitint, sbitintvec)):
-            self.value = self.circuit('i2f')(sbitvec(value))
         elif util.is_constant_float(value):
             self.value = sbitvec(sbits.get_type(64)(
                 struct.unpack('Q', struct.pack('d', value))[0]))

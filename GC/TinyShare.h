@@ -46,11 +46,6 @@ public:
         return "tiny share";
     }
 
-    static This new_reg()
-    {
-        return {};
-    }
-
     TinyShare()
     {
     }

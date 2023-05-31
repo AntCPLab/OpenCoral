@@ -40,8 +40,9 @@ void OTPrep<T>::set_protocol(typename T::Protocol& protocol)
     // make sure not to use Montgomery multiplication
     T::open_type::next::template init<typename T::open_type>(false);
 
+    assert(not triple_generator);
     triple_generator = new typename T::TripleGenerator(
-            BaseMachine::s().fresh_ot_setup(),
+            BaseMachine::fresh_ot_setup(proc->P),
             proc->P.N, -1,
             OnlineOptions::singleton.batch_size, 1,
             params, proc->MC.get_alphai(), &proc->P);
@@ -105,29 +106,6 @@ void MascotInputPrep<T>::buffer_inputs(int player)
         this->inputs.resize(player + 1);
     for (auto& input : triple_generator->inputs)
         this->inputs[player].push_back(input);
-}
-
-template<class T>
-T Preprocessing<T>::get_random_from_inputs(int nplayers)
-{
-    T res;
-    for (int j = 0; j < nplayers; j++)
-    {
-        T tmp;
-        typename T::open_type _;
-        this->get_input_no_count(tmp, _, j);
-        res += tmp;
-    }
-    return res;
-}
-
-template<class T>
-NamedCommStats OTPrep<T>::comm_stats()
-{
-    auto res = BitPrep<T>::comm_stats();
-    if (triple_generator)
-        res += triple_generator->comm_stats();
-    return res;
 }
 
 #endif

@@ -46,6 +46,11 @@ inline long long DIV_CEIL(long long n, long long k)
     return (n + k - 1)/k;
 }
 
+inline long long multiple_minimum(long long n, long long k)
+{
+    return DIV_CEIL(n, k) * k;
+}
+
 inline void INT_TO_BYTES(octet *buff, int x)
 {
     buff[0] = x&255;

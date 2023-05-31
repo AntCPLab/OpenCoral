@@ -58,7 +58,8 @@ public:
     {
         if (this->size() != y.size())
             throw out_of_range("vector length mismatch");
-        for (unsigned int i = 0; i < this->size(); i++)
+        size_t n = this->size();
+        for (unsigned int i = 0; i < n; i++)
             (*this)[i] += y[i];
         return *this;
     }
@@ -67,9 +68,11 @@ public:
     {
         if (this->size() != y.size())
             throw out_of_range("vector length mismatch");
-        AddableVector<T> res(y.size());
-        for (unsigned int i = 0; i < this->size(); i++)
-            res[i] = (*this)[i] - y[i];
+        AddableVector<T> res;
+        res.reserve(y.size());
+        size_t n = this->size();
+        for (unsigned int i = 0; i < n; i++)
+            res.push_back((*this)[i] - y[i]);
         return res;
     }
 

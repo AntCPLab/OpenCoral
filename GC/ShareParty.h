@@ -6,8 +6,6 @@
 #ifndef GC_SHAREPARTY_H_
 #define GC_SHAREPARTY_H_
 
-#include "Protocols/ReplicatedMC.h"
-#include "Protocols/MaliciousRepMC.h"
 #include "ShareSecret.h"
 #include "Processor.h"
 #include "Program.h"

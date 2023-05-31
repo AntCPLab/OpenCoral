@@ -7,6 +7,8 @@
 #include "Processor/BaseMachine.h"
 
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 bool BufferBase::rewind = false;
 
@@ -21,8 +23,19 @@ void BufferBase::setup(ifstream* f, int length, const string& filename,
     this->filename = filename;
 }
 
+bool BufferBase::is_pipe()
+{
+    struct stat buf;
+    if (stat(filename.c_str(), &buf) == 0)
+        return S_ISFIFO(buf.st_mode);
+    else
+        return false;
+}
+
 void BufferBase::seekg(int pos)
 {
+    assert(not is_pipe());
+
 #ifdef DEBUG_BUFFER
     if (pos != 0)
         printf("seek %d %s thread %d\n", pos, filename.c_str(),
@@ -52,6 +65,8 @@ void BufferBase::seekg(int pos)
 
 void BufferBase::try_rewind()
 {
+    assert(not is_pipe());
+
 #ifndef INSECURE
     string type;
     if (field_type.size() and data_type.size())
@@ -70,6 +85,14 @@ void BufferBase::try_rewind()
 
 void BufferBase::prune()
 {
+    // only prune in secure mode
+#ifdef INSECURE
+    return;
+#endif
+
+    if (is_pipe())
+        return;
+
     if (file and (not file->good() or file->peek() == EOF))
         purge();
     else if (file and file->tellg() != header_length)
@@ -80,6 +103,7 @@ void BufferBase::prune()
         string tmp_name = filename + ".new";
         ofstream tmp(tmp_name.c_str());
         size_t start = file->tellg();
+        start -= element_length() * (BUFFER_SIZE - next);
         char buf[header_length];
         file->seekg(0);
         file->read(buf, header_length);
@@ -95,11 +119,22 @@ void BufferBase::prune()
         rename(tmp_name.c_str(), filename.c_str());
         file->open(filename.c_str(), ios::in | ios::binary);
     }
+#ifdef VERBOSE
+    else
+    {
+        cerr << "Not pruning " << filename << " because it's ";
+        if (file)
+            cerr << "closed";
+        else
+            cerr << "unused";
+        cerr << endl;
+    }
+#endif
 }
 
 void BufferBase::purge()
 {
-    if (file)
+    if (file and not is_pipe())
     {
 #ifdef VERBOSE
         cerr << "Removing " << filename << endl;

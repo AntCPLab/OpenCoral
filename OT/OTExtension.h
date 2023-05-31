@@ -38,7 +38,7 @@ public:
     }
 
     void init(const BitVector& baseReceiverInput,
-            const vector< vector<BitVector> >& baseSenderInput,
+            const vector< array<BitVector, 2> >& baseSenderInput,
             const vector<BitVector>& baseReceiverOutput)
     {
         nbaseOTs = baseReceiverInput.size();

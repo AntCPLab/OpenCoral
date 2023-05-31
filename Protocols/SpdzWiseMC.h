@@ -32,11 +32,11 @@ public:
     {
     }
 
-    void init_open(const Player& P, int n)
+    void init_open(const Player& P, int n = 0)
     {
         inner_MC.init_open(P, n);
     }
-    void prepare_open(const T& secret)
+    void prepare_open(const T& secret, int = -1)
     {
         inner_MC.prepare_open(secret.get_share());
     }
@@ -44,9 +44,9 @@ public:
     {
         inner_MC.exchange(P);
     }
-    typename T::open_type finalize_open()
+    typename T::open_type finalize_raw()
     {
-        return inner_MC.finalize_open();
+        return inner_MC.finalize_raw();
     }
     void Check(const Player& P)
     {

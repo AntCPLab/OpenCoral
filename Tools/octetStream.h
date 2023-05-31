@@ -23,6 +23,7 @@
 
 #include <string.h>
 #include <vector>
+#include <array>
 #include <stdio.h>
 #include <iostream>
 #include <assert.h>
@@ -35,7 +36,9 @@ class bigint;
 class FlexBuffer;
 
 /**
- * Buffer for networking communication with a pointer for sequential reading
+ * Buffer for network communication with a pointer for sequential reading.
+ * When sent over the network or stored in a file, the length is prefixed
+ * as eight bytes in little-endian order.
  */
 class octetStream
 {
@@ -44,6 +47,18 @@ class octetStream
 
   size_t len,mxlen,ptr;  // len is the "write head", ptr is the "read head"
   octet *data;
+
+  class BitBuffer
+  {
+  public:
+    uint8_t n, buffer;
+    BitBuffer() : n(0), buffer(0)
+    {
+    }
+  };
+
+  // buffers for bit packing
+  array<BitBuffer, 2> bits;
 
   void reset();
 
@@ -78,12 +93,14 @@ class octetStream
   size_t get_ptr() const     { return ptr; }
   /// Length
   size_t get_length() const  { return len; }
+  /// Length including size tag
+  size_t get_total_length() const  { return len + sizeof(len); }
   /// Allocation
   size_t get_max_length() const { return mxlen; }
   /// Data pointer
-  octet* get_data() const { return data; }
+  octet* get_data() const { assert(bits[0].n == 0); return data; }
   /// Read pointer
-  octet* get_data_ptr() const { return data + ptr; }
+  octet* get_data_ptr() const { assert(bits[1].n == 0); return data + ptr; }
 
   /// Whether done reading
   bool done() const 	  { return ptr == len; }
@@ -106,9 +123,9 @@ class octetStream
   void concat(const octetStream& os);
 
   /// Reset reading
-  void reset_read_head()  { ptr=0; }
+  void reset_read_head()  { ptr = 0; bits[1].n = 0; }
   /// Set length to zero but keep allocation
-  void reset_write_head() { len=0; ptr=0; }
+  void reset_write_head() { len = 0; bits[0].n = 0; reset_read_head(); }
 
   // Move len back num
   void rewind_write_head(size_t num) { len-=num; }
@@ -161,6 +178,9 @@ class octetStream
   template<int N_BYTES>
   size_t get_int();
 
+  void store_bit(char a);
+  char get_bit();
+
   /// Append big integer
   void store(const bigint& x);
   /// Read big integer
@@ -196,12 +216,22 @@ class octetStream
   template <class T>
   void get_no_resize(vector<T>& v);
 
+  template <class T, size_t L>
+  void store(const array<T, L>& v);
+  template <class T, size_t L>
+  void get(array<T, L>& v);
+
   /// Read ``l`` bytes into separate buffer
   void consume(octetStream& s,size_t l)
     { s.resize(l);
       consume(s.data,l);
       s.len=l;
     }
+
+  /// Append string
+  void store(const string& str);
+  /// Read string
+  void get(string& str);
 
   /// Send on ``socket_num``
   template<class T>
@@ -277,6 +307,13 @@ inline void octetStream::reserve(size_t l)
 
 inline octet* octetStream::append(const size_t l)
 {
+  if (bits[0].n)
+    {
+      bits[0].n = 0;
+      store_int<1>(bits[0].buffer);
+      bits[0].buffer = 0;
+    }
+
   if (len+l>mxlen)
     resize(len+l);
   octet* res = data + len;
@@ -297,6 +334,7 @@ inline void octetStream::append_no_resize(const octet* x, const size_t l)
 
 inline octet* octetStream::consume(size_t l)
 {
+  bits[1].n = 0;
   if(ptr + l > len)
     throw runtime_error("insufficient data");
   octet* res = data + ptr;
@@ -311,9 +349,7 @@ inline void octetStream::consume(octet* x,const size_t l)
 
 inline void octetStream::store_int(size_t l, int n_bytes)
 {
-  resize(len+n_bytes);
-  encode_length(data+len,l,n_bytes);
-  len+=n_bytes;
+  encode_length(append(n_bytes), l, n_bytes);
 }
 
 inline size_t octetStream::get_int(int n_bytes)
@@ -325,10 +361,8 @@ template<int N_BYTES>
 inline void octetStream::store_int(size_t l)
 {
   assert(N_BYTES <= 8);
-  resize(len+N_BYTES);
   uint64_t tmp = htole64(l);
-  memcpy(data + len, &tmp, N_BYTES);
-  len+=N_BYTES;
+  memcpy(append(N_BYTES), &tmp, N_BYTES);
 }
 
 template<int N_BYTES>
@@ -340,12 +374,38 @@ inline size_t octetStream::get_int()
   return le64toh(tmp);
 }
 
+inline void octetStream::store_bit(char a)
+{
+  auto& n = bits[0].n;
+  auto& buffer = bits[0].buffer;
+
+  if (n == 8)
+    append(0);
+
+  buffer |= (a & 1) << n;
+  n++;
+}
+
+inline char octetStream::get_bit()
+{
+  auto& n = bits[1].n;
+  auto& buffer = bits[1].buffer;
+
+  if (n == 0)
+    {
+      buffer = get_int<1>();
+      n = 8;
+    }
+
+  return (buffer >> (8 - n--)) & 1;
+}
+
 
 template<class T>
 inline void octetStream::Send(T socket_num) const
 {
   send(socket_num,len,LENGTH_SIZE);
-  send(socket_num,data,len);
+  send(socket_num, get_data(), len);
 }
 
 
@@ -401,9 +461,12 @@ void octetStream::get(vector<T>& v, const T& init)
 {
   size_t size;
   get(size);
-  v.resize(size, init);
-  for (auto& x : v)
-    get(x);
+  v.reserve(size);
+  for (size_t i = 0; i < size; i++)
+    {
+      v.push_back(init);
+      get(v.back());
+    }
 }
 
 template<class T>
@@ -413,6 +476,20 @@ void octetStream::get_no_resize(vector<T>& v)
   get(size);
   if (size != v.size())
     throw runtime_error("wrong vector length");
+  for (auto& x : v)
+    get(x);
+}
+
+template<class T, size_t L>
+void octetStream::store(const array<T, L>& v)
+{
+  for (auto& x : v)
+    store(x);
+}
+
+template<class T, size_t L>
+void octetStream::get(array<T, L>& v)
+{
   for (auto& x : v)
     get(x);
 }

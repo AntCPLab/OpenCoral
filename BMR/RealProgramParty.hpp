@@ -28,7 +28,7 @@ RealProgramParty<T>* RealProgramParty<T>::singleton = 0;
 
 template<class T>
 RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
-		garble_processor(garble_machine), dummy_proc({{}, 0})
+		garble_processor(garble_machine), dummy_proc({}, 0)
 {
 	assert(singleton == 0);
 	singleton = this;
@@ -64,7 +64,6 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	    online_opts = {opt, argc, argv, 1000};
 	else
 	    online_opts = {opt, argc, argv};
-	assert(not online_opts.interactive);
 
 	online_opts.finalize(opt, argc, argv);
 	this->load(online_opts.progname);
@@ -97,8 +96,6 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	if (online_opts.live_prep)
 	{
 		mac_key.randomize(prng);
-		if (T::needs_ot)
-			BaseMachine::s().ot_setups.push_back({*P, true});
 		prep = new typename T::LivePrep(0, usage);
 	}
 	else
@@ -107,10 +104,12 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 		prep = new Sub_Data_Files<T>(N, prep_dir, usage);
 	}
 
+	T::MAC_Check::setup(*P);
 	MC = new typename T::MAC_Check(mac_key);
 
 	garble_processor.reset(program);
-	this->processor.open_input_file(N.my_num(), 0);
+	this->processor.open_input_file(N.my_num(), 0, online_opts.cmd_private_input_file);
+	this->processor.setup_redirection(P->my_num(), 0, online_opts, this->processor.out);
 
 	shared_proc = new SubProcessor<T>(dummy_proc, *MC, *prep, *P);
 
@@ -155,7 +154,9 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	while (next != GC::DONE_BREAK);
 
 	MC->Check(*P);
-	data_sent = P->comm_stats.total_data() + prep->data_sent();
+
+	if (online_opts.verbose)
+	    P->total_comm().print();
 
 	this->machine.write_memory(this->N.my_num());
 }
@@ -173,7 +174,8 @@ void RealProgramParty<T>::garble()
 		garble_jobs.clear();
 		garble_inputter->reset_all(*P);
 		auto& protocol = *garble_protocol;
-		protocol.init_mul(shared_proc);
+		protocol.init(*prep, shared_proc->MC);
+		protocol.init_mul();
 
 		next = this->first_phase(program, garble_processor, this->garble_machine);
 
@@ -181,7 +183,8 @@ void RealProgramParty<T>::garble()
 		protocol.exchange();
 
 		typename T::Protocol second_protocol(*P);
-		second_protocol.init_mul(shared_proc);
+		second_protocol.init(*prep, shared_proc->MC);
+		second_protocol.init_mul();
 		for (auto& job : garble_jobs)
 			job.middle_round(*this, second_protocol);
 
@@ -212,7 +215,8 @@ RealProgramParty<T>::~RealProgramParty()
 	delete prep;
 	delete garble_inputter;
 	delete garble_protocol;
-	cout << "Data sent = " << data_sent * 1e-6 << " MB" << endl;
+	garble_machine.print_comm(*this->P, this->P->total_comm());
+	T::MAC_Check::teardown();
 }
 
 template<class T>

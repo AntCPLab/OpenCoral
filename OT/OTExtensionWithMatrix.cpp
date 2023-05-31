@@ -4,6 +4,16 @@
  */
 
 #include "OTExtensionWithMatrix.h"
+#include "Tools/Bundle.h"
+
+#ifndef USE_KOS
+#include "Networking/PlayerCtSocket.h"
+
+#include <libOTe/TwoChooseOne/SoftSpokenOT/TwoOneMalicious.h>
+#include <cryptoTools/Network/IOService.h>
+
+osuCrypto::IOService ot_extension_ios;
+#endif
 
 #include "OTCorrelator.hpp"
 
@@ -23,6 +33,43 @@ OTExtensionWithMatrix::OTExtensionWithMatrix(BaseOT& baseOT, TwoPartyPlayer* pla
 {
     G.ReSeed();
     nsubloops = 1;
+    agreed = false;
+#ifndef USE_KOS
+    channel = 0;
+#endif
+}
+
+OTExtensionWithMatrix::~OTExtensionWithMatrix()
+{
+#ifndef USE_KOS
+    if (channel)
+        delete channel;
+#endif
+}
+
+void OTExtensionWithMatrix::protocol_agreement()
+{
+    if (agreed)
+        return;
+
+    Bundle<octetStream> bundle(*player);
+#ifdef USE_KOS
+    bundle.mine = string("KOS15");
+#else
+    bundle.mine = string("SoftSpokenOT");
+#endif
+    player->unchecked_broadcast(bundle);
+
+    try
+    {
+        bundle.compare(*player);
+    }
+    catch (mismatch_among_parties&)
+    {
+        cerr << "Parties compiled with different OT extensions" << endl;
+        cerr << "Set \"USE_KOS\" to the same value on all parties" << endl;
+        exit(1);
+    }
 }
 
 void OTExtensionWithMatrix::transfer(int nOTs,
@@ -57,11 +104,102 @@ void OTExtensionWithMatrix::transfer(int nOTs,
 #endif
 }
 
-void OTExtensionWithMatrix::extend(int nOTs_requested, BitVector& newReceiverInput)
+void OTExtensionWithMatrix::extend(int nOTs_requested, const BitVector& newReceiverInput)
 {
+    protocol_agreement();
+
+#ifdef USE_KOS
     extend_correlated(nOTs_requested, newReceiverInput);
     hash_outputs(nOTs_requested);
+#else
+    resize(nOTs_requested);
+
+    if (not channel)
+        channel = new osuCrypto::Channel(ot_extension_ios, new PlayerCtSocket(*player));
+
+    if (player->my_num())
+    {
+        soft_sender(nOTs_requested);
+        soft_receiver(nOTs_requested, newReceiverInput);
+    }
+    else
+    {
+        soft_receiver(nOTs_requested, newReceiverInput);
+        soft_sender(nOTs_requested);
+    }
+
+    channel->send("hello", 6);
+    char buf[6];
+    channel->recv(buf, 6);
+    assert(buf == string("hello"));
+#endif
 }
+
+#ifndef USE_KOS
+void OTExtensionWithMatrix::soft_sender(size_t n)
+{
+    if (not (ot_role & SENDER))
+        return;
+
+    osuCrypto::PRNG prng(osuCrypto::sysRandomSeed());
+    osuCrypto::SoftSpokenOT::TwoOneMaliciousSender sender(2);
+
+    vector<osuCrypto::block> outputs;
+    for (auto& x : G_receiver)
+    {
+        outputs.push_back(x.get_doubleword());
+    }
+    sender.setBaseOts(outputs,
+            {baseReceiverInput.get_ptr(), sender.baseOtCount()}, prng,
+            *channel);
+
+    // Choose which messages should be sent.
+    auto sendMessages = osuCrypto::allocAlignedBlockArray<std::array<osuCrypto::block, 2>>(n);
+
+    // Send the messages.
+    sender.send(gsl::span(sendMessages.get(), n), prng, *channel);
+
+    for (size_t i = 0; i < n; i++)
+        for (int j = 0; j < 2; j++)
+            senderOutputMatrices[j].squares.at(i / 128).rows[i % 128] =
+                    sendMessages[i][j];
+}
+
+void OTExtensionWithMatrix::soft_receiver(size_t n,
+        const BitVector& newReceiverInput)
+{
+    if (not (ot_role & RECEIVER))
+        return;
+
+    osuCrypto::PRNG prng(osuCrypto::sysRandomSeed());
+    osuCrypto::SoftSpokenOT::TwoOneMaliciousReceiver recver(2);
+
+    vector<array<osuCrypto::block, 2>> inputs;
+    for (auto& x : G_sender)
+    {
+        inputs.push_back({});
+        for (int i = 0; i < 2; i++)
+            inputs.back()[i] = x[i].get_doubleword();
+    }
+    recver.setBaseOts(inputs, prng, *channel);
+
+    // Choose which messages should be received.
+    osuCrypto::BitVector choices(n);
+    assert (n == newReceiverInput.size());
+
+    for (size_t i = 0; i < n; i++)
+        choices[i] = newReceiverInput.get_bit(i);
+
+    // Receive the messages
+    std::vector<osuCrypto::block, osuCrypto::AlignedBlockAllocator> messages(n);
+    recver.receive(choices, messages, prng, *channel);
+
+    for (size_t i = 0; i < n; i++)
+    {
+        receiverOutputMatrix.squares.at(i / 128).rows[i % 128] = messages[i];
+    }
+}
+#endif
 
 void OTExtensionWithMatrix::extend_correlated(const BitVector& newReceiverInput)
 {

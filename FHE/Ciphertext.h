@@ -15,6 +15,12 @@ template<class T,class FD,class S> void mul(Ciphertext& ans,const Ciphertext& c,
 void add(Ciphertext& ans,const Ciphertext& c0,const Ciphertext& c1);
 void mul(Ciphertext& ans,const Ciphertext& c0,const Ciphertext& c1,const FHE_PK& pk);
 
+/**
+ * BGV ciphertext.
+ * The class allows adding two ciphertexts as well as adding a plaintext and
+ * a ciphertext via operator overloading. The multiplication of two ciphertexts
+ * requires the public key and thus needs a separate function.
+ */
 class Ciphertext
 {
   Rq_Element cc0,cc1;
@@ -54,6 +60,7 @@ class Ciphertext
 
   // Scale down an element from level 1 to level 0, if at level 0 do nothing
   void Scale(const bigint& p)    { cc0.Scale(p); cc1.Scale(p); }
+  void Scale();
 
   // Throws error if ans,c0,c1 etc have different params settings
   //   - Thus programmer needs to ensure this rather than this being done
@@ -90,6 +97,12 @@ class Ciphertext
   template <class FD>
   Ciphertext& operator*=(const Plaintext_<FD>& other) { ::mul(*this, *this, other); return *this; }
 
+  /**
+   * Ciphertext multiplication.
+   * @param pk public key
+   * @param x second ciphertext
+   * @returns product ciphertext
+   */
   Ciphertext mul(const FHE_PK& pk, const Ciphertext& x) const
   { Ciphertext res(*params); ::mul(res, *this, x, pk); return res; }
 
@@ -98,21 +111,25 @@ class Ciphertext
     return {cc0.mul_by_X_i(i), cc1.mul_by_X_i(i), *this};
   }
 
+  /// Re-randomize for circuit privacy.
+  void rerandomize(const FHE_PK& pk);
+
   int level() const { return cc0.level(); }
 
-  // pack/unpack (like IO) also assume params are known and already set 
-  // correctly
-  void pack(octetStream& o) const
+  /// Append to buffer
+  void pack(octetStream& o, int = -1) const
     { cc0.pack(o); cc1.pack(o); o.store(pk_id); }
-  void unpack(octetStream& o) 
-    { cc0.unpack(o); cc1.unpack(o); o.get(pk_id); }
+
+  /// Read from buffer. Assumes parameters are set correctly
+  void unpack(octetStream& o, int = -1)
+    { cc0.unpack(o, *params); cc1.unpack(o, *params); o.get(pk_id); }
 
   void output(ostream& s) const
     { cc0.output(s); cc1.output(s); s.write((char*)&pk_id, sizeof(pk_id)); }
   void input(istream& s)
     { cc0.input(s); cc1.input(s); s.read((char*)&pk_id, sizeof(pk_id)); }
 
-  void add(octetStream& os);
+  void add(octetStream& os, int = -1);
 
   size_t report_size(ReportType type) const { return cc0.report_size(type) + cc1.report_size(type); }
 };

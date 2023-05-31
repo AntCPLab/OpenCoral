@@ -36,8 +36,9 @@ void read_setup(const string& dir_prefix, int lgp = -1)
     {
         if (lgp > 0)
         {
-            cerr << "No modulus found in " << filename << ", generating " << lgp
-                    << "-bit prime" << endl;
+            if (OnlineOptions::singleton.verbose)
+                cerr << "No modulus found in " << filename << ", generating "
+                        << lgp << "-bit prime" << endl;
             T::init_default(lgp);
         }
         else

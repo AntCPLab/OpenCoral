@@ -14,6 +14,7 @@
 #include "GC/Secret.hpp"
 #include "GC/Thread.hpp"
 #include "GC/ShareSecret.hpp"
+#include "GC/ThreadMaster.hpp"
 #include "YaoCommon.hpp"
 
 void YaoGarbleWire::random()
@@ -170,7 +171,7 @@ void YaoGarbleWire::inputbvec(GC::Processor<GC::Secret<YaoGarbleWire>>& processo
 {
     auto& garbler = YaoGarbler::s();
     YaoGarbleInput input;
-    processor.inputbvec(input, input_processor, args, garbler.P->my_num());
+    processor.inputbvec(input, input_processor, args, *garbler.P);
 }
 
 inline void YaoGarbler::store_gate(const YaoGate& gate)
@@ -229,4 +230,27 @@ void YaoGarbleWire::reveal_inst(Processor& processor, const vector<int>& args)
 	}
 	else
 		processor.reveal(args);
+}
+
+void YaoGarbleWire::convcbit2s(GC::Processor<whole_type>& processor,
+		const BaseInstruction& instruction)
+{
+	int unit = GC::Clear::N_BITS;
+	for (int i = 0; i < DIV_CEIL(instruction.get_n(), unit); i++)
+	{
+		auto& dest = processor.S[instruction.get_r(0) + i];
+		int n = min(size_t(unit), instruction.get_n() - i * unit);
+		dest.resize_regs(n);
+		for (int j = 0; j < n; j++)
+			dest.get_reg(j).public_input(
+					processor.C[instruction.get_r(1) + i].get_bit(j));
+	}
+}
+
+void YaoGarbleWire::run_tapes(const vector<int>& args)
+{
+	auto& garbler = YaoGarbler::s();
+	if (garbler.continuous())
+		garbler.untaint();
+	garbler.master.machine.run_tapes(args);
 }

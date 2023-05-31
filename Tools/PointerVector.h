@@ -30,6 +30,15 @@ public:
     {
         return (*this)[i++];
     }
+    T* skip(size_t n)
+    {
+        i += n;
+        return &*(this->begin() + i);
+    }
+    size_t left()
+    {
+        return this->size() - i;
+    }
 };
 
 #endif /* TOOLS_POINTERVECTOR_H_ */

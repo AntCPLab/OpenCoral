@@ -20,7 +20,7 @@ namespace GC {
 template <class T>
 inline T XOR(const T& left, const T& right)
 {
-	T res(T::new_reg());
+	T res;
 	XOR<T>(res, left, right);
 	return res;
 }
@@ -37,7 +37,7 @@ inline void AND(T& res, const T& left, const T& right)
 template <class T>
 inline T AND(const T& left, const T& right)
 {
-    T res = T::new_reg();
+    T res;
 	AND<T>(res, left, right);
 	return res;
 }
@@ -66,7 +66,7 @@ template <class T>
 void Secret<T>::invert(int n, const Secret<T>& x)
 {
     resize_regs(n);
-    T one = T::new_reg();
+    T one;
     one.public_input(1);
     for (int i = 0; i < n; i++)
     {
@@ -87,7 +87,7 @@ template <class T>
 inline void Secret<T>::resize_regs(size_t n)
 {
     if (registers.size() != n)
-        registers.resize(n, T::new_reg());
+        registers.resize(n);
 }
 
 } /* namespace GC */

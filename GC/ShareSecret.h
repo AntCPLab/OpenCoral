@@ -21,6 +21,7 @@ using namespace std;
 #include "Protocols/ReplicatedMC.h"
 #include "Processor/DummyProtocol.h"
 #include "Processor/ProcessorBase.h"
+#include "Processor/Instruction.h"
 
 namespace GC
 {
@@ -62,6 +63,7 @@ public:
     static void ands(Processor<U>& processor, const vector<int>& args)
     { and_(processor, args, false); }
     static void and_(Processor<U>& processor, const vector<int>& args, bool repeat);
+    static void andrsvec(Processor<U>& processor, const vector<int>& args);
     static void xors(Processor<U>& processor, const vector<int>& args);
     static void inputb(Processor<U>& processor, const vector<int>& args)
     { inputb(processor, processor, args); }
@@ -74,7 +76,16 @@ public:
     template<class T>
     static void convcbit(Integer& dest, const Clear& source, T&) { dest = source; }
 
+    template<class T>
+    static void convcbit2s(Processor<T>& processor, const BaseInstruction& instruction)
+    { processor.convcbit2s(instruction); }
+    static void andm(Processor<U>& processor, const BaseInstruction& instruction)
+    { processor.andm(instruction); }
+
     static BitVec get_mask(int n) { return n >= 64 ? -1 : ((1L << n) - 1); }
+
+    static void run_tapes(const vector<int>& args)
+    { Thread<U>::s().master.machine.run_tapes(args); }
 
     void check_length(int n, const Integer& x);
 
@@ -105,8 +116,8 @@ public:
 
     typedef BitVec clear;
     typedef BitVec open_type;
-    typedef BitVec mac_type;
-    typedef BitVec mac_key_type;
+    typedef NoShare mac_type;
+    typedef NoValue mac_key_type;
 
     typedef NoShare bit_type;
 
@@ -115,6 +126,8 @@ public:
     static const bool dishonest_majority = false;
     static const bool variable_players = false;
     static const bool needs_ot = false;
+    static const bool has_mac = false;
+    static const bool randoms_for_opens = false;
 
     static string type_string() { return "replicated secret"; }
     static string phase_name() { return "Replicated computation"; }
@@ -151,7 +164,7 @@ public:
     void bitdec(Memory<U>& S, const vector<int>& regs) const;
 
     void xor_(int n, const This& x, const This& y)
-    { *this = x ^ y; (void)n; }
+    { *this = (x ^ y).mask(n); }
 
     This operator&(const Clear& other)
     { return super::operator&(BitVec(other)); }
@@ -205,7 +218,7 @@ public:
     typedef ReplicatedMC<This> MC;
     typedef BitVec_<unsigned char> open_type;
     typedef open_type clear;
-    typedef BitVec mac_key_type;
+    typedef NoValue mac_key_type;
 
     static MC* new_mc(mac_key_type)
     {

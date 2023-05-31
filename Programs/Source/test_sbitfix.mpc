@@ -1,4 +1,3 @@
-from Compiler.GC.types import sbitfix, cbits
 import math
 
 sbitfix.set_precision(16, 32)
@@ -6,8 +5,7 @@ sbitfix.set_precision(16, 32)
 def test(a, b, value_type=None):
     try:
         b = int(round((b * (1 << a.f))))
-        if b < 0:
-            b += 2 ** sbitfix.k
+        b += 2 ** sbitfix.k if b < 0 else 0
         a = a.v.reveal()
     except AttributeError:
         pass

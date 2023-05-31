@@ -13,11 +13,14 @@ import Compiler.instructions as spdz
 import Compiler.tools as tools
 import collections
 import itertools
+import math
 
 class SecretBitsAF(base.RegisterArgFormat):
     reg_type = 'sb'
+    name = 'sbit'
 class ClearBitsAF(base.RegisterArgFormat):
     reg_type = 'cb'
+    name = 'cbit'
 
 base.ArgFormats['sb'] = SecretBitsAF
 base.ArgFormats['sbw'] = SecretBitsAF
@@ -50,6 +53,7 @@ opcodes = dict(
     INPUTBVEC = 0x247,
     SPLIT = 0x248,
     CONVCBIT2S = 0x249,
+    ANDRSVEC = 0x24a,
     XORCBI = 0x210,
     BITDECC = 0x211,
     NOTCB = 0x212,
@@ -64,6 +68,8 @@ opcodes = dict(
     MULCBI = 0x21c,
     SHRCBI = 0x21d,
     SHLCBI = 0x21e,
+    LDMCBI = 0x258,
+    STMCBI = 0x259,
     CONVCINTVEC = 0x21f,
     PRINTREGSIGNED = 0x220,
     PRINTREGB = 0x221,
@@ -153,6 +159,52 @@ class andrs(BinaryVectorInstruction):
 
     def add_usage(self, req_node):
         req_node.increment(('bit', 'triple'), sum(self.args[::4]))
+        req_node.increment(('bit', 'mixed'),
+                           sum(int(math.ceil(x / 64)) for x in self.args[::4]))
+
+class andrsvec(base.VarArgsInstruction, base.Mergeable,
+               base.DynFormatInstruction):
+    """ Constant-vector AND of secret bit registers (vectorized version).
+
+    :param: total number of arguments to follow (int)
+    :param: number of arguments to follow for one operation /
+      operation vector size plus three (int)
+    :param: vector size (int)
+    :param: result vector (sbit)
+    :param: (repeat)...
+    :param: constant operand (sbits)
+    :param: vector operand
+    :param: (repeat)...
+    :param: (repeat from number of arguments to follow for one operation)...
+
+    """
+    code = opcodes['ANDRSVEC']
+
+    def __init__(self, *args, **kwargs):
+        super(andrsvec, self).__init__(*args, **kwargs)
+        for i, n in self.bases(iter(self.args)):
+            size = self.args[i + 1]
+            for x in self.args[i + 2:i + n]:
+                assert x.n == size
+
+    @classmethod
+    def dynamic_arg_format(cls, args):
+        yield 'int'
+        for i, n in cls.bases(args):
+            yield 'int'
+            n_args = (n - 3) // 2
+            assert n_args > 0
+            for j in range(n_args):
+                yield 'sbw'
+            for j in range(n_args + 1):
+                yield 'sb'
+            yield 'int'
+
+    def add_usage(self, req_node):
+        for i, n in self.bases(iter(self.args)):
+            size = self.args[i + 1]
+            req_node.increment(('bit', 'triple'), size * (n - 3) // 2)
+            req_node.increment(('bit', 'mixed'), size)
 
 class ands(BinaryVectorInstruction):
     """ Bitwise AND of secret bit register vector.
@@ -303,7 +355,7 @@ class ldmsb(base.DirectMemoryInstruction, base.ReadMemoryInstruction,
     :param: memory address (int)
     """
     code = opcodes['LDMSB']
-    arg_format = ['sbw','int']
+    arg_format = ['sbw','long']
 
 class stmsb(base.DirectMemoryWriteInstruction, base.VectorInstruction):
     """ Copy secret bit register to secret bit memory cell with compile-time
@@ -313,7 +365,7 @@ class stmsb(base.DirectMemoryWriteInstruction, base.VectorInstruction):
     :param: memory address (int)
     """
     code = opcodes['STMSB']
-    arg_format = ['sb','int']
+    arg_format = ['sb','long']
     # def __init__(self, *args, **kwargs):
     #     super(type(self), self).__init__(*args, **kwargs)
     #     import inspect
@@ -328,7 +380,7 @@ class ldmcb(base.DirectMemoryInstruction, base.ReadMemoryInstruction,
     :param: memory address (int)
     """
     code = opcodes['LDMCB']
-    arg_format = ['cbw','int']
+    arg_format = ['cbw','long']
 
 class stmcb(base.DirectMemoryWriteInstruction, base.VectorInstruction):
     """ Copy clear bit register to clear bit memory cell with compile-time
@@ -338,9 +390,10 @@ class stmcb(base.DirectMemoryWriteInstruction, base.VectorInstruction):
     :param: memory address (int)
     """
     code = opcodes['STMCB']
-    arg_format = ['cb','int']
+    arg_format = ['cb','long']
 
-class ldmsbi(base.ReadMemoryInstruction, base.VectorInstruction):
+class ldmsbi(base.ReadMemoryInstruction, base.VectorInstruction,
+             base.IndirectMemoryInstruction):
     """ Copy secret bit memory cell with run-time address to secret bit
     register.
 
@@ -349,8 +402,10 @@ class ldmsbi(base.ReadMemoryInstruction, base.VectorInstruction):
     """
     code = opcodes['LDMSBI']
     arg_format = ['sbw','ci']
+    direct = staticmethod(ldmsb)
 
-class stmsbi(base.WriteMemoryInstruction, base.VectorInstruction):
+class stmsbi(base.WriteMemoryInstruction, base.VectorInstruction,
+             base.IndirectMemoryInstruction):
     """ Copy secret bit register to secret bit memory cell with run-time
     address.
 
@@ -359,6 +414,31 @@ class stmsbi(base.WriteMemoryInstruction, base.VectorInstruction):
     """
     code = opcodes['STMSBI']
     arg_format = ['sb','ci']
+    direct = staticmethod(stmsb)
+
+class ldmcbi(base.ReadMemoryInstruction, base.VectorInstruction,
+             base.IndirectMemoryInstruction):
+    """ Copy clear bit memory cell with run-time address to clear bit
+    register.
+
+    :param: destination (cbit)
+    :param: memory address (regint)
+    """
+    code = opcodes['LDMCBI']
+    arg_format = ['cbw','ci']
+    direct = staticmethod(ldmcb)
+
+class stmcbi(base.WriteMemoryInstruction, base.VectorInstruction,
+             base.IndirectMemoryInstruction):
+    """ Copy clear bit register to clear bit memory cell with run-time
+    address.
+
+    :param: source (cbit)
+    :param: memory address (regint)
+    """
+    code = opcodes['STMCBI']
+    arg_format = ['cb','ci']
+    direct = staticmethod(stmcb)
 
 class ldmsdi(base.ReadMemoryInstruction):
     code = opcodes['LDMSDI']
@@ -475,7 +555,7 @@ class movsb(NonVectorInstruction):
     code = opcodes['MOVSB']
     arg_format = ['sbw','sb']
 
-class trans(base.VarArgsInstruction):
+class trans(base.VarArgsInstruction, base.DynFormatInstruction):
     """ Secret bit register vector transpose. The first destination vector
     will contain the least significant bits of all source vectors etc.
 
@@ -489,9 +569,21 @@ class trans(base.VarArgsInstruction):
     code = opcodes['TRANS']
     is_vec = lambda self: True
     def __init__(self, *args):
-        self.arg_format = ['int'] + ['sbw'] * args[0] + \
-                          ['sb'] * (len(args) - 1 - args[0])
         super(trans, self).__init__(*args)
+
+    @classmethod
+    def dynamic_arg_format(cls, args):
+        yield 'int'
+        n = next(args)
+        for i in range(n):
+            yield 'sbw'
+            next(args)
+        while True:
+            try:
+                yield 'sb'
+                next(args)
+            except StopIteration:
+                break
 
 class bitb(NonVectorInstruction):
     """ Copy fresh secret random bit to secret bit register.
@@ -538,7 +630,7 @@ class inputb(base.DoNotEliminateInstruction, base.VarArgsInstruction):
             req_node.increment(('bit', 'input', self.args[i]), self.args[i + 1])
 
 class inputbvec(base.DoNotEliminateInstruction, base.VarArgsInstruction,
-                base.Mergeable):
+                base.Mergeable, base.DynFormatInstruction):
     """ Copy private input to secret bit registers bit by bit. The input is
     read as floating-point number, multiplied by a power of two, rounded to an
     integer, and then decomposed into bits.
@@ -555,10 +647,18 @@ class inputbvec(base.DoNotEliminateInstruction, base.VarArgsInstruction,
     code = opcodes['INPUTBVEC']
 
     def __init__(self, *args, **kwargs):
-        self.arg_format = []
-        for x in self.get_arg_tuples(args):
-            self.arg_format += ['int', 'int', 'p'] + ['sbw'] * (x[0]  - 3)
         super(inputbvec, self).__init__(*args, **kwargs)
+
+    @classmethod
+    def dynamic_arg_format(cls, args):
+        yield 'int'
+        for i, n in cls.bases(args):
+            yield 'int'
+            yield 'p'
+            assert n > 3
+            for j in range(n - 3):
+                yield 'sbw'
+            yield 'int'
 
     @staticmethod
     def get_arg_tuples(args):
@@ -567,10 +667,6 @@ class inputbvec(base.DoNotEliminateInstruction, base.VarArgsInstruction,
             yield args[i:i+args[i]]
             i += args[i]
         assert i == len(args)
-
-    def merge(self, other):
-        self.args += other.args
-        self.arg_format += other.arg_format
 
     def add_usage(self, req_node):
         for x in self.get_arg_tuples(self.args):

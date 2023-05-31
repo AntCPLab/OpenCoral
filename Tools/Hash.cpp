@@ -35,6 +35,11 @@ void Hash::update(const octetStream& os)
     update(os.get_data(), os.get_length());
 }
 
+void Hash::update(const string& str)
+{
+    update(str.data(), str.size());
+}
+
 void Hash::final(octetStream& os)
 {
     os.resize_precise(hash_length);

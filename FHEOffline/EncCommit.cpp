@@ -274,7 +274,7 @@ void EncCommit<T,FD,S>::Create_More() const
           (*P).Broadcast_Receive(ctx_Delta);
            
           // Output the ctx_Delta to a file
-          sprintf(filename,"%sctx_Delta-%d-%d-%d",file_prefix,my_num,i,thread);
+          snprintf(filename,1024,"%sctx_Delta-%d-%d-%d",file_prefix,my_num,i,thread);
           ofstream outf(filename);
           for (int j=0; j<(*P).num_players(); j++)
 	    {
@@ -308,7 +308,7 @@ void EncCommit<T,FD,S>::Create_More() const
       octetStream occ,ctx_D;
       for (int i=0; i<2*TT; i++)
         { if (open[i]==1)
-           { sprintf(filename,"%sctx_Delta-%d-%d-%d",file_prefix,my_num,i,thread);
+           { snprintf(filename,1024,"%sctx_Delta-%d-%d-%d",file_prefix,my_num,i,thread);
              ifstream inpf(filename);
              for (int j=0; j<(*P).num_players(); j++)
                {
@@ -386,7 +386,7 @@ void EncCommit<T,FD,S>::Create_More() const
 	      Ciphertext enc1(params),enc2(params),eDelta(params);
               octetStream oe1,oe2;
 
-              sprintf(filename,"%sctx_Delta-%d-%d-%d",file_prefix,my_num,index[b*i+j],thread);
+              snprintf(filename,1024,"%sctx_Delta-%d-%d-%d",file_prefix,my_num,index[b*i+j],thread);
               ifstream inpf(filename);
               for (int k=0; k<(*P).num_players(); k++)
                 {

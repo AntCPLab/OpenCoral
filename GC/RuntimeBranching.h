@@ -20,6 +20,9 @@ public:
 
     void untaint()
     {
+#ifdef DEBUG_YAO
+        cout << "untaint from " << tainted << endl;
+#endif
         bool was_tainted = tainted;
         tainted = false;
         if (was_tainted)

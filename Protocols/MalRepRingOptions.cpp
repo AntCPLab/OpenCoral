@@ -21,10 +21,10 @@ MalRepRingOptions::MalRepRingOptions(ez::ezOptionParser& opt, int argc,
           0, // Number of args expected.
           0, // Delimiter if expecting multiple args.
           "Shuffle sacrifice (default: disabled)", // Help description.
-          "-S", // Flag token.
+          "-SH", // Flag token.
           "--shuffle" // Flag token.
     );
     opt.parse(argc, argv);
-    shuffle = opt.isSet("-S");
+    shuffle = opt.isSet("-SH");
     opt.resetArgs();
 }

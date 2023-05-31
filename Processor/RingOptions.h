@@ -16,10 +16,8 @@ class RingOptions
 
 public:
     int R;
-    int S;
 
-    RingOptions(ez::ezOptionParser& opt, int argc, const char** argv,
-            bool security = false);
+    RingOptions(ez::ezOptionParser& opt, int argc, const char** argv);
 
     int ring_size_from_opts_or_schedule(string progname);
 };

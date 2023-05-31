@@ -55,13 +55,13 @@ void P2Data::check_dimensions() const
 //  cout << "Ai: " << Ai.size() << "x" << Ai[0].size() << endl;
   if (A.size() != Ai.size())
     throw runtime_error("forward and backward mapping dimensions mismatch");
-  if (A.size() != A[0].size())
+  if (A.size() != A.at(0).size())
     throw runtime_error("forward mapping not square");
-  if (Ai.size() != Ai[0].size())
+  if (Ai.size() != Ai.at(0).size())
     throw runtime_error("backward mapping not square");
-  if ((int)A[0].size() != slots * gf2n_short::degree())
+  if ((int)A.at(0).size() != slots * gf2n_short::degree())
         throw runtime_error(
-                "mapping dimension incorrect: " + to_string(A[0].size())
+                "mapping dimension incorrect: " + to_string(A.at(0).size())
                         + " != " + to_string(slots) + " * "
                         + to_string(gf2n_short::degree()));
 }

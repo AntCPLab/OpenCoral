@@ -16,7 +16,6 @@ public:
     static CowGearOptions singleton;
 
     int covert_security;
-    int lowgear_security;
 
     CowGearOptions(bool covert = true);
     CowGearOptions(ez::ezOptionParser& opt, int argc, const char** argv,

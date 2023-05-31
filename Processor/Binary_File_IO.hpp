@@ -14,17 +14,31 @@ inline string Binary_File_IO::filename(int my_number)
 }
 
 template<class T> 
-void Binary_File_IO::write_to_file(const string filename, const vector< T >& buffer)
+
+void Binary_File_IO::write_to_file(const string filename,
+    const vector<T>& buffer, long start_pos)
 {
   ofstream outf;
 
-  outf.open(filename, ios::out | ios::binary | ios::app);
+  outf.open(filename, ios::out | ios::binary | ios::ate | ios::in);
   if (outf.fail()) { throw file_error(filename); }
+
+  if (start_pos != -1)
+    {
+      long write_pos = file_signature<T>().get_total_length() + start_pos * T::size();
+      // fill with zeros if needed
+      for (long i = outf.tellp(); i < write_pos; i++)
+        outf.put(0);
+      outf.seekp(write_pos);
+    }
 
   for (unsigned int i = 0; i < buffer.size(); i++)
   {
     buffer[i].output(outf, false);
   }
+
+  if (outf.fail())
+    throw runtime_error("failed writing to " + filename);
 
   outf.close();
 }
@@ -36,10 +50,13 @@ void Binary_File_IO::read_from_file(const string filename, vector< T >& buffer, 
   inf.open(filename, ios::in | ios::binary);
   if (inf.fail()) { throw file_missing(filename, "Binary_File_IO.read_from_file expects this file to exist."); }
 
+  check_file_signature<T>(inf, filename).get_length();
+  auto data_start = inf.tellg();
+
   int size_in_bytes = T::size() * buffer.size();
   int n_read = 0;
-  char * read_buffer = new char[size_in_bytes];
-  inf.seekg(start_posn * T::size());
+  char read_buffer[size_in_bytes];
+  inf.seekg(start_posn * T::size(), iostream::cur);
   do
   {
       inf.read(read_buffer + n_read, size_in_bytes - n_read);
@@ -48,7 +65,9 @@ void Binary_File_IO::read_from_file(const string filename, vector< T >& buffer, 
       if (inf.eof())
       {
         stringstream ss;
-        ss << "Got to EOF when reading from disk (expecting " << size_in_bytes << " bytes).";
+        ss << "Got to EOF when reading from disk (expecting " << size_in_bytes
+            << " bytes from " << (long(data_start) + start_posn * T::size())
+            << ").";
         throw file_error(ss.str());
       }
       if (inf.fail())
@@ -60,7 +79,7 @@ void Binary_File_IO::read_from_file(const string filename, vector< T >& buffer, 
   }
   while (n_read < size_in_bytes);
 
-  end_posn = inf.tellg() / T::size();
+  end_posn = (inf.tellg() - data_start) / T::size();
   assert (end_posn == start_posn + int(buffer.size()));
 
   //Check if at end of file by getting 1 more char.

@@ -7,6 +7,7 @@
 #include "instructions.h"
 #include "Processor.h"
 #include "Math/gf2n.h"
+#include "GC/instructions.h"
 
 #include <iomanip>
 
@@ -87,6 +88,37 @@ void Instruction::bitdecint(ArithmeticProcessor& Proc) const
             Proc.get_Ci_ref(start[i] + j) = (a >> i) & 1;
         }
     }
+}
+
+ostream& operator<<(ostream& s, const Instruction& instr)
+{
+    switch (instr.get_opcode())
+    {
+#define X(NAME, PRE, CODE) \
+    case NAME: s << #NAME; break;
+    ALL_INSTRUCTIONS
+#undef X
+#define X(NAME, CODE) \
+    case NAME: s << #NAME; break;
+    COMBI_INSTRUCTIONS
+    }
+
+    s << " size=" << instr.get_size();
+    s << " n=" << instr.get_n();
+    s << " r=(";
+    for (int i = 0; i < 3; i++)
+        s << instr.get_r(i) << ", ";
+    s << instr.get_r(3);
+    s << ")";
+    if (not instr.get_start().empty())
+    {
+        s << " args=(";
+        for (unsigned i = 0; i < instr.get_start().size() - 1; i++)
+            s << instr.get_start()[i] << ", ";
+        s << instr.get_start().back();
+        s << ")";
+    }
+    return s;
 }
 
 template void Instruction::execute_clear_gf2n(vector<gf2n_short>& registers,

@@ -19,5 +19,5 @@ template<>
 void PartSetup<P2Data>::key_and_mac_generation(Player& P, MachineBase& machine,
         int, false_type)
 {
-    HighGearKeyGen<2, 2>(P, params).run(*this, machine);
+    HighGearKeyGen<0, 0>(P, params).run(*this, machine);
 }

@@ -18,7 +18,7 @@ void MMO::zeroIV()
     {
         octet key[AES_BLK_SIZE];
         memset(key, 0, AES_BLK_SIZE * sizeof(octet));
-        key[i] = i;
+        key[0] = i;
         setIV(i, key);
     }
 }

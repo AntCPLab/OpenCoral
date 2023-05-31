@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# brew-installed OpenSSL on MacOS
+PATH="/opt/homebrew/opt/openssl@3/bin:$PATH"
+
 n=$1
 
 test -e Player-Data || mkdir Player-Data

@@ -7,6 +7,7 @@
 #define PROCESSOR_BASEMACHINE_H_
 
 #include "Tools/time-func.h"
+#include "Tools/TimerWithComm.h"
 #include "OT/OTTripleSetup.h"
 #include "ThreadJob.h"
 #include "ThreadQueues.h"
@@ -22,23 +23,22 @@ class BaseMachine
 protected:
     static BaseMachine* singleton;
 
-    std::map<int,Timer> timer;
+    static thread_local OnDemandOTTripleSetup ot_setup;
+
+    std::map<int,TimerWithComm> timer;
 
     string compiler;
     string domain;
     string relevant_opts;
 
-    void print_timers();
-
-    virtual void load_program(const string& threadname, const string& filename);
+    virtual size_t load_program(const string& threadname,
+            const string& filename);
 
 public:
     static thread_local int thread_num;
 
     string progname;
     int nthreads;
-
-    vector<OTTripleSetup> ot_setups;
 
     ThreadQueues queues;
 
@@ -64,14 +64,23 @@ public:
     void start(int n);
     void stop(int n);
 
-    virtual void reqbl(int) {}
+    void print_timers();
 
-    OTTripleSetup fresh_ot_setup();
+    virtual void reqbl(int) {}
+    virtual void active(int) {}
+
+    static OTTripleSetup fresh_ot_setup(Player& P);
+
+    NamedCommStats total_comm();
+    void set_thread_comm(const NamedCommStats& stats);
+
+    void print_global_comm(Player& P, const NamedCommStats& stats);
+    void print_comm(Player& P, const NamedCommStats& stats);
 };
 
-inline OTTripleSetup BaseMachine::fresh_ot_setup()
+inline OTTripleSetup BaseMachine::fresh_ot_setup(Player& P)
 {
-    return ot_setups.at(thread_num).get_fresh();
+    return ot_setup.get_fresh(P);
 }
 
 #endif /* PROCESSOR_BASEMACHINE_H_ */

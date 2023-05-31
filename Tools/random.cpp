@@ -13,7 +13,7 @@ using namespace std;
 
 
 PRNG::PRNG() :
-    cnt(0), n_cached_bits(0), cached_bits(0)
+    cnt(0), n_cached_bits(0), cached_bits(0), initialized(false)
 {
 #if defined(__AES__) || !defined(__x86_64__)
   #ifdef USE_AES
@@ -75,14 +75,9 @@ void PRNG::SetSeed(PRNG& G)
   SetSeed(tmp);
 }
 
-void PRNG::SecureSeed(Player& player)
-{
-  Create_Random_Seed(seed, player, SEED_SIZE);
-  InitSeed();
-}
-
 void PRNG::InitSeed()
 {
+  initialized = true;
   #ifdef USE_AES
      if (useC)
         { aes_schedule(KeyScheduleC,seed); }
@@ -122,6 +117,7 @@ void PRNG::print_state() const
 
 void PRNG::hash()
 {
+  assert(initialized);
   #ifndef USE_AES
     unsigned char tmp[RAND_SIZE + SEED_SIZE];
     randombytes_buf_deterministic(tmp, sizeof tmp, seed);
@@ -177,10 +173,11 @@ unsigned int PRNG::get_uint(int upper)
 	}
 	// not power of 2
 	unsigned int r, reduced;
+	bool use_char = upper <= 128;
 	do {
-		r = (upper < 255) ? get_uchar() : get_uint();
+		r = use_char ? get_uchar() : get_uint();
 		reduced = r % upper;
-	} while (int(r - reduced + (upper - 1)) < 0);
+	} while (int(r - reduced + (upper - 1)) > (use_char ? 256 : 0));
 	return reduced;
 }
 
@@ -224,7 +221,7 @@ void PRNG::randomBnd(bigint& x, const bigint& B, bool positive)
   int i = 0;
   do
     {
-      get_bigint(x, numBits(B), true);
+      get(x, numBits(B), true);
       if (i++ > 1000)
         {
           cout << x << " - " << B << " = " << x - B << endl;
@@ -239,17 +236,7 @@ void PRNG::randomBnd(bigint& x, const bigint& B, bool positive)
     }
 }
 
-bigint PRNG::randomBnd(const bigint& B, bool positive)
-{
-  bigint x;
-#ifdef REALLOC_POLICE
-  x = B;
-#endif
-  randomBnd(x, B, positive);
-  return x;
-}
-
-void PRNG::get_bigint(bigint& res, int n_bits, bool positive)
+void PRNG::get(bigint& res, int n_bits, bool positive)
 {
   assert(n_bits > 0);
   int n_bytes = (n_bits + 7) / 8;
@@ -258,24 +245,11 @@ void PRNG::get_bigint(bigint& res, int n_bits, bool positive)
   octet* bytes = (octet*) words;
   words[n_words - 1] = 0;
   get_octets(bytes, n_bytes);
-  octet mask = (1 << (n_bits % 8)) - 1;
+  octet mask = -1;
+  if (n_bits % 8 > 0)
+    mask = (1 << (n_bits % 8)) - 1;
   bytes[n_bytes - 1] &= mask;
   mpz_import(res.get_mpz_t(), n_words, -1, sizeof(word), -1, 0, bytes);
   if (not positive and (get_bit()))
     mpz_neg(res.get_mpz_t(), res.get_mpz_t());
-}
-
-template<>
-void PRNG::get(bigint& res, int n_bits, bool positive)
-{
-  get_bigint(res, n_bits, positive);
-}
-
-template<>
-void PRNG::get(int& res, int n_bits, bool positive)
-{
-  res = get_uint();
-  res &= (1 << n_bits) - 1;
-  if (positive and get_bit())
-    res = -res;
 }

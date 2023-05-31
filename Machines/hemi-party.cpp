@@ -24,8 +24,10 @@
 #include "Protocols/SemiMC.hpp"
 #include "Protocols/Beaver.hpp"
 #include "Protocols/Hemi.hpp"
+#include "Protocols/MalRepRingPrep.hpp"
 #include "GC/ShareSecret.hpp"
 #include "GC/SemiHonestRepPrep.h"
+#include "GC/SemiSecret.hpp"
 #include "Math/gfp.hpp"
 
 int main(int argc, const char** argv)

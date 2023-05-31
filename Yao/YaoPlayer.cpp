@@ -19,7 +19,7 @@ YaoPlayer::YaoPlayer(int argc, const char** argv)
 			0, // Required?
 			0, // Number of args expected.
 			0, // Delimiter if expecting multiple args.
-			"Evaluate only after garbling (default only with multi-threading).", // Help description.
+			"Evaluate only after garbling (very limited functionality).", // Help description.
 			"-O", // Flag token.
 			"--oneshot" // Flag token.
 	);
@@ -33,7 +33,7 @@ YaoPlayer::YaoPlayer(int argc, const char** argv)
 			"--threshold" // Flag token.
 	);
 	auto& online_opts = OnlineOptions::singleton;
-	online_opts = {opt, argc, argv, false_type()};
+	online_opts = {opt, argc, argv, false};
 	NetworkOptionsWithNumber network_opts(opt, argc, argv, 2, false);
 	online_opts.finalize(opt, argc, argv);
 

@@ -10,6 +10,7 @@
 #include "Protocols/SemiPrep.hpp"
 #include "Protocols/SemiInput.hpp"
 #include "Protocols/MAC_Check_Base.hpp"
+#include "GC/SemiSecret.hpp"
 #include "ot-ecdsa-party.hpp"
 
 #include <assert.h>

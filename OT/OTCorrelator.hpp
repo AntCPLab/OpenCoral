@@ -188,7 +188,7 @@ template <class T>
 void OTCorrelator<U>::reduce_squares(unsigned int nTriples, vector<T>& output, int start)
 {
     if (receiverOutputMatrix.squares.size() < nTriples + start)
-        throw invalid_length();
+        throw invalid_length("reduce_squares");
     output.resize(nTriples);
     for (unsigned int j = 0; j < nTriples; j++)
     {

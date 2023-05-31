@@ -14,7 +14,7 @@
 #include "Processor/Data_Files.h"
 
 class SimpleMachine;
-class MultiplicativeMachine;
+class MultiplicativeMachineParams;
 
 class GeneratorBase
 {
@@ -53,7 +53,7 @@ template <template <class FD> class T, class FD>
 class SimpleGenerator : public GeneratorBase
 {
     const PartSetup<FD>& setup;
-    const MultiplicativeMachine& machine;
+    const MultiplicativeMachineParams& machine;
 
     size_t volatile_memory;
 
@@ -63,7 +63,7 @@ public:
     Producer<FD>* producer;
 
     SimpleGenerator(const Names& N, const PartSetup<FD>& setup,
-            const MultiplicativeMachine& machine, int thread_num,
+            const MultiplicativeMachineParams& machine, int thread_num,
             Dtype data_type = DATA_TRIPLE, Player* player = 0);
     ~SimpleGenerator();
 
@@ -71,7 +71,7 @@ public:
     void run(bool exhaust);
     size_t report_size(ReportType type);
     void report_size(ReportType type, MemoryUsage& res);
-    size_t report_sent() { return P.sent; }
+    size_t report_sent() { return P.total_comm().sent; }
 };
 
 #endif /* FHEOFFLINE_SIMPLEGENERATOR_H_ */

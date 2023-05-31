@@ -35,8 +35,8 @@ wrong_gfp_size::wrong_gfp_size(const char* name, const bigint& p,
 {
 }
 
-overflow::overflow(const char* name, size_t i, size_t n) :
-        runtime_error(string(name) + " overflow: " + to_string(i) + "/" + to_string(n))
+overflow::overflow(const string& name, size_t i, size_t n) :
+        runtime_error(name + " overflow: " + to_string(i) + "/" + to_string(n))
 {
 }
 
@@ -81,5 +81,12 @@ not_enough_to_buffer::not_enough_to_buffer(const string& type, const string& fil
                                 "Maybe insufficient preprocessing" + type
                         + ".\nFor benchmarking, you can activate reusing data by "
                                 "adding -DINSECURE to the compiler options.")
+{
+}
+
+gf2n_not_supported::gf2n_not_supported(int n, string options) :
+        runtime_error(
+                "GF(2^" + to_string(n) + ") not supported"
+                        + (options.empty() ? "" : ", options are " + options))
 {
 }

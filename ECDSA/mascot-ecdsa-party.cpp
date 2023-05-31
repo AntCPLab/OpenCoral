@@ -5,6 +5,8 @@
 
 #define NO_MIXED_CIRCUITS
 
+#define NO_SECURITY_CHECK
+
 #include "GC/TinierSecret.h"
 #include "GC/TinyMC.h"
 #include "GC/VectorInput.h"

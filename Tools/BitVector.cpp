@@ -9,6 +9,15 @@
 #include <fstream>
 #include <assert.h>
 
+void BitVector::assign(const BitVector& K)
+{
+    if (nbits != K.nbits)
+    {
+        resize(K.nbits);
+    }
+    memcpy(bytes, K.bytes, nbytes);
+}
+
 void BitVector::resize_zero(size_t new_nbits)
 {
     size_t old_nbytes = nbytes;

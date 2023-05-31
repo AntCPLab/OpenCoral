@@ -18,10 +18,13 @@ sys.path.insert(0, os.path.abspath('..'))
 
 exec(compile(open('gen-instructions.py').read(), 'gen', 'exec'))
 
+import subprocess
+subprocess.run('./gen-readme.sh')
+
 # -- Project information -----------------------------------------------------
 
 project = u'MP-SPDZ'
-copyright = u'2021, CSIRO\'s Data61'
+copyright = u'2022, CSIRO\'s Data61'
 author = u'Marcel Keller'
 
 # The short X.Y version
@@ -46,6 +49,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.autosummary',
     'breathe',
+    'myst_parser',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -55,7 +59,11 @@ templates_path = ['_templates']
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+#source_suffix = .rst
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
+}
 
 # The master toctree document.
 master_doc = 'index'
@@ -185,7 +193,8 @@ epub_exclude_files = ['search.html']
 breathe_projects = {'mp-spdz': 'xml'}
 breathe_default_project = 'mp-spdz'
 import subprocess
-subprocess.call('doxygen', shell=True)
+if (subprocess.call('doxygen', shell=True)):
+    raise Exception('doxygen failed')
 
 def setup(app):
-    app.add_stylesheet('custom.css')
+    app.add_css_file('custom.css')

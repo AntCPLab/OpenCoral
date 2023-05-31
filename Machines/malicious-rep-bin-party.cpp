@@ -7,12 +7,14 @@
 #include "GC/ShareParty.hpp"
 #include "GC/ShareSecret.hpp"
 #include "GC/MaliciousRepSecret.h"
+#include "GC/RepPrep.h"
 
 #include "GC/Machine.hpp"
 #include "GC/Processor.hpp"
 #include "GC/Program.hpp"
 #include "GC/Thread.hpp"
 #include "GC/ThreadMaster.hpp"
+#include "GC/RepPrep.hpp"
 
 #include "Processor/Instruction.hpp"
 #include "Protocols/MaliciousRepMC.hpp"

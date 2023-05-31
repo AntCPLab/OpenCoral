@@ -8,16 +8,12 @@
 
 #include "ShareSecret.h"
 
-#include "MaliciousRepSecret.h"
-#include "Protocols/MaliciousRepMC.h"
 #include "ShareThread.h"
 #include "Thread.h"
 #include "square64.h"
 
 #include "Protocols/Share.h"
 
-#include "Protocols/ReplicatedMC.hpp"
-#include "Protocols/Beaver.hpp"
 #include "ShareParty.h"
 #include "ShareThread.hpp"
 #include "Thread.hpp"
@@ -47,7 +43,7 @@ void ShareSecret<U>::invert(int n, const U& x)
 {
     U ones;
     ones.load_clear(64, -1);
-    static_cast<U&>(*this) = U(x ^ ones) & get_mask(n);
+    reinterpret_cast<U&>(*this) = U(x + ones) & get_mask(n);
 }
 
 template<class U>
@@ -92,8 +88,12 @@ template<class U>
 void ShareSecret<U>::store_clear_in_dynamic(Memory<U>& mem,
         const vector<ClearWriteAccess>& accesses)
 {
+    auto& thread = ShareThread<U>::s();
+    assert(thread.P);
+    assert(thread.MC);
     for (auto access : accesses)
-        mem[access.address] = access.value;
+        mem[access.address] = U::constant(access.value, thread.P->my_num(),
+                thread.MC->get_alphai());
 }
 
 template<class U>
@@ -137,7 +137,7 @@ void ShareSecret<U>::inputbvec(Processor<U>& processor,
     auto& party = ShareThread<U>::s();
     typename U::Input input(*party.MC, party.DataF, *party.P);
     input.reset_all(*party.P);
-    processor.inputbvec(input, input_processor, args, party.P->my_num());
+    processor.inputbvec(input, input_processor, args, *party.P);
 }
 
 template <class T>
@@ -146,7 +146,8 @@ void Processor<T>::inputb(typename T::Input& input, ProcessorBase& input_process
 {
     InputArgList a(args);
     complexity += a.n_input_bits();
-    bool interactive = a.n_interactive_inputs_from_me(my_num) > 0;
+    bool interactive = T::actual_inputs
+            && a.n_interactive_inputs_from_me(my_num) > 0;
     int dl = T::default_length;
 
     for (auto x : a)
@@ -158,7 +159,7 @@ void Processor<T>::inputb(typename T::Input& input, ProcessorBase& input_process
             for (int i = 0; i < DIV_CEIL(x.n_bits, dl); i++)
             {
                 auto& res = S[x.dest + i];
-                res.my_input(input, bigint(whole_input >> (i * dl)).get_ui(),
+                res.my_input(input, bigint(whole_input >> (i * dl)).get_si(),
                         min(dl, x.n_bits - i * dl));
             }
         }
@@ -188,14 +189,19 @@ void Processor<T>::inputb(typename T::Input& input, ProcessorBase& input_process
 
 template <class T>
 void Processor<T>::inputbvec(typename T::Input& input, ProcessorBase& input_processor,
-        const vector<int>& args, int my_num)
+        const vector<int>& args, PlayerBase& P)
 {
+    int my_num = P.my_num();
     InputVecArgList a(args);
     complexity += a.n_input_bits();
-    bool interactive = a.n_interactive_inputs_from_me(my_num) > 0;
+    bool interactive = T::actual_inputs
+            && a.n_interactive_inputs_from_me(my_num) > 0;
 
     for (auto x : a)
     {
+        if (unsigned(x.from) >= unsigned(P.num_players()))
+            throw runtime_error("invalid player number");
+
         if (x.from == my_num)
         {
             bigint whole_input = get_long_input<bigint>(x.params,
@@ -233,6 +239,7 @@ void ShareSecret<U>::reveal_inst(Processor<U>& processor,
         const vector<int>& args)
 {
     auto& party = ShareThread<U>::s();
+    party.check();
     assert(args.size() % 3 == 0);
     vector<U> shares;
     for (size_t i = 0; i < args.size(); i += 3)
@@ -275,6 +282,12 @@ void ShareSecret<U>::and_(
         bool repeat)
 {
     ShareThread<U>::s().and_(processor, args, repeat);
+}
+
+template<class U>
+void ShareSecret<U>::andrsvec(Processor<U>& processor, const vector<int>& args)
+{
+    ShareThread<U>::s().andrsvec(processor, args);
 }
 
 template<class U>
@@ -330,7 +343,7 @@ void ShareSecret<U>::random_bit()
 template<class U>
 U& GC::ShareSecret<U>::operator=(const U& other)
 {
-    U& real_this = static_cast<U&>(*this);
+    U& real_this = reinterpret_cast<U&>(*this);
     real_this = other;
     return real_this;
 }

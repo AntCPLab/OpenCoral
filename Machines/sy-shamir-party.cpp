@@ -12,6 +12,7 @@
 #include "Math/gf2n.h"
 #include "GC/CcdSecret.h"
 #include "GC/MaliciousCcdSecret.h"
+#include "GC/SemiHonestRepPrep.h"
 
 #include "Protocols/Share.hpp"
 #include "Protocols/SpdzWise.hpp"

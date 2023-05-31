@@ -43,7 +43,7 @@ public:
 
 	YaoEvaluator(int thread_num, YaoEvalMaster& master);
 
-	bool continuous() { return master.continuous and master.machine.nthreads == 1; }
+	bool continuous() { return master.continuous; }
 
 	void pre_run();
 	void run(GC::Program& program);
@@ -58,9 +58,6 @@ public:
 
 	int get_n_worker_threads()
 	{ return max(1u, thread::hardware_concurrency() / master.machine.nthreads); }
-
-	NamedCommStats comm_stats()
-	{ return super::comm_stats() + player.comm_stats; }
 };
 
 inline void YaoEvaluator::load_gate(YaoGate& gate)

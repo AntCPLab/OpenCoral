@@ -43,8 +43,6 @@ class RealProgramParty : public ProgramPartySpec<T>
 
 	bool one_shot;
 
-	size_t data_sent;
-
 public:
 	static RealProgramParty& s();
 

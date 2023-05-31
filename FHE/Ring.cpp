@@ -24,7 +24,7 @@ void Ring::unpack(octetStream& o)
       o.get(pi_inv);
       o.get(poly);
     }
-  else
+  else if (mm != 0)
     init(*this, mm);
 }
 

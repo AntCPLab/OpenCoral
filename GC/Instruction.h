@@ -64,6 +64,7 @@ enum
     INPUTBVEC = 0x247,
     SPLIT = 0x248,
     CONVCBIT2S = 0x249,
+    ANDRSVEC = 0x24a,
     // write to clear
     CLEAR_WRITE = 0x210,
     XORCBI = 0x210,
@@ -81,6 +82,8 @@ enum
     SHRCBI = 0x21d,
     SHLCBI = 0x21e,
     CONVCINTVEC = 0x21f,
+    LDMCBI = 0x258,
+    STMCBI = 0x259,
     // don't write
     PRINTREGSIGNED = 0x220,
     PRINTREGB = 0x221,

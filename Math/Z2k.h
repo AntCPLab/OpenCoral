@@ -6,7 +6,7 @@
 #ifndef MATH_Z2K_H_
 #define MATH_Z2K_H_
 
-#include <mpirxx.h>
+#include <gmpxx.h>
 #include <string>
 using namespace std;
 
@@ -19,6 +19,12 @@ using namespace std;
 template<class T> class IntBase;
 template<int L> class fixint;
 
+/**
+ * Type for values in the ring defined by the integers modulo ``2^K``
+ * representing `[0, 2^K-1]`.
+ * It supports arithmetic, bit-wise, and output streaming operations.
+ * It does not need initialization because ``K`` completely defines the domain.
+ */
 template <int K>
 class Z2 : public ValueInterface
 {
@@ -47,6 +53,7 @@ public:
 	static int size_in_limbs() { return N_WORDS; }
 	static int size_in_bits() { return size() * 8; }
 	static int length() { return size_in_bits(); }
+	static int n_bits() { return N_BITS; }
 	static int t() { return 0; }
 
 	static char type_char() { return 'R'; }
@@ -67,18 +74,30 @@ public:
 
 	static Z2 power_of_two(bool bit, int exp) { return Z2(bit) << exp; }
 
+	static string fake_opts() { return " -lgp " + to_string(K); }
+
 	typedef Z2 next;
 	typedef Z2 Scalar;
 
+	/**
+	 * Initialize to zero.
+	 */
 	Z2() { assign_zero(); }
 	Z2(mp_limb_t x) : Z2() { a[0] = x; }
 	Z2(__m128i x) : Z2() { avx_memcpy(a, &x, min(N_BYTES, 16)); }
 	Z2(int x) : Z2(long(x)) { a[N_WORDS - 1] &= UPPER_MASK; }
 	Z2(long x) : Z2(mp_limb_t(x)) { if (K > 64 and x < 0) memset(&a[1], -1, N_BYTES - 8); }
+	Z2(long long x) : Z2(long(x)) {}
 	template<class T>
 	Z2(const IntBase<T>& x);
+	/**
+	 * Convert from unrestricted integer.
+	 */
 	Z2(const bigint& x);
 	Z2(const void* buffer) : Z2() { assign(buffer); }
+	/**
+	 * Convert from different domain via the canonical integer representation.
+	 */
 	template <int L>
 	Z2(const Z2<L>& x) : Z2()
 	{ avx_memcpy(a, x.a, min(N_BYTES, x.N_BYTES)); normalize(); }
@@ -99,6 +118,8 @@ public:
 	void convert_destroy(bigint& a) { *this = a; }
 	
 	int bit_length() const;
+
+	Z2 mask(int) const { return *this; }
 
 	Z2<K> operator+(const Z2<K>& other) const;
 	Z2<K> operator-(const Z2<K>& other) const;
@@ -130,26 +151,45 @@ public:
 	bool operator==(const Z2<K>& other) const;
 	bool operator!=(const Z2<K>& other) const { return not (*this == other); }
 
-	void add(octetStream& os) { *this += (os.consume(size())); }
+	void add(octetStream& os, int = -1) { *this += (os.consume(size())); }
 
 	Z2 lazy_add(const Z2& x) const;
 	Z2 lazy_mul(const Z2& x) const;
 
 	Z2 invert() const;
 
+	/**
+	 * Deterministic square root for values with least significate bit 1.
+	 * Raises an exception otherwise.
+	 */
 	Z2 sqrRoot();
 
 	bool is_zero() const { return *this == Z2<K>(); }
 	bool is_one() const { return *this == 1; }
 	bool is_bit() const { return is_zero() or is_one(); }
 
+	/**
+	 * Sample with uniform distribution.
+	 * @param G randomness generator
+	 * @param n (unused)
+	 */
 	void randomize(PRNG& G, int n = -1);
 	void randomize_part(PRNG& G, int n);
 	void almost_randomize(PRNG& G) { randomize(G); }
 
 	void force_to_bit() { throw runtime_error("impossible"); }
 
+	/**
+	 * Append to buffer in native format.
+	 * @param o buffer
+	 * @param n (unused)
+	 */
 	void pack(octetStream& o, int = -1) const;
+	/**
+	 * Read from buffer in native format
+	 * @param o buffer
+	 * @param n (unused)
+	 */
 	void unpack(octetStream& o, int n = -1);
 
 	void input(istream& s, bool human=true);
@@ -159,20 +199,31 @@ public:
 	friend ostream& operator<<(ostream& o, const Z2<J>& x);
 };
 
+/**
+ * Type for values in the ring defined by the integers modulo ``2^K``
+ * representing `[-2^(K-1), 2^(K-1)-1]`.
+ * It supports arithmetic, bit-wise, comparison, and output streaming operations.
+ * It does not need initialization because ``K`` completely defines the domain.
+ */
 template<int K>
 class SignedZ2 : public Z2<K>
 {
 public:
+    /**
+     * Initialization to zero
+     */
     SignedZ2()
     {
     }
 
+    /**
+     * Conversion from another domain via the signed representation
+     */
     template <int L>
     SignedZ2(const SignedZ2<L>& other) : Z2<K>(other)
     {
         extend(other);
     }
-
 
     template<int L>
     void extend(const SignedZ2<L>& other)
@@ -390,6 +441,12 @@ void Z2<K>::randomize(PRNG& G, int n)
 template<int K>
 void Z2<K>::randomize_part(PRNG& G, int n)
 {
+	if (n >= N_BITS)
+	{
+		randomize(G);
+		return;
+	}
+
 	*this = {};
 	G.get_octets((octet*)a, DIV_CEIL(n, 8));
 	a[DIV_CEIL(n, 64) - 1] &= mp_limb_t(-1LL) >> (N_LIMB_BITS - 1 - (n - 1) % N_LIMB_BITS);

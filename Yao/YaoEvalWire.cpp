@@ -16,6 +16,7 @@
 #include "GC/Secret.hpp"
 #include "GC/Thread.hpp"
 #include "GC/ShareSecret.hpp"
+#include "GC/ThreadMaster.hpp"
 #include "YaoCommon.hpp"
 
 void YaoEvalWire::random()
@@ -176,7 +177,7 @@ void YaoEvalWire::inputbvec(GC::Processor<GC::Secret<YaoEvalWire> >& processor,
 {
     YaoEvalInput inputter;
     processor.inputbvec(inputter, input_processor, args,
-            inputter.evaluator.P->my_num());
+            *inputter.evaluator.P);
     return;
 }
 
@@ -241,6 +242,27 @@ void YaoEvalWire::reveal_inst(Processor& processor, const vector<int>& args)
 		YaoEvaluator::s().P->send_to(0, buffer);
 		throw needs_cleaning();
 	}
+}
+
+void YaoEvalWire::convcbit2s(GC::Processor<whole_type>& processor,
+		const BaseInstruction& instruction)
+{
+	int unit = GC::Clear::N_BITS;
+	for (int i = 0; i < DIV_CEIL(instruction.get_n(), unit); i++)
+	{
+		auto& dest = processor.S[instruction.get_r(0) + i];
+		dest.resize_regs(min(size_t(unit), instruction.get_n() - i * unit));
+		for (auto& reg : dest.get_regs())
+			reg.set(0);
+	}
+}
+
+void YaoEvalWire::run_tapes(const vector<int>& args)
+{
+	auto& party = YaoEvaluator::s();
+	party.master.machine.run_tapes(args);
+	if (party.continuous())
+		party.untaint();
 }
 
 template void YaoEvalWire::and_<false>(

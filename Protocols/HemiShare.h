@@ -10,6 +10,7 @@
 
 template<class T> class HemiPrep;
 template<class T> class Hemi;
+template<class T> class HemiMatrixPrep;
 
 template<class T>
 class HemiShare : public SemiShare<T>
@@ -26,7 +27,11 @@ public:
     typedef typename conditional<T::prime_field, Hemi<This>, Beaver<This>>::type Protocol;
     typedef HemiPrep<This> LivePrep;
 
+    typedef HemiMatrixPrep<This> MatrixPrep;
+    typedef Semi<This> BasicProtocol;
+
     static const bool needs_ot = false;
+    static const bool local_mul = true;
     static true_type triple_matmul;
 
     HemiShare()

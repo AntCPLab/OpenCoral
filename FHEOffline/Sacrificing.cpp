@@ -10,6 +10,8 @@
 
 #include "Tools/Subroutines.h"
 
+#include "Protocols/mac_key.hpp"
+
 // The number of sacrifices to amortize at one time
 #define amortize 512
 
@@ -19,12 +21,7 @@ void Triple_Checking(const Player& P, MAC_Check<T>& MC, int nm,
     int output_thread, TripleSacriFactory< Share<T> >& factory, bool write_output,
     bool clear, string dir)
 {
-  if (T::length() < 40)
-    {
-      cerr << "Field too small for reasonable security" << endl;
-      cerr << "Use a larger field or remove this warning from " << __FILE__ << endl;
-      exit(1);
-    }
+  check_field_size<T>();
 
   ofstream outf;
   if (write_output)

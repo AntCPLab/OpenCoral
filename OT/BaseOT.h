@@ -33,7 +33,7 @@ class BaseOT
 
 public:
 	BitVector receiver_inputs;
-	vector< vector<BitVector> > sender_inputs;
+	vector< array<BitVector, 2> > sender_inputs;
 	vector<BitVector> receiver_outputs;
 	TwoPartyPlayer* P;
 	int nOT, ot_length;
@@ -43,9 +43,9 @@ public:
 		: P(player), nOT(nOT), ot_length(ot_length), ot_role(role)
 	{
 		receiver_inputs.resize(nOT);
-		sender_inputs.resize(nOT, vector<BitVector>(2));
+		sender_inputs.resize(nOT);
 		receiver_outputs.resize(nOT);
-		G_sender.resize(nOT, vector<PRNG>(2));
+		G_sender.resize(nOT);
 		G_receiver.resize(nOT);
 
 		for (int i = 0; i < nOT; i++)
@@ -68,7 +68,7 @@ public:
 	void set_receiver_inputs(const BitVector& new_inputs)
 	{
 		if ((int)new_inputs.size() != nOT)
-			throw invalid_length();
+			throw invalid_length("BaseOT");
 		receiver_inputs = new_inputs;
 	}
 
@@ -88,11 +88,14 @@ public:
 	void check();
 
 protected:
-	vector< vector<PRNG> > G_sender;
+	vector< array<PRNG, 2> > G_sender;
 	vector<PRNG> G_receiver;
 
 	bool is_sender() { return (bool) (ot_role & SENDER); }
 	bool is_receiver() { return (bool) (ot_role & RECEIVER); }
+
+	template<class T, class U>
+	void exec_base(bool new_receiver_inputs=true);
 };
 
 class FakeOT : public BaseOT

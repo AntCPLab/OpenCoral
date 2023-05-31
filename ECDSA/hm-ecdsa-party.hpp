@@ -30,6 +30,8 @@
 #include "GC/ThreadMaster.hpp"
 #include "GC/Secret.hpp"
 #include "Machines/ShamirMachine.hpp"
+#include "Machines/MalRep.hpp"
+#include "Machines/Rep.hpp"
 
 #include <assert.h>
 
@@ -52,10 +54,10 @@ void run(int argc, const char** argv)
     P.unchecked_broadcast(bundle);
     Timer timer;
     timer.start();
-    auto stats = P.comm_stats;
+    auto stats = P.total_comm();
     pShare sk = typename T<P256Element::Scalar>::Honest::Protocol(P).get_random();
     cout << "Secret key generation took " << timer.elapsed() * 1e3 << " ms" << endl;
-    (P.comm_stats - stats).print(true);
+    (P.total_comm() - stats).print(true);
 
     OnlineOptions::singleton.batch_size = (1 + pShare::Protocol::uses_triples) * n_tuples;
     DataPositions usage;
@@ -69,4 +71,5 @@ void run(int argc, const char** argv)
     preprocessing(tuples, n_tuples, sk, proc, opts);
 //    check(tuples, sk, {}, P);
     sign_benchmark(tuples, sk, MCp, P, opts, prep_mul ? 0 : &proc);
+    P256Element::finish();
 }

@@ -27,26 +27,24 @@ ostream& operator<<(ostream& s, const int128& a)
 {
   word* tmp = (word*)&a.a;
   s << hex;
-
-  if (tmp[1] != 0)
-    {
-      s << noshowbase;
-      s.width(16);
-      s.fill('0');
-      s << tmp[1];
-      s.width(16);
-    }
-  else
-    s << showbase;
-
+  s << noshowbase;
+  s.width(16);
+  s.fill('0');
+  s << tmp[1];
+  s.width(16);
   s << tmp[0] << dec;
   return s;
 }
 
 istream& operator>>(istream& s, int128& a)
 {
-  gf2n_long tmp;
-  s >> tmp;
-  a = tmp.get();
+  bigint tmp;
+  s >> hex >> tmp;
+  a = 0;
+  auto size = tmp.get_mpz_t()->_mp_size;
+  assert(size >= 0);
+  assert(size <= 2);
+  mpn_copyi((mp_limb_t*) &a.a, tmp.get_mpz_t()->_mp_d, size);
+  s >> dec;
   return s;
 }

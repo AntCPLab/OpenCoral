@@ -38,6 +38,8 @@ public:
     const static int N_MASK_BITS = clear::N_BITS + S;
     const static int Z_BITS = 2 * (N_MASK_BITS) + 5 + S;
 
+    static const bool has_trunc_pr = false;
+
     BrainShare()
     {
     }

@@ -59,7 +59,7 @@ Rep4<T> Rep4<T>::branch()
 }
 
 template<class T>
-void Rep4<T>::init_mul(SubProcessor<T>*)
+void Rep4<T>::init_mul()
 {
     for (auto& x : add_shares)
         x.clear();
@@ -68,12 +68,6 @@ void Rep4<T>::init_mul(SubProcessor<T>*)
     send_os.reset(P);
     receive_os.reset(P);
     channels.resize(P.num_players(), vector<bool>(P.num_players(), false));
-}
-
-template<class T>
-void Rep4<T>::init_mul(Preprocessing<T>&, typename T::MAC_Check&)
-{
-    init_mul();
 }
 
 template<class T>
@@ -142,6 +136,9 @@ void Rep4<T>::prepare_joint_input(int sender, int backup, int receiver,
             throw not_implemented();
         }
     }
+
+    for (auto& x : send_os)
+        x.append(0);
 }
 
 template<class T>
@@ -182,6 +179,7 @@ void Rep4<T>::finalize_joint_input(int sender, int backup, int receiver,
             x.res[index] += res[1];
         }
 
+        os->consume(0);
         receive_hashes[sender][backup].update(start,
                 os->get_data_ptr() - start);
     }
@@ -194,13 +192,12 @@ int Rep4<T>::get_player(int offset)
 }
 
 template<class T>
-typename T::clear Rep4<T>::prepare_mul(const T& x, const T& y, int n_bits)
+void Rep4<T>::prepare_mul(const T& x, const T& y, int n_bits)
 {
     auto a = get_addshares(x, y);
     for (int i = 0; i < 5; i++)
         add_shares[i].push_back(a[i]);
     bit_lengths.push_back(n_bits);
-    return {};
 }
 
 template<class T>
@@ -215,7 +212,7 @@ array<typename T::open_type, 5> Rep4<T>::get_addshares(const T& x, const T& y)
 }
 
 template<class T>
-void Rep4<T>::init_dotprod(SubProcessor<T>*)
+void Rep4<T>::init_dotprod()
 {
     init_mul();
     dotprod_shares = {};
@@ -260,10 +257,27 @@ void Rep4<T>::exchange()
 }
 
 template<class T>
-T Rep4<T>::finalize_mul(int)
+T Rep4<T>::finalize_mul(int n_bits)
 {
     this->counter++;
-    return results.next().res;
+    if (n_bits == -1)
+        return results.next().res;
+    else
+        return finalize_mul(n_bits, T::clear::binary);
+}
+
+template<class T>
+template<int>
+T Rep4<T>::finalize_mul(int n_bits, true_type)
+{
+    return results.next().res.mask(n_bits);
+}
+
+template<class T>
+template<int>
+T Rep4<T>::finalize_mul(int, false_type)
+{
+    throw runtime_error("bit-wise multiplication not supported");
 }
 
 template<class T>

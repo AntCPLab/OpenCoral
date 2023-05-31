@@ -35,6 +35,11 @@ public:
     Sender(T socket);
     ~Sender();
 
+    T get_socket()
+    {
+        return socket;
+    }
+
     void request(const octetStream& os);
     void wait(const octetStream& os);
 };

@@ -10,11 +10,14 @@
 #include "Processor/RingOptions.h"
 
 #include "Processor/Machine.hpp"
+#include "Processor/OnlineOptions.hpp"
 #include "Math/Z2k.hpp"
 #include "Protocols/Replicated.hpp"
 #include "Protocols/ShuffleSacrifice.hpp"
 #include "Protocols/ReplicatedPrep.hpp"
 #include "Protocols/FakeShare.hpp"
+#include "Protocols/MalRepRingPrep.hpp"
+#include "Protocols/MAC_Check_Base.hpp"
 
 int main(int argc, const char** argv)
 {
@@ -22,7 +25,7 @@ int main(int argc, const char** argv)
     Names N;
     ez::ezOptionParser opt;
     RingOptions ring_opts(opt, argc, argv);
-    online_opts = {opt, argc, argv};
+    online_opts = {opt, argc, argv, FakeShare<SignedZ2<64>>()};
     opt.parse(argc, argv);
     opt.syntax = string(argv[0]) + " <progname>";
 
@@ -44,9 +47,7 @@ int main(int argc, const char** argv)
 #ifdef ROUND_NEAREST_IN_EMULATION
     cerr << "Using nearest rounding instead of probabilistic truncation" << endl;
 #else
-#ifdef RISKY_TRUNCATION_IN_EMULATION
-    cerr << "Using risky truncation" << endl;
-#endif
+    online_opts.set_trunc_error(opt);
 #endif
 
     int R = ring_opts.ring_size_from_opts_or_schedule(progname);
@@ -54,9 +55,8 @@ int main(int argc, const char** argv)
     {
 #define X(L) \
     case L: \
-        Machine<FakeShare<SignedZ2<L>>, FakeShare<gf2n>>(0, N, progname, \
-                online_opts.memtype, gf2n::default_degree(), 0, 0, 0, 0, false, \
-                online_opts.live_prep, online_opts).run(); \
+        Machine<FakeShare<SignedZ2<L>>, FakeShare<gf2n>>(N, false, online_opts, \
+                gf2n::default_degree()).run(progname); \
         break;
     X(64) X(128) X(256) X(192) X(384) X(512)
 #ifdef RING_SIZE

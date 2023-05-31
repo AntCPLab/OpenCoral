@@ -14,15 +14,16 @@
 #include "Math/mpn_fixed.h"
 #include "Tools/random.h"
 #include "Tools/intrinsics.h"
+#include "Tools/Lock.h"
 
 #include <iostream>
 using namespace std;
 
 #ifndef MAX_MOD_SZ
-   #if defined(GFP_MOD_SZ) and GFP_MOD_SZ > 10
+   #if defined(GFP_MOD_SZ) and GFP_MOD_SZ > 11
      #define MAX_MOD_SZ GFP_MOD_SZ
    #else
-     #define MAX_MOD_SZ 10
+     #define MAX_MOD_SZ 11
   #endif
 #endif
 
@@ -36,10 +37,14 @@ class Zp_Data
   mp_limb_t   prA[MAX_MOD_SZ+1];
   int         t;           // More Montgomery data
   mp_limb_t   overhang;
+  Lock        lock;
+  mutable bigint shanks_y, shanks_q_half;
+  mutable int    shanks_r;
 
   template <int T>
   void Mont_Mult_(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const;
   void Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const;
+  void Mont_Mult_switch(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const;
   void Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y, int t) const;
   void Mont_Mult_variable(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* y) const
   { Mont_Mult(z, x, y, t); }
@@ -85,6 +90,8 @@ class Zp_Data
 
   bool operator!=(const Zp_Data& other) const;
   bool operator==(const Zp_Data& other) const;
+
+  void get_shanks_parameters(bigint& y, bigint& q_half, int& r) const;
 
    template<int L> friend void to_modp(modp_<L>& ans,int x,const Zp_Data& ZpD);
    template<int L> friend void to_modp(modp_<L>& ans,const mpz_class& x,const Zp_Data& ZpD);
@@ -232,7 +239,7 @@ inline void Zp_Data::Mont_Mult_(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t*
   if (mpn_cmp(ans+T,prA,T+1)>=0)
      { mpn_sub_fixed_n<T>(z,ans+T,prA); }
   else
-     { inline_mpn_copyi(z,ans+T,T); }
+     { inline_mpn_copyi<T>(z,ans+T); }
 #else
   Mont_Mult(z, x, y, t);
 #endif
@@ -242,37 +249,11 @@ inline void Zp_Data::Mont_Mult(mp_limb_t* z,const mp_limb_t* x,const mp_limb_t* 
 {
   if (not cpu_has_bmi2())
     return Mont_Mult_variable(z, x, y);
-  switch (t)
-  {
 #ifdef __BMI2__
-#define CASE(N) \
-  case N: \
-    Mont_Mult_<N>(z, x, y); \
-    break;
-  CASE(1)
-  CASE(2)
-#if MAX_MOD_SZ >= 4
-  CASE(3)
-  CASE(4)
+  return Mont_Mult_switch(z, x, y);
+#else
+  return Mont_Mult_variable(z, x, y);
 #endif
-#if MAX_MOD_SZ >= 5
-  CASE(5)
-#endif
-#if MAX_MOD_SZ >= 6
-  CASE(6)
-#endif
-#if MAX_MOD_SZ >= 10
-  CASE(7)
-  CASE(8)
-  CASE(9)
-  CASE(10)
-#endif
-#undef CASE
-#endif
-  default:
-    Mont_Mult_variable(z, x, y);
-    break;
-  }
 }
 
 inline void Zp_Data::Mont_Mult_max(mp_limb_t* z, const mp_limb_t* x,

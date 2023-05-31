@@ -67,6 +67,9 @@ public:
       #endif
             n_send++;
             size_t to_send = len - sent;
+#ifdef __APPLE__
+            to_send = min(to_send, 1ul << 16);
+#endif
             size_t newly_sent = send_non_blocking(send_socket, data + sent,
                     to_send);
 #ifdef TIME_ROUNDS

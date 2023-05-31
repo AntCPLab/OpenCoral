@@ -35,6 +35,11 @@ public:
     Receiver(T socket);
     ~Receiver();
 
+    T get_socket()
+    {
+        return socket;
+    }
+
     void request(octetStream& os);
     void wait(octetStream& os);
 };

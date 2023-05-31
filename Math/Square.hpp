@@ -4,6 +4,7 @@
  */
 
 #include "Math/Square.h"
+#include "Math/BitVec.h"
 
 template<class U>
 Square<U>& Square<U>::sub(const Square<U>& other)
@@ -29,6 +30,25 @@ Square<U>& Square<U>::sub(const void* other)
     for (int i = 0; i < U::length(); i++)
         rows[i] -= value;
     return *this;
+}
+
+template<class U>
+void Square<U>::bit_sub(const BitVector& bits, int start)
+{
+    for (int i = 0; i < U::length(); i++)
+    {
+        rows[i] -= bits.get_bit(start + i);
+    }
+}
+
+template<>
+inline
+void Square<BitVec>::bit_sub(const BitVector& bits, int start)
+{
+    for (int i = 0; i < BitVec::length(); i++)
+    {
+        rows[i] -= bits.get_portion<BitVec>(start + i);
+    }
 }
 
 template<class U>

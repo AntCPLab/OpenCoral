@@ -19,7 +19,7 @@ template <class U>
 bool Matrix<U>::operator==(Matrix<U>& other)
 {
     if (squares.size() != other.squares.size())
-        throw invalid_length();
+        throw invalid_length("Matrix");
     for (size_t i = 0; i < squares.size(); i++)
         if (not(squares[i] == other.squares[i]))
             return false;
@@ -109,7 +109,7 @@ template <class U>
 Slice<U>& Slice<U>::rsub(Slice<U>& other)
 {
     if (bm.squares.size() < other.end)
-        throw invalid_length();
+        throw invalid_length("rsub");
     for (size_t i = other.start; i < other.end; i++)
         bm.squares[i].rsub(other.bm.squares[i]);
     return *this;
@@ -122,8 +122,11 @@ Slice<U>& Slice<U>::sub(BitVector& other, int repeat)
         throw invalid_length(to_string(U::PartType::n_columns()));
     for (size_t i = start; i < end; i++)
     {
-        bm.squares[i].sub(other.get_ptr_to_byte(i / repeat,
-                U::PartType::n_row_bytes()));
+        if (repeat > 0)
+            bm.squares[i].sub(other.get_ptr_to_byte(i / repeat,
+                    U::PartType::n_row_bytes()));
+        else
+            bm.squares[i].bit_sub(other, i * U::PartType::n_rows());
     }
     return *this;
 }

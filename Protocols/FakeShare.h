@@ -19,7 +19,6 @@ class FakeShare : public T, public ShareInterface
     typedef FakeShare This;
 
 public:
-    typedef T mac_key_type;
     typedef T open_type;
     typedef T clear;
 
@@ -32,6 +31,11 @@ public:
 
     typedef GC::FakeSecret bit_type;
 
+    static const bool has_trunc_pr = true;
+    static const bool dishonest_majority = false;
+    static const bool malicious = false;
+    static const bool is_real = false;
+
     static string type_short()
     {
         return "emul";
@@ -42,7 +46,7 @@ public:
         return 0;
     }
 
-    static T constant(T value, int = 0, T = 0)
+    static T constant(T value, int = 0, mac_key_type = {})
     {
         return value;
     }

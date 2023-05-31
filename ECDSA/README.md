@@ -24,8 +24,8 @@ The following binaries have been used for the paper:
 All binaries offer the same interface. With MASCOT for example, run
 the following:
 ```
-./mascot-ecsda-party.x -p 0 [-N <number of parties>] [-h <host of party 0>] [-D] [<number of prep tuples>]
-./mascot-ecsda-party.x -p 1 [-N <number of parties>] [-h <host of party 0>] [-D] [<number of prep tuples>]
+./mascot-ecdsa-party.x -p 0 [-N <number of parties>] [-h <host of party 0>] [-D] [<number of prep tuples>]
+./mascot-ecdsa-party.x -p 1 [-N <number of parties>] [-h <host of party 0>] [-D] [<number of prep tuples>]
 ...
 ```
 

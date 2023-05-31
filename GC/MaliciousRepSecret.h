@@ -30,7 +30,7 @@ public:
     typedef MaliciousRepMC<This> MC;
     typedef BitVec_<unsigned char> open_type;
     typedef open_type clear;
-    typedef BitVec mac_key_type;
+    typedef NoValue mac_key_type;
 
     static MC* new_mc(mac_key_type)
     {
@@ -71,7 +71,7 @@ public:
 
     static const bool expensive_triples = true;
 
-    static MC* new_mc(BitVec)
+    static MC* new_mc(typename super::mac_key_type)
     {
         try
         {

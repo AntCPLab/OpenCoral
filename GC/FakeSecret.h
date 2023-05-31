@@ -10,11 +10,14 @@
 #include "GC/Memory.h"
 #include "GC/Access.h"
 #include "GC/ArgTuples.h"
+#include "GC/NoShare.h"
+#include "GC/Processor.h"
 
 #include "Math/gf2nlong.h"
 #include "Tools/SwitchableOutput.h"
 
 #include "Processor/DummyProtocol.h"
+#include "Processor/Instruction.h"
 #include "Protocols/FakePrep.h"
 #include "Protocols/FakeMC.h"
 #include "Protocols/FakeProtocol.h"
@@ -40,7 +43,6 @@ public:
     typedef FakeSecret DynamicType;
     typedef Memory<FakeSecret> DynamicMemory;
 
-    typedef BitVec mac_key_type;
     typedef BitVec clear;
     typedef BitVec open_type;
 
@@ -85,6 +87,11 @@ public:
     { processor.andrs(args); }
     static void ands(GC::Processor<FakeSecret>& processor, const vector<int>& regs);
     template <class T>
+    static void andrsvec(T&, const vector<int>&)
+    { throw runtime_error("andrsvec not implemented"); }
+    static void andm(GC::Processor<FakeSecret>& processor, const ::Instruction& instruction)
+    { processor.andm(instruction); }
+    template <class T>
     static void xors(GC::Processor<T>& processor, const vector<int>& regs)
     { processor.xors(regs); }
     template <class T>
@@ -104,6 +111,15 @@ public:
 
     template <class T>
     static void convcbit(Integer& dest, const Clear& source, T&) { dest = source; }
+
+    template<class U>
+    static void convcbit2s(GC::Processor<U>&, const BaseInstruction&)
+    { throw runtime_error("convcbit2s not implemented"); }
+    template<class U>
+    static void andm(GC::Processor<U>&, const BaseInstruction&)
+    { throw runtime_error("andm not implemented"); }
+
+    static void run_tapes(const vector<int>& args);
 
     static FakeSecret input(GC::Processor<FakeSecret>& processor, const InputArgs& args);
     static FakeSecret input(int from, word input, int n_bits);

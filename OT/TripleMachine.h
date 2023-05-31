@@ -11,6 +11,7 @@
 #include "Math/Z2k.h"
 #include "OT/OTTripleSetup.h"
 #include "OT/MascotParams.h"
+#include "Tools/NetworkOptions.h"
 
 class GeneratorThread;
 
@@ -25,11 +26,15 @@ class TripleMachine : public OfflineMachineBase, public MascotParams
 
     bigint prime;
 
-public:
+    Player* player;
+
     int nloops;
     bool bonding;
     int z2k, z2s;
 
+    NetworkOptionsWithNumber network_opts;
+
+public:
     TripleMachine(int argc, const char** argv);
 
     template<class T>

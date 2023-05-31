@@ -116,6 +116,11 @@ def round_to_int(x):
         return x.round_to_int()
 
 def tree_reduce(function, sequence):
+    try:
+        return sequence.tree_reduce(function)
+    except AttributeError:
+        pass
+
     sequence = list(sequence)
     assert len(sequence) > 0
     n = len(sequence)
@@ -233,6 +238,9 @@ def mem_size(x):
     except AttributeError:
         return 1
 
+def find_in_dict(d, v):
+    return list(d.keys())[list(d.values()).index(v)]
+
 class set_by_id(object):
     def __init__(self, init=[]):
         self.content = {}
@@ -256,6 +264,9 @@ class set_by_id(object):
 
     def pop(self):
         return self.content.popitem()[1]
+
+    def remove(self, value):
+        del self.content[id(value)]
 
     def __ior__(self, values):
         for value in values:

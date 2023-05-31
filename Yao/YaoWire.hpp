@@ -46,4 +46,24 @@ void YaoWire::xors(GC::Processor<T>& processor, const vector<int>& args,
 	processor.xors(args, start, end);
 }
 
+template<class T>
+void YaoWire::andm(GC::Processor<T>& processor,
+		const BaseInstruction& instruction)
+{
+
+	int unit = GC::Clear::N_BITS;
+	for (int i = 0; i < DIV_CEIL(instruction.get_n(), unit); i++)
+	{
+		auto &dest = processor.S[instruction.get_r(0) + i];
+		int n = min(size_t(unit), instruction.get_n() - i * unit);
+		dest.resize_regs(n);
+		for (int j = 0; j < n; j++)
+			if (processor.C[instruction.get_r(2) + i].get_bit(j))
+				dest.get_reg(j) =
+						processor.S[instruction.get_r(1) + i].get_reg(j);
+			else
+				dest.get_reg(j).public_input(0);
+	}
+}
+
 #endif /* YAO_YAOWIRE_HPP_ */

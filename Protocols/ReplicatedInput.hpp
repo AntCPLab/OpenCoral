@@ -19,7 +19,6 @@ void ReplicatedInput<T>::reset(int player)
     if (player == P.my_num())
     {
         this->shares.clear();
-        this->i_share = 0;
         os.resize(2);
         for (auto& o : os)
             o.reset_write_head();
@@ -48,12 +47,16 @@ void ReplicatedInput<T>::add_other(int player, int)
 template<class T>
 void ReplicatedInput<T>::send_mine()
 {
+    for (auto& x : os)
+        x.append(0);
     P.send_relative(os);
 }
 
 template<class T>
 void ReplicatedInput<T>::exchange()
 {
+    for (auto& x : os)
+        x.append(0);
     bool receive = expect[P.get_player(1)];
     bool send = not os[1].empty();
     auto& dest =  InputBase<T>::os[P.get_player(1)];
@@ -71,7 +74,7 @@ template<class T>
 inline void ReplicatedInput<T>::finalize_other(int player, T& target,
         octetStream& o, int n_bits)
 {
-    int offset = player - P.my_num();
+    int offset = player - this->my_num;
     if (offset == 1 or offset == -2)
     {
         typename T::value_type t;
@@ -89,7 +92,7 @@ inline void ReplicatedInput<T>::finalize_other(int player, T& target,
 template<class T>
 T PrepLessInput<T>::finalize_mine()
 {
-    return this->shares[this->i_share++];
+    return this->shares.next();
 }
 
 #endif

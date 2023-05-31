@@ -23,10 +23,12 @@
 #include "Protocols/Shamir.hpp"
 #include "Protocols/ShamirMC.hpp"
 #include "Protocols/MaliciousShamirMC.hpp"
+#include "Protocols/MaliciousShamirPO.hpp"
 #include "Protocols/MAC_Check_Base.hpp"
 #include "Protocols/Beaver.hpp"
 #include "Protocols/Spdz2kPrep.hpp"
 #include "Protocols/ReplicatedPrep.hpp"
+#include "Protocols/MalRepRingPrep.hpp"
 #include "GC/ShareSecret.hpp"
 #include "GC/VectorProtocol.hpp"
 #include "GC/Secret.hpp"
@@ -95,6 +97,5 @@ ShamirMachineSpec<T>::ShamirMachineSpec(int argc, const char** argv)
     auto& opts = ShamirOptions::singleton;
     ez::ezOptionParser opt;
     opts = {opt, argc, argv};
-    T<gfp>::bit_type::part_type::open_type::init_field();
     HonestMajorityFieldMachine<T>(argc, argv, opt, opts.nparties);
 }

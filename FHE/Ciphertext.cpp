@@ -1,5 +1,4 @@
 #include "Ciphertext.h"
-#include "PPData.h"
 #include "P2Data.h"
 #include "Tools/Exceptions.h"
 
@@ -28,6 +27,12 @@ word check_pk_id(word a, word b)
     cout << a << " vs " << b << endl;
     throw runtime_error("public keys of ciphertext operands don't match");
   }
+}
+
+
+void Ciphertext::Scale()
+{
+  Scale(params->get_plaintext_modulus());
 }
 
 
@@ -108,16 +113,34 @@ void Ciphertext::mul(const Ciphertext& c, const Rq_Element& ra)
   ::mul(cc1,ra,c.cc1);
 }
 
-void Ciphertext::add(octetStream& os)
+void Ciphertext::add(octetStream& os, int)
 {
   Ciphertext tmp(*params);
   tmp.unpack(os);
   *this += tmp;
 }
 
+void Ciphertext::rerandomize(const FHE_PK& pk)
+{
+  Rq_Element tmp(*params);
+  SeededPRNG G;
+  vector<FFT_Data::S> r(params->FFTD()[0].m());
+  bigint p = pk.p();
+  assert(p != 0);
+  for (auto& x : r)
+    {
+      G.get(x, params->p0().numBits() - p.numBits() - 1);
+      x *= p;
+    }
+  tmp.from(r, 0);
+  Scale();
+  cc0 += tmp;
+  auto zero = pk.encrypt(*params);
+  zero.Scale(pk.p());
+  *this += zero;
+}
+
 
 template void mul(Ciphertext& ans,const Plaintext<gfp,FFT_Data,bigint>& a,const Ciphertext& c);
-template void mul(Ciphertext& ans,const Plaintext<gfp,PPData,bigint>& a,const Ciphertext& c);
-template void mul(Ciphertext& ans,const Plaintext<gf2n_short,P2Data,int>& a,const Ciphertext& c);
-
-
+template void mul(Ciphertext& ans, const Plaintext<gf2n_short, P2Data, int>& a,
+        const Ciphertext& c);

@@ -13,6 +13,7 @@ using namespace std;
 #ifdef __APPLE__
 # include <libkern/OSByteOrder.h>
 #define be32toh(x) OSSwapBigToHostInt32(x)
+#define be64toh(x) OSSwapBigToHostInt64(x)
 #endif
 
 // Read a 4-byte integer
@@ -21,6 +22,14 @@ inline int get_int(istream& s)
   int n;
   s.read((char*) &n, 4);
   return be32toh(n);
+}
+
+// Read an 8-byte integer
+inline int64_t get_long(istream& s)
+{
+  int64_t n;
+  s.read((char*) &n, 8);
+  return be64toh(n);
 }
 
 // Read several integers

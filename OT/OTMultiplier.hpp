@@ -96,7 +96,6 @@ void OTMultiplier<T>::multiply()
     senderOutput.resize(keyBits.size());
     for (size_t j = 0; j < keyBits.size(); j++)
     {
-        senderOutput[j].resize(2);
         for (int i = 0; i < 2; i++)
         {
             senderOutput[j][i].resize(128);
@@ -129,11 +128,116 @@ void OTMultiplier<T>::multiply()
             case DATA_TRIPLE:
                 multiplyForTriples();
                 break;
+            case DATA_MIXED:
+                multiplyForMixed();
+                break;
             default:
                 throw not_implemented();
             }
         }
     }
+}
+
+template<class T>
+void SemiMultiplier<T>::multiplyForBits()
+{
+    auto& rot_ext = this->rot_ext;
+    auto& otCorrelator = this->otCorrelator;
+
+    OT_ROLE role;
+
+    if (this->generator.players[0]->my_num())
+        role = SENDER;
+    else
+        role = RECEIVER;
+
+    rot_ext.set_role(INV_ROLE(role));
+    otCorrelator.set_role(role);
+
+    BitVector aBits = this->generator.valueBits[0];
+    rot_ext.extend_correlated(aBits);
+
+    typedef typename T::Rectangle X;
+    vector<Matrix<X> >& baseSenderOutputs = otCorrelator.matrices;
+    Matrix<X>& baseReceiverOutput = otCorrelator.senderOutputMatrices[0];
+
+    rot_ext.hash_outputs(aBits.size(), baseSenderOutputs, baseReceiverOutput);
+
+    otCorrelator.setup_for_correlation(aBits, baseSenderOutputs,
+            baseReceiverOutput);
+    otCorrelator.correlate(0, otCorrelator.receiverOutputMatrix.squares.size(),
+            this->generator.valueBits[0], false, -1);
+
+    c_output.clear();
+
+    for (unsigned j = 0; j < aBits.size(); j++)
+    {
+        int outer = j / X::n_rows();
+        int inner = j % X::n_rows();
+
+        if (role == RECEIVER)
+            c_output.push_back(
+                    typename T::open_type()
+                            - otCorrelator.receiverOutputMatrix.squares.at(
+                                    outer).rows[inner]);
+        else
+            c_output.push_back(
+                    otCorrelator.senderOutputMatrices[0].squares.at(outer).rows[inner]);
+    }
+
+    rot_ext.set_role(BOTH);
+    otCorrelator.set_role(BOTH);
+
+    this->outbox.push({});
+}
+
+template<class T>
+void SemiMultiplier<T>::multiplyForMixed()
+{
+    auto& rot_ext = this->rot_ext;
+
+    typedef Square<BitVec> X;
+    OTCorrelator<Matrix<X>> otCorrelator(
+            this->generator.players[this->thread_num], BOTH, true);
+
+    BitVector aBits = this->generator.valueBits[0];
+    rot_ext.extend_correlated(aBits);
+
+    auto& baseSenderOutputs = otCorrelator.matrices;
+    auto& baseReceiverOutput = otCorrelator.senderOutputMatrices[0];
+
+    rot_ext.hash_outputs(aBits.size(), baseSenderOutputs, baseReceiverOutput);
+
+    if (this->generator.get_player().num_players() == 2)
+    {
+        c_output.clear();
+
+        for (unsigned j = 0; j < aBits.size(); j++)
+        {
+            this->generator.valueBits[1].set_portion(j,
+                    BitVec(baseSenderOutputs[0][j] ^ baseSenderOutputs[1][j]));
+            c_output.push_back(baseReceiverOutput[j] ^ baseSenderOutputs[0][j]);
+        }
+
+        this->outbox.push({});
+        return;
+    }
+
+    otCorrelator.setup_for_correlation(aBits, baseSenderOutputs,
+            baseReceiverOutput);
+    otCorrelator.correlate(0, otCorrelator.receiverOutputMatrix.squares.size(),
+            this->generator.valueBits[1], false, -1);
+
+    c_output.clear();
+
+    for (unsigned j = 0; j < aBits.size(); j++)
+    {
+        c_output.push_back(
+                otCorrelator.receiverOutputMatrix[j]
+                        ^ otCorrelator.senderOutputMatrices[0][j]);
+    }
+
+    this->outbox.push({});
 }
 
 template<class W>
@@ -152,6 +256,8 @@ void OTMultiplier<W>::multiplyForTriples()
     auto& outbox = this->outbox;
     outbox.push(job);
 
+    bool corr_hash = generator.machine.use_extension;
+
     for (int i = 0; i < generator.nloops; i++)
     {
         this->inbox.pop(job);
@@ -159,7 +265,12 @@ void OTMultiplier<W>::multiplyForTriples()
         //timers["Extension"].start();
         if (generator.machine.use_extension)
         {
+#ifdef USE_KOS
             rot_ext.extend_correlated(aBits);
+#else
+            rot_ext.extend(aBits.size(), aBits);
+            corr_hash = false;
+#endif
         }
         else
         {
@@ -175,8 +286,9 @@ void OTMultiplier<W>::multiplyForTriples()
                             bot.sender_inputs[i][j].get_int128(0).a;
             }
         }
+
         rot_ext.hash_outputs(aBits.size(), baseSenderOutputs,
-                baseReceiverOutput, generator.machine.use_extension);
+                baseReceiverOutput, corr_hash);
         //timers["Extension"].stop();
 
         //timers["Correlation"].start();
@@ -194,14 +306,14 @@ void OTMultiplier<W>::multiplyForTriples()
 
 template <class T>
 void MascotMultiplier<T>::init_authenticator(const BitVector& keyBits,
-		const vector< vector<BitVector> >& senderOutput,
+		const vector< array<BitVector, 2> >& senderOutput,
 		const vector<BitVector>& receiverOutput) {
 	this->auth_ot_ext.init(keyBits, senderOutput, receiverOutput);
 }
 
 template<class T>
 void TinyMultiplier<T>::init_authenticator(const BitVector& keyBits,
-        const vector<vector<BitVector> >& senderOutput,
+        const vector<array<BitVector, 2> >& senderOutput,
         const vector<BitVector>& receiverOutput)
 {
     mac_vole.init(keyBits, senderOutput, receiverOutput);
@@ -209,7 +321,7 @@ void TinyMultiplier<T>::init_authenticator(const BitVector& keyBits,
 
 template <class T>
 void TinierMultiplier<T>::init_authenticator(const BitVector& keyBits,
-        const vector< vector<BitVector> >& senderOutput,
+        const vector< array<BitVector, 2> >& senderOutput,
         const vector<BitVector>& receiverOutput)
 {
     auto tmpBits = keyBits;
@@ -219,7 +331,6 @@ void TinierMultiplier<T>::init_authenticator(const BitVector& keyBits,
     SeededPRNG G;
     for (auto& x : tmpSenderOutput)
     {
-        x.resize(2);
         for (auto& y : x)
             if (y.size() == 0)
             {
@@ -236,7 +347,7 @@ void TinierMultiplier<T>::init_authenticator(const BitVector& keyBits,
 
 template <int K, int S>
 void Spdz2kMultiplier<K, S>::init_authenticator(const BitVector& keyBits,
-		const vector< vector<BitVector> >& senderOutput,
+		const vector< array<BitVector, 2> >& senderOutput,
 		const vector<BitVector>& receiverOutput) {
 	this->mac_vole->init(keyBits, senderOutput, receiverOutput);
 	input_mac_vole->init(keyBits, senderOutput, receiverOutput);
@@ -426,7 +537,7 @@ void MascotMultiplier<T>::multiplyForBits(true_type)
     BitVector extKeyBits = this->keyBits;
     extKeyBits.resize_zero(128);
     auto extSenderOutput = this->senderOutput;
-    extSenderOutput.resize(128, {2, BitVector(128)});
+    extSenderOutput.resize(128, {{2, BitVector(128)}});
     SeededPRNG G;
     for (auto& x : extSenderOutput)
         for (auto& y : x)
@@ -532,4 +643,10 @@ template<class T>
 void OTMultiplier<T>::multiplyForBits()
 {
     throw runtime_error("bit generation not implemented in this case");
+}
+
+template<class T>
+void OTMultiplier<T>::multiplyForMixed()
+{
+    throw runtime_error("mixed generation not implemented in this case");
 }

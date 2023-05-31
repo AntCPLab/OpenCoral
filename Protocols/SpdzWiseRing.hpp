@@ -36,7 +36,7 @@ void SpdzWiseRing<T>::zero_check(check_type t)
     while(bits.size() > 1)
     {
         auto& protocol = zero_proc.protocol;
-        protocol.init_mul(&zero_proc);
+        protocol.init_mul();
         for (int i = bits.size() - 2; i >= 0; i -= 2)
             protocol.prepare_mul(bits[i], bits[i + 1]);
         protocol.exchange();

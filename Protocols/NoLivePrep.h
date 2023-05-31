@@ -32,6 +32,11 @@ public:
     {
     }
 
+    NoLivePrep(DataPositions& usage, int = -1) :
+            BufferPrep<T>(usage)
+    {
+    }
+
     // access to protocol instance if needed
     void set_protocol(typename T::Protocol&)
     {

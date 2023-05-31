@@ -20,6 +20,7 @@ public:
     void reshare(Plaintext<typename FD::T, FD, typename FD::S>& m,
         const Ciphertext& cm,
         EncCommitBase<typename FD::T, FD, typename FD::S>& EC);
+    Plaintext_<FD> reshare(const Ciphertext& cm);
 };
 
 #endif /* FHEOFFLINE_SIMPLEDISTDECRYPT_H_ */

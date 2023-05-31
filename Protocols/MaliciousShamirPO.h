@@ -9,13 +9,14 @@
 template<class T>
 class MaliciousShamirPO
 {
+protected:
     Player& P;
 
     octetStream to_send;
     vector<octetStream> to_receive;
 
     vector<typename T::open_type> shares;
-    MaliciousShamirMC<T> MC;
+    typename T::Direct_MC MC;
 
 public:
     MaliciousShamirPO(Player& P);

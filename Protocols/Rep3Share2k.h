@@ -11,7 +11,7 @@
 #include "Math/Z2k.h"
 #include "GC/square64.h"
 
-template<class T> class ReplicatedPrep2k;
+template<class T> class SemiRep3Prep;
 
 template<int K>
 class Rep3Share2 : public Rep3Share<Z2<K>>
@@ -24,14 +24,14 @@ public:
     typedef ReplicatedMC<Rep3Share2> MAC_Check;
     typedef MAC_Check Direct_MC;
     typedef ReplicatedInput<Rep3Share2> Input;
-    typedef ::PrivateOutput<Rep3Share2> PrivateOutput;
-    typedef ReplicatedPrep2k<Rep3Share2> LivePrep;
+    typedef ReplicatedPO<This> PO;
+    typedef SpecificPrivateOutput<This> PrivateOutput;
+    typedef SemiRep3Prep<Rep3Share2> LivePrep;
     typedef Rep3Share2 Honest;
     typedef SignedZ2<K> clear;
 
     typedef GC::SemiHonestRepSecret bit_type;
 
-    static const bool has_trunc_pr = true;
     static const bool has_split = true;
 
     Rep3Share2()
@@ -130,17 +130,6 @@ public:
             default:
                 throw runtime_error("number of split summands not implemented");
             }
-        }
-    }
-
-    template<class T>
-    static void shrsi(SubProcessor<T>& proc, const Instruction& inst)
-    {
-        for (int i = 0; i < inst.get_size(); i++)
-        {
-            auto& dest = proc.get_S_ref(inst.get_r(0) + i);
-            auto& source = proc.get_S_ref(inst.get_r(1) + i);
-            dest = source >> inst.get_n();
         }
     }
 };

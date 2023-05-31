@@ -1,7 +1,17 @@
 
+def test(actual, expected):
+    actual = actual.reveal()
+    if expected >= 2 ** (actual.n - 1) and actual.n != 1:
+        expected -= 2 ** actual.n
+    print_ln('expected %s, got %s', expected, actual)
+
 test(sbits(3) + sbits(5), 3 ^ 5)
 test(cbits(3) + cbits(5), 3 + 5)
 test(cbits(3) + (5), 3 + 5)
+test(cbits(5) - cbits(3), 5 - 3)
+test(cbits(5) - (3), 5 - 3)
+test((5) - cbits(3), 5 - 3)
+test(-cbits(-3), 3)
 test(cbits(3) ^ cbits(5), 3 ^ 5)
 test(cbits(3) ^ (5), 3 ^ 5)
 test(sbits(3) + 5, 3 ^ 5)
@@ -61,7 +71,7 @@ test(r * sbit(1) + sbit(1) * r, 0)
 test(sbits.get_type(64)(2**64 - 1).popcnt(), 64)
 
 a = [sbits.new(x, 2) for x in range(4)]
-x, y = sbits.trans(a)
+x, y, *z = sbits.trans(a)
 test(x, 0xa)
 test(y, 0xc)
 
@@ -92,7 +102,7 @@ test(c[1], 0)
 
 a = sbitintvec(sbits.new(x, n=64) for x in [1, 1, 2**63 - 1, 2**63])
 b = sbitintvec(sbits.new(x, n=64) for x in [1, 2, 2**63, 2**63 - 1])
-c = sbitvec([a.less_than(b)]).v
+c = a.less_than(b).elements()
 test(c[0], 0)
 test(c[1], 1)
 test(c[2], 0)
@@ -121,7 +131,7 @@ test(c[1], 30)
 c = (a - b).elements()
 test(c[0], 2 ** 32 - 1)
 test(c[1], 2 ** 32 - 1)
-c = (a < b).bit_decompose()
+c = (a < b).elements()
 test(c[0], 1)
 test(c[1], 1)
 

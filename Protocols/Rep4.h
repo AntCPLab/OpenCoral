@@ -60,6 +60,11 @@ class Rep4 : public ProtocolBase<T>
     void trunc_pr(const vector<int>& regs, int size, SubProcessor<T>& proc,
             false_type);
 
+    template<int = 0>
+    T finalize_mul(int n_bits, true_type);
+    template<int = 0>
+    T finalize_mul(int n_bits, false_type);
+
 public:
     prngs_type rep_prngs;
     Player& P;
@@ -70,14 +75,13 @@ public:
 
     Rep4 branch();
 
-    void init_mul(SubProcessor<T>* proc = 0);
-    void init_mul(Preprocessing<T>& prep, typename T::MAC_Check& MC);
-    typename T::clear prepare_mul(const T& x, const T& y, int n = -1);
+    void init_mul();
+    void prepare_mul(const T& x, const T& y, int n = -1);
     void exchange();
     T finalize_mul(int n = -1);
     void check();
 
-    void init_dotprod(SubProcessor<T>* proc);
+    void init_dotprod();
     void prepare_dotprod(const T& x, const T& y);
     void next_dotprod();
     T finalize_dotprod(int length);

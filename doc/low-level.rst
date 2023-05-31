@@ -83,109 +83,24 @@ number of parties.
 
 .. code-block:: cpp
 
-    // initialize fields
-    T::clear::init_default(prime_length);
+    ProtocolSetup<T> setup(P, prime_length);
 
 We have to use a specific prime for computation modulo a prime. This
 deterministically generates one of the desired length if
 necessary. For computation modulo a power of two, this does not do
-anything.
+anything.  Some protocols use an information-theoretic tag that is
+constant throughout the protocol. This code reads it from storage if
+available or generates a fresh one otherwise.
 
 .. code-block:: cpp
 
-    T::clear::next::init_default(prime_length, false);
+    ProtocolSet<T> set(P, setup);
+    auto& input = set.input;
+    auto& protocol = set.protocol;
+    auto& output = set.output;
 
-For computation modulo a prime, it is more efficient to use Montgomery
-representation, which is not compatible with the MASCOT offline phase
-however. This line initializes another field instance for MASCOT
-without using Montgomery representation.
-
-.. code-block:: cpp
-
-    // must initialize MAC key for security of some protocols
-    typename T::mac_key_type mac_key;
-    T::read_or_generate_mac_key("", P, mac_key);
-
-Some protocols use an information-theoretic tag that is constant
-throughout the protocol. This codes reads it from storage if available
-or generates a fresh one otherwise.
-
-.. code-block:: cpp
-
-    // global OT setup
-    BaseMachine machine;
-    if (T::needs_ot)
-        machine.ot_setups.push_back({P});
-
-Many protocols for a dishonest majority use oblivious transfer. This
-block runs a few instances to seed the oblivious transfer
-extension. The resulting setup only works for one thread. For several
-threads, you need to add sufficiently many instances to
-:member:`ot_setups` and set :member:`BaseMachine::thread_num`
-(thread-local) to a different consecutive number in every thread.
-
-.. code-block:: cpp
-
-    // keeps tracks of preprocessing usage (triples etc)
-    DataPositions usage;
-    usage.set_num_players(P.num_players());
-
-To help keeping track of the required preprocessing, it is necessary
-to initialize preprocessing instances with a :class:`DataPositions`
-variable that will store the usage.
-
-.. code-block:: cpp
-
-    // initialize binary computation
-    T::bit_type::mac_key_type::init_field();
-    typename T::bit_type::mac_key_type binary_mac_key;
-    T::bit_type::part_type::read_or_generate_mac_key("", P, binary_mac_key);
-    GC::ShareThread<typename T::bit_type> thread(N,
-            OnlineOptions::singleton, P, binary_mac_key, usage);
-
-While this example only uses arithmetic computation, you need to
-initialize binary computation as well unless you use the compile-time
-option ``NO_MIXED_CIRCUITS``.
-
-.. code-block:: cpp
-
-    // output protocol
-    typename T::MAC_Check output(mac_key);
-
-Some output protocols use the MAC key to check the correctness.
-
-.. code-block:: cpp
-
-    // various preprocessing
-    typename T::LivePrep preprocessing(0, usage);
-    SubProcessor<T> processor(output, preprocessing, P);
-
-In this example we use live preprocessing, but it is also possible to
-read preprocessing data from disk by using :class:`Sub_Data_Files<T>`
-instead. You can use a live preprocessing instances to generate
-preprocessing data independently, but many protocols require that a
-:class:`SubProcessor<T>` instance has been created as well. The latter
-essentially glues an instance of the output and the preprocessing
-protocol together, which is necessary for Beaver-based multiplication
-protocols.
-
-.. code-block:: cpp
-
-    // input protocol
-    typename T::Input input(processor, output);
-
-Some input protocols depend on preprocessing and an output protocol,
-which is reflect in the standard constructor. Other constructors are
-available depending on the protocol.
-
-.. code-block:: cpp
-
-    // multiplication protocol
-    typename T::Protocol protocol(P);
-
-This instantiates a multiplication protocol. :var:`P` is required
-because some protocols start by exchanging keys for pseudo-random
-secret sharing.
+The :class:`ProtocolSet<T>` contains one instance for every essential
+protocol step.
 
 .. code-block:: cpp
 
@@ -237,6 +152,14 @@ separates dot products in the data preparation phase.
 
 .. code-block:: cpp
 
+    set.check();
+
+Some protocols require a check of all multiplications up to a certain
+point. To guarantee that outputs do not reveal secret information, it
+has to be run before using the output protocol.
+
+.. code-block:: cpp
+
     output.init_open(P);
     output.prepare_open(c);
     output.exchange(P);
@@ -245,15 +168,25 @@ separates dot products in the data preparation phase.
     cout << "result: " << result << endl;
     output.Check(P);
 
-The output protocol follows the same blueprint except that it is
-necessary to call the checking in order to verify the outputs.
+The output protocol follows the same blueprint as the multiplication
+protocol.
 
 .. code-block:: cpp
 
-    T::LivePrep::teardown();
+    set.check();
 
-This frees the memory used for global key material when using homomorphic
-encryption. Otherwise, this does not do anything.
+Some output protocols require an additional to guarantee the
+correctness of outputs.
+
+
+Thread Safety
+-------------
+
+The low-level interface generally isn't thread-safe. In particular,
+you should only use one instance of :class:`ProtocolSetup` in the
+whole program, and you should use only one instance of
+:class:`CryptoPlayer`/:class:`PlainPlayer` and :class:`ProtocolSet`
+per thread.
 
 
 Domain Types
@@ -280,6 +213,9 @@ Domain Types
        :cpp:func:`init_field`. The choice of degrees is limited. At
        the time of writing, 4, 8, 28, 40, 63, and 128 are supported if the
        storage type is large enough.
+
+
+.. _share-type-reference:
 
 Share Types
 ------------
@@ -383,6 +319,33 @@ Share Types
      - ``SpdzWiseShare<T>``
      - `SPDZ-wise <https://eprint.iacr.org/2018/570>`_. ``T`` must be
        ``MaliciousShamirShare`` or ``MaliciousRep3Share``.
+   *
+     - ``TemiShare<T>``
+     - Semi-honest protocol with Beaver multiplication based on
+       threshold semi-homomorphic encryption. ``T`` must be
+       ``gfp_<X, L>`` or ``gf2n_short``.
+
+
+Protocol Setup
+--------------
+
+.. doxygenclass:: ProtocolSetup
+   :members:
+
+.. doxygenclass:: ProtocolSet
+   :members:
+
+.. doxygenclass:: BinaryProtocolSetup
+   :members:
+
+.. doxygenclass:: BinaryProtocolSet
+   :members:
+
+.. doxygenclass:: MixedProtocolSetup
+   :members:
+
+.. doxygenclass:: MixedProtocolSet
+   :members:
 
 
 Protocol Interfaces
@@ -401,4 +364,26 @@ Protocol Interfaces
    :members:
 
 .. doxygenclass:: BufferPrep
+   :members:
+
+
+Domain Reference
+----------------
+
+.. doxygenclass:: gfp_
+   :members:
+
+.. doxygenclass:: gfpvar_
+   :members:
+
+.. doxygenclass:: Z2
+   :members:
+
+.. doxygenclass:: SignedZ2
+   :members:
+
+The following is not used as a domain, but it helps using the above types,
+in particular ``gfp_<X, L>`` and ``gfpvar_<X, L>``.
+
+.. doxygenclass:: bigint
    :members:

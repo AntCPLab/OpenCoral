@@ -1,11 +1,13 @@
+.. _troubleshooting:
+
 Troubleshooting
 ---------------
 
 This section shows how to solve some common issues.
 
 
-Crash without error message or ``bad_alloc``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Crash without error message, ``Killed``, or ``bad_alloc``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some protocols require several gigabytes of memory, and the virtual
 machine will crash if there is not enough RAM. You can reduce the
@@ -23,6 +25,16 @@ lists only exists at compile time. Consider using
 :py:class:`~Compiler.types.Array`.
 
 
+Local variable referenced before assignment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This error can occur if you try to reassign a variable in a run-time
+loop like :py:func:`~Compiler.library.for_range`. Use
+:py:func:`~Compiler.program.Tape.Register.update` instead of assignment. See
+:py:func:`~Compiler.library.for_range` for an example.
+You can also use :py:func:`~Compiler.types.sint.iadd` instead of ``+=``.
+
+
 ``compile.py`` takes too long or runs out of memory
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -33,14 +45,36 @@ resulting in potentially too much virtual machine code. Consider using
 version.
 
 
+Incorrect results when using :py:class:`~Compiler.types.sfix`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is most likely caused by an overflow of the precision
+parameters because the default choice unlike accommodates numbers up
+to around 16,000. See :py:class:`~Compiler.types.sfix` for an
+introduction and :py:func:`~Compiler.types.sfix.set_precision` for how
+to change the precision.
+
+
+Variable results when using :py:class:`~Compiler.types.sfix`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is caused the usage of probablistic rounding, which is used to
+restore the representation after a multiplication. See `Catrina and Saxena
+<https://www.ifca.ai/pub/fc10/31_47.pdf>`_ for details. You can switch
+to deterministic rounding by calling ``sfix.round_nearest = True``.
+
+
 Order of memory instructions not preserved
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, the compiler runs optimizations that in some corner case
 can introduce errors with memory accesses such as accessing an
-:py:class:`~Compiler.types.Array`. If you encounter such errors, you
-can fix this either  with ``-M`` when compiling or placing
-`break_point()` around memory accesses.
+:py:class:`~Compiler.types.Array`. The error message does not
+necessarily mean there will be errors, but the compiler cannot
+guarantee that there will not. If you encounter such errors, you
+can fix this either with ``-M`` when compiling or enable memory
+protection (:py:func:`~Compiler.program.Program.protect_memory`)
+around specific memory accesses.
 
 
 Odd timings
@@ -57,8 +91,21 @@ second batch is necessary the cost shoots up. Other preprocessing
 methods allow for a variable batch size, which can be changed using
 ``-b``. Smaller batch sizes generally reduce the communication cost
 while potentially increasing the number of communication rounds. Try
-adding ``-b 10`` to the virtal machine (or script) arguments for very
+adding ``-b 10`` to the virtual machine (or script) arguments for very
 short computations.
+
+
+Disparities in round figures
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The number of virtual machine rounds given by the compiler are not an
+exact prediction of network rounds but the number of relevant protocol
+calls (such as multiplication, input, output etc) in the program. The
+actual number of network rounds is determined by the choice of
+protocol, which might use several rounds per protocol
+call. Furthermore, communication at the beginning and the end of a
+computation such as random key distribution and MAC checks further
+increase the number of network rounds.
 
 
 Handshake failures
@@ -82,11 +129,11 @@ use the client facility.
 Connection failures
 ~~~~~~~~~~~~~~~~~~~
 
-MP-SPDZ requires at least one TCP port per party to be open to other
-parties. In the default setting, it's 4999 and 5000 on party 0, and
+MP-SPDZ requires one TCP port per party to be open to other
+parties. In the default setting, it's 5000 on party 0, and
 5001 on party 1 etc. You change change the base port (5000) using
 ``--portnumbase`` and individual ports for parties using
-``--my-port``. The scripts in use a random base port number, which you
+``--my-port``. The scripts use a random base port number, which you
 can also change with ``--portnumbase``.
 
 
@@ -123,6 +170,42 @@ Computation used more preprocessing than expected
 
 This indicates an error in the internal accounting of
 preprocessing. Please file a bug report.
+
+
+Required prime bit length is not the same as ``-F`` parameter during compilation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is related to statistical masking that requires the prime to be a
+fair bit larger than the actual "payload" (40 by default).
+The technique goes to back
+to `Catrina and de Hoogh
+<https://www.researchgate.net/profile/Sebastiaan-Hoogh/publication/225092133_Improved_Primitives_for_Secure_Multiparty_Integer_Computation/links/0c960533585ad99868000000/Improved-Primitives-for-Secure-Multiparty-Integer-Computation.pdf>`_.
+See also the paragraph on unknown prime moduli in :ref:`nonlinear`.
+
+
+Windows/VirtualBox performance
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Performance when using Windows/VirtualBox is by default abysmal, as
+AVX/AVX2 instructions are deactivated (see e.g.
+`here <https://stackoverflow.com/questions/65780506/how-to-enable-avx-avx2-in-virtualbox-6-1-16-with-ubuntu-20-04-64bit>`_),
+which causes a dramatic performance loss. Deactivate Hyper-V/Hypervisor
+using::
+
+  bcdedit /set hypervisorlaunchtype off
+  DISM /Online /Disable-Feature:Microsoft-Hyper-V
+
+
+Performance can be further increased when compiling MP-SPDZ yourself:
+::
+
+ sudo apt-get update
+ sudo apt-get install automake build-essential git libboost-dev libboost-thread-dev libntl-dev libsodium-dev libssl-dev libtool m4 python3 texinfo yasm
+ git clone https://github.com/data61/MP-SPDZ.git
+ cd MP-SPDZ
+ make tldr
+
+See also `this issue <https://github.com/data61/MP-SPDZ/issues/557>`_ for a discussion.
 
 
 ``mac_fail``

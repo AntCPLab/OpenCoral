@@ -10,6 +10,7 @@
 
 #include "Machines/SPDZ.hpp"
 #include "ShareVector.hpp"
+#include "MascotPrep.hpp"
 
 template<int L>
 LowGearKeyGen<L>::LowGearKeyGen(Player& P, PairwiseMachine& machine,
@@ -44,6 +45,8 @@ KeyGenProtocol<X, L>::KeyGenProtocol(Player& P, const FHE_Params& params,
 
     MC = new MAC_Check_<share_type>(alphai);
     proc = new SubProcessor<share_type>(*MC, *prep, P);
+
+    MC->setup(P);
 }
 
 template<int X, int L>
@@ -56,6 +59,8 @@ KeyGenProtocol<X, L>::~KeyGenProtocol()
     delete proc;
     delete prep;
     delete MC;
+
+    MC->teardown();
 
     OnlineOptions::singleton.batch_size = backup_batch_size;
 }
@@ -126,7 +131,7 @@ typename KeyGenProtocol<X, L>::vector_type KeyGenProtocol<X, L>::schur_product(
     vector_type res;
     assert(x.size() == y.size());
     auto& protocol = proc->protocol;
-    protocol.init_mul(proc);
+    protocol.init_mul();
     for (size_t i = 0; i < x.size(); i++)
         protocol.prepare_mul(x[i], y[i]);
     protocol.exchange();
@@ -140,12 +145,12 @@ void KeyGenProtocol<X, L>::output_to(int player, vector<open_type>& opened,
         vector<share_type>& shares)
 {
     PrivateOutput<share_type> po(*proc);
-    vector<share_type> masked;
     for (auto& share : shares)
-        masked.push_back(po.start(player, share));
-    MC->POpen(opened, masked, P);
+        po.prepare_sending(share, player);
+    po.exchange();
+    opened.resize(shares.size());
     for (auto& x : opened)
-        x = po.stop(player, x);
+        x = po.finalize(player);
 }
 
 template<int L>

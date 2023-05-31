@@ -57,7 +57,7 @@ void Multiplier<FD>::multiply_and_add(Plaintext_<FD>& res,
 
 template <class FD>
 void Multiplier<FD>::add(Plaintext_<FD>& res, const Ciphertext& c,
-        OT_ROLE role, int n_summands)
+        OT_ROLE role, int)
 {
     o.reset_write_head();
 
@@ -67,20 +67,10 @@ void Multiplier<FD>::add(Plaintext_<FD>& res, const Ciphertext& c,
         G.ReSeed();
         timers["Mask randomization"].start();
         product_share.randomize(G);
-        bigint B = 6 * machine.setup<FD>().params.get_R();
-        B *= machine.setup<FD>().FieldD.get_prime();
-        B <<= machine.drown_sec;
-        // slack
-        B *= NonInteractiveProof::slack(machine.sec,
-                machine.setup<FD>().params.phi_m());
-        B <<= machine.extra_slack;
-        B *= n_summands;
-        rc.generateUniform(G, 0, B, B);
+        mask = c;
+        mask.rerandomize(other_pk);
         timers["Mask randomization"].stop();
-        timers["Encryption"].start();
-        other_pk.encrypt(mask, product_share, rc);
-        timers["Encryption"].stop();
-        mask += c;
+        mask += product_share;
         mask.pack(o);
         res -= product_share;
     }
@@ -128,6 +118,13 @@ void Multiplier<FD>::report_size(ReportType type, MemoryUsage& res)
 {
     (void)type;
     res += memory_usage;
+}
+
+template<class FD>
+const vector<Ciphertext>& Multiplier<FD>::get_multiplicands(
+        const vector<vector<Ciphertext> >& others_ct, const FHE_PK&)
+{
+    return others_ct[P.get_full_player().get_player(-P.get_offset())];
 }
 
 

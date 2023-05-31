@@ -18,6 +18,8 @@ using namespace std;
 
 class NoMemory
 {
+public:
+    void resize_min(size_t, const char*) {}
 };
 
 namespace GC
@@ -47,10 +49,10 @@ inline void Memory<T>::check_index(Integer index) const
         ss << T::type_string() << " memory overflow: " << i << "/" << vector<T>::size();
         throw Processor_Error(ss.str());
     }
-#endif
 #ifdef DEBUG_MEMORY
     cout << typeid(T).name() << " at " << this << " index " << i << ": "
             << vector<T>::operator[](i) << endl;
+#endif
 #endif
 }
 

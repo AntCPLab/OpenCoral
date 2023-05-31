@@ -9,6 +9,7 @@
 #include "Tools/random.h"
 #include "Networking/Player.h"
 #include "Tools/Commit.h"
+#include "Coordinator.h"
 
 #include "Subroutines.hpp"
 
@@ -44,16 +45,16 @@ template<class T>
 void Commit_And_Open(vector< vector<T> >& data,const Player& P,int num_runs);
 
 template<class T>
-void Commit_And_Open(vector<T>& data,const Player& P);
+void Commit_And_Open(vector<T>& data, const Player& P, Coordinator& coordinator);
 
-void Commit_And_Open_(vector<octetStream>& datas,const Player& P);
+void Commit_And_Open_(vector<octetStream>& datas, const Player& P, Coordinator& coordinator);
 
 template<class T>
-void Commit_And_Open(vector<T>& data,const Player& P)
+void Commit_And_Open(vector<T>& data, const Player& P, Coordinator& coordinator)
 {
   vector<octetStream> datas(P.num_players());
   data[P.my_num()].pack(datas[P.my_num()]);
-  Commit_And_Open_(datas, P);
+  Commit_And_Open_(datas, P, coordinator);
   for (int i = 0; i < P.num_players(); i++)
     data[i].unpack(datas[i]);
 }

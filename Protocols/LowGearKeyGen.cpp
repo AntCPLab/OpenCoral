@@ -19,5 +19,5 @@ template<>
 void PairwiseSetup<P2Data>::key_and_mac_generation(Player& P,
         PairwiseMachine& machine, int, false_type)
 {
-    LowGearKeyGen<2>(P, machine, params).run(*this);
+    LowGearKeyGen<0>(P, machine, params).run(*this);
 }

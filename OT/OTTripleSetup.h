@@ -6,6 +6,8 @@
 #include "Tools/random.h"
 #include "Tools/time-func.h"
 
+#include <map>
+
 /*
  * Class for creating and storing base OTs between every pair of parties.
  */
@@ -22,7 +24,7 @@ class OTTripleSetup
 public:
     map<string,Timer> timers;
     vector<OffsetPlayer*> players;
-    vector< vector< vector<BitVector> > > baseSenderInputs;
+    vector< vector< array<BitVector, 2> > > baseSenderInputs;
     vector< vector<BitVector> > baseReceiverOutputs;
 
     int get_nparties() const { return nparties; }
@@ -82,5 +84,23 @@ public:
     OTTripleSetup get_fresh();
 };
 
+class OnDemandOTTripleSetup
+{
+    map<Player*, OTTripleSetup*> setups;
+
+public:
+    ~OnDemandOTTripleSetup()
+    {
+        for (auto& setup : setups)
+            delete setup.second;
+    }
+
+    OTTripleSetup get_fresh(Player& P)
+    {
+        if (setups.find(&P) == setups.end())
+            setups[&P] = new OTTripleSetup(P, true);
+        return setups[&P]->get_fresh();
+    }
+};
 
 #endif

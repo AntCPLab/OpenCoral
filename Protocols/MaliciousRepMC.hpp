@@ -84,9 +84,9 @@ void HashMaliciousRepMC<T>::POpen_End(vector<typename T::open_type>& values,
 }
 
 template<class T>
-typename T::open_type HashMaliciousRepMC<T>::finalize_open()
+typename T::open_type HashMaliciousRepMC<T>::finalize_raw()
 {
-    auto res = ReplicatedMC<T>::finalize_open();
+    auto res = ReplicatedMC<T>::finalize_raw();
     os.reset_write_head();
     res.pack(os);
     update();
@@ -160,7 +160,7 @@ template<class T>
 void CommMaliciousRepMC<T>::POpen_Begin(vector<typename T::clear>& values,
         const vector<T>& S, const Player& P)
 {
-    assert(T::length == 2);
+    assert(T::vector_length == 2);
     (void)values;
     os.resize(2);
     for (auto& o : os)

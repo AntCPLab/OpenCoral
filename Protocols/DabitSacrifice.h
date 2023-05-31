@@ -9,10 +9,12 @@
 template<class T>
 class DabitSacrifice
 {
-    static const int S = 40;
+    const int S;
 
 public:
-    static int minimum_n_inputs(int n_outputs = 0)
+    DabitSacrifice();
+
+    int minimum_n_inputs(int n_outputs = 0)
     {
         if (n_outputs < 1)
             n_outputs = OnlineOptions::singleton.batch_size;
