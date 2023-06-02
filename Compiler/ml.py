@@ -336,8 +336,7 @@ class Output(NoVariableLayer):
         if self.approx:
             return approx_sigmoid(self.X.get_vector(base, size), self.approx)
         else:
-            return sigmoid_from_e_x(self.X.get_vector(base, size),
-                                    self.e_x.get_vector(base, size))
+            return sigmoid(self.X.get_vector(base, size))
 
     def backward(self, batch):
         N = len(batch)
@@ -394,13 +393,19 @@ class Output(NoVariableLayer):
 class LinearOutput(NoVariableLayer):
     n_outputs = -1
 
-    def __init__(self, N):
-        self.X = sfix.Array(N)
-        self.Y = sfix.Array(N)
-        self.nabla_X = sfix.Array(N)
+    def __init__(self, N, n_targets=1):
+        if n_targets == 1:
+            shape = N,
+        else:
+            shape = N, n_targets
+        self.X = sfix.Tensor(shape)
+        self.Y = sfix.Tensor(shape)
+        self.nabla_X = sfix.Tensor(shape)
         self.l = MemValue(sfix(0))
+        self.d_out = n_targets
 
     def _forward(self, batch):
+        assert len(self.X.shape) == 1
         N = len(batch)
         guess = self.X.get_vector(0, N)
         truth = self.Y.get(batch.get_vector(0, N))
@@ -419,7 +424,7 @@ class LinearOutput(NoVariableLayer):
         return self.l.reveal()
 
     def eval(self, size, base=0, top=False):
-        return self.X.get_vector(base, size)
+        return self.X.get_part(base, size)
 
 class MultiOutputBase(NoVariableLayer):
     def __init__(self, N, d_out, approx=False, debug=False):
@@ -2318,7 +2323,7 @@ class Optimizer:
             res = sfix.Matrix(len(data), self.layers[-1].d_out)
         def f(start, batch_size, batch):
             batch.assign_vector(regint.inc(batch_size, start))
-            self.forward(batch=batch, run_last=not top)
+            self.forward(batch=batch, run_last=False)
             part = self.layers[-1].eval(batch_size, top=top)
             res.assign_part_vector(part.get_vector(), start)
         self.run_in_batches(f, data, batch_size or len(self.layers[1].X))
@@ -3179,13 +3184,15 @@ class keras:
                     batch_size = min(batch_size, self.batch_size)
                 return self.opt.eval(x, batch_size=batch_size)
 
-def layers_from_torch(sequence, data_input_shape, batch_size, input_via=None):
+def layers_from_torch(sequence, data_input_shape, batch_size, input_via=None,
+                      regression=False):
     """ Convert a PyTorch Sequential object to MP-SPDZ layers.
 
     :param sequence: PyTorch Sequential object
     :param data_input_shape: input shape (list of four int)
     :param batch_size: batch size (int)
     :param input_via: player to input model data via (default: don't)
+    :param regression: regression (default: classification)
 
     """
     layers = []
@@ -3266,7 +3273,9 @@ def layers_from_torch(sequence, data_input_shape, batch_size, input_via=None):
 
     input_shape = data_input_shape + [1] * (4 - len(data_input_shape))
     process(sequence)
-    if layers[-1].d_out == 1:
+    if regression:
+        layers.append(LinearOutput(data_input_shape[0], layers[-1].d_out))
+    elif layers[-1].d_out == 1:
         layers.append(Output(data_input_shape[0]))
     else:
         layers.append(MultiOutput(data_input_shape[0], layers[-1].d_out))
