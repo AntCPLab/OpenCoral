@@ -101,6 +101,8 @@ public:
 
   void mul(const bigint& x, const bigint& y) { *this = x * y; }
 
+  void add(octetStream& os, int = -1);
+
 #ifdef REALLOC_POLICE
   ~bigint() { lottery(); }
   void lottery();
@@ -129,8 +131,8 @@ public:
   void generateUniform(PRNG& G, int n_bits, bool positive = false)
   { G.get(*this, n_bits, positive); }
 
-  void pack(octetStream& os) const { os.store(*this); }
-  void unpack(octetStream& os)     { os.get(*this); };
+  void pack(octetStream& os, int = -1) const { os.store(*this); }
+  void unpack(octetStream& os, int = -1)     { os.get(*this); };
 
   size_t report_size(ReportType type) const;
 };
