@@ -116,6 +116,7 @@ void BaseOT::exec_base(bool new_receiver_inputs)
         exec_base<ref10_SENDER, ref10_RECEIVER>(new_receiver_inputs);
 }
 
+// See https://eprint.iacr.org/2015/267.pdf
 template<class T, class U>
 void BaseOT::exec_base(bool new_receiver_inputs)
 {
@@ -135,19 +136,24 @@ void BaseOT::exec_base(bool new_receiver_inputs)
 
     if (ot_role & SENDER)
     {
+        // Sample a and compute A=g^a
         sender_genS(&sender, S_pack);
+        // Send A
         os[0].store_bytes(S_pack, sizeof(S_pack));
     }
     send_if_ot_sender(P, os, ot_role);
 
     if (ot_role & RECEIVER)
     {
+        // Receive A
         os[1].get_bytes((octet*) receiver.S_pack, len);
         if (len != HASHBYTES)
         {
             cerr << "Received invalid length in base OT\n";
             exit(1);
         }
+
+        // Process A
         receiver_procS(&receiver);
         receiver_maketable(&receiver);
     }
@@ -160,12 +166,16 @@ void BaseOT::exec_base(bool new_receiver_inputs)
         {
             for (j = 0; j < 4 and (i + j) < nOT; j++)
             {
+                // Process choice bits
                 if (new_receiver_inputs)
                     receiver_inputs[i + j] = G.get_uchar()&1;
                 cs[j] = receiver_inputs[i + j].get();
             }
+            // Compute B
             receiver_rsgen(&receiver, Rs_pack[0], cs);
+            // Send B
             os[0].store_bytes(Rs_pack[0], sizeof(Rs_pack[0]));
+            // Compute k_R
             receiver_keygen(&receiver, receiver_keys);
 
             // Copy keys to receiver_outputs
@@ -197,12 +207,14 @@ void BaseOT::exec_base(bool new_receiver_inputs)
     {
         if (ot_role & SENDER)
         {
+            // Receive B
             os[1].get_bytes((octet*) Rs_pack[1], len);
             if (len != sizeof(Rs_pack[1]))
             {
                 cerr << "Received invalid length in base OT\n";
                 exit(1);
             }
+            // Compute k_0 and k_1
             sender_keygen(&sender, Rs_pack[1], sender_keys);
 
             // Copy 128 bits of keys to sender_inputs
@@ -232,6 +244,7 @@ void BaseOT::exec_base(bool new_receiver_inputs)
         #endif
     }
 
+    // Hash with counter to avoid collisions
     for (int i = 0; i < nOT; i++)
     {
         if (ot_role & RECEIVER)
@@ -241,6 +254,7 @@ void BaseOT::exec_base(bool new_receiver_inputs)
                 hash_with_id(sender_inputs.at(i).at(j), i);
     }
 
+    // Set PRG seeds
     set_seeds();
 }
 
