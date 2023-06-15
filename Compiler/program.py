@@ -504,6 +504,10 @@ class Program(object):
             for tape in self.tapes:
                 tape.write_str(self.options.asmoutfile + "-" + tape.name)
 
+        # Making sure that the public_input_file has been properly closed
+        if self.public_input_file is not None:
+            self.public_input_file.close()
+
     def finalize_memory(self):
         self.curr_tape.start_new_basicblock(None, "memory-usage")
         # reset register counter to 0
