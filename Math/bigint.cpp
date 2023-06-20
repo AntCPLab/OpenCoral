@@ -87,6 +87,12 @@ bigint::bigint(const mp_limb_t* data, size_t n_limbs)
   mpz_import(get_mpz_t(), n_limbs, -1, 8, -1, 0, data);
 }
 
+void bigint::add(octetStream& os, int)
+{
+  tmp.unpack(os);
+  *this += tmp;
+}
+
 string to_string(const bigint& x)
 {
   stringstream ss;

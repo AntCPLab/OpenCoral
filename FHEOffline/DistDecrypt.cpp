@@ -1,6 +1,7 @@
 
 #include "DistDecrypt.h"
 #include "FHE/P2Data.h"
+#include "Protocols/MAC_Check.h"
 
 template<class FD>
 DistDecrypt<FD>::DistDecrypt(const Player& P, const FHE_SK& share,
@@ -26,25 +27,40 @@ Plaintext_<FD>& DistDecrypt<FD>::run(const Ciphertext& ctx, bool NewCiphertext)
   if (not NewCiphertext)
     intermediate_step();
 
-  // Now pack into an octetStream for broadcasting
-  vector<octetStream> os(P.num_players());
-
   if ((int)vv.size() != params.phi_m())
     throw length_error("wrong length of ring element");
-  for (int i=0; i<params.phi_m(); i++)
-    { (os[P.my_num()]).store(vv[i]); }
 
-  // Broadcast and Receive the values
-  P.Broadcast_Receive(os);
+  if (OnlineOptions::singleton.direct)
+    {
+      // Now pack into an octetStream for broadcasting
+      vector<octetStream> os(P.num_players());
 
-  // Reconstruct the value mod p0 from all shares
-  vv1.resize(params.phi_m());
-  for (int i=0; i<P.num_players(); i++)
-    { if (i!=P.my_num())
-        { for (int j=0; j<params.phi_m(); j++)
-	    { os[i].get(vv1[j]); }
-	  share.dist_decrypt_2(vv,vv1);
+      for (int i=0; i<params.phi_m(); i++)
+        { (os[P.my_num()]).store(vv[i]); }
+
+      // Broadcast and Receive the values
+      P.Broadcast_Receive(os);
+
+      // Reconstruct the value mod p0 from all shares
+      vv1.resize(params.phi_m());
+      for (int i = 0; i < P.num_players(); i++)
+        {
+          if (i != P.my_num())
+            {
+              for (int j = 0; j < params.phi_m(); j++)
+                {
+                  os[i].get(vv1[j]);
+                }
+              share.dist_decrypt_2(vv, vv1);
+            }
         }
+    }
+  else
+    {
+      TreeSum<bigint>().run(vv, P);
+      bigint mod=params.p0();
+      for (auto& v : vv)
+        v %= mod;
     }
 
   // Now get the final message
