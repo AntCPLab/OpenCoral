@@ -418,6 +418,9 @@ test_spdz2k_offline: test/test_spdz2k_offline.o $(COMMON) $(VM) $(OT) $(FHEOFFLI
 test_spdz2k_offline_binary: test/test_spdz2k_offline_binary.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE) GC/PostSacriBin.o $(GC_SEMI) GC/AtlasSecret.o
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
 
+test_rmfe_beaver: test/test_rmfe_beaver.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE) GC/PostSacriBin.o $(GC_SEMI)
+	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
+
 zico: target1
 	echo "target1: $@; pre: $^"
 
