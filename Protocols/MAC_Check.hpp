@@ -376,6 +376,7 @@ void Direct_MAC_Check<T>::pre_exchange(const Player& P)
 
   for (auto& x : this->values)
     x.pack(oss[P.my_num()]);
+  oss[P.my_num()].append(0);
 }
 
 
