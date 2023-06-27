@@ -121,6 +121,19 @@ def _():
 def _():
     print_ln('your inputs made no sense')
 
+# Batch input. `sint` will be replaced by `sbitintvec` if compiled with "-B", shown in line 321 of `compilerLib.py`.
+# And there is NO batch input for `sbitintvec`, the `size=4` will be unrolled into a loop of individual input.
+for i in 0, 1:
+    print_ln('got %s from player %s', sint.get_input_from(i, size=4).reveal(), i)
+
+# `sbits` has NO batch input. Its `get_input_from` will treat the single input as a n-bit input, n=40 by default, and will 
+# reach C++'s VectorInput with n_bits=40.
+for i in 0, 1:
+    print_ln('got %s from player %s', sbits.get_input_from(i).reveal(), i)
+
+# So, all these do not satisfy what I want. I want the VectorInput to have `n_bits` along the batch dimension.
+
+
 # permutation matrix
 
 M = Matrix(2, 2, sfix)
