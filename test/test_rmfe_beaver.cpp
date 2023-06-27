@@ -74,6 +74,7 @@ void test_rmfe_beaver(int argc, char** argv)
       rounds += x.second.rounds;
     std::cerr << "Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
         << " rounds (party " << my_number << std::endl;;
+    std::cout << "field degree: " << gf2n_mac_key::degree() << std::endl;
 }
 
 int main(int argc, char** argv)

@@ -16,6 +16,7 @@ class VectorInput : public InputBase<T>
 {
     typename T::part_type::Input part_input;
     deque<int> input_lengths;
+    int c = 0;
 
 public:
     VectorInput(typename T::MAC_Check& MC, Preprocessing<T>& prep, Player& P) :
@@ -36,6 +37,7 @@ public:
 
     void add_mine(const typename T::open_type& input, int n_bits)
     {
+        cout << "n_bits: " << n_bits << ", c: " << c++ << endl;
         if (n_bits == -1)
             n_bits = T::default_length;
         for (int i = 0; i < n_bits; i++)
