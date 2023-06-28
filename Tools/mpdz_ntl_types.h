@@ -1,6 +1,7 @@
 
 #include "Math/gf2n.h"
 #include "Math/mfe.h"
+#include "Math/BitVec.h"
 
 void conv(gf2n_short& y, const NTL::GF2X& x) {
     ntl_gf2x_to_mpdz_gf2n(y, x);
@@ -36,4 +37,10 @@ NTL::GF2X mpdz_gf2n_to_ntl_gf2x(const gf2n_short& x) {
     NTL::GF2X y;
     mpdz_gf2n_to_ntl_gf2x(y, x);
     return y;
+}
+
+void conv(BitVec& y, const NTL::vec_GF2& x) {
+    if (x.length() > BitVec::MAX_N_BITS)
+        throw runtime_error("Cannot convert NTL::vec_GF2 to a shorter BitVec");
+    y = BitVec(x.rep[0]);
 }
