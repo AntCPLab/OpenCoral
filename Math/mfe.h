@@ -232,7 +232,11 @@ void decode(NTL::GF2X& g, const NTL::vec_GF2& h);
 */
 template <class T1, class T2, class T3, class T4>
 class RMFE {
+    static thread_local RMFE<T1, T2, T3, T4>* singleton;
+
 public:
+    static RMFE& s();
+
     virtual long m() = 0;
     virtual long k() = 0;
     virtual long base_field_size() = 0;
@@ -260,6 +264,18 @@ public:
         return y;
     }
 };
+
+template<class T1, class T2, class T3, class T4>
+thread_local RMFE<T1, T2, T3, T4>* RMFE<T1, T2, T3, T4>::singleton = 0;
+
+template<class T1, class T2, class T3, class T4>
+inline RMFE<T1, T2, T3, T4>& RMFE<T1, T2, T3, T4>::s()
+{
+    if (singleton)
+        return *singleton;
+    else
+        throw runtime_error("no singleton");
+}
 
 typedef RMFE<NTL::vec_GF2E, NTL::GF2EX, NTL::GF2X, NTL::GF2EX> Gf2eRMFE;
 typedef RMFE<NTL::vec_GF2, NTL::GF2X, long, NTL::GF2X> Gf2RMFE;
