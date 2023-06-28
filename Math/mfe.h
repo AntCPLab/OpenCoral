@@ -250,6 +250,15 @@ public:
         decode(g, h);
         return g;
     }
+
+    void tau(T2& y, const T2& x) {
+        y = encode(decode(x));
+    }
+    T2 tau(const T2& x) {
+        T2 y;
+        tau(y, x);
+        return y;
+    }
 };
 
 typedef RMFE<NTL::vec_GF2E, NTL::GF2EX, NTL::GF2X, NTL::GF2EX> Gf2eRMFE;
@@ -274,6 +283,9 @@ public:
 using RMFE::encode;
 using RMFE::decode;
 
+/**
+ * "type1" mapping uses m = 2*k-1, otherwise uses m = 2*k
+*/
 BasicRMFE(long k, long base_field_poly_mod_deg, bool is_type1=true);
 
 BasicRMFE(NTL::GF2X base_field_poly, NTL::GF2EX ex_field_poly);
@@ -317,6 +329,9 @@ public:
 using RMFE::encode;
 using RMFE::decode;
 
+/**
+ * "type1" mapping uses m = 2*k-1, otherwise uses m = 2*k
+*/
 BasicGf2RMFE(long k, bool is_type1=true);
 
 bool is_type1() {

@@ -372,17 +372,38 @@ void test_rmfe_then_mfe() {
 
 }
 
+void test_rmfe_tau(long k1, long k2) {
+    print_banner("test_rmfe_tau");
+    long m1 = 2*k1, m2 = 2*k2;
+    shared_ptr<FieldConverter> converter = make_shared<FieldConverter>(m1 * m2, m1, m2);
+    shared_ptr<Gf2RMFE> rmfe1 = make_shared<BasicGf2RMFE>(k1, false);
+    shared_ptr<Gf2eRMFE> rmfe2 = make_shared<BasicRMFE>(converter->base_field_poly(), converter->composite_field_poly());
+    CompositeGf2RMFE rmfe(converter, rmfe1, rmfe2);
+
+    vec_GF2 a = random_vec_GF2(rmfe.k()), b = random_vec_GF2(rmfe.k());
+    GF2X enc_a = rmfe.encode(a), enc_b = rmfe.encode(b);
+
+    GF2X enc_a_ = rmfe.tau(enc_a), enc_b_ = rmfe.tau(enc_b);
+
+    cout << "k:\t" << rmfe.k() << ", m:\t" << rmfe.m() << endl;
+    cout << "enc_a:\t" << enc_a << endl;
+    cout << "enc_a_:\t" << enc_a_ << endl;
+    cout << "enc_b:\t" << enc_b_ << endl;
+    cout << "enc_b_:\t" << enc_b_ << endl;
+}
+
 int main() {
     // test_composite_to_binary();
     // test_composite_to_binary_with_base_poly();
     // test_basic_mfe();
     // test_basic_gf2_mfe();
     // test_composite_gf2_mfe();
-    test_double_composite_gf2_mfe(2, 3, 8);
+    // test_double_composite_gf2_mfe(2, 3, 8);
     // test_basic_rmfe();
     // test_basic_gf2_rmfe();
-    test_basic_gf2_rmfe_type2();
-    test_composite_gf2_rmfe();
-    test_composite_gf2_rmfe_type2(2, 6);
-    test_rmfe_then_mfe();
+    // test_basic_gf2_rmfe_type2();
+    // test_composite_gf2_rmfe();
+    // test_composite_gf2_rmfe_type2(2, 6);
+    // test_rmfe_then_mfe();
+    test_rmfe_tau(2, 6);
 }
