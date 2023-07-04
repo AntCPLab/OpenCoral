@@ -1,0 +1,30 @@
+import ml
+
+# sfix: fixed-point numbers
+
+# set the precision after the dot and in total
+
+sfix.set_precision(16, 31)
+
+# and the output precision in decimal digits
+
+print_float_precision(4)
+
+# you can do all basic arithmetic with sfix, including division
+
+n = 10
+a = sfix.Matrix(10, n)
+
+for i in range(n):
+    a[0][i] = i + 1
+
+a_sum = sum(a[0])
+
+print_ln('sum: %s', a_sum.reveal())
+
+# result = 1.0 / sum(a[0])
+# result = a[0] * sum(a[0])
+result = a[0] / sum(a[0])
+# result = ml.softmax_from_exp(a[0])
+# result = a[0] * (1.0 / sum(a[0]))
+print_ln('softmax[0]: %s', result[0].reveal())

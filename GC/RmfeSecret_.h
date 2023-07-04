@@ -12,16 +12,20 @@
 #include "VectorInput.h"
 #include "TinyMC.h"
 
+template<class T> class TinierMultiplier;
 
 namespace GC
 {
 
+template<class T> class TinierPrep;
 template<class T> class VectorProtocol;
+// template<class T> class VectorPrep;
+// template<class T> class VectorInput;
 
-template<class T>
-class RmfeSecret : public VectorSecret<RmfeShare<T>>
+template<class T, class V>
+class RmfeSecret : public VectorSecret<RmfeShare<T, V>>
 {
-    typedef VectorSecret<RmfeShare<T>> super;
+    typedef VectorSecret<RmfeShare<T, V>> super;
     typedef RmfeSecret This;
 
 public:
@@ -92,8 +96,8 @@ public:
     }
 };
 
-template<class T>
-RmfeShare<T>::RmfeShare(const RmfeSecret<T>& other)
+template<class T, class V>
+RmfeShare<T, V>::RmfeShare(const RmfeSecret<T, V>& other)
 {
     assert(other.get_regs().size() > 0);
     *this = other.get_reg(0);

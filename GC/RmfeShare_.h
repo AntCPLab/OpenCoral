@@ -11,25 +11,15 @@
 #include "Math/Bit.h"
 #include "Protocols/RmfeBeaver.h"
 
-class gf2n_rmfe : public gf2n_short
+class gf2n_mac_key : public gf2n_short
 {
-    typedef gf2n_short super;
 public:
-    gf2n_rmfe()
+    gf2n_mac_key()
     {
     }
 
-    static const int DEFAULT_LENGTH = 48;
-
-    static int length()         { return n == 0 ? DEFAULT_LENGTH : n; }
-    static int default_degree() { return DEFAULT_LENGTH; }
-
-    static void init_field(int nn = 0) {
-        super::init_field(nn == 0 ? DEFAULT_LENGTH : nn);
-    }
-
     template<class T>
-    gf2n_rmfe(const T& other) :
+    gf2n_mac_key(const T& other) :
             gf2n_short(other)
     {
     }
@@ -38,22 +28,22 @@ public:
 namespace GC
 {
 
-template<class T> class RmfeSecret;
+template<class T, class V> class RmfeSecret;
 // template<class T> class TinierSharePrep;
 
-template<class T>
-class RmfeShare: public Share_<SemiShare<T>, SemiShare<T>>,
-        public ShareSecret<RmfeSecret<T>>
+template<class T, class V>
+class RmfeShare: public Share_<SemiShare<T>, SemiShare<V>>,
+        public ShareSecret<RmfeSecret<T, V>>
 {
     typedef RmfeShare This;
 
 public:
-    typedef Share_<SemiShare<T>, SemiShare<T>> super;
+    typedef Share_<SemiShare<T>, SemiShare<V>> super;
 
-    typedef T mac_key_type;
-    typedef T mac_type;
-    typedef T sacri_type;
-    typedef Share<T> input_check_type;
+    typedef V mac_key_type;
+    typedef V mac_type;
+    typedef V sacri_type;
+    typedef Share<V> input_check_type;
     typedef This prep_type;
     typedef This prep_check_type;
     typedef This bit_prep_type;
@@ -75,7 +65,7 @@ public:
 
     typedef InsecureMC<This> MC;
 
-    static const int default_length = 12;
+    static const int default_length = 1;
 
     static string name()
     {
@@ -118,7 +108,7 @@ public:
             super(share, mac)
     {
     }
-    RmfeShare(const RmfeSecret<T>& other);
+    RmfeShare(const RmfeSecret<T, V>& other);
 
     void XOR(const This& a, const This& b)
     {
@@ -143,12 +133,15 @@ public:
                 party.MC->get_alphai());
     }
 
-    BitVec decoded_share() {
-        NTL::GF2X ntl_tmp;
-        BitVec decoded;
-        conv(ntl_tmp, get_share());
-        conv(decoded, Gf2RMFE::s().decode(ntl_tmp));
-        return decoded;
+    This lsb() const
+    {
+        return *this;
+    }
+
+    This get_bit(int i)
+    {
+        assert(i == 0);
+        return lsb();
     }
 };
 
