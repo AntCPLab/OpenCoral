@@ -58,7 +58,7 @@ void RmfeInput<T>::add_mine(const clear& input, int n_bits)
     NTL::vec_GF2 ntl_input;
     open_type encoded_input;
     conv(ntl_input, input, n_bits);
-    conv(encoded_input, Gf2RMFE::s().encode(ntl_tmp))
+    conv(encoded_input, Gf2RMFE::s().encode(ntl_tmp));
 
     int player = P.my_num();
     shares[player].push_back({});
