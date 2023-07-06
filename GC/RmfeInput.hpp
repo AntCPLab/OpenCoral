@@ -53,6 +53,8 @@ void RmfeInput<T>::reset(int player)
 template<class T>
 void RmfeInput<T>::add_mine(const clear& input, int n_bits)
 {
+    if (n_bits > T::default_length)
+        throw runtime_error("Cannot handle bits more than rmfe packing size");
     if (n_bits == -1)
         n_bits = T::default_length;
     NTL::vec_GF2 ntl_input;
