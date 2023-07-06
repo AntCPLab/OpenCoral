@@ -9,7 +9,7 @@
 #include "TinySecret.h"
 #include "RmfeShare.h"
 #include "VectorPrep.h"
-#include "VectorInput.h"
+#include "RmfeMultiInput.h"
 #include "TinyMC.h"
 
 
@@ -28,7 +28,7 @@ public:
     typedef TinyMC<This> MC;
     typedef MC MAC_Check;
     typedef VectorProtocol<This> Protocol;
-    typedef VectorInput<This> Input;
+    typedef RmfeMultiInput<This> Input;
     typedef VectorPrep<This> LivePrep;
     typedef Memory<This> DynamicMemory;
 

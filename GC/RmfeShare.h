@@ -10,6 +10,7 @@
 #include "Protocols/Share.h"
 #include "Math/Bit.h"
 #include "Protocols/RmfeBeaver.h"
+#include "RmfeInput.h"
 
 class gf2n_rmfe : public gf2n_short
 {
@@ -64,7 +65,7 @@ public:
 
     typedef InsecureMC<This> MAC_Check;
     typedef InsecureLivePrep2PC<This> LivePrep;
-    typedef ::Input<This> Input;
+    typedef RmfeInput<This> Input;
     typedef RmfeBeaver<This> Protocol;
     // typedef NPartyTripleGenerator<TinierSecret<T>> TripleGenerator;
 
