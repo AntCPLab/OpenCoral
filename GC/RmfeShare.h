@@ -50,6 +50,9 @@ class RmfeShare: public Share_<SemiShare<T>, SemiShare<T>>,
 public:
     typedef Share_<SemiShare<T>, SemiShare<T>> super;
 
+    typedef T open_type; // encoded
+    typedef BitVec clear; // decoded
+
     typedef T mac_key_type;
     typedef T mac_type;
     typedef T sacri_type;

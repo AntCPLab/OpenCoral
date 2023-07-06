@@ -44,3 +44,11 @@ void conv(BitVec& y, const NTL::vec_GF2& x) {
         throw runtime_error("Cannot convert NTL::vec_GF2 to a shorter BitVec");
     y = BitVec(x.rep[0]);
 }
+
+void conv(NTL::vec_GF2& y, const BitVec& x, int n_bits) {
+    if (n_bits > BitVec::MAX_N_BITS)
+        throw runtime_error("Cannot convert BitVec to NTL::vec_GF2");
+    if (n_bits == -1)
+        n_bits = BitVec::MAX_N_BITS;
+    y.rep[0] = x.mask(n_bits).get();
+}
