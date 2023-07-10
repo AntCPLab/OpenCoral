@@ -1,11 +1,9 @@
+#ifndef TOOLS_MPDZ_NTL_TYPES_H_
+#define TOOLS_MPDZ_NTL_TYPES_H_
 
 #include "Math/gf2n.h"
 #include "Math/mfe.h"
 #include "Math/BitVec.h"
-
-void conv(gf2n_short& y, const NTL::GF2X& x) {
-    ntl_gf2x_to_mpdz_gf2n(y, x);
-}
 
 void ntl_gf2x_to_mpdz_gf2n(gf2n_short& y, const NTL::GF2X& x) {
     if (deg(x) >= gf2n_short::degree())
@@ -13,14 +11,14 @@ void ntl_gf2x_to_mpdz_gf2n(gf2n_short& y, const NTL::GF2X& x) {
     y = gf2n_short(x.xrep[0]);
 }
 
+void conv(gf2n_short& y, const NTL::GF2X& x) {
+    ntl_gf2x_to_mpdz_gf2n(y, x);
+}
+
 gf2n_short ntl_gf2x_to_mpdz_gf2n(const NTL::GF2X& x) {
     gf2n_short y;
     ntl_gf2x_to_mpdz_gf2n(y, x);
     return y;
-}
-
-void conv(NTL::GF2X& y, const gf2n_short& x) {
-    mpdz_gf2n_to_ntl_gf2x(y, x);
 }
 
 void mpdz_gf2n_to_ntl_gf2x(NTL::GF2X& y, const gf2n_short& x) {
@@ -31,6 +29,10 @@ void mpdz_gf2n_to_ntl_gf2x(NTL::GF2X& y, const gf2n_short& x) {
         y.xrep.SetLength(1);
         y.xrep[0] = x.get_word();
     }
+}
+
+void conv(NTL::GF2X& y, const gf2n_short& x) {
+    mpdz_gf2n_to_ntl_gf2x(y, x);
 }
 
 NTL::GF2X mpdz_gf2n_to_ntl_gf2x(const gf2n_short& x) {
@@ -52,3 +54,5 @@ void conv(NTL::vec_GF2& y, const BitVec& x, int n_bits) {
         n_bits = BitVec::MAX_N_BITS;
     y.rep[0] = x.mask(n_bits).get();
 }
+
+#endif

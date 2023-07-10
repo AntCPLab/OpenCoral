@@ -11,6 +11,7 @@
 #include "Math/Bit.h"
 #include "Protocols/RmfeBeaver.h"
 #include "RmfeInput.h"
+#include "Tools/mpdz_ntl_types.h"
 
 class gf2n_rmfe : public gf2n_short
 {
@@ -40,7 +41,6 @@ namespace GC
 {
 
 template<class T> class RmfeSecret;
-// template<class T> class TinierSharePrep;
 
 template<class T>
 class RmfeShare: public Share_<SemiShare<T>, SemiShare<T>>,
@@ -51,8 +51,8 @@ class RmfeShare: public Share_<SemiShare<T>, SemiShare<T>>,
 public:
     typedef Share_<SemiShare<T>, SemiShare<T>> super;
 
-    typedef T open_type; // encoded
-    typedef BitVec clear; // decoded
+    typedef BitVec open_type;
+    typedef BitVec clear;
 
     typedef T mac_key_type;
     typedef T mac_type;
@@ -147,10 +147,10 @@ public:
                 party.MC->get_alphai());
     }
 
-    BitVec decoded_share() {
+    BitVec decoded_share() const {
         NTL::GF2X ntl_tmp;
         BitVec decoded;
-        conv(ntl_tmp, get_share());
+        conv(ntl_tmp, this->get_share());
         conv(decoded, Gf2RMFE::s().decode(ntl_tmp));
         return decoded;
     }

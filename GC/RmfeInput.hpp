@@ -51,7 +51,7 @@ void RmfeInput<T>::reset(int player)
 }
 
 template<class T>
-void RmfeInput<T>::add_mine(const clear& input, int n_bits)
+void RmfeInput<T>::add_mine(const open_type& input, int n_bits)
 {
     if (n_bits > T::default_length)
         throw runtime_error("Cannot handle bits more than rmfe packing size");

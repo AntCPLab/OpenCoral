@@ -37,7 +37,7 @@ public:
     // typedef TinierMultiplier<This> Multiplier;
 
     typedef typename super::part_type check_type;
-    typedef Share<V> input_check_type;
+    typedef Share<T> input_check_type;
     typedef check_type input_type;
 
     static string type_short()

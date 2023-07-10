@@ -26,13 +26,13 @@ class RmfeInput : public InputBase<T>
     open_type rr, t, xi;
 
 public:
-    RmfeInput(typename MAC_Check& MC, Preprocessing<T>& prep, Player& P);
+    RmfeInput(MAC_Check& MC, Preprocessing<T>& prep, Player& P);
 
-    RmfeInput(SubProcessor<T>& proc, typename MAC_Check&);
+    RmfeInput(SubProcessor<T>& proc, MAC_Check&);
 
     void reset(int player);
 
-    void add_mine(const clear& input, int n_bits = -1);
+    void add_mine(const open_type& input, int n_bits = -1);
     void add_other(int player, int n_bits = -1);
 
     void send_mine();

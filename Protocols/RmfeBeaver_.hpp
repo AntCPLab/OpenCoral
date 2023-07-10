@@ -9,7 +9,6 @@
 #include "RmfeBeaver.h"
 
 #include "Replicated.hpp"
-#include "Tools/mpdz_ntl_types.h"
 
 #include <array>
 
@@ -92,16 +91,9 @@ T RmfeBeaver<T>::finalize_mul(int n)
     {
         masked[k] = *it++;
     }
-    T::open_type norm_masked[2];
-    NTL::GF2X ntl_tmp;
-    conv(ntl_tmp, masked[0]);
-    conv(norm_masked[0], Gf2RMFE::s().tau(ntl_tmp));
-    conv(ntl_tmp, masked[1]);
-    conv(norm_masked[1], Gf2RMFE::s().tau(ntl_tmp));
-    
-    tmp += (norm_masked[0] * (*triple)[1]);
-    tmp += ((*triple)[0] * norm_masked[1]);
-    tmp += T::constant(norm_masked[0] * norm_masked[1], P.my_num(), MC->get_alphai());
+    tmp += (masked[0] * (*triple)[1]);
+    tmp += ((*triple)[0] * masked[1]);
+    tmp += T::constant(masked[0] * masked[1], P.my_num(), MC->get_alphai());
     triple++;
     return tmp;
 }
