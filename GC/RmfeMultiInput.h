@@ -41,7 +41,7 @@ public:
         for (int i = 0; i < n_bits; i = i + T::part_type::default_length) {
             int l = std::min(n_bits - i, T::part_type::default_length);
             
-            part_input.add_mine(T::clear(input >> i).mask(l), l);
+            part_input.add_mine(typename T::clear(input >> i).mask(l), l);
         }
         input_lengths.push_back(n_bits);
     }

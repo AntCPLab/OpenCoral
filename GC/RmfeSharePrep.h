@@ -23,6 +23,8 @@ class RmfeSharePrep : public PersonalPrep<T>
 
     typedef typename T::whole_type secret_type;
 
+    void get_input_no_count(T& r_share, typename T::open_type& r , int player);
+
     void buffer_triples();
     void buffer_squares() { throw not_implemented(); }
     void buffer_bits();

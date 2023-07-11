@@ -89,7 +89,8 @@ void GC::RmfeSharePrep<T>::buffer_bits()
 
 }
 
-void get_input_no_count(T& r_share, typename T::open_type& r , int player) {
+template<class T>
+void GC::RmfeSharePrep<T>::get_input_no_count(T& r_share, typename T::open_type& r , int player) {
     typedef typename T::open_type U;
     typedef typename T::mac_type W;
 
