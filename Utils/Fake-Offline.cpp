@@ -506,7 +506,8 @@ int main(int argc, const char** argv)
         0, // Required?
         1, // Number of args expected.
         0, // Delimiter if expecting multiple args.
-        "SPDZ2k security parameter (default: k)", // Help description.
+        ("SPDZ2k security parameter (default: "
+          + to_string(SPDZ2K_DEFAULT_SECURITY) + ")").c_str(), // Help description.
         "-S", // Flag token.
         "--security" // Flag token.
   );
@@ -567,17 +568,21 @@ int main(int argc, const char** argv)
     {
       int k, s;
       opt.get("-Z")->getInt(k);
-      s = k;
+      s = SPDZ2K_DEFAULT_SECURITY;
       if (opt.isSet("-S"))
         opt.get("-S")->getInt(s);
-      if (k == 32 and s == 32)
-        return params.generate<Spdz2kShare<32, 32>>();
-      else if (k == 64 and s == 64)
-        return params.generate<Spdz2kShare<64, 64>>();
-      else if (k == 64 and s == 48)
-        return params.generate<Spdz2kShare<64, 48>>();
-      else
-        throw runtime_error("not compiled for k=" + to_string(k) + " and s=" + to_string(s));
+#define X(K, S) if (k == K and s == S) \
+	  return params.generate<Spdz2kShare<K, S>>();
+#ifdef RING_SIZE
+      X(RING_SIZE, SPDZ2K_DEFAULT_SECURITY)
+#endif
+      X(32, 32) X(64, 64) X(64, 48)
+#undef X
+
+      cerr << "Not compiled for " << k << "-bit rings with " << s
+          << "-bit security." << endl << "Add 'X(" << k << "," << s
+          << ")' to line " << (__LINE__ - 4) << " in " << __FILE__ << endl;
+      exit(1);
     }
   else
       params.generate<Share<gfpvar>>();
