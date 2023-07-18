@@ -33,6 +33,7 @@ public:
     void reset(int player);
 
     void add_mine(const open_type& input, int n_bits = -1);
+    void add_mine_decoded(const BitVec& input, int n_bits = -1);
     void add_other(int player, int n_bits = -1);
 
     void send_mine();

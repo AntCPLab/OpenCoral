@@ -664,6 +664,7 @@ GF2EX FieldConverter::binary_to_composite(const GF2E& x) {
     return to_GF2EX(raw_binary_to_composite(to_vec_GF2(x, k_)), base_field_poly());
 }
 
+
 BasicRMFE::BasicRMFE(long k, long base_field_poly_mod_deg, bool is_type1): k_(k) {
     if (is_type1)
         m_ = 2*k-1;

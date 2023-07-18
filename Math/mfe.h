@@ -75,6 +75,8 @@ NTL::GF2EX binary_to_composite(const NTL::GF2E& x);
 template <class T1, class T2, class T3, class T4>
 class MFE {
 public:
+    virtual ~MFE() {};
+
     virtual long m() = 0;
     virtual long t() = 0;
     virtual long base_field_size() = 0;
@@ -232,9 +234,13 @@ void decode(NTL::GF2X& g, const NTL::vec_GF2& h);
 */
 template <class T1, class T2, class T3, class T4>
 class RMFE {
-    static thread_local RMFE<T1, T2, T3, T4>* singleton;
+    typedef RMFE<T1, T2, T3, T4> This;
+    static thread_local This* singleton;
 
 public:
+    virtual ~RMFE() {};
+
+    static void set_singleton(This* s);
     static RMFE& s();
 
     virtual long m() = 0;
@@ -275,6 +281,11 @@ inline RMFE<T1, T2, T3, T4>& RMFE<T1, T2, T3, T4>::s()
         return *singleton;
     else
         throw runtime_error("no singleton");
+}
+
+template<class T1, class T2, class T3, class T4>
+inline void RMFE<T1, T2, T3, T4>::set_singleton(RMFE<T1, T2, T3, T4>* s) {
+    singleton = s;
 }
 
 typedef RMFE<NTL::vec_GF2E, NTL::GF2EX, NTL::GF2X, NTL::GF2EX> Gf2eRMFE;
@@ -419,5 +430,32 @@ long base_field_size() {
 void encode(NTL::GF2X& g, const NTL::vec_GF2& h);
 void decode(NTL::vec_GF2& h, const NTL::GF2X& g);
 };
+
+
+void pad(NTL::vec_GF2& x, int L) {
+    if(x.length() >= L)
+        return;
+    x.SetLength(L);
+}
+
+std::unique_ptr<Gf2RMFE> get_composite_gf2_rmfe_type2(long k1, long k2) {
+    long m1 = 2*k1, m2 = 2*k2;
+    shared_ptr<FieldConverter> converter = make_shared<FieldConverter>(m1 * m2, m1, m2);
+    shared_ptr<Gf2RMFE> rmfe1 = make_shared<BasicGf2RMFE>(k1, false);
+    shared_ptr<Gf2eRMFE> rmfe2 = make_shared<BasicRMFE>(converter->base_field_poly(), converter->composite_field_poly());
+    return unique_ptr<Gf2RMFE>(new CompositeGf2RMFE(converter, rmfe1, rmfe2));
+}
+
+std::unique_ptr<Gf2MFE> get_double_composite_gf2_mfe(long m1, long m2, long m3) {
+    shared_ptr<FieldConverter> converter1 = make_shared<FieldConverter>(m1 * m2, m1, m2);
+    shared_ptr<FieldConverter> converter2 = make_shared<FieldConverter>(m1 * m2 * m3, m1*m2, m3, converter1->binary_field_poly());
+    shared_ptr<Gf2MFE> mfe1 = make_shared<BasicGf2MFE>(m1);
+    shared_ptr<Gf2eMFE> mfe2 = make_shared<BasicMFE>(converter1->base_field_poly(), converter1->composite_field_poly());
+    shared_ptr<CompositeGf2MFE> mfe3 = make_shared<CompositeGf2MFE>(converter1, mfe1, mfe2);
+    
+    shared_ptr<Gf2eMFE> mfe4 = make_shared<BasicMFE>(converter2->base_field_poly(), converter2->composite_field_poly());
+    return unique_ptr<Gf2MFE>(new CompositeGf2MFE(converter2, mfe3, mfe4));
+}
+
 
 #endif /* MFE_H_ */

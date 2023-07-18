@@ -15,6 +15,10 @@ void test_rmfe_beaver(int argc, char** argv)
     Names N(my_number, n_parties, "localhost", port_base);
     PlainPlayer P(N);
 
+    // RMFE setup
+    auto rmfe = get_composite_gf2_rmfe_type2(2, 6);
+    rmfe->set_singleton(rmfe.get());
+
     // protocol setup (domain, MAC key if needed etc)
     BinaryProtocolSetup<T> setup(P);
 
@@ -31,23 +35,23 @@ void test_rmfe_beaver(int argc, char** argv)
 
     input.reset_all(P);
     for (int i = 0; i < n; i++)
-        input.add_from_all(i + P.my_num(), n_bits);
+        input.add_from_all_decoded(i + P.my_num(), n_bits);
     input.exchange();
     for (int i = 0; i < n; i++)
     {
         a[i] = input.finalize(0, n_bits);
         b[i] = input.finalize(1, n_bits);
     }
-    cout << "a[0]: " << a[0] << endl;
-    for (int i = 0; i < n_bits; i++)
-        cout << a[0].get_bit(i).get_share();
-    cout << endl;
 
     protocol.init_mul();
+    cout << "init mul" << endl;
     for (int i = 0; i < n; i++)
         protocol.prepare_mul(a[i], b[i], n_bits);
+    cout << "prepare mul" << endl;
     protocol.exchange();
+    cout << "exchange" << endl;
     output.init_open(P, n);
+    cout << "init open" << endl;
     // for (int i = 0; i < n; i++)
     // {
     //     auto c = protocol.finalize_mul(n_bits);
@@ -57,8 +61,11 @@ void test_rmfe_beaver(int argc, char** argv)
     {
         output.prepare_open(a[i]);
     }
+    cout << "prepare open" << endl;
     output.exchange(P);
+    cout << "output exchange" << endl;
     set.check();
+    cout << "check" << endl;
 
     cout << "result: ";
     for (int i = 0; i < n; i++)

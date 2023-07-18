@@ -13,12 +13,41 @@
 #include "RmfeInput.h"
 #include "Tools/mpdz_ntl_types.h"
 
+class gf2n_rmfe;
+
+class bitvec_rmfe : public BitVec
+{
+    typedef BitVec super;
+public:
+    static const int DEFAULT_LENGTH = 12;
+
+    bitvec_rmfe() {
+        
+    }
+
+    // NOTE: This constructor includes decoding.
+    bitvec_rmfe(const gf2n_rmfe& encoded) {
+        NTL::GF2X ntl_tmp;
+        BitVec decoded;
+        conv(ntl_tmp, encoded);
+        conv(decoded, Gf2RMFE::s().decode(ntl_tmp));
+        super::operator=(decoded);
+    }
+};
+
 class gf2n_rmfe : public gf2n_short
 {
     typedef gf2n_short super;
 public:
     gf2n_rmfe()
     {
+    }
+
+    // NOTE: This constructor includes encoding.
+    gf2n_rmfe(const BitVec& decoded) {
+        NTL::vec_GF2 ntl_tmp;
+        conv(ntl_tmp, decoded, bitvec_rmfe::DEFAULT_LENGTH);
+        conv(*this, Gf2RMFE::s().encode(ntl_tmp));
     }
 
     static const int DEFAULT_LENGTH = 48;
@@ -37,6 +66,7 @@ public:
     }
 };
 
+
 namespace GC
 {
 
@@ -51,8 +81,9 @@ class RmfeShare: public Share_<SemiShare<T>, SemiShare<T>>,
 public:
     typedef Share_<SemiShare<T>, SemiShare<T>> super;
 
-    typedef BitVec open_type;
-    typedef BitVec clear;
+    typedef T open_type;
+    typedef T clear;
+    typedef bitvec_rmfe raw_type;
 
     typedef T mac_key_type;
     typedef T mac_type;
@@ -79,7 +110,7 @@ public:
 
     typedef InsecureMC<This> MC;
 
-    static const int default_length = 12;
+    static const int default_length = bitvec_rmfe::DEFAULT_LENGTH;
 
     static string name()
     {

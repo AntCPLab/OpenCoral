@@ -9,18 +9,13 @@
 #include "RmfeInput.h"
 #include "Processor.h"
 
-#include "IntInput.h"
-#include "FixInput.h"
-#include "FloatInput.h"
-
-#include "IntInput.hpp"
-
-
 // template<class T>
 // Input<T>::Input(SubProcessor<T>& proc) :
 //         Input(proc, proc.MC)
 // {
 // }
+
+namespace GC {
 
 template<class T>
 RmfeInput<T>::RmfeInput(SubProcessor<T>& proc, MAC_Check& mc) :
@@ -53,6 +48,20 @@ void RmfeInput<T>::reset(int player)
 template<class T>
 void RmfeInput<T>::add_mine(const open_type& input, int n_bits)
 {
+    (void) n_bits;
+    int player = P.my_num();
+    shares[player].push_back({});
+    T& share = shares[player].back();
+    prep.get_input(share, rr, player);
+    t = input - rr;
+    t.pack(this->os[player]);
+    share += T::constant(t, player, MC.get_alphai());
+    this->values_input++;
+}
+
+template<class T>
+void RmfeInput<T>::add_mine_decoded(const BitVec& input, int n_bits)
+{
     if (n_bits > T::default_length)
         throw runtime_error("Cannot handle bits more than rmfe packing size");
     if (n_bits == -1)
@@ -60,16 +69,10 @@ void RmfeInput<T>::add_mine(const open_type& input, int n_bits)
     NTL::vec_GF2 ntl_input;
     open_type encoded_input;
     conv(ntl_input, input, n_bits);
-    conv(encoded_input, Gf2RMFE::s().encode(ntl_tmp));
+    pad(ntl_input, Gf2RMFE::s().k());
+    conv(encoded_input, Gf2RMFE::s().encode(ntl_input));
 
-    int player = P.my_num();
-    shares[player].push_back({});
-    T& share = shares[player].back();
-    prep.get_input(share, rr, player);
-    t = encoded_input - rr;
-    t.pack(this->os[player]);
-    share += T::constant(t, player, MC.get_alphai());
-    this->values_input++;
+    add_mine(encoded_input, n_bits);
 }
 
 template<class T>
@@ -101,6 +104,8 @@ void RmfeInput<T>::finalize_other(int player, T& target,
     target = shares[player].next();
     t.unpack(o);
     target += T::constant(t, P.my_num(), MC.get_alphai());
+}
+
 }
 
 #endif

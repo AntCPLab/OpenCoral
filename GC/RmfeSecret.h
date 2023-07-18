@@ -10,7 +10,8 @@
 #include "RmfeShare.h"
 #include "VectorPrep.h"
 #include "RmfeMultiInput.h"
-#include "TinyMC.h" 
+#include "RmfeVectorMC.h" 
+#include "RmfeVectorProtocol.h"
 
 
 namespace GC
@@ -25,9 +26,9 @@ class RmfeSecret : public VectorSecret<RmfeShare<T>>
     typedef RmfeSecret This;
 
 public:
-    typedef TinyMC<This> MC;
+    typedef RmfeVectorMC<This> MC;
     typedef MC MAC_Check;
-    typedef VectorProtocol<This> Protocol;
+    typedef RmfeVectorProtocol<This> Protocol;
     typedef RmfeMultiInput<This> Input;
     typedef VectorPrep<This> LivePrep;
     typedef Memory<This> DynamicMemory;
@@ -89,6 +90,11 @@ public:
         to_open.resize_regs(n_bits);
         auto& party = ShareThread<This>::s();
         x = party.MC->POpen(to_open, *party.P);
+    }
+
+    RmfeShare<T> get_part(int i) const
+    {
+        return this->get_reg(i);
     }
 };
 

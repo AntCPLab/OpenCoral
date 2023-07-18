@@ -34,24 +34,42 @@ public:
         part_input.reset(player);
     }
 
-    void add_mine(const typename T::clear& input, int n_bits)
+    void add_mine(const typename T::open_type& input, int n_bits = -1)
+    {
+        (void) n_bits;
+        part_input.add_mine(input);
+        input_lengths.push_back(1);
+    }
+
+    void add_mine_decoded(const BitVec& input, int n_bits = -1)
     {
         if (n_bits == -1)
             n_bits = T::default_length;
         for (int i = 0; i < n_bits; i = i + T::part_type::default_length) {
             int l = std::min(n_bits - i, T::part_type::default_length);
             
-            part_input.add_mine(typename T::clear(input >> i).mask(l), l);
+            part_input.add_mine_decoded(typename T::clear(input >> i).mask(l), l);
         }
-        input_lengths.push_back(n_bits);
+        int n_parts = (n_bits + T::part_type::default_length - 1) / T::part_type::default_length;
+        input_lengths.push_back(n_parts);
     }
 
     void add_other(int player, int n_bits)
     {
         if (n_bits == -1)
             n_bits = T::default_length;
-        for (int i = 0; i < n_bits; i = i + T::part_type::default_length)
+        int n_parts = (n_bits + T::part_type::default_length - 1) / T::part_type::default_length;
+        for (int i = 0; i < n_parts; i++)
             part_input.add_other(player);
+    }
+
+    void add_from_all_decoded(const BitVec& input, int n_bits = -1)
+    {
+        for (int i = 0; i < this->P->num_players(); i++)
+            if (i == this->P->my_num())
+                add_mine_decoded(input, n_bits);
+            else
+                add_other(i, n_bits);
     }
 
     void send_mine()
@@ -68,8 +86,7 @@ public:
     {
         T res;
         res.resize_regs(input_lengths.front());
-        int n_parts = (input_lengths.front() + T::part_type::default_length - 1) / T::part_type::default_length;
-        for (int i = 0; i < n_parts; i++)
+        for (int i = 0; i < input_lengths.front(); i++)
             res.get_reg(i) = part_input.finalize_mine();
         input_lengths.pop_front();
         return res;

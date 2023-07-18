@@ -8,7 +8,11 @@
 void ntl_gf2x_to_mpdz_gf2n(gf2n_short& y, const NTL::GF2X& x) {
     if (deg(x) >= gf2n_short::degree())
         throw runtime_error("Cannot convert NTL::GF2X to a smaller gf2n element");
-    y = gf2n_short(x.xrep[0]);
+    // empty poly returns deg(*)=-1, but it actually means 0
+    if (deg(x) == -1)
+        y = gf2n_short(0);
+    else
+        y = gf2n_short(x.xrep[0]);
 }
 
 void conv(gf2n_short& y, const NTL::GF2X& x) {
@@ -47,11 +51,12 @@ void conv(BitVec& y, const NTL::vec_GF2& x) {
     y = BitVec(x.rep[0]);
 }
 
-void conv(NTL::vec_GF2& y, const BitVec& x, int n_bits) {
+void conv(NTL::vec_GF2& y, const BitVec& x, int n_bits = -1) {
     if (n_bits > BitVec::MAX_N_BITS)
         throw runtime_error("Cannot convert BitVec to NTL::vec_GF2");
     if (n_bits == -1)
         n_bits = BitVec::MAX_N_BITS;
+    y.SetLength(n_bits);
     y.rep[0] = x.mask(n_bits).get();
 }
 

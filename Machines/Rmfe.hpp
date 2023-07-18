@@ -1,5 +1,7 @@
 #include "GC/RmfeSecret.h"
 #include "GC/RmfeShare.h"
+#include "GC/RmfeInput.hpp"
+#include "GC/RmfeVectorProtocol.hpp"
 #include "GC/VectorPrep.hpp"
 #include "GC/Secret.hpp"
 #include "GC/ShareSecret.hpp"

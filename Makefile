@@ -114,9 +114,9 @@ spdz2k: spdz2k-party.x ot-offline.x Check-Offline-Z2k.x galois-degree.x Fake-Off
 mascot: mascot-party.x spdz2k mama-party.x
 
 ifeq ($(OS), Darwin)
-setup: mac-setup
+setup: mac-setup emp
 else
-setup: boost linux-machine-setup
+setup: boost linux-machine-setup emp
 endif
 
 tldr: setup
@@ -396,11 +396,15 @@ libemp-tool:
 deps/emp/emp-ot:
 	git submodule update --init deps/emp-ot || git clone https://github.com/emp-toolkit/emp-ot.git deps/emp-ot
 
+# emp-ot is header-only
 libemp-ot: deps/emp/emp-ot
 	cd deps/emp-ot/; \
 	cmake -DCMAKE_INSTALL_PREFIX=$(CURDIR)/local/ .
 	$(MAKE) -C deps/emp-ot -j4
 	$(MAKE) -C deps/emp-ot install
+
+emp: libemp-tool libemp-ot
+EMP_LIBS = local/lib/libemp-tool.so
 
 
 mfe = Math/mfe.o
@@ -410,7 +414,7 @@ test_mfe: test/test_mfe.o $(mfe)
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
 
 test_tinyot: test/test_tinyot.o
-	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
+	$(CXX) -o $@ $(CFLAGS) $^ $(EMP_LIBS) $(LDLIBS)
 
 test_spdz2k_offline: test/test_spdz2k_offline.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE)
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
