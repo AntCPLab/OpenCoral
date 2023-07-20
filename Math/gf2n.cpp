@@ -21,7 +21,7 @@ word gf2n_short_table[256][256];
 #define num_2_fields 18
 
 /* Require
- *  2*(n-1)-64+t1<64
+ *  2*(n-1)-64+l[1]<64
  */
 int fields_2[num_2_fields][4] =
 {
@@ -39,7 +39,7 @@ int fields_2[num_2_fields][4] =
     { 16, 5, 3, 1 },
     { 28, 1, 0, 0 },
     { 40, 20, 15, 10 },
-    { 48, 19, 9, 1 }, // Primitive Poly from `primitive_polys.h`
+    { 48, 9, 7, 4 }, // Primitive Poly from `primitive_polys.h`
     { 63, 1, 0, 0 },
     { 64, 4, 3, 1},
     { 128, 7, 2, 1 },
@@ -241,7 +241,7 @@ void gf2n_<U>::reduce(U xh, U xl)
   if (n == 0)
     throw runtime_error("gf2n not initialized");
 
-  if (2 * (n - 1) - MAX_N_BITS + t[1] < MAX_N_BITS)
+  if (2 * (n - 1) - MAX_N_BITS + l[1] < MAX_N_BITS)
     {
       // Deal with xh first
       a = xl;
