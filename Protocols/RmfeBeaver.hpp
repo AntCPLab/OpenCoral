@@ -10,6 +10,7 @@
 
 #include "Replicated.hpp"
 #include "Tools/mpdz_ntl_types.h"
+#include "Tools/debug.h"
 
 #include <array>
 
@@ -48,6 +49,7 @@ void RmfeBeaver<T>::prepare_mul(const T& x, const T& y, int n)
     triples.push_back({{}});
     auto& triple = triples.back();
     triple = prep->get_triple(n);
+
     shares.push_back(x - triple[0]);
     shares.push_back(y - triple[1]);
     lengths.push_back(n);
@@ -98,11 +100,12 @@ T RmfeBeaver<T>::finalize_mul(int n)
     conv(norm_masked[0], Gf2RMFE::s().tau(ntl_tmp));
     conv(ntl_tmp, masked[1]);
     conv(norm_masked[1], Gf2RMFE::s().tau(ntl_tmp));
-    
+
     tmp += (norm_masked[0] * (*triple)[1]);
     tmp += ((*triple)[0] * norm_masked[1]);
     tmp += T::constant(norm_masked[0] * norm_masked[1], P.my_num(), MC->get_alphai());
     triple++;
+
     return tmp;
 }
 

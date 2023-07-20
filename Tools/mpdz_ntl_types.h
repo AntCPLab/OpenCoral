@@ -60,4 +60,10 @@ void conv(NTL::vec_GF2& y, const BitVec& x, int n_bits = -1) {
     y.rep[0] = x.mask(n_bits).get();
 }
 
+void pad(NTL::vec_GF2& x, int L) {
+    if(x.length() >= L)
+        return;
+    x.SetLength(L);
+}
+
 #endif

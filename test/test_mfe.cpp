@@ -326,12 +326,19 @@ CompositeGf2RMFE test_composite_gf2_rmfe_type2(long k1, long k2) {
     for (int i = 0; i < a.length(); i++) {
         c_[i] = a[i] * b[i];
     }
+    vec_GF2 d = rmfe.decode(enc_a + enc_b);
+    vec_GF2 d_({}, a.length());
+    for (int i = 0; i < a.length(); i++) {
+        d_[i] = a[i] + b[i];
+    }
 
     cout << "k:\t" << rmfe.k() << ", m:\t" << rmfe.m() << endl;
     cout << "a:\t" << a << endl;
     cout << "b:\t" << b << endl;
     cout << "c:\t" << c << endl;
     cout << "c_:\t" << c_ << endl;
+    cout << "d:\t" << d << endl;
+    cout << "d_:\t" << d_ << endl;
 
     // mfe.encode(a);
     // mfe.decode(enc_a);
@@ -403,7 +410,7 @@ int main() {
     // test_basic_gf2_rmfe();
     // test_basic_gf2_rmfe_type2();
     // test_composite_gf2_rmfe();
-    // test_composite_gf2_rmfe_type2(2, 6);
+    test_composite_gf2_rmfe_type2(2, 6);
     // test_rmfe_then_mfe();
-    test_rmfe_tau(2, 6);
+    // test_rmfe_tau(2, 6);
 }

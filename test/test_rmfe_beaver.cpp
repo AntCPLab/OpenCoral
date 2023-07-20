@@ -28,6 +28,9 @@ void test_rmfe_beaver(int argc, char** argv)
     auto& output = set.output;
     auto& input = set.input;
     auto& protocol = set.protocol;
+
+    cout << "gf2n degree: " << gf2n_rmfe::degree() << endl;
+    cout << "mfe mod: " << Gf2RMFE::s().ex_field_mod() << endl;
     
     int n_bits = 64;
     int n = 10;
@@ -50,16 +53,20 @@ void test_rmfe_beaver(int argc, char** argv)
     cout << "prepare mul" << endl;
     protocol.exchange();
     cout << "exchange" << endl;
-    output.init_open(P, n);
+    output.init_open(P, 3*n);
     cout << "init open" << endl;
-    // for (int i = 0; i < n; i++)
-    // {
-    //     auto c = protocol.finalize_mul(n_bits);
-    //     output.prepare_open(c);
-    // }
+    for (int i = 0; i < n; i++)
+    {
+        auto c = protocol.finalize_mul(n_bits);
+        output.prepare_open(c);
+    }
     for (int i = 0; i < n; i++)
     {
         output.prepare_open(a[i]);
+    }
+    for (int i = 0; i < n; i++)
+    {
+        output.prepare_open(b[i]);
     }
     cout << "prepare open" << endl;
     output.exchange(P);
@@ -68,7 +75,7 @@ void test_rmfe_beaver(int argc, char** argv)
     cout << "check" << endl;
 
     cout << "result: ";
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < 3*n; i++)
         cout << output.finalize_open() << " ";
     cout << endl;
 

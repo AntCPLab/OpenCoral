@@ -35,13 +35,12 @@ void RmfeVectorProtocol<T>::prepare_mul(const T& x,
         const T& y, int n)
 {
     (void) n;
-    cout << "x: " << x.get_regs().size() << endl;
-    cout << "y: " << y.get_regs().size() << endl;
     if (x.get_regs().size() != y.get_regs().size())
         throw runtime_error("RmfeVectorProtocol: Incompatible operands for prepare_mul");
     int n_parts = x.get_regs().size();
-    for (int i = 0; i < n_parts; i++)
+    for (int i = 0; i < n_parts; i++) {
         part_protocol.prepare_mul(x.get_reg(i), y.get_reg(i));
+    }
     mul_sizes.push_back(n_parts);
 }
 

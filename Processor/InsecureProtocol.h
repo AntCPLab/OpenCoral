@@ -11,6 +11,7 @@ using namespace std;
 
 #include "DummyProtocol.h"
 #include "Protocols/MAC_Check.hpp"
+#include "Tools/debug.h"
 
 class Player;
 class DataPositions;
@@ -154,15 +155,7 @@ public:
     }
 
     void set_mc(typename T::MAC_Check* MC) {
-        octetStream os;
-        const auto& mac_key = MC->get_alphai();
-        mac_key.pack(os);
-        P->exchange_relative(-1, os);
-        typename T::mac_key_type::Scalar other_mac_key;
-        other_mac_key.unpack(os);
-
-        revealed_key = mac_key + other_mac_key;
-        std::cout << "Revealed mac key: " << revealed_key << std::endl;
+        revealed_key = reveal(P, MC->get_alphai());
     }
 
     void get_three_no_count(Dtype dtype, T& a, T& b, T& c) {

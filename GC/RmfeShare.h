@@ -12,6 +12,7 @@
 #include "Protocols/RmfeBeaver.h"
 #include "RmfeInput.h"
 #include "Tools/mpdz_ntl_types.h"
+#include "RmfeSharePrep.h"
 
 class gf2n_rmfe;
 
@@ -22,17 +23,12 @@ public:
     static const int DEFAULT_LENGTH = 12;
 
     bitvec_rmfe() {
-        
     }
 
+    bitvec_rmfe(const BitVec& a) : super(a) {}
+
     // NOTE: This constructor includes decoding.
-    bitvec_rmfe(const gf2n_rmfe& encoded) {
-        NTL::GF2X ntl_tmp;
-        BitVec decoded;
-        conv(ntl_tmp, encoded);
-        conv(decoded, Gf2RMFE::s().decode(ntl_tmp));
-        super::operator=(decoded);
-    }
+    bitvec_rmfe(const gf2n_rmfe& encoded);
 };
 
 class gf2n_rmfe : public gf2n_short
@@ -44,11 +40,7 @@ public:
     }
 
     // NOTE: This constructor includes encoding.
-    gf2n_rmfe(const BitVec& decoded) {
-        NTL::vec_GF2 ntl_tmp;
-        conv(ntl_tmp, decoded, bitvec_rmfe::DEFAULT_LENGTH);
-        conv(*this, Gf2RMFE::s().encode(ntl_tmp));
-    }
+    gf2n_rmfe(const bitvec_rmfe& decoded);
 
     static const int DEFAULT_LENGTH = 48;
 
@@ -95,10 +87,10 @@ public:
     typedef This bit_type;
 
     typedef InsecureMC<This> MAC_Check;
-    typedef InsecureLivePrep2PC<This> LivePrep;
+    typedef RmfeSharePrep<This> LivePrep;
     typedef RmfeInput<This> Input;
     typedef RmfeBeaver<This> Protocol;
-    // typedef NPartyTripleGenerator<TinierSecret<T>> TripleGenerator;
+    // typedef NPartyTripleGenerator<RmfeSecret<T>> TripleGenerator;
 
     typedef void DynamicMemory;
     typedef SwitchableOutput out_type;
@@ -106,7 +98,7 @@ public:
     typedef This part_type;
     typedef This small_type;
 
-    // typedef TinierSecret<T> whole_type;
+    typedef RmfeSecret<T> whole_type;
 
     typedef InsecureMC<This> MC;
 
@@ -184,6 +176,11 @@ public:
         conv(ntl_tmp, this->get_share());
         conv(decoded, Gf2RMFE::s().decode(ntl_tmp));
         return decoded;
+    }
+
+    This get_bit(int i)
+    {
+        throw runtime_error("Not implemented");
     }
 };
 

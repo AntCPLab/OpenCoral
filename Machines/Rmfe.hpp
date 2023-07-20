@@ -2,6 +2,8 @@
 #include "GC/RmfeShare.h"
 #include "GC/RmfeInput.hpp"
 #include "GC/RmfeVectorProtocol.hpp"
+#include "GC/RmfeSharePrep.hpp"
+#include "GC/RmfeShare.hpp"
 #include "GC/VectorPrep.hpp"
 #include "GC/Secret.hpp"
 #include "GC/ShareSecret.hpp"
