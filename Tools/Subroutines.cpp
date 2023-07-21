@@ -160,7 +160,6 @@ void Commit_And_Open_(vector<octetStream>& datas, const Player& P, Coordinator& 
 
   coordinator.wait(P.get_id());
   P.Broadcast_Receive(Open_data);
-  coordinator.finished();
 
   for (int i = 0; i < P.num_players(); i++)
     { if (i != P.my_num())
@@ -168,6 +167,8 @@ void Commit_And_Open_(vector<octetStream>& datas, const Player& P, Coordinator& 
              { throw invalid_commitment(); }
         }
     }
+
+  coordinator.finished();
 }
 
 
