@@ -61,4 +61,24 @@ void read_or_generate_secrets(T& setup, Player& P, U& machine,
     }
 }
 
+template <class T, class U, class V>
+void secure_init(T& setup, Player& P, U& machine, int sec, V, true_type)
+{
+    OnlineOptions::singleton.prime = V::pr();
+    setup.secure_init(P, machine,
+            V::length() ? V::length() : OnlineOptions::singleton.lgp, sec);
+}
+
+template <class T, class U, class V>
+void secure_init(T& setup, Player& P, U& machine, int sec, V, false_type)
+{
+    setup.secure_init(P, machine, V::length(), sec);
+}
+
+template <class T, class U, class V>
+void secure_init(T& setup, Player& P, U& machine, V, int sec)
+{
+    secure_init(setup, P, machine, sec, V(), V::prime_field);
+}
+
 #endif /* FHEOFFLINE_DATASETUP_HPP_ */

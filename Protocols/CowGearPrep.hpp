@@ -46,7 +46,7 @@ void CowGearPrep<T>::basic_setup(Player& P)
                 << options.covert_security << endl;
     cerr << "LowGear security parameter: " << lowgear_security << endl;
 #endif
-    setup.secure_init(P, machine, T::clear::length(), lowgear_security);
+    secure_init(setup, P, machine, typename T::clear(), lowgear_security);
     T::clear::template init<typename FD::T>();
 #ifdef VERBOSE
     cerr << T::type_string() << " parameter setup took " << timer.elapsed()

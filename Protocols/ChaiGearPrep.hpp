@@ -52,7 +52,7 @@ void ChaiGearPrep<T>::basic_setup(Player& P)
             << lowgear_security << endl;
 #endif
     machine->sec = lowgear_security;
-    setup.secure_init(P, *machine, T::clear::length(), lowgear_security);
+    secure_init(setup, P, *machine, typename T::clear(), lowgear_security);
     T::clear::template init<typename FD::T>();
 #ifdef VERBOSE
     cerr << T::type_string() << " parameter setup took " << timer.elapsed()
