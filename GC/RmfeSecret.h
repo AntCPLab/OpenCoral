@@ -17,15 +17,13 @@
 namespace GC
 {
 
-template<class T> class VectorProtocol;
-
-template<class T>
-class RmfeSecret : public VectorSecret<RmfeShare<T>>
+class RmfeSecret : public VectorSecret<RmfeShare>
 {
-    typedef VectorSecret<RmfeShare<T>> super;
+    typedef VectorSecret<RmfeShare> super;
     typedef RmfeSecret This;
 
 public:
+    typedef RmfeShare::T T;
     typedef RmfeVectorMC<This> MC;
     typedef MC MAC_Check;
     typedef RmfeVectorProtocol<This> Protocol;
@@ -92,14 +90,13 @@ public:
         x = party.MC->POpen(to_open, *party.P);
     }
 
-    RmfeShare<T> get_part(int i) const
+    RmfeShare get_part(int i) const
     {
         return this->get_reg(i);
     }
 };
 
-template<class T>
-RmfeShare<T>::RmfeShare(const RmfeSecret<T>& other)
+RmfeShare::RmfeShare(const RmfeSecret& other)
 {
     assert(other.get_regs().size() > 0);
     *this = other.get_reg(0);

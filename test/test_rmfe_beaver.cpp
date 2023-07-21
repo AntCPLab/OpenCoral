@@ -4,7 +4,7 @@
 #include "Machines/Rmfe.hpp"
 
 
-typedef GC::RmfeSecret<gf2n_rmfe> T;
+typedef GC::RmfeSecret T;
 
 void test_rmfe_beaver(int argc, char** argv)
 {
@@ -47,14 +47,10 @@ void test_rmfe_beaver(int argc, char** argv)
     }
 
     protocol.init_mul();
-    cout << "init mul" << endl;
     for (int i = 0; i < n; i++)
         protocol.prepare_mul(a[i], b[i], n_bits);
-    cout << "prepare mul" << endl;
     protocol.exchange();
-    cout << "exchange" << endl;
     output.init_open(P, 3*n);
-    cout << "init open" << endl;
     for (int i = 0; i < n; i++)
     {
         auto c = protocol.finalize_mul(n_bits);
@@ -68,11 +64,8 @@ void test_rmfe_beaver(int argc, char** argv)
     {
         output.prepare_open(b[i]);
     }
-    cout << "prepare open" << endl;
     output.exchange(P);
-    cout << "output exchange" << endl;
     set.check();
-    cout << "check" << endl;
 
     cout << "result: ";
     for (int i = 0; i < 3*n; i++)

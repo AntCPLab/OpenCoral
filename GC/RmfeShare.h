@@ -62,15 +62,15 @@ public:
 namespace GC
 {
 
-template<class T> class RmfeSecret;
+class RmfeSecret;
 
-template<class T>
-class RmfeShare: public Share_<SemiShare<T>, SemiShare<T>>,
-        public ShareSecret<RmfeSecret<T>>
+class RmfeShare: public Share_<SemiShare<gf2n_rmfe>, SemiShare<gf2n_rmfe>>,
+        public ShareSecret<RmfeSecret>
 {
     typedef RmfeShare This;
 
 public:
+    typedef gf2n_rmfe T;
     typedef Share_<SemiShare<T>, SemiShare<T>> super;
 
     typedef T open_type;
@@ -98,7 +98,7 @@ public:
     typedef This part_type;
     typedef This small_type;
 
-    typedef RmfeSecret<T> whole_type;
+    typedef RmfeSecret whole_type;
 
     typedef InsecureMC<This> MC;
 
@@ -124,10 +124,7 @@ public:
     //     return ShareThread<TinierSecret<T>>::s();
     // }
 
-    static ShareThread<This>& get_party()
-    {
-        return ShareThread<This>::s();
-    }
+    static ShareThread<RmfeSecret>& get_party();
 
     static MAC_Check* new_mc(mac_key_type mac_key)
     {
@@ -145,7 +142,7 @@ public:
             super(share, mac)
     {
     }
-    RmfeShare(const RmfeSecret<T>& other);
+    RmfeShare(const RmfeSecret& other);
 
     void XOR(const This& a, const This& b)
     {
@@ -163,20 +160,15 @@ public:
         return *this;
     }
 
-    void public_input(bool input)
-    {
-        auto& party = get_party();
-        *this = super::constant(input, party.P->my_num(),
-                party.MC->get_alphai());
-    }
+    void public_input(bool input);
 
-    BitVec decoded_share() const {
-        NTL::GF2X ntl_tmp;
-        BitVec decoded;
-        conv(ntl_tmp, this->get_share());
-        conv(decoded, Gf2RMFE::s().decode(ntl_tmp));
-        return decoded;
-    }
+    // BitVec decoded_share() const {
+    //     NTL::GF2X ntl_tmp;
+    //     BitVec decoded;
+    //     conv(ntl_tmp, this->get_share());
+    //     conv(decoded, Gf2RMFE::s().decode(ntl_tmp));
+    //     return decoded;
+    // }
 
     This get_bit(int i)
     {

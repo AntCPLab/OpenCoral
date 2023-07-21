@@ -26,5 +26,20 @@ gf2n_rmfe::gf2n_rmfe(const bitvec_rmfe& decoded) {
     conv(*this, Gf2RMFE::s().encode(ntl_tmp));
 }
 
+namespace GC {
+
+ShareThread<RmfeSecret>& RmfeShare::get_party()
+{
+    return ShareThread<RmfeSecret>::s();
+}
+
+void RmfeShare::public_input(bool input)
+{
+    auto& party = get_party();
+    *this = super::constant(input, party.P->my_num(),
+            party.MC->get_alphai());
+}
+
+}
 
 #endif /* GC_RMFEHARE_HPP_ */
