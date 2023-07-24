@@ -394,7 +394,7 @@ libemp-tool:
 	$(MAKE) local/lib/libemp-tool.so
 
 deps/emp/emp-ot:
-	git submodule update --init deps/emp-ot || git clone https://github.com/emp-toolkit/emp-ot.git deps/emp-ot
+	git submodule update --init deps/emp-ot || git clone https://github.com/zicofish/emp-ot.git deps/emp-ot
 
 # emp-ot is header-only
 libemp-ot: deps/emp/emp-ot
@@ -424,6 +424,9 @@ test_spdz2k_offline_binary: test/test_spdz2k_offline_binary.o $(COMMON) $(VM) $(
 
 test_rmfe_beaver: test/test_rmfe_beaver.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE) GC/PostSacriBin.o $(GC_SEMI)
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
+
+test_tinyot_to_rmfe: test/test_tinyot_to_rmfe.o $(COMMON) $(VM) $(OT) GC/PostSacriBin.o $(GC_SEMI)
+	$(CXX) -o $@ $(CFLAGS) $^ $(EMP_LIBS) $(LDLIBS)
 
 zico: target1
 	echo "target1: $@; pre: $^"

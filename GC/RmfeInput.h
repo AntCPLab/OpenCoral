@@ -35,6 +35,14 @@ public:
     void add_mine(const open_type& input, int n_bits = -1);
     void add_mine_decoded(const BitVec& input, int n_bits = -1);
     void add_other(int player, int n_bits = -1);
+    void add_from_all_decoded(const BitVec& input, int n_bits = -1)
+    {
+        for (int i = 0; i < this->P.num_players(); i++)
+            if (i == this->P.my_num())
+                add_mine_decoded(input, n_bits);
+            else
+                add_other(i, n_bits);
+    }
 
     void send_mine();
 

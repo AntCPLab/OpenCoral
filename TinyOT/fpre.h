@@ -397,6 +397,38 @@ class Fpre {
 			}
 			io[0]->flush();
 		}
+
+		void random_abit(block * MAC, block * KEY, int length, int I) {
+			if (party == emp::ALICE) {
+				future<void> fut = pool->enqueue([this, length, KEY, I](){
+					abit1[I]->send_dot(KEY, length);
+				});
+				abit2[I]->recv_dot(MAC, length);
+				fut.get();
+			} else {
+				future<void> fut = pool->enqueue([this, length, KEY, I](){
+					abit2[I]->send_dot(KEY, length);
+				});
+				abit1[I]->recv_dot(MAC, length);
+				fut.get();
+			}
+		}
+
+		// Assuming MAC and KEY point to array with `batch_size` elements
+		void random_abit(block * MAC, block * KEY) {
+			vector<future<void>> res;
+			for(int i = 0; i < THDS; ++i) {
+				int start = i*(batch_size/THDS);
+				int length = batch_size/THDS;
+				res.push_back(pool->enqueue([this, MAC, KEY, start, length, i](){
+					// [TODO] May have to replace this with abit
+					random_abit(MAC + start, KEY + start, length, i);
+				}));
+			}
+			joinNclean(res);
+		}
 };
+
 }
+
 #endif// FPRE_H__
