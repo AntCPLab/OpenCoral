@@ -441,9 +441,9 @@ class FunctionBlock(Function):
         old_block = get_tape().active_basicblock
         old_block.set_exit(instructions.jmp(0, add_to_prog=False), block)
         p_return_address = get_tape().function_basicblocks[block]
-        return_address = get_tape().new_reg('ci')
+        return_address = regint()
         old_block.return_address_store = instructions.ldint(return_address, 0)
-        instructions.stmint(return_address, p_return_address)
+        return_address.store_in_mem(p_return_address)
         get_tape().start_new_basicblock(name='call-' + self.name)
         get_tape().active_basicblock.set_return(old_block, self.last_sub_block)
         get_tape().req_node.children.append(self.node)
