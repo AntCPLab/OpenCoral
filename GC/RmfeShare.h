@@ -35,6 +35,8 @@ class gf2n_rmfe : public gf2n_short
 {
     typedef gf2n_short super;
 public:
+    typedef ::Square<gf2n_rmfe> Square;
+
     gf2n_rmfe()
     {
     }
@@ -56,6 +58,25 @@ public:
             gf2n_short(other)
     {
     }
+
+    /**
+     * Rewriting this func from gf2n_ because some code
+     * directly call this `add` that actually includes an unpacking operation.
+    */
+    void add(octetStream& os, int n = -1);
+    
+    /**
+	 * Append to buffer in native format.
+	 * @param o buffer
+	 * @param n (unused)
+	 */
+    void pack(octetStream& o, int n = -1) const;
+    /**
+	 * Read from buffer in native format.
+	 * @param o buffer
+	 * @param n (unused)
+	 */
+    void unpack(octetStream& o, int n = -1);
 };
 
 
@@ -90,7 +111,7 @@ public:
     typedef RmfeSharePrep<This> LivePrep;
     typedef RmfeInput<This> Input;
     typedef RmfeBeaver<This> Protocol;
-    // typedef NPartyTripleGenerator<RmfeSecret<T>> TripleGenerator;
+    typedef NPartyTripleGenerator<RmfeSecret> TripleGenerator;
 
     typedef void DynamicMemory;
     typedef SwitchableOutput out_type;

@@ -26,6 +26,31 @@ gf2n_rmfe::gf2n_rmfe(const bitvec_rmfe& decoded) {
     conv(*this, Gf2RMFE::s().encode(ntl_tmp));
 }
 
+void gf2n_rmfe::add(octetStream& o, int n) {
+    typename super::internal_type b = 0;
+    o.consume((octet*) &b, (length() + 7) / 8);
+    a ^= b;
+}
+
+void gf2n_rmfe::pack(octetStream& o, int n) const {
+    // Assuming little-endian, and length is a multiple of 8
+    o.append((octet*) &a, (length() + 7) / 8);
+}
+void gf2n_rmfe::unpack(octetStream& o, int n) {
+    o.consume((octet*) &a, (length() + 7) / 8);
+    normalize();
+}
+
+template<>
+void Square<gf2n_rmfe>::to(gf2n_rmfe& result, false_type)
+{
+    int128 sum;
+    for (int i = 0; i < gf2n_rmfe::degree(); i++)
+        sum ^= int128(rows[i].get()) << i;
+    result = sum;
+}
+
+
 namespace GC {
 
 ShareThread<RmfeSecret>& RmfeShare::get_party()

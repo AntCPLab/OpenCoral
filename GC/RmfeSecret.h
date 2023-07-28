@@ -12,6 +12,7 @@
 #include "RmfeMultiInput.h"
 #include "RmfeVectorMC.h" 
 #include "RmfeVectorProtocol.h"
+#include "RmfeMultiplier.h"
 
 
 namespace GC
@@ -33,7 +34,8 @@ public:
 
     typedef NPartyTripleGenerator<This> TripleGenerator;
     typedef NPartyTripleGenerator<This> InputGenerator;
-    // typedef TinierMultiplier<This> Multiplier;
+    typedef RmfeMultiplier<This> Multiplier;
+    typedef typename T::Square Square;
 
     typedef typename super::part_type check_type;
     typedef Share<T> input_check_type;

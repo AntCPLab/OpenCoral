@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef MATH_SQUARE_HPP_
+#define MATH_SQUARE_HPP_
+
 #include "Math/Square.h"
 #include "Math/BitVec.h"
 
@@ -100,3 +103,5 @@ void Square<U>::to(U& result, true_type)
     mpn_tdiv_qr(q, ans, 0, sum, 2 * L, U::get_ZpD().get_prA(), L);
     result.assign((void*) ans);
 }
+
+#endif

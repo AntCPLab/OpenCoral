@@ -47,6 +47,16 @@ void test_tinyot_to_rmfe(int argc, char** argv)
     }
 
     tinyot2rmfe.convert(rmfe_shares, tinyot_shares);
+
+    {
+        auto comm_stats = P.total_comm();
+        size_t rounds = 0;
+        for (auto& x : comm_stats)
+        rounds += x.second.rounds;
+        std::cerr << "1 Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
+            << " rounds (party " << my_number << std::endl;
+    }
+
     
     // TinyOT opens
     tinyotMC.init_open(P, n);
@@ -68,10 +78,12 @@ void test_tinyot_to_rmfe(int argc, char** argv)
 
     // Rmfe opens
     output.init_open(P, n);
+    cout << "[zico] output init_open" << endl;;
     for (int i = 0; i < n; i++)
     {
         output.prepare_open(rmfe_shares[i]);
     }
+    cout << "[zico] output prepare open" << endl;;
     output.exchange(P);
 
     cout << "rmfe opens: " << hex;
@@ -79,13 +91,14 @@ void test_tinyot_to_rmfe(int argc, char** argv)
         cout << output.finalize_open() << " ";
     cout << dec << endl;
 
-    auto comm_stats = P.total_comm();
-    size_t rounds = 0;
-    for (auto& x : comm_stats)
-      rounds += x.second.rounds;
-    std::cerr << "Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
-        << " rounds (party " << my_number << std::endl;;
-    std::cout << "field degree: " << gf2n_rmfe::degree() << std::endl;
+    {
+        auto comm_stats = P.total_comm();
+        size_t rounds = 0;
+        for (auto& x : comm_stats)
+        rounds += x.second.rounds;
+        std::cerr << "4 Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
+            << " rounds (party " << my_number << std::endl;
+    }
 }
 
 int main(int argc, char** argv)

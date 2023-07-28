@@ -423,7 +423,7 @@ test_spdz2k_offline_binary: test/test_spdz2k_offline_binary.o $(COMMON) $(VM) $(
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
 
 test_rmfe_beaver: test/test_rmfe_beaver.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE) GC/PostSacriBin.o $(GC_SEMI)
-	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
+	$(CXX) -o $@ $(CFLAGS) $^ $(EMP_LIBS) $(LDLIBS)
 
 test_tinyot_to_rmfe: test/test_tinyot_to_rmfe.o $(COMMON) $(VM) $(OT) GC/PostSacriBin.o $(GC_SEMI)
 	$(CXX) -o $@ $(CFLAGS) $^ $(EMP_LIBS) $(LDLIBS)
