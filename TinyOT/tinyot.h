@@ -76,14 +76,16 @@ public:
 class BufferTinyOTPrep {
 	emp::NetIO *io;
 	emp::Fpre<emp::NetIO>* fpre;
+	int triple_buf_idx;
 	vector<emp::block> random_abit_MACs;
 	vector<emp::block> random_abit_KEYs;
 
 public:
 
-	BufferTinyOTPrep(int party, int port) {
+	BufferTinyOTPrep(int party, int port, int batch_size = 1000) {
 		io = new emp::NetIO(party==emp::ALICE ? nullptr:emp::IP, port);
-		fpre = new emp::Fpre<emp::NetIO>(io, party, 1000);
+		fpre = new emp::Fpre<emp::NetIO>(io, party, batch_size);
+		triple_buf_idx = batch_size;
 
 		random_abit_MACs.reserve(fpre->batch_size);
 		random_abit_KEYs.reserve(fpre->batch_size);
@@ -91,6 +93,7 @@ public:
 
 	void get_random_abit(emp::block& MAC, emp::block& KEY) {
 		if(random_abit_MACs.empty()) {
+			print_general("refill random abit buffer: ", fpre->batch_size);
 			random_abit_MACs.resize(fpre->batch_size);
 			random_abit_KEYs.resize(fpre->batch_size);
 			fpre->random_abit(random_abit_MACs.data(), random_abit_KEYs.data());
@@ -99,6 +102,23 @@ public:
 		KEY = random_abit_KEYs.back();
 		random_abit_MACs.pop_back();
 		random_abit_KEYs.pop_back();
+	}
+
+	void get_triple(emp::block& aMAC, emp::block& aKEY,
+		emp::block& bMAC, emp::block& bKEY,
+		emp::block& cMAC, emp::block& cKEY) {
+		if (triple_buf_idx >= fpre->batch_size) {
+			print_general("refill triple buffer: ", fpre->batch_size);
+			fpre->refill();
+			triple_buf_idx = 0;
+		}
+		aMAC = fpre->MAC_res[triple_buf_idx*3];
+		aKEY = fpre->KEY_res[triple_buf_idx*3];
+		bMAC = fpre->MAC_res[triple_buf_idx*3 + 1];
+		bKEY = fpre->KEY_res[triple_buf_idx*3 + 1];
+		cMAC = fpre->MAC_res[triple_buf_idx*3 + 2];
+		cKEY = fpre->KEY_res[triple_buf_idx*3 + 2];
+		triple_buf_idx++;
 	}
 
 	~BufferTinyOTPrep() {

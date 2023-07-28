@@ -4,6 +4,7 @@
 #include "Protocols/ProtocolSet.h"
 #include "Math/Bit.h"
 #include "Machines/Rmfe.hpp"
+#include "Tools/debug.hpp"
 
 
 typedef GC::RmfeSecret T;
@@ -32,9 +33,11 @@ void test_tinyot_to_rmfe(int argc, char** argv)
     auto& protocol = set.protocol;
 
     // Setup tiny ot
-    BufferTinyOTPrep tinyot_prep(my_number, 12345);
-    TinyOTMC tinyotMC;
-    TinyOt2Rmfe tinyot2rmfe(&tinyotMC, &tinyot_prep);
+    TinyOt2Rmfe tinyot2rmfe(
+        unique_ptr<BufferTinyOTPrep>(new BufferTinyOTPrep(my_number, 12345))
+    );
+    TinyOTMC* tinyotMC = tinyot2rmfe.get_tinyot_mc();
+    BufferTinyOTPrep* tinyot_prep = tinyot2rmfe.get_tinyot_prep();
 
     int n = 1024;
     int l = GC::RmfeShare::default_length;
@@ -43,7 +46,7 @@ void test_tinyot_to_rmfe(int argc, char** argv)
 
     // Generate some tinyot bits
     for(size_t i = 0; i < tinyot_shares.size(); i++) {
-        tinyot_prep.get_random_abit(tinyot_shares[i].MAC, tinyot_shares[i].KEY);
+        tinyot_prep->get_random_abit(tinyot_shares[i].MAC, tinyot_shares[i].KEY);
     }
 
     tinyot2rmfe.convert(rmfe_shares, tinyot_shares);
@@ -59,18 +62,18 @@ void test_tinyot_to_rmfe(int argc, char** argv)
 
     
     // TinyOT opens
-    tinyotMC.init_open(P, n);
+    tinyotMC->init_open(P, n);
     for (int i = 0; i < n * l; i++)
     {
-        tinyotMC.prepare_open(tinyot_shares[i]);
+        tinyotMC->prepare_open(tinyot_shares[i]);
     }
-    tinyotMC.exchange(P);
+    tinyotMC->exchange(P);
 
     cout << "tinyot opens: " << hex;
     for (int i = 0; i < n; i++) {
         int x = 0;
         for (int j = 0; j < l; j++) {
-            x += ((int) tinyotMC.finalize_open().get()) << j;
+            x += ((int) tinyotMC->finalize_open().get()) << j;
         }
         cout << x << " ";
     }

@@ -1,6 +1,10 @@
 #ifndef MACHINES_RMFE_HPP_
 #define MACHINES_RMFE_HPP_
 
+// There is some compiling problem when not including this header first.
+// It might be a compiler bug for resolving macros and var names.
+#include <emp-tool/emp-tool.h>
+
 #include "GC/RmfeSecret.h"
 #include "GC/RmfeShare.h"
 #include "GC/RmfeInput.hpp"

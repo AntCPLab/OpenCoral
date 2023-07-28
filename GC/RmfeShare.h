@@ -12,7 +12,6 @@
 #include "Protocols/RmfeBeaver.h"
 #include "RmfeInput.h"
 #include "Tools/mpdz_ntl_types.h"
-#include "RmfeSharePrep.h"
 
 class gf2n_rmfe;
 
@@ -84,6 +83,7 @@ namespace GC
 {
 
 class RmfeSecret;
+template<class T> class RmfeSharePrep;
 
 class RmfeShare: public Share_<SemiShare<gf2n_rmfe>, SemiShare<gf2n_rmfe>>,
         public ShareSecret<RmfeSecret>
@@ -182,14 +182,6 @@ public:
     }
 
     void public_input(bool input);
-
-    // BitVec decoded_share() const {
-    //     NTL::GF2X ntl_tmp;
-    //     BitVec decoded;
-    //     conv(ntl_tmp, this->get_share());
-    //     conv(decoded, Gf2RMFE::s().decode(ntl_tmp));
-    //     return decoded;
-    // }
 
     This get_bit(int i)
     {

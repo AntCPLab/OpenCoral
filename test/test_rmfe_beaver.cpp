@@ -2,6 +2,7 @@
 #include "Protocols/ProtocolSet.h"
 #include "Math/Bit.h"
 #include "Machines/Rmfe.hpp"
+#include "Tools/debug.hpp"
 
 
 typedef GC::RmfeSecret T;

@@ -8,6 +8,7 @@
 
 #include "RmfeSharePrep.h"
 
+#include "Protocols/TinyOt2Rmfe.h"
 #include "PersonalPrep.hpp"
 #include "Tools/debug.h"
 
@@ -34,6 +35,8 @@ RmfeSharePrep<T>::~RmfeSharePrep()
 {
     if (triple_generator)
         delete triple_generator;
+    if (tinyot2rmfe)
+        delete tinyot2rmfe;
     // if (real_triple_generator)
     //     delete real_triple_generator;
 }
@@ -59,10 +62,12 @@ void RmfeSharePrep<T>::set_protocol(typename T::Protocol& protocol)
     this->inputs.resize(thread.P->num_players());
     // init_real(protocol.P);
 
-    P = protocol.get_player();
-    std::cout << "Init player number: " << P->my_num() << std::endl;
+    Player* player = protocol.get_player();
+    int tinyot_batch_size = triple_generator->nTriplesPerLoop * T::default_length;
+    tinyot2rmfe = new TinyOt2Rmfe(
+        unique_ptr<BufferTinyOTPrep>(new BufferTinyOTPrep(player->my_num(), 12345, tinyot_batch_size)));
+
     MC = protocol.get_mc();
-    set_mc(MC);
 }
 
 template<class T>
@@ -70,23 +75,69 @@ void RmfeSharePrep<T>::set_mc(typename T::MAC_Check* MC) {
     revealed_key = reveal(P, MC->get_alphai());
 }
 
-// template<class T>
-// void RmfeSharePrep<T>::get_input_no_count(T& r_share, typename T::open_type& r , int player) {
-//     typedef typename T::open_type U;
-//     typedef typename T::mac_type W;
+template<class T>
+void RmfeSharePrep<T>::buffer_inputs(int player) {
+    auto& inputs = this->inputs;
+    assert(triple_generator);
+    triple_generator->generateInputs(player);
+    for (auto& x : triple_generator->inputs)
+        inputs.at(player).push_back(x);
+}
 
-//     r.randomize(prng);
+template<class T>
+void RmfeSharePrep<T>::buffer_triples() {
+    print_general("enter buffer triples");
+
+    auto& nTriplesPerLoop = triple_generator->nTriplesPerLoop;
+    auto tinyot_prep = tinyot2rmfe->get_tinyot_prep();
+
+    int l = T::default_length;
+    // triple storage arranged as: n x 3 x l
+    vector<TinyOTShare> tinyot_shares(nTriplesPerLoop * 3 * l);
+    // triple storage arranged as: n x 3
+    vector<T> rmfe_shares;
+
+    // Generate tinyot triples
+    for(int i = 0; i < nTriplesPerLoop; i++) {
+        for(int j = 0; j < l; j++) {
+            tinyot_prep->get_triple(
+                tinyot_shares[i * 3 * l + j].MAC, tinyot_shares[i * 3 + j].KEY,
+                tinyot_shares[i * 3 * l + l + j].MAC, tinyot_shares[i * 3 * l + l + j].KEY,
+                tinyot_shares[i * 3 * l + 2 * l + j].MAC, tinyot_shares[i * 3 * l + 2 * l + j].KEY);
+        }
+    }
+    print_general("gen tinyot triples");
+
+    // Convert tinyot shares to rmfe shares
+    tinyot2rmfe->convert(rmfe_shares, tinyot_shares);
+    print_general("convert to rmfe triples");
+    assert((int)rmfe_shares.size() == nTriplesPerLoop * 3);
+
+    for(int i = 0; i < nTriplesPerLoop; i++) {
+        this->triples.push_back({{rmfe_shares[i*3], rmfe_shares[i*3 + 1], rmfe_shares[i*3 + 2]}});
+    }
+    print_general("store rmfe triples");
+}
+
+
+#ifdef INSECURE_RMFE_PREP
+template<class T>
+void RmfeSharePrep<T>::get_input_no_count(T& r_share, typename T::open_type& r , int player) {
+    typedef typename T::open_type U;
+    typedef typename T::mac_type W;
+
+    r.randomize(prng);
     
-//     array<U, 2> value_shares;
-//     array<W, 2> mac_shares;
-//     value_shares[0].randomize(prng);
-//     value_shares[1] = r - value_shares[0];
-//     mac_shares[0].randomize(prng);
-//     mac_shares[1] = r * revealed_key - mac_shares[0];
+    array<U, 2> value_shares;
+    array<W, 2> mac_shares;
+    value_shares[0].randomize(prng);
+    value_shares[1] = r - value_shares[0];
+    mac_shares[0].randomize(prng);
+    mac_shares[1] = r * revealed_key - mac_shares[0];
 
-//     // `player` denotes the input's owner, but here we should use the share's owner
-//     r_share = {value_shares[P->my_num()], mac_shares[P->my_num()]};
-// }
+    // `player` denotes the input's owner, but here we should use the share's owner
+    r_share = {value_shares[P->my_num()], mac_shares[P->my_num()]};
+}
 
 template<class T>
 void RmfeSharePrep<T>::get_three_no_count(Dtype dtype, T& a, T& b, T& c) {
@@ -122,15 +173,7 @@ void RmfeSharePrep<T>::get_three_no_count(Dtype dtype, T& a, T& b, T& c) {
     b = {plain_triples[i][1], mac_triples[i][1]};
     c = {plain_triples[i][2], mac_triples[i][2]};
 }
-
-template<class T>
-void RmfeSharePrep<T>::buffer_inputs(int player) {
-    auto& inputs = this->inputs;
-    assert(triple_generator);
-    triple_generator->generateInputs(player);
-    for (auto& x : triple_generator->inputs)
-        inputs.at(player).push_back(x);
-}
+#endif
 
 }
 

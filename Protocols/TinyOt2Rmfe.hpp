@@ -3,11 +3,13 @@
 
 #include "./TinyOt2Rmfe.h"
 #include "Tools/debug.h"
+#include "Tools/performance.h"
 
 using std::vector;
 using GC::RmfeShare;
 using GC::RmfeSecret;
 using GC::ShareThread;
+
 
 void TinyOt2Rmfe::convert(vector<RmfeShare>& rmfe_shares, const vector<TinyOTShare>& tinyot_shares) {
     if (tinyot_shares.size() % RmfeShare::default_length != 0)
@@ -24,6 +26,7 @@ void TinyOt2Rmfe::convert(vector<RmfeShare>& rmfe_shares, const vector<TinyOTSha
     RmfeShare::Input input(MC, prep, P);
     input.reset_all(P);
 
+    time_log("random tiny ot");
     // Get random tiny ot shares and Input to RmfeShare
     vector<TinyOTShare> r(s * l);
     for(int i = 0; i < s; i++) {
@@ -35,7 +38,9 @@ void TinyOt2Rmfe::convert(vector<RmfeShare>& rmfe_shares, const vector<TinyOTSha
         }
         input.add_from_all_decoded(BitVec(raw));
     }
+    time_log("random tiny ot");
 
+    time_log("input tiny ot");
     // Input param tiny ot shares to RmfeShare
     for(int i = 0; i < n; i++) {
         long raw = 0;
@@ -44,9 +49,10 @@ void TinyOt2Rmfe::convert(vector<RmfeShare>& rmfe_shares, const vector<TinyOTSha
         }
         input.add_from_all_decoded(BitVec(raw));
     }
+    time_log("input tiny ot");
 
+    time_log("finalize input");
     input.exchange();
-
     // Obtain RmfeShare (possibly incorrect)
     vector<RmfeShare> y(n), q(s);
     for(int i = 0; i < s + n; i++) {
@@ -55,12 +61,14 @@ void TinyOt2Rmfe::convert(vector<RmfeShare>& rmfe_shares, const vector<TinyOTSha
         else
             y[i - s] = input.finalize(0) + input.finalize(1);
     }
+    time_log("finalize input");
 
 
     // [TODO] need to replace with coin tossing
     PRNG prng;
     prng.SetSeed((const unsigned char*) "insecure");
 
+    time_log("linear comb");
     // Make a random linear combination
     vector<RmfeShare> z_share(s);
     vector<RmfeShare::open_type> z(s);
@@ -69,7 +77,9 @@ void TinyOt2Rmfe::convert(vector<RmfeShare>& rmfe_shares, const vector<TinyOTSha
     for(int k = 0; k < s; k++) {
         z_share[k] = q[k];
         for(int j = 0; j < n; j++) {
+            acc_time_log("prng");
             RmfeShare::raw_type b = prng.get<RmfeShare::raw_type>();
+            acc_time_log("prng");
             z_share[k] += y[j] * RmfeShare::open_type(b);
 
             for(int h = 0; h < l; h++) {
@@ -79,9 +89,13 @@ void TinyOt2Rmfe::convert(vector<RmfeShare>& rmfe_shares, const vector<TinyOTSha
             }
         }
     }
+    time_log("linear comb");
+    time_log("open");
     MC.POpen(z, z_share, P);
     tinyot_mc->POpen(z_prime, z_prime_share, P);
+    time_log("open");
 
+    time_log("consistency");
     // Consistency check
     for(int k = 0; k < s; k++) {
         RmfeShare::raw_type zk(z[k]);
@@ -90,6 +104,8 @@ void TinyOt2Rmfe::convert(vector<RmfeShare>& rmfe_shares, const vector<TinyOTSha
                 throw runtime_error("Inconsistency found between RMFE and TinyOT");
         }
     }
+    time_log("consistency");
+    print_profiling();
 
     rmfe_shares = std::move(y);
 }
