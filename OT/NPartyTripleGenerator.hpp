@@ -463,7 +463,7 @@ void Spdz2kTripleGenerator<T>::generateTriples()
 		MC.set_random_element(r);
 		sacrificeZ2k(MC, G);
 	}
-    std::cout << "Spdz2k triple generate: " << nTriplesPerLoop << std::endl;
+    std::cout << "Spdz2k triple generate: " << nTriplesPerLoop << " for Z2(" << K << ")" << std::endl;
 }
 
 template<class U>
