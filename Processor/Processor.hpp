@@ -443,7 +443,7 @@ void Processor<sint, sgf2n>::write_shares_to_file(long start_pos,
 template <class T>
 void SubProcessor<T>::POpen(const Instruction& inst)
 {
-  if (inst.get_n())
+  if (inst.get_n() or BaseMachine::s().nthreads > 0)
     check();
   auto& reg = inst.get_start();
   int size = inst.get_size();
@@ -457,6 +457,8 @@ void SubProcessor<T>::POpen(const Instruction& inst)
   for (auto it = reg.begin(); it < reg.end(); it += 2)
     for (int i = 0; i < size; i++)
       C[*it + i] = MC.finalize_open();
+  if (inst.get_n() or BaseMachine::s().nthreads > 0)
+    check();
 
   if (Proc != 0)
     {

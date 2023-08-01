@@ -133,7 +133,7 @@ def p_eval(p_c, x):
     if isinstance(x, types._fix):
         # ignore coefficients smaller than precision
         for c in reversed(p_c):
-            if c < 2 ** -(x.f + 1):
+            if abs(c) < 2 ** -(x.f + 1):
                 degree -= 1
             else:
                 break

@@ -22,7 +22,7 @@ void SohoPrep<T>::basic_setup(Player& P)
     setup = new PartSetup<FD>;
     MachineBase machine;
     setup->params.set_sec(OnlineOptions::singleton.security_parameter);
-    setup->secure_init(P, machine, T::clear::length(), 0);
+    secure_init(*setup, P, machine, typename T::clear(), 0);
     read_or_generate_secrets(*setup, P, machine, 1, true_type());
     T::clear::template init<typename FD::T>();
 }

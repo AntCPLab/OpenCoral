@@ -19,9 +19,9 @@ TemiSetup<FD>::TemiSetup()
 }
 
 template<class FD>
-void TemiSetup<FD>::secure_init(Player& P, int plaintext_length)
+void TemiSetup<FD>::secure_init(Player& P, MachineBase& machine,
+        int plaintext_length, int)
 {
-    MachineBase machine;
     ::secure_init(*this, P, machine, plaintext_length, 0, this->params);
 }
 

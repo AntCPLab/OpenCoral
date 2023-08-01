@@ -74,8 +74,9 @@ Machine<sint, sgf2n>::Machine(Names& playerNames, bool use_encryption,
   if (max_broadcast < 2)
     this->max_broadcast = N.num_players();
 
-  // Set up the fields
-  sint::clear::read_or_generate_setup(prep_dir_prefix<sint>(), opts);
+  // Set the prime modulus from command line or program if applicable
+  if (opts.prime)
+    sint::clear::init_field(opts.prime);
 
   init_binary_domains(opts.security_parameter, lg2);
 
@@ -92,6 +93,10 @@ Machine<sint, sgf2n>::Machine(Names& playerNames, bool use_encryption,
     {
       sint::LivePrep::basic_setup(*P);
     }
+
+  // Set the prime modulus if not done earlier
+  if (not sint::clear::length())
+    sint::clear::read_or_generate_setup(prep_dir_prefix<sint>(), opts);
 
   sint::MAC_Check::setup(*P);
   sint::bit_type::MAC_Check::setup(*P);
