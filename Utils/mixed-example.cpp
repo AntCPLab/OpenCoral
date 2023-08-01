@@ -59,7 +59,8 @@ void run(char** argv)
     int n_parties = atoi(argv[2]);
     int port_base = 9999;
     Names N(my_number, n_parties, "localhost", port_base);
-    CryptoPlayer P(N);
+    // CryptoPlayer P(N);
+    PlainPlayer P(N);
 
     // protocol setup (domain, MAC key if needed etc)
     MixedProtocolSetup<T> setup(P);
