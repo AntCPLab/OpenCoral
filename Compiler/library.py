@@ -1270,7 +1270,7 @@ def _link(pre, g):
                 if util.is_constant_float(new_var):
                     raise CompilerError('cannot reassign constants in blocks')
                 if id(new_var) != id(var):
-                    new_var.link(var)
+                    new_var.link(new_var.conv(var))
 
 def do_while(loop_fn, g=None):
     """ Do-while loop. The loop is stopped if the return value is zero.
