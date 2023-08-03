@@ -172,8 +172,8 @@ void SemiMultiplier<T>::multiplyForBits()
 
     for (unsigned j = 0; j < aBits.size(); j++)
     {
-        int outer = j / X::n_rows();
-        int inner = j % X::n_rows();
+        int outer = j / X::n_rows_allocated();
+        int inner = j % X::n_rows_allocated();
 
         if (role == RECEIVER)
             c_output.push_back(

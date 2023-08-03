@@ -52,7 +52,7 @@ public:
 	static int size() { return N_BYTES; }
 	static int size_in_limbs() { return N_WORDS; }
 	static int size_in_bits() { return size() * 8; }
-	static int length() { return size_in_bits(); }
+	static int length() { return n_bits(); }
 	static int n_bits() { return N_BITS; }
 	static int t() { return 0; }
 
