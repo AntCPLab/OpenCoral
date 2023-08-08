@@ -18,7 +18,7 @@ sfix.set_precision_from_args(program)
 
 from Compiler.decision_tree import TreeClassifier
 
-tree = TreeClassifier(max_depth=5)
+tree = TreeClassifier(max_depth=5, n_threads=2)
 
 # plain training
 tree.fit(X_train, y_train)
