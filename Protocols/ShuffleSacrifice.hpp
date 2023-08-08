@@ -11,6 +11,7 @@
 #include "GC/BitAdder.h"
 
 #include "LimitedPrep.hpp"
+#include "Tools/debug.h"
 
 inline
 ShuffleSacrifice::ShuffleSacrifice() :
@@ -203,6 +204,7 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
     to_check.reserve(wholes.size());
     size_t n_bits_input = parts.size();
     assert(n_bits_input <= edabit<T>::second_type::MAX_SIZE);
+    print_general("before 1st loop", "edabit_sacrifice");
     for (int i1 = 0; i1 < DIV_CEIL(wholes.size(), dl); i1++)
     {
         int n = min(dl, wholes.size() - i1 * dl);
@@ -216,6 +218,7 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
                         ST(bits >> i2).get_bit(0));
         }
     }
+    print_general("after 1st loop", "edabit_sacrifice");
     wholes.clear();
     wholes.shrink_to_fit();
     parts.clear();
@@ -231,6 +234,7 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
     // needs to happen before shuffling for security
     LimitedPrep<BT> personal_prep;
     RunningTimer personal_timer;
+    print_general("before buffer_personal_triples");
     if (player >= 0)
     {
         auto &party = GC::ShareThread<typename T::bit_type>::s();
@@ -244,6 +248,7 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
                     proc.personal_bit_preps.at(player)->get_triple(dl));
         proc.personal_bit_preps.at(player)->shrink_to_fit();
     }
+    print_general("after buffer_personal_triples");
 #ifdef VERBOSE_EDA
     cerr << "Personal preprocessing took " << personal_timer.elapsed() << " seconds" << endl;
 #endif
@@ -290,6 +295,7 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
     }
 
     RunningTimer bucket_timer;
+    print_general("before edabit_sacrifice_buckets");
     if (queues)
     {
         int n_available = queues->find_available();
@@ -318,6 +324,7 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
     else
         edabit_sacrifice_buckets(to_check, n_bits, strict, player, proc, 0, N,
                 personal_prep);
+    print_general("after edabit_sacrifice_buckets");
 #ifdef VERBOSE_EDA
     cerr << "Bucket sacrifice took " << bucket_timer.elapsed() << " seconds"
             << endl;
@@ -480,9 +487,11 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice_buckets(vector<edabit<T>>& to_c
 
     if (strict)
     {
+        print_general("before sanitize");
         (dynamic_cast<RingPrep<T>*>(&proc.DataF))->template
                 sanitize<0>(to_sanitize,
                 n_bits, player, queues);
+        print_general("after sanitize");
         shares.reserve((B - 1) * N);
         bit_shares.reserve((B - 1) * N * (n_bits + 2));
         for (auto& x : to_sanitize)

@@ -34,6 +34,9 @@ public:
 
     edabitvec(const T& aa, const typename edabit<T>::second_type& bb)
     {
+        if (T::bit_type::is_encoded)
+            throw invalid_pack_usage();
+
         a.push_back(aa);
         for (auto& x : bb)
             b.push_back(x);
@@ -76,6 +79,8 @@ public:
 
     edabit<T> next()
     {
+        if (T::bit_type::is_encoded)
+            throw invalid_pack_usage();
         edabit<T> res;
         res.first = a.pop();
         if (T::bit_type::part_type::default_length > 1)
@@ -89,6 +94,8 @@ public:
 
     void push_back(const edabit<T>& x)
     {
+        if (T::bit_type::is_encoded)
+            throw invalid_pack_usage();
         for (size_t i = 0; i < x.second.size(); i++)
         {
             b[i] ^= (typename T::bit_type::part_type(x.second[i])
@@ -127,5 +134,6 @@ public:
             b[i].output(s, false);
     }
 };
+
 
 #endif /* PROTOCOLS_EDABIT_H_ */

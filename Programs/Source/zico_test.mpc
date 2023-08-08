@@ -1,0 +1,5 @@
+a = sint.get_input_from(0, size=4)
+b = sint.get_input_from(1, size=4)
+
+c = a < b
+print_ln('a < b: %s', c.reveal())

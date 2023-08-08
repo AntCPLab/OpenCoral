@@ -26,6 +26,7 @@ class RmfeInput : public InputBase<T>
     open_type rr, t, xi;
 
 public:
+    RmfeInput(SubProcessor<T>& proc);
     RmfeInput(MAC_Check& MC, Preprocessing<T>& prep, Player& P);
 
     RmfeInput(SubProcessor<T>& proc, MAC_Check&);

@@ -18,7 +18,9 @@ namespace GC
 template<class T>
 RmfeSharePrep<T>::RmfeSharePrep(DataPositions& usage, int input_player) :
         PersonalPrep<T>(usage, input_player),
-        triple_generator(0)
+        triple_generator(0),
+        tinyot2rmfe(0),
+        spdz2k2rmfe(0)
         // real_triple_generator(0)
 {
     prng.SetSeed((const unsigned char*) "insecure");
@@ -35,8 +37,12 @@ RmfeSharePrep<T>::~RmfeSharePrep()
 {
     if (triple_generator)
         delete triple_generator;
-    if (tinyot2rmfe)
+    if (tinyot2rmfe) {
         delete tinyot2rmfe;
+    }
+    if (spdz2k2rmfe) {
+        delete spdz2k2rmfe;
+    }
     // if (real_triple_generator)
     //     delete real_triple_generator;
 }
@@ -63,9 +69,12 @@ void RmfeSharePrep<T>::set_protocol(typename T::Protocol& protocol)
     // init_real(protocol.P);
 
     Player* player = protocol.get_player();
+
     int tinyot_batch_size = triple_generator->nTriplesPerLoop * T::default_length;
-    tinyot2rmfe = new TinyOt2Rmfe(
-        unique_ptr<BufferTinyOTPrep>(new BufferTinyOTPrep(player->my_num(), 12345, tinyot_batch_size)));
+    tinyot2rmfe = new RmfeShareConverter<TinyOTShare>(*player);
+    tinyot2rmfe->get_src_prep()->set_batch_size(tinyot_batch_size);
+
+    spdz2k2rmfe = new RmfeShareConverter<Spdz2kBShare>(*player);
 
     MC = protocol.get_mc();
 }
@@ -89,7 +98,7 @@ void RmfeSharePrep<T>::buffer_triples() {
     print_general("enter buffer triples");
 
     auto& nTriplesPerLoop = triple_generator->nTriplesPerLoop;
-    auto tinyot_prep = tinyot2rmfe->get_tinyot_prep();
+    auto tinyot_prep = tinyot2rmfe->get_src_prep();
 
     int l = T::default_length;
     // triple storage arranged as: n x 3 x l
@@ -100,7 +109,7 @@ void RmfeSharePrep<T>::buffer_triples() {
     // Generate tinyot triples
     for(int i = 0; i < nTriplesPerLoop; i++) {
         for(int j = 0; j < l; j++) {
-            tinyot_prep->get_triple(
+            tinyot_prep->get_tinyot_triple(
                 tinyot_shares[i * 3 * l + j].MAC, tinyot_shares[i * 3 + j].KEY,
                 tinyot_shares[i * 3 * l + l + j].MAC, tinyot_shares[i * 3 * l + l + j].KEY,
                 tinyot_shares[i * 3 * l + 2 * l + j].MAC, tinyot_shares[i * 3 * l + 2 * l + j].KEY);

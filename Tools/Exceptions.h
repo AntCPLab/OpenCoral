@@ -284,4 +284,9 @@ public:
     gf2n_not_supported(int n, string options = "");
 };
 
+class invalid_pack_usage: public exception
+{ virtual const char* what() const throw()
+    { return "No bit access into packed type"; }
+};
+
 #endif

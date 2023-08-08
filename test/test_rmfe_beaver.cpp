@@ -5,7 +5,7 @@
 #include "Tools/debug.hpp"
 
 
-typedef GC::RmfeSecret T;
+typedef GC::RmfeShare T;
 
 void test_rmfe_beaver(int argc, char** argv)
 {
@@ -33,7 +33,7 @@ void test_rmfe_beaver(int argc, char** argv)
     cout << "gf2n degree: " << gf2n_rmfe::degree() << endl;
     cout << "mfe mod: " << Gf2RMFE::s().ex_field_mod() << endl;
     
-    int n_bits = 64;
+    int n_bits = T::default_length;
     int n = 10;
     vector<T> a(n), b(n);
 
@@ -70,7 +70,7 @@ void test_rmfe_beaver(int argc, char** argv)
 
     cout << "result: ";
     for (int i = 0; i < 3*n; i++)
-        cout << output.finalize_open() << " ";
+        cout << output.finalize_open_decoded() << " ";
     cout << endl;
 
     auto comm_stats = P.total_comm();

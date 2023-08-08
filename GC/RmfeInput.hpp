@@ -39,6 +39,12 @@ RmfeInput<T>::RmfeInput(MAC_Check& MC, Preprocessing<T>& prep, Player& P) :
 }
 
 template<class T>
+RmfeInput<T>::RmfeInput(SubProcessor<T>& proc) :
+        RmfeInput(proc, proc.MC)
+{
+}
+
+template<class T>
 void RmfeInput<T>::reset(int player)
 {
     InputBase<T>::reset(player);

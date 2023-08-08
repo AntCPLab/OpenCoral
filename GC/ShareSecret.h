@@ -46,6 +46,7 @@ public:
 
     static const bool is_real = true;
     static const bool actual_inputs = true;
+    static const bool is_encoded = false;
 
     static ShareThread<U>& get_party()
     {

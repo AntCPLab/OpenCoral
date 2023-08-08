@@ -10,10 +10,13 @@
 #include "OT/NPartyTripleGenerator.h"
 #include "ShareThread.h"
 #include "PersonalPrep.h"
-#include "Protocols/TinyOt2Rmfe.h"
+#include "Protocols/RmfeShareConverter.h"
+
 
 namespace GC
 {
+
+typedef TinySecret<DEFAULT_SECURITY> Spdz2kBShare;
 
 template<class T>
 class RmfeSharePrep : public PersonalPrep<T> {
@@ -22,7 +25,8 @@ class RmfeSharePrep : public PersonalPrep<T> {
     // typename T::whole_type::TripleGenerator* real_triple_generator;
     MascotParams params;
 
-    TinyOt2Rmfe* tinyot2rmfe;
+    RmfeShareConverter<TinyOTShare>* tinyot2rmfe;
+    RmfeShareConverter<Spdz2kBShare>* spdz2k2rmfe;
 
     typedef typename T::whole_type secret_type;
 
@@ -46,6 +50,11 @@ public:
 
     void set_protocol(typename T::Protocol& protocol);
     void set_mc(typename T::MAC_Check* MC);
+
+    Preprocessing<typename T::part_type>& get_part()
+    {
+        return *this;
+    }
 
 #ifdef INSECURE_RMFE_PREP
 //// Debug APIs

@@ -11,6 +11,7 @@
 
 #include "DabitSacrifice.hpp"
 #include "RingOnlyPrep.hpp"
+#include "Tools/debug.h"
 
 template<class T>
 Spdz2kPrep<T>::Spdz2kPrep(SubProcessor<T>* proc, DataPositions& usage) :
@@ -181,6 +182,7 @@ void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
             this->proc->bit_prep, this->proc->P);
     int n_relevant = this->proc->protocol.get_n_relevant_players();
     vector<vector<vector<bit_type>>> player_bits(n_bits);
+    print_general("before buffer_personal_edabits", "buffer_edabits_from_personal");
     for (int i = 0; i < n_relevant; i++)
     {
         vector<T> tmp;
@@ -193,7 +195,9 @@ void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
         for (int j = 0; j < n_bits; j++)
             player_bits[j].push_back(tmp_bits[j]);
     }
+    print_general("after buffer_personal_edabits", "buffer_edabits_from_personal");
     RunningTimer add_timer;
+    print_general("before BitAdder", "buffer_edabits_from_personal");
     BitAdder().add(bits, player_bits, bit_proc, bit_type::default_length,
             queues);
     player_bits.clear();
@@ -217,6 +221,7 @@ void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
     sums.shrink_to_fit();
     bits.clear();
     bits.shrink_to_fit();
+    print_general("before sanitize", "buffer_edabits_from_personal");
     if (strict)
         this->template sanitize<0>(checked, n_bits, -1, queues);
     auto& output = this->edabits[{strict, n_bits}];
@@ -238,7 +243,9 @@ void MaliciousRingPrep<T>::buffer_edabits(bool strict, int n_bits,
 {
     RunningTimer timer;
 #ifndef NONPERSONAL_EDA
+    print_general("before buffer_edabits_from_personal", "buffer_edabits");
     this->buffer_edabits_from_personal(strict, n_bits, queues);
+    print_general("after buffer_edabits_from_personal", "buffer_edabits");
 #else
     assert(this->proc != 0);
     ShuffleSacrifice<T> shuffle_sacrifice;

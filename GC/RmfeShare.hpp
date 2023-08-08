@@ -53,9 +53,9 @@ void Square<gf2n_rmfe>::to(gf2n_rmfe& result, false_type)
 
 namespace GC {
 
-ShareThread<RmfeSecret>& RmfeShare::get_party()
+ShareThread<RmfeShare::whole_type>& RmfeShare::get_party()
 {
-    return ShareThread<RmfeSecret>::s();
+    return ShareThread<RmfeShare::whole_type>::s();
 }
 
 void RmfeShare::public_input(bool input)

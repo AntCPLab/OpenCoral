@@ -11,7 +11,10 @@
 #include "Math/Bit.h"
 #include "Protocols/RmfeBeaver.h"
 #include "RmfeInput.h"
+#include "RmfeMC.h"
+#include "RmfeMultiplier.h"
 #include "Tools/mpdz_ntl_types.h"
+#include "Tools/Exceptions.h"
 
 class gf2n_rmfe;
 
@@ -82,17 +85,20 @@ public:
 namespace GC
 {
 
-class RmfeSecret;
 template<class T> class RmfeSharePrep;
 
 class RmfeShare: public Share_<SemiShare<gf2n_rmfe>, SemiShare<gf2n_rmfe>>,
-        public ShareSecret<RmfeSecret>
+        public ShareSecret<RmfeShare>
 {
     typedef RmfeShare This;
 
 public:
     typedef gf2n_rmfe T;
     typedef Share_<SemiShare<T>, SemiShare<T>> super;
+
+    typedef This whole_type;
+    typedef This part_type;
+    typedef This small_type;
 
     typedef T open_type;
     typedef T clear;
@@ -102,27 +108,29 @@ public:
     typedef T mac_type;
     typedef T sacri_type;
     typedef Share<T> input_check_type;
+    typedef This check_type;
+    typedef check_type input_type;
     typedef This prep_type;
     typedef This prep_check_type;
     typedef This bit_prep_type;
     typedef This bit_type;
 
-    typedef InsecureMC<This> MAC_Check;
+    typedef RmfeMC<This> MAC_Check;
     typedef RmfeSharePrep<This> LivePrep;
     typedef RmfeInput<This> Input;
     typedef RmfeBeaver<This> Protocol;
-    typedef NPartyTripleGenerator<RmfeSecret> TripleGenerator;
+    typedef NPartyTripleGenerator<This> TripleGenerator;
+    typedef RmfeMultiplier<This> Multiplier;
 
     typedef void DynamicMemory;
     typedef SwitchableOutput out_type;
+    typedef RmfeMC<This> MC;
 
-    typedef This part_type;
-    typedef This small_type;
+    typedef BitDiagonal Rectangle;
+    typedef typename T::Square Square;
 
-    typedef RmfeSecret whole_type;
-
-    typedef InsecureMC<This> MC;
-
+    static const bool is_real = true;
+    static const bool is_encoded = true;
     static const int default_length = bitvec_rmfe::DEFAULT_LENGTH;
 
     static string name()
@@ -145,7 +153,7 @@ public:
     //     return ShareThread<TinierSecret<T>>::s();
     // }
 
-    static ShareThread<RmfeSecret>& get_party();
+    static ShareThread<whole_type>& get_party();
 
     static MAC_Check* new_mc(mac_key_type mac_key)
     {
@@ -163,7 +171,7 @@ public:
             super(share, mac)
     {
     }
-    RmfeShare(const RmfeSecret& other);
+    // RmfeShare(const RmfeSecret& other);
 
     void XOR(const This& a, const This& b)
     {
@@ -185,7 +193,7 @@ public:
 
     This get_bit(int i)
     {
-        throw runtime_error("Not implemented");
+        throw invalid_pack_usage();
     }
 };
 

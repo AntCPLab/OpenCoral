@@ -54,4 +54,7 @@ public:
     }
 };
 
+template<class T>
+using dabitvec = pair<FixedVector<T, T::bit_type::default_length>, typename T::bit_type>;
+
 #endif /* PROTOCOLS_DABIT_H_ */

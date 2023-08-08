@@ -117,6 +117,7 @@ public:
     typedef SwitchableOutput out_type;
 
     static const bool is_real = false;
+    static const bool is_encoded = false;
 
     static MC* new_mc(mac_key_type)
     {

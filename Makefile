@@ -429,6 +429,12 @@ test_rmfe_beaver: test/test_rmfe_beaver.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE) GC
 test_tinyot_to_rmfe: test/test_tinyot_to_rmfe.o $(COMMON) $(VM) $(OT) GC/PostSacriBin.o $(GC_SEMI)
 	$(CXX) -o $@ $(CFLAGS) $^ $(EMP_LIBS) $(LDLIBS)
 
+test_rmfeshare_converter: test/test_rmfeshare_converter.o $(COMMON) $(VM) $(OT) GC/PostSacriBin.o $(GC_SEMI)
+	$(CXX) -o $@ $(CFLAGS) $^ $(EMP_LIBS) $(LDLIBS)
+
+mixed-coral-edabit-example.x: $(VM) $(OT) GC/PostSacriBin.o $(GC_SEMI) $(COMMON)
+
+
 zico: target1
 	echo "target1: $@; pre: $^"
 

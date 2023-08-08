@@ -51,6 +51,8 @@ protected:
     vector<vector<InputTuple<T>>> inputs;
 
     vector<dabit<T>> dabits;
+    // For bit type that is packed and encoded, no individual dabit is available
+    vector<dabitvec<T>> dabitvecs;
 
     map<pair<bool, int>, vector<edabitvec<T>>> edabits;
     map<pair<bool, int>, edabitvec<T>> my_edabits;
@@ -116,6 +118,7 @@ public:
             int vector_size);
 
     virtual void get_dabit_no_count(T& a, typename T::bit_type& b);
+//     edabitvec<T> get_dabitvec();
 
     edabitvec<T> get_edabitvec(bool strict, int n_bits);
     void get_edabit_no_count(bool strict, int n_bits, edabit<T>& eb);

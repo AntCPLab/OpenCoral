@@ -32,6 +32,7 @@ public:
     typedef Beaver<This> Protocol;
     typedef MAC_Check_Z2k_<This> MAC_Check;
     typedef MAC_Check Direct_MC;
+    typedef MAC_Check MC;
     typedef ::Input<This> Input;
     typedef TinierSharePrep<This> LivePrep;
 
@@ -40,6 +41,9 @@ public:
     typedef This small_type;
 
     typedef NoShare bit_type;
+
+    // `is_real` exists in multiple base classes (ShareSecret and ShareInterface)
+    static const bool is_real = true;
 
     static string name()
     {
@@ -68,6 +72,11 @@ public:
         auto& party = this->get_party();
         *this = super::constant(input, party.P->my_num(),
                 party.MC->get_alphai());
+    }
+
+    static MAC_Check* new_mc(typename super::mac_key_type mac_key)
+    {
+        return new MAC_Check(mac_key);
     }
 };
 
