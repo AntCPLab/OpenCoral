@@ -48,6 +48,7 @@ public:
     typedef This bit_prep_type;
 
     typedef MAC_Check_<This> MAC_Check;
+    typedef Direct_MAC_Check<This> Direct_MC;
     typedef TinierSharePrep<This> LivePrep;
     typedef ::Input<This> Input;
     typedef Beaver<This> Protocol;

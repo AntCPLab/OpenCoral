@@ -82,7 +82,7 @@ public:
         init();
     }
 
-    ShamirInput(ShamirMC<T>&, Preprocessing<T>&, Player& P) :
+    ShamirInput(IndirectShamirMC<T>&, Preprocessing<T>&, Player& P) :
             ShamirInput<T>(0, P)
     {
     }
