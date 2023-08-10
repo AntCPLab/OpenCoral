@@ -11,6 +11,8 @@
 #include "Protocols/TinyOt2Rmfe.h"
 #include "PersonalPrep.hpp"
 #include "Tools/debug.h"
+#include "TinyOT/tinyotprep.hpp"
+#include "TinyOT/tinyotshare.hpp"
 
 namespace GC
 {
@@ -19,8 +21,8 @@ template<class T>
 RmfeSharePrep<T>::RmfeSharePrep(DataPositions& usage, int input_player) :
         PersonalPrep<T>(usage, input_player),
         triple_generator(0),
-        tinyot2rmfe(0),
-        spdz2k2rmfe(0)
+        tinyot2rmfe(0)
+        // spdz2k2rmfe(0)
         // real_triple_generator(0)
 {
     prng.SetSeed((const unsigned char*) "insecure");
@@ -40,9 +42,9 @@ RmfeSharePrep<T>::~RmfeSharePrep()
     if (tinyot2rmfe) {
         delete tinyot2rmfe;
     }
-    if (spdz2k2rmfe) {
-        delete spdz2k2rmfe;
-    }
+    // if (spdz2k2rmfe) {
+    //     delete spdz2k2rmfe;
+    // }
     // if (real_triple_generator)
     //     delete real_triple_generator;
 }
@@ -74,7 +76,7 @@ void RmfeSharePrep<T>::set_protocol(typename T::Protocol& protocol)
     tinyot2rmfe = new RmfeShareConverter<TinyOTShare>(*player);
     tinyot2rmfe->get_src_prep()->set_batch_size(tinyot_batch_size);
 
-    spdz2k2rmfe = new RmfeShareConverter<Spdz2kBShare>(*player);
+    // spdz2k2rmfe = new RmfeShareConverter<Spdz2kBShare>(*player);
 
     MC = protocol.get_mc();
 }

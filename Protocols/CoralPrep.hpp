@@ -10,38 +10,68 @@
 #include "GC/BitAdder.h"
 
 #include "DabitSacrifice.hpp"
+#include "Tools/Exceptions.h"
 
 template<class T>
 CoralPrep<T>::CoralPrep(SubProcessor<T>* proc, DataPositions& usage) :
-        BufferPrep<T>(usage),
-        BitPrep<T>(proc, usage), RingPrep<T>(proc, usage),
-        MaliciousDabitOnlyPrep<T>(proc, usage),
-        MaliciousRingPrep<T>(proc, usage),
-        MascotTriplePrep<T>(proc, usage),
-        RingOnlyPrep<T>(proc, usage),
-        Spdz2kPrep<T>(proc, usage)
+    BufferPrep<T>(usage),
+    BitPrep<T>(proc, usage), RingPrep<T>(proc, usage),
+    MaliciousDabitOnlyPrep<T>(proc, usage),
+    MaliciousRingPrep<T>(proc, usage),
+    MascotTriplePrep<T>(proc, usage),
+    RingOnlyPrep<T>(proc, usage),
+    Spdz2kPrep<T>(proc, usage),
+    spdz2k2rmfe(0)
 {
 }
 
 template<class T>
-CoralPrep<T>::~CoralPrep()
-{
+CoralPrep<T>::~CoralPrep() {
+    if (spdz2k2rmfe)
+        delete spdz2k2rmfe;
 }
 
-// template<class T>
-// void Spdz2kPrep<T>::set_protocol(typename T::Protocol& protocol)
-// {
-//     OTPrep<T>::set_protocol(protocol);
-//     assert(this->proc != 0);
-//     auto& proc = this->proc;
-//     bit_MC = new typename BitShare::MAC_Check(proc->MC.get_alphai());
-//     // just dummies
-//     bit_pos = DataPositions(proc->P.num_players());
-//     bit_prep = new MascotTriplePrep<BitShare>(bit_proc, bit_pos);
-//     bit_prep->params.amplify = false;
-//     bit_proc = new SubProcessor<BitShare>(*bit_MC, *bit_prep, proc->P);
-//     bit_MC->set_prep(*bit_prep);
-// }
+template<class T>
+void CoralPrep<T>::set_protocol(typename T::Protocol& protocol) {
+    Spdz2kPrep<T>::set_protocol(protocol);
+
+    spdz2k2rmfe = new RmfeShareConverter<GC::Spdz2kBShare<T::s>>(protocol.P);
+}
+
+template<class T>
+void CoralPrep<T>::get_dabit(T& a, typename T::bit_type& b) {
+    throw invalid_pack_usage();
+}
+
+template<class T>
+void CoralPrep<T>::buffer_dabits(ThreadQueues* queues) {
+    int dl = T::bit_type::default_length;
+    int buffer_size = OnlineOptions::singleton.batch_size;
+    buffer_size = buffer_size / dl * dl;
+
+    vector<T> a_bits(buffer_size);
+    vector<GC::Spdz2kBShare<T::s>> spdz2k_b_bits(buffer_size);
+    for (int i = 0; i < buffer_size; i++) {
+        // Get random bit in the Z2k domain
+        this->get_one(DATA_BIT, a_bits[i]);
+        // Spdz2k's loccal A2B
+        spdz2k_b_bits[i].resize_regs(1);
+        spdz2k_b_bits[i].get_reg(0) = Spdz2kShare<1, T::s>(a_bits[i]);
+    }
+    // Convert to Rmfe style
+    vector<RmfeShare> rmfe_shares;
+    spdz2k2rmfe->convert(rmfe_shares, spdz2k_b_bits);
+    assert(rmfe_shares.size() * dl == a_bits.size());
+
+    for (size_t i = 0; i < rmfe_shares.size(); i++) {
+        dabitvec<T> dv;
+        dv.second = rmfe_shares[i];
+        for (int j = 0; j < dl; j++)
+            dv.first.push_back(a_bits[i * dl + j]);
+        this->dabitvecs.push_back(dv);
+    }
+}
+
 
 // template<class T>
 // void MaliciousRingPrep<T>::buffer_bits()

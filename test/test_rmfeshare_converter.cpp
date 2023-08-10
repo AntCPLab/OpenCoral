@@ -9,7 +9,7 @@
 #include "Protocols/ProtocolGlobalInit.h"
 #include "GC/RmfeSharePrep.h"
 
-// #include "GC/Spdz2kBShare.h"
+#include "GC/Spdz2kBShare.h"
 #include "GC/TinySecret.h"
 #include "GC/CcdPrep.hpp"
 #include "GC/VectorInput.h"
@@ -140,6 +140,6 @@ int main(int argc, char** argv)
         test_convert_to_rmfe<TinyOTShare>(argc, argv);
     }
     else if (protocol == "spdz2k") {
-        test_convert_to_rmfe<GC::Spdz2kBShare>(argc, argv);
+        test_convert_to_rmfe<GC::Spdz2kBShare<DEFAULT_SECURITY>>(argc, argv);
     }
 }

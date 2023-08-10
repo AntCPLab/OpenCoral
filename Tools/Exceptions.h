@@ -286,7 +286,7 @@ public:
 
 class invalid_pack_usage: public exception
 { virtual const char* what() const throw()
-    { return "No bit access into packed type"; }
+    { return "Packed type does not allow single bit operation"; }
 };
 
 #endif

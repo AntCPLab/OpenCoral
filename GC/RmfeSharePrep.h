@@ -11,12 +11,14 @@
 #include "ShareThread.h"
 #include "PersonalPrep.h"
 #include "Protocols/RmfeShareConverter.h"
+#include "TinyOT/tinyotshare.h"
+#include "TinyOT/tinyotinput.h"
 
 
 namespace GC
 {
 
-typedef TinySecret<DEFAULT_SECURITY> Spdz2kBShare;
+// typedef TinySecret<DEFAULT_SECURITY> Spdz2kBShare;
 
 template<class T>
 class RmfeSharePrep : public PersonalPrep<T> {
@@ -26,7 +28,7 @@ class RmfeSharePrep : public PersonalPrep<T> {
     MascotParams params;
 
     RmfeShareConverter<TinyOTShare>* tinyot2rmfe;
-    RmfeShareConverter<Spdz2kBShare>* spdz2k2rmfe;
+    // RmfeShareConverter<Spdz2kBShare>* spdz2k2rmfe;
 
     typedef typename T::whole_type secret_type;
 

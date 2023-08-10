@@ -1186,19 +1186,19 @@ void Preprocessing<T>::get_dabit(T& a, typename T::bit_type& b)
     this->count(DATA_DABIT);
 }
 
-// template<class T>
-// dabitvec<T> BufferPrep<T>::get_dabitvec() {
-//     assert(T::bit_type::is_encoded);
-//     if (dabitvecs.empty()) {
-//         InScope in_scope(this->do_count, false, *this);
-//         ThreadQueues* queues = 0;
-//         buffer_dabits(queues);
-//         assert(not dabitvecs.empty());
-//     }
-//     auto res = dabitvecs.back();
-//     dabitvecs.pop_back();
-//     return res;
-// }
+template<class T>
+dabitvec<T> BufferPrep<T>::get_dabitvec() {
+    assert(T::bit_type::is_encoded);
+    if (dabitvecs.empty()) {
+        InScope in_scope(this->do_count, false, *this);
+        ThreadQueues* queues = 0;
+        buffer_dabits(queues);
+        assert(not dabitvecs.empty());
+    }
+    auto res = dabitvecs.back();
+    dabitvecs.pop_back();
+    return res;
+}
 
 template<class T>
 edabitvec<T> BufferPrep<T>::get_edabitvec(bool strict, int n_bits)

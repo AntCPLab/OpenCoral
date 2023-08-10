@@ -12,6 +12,7 @@
 #include "Processor/DummyProtocol.h"
 #include "OT/Rectangle.h"
 
+
 // template<int K, int S> class Spdz2kMultiplier;
 // template<class T> class Spdz2kTripleGenerator;
 template<class T> class Coral;
@@ -37,7 +38,7 @@ public:
     typedef CoralPrep<CoralShare> LivePrep;
     typedef ::Input<CoralShare> Input;
 
-    typedef GC::RmfeSecret bit_type;
+    typedef GC::RmfeShare bit_type;
     
 
     static string type_string() { return "Coral^(" + to_string(K) + "+" + to_string(S) + ")"; }

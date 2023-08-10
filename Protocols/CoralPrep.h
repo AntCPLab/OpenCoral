@@ -6,9 +6,10 @@
 #ifndef PROTOCOLS_CoralPREP_H_
 #define PROTOCOLS_CoralPREP_H_
 
+#include "CoralShare.h"
 #include "Spdz2kPrep.h"
+#include "GC/Spdz2kBShare.h"
 
-template<int, int> class CoralShare;
 
 /**
  * Coral preprocessing
@@ -22,11 +23,16 @@ class CoralPrep : public virtual Spdz2kPrep<T>
     // SubProcessor<BitShare>* bit_proc;
     // typename BitShare::MAC_Check* bit_MC;
 
+    RmfeShareConverter<GC::Spdz2kBShare<T::s>>* spdz2k2rmfe;
+
 public:
     CoralPrep(SubProcessor<T>* proc, DataPositions& usage);
     ~CoralPrep();
 
-    void buffer_dabits(ThreadQueues* queues);
+    void set_protocol(typename T::Protocol& protocol);
+
+    void get_dabit(T& a, typename T::bit_type& b);
+    void buffer_dabits(ThreadQueues* queues = 0);
 };
 
 #endif /* PROTOCOLS_SPDZ2KPREP_H_ */

@@ -14,6 +14,7 @@
 #include "PrepBase.h"
 #include "EdabitBuffer.h"
 #include "Tools/TimerWithComm.h"
+#include "Protocols/dabit.h"
 
 #include <fstream>
 #include <map>
@@ -171,9 +172,9 @@ public:
   /// Store fresh daBit in ``a`` (arithmetic part) and ``b`` (binary part)
   virtual void get_dabit(T& a, typename T::bit_type& b);
   virtual void get_dabit_no_count(T&, typename T::bit_type&) { throw runtime_error("no daBit"); }
-  // virtual dabitvec<T> get_dabitvec() {
-  //     throw runtime_error("no dabitvec");
-  // }
+  virtual dabitvec<T> get_dabitvec() {
+      throw runtime_error("no dabitvec");
+  }
   virtual void get_edabits(bool strict, size_t size, T* a,
           vector<typename T::bit_type>& Sb, const vector<int>& regs)
   { get_edabits<0>(strict, size, a, Sb, regs, T::clear::characteristic_two); }

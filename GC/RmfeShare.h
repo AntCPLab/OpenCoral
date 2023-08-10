@@ -27,6 +27,8 @@ public:
     bitvec_rmfe() {
     }
 
+    bitvec_rmfe(bool a): bitvec_rmfe(BitVec(a)) {}
+
     bitvec_rmfe(const BitVec& a) : super(a) {}
 
     // NOTE: This constructor includes decoding.
@@ -46,6 +48,12 @@ public:
     // NOTE: This constructor includes encoding.
     gf2n_rmfe(const bitvec_rmfe& decoded);
 
+    template<class T>
+    gf2n_rmfe(const T& other) :
+            gf2n_short(other)
+    {
+    }
+
     static const int DEFAULT_LENGTH = 48;
 
     static int length()         { return n == 0 ? DEFAULT_LENGTH : n; }
@@ -53,12 +61,6 @@ public:
 
     static void init_field(int nn = 0) {
         super::init_field(nn == 0 ? DEFAULT_LENGTH : nn);
-    }
-
-    template<class T>
-    gf2n_rmfe(const T& other) :
-            gf2n_short(other)
-    {
     }
 
     /**
@@ -101,7 +103,8 @@ public:
     typedef This small_type;
 
     typedef T open_type;
-    typedef T clear;
+    // typedef T clear;
+    typedef bitvec_rmfe clear;
     typedef bitvec_rmfe raw_type;
 
     typedef T mac_key_type;
@@ -192,6 +195,11 @@ public:
     void public_input(bool input);
 
     This get_bit(int i)
+    {
+        throw invalid_pack_usage();
+    }
+
+    void xor_bit(size_t i, const part_type& bit)
     {
         throw invalid_pack_usage();
     }

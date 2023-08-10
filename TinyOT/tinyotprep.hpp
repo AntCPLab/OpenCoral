@@ -10,6 +10,7 @@
 #include "Protocols/fake-stuff.h"
 #include "TinyOT/tinyotshare.h"
 #include "tinyotprep.h"
+#include "tinyotprotocol.h"
 
 BufferTinyOTPrep::BufferTinyOTPrep(DataPositions& usage, int port, int batch_size) :
 	Preprocessing<TinyOTShare>(usage), io(nullptr), fpre(nullptr), P(nullptr),

@@ -118,7 +118,7 @@ public:
             int vector_size);
 
     virtual void get_dabit_no_count(T& a, typename T::bit_type& b);
-//     edabitvec<T> get_dabitvec();
+    virtual dabitvec<T> get_dabitvec();
 
     edabitvec<T> get_edabitvec(bool strict, int n_bits);
     void get_edabit_no_count(bool strict, int n_bits, edabit<T>& eb);
