@@ -3,14 +3,14 @@
  *
  */
 
+// [zico] need to update
+#define NO_SECURITY_CHECK
+
 #include "Protocols/ProtocolSet.h"
 
-#include "Machines/SPDZ.hpp"
-#include "Machines/SPDZ2k.hpp"
-#include "Machines/Semi2k.hpp"
-#include "Machines/Rep.hpp"
-#include "Machines/Rep4.hpp"
-#include "Machines/Atlas.hpp"
+#include "Machines/Coral.hpp"
+#include "Tools/debug.h"
+
 
 template<class T>
 void run(char** argv);
@@ -26,21 +26,12 @@ int main(int argc, char** argv)
         exit(1);
     }
 
-    string protocol = "SPDZ2k";
+    string protocol = "Coral";
     if (argc > 3)
         protocol = argv[3];
 
-    if (protocol == "SPDZ2k")
-        run<Spdz2kShare<64, 64>>(argv);
-    else if (protocol == "Semi2k")
-        run<Semi2kShare<64>>(argv);
-    else if (protocol == "Rep3")
-        run<Rep3Share2<64>>(argv);
-    else if (protocol == "Rep4")
-        run<Rep4Share2<64>>(argv);
-    else if (protocol == "Atlas")
-        run<AtlasShare<gfp_<0, 2>>>(argv);
-    else
+    if (protocol == "Coral")
+        run<CoralShare<64, 64>>(argv);
     {
         cerr << "Unknown protocol: " << protocol << endl;
         exit(1);
@@ -53,6 +44,10 @@ void run(char** argv)
     // reduce batch size
     OnlineOptions::singleton.bucket_size = 5;
     OnlineOptions::singleton.batch_size = 100;
+
+    // RMFE setup
+    auto rmfe = get_composite_gf2_rmfe_type2(2, 6);
+    rmfe->set_singleton(rmfe.get());
 
     // set up networking on localhost
     int my_number = atoi(argv[1]);
@@ -74,7 +69,7 @@ void run(char** argv)
     auto& prep = set.preprocessing;
 
     int n = 10;
-    int n_bits = 16;
+    int n_bits = T::bit_type::default_length;
     vector<typename T::bit_type> a(n), b(n);
 
     // inputs in binary domain
@@ -94,36 +89,33 @@ void run(char** argv)
         bit_protocol.prepare_mul(a[i], b[i], n_bits);
     bit_protocol.exchange();
     bit_protocol.check();
-    bit_output.init_open(P, n * n_bits);
-    PointerVector<pair<T, typename T::bit_type>> dabits;
+    bit_output.init_open(P, n);
+    PointerVector<dabitvec<T>> dabitvecs;
     for (int i = 0; i < n; i++)
     {
         auto c = bit_protocol.finalize_mul(n_bits);
+        dabitvecs.push_back({});
+        auto& dv = dabitvecs.back();
+        dv = prep.get_dabitvec();
 
         // mask result with dabits and open
-        for (int j = 0; j < n_bits; j++)
-        {
-            dabits.push_back({});
-            auto& dabit = dabits.back();
-            prep.get_dabit(dabit.first, dabit.second);
-            bit_output.prepare_open(
-                    typename T::bit_type::part_type(
-                            dabit.second.get_bit(0) + c.get_bit(j)));
-        }
+        bit_output.prepare_open(c + dv.second);
     }
+
     bit_output.exchange(P);
-    cout << "bit_output addr: " << &bit_output << endl;
+
     output.init_open(P, n);
     for (int i = 0; i < n; i++)
     {
         T res;
         // unmask via XOR and recombine
+        typename T::clear masked = bit_output.finalize_open();
+        auto& dv = dabitvecs.next();
         for (int j = 0; j < n_bits; j++)
         {
-            typename T::clear masked = bit_output.finalize_open().get_bit(0);
-            auto mask = dabits.next().first;
-            res += (mask - mask * masked * 2
-                    + T::constant(masked, P.my_num(), setup.get_mac_key()))
+            auto mask = dv.first[j];
+            res += (mask - mask * masked.get_bit(j) * 2
+                    + T::constant(masked.get_bit(j), P.my_num(), setup.get_mac_key()))
                     << j;
         }
         output.prepare_open(res);

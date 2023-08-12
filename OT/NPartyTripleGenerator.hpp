@@ -16,6 +16,7 @@
 #include "Protocols/SemiInput.hpp"
 #include "Protocols/SemiMC.hpp"
 #include "Protocols/mac_key.hpp"
+#include "Tools/debug.h"
 
 #include <sstream>
 #include <fstream>
@@ -371,7 +372,7 @@ void Spdz2kTripleGenerator<T>::generateTriples()
 
 	this->signal_multipliers(DATA_TRIPLE);
 
-	const int TAU = Spdz2kMultiplier<K, S>::TAU;
+	const int TAU = Spdz2kMultiplier<T>::TAU;
 	const int TAU_ROUNDED = (TAU + 7) / 8 * 8;
 	valueBits.resize(3);
 	for (int i = 0; i < 2; i++)
@@ -463,7 +464,7 @@ void Spdz2kTripleGenerator<T>::generateTriples()
 		MC.set_random_element(r);
 		sacrificeZ2k(MC, G);
 	}
-    std::cout << "Spdz2k triple generate: " << nTriplesPerLoop << " for Z2(" << K << ")" << std::endl;
+    print_general("generate triples", nTriplesPerLoop, "Z2", K, "Spdz2kTripleGenerator");
 }
 
 template<class U>

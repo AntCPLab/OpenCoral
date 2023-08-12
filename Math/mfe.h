@@ -280,7 +280,7 @@ inline RMFE<T1, T2, T3, T4>& RMFE<T1, T2, T3, T4>::s()
     if (singleton)
         return *singleton;
     else
-        throw runtime_error("no singleton");
+        throw runtime_error("no singleton: " + std::string(typeid(RMFE<T1, T2, T3, T4>).name()));
 }
 
 template<class T1, class T2, class T3, class T4>

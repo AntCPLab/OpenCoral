@@ -432,6 +432,7 @@ test_tinyot_to_rmfe: test/test_tinyot_to_rmfe.o $(COMMON) $(VM) $(OT) GC/PostSac
 test_rmfeshare_converter: test/test_rmfeshare_converter.o $(COMMON) $(VM) $(OT) GC/PostSacriBin.o $(GC_SEMI)
 	$(CXX) -o $@ $(CFLAGS) $^ $(EMP_LIBS) $(LDLIBS)
 
+mixed-coral-dabit-example.x: $(VM) $(OT) GC/PostSacriBin.o $(GC_SEMI) $(COMMON)
 mixed-coral-edabit-example.x: $(VM) $(OT) GC/PostSacriBin.o $(GC_SEMI) $(COMMON)
 
 

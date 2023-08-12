@@ -33,10 +33,14 @@ public:
     typedef CoralShare prep_type;
     typedef CoralShare<K + 2, S> bit_prep_type;
     typedef CoralShare<K + S, S> prep_check_type;
+    typedef CoralShare input_check_type;
     typedef MAC_Check_Z2k<Z2<K + S>, Z2<S>, open_type, CoralShare> MAC_Check;
     typedef Coral<CoralShare> Protocol;
     typedef CoralPrep<CoralShare> LivePrep;
     typedef ::Input<CoralShare> Input;
+    // [zico] this needs to change to HE gen
+    typedef Spdz2kTripleGenerator<CoralShare> TripleGenerator;
+    typedef Spdz2kMultiplier<CoralShare> Multiplier;
 
     typedef GC::RmfeShare bit_type;
     

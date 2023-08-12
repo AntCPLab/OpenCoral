@@ -66,7 +66,7 @@ void RmfeInput<T>::add_mine(const open_type& input, int n_bits)
 }
 
 template<class T>
-void RmfeInput<T>::add_mine_decoded(const BitVec& input, int n_bits)
+void RmfeInput<T>::add_mine(const BitVec& input, int n_bits)
 {
     if (n_bits > T::default_length)
         throw runtime_error("Cannot handle bits more than rmfe packing size");
@@ -80,6 +80,22 @@ void RmfeInput<T>::add_mine_decoded(const BitVec& input, int n_bits)
 
     add_mine(encoded_input, n_bits);
 }
+
+// template<class T>
+// void RmfeInput<T>::add_mine_decoded(const BitVec& input, int n_bits)
+// {
+//     if (n_bits > T::default_length)
+//         throw runtime_error("Cannot handle bits more than rmfe packing size");
+//     if (n_bits == -1)
+//         n_bits = T::default_length;
+//     NTL::vec_GF2 ntl_input;
+//     open_type encoded_input;
+//     conv(ntl_input, input, n_bits);
+//     pad(ntl_input, Gf2RMFE::s().k());
+//     conv(encoded_input, Gf2RMFE::s().encode(ntl_input));
+
+//     add_mine(encoded_input, n_bits);
+// }
 
 template<class T>
 void RmfeInput<T>::add_other(int player, int)

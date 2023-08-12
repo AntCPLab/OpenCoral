@@ -39,7 +39,7 @@ void test_rmfe_beaver(int argc, char** argv)
 
     input.reset_all(P);
     for (int i = 0; i < n; i++)
-        input.add_from_all_decoded(i + P.my_num(), n_bits);
+        input.add_from_all(i + P.my_num(), n_bits);
     input.exchange();
     for (int i = 0; i < n; i++)
     {
@@ -55,6 +55,7 @@ void test_rmfe_beaver(int argc, char** argv)
     for (int i = 0; i < n; i++)
     {
         auto c = protocol.finalize_mul(n_bits);
+        cout << hex << "c: " << T::clear(reveal(&P, c).get_share()) << endl;
         output.prepare_open(c);
     }
     for (int i = 0; i < n; i++)

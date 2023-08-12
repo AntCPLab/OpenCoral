@@ -97,7 +97,6 @@ void RmfeSharePrep<T>::buffer_inputs(int player) {
 
 template<class T>
 void RmfeSharePrep<T>::buffer_triples() {
-    print_general("enter buffer triples");
 
     auto& nTriplesPerLoop = triple_generator->nTriplesPerLoop;
     auto tinyot_prep = tinyot2rmfe->get_src_prep();
@@ -117,17 +116,14 @@ void RmfeSharePrep<T>::buffer_triples() {
                 tinyot_shares[i * 3 * l + 2 * l + j].MAC, tinyot_shares[i * 3 * l + 2 * l + j].KEY);
         }
     }
-    print_general("gen tinyot triples");
 
     // Convert tinyot shares to rmfe shares
     tinyot2rmfe->convert(rmfe_shares, tinyot_shares);
-    print_general("convert to rmfe triples");
     assert((int)rmfe_shares.size() == nTriplesPerLoop * 3);
 
     for(int i = 0; i < nTriplesPerLoop; i++) {
         this->triples.push_back({{rmfe_shares[i*3], rmfe_shares[i*3 + 1], rmfe_shares[i*3 + 2]}});
     }
-    print_general("store rmfe triples");
 }
 
 

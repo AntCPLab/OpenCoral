@@ -477,7 +477,7 @@ void MaliciousRingPrep<T>::buffer_personal_dabits_without_check(
         for (int i = 0; i < buffer_size; i++)
         {
             auto bit = G.get_bit();
-            bit_input.add_mine(bit, 1);
+            bit_input.add_mine(typename BT::clear(bit), 1);
             input.add_mine(bit);
         }
     }

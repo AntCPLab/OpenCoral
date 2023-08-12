@@ -20,10 +20,18 @@ void RmfeShareConverter<T>::convert(vector<RmfeShare>& rmfe_shares, const vector
 
     // Construct Rmfe Input
     auto& party = ShareThread<RmfeShare::whole_type>::s();
-    auto& MC = party.MC->get_part_MC();
+    // [zico] Why create a new mc here? Usually we cannot directly use the MC from ShareThread because
+    // our outer application will probaly use it to open values. If we use it here, and convert is used
+    // in the middle of outer openning, then the MC open inside convert will destroy the outer openning.
+    // It is a general problem for nested openning with the same MC.
+    // We use ShareThread for src_mc above because that mc is only expected to be used here. If we intend to
+    // use it in outer application, then the application code should be carefully designed to not introduce the nested
+    // openning for src_mc.
+    auto dst_mc = GC::RmfeShare::new_mc(
+            GC::ShareThread<GC::RmfeShare::whole_type>::s().MC->get_alphai());
     auto& prep = party.DataF.get_part();
     auto& P = *party.P;
-    RmfeShare::Input input(MC, prep, P);
+    RmfeShare::Input input(*dst_mc, prep, P);
     input.reset_all(P);
 
     time_log("random tiny ot");
@@ -38,7 +46,8 @@ void RmfeShareConverter<T>::convert(vector<RmfeShare>& rmfe_shares, const vector
             r[k] = src_prep->get_bit();
             raw ^= ((long) typename T::clear(r[k].get_bit(0).get_share()).get_bit(0)) << j;
         }
-        input.add_from_all_decoded(BitVec(raw));
+        // input.add_from_all_decoded(BitVec(raw));
+        input.add_from_all(BitVec(raw));
     }
     time_log("random tiny ot");
 
@@ -49,7 +58,8 @@ void RmfeShareConverter<T>::convert(vector<RmfeShare>& rmfe_shares, const vector
         for(int j = 0; j < l; j++) {
             raw ^= ((long) typename T::clear(src_shares[i*l + j].get_bit(0).get_share()).get_bit(0)) << j;
         }
-        input.add_from_all_decoded(BitVec(raw));
+        // input.add_from_all_decoded(BitVec(raw));
+        input.add_from_all(BitVec(raw));
     }
     time_log("input tiny ot");
 
@@ -93,7 +103,7 @@ void RmfeShareConverter<T>::convert(vector<RmfeShare>& rmfe_shares, const vector
     }
     time_log("linear comb");
     time_log("open");
-    MC.POpen(z, z_share, P);
+    dst_mc->POpen(z, z_share, P);
     src_mc->POpen(z_prime, z_prime_share, P);
     time_log("open");
 
@@ -108,6 +118,9 @@ void RmfeShareConverter<T>::convert(vector<RmfeShare>& rmfe_shares, const vector
     }
     time_log("consistency");
     print_profiling();
+
+    dst_mc->Check(P);
+    delete dst_mc;
 
     rmfe_shares = std::move(y);
 }

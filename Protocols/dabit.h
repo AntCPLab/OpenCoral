@@ -57,4 +57,8 @@ public:
 template<class T>
 using dabitvec = pair<FixedVector<T, T::bit_type::default_length>, typename T::bit_type>;
 
+template<class T>
+using dabit_t = typename std::conditional<T::bit_type::is_encoded, dabitvec<T>, dabit<T>>::type;
+
+
 #endif /* PROTOCOLS_DABIT_H_ */

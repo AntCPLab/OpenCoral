@@ -11,6 +11,7 @@
 
 #include "DabitSacrifice.hpp"
 #include "Tools/Exceptions.h"
+#include "Tools/debug.h"
 
 template<class T>
 CoralPrep<T>::CoralPrep(SubProcessor<T>* proc, DataPositions& usage) :
@@ -58,9 +59,11 @@ void CoralPrep<T>::buffer_dabits(ThreadQueues* queues) {
         spdz2k_b_bits[i].resize_regs(1);
         spdz2k_b_bits[i].get_reg(0) = Spdz2kShare<1, T::s>(a_bits[i]);
     }
+    
     // Convert to Rmfe style
     vector<RmfeShare> rmfe_shares;
     spdz2k2rmfe->convert(rmfe_shares, spdz2k_b_bits);
+
     assert(rmfe_shares.size() * dl == a_bits.size());
 
     for (size_t i = 0; i < rmfe_shares.size(); i++) {

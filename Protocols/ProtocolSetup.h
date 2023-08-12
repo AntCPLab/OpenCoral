@@ -7,6 +7,7 @@
 #define PROTOCOLS_PROTOCOLSETUP_H_
 
 #include "Networking/Player.h"
+#include "Tools/debug.h"
 
 /**
  * Global setup for an arithmetic share type

@@ -138,12 +138,36 @@ public:
     void multiplyForInputs(MultJob job);
 };
 
-template <int K, int S> class Spdz2kShare;
+// template <int K, int S> class Spdz2kShare;
 
-template <int K, int S>
-class Spdz2kMultiplier: public OTMultiplier<Spdz2kShare<K, S>>
+// template <int K, int S>
+// class Spdz2kMultiplier: public OTMultiplier<Spdz2kShare<K, S>>
+// {
+//     typedef Spdz2kShare<K, S> T;
+
+//     void after_correlation();
+//     void init_authenticator(const BitVector& baseReceiverInput,
+//             const vector< array<BitVector, 2> >& baseSenderInput,
+//             const vector<BitVector>& baseReceiverOutput);
+
+//     void multiplyForInputs(MultJob job);
+
+// public:
+//     static const int TAU = TAU(K, S);
+//     static const int PASSIVE_MULT_BITS = K + S;
+//     static const int MAC_BITS = K + 2 * S;
+
+//     vector<Z2kRectangle<TAU, PASSIVE_MULT_BITS> > c_output;
+//     OTVoleBase<Z2<MAC_BITS>>* mac_vole;
+//     OTVoleBase<Z2<K + S>>* input_mac_vole;
+
+//     Spdz2kMultiplier(OTTripleGenerator<T>& generator, int thread_num);
+//     ~Spdz2kMultiplier();
+// };
+
+template <class T>
+class Spdz2kMultiplier: public OTMultiplier<T>
 {
-    typedef Spdz2kShare<K, S> T;
 
     void after_correlation();
     void init_authenticator(const BitVector& baseReceiverInput,
@@ -153,13 +177,13 @@ class Spdz2kMultiplier: public OTMultiplier<Spdz2kShare<K, S>>
     void multiplyForInputs(MultJob job);
 
 public:
-    static const int TAU = TAU(K, S);
-    static const int PASSIVE_MULT_BITS = K + S;
-    static const int MAC_BITS = K + 2 * S;
+    static const int TAU = TAU(T::k, T::s);
+    static const int PASSIVE_MULT_BITS = T::k + T::s;
+    static const int MAC_BITS = T::k + 2 * T::s;
 
     vector<Z2kRectangle<TAU, PASSIVE_MULT_BITS> > c_output;
     OTVoleBase<Z2<MAC_BITS>>* mac_vole;
-    OTVoleBase<Z2<K + S>>* input_mac_vole;
+    OTVoleBase<Z2<T::k + T::s>>* input_mac_vole;
 
     Spdz2kMultiplier(OTTripleGenerator<T>& generator, int thread_num);
     ~Spdz2kMultiplier();

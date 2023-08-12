@@ -34,13 +34,16 @@ public:
     void reset(int player);
 
     void add_mine(const open_type& input, int n_bits = -1);
-    void add_mine_decoded(const BitVec& input, int n_bits = -1);
+    void add_mine(const BitVec& input, int n_bits = -1);
+
     void add_other(int player, int n_bits = -1);
-    void add_from_all_decoded(const BitVec& input, int n_bits = -1)
+
+    /* NOTE: This hides the `add_from_all` function of InputBase. */
+    void add_from_all(const BitVec& input, int n_bits = -1)
     {
         for (int i = 0; i < this->P.num_players(); i++)
             if (i == this->P.my_num())
-                add_mine_decoded(input, n_bits);
+                add_mine(input, n_bits);
             else
                 add_other(i, n_bits);
     }

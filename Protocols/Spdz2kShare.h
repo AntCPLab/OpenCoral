@@ -16,7 +16,8 @@
 #include "Processor/DummyProtocol.h"
 #include "OT/Rectangle.h"
 
-template<int K, int S> class Spdz2kMultiplier;
+// template<int K, int S> class Spdz2kMultiplier;
+template<class T> class Spdz2kMultiplier;
 template<class T> class Spdz2kTripleGenerator;
 template<class T> class SPDZ2k;
 
@@ -42,7 +43,7 @@ public:
     typedef Spdz2kShare<K + 2, S> bit_prep_type;
     typedef Spdz2kShare<K + S, S> prep_check_type;
     typedef Spdz2kShare input_check_type;
-    typedef Spdz2kMultiplier<K, S> Multiplier;
+    typedef Spdz2kMultiplier<Spdz2kShare> Multiplier;
     typedef Spdz2kTripleGenerator<Spdz2kShare> TripleGenerator;
     typedef Z2<K + 2 * S> sacri_type;
     typedef Z2kRectangle<TAU(K, S), K + S> Rectangle;

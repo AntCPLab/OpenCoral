@@ -10,6 +10,7 @@
 #include "Tools/int.h"
 #include "Tools/benchmarking.h"
 #include "Tools/Bundle.h"
+#include "Tools/debug.h"
 
 #include <algorithm>
 

@@ -95,6 +95,7 @@ void bits_from_square_in_ring(vector<T>& bits, int buffer_size, U* bit_prep)
     vector<BitShare> squares, random_shares;
     auto one = BitShare::constant(1, bit_proc->P.my_num(), bit_MC->get_alphai());
     bit_prep->buffer_size = buffer_size;
+    print_general("buffer_size", buffer_size, "Spdz2kPrep bits");
     for (int i = 0; i < buffer_size; i++)
     {
         BitShare a, a2;

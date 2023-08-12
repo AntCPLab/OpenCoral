@@ -7,6 +7,7 @@
 #define PROTOCOLS_MAC_CHECK_BASE_HPP_
 
 #include "MAC_Check_Base.h"
+#include "Tools/debug.h"
 
 template<class T>
 void MAC_Check_Base<T>::POpen_Begin(vector<typename T::open_type>&,

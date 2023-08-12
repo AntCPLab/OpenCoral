@@ -61,22 +61,22 @@ TinierMultiplier<T>::TinierMultiplier(OTTripleGenerator<T>& generator,
     c_output.resize(generator.nTriplesPerLoop);
 }
 
-template <int K, int S>
-Spdz2kMultiplier<K, S>::Spdz2kMultiplier(OTTripleGenerator<Spdz2kShare<K, S>>& generator, int thread_num) :
-        OTMultiplier<Spdz2kShare<K, S>>
+template <class T>
+Spdz2kMultiplier<T>::Spdz2kMultiplier(OTTripleGenerator<T>& generator, int thread_num) :
+        OTMultiplier<T>
         (generator, thread_num)
 {
 #ifdef USE_OPT_VOLE
-		mac_vole = new OTVole<Z2<MAC_BITS>>(S, generator.players[thread_num], BOTH, false);
-		input_mac_vole = new OTVole<Z2<K + S>>(S, generator.players[thread_num], BOTH, false);
+		mac_vole = new OTVole<Z2<MAC_BITS>>(T::s, generator.players[thread_num], BOTH, false);
+		input_mac_vole = new OTVole<Z2<T::k + T::s>>(T::s, generator.players[thread_num], BOTH, false);
 #else
-		mac_vole = new OTVoleBase<Z2<MAC_BITS>>(S, generator.players[thread_num], BOTH, false);
-		input_mac_vole = new OTVoleBase<Z2<K + S>>(S, generator.players[thread_num], BOTH, false);
+		mac_vole = new OTVoleBase<Z2<MAC_BITS>>(T::s, generator.players[thread_num], BOTH, false);
+		input_mac_vole = new OTVoleBase<Z2<T::k + T::s>>(T::s, generator.players[thread_num], BOTH, false);
 #endif
 }
 
-template<int K, int S>
-Spdz2kMultiplier<K, S>::~Spdz2kMultiplier()
+template<class T>
+Spdz2kMultiplier<T>::~Spdz2kMultiplier()
 {
     delete mac_vole;
     delete input_mac_vole;
@@ -345,8 +345,8 @@ void TinierMultiplier<T>::init_authenticator(const BitVector& keyBits,
     auth_ot_ext.init(tmpBits, tmpSenderOutput, tmpReceiverOutput);
 }
 
-template <int K, int S>
-void Spdz2kMultiplier<K, S>::init_authenticator(const BitVector& keyBits,
+template <class T>
+void Spdz2kMultiplier<T>::init_authenticator(const BitVector& keyBits,
 		const vector< array<BitVector, 2> >& senderOutput,
 		const vector<BitVector>& receiverOutput) {
 	this->mac_vole->init(keyBits, senderOutput, receiverOutput);
@@ -473,8 +473,8 @@ void TinierMultiplier<T>::after_correlation()
     this->outbox.push(job);
 }
 
-template <int K, int S>
-void Spdz2kMultiplier<K, S>::after_correlation()
+template <class T>
+void Spdz2kMultiplier<T>::after_correlation()
 {
     this->otCorrelator.reduce_squares(this->generator.nTriplesPerLoop,
             this->c_output);
@@ -604,8 +604,8 @@ void MascotMultiplier<U>::multiplyForInputs(MultJob job)
     this->outbox.push(job);
 }
 
-template<int K, int S>
-void Spdz2kMultiplier<K, S>::multiplyForInputs(MultJob job)
+template<class T>
+void Spdz2kMultiplier<T>::multiplyForInputs(MultJob job)
 {
     assert(job.input);
     bool mine = job.player == this->generator.my_num;
