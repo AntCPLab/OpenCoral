@@ -135,5 +135,97 @@ public:
     }
 };
 
+template<class T>
+class edabitpack
+{
+    typedef FixedVector<typename T::bit_type, T::clear::MAX_EDABITS + 5> b_type;
+    typedef FixedVector<T, T::bit_type::default_length> a_type;
+
+public:
+    static const int MAX_SIZE = a_type::MAX_SIZE;
+
+    a_type a;
+    b_type b;
+
+    edabitpack()
+    {
+    }
+
+    edabitpack(const vector<T>& other)
+    {
+        a = other;
+    }
+
+    edabitpack(const vector<typename T::bit_type>& other)
+    {
+        b = other;
+    }
+
+    void push_a(const T& x)
+    {
+        a.push_back(x);
+    }
+
+    void push_b(const typename T::bit_type& x)
+    {
+        b.push_back(x);
+    }
+
+    bool empty()
+    {
+        return a.empty();
+    }
+
+    bool full()
+    {
+        return a.full();
+    }
+
+    size_t size()
+    {
+        return a.size();
+    }
+
+    T get_a(int i)
+    {
+        return a[i];
+    }
+
+    typename T::bit_type get_b(int i)
+    {
+        return b[i];
+    }
+
+    // void input(int length, ifstream& s)
+    // {
+    //     char buffer[MAX_SIZE * T::size()];
+    //     s.read(buffer, MAX_SIZE * T::size());
+    //     for (int i = 0; i < MAX_SIZE; i++)
+    //     {
+    //         T x;
+    //         x.assign(buffer + i * T::size());
+    //         a.push_back(x);
+    //     }
+    //     size_t bsize = T::bit_type::part_type::size();
+    //     char bbuffer[length * bsize];
+    //     s.read(bbuffer, length * bsize);
+    //     for (int i = 0; i < length; i++)
+    //     {
+    //         typename T::bit_type::part_type x;
+    //         x.assign(bbuffer + i * bsize);
+    //         b.push_back(x);
+    //     }
+    // }
+
+    // void output(int length, ofstream& s)
+    // {
+    //     assert(size() == MAX_SIZE);
+    //     for (auto& x : a)
+    //         x.output(s, false);
+    //     for (int i = 0; i < length; i++)
+    //         b[i].output(s, false);
+    // }
+};
+
 
 #endif /* PROTOCOLS_EDABIT_H_ */

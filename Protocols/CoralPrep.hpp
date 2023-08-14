@@ -67,11 +67,11 @@ void CoralPrep<T>::buffer_dabits(ThreadQueues* queues) {
     assert(rmfe_shares.size() * dl == a_bits.size());
 
     for (size_t i = 0; i < rmfe_shares.size(); i++) {
-        dabitvec<T> dv;
+        dabitpack<T> dv;
         dv.second = rmfe_shares[i];
         for (int j = 0; j < dl; j++)
             dv.first.push_back(a_bits[i * dl + j]);
-        this->dabitvecs.push_back(dv);
+        this->dabitpacks.push_back(dv);
     }
 }
 

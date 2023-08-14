@@ -172,8 +172,8 @@ public:
   /// Store fresh daBit in ``a`` (arithmetic part) and ``b`` (binary part)
   virtual void get_dabit(T& a, typename T::bit_type& b);
   virtual void get_dabit_no_count(T&, typename T::bit_type&) { throw runtime_error("no daBit"); }
-  virtual dabitvec<T> get_dabitvec() {
-      throw runtime_error("no dabitvec");
+  virtual dabitpack<T> get_dabitpack() {
+      throw runtime_error("no dabitpack");
   }
   virtual void get_edabits(bool strict, size_t size, T* a,
           vector<typename T::bit_type>& Sb, const vector<int>& regs)

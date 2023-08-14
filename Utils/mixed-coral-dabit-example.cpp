@@ -90,13 +90,13 @@ void run(char** argv)
     bit_protocol.exchange();
     bit_protocol.check();
     bit_output.init_open(P, n);
-    PointerVector<dabitvec<T>> dabitvecs;
+    PointerVector<dabitpack<T>> dabitpacks;
     for (int i = 0; i < n; i++)
     {
         auto c = bit_protocol.finalize_mul(n_bits);
-        dabitvecs.push_back({});
-        auto& dv = dabitvecs.back();
-        dv = prep.get_dabitvec();
+        dabitpacks.push_back({});
+        auto& dv = dabitpacks.back();
+        dv = prep.get_dabitpack();
 
         // mask result with dabits and open
         bit_output.prepare_open(c + dv.second);
@@ -110,7 +110,7 @@ void run(char** argv)
         T res;
         // unmask via XOR and recombine
         typename T::clear masked = bit_output.finalize_open();
-        auto& dv = dabitvecs.next();
+        auto& dv = dabitpacks.next();
         for (int j = 0; j < n_bits; j++)
         {
             auto mask = dv.first[j];

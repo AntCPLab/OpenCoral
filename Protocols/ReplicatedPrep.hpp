@@ -1187,16 +1187,16 @@ void Preprocessing<T>::get_dabit(T& a, typename T::bit_type& b)
 }
 
 template<class T>
-dabitvec<T> BufferPrep<T>::get_dabitvec() {
+dabitpack<T> BufferPrep<T>::get_dabitpack() {
     assert(T::bit_type::is_encoded);
-    if (dabitvecs.empty()) {
+    if (dabitpacks.empty()) {
         InScope in_scope(this->do_count, false, *this);
         ThreadQueues* queues = 0;
         buffer_dabits(queues);
-        assert(not dabitvecs.empty());
+        assert(not dabitpacks.empty());
     }
-    auto res = dabitvecs.back();
-    dabitvecs.pop_back();
+    auto res = dabitpacks.back();
+    dabitpacks.pop_back();
     return res;
 }
 
