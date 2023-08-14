@@ -15,6 +15,7 @@
 #include "Protocols/ShuffleSacrifice.h"
 #include "Tools/TimerWithComm.h"
 #include "edabit.h"
+#include "DabitSacrifice.h"
 
 #include <array>
 
@@ -36,12 +37,12 @@ class BufferPrep : public Preprocessing<T>
 
     friend class InScope;
 
+    static const bool homomorphic = false;
+
     template<int>
     void buffer_inverses(true_type);
     template<int>
     void buffer_inverses(false_type) { throw runtime_error("no inverses"); }
-
-    virtual bool bits_from_dabits() { return false; }
 
 protected:
     vector<array<T, 3>> triples;
@@ -83,8 +84,9 @@ protected:
     { throw runtime_error("no personal daBits"); }
 
     void push_edabits(vector<edabitvec<T>>& edabits,
-            const vector<T>& sums, const vector<vector<typename T::bit_type::part_type>>& bits,
-            int buffer_size);
+            const vector<T>& sums,
+            const vector<vector<typename T::bit_type::part_type>>& bits);
+
 public:
     typedef T share_type;
 
@@ -102,6 +104,10 @@ public:
     {
         throw runtime_error("sacrifice not available");
     }
+
+    static bool bits_from_dabits() { return false; }
+    static bool bits_from_triples() { return false; }
+    static bool dabits_from_bits() { return false; }
 
     BufferPrep(DataPositions& usage);
     virtual ~BufferPrep();
@@ -135,6 +141,8 @@ public:
 
     SubProcessor<T>* get_proc() { return proc; }
     void set_proc(SubProcessor<T>* proc) { this->proc = proc; }
+
+    void buffer_extra(Dtype type, int n_items);
 };
 
 /**
@@ -272,7 +280,7 @@ public:
     void buffer_edabits(int n_bits, false_type)
     { this->template buffer_edabits_without_check<0>(n_bits,
             this->edabits[{false, n_bits}],
-            OnlineOptions::singleton.batch_size); }
+            BaseMachine::edabit_batch_size<T>(n_bits, this->buffer_size)); }
     template<int>
     void buffer_edabits(int, true_type)
     { throw not_implemented(); }
@@ -286,6 +294,8 @@ public:
 template<class T>
 class MaliciousDabitOnlyPrep : public virtual RingPrep<T>
 {
+    DabitSacrifice<T> dabit_sacrifice;
+
     template<int>
     void buffer_dabits(ThreadQueues* queues, true_type, false_type);
     template<int>
@@ -311,6 +321,8 @@ template<class T>
 class MaliciousRingPrep : public virtual MaliciousDabitOnlyPrep<T>
 {
     typedef typename T::bit_type::part_type BT;
+
+    DabitSacrifice<T> dabit_sacrifice;
 
 protected:
     void buffer_personal_edabits(int n_bits, vector<T>& sums,
@@ -343,7 +355,7 @@ public:
             bool strict, int player, SubProcessor<T>& proc, int begin, int end,
             const void* supply = 0)
     {
-        EdabitShuffleSacrifice<T>().edabit_sacrifice_buckets(to_check, n_bits, strict,
+        EdabitShuffleSacrifice<T>(n_bits).edabit_sacrifice_buckets(to_check, strict,
                 player, proc, begin, end, supply);
     }
 

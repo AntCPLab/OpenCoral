@@ -26,9 +26,9 @@ public:
             int my_num, int thread_num = 0);
 
     static void print_left(const char* name, size_t n,
-            const string& type_string, size_t used);
+            const string& type_string, size_t used, bool large = false);
     static void print_left_edabits(size_t n, size_t n_batch, bool strict,
-            int n_bits, size_t used);
+            int n_bits, size_t used, bool malicious);
 
     TimerWithComm prep_timer;
 };

@@ -62,8 +62,11 @@ void MascotTriplePrep<T>::buffer_triples()
     auto& params = this->params;
     auto& triple_generator = this->triple_generator;
     params.generateBits = false;
+    triple_generator->set_batch_size(
+            BaseMachine::batch_size<T>(DATA_TRIPLE, this->buffer_size));
     triple_generator->generate();
     triple_generator->unlock();
+    triple_generator->set_batch_size(OnlineOptions::singleton.batch_size);
     assert(triple_generator->uncheckedTriples.size() != 0);
     for (auto& triple : triple_generator->uncheckedTriples)
         this->triples.push_back(

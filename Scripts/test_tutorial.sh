@@ -37,9 +37,6 @@ function test_vm
     fi
 }
 
-# big buckets for smallest batches
-run_opts="$run_opts -B 5"
-
 export PORT=$((RANDOM%10000+10000))
 export BENCH=
 

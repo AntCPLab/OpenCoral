@@ -68,6 +68,7 @@ public:
     {
         init_field(T::pr(), montgomery);
     }
+    static void reset();
 
     static const Zp_Data& get_ZpD();
     static const bigint& pr();

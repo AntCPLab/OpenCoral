@@ -184,12 +184,15 @@ void ShareThread<T>::xors(Processor<T>& processor, const vector<int>& args)
         int out = args[i + 1];
         int left = args[i + 2];
         int right = args[i + 3];
-        for (int j = 0; j < DIV_CEIL(n_bits, T::default_length); j++)
-        {
-            int n = min(T::default_length, n_bits - j * T::default_length);
-            processor.S[out + j].xor_(n, processor.S[left + j],
-                    processor.S[right + j]);
-        }
+        if (n_bits == 1)
+            processor.S[out].xor_(1, processor.S[left], processor.S[right]);
+        else
+            for (int j = 0; j < DIV_CEIL(n_bits, T::default_length); j++)
+            {
+                int n = min(T::default_length, n_bits - j * T::default_length);
+                processor.S[out + j].xor_(n, processor.S[left + j],
+                        processor.S[right + j]);
+            }
     }
 }
 

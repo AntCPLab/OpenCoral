@@ -16,6 +16,8 @@ template<int X, int L>
 const true_type gfp_<X, L>::prime_field;
 template<int X, int L>
 const int gfp_<X, L>::MAX_N_BITS;
+template<int X, int L>
+gfp_<X, L> gfp_<X, L>::two;
 
 template<int X, int L>
 inline void gfp_<X, L>::read_or_generate_setup(string dir,
@@ -50,6 +52,7 @@ void gfp_<X, L>::init_field(const bigint& p, bool mont)
       else
         cerr << name << " larger than necessary for modulus " << p << endl;
     }
+  two = bigint::tmp = 2;
 }
 
 template <int X, int L>

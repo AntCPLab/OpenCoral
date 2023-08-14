@@ -6,6 +6,7 @@
 #include "Instruction.h"
 #include "instructions.h"
 #include "Processor.h"
+#include "Memory.h"
 #include "Math/gf2n.h"
 #include "GC/instructions.h"
 
@@ -54,7 +55,7 @@ void Instruction::gbitcom(vector<cgf2n>& registers) const
     }
 }
 
-void Instruction::execute_regint(ArithmeticProcessor& Proc, vector<Integer>& Mi) const
+void Instruction::execute_regint(ArithmeticProcessor& Proc, MemoryPart<Integer>& Mi) const
 {
     (void) Mi;
     auto& Ci = Proc.get_Ci();

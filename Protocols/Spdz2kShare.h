@@ -48,7 +48,7 @@ public:
     typedef Z2kRectangle<TAU(K, S), K + S> Rectangle;
 
     typedef MAC_Check_Z2k<Z2<K + S>, Z2<S>, open_type, Spdz2kShare> MAC_Check;
-    typedef MAC_Check Direct_MC;
+    typedef Direct_MAC_Check_Z2k<Spdz2kShare> Direct_MC;
     typedef ::Input<Spdz2kShare> Input;
     typedef ::PrivateOutput<Spdz2kShare> PrivateOutput;
     typedef SPDZ2k<Spdz2kShare> Protocol;
@@ -67,6 +67,9 @@ public:
 
     static string type_string() { return "SPDZ2^(" + to_string(K) + "+" + to_string(S) + ")"; }
     static string type_short() { return "Z" + to_string(K) + "," + to_string(S); }
+
+    template<class T>
+    static string proto_fake_opts() { return " -Z " + to_string(K) + " -S " + to_string(S); }
 
     Spdz2kShare() {}
     template<class T, class V>

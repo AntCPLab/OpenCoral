@@ -78,7 +78,7 @@ void BufferBase::try_rewind()
     if (file->peek() == ifstream::traits_type::eof())
         throw runtime_error("empty file: " + filename);
     if (!rewind)
-        cerr << "REWINDING - ONLY FOR BENCHMARKING" << endl;
+        cerr << "REUSING DATA - ONLY FOR BENCHMARKING" << endl;
     rewind = true;
     eof = true;
 }

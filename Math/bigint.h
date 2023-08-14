@@ -91,6 +91,7 @@ public:
   template<int K>
   bigint& operator=(const SignedZ2<K>& x);
 
+  /// Convert to signed representation in :math:`[-p/2,p/2]`.
   template<int X, int L>
   bigint& from_signed(const gfp_<X, L>& other);
   template<class T>

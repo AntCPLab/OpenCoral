@@ -237,7 +237,8 @@ of linear regression.
 PyTorch interface
 =================
 
-MP-SPDZ supports importing sequential models from PyTorch as shown in
+MP-SPDZ supports importing sequential models from PyTorch using
+:py:func:`~Compiler.ml.layers_from_torch` as shown in
 this code snippet in ``torch_mnist_dense.mpc``::
 
   import torch.nn as nn

@@ -638,6 +638,44 @@ class prefixsums(base.Instruction):
     code = base.opcodes['PREFIXSUMS']
     arg_format = ['sw','s']
 
+class picks(base.VectorInstruction):
+    """ Extract part of vector.
+
+    :param: result (sint)
+    :param: input (sint)
+    :param: start offset (int)
+    :param: step
+
+    """
+    __slots__ = []
+    code = base.opcodes['PICKS']
+    arg_format = ['sw','s','int','int']
+
+    def __init__(self, *args):
+        super(picks, self).__init__(*args)
+        assert 0 <= args[2] < len(args[1])
+        assert 0 <= args[2] + args[3] * len(args[0]) <= len(args[1])
+
+class concats(base.VectorInstruction):
+    """ Concatenate vectors.
+
+    :param: result (sint)
+    :param: start offset (int)
+    :param: input (sint)
+    :param: (repeat from offset)...
+
+    """
+    __slots__ = []
+    code = base.opcodes['CONCATS']
+    arg_format = tools.chain(['sw'], tools.cycle(['int','s']))
+
+    def __init__(self, *args):
+        super(concats, self).__init__(*args)
+        assert len(args) % 2 == 1
+        assert len(args[0]) == sum(args[1::2])
+        for i in range(1, len(args), 2):
+            assert args[i] == len(args[i + 1])
+
 @base.gf2n
 @base.vectorize
 class mulc(base.MulBase):

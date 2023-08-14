@@ -110,6 +110,8 @@ public:
             Player* parentPlayer = 0);
     ~OTTripleGenerator();
 
+    void set_batch_size(int nTriples);
+
     void generate() { throw not_implemented(); }
 
     void generatePlainTriples();

@@ -85,6 +85,7 @@ void Spdz2kPrep<T>::buffer_bits()
 template<class T, class U>
 void bits_from_square_in_ring(vector<T>& bits, int buffer_size, U* bit_prep)
 {
+    buffer_size = BaseMachine::batch_size<T>(DATA_BIT, buffer_size);
     typedef typename U::share_type BitShare;
     typedef typename BitShare::open_type open_type;
     assert(bit_prep != 0);
@@ -129,10 +130,7 @@ void Spdz2kPrep<T>::buffer_dabits(ThreadQueues* queues)
 {
     assert(this->proc != 0);
     vector<dabit<T>> check_dabits;
-    DabitSacrifice<T> dabit_sacrifice;
-    int buffer_size = OnlineOptions::singleton.batch_size;
-    if (queues)
-        buffer_size *= queues->size();
+    int buffer_size = BaseMachine::batch_size<T>(DATA_DABIT, this->buffer_size);
     this->buffer_dabits_from_bits_without_check(check_dabits,
             dabit_sacrifice.minimum_n_inputs(buffer_size), queues);
     dabit_sacrifice.sacrifice_without_bit_check(this->dabits, check_dabits,
@@ -187,6 +185,7 @@ void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
         vector<vector<bit_type>> tmp_bits;
         this->buffer_personal_edabits(n_bits, tmp, tmp_bits, bit_proc,
                 i, strict, queues);
+        assert(not tmp.empty());
         sums.resize(tmp.size());
         for (size_t j = 0; j < tmp.size(); j++)
             sums[j] += tmp[j];

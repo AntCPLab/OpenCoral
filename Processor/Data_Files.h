@@ -85,6 +85,8 @@ public:
   void print_cost() const;
   bool empty() const;
   bool any_more(const DataPositions& other) const;
+
+  long long total_edabits(int n_bits) const;
 };
 
 template<class sint, class sgf2n> class Processor;
@@ -229,6 +231,10 @@ public:
 
   static long additional_inputs(const DataPositions& usage);
 
+  static string get_prep_dir(const Names& N);
+  static void check_setup(const Names& N);
+  static void check_setup(int num_players, const string& prep_dir);
+
   Sub_Data_Files(int my_num, int num_players, const string& prep_data_dir,
       DataPositions& usage, int thread_num = -1);
   Sub_Data_Files(const Names& N, DataPositions& usage, int thread_num = -1);
@@ -299,7 +305,7 @@ class Data_Files
 
   Data_Files(Machine<sint, sgf2n>& machine, SubProcessor<sint>* procp = 0,
       SubProcessor<sgf2n>* proc2 = 0);
-  Data_Files(const Names& N);
+  Data_Files(const Names& N, int thread_num = -1);
   ~Data_Files();
 
   DataPositions tellg() { return usage; }

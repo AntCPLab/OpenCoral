@@ -28,6 +28,8 @@ for socket in client.sockets:
     os.store(finish)
     os.Send(socket)
 
+# running two rounds
+# first for sint, then for sfix
 for x in bonus, bonus * 2 ** 16:
     client.send_private_inputs([domain(x)])
 

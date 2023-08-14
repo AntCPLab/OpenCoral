@@ -115,7 +115,7 @@ void BrainPrep<T>::buffer_triples()
                         + to_string(ZProtocol<T>::share_type::clear::N_BITS)
                         + "-bit integer computation");
     typedef Rep3Share<gfp2> pShare;
-    auto buffer_size = OnlineOptions::singleton.batch_size;
+    auto buffer_size = BaseMachine::batch_size<T>(DATA_TRIPLE);
     Player& P = this->protocol->P;
     vector<array<ZShare<T>, 3>> triples;
     vector<array<Rep3Share<gfp2>, 3>> check_triples;

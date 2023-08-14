@@ -109,6 +109,11 @@ public:
 	void assign(const void* buffer) { avx_memcpy(a, buffer, N_BYTES); normalize(); }
 	void assign(int x) { *this = x; }
 
+	/**
+	 * Get 64-bit part.
+	 *
+	 * @param i return word containing 64*i- to 64*i+63-least significant bits
+	 */
 	mp_limb_t get_limb(int i) const { return a[i]; }
 	bool get_bit(int i) const;
 

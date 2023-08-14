@@ -13,6 +13,7 @@ using namespace std;
 #include "OT/OTVole.h"
 #include "OT/Rectangle.h"
 #include "Tools/random.h"
+#include "Tools/CheckVector.h"
 
 template<class T>
 class NPartyTripleGenerator;
@@ -187,7 +188,7 @@ class SemiMultiplier : public OTMultiplier<T>
     }
 
 public:
-    vector<typename T::open_type> c_output;
+    CheckVector<typename T::open_type> c_output;
 
     SemiMultiplier(OTTripleGenerator<T>& generator, int i) :
             OTMultiplier<T>(generator, i)

@@ -35,6 +35,8 @@ class HemiPrep : public SemiHonestRingPrep<T>
     SemiPrep<T>& get_two_party_prep();
 
 public:
+    static const bool homomorphic = true;
+
     static void basic_setup(Player& P);
     static void teardown();
 

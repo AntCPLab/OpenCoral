@@ -70,6 +70,7 @@ public:
     typedef U whole_type;
 
     static const bool expensive_triples = true;
+    static const bool malicious = true;
 
     static MC* new_mc(typename super::mac_key_type)
     {

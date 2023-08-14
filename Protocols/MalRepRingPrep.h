@@ -77,6 +77,11 @@ class MalRepRingPrepWithBits: public virtual MaliciousRingPrep<T>,
         public virtual SimplerMalRepRingPrep<T>
 {
 public:
+    static bool dabits_from_bits()
+    {
+        return true;
+    }
+
     MalRepRingPrepWithBits(SubProcessor<T>* proc, DataPositions& usage);
 
     void set_protocol(typename T::Protocol& protocol)

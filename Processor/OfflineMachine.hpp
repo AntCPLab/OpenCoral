@@ -18,18 +18,19 @@ OfflineMachine<W>::OfflineMachine(int argc, const char** argv,
         W(argc, argv, opt, online_opts, V(), nplayers), playerNames(
                 W::playerNames), P(*this->new_player("machine"))
 {
-    machine.load_schedule(online_opts.progname, false);
+    load_schedule(online_opts.progname, false);
     Program program(playerNames.num_players());
-    program.parse(machine.bc_filenames[0]);
+    program.parse(bc_filenames[0]);
+    progs.push_back(program);
 
     if (program.usage_unknown())
     {
-        cerr << "Preprocessing might be insufficient "
+        cerr << "Preprocessing will be insufficient "
                 << "due to unknown requirements" << endl;
+        exit(1);
     }
 
     usage = program.get_offline_data_used();
-    n_threads = machine.nthreads;
 }
 
 template<class W>
@@ -73,7 +74,7 @@ int OfflineMachine<W>::run()
 template<class W>
 int OfflineMachine<W>::buffered_total(size_t required, size_t batch)
 {
-    return DIV_CEIL(required, batch) * batch + (n_threads - 1) * batch;
+    return DIV_CEIL(required, batch) * batch + (nthreads - 1) * batch;
 }
 
 template<class W>
@@ -181,6 +182,12 @@ void OfflineMachine<W>::generate()
     }
 
     output.Check(P);
+}
+
+template<class W>
+const Names& OfflineMachine<W>::get_N()
+{
+    return playerNames;
 }
 
 #endif /* PROCESSOR_OFFLINEMACHINE_HPP_ */

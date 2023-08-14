@@ -98,6 +98,7 @@ void Tree_MAC_Check<U>::init_open(const Player&, int n)
 template<class U>
 void Tree_MAC_Check<U>::prepare_open(const U& secret, int)
 {
+  assert(U::mac_type::invertible);
   this->values.push_back(secret.get_share());
   macs.push_back(secret.get_mac());
 }
@@ -344,7 +345,7 @@ Direct_MAC_Check<T>::Direct_MAC_Check(const typename T::mac_key_type::Scalar& ai
 
 template<class T>
 Direct_MAC_Check<T>::Direct_MAC_Check(const typename T::mac_key_type::Scalar& ai) :
-    MAC_Check_<T>(ai)
+    Tree_MAC_Check<T>(ai), MAC_Check_<T>(ai)
 {
   open_counter = 0;
 }
@@ -405,6 +406,7 @@ void Direct_MAC_Check<T>::init_open(const Player& P, int n)
 template<class T>
 void Direct_MAC_Check<T>::prepare_open(const T& secret, int)
 {
+  assert(T::mac_type::invertible);
   this->values.push_back(secret.get_share());
   this->macs.push_back(secret.get_mac());
 }

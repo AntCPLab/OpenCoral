@@ -61,6 +61,8 @@ class gfp_ : public ValueInterface
 
   static thread_local vector<gfp_> powers;
 
+  static gfp_ two;
+
   public:
 
   typedef gfp_ value_type;
@@ -317,6 +319,8 @@ gfp_<X, L>::gfp_(long x)
     assign_zero();
   else if (x == 1)
     assign_one();
+  else if (x == 2)
+    *this = two;
   else
     *this = bigint::tmp = x;
 }

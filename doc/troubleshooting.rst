@@ -45,6 +45,45 @@ resulting in potentially too much virtual machine code. Consider using
 version.
 
 
+Cannot derive truth value from register
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This message appears when you try to use branching on run-time data
+types, for example::
+
+  x = cint(0)
+  y = 0
+  if x == 0:
+    y = 1
+    print_ln('x is zero')
+
+There a number of ways to solve this:
+
+1. Use the ``--flow-optimization`` argument during compilation.
+2. Use run-time branching::
+
+     x = cint(0)
+     y = cint(0)
+     @if_(x == 0)
+     def _():
+       y.update(1)
+       print_ln('x is zero')
+
+   See :py:func:`~Compiler.library.if_e` for the equivalent to
+   if/else.
+3. Use conditional statements::
+
+     check = x == 0
+     y = check.if_else(1, y)
+     print_ln_if(check, 'x is zero')
+
+If the condition is secret, for example, :py:obj:`x` is an
+:py:class:`~Compiler.types.sint` and thus ``x == 0`` is secret too,
+:py:func:`~Compiler.types.sint.if_else` is the only option because
+branching would reveal the secret. For the same reason,
+:py:func:`~Compiler.library.print_ln_if` doesn't work on secret values.
+
+
 Incorrect results when using :py:class:`~Compiler.types.sfix`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -135,6 +135,9 @@ public:
 
     static void run_tapes(const vector<int>& args) { T::run_tapes(args); }
 
+    template<class U>
+    static string proto_fake_opts() { return U::fake_opts(); }
+
     Secret();
     Secret(const Integer& x) { *this = x; }
 

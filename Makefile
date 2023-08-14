@@ -82,7 +82,7 @@ CONFIG.mine:
 %.o: %.cpp
 	$(CXX) -o $@ $< $(CFLAGS) -MMD -MP -c
 
-online: Fake-Offline.x Server.x Player-Online.x Check-Offline.x emulate.x
+online: Fake-Offline.x Server.x Player-Online.x Check-Offline.x emulate.x mascot-party.x
 
 offline: $(OT_EXE) Check-Offline.x mascot-offline.x cowgear-offline.x mal-shamir-offline.x
 

@@ -27,7 +27,7 @@ public:
 
     void get_one_no_count(Dtype dtype, T& a);
 
-    bool bits_from_dabits();
+    static bool bits_from_dabits();
 };
 
 #endif /* PROTOCOLS_SEMIPREP_H_ */

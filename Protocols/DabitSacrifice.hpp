@@ -7,13 +7,15 @@
 #define PROTOCOLS_DABITSACRIFICE_HPP_
 
 #include "DabitSacrifice.h"
+#include "BufferScope.h"
 #include "Tools/PointerVector.h"
 
 #include <math.h>
 
 template<class T>
 DabitSacrifice<T>::DabitSacrifice() :
-        S(OnlineOptions::singleton.security_parameter)
+        S(OnlineOptions::singleton.security_parameter),
+        n_masks(0), n_produced()
 {
 }
 
@@ -36,10 +38,15 @@ void DabitSacrifice<T>::sacrifice_without_bit_check(vector<dabit<T> >& dabits,
     timer.start();
 #endif
     int n = check_dabits.size() - S;
+    n_masks += S;
+    assert(n > 0);
     GlobalPRNG G(proc.P);
     typedef typename T::bit_type::part_type BT;
     vector<T> shares;
     vector<BT> bit_shares;
+    if (T::clear::N_BITS <= 0)
+        dynamic_cast<BufferPrep<T>&>(proc.DataF).buffer_extra(DATA_BIT,
+                S * (ceil(log2(n)) + S));
     for (int i = 0; i < S; i++)
     {
         dabit<T> to_check;
@@ -58,6 +65,7 @@ void DabitSacrifice<T>::sacrifice_without_bit_check(vector<dabit<T> >& dabits,
                 T tmp;
                 proc.DataF.get_one(DATA_BIT, tmp);
                 masked += tmp << (1 + j);
+                n_masks++;
             }
         shares.push_back(masked);
         bit_shares.push_back(to_check.second);
@@ -84,11 +92,23 @@ void DabitSacrifice<T>::sacrifice_without_bit_check(vector<dabit<T> >& dabits,
         }
     }
     dabits.insert(dabits.end(), check_dabits.begin(), check_dabits.begin() + n);
+    n_produced += n;
     MCBB.Check(proc.P);
     delete &MCBB;
 #ifdef VERBOSE_DABIT
     cerr << "Done sacrificing daBits after " << timer.elapsed() << " seconds"
             << endl;
+#endif
+}
+
+template<class T>
+DabitSacrifice<T>::~DabitSacrifice()
+{
+#ifdef DABIT_WASTAGE
+    if (n_produced > 0)
+    {
+        cerr << "daBit wastage: " << float(n_masks) / n_produced << endl;
+    }
 #endif
 }
 
@@ -113,7 +133,10 @@ void DabitSacrifice<T>::sacrifice_and_check_bits(vector<dabit<T> >& dabits,
             queues->wrap_up(job);
     }
     else
+    {
+        BufferScope<T> scope(proc.DataF, multiplicands.size());
         protocol.multiply(products, multiplicands, 0, multiplicands.size(), proc);
+    }
     vector<T> check_for_zero;
     for (auto& x : to_check)
         check_for_zero.push_back(x.first - products.next());

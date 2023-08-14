@@ -60,8 +60,7 @@ T Preprocessing<T>::get_random_from_inputs(int nplayers)
 template<class T>
 Sub_Data_Files<T>::Sub_Data_Files(const Names& N, DataPositions& usage,
     int thread_num) :
-    Sub_Data_Files(N,
-        OnlineOptions::singleton.prep_dir_prefix<T>(N.num_players()), usage,
+    Sub_Data_Files(N, get_prep_dir(N), usage,
         thread_num)
 {
 }
@@ -99,6 +98,32 @@ string Sub_Data_Files<T>::get_edabit_filename(const Names& N, int n_bits,
 }
 
 template<class T>
+string Sub_Data_Files<T>::get_prep_dir(const Names& N)
+{
+  return OnlineOptions::singleton.prep_dir_prefix<T>(N.num_players());
+}
+
+template<class T>
+void Sub_Data_Files<T>::check_setup(const Names& N)
+{
+  return check_setup(N.num_players(), get_prep_dir(N));
+}
+
+template<class T>
+void Sub_Data_Files<T>::check_setup(int num_players, const string& prep_dir)
+{
+  try
+    {
+      T::clear::check_setup(prep_dir);
+    }
+  catch (exception& e)
+    {
+      throw prep_setup_error(e.what(), num_players,
+          T::template proto_fake_opts<typename T::clear>());
+    }
+}
+
+template<class T>
 Sub_Data_Files<T>::Sub_Data_Files(int my_num, int num_players,
     const string& prep_data_dir, DataPositions& usage, int thread_num) :
     Preprocessing<T>(usage),
@@ -109,19 +134,7 @@ Sub_Data_Files<T>::Sub_Data_Files(int my_num, int num_players,
   cerr << "Setting up Data_Files in: " << prep_data_dir << endl;
 #endif
 
-  try
-    {
-      T::clear::check_setup(prep_data_dir);
-    }
-  catch (...)
-    {
-      cerr << "Something is wrong with the preprocessing data on disk." << endl;
-      cerr
-          << "Have you run the right program for generating it, such as './Fake-Offline.x "
-          << num_players
-          << T::clear::fake_opts() << "'?" << endl;
-      throw;
-    }
+  check_setup(num_players, prep_data_dir);
 
   string type_short = T::type_short();
   string type_string = T::type_string();
@@ -173,11 +186,11 @@ Data_Files<sint, sgf2n>::Data_Files(Machine<sint, sgf2n>& machine, SubProcessor<
 }
 
 template<class sint, class sgf2n>
-Data_Files<sint, sgf2n>::Data_Files(const Names& N) :
+Data_Files<sint, sgf2n>::Data_Files(const Names& N, int thread_num) :
     usage(N.num_players()),
-    DataFp(*new Sub_Data_Files<sint>(N, usage)),
-    DataF2(*new Sub_Data_Files<sgf2n>(N, usage)),
-    DataFb(*new Sub_Data_Files<typename sint::bit_type>(N, usage))
+    DataFp(*new Sub_Data_Files<sint>(N, usage, thread_num)),
+    DataF2(*new Sub_Data_Files<sgf2n>(N, usage, thread_num)),
+    DataFb(*new Sub_Data_Files<typename sint::bit_type>(N, usage, thread_num))
 {
 }
 

@@ -633,7 +633,8 @@ def preprocess_pandas(data):
             res.append(data.iloc[:,i].to_numpy())
             types.append('c')
         elif pandas.api.types.is_object_dtype(t):
-            values = data.iloc[:,i].unique()
+            values = list(filter(lambda x: isinstance(x, str),
+                                 list(data.iloc[:,i].unique())))
             print('converting the following to unary:', values)
             if len(values) == 2:
                 res.append(data.iloc[:,i].to_numpy() == values[1])

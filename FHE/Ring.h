@@ -22,7 +22,7 @@ class Ring
   public:
 
 
-  Ring() : mm(0), phim(0) { ; }
+  Ring(int m = 0);
   ~Ring()     { ; }
 
   // Rely on default copy assignment/constructor
@@ -40,6 +40,7 @@ class Ring
   void unpack(octetStream& o);
 
   bool operator!=(const Ring& other) const;
+  bool operator==(const Ring& other) const { return not (*this != other); }
 };
 
 void init(Ring& Rg, int m, bool generate_poly = false);

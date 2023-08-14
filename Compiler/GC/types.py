@@ -781,8 +781,6 @@ class sbitvec(_vec, _bit):
                     for i in range(n):
                         for j, x in enumerate(v[i].bit_decompose()):
                             x.store_in_mem(address + i + j * n)
-            def reveal(self):
-                return util.untuplify([x.reveal() for x in self.elements()])
             @classmethod
             def two_power(cls, nn, size=1):
                 return cls.from_vec(
@@ -919,8 +917,7 @@ class sbitvec(_vec, _bit):
         return self.v[:n_bits]
     bit_compose = from_vec
     def reveal(self):
-        assert len(self) == 1
-        return self.v[0].reveal()
+        return util.untuplify([x.reveal() for x in self.elements()])
     def long_one(self):
         return [x.long_one() for x in self.v]
     def __rsub__(self, other):
@@ -1279,7 +1276,8 @@ class sbitint(_bitint, _number, sbits, _sbitintbase):
 
 class sbitintvec(sbitvec, _bitint, _number, _sbitintbase):
     """
-    Vector of signed integers for parallel binary computation::
+    Vector of signed integers for parallel binary computation.
+    The following example uses vectors of size two::
 
         sb32 = sbits.get_type(32)
         siv32 = sbitintvec.get_type(32)
@@ -1291,7 +1289,7 @@ class sbitintvec(sbitvec, _bitint, _number, _sbitintbase):
         print_ln('mul: %s, %s', c[0].reveal(), c[1].reveal())
         c = (a - b).elements()
         print_ln('sub: %s, %s', c[0].reveal(), c[1].reveal())
-        c = (a < b).bit_decompose()
+        c = (a < b).elements()
         print_ln('lt: %s, %s', c[0].reveal(), c[1].reveal())
 
     This should output::
@@ -1467,7 +1465,7 @@ class sbitfixvec(_fix, _vec):
         print_ln('mul: %s, %s', c[0].reveal(), c[1].reveal())
         c = (a - b).elements()
         print_ln('sub: %s, %s', c[0].reveal(), c[1].reveal())
-        c = (a < b).bit_decompose()
+        c = (a < b).elements()
         print_ln('lt: %s, %s', c[0].reveal(), c[1].reveal())
 
     This should output roughly::

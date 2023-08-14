@@ -14,6 +14,7 @@ using namespace std;
 template<class sint, class sgf2n> class Machine;
 template<class sint, class sgf2n> class Processor;
 template<class T> class SubProcessor;
+template<class T> class MemoryPart;
 class ArithmeticProcessor;
 class SwitchableOutput;
 
@@ -86,6 +87,8 @@ enum
     SUBCFI = 0x2B,
     SUBSFI = 0x2C,
     PREFIXSUMS = 0x2D,
+    PICKS = 0x2E,
+    CONCATS = 0x2F,
     // Multiplication/division/other arithmetic
     MULC = 0x30,
     MULM = 0x31,
@@ -392,7 +395,7 @@ public:
   template<class cgf2n>
   void gbitcom(vector<cgf2n>& registers) const;
 
-  void execute_regint(ArithmeticProcessor& Proc, vector<Integer>& Mi) const;
+  void execute_regint(ArithmeticProcessor& Proc, MemoryPart<Integer>& Mi) const;
 
   void shuffle(ArithmeticProcessor& Proc) const;
   void bitdecint(ArithmeticProcessor& Proc) const;

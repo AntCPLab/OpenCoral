@@ -62,6 +62,7 @@ public:
     typedef TinierSecret<T> whole_type;
 
     static const int default_length = 1;
+    static const bool expensive_triples = true;
 
     static string name()
     {

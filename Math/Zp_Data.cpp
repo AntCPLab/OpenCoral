@@ -8,15 +8,17 @@ void Zp_Data::init(const bigint& p,bool mont)
 {
   lock.lock();
 
-#ifdef VERBOSE
   if (pr != 0)
     {
+#ifdef VERBOSE
       if (pr != p)
         cerr << "Changing prime from " << pr << " to " << p << endl;
       if (mont != montgomery)
         cerr << "Changing Montgomery" << endl;
-    }
 #endif
+      if (pr != p or mont != montgomery)
+        throw runtime_error("Zp_Data instance already initialized");
+    }
 
   if (not probPrime(p))
     throw runtime_error(p.get_str() + " is not a prime");

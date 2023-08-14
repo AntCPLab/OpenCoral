@@ -12,13 +12,11 @@
 #include "Networking/CryptoPlayer.h"
 
 template<class W>
-class OfflineMachine : public W
+class OfflineMachine : public W, BaseMachine
 {
     DataPositions usage;
-    BaseMachine machine;
     Names& playerNames;
     Player& P;
-    int n_threads;
 
     template<class T>
     void generate();
@@ -34,6 +32,8 @@ public:
 
     template<class T, class U>
     int run();
+
+    const Names& get_N();
 };
 
 #endif /* PROCESSOR_OFFLINEMACHINE_H_ */

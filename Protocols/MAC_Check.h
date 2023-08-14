@@ -12,6 +12,7 @@ using namespace std;
 #include "Protocols/MAC_Check_Base.h"
 #include "Tools/time-func.h"
 #include "Tools/Coordinator.h"
+#include "Processor/OnlineOptions.h"
 
 
 /* The MAX number of things we will partially open before running
@@ -38,6 +39,8 @@ class TreeSum
   void add_openings(vector<T>& values, const Player& P, int sum_players,
       int last_sum_players, int send_player);
 
+  virtual void post_add_process(vector<T>&) {}
+
 protected:
   int base_player;
   int opening_sum;
@@ -54,7 +57,9 @@ public:
   vector<Timer> timers;
   vector<Timer> player_timers;
 
-  TreeSum(int opening_sum = 10, int max_broadcast = 10, int base_player = 0);
+  TreeSum(int opening_sum = OnlineOptions::singleton.opening_sum,
+      int max_broadcast = OnlineOptions::singleton.max_broadcast,
+      int base_player = 0);
   virtual ~TreeSum();
 
   void run(vector<T>& values, const Player& P);
@@ -114,7 +119,7 @@ Coordinator* Tree_MAC_Check<U>::coordinator = 0;
  * SPDZ opening protocol with MAC check (indirect communication)
  */
 template<class U>
-class MAC_Check_ : public Tree_MAC_Check<U>
+class MAC_Check_ : public virtual Tree_MAC_Check<U>
 {
 public:
   MAC_Check_(const typename U::mac_key_type::Scalar& ai, int opening_sum = 10,
@@ -135,7 +140,7 @@ template<class T> class MascotPrep;
  * SPDZ2k opening protocol with MAC check
  */
 template<class T, class U, class V, class W>
-class MAC_Check_Z2k : public Tree_MAC_Check<W>
+class MAC_Check_Z2k : public virtual Tree_MAC_Check<W>
 {
 protected:
   Preprocessing<W>* prep;
@@ -161,12 +166,11 @@ template<class W>
 using MAC_Check_Z2k_ = MAC_Check_Z2k<typename W::open_type,
         typename W::mac_key_type, typename W::open_type, W>;
 
-
 /**
  * SPDZ opening protocol with MAC check (pairwise communication)
  */
 template<class T>
-class Direct_MAC_Check: public MAC_Check_<T>
+class Direct_MAC_Check: public virtual MAC_Check_<T>
 {
   typedef MAC_Check_<T> super;
 
@@ -186,7 +190,35 @@ public:
 
   void init_open(const Player& P, int n = 0);
   void prepare_open(const T& secret, int = -1);
-  void exchange(const Player& P);
+  virtual void exchange(const Player& P);
+};
+
+template<class T>
+class Direct_MAC_Check_Z2k: virtual public MAC_Check_Z2k_<T>,
+    virtual public Direct_MAC_Check<T>
+{
+public:
+  Direct_MAC_Check_Z2k(const typename T::mac_key_type& ai) :
+    Tree_MAC_Check<T>(ai), MAC_Check_Z2k_<T>(ai), MAC_Check_<T>(ai),
+    Direct_MAC_Check<T>(ai)
+  {
+  }
+
+  void prepare_open(const T& secret, int = -1)
+  {
+    MAC_Check_Z2k_<T>::prepare_open(secret);
+  }
+
+  void exchange(const Player& P)
+  {
+    Direct_MAC_Check<T>::exchange(P);
+    assert(this->WaitingForCheck() > 0);
+  }
+
+  void Check(const Player& P)
+  {
+    MAC_Check_Z2k_<T>::Check(P);
+  }
 };
 
 
@@ -272,6 +304,7 @@ void TreeSum<T>::add_openings(vector<T>& values, const Player& P,
         {
           values[i].add(oss[j], use_lengths ? lengths[i] : -1);
         }
+      post_add_process(values);
       MC.timers[SUM].stop();
     }
 }
@@ -279,6 +312,11 @@ void TreeSum<T>::add_openings(vector<T>& values, const Player& P,
 template<class T>
 void TreeSum<T>::start(vector<T>& values, const Player& P)
 {
+  if (opening_sum < 2)
+    opening_sum = P.num_players();
+  if (max_broadcast < 2)
+    max_broadcast = P.num_players();
+
   os.reset_write_head();
   int sum_players = P.num_players();
   int my_relative_num = positive_modulo(P.my_num() - base_player, P.num_players());

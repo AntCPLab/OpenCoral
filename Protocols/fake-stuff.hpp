@@ -313,6 +313,12 @@ void write_mac_key(const Names& N, typename T::mac_key_type key)
 }
 
 template <class T>
+void read_mac_key(const Names& N, typename T::mac_key_type& key)
+{
+  read_mac_key(get_prep_sub_dir<T>(N.num_players()), N, key);
+}
+
+template <class T>
 void read_mac_key(const string& directory, const Names& N, T& key)
 {
   read_mac_key(directory, N.my_num(), N.num_players(), key);

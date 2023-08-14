@@ -44,6 +44,7 @@ void Ring_Element::prepare(const Ring_Element& other)
 void Ring_Element::prepare_push()
 {
   element.clear();
+  assert(FFTD);
   element.reserve(FFTD->phi_m());
 }
 
@@ -63,6 +64,7 @@ void Ring_Element::assign_zero()
 
 void Ring_Element::assign_one()
 {
+  assert(FFTD);
   allocate();
   modp fill;
   if (rep==polynomial) { assignZero(fill,(*FFTD).get_prD()); }
@@ -79,6 +81,7 @@ void Ring_Element::negate()
   if (element.empty())
     return;
 
+  assert(FFTD);
   for (int i=0; i<(*FFTD).phi_m(); i++)
     { Negate(element[i],element[i],(*FFTD).get_prD()); }
 }
@@ -87,6 +90,7 @@ void Ring_Element::negate()
 
 void add(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b)
 {
+  assert(a.FFTD);
   if (a.FFTD!=b.FFTD) { throw pr_mismatch();  }  
   if (a.element.empty())
     {
@@ -119,6 +123,7 @@ void add(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b)
 
 void sub(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b)
 {
+  assert(a.FFTD);
   if (a.rep!=b.rep)   { throw rep_mismatch(); }
   if (a.FFTD!=b.FFTD) { throw pr_mismatch();  }
   if (a.element.empty())
@@ -148,6 +153,7 @@ void sub(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b)
 
 void mul(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b)
 {
+  assert(a.FFTD);
   if (a.rep!=b.rep)   { throw rep_mismatch(); }
   if (a.FFTD!=b.FFTD) { throw pr_mismatch();  }
   if (a.element.empty() or b.element.empty())
@@ -200,9 +206,11 @@ void mul(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b)
     }
   else if ((*a.FFTD).get_twop()==0)
     { // m a power of two case
-      ans.partial_assign(a);
       Ring_Element aa(*ans.FFTD,ans.rep);
+      aa.partial_assign(a);
       modp temp;
+      cerr << "slow polynomial multiplication "
+              "(change representation to change this)..." << endl;
       for (int i=0; i<(*ans.FFTD).phi_m(); i++)
         { for (int j=0; j<(*ans.FFTD).phi_m(); j++)
             { Mul(temp,a.element[i],b.element[j],(*a.FFTD).get_prD());
@@ -213,7 +221,9 @@ void mul(Ring_Element& ans,const Ring_Element& a,const Ring_Element& b)
                  }
               Add(aa.element[k],aa.element[k],temp,(*a.FFTD).get_prD());
             }
+          cerr << "\r" << i << "/" << ans.FFTD->phi_m();
         }
+      cerr << endl;
       ans=aa;
     }
   else
@@ -241,6 +251,7 @@ void mul(Ring_Element& ans,const Ring_Element& a,const modp& b)
 Ring_Element& Ring_Element::operator +=(const Ring_Element& other)
 {
   assert(element.size() == other.element.size());
+  assert(FFTD);
   assert(FFTD == other.FFTD);
   assert(rep == other.rep);
   for (size_t i = 0; i < element.size(); i++)
@@ -252,6 +263,7 @@ Ring_Element& Ring_Element::operator +=(const Ring_Element& other)
 Ring_Element& Ring_Element::operator -=(const Ring_Element& other)
 {
   assert(element.size() == other.element.size());
+  assert(FFTD);
   assert(FFTD == other.FFTD);
   assert(rep == other.rep);
   for (size_t i = 0; i < element.size(); i++)
@@ -263,6 +275,7 @@ Ring_Element& Ring_Element::operator -=(const Ring_Element& other)
 Ring_Element& Ring_Element::operator *=(const Ring_Element& other)
 {
   assert(element.size() == other.element.size());
+  assert(FFTD);
   assert(FFTD == other.FFTD);
   assert(rep == other.rep);
   assert(rep == evaluation);
@@ -274,6 +287,7 @@ Ring_Element& Ring_Element::operator *=(const Ring_Element& other)
 
 Ring_Element& Ring_Element::operator *=(const modp& other)
 {
+  assert(FFTD);
   for (size_t i = 0; i < element.size(); i++)
     element[i] = element[i].mul(other, FFTD->get_prD());
   return *this;
@@ -282,6 +296,7 @@ Ring_Element& Ring_Element::operator *=(const modp& other)
 
 Ring_Element Ring_Element::mul_by_X_i(int j) const
 {
+  assert(FFTD);
   Ring_Element ans;
   ans.prepare(*this);
   if (element.empty())
@@ -331,6 +346,7 @@ Ring_Element Ring_Element::mul_by_X_i(int j) const
 
 void Ring_Element::randomize(PRNG& G,bool Diag)
 {
+  assert(FFTD);
   allocate();
   if (Diag==false)
     { for (int i=0; i<(*FFTD).phi_m(); i++) 
@@ -352,6 +368,7 @@ void Ring_Element::randomize(PRNG& G,bool Diag)
 
 void Ring_Element::change_rep(RepType r)
 { 
+  assert(FFTD);
   if (element.empty())
     {
       rep = r;
@@ -403,6 +420,7 @@ void Ring_Element::change_rep(RepType r)
 
 bool Ring_Element::equals(const Ring_Element& a) const
 {
+  assert(FFTD);
   if (rep!=a.rep)   { throw rep_mismatch(); }
   if (*FFTD!=*a.FFTD) { throw pr_mismatch();  }
 
@@ -417,6 +435,7 @@ bool Ring_Element::equals(const Ring_Element& a) const
 
 bool Ring_Element::is_zero() const
 {
+  assert(FFTD);
   if (element.empty())
     return true;
   for (auto& x : element)
@@ -428,6 +447,7 @@ bool Ring_Element::is_zero() const
 
 ConversionIterator Ring_Element::get_iterator() const
 {
+  assert(FFTD);
   if (rep != polynomial)
     throw runtime_error("simple iterator only available in polynomial represention");
   assert(not element.empty());
@@ -436,16 +456,19 @@ ConversionIterator Ring_Element::get_iterator() const
 
 RingReadIterator Ring_Element::get_copy_iterator() const
 {
+  assert(FFTD);
   return *this;
 }
 
 RingWriteIterator Ring_Element::get_write_iterator()
 {
+  assert(FFTD);
   return *this;
 }
 
 vector<bigint>  Ring_Element::to_vec_bigint() const
 {
+  assert(FFTD);
   vector<bigint> v;
   to_vec_bigint(v);
   return v;
@@ -454,6 +477,7 @@ vector<bigint>  Ring_Element::to_vec_bigint() const
 
 void Ring_Element::to_vec_bigint(vector<bigint>& v) const
 {
+  assert(FFTD);
   v.resize(FFTD->phi_m());
   if (element.empty())
     return;
@@ -476,6 +500,7 @@ void Ring_Element::to_vec_bigint(vector<bigint>& v) const
 
 modp Ring_Element::get_constant() const
 {
+  assert(FFTD);
   if (element.empty())
     return {};
   else
@@ -516,6 +541,7 @@ void get(octetStream& o,vector<modp>& v,const Zp_Data& ZpD)
 
 void Ring_Element::pack(octetStream& o) const
 {
+  assert(FFTD);
   check_size();
   o.store(unsigned(rep));
   store(o,element,(*FFTD).get_prD());
@@ -524,6 +550,7 @@ void Ring_Element::pack(octetStream& o) const
 
 void Ring_Element::unpack(octetStream& o)
 {
+  assert(FFTD);
   unsigned int a;
   o.get(a);
   rep=(RepType) a;
@@ -542,12 +569,14 @@ void Ring_Element::check_rep()
 
 void Ring_Element::check_size() const
 {
+  assert(FFTD);
   if (not element.empty() and (int)element.size() != FFTD->phi_m())
     throw runtime_error("invalid element size");
 }
 
 void Ring_Element::output(ostream& s) const
 {
+  assert(FFTD);
   s.write((char*)&rep, sizeof(rep));
   auto size = element.size();
   s.write((char*)&size, sizeof(size));
@@ -558,6 +587,7 @@ void Ring_Element::output(ostream& s) const
 
 void Ring_Element::input(istream& s)
 {
+  assert(FFTD);
   s.read((char*)&rep, sizeof(rep));
   check_rep();
   auto size = element.size();
@@ -579,6 +609,7 @@ void Ring_Element::check(const FFT_Data& FFTD) const
 
 size_t Ring_Element::report_size(ReportType type) const
 {
+  assert(FFTD);
   if (type == CAPACITY)
     return sizeof(modp) * element.capacity();
   else

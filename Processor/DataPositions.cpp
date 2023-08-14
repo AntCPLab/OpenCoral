@@ -229,3 +229,9 @@ bool DataPositions::any_more(const DataPositions& other) const
 
   return false;
 }
+
+long long DataPositions::total_edabits(int n_bits) const
+{
+  auto usage = edabits;
+  return usage[{false, n_bits}] + usage[{true, n_bits}];
+}

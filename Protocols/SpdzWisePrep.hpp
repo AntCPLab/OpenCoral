@@ -24,7 +24,8 @@ void SpdzWisePrep<T>::buffer_triples()
     assert(this->proc != 0);
     this->protocol->init_mul();
     generate_triples_initialized(this->triples,
-            OnlineOptions::singleton.batch_size, this->protocol);
+            BaseMachine::batch_size<T>(DATA_TRIPLE, this->buffer_size),
+            this->protocol);
 }
 
 template<class T>
@@ -42,6 +43,9 @@ void SpdzWisePrep<SpdzWiseShare<MaliciousRep3Share<gf2n>>>::buffer_bits()
     ProtocolSet<typename part_type::Honest> set(this->proc->P, {});
     auto& protocol = set.protocol;
     auto& prep = set.preprocessing;
+    int buffer_size = BaseMachine::batch_size<
+            SpdzWiseShare<MaliciousRep3Share<gf2n>>>(DATA_BIT,
+            this->buffer_size);
     for (int i = 0; i < buffer_size; i++)
         bits.push_back(prep.get_bit());
     protocol.init_mul();
@@ -63,7 +67,9 @@ void buffer_bits_from_squares_in_ring(vector<SpdzWiseRingShare<K, S>>& bits,
     SquarePrep<BitShare> prep(usage);
     SubProcessor<BitShare> bit_proc(MC, prep, proc->P, proc->Proc);
     prep.set_proc(&bit_proc);
-    bits_from_square_in_ring(bits, OnlineOptions::singleton.batch_size, &prep);
+    bits_from_square_in_ring(bits,
+            BaseMachine::batch_size<SpdzWiseRingShare<K, S>>(DATA_BIT),
+            &prep);
 }
 
 template<class T>

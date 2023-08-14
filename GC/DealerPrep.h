@@ -33,7 +33,11 @@ public:
     {
         ProtocolSetup<DealerShare<BitVec>> setup(*P);
         ProtocolSet<DealerShare<BitVec>> set(*P, setup);
-        for (int i = 0; i < OnlineOptions::singleton.batch_size; i++)
+        int buffer_size = DIV_CEIL(
+                BaseMachine::batch_size<DealerSecret>(DATA_TRIPLE),
+                DealerSecret::default_length);
+        set.preprocessing.buffer_extra(DATA_TRIPLE, buffer_size);
+        for (int i = 0; i < buffer_size; i++)
         {
             auto triple = set.preprocessing.get_triple(
                     DealerSecret::default_length);

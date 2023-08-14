@@ -90,6 +90,8 @@ class MascotPrep : public virtual MaliciousRingPrep<T>,
         public virtual MascotDabitOnlyPrep<T>
 {
 public:
+    static bool bits_from_triples() { return true; }
+
     MascotPrep(SubProcessor<T>* proc, DataPositions& usage) :
             BufferPrep<T>(usage), BitPrep<T>(proc, usage),
             RingPrep<T>(proc, usage),

@@ -142,6 +142,8 @@ void HemiPrep<T>::buffer_bits()
     if (this->proc->P.num_players() == 2)
     {
         auto& prep = get_two_party_prep();
+        prep.buffer_size = BaseMachine::batch_size<T>(DATA_BIT,
+                this->buffer_size);
         prep.buffer_dabits(0);
         for (auto& x : prep.dabits)
             this->bits.push_back(x.first);
@@ -158,6 +160,8 @@ void HemiPrep<T>::buffer_dabits(ThreadQueues* queues)
     if (this->proc->P.num_players() == 2)
     {
         auto& prep = get_two_party_prep();
+        prep.buffer_size = BaseMachine::batch_size<T>(DATA_DABIT,
+                this->buffer_size);
         prep.buffer_dabits(queues);
         this->dabits = prep.dabits;
         prep.dabits.clear();
