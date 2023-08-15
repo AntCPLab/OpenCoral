@@ -102,7 +102,7 @@ bool isZero(const modp_<L>& ans,const Zp_Data& ZpD)
 template<int L>
 void assignOne(modp_<L>& x,const Zp_Data& ZpD)
 { if (ZpD.montgomery)
-    { mpn_copyi(x.x,ZpD.R,ZpD.t); }
+    { mpn_copyi(x.x,ZpD.R,ZpD.get_t()); }
   else
     { assignZero(x,ZpD); 
       x.x[0]=1; 
@@ -177,7 +177,7 @@ void modp_<L>::to_bigint(bigint& ans,const Zp_Data& ZpD,bool reduce) const
 template<int L>
 void to_modp(modp_<L>& ans,int x,const Zp_Data& ZpD)
 {
-  inline_mpn_zero(ans.x,ZpD.t);
+  inline_mpn_zero(ans.x,ZpD.get_t());
   if (x>=0)
     { ans.x[0]=x;
       if (ZpD.t==1) { ans.x[0]=ans.x[0]%ZpD.prA[0]; }
@@ -232,13 +232,13 @@ void modp_<L>::convert_destroy(const fixint<M>& xx,
   SignedZ2<64 * L> tmp = xx;
   if (xx.negative())
     tmp += ZpD.pr;
-  convert(tmp.get(), ZpD.t, ZpD, false);
+  convert(tmp.get(), ZpD.get_t(), ZpD, false);
 }
 
 template<int L>
 void modp_<L>::convert(const mp_limb_t* source, mp_size_t size, const Zp_Data& ZpD, bool negative)
 {
-  assert(size <= ZpD.t);
+  assert(size <= ZpD.get_t());
   if (negative)
     mpn_sub(x, ZpD.prA, ZpD.t, source, size);
   else

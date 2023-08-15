@@ -41,25 +41,28 @@ string PrepBase::get_edabit_filename(const string& prep_data_dir,
 }
 
 void PrepBase::print_left(const char* name, size_t n, const string& type_string,
-        size_t used)
+        size_t used, bool large)
 {
     if (n > 0 and OnlineOptions::singleton.verbose)
         cerr << "\t" << n << " " << name << " of " << type_string << " left"
                 << endl;
 
-    if (n > used / 10)
+    if (n > used / 10 and n >= 64)
     {
         cerr << "Significant amount of unused " << name << " of " << type_string
-                << ". For more accurate benchmarks, "
-                << "consider reducing the batch size with --batch-size." << endl;
-        cerr
-                << "Note that some protocols have larger minimum batch sizes."
-                << endl;
+                << " distorting the benchmark. ";
+        if (large)
+            cerr << "This protocol has a large minimum batch size, "
+                    << "which makes this unavoidable for small programs.";
+        else
+            cerr << "For more accurate benchmarks, "
+                    << "consider reducing the batch size with --batch-size.";
+        cerr << endl;
     }
 }
 
 void PrepBase::print_left_edabits(size_t n, size_t n_batch, bool strict,
-        int n_bits, size_t used)
+        int n_bits, size_t used, bool malicious)
 {
     if (n > 0 and OnlineOptions::singleton.verbose)
     {
@@ -70,8 +73,15 @@ void PrepBase::print_left_edabits(size_t n, size_t n_batch, bool strict,
     }
 
     if (n * n_batch > used / 10)
+    {
         cerr << "Significant amount of unused edaBits of size " << n_bits
-                << ". For more accurate benchmarks, "
-                << "consider reducing the batch size with --batch-size "
-                << "or increasing the bucket size with --bucket-size." << endl;
+                << ". ";
+        if (malicious)
+            cerr << "This protocol has a large minimum batch size, "
+                    << "which makes this unavoidable for small programs.";
+        else
+            cerr << "For more accurate benchmarks, "
+                    << "consider reducing the batch size with --batch-size.";
+        cerr << endl;
+    }
 }

@@ -118,8 +118,7 @@ void Rep3Shuffler<T>::apply(vector<T>& a, size_t n, int unit_size,
 template<class T>
 void Rep3Shuffler<T>::del(int handle)
 {
-    for (int i = 0; i < 2; i++)
-        shuffles.at(handle)[i].clear();
+    shuffles.at(handle) = {};
 }
 
 template<class T>

@@ -811,6 +811,10 @@ int FakeParams::generate()
   // default
   generate_ring<64>(G);
 
+#if defined(RING_SIZE) and RING_SIZE != 64
+  generate_ring<RING_SIZE>(G);
+#endif
+
   // reuse lgp for simplified interface
   switch (lgp)
   {
@@ -859,6 +863,8 @@ inline void FakeParams::generate_ring(PRNG& G)
   if (nplayers == 3)
     {
       make_bits<Rep3Share2<K>>({}, nplayers, default_num, zero, G);
+      make_basic<MalRepRingShare<K, DEFAULT_SECURITY>>({}, nplayers,
+          default_num, zero, G);
       make_basic<BrainShare<K, DEFAULT_SECURITY>>({}, nplayers, default_num,
           zero, G);
       make_basic<PostSacriRepRingShare<K, DEFAULT_SECURITY>>({}, nplayers,

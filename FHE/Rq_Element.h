@@ -63,7 +63,10 @@ protected:
   Rq_Element(const FHE_PK& pk);
 
   Rq_Element(const Ring_Element& b0,const Ring_Element& b1) :
-    a({b0, b1}), lev(n_mults()) {}
+    a({b0, b1}), lev(n_mults())
+  {
+    assert(b0.get_FFTD().get_R() == b1.get_FFTD().get_R());
+  }
 
   Rq_Element(const Ring_Element& b0) :
     a({b0}), lev(n_mults()) {}
@@ -139,6 +142,8 @@ protected:
   template <class T>
   void from(const vector<T>& source, int level=-1)
     {
+      for (auto& x : a)
+        assert(source.size() == (size_t) x.get_FFTD().phi_m());
       from(Iterator<T>(source), level);
     }
 

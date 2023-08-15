@@ -1,7 +1,9 @@
+.. _low-level:
+
 Low-Level Interface
 ===================
 
-In the following we will explain the basic of the C++ interface by
+In the following we will explain the basics of the C++ interface by
 walking trough :file:`Utils/paper-example.cpp`.
 
 .. default-domain:: cpp

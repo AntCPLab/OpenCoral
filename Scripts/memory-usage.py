@@ -19,8 +19,8 @@ def process(tapename, res, regs):
     for inst in Tape.read_instructions(tapename):
         t = inst.type
         if issubclass(t, DirectMemoryInstruction):
-            res[t.arg_format[0]] = max(inst.args[1].i + inst.size,
-                                       res[t.arg_format[0]]) + 1
+            res[type(inst.args[0])] = max(inst.args[1].i + inst.size,
+                                       res[type(inst.args[0])]) + 1
         for arg in inst.args:
             if isinstance(arg, RegisterArgFormat):
                 regs[type(arg)] = max(regs[type(arg)], arg.i + inst.size)
@@ -49,7 +49,7 @@ for x in res, regs, thread_regs:
     total += sum(x.values())
 
 print ('Memory:')
-output(res)
+output(regout(res))
 
 print ('Registers in main thread:')
 output(regout(regs))

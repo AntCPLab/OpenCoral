@@ -46,7 +46,7 @@ void Rep4RingPrep<T>::buffer_inputs(int player)
 template<class T>
 void Rep4RingPrep<T>::buffer_triples()
 {
-    generate_triples(this->triples, OnlineOptions::singleton.batch_size,
+    generate_triples(this->triples, BaseMachine::batch_size<T>(DATA_TRIPLE),
             this->protocol);
 }
 
@@ -78,7 +78,7 @@ void Rep4RingPrep<T>::buffer_bits()
     auto& protocol = this->proc->protocol;
 
     vector<typename T::open_type> bits;
-    int batch_size = OnlineOptions::singleton.batch_size;
+    int batch_size = BaseMachine::batch_size<T>(DATA_BIT);
     bits.reserve(batch_size);
     for (int i = 0; i < batch_size; i++)
         bits.push_back(G.get_bit());

@@ -18,6 +18,8 @@ class SohoPrep : public SemiHonestRingPrep<T>
     static Lock lock;
 
 public:
+    static const bool homomorphic = true;
+
     static void basic_setup(Player& P);
     static void teardown();
 

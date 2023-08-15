@@ -5,7 +5,7 @@ The easiest way of using MP-SPDZ is using ``compile.py`` as
 described below. If you would like to run compilation directly from
 Python, see :ref:`Direct Compilation in Python`.
 
-After putting your code in ``Program/Source/<progname>.mpc``, run the
+After putting your code in ``Program/Source/<progname>.[mpc|py]``, run the
 compiler from the root directory as follows
 
 .. code-block:: bash
@@ -13,8 +13,9 @@ compiler from the root directory as follows
   ./compile.py [options] <progname> [args]
 
 The arguments ``<progname> [args]`` are accessible as list under
-``program.args`` within ``progname.mpc``, with ``<progname>`` as
-``program.args[0]``.
+``program.args`` within ``progname.[mpc|py]``, with ``<progname>`` as
+``program.args[0]``. The resulting program for the virtual machine
+will be called ``<progname>[-<arg0>[-<arg1>...]``.
 
 The following options influence the computation domain:
 

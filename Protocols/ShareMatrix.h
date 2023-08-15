@@ -250,6 +250,7 @@ public:
     typedef MatrixMC<T> MAC_Check;
     typedef Beaver<ShareMatrix> Protocol;
     typedef ::Input<This> Input;
+    typedef DummyLivePrep<T> LivePrep;
 
     typedef ValueMatrix<typename T::clear> clear;
     typedef clear open_type;

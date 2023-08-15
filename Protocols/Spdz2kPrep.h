@@ -27,6 +27,7 @@ class Spdz2kPrep : public virtual MaliciousRingPrep<T>,
     MascotTriplePrep<BitShare>* bit_prep;
     SubProcessor<BitShare>* bit_proc;
     typename BitShare::MAC_Check* bit_MC;
+    DabitSacrifice<T> dabit_sacrifice;
 
 public:
     Spdz2kPrep(SubProcessor<T>* proc, DataPositions& usage);

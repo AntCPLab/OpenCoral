@@ -65,6 +65,8 @@
     X(PREFIXSUMS, auto dest = &Procp.get_S()[r[0]]; auto op1 = &Procp.get_S()[r[1]]; \
             sint s, \
             s += *op1++; *dest++ = s) \
+    X(PICKS, auto dest = &Procp.get_S()[r[0]]; auto op1 = &Procp.get_S()[r[1] + r[2]], \
+            *dest++ = *op1; op1 += int(n)) \
     X(MULM, auto dest = &Procp.get_S()[r[0]]; auto op1 = &Procp.get_S()[r[1]]; \
             auto op2 = &Procp.get_C()[r[2]], \
             *dest++ = *op1++ * *op2++) \

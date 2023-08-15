@@ -126,7 +126,7 @@ Slice<U>& Slice<U>::sub(BitVector& other, int repeat)
             bm.squares[i].sub(other.get_ptr_to_byte(i / repeat,
                     U::PartType::n_row_bytes()));
         else
-            bm.squares[i].bit_sub(other, i * U::PartType::n_rows());
+            bm.squares[i].bit_sub(other, i * U::PartType::n_rows_allocated());
     }
     return *this;
 }

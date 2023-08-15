@@ -10,7 +10,7 @@ the ones used below into ``Programs/Circuits`` as follows::
 """
 
 from Compiler.GC.types import *
-from Compiler.library import function_block
+from Compiler.library import function_block, get_tape
 from Compiler import util
 import itertools
 import struct
@@ -54,7 +54,7 @@ class Circuit:
         return self.run(*inputs)
 
     def run(self, *inputs):
-        n = inputs[0][0].n
+        n = inputs[0][0].n, get_tape()
         if n not in self.functions:
             self.functions[n] = function_block(lambda *args:
                                                self.compile(*args))

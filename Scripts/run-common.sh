@@ -1,4 +1,11 @@
 
+gdb_front()
+{
+    prog=$1
+    shift
+    gdb $prog -ex "run $*"
+}
+
 gdb_screen()
 {
     prog=$1
@@ -46,14 +53,20 @@ run_player() {
     fi
     set -o pipefail
     for i in $(seq 0 $[players-1]); do
-      >&2 echo Running $prefix $SPDZROOT/$bin $i $params
+      if test "$GDB_PLAYER" -a $i = "$GDB_PLAYER"; then
+	  my_prefix=gdb_front
+      else
+	  my_prefix=$prefix
+      fi
+      front_player=${GDB_PLAYER:-0}
+      >&2 echo Running $my_prefix $SPDZROOT/$bin $i $params
       log=logs/$log_prefix$i
-      $prefix $SPDZROOT/$bin $i $params 2>&1 |
+      $my_prefix $SPDZROOT/$bin $i $params 2>&1 |
 	  {
 	      if test "$BENCH"; then
-		  if test $i = 0; then tee -a $log; else cat >> $log; fi;
+		  if test $i = $front_player; then tee -a $log; else cat >> $log; fi;
 	      else
-		  if test $i = 0; then tee $log; else cat > $log; fi;
+		  if test $i = $front_player; then tee $log; else cat > $log; fi;
 	      fi
 	  } &
       codes[$i]=$!

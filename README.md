@@ -55,7 +55,7 @@ parties and malicious security.
 On Linux, this requires a working toolchain and [all
 requirements](#requirements). On Ubuntu, the following might suffice:
 ```
-sudo apt-get install automake build-essential clang cmake git libboost-dev libboost-thread-dev libgmp3-dev libntl-dev libsodium-dev libssl-dev libtool python3
+sudo apt-get install automake build-essential clang cmake git libboost-dev libboost-thread-dev libgmp-dev libntl-dev libsodium-dev libssl-dev libtool python3
 ```
 On MacOS, this requires [brew](https://brew.sh) to be installed,
 which will be used for all dependencies.
@@ -230,28 +230,13 @@ following repositories:
  - https://github.com/mkskeller/SPDZ-BMR-ORAM
  - https://github.com/mkskeller/SPDZ-Yao
 
-#### Alternatives
-
-There is another fork of SPDZ-2 called
-[SCALE-MAMBA](https://github.com/KULeuven-COSIC/SCALE-MAMBA).
-The main differences at the time of writing are as follows:
-- It provides honest-majority computation for any Q2 structure.
-- For dishonest majority computation, it provides integration of
-SPDZ/Overdrive offline and online phases but without secure key
-generation.
-- It only provides computation modulo a prime.
-- It only provides malicious security.
-
-More information can be found here:
-https://homes.esat.kuleuven.be/~nsmart/SCALE
-
 #### Overview
 
 For the actual computation, the software implements a virtual machine
 that executes programs in a specific bytecode. Such code can be
 generated from high-level Python code using a compiler that optimizes
 the computation with a particular focus on minimizing the number of
-communication rounds (for protocol based on secret sharing) or on
+communication rounds (for protocols based on secret sharing) or on
 AES-NI pipelining (for garbled circuits).
 
 The software uses two different bytecode sets, one for
@@ -275,7 +260,7 @@ compute the preprocessing time for a particular computation.
    better. Note that GCC 5/6 and clang 9 don't support libOTe, so you
    need to deactivate its use for these compilers (see the next
    section).
- - For protocol using oblivious transfer, libOTe with [the necessary
+ - For protocols using oblivious transfer, libOTe with [the necessary
    patches](https://github.com/mkskeller/softspoken-implementation)
    but without SimplestOT. The easiest way is to run `make libote`,
    which will install it as needed in a subdirectory. libOTe requires
@@ -605,7 +590,7 @@ run SqueezeNet inference for ImageNet as follows:
 git clone https://github.com/mkskeller/EzPC
 cd EzPC/Athos/Networks/SqueezeNetImgNet
 axel -a -n 5 -c --output ./PreTrainedModel https://github.com/avoroshilov/tf-squeezenet/raw/master/sqz_full.mat
-pip3 install scipy==1.1.0
+pip3 install numpy scipy pillow>=9.1 tensorflow
 python3 squeezenet_main.py --in ./SampleImages/n02109961_36.JPEG --saveTFMetadata True
 python3 squeezenet_main.py --in ./SampleImages/n02109961_36.JPEG --scalingFac 12 --saveImgAndWtData True
 cd ../../../..
@@ -620,8 +605,8 @@ three-party semi-honest computation, similar to CrypTFlow's
 Porthos. Replace 1 by the desired number of thread in the last two
 lines. If you run with some other protocols, you will need to remove
 `trunc_pr` and/or `split`. Also note that you will need to use a
-CrypTFlow repository that includes the patch in
-https://github.com/mkskeller/EzPC/commit/2021be90d21dc26894be98f33cd10dd26769f479.
+CrypTFlow repository that includes the patches in
+https://github.com/mkskeller/EzPC.
 
 [The reference](https://mp-spdz.readthedocs.io/en/latest/Compiler.html#module-Compiler.ml)
 contains further documentation on available layers.
@@ -965,6 +950,9 @@ that:
    Make sure to run `make clean` before recompiling any binaries.
    Then, you need to run `make Fake-Offline.x <protocol>-party.x`.
 
+Note that you can as well run the full protocol with option `-v` to
+see the cost split by preprocessing and online phase.
+
 ### SPDZ
 
 The SPDZ protocol uses preprocessing, that is, in a first (sometimes
@@ -1007,22 +995,26 @@ This creates the bytecode and schedule files in Programs/Bytecode/ and Programs/
 
 To run the above program with two parties on one machine, run:
 
-`./Player-Online.x -N 2 0 tutorial`
+`./mascot-party.x -F -N 2 0 tutorial`
 
-`./Player-Online.x -N 2 1 tutorial` (in a separate terminal)
+`./mascot-party.x -F -N 2 1 tutorial` (in a separate terminal)
 
 Or, you can use a script to do the above automatically:
 
-`Scripts/run-online.sh tutorial`
+`Scripts/mascot.sh -F tutorial`
 
-To run a program on two different machines, firstly the preprocessing data must be
-copied across to the second machine (or shared using sshfs), and secondly, Player-Online.x
-needs to be passed the machine where the first party is running.
-e.g. if this machine is name `diffie` on the local network:
+MASCOT is one of the protocols that use SPDZ for the online phase, and
+`-F` causes the programs to read preprocessing material from files.
 
-`./Player-Online.x -N 2 -h diffie 0 test_all`
+To run a program on two different machines, firstly the preprocessing
+data must be copied across to the second machine (or shared using
+sshfs), and secondly, `mascot-party.x` needs to be passed the machine
+where the first party is running. E.g., if this machine is named
+`diffie` on the local network:
 
-`./Player-Online.x -N 2 -h diffie 1 test_all`
+`./mascot-party.x -F -N 2 -h diffie 0 test_all`
+
+`./mascot-party.x -F -N 2 -h diffie 1 test_all`
 
 The software uses TCP ports around 5000 by default, use the `-pn`
 argument to change that.
@@ -1094,7 +1086,7 @@ the actual computation. First, compile the binary:
 `make <protocol>-offline.x`
 
 At the time of writing the supported protocols are `mascot`,
-`cowgear`, mal-shamir`, `semi`, `semi2k`, and `hemi`.
+`cowgear`, `mal-shamir`, `semi`, `semi2k`, and `hemi`.
 
 If you have not done so already, then compile your high-level program:
 

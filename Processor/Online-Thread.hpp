@@ -43,6 +43,7 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
   BaseMachine::s().thread_num = num;
 
   auto& queues = machine.queues[num];
+  auto& opts = machine.opts;
   queues->next();
   ThreadQueue::thread_queue = queues;
 
@@ -58,7 +59,7 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
 #endif
       player = new CryptoPlayer(*(tinfo->Nms), id);
     }
-  else if (!machine.receive_threads or machine.direct)
+  else if (!opts.receive_threads or opts.direct)
     {
 #ifdef VERBOSE_OPTIONS
       cerr << "Using single-threaded receiving" << endl;
@@ -80,7 +81,7 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
   typename sgf2n::MAC_Check* MC2;
   typename sint::MAC_Check*  MCp;
 
-  if (machine.direct)
+  if (opts.direct)
     {
 #ifdef VERBOSE_OPTIONS
       cerr << "Using direct communication." << endl;
@@ -93,8 +94,8 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
 #ifdef VERBOSE_OPTIONS
       cerr << "Using indirect communication." << endl;
 #endif
-      MC2 = new typename sgf2n::MAC_Check(*(tinfo->alpha2i), machine.opening_sum, machine.max_broadcast);
-      MCp = new typename sint::MAC_Check(*(tinfo->alphapi), machine.opening_sum, machine.max_broadcast);
+      MC2 = new typename sgf2n::MAC_Check(*(tinfo->alpha2i), opts.opening_sum, opts.max_broadcast);
+      MCp = new typename sint::MAC_Check(*(tinfo->alphapi), opts.opening_sum, opts.max_broadcast);
     }
 
   // Allocate memory for first program before starting the clock
@@ -376,6 +377,10 @@ void* thread_info<sint, sgf2n>::Main_Func(void* ptr)
     {
       ti.Sub_Main_Func();
     }
+    catch (setup_error&)
+    {
+      throw;
+    }
     catch (...)
     {
       thread_info<sint, sgf2n>* ti = (thread_info<sint, sgf2n>*)ptr;
@@ -393,16 +398,20 @@ void thread_info<sint, sgf2n>::purge_preprocessing(const Names& N, int thread_nu
   cerr << "Purging preprocessed data because something is wrong" << endl;
   try
   {
-      Data_Files<sint, sgf2n> df(N);
+      Data_Files<sint, sgf2n> df(N, thread_num);
       df.purge();
       DataPositions pos;
       Sub_Data_Files<typename sint::bit_type> bit_df(N, pos, thread_num);
       bit_df.get_part();
       bit_df.purge();
   }
-  catch(...)
+  catch(setup_error&)
+  {
+  }
+  catch(exception& e)
   {
       cerr << "Purging failed. This might be because preprocessed data is incomplete." << endl
           << "SECURITY FAILURE; YOU ARE ON YOUR OWN NOW!" << endl;
+      cerr << "Reason: " << e.what() << endl;
   }
 }

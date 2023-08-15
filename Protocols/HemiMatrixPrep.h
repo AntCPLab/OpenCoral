@@ -28,6 +28,8 @@ class HemiMatrixPrep : public BufferPrep<ShareMatrix<T>>
     HemiMatrixPrep(const HemiMatrixPrep&) = delete;
 
 public:
+    static const bool homomorphic = true;
+
     HemiMatrixPrep(int n_rows, int n_inner, int n_cols, LivePrep& prep,
             DataPositions& usage) :
             super(usage), n_rows(n_rows), n_inner(n_inner),

@@ -64,7 +64,8 @@ void MalRepRingPrep<T>::buffer_squares()
     MaliciousRepPrep<prep_type> prep(_);
     assert(this->proc != 0);
     prep.init_honest(this->proc->P);
-    prep.buffer_size = this->buffer_size;
+    prep.buffer_size = BaseMachine::batch_size<T>(DATA_SQUARE,
+            this->buffer_size);
     prep.buffer_squares();
     for (auto& x : prep.squares)
         this->squares.push_back({{x[0], x[1]}});

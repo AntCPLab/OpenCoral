@@ -43,7 +43,7 @@ class BlockAllocator:
             else:
                 done = False
                 for x in self.by_logsize[logsize + 1:]:
-                    for block_size, addresses in x.items():
+                    for block_size, addresses in sorted(x.items()):
                         if len(addresses) > 0:
                             done = True
                             break
@@ -60,16 +60,92 @@ class BlockAllocator:
                 self.by_address[addr + size] = diff
             return addr
 
+class AllocRange:
+    def __init__(self, base=0):
+        self.base = base
+        self.top = base
+        self.limit = base
+        self.grow = True
+        self.pool = defaultdict(set)
+
+    def alloc(self, size):
+        if self.pool[size]:
+            return self.pool[size].pop()
+        elif self.grow or self.top + size <= self.limit:
+            res = self.top
+            self.top += size
+            self.limit = max(self.limit, self.top)
+            if res >= REG_MAX:
+                raise RegisterOverflowError()
+            return res
+
+    def free(self, base, size):
+        assert self.base <= base < self.top
+        self.pool[size].add(base)
+
+    def stop_growing(self):
+        self.grow = False
+
+    def consolidate(self):
+        regs = []
+        for size, pool in self.pool.items():
+            for base in pool:
+                regs.append((base, size))
+        for base, size in reversed(sorted(regs)):
+            if base + size == self.top:
+                self.top -= size
+                self.pool[size].remove(base)
+                regs.pop()
+            else:
+                if program.Program.prog.verbose:
+                    print('cannot free %d register blocks '
+                          'by a gap of %d at %d' %
+                          (len(regs), self.top - size - base, base))
+                break
+
+class AllocPool:
+    def __init__(self):
+        self.ranges = defaultdict(lambda: [AllocRange()])
+        self.by_base = {}
+
+    def alloc(self, reg_type, size):
+        for r in self.ranges[reg_type]:
+            res = r.alloc(size)
+            if res is not None:
+                self.by_base[reg_type, res] = r
+                return res
+
+    def free(self, reg):
+        r = self.by_base.pop((reg.reg_type, reg.i))
+        r.free(reg.i, reg.size)
+
+    def new_ranges(self, min_usage):
+        for t, n in min_usage.items():
+            r = self.ranges[t][-1]
+            assert (n >= r.limit)
+            if r.limit < n:
+                r.stop_growing()
+                self.ranges[t].append(AllocRange(n))
+
+    def consolidate(self):
+        for r in self.ranges.values():
+            for rr in r:
+                rr.consolidate()
+
+    def n_fragments(self):
+        return max(len(r) for r in self.ranges)
+
 class StraightlineAllocator:
     """Allocate variables in a straightline program using n registers.
     It is based on the precondition that every register is only defined once."""
     def __init__(self, n, program):
         self.alloc = dict_by_id()
-        self.usage = Compiler.program.RegType.create_dict(lambda: 0)
+        self.max_usage = defaultdict(lambda: 0)
         self.defined = dict_by_id()
         self.dealloc = set_by_id()
-        self.n = n
+        assert(n == REG_MAX)
         self.program = program
+        self.old_pool = None
 
     def alloc_reg(self, reg, free):
         base = reg.vectorbase
@@ -79,14 +155,7 @@ class StraightlineAllocator:
 
         reg_type = reg.reg_type
         size = base.size
-        if free[reg_type, size]:
-            res = free[reg_type, size].pop()
-        else:
-            if self.usage[reg_type] < self.n:
-                res = self.usage[reg_type]
-                self.usage[reg_type] += size
-            else:
-                raise RegisterOverflowError()
+        res = free.alloc(reg_type, size)
         self.alloc[base] = res
 
         base.i = self.alloc[base]
@@ -126,7 +195,7 @@ class StraightlineAllocator:
                 for x in itertools.chain(dup.duplicates, base.duplicates):
                     to_check.add(x)
 
-        free[reg.reg_type, base.size].append(self.alloc[base])
+        free.free(base)
         if inst.is_vec() and base.vector:
             self.defined[base] = inst
             for i in base.vector:
@@ -135,6 +204,7 @@ class StraightlineAllocator:
             self.defined[reg] = inst
 
     def process(self, program, alloc_pool):
+        self.update_usage(alloc_pool)
         for k,i in enumerate(reversed(program)):
             unused_regs = []
             for j in i.get_def():
@@ -161,12 +231,26 @@ class StraightlineAllocator:
             if k % 1000000 == 0 and k > 0:
                 print("Allocated registers for %d instructions at" % k, time.asctime())
 
+        self.update_max_usage(alloc_pool)
+        alloc_pool.consolidate()
+
         # print "Successfully allocated registers"
         # print "modp usage: %d clear, %d secret" % \
         #     (self.usage[Compiler.program.RegType.ClearModp], self.usage[Compiler.program.RegType.SecretModp])
         # print "GF2N usage: %d clear, %d secret" % \
         #     (self.usage[Compiler.program.RegType.ClearGF2N], self.usage[Compiler.program.RegType.SecretGF2N])
-        return self.usage
+        return self.max_usage
+
+    def update_max_usage(self, alloc_pool):
+        for t, r in alloc_pool.ranges.items():
+            self.max_usage[t] = max(self.max_usage[t], r[-1].limit)
+
+    def update_usage(self, alloc_pool):
+        if self.old_pool:
+            self.update_max_usage(self.old_pool)
+        if id(self.old_pool) != id(alloc_pool):
+            alloc_pool.new_ranges(self.max_usage)
+            self.old_pool = alloc_pool
 
     def finalize(self, options):
         for reg in self.alloc:
@@ -178,6 +262,21 @@ class StraightlineAllocator:
                                                                 '\t\t'))
                     if options.stop:
                         sys.exit(1)
+        if self.program.verbose:
+            def p(sizes):
+                total = defaultdict(lambda: 0)
+                for (t, size) in sorted(sizes):
+                    n = sizes[t, size]
+                    total[t] += size * n
+                    print('%s:%d*%d' % (t, size, n), end=' ')
+                print()
+                print('Total:', dict(total))
+
+            sizes = defaultdict(lambda: 0)
+            for reg in self.alloc:
+                x = reg.reg_type, reg.size
+            print('Used registers: ', end='')
+            p(sizes)
 
 def determine_scope(block, options):
     last_def = defaultdict_by_id(lambda: -1)

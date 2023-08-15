@@ -38,6 +38,7 @@ by party 0 and 1::
    sfloat
    sgf2n
    cgf2n
+   personal
 
 Container types
 ---------------
@@ -392,7 +393,7 @@ class _int(Tape._no_truth):
         return a - prod, b + prod
 
     def bit_xor(self, other):
-        """ XOR in arithmetic circuits.
+        """ Single-bit XOR in arithmetic circuits.
 
         :param self/other: 0 or 1 (any compatible type)
         :return: type depends on inputs (secret if any of them is) """
@@ -404,7 +405,7 @@ class _int(Tape._no_truth):
         return self + other - 2 * self * other
 
     def bit_or(self, other):
-        """ OR in arithmetic circuits.
+        """ Single-bit OR in arithmetic circuits.
 
         :param self/other: 0 or 1 (any compatible type)
         :return: type depends on inputs (secret if any of them is) """
@@ -416,14 +417,14 @@ class _int(Tape._no_truth):
         return self + other - self * other
 
     def bit_and(self, other):
-        """ AND in arithmetic circuits.
+        """ Single-bit AND in arithmetic circuits.
 
         :param self/other: 0 or 1 (any compatible type)
         :rtype: depending on inputs (secret if any of them is) """
         return self * other
 
     def bit_not(self):
-        """ NOT in arithmetic circuits. """
+        """ Single-bit NOT in arithmetic circuits. """
         return 1 - self
 
     def half_adder(self, other):
@@ -611,6 +612,8 @@ class _secret_structure(_structure):
         if program.curr_tape != program.tapes[0]:
             raise CompilerError('only available in main thread')
         if content is not None:
+            if isinstance(content, (_vectorizable, Tape.Register)):
+                raise CompilerError('cannot input data already in the VM')
             requested_shape = shape
             if binary:
                 import numpy
@@ -800,9 +803,29 @@ class _register(Tape.Register, _number, _structure):
         if self.size == size:
             return self
         assert self.size == 1
+        return self._expand_to_vector(size)
+
+    def _expand_to_vector(self, size):
         res = type(self)(size=size)
         for i in range(size):
             self.mov(res[i], self)
+        return res
+
+    def copy_from_part(self, source, base, size):
+        set_global_vector_size(size)
+        self.mov(self, source.get_vector(base, size))
+        reset_global_vector_size()
+
+    @classmethod
+    def concat(cls, parts):
+        parts = list(parts)
+        res = cls(size=sum(len(part) for part in parts))
+        base = 0
+        for reg in parts:
+            set_global_vector_size(reg.size)
+            reg.mov(res.get_vector(base, reg.size), reg)
+            reset_global_vector_size()
+            base += reg.size
         return res
 
 class _arithmetic_register(_register):
@@ -1508,6 +1531,14 @@ class regint(_register, _int):
                 raise CompilerError("Cannot convert '%s' to integer" % \
                                     type(val))
 
+    def expand_to_vector(self, size=None):
+        if size is None:
+            size = get_global_vector_size()
+        if self.size == size:
+            return self
+        assert self.size == 1
+        return self.inc(size, self, 0)
+
     @vectorize
     @read_mem_value
     def int_op(self, other, inst, reverse=False):
@@ -1762,7 +1793,8 @@ class localint(Tape._no_truth):
 class personal(Tape._no_truth):
     """ Value known to one player. Supports operations with public
     values and personal values known to the same player. Can be used
-    with :py:func:`~Compiler.library.print_ln_to`.
+    with :py:func:`~Compiler.library.print_ln_to`. It is possible to
+    convert to secret types like :py:class:`sint`.
 
     :param player: player (int)
     :param value: cleartext value (cint, cfix, cfloat) or array thereof
@@ -2023,11 +2055,16 @@ class _secret(_arithmetic_register, _secret_structure):
 
         :rtype: same as inputs
         """
-        x = list(x)
-        set_global_vector_size(x[0].size)
-        res = cls()
-        dotprods(res, x, y)
-        reset_global_vector_size()
+        if isinstance(x, cls) and isinstance(y, cls):
+            assert len(x) == len(y)
+            res = cls()
+            matmuls(res, x, y, 1, len(x), 1)
+        else:
+            x = list(x)
+            set_global_vector_size(x[0].size)
+            res = cls()
+            dotprods(res, x, y)
+            reset_global_vector_size()
         return res
 
     @classmethod
@@ -2950,6 +2987,27 @@ class sint(_secret, _int):
         """ Prefix sum. """
         res = sint()
         prefixsums(res, self)
+        return res
+
+    def sum(self):
+        res = type(self)(size=1)
+        picks(res, self.prefix_sum(), len(self) - 1, 0)
+        return res
+
+    def _expand_to_vector(self, size):
+        res = type(self)(size=size)
+        picks(res, self, 0, 0)
+        return res
+
+    def copy_from_part(self, source, base, size):
+        picks(self, source, base, 1)
+
+    @classmethod
+    def concat(cls, parts):
+        parts = list(parts)
+        res = cls(size=sum(len(part) for part in parts))
+        args = sum(([len(part), part] for part in parts), [])
+        concats(res, *args)
         return res
 
 class sintbit(sint):
@@ -4726,6 +4784,24 @@ class sfix(_fix):
     def prefix_sum(self):
         return self._new(self.v.prefix_sum(), k=self.k, f=self.f)
 
+    def sum(self):
+        return self._new(self.v.sum())
+
+    @classmethod
+    def concat(cls, parts):
+        parts = list(parts)
+        int_parts = []
+        f = parts[0].f
+        k = parts[0].k
+        for part in parts:
+            assert part.f == f
+            assert part.k == k
+            int_parts.append(part.v)
+        return cls._new(cls.int_type.concat(int_parts), k=k, f=f)
+
+    def __repr__(self):
+        return '<sfix{f=%d,k=%d} at %s>' % (self.f, self.k, self.v)
+
 class unreduced_sfix(_single):
     int_type = sint
 
@@ -5739,9 +5815,11 @@ class Array(_vectorizable):
                 if value.size != 1:
                     raise CompilerError('cannot assign vector to all elements')
             mem_value = MemValue(value)
-        self.address = MemValue.if_necessary(self.address)
         n_threads = 8 if use_threads and util.is_constant(self.length) and \
-            len(self) > 2**20 and not program.options.garbled else None
+            len(self) > 2**20 and not program.options.garbled and \
+            program.curr_tape.singular else None
+        if n_threads is not None:
+            self.address = MemValue.if_necessary(self.address)
         @library.multithread(n_threads, self.length)
         def _(base, size):
             if use_vector:
@@ -6444,12 +6522,20 @@ class SubMultiArray(_vectorizable):
             try:
                 try:
                     self.value_type.direct_matrix_mul
-                    assert self.value_type == other.value_type
+                    skip_reduce = set((sint, sfix)) == \
+                        set((self.value_type, other.value_type))
+                    assert self.value_type == other.value_type or skip_reduce
                     max_size = _register.maximum_size // res_matrix.sizes[1]
                     @library.multithread(n_threads, self.sizes[0], max_size)
                     def _(base, size):
-                        res_matrix.assign_part_vector(
-                            self.get_part(base, size).direct_mul(other), base)
+                        tmp = self.get_part(base, size).direct_mul(
+                            other, reduce=not skip_reduce,
+                            res_type=sfix if skip_reduce else None)
+                        if skip_reduce:
+                            tmp = t._new(tmp.v)
+                        else:
+                            tmp = tmp.reduce_after_mul()
+                        res_matrix.assign_part_vector(tmp, base)
                 except AttributeError:
                     assert n_threads is None
                     if max(res_matrix.sizes) > 1000:
@@ -6483,7 +6569,7 @@ class SubMultiArray(_vectorizable):
         else:
             raise NotImplementedError
 
-    def direct_mul(self, other, reduce=True, indices=None):
+    def direct_mul(self, other, reduce=True, indices=None, res_type=None):
         """ Matrix multiplication in the virtual machine.
         Unlike :py:func:`dot`, this only works for sint and sfix, and it
         returns a vector instead of a data structure.
@@ -6511,10 +6597,15 @@ class SubMultiArray(_vectorizable):
             other_sizes = other.sizes
             assert len(other.sizes) == 2
         assert self.sizes[1] == other_sizes[0]
-        assert self.value_type == other.value_type
-        return self.value_type.direct_matrix_mul(self.address, other.address,
-                                                 self.sizes[0], *other_sizes,
-                                                 reduce=reduce, indices=indices)
+        if self.value_type == other.value_type:
+            assert res_type in (self.value_type, None)
+            res_type = self.value_type
+        else:
+            assert not reduce
+            assert res_type
+        return res_type.direct_matrix_mul(self.address, other.address,
+                                          self.sizes[0], *other_sizes,
+                                          reduce=reduce, indices=indices)
 
     def direct_mul_trans(self, other, reduce=True, indices=None):
         """
@@ -6988,7 +7079,10 @@ class _mem(_number):
     __ilshift__ = lambda self,other: self.write(self.read() << other)
     __irshift__ = lambda self,other: self.write(self.read() >> other)
 
-    iadd = __iadd__
+    def iadd(self, other):
+        """ Addition assignment. """
+        return self.__iadd__(other)
+
     isub = __isub__
     imul = __imul__
     itruediv = __itruediv__
@@ -7016,7 +7110,7 @@ class MemValue(_mem):
 
     @classmethod
     def if_necessary(cls, value):
-        if util.is_constant_float(value):
+        if util.is_constant_float(value) or isinstance(value, MemValue):
             return value
         else:
             return cls(value)
@@ -7121,7 +7215,7 @@ class MemValue(_mem):
             return self.value_type.load_mem(addresses)
 
     def __repr__(self):
-        return 'MemValue(%s,%d)' % (self.value_type, self.address)
+        return 'MemValue(%s,%s)' % (self.value_type, self.address)
 
 
 class MemFloat(MemValue):

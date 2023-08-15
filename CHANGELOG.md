@@ -1,5 +1,19 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.3.7 (August 14, 2023)
+
+- Path Oblivious Heap (@tskovlund)
+- Adjust batch and bucket size to program
+- Direct communication available in more protocols
+- Option for seed in fake preprocessing (@strieflin)
+- Lower memory usage due to improved register allocation
+- New instructions to speed up CISC compilation
+- Protocol implementation example
+- Fixed security bug: missing MAC checks in multi-threaded programs
+- Fixed security bug: race condition in MAC check
+- Fixed security bug: missing shuffling check in PS mod 2^k and Brain
+- Fixed security bug: insufficient drowning in pairwise protocols
+
 ## 0.3.6 (May 9, 2023)
 
 - More extensive benchmarking outputs

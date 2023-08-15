@@ -53,6 +53,10 @@ public:
     {
         return "M" + string(1, T::type_char());
     }
+    static string type_string()
+    {
+        return "malicious " + super::type_string();
+    }
 
     MaliciousRep3Share()
     {

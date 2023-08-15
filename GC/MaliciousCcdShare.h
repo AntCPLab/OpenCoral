@@ -32,6 +32,7 @@ public:
     typedef Beaver<This> Protocol;
 
     typedef MaliciousShamirMC<This> MAC_Check;
+    typedef MAC_Check Direct_MC;
 
     typedef This small_type;
 

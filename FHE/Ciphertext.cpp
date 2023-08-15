@@ -124,7 +124,7 @@ void Ciphertext::rerandomize(const FHE_PK& pk)
 {
   Rq_Element tmp(*params);
   SeededPRNG G;
-  vector<FFT_Data::S> r(params->FFTD()[0].m());
+  vector<FFT_Data::S> r(params->FFTD()[0].phi_m());
   bigint p = pk.p();
   assert(p != 0);
   for (auto& x : r)

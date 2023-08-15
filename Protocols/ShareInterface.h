@@ -74,6 +74,9 @@ public:
     static void generate_mac_key(T&, U&) {}
 
     static int threshold(int) { throw runtime_error("undefined threshold"); }
+
+    template<class T>
+    static string proto_fake_opts() { return T::fake_opts(); }
 };
 
 #endif /* PROTOCOLS_SHAREINTERFACE_H_ */

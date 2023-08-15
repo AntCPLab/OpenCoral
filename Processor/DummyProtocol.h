@@ -112,6 +112,8 @@ template<class T>
 class DummyLivePrep : public Preprocessing<T>
 {
 public:
+    static const bool homomorphic = true;
+
     static void basic_setup(Player&)
     {
     }
@@ -123,6 +125,11 @@ public:
     {
         throw runtime_error(
                 "live preprocessing not implemented for " + T::type_string());
+    }
+
+    static bool bits_from_dabits()
+    {
+        return false;
     }
 
     DummyLivePrep(DataPositions& usage, GC::ShareThread<T>&) :

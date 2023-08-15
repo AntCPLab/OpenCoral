@@ -26,7 +26,8 @@ public:
     typedef ReplicatedPrep<This> LivePrep;
     typedef ShamirInput<This> Input;
 
-    typedef ShamirMC<This> MAC_Check;
+    typedef IndirectShamirMC<This> MAC_Check;
+    typedef ShamirMC<This> Direct_MC;
     typedef Shamir<This> Protocol;
 
     typedef This small_type;

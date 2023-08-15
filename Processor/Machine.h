@@ -53,8 +53,6 @@ class Machine : public BaseMachine
 
   public:
 
-  vector<Program>  progs;
-
   Memory<sgf2n> M2;
   Memory<sint> Mp;
   Memory<Integer> Mi;
@@ -63,10 +61,6 @@ class Machine : public BaseMachine
   vector<Timer> join_timer;
   Timer finish_timer;
 
-  bool direct;
-  int opening_sum;
-  bool receive_threads;
-  int max_broadcast;
   bool use_encryption;
   bool live_prep;
 

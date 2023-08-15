@@ -112,9 +112,6 @@ PairwiseGenerator<typename T::clear::FD>& CowGearPrep<T>::get_generator()
     {
         auto& machine = *pairwise_machine;
         typedef typename T::open_type::FD FD;
-        // generate minimal number of items
-        this->buffer_size = min(machine.setup<FD>().alpha.num_slots(),
-                (unsigned)OnlineOptions::singleton.batch_size);
         pairwise_generator = new PairwiseGenerator<FD>(0, machine, &proc->P);
     }
     return *pairwise_generator;

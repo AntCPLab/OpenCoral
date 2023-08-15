@@ -152,6 +152,12 @@ public:
     {
     }
 
+    template<class T>
+    static string proto_fake_opts()
+    {
+        return T::fake_opts();
+    }
+
     RepSecretBase()
     {
     }
@@ -259,6 +265,7 @@ public:
     typedef SemiHonestRepSecret whole_type;
 
     static const bool expensive_triples = false;
+    static const bool malicious = false;
 
     static MC* new_mc(mac_key_type) { return new MC; }
 

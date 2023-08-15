@@ -19,6 +19,28 @@ template<class T>
 class MemoryPart : public CheckVector<T>
 {
 public:
+  template<class U>
+  static void check_index(const vector<U>& M, size_t i)
+    {
+      (void) M, (void) i;
+#ifndef NO_CHECK_INDEX
+      if (i >= M.size())
+        throw overflow(U::type_string() + " memory", i, M.size());
+#endif
+    }
+
+  T& operator[](size_t i)
+    {
+      check_index(*this, i);
+      return CheckVector<T>::operator[](i);
+    }
+
+  const T& operator[](size_t i) const
+    {
+      check_index(*this, i);
+      return CheckVector<T>::operator[](i);
+    }
+
   void minimum_size(size_t size);
 };
 
@@ -40,35 +62,21 @@ class Memory
   size_t size_c()
     { return MC.size(); }
 
-  template<class U>
-  static void check_index(const vector<U>& M, size_t i)
-    {
-      (void) M, (void) i;
-#ifndef NO_CHECK_INDEX
-      if (i >= M.size())
-        throw overflow(U::type_string() + " memory", i, M.size());
-#endif
-    }
-
   const typename T::clear& read_C(size_t i) const
     {
-      check_index(MC, i);
       return MC[i];
     }
   const T& read_S(size_t i) const
     {
-      check_index(MS, i);
       return MS[i];
     }
 
   void write_C(size_t i,const typename T::clear& x)
     {
-      check_index(MC, i);
       MC[i]=x;
     }
   void write_S(size_t i,const T& x)
     {
-      check_index(MS, i);
       MS[i]=x;
     }
 

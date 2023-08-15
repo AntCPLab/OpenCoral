@@ -17,11 +17,13 @@ void DealerPrep<T>::buffer_triples()
     vector<bool> senders(P.num_players());
     senders.back() = true;
     octetStreams os(P), to_receive(P);
+    int buffer_size = BaseMachine::batch_size<T>(DATA_TRIPLE,
+            this->buffer_size);
     if (this->proc->input.is_dealer())
     {
         SeededPRNG G;
         vector<SemiShare<typename T::clear>> shares(P.num_players() - 1);
-        for (int i = 0; i < OnlineOptions::singleton.batch_size; i++)
+        for (int i = 0; i < buffer_size; i++)
         {
             T triples[3];
             for (int i = 0; i < 2; i++)
@@ -41,7 +43,7 @@ void DealerPrep<T>::buffer_triples()
     else
     {
         P.send_receive_all(senders, os, to_receive);
-        for (int i = 0; i < OnlineOptions::singleton.batch_size; i++)
+        for (int i = 0; i < buffer_size; i++)
             this->triples.push_back(to_receive.back().get<FixedVec<T, 3>>().get());
     }
 }
@@ -68,11 +70,12 @@ void DealerPrep<T>::buffer_inverses(true_type)
     vector<bool> senders(P.num_players());
     senders.back() = true;
     octetStreams os(P), to_receive(P);
+    int buffer_size = BaseMachine::batch_size<T>(DATA_INVERSE);
     if (this->proc->input.is_dealer())
     {
         SeededPRNG G;
         vector<SemiShare<typename T::clear>> shares(P.num_players() - 1);
-        for (int i = 0; i < OnlineOptions::singleton.batch_size; i++)
+        for (int i = 0; i < buffer_size; i++)
         {
             T tuple[2];
             while (tuple[0] == 0)
@@ -92,7 +95,7 @@ void DealerPrep<T>::buffer_inverses(true_type)
     else
     {
         P.send_receive_all(senders, os, to_receive);
-        for (int i = 0; i < OnlineOptions::singleton.batch_size; i++)
+        for (int i = 0; i < buffer_size; i++)
             this->inverses.push_back(to_receive.back().get<FixedVec<T, 2>>().get());
     }
 }
@@ -105,11 +108,12 @@ void DealerPrep<T>::buffer_bits()
     vector<bool> senders(P.num_players());
     senders.back() = true;
     octetStreams os(P), to_receive(P);
+    int buffer_size = BaseMachine::batch_size<T>(DATA_BIT);
     if (this->proc->input.is_dealer())
     {
         SeededPRNG G;
         vector<SemiShare<typename T::clear>> shares(P.num_players() - 1);
-        for (int i = 0; i < OnlineOptions::singleton.batch_size; i++)
+        for (int i = 0; i < buffer_size; i++)
         {
             T bit = G.get_bit();
             make_share(shares.data(), typename T::clear(bit),
@@ -123,7 +127,7 @@ void DealerPrep<T>::buffer_bits()
     else
     {
         P.send_receive_all(senders, os, to_receive);
-        for (int i = 0; i < OnlineOptions::singleton.batch_size; i++)
+        for (int i = 0; i < buffer_size; i++)
             this->bits.push_back(to_receive.back().get<T>());
     }
 }
@@ -136,12 +140,13 @@ void DealerPrep<T>::buffer_dabits(ThreadQueues*)
     vector<bool> senders(P.num_players());
     senders.back() = true;
     octetStreams os(P), to_receive(P);
+    int buffer_size = BaseMachine::batch_size<T>(DATA_DABIT);
     if (this->proc->input.is_dealer())
     {
         SeededPRNG G;
         vector<SemiShare<typename T::clear>> shares(P.num_players() - 1);
         vector<GC::SemiSecret> bit_shares(P.num_players() - 1);
-        for (int i = 0; i < OnlineOptions::singleton.batch_size; i++)
+        for (int i = 0; i < buffer_size; i++)
         {
             auto bit = G.get_bit();
             make_share(shares.data(), typename T::clear(bit),
@@ -160,7 +165,7 @@ void DealerPrep<T>::buffer_dabits(ThreadQueues*)
     else
     {
         P.send_receive_all(senders, os, to_receive);
-        for (int i = 0; i < OnlineOptions::singleton.batch_size; i++)
+        for (int i = 0; i < buffer_size; i++)
         {
             this->dabits.push_back({to_receive.back().get<T>(),
                 to_receive.back().get<typename T::bit_type>()});
@@ -200,7 +205,8 @@ void DealerPrep<T>::buffer_edabits(int length, false_type)
     vector<bool> senders(P.num_players());
     senders.back() = true;
     octetStreams os(P), to_receive(P);
-    int n_vecs = OnlineOptions::singleton.batch_size / edabitvec<T>::MAX_SIZE;
+    int n_vecs = DIV_CEIL(BaseMachine::edabit_batch_size<T>(length),
+            edabitvec<T>::MAX_SIZE);
     auto& buffer = this->edabits[{false, length}];
     if (this->proc->input.is_dealer())
     {

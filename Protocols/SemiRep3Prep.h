@@ -18,6 +18,8 @@ class SemiRep3Prep : public virtual SemiHonestRingPrep<T>,
     void buffer_dabits(ThreadQueues*);
 
 public:
+    static bool bits_from_dabits() { return true; }
+
     SemiRep3Prep(SubProcessor<T>* proc, DataPositions& usage) :
             BufferPrep<T>(usage), BitPrep<T>(proc, usage),
 			RingPrep<T>(proc, usage),

@@ -270,9 +270,9 @@ class Compiler:
         self.prog = Program(self.args, self.options, name=name)
         if self.execute:
             if self.options.execute in \
-               ("emulate", "ring", "rep-field"):
+               ("emulate", "ring", "rep-field", "rep4-ring"):
                 self.prog.use_trunc_pr = True
-            if self.options.execute in ("ring",):
+            if self.options.execute in ("ring", "ps-rep-ring", "sy-rep-ring"):
                 self.prog.use_split(3)
             if self.options.execute in ("semi2k",):
                 self.prog.use_split(2)
@@ -487,6 +487,7 @@ class Compiler:
                     "Cannot produce %s. " % executable + \
                     "Note that compilation requires a few GB of RAM.")
         vm = "%s/Scripts/%s.sh" % (self.root, self.options.execute)
+        sys.stdout.flush()
         os.execl(vm, vm, self.prog.name, *args)
 
     def remote_execution(self, args=[]):

@@ -208,6 +208,10 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
         get_ints(r, s, 2);
         n = get_int(s);
         break;
+      case PICKS:
+        get_ints(r, s, 3);
+        n = get_int(s);
+        break;
       case USE:
       case USE_INP:
       case USE_EDABIT:
@@ -392,6 +396,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case EDABIT:
       case SEDABIT:
       case WRITEFILESHARE:
+      case CONCATS:
           num_var_args = get_int(s) - 1;
           r[0] = get_int(s);
           get_vector(num_var_args, start, s);
@@ -930,6 +935,20 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
       case MOVC:
         Proc.write_Cp(r[0],Proc.read_Cp(r[1]));
         break;
+      case CONCATS:
+        {
+          auto& S = Proc.Procp.get_S();
+          auto dest = S.begin() + r[0];
+          for (auto j = start.begin(); j < start.end(); j += 2)
+            {
+              auto source = S.begin() + *(j + 1);
+              assert(dest + *j <= S.end());
+              assert(source + *j <= S.end());
+              for (int k = 0; k < *j; k++)
+                *dest++ = *source++;
+            }
+          return;
+        }
       case DIVC:
         Proc.write_Cp(r[0], Proc.read_Cp(r[1]) / sanitize(Proc.Procp, r[2]));
         break;

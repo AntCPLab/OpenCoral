@@ -72,7 +72,7 @@ class PRNG
 
    public:
 
-   /// Construction without initialization. Usage without initilization will fail.
+   /// Construction without initialization. Usage without initialization will fail.
    PRNG();
    /// Initialize with ``SEED_SIZE`` bytes from buffer.
    PRNG(octetStream& seed);

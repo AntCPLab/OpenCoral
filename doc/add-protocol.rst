@@ -36,7 +36,8 @@ of the share class. For example ``replicated-ring-party.x`` is
 implemented in ``Machines/replicated-ring-party.cpp``, which refers to
 :c:func:`Rep3Share2` in ``Protocols/Rep3Share2.h``. There you will
 find that it uses :c:func:`Replicated` for multiplication, which is
-found in ``Protocols/Replicated.h``.
+found in ``Protocols/Replicated.h``. You can also consult :ref:`the
+tutorial for the lowest-level interface <lowest-level>`.
 
 1. Fill in the :c:func:`constant` static member function of
    :c:type:`NoShare` as well as the :c:func:`exchange` member function

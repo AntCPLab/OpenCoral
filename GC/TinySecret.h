@@ -50,7 +50,8 @@ public:
     static const bool variable_players = T::variable_players;
     static const bool needs_ot = T::needs_ot;
     static const bool has_mac = T::has_mac;
-    static const bool expensive_triples = false;
+    static const bool malicious = T::malicious;
+    static const bool expensive_triples = T::expensive_triples;
     static const bool randoms_for_opens = false;
 
     static const int default_length = 64;

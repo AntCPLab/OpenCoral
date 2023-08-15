@@ -38,7 +38,7 @@ except:
 try:
     batch_size = int(program.args[2])
 except:
-    batch_size = N
+    batch_size = min(N, 128)
 
 assert batch_size <= N
 ml.Layer.back_batch_size = batch_size

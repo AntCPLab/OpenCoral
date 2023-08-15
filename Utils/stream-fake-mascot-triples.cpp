@@ -22,8 +22,8 @@ public:
 void* run(void* arg)
 {
     auto& info = *(Info*) arg;
-    Files<Share<gfpvar>> files(info.nplayers, info.key, PREP_DIR, DATA_TRIPLE, info.thread_num);
     SeededPRNG G;
+    Files<Share<gfpvar>> files(info.nplayers, info.key, PREP_DIR, DATA_TRIPLE, G, info.thread_num);
     int count = 0;
     while (true)
     {
@@ -53,7 +53,8 @@ int main()
     string prep_data_prefix = PREP_DIR;
     gfpvar::generate_setup<T>(prep_data_prefix, nplayers, lgp);
     T::mac_key_type keyp;
-    generate_mac_keys<T>(keyp, nplayers, prep_data_prefix);
+    SeededPRNG G;
+    generate_mac_keys<T>(keyp, nplayers, prep_data_prefix, G);
 
     int nthreads = 3;
     OnlineOptions::singleton.file_prep_per_thread = true;

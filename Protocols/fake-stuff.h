@@ -45,7 +45,7 @@ public:
   ofstream* outf;
   int N;
   typename T::mac_type key;
-  PRNG G;
+  PRNG& G;
   Files(int N, const typename T::mac_type& key, const string& prep_data_prefix,
       Dtype type, PRNG& G, int thread_num = -1) :
       Files(N, key,

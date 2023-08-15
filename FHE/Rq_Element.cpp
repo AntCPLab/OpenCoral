@@ -14,7 +14,10 @@ Rq_Element::Rq_Element(const vector<FFT_Data>& prd, RepType r0, RepType r1)
     if (prd.size() > 0)
         a.push_back({prd[0], r0});
     if (prd.size() > 1)
+    {
+        assert(prd[0].get_R() == prd[1].get_R());
         a.push_back({prd[1], r1});
+    }
     lev = n_mults();
 }
 
@@ -155,6 +158,7 @@ void Rq_Element::to_vec_bigint(vector<bigint>& v) const
   if (lev==1)
     { vector<bigint> v1;
       a[1].to_vec_bigint(v1);
+      assert(v.size() == v1.size());
       bigint p0=a[0].get_prime();
       bigint p1=a[1].get_prime();
       bigint p0i,lambda,Q=p0*p1;

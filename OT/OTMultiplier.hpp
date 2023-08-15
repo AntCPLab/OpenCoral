@@ -163,17 +163,17 @@ void SemiMultiplier<T>::multiplyForBits()
 
     rot_ext.hash_outputs(aBits.size(), baseSenderOutputs, baseReceiverOutput);
 
+    int n_squares = otCorrelator.receiverOutputMatrix.squares.size();
     otCorrelator.setup_for_correlation(aBits, baseSenderOutputs,
             baseReceiverOutput);
-    otCorrelator.correlate(0, otCorrelator.receiverOutputMatrix.squares.size(),
-            this->generator.valueBits[0], false, -1);
+    otCorrelator.correlate(0, n_squares, aBits, false, -1);
 
     c_output.clear();
 
     for (unsigned j = 0; j < aBits.size(); j++)
     {
-        int outer = j / X::n_rows();
-        int inner = j % X::n_rows();
+        int outer = j / X::n_rows_allocated();
+        int inner = j % X::n_rows_allocated();
 
         if (role == RECEIVER)
             c_output.push_back(

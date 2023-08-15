@@ -26,6 +26,7 @@ public:
     typedef Rep4Input<This> Input;
 
     static const bool expensive_triples = false;
+    static const bool malicious = true;
 
     static MC* new_mc(typename super::mac_key_type) { return new MC; }
 

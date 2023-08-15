@@ -8,6 +8,8 @@
 #include "Math/Setup.h"
 #include "Tools/Bundle.h"
 
+#include "Protocols/ShuffleSacrifice.hpp"
+
 #include <iostream>
 #include <sodium.h>
 using namespace std;
@@ -28,6 +30,28 @@ BaseMachine& BaseMachine::s()
     return *singleton;
   else
     throw runtime_error("no singleton");
+}
+
+bool BaseMachine::has_program()
+{
+  return has_singleton() and not s().progs.empty();
+}
+
+int BaseMachine::edabit_bucket_size(int n_bits)
+{
+  int res = OnlineOptions::singleton.bucket_size;
+
+  if (has_program())
+    {
+      auto usage = s().progs[0].get_offline_data_used().total_edabits(n_bits);
+      for (int B = res; B <= 5; B++)
+        if (ShuffleSacrifice(B).minimum_n_outputs() < usage * .9)
+          break;
+        else
+          res = B;
+    }
+
+  return res;
 }
 
 BaseMachine::BaseMachine() : nthreads(0)

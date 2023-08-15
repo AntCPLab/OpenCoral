@@ -35,6 +35,11 @@ class SpdzWiseRingPrep : public virtual SpdzWisePrep<T>,
     }
 
 public:
+    static bool dabits_from_bits()
+    {
+        return true;
+    }
+
     static void edabit_sacrifice_buckets(vector<edabit<T>>&, size_t, bool, int,
             SubProcessor<T>&, int, int, const void* = 0)
     {

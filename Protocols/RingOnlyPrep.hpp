@@ -18,6 +18,7 @@ void RingOnlyPrep<T>::buffer_dabits_from_bits_without_check(
             this->proc->bit_prep, this->proc->P);
     typename T::bit_type::part_type::Input input(bit_proc);
     input.reset_all(this->proc->P);
+    BufferScope<T> scope(*this, buffer_size);
     for (int i = 0; i < buffer_size; i++)
     {
         T bit;

@@ -48,6 +48,7 @@ public:
     typedef This bit_prep_type;
 
     typedef MAC_Check_<This> MAC_Check;
+    typedef Direct_MAC_Check<This> Direct_MC;
     typedef TinierSharePrep<This> LivePrep;
     typedef ::Input<This> Input;
     typedef Beaver<This> Protocol;
@@ -61,6 +62,7 @@ public:
     typedef TinierSecret<T> whole_type;
 
     static const int default_length = 1;
+    static const bool expensive_triples = true;
 
     static string name()
     {

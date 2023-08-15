@@ -30,15 +30,15 @@ public:
     const int C;
 
     ShuffleSacrifice();
-    ShuffleSacrifice(int B, int C);
+    ShuffleSacrifice(int B, int C = 3);
 
     int minimum_n_inputs(int n_outputs = 1)
     {
         return max(n_outputs, minimum_n_outputs()) * B + C;
     }
-    int minimum_n_inputs_with_combining()
+    int minimum_n_inputs_with_combining(int n_outputs = 1)
     {
-        return minimum_n_inputs(B * minimum_n_outputs());
+        return minimum_n_inputs(B * max(n_outputs, minimum_n_outputs()));
     }
     int minimum_n_outputs()
     {
@@ -89,17 +89,21 @@ class EdabitShuffleSacrifice : public ShuffleSacrifice
 {
   typedef typename T::bit_type::part_type BT;
 
+    size_t n_bits;
+
 public:
+    EdabitShuffleSacrifice(int n_bits);
+
     void edabit_sacrifice(vector<edabit<T>>& output, vector<T>& sums,
-            vector<vector<typename T::bit_type::part_type>>& bits, size_t n_bits,
+            vector<vector<typename T::bit_type::part_type>>& bits,
             SubProcessor<T>& proc, bool strict = false, int player = -1,
             ThreadQueues* = 0);
 
-    void edabit_sacrifice_buckets(vector<edabit<T>>& to_check, size_t n_bits,
+    void edabit_sacrifice_buckets(vector<edabit<T>>& to_check,
             bool strict, int player, SubProcessor<T>& proc, int begin, int end,
             const void* supply = 0);
 
-    void edabit_sacrifice_buckets(vector<edabit<T>>& to_check, size_t n_bits,
+    void edabit_sacrifice_buckets(vector<edabit<T>>& to_check,
             bool strict, int player, SubProcessor<T>& proc, int begin, int end,
             LimitedPrep<BT>& personal_prep, const void* supply = 0);
 };

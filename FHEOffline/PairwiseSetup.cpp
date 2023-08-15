@@ -76,6 +76,7 @@ void secure_init(T& setup, Player& P, U& machine,
             + to_string(CowGearOptions::singleton.top_gear()) + "-P"
             + to_string(P.my_num()) + "-" + to_string(P.num_players());
     string reason;
+    auto base_setup = setup;
 
     try
     {
@@ -107,7 +108,7 @@ void secure_init(T& setup, Player& P, U& machine,
                     << " because no suitable material "
                             "from a previous run was found (" << reason << ")"
                     << endl;
-        setup = {};
+        setup = base_setup;
         setup.generate(P, machine, plaintext_length, sec);
         setup.check(P, machine);
         octetStream os;
@@ -122,6 +123,10 @@ void secure_init(T& setup, Player& P, U& machine,
         cerr << "Ciphertext length: " << params.p0().numBits();
         for (size_t i = 1; i < params.FFTD().size(); i++)
             cerr << "+" << params.FFTD()[i].get_prime().numBits();
+        cerr << " (" << DIV_CEIL(params.p0().numBits(), 64);
+        for (size_t i = 1; i < params.FFTD().size(); i++)
+            cerr << "+" << DIV_CEIL(params.FFTD()[i].get_prime().numBits(), 64);
+        cerr << " limbs)";
         cerr << endl;
     }
 }

@@ -82,6 +82,8 @@ opcodes = dict(
     SUBCFI = 0x2B,
     SUBSFI = 0x2C,
     PREFIXSUMS = 0x2D,
+    PICKS = 0x2E,
+    CONCATS = 0x2F,
     # Multiplication/division
     MULC = 0x30,
     MULM = 0x31,
@@ -523,29 +525,26 @@ def cisc(function):
             tape.active_basicblock = block
             size = sum(call[0][0].size for call in self.calls)
             new_regs = []
-            for arg in self.args:
+            for i, arg in enumerate(self.args):
                 try:
-                    new_regs.append(type(arg)(size=size))
-                except TypeError:
+                    if i == 0:
+                        new_regs.append(type(arg)(size=size))
+                    else:
+                        new_regs.append(type(arg).concat(
+                            call[0][i] for call in self.calls))
+                        assert len(new_regs[-1]) == size
+                except (TypeError, AttributeError):
+                    if not isinstance(arg, int):
+                        raise
                     break
                 except:
                     print([call[0][0].size for call in self.calls])
                     raise
-            assert len(new_regs) > 1
-            base = 0
-            for call in self.calls:
-                for new_reg, reg in zip(new_regs[1:], call[0][1:]):
-                    set_global_vector_size(reg.size)
-                    reg.mov(new_reg.get_vector(base, reg.size), reg)
-                    reset_global_vector_size()
-                base += reg.size
             self.new_instructions(size, new_regs)
             base = 0
             for call in self.calls:
                 reg = call[0][0]
-                set_global_vector_size(reg.size)
-                reg.mov(reg, new_regs[0].get_vector(base, reg.size))
-                reset_global_vector_size()
+                reg.copy_from_part(new_regs[0], base, reg.size)
                 base += reg.size
             return block.instructions, self.n_rounds - 1
 
@@ -628,7 +627,7 @@ def sfix_cisc(function):
     instruction = cisc(instruction)
 
     def wrapper(*args, **kwargs):
-        if isinstance(args[0], sfix):
+        if isinstance(args[0], sfix) and program.options.cisc:
             for arg in args[1:]:
                 assert util.is_constant(arg)
             assert not kwargs
@@ -844,6 +843,12 @@ class Instruction(object):
         Instruction.count += 1
         if Instruction.count % 100000 == 0:
             print("Compiled %d lines at" % self.__class__.count, time.asctime())
+            if Instruction.count > 10 ** 7:
+                print("Compilation produced more that 10 million instructions. "
+                      "Consider using './compile.py -l' or replacing for loops "
+                      "with @for_range_opt: "
+                      "https://mp-spdz.readthedocs.io/en/latest/Compiler.html#"
+                      "Compiler.library.for_range_opt")
 
     def get_code(self, prefix=0):
         return (prefix << self.code_length) + self.code

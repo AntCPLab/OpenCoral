@@ -17,6 +17,23 @@ DistDecrypt<FD>::DistDecrypt(const Player& P, const FHE_SK& share,
   mf.allocate_slots(pk.p() << 64);
 }
 
+class ModuloTreeSum : public TreeSum<bigint>
+{
+  bigint modulo;
+
+  void post_add_process(vector<bigint>& values)
+  {
+    for (auto& v : values)
+      v %= modulo;
+  }
+
+public:
+  ModuloTreeSum(bigint modulo) :
+      modulo(modulo)
+  {
+  }
+};
+
 template<class FD>
 Plaintext_<FD>& DistDecrypt<FD>::run(const Ciphertext& ctx, bool NewCiphertext)
 {
@@ -57,10 +74,7 @@ Plaintext_<FD>& DistDecrypt<FD>::run(const Ciphertext& ctx, bool NewCiphertext)
     }
   else
     {
-      TreeSum<bigint>().run(vv, P);
-      bigint mod=params.p0();
-      for (auto& v : vv)
-        v %= mod;
+      ModuloTreeSum(params.p0()).run(vv, P);
     }
 
   // Now get the final message

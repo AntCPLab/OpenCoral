@@ -549,10 +549,12 @@ class TreeClassifier:
     :py:class:`TreeTrainer` internally.
 
     :param max_depth: the depth of the decision tree
+    :param n_threads: number of threads used in training
 
     """
-    def __init__(self, max_depth):
+    def __init__(self, max_depth, n_threads=None):
         self.max_depth = max_depth
+        self.n_threads = n_threads
 
     @staticmethod
     def get_attr_lengths(attr_types):
@@ -570,7 +572,8 @@ class TreeClassifier:
         """
         self.tree = TreeTrainer(
             X.transpose(), y, self.max_depth,
-            attr_lengths=self.get_attr_lengths(attr_types)).train()
+            attr_lengths=self.get_attr_lengths(attr_types),
+            n_threads=self.n_threads).train()
 
     def fit_with_testing(self, X_train, y_train, X_test, y_test,
                          attr_types=None, output_trees=False, debug=False):
@@ -587,7 +590,8 @@ class TreeClassifier:
 
         """
         trainer = TreeTrainer(X_train.transpose(), y_train, self.max_depth,
-                              attr_lengths=self.get_attr_lengths(attr_types))
+                              attr_lengths=self.get_attr_lengths(attr_types),
+                              n_threads=self.n_threads)
         trainer.debug = debug
         trainer.debug_gini = debug
         trainer.debug_threading = debug > 1
@@ -629,7 +633,8 @@ def preprocess_pandas(data):
             res.append(data.iloc[:,i].to_numpy())
             types.append('c')
         elif pandas.api.types.is_object_dtype(t):
-            values = data.iloc[:,i].unique()
+            values = list(filter(lambda x: isinstance(x, str),
+                                 list(data.iloc[:,i].unique())))
             print('converting the following to unary:', values)
             if len(values) == 2:
                 res.append(data.iloc[:,i].to_numpy() == values[1])

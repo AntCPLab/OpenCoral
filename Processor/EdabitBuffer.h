@@ -29,7 +29,12 @@ public:
         if (not BufferBase::file)
         {
             if (this->open()->fail())
-                throw runtime_error("error opening " + this->filename);
+                throw runtime_error(
+                        "error opening " + this->filename
+                                + ", have you generated edaBits, "
+                                        "for example by running "
+                                        "'./Fake-Offline.x -e "
+                                + to_string(n_bits) + " ...'?");
         }
 
         assert(BufferBase::file);

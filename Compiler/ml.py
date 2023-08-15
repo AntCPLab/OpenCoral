@@ -822,10 +822,10 @@ class Dense(DenseBase):
         self.W.randomize(-r, r, n_threads=self.n_threads)
         self.b.assign_all(0)
 
-    def input_from(self, player, raw=False):
-        self.W.input_from(player, raw=raw)
+    def input_from(self, player, **kwargs):
+        self.W.input_from(player, **kwargs)
         if self.input_bias:
-            self.b.input_from(player, raw=raw)
+            self.b.input_from(player, **kwargs)
 
     def compute_f_input(self, batch):
         N = len(batch)
@@ -1088,10 +1088,7 @@ class Relu(ElementWiseLayer):
 
     :param shape: input/output shape (tuple/list of int)
     """
-    f = staticmethod(relu)
-    f_prime = staticmethod(relu_prime)
     prime_type = sint
-    comparisons = None
 
     def __init__(self, shape, inputs=None):
         super(Relu, self).__init__(shape)
@@ -1310,12 +1307,12 @@ class FusedBatchNorm(Layer):
         self.bias = sfix.Array(shape[3])
         self.inputs = inputs
 
-    def input_from(self, player, raw=False):
-        self.weights.input_from(player, raw=raw)
-        self.bias.input_from(player, raw=raw)
+    def input_from(self, player, **kwargs):
+        self.weights.input_from(player, **kwargs)
+        self.bias.input_from(player, **kwargs)
         tmp = sfix.Array(len(self.bias))
-        tmp.input_from(player, raw=raw)
-        tmp.input_from(player, raw=raw)
+        tmp.input_from(player, **kwargs)
+        tmp.input_from(player, **kwargs)
 
     def _forward(self, batch=[0]):
         assert len(batch) == 1
@@ -1611,11 +1608,11 @@ class ConvBase(BaseLayer):
              self.bias_shape, self.Y.sizes, self.stride, repr(self.padding),
              self.tf_weight_format)
 
-    def input_from(self, player, raw=False):
+    def input_from(self, player, **kwargs):
         self.input_params_from(player)
-        self.weights.input_from(player, budget=100000, raw=raw)
+        self.weights.input_from(player, budget=100000, **kwargs)
         if self.input_bias:
-            self.bias.input_from(player, raw=raw)
+            self.bias.input_from(player, **kwargs)
 
     def output_weights(self):
         self.weights.print_reveal_nested()

@@ -50,6 +50,8 @@ class TemiPrep : public SemiHonestRingPrep<T>
     vector<TemiMultiplier<T>*> multipliers;
 
 public:
+    static const bool homomorphic = true;
+
     static void basic_setup(Player& P);
     static void teardown();
 
