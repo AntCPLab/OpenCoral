@@ -33,6 +33,10 @@ public:
 
     // NOTE: This constructor includes decoding.
     bitvec_rmfe(const gf2n_rmfe& encoded);
+
+    void randomize(PRNG& G) { 
+        super::randomize(G, DEFAULT_LENGTH); 
+    }
 };
 
 class gf2n_rmfe : public gf2n_short

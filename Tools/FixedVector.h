@@ -124,4 +124,12 @@ public:
     }
 };
 
+template<class T, size_t L>
+FixedVector<T, L> operator+(const FixedVector<T, L>& a, const FixedVector<T, L>& b) {
+    FixedVector<T, L> res;
+    for (size_t i = 0; i < L; i++)
+        res.push_back(a[i] + b[i]);
+    return res;
+}
+
 #endif /* TOOLS_FIXEDVECTOR_H_ */
