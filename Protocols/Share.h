@@ -124,7 +124,7 @@ class Share_ : public ShareInterface
    template <class U>
    Share_<T, V>& operator/=(const U& x) { *this = *this / x; return *this; }
 
-   Share_<T, V> operator<<(int i) { return this->operator*(clear(1) << i); }
+   Share_<T, V> operator<<(int i) const { return this->operator*(clear(1) << i); }
    Share_<T, V>& operator<<=(int i) { return *this = *this << i; }
 
    Share_<T, V> operator>>(int i) const { return {a >> i, mac >> i}; }

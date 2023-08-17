@@ -17,6 +17,40 @@ T reveal(Player* P, const T& share) {
 }
 
 template<class T>
+void reveal(Player* P, const edabitpack<T>& ep, const char* tag) {
+    cout << "[" << tag << "] edabitpack A: ";
+    for (size_t i = 0; i < ep.first.size(); i++) {
+        cout << hex << (reveal(P, ep.first[i])).get_share() << " ";
+    }
+    cout << endl;
+    cout << "[" << tag << "] edabitpack B: ";
+    vector<typename T::bit_type::clear> b;
+    for (size_t j = 0; j < ep.second.size(); j++)
+        b.push_back(typename T::bit_type::clear(reveal(P, typename T::bit_type::part_type(ep.second[j])).get_share()));
+    for (size_t i = 0; i < ep.first.size(); i++) {
+        typename T::bit_type::clear x;
+        for (size_t j = 0; j < ep.second.size(); j++)
+            x += typename T::bit_type::clear(b[j].get_bit(i)) << j;
+        cout << x << " ";
+    }
+    cout << dec << endl;
+}
+
+template<class T>
+void reveal(Player* P, const dabitpack<T>& dp, const char* tag) {
+    cout << "[" << tag << "] dabitpack A: ";
+    for (size_t i = 0; i < dp.first.size(); i++) {
+        cout << hex << (reveal(P, dp.first[i])).get_share() << " ";
+    }
+    cout << endl;
+    cout << "[" << tag << "] dabitpack B: ";
+    typename T::bit_type::clear b = typename T::bit_type::clear(reveal(P, typename T::bit_type::part_type(dp.second)).get_share());
+    for (size_t j = 0; j < T::bit_type::default_length; j++)
+        cout << b.get_bit(j) << " ";
+    cout << dec << endl;
+}
+
+template<class T>
 void print_general(const char* label, const T& x, const char* tag) {
     cout << "[" << tag << "] " << label << ": " << x << endl;
 }

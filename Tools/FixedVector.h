@@ -126,9 +126,26 @@ public:
 
 template<class T, size_t L>
 FixedVector<T, L> operator+(const FixedVector<T, L>& a, const FixedVector<T, L>& b) {
+    assert(a.size() == b.size());
     FixedVector<T, L> res;
     for (size_t i = 0; i < L; i++)
         res.push_back(a[i] + b[i]);
+    return res;
+}
+
+template<class T, size_t L>
+FixedVector<T, L>& operator+=(FixedVector<T, L>& a, const FixedVector<T, L>& b) {
+    assert(a.size() == b.size());
+    for (size_t i = 0; i < L; i++)
+        a[i] += b[i];
+    return a;
+}
+
+template<class T, size_t L>
+FixedVector<T, L> operator<<(const FixedVector<T, L>& a, int shift) {
+    FixedVector<T, L> res;
+    for (size_t i = 0; i < L; i++)
+        res.push_back(a[i] << shift);
     return res;
 }
 

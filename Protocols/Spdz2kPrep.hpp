@@ -96,7 +96,6 @@ void bits_from_square_in_ring(vector<T>& bits, int buffer_size, U* bit_prep)
     vector<BitShare> squares, random_shares;
     auto one = BitShare::constant(1, bit_proc->P.my_num(), bit_MC->get_alphai());
     bit_prep->buffer_size = buffer_size;
-    print_general("buffer_size", buffer_size, "Spdz2kPrep bits");
     for (int i = 0; i < buffer_size; i++)
     {
         BitShare a, a2;
@@ -181,7 +180,6 @@ void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
             this->proc->bit_prep, this->proc->P);
     int n_relevant = this->proc->protocol.get_n_relevant_players();
     vector<vector<vector<bit_type>>> player_bits(n_bits);
-    print_general("before buffer_personal_edabits", "buffer_edabits_from_personal");
     for (int i = 0; i < n_relevant; i++)
     {
         vector<T> tmp;
@@ -195,9 +193,7 @@ void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
         for (int j = 0; j < n_bits; j++)
             player_bits[j].push_back(tmp_bits[j]);
     }
-    print_general("after buffer_personal_edabits", "buffer_edabits_from_personal");
     RunningTimer add_timer;
-    print_general("before BitAdder", "buffer_edabits_from_personal");
     BitAdder().add(bits, player_bits, bit_proc, bit_type::default_length,
             queues);
     player_bits.clear();
@@ -207,30 +203,57 @@ void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
             << " seconds" << endl;
     RunningTimer finalize_timer;
 #endif
-    vector<edabit<T>> checked;
-    for (size_t i = 0; i < sums.size(); i++)
-    {
-        checked.push_back({sums[i], {}});
-        int i1 = i / bit_type::default_length;
-        int i2 = i % bit_type::default_length;
-        checked.back().second.reserve(bits.at(i1).size());
-        for (auto& x : bits.at(i1))
-            checked.back().second.push_back(x.get_bit(i2));
-    }
-    sums.clear();
-    sums.shrink_to_fit();
-    bits.clear();
-    bits.shrink_to_fit();
-    print_general("before sanitize", "buffer_edabits_from_personal");
-    if (strict)
-        this->template sanitize<0>(checked, n_bits, -1, queues);
-    auto& output = this->edabits[{strict, n_bits}];
-    for (auto& x : checked)
-    {
-        if (output.empty() or output.back().full())
+
+    if (T::bit_type::is_encoded) {
+        vector<edabitpack<T>> checked;
+        int dl = bit_type::default_length;
+        assert(sums.size() == bits.size() * dl);
+        for (size_t i = 0; i < sums.size() / dl; i++)
+        {
+            edabitpack<T> eb;
+            for (int j = 0; j < dl; j++)
+                eb.push_a(sums[i*dl + j]);
+            for (auto& x : bits[i])
+                eb.push_b(x);
+            checked.push_back(eb);
+        }
+        sums.clear();
+        sums.shrink_to_fit();
+        bits.clear();
+        bits.shrink_to_fit();
+        if (strict)
+            this->template sanitize<0>(checked, n_bits, -1, queues);
+        auto& output = this->edabitpacks[{strict, n_bits}];
+        for (auto& x : checked)
+        {
             output.push_back(x);
-        else
-            output.back().push_back(x);
+        }
+    }
+    else {
+        vector<edabit<T>> checked;
+        for (size_t i = 0; i < sums.size(); i++)
+        {
+            checked.push_back({sums[i], {}});
+            int i1 = i / bit_type::default_length;
+            int i2 = i % bit_type::default_length;
+            checked.back().second.reserve(bits.at(i1).size());
+            for (auto& x : bits.at(i1))
+                checked.back().second.push_back(x.get_bit(i2));
+        }
+        sums.clear();
+        sums.shrink_to_fit();
+        bits.clear();
+        bits.shrink_to_fit();
+        if (strict)
+            this->template sanitize<0>(checked, n_bits, -1, queues);
+        auto& output = this->edabits[{strict, n_bits}];
+        for (auto& x : checked)
+        {
+            if (output.empty() or output.back().full())
+                output.push_back(x);
+            else
+                output.back().push_back(x);
+        }
     }
 #ifdef VERBOSE_EDA
     cerr << "Finalizing took " << finalize_timer.elapsed() << " seconds" << endl;
@@ -243,9 +266,7 @@ void MaliciousRingPrep<T>::buffer_edabits(bool strict, int n_bits,
 {
     RunningTimer timer;
 #ifndef NONPERSONAL_EDA
-    print_general("before buffer_edabits_from_personal", "buffer_edabits");
     this->buffer_edabits_from_personal(strict, n_bits, queues);
-    print_general("after buffer_edabits_from_personal", "buffer_edabits");
 #else
     assert(this->proc != 0);
     ShuffleSacrifice<T> shuffle_sacrifice;

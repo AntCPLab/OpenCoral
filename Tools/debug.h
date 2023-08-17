@@ -5,9 +5,17 @@
 #include "Networking/Player.h"
 #include "NTL/GF2X.h"
 #include "NTL/GF2E.h"
+#include "Protocols/edabit.h"
+#include "Protocols/dabit.h"
 
 template<class T>
 T reveal(Player* P, const T& share);
+
+template<class T>
+void reveal(Player* P, const edabitpack<T>& ep, const char* tag="");
+
+template<class T>
+void reveal(Player* P, const dabitpack<T>& dp, const char* tag="");
 
 void print_gf2x_hex(const NTL::GF2X& x, const char* tag="");
 

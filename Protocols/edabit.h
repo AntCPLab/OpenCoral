@@ -136,65 +136,73 @@ public:
 };
 
 template<class T>
-class edabitpack
+class edabitpack: public pair<FixedVector<T, T::bit_type::default_length>, FixedVector<typename T::bit_type, T::clear::MAX_EDABITS + 5>>
 {
-    typedef FixedVector<typename T::bit_type, T::clear::MAX_EDABITS + 5> b_type;
-    typedef FixedVector<T, T::bit_type::default_length> a_type;
-
+    typedef pair<FixedVector<T, T::bit_type::default_length>, FixedVector<typename T::bit_type, T::clear::MAX_EDABITS + 5>> super;
 public:
-    static const int MAX_SIZE = a_type::MAX_SIZE;
 
-    a_type a;
-    b_type b;
+    static const int MAX_SIZE = super::first_type::MAX_SIZE;
 
     edabitpack()
     {
     }
 
-    edabitpack(const vector<T>& other)
-    {
-        a = other;
+    edabitpack(const typename super::first_type& a, const typename super::second_type& b) : super(a, b) {
+
     }
 
-    edabitpack(const vector<typename T::bit_type>& other)
-    {
-        b = other;
-    }
+    // edabitpack(const vector<T>& other)
+    // {
+    //     this->first = other;
+    // }
+
+    // edabitpack(const vector<typename T::bit_type>& other)
+    // {
+    //     this->second = other;
+    // }
 
     void push_a(const T& x)
     {
-        a.push_back(x);
+        this->first.push_back(x);
     }
 
     void push_b(const typename T::bit_type& x)
     {
-        b.push_back(x);
+        this->second.push_back(x);
     }
 
     bool empty()
     {
-        return a.empty();
+        return this->first.empty();
     }
 
     bool full()
     {
-        return a.full();
+        return this->first.full();
     }
 
     size_t size()
     {
-        return a.size();
+        return this->first.size();
     }
 
     T get_a(int i)
     {
-        return a[i];
+        return this->first[i];
     }
 
     typename T::bit_type get_b(int i)
     {
-        return b[i];
+        return this->second[i];
     }
+
+    // typename super::first_type::const_iterator a_begin() const {
+    //     return this->first.begin();
+    // }
+
+    // typename super::first_type::const_iterator a_end() const {
+    //     return this->first.end();
+    // }
 
     // void input(int length, ifstream& s)
     // {

@@ -57,6 +57,7 @@ protected:
 
     map<pair<bool, int>, vector<edabitvec<T>>> edabits;
     map<pair<bool, int>, edabitvec<T>> my_edabits;
+    map<pair<bool, int>, vector<edabitpack<T>>> edabitpacks;
 
     int n_bit_rounds;
 
@@ -82,6 +83,10 @@ protected:
 
     map<int, vector<dabit<T>>> personal_dabits;
     void get_personal_dabit(int player, T& a, typename T::bit_type& b);
+
+    map<int, vector<dabitpack<T>>> personal_dabitpacks;
+    virtual dabitpack<T> get_personal_dabitpack(int player);
+
     virtual void buffer_personal_dabits(int)
     { throw runtime_error("no personal daBits"); }
 
@@ -124,10 +129,11 @@ public:
             int vector_size);
 
     virtual void get_dabit_no_count(T& a, typename T::bit_type& b);
-    virtual dabitpack<T> get_dabitpack();
+    virtual dabitpack<T> get_dabitpack_no_count();
 
     edabitvec<T> get_edabitvec(bool strict, int n_bits);
     void get_edabit_no_count(bool strict, int n_bits, edabit<T>& eb);
+    edabitpack<T> get_edabitpack_no_count(bool strict, int n_bits);
 
     /// Get fresh random value
     virtual T get_random();
@@ -228,6 +234,13 @@ public:
             int player = -1, ThreadQueues* queues = 0);
     template<int>
     void sanitize(vector<edabit<T>>& edabits, int n_bits, int player, int begin,
+            int end);
+
+    template<int>
+    void sanitize(vector<edabitpack<T>>& edabits, int n_bits,
+            int player = -1, ThreadQueues* queues = 0);
+    template<int>
+    void sanitize(vector<edabitpack<T>>& edabits, int n_bits, int player, int begin,
             int end);
 
     /// Generic daBit generation with semi-honest security
@@ -352,6 +365,10 @@ protected:
     template<int>
     void buffer_personal_dabits_without_check(int input_player,
             vector<dabit<T>>& dabits, int buffer_size);
+
+    template<int>
+    void buffer_personal_dabits_without_check(int input_player,
+            vector<dabitpack<T>>& dabits, int buffer_size);
 
 public:
     static void edabit_sacrifice_buckets(vector<edabit<T>>& to_check, size_t n_bits,

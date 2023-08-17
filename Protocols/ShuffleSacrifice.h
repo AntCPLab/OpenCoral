@@ -32,24 +32,31 @@ public:
     ShuffleSacrifice();
     ShuffleSacrifice(int B, int C = 3);
 
-    int minimum_n_inputs(int n_outputs = 1)
+    int adjusted_C(int force_packing = 1) {
+        return (C + force_packing - 1) / force_packing * force_packing;
+    }
+    int minimum_n_inputs(int n_outputs = 1, int force_packing = 1)
     {
-        return max(n_outputs, minimum_n_outputs()) * B + C;
+        if (n_outputs % force_packing != 0)
+            throw runtime_error("Not supported: output size = " + to_string(n_outputs));
+        return max(n_outputs, minimum_n_outputs(force_packing)) * B + adjusted_C(force_packing);
     }
     int minimum_n_inputs_with_combining(int n_outputs = 1)
     {
         return minimum_n_inputs(B * max(n_outputs, minimum_n_outputs()));
     }
-    int minimum_n_outputs()
+    int minimum_n_outputs(int force_packing = 1)
     {
+        int N = 0;
         if (B == 3)
-            return 1 << 20;
+            N = 1 << 20;
         else if (B == 4)
-            return 10368;
+            N = 10368;
         else if (B == 5)
-            return 1024;
+            N = 1024;
         else
             throw runtime_error("not supported: B = " + to_string(B));
+        return (N + force_packing - 1) / force_packing * force_packing;
     }
 
     template<class U>
@@ -104,6 +111,19 @@ public:
             const void* supply = 0);
 
     void edabit_sacrifice_buckets(vector<edabit<T>>& to_check,
+            bool strict, int player, SubProcessor<T>& proc, int begin, int end,
+            LimitedPrep<BT>& personal_prep, const void* supply = 0);
+
+    void edabit_sacrifice(vector<edabitpack<T>>& output, vector<T>& sums,
+        vector<vector<typename T::bit_type::part_type>>& bits,
+        SubProcessor<T>& proc, bool strict = false, int player = -1,
+        ThreadQueues* = 0);
+
+    void edabit_sacrifice_buckets(vector<edabitpack<T>>& to_check,
+        bool strict, int player, SubProcessor<T>& proc, int begin, int end,
+        const void* supply = 0);
+
+    void edabit_sacrifice_buckets(vector<edabitpack<T>>& to_check,
             bool strict, int player, SubProcessor<T>& proc, int begin, int end,
             LimitedPrep<BT>& personal_prep, const void* supply = 0);
 };

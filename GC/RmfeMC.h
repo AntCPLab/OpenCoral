@@ -6,7 +6,7 @@ class RmfeMC : public MAC_Check_<T>
 {
 public:
     RmfeMC(const typename T::mac_key_type::Scalar& mac_key)
-    : MAC_Check_<T>(mac_key)
+    :  Tree_MAC_Check<T>(mac_key), MAC_Check_<T>(mac_key)
     {
     }
 

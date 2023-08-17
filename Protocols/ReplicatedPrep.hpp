@@ -440,11 +440,20 @@ void MaliciousRingPrep<T>::buffer_personal_dabits(int input_player, false_type,
         false_type)
 {
     assert(this->proc != 0);
-    vector<dabit<T>> check_dabits;
-    this->buffer_personal_dabits_without_check<0>(input_player, check_dabits,
-            dabit_sacrifice.minimum_n_inputs(this->buffer_size));
-    dabit_sacrifice.sacrifice_and_check_bits(
-            this->personal_dabits[input_player], check_dabits, *this->proc, 0);
+    if (T::bit_type::is_encoded) {
+        vector<dabitpack<T>> check_dabits;
+        this->buffer_personal_dabits_without_check<0>(input_player, check_dabits,
+                dabit_sacrifice.minimum_n_inputs(this->buffer_size, T::bit_type::default_length));
+        dabit_sacrifice.sacrifice_and_check_bits(
+                this->personal_dabitpacks[input_player], check_dabits, *this->proc, 0);
+    }
+    else {
+        vector<dabit<T>> check_dabits;
+        this->buffer_personal_dabits_without_check<0>(input_player, check_dabits,
+                dabit_sacrifice.minimum_n_inputs(this->buffer_size));
+        dabit_sacrifice.sacrifice_and_check_bits(
+                this->personal_dabits[input_player], check_dabits, *this->proc, 0);
+    }
 }
 
 template<class T>
@@ -505,6 +514,51 @@ void MaliciousRingPrep<T>::buffer_personal_dabits_without_check(
 
 template<class T>
 template<int>
+void MaliciousRingPrep<T>::buffer_personal_dabits_without_check(
+        int input_player, vector<dabitpack<T>>& to_check, int buffer_size)
+{
+    assert(this->proc != 0);
+    auto& P = this->proc->P;
+    auto &party = GC::ShareThread<typename T::bit_type>::s();
+    typedef typename T::bit_type::part_type BT;
+    int dl = BT::default_length;
+    assert(buffer_size % dl == 0);
+    typename BT::Input bit_input(party.MC->get_part_MC(),
+            this->proc->bit_prep, this->proc->P);
+    typename T::Input input(*this->proc, this->proc->MC);
+    input.reset_all(P);
+    bit_input.reset_all(P);
+    SeededPRNG G;
+    if (input_player == P.my_num())
+    {
+        for (int i = 0; i < buffer_size/dl; i++)
+        {
+            typename BT::clear b = G.get<typename BT::clear>();
+            bit_input.add_mine(b, dl);
+            for (int j = 0; j < dl; j++) {
+                input.add_mine(b.get_bit(j));
+            }
+        }
+    }
+    else
+        for (int i = 0; i < buffer_size/dl; i++)
+        {
+            bit_input.add_other(input_player, dl);
+            for (int j = 0; j < dl; j++)
+                input.add_other(input_player);
+        }
+    input.exchange();
+    bit_input.exchange();
+    for (int i = 0; i < buffer_size/dl; i++) {
+        to_check.push_back({{}, bit_input.finalize(input_player, dl)});
+        for (int j = 0; j < dl; j++) {
+            to_check.back().first.push_back(input.finalize(input_player));
+        }
+    }
+}
+
+template<class T>
+template<int>
 void RingPrep<T>::buffer_personal_edabits_without_check(int n_bits,
         vector<T>& sums, vector<vector<BT> >& bits, SubProcessor<BT>& proc,
         int input_player, int begin, int end)
@@ -521,16 +575,12 @@ void RingPrep<T>::buffer_personal_edabits_without_check(int n_bits,
     bit_input.reset_all(P);
     assert(begin % BT::default_length == 0);
     int buffer_size = end - begin;
-    print_general("before buffer_personal_edabits_without_check_pre");
     buffer_personal_edabits_without_check_pre(n_bits, P, input, bit_input,
             input_player, buffer_size);
-    print_general("after buffer_personal_edabits_without_check_pre");
     input.exchange();
     bit_input.exchange();
-    print_general("before buffer_personal_edabits_without_check_post");
     buffer_personal_edabits_without_check_post(n_bits, sums, bits, input,
             bit_input, input_player, begin, end);
-    print_general("after buffer_personal_edabits_without_check_pre");
 }
 
 template<class T>
@@ -600,10 +650,11 @@ void MaliciousRingPrep<T>::buffer_personal_edabits(int n_bits, vector<T>& wholes
     timer.start();
 #endif
     EdabitShuffleSacrifice<T> shuffle_sacrifice(n_bits);
-    int buffer_size = shuffle_sacrifice.minimum_n_inputs();
+    int dl = BT::default_length;
+    int force_packing = BT::is_encoded ? dl : 1;
+    int buffer_size = shuffle_sacrifice.minimum_n_inputs(shuffle_sacrifice.minimum_n_outputs(force_packing), force_packing);
     vector<T> sums(buffer_size);
     vector<vector<BT>> bits(n_bits, vector<BT>(DIV_CEIL(buffer_size, BT::default_length)));
-    print_general("before buffer_personal_edabits_without_check");
     if (queues)
     {
         ThreadJob job(n_bits, &sums, &bits, input_player);
@@ -616,29 +667,46 @@ void MaliciousRingPrep<T>::buffer_personal_edabits(int n_bits, vector<T>& wholes
     else
         this->template buffer_personal_edabits_without_check<0>(n_bits, sums,
                 bits, proc, input_player, 0, buffer_size);
-    print_general("after buffer_personal_edabits_without_check");
 #ifdef VERBOSE_EDA
     cerr << "Done with generating personal edaBits after " << timer.elapsed()
             << " seconds" << endl;
 #endif
-    vector<edabit<T>> edabits;
-    print_general("before edabit_sacrifice");
-    shuffle_sacrifice.edabit_sacrifice(edabits, sums, bits, *this->proc,
-            strict, input_player, queues);
-    assert(not edabits.empty());
-    print_general("after edabit_sacrifice");
-    wholes.clear();
-    parts.clear();
-    parts.resize(n_bits);
-    for (size_t j = 0; j < edabits.size(); j++)
-    {
-        auto& x = edabits[j];
-        wholes.push_back(x.first);
-        for (int i = 0; i < n_bits; i++)
+    if (BT::is_encoded) {
+        vector<edabitpack<T>> edabits;
+        shuffle_sacrifice.edabit_sacrifice(edabits, sums, bits, *this->proc,
+                strict, input_player, queues);
+        assert(not edabits.empty());
+        wholes.clear();
+        parts.clear();
+        parts.resize(n_bits);
+        for (size_t j = 0; j < edabits.size(); j++)
         {
-            if (j % BT::default_length == 0)
-                parts[i].push_back({});
-            parts[i].back() ^= BT(x.second[i]) << (j % BT::default_length);
+            auto& x = edabits[j];
+            wholes.insert(wholes.end(), x.first.begin(), x.first.end());
+            for (int i = 0; i < n_bits; i++)
+            {
+                parts[i].push_back(x.second[i]);
+            }
+        }
+    }
+    else {
+        vector<edabit<T>> edabits;
+        shuffle_sacrifice.edabit_sacrifice(edabits, sums, bits, *this->proc,
+                strict, input_player, queues);
+        assert(not edabits.empty());
+        wholes.clear();
+        parts.clear();
+        parts.resize(n_bits);
+        for (size_t j = 0; j < edabits.size(); j++)
+        {
+            auto& x = edabits[j];
+            wholes.push_back(x.first);
+            for (int i = 0; i < n_bits; i++)
+            {
+                if (j % BT::default_length == 0)
+                    parts[i].push_back({});
+                parts[i].back() ^= BT(x.second[i]) << (j % BT::default_length);
+            }
         }
     }
 }
@@ -1001,7 +1069,6 @@ void RingPrep<T>::sanitize(vector<edabit<T>>& edabits, int n_bits, int player,
     vector<T> dabits;
     typedef typename T::bit_type::part_type::small_type BT;
     vector<BT> to_open;
-    print_general("before get_dabit_no_count");
     BufferScope<T> scope(*this, (end - begin));
     for (int i = begin; i < end; i++)
     {
@@ -1018,7 +1085,6 @@ void RingPrep<T>::sanitize(vector<edabit<T>>& edabits, int n_bits, int player,
             to_open.push_back(x.second[j] + BT(b));
         }
     }
-    print_general("after get_dabit_no_count");
     vector<typename BT::open_type> opened;
     auto& MCB = *BT::new_mc(
             GC::ShareThread<typename T::bit_type>::s().MC->get_alphai());
@@ -1102,6 +1168,78 @@ void RingPrep<T>::sanitize(vector<edabitvec<T>>& edabits, int n_bits)
             }
         }
         x.b.resize(n_bits);
+    }
+    MCB.Check(this->proc->P);
+    delete &MCB;
+}
+
+template<class T>
+template<int>
+void RingPrep<T>::sanitize(vector<edabitpack<T>>& edabits, int n_bits,
+        int player, ThreadQueues* queues)
+{
+    if (queues)
+    {
+        SanitizeJob job(&edabits, n_bits, player);
+        int start = queues->distribute(job, edabits.size());
+        sanitize<0>(edabits, n_bits, player, start, edabits.size());
+        if (start)
+            queues->wrap_up(job);
+    }
+    else
+        sanitize<0>(edabits, n_bits, player, 0, edabits.size());
+}
+
+
+template<class T>
+template<int>
+void RingPrep<T>::sanitize(vector<edabitpack<T>>& edabits, int n_bits, int player,
+        int begin, int end)
+{
+#ifdef VERBOSE_EDA
+    fprintf(stderr, "sanitize edaBits %d to %d in %d\n", begin, end,
+        BaseMachine::thread_num);
+#endif
+
+    vector<dabitpack<T>> dabits;
+    typedef typename T::bit_type BT;
+    vector<BT> to_open;
+    for (int i = begin; i < end; i++)
+    {
+        auto& x = edabits[i];
+        for (size_t j = n_bits; j < x.second.size(); j++)
+        {
+            // dabits.push_back({});
+            if (player < 0)
+                dabits.push_back(this->get_dabitpack());
+            else
+                dabits.push_back(this->get_personal_dabitpack(player));
+            to_open.push_back(x.second[j] + dabits.back().second);
+        }
+    }
+    vector<typename BT::open_type> opened;
+    auto& MCB = *BT::new_mc(
+            GC::ShareThread<typename T::bit_type>::s().MC->get_alphai());
+    MCB.POpen(opened, to_open, this->proc->P);
+    auto dit = dabits.begin();
+    auto oit = opened.begin();
+    for (int i = begin; i < end; i++)
+    {
+        auto& x = edabits[i];
+        auto& whole = x.first;
+        for (size_t j = n_bits; j < x.second.size(); j++)
+        {
+            auto& mask = *dit++;
+            typename T::clear masked = typename T::bit_type::clear(*oit++);
+            for (int k = 0; k < BT::default_length; k++) {
+                auto overflow = mask.first[k] 
+                    + T::constant(masked.get_bit(k), this->proc->P.my_num(),
+                            this->proc->MC.get_alphai())
+                    - mask.first[k] * typename T::clear(masked.get_bit(k) * 2);
+                whole[k] -= overflow << j;
+            }
+        }
+        x.second.resize(n_bits);
     }
     MCB.Check(this->proc->P);
     delete &MCB;
@@ -1211,7 +1349,28 @@ void Preprocessing<T>::get_dabit(T& a, typename T::bit_type& b)
 }
 
 template<class T>
-dabitpack<T> BufferPrep<T>::get_dabitpack() {
+dabitpack<T> BufferPrep<T>::get_personal_dabitpack(int player) {
+    assert(T::bit_type::is_encoded);
+    auto& buffer = personal_dabitpacks[player];
+    if (buffer.empty()) {
+        InScope in_scope(this->do_count, false, *this);
+        buffer_personal_dabits(player);
+    }
+    auto res = buffer.back();
+    buffer.pop_back();
+    return res;
+}
+
+template<class T>
+dabitpack<T> Preprocessing<T>::get_dabitpack()
+{
+    auto res = get_dabitpack_no_count();
+    this->count(DATA_DABIT, T::bit_type::default_length);
+    return res;
+}
+
+template<class T>
+dabitpack<T> BufferPrep<T>::get_dabitpack_no_count() {
     assert(T::bit_type::is_encoded);
     if (dabitpacks.empty()) {
         InScope in_scope(this->do_count, false, *this);
@@ -1225,15 +1384,27 @@ dabitpack<T> BufferPrep<T>::get_dabitpack() {
 }
 
 template<class T>
+edabitpack<T> BufferPrep<T>::get_edabitpack_no_count(bool strict, int n_bits) {
+    assert(T::bit_type::is_encoded);
+    auto& buffer = this->edabitpacks[{strict, n_bits}];
+    if (buffer.empty()) {
+        InScope in_scope(this->do_count, false, *this);
+        buffer_edabits_with_queues(strict, n_bits);
+    }
+    assert(not buffer.empty());
+    auto res = buffer.back();
+    buffer.pop_back();
+    return res;
+}
+
+template<class T>
 edabitvec<T> BufferPrep<T>::get_edabitvec(bool strict, int n_bits)
 {
     auto& buffer = this->edabits[{strict, n_bits}];
     if (buffer.empty())
     {
         InScope in_scope(this->do_count, false, *this);
-        print_general("before buffer_edabits_with_queues");
         buffer_edabits_with_queues(strict, n_bits);
-        print_general("after buffer_edabits_with_queues");
     }
     assert(not buffer.empty());
     auto res = buffer.back();
@@ -1245,7 +1416,6 @@ edabitvec<T> BufferPrep<T>::get_edabitvec(bool strict, int n_bits)
 template<class T>
 void BufferPrep<T>::get_edabit_no_count(bool strict, int n_bits, edabit<T>& a)
 {
-    print_general("enter get_edabit_no_count");
     auto& my_edabit = my_edabits[{strict, n_bits}];
     if (my_edabit.empty())
     {
@@ -1272,9 +1442,7 @@ void BufferPrep<T>::buffer_edabits_with_queues(bool strict, int n_bits)
     ThreadQueues* queues = 0;
     if (BaseMachine::thread_num == 0 and BaseMachine::has_singleton())
         queues = &BaseMachine::s().queues;
-    print_general("before buffer_edabits");
     buffer_edabits(strict, n_bits, queues);
-    print_general("after buffer_edabits");
 }
 
 template<class T>
@@ -1323,9 +1491,7 @@ void BufferPrep<T>::buffer_edabits(bool strict, int n_bits,
         ThreadQueues* queues)
 {
     if (strict) {
-        print_general("before buffer_sedabits");
         buffer_sedabits(n_bits, queues);
-        print_general("after buffer_sedabits");
     }
     else
         buffer_edabits(n_bits, queues);

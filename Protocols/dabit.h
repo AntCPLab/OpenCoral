@@ -60,5 +60,14 @@ using dabitpack = pair<FixedVector<T, T::bit_type::default_length>, typename T::
 template<class T>
 using dabit_t = typename std::conditional<T::bit_type::is_encoded, dabitpack<T>, dabit<T>>::type;
 
+template<class T>
+dabitpack<T>& operator+=(dabitpack<T>& x, const dabitpack<T>& y)
+{
+    x.first += y.first;
+    x.second ^= y.second;
+    return x;
+}
+
+
 
 #endif /* PROTOCOLS_DABIT_H_ */

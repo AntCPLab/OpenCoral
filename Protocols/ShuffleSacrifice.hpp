@@ -210,7 +210,6 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
     to_check.reserve(wholes.size());
     size_t n_bits_input = parts.size();
     assert(n_bits_input <= edabit<T>::second_type::MAX_SIZE);
-    print_general("before 1st loop", "edabit_sacrifice");
     for (int i1 = 0; i1 < DIV_CEIL(wholes.size(), dl); i1++)
     {
         int n = min(dl, wholes.size() - i1 * dl);
@@ -224,7 +223,6 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
                         ST(bits >> i2).get_bit(0));
         }
     }
-    print_general("after 1st loop", "edabit_sacrifice");
     wholes.clear();
     wholes.shrink_to_fit();
     parts.clear();
@@ -241,7 +239,6 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
     // needs to happen before shuffling for security
     LimitedPrep<BT> personal_prep;
     RunningTimer personal_timer;
-    print_general("before buffer_personal_triples");
     if (player >= 0)
     {
         auto &party = GC::ShareThread<typename T::bit_type>::s();
@@ -255,7 +252,6 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
                     proc.personal_bit_preps.at(player)->get_triple(dl));
         proc.personal_bit_preps.at(player)->shrink_to_fit();
     }
-    print_general("after buffer_personal_triples");
 #ifdef VERBOSE_EDA
     cerr << "Personal preprocessing took " << personal_timer.elapsed() << " seconds" << endl;
 #endif
@@ -302,7 +298,6 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
     }
 
     RunningTimer bucket_timer;
-    print_general("before edabit_sacrifice_buckets");
     if (queues)
     {
         int n_available = queues->find_available();
@@ -331,7 +326,6 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabit<T> >& output,
     else
         edabit_sacrifice_buckets(to_check, strict, player, proc, 0, N,
                 personal_prep);
-    print_general("after edabit_sacrifice_buckets");
 #ifdef VERBOSE_EDA
     cerr << "Bucket sacrifice took " << bucket_timer.elapsed() << " seconds"
             << endl;
@@ -494,11 +488,9 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice_buckets(vector<edabit<T>>& to_c
 
     if (strict)
     {
-        print_general("before sanitize");
         (dynamic_cast<RingPrep<T>*>(&proc.DataF))->template
                 sanitize<0>(to_sanitize,
                 n_bits, player, queues);
-        print_general("after sanitize");
         shares.reserve((B - 1) * N);
         bit_shares.reserve((B - 1) * N * (n_bits + 2));
         for (auto& x : to_sanitize)
@@ -549,5 +541,369 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice_buckets(vector<edabit<T>>& to_c
     MCB.Check(P);
     delete &MCB;
 }
+
+
+template<class T>
+void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabitpack<T> >& output,
+        vector<T>& wholes, vector<vector<typename T::bit_type::part_type>>& parts,
+        SubProcessor<T>& proc, bool strict, int player,
+        ThreadQueues* queues)
+{
+#ifdef VERBOSE_EDA
+    cerr << "Sacrificing edaBits of length " << n_bits << endl;
+    Timer timer;
+    timer.start();
+#endif
+
+    auto& P = proc.P;
+    auto& MC = proc.MC;
+
+    typedef typename T::bit_type::part_type BT;
+    vector<edabitpack<T>> to_check;
+    size_t dl = BT::default_length;
+    assert(wholes.size() >= size_t(minimum_n_inputs(minimum_n_outputs(dl), dl)));
+    assert(wholes.size() % dl == 0);
+    assert(parts.size() >= n_bits);
+    for (auto& x: parts)
+        assert(x.size() >= size_t(DIV_CEIL(wholes.size(), dl)));
+
+    RunningTimer init_timer;
+    to_check.reserve(wholes.size() / dl);
+    size_t n_bits_input = parts.size();
+    assert(n_bits_input <= edabitpack<T>::second_type::MAX_SIZE);
+    for (int i1 = 0; i1 < DIV_CEIL(wholes.size(), dl); i1++)
+    {
+        edabitpack<T> eb;
+        for (size_t i2 = 0; i2 < dl; i2++)
+            eb.push_a(wholes[i1 * dl + i2]);
+        for (size_t k = 0; k < n_bits_input; k++)
+            eb.push_b(parts[k][i1]);
+        to_check.push_back(eb);
+    }
+    wholes.clear();
+    wholes.shrink_to_fit();
+    parts.clear();
+    parts.shrink_to_fit();
+
+#ifdef VERBOSE_EDA
+    cerr << "Initialization took " << init_timer.elapsed() << " seconds" << endl;
+#endif
+
+    int buffer_size = to_check.size();
+    int N = (buffer_size * dl - adjusted_C(dl)) / B;
+
+    // needs to happen before shuffling for security
+    LimitedPrep<BT> personal_prep;
+    RunningTimer personal_timer;
+    if (player >= 0)
+    {
+        auto &party = GC::ShareThread<typename T::bit_type>::s();
+        SubProcessor<BT> bit_proc(party.MC->get_part_MC(),
+                *proc.personal_bit_preps.at(player), P);
+        int n_triples = DIV_CEIL((B - 1) * N * n_bits, dl);
+        proc.personal_bit_preps.at(player)->buffer_personal_triples(n_triples,
+                queues);
+        for (int i = 0; i < n_triples; i++)
+            personal_prep.push_triple(
+                    proc.personal_bit_preps.at(player)->get_triple(dl));
+        proc.personal_bit_preps.at(player)->shrink_to_fit();
+    }
+#ifdef VERBOSE_EDA
+    cerr << "Personal preprocessing took " << personal_timer.elapsed() << " seconds" << endl;
+#endif
+
+    RunningTimer shuffle_timer;
+    shuffle(to_check, P);
+#ifdef VERBOSE_EDA
+    cerr << "Shuffling took " << shuffle_timer.elapsed() << " seconds" << endl;
+#endif
+
+    // opening C
+    vector<T> shares;
+    vector<BT> bit_shares;
+    for (unsigned long i = 0; i < adjusted_C(dl) / dl; i++)
+    {
+        shares.insert(shares.end(), to_check.back().first.begin(), to_check.back().first.end());
+        bit_shares.insert(bit_shares.end(), to_check.back().second.begin(), to_check.back().second.end());
+        to_check.pop_back();
+    }
+    vector<typename T::open_type> opened;
+    MC.POpen(opened, shares, P);
+    vector<typename BT::open_type> bits;
+    auto& MCB = *BT::new_mc(
+            GC::ShareThread<typename T::bit_type>::s().MC->get_alphai());
+    MCB.POpen(bits, bit_shares, P);
+
+    size_t n_bits_to_open = bits.size() / (adjusted_C(dl) / dl);
+
+    vector<typename BT::clear> bits_clear(bits.size());
+    for (size_t i = 0; i < bits.size(); i++)
+        bits_clear[i] = typename BT::clear(bits[i]);
+
+    for (int i = 0; i < adjusted_C(dl); i++) {
+        typename T::clear sum, single = opened[i];
+        for (size_t j = 0; j < n_bits_to_open; j++)
+            sum += typename T::clear(bits_clear.at((i/dl) * n_bits_to_open + j).get_bit(i%dl))
+                    << j;
+        if (single != sum)
+        {
+            cout << single << " != " << sum << endl;
+            cout << "bits: ";
+            for (size_t j = 0; j < n_bits_to_open; j++)
+                cout << bits_clear.at((i/dl) * n_bits_to_open + j).get_bit(i%dl);
+            cout << endl;
+            throw Offline_Check_Error("edabit shuffle opening");
+        }
+    }
+
+    RunningTimer bucket_timer;
+    if (queues)
+    {
+        int n_available = queues->find_available();
+        int n_per_thread = queues->get_n_per_thread(N/dl, 1);
+        vector<vector<array<BT, 3>>> triples(n_available);
+        vector<void*> supplies(n_available);
+        for (int i = 0; i < n_available; i++)
+        {
+            supplies[i] = &triples[i];
+            for (size_t j = 0;
+                    j < n_per_thread * (B - 1) * n_bits_to_open / dl; j++)
+                if (player < 0)
+                    triples[i].push_back(proc.bit_prep.get_triple(dl));
+                else
+                    triples[i].push_back(personal_prep.get_triple(dl));
+        }
+        EdabitSacrificeJob job(&to_check, n_bits, strict, player);
+        int start = queues->distribute_no_setup(job, N/dl, 0, 1,
+                &supplies);
+        edabit_sacrifice_buckets(to_check, strict, player, proc, start,
+                N/dl, personal_prep);
+        if (start)
+            queues->wrap_up(job);
+    }
+    else
+        edabit_sacrifice_buckets(to_check, strict, player, proc, 0, N/dl,
+                personal_prep);
+#ifdef VERBOSE_EDA
+    cerr << "Bucket sacrifice took " << bucket_timer.elapsed() << " seconds"
+            << endl;
+#endif
+
+    RunningTimer output_timer;
+    to_check.resize(N/dl);
+    output.reserve(output.size() + N/dl);
+    for (auto& x: to_check)
+    {
+        // output.push_back({x.first, {}});
+        // output.back().second.reserve(x.second.size());
+        // for (auto& y : x.second)
+        //     output.back().second.push_back(y);
+        output.push_back(x);
+    }
+#ifdef VERBOSE_EDA
+    cerr << "Output took " << output_timer.elapsed() << " seconds" << endl;
+#endif
+
+    MCB.Check(P);
+    delete &MCB;
+
+#ifdef VERBOSE_EDA
+    cerr << "Done sacrificing edaBits of length " << n_bits << " after "
+            << timer.elapsed() << " seconds" << endl;
+#endif
+}
+
+
+template<class T>
+void EdabitShuffleSacrifice<T>::edabit_sacrifice_buckets(vector<edabitpack<T>>& to_check,
+        bool strict, int player, SubProcessor<T>& proc, int begin,
+        int end, const void* supply)
+{
+    LimitedPrep<BT> personal_prep;
+    edabit_sacrifice_buckets(to_check, strict, player, proc, begin, end,
+            personal_prep, supply);
+}
+
+template<class T>
+void EdabitShuffleSacrifice<T>::edabit_sacrifice_buckets(vector<edabitpack<T>>& to_check,
+        bool strict, int player, SubProcessor<T>& proc, int begin,
+        int end, LimitedPrep<BT>& personal_prep, const void* supply)
+{
+    typedef typename T::bit_type::part_type BT;
+
+    int dl = BT::default_length;
+    int N = end - begin;
+    size_t total_N = to_check.size() / B;
+    assert(to_check.size() == B * total_N);
+    size_t n_bits_to_open = to_check[begin].second.size();
+    ThreadQueues* queues = 0;
+    auto& P = proc.P;
+    auto& MC = proc.MC;
+
+    // sacrifice buckets
+    RunningTimer add_prep_timer;
+    vector<vector<vector<BT>>> summands(n_bits_to_open,
+            vector<vector<BT>>(2, vector<BT>((B - 1) * N)));
+    for (int i = 0; i < N; i++)
+    {
+        auto& b = to_check[begin + i].second;
+        assert(b.size() == n_bits_to_open);
+        for (int j = 1; j < B; j++)
+        {
+            auto& g = to_check[begin + i + total_N * j].second;
+            assert(g.size() == n_bits_to_open);
+            
+            int l = i * (B-1) + j - 1;
+
+            for (size_t k = 0; k < n_bits_to_open; k++) {
+                summands[k][0].at(l) = b[k];
+                summands[k][1].at(l) = g[k];
+            }
+        }
+    }
+
+
+#ifdef VERBOSE_EDA
+    cerr << "Bit adder preparing took " << add_prep_timer.elapsed() <<
+            " seconds" << endl;
+#endif
+
+    RunningTimer add_timer;
+    vector<vector<BT>> sums;
+    auto& party = GC::ShareThread<typename T::bit_type>::s();
+    if (supply)
+    {
+        auto& triples = *(vector<array<BT, 3>>*)supply;
+#ifdef VERBOSE_EDA
+        fprintf(stderr, "got %zu supplies\n", triples.size());
+#endif
+        if (player < 0)
+            proc.bit_prep.push_triples(triples);
+        else
+            personal_prep.push_triples(triples);
+    }
+    if (player < 0)
+    {
+        SubProcessor<BT> bit_proc(party.MC->get_part_MC(),
+                proc.bit_prep, P);
+        BitAdder().add(sums, summands, bit_proc, BT::default_length, queues);
+    }
+    else
+    {
+        SubProcessor<BT> bit_proc(party.MC->get_part_MC(),
+                personal_prep, P);
+        BitAdder().add(sums, summands, bit_proc, BT::default_length, queues,
+                player);
+    }
+    summands.clear();
+#ifdef VERBOSE_EDA
+    cerr << "Binary adders took " << add_timer.elapsed() << " seconds" << endl;
+#endif
+
+    vector<T> shares;
+    vector<BT> bit_shares;
+
+    RunningTimer sacri_prep_timer;
+    // cannot delete overflow in GF(p)
+    strict |= T::open_type::N_BITS < 0;
+    int n_shift = (T::open_type::N_BITS - n_bits);
+    vector<edabitpack<T>> to_sanitize;
+    if (strict)
+        to_sanitize.reserve(N * (B - 1));
+    else
+    {
+        shares.reserve((B - 1) * N * dl);
+        bit_shares.reserve((B - 1) * N * (n_bits + 2));
+    }
+    for (int i = 0; i < N; i++)
+    {
+        auto& a = to_check[begin + i].first;
+        for (int j = 1; j < B; j++)
+        {
+            auto& f = to_check[begin + i + total_N * j].first;
+            int l = i * (B - 1) + j - 1;
+
+            typename edabitpack<T>::second_type* bits = 0;
+            if (strict) {
+                to_sanitize.push_back({a + f, {}});
+                bits = &to_sanitize.back().second;
+                bits->reserve(sums.at(l).size());
+            }
+            else {
+                auto tmp = (a + f) << n_shift;
+                shares.insert(shares.end(), tmp.begin(), tmp.end());
+            }
+            for (size_t k = 0; k < (strict ? sums.at(l).size() : n_bits); k++) {
+                auto x = sums.at(l).at(k);
+                if (strict)
+                    bits->push_back(x);
+                else
+                    bit_shares.push_back(x);
+            }
+        }
+    }
+
+    if (strict)
+    {
+        (dynamic_cast<RingPrep<T>*>(&proc.DataF))->template
+                sanitize<0>(to_sanitize,
+                n_bits, player, queues);
+        shares.reserve((B - 1) * N * dl);
+        bit_shares.reserve((B - 1) * N * (n_bits + 2));
+        for (auto& x : to_sanitize)
+        {
+            shares.insert(shares.end(), x.first.begin(), x.first.end());
+            for (size_t k = 0; k < n_bits; k++)
+                bit_shares.push_back(x.second[k]);
+        }
+        to_sanitize.clear();
+        to_sanitize.shrink_to_fit();
+    }
+
+#ifdef VERBOSE_EDA
+    cerr << "Preparing sacrifice took " << sacri_prep_timer.elapsed() <<
+            " seconds" << endl;
+    Timer open_timer;
+    open_timer.start();
+#endif
+    vector<typename T::open_type> opened;
+    vector<typename BT::open_type> bits;
+    auto& MCB = *BT::new_mc(
+            GC::ShareThread<typename T::bit_type>::s().MC->get_alphai());
+    MC.POpen(opened, shares, P);
+    MCB.POpen(bits, bit_shares, P);
+#ifdef VERBOSE_EDA
+    cerr << "Bucket opening took " << open_timer.elapsed() << " seconds" << endl;
+#endif
+
+    vector<typename BT::clear> bits_clear(bits.size());
+    for (size_t i = 0; i < bits.size(); i++)
+        bits_clear[i] = typename BT::clear(bits[i]);
+    RunningTimer check_timer;
+    for (int i = 0; i < (B - 1) * N ; i++)
+    {
+        for (int j = 0; j < dl; j++) {
+            typename T::clear sum, single = opened[i * dl + j];
+            for (size_t k = 0; k < n_bits; k++)
+                sum += T::clear::power_of_two(bits_clear.at(i * (n_bits) + k).get_bit(j), k);
+            if (not strict)
+                sum <<= n_shift;
+            if (single != sum)
+            {
+                cout << hex << single << " vs " << (sum << n_shift) << "/" << sum
+                        << endl;
+                throw Offline_Check_Error("edabit shuffle bucket opening");
+            }
+        }
+    }
+
+#ifdef VERBOSE_EDA
+    cerr << "Checking took " << check_timer.elapsed() << " seconds" << endl;
+#endif
+
+    MCB.Check(P);
+    delete &MCB;
+}
+
 
 #endif /* PROTOCOLS_SHUFFLESACRIFICE_HPP_ */

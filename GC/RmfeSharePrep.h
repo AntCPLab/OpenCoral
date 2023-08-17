@@ -33,6 +33,8 @@ class RmfeSharePrep : public PersonalPrep<T> {
     typedef typename T::whole_type secret_type;
 
     // void init_real(Player& P);
+    
+    using PersonalPrep<T>::input_player;
 
 public:
     RmfeSharePrep(DataPositions& usage, int input_player = PersonalPrep<T>::SECURE);
@@ -49,6 +51,9 @@ public:
     // void buffer_bits();
     // void buffer_inverses() { throw not_implemented(); }
     void buffer_inputs(int player);
+
+    void buffer_personal_triples(size_t n, ThreadQueues* queues = 0);
+    void buffer_personal_triples(vector<array<T, 3>>& triples, size_t begin, size_t end);
 
     void set_protocol(typename T::Protocol& protocol);
     void set_mc(typename T::MAC_Check* MC);
