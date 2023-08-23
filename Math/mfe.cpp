@@ -17,6 +17,8 @@
 #include <unordered_set>
 #include <cmath>
 #include <vector>
+#include "Tools/performance.h"
+#include <assert.h>
 
 using namespace std;
 using namespace NTL;
@@ -585,6 +587,9 @@ FieldConverter::FieldConverter(long binary_field_deg, long base_field_deg, long 
         // pre_isomorphic_mat_inv_ = inv(pre_isomorphic_mat_);
     }
 
+    combined_c2b_mat_ = mat_T_ * pre_isomorphic_mat_inv_;
+    combined_b2c_mat_ = pre_isomorphic_mat_ * mat_T_inv_;
+
     GF2EX q(1);
     for (long i = 0; i < m_; i++) {
         GF2EX tmp;
@@ -608,8 +613,6 @@ FieldConverter::FieldConverter(long binary_field_deg, long base_field_deg, long 
         // but since deg(u_) < deg(p_), the conversion here should be fine.
         q_[i] = to_GF2E(c, u_);
     }
-
-
 }
 
 const GF2X& FieldConverter::binary_field_poly() {
@@ -629,9 +632,11 @@ void FieldConverter::raw_composite_to_binary(vec_GF2& y, const vec_GF2& x) {
     if (x.length() != k_) {
         LogicError("Input vector has invalid length");
     }
-    // isomorphic map
-    mul(y, pre_isomorphic_mat_inv_, x);
-    mul(y, mat_T_, y);
+    // // isomorphic map
+    // mul(y, pre_isomorphic_mat_inv_, x);
+    // mul(y, mat_T_, y);
+
+    mul(y, combined_c2b_mat_, x);
 }
 
 vec_GF2 FieldConverter::raw_composite_to_binary(const vec_GF2& x) {
@@ -649,9 +654,11 @@ void FieldConverter::raw_binary_to_composite(vec_GF2& y, const vec_GF2& x) {
     if (x.length() != k_) {
         LogicError("Input vector has invalid length");
     }
-    mul(y, mat_T_inv_, x);
-    // isomorphic map
-    mul(y, pre_isomorphic_mat_, y);
+    // mul(y, mat_T_inv_, x);
+    // // isomorphic map
+    // mul(y, pre_isomorphic_mat_, y);
+
+    mul(y, combined_b2c_mat_, x);
 }
 
 vec_GF2 FieldConverter::raw_binary_to_composite(const vec_GF2& x) {
@@ -776,11 +783,28 @@ CompositeGf2RMFE::CompositeGf2RMFE(std::shared_ptr<FieldConverter> converter, st
     k_ = rmfe1->k() * rmfe2->k();
 
     ex_field_poly_ = converter_->binary_field_poly();
+
+    // To use cache, we need to constrain the input size.
+    if (use_cache_) {
+        assert(k_ < 64);
+        assert(m_ < 64);
+        
+        encode_table_.resize(1 << k_);
+        encode_table_cached_.resize(1 << k_);
+    }
 }
 
 void CompositeGf2RMFE::encode(NTL::GF2X& g, const NTL::vec_GF2& h) {
+    acc_time_log("CompositeGf2RMFE::encode");
     if (h.length() != k())
         LogicError("Input vector h has an invalid length");
+    
+    if (use_cache_ && encode_table_cached_[h.rep[0]]) {
+        g = encode_table_[h.rep[0]];
+        acc_time_log("CompositeGf2RMFE::encode");
+        return;
+    }
+
     GF2EPush push;
     GF2E::init(converter_->base_field_poly());
     vec_GF2E y({}, rmfe2_->k());
@@ -793,11 +817,27 @@ void CompositeGf2RMFE::encode(NTL::GF2X& g, const NTL::vec_GF2& h) {
     }
     GF2EX g_comp = rmfe2_->encode(y);
     g = rep(converter_->composite_to_binary(g_comp));
+
+    if (use_cache_) {
+        encode_table_[h.rep[0]] = g;
+        encode_table_cached_[h.rep[0]] = true;
+    }
+
+    acc_time_log("CompositeGf2RMFE::encode");
 }
 
 void CompositeGf2RMFE::decode(NTL::vec_GF2& h, const NTL::GF2X& g) {
+    acc_time_log("CompositeGf2RMFE::decode");
     if (deg(g) + 1 > m())
         LogicError("Input polynomial g has an invalid length");
+
+    long idx = deg(g) == -1 ? 0 : g.xrep[0];
+    if (use_cache_ && decode_map_.contains(idx)) {
+        h = decode_map_.get(idx);
+        acc_time_log("CompositeGf2RMFE::decode");
+        return;
+    }
+
     GF2E g_ = to_GF2E(g, converter_->binary_field_poly());
     GF2EX g_comp = converter_->binary_to_composite(g_);
 
@@ -809,6 +849,11 @@ void CompositeGf2RMFE::decode(NTL::vec_GF2& h, const NTL::GF2X& g) {
         for (int j = 0; j < yi.length(); j++)
             h.at(i * rmfe1_->k() + j) = yi.at(j);
     }
+
+    if (use_cache_)
+        decode_map_.insert(idx, h);
+
+    acc_time_log("CompositeGf2RMFE::decode");
 }
 
 std::unique_ptr<Gf2RMFE> get_composite_gf2_rmfe_type2(long k1, long k2) {

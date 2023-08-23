@@ -8,6 +8,9 @@
 #include "Tools/Exceptions.h"
 #include <memory>
 #include <vector>
+#include <unordered_map>
+#include <queue>
+#include <assert.h>
 
 NTL::GF2X indices_to_gf2x(const std::vector<long>& indices);
 
@@ -51,6 +54,9 @@ NTL::mat_GF2 mat_T_inv_;
 NTL::GF2X prespecified_base_field_poly_;
 NTL::mat_GF2 pre_isomorphic_mat_;
 NTL::mat_GF2 pre_isomorphic_mat_inv_;
+
+NTL::mat_GF2 combined_c2b_mat_;
+NTL::mat_GF2 combined_b2c_mat_;
 
 public:
 FieldConverter(long binary_field_deg, long base_field_deg, long extension_deg, NTL::GF2X prespecified_base_field_poly=NTL::GF2X(0));
@@ -235,13 +241,20 @@ void decode(NTL::GF2X& g, const NTL::vec_GF2& h);
 template <class T1, class T2, class T3, class T4>
 class RMFE {
     typedef RMFE<T1, T2, T3, T4> This;
-    static thread_local This* singleton;
+    static unique_ptr<This> singleton;
 
 public:
     virtual ~RMFE() {};
 
-    static void set_singleton(This* s);
+    static void set_singleton(unique_ptr<This> s);
     static RMFE& s();
+    static bool has_singleton() {
+        return bool(singleton);
+    }
+    static void reset_singleton() {
+        if (has_singleton())
+            singleton.reset(nullptr);
+    }
 
     virtual long m() = 0;
     virtual long k() = 0;
@@ -269,10 +282,11 @@ public:
         tau(y, x);
         return y;
     }
+
 };
 
 template<class T1, class T2, class T3, class T4>
-thread_local RMFE<T1, T2, T3, T4>* RMFE<T1, T2, T3, T4>::singleton = 0;
+unique_ptr<RMFE<T1, T2, T3, T4>> RMFE<T1, T2, T3, T4>::singleton(nullptr);
 
 template<class T1, class T2, class T3, class T4>
 inline RMFE<T1, T2, T3, T4>& RMFE<T1, T2, T3, T4>::s()
@@ -284,8 +298,8 @@ inline RMFE<T1, T2, T3, T4>& RMFE<T1, T2, T3, T4>::s()
 }
 
 template<class T1, class T2, class T3, class T4>
-inline void RMFE<T1, T2, T3, T4>::set_singleton(RMFE<T1, T2, T3, T4>* s) {
-    singleton = s;
+inline void RMFE<T1, T2, T3, T4>::set_singleton(unique_ptr<RMFE<T1, T2, T3, T4>> s) {
+    singleton = std::move(s);
 }
 
 typedef RMFE<NTL::vec_GF2E, NTL::GF2EX, NTL::GF2X, NTL::GF2EX> Gf2eRMFE;
@@ -389,6 +403,36 @@ void encode(NTL::GF2X& g, const NTL::vec_GF2& h);
 void decode(NTL::vec_GF2& h, const NTL::GF2X& g);
 };
 
+template<class TKey, class TValue>
+class LRU {
+    static const int MAX_SIZE = 2000000;
+    std::unordered_map<TKey, TValue> map_;
+    std::queue<TKey> keys_;
+public:
+    LRU() {}
+
+    bool contains(const TKey& key) {
+        return map_.count(key) == 1;
+    }
+
+    void insert(const TKey& key, const TValue& value) {
+        if (contains(key)) {
+            assert(map_.at(key) == value);
+            return;
+        }
+        if (keys_.size() >= MAX_SIZE) {
+            map_.erase(keys_.front());
+            keys_.pop();
+        }
+        keys_.push(key);
+        map_[key] = value;
+    }
+
+    const TValue& get(const TKey& key) {
+        return map_.at(key);
+    }
+};
+
 class CompositeGf2RMFE: public Gf2RMFE {
 private:
 long k_;
@@ -400,6 +444,13 @@ std::shared_ptr<Gf2eRMFE> rmfe2_;
 
 long base_field_mod_ = 2;
 NTL::GF2XModulus ex_field_poly_;
+
+bool use_cache_ = true;
+
+vector<NTL::GF2X> encode_table_;
+vector<bool> encode_table_cached_;
+
+LRU<long, NTL::vec_GF2> decode_map_;
 
 public:
 using RMFE::encode;
