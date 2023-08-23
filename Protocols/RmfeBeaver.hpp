@@ -110,6 +110,60 @@ T RmfeBeaver<T>::finalize_mul(int n)
 }
 
 template<class T>
+void RmfeBeaver<T>::init_mul_constant()
+{
+    assert(this->prep);
+    assert(this->MC);
+    shares.clear();
+    opened.clear();
+    normals.clear();
+    constants.clear();
+    lengths.clear();
+}
+
+template<class T>
+void RmfeBeaver<T>::prepare_mul_constant(const T& x, const typename T::clear& y, int n) {
+    (void) n;
+    typename T::open_type y_(y);
+    normals.push_back({});
+    auto& normal = normals.back();
+    normal = prep->get_normal();
+
+    shares.push_back(x - normal);
+    constants.push_back(y_);
+}
+
+template<class T>
+void RmfeBeaver<T>::exchange_mul_constant()
+{
+    MC->init_open(P, shares.size());
+    for (size_t i = 0; i < shares.size(); i++) {
+        MC->prepare_open(shares[i]);
+    }
+    MC->exchange(P);
+    for (size_t i = 0; i < shares.size(); i++)
+        opened.push_back(MC->finalize_raw());
+    it = opened.begin();
+    normal = normals.begin();
+    constant = constants.begin();
+}
+
+template<class T>
+T RmfeBeaver<T>::finalize_mul_constant(int n)
+{
+    (void) n;
+    typename T::open_type masked = *it++;
+    T norm_masked_T = T::constant(T::open_type::tau(masked), P.my_num(), MC->get_alphai());
+    T tmp = (*normal + norm_masked_T) * (*constant);
+
+    normal++;
+    constant++;
+
+    return tmp;
+}
+
+
+template<class T>
 void RmfeBeaver<T>::check()
 {
     assert(MC);

@@ -54,7 +54,6 @@ void test_rmfe_beaver(int argc, char** argv)
     for (int i = 0; i < n; i++)
     {
         auto c = protocol.finalize_mul(n_bits);
-        cout << hex << "c: " << T::clear(reveal(&P, c).get_share()) << endl;
         output.prepare_open(c);
     }
     for (int i = 0; i < n; i++)
@@ -73,13 +72,39 @@ void test_rmfe_beaver(int argc, char** argv)
         cout << output.finalize_open_decoded() << " ";
     cout << endl;
 
-    auto comm_stats = P.total_comm();
-    size_t rounds = 0;
-    for (auto& x : comm_stats)
-      rounds += x.second.rounds;
-    std::cerr << "Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
-        << " rounds (party " << my_number << std::endl;;
-    std::cout << "field degree: " << gf2n_rmfe::degree() << std::endl;
+    {
+        auto comm_stats = P.total_comm();
+        size_t rounds = 0;
+        for (auto& x : comm_stats)
+        rounds += x.second.rounds;
+        std::cerr << "Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
+            << " rounds (party " << my_number << std::endl;;
+    }
+
+    /* Mult constant */
+    protocol.init_mul_constant();
+    for (int i = 0; i < n; i++)
+        protocol.prepare_mul_constant(a[i], (long)i+1);
+    protocol.exchange_mul_constant();
+    output.init_open(P, 3*n);
+    for (int i = 0; i < n; i++) {
+        auto c = protocol.finalize_mul_constant();
+        output.prepare_open(c);
+    }
+    output.exchange(P);
+    set.check();
+    cout << "mult constant result: ";
+    for (int i = 0; i < n; i++)
+        cout << output.finalize_open() << " ";
+    cout << endl;
+    {
+        auto comm_stats = P.total_comm();
+        size_t rounds = 0;
+        for (auto& x : comm_stats)
+        rounds += x.second.rounds;
+        std::cerr << "Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
+            << " rounds (party " << my_number << std::endl;;
+    }
 }
 
 int main(int argc, char** argv)

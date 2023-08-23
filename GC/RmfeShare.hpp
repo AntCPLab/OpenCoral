@@ -99,13 +99,13 @@ RmfeShare RmfeShare::operator&(const BitVec::super& other) const
      * So calling this for each invididual mult constant is not recommended.
      * Better use the `andm` instruction with several mult constant together.
     */
-    auto& thread = ShareThread<RmfeShare>::s();
-    auto& protocol = thread.protocol;
-    protocol->init_mul_constant();
-    protocol->prepare_mul_constant(*this, RmfeShare::clear(other));
-    protocol->exchange_mul_constant();
-    return protocol->finalize_mul_constant();
-    // throw runtime_error("unexpected call to operator&");
+    // auto& thread = ShareThread<RmfeShare>::s();
+    // auto& protocol = thread.protocol;
+    // protocol->init_mul_constant();
+    // protocol->prepare_mul_constant(*this, RmfeShare::clear(other));
+    // protocol->exchange_mul_constant();
+    // return protocol->finalize_mul_constant();
+    throw runtime_error("unexpected call to operator&");
 }
 
 

@@ -34,6 +34,12 @@ protected:
     Preprocessing<T>* prep;
     typename T::MAC_Check* MC;
 
+    vector<T> normals;
+    vector<typename T::open_type> constants;
+    typename vector<T>::iterator normal;
+    typename vector<typename T::open_type>::iterator constant;
+
+
 public:
     static const bool uses_triples = true;
 
@@ -49,6 +55,11 @@ public:
     void prepare_mul(const T& x, const T& y, int n = -1);
     void exchange();
     T finalize_mul(int n = -1);
+
+    void init_mul_constant();
+    void prepare_mul_constant(const T& x, const typename T::clear& y, int n = -1);
+    void exchange_mul_constant();
+    T finalize_mul_constant(int n = -1);
 
     void check();
 
