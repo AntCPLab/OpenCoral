@@ -17,8 +17,7 @@ void test_rmfe_beaver(int argc, char** argv)
     PlainPlayer P(N);
 
     // RMFE setup
-    auto rmfe = get_composite_gf2_rmfe_type2(2, 6);
-    rmfe->set_singleton(rmfe.get());
+    RmfeShare::setup_rmfe(2, 6);
 
     // protocol setup (domain, MAC key if needed etc)
     BinaryProtocolSetup<T> setup(P);
