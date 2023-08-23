@@ -68,6 +68,8 @@ public:
     NoValue(bool) {}
     NoValue(ValueInterface) {}
     NoValue(int128) {}
+    template<class T>
+    NoValue(T) {}
 
     void assign(const char*) { fail(); }
 
@@ -202,7 +204,16 @@ public:
 
     void input(istream&, bool) { fail(); }
     void output(ostream&, bool) { fail(); }
+
+    NoShare get_share() const {fail(); return {};}
+    void pack(octetStream& os) const {fail(); return;}
+    void unpack(octetStream& os) const {fail(); return;}
 };
+
+inline ostream& operator<<(ostream& o, NoShare)
+{
+    return o;
+}
 
 } /* namespace GC */
 
