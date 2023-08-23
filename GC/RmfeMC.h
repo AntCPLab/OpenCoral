@@ -10,6 +10,10 @@ public:
     {
     }
 
+    virtual ~RmfeMC() {
+        cout << "RmfeMC destroy, waiting for check: " << this->WaitingForCheck() << endl;
+    }
+
     void prepare_open(const T& secret, int = -1)
     {
         this->values.push_back(secret.get_share());
@@ -34,23 +38,35 @@ public:
 
         direct_add_openings<typename T::open_type>(this->values, P, oss);
 
+        this->AddToValues(this->values);
         this->popen_cnt += this->values.size();
-    }
-    void CheckFor(const typename T::open_type&, const vector<T>&, const Player&) {
+        this->CheckIfNeeded(P);
     }
 
     void Check (const Player& P) {
+        // [zico] Need to update
 
+        assert(T::mac_type::invertible);
+        check_field_size<typename T::mac_type>();
+
+        if (this->WaitingForCheck() == 0)
+            return;
+
+        auto& vals = this->vals;
+        auto& macs = this->macs;
+        auto& popen_cnt = this->popen_cnt;
+        assert(int(macs.size()) <= popen_cnt);
+        assert(this->coordinator);
+
+        this->vals.erase(this->vals.begin(), this->vals.begin() + this->popen_cnt);
+        this->macs.erase(this->macs.begin(), this->macs.begin() + this->popen_cnt);
+
+        this->popen_cnt=0;
     }
 
     RmfeMC<typename T::part_type>& get_part_MC()
     {
         return *this;
-    }
-
-    int number()
-    {
-        return 0;
     }
 
     typename T::raw_type finalize_open_decoded() {
