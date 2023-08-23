@@ -16,7 +16,7 @@ USE_NTL = 0
 
 # set for using GF(2^128)
 # unset for GF(2^40)
-USE_GF2N_LONG = 1
+USE_GF2N_LONG = 0
 
 # set to -march=<architecture> for optimization
 # SSE4.2 is required homomorphic encryption in GF(2^n) when compiling with clang
