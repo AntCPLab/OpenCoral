@@ -74,6 +74,7 @@ void TinierSharePrep<T>::buffer_secret_triples()
             thread.MC->get_part_MC());
     for (auto& triple : triples)
         this->triples.push_back(triple);
+    print_general("Generate TinierShare triples", triples.size());
 }
 
 } /* namespace GC */

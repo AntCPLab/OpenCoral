@@ -188,15 +188,26 @@ void Processor<sint, sgf2n>::dabit(const Instruction& instruction)
 {
   int size = instruction.get_size();
   int unit = sint::bit_type::default_length;
-  for (int i = 0; i < DIV_CEIL(size, unit); i++)
-  {
-    Procb.S[instruction.get_r(1) + i] = {};
+  if (sint::bit_type::is_encoded) {
+    assert(size % unit == 0);
+    for (int i = 0; i < DIV_CEIL(size, unit); i++) {
+      auto dp = Procp.DataF.get_dabitpack();
+      Procb.S[instruction.get_r(1) + i] = dp.second;
+      for (int j = 0; j < unit; j++)
+        Procp.S[instruction.get_r(0) + i * unit + j] = dp.first[j];
+    }
   }
-  for (int i = 0; i < size; i++)
-  {
-    typename sint::bit_type tmp;
-    Procp.DataF.get_dabit(Procp.get_S_ref(instruction.get_r(0) + i), tmp);
-    Procb.S[instruction.get_r(1) + i / unit] ^= tmp << (i % unit);
+  else {
+    for (int i = 0; i < DIV_CEIL(size, unit); i++)
+    {
+      Procb.S[instruction.get_r(1) + i] = {};
+    }
+    for (int i = 0; i < size; i++)
+    {
+      typename sint::bit_type tmp;
+      Procp.DataF.get_dabit(Procp.get_S_ref(instruction.get_r(0) + i), tmp);
+      Procb.S[instruction.get_r(1) + i / unit] ^= tmp << (i % unit);
+    }
   }
 }
 
@@ -227,6 +238,7 @@ void Processor<sint, sgf2n>::convcintvec(const Instruction& instruction)
   assert(unit == 64);
   int n_inputs = instruction.get_size();
   int n_bits = instruction.get_start().size();
+  cout << "n_inputs: " << n_inputs << ", n_bits: " << n_bits << endl;
   for (int i = 0; i < DIV_CEIL(n_inputs, unit); i++)
     {
       for (int j = 0; j < DIV_CEIL(n_bits, unit); j++)

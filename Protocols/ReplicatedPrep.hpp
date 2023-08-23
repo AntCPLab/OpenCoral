@@ -708,6 +708,7 @@ void MaliciousRingPrep<T>::buffer_personal_edabits(int n_bits, vector<T>& wholes
                 parts[i].back() ^= BT(x.second[i]) << (j % BT::default_length);
             }
         }
+        print_general("Generate personal edabits", edabits.size());
     }
 }
 
@@ -1209,7 +1210,6 @@ void RingPrep<T>::sanitize(vector<edabitpack<T>>& edabits, int n_bits, int playe
         auto& x = edabits[i];
         for (size_t j = n_bits; j < x.second.size(); j++)
         {
-            // dabits.push_back({});
             if (player < 0)
                 dabits.push_back(this->get_dabitpack());
             else
@@ -1453,30 +1453,40 @@ void Preprocessing<T>::get_edabits(bool strict, size_t size, T* a,
     int n_bits = regs.size();
     edabit<T> eb;
     size_t unit = T::bit_type::default_length;
-    cout << "unit: " << unit << ", edabitvec::MAX_SIZE: " << edabitvec<T>::MAX_SIZE << endl;
+    cout << "unit: " << unit << ", size: " << size << ", n_bits: " << n_bits << endl;
+    if (T::bit_type::is_encoded)
+        assert(size % unit == 0);
     for (int k = 0; k < DIV_CEIL(size, unit); k++)
     {
-
-        if (unit == edabitvec<T>::MAX_SIZE and (k + 1) * unit <= size)
-        {
-            auto buffer = get_edabitvec(strict, n_bits);
-            assert(unit == buffer.size());
+        if (T::bit_type::is_encoded) {
+            auto ep = get_edabitpack_no_count(strict, n_bits);
             for (int j = 0; j < n_bits; j++)
-                Sb[regs[j] + k] = buffer.get_b(j);
+                Sb[regs[j] + k] = ep.get_b(j);
             for (size_t j = 0; j < unit; j++)
-                a[k * unit + j] = buffer.get_a(j);
+                a[k * unit + j] = ep.get_a(j);
         }
-        else
-        {
-            for (size_t i = k * unit; i < min(size, (k + 1) * unit); i++)
+        else {
+            if (unit == edabitvec<T>::MAX_SIZE and (k + 1) * unit <= size)
             {
-                get_edabit_no_count(strict, n_bits, eb);
-                a[i] = eb.first;
+                auto buffer = get_edabitvec(strict, n_bits);
+                assert(unit == buffer.size());
                 for (int j = 0; j < n_bits; j++)
+                    Sb[regs[j] + k] = buffer.get_b(j);
+                for (size_t j = 0; j < unit; j++)
+                    a[k * unit + j] = buffer.get_a(j);
+            }
+            else
+            {
+                for (size_t i = k * unit; i < min(size, (k + 1) * unit); i++)
                 {
-                    if (i % unit == 0)
-                        Sb[regs[j] + i / unit] = {};
-                    Sb[regs[j] + i / unit].xor_bit(i % unit, eb.second[j]);
+                    get_edabit_no_count(strict, n_bits, eb);
+                    a[i] = eb.first;
+                    for (int j = 0; j < n_bits; j++)
+                    {
+                        if (i % unit == 0)
+                            Sb[regs[j] + i / unit] = {};
+                        Sb[regs[j] + i / unit].xor_bit(i % unit, eb.second[j]);
+                    }
                 }
             }
         }
@@ -1587,6 +1597,21 @@ void BufferPrep<T>::buffer_extra(Dtype type, int n_items)
     default:
         throw not_implemented();
     }
+}
+
+template<class T>
+T BufferPrep<T>::get_normal_no_count()
+{
+    if (normals.empty())
+    {
+        InScope in_scope(this->do_count, false, *this);
+        buffer_normals();
+        assert(not normals.empty());
+    }
+
+    auto x = normals.back();
+    normals.pop_back();
+    return x;
 }
 
 #endif

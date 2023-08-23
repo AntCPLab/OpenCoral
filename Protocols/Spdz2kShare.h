@@ -55,6 +55,7 @@ public:
     typedef SPDZ2k<Spdz2kShare> Protocol;
     typedef Spdz2kPrep<Spdz2kShare> LivePrep;
 
+//#define SPDZ2K_BIT
 #ifndef NO_MIXED_CIRCUITS
 #ifdef SPDZ2K_BIT
     typedef GC::TinySecret<S> bit_type;

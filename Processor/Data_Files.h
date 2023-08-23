@@ -186,6 +186,8 @@ public:
   /// Get fresh edaBit chunk
   virtual edabitvec<T> get_edabitvec(bool, int)
   { throw runtime_error("no edabitvec"); }
+  virtual edabitpack<T> get_edabitpack_no_count(bool strict, int n_bits)
+  { throw runtime_error("no edabitpack"); }
 
   virtual void push_triples(const vector<array<T, 3>>&)
   { throw runtime_error("no pushing"); }
@@ -194,6 +196,10 @@ public:
   virtual void buffer_inverses() {}
 
   virtual Preprocessing<typename T::part_type>& get_part() { throw runtime_error("no part"); }
+
+  virtual T get_normal();
+  virtual T get_normal_no_count() 
+  { throw not_implemented() ; }
 };
 
 template<class T>

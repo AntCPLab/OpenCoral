@@ -46,8 +46,7 @@ void run(char** argv)
     OnlineOptions::singleton.batch_size = 100;
 
     // RMFE setup
-    auto rmfe = get_composite_gf2_rmfe_type2(2, 6);
-    rmfe->set_singleton(rmfe.get());
+    RmfeShare::setup_rmfe(2, 6);
 
     // set up networking on localhost
     int my_number = atoi(argv[1]);

@@ -1,5 +1,32 @@
-a = sint.get_input_from(0, size=4)
-b = sint.get_input_from(1, size=4)
+a = sint.get_input_from(0, size=12)
+b = sint.get_input_from(1, size=12)
 
 c = a < b
 print_ln('a < b: %s', c.reveal())
+
+#d = a - b
+#print_ln('a - b: %s', d.reveal())
+
+from Compiler import instructions_base
+instructions_base.set_global_vector_size(12)
+x, y = sint.get_edabit(64, False)
+#print_ln("x: %s", x.reveal())
+#print_ln("y: %s", y.reveal())
+
+#h = y[0].bit_decompose_clear((d-x).reveal(), 63)
+
+#from Compiler import comparison
+#u = comparison.CarryOutRaw(y[:63], h)
+
+#d = list(y[62].half_adder(h[62]))
+#print_ln("a[i]: %s, b[i]: %s, a[i]^b[i]: %s, a[i]&b[i]: %s", y[62].reveal(), h[62].reveal(), d[0].reveal(), d[1].reveal())
+#for i in range(63):
+#    d = list(y[i].half_adder(h[i]))
+#    print_ln("a[i]: %s, b[i]: %s, a[i]^b[i]: %s, a[i]&b[i]: %s", y[i].reveal(), h[i].reveal(), d[0].reveal(), d[1].reveal())
+
+
+sb12 = sbits.get_type(12)
+a = sb12(-451)
+b = sb12(450)
+print_ln('a^b: %s', (a^b).reveal())
+print_ln('a&b: %s', (a&b).reveal())

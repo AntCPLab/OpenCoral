@@ -6,6 +6,11 @@
 #ifndef PROTOCOLS_CORALSHARE_H_
 #define PROTOCOLS_CORALSHARE_H_
 
+#ifndef CORAL_DEFAULT_SECURITY
+#define CORAL_DEFAULT_SECURITY 64
+#endif
+
+
 #include "Math/Z2k.h"
 #include "Protocols/Share.h"
 #include "Protocols/MAC_Check.h"
@@ -13,14 +18,14 @@
 #include "OT/Rectangle.h"
 
 
-// template<int K, int S> class Spdz2kMultiplier;
-// template<class T> class Spdz2kTripleGenerator;
+template<class T> class Spdz2kMultiplier;
+template<class T> class Spdz2kTripleGenerator;
 template<class T> class Coral;
 template<class T> class CoralPrep;
 
 namespace GC
 {
-class RmfeSecret;
+class RmfeShare;
 }
 
 template<int K, int S>
@@ -35,12 +40,14 @@ public:
     typedef CoralShare<K + S, S> prep_check_type;
     typedef CoralShare input_check_type;
     typedef MAC_Check_Z2k<Z2<K + S>, Z2<S>, open_type, CoralShare> MAC_Check;
+    typedef Direct_MAC_Check_Z2k<CoralShare> Direct_MC;
     typedef Coral<CoralShare> Protocol;
     typedef CoralPrep<CoralShare> LivePrep;
     typedef ::Input<CoralShare> Input;
     // [zico] this needs to change to HE gen
     typedef Spdz2kTripleGenerator<CoralShare> TripleGenerator;
     typedef Spdz2kMultiplier<CoralShare> Multiplier;
+    typedef ::PrivateOutput<CoralShare> PrivateOutput;
 
     typedef GC::RmfeShare bit_type;
     

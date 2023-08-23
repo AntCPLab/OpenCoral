@@ -7,7 +7,8 @@
 
 void ntl_gf2x_to_mpdz_gf2n(gf2n_short& y, const NTL::GF2X& x) {
     if (deg(x) >= gf2n_short::degree())
-        throw runtime_error("Cannot convert NTL::GF2X to a smaller gf2n element");
+        throw runtime_error("Cannot convert NTL::GF2X (deg: " + to_string(deg(x)) 
+            + ") to a smaller gf2n element (deg: " + to_string(gf2n_short::degree()) + ")");
     // empty poly returns deg(*)=-1, but it actually means 0
     if (deg(x) == -1)
         y = gf2n_short(0);

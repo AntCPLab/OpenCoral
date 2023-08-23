@@ -55,8 +55,8 @@ template<class T>
 void run(char** argv)
 {
     // reduce batch size
-    OnlineOptions::singleton.bucket_size = 5;
-    OnlineOptions::singleton.batch_size = 100;
+    // OnlineOptions::singleton.bucket_size = 5;
+    OnlineOptions::singleton.batch_size = 1000;
 
     // set up networking on localhost
     int my_number = atoi(argv[1]);
@@ -77,9 +77,9 @@ void run(char** argv)
     auto& bit_output = set.binary.output;
     auto& prep = set.preprocessing;
 
-    int n_bits = 16;
+    int n_bits = 64;
     edabit<T> eb;
-    prep.get_edabit_no_count(true, n_bits, eb);
+    prep.get_edabit_no_count(false, n_bits, eb);
 
     bit_output.init_open(P, n_bits);
     for (int i = 0; i < n_bits; i++) {

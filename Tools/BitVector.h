@@ -272,7 +272,7 @@ template <class T>
 T inline BitVector::get_portion(int i) const
 {
     if (T::size_in_bits() == 1)
-        return get_bit(i);
+        return T(get_bit(i));
     else
     {
         T res;

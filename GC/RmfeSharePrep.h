@@ -46,6 +46,8 @@ public:
     Player* P;
     typename T::mac_key_type::Scalar revealed_key;
 
+    const int NORMAL_SACRIFICE = 40;
+
     void buffer_triples();
     // void buffer_squares() { throw not_implemented(); }
     // void buffer_bits();
@@ -54,6 +56,8 @@ public:
 
     void buffer_personal_triples(size_t n, ThreadQueues* queues = 0);
     void buffer_personal_triples(vector<array<T, 3>>& triples, size_t begin, size_t end);
+
+    void buffer_normals();
 
     void set_protocol(typename T::Protocol& protocol);
     void set_mc(typename T::MAC_Check* MC);

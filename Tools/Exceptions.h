@@ -301,4 +301,10 @@ class invalid_pack_usage: public exception
     { return "Packed type does not allow single bit operation"; }
 };
 
+class incompatible_pack_len: public runtime_error
+{ 
+public:
+    incompatible_pack_len(int n) : runtime_error("Incompatible length: n = " + to_string(n)) {}
+};
+
 #endif

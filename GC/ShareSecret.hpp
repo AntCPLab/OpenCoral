@@ -264,7 +264,7 @@ void ShareSecret<U>::reveal_inst(Processor<U>& processor,
         int r0 = args[i + 1];
         for (int j = 0; j < DIV_CEIL(n, U::default_length); j++)
         {
-            processor.C[r0 + j] = opened.next().mask(
+            processor.C[r0 + j] = typename U::clear(opened.next()).mask(
                     min(U::default_length, n - j * U::default_length));
         }
     }

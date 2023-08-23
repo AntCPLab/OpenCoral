@@ -9,6 +9,7 @@
 
 
 #include "Machines/SPDZ2k.hpp"
+#include "Processor/Machine.hpp"
 #include "Protocols/Beaver.hpp"
 #include "GC/CcdPrep.hpp"
 #include "GC/TinierSharePrep.hpp"

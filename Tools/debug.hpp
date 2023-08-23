@@ -26,13 +26,17 @@ void reveal(Player* P, const edabitpack<T>& ep, const char* tag) {
     cout << "[" << tag << "] edabitpack B: ";
     vector<typename T::bit_type::clear> b;
     for (size_t j = 0; j < ep.second.size(); j++)
-        b.push_back(typename T::bit_type::clear(reveal(P, typename T::bit_type::part_type(ep.second[j])).get_share()));
+        b.push_back(typename T::bit_type::clear(reveal(P, typename T::bit_type(ep.second[j])).get_share()));
     for (size_t i = 0; i < ep.first.size(); i++) {
         typename T::bit_type::clear x;
         for (size_t j = 0; j < ep.second.size(); j++)
             x += typename T::bit_type::clear(b[j].get_bit(i)) << j;
         cout << x << " ";
     }
+    cout << endl;
+    cout << "[" << tag << "] edabitpack B[" << dec << ep.second.size() << hex << "] raw: ";
+    for (size_t j = 0; j < ep.second.size(); j++)
+        cout << hex << typename T::bit_type::clear((reveal(P, ep.second[j])).get_share()) << " ";
     cout << dec << endl;
 }
 

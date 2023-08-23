@@ -12,6 +12,7 @@
 
 #include "LimitedPrep.hpp"
 #include "Tools/debug.h"
+#include "Tools/performance.h"
 
 inline
 ShuffleSacrifice::ShuffleSacrifice() :

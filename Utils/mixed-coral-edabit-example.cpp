@@ -11,8 +11,8 @@
 #define NO_SECURITY_CHECK
 
 #include "Protocols/ProtocolSet.h"
-
 #include "Machines/Coral.hpp"
+#include "Tools/performance.h"
 
 template<class T>
 void run(char** argv);
@@ -45,12 +45,11 @@ template<class T>
 void run(char** argv)
 {
     // reduce batch size
-    OnlineOptions::singleton.bucket_size = 5;
-    OnlineOptions::singleton.batch_size = 100;
+    // OnlineOptions::singleton.bucket_size = 5;
+    OnlineOptions::singleton.batch_size = 1000;
 
     // RMFE setup
-    auto rmfe = get_composite_gf2_rmfe_type2(2, 6);
-    rmfe->set_singleton(rmfe.get());
+    RmfeShare::setup_rmfe(2, 6);
 
     // set up networking on localhost
     int my_number = atoi(argv[1]);
@@ -71,37 +70,46 @@ void run(char** argv)
     auto& bit_output = set.binary.output;
     auto& prep = set.preprocessing;
 
+    cout << "Online options: batch_size = " << OnlineOptions::singleton.batch_size << endl;
+
     int dl = T::bit_type::default_length;
     int n_bits = 16;
-    edabitpack<T> eb = prep.get_edabitpack_no_count(true, n_bits);
+    // edabitpack<T> eb = prep.get_edabitpack_no_count(true, n_bits);
 
-    bit_output.init_open(P, n_bits);
-    for (int i = 0; i < n_bits; i++) {
-        bit_output.prepare_open(eb.second[i]);
-    }
-    bit_output.exchange(P);
-    vector<int> x(dl, 0);
-    for (int i = 0; i < n_bits; i++) {
-        auto bit = bit_output.finalize_open();
-        for (int j = 0; j < dl; j++)
-            x[j] += int(bit.get_bit(j)) << i;
-    }
-    cout << "edabit B: " << hex;
-    for (int j = 0; j < dl; j++)
-        cout << x[j] << ", ";
-    cout << dec << endl;
+    // bit_output.init_open(P, n_bits);
+    // for (int i = 0; i < n_bits; i++) {
+    //     bit_output.prepare_open(eb.second[i]);
+    // }
+    // bit_output.exchange(P);
+    // vector<int> x(dl, 0);
+    // for (int i = 0; i < n_bits; i++) {
+    //     auto bit = bit_output.finalize_open();
+    //     for (int j = 0; j < dl; j++)
+    //         x[j] += int(bit.get_bit(j)) << i;
+    // }
+    // cout << "edabit B: " << hex;
+    // for (int j = 0; j < dl; j++)
+    //     cout << x[j] << ", ";
+    // cout << dec << endl;
 
-    output.init_open(P, dl);
-    for (int i = 0; i < dl; i++)
-        output.prepare_open(eb.first[i]);
-    output.exchange(P);
+    // output.init_open(P, dl);
+    // for (int i = 0; i < dl; i++)
+    //     output.prepare_open(eb.first[i]);
+    // output.exchange(P);
 
-    cout << "edabit A: " << hex;
-    for (int i = 0; i < dl; i++)
-         cout << output.finalize_open() << ", ";
-    cout << dec << endl;
+    // cout << "edabit A: " << hex;
+    // for (int i = 0; i < dl; i++)
+    //      cout << output.finalize_open() << ", ";
+    // cout << dec << endl;
 
-    reveal(&P, eb, "eb");
+    // reveal(&P, eb, "eb");
+
+    cout << endl << "LOOSE: " << endl;
+    edabitpack<T> eb2 = prep.get_edabitpack_no_count(false, 64);
+    reveal(&P, eb2, "eb2");
+    edabitpack<T> eb3 = prep.get_edabitpack_no_count(false, 64);
+    reveal(&P, eb3, "eb3");
 
     set.check();
+    print_profiling();
 }

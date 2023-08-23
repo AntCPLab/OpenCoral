@@ -51,6 +51,8 @@ protected:
     vector<T> bits;
     vector<vector<InputTuple<T>>> inputs;
 
+    vector<T> normals;
+
     vector<dabit<T>> dabits;
     // For bit type that is packed and encoded, no individual dabit is available
     vector<dabitpack<T>> dabitpacks;
@@ -93,6 +95,8 @@ protected:
     void push_edabits(vector<edabitvec<T>>& edabits,
             const vector<T>& sums,
             const vector<vector<typename T::bit_type::part_type>>& bits);
+
+    virtual void buffer_normals() { throw runtime_error("no normals"); }
 
 public:
     typedef T share_type;
@@ -152,6 +156,8 @@ public:
     void set_proc(SubProcessor<T>* proc) { this->proc = proc; }
 
     void buffer_extra(Dtype type, int n_items);
+
+    T get_normal_no_count();
 };
 
 /**

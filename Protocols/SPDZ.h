@@ -32,7 +32,7 @@ public:
         if (my_num == 0)
             share = clear;
         else
-            share = 0;
+            share = typename T::open_type(0);
     }
 
     int get_n_relevant_players()

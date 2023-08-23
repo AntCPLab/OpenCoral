@@ -221,7 +221,7 @@ void TripleShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
         }
         triples[i] = check_triples[i];
     }
-    MC.CheckFor(0, checks, P);
+    MC.CheckFor(typename T::open_type(0), checks, P);
 }
 
 template<class T>

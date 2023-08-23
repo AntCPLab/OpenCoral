@@ -22,8 +22,6 @@ RmfeSharePrep<T>::RmfeSharePrep(DataPositions& usage, int input_player) :
         PersonalPrep<T>(usage, input_player),
         triple_generator(0),
         tinyot2rmfe(0)
-        // spdz2k2rmfe(0)
-        // real_triple_generator(0)
 {
     prng.SetSeed((const unsigned char*) "insecure");
 }
@@ -42,11 +40,6 @@ RmfeSharePrep<T>::~RmfeSharePrep()
     if (tinyot2rmfe) {
         delete tinyot2rmfe;
     }
-    // if (spdz2k2rmfe) {
-    //     delete spdz2k2rmfe;
-    // }
-    // if (real_triple_generator)
-    //     delete real_triple_generator;
 }
 
 template<class T>
@@ -75,8 +68,6 @@ void RmfeSharePrep<T>::set_protocol(typename T::Protocol& protocol)
     int tinyot_batch_size = triple_generator->nTriplesPerLoop * T::default_length;
     tinyot2rmfe = new RmfeShareConverter<TinyOTShare>(*player);
     tinyot2rmfe->get_src_prep()->set_batch_size(tinyot_batch_size);
-
-    // spdz2k2rmfe = new RmfeShareConverter<Spdz2kBShare>(*player);
 
     MC = protocol.get_mc();
 }
@@ -111,9 +102,12 @@ void RmfeSharePrep<T>::buffer_triples() {
     for(int i = 0; i < nTriplesPerLoop; i++) {
         for(int j = 0; j < l; j++) {
             tinyot_prep->get_tinyot_triple(
-                tinyot_shares[i * 3 * l + j].MAC, tinyot_shares[i * 3 + j].KEY,
-                tinyot_shares[i * 3 * l + l + j].MAC, tinyot_shares[i * 3 * l + l + j].KEY,
-                tinyot_shares[i * 3 * l + 2 * l + j].MAC, tinyot_shares[i * 3 * l + 2 * l + j].KEY);
+                tinyot_shares[i * 3 * l + j].MAC, 
+                tinyot_shares[i * 3 * l + j].KEY,
+                tinyot_shares[i * 3 * l + l + j].MAC, 
+                tinyot_shares[i * 3 * l + l + j].KEY,
+                tinyot_shares[i * 3 * l + 2 * l + j].MAC, 
+                tinyot_shares[i * 3 * l + 2 * l + j].KEY);
         }
     }
 
@@ -124,6 +118,8 @@ void RmfeSharePrep<T>::buffer_triples() {
     for(int i = 0; i < nTriplesPerLoop; i++) {
         this->triples.push_back({{rmfe_shares[i*3], rmfe_shares[i*3 + 1], rmfe_shares[i*3 + 2]}});
     }
+
+    print_general("Generate RMFE triples", nTriplesPerLoop);
 }
 
 template<class T>
@@ -212,6 +208,56 @@ void RmfeSharePrep<T>::buffer_personal_triples(vector<array<T, 3>>& triples, siz
 #ifdef VERBOSE_EDA
     fprintf(stderr, "personal triples took %f seconds\n", timer.elapsed());
 #endif
+}
+
+template<class T>
+void RmfeSharePrep<T>::buffer_normals() {
+    auto& party = ShareThread<typename T::whole_type>::s();
+    auto& P = *party.P;
+    auto MC = T::new_mc(party.MC->get_alphai());
+    typename T::Input input(*MC, *this, P);
+    input.reset_all(P);
+
+    // Step 1: Construct normal elements
+    int u = triple_generator->nTriplesPerLoop;
+    int n = u + NORMAL_SACRIFICE;
+    vector<T> normals(n);
+
+    SeededPRNG prng;
+    for(int i = 0; i < n; i++) {
+        typename T::clear r = prng.get<typename T::clear>();
+        input.add_from_all(r);
+    }
+    input.exchange();
+
+    for(int i = 0; i < n; i++) {
+        normals[i] = input.finalize(0) + input.finalize(1);
+    }
+
+    // Step 2: Sacrifice
+    vector<T> b(NORMAL_SACRIFICE);
+    GlobalPRNG G(P);
+    for (int i = 0; i < NORMAL_SACRIFICE; i++) {
+        b[i] = normals[u + i];
+        for (int j = 0; j < u; j++) {
+            if (G.get_bit())
+                b[i] += normals[j];
+        }
+    }
+    vector<typename T::open_type> b_opened;
+    MC->POpen(b_opened, b, P);
+    for (int i = 0; i < NORMAL_SACRIFICE; i++) {
+        if (!b_opened[i].is_normal()) {
+            throw runtime_error("Fail checking normality of element");
+        }
+    }
+
+    MC->Check(P);
+
+    this->normals.insert(this->normals.end(), normals.begin(), normals.begin() + u);
+    delete MC;
+
+    print_general("Generate random normal elements", u);
 }
 
 #ifdef INSECURE_RMFE_PREP

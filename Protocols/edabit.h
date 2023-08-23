@@ -186,12 +186,12 @@ public:
         return this->first.size();
     }
 
-    T get_a(int i)
+    const T& get_a (int i) const
     {
         return this->first[i];
     }
 
-    typename T::bit_type get_b(int i)
+    const typename T::bit_type& get_b(int i) const
     {
         return this->second[i];
     }

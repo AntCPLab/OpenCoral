@@ -43,6 +43,10 @@ public:
     {
         return lg2;
     }
+
+    void set_lg2(int lg2) {
+        this->lg2 = lg2;
+    }
 };
 
 class DishonestMajorityMachine : public OnlineMachine

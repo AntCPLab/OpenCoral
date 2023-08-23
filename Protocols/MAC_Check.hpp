@@ -201,13 +201,13 @@ void MAC_Check_<U>::Check(const Player& P)
         {
           h.almost_randomize(G);
           temp = vals[i] * h;
-          a = (a + temp);
+          a = typename U::mac_type(a + temp);
 
           temp = h * macs[i];
           gami = (gami + temp);
         }
 
-      temp = this->alphai * a;
+      temp = typename U::mac_type(this->alphai * a);
       tau[P.my_num()] = (gami - temp);
 
       //cerr << "\tCommit and Open" << endl;

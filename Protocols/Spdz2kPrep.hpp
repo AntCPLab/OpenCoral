@@ -193,6 +193,7 @@ void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
         for (int j = 0; j < n_bits; j++)
             player_bits[j].push_back(tmp_bits[j]);
     }
+
     RunningTimer add_timer;
     BitAdder().add(bits, player_bits, bit_proc, bit_type::default_length,
             queues);
@@ -228,6 +229,7 @@ void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
         {
             output.push_back(x);
         }
+        print_general("Generate edabitpack", checked.size());
     }
     else {
         vector<edabit<T>> checked;
@@ -254,6 +256,7 @@ void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
             else
                 output.back().push_back(x);
         }
+        print_general("Generate edabit", checked.size());
     }
 #ifdef VERBOSE_EDA
     cerr << "Finalizing took " << finalize_timer.elapsed() << " seconds" << endl;

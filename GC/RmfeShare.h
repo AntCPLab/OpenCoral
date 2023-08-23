@@ -15,6 +15,8 @@
 #include "RmfeMultiplier.h"
 #include "Tools/mpdz_ntl_types.h"
 #include "Tools/Exceptions.h"
+#include "Math/mfe.h"
+#include "Tools/debug.h"
 
 class gf2n_rmfe;
 
@@ -27,9 +29,13 @@ public:
     bitvec_rmfe() {
     }
 
+    bitvec_rmfe(long a): bitvec_rmfe(BitVec(a)) {}
+
     bitvec_rmfe(bool a): bitvec_rmfe(BitVec(a)) {}
 
     bitvec_rmfe(const BitVec& a) : super(a) {}
+
+    bitvec_rmfe(const BitVec::super& a) : super(a) {}
 
     // NOTE: This constructor includes decoding.
     bitvec_rmfe(const gf2n_rmfe& encoded);
@@ -44,6 +50,7 @@ class gf2n_rmfe : public gf2n_short
     typedef gf2n_short super;
 public:
     typedef ::Square<gf2n_rmfe> Square;
+    typedef gf2n_rmfe Scalar;
 
     gf2n_rmfe()
     {
@@ -52,8 +59,23 @@ public:
     // NOTE: This constructor includes encoding.
     gf2n_rmfe(const bitvec_rmfe& decoded);
 
+    gf2n_rmfe(const gf2n_<word>& x): gf2n_short(x) {}
+
+    /**
+     * Only exists for compatibility with other parts of the code
+    */
+    explicit gf2n_rmfe(bool x) {
+        throw runtime_error("Cannot convert bool to gf2n_rmfe");
+    }
+
+    /**
+     * Easily resulting in bug if not using 'explicit', because many types implicitly convertible to 
+     * gf2n_rmfe, including those that are not expected, such as BitVec, which is used as the clear type
+     * for RmfeShare and should be encoded, but not converted directly. This bug actually happens for the 
+     * 'operator&' function when we did not use 'explicit' before.
+    */
     template<class T>
-    gf2n_rmfe(const T& other) :
+    explicit gf2n_rmfe(const T& other) :
             gf2n_short(other)
     {
     }
@@ -64,7 +86,8 @@ public:
     static int default_degree() { return DEFAULT_LENGTH; }
 
     static void init_field(int nn = 0) {
-        super::init_field(nn == 0 ? DEFAULT_LENGTH : nn);
+        (void) nn;
+        super::init_field(DEFAULT_LENGTH);
     }
 
     /**
@@ -85,6 +108,9 @@ public:
 	 * @param n (unused)
 	 */
     void unpack(octetStream& o, int n = -1);
+
+    static gf2n_rmfe tau(const gf2n_rmfe& x);
+    bool is_normal();
 };
 
 
@@ -167,6 +193,19 @@ public:
         return new MAC_Check(mac_key);
     }
 
+    static void setup_rmfe(long k1, long k2) {
+        if (Gf2RMFE::has_singleton())
+            throw runtime_error("Can only setup RMFE once");
+        auto rmfe = get_composite_gf2_rmfe_type2(2, 6);
+        Gf2RMFE::set_singleton(std::move(rmfe));
+    }
+
+    static void teardown_rmfe() {
+        if (!Gf2RMFE::has_singleton())
+            return;
+        Gf2RMFE::reset_singleton();
+    }
+
     RmfeShare()
     {
     }
@@ -196,7 +235,7 @@ public:
         return *this;
     }
 
-    void public_input(bool input);
+    void public_input(long input);
 
     This get_bit(int i)
     {
@@ -207,6 +246,67 @@ public:
     {
         throw invalid_pack_usage();
     }
+
+    void xor_(int n, const This& x, const This& y);
+
+    void load_clear(int n, const Integer& x);
+
+    void invert(int n, const This& x);
+
+    This operator&(const BitVec::super& other) const;
+
+    template<class U>
+    static void trans(Processor<U>& processor, int n_outputs, const vector<int>& args);
+
+    void extend_bit(This& res, int n_bits) const
+    {
+        throw runtime_error("Extending one bit is not implemented for RmfeShare.");
+    }
+
+    void mask(This& res, int n_bits) const {
+        if (n_bits != default_length)
+            throw runtime_error("Invalid length for mask of RmfeShare: n = " + to_string(n_bits));
+        res = *this;
+    }
+
+    template <class U>
+    void bitdec(Memory<U>& S, const vector<int>& regs) const
+    {
+        throw runtime_error("Bit decomposition is not implemented for RmfeShare.");
+    }
+
+    template <class U>
+    void bitcom(Memory<U>& S, const vector<int>& regs)
+    {
+        throw runtime_error("Bit composition is not implemented for RmfeShare.");
+    }
+
+    using super::constant;
+    
+    static This constant(BitVec other, int my_num, mac_key_type alphai, int n_bits = -1) {
+        if (n_bits < 0)
+            n_bits = This::default_length;
+        if (n_bits != default_length)
+            throw runtime_error("Invalid length for constant of RmfeShare: n = " + to_string(n_bits));
+        This res = super::constant(RmfeShare::open_type(RmfeShare::clear(other)), my_num, alphai);
+        return res;
+    }
+
+
+    template <class U>
+    void finalize_input(U& inputter, int from, int n_bits)
+    {
+        if (n_bits != default_length)
+            throw runtime_error("Invalid length for finalize_input of RmfeShare: n = " + to_string(n_bits));
+        inputter.finalize(from, n_bits).mask(*this, n_bits);
+    }
+
+    /**
+     * The 'and' with constant operation in RMFE protocol requires communication.
+    */
+    static void andm(Processor<RmfeShare>& processor, const BaseInstruction& instruction);
+
+
 };
 
 } /* namespace GC */

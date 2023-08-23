@@ -58,6 +58,13 @@ T Preprocessing<T>::get_random_from_inputs(int nplayers)
 }
 
 template<class T>
+T Preprocessing<T>::get_normal()
+{
+    // [zico] should count here?
+    return get_normal_no_count();
+}
+
+template<class T>
 Sub_Data_Files<T>::Sub_Data_Files(const Names& N, DataPositions& usage,
     int thread_num) :
     Sub_Data_Files(N, get_prep_dir(N), usage,

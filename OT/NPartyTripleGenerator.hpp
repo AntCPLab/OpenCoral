@@ -287,6 +287,7 @@ void NPartyTripleGenerator<W>::generateInputs(int player)
     MC.set_random_element({});
     MC.POpen(check_sum, globalPlayer);
     MC.Check(globalPlayer);
+    print_general("Generate inputs", nTriplesPerLoop, "Type", typeid(typename W::input_type).name(), "NPartyTripleGenerator");
 }
 
 template<class T>
