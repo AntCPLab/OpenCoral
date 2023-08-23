@@ -120,7 +120,7 @@ class Fpre {
 		~Fpre() {
 
 			delete[] MAC;
-		        delete[] KEY;
+		    delete[] KEY;
 			delete[] MAC_res;
 			delete[] KEY_res;
 			delete[] prps;
@@ -131,7 +131,7 @@ class Fpre {
 				delete io[i];
 				delete io2[i];
 				delete eq[i];
-                                delete eq[THDS + i];
+                delete eq[THDS + i];
 			}
 		}
 		void refill() {
@@ -172,7 +172,10 @@ class Fpre {
 			if(bucket_size > 4) {
 				combine(S, 0, MAC, KEY, batch_size, bucket_size, MAC_res, KEY_res);
 			} else {
-				int width = min((batch_size+THDS-1)/THDS, permute_batch_size);
+				// [zico] what's the point of using permute_batch_size? It leads to a bug.
+				// int width = min((batch_size+THDS-1)/THDS, permute_batch_size);
+				assert(batch_size % THDS == 0);
+				int width = (batch_size+THDS-1)/THDS;
 				for(int i = 0; i < THDS; ++i) {
 					int start = i*width;
 					int length = min( (i+1)*width, batch_size) - i*width;

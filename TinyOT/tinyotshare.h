@@ -114,6 +114,9 @@ public:
 		add(*this, x); return *this;
 	}
 
+	/**
+	 * Just for compatibility. Generated key never used in real protocol.
+	*/
 	static void read_or_generate_mac_key(string directory, const Player& P, mac_key_type& key) {
 		try
 		{

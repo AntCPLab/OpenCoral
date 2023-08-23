@@ -19,7 +19,7 @@ BufferTinyOTPrep::BufferTinyOTPrep(DataPositions& usage, int port, int batch_siz
 
 void BufferTinyOTPrep::set_protocol(TinyOTShare::Protocol& protocol) {
 	this->P = &protocol.P;
-	io = new emp::NetIO(this->P->my_num()==emp::ALICE ? nullptr:emp::IP, port);
+	io = new emp::NetIO(this->P->my_num() + 1 == emp::ALICE ? nullptr:emp::IP, port);
 	set_batch_size(batch_size);
 }
 
@@ -27,7 +27,7 @@ void BufferTinyOTPrep::set_batch_size(int batch_size) {
 	assert(io != nullptr);
 	if (fpre)
 		delete fpre;
-	fpre = new emp::Fpre<emp::NetIO>(io, this->P->my_num(), batch_size);
+	fpre = new emp::Fpre<emp::NetIO>(io, this->P->my_num() + 1, batch_size);
 	triple_buf_idx = batch_size;
 
 	random_abit_MACs.reserve(fpre->batch_size);
@@ -53,7 +53,8 @@ TinyOTShare BufferTinyOTPrep::get_bit() {
 	return res;
 }
 
-void BufferTinyOTPrep::get_tinyot_triple(emp::block& aMAC, emp::block& aKEY,
+void BufferTinyOTPrep::get_tinyot_triple(
+	emp::block& aMAC, emp::block& aKEY,
 	emp::block& bMAC, emp::block& bKEY,
 	emp::block& cMAC, emp::block& cKEY) {
 	if (triple_buf_idx >= fpre->batch_size) {
