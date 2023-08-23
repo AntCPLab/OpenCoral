@@ -651,6 +651,7 @@ GF2E FieldConverter::composite_to_binary(const GF2EX& x) {
 }
 
 void FieldConverter::raw_binary_to_composite(vec_GF2& y, const vec_GF2& x) {
+    acc_time_log("FieldConverter::raw_binary_to_composite");
     if (x.length() != k_) {
         LogicError("Input vector has invalid length");
     }
@@ -659,6 +660,7 @@ void FieldConverter::raw_binary_to_composite(vec_GF2& y, const vec_GF2& x) {
     // mul(y, pre_isomorphic_mat_, y);
 
     mul(y, combined_b2c_mat_, x);
+    acc_time_log("FieldConverter::raw_binary_to_composite");
 }
 
 vec_GF2 FieldConverter::raw_binary_to_composite(const vec_GF2& x) {
@@ -728,20 +730,42 @@ void BasicRMFE::encode(GF2EX& g, const vec_GF2E& h) {
 }
 
 void BasicRMFE::decode(vec_GF2E& h, const GF2EX& g) {
+    acc_time_log("BasicRMFE::decode");
     GF2EPush push;
     GF2E::init(base_field_poly_mod_);
     ::psi(h, g, basis_, beta_);
+    acc_time_log("BasicRMFE::decode");
 }
 
 BasicGf2RMFE::BasicGf2RMFE(long k, bool is_type1) {
     internal_ = unique_ptr<BasicRMFE>(new BasicRMFE(k, 1, is_type1));
     const GF2EX& f = internal_->ex_field_mod();
     ex_field_poly_ = GF2XModulus(shrink(f));
+
+    // To use cache, we need to constrain the input size.
+    if (use_cache_) {
+        assert(internal_->k() < 22);
+        assert(internal_->m() < 22);
+        
+        encode_table_.resize(1 << internal_->k());
+        encode_table_cached_.resize(1 << internal_->k());
+        decode_table_.resize(1 << internal_->m());
+        decode_table_cached_.resize(1 << internal_->m());
+    }
 }
 
 void BasicGf2RMFE::decode(vec_GF2& h, const GF2X& g) {
+    acc_time_log("BasicGf2RMFE::decode");
     if (deg(g) + 1 > m())
         LogicError("Input polynomial g has an invalid length");
+
+    long idx = deg(g) == -1 ? 0 : g.xrep[0];
+    if (use_cache_ && decode_table_cached_[idx]) {
+        h = decode_table_[idx];
+        acc_time_log("BasicGf2RMFE::decode");
+        return;
+    }
+
     GF2EPush push;
     GF2E::init(GF2X(1, 1));
     GF2EX g_ = lift(g);
@@ -751,6 +775,13 @@ void BasicGf2RMFE::decode(vec_GF2& h, const GF2X& g) {
         LogicError("Output vector h has an invalid length");
 
     h = shrink(h_);
+
+    if (use_cache_) {
+        decode_table_[idx] = h;
+        decode_table_cached_[idx] = true;
+    }
+
+    acc_time_log("BasicGf2RMFE::decode");
 }
 
 void BasicGf2RMFE::encode(GF2X& g, const vec_GF2& h) {

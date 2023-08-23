@@ -366,6 +366,12 @@ unique_ptr<BasicRMFE> internal_;
 long base_field_mod_ = 2;
 NTL::GF2XModulus ex_field_poly_;
 
+bool use_cache_ = true;
+vector<NTL::GF2X> encode_table_;
+vector<bool> encode_table_cached_;
+vector<NTL::vec_GF2> decode_table_;
+vector<bool> decode_table_cached_;
+
 public:
 using RMFE::encode;
 using RMFE::decode;
