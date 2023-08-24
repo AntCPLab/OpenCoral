@@ -26,6 +26,8 @@ void CcdPrep<T>::set_protocol(typename T::Protocol& protocol)
     auto& thread = ShareThread<T>::s();
     assert(thread.MC);
 
+    this->inputs.resize(thread.P->num_players());
+
     if (part_proc)
     {
         assert(&part_proc->MC == &thread.MC->get_part_MC());
