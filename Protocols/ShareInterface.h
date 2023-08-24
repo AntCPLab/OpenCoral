@@ -52,6 +52,8 @@ public:
 
     static const int default_length = 1;
 
+    static const bool is_encoded = false;
+
     static string type_short() { throw runtime_error("shorthand undefined"); }
 
     static bool real_shares(const Player&) { return true; }

@@ -63,6 +63,7 @@ public:
 
     static const int default_length = 1;
     static const bool expensive_triples = true;
+    static const bool is_encoded = false;
 
     static string name()
     {

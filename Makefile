@@ -421,7 +421,7 @@ test_tinyot: test/test_tinyot.o
 test_spdz2k_offline: test/test_spdz2k_offline.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE)
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
 
-test_spdz2k_offline_binary: test/test_spdz2k_offline_binary.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE) GC/PostSacriBin.o $(GC_SEMI) GC/AtlasSecret.o
+test_offline_binary: test/test_offline_binary.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE) GC/PostSacriBin.o $(GC_SEMI) GC/AtlasSecret.o
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
 
 test_rmfe_beaver: test/test_rmfe_beaver.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE) GC/PostSacriBin.o $(GC_SEMI)

@@ -63,7 +63,7 @@ void test_buffer_triples(int argc, char** argv)
 template<class T>
 void test_buffer_inputs(int argc, char** argv)
 {
-    OnlineOptions::singleton.batch_size = 120000;
+    // OnlineOptions::singleton.batch_size = 120000;
     // set up networking on localhost
     int my_number = atoi(argv[1]);
     int n_parties = atoi(argv[2]);
@@ -92,11 +92,11 @@ void test_buffer_inputs(int argc, char** argv)
 int main(int argc, char** argv)
 {
     // Tinier
-    test_buffer_inputs<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
+    // test_buffer_inputs<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
     // Tiny.
     // test_buffer_inputs<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
     // Rmfe
-    // test_buffer_inputs<GC::RmfeShare>(argc, argv);
+    test_buffer_inputs<GC::RmfeShare>(argc, argv);
 
     // Tinier
     // test_buffer_triples<GC::TinierSecret<gf2n_mac_key>>(argc, argv);

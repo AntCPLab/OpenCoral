@@ -223,7 +223,8 @@ void NPartyTripleGenerator<W>::generateInputs(int player)
 {
     typedef typename W::input_type::share_type::open_type T;
 
-    auto nTriplesPerLoop = this->nTriplesPerLoop * 10;
+    int force_packing = W::input_type::is_encoded ? W::input_type::default_length : 1;
+    auto nTriplesPerLoop = this->nTriplesPerLoop * 10 / force_packing;
     auto& valueBits = this->valueBits;
     auto& share_prg = this->share_prg;
     auto& ot_multipliers = this->ot_multipliers;
