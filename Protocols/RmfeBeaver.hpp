@@ -25,6 +25,16 @@
 // }
 
 template<class T>
+void RmfeBeaver<T>::setup(Player& P) {
+    tinyot_init.reset(new BinaryProtocolThreadInit<TinyOTShare>(P));
+}
+
+template<class T>
+void RmfeBeaver<T>::teardown() {
+    tinyot_init.reset(nullptr);
+}
+
+template<class T>
 void RmfeBeaver<T>::init(Preprocessing<T>& prep, typename T::MAC_Check& MC)
 {
     this->prep = &prep;

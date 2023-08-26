@@ -35,7 +35,7 @@ class BufferTinyOTPrep;
 class TinyOTProtocol;
 class TinyOTInput;
 
-class TinyOTShare {
+class TinyOTShare: public ShareInterface {
 public:
 	emp::block MAC;
 	emp::block KEY;

@@ -6,26 +6,33 @@
 #ifndef PROTOCOLS_PROTOCOLGLOBALINIT_H_
 #define PROTOCOLS_PROTOCOLGLOBALINIT_H_
 
+#include <atomic>
 #include "ProtocolSetup.h"
 #include "ProtocolSet.h"
 
+/**
+ * This should be used as a pre-thread initialization. In other words,
+ * 1. Each thread should call it only once, because the BinaryProtocolSet contains ShareThread instance which should only be
+ * constructed once per thread.
+ * 2. Should allow different threads to initialize, because the ShareThread instance contains a thread local singleton which
+ * should be set independently for each thread.
+*/
 template<class T>
-class BinaryProtocolGlobalInit {
+class BinaryProtocolThreadInit {
     unique_ptr<BinaryProtocolSetup<T>> setup;
     unique_ptr<BinaryProtocolSet<T>> set;
 
-    static thread_local bool initialized;
+    // static std::atomic_flag initialized;
 public:
-    BinaryProtocolGlobalInit(Player& P) {
-        if (initialized)
-            return;
+    BinaryProtocolThreadInit(Player& P) {
+        // if (initialized.test_and_set())
+        //     return;
         setup = unique_ptr<BinaryProtocolSetup<T>>(new BinaryProtocolSetup<T>(P));
         set = unique_ptr<BinaryProtocolSet<T>>(new BinaryProtocolSet<T>(P, *setup));
-        initialized = true;
     }
 };
 
-template<class T>
-thread_local bool BinaryProtocolGlobalInit<T>::initialized = false;
+// template<class T>
+// std::atomic_flag BinaryProtocolGlobalInit<T>::initialized = ATOMIC_FLAG_INIT;
 
 #endif /* PROTOCOLS_PROTOCOLGLOBALINIT_H_ */

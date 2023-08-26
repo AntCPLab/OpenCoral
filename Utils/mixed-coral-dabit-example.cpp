@@ -32,6 +32,7 @@ int main(int argc, char** argv)
 
     if (protocol == "Coral")
         run<CoralShare<64, 64>>(argv);
+    else
     {
         cerr << "Unknown protocol: " << protocol << endl;
         exit(1);

@@ -12,10 +12,8 @@ class RmfeShareConverter {
     typedef typename GC::RmfeShare::MAC_Check DstMC;
 
 public:
-    BinaryProtocolGlobalInit<T> binit;
     SrcMC* src_mc;
     SrcLivePrep* src_prep;
-    // DstMC* dst_mc;
 
     // RmfeShareConverter(SrcMC* src_mc, SrcLivePrep* src_prep) {
     //     this->src_mc = src_mc;
@@ -25,7 +23,7 @@ public:
     /**
      * Assuming ShareThread singleton has been set, we take out the MC and prep from there.
     */
-    RmfeShareConverter(Player& P): binit(P) {
+    RmfeShareConverter(Player& P) {
         GC::ShareThread<T>& thread = GC::ShareThread<T>::s();
         this->src_mc = thread.MC;
         this->src_prep = dynamic_cast<SrcLivePrep*>(&thread.DataF);
@@ -42,8 +40,6 @@ public:
     }
 
     ~RmfeShareConverter() {
-        // if (dst_mc)
-        //     delete dst_mc;
     }
 
     SrcLivePrep* get_src_prep() const {

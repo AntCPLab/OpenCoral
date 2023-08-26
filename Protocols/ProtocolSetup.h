@@ -36,6 +36,7 @@ public:
         T::read_or_generate_mac_key(directory, P, mac_key);
 
         T::MAC_Check::setup(P);
+        T::Protocol::setup(P);
     }
 
     /**
@@ -54,12 +55,14 @@ public:
         T::read_or_generate_mac_key(directory, P, mac_key);
 
         T::MAC_Check::setup(P);
+        T::Protocol::setup(P);
     }
 
     ~ProtocolSetup()
     {
         T::LivePrep::teardown();
         T::MAC_Check::teardown();
+        T::Protocol::teardown();
     }
 
     typename T::mac_key_type get_mac_key() const
@@ -96,11 +99,13 @@ public:
         T::part_type::read_or_generate_mac_key(directory, P, mac_key);
 
         T::MAC_Check::setup(P);
+        T::Protocol::setup(P);
     }
 
     ~BinaryProtocolSetup()
     {
         T::MAC_Check::teardown();
+        T::Protocol::teardown();
     }
 
     typename T::mac_key_type get_mac_key() const

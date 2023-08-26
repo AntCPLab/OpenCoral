@@ -8,11 +8,12 @@
 
 #include <vector>
 #include <array>
-using namespace std;
 
 #include "Replicated.h"
 #include "Processor/Data_Files.h"
 #include "Math/mfe.h"
+#include "Protocols/ProtocolGlobalInit.h"
+#include "TinyOT/tinyotshare.h"
 
 template<class T> class SubProcessor;
 template<class T> class MAC_Check_Base;
@@ -25,6 +26,9 @@ template<class T>
 class RmfeBeaver : public ProtocolBase<T>
 {
 protected:
+    // TinyOT setup for RMFE prep
+    static thread_local unique_ptr<BinaryProtocolThreadInit<TinyOTShare>> tinyot_init;
+
     vector<T> shares;
     vector<typename T::open_type> opened;
     vector<array<T, 3>> triples;
@@ -44,6 +48,9 @@ public:
     static const bool uses_triples = true;
 
     Player& P;
+
+    static void setup(Player& P);
+    static void teardown();
 
     RmfeBeaver(Player& P) : prep(0), MC(0), P(P) {}
 
@@ -79,5 +86,8 @@ public:
     }
 
 };
+
+template<class T>
+thread_local unique_ptr<BinaryProtocolThreadInit<TinyOTShare>> RmfeBeaver<T>::tinyot_init;
 
 #endif /* PROTOCOLS_RMFE_BEAVER_H_ */

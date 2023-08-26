@@ -147,7 +147,7 @@ class Fpre {
 			joinNclean(res);
 
 			if(party == ALICE) {
-				cout <<"ABIT\t"<<time_from(start_time)<<"\n";
+				// cout <<"ABIT\t"<<time_from(start_time)<<"\n";
 				start_time = clock_start();
 			}
 
@@ -161,7 +161,7 @@ class Fpre {
 			}
 			joinNclean(res);
 			if(party == ALICE) {
-				cout <<"check\t"<<time_from(start_time)<<"\n";
+				// cout <<"check\t"<<time_from(start_time)<<"\n";
 				start_time = clock_start();
 			}
 
@@ -186,7 +186,7 @@ class Fpre {
 				joinNclean(res);
 			}
 			if(party == ALICE) {
-				cout <<"permute\t"<<time_from(start_time)<<"\n";
+				// cout <<"permute\t"<<time_from(start_time)<<"\n";
 				start_time = clock_start();
 			}
 

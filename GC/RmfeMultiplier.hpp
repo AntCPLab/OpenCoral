@@ -34,14 +34,9 @@ void RmfeMultiplier<T>::multiplyForInputs(MultJob job) {
     auth_ot_ext.expand(0, job.n_inputs);
     if (mine)
         this->inbox.pop();
-    {
-        print_total_comm(generator.get_player(), "expand");
-    }
 
     auth_ot_ext.correlate(0, job.n_inputs, generator.valueBits[0], true);
-    {
-        print_total_comm(generator.get_player(), "correlate");
-    }
+
     auto& input_macs = this->input_macs;
     input_macs.resize(job.n_inputs);
     if (mine)

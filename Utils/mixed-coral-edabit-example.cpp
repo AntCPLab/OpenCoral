@@ -74,35 +74,6 @@ void run(char** argv)
 
     int dl = T::bit_type::default_length;
     int n_bits = 16;
-    // edabitpack<T> eb = prep.get_edabitpack_no_count(true, n_bits);
-
-    // bit_output.init_open(P, n_bits);
-    // for (int i = 0; i < n_bits; i++) {
-    //     bit_output.prepare_open(eb.second[i]);
-    // }
-    // bit_output.exchange(P);
-    // vector<int> x(dl, 0);
-    // for (int i = 0; i < n_bits; i++) {
-    //     auto bit = bit_output.finalize_open();
-    //     for (int j = 0; j < dl; j++)
-    //         x[j] += int(bit.get_bit(j)) << i;
-    // }
-    // cout << "edabit B: " << hex;
-    // for (int j = 0; j < dl; j++)
-    //     cout << x[j] << ", ";
-    // cout << dec << endl;
-
-    // output.init_open(P, dl);
-    // for (int i = 0; i < dl; i++)
-    //     output.prepare_open(eb.first[i]);
-    // output.exchange(P);
-
-    // cout << "edabit A: " << hex;
-    // for (int i = 0; i < dl; i++)
-    //      cout << output.finalize_open() << ", ";
-    // cout << dec << endl;
-
-    // reveal(&P, eb, "eb");
 
     cout << endl << "LOOSE: " << endl;
     edabitpack<T> eb2 = prep.get_edabitpack_no_count(false, 64);

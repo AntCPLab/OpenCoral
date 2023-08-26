@@ -93,6 +93,8 @@ public:
     typedef SemiPrep LivePrep;
     typedef Semi Protocol;
 
+    static const bool is_encoded = false;
+
     static MC* new_mc(typename SemiShare<BitVec>::mac_key_type);
 
     static void andrsvec(Processor<SemiSecret>& processor,

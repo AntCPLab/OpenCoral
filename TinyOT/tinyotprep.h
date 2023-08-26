@@ -11,6 +11,7 @@
 #include "TinyOT/tinyotshare.h"
 
 class BufferTinyOTPrep : public Preprocessing<TinyOTShare> {
+
 	emp::NetIO *io;
 	emp::Fpre<emp::NetIO>* fpre;
 	int triple_buf_idx;
@@ -23,6 +24,9 @@ class BufferTinyOTPrep : public Preprocessing<TinyOTShare> {
 
 public:
 
+	static atomic<int> port_resource;
+	static int get_next_available_port();
+
 	// BufferTinyOTPrep(int party, int port = 12345, int batch_size = 1000) {
 	// 	io = new emp::NetIO(party==emp::ALICE ? nullptr:emp::IP, port);
 	// 	fpre = new emp::Fpre<emp::NetIO>(io, party, batch_size);
@@ -32,7 +36,7 @@ public:
 	// 	random_abit_KEYs.reserve(fpre->batch_size);
 	// }
 
-	BufferTinyOTPrep(DataPositions& usage, int port = 12345, int batch_size = 1000);
+	BufferTinyOTPrep(DataPositions& usage, int port = -1, int batch_size = 1000);
 
 	void set_protocol(TinyOTShare::Protocol& protocol);
 

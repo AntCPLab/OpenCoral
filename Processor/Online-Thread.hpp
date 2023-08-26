@@ -99,6 +99,10 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
     }
 
   // Allocate memory for first program before starting the clock
+  
+  sint::Protocol::setup(P);
+  sint::bit_type::Protocol::setup(P);
+  sgf2n::Protocol::setup(P);
   processor = new Processor<sint, sgf2n>(tinfo->thread_num,P,*MC2,*MCp,machine,progs.at(thread_num > 0));
   auto& Proc = *processor;
 
@@ -356,6 +360,10 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
   delete MC2;
   delete MCp;
   delete player;
+
+  sint::Protocol::teardown();
+  sint::bit_type::Protocol::teardown();
+  sgf2n::Protocol::teardown();
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
   OPENSSL_thread_stop();
