@@ -26,8 +26,6 @@ template<class T>
 class RmfeBeaver : public ProtocolBase<T>
 {
 protected:
-    // TinyOT setup for RMFE prep
-    static thread_local unique_ptr<BinaryProtocolThreadInit<TinyOTShare>> tinyot_init;
 
     vector<T> shares;
     vector<typename T::open_type> opened;
@@ -86,8 +84,5 @@ public:
     }
 
 };
-
-template<class T>
-thread_local unique_ptr<BinaryProtocolThreadInit<TinyOTShare>> RmfeBeaver<T>::tinyot_init;
 
 #endif /* PROTOCOLS_RMFE_BEAVER_H_ */

@@ -26,12 +26,12 @@
 
 template<class T>
 void RmfeBeaver<T>::setup(Player& P) {
-    tinyot_init.reset(new BinaryProtocolThreadInit<TinyOTShare>(P));
+    BinaryProtocolThreadInit<TinyOTShare>::setup(P);
 }
 
 template<class T>
 void RmfeBeaver<T>::teardown() {
-    tinyot_init.reset(nullptr);
+    BinaryProtocolThreadInit<TinyOTShare>::teardown();
 }
 
 template<class T>
