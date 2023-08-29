@@ -22,3 +22,9 @@
 [submodule "deps/emp-ot"]
 	path = deps/emp-ot
 	url = https://github.com/zicofish/emp-ot.git
+[submodule "benchmarks/imagenet-sample-images"]
+	path = benchmarks/imagenet-sample-images
+	url = https://github.com/EliSchwartz/imagenet-sample-images.git
+[submodule "benchmarks/EzPC"]
+	path = benchmarks/EzPC
+	url = https://github.com/mkskeller/EzPC

@@ -1,6 +1,8 @@
 #ifndef GC_RMFE_MC_H_
 #define GC_RMFE_MC_H_
 
+#include "Tools/debug.h"
+
 template<class T>
 class RmfeMC : public MAC_Check_<T>
 {
@@ -11,7 +13,7 @@ public:
     }
 
     virtual ~RmfeMC() {
-        cout << "RmfeMC destroy, waiting for check: " << this->WaitingForCheck() << endl;
+        print_general("Waiting for check", this->WaitingForCheck(), "RmfeMC destroy");
     }
 
     void prepare_open(const T& secret, int = -1)

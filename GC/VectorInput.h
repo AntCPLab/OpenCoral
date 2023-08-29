@@ -37,7 +37,6 @@ public:
 
     void add_mine(const typename T::open_type& input, int n_bits)
     {
-        cout << "n_bits: " << n_bits << ", c: " << c++ << endl;
         if (n_bits == -1)
             n_bits = T::default_length;
         for (int i = 0; i < n_bits; i++)

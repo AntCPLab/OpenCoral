@@ -1453,7 +1453,7 @@ void Preprocessing<T>::get_edabits(bool strict, size_t size, T* a,
     int n_bits = regs.size();
     edabit<T> eb;
     size_t unit = T::bit_type::default_length;
-    cout << "unit: " << unit << ", size: " << size << ", n_bits: " << n_bits << endl;
+    print_general("unit", unit, "size", size, "n_bits", n_bits, "get_edabits");
     if (T::bit_type::is_encoded)
         assert(size % unit == 0);
     for (int k = 0; k < DIV_CEIL(size, unit); k++)

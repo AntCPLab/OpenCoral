@@ -14,6 +14,7 @@
 #include "GC/TinierSharePrep.hpp"
 #include "GC/CcdPrep.hpp"
 #include "GC/PersonalPrep.hpp"
+#include "Tools/debug.hpp"
 
 //template class GC::ShareParty<GC::TinierSecret<gf2n_mac_key>>;
 template class GC::CcdPrep<GC::TinierSecret<gf2n_mac_key>>;

@@ -11,6 +11,7 @@
 #include "GC/Processor.hpp"
 #include "GC/ShareThread.hpp"
 #include "Protocols/SecureShuffle.hpp"
+#include "Tools/debug.h"
 
 #include <sodium.h>
 #include <string>
@@ -238,7 +239,7 @@ void Processor<sint, sgf2n>::convcintvec(const Instruction& instruction)
   assert(unit == 64);
   int n_inputs = instruction.get_size();
   int n_bits = instruction.get_start().size();
-  cout << "n_inputs: " << n_inputs << ", n_bits: " << n_bits << endl;
+  print_general("n_inputs", n_inputs, "n_bits", n_bits, "convcintvec");
   for (int i = 0; i < DIV_CEIL(n_inputs, unit); i++)
     {
       for (int j = 0; j < DIV_CEIL(n_bits, unit); j++)

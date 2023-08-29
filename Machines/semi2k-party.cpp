@@ -9,6 +9,7 @@
 #include "Processor/RingOptions.h"
 #include "GC/SemiPrep.h"
 
+#include "Tools/debug.hpp"
 #include "Semi.hpp"
 #include "GC/ShareSecret.hpp"
 #include "Protocols/RepRingOnlyEdabitPrep.hpp"

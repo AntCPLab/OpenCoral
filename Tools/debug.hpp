@@ -56,12 +56,16 @@ void reveal(Player* P, const dabitpack<T>& dp, const char* tag) {
 
 template<class T>
 void print_general(const char* label, const T& x, const char* tag) {
+#ifdef VERBOSE_PRINT
     cout << "[" << tag << "] " << label << ": " << x << endl;
+#endif
 }
 
 template<class T1, class T2>
 void print_general(const char* label1, const T1& x1, const char* label2, const T2& x2, const char* tag) {
+#ifdef VERBOSE_PRINT
     cout << "[" << tag << "] " << label1 << ": " << x1 << ", " << label2 << ": " << x2 << endl;
+#endif
 }
 
 template<class T1, class T2, class T3>
@@ -69,9 +73,11 @@ void print_general(const char* label1, const T1& x1,
     const char* label2, const T2& x2, 
     const char* label3, const T3& x3,
     const char* tag) {
+#ifdef VERBOSE_PRINT
     cout << "[" << tag << "] " << label1 << ": " << x1 
         << ", " << label2 << ": " << x2 
         << ", " << label3 << ": " << x3 << endl;
+#endif
 }
 
 #endif

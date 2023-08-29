@@ -284,7 +284,6 @@ void MAC_Check_Z2k<T, U, V, W>::set_random_element(const W& random_element) {
 template<class T, class U, class V, class W>
 void MAC_Check_Z2k<T, U, V, W>::set_prep(Preprocessing<W>& prep)
 {
-  std::cout << "Successfully set prep" << std::endl;
   this->prep = &prep;
 }
 
