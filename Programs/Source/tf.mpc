@@ -26,9 +26,9 @@ exec(subprocess.check_output(['Scripts/process-tf.py', program.args[1]]))
 
 opt = ml.Optimizer()
 opt.set_layers_with_inputs(layers)
-layers[0].X.input_from(0, binary=True)
+layers[0].X.input_from(0)
 for layer in layers:
-    layer.input_from(0, binary=True)
+    layer.input_from(0)
 
 sint(0).reveal().store_in_mem(0)
 
@@ -38,4 +38,5 @@ start_timer(1)
 opt.forward(1, keep_intermediate=False)
 stop_timer(1)
 if isinstance(layers[-1].Y, Array):
-    print_ln('guess %s', layers[-1].Y[0].reveal())
+    #print_ln('guess %s', layers[-1].Y[0].reveal())
+    print_ln('guess %s', layers[-1].Y.reveal())

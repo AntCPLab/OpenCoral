@@ -110,6 +110,13 @@ Z2<K> Z2<K>::operator|(const Z2<K>& other) const
 }
 
 template<int K>
+Z2<K>& Z2<K>::operator^=(const Z2<K>& other)
+{
+	mpn_xor_n(a, a, other.a, N_WORDS);
+    return *this;
+}
+
+template<int K>
 bool Z2<K>::operator==(const Z2<K>& other) const
 {
 #ifdef DEBUG_MPN

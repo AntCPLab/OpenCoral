@@ -141,6 +141,8 @@ public:
 	Z2<K> operator^(const Z2& other) const;
 	Z2<K> operator|(const Z2& other) const;
 
+	Z2<K>& operator^=(const Z2<K>& other);
+
 	Z2<K>& operator+=(const Z2<K>& other);
 	Z2<K>& operator-=(const Z2<K>& other);
         Z2<K>& operator*=(const Z2<K>& other);

@@ -119,7 +119,8 @@ public:
     typedef SwitchableOutput out_type;
 
     static const bool is_real = false;
-    static const bool is_encoded = false;
+    static const false_type tight_packed;
+    static const bool is_bit_type = true;
 
     static MC* new_mc(mac_key_type)
     {
@@ -209,6 +210,8 @@ public:
     void pack(octetStream& os) const {fail(); return;}
     void unpack(octetStream& os) const {fail(); return;}
 };
+
+inline const false_type NoShare::tight_packed;
 
 inline ostream& operator<<(ostream& o, NoShare)
 {

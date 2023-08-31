@@ -42,6 +42,17 @@ void DataPositions::count_edabit(bool strict, int n_bits)
   edabits[{strict, n_bits}]++;
 }
 
+void DataPositions::waste_edabit(bool strict, int n_bits)
+{
+  wasted_edabits[{strict, n_bits}]++;
+}
+
+void DataPositions::waste_dabit(int n)
+{
+  wasted_dabits += n;
+}
+
+
 void DataPositions::increase(const DataPositions& delta)
 {
   inputs.resize(max(inputs.size(), delta.inputs.size()), {});

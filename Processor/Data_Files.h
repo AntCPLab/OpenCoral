@@ -15,6 +15,8 @@
 #include "EdabitBuffer.h"
 #include "Tools/TimerWithComm.h"
 #include "Protocols/dabit.h"
+#include "EdabitPackBuffer.h"
+#include "DabitPackBuffer.h"
 
 #include <fstream>
 #include <map>
@@ -68,6 +70,9 @@ public:
   map<pair<bool, int>, long long> edabits;
   map<array<int, 3>, long long> matmuls;
 
+  map<pair<bool, int>, long long> wasted_edabits;
+  long long wasted_dabits = 0;
+
   DataPositions(int num_players = 0);
   DataPositions(const Player& P) : DataPositions(P.num_players()) {}
   ~DataPositions();
@@ -78,6 +83,8 @@ public:
 
   void count(DataFieldType type, DataTag tag, int n = 1);
   void count_edabit(bool strict, int n_bits);
+  void waste_edabit(bool strict, int n_bits);
+  void waste_dabit(int n = 1);
 
   void increase(const DataPositions& delta);
   DataPositions& operator-=(const DataPositions& delta);
@@ -200,6 +207,9 @@ public:
   virtual T get_normal();
   virtual T get_normal_no_count() 
   { throw not_implemented() ; }
+
+  void waste_dabit(int n = 1) 
+  { usage.waste_dabit(n); }
 };
 
 template<class T>
@@ -220,6 +230,9 @@ class Sub_Data_Files : public Preprocessing<T>
   map<int, EdabitBuffer<T>> edabit_buffers;
   map<int, edabitvec<T>> my_edabits;
 
+  DabitPackBuffer<T> dabitpack_buffer;
+  map<int, EdabitPackBuffer<T>> edabitpack_buffers;
+
   int my_num,num_players;
 
   const string prep_data_dir;
@@ -228,10 +241,13 @@ class Sub_Data_Files : public Preprocessing<T>
   part_type* part;
 
   EdabitBuffer<T>& get_edabit_buffer(int n_bits);
+  EdabitPackBuffer<T>& get_edabitpack_buffer(int n_bits);
 
   /// Get fresh edaBit chunk
   edabitvec<T> get_edabitvec(bool strict, int n_bits);
   void get_edabit_no_count(bool strict, int n_bits, edabit<T>& eb);
+
+  edabitpack<T> get_edabitpack_no_count(bool strict, int n_bits);
 
 public:
   static string get_filename(const Names& N, Dtype type, int thread_num = -1);
@@ -297,6 +313,8 @@ public:
   void setup_extended(const DataTag& tag, int tuple_size = 0);
   void get_no_count(vector<T>& S, DataTag tag, const vector<int>& regs, int vector_size);
   void get_dabit_no_count(T& a, typename T::bit_type& b);
+
+  dabitpack<T> get_dabitpack_no_count();
 
   part_type& get_part();
 };

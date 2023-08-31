@@ -161,6 +161,9 @@ Sub_Data_Files<T>::Sub_Data_Files(int my_num, int num_players,
       PrepBase::get_filename(prep_data_dir, DATA_DABIT,
           type_short, my_num, thread_num), dabit<T>::size(), type_string,
       DataPositions::dtype_names[DATA_DABIT]);
+  dabitpack_buffer.setup(
+      PrepBase::get_dabitpack_filename(prep_data_dir,
+          type_short, my_num, thread_num), T::size() * dabitpack<T>::MAX_SIZE + T::bit_type::size(), type_string, "dabitPacks");
 
   input_buffers.resize(num_players);
   for (int i=0; i<num_players; i++)
@@ -258,26 +261,56 @@ void Sub_Data_Files<T>::seekg(DataPositions& pos)
       setup_extended(it->first);
       extended[it->first].seekg(it->second);
     }
-  dabit_buffer.seekg(pos.files[field_type][DATA_DABIT]);
 
-  if (field_type == DATA_INT)
+  // `DATA_INT` is not a sufficient condition, because some bit type's clear is also DATA_INT, such as TinyShare
+  if (field_type == DATA_INT && not T::is_bit_type)
     {
-      for (auto& x : pos.edabits)
-        {
-          // open files
-          get_edabit_buffer(x.first.second);
-        }
+      if (T::bit_type::tight_packed) {
+        // We also move dabit_buffer inside the condition, because it usually only makes sense for dabit with arith and boolean type, instead of both boolean types
+        int n = pos.files[field_type][DATA_DABIT];
+        assert(n % dabitpack<T>::MAX_SIZE == 0);
+        dabitpack_buffer.seekg(n / dabitpack<T>::MAX_SIZE);
+
+        for (auto& x : pos.edabits)
+          {
+            // open files
+            get_edabitpack_buffer(x.first.second);
+          }
 
 
-      int block_size = edabitvec<T>::MAX_SIZE;
-      for (auto& x : edabit_buffers)
-        {
-          int n = pos.edabits[{true, x.first}] + pos.edabits[{false, x.first}];
-          x.second.seekg(n / block_size);
-          edabit<T> eb;
-          for (int i = 0; i < n % block_size; i++)
-            get_edabit_no_count(false, x.first, eb);
-        }
+        int block_size = edabitpack<T>::MAX_SIZE;
+        for (auto& x : edabitpack_buffers)
+          {
+            int n = pos.edabits[{true, x.first}] + pos.edabits[{false, x.first}];
+            // if (n%block_size != 0)
+              // cerr << "[zico] n: " << n << ", block_size: " << block_size << ", nbits: " << x.first << " (" << pos.edabits[{true, x.first}] << ", " << pos.edabits[{false, x.first}] << ")"<< endl;
+            // else
+              // cerr << "[zico] n: " << n << ", block_size: " << block_size << ", nbits: " << x.first << " (" << pos.edabits[{true, x.first}] << ", " << pos.edabits[{false, x.first}] << ")"<< endl;
+            // assert(n % block_size == 0);
+            x.second.seekg(n / block_size);
+          }
+      }
+      else {
+        // We also move dabit_buffer inside the condition, because it usually only makes sense for dabit with arith and boolean type, instead of both boolean types
+        dabit_buffer.seekg(pos.files[field_type][DATA_DABIT]);
+
+        for (auto& x : pos.edabits)
+          {
+            // open files
+            get_edabit_buffer(x.first.second);
+          }
+
+
+        int block_size = edabitvec<T>::MAX_SIZE;
+        for (auto& x : edabit_buffers)
+          {
+            int n = pos.edabits[{true, x.first}] + pos.edabits[{false, x.first}];
+            x.second.seekg(n / block_size);
+            edabit<T> eb;
+            for (int i = 0; i < n % block_size; i++)
+              get_edabit_no_count(false, x.first, eb);
+          }
+      }
     }
 }
 
@@ -310,9 +343,12 @@ void Sub_Data_Files<T>::prune()
   for (auto& it : extended)
     it.second.prune();
   dabit_buffer.prune();
+  dabitpack_buffer.prune();
   if (part != 0)
     part->prune();
   for (auto& x : edabit_buffers)
+    x.second.prune();
+  for (auto& x : edabitpack_buffers)
     x.second.prune();
 }
 
@@ -335,10 +371,13 @@ void Sub_Data_Files<T>::purge()
   for (auto it : extended)
     it.second.purge();
   dabit_buffer.purge();
+  dabitpack_buffer.purge();
   if (part != 0)
     part->purge();
   for (auto& x : edabit_buffers)
-    x.second.prune();
+    x.second.purge();
+  for (auto& x : edabitpack_buffers)
+    x.second.purge();
 }
 
 template<class T>
@@ -369,6 +408,7 @@ void Sub_Data_Files<T>::get_no_count(vector<T>& S, DataTag tag, const vector<int
 template<class T>
 void Sub_Data_Files<T>::get_dabit_no_count(T& a, typename T::bit_type& b)
 {
+  assert(not T::bit_type::tight_packed);
   dabit<T> tmp;
   dabit_buffer.input(tmp);
   a = tmp.first;
@@ -391,8 +431,24 @@ EdabitBuffer<T>& Sub_Data_Files<T>::get_edabit_buffer(int n_bits)
 }
 
 template<class T>
+EdabitPackBuffer<T>& Sub_Data_Files<T>::get_edabitpack_buffer(int n_bits)
+{
+  if (edabitpack_buffers.find(n_bits) == edabitpack_buffers.end())
+    {
+      string filename = PrepBase::get_edabitpack_filename(prep_data_dir,
+          n_bits, my_num, thread_num);
+      edabitpack_buffers[n_bits] = n_bits;
+      edabitpack_buffers[n_bits].setup(filename,
+          T::size() * edabitpack<T>::MAX_SIZE
+              + n_bits * T::bit_type::part_type::size());
+    }
+  return edabitpack_buffers[n_bits];
+}
+
+template<class T>
 edabitvec<T> Sub_Data_Files<T>::get_edabitvec(bool strict, int n_bits)
 {
+  assert(not T::bit_type::tight_packed);
   if (my_edabits[n_bits].empty())
     return get_edabit_buffer(n_bits).read();
   else
@@ -405,8 +461,21 @@ edabitvec<T> Sub_Data_Files<T>::get_edabitvec(bool strict, int n_bits)
 }
 
 template<class T>
+edabitpack<T> Sub_Data_Files<T>::get_edabitpack_no_count(bool strict, int n_bits)
+{
+  assert(T::bit_type::tight_packed);
+  return get_edabitpack_buffer(n_bits).read();
+}
+
+template<class T>
+dabitpack<T> Sub_Data_Files<T>::get_dabitpack_no_count() {
+  return dabitpack_buffer.read();
+}
+
+template<class T>
 void Preprocessing<T>::fill(edabitvec<T>& res, bool strict, int n_bits)
 {
+  assert(not T::bit_type::tight_packed);
   edabit<T> eb;
   while (res.size() < res.MAX_SIZE)
     {

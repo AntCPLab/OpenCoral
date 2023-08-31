@@ -44,6 +44,8 @@ public:
 
     // `is_real` exists in multiple base classes (ShareSecret and ShareInterface)
     static const bool is_real = true;
+    static const false_type tight_packed;
+    static const bool is_bit_type = true;
 
     static string name()
     {
@@ -61,6 +63,7 @@ public:
             super(other)
     {
     }
+    TinyShare(const TinySecret<S>& other);
 
     void XOR(const This& a, const This& b)
     {
@@ -78,7 +81,32 @@ public:
     {
         return new MAC_Check(mac_key);
     }
+
+    This operator^(const This& other) const
+    {
+        return *this + other;
+    }
+
+    This& operator^=(const This& other)
+    {
+        *this += other;
+        return *this;
+    }
+
+    This lsb() const
+    {
+        return *this;
+    }
+
+    This get_bit(int i)
+    {
+        assert(i == 0);
+        return lsb();
+    }
 };
+
+template<int S>
+const false_type TinyShare<S>::tight_packed;
 
 } /* namespace GC */
 

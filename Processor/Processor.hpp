@@ -189,14 +189,16 @@ void Processor<sint, sgf2n>::dabit(const Instruction& instruction)
 {
   int size = instruction.get_size();
   int unit = sint::bit_type::default_length;
-  if (sint::bit_type::is_encoded) {
-    assert(size % unit == 0);
+  if (sint::bit_type::tight_packed) {
+    // assert(size % unit == 0);
     for (int i = 0; i < DIV_CEIL(size, unit); i++) {
       auto dp = Procp.DataF.get_dabitpack();
       Procb.S[instruction.get_r(1) + i] = dp.second;
-      for (int j = 0; j < unit; j++)
+      size_t m = (i+1)*unit <= size ? unit : (size % unit);
+      for (size_t j = 0; j < m; j++)
         Procp.S[instruction.get_r(0) + i * unit + j] = dp.first[j];
     }
+    Procp.DataF.waste_dabit(unit - size%unit);
   }
   else {
     for (int i = 0; i < DIV_CEIL(size, unit); i++)

@@ -51,6 +51,9 @@ public:
     void prune();
     void purge();
     void check_tuple_length(int tuple_length);
+    const string& get_filename() const {
+        return filename;
+    }
 };
 
 

@@ -1,7 +1,8 @@
+#define VERBOSE_DEBUG_PRINT
 #include "TinyOT/fpre.h"
 
 void test_refill(int party, int port) {
-    int N = 1<<20;
+    int N = 10000;
 
 	emp::NetIO *io;
 	io = new emp::NetIO(party==emp::ALICE ? nullptr:emp::IP, port);
@@ -9,7 +10,7 @@ void test_refill(int party, int port) {
 	auto tt1 = emp::clock_start();
 	fpre->refill();
 	cout << emp::time_from(tt1)/(N)*1000<<endl;
-	cout << fpre->bandwidth()<<endl;	
+	cout << fpre->bandwidth() / 1000 << " KB" <<endl;	
 
 	fpre->check_correctness(fpre->MAC_res, fpre->KEY_res, fpre->batch_size);	
 	delete fpre;

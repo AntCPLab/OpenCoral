@@ -55,10 +55,41 @@ public:
 };
 
 template<class T>
-using dabitpack = pair<FixedVector<T, T::bit_type::default_length>, typename T::bit_type>;
+class dabitpack: public pair<FixedVector<T, T::bit_type::default_length>, typename T::bit_type> {
+    typedef pair<FixedVector<T, T::bit_type::default_length>, typename T::bit_type> super;
+public:
+    static const int MAX_SIZE = super::first_type::MAX_SIZE;
+
+    dabitpack() {}
+
+    dabitpack(const typename super::first_type& a, const typename super::second_type& b) : super(a, b) {
+    }
+
+
+    void push_a(const T& x)
+    {
+        this->first.push_back(x);
+    }
+
+    void input(ifstream& s)
+    {
+        char buffer[MAX_SIZE * T::size()];
+        s.read(buffer, MAX_SIZE * T::size());
+        for (int i = 0; i < MAX_SIZE; i++)
+        {
+            T x;
+            x.assign(buffer + i * T::size());
+            push_a(x);
+        }
+        size_t bsize = T::bit_type::part_type::size();
+        char bbuffer[bsize];
+        s.read(bbuffer, bsize);
+        this->second.assign(bbuffer);
+    }
+};
 
 template<class T>
-using dabit_t = typename std::conditional<T::bit_type::is_encoded, dabitpack<T>, dabit<T>>::type;
+using dabit_t = typename std::conditional<T::bit_type::tight_packed, dabitpack<T>, dabit<T>>::type;
 
 template<class T>
 dabitpack<T>& operator+=(dabitpack<T>& x, const dabitpack<T>& y)

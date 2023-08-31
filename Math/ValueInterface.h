@@ -27,6 +27,7 @@ public:
     static void init(bool mont = true) { (void) mont; }
     static void init_default(int, bool = true) {}
     static void init_field(const bigint& = {}, bool = true) {}
+    static void init_minimum(int lower) {}
 
     static void read_or_generate_setup(const string&, const OnlineOptions&) {}
     template<class T>

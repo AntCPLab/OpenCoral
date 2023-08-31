@@ -34,6 +34,12 @@
 #include "GC/CcdPrep.h"
 
 #include "GC/VectorProtocol.hpp"
+#include "GC/TinierSharePrep.hpp"
+#include "GC/ShareSecret.hpp"
+#include "Protocols/ShuffleSacrifice.hpp"
+#include "Protocols/MalRepRingPrep.hpp"
+#include "GC/CcdPrep.hpp"
+#include "GC/TinyPrep.hpp"
 
 #include "Tools/debug.hpp"
 

@@ -52,7 +52,9 @@ public:
 
     static const int default_length = 1;
 
-    static const bool is_encoded = false;
+    static const false_type tight_packed;
+
+    static const bool is_bit_type = false;
 
     static string type_short() { throw runtime_error("shorthand undefined"); }
 

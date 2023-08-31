@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef GC_TINYPREP_HPP_
+#define GC_TINYPREP_HPP_
+
 #include "TinierSharePrep.h"
 
 #include "Protocols/MascotPrep.hpp"
@@ -78,3 +81,5 @@ void TinierSharePrep<T>::buffer_secret_triples()
 }
 
 } /* namespace GC */
+
+#endif 

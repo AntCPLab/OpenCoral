@@ -1,3 +1,5 @@
+#define VERBOSE_DEBUG_PRINT
+
 #include "Machines/Rmfe.hpp"
 
 #include "Tools/debug.hpp"
@@ -28,8 +30,6 @@
 #include "Machines/ShamirMachine.hpp"
 #include "Machines/Rep4.hpp"
 #include "Machines/Rep.hpp"
-
-
 
 
 template<class T>
@@ -96,10 +96,10 @@ int main(int argc, char** argv)
     // Tiny.
     // test_buffer_inputs<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
     // Rmfe
-    test_buffer_inputs<GC::RmfeShare>(argc, argv);
+    // test_buffer_inputs<GC::RmfeShare>(argc, argv);
 
     // Tinier
-    // test_buffer_triples<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
+    test_buffer_triples<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
     // Tiny.
     // test_buffer_triples<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
     // Rmfe

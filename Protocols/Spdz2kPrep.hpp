@@ -205,7 +205,7 @@ void MaliciousRingPrep<T>::buffer_edabits_from_personal(bool strict, int n_bits,
     RunningTimer finalize_timer;
 #endif
 
-    if (T::bit_type::is_encoded) {
+    if (T::bit_type::tight_packed) {
         vector<edabitpack<T>> checked;
         int dl = bit_type::default_length;
         assert(sums.size() == bits.size() * dl);

@@ -74,7 +74,7 @@ public:
 
     static const bool is_real = true;
 
-    static const bool is_encoded = false;
+    static const false_type tight_packed;
 
     static const bool actual_inputs = T::actual_inputs;
 
@@ -187,6 +187,9 @@ public:
 
 template <class T>
 int Secret<T>::default_length = 64;
+
+template <class T>
+const false_type Secret<T>::tight_packed;
 
 template <class T>
 inline ostream& operator<<(ostream& o, Secret<T>& secret)

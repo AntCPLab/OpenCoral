@@ -531,7 +531,7 @@ void generate_mac_keys(typename T::mac_share_type::open_type& key,
     }
 
   cout << "--------------\n";
-  cout << "Final Key: " << key << endl;
+  cout << "Final Key: " << key << " (dir: " << prep_data_prefix << ")" << endl;
 }
 
 inline void check_files(ofstream* outf, int N)
@@ -598,6 +598,28 @@ void plain_edabits(vector<typename T::clear>& as,
     bool zero = false)
 {
   int max_size = edabitvec<T>::MAX_SIZE;
+  as.resize(max_size);
+  bs.clear();
+  bs.resize(length);
+  Z2<T::clear::MAX_EDABITS> value;
+  for (int j = 0; j < max_size; j++)
+    {
+      if (not zero)
+        value.randomize_part(G, length);
+      as[j] = value;
+      for (int k = 0; k < length; k++)
+        // bs[k] ^= BitVec(value.get_bit(k)) << j;
+        bs[k] ^= typename T::bit_type::part_type::clear(value.get_bit(k)) << j;
+    }
+
+}
+
+template<class T>
+void plain_edabitpacks(vector<typename T::clear>& as,
+    vector<typename T::bit_type::part_type::clear>& bs, int length, PRNG& G,
+    bool zero = false)
+{
+  int max_size = edabitpack<T>::MAX_SIZE;
   as.resize(max_size);
   bs.clear();
   bs.resize(length);

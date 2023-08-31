@@ -440,7 +440,7 @@ void MaliciousRingPrep<T>::buffer_personal_dabits(int input_player, false_type,
         false_type)
 {
     assert(this->proc != 0);
-    if (T::bit_type::is_encoded) {
+    if (T::bit_type::tight_packed) {
         vector<dabitpack<T>> check_dabits;
         this->buffer_personal_dabits_without_check<0>(input_player, check_dabits,
                 dabit_sacrifice.minimum_n_inputs(this->buffer_size, T::bit_type::default_length));
@@ -651,7 +651,7 @@ void MaliciousRingPrep<T>::buffer_personal_edabits(int n_bits, vector<T>& wholes
 #endif
     EdabitShuffleSacrifice<T> shuffle_sacrifice(n_bits);
     int dl = BT::default_length;
-    int force_packing = BT::is_encoded ? dl : 1;
+    int force_packing = BT::tight_packed ? dl : 1;
     int buffer_size = shuffle_sacrifice.minimum_n_inputs(shuffle_sacrifice.minimum_n_outputs(force_packing), force_packing);
     vector<T> sums(buffer_size);
     vector<vector<BT>> bits(n_bits, vector<BT>(DIV_CEIL(buffer_size, BT::default_length)));
@@ -671,7 +671,7 @@ void MaliciousRingPrep<T>::buffer_personal_edabits(int n_bits, vector<T>& wholes
     cerr << "Done with generating personal edaBits after " << timer.elapsed()
             << " seconds" << endl;
 #endif
-    if (BT::is_encoded) {
+    if (BT::tight_packed) {
         vector<edabitpack<T>> edabits;
         shuffle_sacrifice.edabit_sacrifice(edabits, sums, bits, *this->proc,
                 strict, input_player, queues);
@@ -1099,7 +1099,7 @@ void RingPrep<T>::sanitize(vector<edabit<T>>& edabits, int n_bits, int player,
         for (size_t j = n_bits; j < x.second.size(); j++)
         {
             auto& mask = *dit++;
-            int masked = (*oit++).get();
+            int masked = (*oit++).get_bit(0);
             auto overflow = mask
                     + T::constant(masked, this->proc->P.my_num(),
                             this->proc->MC.get_alphai())
@@ -1230,7 +1230,7 @@ void RingPrep<T>::sanitize(vector<edabitpack<T>>& edabits, int n_bits, int playe
         for (size_t j = n_bits; j < x.second.size(); j++)
         {
             auto& mask = *dit++;
-            typename T::clear masked = typename T::bit_type::clear(*oit++);
+            typename T::bit_type::clear masked = typename T::bit_type::clear(*oit++);
             for (int k = 0; k < BT::default_length; k++) {
                 auto overflow = mask.first[k] 
                     + T::constant(masked.get_bit(k), this->proc->P.my_num(),
@@ -1350,7 +1350,7 @@ void Preprocessing<T>::get_dabit(T& a, typename T::bit_type& b)
 
 template<class T>
 dabitpack<T> BufferPrep<T>::get_personal_dabitpack(int player) {
-    assert(T::bit_type::is_encoded);
+    assert(T::bit_type::tight_packed);
     auto& buffer = personal_dabitpacks[player];
     if (buffer.empty()) {
         InScope in_scope(this->do_count, false, *this);
@@ -1371,7 +1371,7 @@ dabitpack<T> Preprocessing<T>::get_dabitpack()
 
 template<class T>
 dabitpack<T> BufferPrep<T>::get_dabitpack_no_count() {
-    assert(T::bit_type::is_encoded);
+    assert(T::bit_type::tight_packed);
     if (dabitpacks.empty()) {
         InScope in_scope(this->do_count, false, *this);
         ThreadQueues* queues = 0;
@@ -1385,7 +1385,7 @@ dabitpack<T> BufferPrep<T>::get_dabitpack_no_count() {
 
 template<class T>
 edabitpack<T> BufferPrep<T>::get_edabitpack_no_count(bool strict, int n_bits) {
-    assert(T::bit_type::is_encoded);
+    assert(T::bit_type::tight_packed);
     auto& buffer = this->edabitpacks[{strict, n_bits}];
     if (buffer.empty()) {
         InScope in_scope(this->do_count, false, *this);
@@ -1428,6 +1428,7 @@ template<class T>
 void Sub_Data_Files<T>::get_edabit_no_count(bool strict, int n_bits,
         edabit<T>& a)
 {
+    assert(not T::bit_type::tight_packed);
     auto& my_edabit = my_edabits[n_bits];
     if (my_edabit.empty())
     {
@@ -1454,15 +1455,16 @@ void Preprocessing<T>::get_edabits(bool strict, size_t size, T* a,
     edabit<T> eb;
     size_t unit = T::bit_type::default_length;
     print_general("unit", unit, "size", size, "n_bits", n_bits, "get_edabits");
-    if (T::bit_type::is_encoded)
-        assert(size % unit == 0);
+    // if (T::bit_type::tight_packed)
+    //     assert(size % unit == 0);
     for (int k = 0; k < DIV_CEIL(size, unit); k++)
     {
-        if (T::bit_type::is_encoded) {
+        if (T::bit_type::tight_packed) {
             auto ep = get_edabitpack_no_count(strict, n_bits);
             for (int j = 0; j < n_bits; j++)
                 Sb[regs[j] + k] = ep.get_b(j);
-            for (size_t j = 0; j < unit; j++)
+            size_t m = (k+1)*unit <= size ? unit : (size % unit);
+            for (size_t j = 0; j < m; j++)
                 a[k * unit + j] = ep.get_a(j);
         }
         else {
@@ -1494,6 +1496,8 @@ void Preprocessing<T>::get_edabits(bool strict, size_t size, T* a,
 
     for (size_t i = 0; i < size; i++)
         this->usage.count_edabit(strict, n_bits);
+    for (size_t i = 0; i < (unit-size%unit); i++)
+        this->usage.waste_edabit(strict, n_bits);
 }
 
 template<class T>

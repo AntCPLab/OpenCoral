@@ -46,7 +46,7 @@ public:
 
     static const bool is_real = true;
     static const bool actual_inputs = true;
-    static const bool is_encoded = false;
+    static const false_type tight_packed;
 
     static ShareThread<U>& get_party()
     {
@@ -103,6 +103,9 @@ public:
 
     U& operator=(const U&);
 };
+
+template<class U>
+const false_type ShareSecret<U>::tight_packed;
 
 template<class U, int L>
 class RepSecretBase : public FixedVec<BitVec, L>, public ShareSecret<U>

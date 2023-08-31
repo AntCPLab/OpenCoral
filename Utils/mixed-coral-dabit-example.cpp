@@ -109,7 +109,7 @@ void run(char** argv)
     {
         T res;
         // unmask via XOR and recombine
-        typename T::clear masked = bit_output.finalize_open();
+        typename T::bit_type::clear masked = bit_output.finalize_open();
         auto& dv = dabitpacks.next();
         for (int j = 0; j < n_bits; j++)
         {

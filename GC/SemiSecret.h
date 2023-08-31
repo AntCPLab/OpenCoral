@@ -93,7 +93,7 @@ public:
     typedef SemiPrep LivePrep;
     typedef Semi Protocol;
 
-    static const bool is_encoded = false;
+    static const false_type tight_packed;
 
     static MC* new_mc(typename SemiShare<BitVec>::mac_key_type);
 
@@ -111,6 +111,8 @@ public:
     }
 };
 
+inline const false_type SemiSecret::tight_packed;
+
 class DealerSecret : public SemiSecretBase<DealerSecret, DealerShare<BitVec>>
 {
     typedef DealerSecret This;
@@ -124,6 +126,8 @@ public:
     typedef DealerInput<This> Input;
     typedef DealerPrep LivePrep;
 
+    static const false_type tight_packed;
+
     static MC* new_mc(typename super::mac_key_type);
 
     DealerSecret()
@@ -136,6 +140,8 @@ public:
     {
     }
 };
+
+inline const false_type DealerSecret::tight_packed;
 
 } /* namespace GC */
 

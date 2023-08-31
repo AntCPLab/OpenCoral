@@ -22,6 +22,8 @@
 #include "GC/TinierSecret.h"
 #include "GC/MaliciousCcdSecret.h"
 #include "GC/Rep4Secret.h"
+#include "Protocols/CoralShare.h"
+#include "GC/RmfeShare.h"
 
 #include "Math/Setup.h"
 #include "Processor/Data_Files.h"
@@ -36,6 +38,7 @@
 #include "Math/gfp.hpp"
 #include "GC/Secret.hpp"
 #include "Machines/ShamirMachine.hpp"
+#include "Machines/Coral.hpp"
 
 #include <sstream>
 #include <fstream>
@@ -73,13 +76,28 @@ public:
       bool zero, PRNG& G, const typename T::bit_type::mac_type& bit_key = {});
 
   template<class T>
-  void make_edabits(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G, false_type,
+  void make_edabits(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G, false_type, false_type,
+      const typename T::bit_type::mac_type& bit_key = {});
+
+  template<class T>
+  void make_edabits(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G, false_type, true_type,
       const typename T::bit_type::mac_type& bit_key = {});
   template<class T>
-  void make_edabits(const typename T::mac_type&, int, int, bool, PRNG&, true_type,
+  void make_edabits(const typename T::mac_type&, int, int, bool, PRNG&, true_type, false_type,
       const typename T::bit_type::mac_type& = {})
   {
   }
+  template<class T>
+  void make_edabits(const typename T::mac_type&, int, int, bool, PRNG&, true_type, true_type,
+      const typename T::bit_type::mac_type& = {})
+  {
+  }
+
+  template<int K, int S>
+  int generate_spdz2k();
+
+  template<int K, int S>
+  int generate_coral();
 };
 
 
@@ -124,7 +142,7 @@ void make_bits(const typename T::mac_type& key, int N, int ntrip, bool zero, PRN
 }
 
 template<class T>
-void make_dabits(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G,
+void make_dabits(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G, false_type,
     const typename T::bit_type::mac_type& bit_key = { })
 {
   Files<T> files(N, key,
@@ -134,12 +152,32 @@ void make_dabits(const typename T::mac_type& key, int N, int ntrip, bool zero, P
     {
       bool bit = not zero && G.get_bit();
       files.template output_shares<T>(bit);
-      files.template output_shares<typename dabit<T>::bit_type>(bit, bit_key);
+      files.template output_shares<typename dabit<T>::bit_type>(typename T::bit_type::part_type::open_type(bit), bit_key);
     }
 }
 
 template<class T>
-void FakeParams::make_edabits(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G, false_type,
+void make_dabits(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G, true_type,
+    const typename T::bit_type::mac_type& bit_key = { })
+{
+  Files<T> files(N, key,
+      get_prep_sub_dir<T>(prep_data_prefix, N)
+          + "daBitPacks-" + T::type_short(), G);
+  int max_size = dabitpack<T>::first_type::MAX_SIZE;
+  for (int i = 0; i < ntrip / max_size; i++)
+    {
+      typename T::bit_type::part_type::clear bits;
+      if (not zero)
+        bits.randomize(G);
+      for (int j = 0; j < max_size; j++) {
+        files.template output_shares<T>(bits.get_bit(j));
+      }
+      files.template output_shares<typename dabit<T>::bit_type>(typename T::bit_type::part_type::open_type(bits), bit_key);
+    }
+}
+
+template<class T>
+void FakeParams::make_edabits(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G, false_type, false_type,
     const typename T::bit_type::mac_type& bit_key)
 {
   vector<int> lengths;
@@ -160,6 +198,32 @@ void FakeParams::make_edabits(const typename T::mac_type& key, int N, int ntrip,
             files.template output_shares<T>(a);
           for (auto& b : bs)
             files.template output_shares<typename T::bit_type::part_type>(b, bit_key);
+        }
+    }
+}
+
+template<class T>
+void FakeParams::make_edabits(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G, false_type, true_type,
+    const typename T::bit_type::mac_type& bit_key)
+{
+  vector<int> lengths;
+  opt.get("-e")->getInts(lengths);
+  for (auto length : lengths)
+    {
+      Files<T> files(N, key,
+          get_prep_sub_dir<T>(prep_data_prefix, N)
+          + "edaBitPacks-" + to_string(length), G);
+      bigint value;
+      int max_size = edabitpack<T>::MAX_SIZE;
+      for (int i = 0; i < ntrip / max_size; i++)
+        {
+          vector<typename T::clear> as;
+          vector<typename T::bit_type::part_type::clear> bs;
+          plain_edabitpacks<T>(as, bs, length, G, zero);
+          for (auto& a : as)
+            files.template output_shares<T>(a);
+          for (auto& b : bs)
+            files.template output_shares<typename T::bit_type::part_type>(typename T::bit_type::part_type::open_type(b), bit_key);
         }
     }
 }
@@ -347,9 +411,10 @@ void FakeParams::make_basic(const typename T::mac_type& key, int nplayers,
 {
     make_minimal<T>(key, nplayers, nitems, zero, G);
     make_square_tuples<T>(key, nplayers, nitems, T::type_short(), zero, G);
-    make_dabits<T>(key, nplayers, nitems, zero, G, bit_key);
-    make_edabits<T>(key, nplayers, nitems, zero, G, T::clear::characteristic_two,
+    make_dabits<T>(key, nplayers, nitems, zero, G, T::bit_type::tight_packed, bit_key);
+    make_edabits<T>(key, nplayers, nitems, zero, G, T::clear::characteristic_two, T::bit_type::tight_packed,
         bit_key);
+    
     if (T::clear::invertible)
     {
         make_inverse<T>(key, nplayers, nitems, zero, prep_data_prefix, G);
@@ -559,6 +624,15 @@ int main(int argc, const char** argv)
           "-seed", // Flag token.
           "--prngseed" // Flag token.
   );
+  opt.add(
+        "", // Default.
+        0, // Required?
+        1, // Number of args expected.
+        0, // Delimiter if expecting multiple args.
+        "Generate for Coral with parameter k (bit length)", // Help description.
+        "-C", // Flag token.
+        "--coral" // Flag token.
+  );
   opt.parse(argc, argv);
 
   int lgp;
@@ -572,9 +646,32 @@ int main(int argc, const char** argv)
       if (opt.isSet("-S"))
         opt.get("-S")->getInt(s);
 #define X(K, S) if (k == K and s == S) \
-	  return params.generate<Spdz2kShare<K, S>>();
+      return params.generate_spdz2k<K, S>();
+	  // return params.generate<Spdz2kShare<K, S>>();
 #ifdef RING_SIZE
       X(RING_SIZE, SPDZ2K_DEFAULT_SECURITY)
+#endif
+      X(32, 32) X(64, 64) X(64, 48)
+#undef X
+
+      cerr << "Not compiled for " << k << "-bit rings with " << s
+          << "-bit security." << endl << "Add 'X(" << k << "," << s
+          << ")' to line " << (__LINE__ - 4) << " in " << __FILE__ << endl;
+      exit(1);
+    }
+  else if (opt.isSet("-C"))
+    {
+      // RMFE setup
+      RmfeShare::setup_rmfe(2, 6);
+      int k, s;
+      opt.get("-C")->getInt(k);
+      s = CORAL_DEFAULT_SECURITY;
+      if (opt.isSet("-S"))
+        opt.get("-S")->getInt(s);
+#define X(K, S) if (k == K and s == S) \
+	  return params.generate_coral<K, S>();
+#ifdef RING_SIZE
+      X(RING_SIZE, CORAL_DEFAULT_SECURITY)
 #endif
       X(32, 32) X(64, 64) X(64, 48)
 #undef X
@@ -769,16 +866,22 @@ int FakeParams::generate()
   Z2<DEFAULT_SECURITY + 1> keyt;
   generate_mac_keys<GC::TinySecret<DEFAULT_SECURITY>>(keyt, nplayers,
       prep_data_prefix, G);
-
   make_minimal<GC::TinySecret<DEFAULT_SECURITY>>(keyt, nplayers,
       default_num / 64, zero, G);
 
-  gf2n_short keytt;
-  generate_mac_keys<GC::TinierShare<gf2n_short>>(keytt, nplayers, prep_data_prefix, G);
-  make_minimal<GC::TinierShare<gf2n_short>>(keytt, nplayers, default_num, zero, G);
+  // gf2n_short keytt;
+  // generate_mac_keys<GC::TinierShare<gf2n_short>>(keytt, nplayers, prep_data_prefix, G);
+  // make_minimal<GC::TinierShare<gf2n_short>>(keytt, nplayers, default_num, zero, G);
+  // make_dabits<T>(keyp, nplayers, default_num, zero, G, T::bit_type::tight_packed, keytt);
+  // make_edabits<T>(keyp, nplayers, default_num, zero, G, false_type(), T::bit_type::tight_packed, keytt);
 
-  make_dabits<T>(keyp, nplayers, default_num, zero, G, keytt);
-  make_edabits<T>(keyp, nplayers, default_num, zero, G, false_type(), keytt);
+  gf2n_short::reset();
+  T::bit_type::mac_key_type::init_field();
+  typename T::bit_type::mac_key_type keytt;
+  generate_mac_keys<typename T::bit_type::part_type>(keytt, nplayers, prep_data_prefix, G);
+  make_minimal<typename T::bit_type::part_type>(keytt, nplayers, default_num / T::bit_type::part_type::default_length, zero, G);
+  make_dabits<T>(keyp, nplayers, default_num, zero, G, T::bit_type::tight_packed, keytt);
+  make_edabits<T>(keyp, nplayers, default_num, zero, G, false_type(), T::bit_type::tight_packed, keytt);
 
   if (T::clear::prime_field)
     {
@@ -877,4 +980,291 @@ inline void FakeParams::generate_ring(PRNG& G)
 
   make_basic<SemiShare<Z2<K>>>({}, nplayers, default_num, zero, G);
   make_basic<DealerShare<Z2<K>>>({}, nplayers, default_num, zero, G);
+}
+
+
+template<int K, int S>
+int FakeParams::generate_spdz2k()
+{
+  typedef Spdz2kShare<K, S> T;
+
+  vector<string> badOptions;
+  string usage;
+  unsigned int i;
+  if(!opt.gotRequired(badOptions))
+  {
+    for (i=0; i < badOptions.size(); ++i)
+      cerr << "ERROR: Missing required option " << badOptions[i] << ".";
+    opt.getUsage(usage);
+    cout << usage;
+    return 1;
+  }
+
+  if(!opt.gotExpected(badOptions))
+  {
+    for(i=0; i < badOptions.size(); ++i)
+      cerr << "ERROR: Got unexpected number of arguments for option " << badOptions[i] << ".";
+    opt.getUsage(usage);
+    cout << usage;
+    return 1;
+  }
+
+  if (opt.firstArgs.size() == 2)
+  {
+    nplayers = atoi(opt.firstArgs[1]->c_str());
+  }
+  else if (opt.lastArgs.size() == 1)
+  {
+    nplayers = atoi(opt.lastArgs[0]->c_str());
+  }
+  else
+  {
+    cerr << "ERROR: invalid number of arguments\n";
+    opt.getUsage(usage);
+    cout << usage;
+    return 1;
+  }
+
+  int ntripp=0, nbitsp=0,nsqrp=0,ninpp=0,ninv=0;
+  vector<int> list_options;
+  int lg2;
+
+  opt.get("--lg2")->getInt(lg2);
+
+  opt.get("--default")->getInt(default_num);
+  ntripp = nbitsp = nsqrp = ninpp = ninv =
+      default_num;
+  
+  if (opt.isSet("--ntriples"))
+  {
+    opt.get("--ntriples")->getInts(list_options);
+    ntripp = list_options[1];
+  }
+  if (opt.isSet("--nbits"))
+  {
+    opt.get("--nbits")->getInts(list_options);
+    nbitsp = list_options[1];
+  }
+  if (opt.isSet("--ninputs"))
+  {
+    opt.get("--ninputs")->getInts(list_options);
+    ninpp = list_options[1];
+  }
+  if (opt.isSet("--nsquares"))
+  {
+    opt.get("--nsquares")->getInts(list_options);
+    nsqrp = list_options[1];
+  }
+  if (opt.isSet("--ninverses"))
+    opt.get("--ninverses")->getInt(ninv);
+
+  zero = opt.isSet("--zero");
+  if (zero)
+      cout << "Set all values to zero" << endl;
+
+  // check compatibility
+  gf2n::init_field(lg2);
+
+  // Initialize PRNG
+  PRNG G;
+  if (opt.isSet("--prngseed")) {
+    std::string seed;
+    opt.get("--prngseed")->getString(seed);
+    if (seed.length() != SEED_SIZE) {
+      cerr << "ERROR: invalid seed length. Must be " << SEED_SIZE << " bytes";
+      opt.getUsage(usage);
+      cout << usage;
+      return 1;
+    }
+    unsigned char *val = new unsigned char[seed.length()+1];
+    strcpy((char *)val, seed.c_str());
+    G.SetSeed(val);
+    delete [] val;
+  } else {
+    G.ReSeed();
+  }
+
+  prep_data_prefix = PREP_DIR;
+
+  /* Find number players and MAC keys etc*/
+  typename T::mac_type::Scalar keyp;
+  // gf2n key2;
+
+  // create PREP_DIR if not there
+  if (mkdir_p(PREP_DIR) == -1)
+  {
+    cerr << "mkdir_p(" PREP_DIR ") failed\n";
+    throw file_error(PREP_DIR);
+  }
+
+  // typedef Share<gf2n> sgf2n;
+
+  generate_mac_keys<T>(keyp, nplayers, prep_data_prefix, G);
+  // generate_mac_keys<sgf2n>(key2, nplayers, prep_data_prefix, G);
+
+  // make_mult_triples<sgf2n>(key2,nplayers,ntrip2,zero,prep_data_prefix,G);
+  make_mult_triples<T>(keyp,nplayers,ntripp,zero,prep_data_prefix,G);
+  // make_bits<Share<gf2n>>(key2,nplayers,nbits2,zero,G);
+  make_bits<T>(keyp,nplayers,nbitsp,zero,G);
+  // make_square_tuples<sgf2n>(key2,nplayers,nsqr2,"2",zero,G);
+  make_square_tuples<T>(keyp,nplayers,nsqrp,"p",zero,G);
+  // make_inputs<sgf2n>(key2,nplayers,ninp2,"2",zero,G);
+  make_inputs<T>(keyp,nplayers,ninpp,"p",zero,G);
+  // make_inverse<sgf2n>(key2,nplayers,ninv,zero,prep_data_prefix,G);
+
+  // if (opt.isSet("-s"))
+  // {
+  //   make_PreMulC<sgf2n>(key2,nplayers,ninv,zero,G);
+  //   make_Sbox<sgf2n>(key2,nplayers,ninv,zero,G);
+  // }
+
+  // gf2n_short::reset();
+  // gf2n_short::init_field();
+
+  // Z2<DEFAULT_SECURITY + 1> keyt;
+  // generate_mac_keys<GC::TinySecret<DEFAULT_SECURITY>>(keyt, nplayers,
+  //     prep_data_prefix, G);
+  // make_minimal<GC::TinySecret<DEFAULT_SECURITY>>(keyt, nplayers,
+  //     default_num / 64, zero, G);
+
+  // gf2n_short keytt;
+  // generate_mac_keys<GC::TinierShare<gf2n_short>>(keytt, nplayers, prep_data_prefix, G);
+  // make_minimal<GC::TinierShare<gf2n_short>>(keytt, nplayers, default_num, zero, G);
+  // make_dabits<T>(keyp, nplayers, default_num, zero, G, T::bit_type::tight_packed, keytt);
+  // make_edabits<T>(keyp, nplayers, default_num, zero, G, false_type(), T::bit_type::tight_packed, keytt);
+
+  gf2n_short::reset();
+  T::bit_type::mac_key_type::init_field();
+  typename T::bit_type::mac_share_type::open_type keytt;
+  generate_mac_keys<typename T::bit_type::part_type>(keytt, nplayers, prep_data_prefix, G);
+  make_minimal<typename T::bit_type::part_type>(keytt, nplayers, default_num / T::bit_type::part_type::default_length, zero, G);
+  make_dabits<T>(keyp, nplayers, default_num, zero, G, T::bit_type::tight_packed, keytt);
+  make_edabits<T>(keyp, nplayers, default_num, zero, G, false_type(), T::bit_type::tight_packed, keytt);
+
+  return 0;
+}
+
+template<int K, int S>
+int FakeParams::generate_coral()
+{
+  typedef CoralShare<K, S> T;
+
+  vector<string> badOptions;
+  string usage;
+  unsigned int i;
+  if(!opt.gotRequired(badOptions))
+  {
+    for (i=0; i < badOptions.size(); ++i)
+      cerr << "ERROR: Missing required option " << badOptions[i] << ".";
+    opt.getUsage(usage);
+    cout << usage;
+    return 1;
+  }
+
+  if(!opt.gotExpected(badOptions))
+  {
+    for(i=0; i < badOptions.size(); ++i)
+      cerr << "ERROR: Got unexpected number of arguments for option " << badOptions[i] << ".";
+    opt.getUsage(usage);
+    cout << usage;
+    return 1;
+  }
+
+  if (opt.firstArgs.size() == 2)
+  {
+    nplayers = atoi(opt.firstArgs[1]->c_str());
+  }
+  else if (opt.lastArgs.size() == 1)
+  {
+    nplayers = atoi(opt.lastArgs[0]->c_str());
+  }
+  else
+  {
+    cerr << "ERROR: invalid number of arguments\n";
+    opt.getUsage(usage);
+    cout << usage;
+    return 1;
+  }
+
+  int ntripp=0, nbitsp=0,nsqrp=0,ninpp=0,ninv=0;
+  vector<int> list_options;
+
+  opt.get("--default")->getInt(default_num);
+  ntripp = nbitsp = nsqrp = ninpp = ninv =
+      default_num;
+  
+  if (opt.isSet("--ntriples"))
+  {
+    opt.get("--ntriples")->getInts(list_options);
+    ntripp = list_options[1];
+  }
+  if (opt.isSet("--nbits"))
+  {
+    opt.get("--nbits")->getInts(list_options);
+    nbitsp = list_options[1];
+  }
+  if (opt.isSet("--ninputs"))
+  {
+    opt.get("--ninputs")->getInts(list_options);
+    ninpp = list_options[1];
+  }
+  if (opt.isSet("--nsquares"))
+  {
+    opt.get("--nsquares")->getInts(list_options);
+    nsqrp = list_options[1];
+  }
+  if (opt.isSet("--ninverses"))
+    opt.get("--ninverses")->getInt(ninv);
+
+  zero = opt.isSet("--zero");
+  if (zero)
+      cout << "Set all values to zero" << endl;
+
+
+  // Initialize PRNG
+  PRNG G;
+  if (opt.isSet("--prngseed")) {
+    std::string seed;
+    opt.get("--prngseed")->getString(seed);
+    if (seed.length() != SEED_SIZE) {
+      cerr << "ERROR: invalid seed length. Must be " << SEED_SIZE << " bytes";
+      opt.getUsage(usage);
+      cout << usage;
+      return 1;
+    }
+    unsigned char *val = new unsigned char[seed.length()+1];
+    strcpy((char *)val, seed.c_str());
+    G.SetSeed(val);
+    delete [] val;
+  } else {
+    G.ReSeed();
+  }
+
+  prep_data_prefix = PREP_DIR;
+
+  /* Find number players and MAC keys etc*/
+  typename T::mac_type::Scalar keyp;
+
+  // create PREP_DIR if not there
+  if (mkdir_p(PREP_DIR) == -1)
+  {
+    cerr << "mkdir_p(" PREP_DIR ") failed\n";
+    throw file_error(PREP_DIR);
+  }
+
+  generate_mac_keys<T>(keyp, nplayers, prep_data_prefix, G);
+  make_mult_triples<T>(keyp,nplayers,ntripp,zero,prep_data_prefix,G);
+  make_bits<T>(keyp,nplayers,nbitsp,zero,G);
+  make_square_tuples<T>(keyp,nplayers,nsqrp,"p",zero,G);
+  make_inputs<T>(keyp,nplayers,ninpp,"p",zero,G);
+
+  gf2n_short::reset();
+  T::bit_type::mac_key_type::init_field();
+  typename T::bit_type::mac_share_type::open_type keytt;
+  generate_mac_keys<typename T::bit_type::part_type>(keytt, nplayers, prep_data_prefix, G);
+  make_minimal<typename T::bit_type::part_type>(keytt, nplayers, default_num / T::bit_type::part_type::default_length, zero, G);
+  make_dabits<T>(keyp, nplayers, default_num, zero, G, T::bit_type::tight_packed, keytt);
+  make_edabits<T>(keyp, nplayers, default_num, zero, G, false_type(), T::bit_type::tight_packed, keytt);
+
+  return 0;
 }

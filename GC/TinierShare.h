@@ -63,7 +63,8 @@ public:
 
     static const int default_length = 1;
     static const bool expensive_triples = true;
-    static const bool is_encoded = false;
+    static const false_type tight_packed;
+    static const bool is_bit_type = true;
 
     static string name()
     {
@@ -137,6 +138,9 @@ public:
         return lsb();
     }
 };
+
+template<class T>
+const false_type TinierShare<T>::tight_packed;
 
 } /* namespace GC */
 

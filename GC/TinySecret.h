@@ -224,6 +224,8 @@ public:
     typedef typename super::part_type::TripleGenerator InputGenerator;
 
     typedef TinyMultiplier<This> Multiplier;
+    
+    static const bool is_bit_type = true;
 
     static string type_short()
     {
@@ -278,6 +280,13 @@ template<class T>
 inline VectorSecret<T> operator*(const BitVec& clear, const VectorSecret<T>& share)
 {
     return share * clear;
+}
+
+template<int S>
+TinyShare<S>::TinyShare(const TinySecret<S>& other)
+{
+    assert(other.get_regs().size() > 0);
+    *this = other.get_reg(0);
 }
 
 } /* namespace GC */

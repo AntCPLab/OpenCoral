@@ -34,7 +34,7 @@ public:
 
     edabitvec(const T& aa, const typename edabit<T>::second_type& bb)
     {
-        if (T::bit_type::is_encoded)
+        if (T::bit_type::tight_packed)
             throw invalid_pack_usage();
 
         a.push_back(aa);
@@ -79,7 +79,7 @@ public:
 
     edabit<T> next()
     {
-        if (T::bit_type::is_encoded)
+        if (T::bit_type::tight_packed)
             throw invalid_pack_usage();
         edabit<T> res;
         res.first = a.pop();
@@ -94,7 +94,7 @@ public:
 
     void push_back(const edabit<T>& x)
     {
-        if (T::bit_type::is_encoded)
+        if (T::bit_type::tight_packed)
             throw invalid_pack_usage();
         for (size_t i = 0; i < x.second.size(); i++)
         {
@@ -204,26 +204,26 @@ public:
     //     return this->first.end();
     // }
 
-    // void input(int length, ifstream& s)
-    // {
-    //     char buffer[MAX_SIZE * T::size()];
-    //     s.read(buffer, MAX_SIZE * T::size());
-    //     for (int i = 0; i < MAX_SIZE; i++)
-    //     {
-    //         T x;
-    //         x.assign(buffer + i * T::size());
-    //         a.push_back(x);
-    //     }
-    //     size_t bsize = T::bit_type::part_type::size();
-    //     char bbuffer[length * bsize];
-    //     s.read(bbuffer, length * bsize);
-    //     for (int i = 0; i < length; i++)
-    //     {
-    //         typename T::bit_type::part_type x;
-    //         x.assign(bbuffer + i * bsize);
-    //         b.push_back(x);
-    //     }
-    // }
+    void input(int length, ifstream& s)
+    {
+        char buffer[MAX_SIZE * T::size()];
+        s.read(buffer, MAX_SIZE * T::size());
+        for (int i = 0; i < MAX_SIZE; i++)
+        {
+            T x;
+            x.assign(buffer + i * T::size());
+            push_a(x);
+        }
+        size_t bsize = T::bit_type::part_type::size();
+        char bbuffer[length * bsize];
+        s.read(bbuffer, length * bsize);
+        for (int i = 0; i < length; i++)
+        {
+            typename T::bit_type::part_type x;
+            x.assign(bbuffer + i * bsize);
+            push_b(x);
+        }
+    }
 
     // void output(int length, ofstream& s)
     // {

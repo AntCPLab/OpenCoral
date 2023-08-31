@@ -41,6 +41,8 @@ public:
     typedef Share<T> input_check_type;
     typedef check_type input_type;
 
+    static const bool is_bit_type = true;
+
     static string type_short()
     {
         return "TT";

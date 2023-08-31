@@ -270,7 +270,7 @@ W MAC_Check_Z2k<T, U, V, W>::get_random_element() {
         return prep->get_random_for_open();
       else
       {
-        insecure("random dummy");
+        insecure("random dummy", false);
         return {};
       }
     }

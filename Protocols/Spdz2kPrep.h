@@ -40,6 +40,7 @@ public:
     void buffer_dabits(ThreadQueues* queues);
 
 #ifdef SPDZ2K_BIT
+    using Preprocessing<T>::get_dabit;
     void get_dabit(T& a, GC::TinySecret<T::s>& b);
 #endif
 };
