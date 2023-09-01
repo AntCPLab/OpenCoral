@@ -30,6 +30,7 @@ void DataPositions::set_num_players(int num_players)
 {
   files = {};
   inputs.resize(num_players, {});
+  wasted = {};
 }
 
 void DataPositions::count(DataFieldType type, DataTag tag, int n)
@@ -47,9 +48,9 @@ void DataPositions::waste_edabit(bool strict, int n_bits)
   wasted_edabits[{strict, n_bits}]++;
 }
 
-void DataPositions::waste_dabit(int n)
+void DataPositions::waste(Dtype dtype, int n)
 {
-  wasted_dabits += n;
+  wasted[dtype] += n;
 }
 
 
@@ -70,6 +71,12 @@ void DataPositions::increase(const DataPositions& delta)
     }
   for (auto it = delta.edabits.begin(); it != delta.edabits.end(); it++)
     edabits[it->first] += it->second;
+
+  for (unsigned int dtype = 0; dtype < N_DTYPE; dtype++)
+    wasted[dtype] += delta.wasted[dtype];
+  for (auto it = delta.wasted_edabits.begin(); it != delta.wasted_edabits.end(); it++)
+    wasted_edabits[it->first] += it->second;
+
 }
 
 DataPositions& DataPositions::operator-=(const DataPositions& delta)
@@ -90,6 +97,11 @@ DataPositions& DataPositions::operator-=(const DataPositions& delta)
     }
   for (auto it = delta.edabits.begin(); it != delta.edabits.end(); it++)
     edabits[it->first] -= it->second;
+
+  for (unsigned int dtype = 0; dtype < N_DTYPE; dtype++)
+    wasted[dtype] -= delta.wasted[dtype];
+  for (auto it = delta.wasted_edabits.begin(); it != delta.wasted_edabits.end(); it++)
+    wasted_edabits[it->first] -= it->second;
   return *this;
 }
 
@@ -156,6 +168,20 @@ void DataPositions::print_cost() const
         cerr << " (strict)";
       cerr << endl;
     }
+}
+
+void DataPositions::print_wasted() const
+{
+  cerr << "[Wasted preprocessed data due to packing]" << endl;
+  for (int j = 0; j < N_DTYPE; j++)
+    if (wasted[j] > 0)
+      cerr << "\t" << dtype_names[j] << ": " << wasted[j] << endl;
+
+  if (not wasted_edabits.empty())
+    cerr << "\tedaBits:" << endl;
+  for (auto it = wasted_edabits.begin(); it != wasted_edabits.end(); it++) {
+      cerr << "\t\t(" << (it->first.first? "strict":"loose") << ", " << it->first.second << "): " << it->second << endl;
+  }
 }
 
 void DataPositions::process_line(long long items_used, const char* name,

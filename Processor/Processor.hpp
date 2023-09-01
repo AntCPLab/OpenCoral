@@ -198,7 +198,7 @@ void Processor<sint, sgf2n>::dabit(const Instruction& instruction)
       for (size_t j = 0; j < m; j++)
         Procp.S[instruction.get_r(0) + i * unit + j] = dp.first[j];
     }
-    Procp.DataF.waste_dabit(unit - size%unit);
+    Procp.DataF.waste(DATA_DABIT, (unit - size%unit) % unit);
   }
   else {
     for (int i = 0; i < DIV_CEIL(size, unit); i++)

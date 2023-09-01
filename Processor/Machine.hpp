@@ -527,6 +527,7 @@ void Machine<sint, sgf2n>::run(const string& progname)
     {
       cerr << "Actual cost of program:" << endl;
       pos.print_cost();
+      pos.print_wasted();
     }
 
   if (pos.any_more(progs[0].get_offline_data_used())

@@ -70,8 +70,8 @@ public:
   map<pair<bool, int>, long long> edabits;
   map<array<int, 3>, long long> matmuls;
 
+  array<long long, N_DTYPE> wasted;
   map<pair<bool, int>, long long> wasted_edabits;
-  long long wasted_dabits = 0;
 
   DataPositions(int num_players = 0);
   DataPositions(const Player& P) : DataPositions(P.num_players()) {}
@@ -84,7 +84,7 @@ public:
   void count(DataFieldType type, DataTag tag, int n = 1);
   void count_edabit(bool strict, int n_bits);
   void waste_edabit(bool strict, int n_bits);
-  void waste_dabit(int n = 1);
+  void waste(Dtype dtype, int n = 1);
 
   void increase(const DataPositions& delta);
   DataPositions& operator-=(const DataPositions& delta);
@@ -95,6 +95,7 @@ public:
   bool any_more(const DataPositions& other) const;
 
   long long total_edabits(int n_bits) const;
+  void print_wasted() const;
 };
 
 template<class sint, class sgf2n> class Processor;
@@ -208,8 +209,8 @@ public:
   virtual T get_normal_no_count()
   { throw runtime_error("no normal element"); }
 
-  void waste_dabit(int n = 1) 
-  { usage.waste_dabit(n); }
+  void waste(Dtype dtype, int n = 1) 
+  { usage.waste(dtype, n); }
 };
 
 template<class T>
@@ -442,6 +443,10 @@ array<T, 3> Preprocessing<T>::get_triple(int n_bits)
 {
   if (T::clear::field_type() == DATA_GF2)
     count(DATA_TRIPLE, n_bits);
+  if (T::tight_packed) {
+    waste(DATA_TRIPLE, T::default_length - n_bits);
+    n_bits = T::default_length;
+  }
   return get_triple_no_count(n_bits);
 }
 
