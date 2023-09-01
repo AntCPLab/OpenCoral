@@ -14,6 +14,9 @@ namespace GC
 class Clear : public Integer
 {
 public:
+#ifdef RMFE_UNIT
+    static const int N_BITS = 12;
+#endif
     static string type_string() { return "clear"; }
 
     Clear() : Integer() {}

@@ -54,6 +54,13 @@ string PrepBase::get_edabitpack_filename(const string& prep_data_dir,
             + to_string(my_num) + get_suffix(thread_num);
 }
 
+string PrepBase::get_normal_filename(const string& prep_data_dir,
+        const string& type_short, int my_num, int thread_num)
+{
+    return prep_data_dir + "normals-" + type_short + "-P"
+            + to_string(my_num) + get_suffix(thread_num);
+}
+
 void PrepBase::print_left(const char* name, size_t n, const string& type_string,
         size_t used, bool large)
 {

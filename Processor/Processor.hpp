@@ -238,7 +238,7 @@ template<class sint, class sgf2n>
 void Processor<sint, sgf2n>::convcintvec(const Instruction& instruction)
 {
   int unit = GC::Clear::N_BITS;
-  assert(unit == 64);
+  // assert(unit == 64);
   int n_inputs = instruction.get_size();
   int n_bits = instruction.get_start().size();
   print_general("n_inputs", n_inputs, "n_bits", n_bits, "convcintvec");

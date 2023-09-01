@@ -205,8 +205,8 @@ public:
   virtual Preprocessing<typename T::part_type>& get_part() { throw runtime_error("no part"); }
 
   virtual T get_normal();
-  virtual T get_normal_no_count() 
-  { throw not_implemented() ; }
+  virtual T get_normal_no_count()
+  { throw runtime_error("no normal element"); }
 
   void waste_dabit(int n = 1) 
   { usage.waste_dabit(n); }
@@ -232,6 +232,8 @@ class Sub_Data_Files : public Preprocessing<T>
 
   DabitPackBuffer<T> dabitpack_buffer;
   map<int, EdabitPackBuffer<T>> edabitpack_buffers;
+  BufferOwner<T, T> normal_buffer;
+  
 
   int my_num,num_players;
 
@@ -317,6 +319,8 @@ public:
   dabitpack<T> get_dabitpack_no_count();
 
   part_type& get_part();
+
+  T get_normal_no_count();
 };
 
 template<class sint, class sgf2n>

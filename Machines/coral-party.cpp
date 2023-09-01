@@ -6,6 +6,7 @@
 // // [zico] need to update
 // #define NO_SECURITY_CHECK
 #define VERBOSE_DEBUG_PRINT
+#define RMFE_UNIT
 
 #include "Processor/Machine.h"
 #include "Processor/RingOptions.h"

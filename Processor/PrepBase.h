@@ -28,6 +28,8 @@ public:
             int my_num, int thread_num = 0);
     static string get_dabitpack_filename(const string& prep_data_dir,
         const string& type_short, int my_num, int thread_num);
+    static string get_normal_filename(const string& prep_data_dir,
+        const string& type_short, int my_num, int thread_num);
 
     static void print_left(const char* name, size_t n,
             const string& type_string, size_t used, bool large = false);

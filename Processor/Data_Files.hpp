@@ -164,6 +164,9 @@ Sub_Data_Files<T>::Sub_Data_Files(int my_num, int num_players,
   dabitpack_buffer.setup(
       PrepBase::get_dabitpack_filename(prep_data_dir,
           type_short, my_num, thread_num), T::size() * dabitpack<T>::MAX_SIZE + T::bit_type::size(), type_string, "dabitPacks");
+  normal_buffer.setup(
+      PrepBase::get_normal_filename(prep_data_dir,
+          type_short, my_num, thread_num), T::size(), type_string, "normals");
 
   input_buffers.resize(num_players);
   for (int i=0; i<num_players; i++)
@@ -268,7 +271,7 @@ void Sub_Data_Files<T>::seekg(DataPositions& pos)
       if (T::bit_type::tight_packed) {
         // We also move dabit_buffer inside the condition, because it usually only makes sense for dabit with arith and boolean type, instead of both boolean types
         int n = pos.files[field_type][DATA_DABIT];
-        assert(n % dabitpack<T>::MAX_SIZE == 0);
+        // assert(n % dabitpack<T>::MAX_SIZE == 0);
         dabitpack_buffer.seekg(n / dabitpack<T>::MAX_SIZE);
 
         for (auto& x : pos.edabits)
@@ -482,6 +485,13 @@ void Preprocessing<T>::fill(edabitvec<T>& res, bool strict, int n_bits)
       get_edabit_no_count(strict, n_bits, eb);
       res.push_back(eb);
     }
+}
+
+template<class T>
+T Sub_Data_Files<T>::get_normal_no_count() {
+  T a;
+  normal_buffer.input(a);
+  return a;
 }
 
 template<class T>

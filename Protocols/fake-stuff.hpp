@@ -559,7 +559,7 @@ void make_mult_triples(const typename T::mac_type& key, int N, int ntrip,
         a.randomize(G);
       if (!zero)
         b.randomize(G);
-      auto c = typename T::open_type(a) * b;
+      auto c = typename T::open_type(typename T::clear(a * b));
       files.output_shares(a);
       files.output_shares(b);
       files.output_shares(c);

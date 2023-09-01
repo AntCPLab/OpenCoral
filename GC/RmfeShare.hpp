@@ -80,13 +80,13 @@ void RmfeShare::load_clear(int n, const Integer& x) {
 }
 
 void RmfeShare::xor_(int n, const RmfeShare& x, const RmfeShare& y) {
-    if (n != default_length)
+    if (n > default_length)
         throw runtime_error("Invalid length for xor_ of RmfeShare: n = " + to_string(n));
     *this = (x ^ y); 
 }
 
 void RmfeShare::invert(int n, const This& x) {
-    if (n != default_length)
+    if (n > default_length)
         throw runtime_error("Invalid length for invert of RmfeShare: n = " + to_string(n));
     RmfeShare ones;
     ones.load_clear(default_length, -1);
@@ -117,7 +117,7 @@ void RmfeShare::trans(Processor<U>& processor, int n_outputs, const vector<int>&
 }
 
 void RmfeShare::andm(Processor<RmfeShare>& processor, const BaseInstruction& instruction) {
-    assert(instruction.get_n() % default_length == 0);
+    // assert(instruction.get_n() % default_length == 0);
     auto& thread = ShareThread<RmfeShare>::s();
     auto& protocol = thread.protocol;
     protocol->init_mul_constant();

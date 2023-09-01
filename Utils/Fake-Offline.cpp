@@ -270,6 +270,21 @@ void make_inputs(const typename T::mac_type& key,int N,int ntrip,const string& s
   delete[] outf;
 }
 
+template<class T>
+void make_normals(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G)
+{
+  Files<T> files(N, key,
+      get_prep_sub_dir<T>(prep_data_prefix, N)
+          + "normals-" + T::type_short(), G);
+  for (int i = 0; i < ntrip; i++)
+    {
+      typename T::bit_type::part_type::clear bits;
+      if (not zero)
+        bits.randomize(G);
+      files.template output_shares<T>(typename T::bit_type::part_type::open_type(bits), key);
+    }
+}
+
 
 template<class T>
 void make_PreMulC(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G)
@@ -1258,11 +1273,14 @@ int FakeParams::generate_coral()
   make_square_tuples<T>(keyp,nplayers,nsqrp,"p",zero,G);
   make_inputs<T>(keyp,nplayers,ninpp,"p",zero,G);
 
+  default_num = 12;
+
   gf2n_short::reset();
   T::bit_type::mac_key_type::init_field();
   typename T::bit_type::mac_share_type::open_type keytt;
   generate_mac_keys<typename T::bit_type::part_type>(keytt, nplayers, prep_data_prefix, G);
   make_minimal<typename T::bit_type::part_type>(keytt, nplayers, default_num / T::bit_type::part_type::default_length, zero, G);
+  make_normals<typename T::bit_type::part_type>(keytt, nplayers, default_num / T::bit_type::part_type::default_length, zero, G);
   make_dabits<T>(keyp, nplayers, default_num, zero, G, T::bit_type::tight_packed, keytt);
   make_edabits<T>(keyp, nplayers, default_num, zero, G, false_type(), T::bit_type::tight_packed, keytt);
 

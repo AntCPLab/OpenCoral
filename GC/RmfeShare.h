@@ -29,7 +29,9 @@ public:
     bitvec_rmfe() {
     }
 
-    bitvec_rmfe(long a): bitvec_rmfe(BitVec(a)) {}
+    bitvec_rmfe(long a): bitvec_rmfe(BitVec(a)) {
+        *this = this->mask(DEFAULT_LENGTH);
+    }
 
     bitvec_rmfe(bool a): bitvec_rmfe(BitVec(a)) {}
 
@@ -61,24 +63,43 @@ public:
 
     gf2n_rmfe(const gf2n_<word>& x): gf2n_short(x) {}
 
+    // /**
+    //  * Only exists for compatibility with other parts of the code
+    // */
+    // explicit gf2n_rmfe(bool x) {
+    //     if (!x)
+    //         this->a = 0;
+    //     else
+    //         throw runtime_error("Pass in x=true, but we can only convert 'false' to gf2n_rmfe. Given 'true', \
+    //             it is unclear what the caller wants because gf2n_rmfe is an encoded type \
+    //             and 1 in bitvec_rmfe does not correspond to 1 in gf2n_rmfe.");
+    // }
+
     /**
      * Only exists for compatibility with other parts of the code
     */
-    explicit gf2n_rmfe(bool x) {
-        throw runtime_error("Cannot convert bool to gf2n_rmfe");
+    explicit gf2n_rmfe(long x) {
+        if (x == 0)
+            this->a = 0;
+        else
+            throw runtime_error("Pass in x=" + to_string(x) + ", but we can only convert 0 to gf2n_rmfe. Given other values, \
+                it is unclear what the caller wants because gf2n_rmfe is an encoded type.");
     }
 
+    explicit gf2n_rmfe(int128 x): gf2n_short(x) {}
+
     /**
-     * Easily resulting in bug if not using 'explicit', because many types implicitly convertible to 
+     * Easily resulting in bug, because many types implicitly convertible to 
      * gf2n_rmfe, including those that are not expected, such as BitVec, which is used as the clear type
      * for RmfeShare and should be encoded, but not converted directly. This bug actually happens for the 
-     * 'operator&' function when we did not use 'explicit' before.
+     * 'operator&' function when we did not use 'explicit' before. Also all the +-* operators between
+     * bitvec_rmfe types actually return BitVec type but not bitvec_rmfe type.
     */
-    template<class T>
-    explicit gf2n_rmfe(const T& other) :
-            gf2n_short(other)
-    {
-    }
+    // template<class T>
+    // explicit gf2n_rmfe(const T& other) :
+    //         gf2n_short(other)
+    // {
+    // }
 
     static const int DEFAULT_LENGTH = 48;
 
@@ -264,8 +285,10 @@ public:
     }
 
     void mask(This& res, int n_bits) const {
-        if (n_bits != default_length)
-            throw runtime_error("Invalid length for mask of RmfeShare: n = " + to_string(n_bits));
+        // if (n_bits != default_length)
+        //     throw runtime_error("Invalid length for mask of RmfeShare: n = " + to_string(n_bits));
+
+        // Masking in RMFE does nothing because we cannot decompose the packed and shared type.
         res = *this;
     }
 
@@ -286,8 +309,10 @@ public:
     static This constant(BitVec other, int my_num, mac_key_type alphai, int n_bits = -1) {
         if (n_bits < 0)
             n_bits = This::default_length;
-        if (n_bits != default_length)
+        if (n_bits > default_length)
             throw runtime_error("Invalid length for constant of RmfeShare: n = " + to_string(n_bits));
+        if (n_bits < default_length)
+            other = other.mask(n_bits);
         This res = super::constant(RmfeShare::open_type(RmfeShare::clear(other)), my_num, alphai);
         return res;
     }
@@ -306,7 +331,13 @@ public:
     */
     static void andm(Processor<RmfeShare>& processor, const BaseInstruction& instruction);
 
+    RmfeShare operator<<(int i) const {
+        throw runtime_error("Shifting << is not implemented for RmfeShare.");
+    };
 
+    RmfeShare operator>>(int i) const {
+        throw runtime_error("Shifting >> is not implemented for RmfeShare.");
+    };
 };
 
 

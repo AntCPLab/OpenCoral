@@ -24,7 +24,10 @@ public:
 
     array<T, 3> get_triple_no_count(int n_bits)
     {
-        return ShiftableTripleBuffer<T>::get_triple_no_count(n_bits);
+        if (T::tight_packed)
+            return Preprocessing<T>::get_triple_no_count(n_bits);
+        else
+            return ShiftableTripleBuffer<T>::get_triple_no_count(n_bits);
     }
 
     void get(Dtype type, T* data)
