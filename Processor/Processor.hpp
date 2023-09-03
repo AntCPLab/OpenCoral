@@ -15,6 +15,7 @@
 
 #include <sodium.h>
 #include <string>
+#include <thread>
 
 template <class T>
 SubProcessor<T>::SubProcessor(ArithmeticProcessor& Proc, typename T::MAC_Check& MC,
@@ -91,13 +92,15 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
   Proc2(*this,MC2,DataF.DataF2,P),Procp(*this,MCp,DataF.DataFp,P),
   external_clients(machine.external_clients),
   binary_file_io(Binary_File_IO()), client_timer(client_stats.timer)
-{
+ {
+  cout << "[zico] Processor Program: " << &program << ", thread_num: " << thread_num << endl;
   reset(program,0);
 
   public_input_filename = get_filename("Programs/Public-Input/",false);
   public_input.open(public_input_filename);
   private_input_filename = (get_filename(PREP_DIR "Private-Input-",true));
   private_input.open(private_input_filename.c_str());
+  cout << "[zico] Processor private_input: " << private_input_filename << endl;
 
   open_input_file(P.my_num(), thread_num, machine.opts.cmd_private_input_file);
 
@@ -241,7 +244,6 @@ void Processor<sint, sgf2n>::convcintvec(const Instruction& instruction)
   // assert(unit == 64);
   int n_inputs = instruction.get_size();
   int n_bits = instruction.get_start().size();
-  print_general("n_inputs", n_inputs, "n_bits", n_bits, "convcintvec");
   for (int i = 0; i < DIV_CEIL(n_inputs, unit); i++)
     {
       for (int j = 0; j < DIV_CEIL(n_bits, unit); j++)
@@ -254,8 +256,9 @@ void Processor<sint, sgf2n>::convcintvec(const Instruction& instruction)
                 Integer::convert_unsigned(
                     Procp.C[instruction.get_r(0) + i * unit + k] >> (j * unit)).get();
           square.transpose(n_rows, n_cols);
-          for (int k = 0; k < n_cols; k++)
+          for (int k = 0; k < n_cols; k++) {
             Procb.C[instruction.get_start()[k + j * unit] + i] = square.rows[k];
+          }
         }
     }
 }

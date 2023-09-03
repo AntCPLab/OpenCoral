@@ -15,6 +15,7 @@
 #include "Math/Setup.h"
 #include "Tools/mkpath.h"
 #include "Tools/Bundle.h"
+#include "Tools/performance.h"
 
 #include <iostream>
 #include <vector>
@@ -450,12 +451,14 @@ void Machine<sint, sgf2n>::run(const string& progname)
   join_tape(0);
 
   print_compiler();
+  cout << "[zico] after print compiler" << endl;
 
   finish_timer.start();
 
   // actual usage
   bool multithread = nthreads > 1;
   auto res = stop_threads();
+  cout << "[zico] after stop_threads" << endl;
   DataPositions& pos = res.first;
 
   finish_timer.stop();
@@ -528,6 +531,7 @@ void Machine<sint, sgf2n>::run(const string& progname)
       cerr << "Actual cost of program:" << endl;
       pos.print_cost();
       pos.print_wasted();
+      print_profiling();
     }
 
   if (pos.any_more(progs[0].get_offline_data_used())

@@ -214,18 +214,18 @@ public:
         return new MAC_Check(mac_key);
     }
 
-    static void setup_rmfe(long k1, long k2) {
-        if (Gf2RMFE::has_singleton())
-            throw runtime_error("Can only setup RMFE once");
-        auto rmfe = get_composite_gf2_rmfe_type2(2, 6);
-        Gf2RMFE::set_singleton(std::move(rmfe));
-    }
+    // static void setup_rmfe(long k1, long k2) {
+    //     if (Gf2RMFE::has_singleton())
+    //         throw runtime_error("Can only setup RMFE once");
+    //     auto rmfe = get_composite_gf2_rmfe_type2(2, 6);
+    //     Gf2RMFE::set_singleton(std::move(rmfe));
+    // }
 
-    static void teardown_rmfe() {
-        if (!Gf2RMFE::has_singleton())
-            return;
-        Gf2RMFE::reset_singleton();
-    }
+    // static void teardown_rmfe() {
+    //     if (!Gf2RMFE::has_singleton())
+    //         return;
+    //     Gf2RMFE::reset_singleton();
+    // }
 
     RmfeShare()
     {

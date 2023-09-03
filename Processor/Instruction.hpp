@@ -695,9 +695,9 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
           int n_inputs = args.size() - n_outputs;
           long long res = 0;
           for (int i = 0; i < n_outputs; i++)
-              res = max(res, args[i] + DIV_CEIL(n_inputs, 64));
+              res = max(res, args[i] + DIV_CEIL(n_inputs, GC_UNIT));
           for (int j = 0; j < n_inputs; j++)
-              res = max(res, args[n_outputs] + DIV_CEIL(n_outputs, 64));
+              res = max(res, args[n_outputs] + DIV_CEIL(n_outputs, GC_UNIT));
           return res;
       }
       else
@@ -768,25 +768,25 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
   case ANDM:
   case NOTS:
   case NOTCB:
-      size = DIV_CEIL(n, 64);
+      size = DIV_CEIL(n, GC_UNIT);
       break;
   case CONVCBIT2S:
-      size = DIV_CEIL(n, 64);
+      size = DIV_CEIL(n, GC_UNIT);
       break;
   case CONVCINTVEC:
-      size = DIV_CEIL(size, 64);
+      size = DIV_CEIL(size, GC_UNIT);
       break;
   case CONVCBITVEC:
       size = n;
       break;
   case REVEAL:
-      size = DIV_CEIL(n, 64);
+      size = DIV_CEIL(n, GC_UNIT);
       skip = 3;
       offset = 1;
       size_offset = -1;
       break;
   case SPLIT:
-      size = DIV_CEIL(this->size, 64);
+      size = DIV_CEIL(this->size, GC_UNIT);
       skip = 1;
       break;
   case INPUTPERSONAL:
@@ -817,7 +817,7 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
       while (it < start.end())
       {
           int n = *it - n_prefix;
-          int size = DIV_CEIL(*(it + 1), 64);
+          int size = DIV_CEIL(*(it + 1), GC_UNIT);
           it += n_prefix;
           assert(it + n <= start.end());
           for (int i = 0; i < n; i++)
@@ -834,7 +834,7 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
           if (size_offset != 0)
           {
               if (opcode & 0x200)
-                  size = DIV_CEIL(start[i + size_offset], 64);
+                  size = DIV_CEIL(start[i + size_offset], GC_UNIT);
               else
                   size = start[i + size_offset];
           }
@@ -847,7 +847,7 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
   for (auto x : start)
     res = max(res, (unsigned)x);
   for (auto x : r)
-	res = max(res, (unsigned)x);
+	  res = max(res, (unsigned)x);
   return res + size;
 }
 
@@ -1417,7 +1417,7 @@ void Program::execute(Processor<sint, sgf2n>& Proc) const
 #if defined(COUNT_INSTRUCTIONS) and defined(TIME_INSTRUCTIONS)
       Proc.stats[p[PC].get_opcode()] += timer.elapsed() * 1e9;
 #endif
-    }
+}
 }
 
 template<class T>

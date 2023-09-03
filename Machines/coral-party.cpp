@@ -6,7 +6,8 @@
 // // [zico] need to update
 // #define NO_SECURITY_CHECK
 #define VERBOSE_DEBUG_PRINT
-#define RMFE_UNIT
+// #define RMFE_UNIT
+#define CHECK_SIZE
 
 #include "Processor/Machine.h"
 #include "Processor/RingOptions.h"
@@ -36,8 +37,8 @@ int main(int argc, const char** argv)
     opt.get("-SP")->getInt(s);
     opt.resetArgs();
 
-    // RMFE setup
-    RmfeShare::setup_rmfe(2, 6);
+    // // RMFE setup
+    // RmfeShare::setup_rmfe(2, 6);
 
     RingOptions ring_options(opt, argc, argv);
     OnlineOptions& online_opts = OnlineOptions::singleton;
@@ -85,6 +86,6 @@ int main(int argc, const char** argv)
         exit(1);
     }
 
-    // RMFE setup
-    RmfeShare::teardown_rmfe();
+    // // RMFE setup
+    // RmfeShare::teardown_rmfe();
 }

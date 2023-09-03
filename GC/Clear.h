@@ -11,12 +11,17 @@
 namespace GC
 {
 
+#ifdef RMFE_UNIT
+#define GC_UNIT 12
+#else
+#define GC_UNIT 64
+#endif
+
 class Clear : public Integer
 {
 public:
-#ifdef RMFE_UNIT
-    static const int N_BITS = 12;
-#endif
+    static const int N_BITS = GC_UNIT;
+
     static string type_string() { return "clear"; }
 
     Clear() : Integer() {}

@@ -651,7 +651,6 @@ GF2E FieldConverter::composite_to_binary(const GF2EX& x) {
 }
 
 void FieldConverter::raw_binary_to_composite(vec_GF2& y, const vec_GF2& x) {
-    acc_time_log("FieldConverter::raw_binary_to_composite");
     if (x.length() != k_) {
         LogicError("Input vector has invalid length");
     }
@@ -660,7 +659,6 @@ void FieldConverter::raw_binary_to_composite(vec_GF2& y, const vec_GF2& x) {
     // mul(y, pre_isomorphic_mat_, y);
 
     mul(y, combined_b2c_mat_, x);
-    acc_time_log("FieldConverter::raw_binary_to_composite");
 }
 
 vec_GF2 FieldConverter::raw_binary_to_composite(const vec_GF2& x) {
@@ -730,11 +728,9 @@ void BasicRMFE::encode(GF2EX& g, const vec_GF2E& h) {
 }
 
 void BasicRMFE::decode(vec_GF2E& h, const GF2EX& g) {
-    acc_time_log("BasicRMFE::decode");
     GF2EPush push;
     GF2E::init(base_field_poly_mod_);
     ::psi(h, g, basis_, beta_);
-    acc_time_log("BasicRMFE::decode");
 }
 
 BasicGf2RMFE::BasicGf2RMFE(long k, bool is_type1) {
@@ -755,14 +751,12 @@ BasicGf2RMFE::BasicGf2RMFE(long k, bool is_type1) {
 }
 
 void BasicGf2RMFE::decode(vec_GF2& h, const GF2X& g) {
-    acc_time_log("BasicGf2RMFE::decode");
     if (deg(g) + 1 > m())
         LogicError("Input polynomial g has an invalid length");
 
     long idx = deg(g) == -1 ? 0 : g.xrep[0];
     if (use_cache_ && decode_table_cached_[idx]) {
         h = decode_table_[idx];
-        acc_time_log("BasicGf2RMFE::decode");
         return;
     }
 
@@ -780,8 +774,6 @@ void BasicGf2RMFE::decode(vec_GF2& h, const GF2X& g) {
         decode_table_[idx] = h;
         decode_table_cached_[idx] = true;
     }
-
-    acc_time_log("BasicGf2RMFE::decode");
 }
 
 void BasicGf2RMFE::encode(GF2X& g, const vec_GF2& h) {
@@ -826,13 +818,11 @@ CompositeGf2RMFE::CompositeGf2RMFE(std::shared_ptr<FieldConverter> converter, st
 }
 
 void CompositeGf2RMFE::encode(NTL::GF2X& g, const NTL::vec_GF2& h) {
-    acc_time_log("CompositeGf2RMFE::encode");
     if (h.length() != k())
         LogicError("Input vector h has an invalid length");
     
     if (use_cache_ && encode_table_cached_[h.rep[0]]) {
         g = encode_table_[h.rep[0]];
-        acc_time_log("CompositeGf2RMFE::encode");
         return;
     }
 
@@ -853,19 +843,15 @@ void CompositeGf2RMFE::encode(NTL::GF2X& g, const NTL::vec_GF2& h) {
         encode_table_[h.rep[0]] = g;
         encode_table_cached_[h.rep[0]] = true;
     }
-
-    acc_time_log("CompositeGf2RMFE::encode");
 }
 
 void CompositeGf2RMFE::decode(NTL::vec_GF2& h, const NTL::GF2X& g) {
-    acc_time_log("CompositeGf2RMFE::decode");
     if (deg(g) + 1 > m())
         LogicError("Input polynomial g has an invalid length");
 
     long idx = deg(g) == -1 ? 0 : g.xrep[0];
     if (use_cache_ && decode_map_.contains(idx)) {
         h = decode_map_.get(idx);
-        acc_time_log("CompositeGf2RMFE::decode");
         return;
     }
 
@@ -883,8 +869,6 @@ void CompositeGf2RMFE::decode(NTL::vec_GF2& h, const NTL::GF2X& g) {
 
     if (use_cache_)
         decode_map_.insert(idx, h);
-
-    acc_time_log("CompositeGf2RMFE::decode");
 }
 
 std::unique_ptr<Gf2RMFE> get_composite_gf2_rmfe_type2(long k1, long k2) {

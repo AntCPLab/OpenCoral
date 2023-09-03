@@ -241,7 +241,8 @@ void decode(NTL::GF2X& g, const NTL::vec_GF2& h);
 template <class T1, class T2, class T3, class T4>
 class RMFE {
     typedef RMFE<T1, T2, T3, T4> This;
-    static unique_ptr<This> singleton;
+    // use thread_local because we need to use cache for encode/decode
+    static thread_local unique_ptr<This> singleton;
 
 public:
     virtual ~RMFE() {};
@@ -286,7 +287,7 @@ public:
 };
 
 template<class T1, class T2, class T3, class T4>
-unique_ptr<RMFE<T1, T2, T3, T4>> RMFE<T1, T2, T3, T4>::singleton(nullptr);
+thread_local unique_ptr<RMFE<T1, T2, T3, T4>> RMFE<T1, T2, T3, T4>::singleton(nullptr);
 
 template<class T1, class T2, class T3, class T4>
 inline RMFE<T1, T2, T3, T4>& RMFE<T1, T2, T3, T4>::s()

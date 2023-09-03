@@ -439,6 +439,9 @@ test_rmfe_buffer_normal: test/test_rmfe_buffer_normal.o $(COMMON) $(VM) $(OT) $(
 test_tinyot_prep: test/test_tinyot_prep.o $(COMMON) $(VM) $(OT) GC/PostSacriBin.o $(GC_SEMI)
 	$(CXX) -o $@ $(CFLAGS) $^ $(EMP_LIBS) $(LDLIBS)
 
+test_zico: test/test_zico.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE) GC/PostSacriBin.o $(GC_SEMI)
+	$(CXX) -o $@ $(CFLAGS) $^ $(EMP_LIBS) $(LDLIBS)
+
 mixed-coral-dabit-example.x: $(VM) $(OT) GC/PostSacriBin.o $(GC_SEMI) $(COMMON)
 mixed-coral-edabit-example.x: $(VM) $(OT) GC/PostSacriBin.o $(GC_SEMI) $(COMMON)
 

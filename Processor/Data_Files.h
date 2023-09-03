@@ -441,11 +441,12 @@ inline void Preprocessing<T>::get(vector<T>& S, DataTag tag,
 template<class T>
 array<T, 3> Preprocessing<T>::get_triple(int n_bits)
 {
-  if (T::clear::field_type() == DATA_GF2)
+  if (T::clear::field_type() == DATA_GF2) {
     count(DATA_TRIPLE, n_bits);
-  if (T::tight_packed) {
-    waste(DATA_TRIPLE, T::default_length - n_bits);
-    n_bits = T::default_length;
+    if (T::tight_packed) {
+      waste(DATA_TRIPLE, T::default_length - n_bits);
+      n_bits = T::default_length;
+    }
   }
   return get_triple_no_count(n_bits);
 }

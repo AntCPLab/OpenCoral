@@ -37,9 +37,8 @@ RmfeSharePrep<T>::~RmfeSharePrep()
 {
     if (triple_generator)
         delete triple_generator;
-    if (tinyot2rmfe) {
+    if (tinyot2rmfe)
         delete tinyot2rmfe;
-    }
 }
 
 template<class T>
