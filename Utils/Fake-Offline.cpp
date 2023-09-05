@@ -677,7 +677,7 @@ int main(int argc, const char** argv)
   else if (opt.isSet("-C"))
     {
       // RMFE setup
-      RmfeShare::setup_rmfe(2, 6);
+      RmfeBeaver<RmfeShare>::setup_rmfe();
       int k, s;
       opt.get("-C")->getInt(k);
       s = CORAL_DEFAULT_SECURITY;

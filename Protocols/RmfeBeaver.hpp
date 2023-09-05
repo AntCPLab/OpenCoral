@@ -27,7 +27,11 @@
 template<class T>
 void RmfeBeaver<T>::setup(Player& P) {
     BinaryProtocolThreadInit<TinyOTShare>::setup(P);
+    setup_rmfe();
+}
 
+template<class T>
+void RmfeBeaver<T>::setup_rmfe() {
     // Setup RMFE
     if (Gf2RMFE::has_singleton())
         throw runtime_error("Can only setup RMFE once");

@@ -222,6 +222,12 @@ class Compiler:
             dest="verbose",
             help="more verbose output",
         )
+        parser.add_option(
+            "--pack",
+            action="store_true",
+            dest="use_packing",
+            help="use packing",
+        )
         if self.execute:
             parser.add_option(
                 "-E",

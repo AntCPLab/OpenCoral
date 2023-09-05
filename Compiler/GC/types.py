@@ -22,8 +22,7 @@ from functools import reduce
 
 class bits(Tape.Register, _structure, _bit):
     n = 40
-    # unit = 64
-    unit = 12
+    unit = 64
     PreOp = staticmethod(floatingpoint.PreOpN)
     decomposed = None
     @staticmethod
@@ -156,7 +155,6 @@ class bits(Tape.Register, _structure, _bit):
             self.set_length(self.n or util.int_len(other))
             self.load_int(other)
         elif isinstance(other, regint):
-            print("[zico] enter load_other regint")
             assert self.unit == 64
             n_units = int(math.ceil(self.n / self.unit))
             n_convs = min(other.size, n_units)
@@ -484,7 +482,6 @@ class sbits(bits):
         if self.n <= 32:
             inst.ldbits(self, self.n, value)
         else:
-            print("[zico] enter load_int 64")
             size = math.ceil(self.n / self.unit)
             tmp = regint(size=size)
             for i in range(size):
@@ -874,7 +871,6 @@ class sbitvec(_vec, _bit):
         return sbits.trans(self.v[start:stop])
     def coerce(self, other):
         if isinstance(other, cint):
-            print("[zico] enter coerce cint")
             size = other.size
             return (other.get_vector(base, min(64, size - base)) \
                     for base in range(0, size, 64))

@@ -68,6 +68,7 @@ class defaults:
     stop = False
     insecure = False
     keep_cisc = False
+    use_packing = False
 
 
 class Program(object):

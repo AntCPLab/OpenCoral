@@ -27,6 +27,7 @@ Scripts/spdz2k.sh tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graphDef.bi
 # Benchmarking
 We can use insecure preprocessing to generate necessary randomness data on disk, in order to analyze the cost of offline vs online.
 
+### Spdz2k
 Add `MY_CFLAGS = -DINSECURE` to `CONFIG.mine`.
 ```
 make clean
@@ -35,3 +36,16 @@ make Fake-Offline.x -j8
 ./Fake-Offline.x 2 -Z 64 -S 64 -e 9,12,31,32,64
 Scripts/spdz2k.sh -F tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graphDef.bin-8
 ```
+
+### Coral
+To evaluate Coral, we need to:
+- Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
+- enable the packing feature by passing the `--pack` option to the compiler.
+```
+make clean
+make Fake-Offline.x -j8
+./Fake-Offline.x 2 -C 64 -S 64 -e 9,12,31,32,64
+./compile.py -R 64 -Y --pack tf benchmarks/EzPC/Athos/Networks/SqueezeNetImgNet/graphDef.bin 8
+Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graphDef.bin-8
+```
+

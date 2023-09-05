@@ -141,7 +141,8 @@ for op in graph.get_operations():
         for i in range(1, len(shape)):
             if i != dim:
                 assert shape[i] == 1
-        output(op, 'ml.Argmax((1, %s))' % shape[dim])
+        # output(op, 'ml.Argmax((1, %s))' % shape[dim])
+        output(op, 'ml.Argmax((%s, %s))' % (shape[0], shape[dim]))
     elif t == 'ConcatV2':
         assert len(op.inputs) == 3
         dim = int(op.inputs[2].op.get_attr('value').int_val[0])

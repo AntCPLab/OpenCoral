@@ -451,14 +451,12 @@ void Machine<sint, sgf2n>::run(const string& progname)
   join_tape(0);
 
   print_compiler();
-  cout << "[zico] after print compiler" << endl;
 
   finish_timer.start();
 
   // actual usage
   bool multithread = nthreads > 1;
   auto res = stop_threads();
-  cout << "[zico] after stop_threads" << endl;
   DataPositions& pos = res.first;
 
   finish_timer.stop();

@@ -48,6 +48,7 @@ public:
     Player& P;
 
     static void setup(Player& P);
+    static void setup_rmfe();
     static void teardown();
 
     RmfeBeaver(Player& P) : prep(0), MC(0), P(P) {}

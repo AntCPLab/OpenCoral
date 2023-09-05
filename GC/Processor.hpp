@@ -41,14 +41,12 @@ Processor<T>::Processor(Memories<T>& memories, Machine<T>* machine) :
 template<class T>
 Processor<T>::~Processor()
 {
-    cout << "[zico] enter GC:Processor destructor" << endl;
 #ifdef VERBOSE
     if (xor_timer.elapsed() > 0)
         cerr << "XOR time: " << xor_timer.elapsed() << endl;
     if (time > 0)
         cerr << "Finished after " << time << " instructions" << endl;
 #endif
-    cout << "[zico] end of GC:Processor destructor" << endl;
 }
 
 template <class T>
@@ -127,10 +125,8 @@ void GC::Processor<T>::check_input(const U& in, const int* params)
 template <class T>
 void Processor<T>::bitdecc(const vector<int>& regs, const Clear& x)
 {
-    cout << "[zico] enter bitdecc" << endl;
     for (unsigned int i = 0; i < regs.size(); i++)
         C[regs[i]] = (x >> i) & 1;
-    cout << "[zico] end bitdecc" << endl;
 }
 
 template <class T>
@@ -223,7 +219,6 @@ template<class U>
 void Processor<T>::mem_op(int n, Memory<U>& dest, const Memory<U>& source,
         Integer dest_address, Integer source_address)
 {
-    cout << "[zico] enter mem_op" << endl;
     dest.check_index(dest_address + n - 1);
     source.check_index(source_address + n - 1);
     auto d = &dest[dest_address];
@@ -232,7 +227,6 @@ void Processor<T>::mem_op(int n, Memory<U>& dest, const Memory<U>& source,
     {
         *d++ = *s++;
     }
-    cout << "[zico] end mem_op" << endl;
 }
 
 template <class T>
@@ -244,7 +238,6 @@ void Processor<T>::xors(const vector<int>& args)
 template <class T>
 void Processor<T>::xors(const vector<int>& args, size_t start, size_t end)
 {
-    cout << "[zico] enter xors" << endl;
     assert(start % 4 == 0);
     assert(end % 4 == 0);
     assert(start < end);
@@ -265,13 +258,11 @@ void Processor<T>::xors(const vector<int>& args, size_t start, size_t end)
             }
         }
     }
-    cout << "[zico] end xors" << endl;
 }
 
 template<class T>
 void Processor<T>::xorc(const ::BaseInstruction& instruction)
 {
-    cout << "[zico] enter xorc" << endl;
     int total = instruction.get_n();
     for (int i = 0; i < DIV_CEIL(total, T::default_length); i++)
     {
@@ -279,26 +270,22 @@ void Processor<T>::xorc(const ::BaseInstruction& instruction)
         C[instruction.get_r(0) + i] = BitVec(C[instruction.get_r(1) + i]).mask(n)
                 ^ BitVec(C[instruction.get_r(2) + i]).mask(n);
     }
-    cout << "[zico] end xorc" << endl;
 }
 
 template<class T>
 void Processor<T>::nots(const ::BaseInstruction& instruction)
 {
-    cout << "[zico] enter nots" << endl;
     int total = instruction.get_n();
     for (int i = 0; i < DIV_CEIL(total, T::default_length); i++)
     {
         int n = min(T::default_length, total - i * T::default_length);
         S[instruction.get_r(0) + i].invert(n, S[instruction.get_r(1) + i]);
     }
-    cout << "[zico] end nots" << endl;
 }
 
 template<class T>
 void Processor<T>::notcb(const ::BaseInstruction& instruction)
 {
-    cout << "[zico] enter notcb" << endl;
     int total = instruction.get_n();
     int unit = Clear::N_BITS;
     for (int i = 0; i < DIV_CEIL(total, unit); i++)
@@ -307,23 +294,19 @@ void Processor<T>::notcb(const ::BaseInstruction& instruction)
         C[instruction.get_r(0) + i] =
                 Clear(~C[instruction.get_r(1) + i].get()).mask(n);
     }
-    cout << "[zico] end notcb" << endl;
 }
 
 template<class T>
 void Processor<T>::andm(const ::BaseInstruction& instruction)
 {
-    cout << "[zico] enter andm" << endl;
     for (int i = 0; i < DIV_CEIL(instruction.get_n(), T::default_length); i++)
         S[instruction.get_r(0) + i] = S[instruction.get_r(1) + i]
                 & C[instruction.get_r(2) + i];
-    cout << "[zico] end andm" << endl;
 }
 
 template <class T>
 void Processor<T>::and_(const vector<int>& args, bool repeat)
 {
-    cout << "[zico] enter and_" << endl;
     check_args(args, 4);
     for (size_t i = 0; i < args.size(); i += 4)
     {
@@ -335,13 +318,11 @@ void Processor<T>::and_(const vector<int>& args, bool repeat)
         }
         complexity += args[i];
     }
-    cout << "[zico] end and_" << endl;
 }
 
 template <class T>
 void Processor<T>::andrsvec(const vector<int>& args)
 {
-    cout << "[zico] enter andrsvec" << endl;
     int N_BITS = T::default_length;
     auto it = args.begin();
     while (it < args.end())
@@ -371,13 +352,11 @@ void Processor<T>::andrsvec(const vector<int>& args)
         }
         it += 2 * n_args + 1;
     }
-    cout << "[zico] end andrsvec" << endl;
 }
 
 template <class T>
 void Processor<T>::input(const vector<int>& args)
 {
-    cout << "[zico] enter input" << endl;
     InputArgList a(args);
     for (auto x : a)
     {
@@ -386,13 +365,11 @@ void Processor<T>::input(const vector<int>& args)
         cout << "input to " << args[i+2] << "/" << &S[args[i+2]] << endl;
 #endif
     }
-    cout << "[zico] end input" << endl;
 }
 
 template <class T>
 void Processor<T>::reveal(const vector<int>& args)
 {
-    cout << "[zico] enter reveal" << endl;
     for (size_t j = 0; j < args.size(); j += 3)
     {
         int n = args[j];
@@ -404,7 +381,6 @@ void Processor<T>::reveal(const vector<int>& args)
             S[r1 + i].reveal(min(Clear::N_BITS, n - i * Clear::N_BITS),
                     C[r0 + i]);
     }
-    cout << "[zico] end reveal" << endl;
 }
 
 template <class T>

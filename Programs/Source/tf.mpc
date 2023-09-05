@@ -10,6 +10,12 @@ if 'split' in program.args:
 
 program.options.cisc = True
 
+from Compiler.GC.types import bits
+if program.options.use_packing:
+    bits.unit = 12
+else:
+    bits.unit = 64
+
 try:
     n_threads = int(program.args[2])
 except:
@@ -30,12 +36,17 @@ layers[0].X.input_from(0)
 for layer in layers:
     layer.input_from(0)
 
+print_ln('X shape: %s', layers[0].X.shape)
+
 sint(0).reveal().store_in_mem(0)
 
 opt.time_layers = 'time_layers' in program.args
 
 start_timer(1)
-opt.forward(1, keep_intermediate=False)
+if program.options.use_packing:
+    opt.forward(12, keep_intermediate=False)
+else:
+    opt.forward(1, keep_intermediate=False)
 stop_timer(1)
 if isinstance(layers[-1].Y, Array):
     #print_ln('guess %s', layers[-1].Y[0].reveal())

@@ -524,6 +524,7 @@ def cisc(function):
             block = tape.BasicBlock(tape, None, None)
             tape.active_basicblock = block
             size = sum(call[0][0].size for call in self.calls)
+            print("[zico] merged size: ", size, ", individual size: ", self.calls[0][0][0].size)
             new_regs = []
             for i, arg in enumerate(self.args):
                 try:

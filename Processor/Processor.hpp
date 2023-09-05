@@ -93,14 +93,12 @@ Processor<sint, sgf2n>::Processor(int thread_num,Player& P,
   external_clients(machine.external_clients),
   binary_file_io(Binary_File_IO()), client_timer(client_stats.timer)
  {
-  cout << "[zico] Processor Program: " << &program << ", thread_num: " << thread_num << endl;
   reset(program,0);
 
   public_input_filename = get_filename("Programs/Public-Input/",false);
   public_input.open(public_input_filename);
   private_input_filename = (get_filename(PREP_DIR "Private-Input-",true));
   private_input.open(private_input_filename.c_str());
-  cout << "[zico] Processor private_input: " << private_input_filename << endl;
 
   open_input_file(P.my_num(), thread_num, machine.opts.cmd_private_input_file);
 

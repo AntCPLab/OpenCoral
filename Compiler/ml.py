@@ -1185,6 +1185,44 @@ class PoolBase(NoVariableLayer):
                                              h_in, w_in, h, w])
                     process(pool, bi, k, i, j)
 
+    def traverse_pack(self, batch, process):
+        from GC.types import bits
+        assert(len(batch) == bits.unit)
+        need_padding = [self.strides[i] * (self.Y.sizes[i] - 1) + self.ksize[i] >
+                        self.X.sizes[i] for i in range(4)]
+        X_batch = MultiArray([len(batch)] + list(self.X.sizes[1:]), self.X.value_type)
+        # [zico] `get_slice_vector` seems to only work for a continuous slice, e.g., 0:12? Perhaps it is more general.
+        X_batch.assign_vector(self.X.get_slice_vector(batch))
+        @for_range_opt_multithread(self.n_threads, self.X.sizes[3])
+        def _(k):
+            @for_range_opt(self.Y.sizes[1])
+            def _(i):
+                h_base = self.strides[1] * i - self.padding[1]
+                hs = [h_base + jj for jj in range(self.ksize[1])]
+                if need_padding[1]:
+                    h_ins = [(h < self.X.sizes[1]) * (h >= 0) for h in hs]
+                else:
+                    h_ins = [True] * self.ksize[1]
+                @for_range_opt(self.Y.sizes[2])
+                def _(j):
+                    w_base = self.strides[2] * j - self.padding[1]
+                    pool = []
+                    ws = [w_base + jj for jj in range(self.ksize[2])]
+                    if need_padding[2]:
+                        w_ins = [(w < self.X.sizes[2]) * (w >= 0) for w in ws]
+                    else:
+                        w_ins = [True] * self.ksize[2]
+                    for ii in range(self.ksize[1]):
+                        h = hs[ii]
+                        h_in = h_ins[ii]
+                        for jj in range(self.ksize[2]):
+                            w = ws[jj]
+                            w_in = w_ins[jj]
+                            if not is_zero(h_in * w_in):
+                                x = X_batch.get_vector_by_indices(None, h_in * h, w_in * w, k)
+                                pool.append([x, h_in, w_in, h, w])
+                    process(pool, k, i, j)
+
 class MaxPool(PoolBase):
     """ Fixed-point MaxPool layer.
 
@@ -1196,6 +1234,9 @@ class MaxPool(PoolBase):
 
     """
     def forward(self, batch=None, training=False):
+        if get_program().options.use_packing:
+            self.forward_pack(batch, training)
+            return
         if batch is None:
             batch = Array.create_from(regint(0))
         def process(pool, bi, k, i, j):
@@ -1210,6 +1251,23 @@ class MaxPool(PoolBase):
             for ii, x in enumerate(red[1]):
                 self.comparisons[bi][k][i][j][ii] = x
         self.traverse(batch, process)
+    
+    def forward_pack(self, batch=None, training=False):
+        Y_batch = MultiArray([len(batch)] + list(self.Y.sizes[1:]), self.Y.value_type)
+        def process_pack(pool, k, i, j):
+            def m(a, b):
+                c = a[0] > b[0]
+                l = [c * x for x in a[1]]
+                l += [(1 - c) * x for x in b[1]]
+                return c.if_else(a[0], b[0]), l
+            red = util.tree_reduce(m, [(x[0], [1] if training else [])
+                                       for x in pool])
+            Y_batch.assign_vector_by_indices(red[0], None, i, j, k)
+            # TODO: [zico] omit this for the moment because I am not doing training
+            # for ii, x in enumerate(red[1]):
+            #     self.comparisons[bi][k][i][j][ii] = x
+        self.traverse_pack(batch, process_pack)
+        self.Y.assign_slice_vector(batch, Y_batch.get_vector())
 
     def backward(self, compute_nabla_X=True, batch=None):
         if compute_nabla_X:
@@ -1238,8 +1296,25 @@ class Argmax(NoVariableLayer):
         self.Y = Array(shape[0], sint)
 
     def _forward(self, batch=[0]):
-        assert len(batch) == 1
-        self.Y[batch[0]] = argmax(self.X[batch[0]])
+        # if get_program().options.use_packing:
+        #     self._forward_pack(batch)
+        #     return
+        # assert len(batch) == 1
+        # self.Y[batch[0]] = argmax(self.X[batch[0]])
+        @for_range_opt_multithread(self.n_threads, len(batch))
+        def _(i):
+            self.Y[batch[i]] = argmax(self.X[batch[i]])
+
+    def _forward_pack(self, batch=[0]):
+        from GC.types import bits
+        assert(len(batch) == bits.unit)
+        X_batch = MultiArray([len(batch)] + list(self.X.sizes[1:]), self.X.value_type)
+        X_batch.assign_vector(self.X.get_slice_vector(batch))
+        X = X_batch.transpose()
+        X = [X.get_part_vector(i) for i in range(X_batch.sizes[0])]
+
+        self.Y.assign_slice_vector(batch, argmax(X))
+        
 
 class Concat(NoVariableLayer):
     """ Fixed-point concatentation layer.
@@ -1264,12 +1339,20 @@ class Concat(NoVariableLayer):
         self.Y = Tensor(shape, sfix)
 
     def _forward(self, batch=[0]):
-        assert len(batch) == 1
-        @for_range_multithread(self.n_threads, 1, self.Y.sizes[1:3])
-        def _(i, j):
-            X = [x.Y[batch[0]] for x in self.inputs]
-            self.Y[batch[0]][i][j].assign_vector(X[0][i][j].get_vector())
-            self.Y[batch[0]][i][j].assign_part_vector(
+        # assert len(batch) == 1
+        # @for_range_multithread(self.n_threads, 1, self.Y.sizes[1:3])
+        # def _(i, j):
+        #     X = [x.Y[batch[0]] for x in self.inputs]
+        #     self.Y[batch[0]][i][j].assign_vector(X[0][i][j].get_vector())
+        #     self.Y[batch[0]][i][j].assign_part_vector(
+        #         X[1][i][j].get_vector(),
+        #         len(X[0][i][j]))
+
+        @for_range_multithread(self.n_threads, 1, (len(batch),) + self.Y.sizes[1:3])
+        def _(k, i, j):
+            X = [x.Y[batch[k]] for x in self.inputs]
+            self.Y[batch[k]][i][j].assign_vector(X[0][i][j].get_vector())
+            self.Y[batch[k]][i][j].assign_part_vector(
                 X[1][i][j].get_vector(),
                 len(X[0][i][j]))
 
@@ -2107,9 +2190,19 @@ class FixAveragePool2d(PoolBase, FixBase):
             assert self.Y.shape == list(output_shape)
 
     def _forward(self, batch):
+        if get_program().options.use_packing:
+            self._forward_pack(batch)
+            return
         def process(pool, bi, k, i, j):
             self.Y[bi][i][j][k] = sum(x[0] for x in pool) * (1 / self.pool_size)
         self.traverse(batch, process)
+
+    def _forward_pack(self, batch):
+        Y_batch = MultiArray([len(batch)] + list(self.Y.sizes[1:]), self.Y.value_type)
+        def process_pack(pool, k, i, j):
+            Y_batch.assign_vector_by_indices(sum(x[0] for x in pool) * (1 / self.pool_size), None, i, j, k)
+        self.traverse_pack(batch, process_pack)
+        self.Y.assign_slice_vector(batch, Y_batch.get_vector())
 
     def backward(self, compute_nabla_X=True, batch=None):
         if compute_nabla_X:

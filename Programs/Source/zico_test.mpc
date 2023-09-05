@@ -43,3 +43,10 @@ def _(base, size):
 #z = x.get_vector(0, n) > y.get_vector(0, n)
 #print_ln('%s', z.reveal())
     
+import ml
+x = ml.Tensor([3, 4, 4, 2], sint)
+x.assign_vector(regint.inc(3*4*4*2))
+y = x.get_vector_by_indices(None, 0, 0, 1)
+y = y * 2
+x.assign_vector_by_indices(y, None, 0, 0, 1)
+print_ln('Tensor x: %s', x.reveal_nested())

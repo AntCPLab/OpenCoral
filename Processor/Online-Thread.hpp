@@ -41,7 +41,6 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
 
   int num=tinfo->thread_num;
   BaseMachine::s().thread_num = num;
-  cout << "[zico] BaseMachine.s(): " << &BaseMachine::s() << ", thread_num: " << BaseMachine::s().thread_num << ", num: " << num << endl;
 
   auto& queues = machine.queues[num];
   auto& opts = machine.opts;
@@ -103,7 +102,6 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
   sint::Protocol::setup(P);
   sint::bit_type::Protocol::setup(P);
   sgf2n::Protocol::setup(P);
-  cout << "[zico] after protocol setup"<< endl;
   processor = new Processor<sint, sgf2n>(tinfo->thread_num,P,*MC2,*MCp,machine,progs.at(thread_num > 0));
   auto& Proc = *processor;
 
@@ -280,11 +278,9 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
           // reset for actual usage
           Proc.DataF.reset_usage();
              
-             cout << "[zico] before execute Proc" << endl;
           //printf("\tExecuting program");
           // Execute the program
           progs[program].execute(Proc);
-          cout << "[zico] after execute Proc" << endl;
 
           // make sure values used in other threads are safe
           Proc.check();
@@ -310,7 +306,6 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
 	 wait_timer.stop();
        }  
     }
-    cout << "[zico] after job loop" << endl;  
 
   // final check
   online_timer.start(P.total_comm());
@@ -318,18 +313,14 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
   Proc.check();
   online_timer.stop(P.total_comm());
   online_prep_timer += Proc.DataF.total_time();
-  cout << "[zico] after Proc.check() " << processor << endl;  
 
   if (machine.opts.file_prep_per_thread)
     Proc.DataF.prune();
-  cout << "[zico] after Proc.DataF.prune() " << processor << endl;  
 
 
   wait_timer.start();
   queues->next();
-  cout << "[zico] after queues->next() " << processor << endl;  
   wait_timer.stop();
-  cout << "[zico] after wait_timer.stop() " << processor << endl;  
 
 
 #ifdef VERBOSE
@@ -360,26 +351,20 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
   timer.stop(P.total_comm());
   queues->timers["online"] = online_timer - online_prep_timer - queues->wait_timer;
   queues->timers["prep"] = timer - queues->timers["wait"] - queues->timers["online"];
-  cout << "[zico] after timer.stop() " << processor << endl;  
 
   // prevent faulty usage message
   Proc.DataF.set_usage(actual_usage);
-  cout << "[zico] after DataF.set_usage " << processor << endl;  
   delete processor;
-    cout << "[zico] after delete processor " << processor << endl;  
 
   queues->finished(actual_usage, P.total_comm());
 
   delete MC2;
   delete MCp;
   delete player;
-      cout << "[zico] after delete player" << endl;  
 
-  cout << "[zico] before protocol teardown" << endl;
   sint::Protocol::teardown();
   sint::bit_type::Protocol::teardown();
   sgf2n::Protocol::teardown();
-  cout << "[zico] after protocol teardown" << endl;
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
   OPENSSL_thread_stop();
