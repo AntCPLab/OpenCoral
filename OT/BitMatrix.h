@@ -127,7 +127,7 @@ public:
     typename U::RowType& operator[](int i)
     { return squares[i / U::n_rows()].rows[i % U::n_rows()]; }
 
-    size_t vertical_size();
+    size_t vertical_size() const;
 
     void resize_vertical(int length)
     { squares.resize(DIV_CEIL(length, U::n_rows())); }

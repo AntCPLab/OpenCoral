@@ -30,6 +30,7 @@ public:
         const string& type_short, int my_num, int thread_num);
     static string get_normal_filename(const string& prep_data_dir,
         const string& type_short, int my_num, int thread_num);
+    static string get_ferret_filename(const string& prep_data_dir, int my_num, int other_num, bool send, int thread_num);
 
     static void print_left(const char* name, size_t n,
             const string& type_string, size_t used, bool large = false);

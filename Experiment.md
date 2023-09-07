@@ -31,7 +31,7 @@ We can use insecure preprocessing to generate necessary randomness data on disk,
 Add `MY_CFLAGS = -DINSECURE` to `CONFIG.mine`.
 ```
 make clean
-make Fake-Offline.x -j8
+make Fake-Offline.x spdz2k-party.x -j8
 # The '-e' option specifies the edabit length types we want to generate. Here they correspond to those used in SqueezeNet.
 ./Fake-Offline.x 2 -Z 64 -S 64 -e 9,12,31,32,64
 Scripts/spdz2k.sh -F tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graphDef.bin-8
@@ -41,9 +41,10 @@ Scripts/spdz2k.sh -F tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graphDef
 To evaluate Coral, we need to:
 - Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
 - enable the packing feature by passing the `--pack` option to the compiler.
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
 ```
 make clean
-make Fake-Offline.x -j8
+make Fake-Offline.x coral-party.x -j8
 ./Fake-Offline.x 2 -C 64 -S 64 -e 9,12,31,32,64
 ./compile.py -R 64 -Y --pack tf benchmarks/EzPC/Athos/Networks/SqueezeNetImgNet/graphDef.bin 8
 Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graphDef.bin-8

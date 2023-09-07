@@ -21,6 +21,36 @@ RmfeMultiplier<T>::RmfeMultiplier(OTTripleGenerator<T>& generator, int thread_nu
     auth_ot_ext(generator.players[thread_num], BOTH, true) {
 }
 
+// template<class T>
+// void RmfeMultiplier<T>::multiplyForInputs(MultJob job) {
+//     // [TODO] Replace with our OLE through usage of MFE. Now it is just a copy of MascotMultiplier.
+    
+//     assert(job.input);
+//     auto& generator = this->generator;
+//     bool mine = job.player == generator.my_num;
+//     auth_ot_ext.set_role(mine ? RECEIVER : SENDER);
+//     int nOTs = job.n_inputs * generator.field_size;
+//     auth_ot_ext.resize(nOTs);
+//     auth_ot_ext.expand(0, job.n_inputs);
+//     if (mine)
+//         this->inbox.pop();
+
+//     auth_ot_ext.correlate(0, job.n_inputs, generator.valueBits[0], true);
+
+//     auto& input_macs = this->input_macs;
+//     input_macs.resize(job.n_inputs);
+//     if (mine)
+//         for (int j = 0; j < job.n_inputs; j++)
+//             auth_ot_ext.receiverOutputMatrix.squares[j].to(input_macs[j]);
+//     else
+//         for (int j = 0; j < job.n_inputs; j++)
+//         {
+//             auth_ot_ext.senderOutputMatrices[0].squares[j].to(input_macs[j]);
+//             input_macs[j].negate();
+//         }
+//     this->outbox.push(job);
+// }
+
 template<class T>
 void RmfeMultiplier<T>::multiplyForInputs(MultJob job) {
     // [TODO] Replace with our OLE through usage of MFE. Now it is just a copy of MascotMultiplier.
@@ -49,6 +79,97 @@ void RmfeMultiplier<T>::multiplyForInputs(MultJob job) {
             input_macs[j].negate();
         }
     this->outbox.push(job);
+}
+
+template<class T>
+Fole<T>::Fole(TwoPartyPlayer* player, OT_ROLE role, bool passive, int thread_num) 
+    : role(role), player(player), ot(0), ot_reversed(0) {
+    ios = new EmpChannel*[threads];
+	ios[0] = new EmpChannel(player);
+    int emp_party = player->my_num() < player->other_player_num() ? emp::ALICE : emp::BOB;
+
+    string prep_dir = OnlineOptions::singleton.prep_dir_prefix<T>(player->num_players());
+
+    string ferret_pre_file = PrepBase::get_ferret_filename(prep_dir, 
+        player->my_num(), player->other_player_num(), emp_party == emp::ALICE, thread_num);
+    ot = new SilentOT<EmpChannel>(emp_party, threads, ios, 
+        !passive, true, ferret_pre_file);
+
+    if (role == BOTH) {
+        string reversed_ferret_pre_file = PrepBase::get_ferret_filename(prep_dir, 
+            player->my_num(), player->other_player_num(), emp_party == emp::BOB, thread_num);
+        ot_reversed = new SilentOT<EmpChannel>(3 - emp_party, threads, ios, 
+            !passive, true, reversed_ferret_pre_file);
+    }
+}
+
+template<class T>
+Fole<T>::~Fole() {
+    if (!ios) {
+        delete ios[0];
+        delete[] ios;
+    }
+    if (!ot)
+        delete ot;
+    if (!ot_reversed)
+        delete ot_reversed;
+}
+
+template<class T>
+void Fole<T>::init(const BitVector& keyBits) {
+    // if (!this->keyBits)
+    //     delete this->keyBits;
+    // this->keyBits = new bool[keyBits.size()];
+    // for (size_t i = 0; i < keyBits.size(); i++)
+    //     this->keyBits[i] = keyBits.get_bit(i);
+    // n_keyBits = keyBits.size();
+    this->keyBits = keyBits;
+}
+
+template<class T>
+void Fole<T>::set_role(OT_ROLE role) {
+    this->role = role;
+}
+
+template<class T>
+void Fole<T>::correlate(vector<BitMatrix>& output, const vector<BitMatrix>& senderInput, int n) {
+    // [zico] Don't allow waste for best efficiency 
+    assert(n % 128 == 0);
+    if (role == SENDER) {
+        assert(senderInput.size() == (size_t) DIV_CEIL(this->keyBits.size(), 128));
+        for (size_t i = 0; i < senderInput.size(); i++)
+            assert(senderInput[i].vertical_size() == (size_t) n);
+    }
+    int emp_party = player->my_num() < player->other_player_num() ? emp::ALICE : emp::BOB;
+
+    output.resize(DIV_CEIL(this->keyBits.size(), 128));
+    for(size_t i = 0; i < output.size(); i++)
+        output[i].resize(n);
+
+    bool* choices = new bool[keyBits.size()];
+    for (size_t i = 0; i < keyBits.size(); i++)
+        choices[i] = keyBits.get_bit(i);
+
+    for (size_t i = 0; i < output.size(); i++) {
+        int corr_size = std::min(128, (int)(this->keyBits.size() - i * 128));
+        for (int j = 0; j < n / 128; j++) {
+            if (emp_party == emp::ALICE && role == SENDER) {
+                ot->send_ot_cxm_cc(output[i].squares[j].rows, senderInput[i].squares[j].rows, corr_size);
+            }
+            else if (emp_party == emp::BOB && role == RECEIVER) {
+                ot->recv_ot_cxm_cc(output[i].squares[j].rows, choices + i*128, corr_size);
+            }
+            else if (emp_party == emp::ALICE && role == RECEIVER) {
+                ot_reversed->recv_ot_cxm_cc(output[i].squares[j].rows, choices + i*128, corr_size);
+            }
+            else if (emp_party == emp::BOB && role == SENDER) {
+                ot_reversed->send_ot_cxm_cc(output[i].squares[j].rows, senderInput[i].squares[j].rows, corr_size);
+            }
+        }
+    }
+
+    delete[] choices;
+
 }
 
 #endif

@@ -27,6 +27,7 @@ BufferTinyOTPrep::BufferTinyOTPrep(DataPositions& usage, int port, int batch_siz
 
 void BufferTinyOTPrep::set_protocol(TinyOTShare::Protocol& protocol) {
 	this->P = &protocol.P;
+	// [zico] might need to update IP here according to MP SPDZ's configuration
 	io = new emp::NetIO(this->P->my_num() + 1 == emp::ALICE ? nullptr:emp::IP, port);
 	set_batch_size(batch_size);
 }

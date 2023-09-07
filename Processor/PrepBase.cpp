@@ -61,6 +61,12 @@ string PrepBase::get_normal_filename(const string& prep_data_dir,
             + to_string(my_num) + get_suffix(thread_num);
 }
 
+string PrepBase::get_ferret_filename(const string& prep_data_dir, int my_num, int other_num, bool send, int thread_num)
+{
+    return prep_data_dir + "Ferret-P" + to_string(my_num)
+            + "-" + to_string(other_num) + "-" + (send? "Send" : "Recv") + (thread_num >= 0? "-T" + to_string(thread_num) : "");
+}
+
 void PrepBase::print_left(const char* name, size_t n, const string& type_string,
         size_t used, bool large)
 {

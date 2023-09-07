@@ -1296,9 +1296,9 @@ class Argmax(NoVariableLayer):
         self.Y = Array(shape[0], sint)
 
     def _forward(self, batch=[0]):
-        # if get_program().options.use_packing:
-        #     self._forward_pack(batch)
-        #     return
+        if get_program().options.use_packing:
+            self._forward_pack(batch)
+            return
         # assert len(batch) == 1
         # self.Y[batch[0]] = argmax(self.X[batch[0]])
         @for_range_opt_multithread(self.n_threads, len(batch))
@@ -1311,7 +1311,7 @@ class Argmax(NoVariableLayer):
         X_batch = MultiArray([len(batch)] + list(self.X.sizes[1:]), self.X.value_type)
         X_batch.assign_vector(self.X.get_slice_vector(batch))
         X = X_batch.transpose()
-        X = [X.get_part_vector(i) for i in range(X_batch.sizes[0])]
+        X = [X.get_part_vector(i) for i in range(X.sizes[0])]
 
         self.Y.assign_slice_vector(batch, argmax(X))
         
