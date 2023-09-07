@@ -82,7 +82,7 @@ void RmfeMultiplier<T>::multiplyForInputs(MultJob job) {
 }
 
 template<class T>
-Fole<T>::Fole(TwoPartyPlayer* player, OT_ROLE role, bool passive, int thread_num) 
+Fole<T>::Fole(TwoPartyPlayer* player, OT_ROLE role, bool passive, int thread_num)
     : role(role), player(player), ot(0), ot_reversed(0) {
     ios = new EmpChannel*[threads];
 	ios[0] = new EmpChannel(player);
@@ -105,13 +105,14 @@ Fole<T>::Fole(TwoPartyPlayer* player, OT_ROLE role, bool passive, int thread_num
 
 template<class T>
 Fole<T>::~Fole() {
-    if (!ios) {
+    if (ios) {
         delete ios[0];
         delete[] ios;
     }
-    if (!ot)
+    if (ot) {
         delete ot;
-    if (!ot_reversed)
+    }
+    if (ot_reversed)
         delete ot_reversed;
 }
 
