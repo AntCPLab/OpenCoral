@@ -78,15 +78,11 @@ void test_buffer_inputs(int argc, char** argv)
     BinaryProtocolSet<T> set(P, setup);
     auto& prep = set.prep;
 
+    print_total_comm(P, "Before Inputs");
     prep.buffer_inputs(0);
-    set.check();
+    print_total_comm(P, "After Inputs");
 
-    auto comm_stats = P.total_comm();
-    size_t rounds = 0;
-    for (auto& x : comm_stats)
-      rounds += x.second.rounds;
-    std::cerr << "Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
-        << " rounds (party " << my_number << std::endl;;
+    set.check();
 }
 
 int main(int argc, char** argv)

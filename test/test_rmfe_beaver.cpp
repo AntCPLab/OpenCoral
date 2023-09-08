@@ -1,4 +1,6 @@
 
+#define VERBOSE_DEBUG_PRINT
+
 #include "Protocols/ProtocolSet.h"
 #include "Math/Bit.h"
 #include "Machines/Rmfe.hpp"
@@ -15,9 +17,6 @@ void test_rmfe_beaver(int argc, char** argv)
     int port_base = 9999;
     Names N(my_number, n_parties, "localhost", port_base);
     PlainPlayer P(N);
-
-    // RMFE setup
-    RmfeShare::setup_rmfe(2, 6);
 
     // protocol setup (domain, MAC key if needed etc)
     BinaryProtocolSetup<T> setup(P);
