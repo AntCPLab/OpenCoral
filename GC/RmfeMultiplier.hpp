@@ -12,7 +12,9 @@ template<class T>
 void RmfeMultiplier<T>::init_authenticator(const BitVector& keyBits,
 		const vector< array<BitVector, 2> >& senderOutput,
 		const vector<BitVector>& receiverOutput) {
-    this->auth_ot_ext.init(keyBits, senderOutput, receiverOutput);
+    typename T::mac_key_type key = keyBits.get_portion<typename T::mac_key_type>(0);
+    typename T::encoded_mac_type encoded_key(key);
+    this->auth_ot_ext.init(encoded_key);
 }
 
 template<class T>
@@ -20,36 +22,6 @@ RmfeMultiplier<T>::RmfeMultiplier(OTTripleGenerator<T>& generator, int thread_nu
         OTMultiplier<T>(generator, thread_num),
     auth_ot_ext(generator.players[thread_num], BOTH, true) {
 }
-
-// template<class T>
-// void RmfeMultiplier<T>::multiplyForInputs(MultJob job) {
-//     // [TODO] Replace with our OLE through usage of MFE. Now it is just a copy of MascotMultiplier.
-    
-//     assert(job.input);
-//     auto& generator = this->generator;
-//     bool mine = job.player == generator.my_num;
-//     auth_ot_ext.set_role(mine ? RECEIVER : SENDER);
-//     int nOTs = job.n_inputs * generator.field_size;
-//     auth_ot_ext.resize(nOTs);
-//     auth_ot_ext.expand(0, job.n_inputs);
-//     if (mine)
-//         this->inbox.pop();
-
-//     auth_ot_ext.correlate(0, job.n_inputs, generator.valueBits[0], true);
-
-//     auto& input_macs = this->input_macs;
-//     input_macs.resize(job.n_inputs);
-//     if (mine)
-//         for (int j = 0; j < job.n_inputs; j++)
-//             auth_ot_ext.receiverOutputMatrix.squares[j].to(input_macs[j]);
-//     else
-//         for (int j = 0; j < job.n_inputs; j++)
-//         {
-//             auth_ot_ext.senderOutputMatrices[0].squares[j].to(input_macs[j]);
-//             input_macs[j].negate();
-//         }
-//     this->outbox.push(job);
-// }
 
 template<class T>
 void RmfeMultiplier<T>::multiplyForInputs(MultJob job) {
@@ -59,25 +31,50 @@ void RmfeMultiplier<T>::multiplyForInputs(MultJob job) {
     auto& generator = this->generator;
     bool mine = job.player == generator.my_num;
     auth_ot_ext.set_role(mine ? RECEIVER : SENDER);
-    int nOTs = job.n_inputs * generator.field_size;
-    auth_ot_ext.resize(nOTs);
-    auth_ot_ext.expand(0, job.n_inputs);
-    if (mine)
-        this->inbox.pop();
 
-    auth_ot_ext.correlate(0, job.n_inputs, generator.valueBits[0], true);
+    int last_part_n_bytes = DIV_CEIL(T::encoded_mac_type::DEFAULT_LENGTH % 128, 8);
+    int n_parts = DIV_CEIL(T::encoded_mac_type::DEFAULT_LENGTH, 128);
+    vector<BitMatrix> senderInput(n_parts);
+    if (mine) {
+        for (size_t i = 0; i < senderInput.size(); i++) {
+            senderInput[i].resize(job.n_inputs);
+        }
+        for (int j = 0; j < job.n_inputs; j++) {
+            typename T::encoded_mac_type input(generator.valueBits[0].template get_portion<typename T::open_type>(j));
+            octet* ptr = input.get_ptr();
+            for(int i = 0; i < n_parts; i++) {
+                if (i < n_parts - 1 || last_part_n_bytes == 0) {
+                    senderInput[i][j] = *((__m128i*) ptr + i);
+                }
+                else {
+                    memcpy((octet*)(&senderInput[i][j]), ptr + i*sizeof(__m128i), last_part_n_bytes);
+                }
+            }
+        }
+        for (size_t i = 0; i < senderInput.size(); i++)
+            senderInput[i].transpose();
+    }
+
+    vector<BitMatrix> output;
+    auth_ot_ext.correlate(output, senderInput, job.n_inputs);
+    for (size_t i = 0; i < output.size(); i++)
+        output[i].transpose();
 
     auto& input_macs = this->input_macs;
     input_macs.resize(job.n_inputs);
-    if (mine)
-        for (int j = 0; j < job.n_inputs; j++)
-            auth_ot_ext.receiverOutputMatrix.squares[j].to(input_macs[j]);
-    else
-        for (int j = 0; j < job.n_inputs; j++)
-        {
-            auth_ot_ext.senderOutputMatrices[0].squares[j].to(input_macs[j]);
-            input_macs[j].negate();
+    for (int j = 0; j < job.n_inputs; j++) {
+        typename T::encoded_mac_type encoded_mac;
+        octet* ptr = encoded_mac.get_ptr();
+        for (int i = 0; i < n_parts; i++) {
+            if (i < n_parts - 1 || last_part_n_bytes == 0) {
+                *((__m128i*) ptr + i) = senderInput[i][j];
+            }
+            else {
+                memcpy(ptr + i*sizeof(__m128i), (octet*)(&senderInput[i][j]), last_part_n_bytes);
+            }
         }
+        input_macs[j] = typename T::mac_type(encoded_mac);   
+    }
     this->outbox.push(job);
 }
 

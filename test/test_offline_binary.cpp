@@ -73,6 +73,8 @@ void test_buffer_inputs(int argc, char** argv)
 
     // protocol setup (domain, MAC key if needed etc)
     BinaryProtocolSetup<T> setup(P);
+    cout << "after protocol setup" << endl;
+    cout << &Gf2MFE::s() << endl;
 
     // set of protocols (input, multiplication, output)
     BinaryProtocolSet<T> set(P, setup);
@@ -96,10 +98,10 @@ int main(int argc, char** argv)
     // Tiny.
     // test_buffer_inputs<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
     // Rmfe
-    // test_buffer_inputs<GC::RmfeShare>(argc, argv);
+    test_buffer_inputs<GC::RmfeShare>(argc, argv);
 
     // Tinier
-    test_buffer_triples<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
+    // test_buffer_triples<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
     // Tiny.
     // test_buffer_triples<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
     // Rmfe

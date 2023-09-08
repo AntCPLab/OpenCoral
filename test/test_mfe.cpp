@@ -410,7 +410,7 @@ int main() {
     // test_basic_gf2_rmfe();
     // test_basic_gf2_rmfe_type2();
     // test_composite_gf2_rmfe();
-    test_composite_gf2_rmfe_type2(2, 6);
-    // test_rmfe_then_mfe();
+    // test_composite_gf2_rmfe_type2(2, 6);
+    test_rmfe_then_mfe();
     // test_rmfe_tau(2, 6);
 }

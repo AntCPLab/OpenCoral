@@ -80,8 +80,21 @@ NTL::GF2EX binary_to_composite(const NTL::GF2E& x);
 */
 template <class T1, class T2, class T3, class T4>
 class MFE {
+    typedef MFE<T1, T2, T3, T4> This;
+    // use thread_local because we need to use cache for encode/decode and the cache is not thread-safe
+    static thread_local unique_ptr<This> singleton;
 public:
     virtual ~MFE() {};
+
+    static void set_singleton(unique_ptr<This> s);
+    static MFE& s();
+    static bool has_singleton() {
+        return bool(singleton);
+    }
+    static void reset_singleton() {
+        if (has_singleton())
+            singleton.reset(nullptr);
+    }
 
     virtual long m() = 0;
     virtual long t() = 0;
@@ -101,6 +114,24 @@ public:
         return g;
     }
 };
+
+template<class T1, class T2, class T3, class T4>
+thread_local unique_ptr<MFE<T1, T2, T3, T4>> MFE<T1, T2, T3, T4>::singleton(nullptr);
+
+template<class T1, class T2, class T3, class T4>
+inline MFE<T1, T2, T3, T4>& MFE<T1, T2, T3, T4>::s()
+{
+    if (singleton)
+        return *singleton;
+    else
+        throw runtime_error("no singleton: " + std::string(typeid(MFE<T1, T2, T3, T4>).name()));
+}
+
+template<class T1, class T2, class T3, class T4>
+inline void MFE<T1, T2, T3, T4>::set_singleton(unique_ptr<MFE<T1, T2, T3, T4>> s) {
+    singleton = std::move(s);
+}
+
 
 typedef MFE<NTL::GF2EX, NTL::vec_GF2E, NTL::GF2X, NTL::GF2EX> Gf2eMFE;
 typedef MFE<NTL::GF2X, NTL::vec_GF2, long, NTL::GF2X> Gf2MFE;
@@ -241,7 +272,7 @@ void decode(NTL::GF2X& g, const NTL::vec_GF2& h);
 template <class T1, class T2, class T3, class T4>
 class RMFE {
     typedef RMFE<T1, T2, T3, T4> This;
-    // use thread_local because we need to use cache for encode/decode
+    // use thread_local because we need to use cache for encode/decode and the cache is not thread-safe
     static thread_local unique_ptr<This> singleton;
 
 public:

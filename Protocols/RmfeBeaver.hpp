@@ -28,6 +28,7 @@ template<class T>
 void RmfeBeaver<T>::setup(Player& P) {
     BinaryProtocolThreadInit<TinyOTShare>::setup(P);
     setup_rmfe();
+    setup_mfe();
 }
 
 template<class T>
@@ -38,6 +39,16 @@ void RmfeBeaver<T>::setup_rmfe() {
     auto rmfe = get_composite_gf2_rmfe_type2(2, 6);
     Gf2RMFE::set_singleton(std::move(rmfe));
 }
+
+template<class T>
+void RmfeBeaver<T>::setup_mfe() {
+    // Setup MFE
+    if (Gf2MFE::has_singleton())
+        throw runtime_error("Can only setup MFE once");
+    auto mfe = get_double_composite_gf2_mfe(2, 3, 8);
+    Gf2MFE::set_singleton(std::move(mfe));
+}
+
 
 template<class T>
 void RmfeBeaver<T>::teardown() {

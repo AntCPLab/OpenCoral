@@ -4,6 +4,7 @@
 #include "Math/gf2n.h"
 #include "Math/mfe.h"
 #include "Math/BitVec.h"
+#include "Tools/BitVector.h"
 
 void ntl_gf2x_to_mpdz_gf2n(gf2n_short& y, const NTL::GF2X& x) {
     if (deg(x) >= gf2n_short::degree())
@@ -60,6 +61,29 @@ void conv(NTL::vec_GF2& y, const BitVec& x, int n_bits = -1) {
     y.SetLength(n_bits);
     y.rep[0] = x.mask(n_bits).get();
 }
+
+void conv(BitVector& y, const NTL::vec_GF2& x) {
+    if (x.length() == 0) {
+        y.resize(0);
+        return;
+    }
+    assert(sizeof(word) == sizeof(x.rep[0]));
+    y.resize(x.length());
+    for (int i = 0; i < DIV_CEIL(x.length(), sizeof(word) * 8); i++)
+        y.set_word(i, x.rep[i]);
+}
+
+void conv(NTL::vec_GF2& y, const BitVector& x) {
+    if (x.size() == 0) {
+        y.SetLength(0);
+        return;
+    }
+    y.SetLength(x.size());
+    assert(sizeof(word) == sizeof(y.rep[0]));
+    for (int i = 0; i < DIV_CEIL(x.size(), sizeof(word) * 8); i++)
+        y.rep[i] = x.get_word(i);
+}
+
 
 void pad(NTL::vec_GF2& x, int L) {
     if(x.length() >= L)

@@ -19,6 +19,7 @@
 #include "Tools/debug.h"
 
 class gf2n_rmfe;
+class bitvec_mfe;
 
 class bitvec_rmfe : public BitVec
 {
@@ -58,8 +59,11 @@ public:
     {
     }
 
-    // NOTE: This constructor includes encoding.
+    // NOTE: This constructor includes rmfe encoding.
     gf2n_rmfe(const bitvec_rmfe& decoded);
+
+    // NOTE: This constructor includes mfe decoding.
+    gf2n_rmfe(const bitvec_mfe& encoded);
 
     gf2n_rmfe(const gf2n_<word>& x): gf2n_short(x) {}
 
@@ -134,6 +138,23 @@ public:
     bool is_normal();
 };
 
+class bitvec_mfe : public BitVector
+{
+    typedef BitVector super;
+public:
+    static const int DEFAULT_LENGTH = 225;
+
+    bitvec_mfe(): super(DEFAULT_LENGTH) {
+    }
+
+    // NOTE: This constructor includes encoding.
+    bitvec_mfe(const gf2n_rmfe& decoded);
+
+    void randomize(PRNG& G) { 
+        super::randomize(G); 
+    }
+};
+
 
 namespace GC
 {
@@ -157,6 +178,7 @@ public:
     // typedef T clear;
     typedef bitvec_rmfe clear;
     typedef bitvec_rmfe raw_type;
+    typedef bitvec_mfe encoded_mac_type;
 
     typedef T mac_key_type;
     typedef T mac_type;

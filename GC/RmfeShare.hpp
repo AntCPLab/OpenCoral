@@ -26,6 +26,18 @@ gf2n_rmfe::gf2n_rmfe(const bitvec_rmfe& decoded) {
     conv(*this, Gf2RMFE::s().encode(ntl_tmp));
 }
 
+gf2n_rmfe::gf2n_rmfe(const bitvec_mfe& encoded) {
+    NTL::vec_GF2 ntl_encoded;
+    conv(ntl_encoded, encoded);
+    conv(*this, Gf2MFE::s().decode(ntl_encoded));
+}
+
+bitvec_mfe::bitvec_mfe(const gf2n_rmfe& decoded) {
+    NTL::GF2X ntl_tmp;
+    conv(ntl_tmp, decoded);
+    conv(*this, Gf2MFE::s().encode(ntl_tmp));
+}
+
 void gf2n_rmfe::add(octetStream& o, int n) {
     typename super::internal_type b = 0;
     o.consume((octet*) &b, (length() + 7) / 8);

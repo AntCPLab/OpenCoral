@@ -39,7 +39,7 @@ public:
 template <class T>
 class RmfeMultiplier : public OTMultiplier<T>
 {
-    OTCorrelator<Matrix<typename T::Square> > auth_ot_ext;
+    Fole<T> auth_ot_ext;
     void after_correlation();
     void init_authenticator(const BitVector& baseReceiverInput,
             const vector< array<BitVector, 2> >& baseSenderInput,
