@@ -48,9 +48,11 @@ public:
     Player& P;
 
     static void setup(Player& P);
-    static void setup_rmfe();
-    static void setup_mfe();
     static void teardown();
+    static void setup_rmfe();
+    static void teardown_rmfe();
+    static void setup_mfe();
+    static void teardown_mfe();
 
     RmfeBeaver(Player& P) : prep(0), MC(0), P(P) {}
 

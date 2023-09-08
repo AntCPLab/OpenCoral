@@ -21,6 +21,13 @@ template<class T>
 RmfeMultiplier<T>::RmfeMultiplier(OTTripleGenerator<T>& generator, int thread_num) :
         OTMultiplier<T>(generator, thread_num),
     auth_ot_ext(generator.players[thread_num], BOTH, true) {
+    // [zico] Multiplier is run in a separate thread, so we need to setup MFE again for the `thread_local` singleton.
+    RmfeBeaver<T>::setup_mfe();
+}
+
+template<class T>
+RmfeMultiplier<T>::~RmfeMultiplier() {
+    RmfeBeaver<T>::teardown_mfe();
 }
 
 template<class T>

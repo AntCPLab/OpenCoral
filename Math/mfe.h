@@ -190,6 +190,12 @@ unique_ptr<BasicMFE> internal_;
 long base_field_mod_ = 2;
 NTL::GF2XModulus ex_field_poly_;
 
+bool use_cache_ = true;
+vector<NTL::vec_GF2> encode_table_;
+vector<bool> encode_table_cached_;
+vector<NTL::GF2X> decode_table_;
+vector<bool> decode_table_cached_;
+
 public:
 using MFE::encode;
 using MFE::decode;
@@ -231,6 +237,16 @@ std::shared_ptr<Gf2eMFE> mfe2_;
 
 long base_field_mod_ = 2;
 NTL::GF2XModulus ex_field_poly_;
+
+bool use_cache_ = true;
+vector<NTL::vec_GF2> encode_table_;
+vector<bool> encode_table_cached_;
+bool use_encode_table_ = false;
+vector<NTL::GF2X> decode_table_;
+vector<bool> decode_table_cached_;
+bool use_decode_table_ = false;
+LRU<long, NTL::vec_GF2> encode_map_;
+bool use_encode_map_ = false;
 
 public:
 using MFE::encode;
@@ -484,10 +500,8 @@ long base_field_mod_ = 2;
 NTL::GF2XModulus ex_field_poly_;
 
 bool use_cache_ = true;
-
 vector<NTL::GF2X> encode_table_;
 vector<bool> encode_table_cached_;
-
 LRU<long, NTL::vec_GF2> decode_map_;
 
 public:

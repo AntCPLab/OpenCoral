@@ -341,11 +341,29 @@ BasicGf2MFE::BasicGf2MFE(long m) {
     internal_ = unique_ptr<BasicMFE>(new BasicMFE(m, 1));
     const GF2EX& f = internal_->ex_field_mod();
     ex_field_poly_ = GF2XModulus(shrink(f));
+
+    // To use cache, we need to constrain the input size.
+    if (use_cache_) {
+        assert(internal_->m() < 22);
+        assert(internal_->t() < 22);
+        
+        encode_table_.resize(1 << internal_->m());
+        encode_table_cached_.resize(1 << internal_->m());
+        decode_table_.resize(1 << internal_->t());
+        decode_table_cached_.resize(1 << internal_->t());
+    }
 }
 
 void BasicGf2MFE::encode(vec_GF2& h, const GF2X& g) {
     if (deg(g) + 1 > m())
         LogicError("Input polynomial g has an invalid length");
+
+    long idx = deg(g) == -1 ? 0 : g.xrep[0];
+    if (use_cache_ && encode_table_cached_[idx]) {
+        h = encode_table_[idx];
+        return;
+    }
+    
     GF2EPush push;
     GF2E::init(GF2X(1, 1));
     GF2EX g_ = lift(g);
@@ -355,11 +373,21 @@ void BasicGf2MFE::encode(vec_GF2& h, const GF2X& g) {
         LogicError("Output vector h has an invalid length");
 
     h = shrink(h_);
+
+    if (use_cache_) {
+        encode_table_[idx] = h;
+        encode_table_cached_[idx] = true;
+    }
 }
 
 void BasicGf2MFE::decode(GF2X& g, const vec_GF2& h) {
     if (h.length() != t())
         LogicError("Input vector h has an invalid length");
+
+    if (use_cache_ && decode_table_cached_[h.rep[0]]) {
+        g = decode_table_[h.rep[0]];
+        return;
+    }
 
     GF2EPush push;
     GF2E::init(GF2X(1, 1));
@@ -370,6 +398,11 @@ void BasicGf2MFE::decode(GF2X& g, const vec_GF2& h) {
         LogicError("Output polynomial g has an invalid length");
 
     g = shrink(g_);
+
+    if (use_cache_) {
+        decode_table_[h.rep[0]] = g;
+        decode_table_cached_[h.rep[0]] = true;
+    }
 }
 
 CompositeGf2MFE::CompositeGf2MFE(std::shared_ptr<FieldConverter> converter, std::shared_ptr<Gf2MFE> mfe1, std::shared_ptr<Gf2eMFE> mfe2)
@@ -387,11 +420,41 @@ CompositeGf2MFE::CompositeGf2MFE(std::shared_ptr<FieldConverter> converter, std:
     t_ = mfe1->t() * mfe2->t();
 
     ex_field_poly_ = converter_->binary_field_poly();
+
+    // To use cache, we need to constrain the input size.
+    if (use_cache_) {
+        if (this->m() < 22) {
+            use_encode_table_ = true;
+            encode_table_.resize(1 << this->m());
+            encode_table_cached_.resize(1 << this->m());
+        }
+        else if (this->m() < 64) {
+            use_encode_map_ = true;
+        }
+        if (this->t() < 22) {
+            use_decode_table_ = true;
+            decode_table_.resize(1 << this->t());
+            decode_table_cached_.resize(1 << this->t());
+        }
+    }
 }
 
 void CompositeGf2MFE::encode(NTL::vec_GF2& h, const NTL::GF2X& g) {
     if (deg(g) + 1 > m())
         LogicError("Input polynomial g has an invalid length");
+
+    long idx = deg(g) == -1 ? 0 : g.xrep[0];
+    if (use_cache_) {
+        if (use_encode_table_ && encode_table_cached_[idx]) {
+            h = encode_table_[idx];
+            return;
+        }
+        if (use_encode_map_ && encode_map_.contains(idx)) {
+            h = encode_map_.get(idx);
+            return;
+        }
+    }
+
     GF2E g_ = to_GF2E(g, converter_->binary_field_poly());
     GF2EX g_comp = converter_->binary_to_composite(g_);
 
@@ -403,11 +466,29 @@ void CompositeGf2MFE::encode(NTL::vec_GF2& h, const NTL::GF2X& g) {
         for (int j = 0; j < yi.length(); j++)
             h.at(i * mfe1_->t() + j) = yi.at(j);
     }
+
+    if (use_cache_) {
+        if (use_encode_table_) {
+            encode_table_[idx] = h;
+            encode_table_cached_[idx] = true;
+        }
+        else if (use_encode_map_) {
+            encode_map_.insert(idx, h);
+        }
+    }
 }
 
 void CompositeGf2MFE::decode(NTL::GF2X& g, const NTL::vec_GF2& h) {
     if (h.length() != t())
         LogicError("Input vector h has an invalid length");
+
+    if (use_cache_) {
+        if (use_decode_table_ && decode_table_cached_[h.rep[0]]) {
+            g = decode_table_[h.rep[0]];
+            return;
+        }
+    }
+
     GF2EPush push;
     GF2E::init(converter_->base_field_poly());
     vec_GF2E y({}, mfe2_->t());
@@ -420,6 +501,11 @@ void CompositeGf2MFE::decode(NTL::GF2X& g, const NTL::vec_GF2& h) {
     }
     GF2EX g_comp = mfe2_->decode(y);
     g = rep(converter_->composite_to_binary(g_comp));
+
+    if (use_cache_ && use_decode_table_) {
+        decode_table_[h.rep[0]] = g;
+        decode_table_cached_[h.rep[0]] = true;
+    }
 }
 
 void indices_to_gf2x(GF2X& f, const vector<long>& indices) {

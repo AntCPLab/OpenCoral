@@ -32,12 +32,27 @@ void RmfeBeaver<T>::setup(Player& P) {
 }
 
 template<class T>
+void RmfeBeaver<T>::teardown() {
+    BinaryProtocolThreadInit<TinyOTShare>::teardown();
+
+    teardown_rmfe();
+    teardown_mfe();
+}
+
+template<class T>
 void RmfeBeaver<T>::setup_rmfe() {
     // Setup RMFE
     if (Gf2RMFE::has_singleton())
         throw runtime_error("Can only setup RMFE once");
     auto rmfe = get_composite_gf2_rmfe_type2(2, 6);
     Gf2RMFE::set_singleton(std::move(rmfe));
+}
+
+template<class T>
+void RmfeBeaver<T>::teardown_rmfe() {
+    if (!Gf2RMFE::has_singleton())
+        return;
+    Gf2RMFE::reset_singleton();
 }
 
 template<class T>
@@ -49,14 +64,11 @@ void RmfeBeaver<T>::setup_mfe() {
     Gf2MFE::set_singleton(std::move(mfe));
 }
 
-
 template<class T>
-void RmfeBeaver<T>::teardown() {
-    BinaryProtocolThreadInit<TinyOTShare>::teardown();
-
-    if (!Gf2RMFE::has_singleton())
+void RmfeBeaver<T>::teardown_mfe() {
+    if (!Gf2MFE::has_singleton())
         return;
-    Gf2RMFE::reset_singleton();
+    Gf2MFE::reset_singleton();
 }
 
 template<class T>
