@@ -21,23 +21,31 @@ template<class T>
 RmfeMultiplier<T>::RmfeMultiplier(OTTripleGenerator<T>& generator, int thread_num) :
         OTMultiplier<T>(generator, thread_num),
     auth_ot_ext(generator.players[thread_num], BOTH, true) {
-    // [zico] Multiplier is run in a separate thread, so we need to setup MFE again for the `thread_local` singleton.
-    RmfeBeaver<T>::setup_mfe();
 }
 
 template<class T>
 RmfeMultiplier<T>::~RmfeMultiplier() {
+}
+
+template<class T>
+void RmfeMultiplier<T>::multiply() {
+    // [zico] Multiplier is run in a separate thread, so we need to setup MFE again for the `thread_local` singleton.
+    RmfeBeaver<T>::setup_mfe();
+
+    OTMultiplier<T>::multiply();
+
     RmfeBeaver<T>::teardown_mfe();
 }
 
 template<class T>
 void RmfeMultiplier<T>::multiplyForInputs(MultJob job) {
-    // [TODO] Replace with our OLE through usage of MFE. Now it is just a copy of MascotMultiplier.
-    
     assert(job.input);
+    assert(job.n_inputs % 128 == 0);
     auto& generator = this->generator;
     bool mine = job.player == generator.my_num;
-    auth_ot_ext.set_role(mine ? RECEIVER : SENDER);
+    auth_ot_ext.set_role(mine ? SENDER : RECEIVER);
+    if (mine)
+        this->inbox.pop();
 
     int last_part_n_bytes = DIV_CEIL(T::encoded_mac_type::DEFAULT_LENGTH % 128, 8);
     int n_parts = DIV_CEIL(T::encoded_mac_type::DEFAULT_LENGTH, 128);
@@ -74,10 +82,10 @@ void RmfeMultiplier<T>::multiplyForInputs(MultJob job) {
         octet* ptr = encoded_mac.get_ptr();
         for (int i = 0; i < n_parts; i++) {
             if (i < n_parts - 1 || last_part_n_bytes == 0) {
-                *((__m128i*) ptr + i) = senderInput[i][j];
+                *((__m128i*) ptr + i) = output[i][j];
             }
             else {
-                memcpy(ptr + i*sizeof(__m128i), (octet*)(&senderInput[i][j]), last_part_n_bytes);
+                memcpy(ptr + i*sizeof(__m128i), (octet*)(&output[i][j]), last_part_n_bytes);
             }
         }
         input_macs[j] = typename T::mac_type(encoded_mac);   

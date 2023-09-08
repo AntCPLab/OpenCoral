@@ -42,6 +42,36 @@ NTL::vec_GF2 shrink(const NTL::vec_GF2E& x);
 NTL::GF2E to_GF2E(const NTL::GF2X& x, const NTL::GF2X& poly_mod);
 NTL::GF2E to_GF2E(const NTL::vec_GF2& x, const NTL::GF2X& poly_mod);
 
+template<class TKey, class TValue>
+class LRU {
+    static const int MAX_SIZE = 2000000;
+    std::unordered_map<TKey, TValue> map_;
+    std::queue<TKey> keys_;
+public:
+    LRU() {}
+
+    bool contains(const TKey& key) {
+        return map_.count(key) == 1;
+    }
+
+    void insert(const TKey& key, const TValue& value) {
+        if (contains(key)) {
+            assert(map_.at(key) == value);
+            return;
+        }
+        if (keys_.size() >= MAX_SIZE) {
+            map_.erase(keys_.front());
+            keys_.pop();
+        }
+        keys_.push(key);
+        map_[key] = value;
+    }
+
+    const TValue& get(const TKey& key) {
+        return map_.at(key);
+    }
+};
+
 class FieldConverter {
 private:
 long k_, n_, m_;
@@ -457,35 +487,6 @@ void encode(NTL::GF2X& g, const NTL::vec_GF2& h);
 void decode(NTL::vec_GF2& h, const NTL::GF2X& g);
 };
 
-template<class TKey, class TValue>
-class LRU {
-    static const int MAX_SIZE = 2000000;
-    std::unordered_map<TKey, TValue> map_;
-    std::queue<TKey> keys_;
-public:
-    LRU() {}
-
-    bool contains(const TKey& key) {
-        return map_.count(key) == 1;
-    }
-
-    void insert(const TKey& key, const TValue& value) {
-        if (contains(key)) {
-            assert(map_.at(key) == value);
-            return;
-        }
-        if (keys_.size() >= MAX_SIZE) {
-            map_.erase(keys_.front());
-            keys_.pop();
-        }
-        keys_.push(key);
-        map_[key] = value;
-    }
-
-    const TValue& get(const TKey& key) {
-        return map_.at(key);
-    }
-};
 
 class CompositeGf2RMFE: public Gf2RMFE {
 private:

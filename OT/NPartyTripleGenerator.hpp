@@ -232,8 +232,9 @@ void NPartyTripleGenerator<W>::generateInputs(int player)
     auto& globalPlayer = this->globalPlayer;
 
     // extra value for sacrifice
-    int toCheck = nTriplesPerLoop
-            + DIV_CEIL(W::mac_key_type::size_in_bits(), T::size_in_bits());
+    int toSacrifice = DIV_CEIL(W::mac_key_type::size_in_bits(), T::size_in_bits());
+    // Adjust the total Auth values to be a multiple of 128 so that we have the best efficiency for MFE-OLE
+    int toCheck = DIV_CEIL(nTriplesPerLoop + toSacrifice, 128) * 128;
     valueBits.resize(1);
     this->signal_multipliers({player, toCheck});
     bool mine = player == globalPlayer.my_num();
@@ -281,14 +282,14 @@ void NPartyTripleGenerator<W>::generateInputs(int player)
         auto r = G.get<typename W::input_check_type::share_type>();
         check_sum += typename W::input_check_type(r * share, r * mac_sum);
     }
-    inputs.resize(nTriplesPerLoop);
+    inputs.resize(toCheck - toSacrifice);
 
     typename W::input_check_type::MAC_Check MC(mac_key);
     // use zero element because all is perfectly randomized
     MC.set_random_element({});
     MC.POpen(check_sum, globalPlayer);
     MC.Check(globalPlayer);
-    print_general("Generate inputs", nTriplesPerLoop, "Type", typeid(typename W::input_type).name(), "NPartyTripleGenerator");
+    print_general("Generate inputs", inputs.size(), "Type", typeid(typename W::input_type).name(), "NPartyTripleGenerator");
 }
 
 template<class T>

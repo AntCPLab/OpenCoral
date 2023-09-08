@@ -50,6 +50,8 @@ public:
     RmfeMultiplier(OTTripleGenerator<T>& generator, int thread_num);
     ~RmfeMultiplier();
 
+    void multiply();
+
 	void multiplyForInputs(MultJob job);
 };
 
