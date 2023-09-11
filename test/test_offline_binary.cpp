@@ -35,6 +35,8 @@
 template<class T>
 void test_buffer_triples(int argc, char** argv)
 {
+    OnlineOptions::singleton.batch_size = 10000;
+    cout << "[zico] batch size: " << OnlineOptions::singleton.batch_size << endl;
     // set up networking on localhost
     int my_number = atoi(argv[1]);
     int n_parties = atoi(argv[2]);
@@ -49,7 +51,9 @@ void test_buffer_triples(int argc, char** argv)
     BinaryProtocolSet<T> set(P, setup);
     auto& prep = set.prep;
 
+    print_total_comm(P, "Before Triples");
     prep.buffer_triples();
+    print_total_comm(P, "After Triples");
     set.check();
 
     auto comm_stats = P.total_comm();
@@ -63,7 +67,7 @@ void test_buffer_triples(int argc, char** argv)
 template<class T>
 void test_buffer_inputs(int argc, char** argv)
 {
-    // OnlineOptions::singleton.batch_size = 120000;
+    OnlineOptions::singleton.batch_size = 1000;
     // set up networking on localhost
     int my_number = atoi(argv[1]);
     int n_parties = atoi(argv[2]);
@@ -92,12 +96,12 @@ int main(int argc, char** argv)
     // Tiny.
     // test_buffer_inputs<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
     // Rmfe
-    test_buffer_inputs<GC::RmfeShare>(argc, argv);
+    // test_buffer_inputs<GC::RmfeShare>(argc, argv);
 
     // Tinier
     // test_buffer_triples<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
     // Tiny.
-    // test_buffer_triples<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
+    test_buffer_triples<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
     // Rmfe
     // test_buffer_triples<GC::RmfeShare>(argc, argv);
 

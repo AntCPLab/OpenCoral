@@ -548,6 +548,18 @@ public:
   ~RealTwoPartyPlayer();
 };
 
+class RealTwoPartyPlayerWithStats : public RealTwoPartyPlayer
+{
+  Player& parent;
+  NamedCommStats& comm_stats;
+  mutable Lock lock;
+
+public:
+  RealTwoPartyPlayerWithStats(Player& P, int other_player, const string& id);
+  size_t send(const PlayerBuffer& buffer, bool block) const;
+  Player& get_parent() { return parent; }
+};
+
 // for the same thread
 class OffsetPlayer : public TwoPartyPlayer
 {

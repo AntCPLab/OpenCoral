@@ -20,23 +20,27 @@ int BufferTinyOTPrep::get_next_available_port() {
 
 BufferTinyOTPrep::BufferTinyOTPrep(DataPositions& usage, int port, int batch_size) :
 	Preprocessing<TinyOTShare>(usage), io(nullptr), fpre(nullptr), P(nullptr),
-	port(port), batch_size(batch_size) {
+	player_2pc(nullptr), port(port), batch_size(batch_size) {
 	if (this->port < 0)
 		this->port = get_next_available_port();
 }
 
 void BufferTinyOTPrep::set_protocol(TinyOTShare::Protocol& protocol) {
 	this->P = &protocol.P;
+	// [zico] Assuming 2pc, so the other player's number is (1 - my_num)
+	player_2pc = new RealTwoPartyPlayerWithStats(*(this->P), 1 - this->P->my_num(), this->P->get_id() + "-TinyOT");
 	// [zico] might need to update IP here according to MP SPDZ's configuration
-	io = new emp::NetIO(this->P->my_num() + 1 == emp::ALICE ? nullptr:emp::IP, port);
+	io = new EmpChannel(player_2pc);
 	set_batch_size(batch_size);
 }
 
 void BufferTinyOTPrep::set_batch_size(int batch_size) {
 	assert(io != nullptr);
 	if (fpre)
-		delete fpre;
-	fpre = new emp::Fpre<emp::NetIO>(io, this->P->my_num() + 1, batch_size);
+		fpre->set_batch_size(batch_size);
+	else 
+		fpre = new emp::Fpre<EmpChannel>(io, this->P->my_num() + 1, batch_size);
+		
 	triple_buf_idx = batch_size;
 
 	random_abit_MACs.reserve(fpre->batch_size);
@@ -81,8 +85,12 @@ void BufferTinyOTPrep::get_tinyot_triple(
 }
 
 BufferTinyOTPrep::~BufferTinyOTPrep() {
-	delete io;
-	delete fpre;
+	if (io)
+		delete io;
+	if (fpre)
+		delete fpre;
+	if (player_2pc)
+		delete player_2pc;
 }
 
 

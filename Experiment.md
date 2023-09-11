@@ -27,6 +27,8 @@ Scripts/spdz2k.sh tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graphDef.bi
 # Benchmarking
 We can use insecure preprocessing to generate necessary randomness data on disk, in order to analyze the cost of offline vs online.
 
+## SqueezeNet
+
 ### Spdz2k
 - Add `MY_CFLAGS = -DINSECURE` to `CONFIG.mine`.
 - Make sure `Compiler.GC.types.bits.unit = 64`
@@ -51,3 +53,22 @@ make Fake-Offline.x coral-party.x -j8
 Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graphDef.bin-8
 ```
 
+## AES
+
+### Spdz2k / Tinier
+- Add `MY_CFLAGS = -DINSECURE` to `CONFIG.mine`.
+- Make sure `Compiler.GC.types.bits.unit = 64`
+```
+./compile.py aes_circuit
+./Scripts/spdz2k.sh aes_circuit
+# OR
+./Scripts/tinier.sh aes_circuit
+```
+
+### Coral
+- Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+```
+./compile.py aes_circuit_rmfe
+./Scripts/coral.sh aes_circuit_rmfe
+```

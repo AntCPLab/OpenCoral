@@ -687,6 +687,19 @@ RealTwoPartyPlayer::~RealTwoPartyPlayer()
   delete P;
 }
 
+RealTwoPartyPlayerWithStats::RealTwoPartyPlayerWithStats(Player& P, int other_player, const string& id) :
+  RealTwoPartyPlayer(P.N, other_player, id), parent(P), comm_stats(P.thread_stats.at(other_player)) {
+
+}
+
+size_t RealTwoPartyPlayerWithStats::send(const PlayerBuffer& buffer, bool block) const {
+  size_t sent = RealTwoPartyPlayer::send(buffer, block);
+  lock.lock();
+  comm_stats.sent += sent;
+  lock.unlock();
+  return sent;
+}
+
 void VirtualTwoPartyPlayer::send(octetStream& o) const
 {
   TimeScope ts(comm_stats["Sending one-to-one"].add(o));

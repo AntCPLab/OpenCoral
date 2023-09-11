@@ -15,6 +15,10 @@ public:
 	~EmpChannel() {
 	}
 
+	TwoPartyPlayer* get_player() {
+		return P;
+	}
+
 	void flush() {}
 
 	void send_data_internal(const void * data, size_t len) {
@@ -26,6 +30,7 @@ public:
 	void recv_data_internal(void * data, size_t len) {
 		P->recv(PlayerBuffer((octet*) data, len), true);
 	}
+
 };
 
 #endif

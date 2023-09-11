@@ -45,15 +45,28 @@ class Fpre {
 		block * MAC = nullptr, *KEY = nullptr;
 		block * MAC_res = nullptr, *KEY_res = nullptr;
 		block * pretable = nullptr;
+
+		TwoPartyPlayer * players[THDS];
+		TwoPartyPlayer * players2[THDS];
+
 		Fpre(T * in_io, int in_party, int bsize = 1000) {
 			pool = new ThreadPool(THDS*2);
 			prps = new PRP[THDS*2];
 			this->party = in_party;
+			auto real_player = (RealTwoPartyPlayerWithStats*) in_io->get_player();
 			for(int i = 0; i < THDS; ++i) {
 				usleep(1000);
-				io[i] = new T(in_io->is_server?nullptr:in_io->addr.c_str(), in_io->port, true);
+				players[i] = new RealTwoPartyPlayerWithStats(
+					real_player->get_parent(), 
+					real_player->other_player_num(),
+					real_player->get_parent().get_id() + "-Fpre-" + to_string(i));
+				io[i] = new T(players[i]);
 				usleep(1000);
-				io2[i] = new T(in_io->is_server?nullptr:in_io->addr.c_str(), in_io->port, true);
+				players2[i] = new RealTwoPartyPlayerWithStats(
+					real_player->get_parent(), 
+					real_player->other_player_num(),
+					real_player->get_parent().get_id() + "-Fpre2-" + to_string(i));
+				io2[i] = new T(players2[i]);
 				eq[i] = new Feq<T>(io[i], party);
 				eq[THDS+i] = new Feq<T>(io2[i], party);
 			}
@@ -110,6 +123,8 @@ class Fpre {
 			
 			delete[] MAC;
 			delete[] KEY;
+			delete[] MAC_res;
+			delete[] KEY_res;
 	      
 			MAC = new block[batch_size * bucket_size * 3];
 			KEY = new block[batch_size * bucket_size * 3];
@@ -132,6 +147,8 @@ class Fpre {
 				delete io2[i];
 				delete eq[i];
                 delete eq[THDS + i];
+				delete players[i];
+				delete players2[i];
 			}
 		}
 		void refill() {

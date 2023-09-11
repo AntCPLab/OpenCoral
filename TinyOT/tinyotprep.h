@@ -12,13 +12,14 @@
 
 class BufferTinyOTPrep : public Preprocessing<TinyOTShare> {
 
-	emp::NetIO *io;
-	emp::Fpre<emp::NetIO>* fpre;
+	EmpChannel *io;
+	emp::Fpre<EmpChannel>* fpre;
 	int triple_buf_idx;
 	vector<emp::block> random_abit_MACs;
 	vector<emp::block> random_abit_KEYs;
 
 	Player* P;
+	TwoPartyPlayer* player_2pc;
 	int port;
 	int batch_size;
 
