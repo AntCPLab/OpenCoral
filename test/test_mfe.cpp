@@ -1,4 +1,5 @@
 #include "Math/mfe.h"
+#include "Tools/performance.h"
 
 using namespace NTL;
 
@@ -399,6 +400,47 @@ void test_rmfe_tau(long k1, long k2) {
     cout << "enc_b_:\t" << enc_b_ << endl;
 }
 
+void benchmark_rmfe_then_mfe() {
+    print_banner("test_benchmark_then_mfe");
+    auto rmfe = get_composite_gf2_rmfe_type2(2, 6);
+    auto mfe = get_double_composite_gf2_mfe(2, 3, 8);
+
+    int n = 100000;
+    for (int i = 0; i < n; i++) {
+        vec_GF2 a = random_vec_GF2(rmfe->k()), b = random_vec_GF2(rmfe->k());
+        acc_time_log("RMFE encode (12 --> 48)");
+        GF2X enc_a = rmfe->encode(a);
+        GF2X enc_b = rmfe->encode(b);
+        acc_time_log("RMFE encode (12 --> 48)");
+
+        acc_time_log("MFE encode (48 --> 225)");
+        vec_GF2 enc_enc_a = mfe->encode(enc_a);
+        vec_GF2 enc_enc_b = mfe->encode(enc_b);
+        acc_time_log("MFE encode (48 --> 225)");
+
+        vec_GF2 enc_enc_c({}, enc_enc_a.length());
+        for (int i = 0; i < enc_enc_a.length(); i++) {
+            enc_enc_c[i] = enc_enc_a[i] * enc_enc_b[i];
+        }
+
+        acc_time_log("MFE decode (225 --> 48)");
+        GF2X enc_c = mfe->decode(enc_enc_c);
+        acc_time_log("MFE decode (225 --> 48)");
+        acc_time_log("RMFE decode (48 --> 12)");
+        vec_GF2 c = rmfe->decode(enc_c);
+        acc_time_log("RMFE decode (48 --> 12)");
+
+        vec_GF2 c_({}, a.length());
+        for (int i = 0; i < a.length(); i++) {
+            c_[i] = a[i] * b[i];
+        }
+
+        assert(c_ == c);
+    }
+
+    print_profiling();
+}
+
 int main() {
     // test_composite_to_binary();
     // test_composite_to_binary_with_base_poly();
@@ -411,6 +453,7 @@ int main() {
     // test_basic_gf2_rmfe_type2();
     // test_composite_gf2_rmfe();
     // test_composite_gf2_rmfe_type2(2, 6);
-    test_rmfe_then_mfe();
+    // test_rmfe_then_mfe();
     // test_rmfe_tau(2, 6);
+    benchmark_rmfe_then_mfe();
 }

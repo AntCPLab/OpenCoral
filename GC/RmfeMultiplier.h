@@ -36,6 +36,8 @@ public:
     void correlate(vector<BitMatrix>& output, const vector<BitMatrix>& senderInput, int n);
 };
 
+#ifdef BENCHMARK_MASCOT_APPROACH
+#else
 template <class T>
 class RmfeMultiplier : public OTMultiplier<T>
 {
@@ -54,5 +56,6 @@ public:
 
 	void multiplyForInputs(MultJob job);
 };
+#endif
 
 #endif

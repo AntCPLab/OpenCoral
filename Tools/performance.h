@@ -7,6 +7,7 @@
 #include <stack>
 #include <utility>
 #include <chrono>
+#include <map>
 
 
 inline std::chrono::nanoseconds time_log(std::string tag, bool print=true) {

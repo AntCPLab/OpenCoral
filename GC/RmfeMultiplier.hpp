@@ -130,12 +130,6 @@ Fole<T>::~Fole() {
 
 template<class T>
 void Fole<T>::init(const BitVector& keyBits) {
-    // if (!this->keyBits)
-    //     delete this->keyBits;
-    // this->keyBits = new bool[keyBits.size()];
-    // for (size_t i = 0; i < keyBits.size(); i++)
-    //     this->keyBits[i] = keyBits.get_bit(i);
-    // n_keyBits = keyBits.size();
     this->keyBits = keyBits;
 }
 
