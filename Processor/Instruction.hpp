@@ -488,6 +488,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case OPEN:
       case GOPEN:
       case TRANS:
+      case TRANSCBIT:
         num_var_args = get_int(s) - 1;
         n = get_int(s);
         get_vector(num_var_args, start, s);
@@ -689,6 +690,21 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
           return 0;
   case TRANS:
       if (reg_type == SBIT)
+      {
+          int n_outputs = n;
+          auto& args = start;
+          int n_inputs = args.size() - n_outputs;
+          long long res = 0;
+          for (int i = 0; i < n_outputs; i++)
+              res = max(res, args[i] + DIV_CEIL(n_inputs, GC_UNIT));
+          for (int j = 0; j < n_inputs; j++)
+              res = max(res, args[n_outputs] + DIV_CEIL(n_outputs, GC_UNIT));
+          return res;
+      }
+      else
+          return 0;
+  case TRANSCBIT:
+      if (reg_type == CBIT)
       {
           int n_outputs = n;
           auto& args = start;

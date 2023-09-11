@@ -93,6 +93,8 @@ enum
     // write to regint
     CONVCBIT = 0x230,
     CONVCBITVEC = 0x231,
+
+    TRANSCBIT = 0x233,
 };
 
 #endif /* PROCESSOR_GC_INSTRUCTION_H_ */

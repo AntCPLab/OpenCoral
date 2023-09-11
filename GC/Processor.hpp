@@ -395,6 +395,25 @@ void Processor<T>::convcbit2s(const BaseInstruction& instruction)
                 min(size_t(unit), instruction.get_n() - i * unit));
 }
 
+template<class T>
+void Processor<T>::transcbit(int n_outputs, const vector<int>& args)
+{
+    int n_inputs = args.size() - n_outputs;
+    int dl = GC::Clear::N_BITS;
+    for (int i = 0; i < n_outputs; i++)
+    {
+        for (int j = 0; j < DIV_CEIL(n_inputs, dl); j++)
+            C[args[i] + j] = 0;
+        for (int j = 0; j < n_inputs; j++)
+        {
+            auto& source = C[args[n_outputs + j] + i / dl];
+            auto& dest = C[args[i] + j / dl];
+
+            dest ^= (source.get() >> (i%dl)) << (j%dl);
+        }
+    }
+}
+
 template <class T>
 void Processor<T>::print_reg(int reg, int n, int size)
 {

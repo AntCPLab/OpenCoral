@@ -28,7 +28,8 @@ Scripts/spdz2k.sh tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graphDef.bi
 We can use insecure preprocessing to generate necessary randomness data on disk, in order to analyze the cost of offline vs online.
 
 ### Spdz2k
-Add `MY_CFLAGS = -DINSECURE` to `CONFIG.mine`.
+- Add `MY_CFLAGS = -DINSECURE` to `CONFIG.mine`.
+- Make sure `Compiler.GC.types.bits.unit = 64`
 ```
 make clean
 make Fake-Offline.x spdz2k-party.x -j8

@@ -67,6 +67,7 @@
     X(STMCBI, PROC.mem_op(SIZE, MMC, PROC.C, Ci[REG1], R0)) \
     X(MOVSB, S0 = PS1) \
     X(TRANS, T::trans(PROC, IMM, EXTRA)) \
+    X(TRANSCBIT, PROC.transcbit(IMM, EXTRA)) \
     X(BITB, PROC.random_bit(S0)) \
     X(REVEAL, T::reveal_inst(PROC, EXTRA)) \
     X(PRINTREGSIGNED, PROC.print_reg_signed(IMM, R0)) \

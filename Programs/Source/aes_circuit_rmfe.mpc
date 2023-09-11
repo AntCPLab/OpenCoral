@@ -1,0 +1,18 @@
+from circuit import Circuit
+
+cb128 = cbits.get_type(128)
+key = cb128(0x2b7e151628aed2a6abf7158809cf4f3c)
+plaintext = cb128(0x6bc1bee22e409f96e93d7e117393172a)
+n = 120
+x = cbits.trans([key] * n)
+y = cbits.trans([plaintext] * n)
+
+sbn = sbits.get_type(n)
+sx = [sbn.conv(c) for c in x]
+sy = [sbn.conv(c) for c in y]
+
+aes128 = Circuit('aes_128')
+ciphertexts = aes128(sx, sy)
+
+ct_cbs = cbits.trans([ciphertexts.v[i].reveal() for i in range(128)])
+ct_cbs[n-1].print_reg()

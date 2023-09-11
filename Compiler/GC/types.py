@@ -156,7 +156,7 @@ class bits(Tape.Register, _structure, _bit):
             self.set_length(self.n or util.int_len(other))
             self.load_int(other)
         elif isinstance(other, regint):
-            assert self.unit == 64
+            # assert self.unit == 64
             n_units = int(math.ceil(self.n / self.unit))
             n_convs = min(other.size, n_units)
             for i in range(n_convs):
@@ -390,6 +390,21 @@ class cbits(bits):
         else:
             res = regint()
         inst.convcbitvec(self.n, res, self)
+        return res
+
+    @classmethod
+    def trans(cls, rows):
+        rows = list(rows)
+        for row in rows:
+            try:
+                n_columns = row.n
+                break
+            except:
+                pass
+        for row in rows:
+            assert(row.n == n_columns)
+        res = [cls.new(n=len(rows)) for i in range(n_columns)]
+        inst.transcbit(len(res), *(res + rows))
         return res
 
 class sbits(bits):

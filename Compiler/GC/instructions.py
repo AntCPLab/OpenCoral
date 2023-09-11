@@ -78,6 +78,8 @@ opcodes = dict(
     CONDPRINTSTRB = 0x224,
     CONVCBIT = 0x230,
     CONVCBITVEC = 0x231,
+
+    TRANSCBIT = 0x233,
 )
 
 class BinaryVectorInstruction(base.Instruction):
@@ -581,6 +583,36 @@ class trans(base.VarArgsInstruction, base.DynFormatInstruction):
         while True:
             try:
                 yield 'sb'
+                next(args)
+            except StopIteration:
+                break
+
+class transcbit(base.VarArgsInstruction, base.DynFormatInstruction):
+    """ Clear bit register vector transpose. The first destination vector
+    will contain the least significant bits of all source vectors etc.
+
+    :param: number of arguments to follow (int)
+    :param: number of outputs (int)
+    :param: destination for least significant bits (cbit)
+    :param: (destination for bits one step higher)...
+    :param: source (cbit)
+    :param: (source)...
+    """
+    code = opcodes['TRANSCBIT']
+    is_vec = lambda self: True
+    def __init__(self, *args):
+        super(transcbit, self).__init__(*args)
+
+    @classmethod
+    def dynamic_arg_format(cls, args):
+        yield 'int'
+        n = next(args)
+        for i in range(n):
+            yield 'cbw'
+            next(args)
+        while True:
+            try:
+                yield 'cb'
                 next(args)
             except StopIteration:
                 break

@@ -26,6 +26,7 @@
 #include "Protocols/Beaver.hpp"
 #include "Protocols/MascotPrep.hpp"
 #include "Protocols/MalRepRingPrep.hpp"
+#include "Tools/debug.hpp"
 
 int main(int argc, const char** argv)
 {

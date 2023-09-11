@@ -65,6 +65,8 @@ public:
     void bitdecc(const vector<int>& regs, const Clear& x);
     void bitdecint(const vector<int>& regs, const Integer& x);
 
+    void transcbit(int n_outputs, const vector<int>& args);
+
     void random_bit(T &x) { x.random_bit(); }
 
     template<class U>
