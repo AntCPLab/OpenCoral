@@ -401,7 +401,7 @@ void test_rmfe_tau(long k1, long k2) {
 }
 
 void benchmark_rmfe_then_mfe() {
-    print_banner("test_benchmark_then_mfe");
+    print_banner("test_benchmark_rmfe_then_mfe");
     auto rmfe = get_composite_gf2_rmfe_type2(2, 6);
     auto mfe = get_double_composite_gf2_mfe(2, 3, 8);
 
