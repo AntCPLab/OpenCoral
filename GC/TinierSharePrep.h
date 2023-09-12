@@ -12,6 +12,7 @@
 #include "PersonalPrep.h"
 
 #ifdef SPDZ2K_SP
+#include "TinyOT/tinyotshare.h"
 #include "Protocols/GeneralShareConverter.h"
 #endif
 

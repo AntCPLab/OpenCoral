@@ -242,6 +242,29 @@ class SilentOT {
 	  std::memcpy(data + i, pad, std::min(emp::ot_bsize, length - i) * sizeof(emp::block));
     }
   }
+
+  // random correlated message, random choice
+  void send_ot_rcm_rc(emp::block* data, int64_t length) {
+    ferret->rcot(data, length);
+  }
+
+  // random correlated message, random choice
+  void recv_ot_rcm_rc(emp::block* data, bool* r, int64_t length) {
+    ferret->rcot(data, length);
+    for (int64_t i = 0; i < length; i++) {
+      r[i] = emp::getLSB(data[i]);
+    }
+  }
+
+  // EMP's COT API for compatibility
+  void send_cot(emp::block * data, int64_t length) {
+    ferret->send_cot(data, length);
+  }
+
+  // EMP's COT API for compatibility
+	void recv_cot(emp::block* data, const bool * b, int64_t length) {
+    ferret->recv_cot(data, b, length);
+  }
 };
 
 #endif // SILENT_OT_H

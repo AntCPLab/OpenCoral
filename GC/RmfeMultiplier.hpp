@@ -20,7 +20,7 @@ void RmfeMultiplier<T>::init_authenticator(const BitVector& keyBits,
 template<class T>
 RmfeMultiplier<T>::RmfeMultiplier(OTTripleGenerator<T>& generator, int thread_num) :
         OTMultiplier<T>(generator, thread_num),
-    auth_ot_ext(generator.players[thread_num], BOTH, true) {
+    auth_ot_ext(generator.players[thread_num], BOTH, true, BaseMachine::thread_num) {
 }
 
 template<class T>
@@ -93,6 +93,7 @@ void RmfeMultiplier<T>::multiplyForInputs(MultJob job) {
     this->outbox.push(job);
 }
 
+// [zico] There could be multithread bug here because now 'thread_num' is always -1
 template<class T>
 Fole<T>::Fole(TwoPartyPlayer* player, OT_ROLE role, bool passive, int thread_num)
     : role(role), player(player), ot(0), ot_reversed(0) {

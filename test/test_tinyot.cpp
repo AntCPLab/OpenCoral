@@ -1,5 +1,5 @@
 #define VERBOSE_DEBUG_PRINT
-#include "TinyOT/fpre.h"
+#include "TinyOT/fpre_old.h"
 
 void test_refill(int party, int port) {
     int N = 10000;

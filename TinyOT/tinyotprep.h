@@ -2,7 +2,14 @@
 #ifndef TINYOT_TINYOTPREP_H__
 #define TINYOT_TINYOTPREP_H__
 
+
+#ifdef USE_SILENT_OT
+#include "TinyOT/fpre_silent.h"
+#include "Processor/BaseMachine.h"
+#else
 #include "TinyOT/fpre.h"
+#endif
+#include "Networking/EmpChannel.h"
 #include "Tools/octetStream.h"
 #include "Protocols/MAC_Check_Base.h"
 #include "Math/Bit.h"

@@ -94,7 +94,7 @@ int main(int argc, char** argv)
     // Tinier
     // test_buffer_inputs<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
     // Tiny.
-    test_buffer_inputs<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
+    // test_buffer_inputs<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
     // Rmfe
     // test_buffer_inputs<GC::RmfeShare>(argc, argv);
 
@@ -103,7 +103,7 @@ int main(int argc, char** argv)
     // Tiny.
     // test_buffer_triples<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
     // Rmfe
-    // test_buffer_triples<GC::RmfeShare>(argc, argv);
+    test_buffer_triples<GC::RmfeShare>(argc, argv);
 
     // else if (protocol == "Rep3")
     //     run<GC::SemiHonestRepSecret>(argc, argv);

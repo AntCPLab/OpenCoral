@@ -1,6 +1,5 @@
 
 #include "TinyOT/tinyot.h"
-#include "Protocols/TinyOt2Rmfe.h"
 #include "Protocols/ProtocolSet.h"
 #include "Math/Bit.h"
 #include "Machines/Rmfe.hpp"

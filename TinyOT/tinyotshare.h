@@ -2,12 +2,14 @@
 #ifndef TINYOT_TINYOTSHARE_H__
 #define TINYOT_TINYOTSHARE_H__
 
-#include "TinyOT/fpre.h"
+#include <emp-tool/emp-tool.h>
 #include "Tools/octetStream.h"
 #include "Protocols/MAC_Check_Base.h"
 #include "Math/Bit.h"
 #include "Tools/debug.h"
 #include "Protocols/fake-stuff.h"
+#include "Protocols/ShareInterface.h"
+
 
 class BlockType {
 public:

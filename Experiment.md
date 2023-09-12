@@ -76,5 +76,6 @@ Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graphD
 
 # Compile Options
 - `RMFE_UNIT`
+- `USE_SILENT_OT`
 - `SPDZ2K_SP`
 - `BENCHMARK_MASCOT_APPROACH`

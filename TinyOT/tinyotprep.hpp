@@ -2,7 +2,6 @@
 #ifndef TINYOT_TINYOTPREP_HPP__
 #define TINYOT_TINYOTPREP_HPP__
 
-#include "TinyOT/fpre.h"
 #include "Tools/octetStream.h"
 #include "Protocols/MAC_Check_Base.h"
 #include "Math/Bit.h"
@@ -38,8 +37,13 @@ void BufferTinyOTPrep::set_batch_size(int batch_size) {
 	assert(io != nullptr);
 	if (fpre)
 		fpre->set_batch_size(batch_size);
-	else 
+	else  {
+#ifdef USE_SILENT_OT
+		fpre = new emp::Fpre<EmpChannel>(io, this->P->my_num() + 1, batch_size, BaseMachine::thread_num);
+#else
 		fpre = new emp::Fpre<EmpChannel>(io, this->P->my_num() + 1, batch_size);
+#endif
+	}
 		
 	triple_buf_idx = batch_size;
 
