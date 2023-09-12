@@ -72,3 +72,9 @@ Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graphD
 ./compile.py aes_circuit_rmfe
 ./Scripts/coral.sh aes_circuit_rmfe
 ```
+
+
+# Compile Options
+- `RMFE_UNIT`
+- `SPDZ2K_SP`
+- `BENCHMARK_MASCOT_APPROACH`

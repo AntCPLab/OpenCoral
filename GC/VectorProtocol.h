@@ -19,6 +19,9 @@ class VectorProtocol : public ProtocolBase<T>
 public:
     Player& P;
 
+    static void setup(Player& P) { T::part_type::Protocol::setup(P); }
+    static void teardown() { T::part_type::Protocol::teardown(); }
+
     VectorProtocol(Player& P);
 
     void init(Preprocessing<T>& prep, typename T::MAC_Check& MC);

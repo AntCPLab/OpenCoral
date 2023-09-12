@@ -12,6 +12,25 @@
 
 #include <array>
 
+#ifdef SPDZ2K_SP
+#include "Protocols/ProtocolGlobalInit.h"
+#include "TinyOT/tinyotshare.h"
+#endif
+
+template<class T>
+void Beaver<T>::setup(Player& P) {
+#ifdef SPDZ2K_SP
+    BinaryProtocolThreadInit<TinyOTShare>::setup(P);
+#endif
+}
+
+template<class T>
+void Beaver<T>::teardown() {
+#ifdef SPDZ2K_SP
+    BinaryProtocolThreadInit<TinyOTShare>::teardown();
+#endif
+}
+
 template<class T>
 typename T::Protocol Beaver<T>::branch()
 {

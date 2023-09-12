@@ -38,6 +38,9 @@ public:
 
     Player& P;
 
+    static void setup(Player& P);
+    static void teardown();
+
     Beaver(Player& P) : prep(0), MC(0), P(P) {}
 
     typename T::Protocol branch();

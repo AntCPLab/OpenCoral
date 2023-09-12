@@ -11,6 +11,10 @@
 #include "ShareThread.h"
 #include "PersonalPrep.h"
 
+#ifdef SPDZ2K_SP
+#include "Protocols/GeneralShareConverter.h"
+#endif
+
 namespace GC
 {
 
@@ -36,6 +40,11 @@ class TinierSharePrep : public PersonalPrep<T>
     void buffer_secret_triples();
 
     void init_real(Player& P);
+
+#ifdef SPDZ2K_SP
+    GeneralShareConverter<TinyOTShare, T>* tinyot2spdz2k;
+    void buffer_secret_triples_spdz2ksp();
+#endif
 
 public:
     TinierSharePrep(DataPositions& usage, int input_player =

@@ -94,14 +94,14 @@ int main(int argc, char** argv)
     // Tinier
     // test_buffer_inputs<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
     // Tiny.
-    // test_buffer_inputs<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
+    test_buffer_inputs<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
     // Rmfe
     // test_buffer_inputs<GC::RmfeShare>(argc, argv);
 
     // Tinier
     // test_buffer_triples<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
     // Tiny.
-    test_buffer_triples<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
+    // test_buffer_triples<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
     // Rmfe
     // test_buffer_triples<GC::RmfeShare>(argc, argv);
 

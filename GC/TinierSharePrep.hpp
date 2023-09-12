@@ -33,6 +33,10 @@ TinierSharePrep<T>::~TinierSharePrep()
         delete triple_generator;
     if (real_triple_generator)
         delete real_triple_generator;
+#ifdef SPDZ2K_SP
+    if (tinyot2spdz2k)
+        delete tinyot2spdz2k;
+#endif
 }
 
 template<class T>
@@ -55,6 +59,12 @@ void TinierSharePrep<T>::set_protocol(typename T::Protocol& protocol)
     triple_generator->multi_threaded = false;
     this->inputs.resize(thread.P->num_players());
     init_real(protocol.P);
+
+#ifdef SPDZ2K_SP
+    int tinyot_batch_size = triple_generator->nTriplesPerLoop * T::default_length;
+    tinyot2spdz2k = new GeneralShareConverter<TinyOTShare, T>(protocol.P);
+    tinyot2spdz2k->get_src_prep()->set_batch_size(tinyot_batch_size);
+#endif
 }
 
 template<class T>
@@ -65,8 +75,13 @@ void TinierSharePrep<T>::buffer_triples()
         this->buffer_personal_triples();
         return;
     }
-    else
+    else {
+#ifdef SPDZ2K_SP
+        buffer_secret_triples_spdz2ksp();
+#else
         buffer_secret_triples();
+#endif
+    }
 }
 
 template<class T>

@@ -11,6 +11,9 @@
 #include "Protocols/MascotPrep.hpp"
 #include "Protocols/ShuffleSacrifice.hpp"
 #include "Protocols/MalRepRingPrep.hpp"
+#ifdef SPDZ2K_SP
+#include "Protocols/GeneralShareConverter.hpp"
+#endif
 
 namespace GC
 {
@@ -79,6 +82,43 @@ void TinierSharePrep<T>::buffer_secret_triples()
         this->triples.push_back(triple);
     print_general("Generate TinierShare triples", triples.size());
 }
+
+#ifdef SPDZ2K_SP
+template<class T>
+void TinierSharePrep<T>::buffer_secret_triples_spdz2ksp() {
+    auto& nTriplesPerLoop = triple_generator->nTriplesPerLoop;
+    auto tinyot_prep = tinyot2spdz2k->get_src_prep();
+
+    int l = T::default_length;
+    // triple storage arranged as: n x 3 x l
+    vector<TinyOTShare> tinyot_shares(nTriplesPerLoop * 3 * l);
+    // triple storage arranged as: n x 3
+    vector<T> spdz2k_shares;
+
+    // Generate tinyot triples
+    for(int i = 0; i < nTriplesPerLoop; i++) {
+        for(int j = 0; j < l; j++) {
+            tinyot_prep->get_tinyot_triple(
+                tinyot_shares[i * 3 * l + j].MAC, 
+                tinyot_shares[i * 3 * l + j].KEY,
+                tinyot_shares[i * 3 * l + l + j].MAC, 
+                tinyot_shares[i * 3 * l + l + j].KEY,
+                tinyot_shares[i * 3 * l + 2 * l + j].MAC, 
+                tinyot_shares[i * 3 * l + 2 * l + j].KEY);
+        }
+    }
+
+    // Convert tinyot shares to spdz2k shares
+    tinyot2spdz2k->convert(spdz2k_shares, tinyot_shares);
+    assert((int)spdz2k_shares.size() == nTriplesPerLoop * 3);
+
+    for(int i = 0; i < nTriplesPerLoop; i++) {
+        this->triples.push_back({{spdz2k_shares[i*3], spdz2k_shares[i*3 + 1], spdz2k_shares[i*3 + 2]}});
+    }
+
+    print_general("Generate Spdz2k boolean triples", nTriplesPerLoop);
+}
+#endif
 
 } /* namespace GC */
 
