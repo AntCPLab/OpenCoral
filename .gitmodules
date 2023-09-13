@@ -27,4 +27,4 @@
 	url = https://github.com/EliSchwartz/imagenet-sample-images.git
 [submodule "benchmarks/EzPC"]
 	path = benchmarks/EzPC
-	url = https://github.com/mkskeller/EzPC
+	url = https://github.com/zicofish/MP-SPDZ-EzPC
