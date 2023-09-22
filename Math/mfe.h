@@ -361,6 +361,14 @@ public:
         return y;
     }
 
+    virtual void random_preimage(T2& h, const T1& g) = 0;
+
+    T2 random_preimage(const T1& g) {
+        T2 h;
+        random_preimage(h, g);
+        return h;
+    }
+
 };
 
 template<class T1, class T2, class T3, class T4>
@@ -401,6 +409,7 @@ public:
 
 using RMFE::encode;
 using RMFE::decode;
+using RMFE::random_preimage;
 
 /**
  * "type1" mapping uses m = 2*k-1, otherwise uses m = 2*k
@@ -435,6 +444,8 @@ long base_field_size() {
 
 void encode(NTL::GF2EX& g, const NTL::vec_GF2E& h);
 void decode(NTL::vec_GF2E& h, const NTL::GF2EX& g);
+
+void random_preimage(NTL::GF2EX& h, const NTL::vec_GF2E& g);
 };
 
 class BasicGf2RMFE: public Gf2RMFE {
@@ -453,6 +464,7 @@ vector<bool> decode_table_cached_;
 public:
 using RMFE::encode;
 using RMFE::decode;
+using RMFE::random_preimage;
 
 /**
  * "type1" mapping uses m = 2*k-1, otherwise uses m = 2*k
@@ -485,6 +497,7 @@ long base_field_size() {
 
 void encode(NTL::GF2X& g, const NTL::vec_GF2& h);
 void decode(NTL::vec_GF2& h, const NTL::GF2X& g);
+void random_preimage(NTL::GF2X& g, const NTL::vec_GF2& h);
 };
 
 
@@ -508,6 +521,7 @@ LRU<long, NTL::vec_GF2> decode_map_;
 public:
 using RMFE::encode;
 using RMFE::decode;
+using RMFE::random_preimage;
 
 CompositeGf2RMFE(std::shared_ptr<FieldConverter> converter, std::shared_ptr<Gf2RMFE> rmfe1, std::shared_ptr<Gf2eRMFE> rmfe2);
 
@@ -533,6 +547,7 @@ long base_field_size() {
 
 void encode(NTL::GF2X& g, const NTL::vec_GF2& h);
 void decode(NTL::vec_GF2& h, const NTL::GF2X& g);
+void random_preimage(NTL::GF2X& g, const NTL::vec_GF2& h);
 };
 
 std::unique_ptr<Gf2RMFE> get_composite_gf2_rmfe_type2(long k1, long k2);

@@ -819,6 +819,38 @@ void BasicRMFE::decode(vec_GF2E& h, const GF2EX& g) {
     ::psi(h, g, basis_, beta_);
 }
 
+void BasicRMFE::random_preimage(GF2EX& h, const vec_GF2E& g) {
+
+    if (g.length() != k())
+        LogicError("Invalid input length to random_preimage");
+    // Sample a random sub polynomial
+    GF2EX tmp = random_GF2EX(m() - k() + 1);
+    if (deg(tmp) < 0)
+        tmp.SetLength(1);
+    tmp[0] = g[0];
+
+    // Correct the evaluation vector by subtracting the evaluation of the above random poly.
+    vec_GF2E corrected_g({}, k() - 1), tmp_beta({}, k() - 1);
+    for(int i = 0; i < corrected_g.length(); i++) {
+        GF2E q;
+        eval(q, tmp, beta_[i + 1]);
+        // [zico] TODO: might be able to optimize by storing the inv
+        GF2E inv_beta = inv(power(beta_[i+1], m()-k()+1));
+        corrected_g[i] = (g[i+1] -  q) * inv_beta;
+        tmp_beta[i] = beta_[i+1];
+    }
+    // Interpolate the remaining part
+    GF2EX remaining_f;
+    interpolate(remaining_f, tmp_beta, corrected_g);
+
+    // Set the final polynomial
+    h.SetLength(m());
+    for (int i = 0; i < m() - k() + 1; i++)
+        h[i] = tmp[i];
+    for (int i = 0; i <= deg(remaining_f); i++)
+        h[i + m() - k() + 1] = remaining_f[i];
+}
+
 BasicGf2RMFE::BasicGf2RMFE(long k, bool is_type1) {
     internal_ = unique_ptr<BasicRMFE>(new BasicRMFE(k, 1, is_type1));
     const GF2EX& f = internal_->ex_field_mod();
@@ -871,6 +903,18 @@ void BasicGf2RMFE::encode(GF2X& g, const vec_GF2& h) {
     vec_GF2E h_ = lift(h);
     
     GF2EX g_ = internal_->encode(h_);
+    if (deg(g_) + 1 > m())
+        LogicError("Output polynomial g has an invalid length");
+
+    g = shrink(g_);
+}
+
+void BasicGf2RMFE::random_preimage(NTL::GF2X& g, const NTL::vec_GF2& h) {
+    GF2EPush push;
+    GF2E::init(GF2X(1, 1));
+    vec_GF2E h_ = lift(h);
+
+    GF2EX g_ = internal_->random_preimage(h_);
     if (deg(g_) + 1 > m())
         LogicError("Output polynomial g has an invalid length");
 
@@ -955,6 +999,24 @@ void CompositeGf2RMFE::decode(NTL::vec_GF2& h, const NTL::GF2X& g) {
 
     if (use_cache_)
         decode_map_.insert(idx, h);
+}
+
+void CompositeGf2RMFE::random_preimage(NTL::GF2X& g, const NTL::vec_GF2& h) {
+    if (h.length() != k())
+        LogicError("Input vector h has an invalid length");
+
+    GF2EPush push;
+    GF2E::init(converter_->base_field_poly());
+    vec_GF2E y({}, rmfe2_->k());
+
+    for (int i = 0; i < y.length(); i++) {
+        vec_GF2 yi({}, rmfe1_->k());
+        for (int j = 0; j < yi.length(); j++)
+            yi.at(j) = h.at(i * rmfe1_->k() + j);
+        y.at(i) = to_GF2E(rmfe1_->random_preimage(yi), converter_->base_field_poly());
+    }
+    GF2EX g_comp = rmfe2_->random_preimage(y);
+    g = rep(converter_->composite_to_binary(g_comp));
 }
 
 std::unique_ptr<Gf2RMFE> get_composite_gf2_rmfe_type2(long k1, long k2) {

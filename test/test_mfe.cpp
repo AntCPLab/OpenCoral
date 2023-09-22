@@ -400,6 +400,44 @@ void test_rmfe_tau(long k1, long k2) {
     cout << "enc_b_:\t" << enc_b_ << endl;
 }
 
+
+void test_basic_gf2_rmfe_type2_random_preimage() {
+    print_banner("test_basic_gf2_rmfe_type2");
+    long k = 2;
+    BasicGf2RMFE rmfe(k, false);
+    vec_GF2 a = random_vec_GF2(k);
+    a[0] = 1;
+    a[1] = 1;
+    GF2X pre_a = rmfe.random_preimage(a);
+
+    vec_GF2 a_ = rmfe.decode(pre_a);
+
+    cout << "a:\t" << a << endl;
+    cout << "a_:\t" << a_ << endl;
+    cout << "pre_a:\t" << pre_a << endl;
+}
+
+CompositeGf2RMFE test_composite_gf2_rmfe_type2_random_preimage(long k1, long k2) {
+    print_banner("test_composite_gf2_rmfe_type2_random_preimage");
+    // long k1 = 2, k2 = 6;
+    long m1 = 2*k1, m2 = 2*k2;
+    shared_ptr<FieldConverter> converter = make_shared<FieldConverter>(m1 * m2, m1, m2);
+    shared_ptr<Gf2RMFE> rmfe1 = make_shared<BasicGf2RMFE>(k1, false);
+    shared_ptr<Gf2eRMFE> rmfe2 = make_shared<BasicRMFE>(converter->base_field_poly(), converter->composite_field_poly());
+    CompositeGf2RMFE rmfe(converter, rmfe1, rmfe2);
+
+    vec_GF2 a = random_vec_GF2(rmfe.k());
+    GF2X pre_a = rmfe.random_preimage(a);
+
+    vec_GF2 a_ = rmfe.decode(pre_a);
+
+    cout << "k:\t" << rmfe.k() << ", m:\t" << rmfe.m() << endl;
+    cout << "a:\t" << a << endl;
+    cout << "a_:\t" << a_ << endl;
+
+    return rmfe;
+}
+
 void benchmark_rmfe_then_mfe() {
     print_banner("test_benchmark_rmfe_then_mfe");
     auto rmfe = get_composite_gf2_rmfe_type2(2, 6);
@@ -455,5 +493,7 @@ int main() {
     // test_composite_gf2_rmfe_type2(2, 6);
     // test_rmfe_then_mfe();
     // test_rmfe_tau(2, 6);
-    benchmark_rmfe_then_mfe();
+    test_basic_gf2_rmfe_type2_random_preimage();
+    test_composite_gf2_rmfe_type2_random_preimage(2, 6);
+    //benchmark_rmfe_then_mfe();
 }
