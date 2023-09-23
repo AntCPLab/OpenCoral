@@ -60,6 +60,7 @@ protected:
     map<pair<bool, int>, vector<edabitvec<T>>> edabits;
     map<pair<bool, int>, edabitvec<T>> my_edabits;
     map<pair<bool, int>, vector<edabitpack<T>>> edabitpacks;
+    vector<array<T, 5>> quintuples;
 
     int n_bit_rounds;
 

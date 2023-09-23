@@ -61,6 +61,14 @@ bool gf2n_rmfe::is_normal() {
     return tau(*this) == *this;
 }
 
+gf2n_rmfe gf2n_rmfe::random_preimage(const bitvec_rmfe& x) {
+    NTL::vec_GF2 ntl_tmp;
+    conv(ntl_tmp, x, bitvec_rmfe::DEFAULT_LENGTH);
+    gf2n_rmfe res;
+    conv(res, Gf2RMFE::s().random_preimage(ntl_tmp));
+    return res;
+}
+
 template<>
 void Square<gf2n_rmfe>::to(gf2n_rmfe& result, false_type)
 {

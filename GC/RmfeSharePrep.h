@@ -35,13 +35,16 @@ class RmfeSharePrep : public PersonalPrep<T> {
     // void init_real(Player& P);
     
     using PersonalPrep<T>::input_player;
+    using Preprocessing<T>::count;
+    using Preprocessing<T>::waste;
+    using Preprocessing<T>::do_count;
+    using BufferPrep<T>::quintuples;
 
 public:
     RmfeSharePrep(DataPositions& usage, int input_player = PersonalPrep<T>::SECURE);
     RmfeSharePrep(SubProcessor<T>*, DataPositions& usage);
     ~RmfeSharePrep();
 
-    typename T::MAC_Check* MC;
     PRNG prng;
     Player* P;
     typename T::mac_key_type::Scalar revealed_key;
@@ -59,8 +62,11 @@ public:
 
     void buffer_normals();
 
+    virtual array<T, 5> get_quintuple(int n_bits);
+    virtual array<T, 5> get_quintuple_no_count(int n_bits);
+
     void set_protocol(typename T::Protocol& protocol);
-    void set_mc(typename T::MAC_Check* MC);
+    // void set_mc(typename T::MAC_Check* MC);
 
     Preprocessing<typename T::part_type>& get_part()
     {

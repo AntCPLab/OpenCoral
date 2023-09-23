@@ -48,6 +48,14 @@ public:
                 add_other(i, n_bits);
     }
 
+    void add_from_all_encoded(const typename T::open_type& input, int n_bits = -1) {
+        for (int i = 0; i < this->P.num_players(); i++)
+            if (i == this->P.my_num())
+                add_mine(input, n_bits);
+            else
+                add_other(i, n_bits);
+    }
+
     void send_mine();
 
     T finalize_mine();

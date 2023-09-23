@@ -136,6 +136,8 @@ public:
 
     static gf2n_rmfe tau(const gf2n_rmfe& x);
     bool is_normal();
+
+    static gf2n_rmfe random_preimage(const bitvec_rmfe& x);
 };
 
 class bitvec_mfe : public BitVector

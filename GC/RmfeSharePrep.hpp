@@ -13,6 +13,7 @@
 #include "Tools/debug.h"
 #include "TinyOT/tinyotprep.hpp"
 #include "TinyOT/tinyotshare.hpp"
+#include "Protocols/ReplicatedPrep.hpp"
 
 namespace GC
 {
@@ -62,19 +63,17 @@ void RmfeSharePrep<T>::set_protocol(typename T::Protocol& protocol)
     this->inputs.resize(thread.P->num_players());
     // init_real(protocol.P);
 
-    Player* player = protocol.get_player();
+    P = protocol.get_player();
 
     int tinyot_batch_size = triple_generator->nTriplesPerLoop * T::default_length;
-    tinyot2rmfe = new RmfeShareConverter<TinyOTShare>(*player);
+    tinyot2rmfe = new RmfeShareConverter<TinyOTShare>(*P);
     tinyot2rmfe->get_src_prep()->set_batch_size(tinyot_batch_size);
-
-    MC = protocol.get_mc();
 }
 
-template<class T>
-void RmfeSharePrep<T>::set_mc(typename T::MAC_Check* MC) {
-    revealed_key = reveal(P, MC->get_alphai());
-}
+// template<class T>
+// void RmfeSharePrep<T>::set_mc(typename T::MAC_Check* MC) {
+//     revealed_key = reveal(P, MC->get_alphai());
+// }
 
 template<class T>
 void RmfeSharePrep<T>::buffer_inputs(int player) {
@@ -87,18 +86,18 @@ void RmfeSharePrep<T>::buffer_inputs(int player) {
 
 template<class T>
 void RmfeSharePrep<T>::buffer_triples() {
-
-    auto& nTriplesPerLoop = triple_generator->nTriplesPerLoop;
+    const int s = 40;
+    auto n = triple_generator->nTriplesPerLoop + s;
     auto tinyot_prep = tinyot2rmfe->get_src_prep();
 
     int l = T::default_length;
     // triple storage arranged as: n x 3 x l
-    vector<TinyOTShare> tinyot_shares(nTriplesPerLoop * 3 * l);
+    vector<TinyOTShare> tinyot_shares(n * 3 * l);
     // triple storage arranged as: n x 3
     vector<T> rmfe_shares;
 
     // Generate tinyot triples
-    for(int i = 0; i < nTriplesPerLoop; i++) {
+    for(int i = 0; i < n; i++) {
         for(int j = 0; j < l; j++) {
             tinyot_prep->get_tinyot_triple(
                 tinyot_shares[i * 3 * l + j].MAC, 
@@ -112,13 +111,63 @@ void RmfeSharePrep<T>::buffer_triples() {
 
     // Convert tinyot shares to rmfe shares
     tinyot2rmfe->convert(rmfe_shares, tinyot_shares);
-    assert((int)rmfe_shares.size() == nTriplesPerLoop * 3);
+    assert((int)rmfe_shares.size() == n * 3);
 
-    for(int i = 0; i < nTriplesPerLoop; i++) {
+    // Construct random encoded inputs that decode to the same raw input
+    auto& MC = ShareThread<typename T::whole_type>::s().MC->get_part_MC();
+    typename T::Input input(MC, *this, *P);
+    input.reset_all(*P);
+    for(int i = 0; i < n; i++) {
+        long raw_a = 0, raw_b = 0;
+        for(int j = 0; j < l; j++) {
+            raw_a ^= ((long) typename T::clear(tinyot_shares[i* 3 * l + j].get_bit(0).get_share()).get_bit(0)) << j;
+            raw_b ^= ((long) typename T::clear(tinyot_shares[i* 3 * l + l + j].get_bit(0).get_share()).get_bit(0)) << j;
+        }
+        input.add_from_all_encoded(T::open_type::random_preimage(typename T::clear(raw_a)));
+        input.add_from_all_encoded(T::open_type::random_preimage(typename T::clear(raw_b)));
+    }
+    input.exchange();
+    vector<T> random_a(n), random_b(n);
+    for(int i = 0; i < n; i++) {
+        random_a[i] = input.finalize(0) + input.finalize(1);
+        random_b[i] = input.finalize(0) + input.finalize(1);
+    }
+
+    // Sacrifice
+    GlobalPRNG prng(*P);
+    vector<T> y(s), y_prime(s), z(s), z_prime(s);
+    vector<typename T::open_type> y_open(s), y_prime_open(s), z_open(s), z_prime_open(s);
+    for(int i = 0; i < s; i++) {
+        y[i] = random_a[n - s + i];
+        y_prime[i] = rmfe_shares[(n-s+i) * 3];
+        z[i] = random_b[n - s + i];
+        z_prime[i] = rmfe_shares[(n-s+i) * 3 + 1];
+        for (int j = 0; j < n - s; j++) {
+            if (prng.get_bit()) {
+                y[i] += random_a[j];
+                y_prime[i] += rmfe_shares[j*3];
+                z[i] += random_b[j];
+                z_prime[i] += rmfe_shares[j*3 + 1];
+            }
+        }
+    }
+    MC.POpen(y_open, y, *P);
+    MC.POpen(y_prime_open, y_prime, *P);
+    MC.POpen(z_open, z, *P);
+    MC.POpen(z_prime_open, z_prime, *P);
+
+    for (int i = 0; i < s; i++) {
+        if (T::open_type::tau(y_open[i]) != y_prime_open[i])
+            throw runtime_error("Inconsistency found for [a] share");
+        if (T::open_type::tau(z_open[i]) != z_prime_open[i])
+            throw runtime_error("Inconsistency found for [b] share");
+    }
+
+    for(int i = 0; i < n-s; i++) {
         this->triples.push_back({{rmfe_shares[i*3], rmfe_shares[i*3 + 1], rmfe_shares[i*3 + 2]}});
     }
 
-    print_general("Generate RMFE triples", nTriplesPerLoop);
+    print_general("Generate RMFE triples", n-s);
 }
 
 template<class T>
@@ -257,6 +306,32 @@ void RmfeSharePrep<T>::buffer_normals() {
     delete MC;
 
     print_general("Generate random normal elements", u);
+}
+
+template<class T>
+array<T, 5> RmfeSharePrep<T>::get_quintuple(int n_bits) {
+    // Treat quintuple as triple in counting
+    count(DATA_TRIPLE, n_bits);
+    waste(DATA_TRIPLE, T::default_length - n_bits);
+    n_bits = T::default_length;
+    return get_quintuple_no_count(n_bits);
+}
+
+template<class T>
+array<T, 5> RmfeSharePrep<T>::get_quintuple_no_count(int n_bits) {
+    assert(T::default_length == n_bits or not do_count);
+
+    if (quintuples.empty())
+    {
+        InScope in_scope(this->do_count, false, *this);
+        // [zico] We reuse the buffer_triples API, but actually it is buffering quintuples
+        buffer_triples();
+        assert(not quintuples.empty());
+    }
+
+    array<T, 5> res = quintuples.back();
+    quintuples.pop_back();
+    return res;
 }
 
 #ifdef INSECURE_RMFE_PREP
