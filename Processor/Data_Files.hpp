@@ -167,6 +167,9 @@ Sub_Data_Files<T>::Sub_Data_Files(int my_num, int num_players,
   normal_buffer.setup(
       PrepBase::get_normal_filename(prep_data_dir,
           type_short, my_num, thread_num), T::size(), type_string, "normals");
+  quintuple_buffer.setup(
+      PrepBase::get_normal_filename(prep_data_dir,
+          type_short, my_num, thread_num), T::size(), type_string, "quintuples");
 
   input_buffers.resize(num_players);
   for (int i=0; i<num_players; i++)
@@ -493,6 +496,28 @@ T Sub_Data_Files<T>::get_normal_no_count() {
   normal_buffer.input(a);
   return a;
 }
+
+template<class T>
+array<T, 5> Preprocessing<T>::get_quintuple(int n_bits) {
+    // Treat quintuple as triple in counting
+    count(DATA_TRIPLE, n_bits);
+    waste(DATA_TRIPLE, T::default_length - n_bits);
+    n_bits = T::default_length;
+    return get_quintuple_no_count(n_bits);
+}
+
+template<class T>
+array<T, 5> Sub_Data_Files<T>::get_quintuple_no_count(int n_bits)
+{
+  array<T, 5> res;
+  quintuple_buffer.input(res[0]);
+  quintuple_buffer.input(res[1]);
+  quintuple_buffer.input(res[2]);
+  quintuple_buffer.input(res[3]);
+  quintuple_buffer.input(res[4]);
+  return res;
+}
+
 
 template<class T>
 typename Sub_Data_Files<T>::part_type& Sub_Data_Files<T>::get_part()

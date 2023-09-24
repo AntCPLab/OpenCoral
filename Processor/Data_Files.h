@@ -208,7 +208,7 @@ public:
   virtual T get_normal();
   virtual T get_normal_no_count()
   { throw runtime_error("no normal element"); }
-  virtual array<T, 5> get_quintuple(int n_bits) { throw runtime_error("no quintuple"); }
+  virtual array<T, 5> get_quintuple(int n_bits);
   virtual array<T, 5> get_quintuple_no_count(int n_bits) { throw runtime_error("no quintuple (no count)"); }
 
   void waste(Dtype dtype, int n = 1) 
@@ -236,6 +236,7 @@ class Sub_Data_Files : public Preprocessing<T>
   DabitPackBuffer<T> dabitpack_buffer;
   map<int, EdabitPackBuffer<T>> edabitpack_buffers;
   BufferOwner<T, T> normal_buffer;
+  BufferOwner<T, T> quintuple_buffer;
   
 
   int my_num,num_players;
@@ -324,6 +325,7 @@ public:
   part_type& get_part();
 
   T get_normal_no_count();
+  array<T, 5> get_quintuple_no_count(int n_bits);
 };
 
 template<class sint, class sgf2n>

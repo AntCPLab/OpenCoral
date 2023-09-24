@@ -285,6 +285,38 @@ void make_normals(const typename T::mac_type& key, int N, int ntrip, bool zero, 
     }
 }
 
+/* N      = Number players
+ * ntrip  = Number triples needed
+ */
+template<class T>
+void make_mult_quintuples(const typename T::mac_type& key, int N, int ntrip,
+    bool zero, string prep_data_prefix, PRNG& G, int thread_num = -1)
+{
+  Files<T> files(N, key,
+      get_prep_sub_dir<T>(prep_data_prefix, N)
+          + "quintuples-" + T::type_short(), G);
+
+  typename T::clear tau_a,tau_b;
+  typename T::open_type a, b;
+  /* Generate Quintuples */
+  for (int i=0; i<ntrip; i++)
+    {
+      if (!zero)
+        tau_a.randomize(G);
+      if (!zero)
+        tau_b.randomize(G);
+      auto c = typename T::open_type(typename T::clear(tau_a * tau_b));
+      a = T::open_type::random_preimage(tau_a);
+      b = T::open_type::random_preimage(tau_b);
+      files.output_shares(a);
+      files.output_shares(b);
+      files.output_shares(c);
+      files.output_shares(tau_a);
+      files.output_shares(tau_b);
+    }
+  check_files(files.outf, N);
+}
+
 
 template<class T>
 void make_PreMulC(const typename T::mac_type& key, int N, int ntrip, bool zero, PRNG& G)
@@ -1280,6 +1312,8 @@ int FakeParams::generate_coral()
   typename T::bit_type::mac_share_type::open_type keytt;
   generate_mac_keys<typename T::bit_type::part_type>(keytt, nplayers, prep_data_prefix, G);
   make_minimal<typename T::bit_type::part_type>(keytt, nplayers, default_num / T::bit_type::part_type::default_length, zero, G);
+  make_mult_quintuples<typename T::bit_type::part_type>(keytt, nplayers, default_num / T::bit_type::part_type::default_length, 
+    zero, prep_data_prefix, G);
   make_normals<typename T::bit_type::part_type>(keytt, nplayers, default_num / T::bit_type::part_type::default_length, zero, G);
   make_dabits<T>(keyp, nplayers, default_num, zero, G, T::bit_type::tight_packed, keytt);
   make_edabits<T>(keyp, nplayers, default_num, zero, G, false_type(), T::bit_type::tight_packed, keytt);
