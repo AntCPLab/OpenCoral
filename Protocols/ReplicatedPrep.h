@@ -51,7 +51,7 @@ protected:
     vector<T> bits;
     vector<vector<InputTuple<T>>> inputs;
 
-    vector<T> normals;
+    vector<array<T, 2>> normals;
 
     vector<dabit<T>> dabits;
     // For bit type that is packed and encoded, no individual dabit is available
@@ -158,7 +158,7 @@ public:
 
     void buffer_extra(Dtype type, int n_items);
 
-    T get_normal_no_count();
+    array<T, 2> get_normal_no_count();
 };
 
 /**

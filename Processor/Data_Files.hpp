@@ -58,7 +58,7 @@ T Preprocessing<T>::get_random_from_inputs(int nplayers)
 }
 
 template<class T>
-T Preprocessing<T>::get_normal()
+array<T, 2> Preprocessing<T>::get_normal()
 {
     // [zico] should count here?
     return get_normal_no_count();
@@ -491,10 +491,11 @@ void Preprocessing<T>::fill(edabitvec<T>& res, bool strict, int n_bits)
 }
 
 template<class T>
-T Sub_Data_Files<T>::get_normal_no_count() {
-  T a;
-  normal_buffer.input(a);
-  return a;
+array<T, 2> Sub_Data_Files<T>::get_normal_no_count() {
+  array<T, 2> res;
+  normal_buffer.input(res[0]);
+  normal_buffer.input(res[1]);
+  return res;
 }
 
 template<class T>

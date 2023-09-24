@@ -176,7 +176,7 @@ void RmfeBeaver<T>::prepare_mul_constant(const T& x, const typename T::clear& y,
     auto& normal = normals.back();
     normal = prep->get_normal();
 
-    shares.push_back(x - normal);
+    shares.push_back(x - normal[0]);
     constants.push_back(y_);
 }
 
@@ -201,7 +201,7 @@ T RmfeBeaver<T>::finalize_mul_constant(int n)
     (void) n;
     typename T::open_type masked = *it++;
     T norm_masked_T = T::constant(T::open_type::tau(masked), P.my_num(), MC->get_alphai());
-    T tmp = (*normal + norm_masked_T) * (*constant);
+    T tmp = ((*normal)[1] + norm_masked_T) * (*constant);
 
     normal++;
     constant++;

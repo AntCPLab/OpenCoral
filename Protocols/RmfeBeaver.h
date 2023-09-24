@@ -38,9 +38,9 @@ protected:
     Preprocessing<T>* prep;
     typename T::MAC_Check* MC;
 
-    vector<T> normals;
+    vector<array<T, 2>> normals;
     vector<typename T::open_type> constants;
-    typename vector<T>::iterator normal;
+    typename vector<array<T, 2>>::iterator normal;
     typename vector<typename T::open_type>::iterator constant;
 
 

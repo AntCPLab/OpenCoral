@@ -1604,7 +1604,7 @@ void BufferPrep<T>::buffer_extra(Dtype type, int n_items)
 }
 
 template<class T>
-T BufferPrep<T>::get_normal_no_count()
+array<T, 2> BufferPrep<T>::get_normal_no_count()
 {
     if (normals.empty())
     {

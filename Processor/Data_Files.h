@@ -205,8 +205,8 @@ public:
 
   virtual Preprocessing<typename T::part_type>& get_part() { throw runtime_error("no part"); }
 
-  virtual T get_normal();
-  virtual T get_normal_no_count()
+  virtual array<T, 2> get_normal();
+  virtual array<T, 2> get_normal_no_count()
   { throw runtime_error("no normal element"); }
   virtual array<T, 5> get_quintuple(int n_bits);
   virtual array<T, 5> get_quintuple_no_count(int n_bits) { throw runtime_error("no quintuple (no count)"); }
@@ -324,7 +324,7 @@ public:
 
   part_type& get_part();
 
-  T get_normal_no_count();
+  array<T, 2> get_normal_no_count();
   array<T, 5> get_quintuple_no_count(int n_bits);
 };
 

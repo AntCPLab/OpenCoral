@@ -270,39 +270,52 @@ void RmfeSharePrep<T>::buffer_normals() {
     int u = triple_generator->nTriplesPerLoop;
     int n = u + NORMAL_SACRIFICE;
     vector<T> normals(n);
+    vector<T> randoms(n);
 
     SeededPRNG prng;
     for(int i = 0; i < n; i++) {
-        typename T::clear r = prng.get<typename T::clear>();
-        input.add_from_all(r);
+        // typename T::clear r = prng.get<typename T::clear>();
+        typename T::open_type r = prng.get<typename T::open_type>();
+        typename T::open_type normal = T::open_type::tau(r);
+        input.add_from_all_encoded(r);
+        input.add_from_all_encoded(normal);
     }
     input.exchange();
 
     for(int i = 0; i < n; i++) {
+        randoms[i] = input.finalize(0) + input.finalize(1);
         normals[i] = input.finalize(0) + input.finalize(1);
     }
 
     // Step 2: Sacrifice
     vector<T> b(NORMAL_SACRIFICE);
+    vector<T> c(NORMAL_SACRIFICE);
     GlobalPRNG G(P);
     for (int i = 0; i < NORMAL_SACRIFICE; i++) {
-        b[i] = normals[u + i];
+        b[i] = randoms[u + i];
+        c[i] = normals[u + i];
         for (int j = 0; j < u; j++) {
-            if (G.get_bit())
-                b[i] += normals[j];
+            if (G.get_bit()) {
+                b[i] += randoms[j];
+                c[i] += normals[j];
+            }
         }
     }
     vector<typename T::open_type> b_opened;
+    vector<typename T::open_type> c_opened;
     MC->POpen(b_opened, b, P);
+    MC->POpen(c_opened, c, P);
     for (int i = 0; i < NORMAL_SACRIFICE; i++) {
-        if (!b_opened[i].is_normal()) {
+        if (!(T::open_type::tau(b_opened[i]) == c_opened[i])) {
             throw runtime_error("Fail checking normality of element");
         }
     }
 
     MC->Check(P);
 
-    this->normals.insert(this->normals.end(), normals.begin(), normals.begin() + u);
+    for (int i = 0; i < u; i++)
+        this->normals.push_back({{randoms[i], normals[i]}});
+    // this->normals.insert(this->normals.end(), normals.begin(), normals.begin() + u);
     delete MC;
 
     print_general("Generate random normal elements", u);
