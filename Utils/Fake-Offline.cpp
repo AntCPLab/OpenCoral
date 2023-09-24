@@ -278,10 +278,12 @@ void make_normals(const typename T::mac_type& key, int N, int ntrip, bool zero, 
           + "normals-" + T::type_short(), G);
   for (int i = 0; i < ntrip; i++)
     {
-      typename T::bit_type::part_type::clear bits;
+      typename T::bit_type::part_type::open_type r;
       if (not zero)
-        bits.randomize(G);
-      files.template output_shares<T>(typename T::bit_type::part_type::open_type(bits), key);
+        r.randomize(G);
+      typename T::bit_type::part_type::open_type tau_r = T::bit_type::part_type::open_type::tau(r);
+      files.template output_shares<T>(r, key);
+      files.template output_shares<T>(tau_r, key);
     }
 }
 
