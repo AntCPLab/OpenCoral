@@ -29,10 +29,12 @@ protected:
 
     vector<T> shares;
     vector<typename T::open_type> opened;
-    vector<array<T, 3>> triples;
+    // vector<array<T, 3>> triples;
+    vector<array<T, 5>> quintuples;
     vector<int> lengths;
     typename vector<typename T::open_type>::iterator it;
-    typename vector<array<T, 3>>::iterator triple;
+    // typename vector<array<T, 3>>::iterator triple;
+    typename vector<array<T, 5>>::iterator quintuple;
     Preprocessing<T>* prep;
     typename T::MAC_Check* MC;
 
@@ -77,7 +79,8 @@ public:
 
     int get_n_relevant_players() { return 1 + T::threshold(P.num_players()); }
 
-    int get_buffer_size() { return triples.size(); }
+    // int get_buffer_size() { return triples.size(); }
+    int get_buffer_size() { return quintuples.size(); }
 
     Player* get_player() {
         return &P;

@@ -164,10 +164,10 @@ void RmfeSharePrep<T>::buffer_triples() {
     }
 
     for(int i = 0; i < n-s; i++) {
-        this->triples.push_back({{rmfe_shares[i*3], rmfe_shares[i*3 + 1], rmfe_shares[i*3 + 2]}});
+        this->quintuples.push_back({{random_a[i], random_b[i], rmfe_shares[i*3 + 2], rmfe_shares[i*3], rmfe_shares[i*3 + 1]}});
     }
 
-    print_general("Generate RMFE triples", n-s);
+    print_general("Generate RMFE quintuples", n-s);
 }
 
 template<class T>

@@ -85,7 +85,7 @@ void RmfeBeaver<T>::init_mul()
     assert(this->MC);
     shares.clear();
     opened.clear();
-    triples.clear();
+    quintuples.clear();
     lengths.clear();
 }
 
@@ -93,12 +93,12 @@ template<class T>
 void RmfeBeaver<T>::prepare_mul(const T& x, const T& y, int n)
 {
     (void) n;
-    triples.push_back({{}});
-    auto& triple = triples.back();
-    triple = prep->get_triple(n);
+    quintuples.push_back({{}});
+    auto& quintuple = quintuples.back();
+    quintuple = prep->get_quintuple(n);
 
-    shares.push_back(x - triple[0]);
-    shares.push_back(y - triple[1]);
+    shares.push_back(x - quintuple[0]);
+    shares.push_back(y - quintuple[1]);
     lengths.push_back(n);
 }
 
@@ -114,7 +114,7 @@ void RmfeBeaver<T>::exchange()
     for (size_t i = 0; i < shares.size(); i++)
         opened.push_back(MC->finalize_raw());
     it = opened.begin();
-    triple = triples.begin();
+    quintuple = quintuples.begin();
 }
 
 template<class T>
@@ -128,7 +128,7 @@ void RmfeBeaver<T>::stop_exchange()
 {
     MC->POpen_End(opened, shares, P);
     it = opened.begin();
-    triple = triples.begin();
+    quintuple = quintuples.begin();
 }
 
 template<class T>
@@ -136,7 +136,7 @@ T RmfeBeaver<T>::finalize_mul(int n)
 {
     (void) n;
     typename T::open_type masked[2], norm_masked[2];
-    T& tmp = (*triple)[2];
+    T& tmp = (*quintuple)[2];
     NTL::GF2X ntl_tmp;
 
     for (int k = 0; k < 2; k++)
@@ -148,10 +148,10 @@ T RmfeBeaver<T>::finalize_mul(int n)
     conv(ntl_tmp, masked[1]);
     conv(norm_masked[1], Gf2RMFE::s().tau(ntl_tmp));
 
-    tmp += (norm_masked[0] * (*triple)[1]);
-    tmp += ((*triple)[0] * norm_masked[1]);
+    tmp += (norm_masked[0] * (*quintuple)[4]);
+    tmp += ((*quintuple)[3] * norm_masked[1]);
     tmp += T::constant(norm_masked[0] * norm_masked[1], P.my_num(), MC->get_alphai());
-    triple++;
+    quintuple++;
 
     return tmp;
 }

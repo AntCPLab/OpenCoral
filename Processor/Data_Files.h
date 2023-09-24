@@ -208,6 +208,8 @@ public:
   virtual T get_normal();
   virtual T get_normal_no_count()
   { throw runtime_error("no normal element"); }
+  virtual array<T, 5> get_quintuple(int n_bits) { throw runtime_error("no quintuple"); }
+  virtual array<T, 5> get_quintuple_no_count(int n_bits) { throw runtime_error("no quintuple (no count)"); }
 
   void waste(Dtype dtype, int n = 1) 
   { usage.waste(dtype, n); }
