@@ -485,15 +485,15 @@ int main() {
     // test_basic_mfe();
     // test_basic_gf2_mfe();
     // test_composite_gf2_mfe();
-    // test_double_composite_gf2_mfe(2, 3, 8);
+    test_double_composite_gf2_mfe(2, 3, 8);
     // test_basic_rmfe();
     // test_basic_gf2_rmfe();
     // test_basic_gf2_rmfe_type2();
     // test_composite_gf2_rmfe();
-    // test_composite_gf2_rmfe_type2(2, 6);
+    test_composite_gf2_rmfe_type2(2, 6);
     // test_rmfe_then_mfe();
     // test_rmfe_tau(2, 6);
     test_basic_gf2_rmfe_type2_random_preimage();
     test_composite_gf2_rmfe_type2_random_preimage(2, 6);
-    //benchmark_rmfe_then_mfe();
+    benchmark_rmfe_then_mfe();
 }

@@ -4,6 +4,7 @@
 #include "NTL/GF2EX.h"
 #include "NTL/vec_GF2E.h"
 #include "NTL/mat_GF2.h"
+#include "NTL/mat_GF2E.h"
 #include "NTL/GF2X.h"
 #include "Tools/Exceptions.h"
 #include <memory>
@@ -39,7 +40,17 @@ NTL::GF2EX lift(const NTL::GF2X& x);
 NTL::GF2X shrink(const NTL::GF2EX& x);
 NTL::vec_GF2E lift(const NTL::vec_GF2& x);
 NTL::vec_GF2 shrink(const NTL::vec_GF2E& x);
+/**
+ * Convert `x` to a GF2E type which takes `poly_mod` as the polynomial modulus.
+ * The conversion does NOT necessarily set GF2E's modulus, so the caller should
+ * make sure the modulus is expected when using the returned result.
+*/
 NTL::GF2E to_GF2E(const NTL::GF2X& x, const NTL::GF2X& poly_mod);
+/**
+ * Convert `x` to a GF2E type which takes `poly_mod` as the polynomial modulus.
+ * The conversion does NOT necessarily set GF2E's modulus, so the caller should
+ * make sure the modulus is expected when using the returned result.
+*/
 NTL::GF2E to_GF2E(const NTL::vec_GF2& x, const NTL::GF2X& poly_mod);
 
 template<class TKey, class TValue>
@@ -175,6 +186,8 @@ NTL::GF2EXModulus ex_field_poly_mod_;
 NTL::GF2EX alpha_;
 NTL::vec_GF2EX basis_;
 NTL::vec_GF2E beta_;
+
+bool use_fast_basis_;
 
 void initialize();
 
@@ -400,6 +413,10 @@ NTL::GF2EXModulus ex_field_poly_mod_;
 NTL::GF2EX alpha_;
 NTL::vec_GF2EX basis_;
 NTL::vec_GF2E beta_;
+
+NTL::mat_GF2E beta_matrix_;
+bool use_precompute_beta_matrix_;
+bool use_fast_basis_;
 
 void initialize();
 

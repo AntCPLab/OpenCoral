@@ -10,7 +10,7 @@
 #include <map>
 
 
-inline std::chrono::nanoseconds time_log(std::string tag, bool print=true) {
+inline std::chrono::nanoseconds time_log(const std::string& tag, bool print=true) {
     static std::stack<std::pair<std::string, std::chrono::high_resolution_clock::time_point>> sentinel;
     
     if (sentinel.empty() || sentinel.top().first != tag) {
@@ -32,12 +32,12 @@ inline std::chrono::nanoseconds time_log(std::string tag, bool print=true) {
     }
 }
 
-static std::map<std::string, std::chrono::nanoseconds> profiling;
-inline void acc_time_log(std::string tag) {
+extern std::map<std::string, std::chrono::nanoseconds> profiling;
+inline void acc_time_log(const std::string& tag) {
     profiling[tag] += time_log(tag, false);
 }
 
-inline void print_profiling(std::string tag="") {
+inline void print_profiling(const std::string& tag="") {
     if (tag == "") {
         for(const auto& e : profiling)
             print_profiling(e.first);

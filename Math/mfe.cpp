@@ -62,6 +62,10 @@ void sigma(vec_GF2E& h, const GF2EX& g, const vec_GF2EX& basis, const vec_GF2E& 
     nu_1(h, f, beta);
 }
 
+void sigma_fast(vec_GF2E& h, const GF2EX& g, const vec_GF2E& beta) {
+    nu_1(h, g, beta);
+}
+
 void mu_1(GF2EX& g, const GF2EX& f, const vec_GF2EX& basis) {
     clear(g);
     for(int i = 0; i <= deg(f); i++) {
@@ -231,6 +235,27 @@ void xi_2(vec_GF2E& g, const GF2EX& f, const vec_GF2E& beta) {
     }
 }
 
+/**
+ * deg(f) = 2k-2 (type1) for 2k-1 (type2)
+ * len(beta) = k
+ * beta[0] = 0
+ * f --> (f(beta[0]), f(beta[1]), ..., f(beta[k-1]))
+*/
+void xi_2_precomp(vec_GF2E& g, const GF2EX& f, const mat_GF2E& beta) {
+    long m = beta.NumCols();
+    if (deg(f) == m-1) {
+        mul(g, beta, f.rep);
+    }
+    else {
+        vec_GF2E ext_f({}, m);
+        auto f_it = f.rep.begin();
+        auto ext_f_it = ext_f.begin();
+        for (; f_it != f.rep.end(); f_it++, ext_f_it++)
+            *ext_f_it = *f_it;
+        mul(g, beta, ext_f);
+    }
+}
+
 void phi(GF2EX& g, const vec_GF2E& h, const vec_GF2EX& basis, const vec_GF2E& beta) {
     GF2EX f;
     inv_xi_1(f, h, beta);
@@ -241,6 +266,20 @@ void psi(vec_GF2E& h, const GF2EX& g, const vec_GF2EX& basis, const vec_GF2E& be
     GF2EX f;
     inv_pi_1(f, g, basis);
     xi_2(h, f, beta);
+}
+
+void psi_fast(vec_GF2E& h, const GF2EX& g, const vec_GF2E& beta) {
+    xi_2(h, g, beta);
+}
+
+void psi_fast_precomp(vec_GF2E& h, const GF2EX& g, const mat_GF2E& beta) {
+    xi_2_precomp(h, g, beta);
+}
+
+void psi_precomp(vec_GF2E& h, const GF2EX& g, const vec_GF2EX& basis, const mat_GF2E& beta) {
+    GF2EX f;
+    inv_pi_1(f, g, basis);
+    xi_2_precomp(h, g, beta);
 }
 
 GF2EX lift(const GF2X& x) {
@@ -320,6 +359,7 @@ void BasicMFE::initialize() {
     // Hence mu_1 and inv_mu_1 are both just identity functions (just run them to verify)
     // So things can be simpfiled a lot. Keep algorithm code of mu_1 and inv_mu_1 here
     // in case we could not use "alpha = Y" in some setting.
+    use_fast_basis_ = true;
 
     // get 2m-2 distinct elements
     Enumerate_GF2E(beta_, 0, 2*m_-2);
@@ -328,7 +368,10 @@ void BasicMFE::initialize() {
 void BasicMFE::encode(vec_GF2E& h, const GF2EX& g) {
     GF2EPush push;
     GF2E::init(base_field_poly_mod_);
-    ::sigma(h, g, basis_, beta_);
+    if (use_fast_basis_)
+        ::sigma_fast(h, g, beta_);
+    else
+        ::sigma(h, g, basis_, beta_);
 }
 
 void BasicMFE::decode(GF2EX& g, const vec_GF2E& h) {
@@ -494,13 +537,23 @@ void CompositeGf2MFE::decode(NTL::GF2X& g, const NTL::vec_GF2& h) {
     vec_GF2E y({}, mfe2_->t());
 
     for (int i = 0; i < y.length(); i++) {
+        
+        // vec_GF2 yi({}, mfe1_->t());
+        // for (int j = 0; j < yi.length(); j++)
+        //     yi.at(j) = h.at(i * mfe1_->t() + j);
+        // GF2X yi_dec = mfe1_->decode(yi);
+        // y.at(i) = to_GF2E(yi_dec, converter_->base_field_poly());
+
         vec_GF2 yi({}, mfe1_->t());
-        for (int j = 0; j < yi.length(); j++)
-            yi.at(j) = h.at(i * mfe1_->t() + j);
-        y.at(i) = to_GF2E(mfe1_->decode(yi), converter_->base_field_poly());
+        auto h_it = h.begin() + i*mfe1_->t();
+        auto yi_it = yi.begin();
+        for (; yi_it != yi.end(); h_it++, yi_it++)
+            *yi_it = *h_it;
+        mfe1_->decode(y.at(i)._GF2E__rep, yi);
     }
     GF2EX g_comp = mfe2_->decode(y);
     g = rep(converter_->composite_to_binary(g_comp));
+    assert(deg(g) < m());
 
     if (use_cache_ && use_decode_table_) {
         decode_table_[h.rep[0]] = g;
@@ -522,9 +575,16 @@ GF2X indices_to_gf2x(const vector<long>& indices) {
 }
 
 GF2E to_GF2E(const GF2X& x, const GF2X& poly_mod) {
-    GF2EPush push;
-    GF2E::init(poly_mod);
-    return to_GF2E(x);
+    if (deg(x) >= deg(poly_mod)) {
+        GF2EPush push;
+        GF2E::init(poly_mod);
+        return to_GF2E(x);
+    }
+    else {
+        GF2E res;
+        res._GF2E__rep = x;
+        return res;
+    }
 }
 
 GF2E to_GF2E(const vec_GF2& x, const GF2X& poly_mod) {
@@ -802,9 +862,20 @@ void BasicRMFE::initialize() {
     // Hence mu_1 and inv_mu_1 are both just identity functions (just run them to verify)
     // So things can be simpfiled a lot. Keep algorithm code of mu_1 and inv_mu_1 here
     // in case we could not use "alpha = Y" in some setting.
+    use_fast_basis_ = true;
 
     // get k distinct elements
     Enumerate_GF2E(beta_, 0, k_);
+
+    vec_vec_GF2E beta_power({}, k_);
+    for (long j = 0; j < k_; j++) {
+        beta_power[j].SetLength(m_);
+        for (long i = 0; i < m_; i++) {
+            beta_power[j][i] = power(beta_[j], i);
+        }
+    }
+    MakeMatrix(beta_matrix_, beta_power);
+    use_precompute_beta_matrix_ = true;
 }
 
 void BasicRMFE::encode(GF2EX& g, const vec_GF2E& h) {
@@ -816,7 +887,18 @@ void BasicRMFE::encode(GF2EX& g, const vec_GF2E& h) {
 void BasicRMFE::decode(vec_GF2E& h, const GF2EX& g) {
     GF2EPush push;
     GF2E::init(base_field_poly_mod_);
-    ::psi(h, g, basis_, beta_);
+    if (use_fast_basis_) {
+        if (use_precompute_beta_matrix_)
+            ::psi_fast_precomp(h, g, beta_matrix_);
+        else
+            ::psi_fast(h, g, beta_);
+    }
+    else {
+        if (use_precompute_beta_matrix_)
+            ::psi_precomp(h, g, basis_, beta_matrix_);
+        else
+            ::psi(h, g, basis_, beta_);
+    }
 }
 
 void BasicRMFE::random_preimage(GF2EX& h, const vec_GF2E& g) {
@@ -991,10 +1073,18 @@ void CompositeGf2RMFE::decode(NTL::vec_GF2& h, const NTL::GF2X& g) {
     vec_GF2E y = rmfe2_->decode(g_comp);
 
     h.SetLength(k());
+    // for (int i = 0; i < y.length(); i++) {
+    //     vec_GF2 yi = rmfe1_->decode(rep(y.at(i)));
+    //     for (int j = 0; j < yi.length(); j++)
+    //         h.at(i * rmfe1_->k() + j) = yi.at(j);
+    // }
+
+    auto h_it = h.begin();
     for (int i = 0; i < y.length(); i++) {
         vec_GF2 yi = rmfe1_->decode(rep(y.at(i)));
-        for (int j = 0; j < yi.length(); j++)
-            h.at(i * rmfe1_->k() + j) = yi.at(j);
+        auto yi_it = yi.begin();
+        for (; yi_it != yi.end(); yi_it++, h_it++)
+            *h_it = *yi_it;
     }
 
     if (use_cache_)
