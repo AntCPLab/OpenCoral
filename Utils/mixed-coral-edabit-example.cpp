@@ -9,6 +9,7 @@
 
 // [zico] need to update
 #define NO_SECURITY_CHECK
+#define VERBOSE_DEBUG_PRINT
 
 #include "Protocols/ProtocolSet.h"
 #include "Machines/Coral.hpp"
@@ -47,9 +48,6 @@ void run(char** argv)
     // reduce batch size
     // OnlineOptions::singleton.bucket_size = 5;
     OnlineOptions::singleton.batch_size = 1000;
-
-    // RMFE setup
-    RmfeShare::setup_rmfe(2, 6);
 
     // set up networking on localhost
     int my_number = atoi(argv[1]);

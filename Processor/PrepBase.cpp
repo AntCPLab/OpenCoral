@@ -61,6 +61,13 @@ string PrepBase::get_normal_filename(const string& prep_data_dir,
             + to_string(my_num) + get_suffix(thread_num);
 }
 
+string PrepBase::get_quintuple_filename(const string& prep_data_dir,
+        const string& type_short, int my_num, int thread_num)
+{
+    return prep_data_dir + "quintuples-" + type_short + "-P"
+            + to_string(my_num) + get_suffix(thread_num);
+}
+
 string PrepBase::get_ferret_filename(const string& prep_data_dir, int my_num, int other_num, bool send, int thread_num)
 {
     return prep_data_dir + "Ferret-P" + to_string(my_num)

@@ -168,7 +168,7 @@ Sub_Data_Files<T>::Sub_Data_Files(int my_num, int num_players,
       PrepBase::get_normal_filename(prep_data_dir,
           type_short, my_num, thread_num), T::size(), type_string, "normals");
   quintuple_buffer.setup(
-      PrepBase::get_normal_filename(prep_data_dir,
+      PrepBase::get_quintuple_filename(prep_data_dir,
           type_short, my_num, thread_num), T::size(), type_string, "quintuples");
 
   input_buffers.resize(num_players);

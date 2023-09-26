@@ -231,6 +231,15 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
               *(vector<array<BT, 3>>*) job.output, job.begin, job.end);
           queues->finished(job);
         }
+        else if (job.type == PERSONAL_QUINTUPLE_JOB)
+        {
+          auto &party = GC::ShareThread<typename sint::bit_type>::s();
+          SubProcessor<BT> bit_proc(party.MC->get_part_MC(),
+              *Proc.Procp.personal_bit_preps.at(job.arg), P);
+          Proc.Procp.personal_bit_preps.at(job.arg)->buffer_personal_quintuples(
+              *(vector<array<BT, 5>>*) job.output, job.begin, job.end);
+          queues->finished(job);
+        }
       else if (job.type == TRIPLE_SACRIFICE_JOB)
         {
           typedef typename sint::bit_type B;

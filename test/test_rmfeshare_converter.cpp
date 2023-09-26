@@ -97,12 +97,10 @@ void test_convert_to_rmfe(int argc, char** argv)
 
     // Rmfe opens
     output.init_open(P, n);
-    cout << "[zico] output init_open" << endl;;
     for (int i = 0; i < n; i++)
     {
         output.prepare_open(rmfe_shares[i]);
     }
-    cout << "[zico] output prepare open" << endl;;
     output.exchange(P);
 
     cout << "rmfe opens: " << hex;

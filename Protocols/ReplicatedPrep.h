@@ -148,6 +148,12 @@ public:
     void push_triple(const array<T, 3>& triple)
     { this->triples.push_back(triple); }
 
+    void push_quintuple(const array<T, 5>& quintuple)
+    { this->quintuples.push_back(quintuple); }
+
+    void push_quintuples(const vector<array<T, 5>>& quintuples)
+    { this->quintuples.insert(this->quintuples.end(), quintuples.begin(), quintuples.end()); }
+
     void shrink_to_fit();
 
     void buffer_personal_triples(int, ThreadQueues*) {}
@@ -158,7 +164,10 @@ public:
 
     void buffer_extra(Dtype type, int n_items);
 
+    void buffer_personal_quintuples(int, ThreadQueues*) { throw runtime_error("no personal quintuples"); }
+    void buffer_personal_quintuples(vector<array<T, 5>>&, int, int) { throw runtime_error("no personal quintuples"); }
     array<T, 2> get_normal_no_count();
+    array<T, 5> get_quintuple_no_count(int n_bits);
 };
 
 /**

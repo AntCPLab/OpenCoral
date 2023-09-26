@@ -602,11 +602,11 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabitpack<T> >& output,
         SubProcessor<BT> bit_proc(party.MC->get_part_MC(),
                 *proc.personal_bit_preps.at(player), P);
         int n_triples = DIV_CEIL((B - 1) * N * n_bits, dl);
-        proc.personal_bit_preps.at(player)->buffer_personal_triples(n_triples,
+        proc.personal_bit_preps.at(player)->buffer_personal_quintuples(n_triples,
                 queues);
         for (int i = 0; i < n_triples; i++)
-            personal_prep.push_triple(
-                    proc.personal_bit_preps.at(player)->get_triple(dl));
+            personal_prep.push_quintuple(
+                    proc.personal_bit_preps.at(player)->get_quintuple(dl));
         proc.personal_bit_preps.at(player)->shrink_to_fit();
     }
 #ifdef VERBOSE_EDA
@@ -662,17 +662,17 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabitpack<T> >& output,
     {
         int n_available = queues->find_available();
         int n_per_thread = queues->get_n_per_thread(N/dl, 1);
-        vector<vector<array<BT, 3>>> triples(n_available);
+        vector<vector<array<BT, 5>>> quintuples(n_available);
         vector<void*> supplies(n_available);
         for (int i = 0; i < n_available; i++)
         {
-            supplies[i] = &triples[i];
+            supplies[i] = &quintuples[i];
             for (size_t j = 0;
                     j < n_per_thread * (B - 1) * n_bits_to_open / dl; j++)
                 if (player < 0)
-                    triples[i].push_back(proc.bit_prep.get_triple(dl));
+                    quintuples[i].push_back(proc.bit_prep.get_quintuple(dl));
                 else
-                    triples[i].push_back(personal_prep.get_triple(dl));
+                    quintuples[i].push_back(personal_prep.get_quintuple(dl));
         }
         EdabitSacrificeJob job(&to_check, n_bits, strict, player);
         int start = queues->distribute_no_setup(job, N/dl, 0, 1,
@@ -774,14 +774,14 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice_buckets(vector<edabitpack<T>>& 
     auto& party = GC::ShareThread<typename T::bit_type>::s();
     if (supply)
     {
-        auto& triples = *(vector<array<BT, 3>>*)supply;
+        auto& quintuples = *(vector<array<BT, 5>>*)supply;
 #ifdef VERBOSE_EDA
         fprintf(stderr, "got %zu supplies\n", triples.size());
 #endif
         if (player < 0)
-            proc.bit_prep.push_triples(triples);
+            proc.bit_prep.push_quintuples(quintuples);
         else
-            personal_prep.push_triples(triples);
+            personal_prep.push_quintuples(quintuples);
     }
     if (player < 0)
     {

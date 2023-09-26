@@ -171,23 +171,23 @@ void RmfeSharePrep<T>::buffer_triples() {
 }
 
 template<class T>
-void RmfeSharePrep<T>::buffer_personal_triples(size_t batch_size, ThreadQueues* queues)
+void RmfeSharePrep<T>::buffer_personal_quintuples(size_t batch_size, ThreadQueues* queues)
 {
     TripleShuffleSacrifice<T> sacri;
     // [zico] `sacri.C` here might be able to optimize, because the # of bit triples is actually sacri.C * default_length
     batch_size = max(batch_size, (size_t)sacri.minimum_n_outputs()) + sacri.C;
-    vector<array<T, 3>> triples(batch_size);
+    vector<array<T, 5>> quintuples(batch_size);
 
     if (queues)
     {
-        PersonalTripleJob job(&triples, input_player);
+        PersonalQuintupleJob job(&quintuples, input_player);
         int start = queues->distribute(job, batch_size);
-        buffer_personal_triples(triples, start, batch_size);
+        buffer_personal_quintuples(quintuples, start, batch_size);
         if (start)
             queues->wrap_up(job);
     }
     else
-        buffer_personal_triples(triples, 0, batch_size);
+        buffer_personal_quintuples(quintuples, 0, batch_size);
 
     auto &party = ShareThread<typename T::whole_type>::s();
     assert(party.P != 0);
@@ -198,30 +198,37 @@ void RmfeSharePrep<T>::buffer_personal_triples(size_t batch_size, ThreadQueues* 
     vector<T> shares;
     for (int i = 0; i < sacri.C; i++)
     {
-        int challenge = G.get_uint(triples.size());
-        for (auto& x : triples[challenge])
+        int challenge = G.get_uint(quintuples.size());
+        for (auto& x : quintuples[challenge])
             shares.push_back(x);
-        triples.erase(triples.begin() + challenge);
+        quintuples.erase(quintuples.begin() + challenge);
     }
     PointerVector<typename T::open_type> opened;
     MC.POpen(opened, shares, P);
     for (int i = 0; i < sacri.C; i++)
     {
-        array<typename T::clear, 3> triple({{opened.next(), opened.next(),
-            opened.next()}});
-        if (triple[0] * triple[1] != triple[2])
+        array<typename T::open_type, 5> quintuple({{opened.next(), opened.next(),
+            opened.next(), opened.next(), opened.next()}});
+        typename T::clear a(quintuple[0]), b(quintuple[1]), c(quintuple[2]);
+        // Check triple EQ
+        if (a * b != c)
         {
-            cout << triple[2] << " != " << triple[0] * triple[1] << " = "
-                    << triple[0] << " * " << triple[1] << endl;
+            cout << c << " != " << a * b << " = "
+                    << a << " * " << b << endl;
             throw runtime_error("personal triple incorrect");
+        }
+        // Check normality
+        if (typename T::open_type(a) != quintuple[3] || typename T::open_type(b) != quintuple[4])
+        {
+            throw runtime_error("personal quintuple normality incorrect");
         }
     }
 
-    this->triples.insert(this->triples.end(), triples.begin(), triples.end());
+    this->quintuples.insert(this->quintuples.end(), quintuples.begin(), quintuples.end());
 }
 
 template<class T>
-void RmfeSharePrep<T>::buffer_personal_triples(vector<array<T, 3>>& triples, size_t begin, size_t end) {
+void RmfeSharePrep<T>::buffer_personal_quintuples(vector<array<T, 5>>& quintuples, size_t begin, size_t end) {
 #ifdef VERBOSE_EDA
     fprintf(stderr, "personal triples %zu to %zu\n", begin, end);
     RunningTimer timer;
@@ -235,13 +242,18 @@ void RmfeSharePrep<T>::buffer_personal_triples(vector<array<T, 3>>& triples, siz
     input.reset_all(P);
     for (size_t i = begin; i < end; i++)
     {
-        typename T::clear x0 = G.get<typename T::clear>(), x1 = G.get<typename T::clear>();
         if (P.my_num() == input_player) {
+            typename T::open_type x0 = G.get<typename T::open_type>(), x1 = G.get<typename T::open_type>();
+            typename T::clear x0_clear = typename T::clear(x0), x1_clear = typename T::clear(x1);
             input.add_mine(x0, T::default_length);
             input.add_mine(x1, T::default_length);
-            input.add_mine(x0 * x1, T::default_length);
+            input.add_mine(x0_clear * x1_clear, T::default_length);
+            input.add_mine(typename T::open_type(x0_clear), T::default_length);
+            input.add_mine(typename T::open_type(x1_clear), T::default_length);
         }
         else {
+            input.add_other(input_player);
+            input.add_other(input_player);
             input.add_other(input_player);
             input.add_other(input_player);
             input.add_other(input_player);
@@ -249,9 +261,11 @@ void RmfeSharePrep<T>::buffer_personal_triples(vector<array<T, 3>>& triples, siz
     }
     input.exchange();
     for (size_t i = begin; i < end; i++) {
-        triples[i][0] = input.finalize(input_player, T::default_length);
-        triples[i][1] = input.finalize(input_player, T::default_length);
-        triples[i][2] = input.finalize(input_player, T::default_length);
+        quintuples[i][0] = input.finalize(input_player, T::default_length);
+        quintuples[i][1] = input.finalize(input_player, T::default_length);
+        quintuples[i][2] = input.finalize(input_player, T::default_length);
+        quintuples[i][3] = input.finalize(input_player, T::default_length);
+        quintuples[i][4] = input.finalize(input_player, T::default_length);
     }
 #ifdef VERBOSE_EDA
     fprintf(stderr, "personal triples took %f seconds\n", timer.elapsed());
@@ -321,31 +335,31 @@ void RmfeSharePrep<T>::buffer_normals() {
     print_general("Generate random normal elements", u);
 }
 
-template<class T>
-array<T, 5> RmfeSharePrep<T>::get_quintuple(int n_bits) {
-    // Treat quintuple as triple in counting
-    count(DATA_TRIPLE, n_bits);
-    waste(DATA_TRIPLE, T::default_length - n_bits);
-    n_bits = T::default_length;
-    return get_quintuple_no_count(n_bits);
-}
+// template<class T>
+// array<T, 5> RmfeSharePrep<T>::get_quintuple(int n_bits) {
+//     // Treat quintuple as triple in counting
+//     count(DATA_TRIPLE, n_bits);
+//     waste(DATA_TRIPLE, T::default_length - n_bits);
+//     n_bits = T::default_length;
+//     return get_quintuple_no_count(n_bits);
+// }
 
-template<class T>
-array<T, 5> RmfeSharePrep<T>::get_quintuple_no_count(int n_bits) {
-    assert(T::default_length == n_bits or not do_count);
+// template<class T>
+// array<T, 5> RmfeSharePrep<T>::get_quintuple_no_count(int n_bits) {
+//     assert(T::default_length == n_bits or not do_count);
 
-    if (quintuples.empty())
-    {
-        InScope in_scope(this->do_count, false, *this);
-        // [zico] We reuse the buffer_triples API, but actually it is buffering quintuples
-        buffer_triples();
-        assert(not quintuples.empty());
-    }
+//     if (quintuples.empty())
+//     {
+//         InScope in_scope(this->do_count, false, *this);
+//         // [zico] We reuse the buffer_triples API, but actually it is buffering quintuples
+//         buffer_triples();
+//         assert(not quintuples.empty());
+//     }
 
-    array<T, 5> res = quintuples.back();
-    quintuples.pop_back();
-    return res;
-}
+//     array<T, 5> res = quintuples.back();
+//     quintuples.pop_back();
+//     return res;
+// }
 
 #ifdef INSECURE_RMFE_PREP
 template<class T>

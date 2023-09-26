@@ -141,7 +141,6 @@ template<class U>
 void Processor<T>::load_dynamic_direct(const vector<int>& args,
         U& dynamic_memory)
 {
-        cout << "[zico] enter load_dynamic_direct" << endl;
 
     vector< ReadAccess<T> > accesses;
     if (args.size() % 3 != 0)
@@ -149,7 +148,6 @@ void Processor<T>::load_dynamic_direct(const vector<int>& args,
     for (size_t i = 0; i < args.size(); i += 3)
         accesses.push_back({S[args[i]], args[i+1], args[i+2], complexity});
     T::load(accesses, dynamic_memory);
-        cout << "[zico] end load_dynamic_direct" << endl;
 
 }
 
@@ -158,14 +156,12 @@ template<class U>
 void GC::Processor<T>::load_dynamic_indirect(const vector<int>& args,
         U& dynamic_memory)
 {
-    cout << "[zico] enter load_dynamic_indirect" << endl;
     vector< ReadAccess<T> > accesses;
     if (args.size() % 3 != 0)
         throw runtime_error("invalid number of arguments");
     for (size_t i = 0; i < args.size(); i += 3)
         accesses.push_back({S[args[i]], C[args[i+1]], args[i+2], complexity});
     T::load(accesses, dynamic_memory);
-    cout << "[zico] end load_dynamic_indirect" << endl;
 }
 
 template<class T>
@@ -173,7 +169,6 @@ template<class U>
 void GC::Processor<T>::store_dynamic_direct(const vector<int>& args,
         U& dynamic_memory)
 {
-    cout << "[zico] enter store_dynamic_direct" << endl;
     vector< WriteAccess<T> > accesses;
     if (args.size() % 2 != 0)
         throw runtime_error("invalid number of arguments");
@@ -181,7 +176,6 @@ void GC::Processor<T>::store_dynamic_direct(const vector<int>& args,
         accesses.push_back({args[i+1], S[args[i]]});
     T::store(dynamic_memory, accesses);
     complexity += accesses.size() / 2 * T::default_length;
-    cout << "[zico] end store_dynamic_direct" << endl;
 }
 
 template<class T>
@@ -189,7 +183,6 @@ template<class U>
 void GC::Processor<T>::store_dynamic_indirect(const vector<int>& args,
         U& dynamic_memory)
 {
-    cout << "[zico] enter store_dynamic_indirect" << endl;
     vector< WriteAccess<T> > accesses;
     if (args.size() % 2 != 0)
         throw runtime_error("invalid number of arguments");
@@ -197,7 +190,6 @@ void GC::Processor<T>::store_dynamic_indirect(const vector<int>& args,
         accesses.push_back({C[args[i+1]], S[args[i]]});
     T::store(dynamic_memory, accesses);
     complexity += accesses.size() / 2 * T::default_length;
-    cout << "[zico] end store_dynamic_indirect" << endl;
 }
 
 template<class T>
@@ -205,13 +197,11 @@ template<class U>
 void GC::Processor<T>::store_clear_in_dynamic(const vector<int>& args,
         U& dynamic_memory)
 {
-    cout << "[zico] enter store_clear_in_dynamic" << endl;
     vector<ClearWriteAccess> accesses;
 	check_args(args, 2);
     for (size_t i = 0; i < args.size(); i += 2)
     	accesses.push_back({C[args[i+1]], C[args[i]]});
     T::store_clear_in_dynamic(dynamic_memory, accesses);
-    cout << "[zico] end store_clear_in_dynamic" << endl;
 }
 
 template<class T>

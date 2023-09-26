@@ -1618,4 +1618,21 @@ array<T, 2> BufferPrep<T>::get_normal_no_count()
     return x;
 }
 
+template<class T>
+array<T, 5> BufferPrep<T>::get_quintuple_no_count(int n_bits) {
+    assert(T::default_length == n_bits);
+
+    if (quintuples.empty())
+    {
+        InScope in_scope(this->do_count, false, *this);
+        // [zico] We reuse the buffer_triples API, but actually it is buffering quintuples
+        buffer_triples();
+        assert(not quintuples.empty());
+    }
+
+    array<T, 5> res = quintuples.back();
+    quintuples.pop_back();
+    return res;
+}
+
 #endif

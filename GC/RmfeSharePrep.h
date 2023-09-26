@@ -57,13 +57,16 @@ public:
     // void buffer_inverses() { throw not_implemented(); }
     void buffer_inputs(int player);
 
-    void buffer_personal_triples(size_t n, ThreadQueues* queues = 0);
-    void buffer_personal_triples(vector<array<T, 3>>& triples, size_t begin, size_t end);
+    void buffer_personal_triples(size_t n, ThreadQueues* queues = 0) { throw runtime_error("no personal triples"); }
+    void buffer_personal_triples(vector<array<T, 3>>& quintuples, size_t begin, size_t end) { throw runtime_error("no personal triples"); }
+
+    void buffer_personal_quintuples(size_t n, ThreadQueues* queues = 0);
+    void buffer_personal_quintuples(vector<array<T, 5>>& quintuples, size_t begin, size_t end);
 
     void buffer_normals();
 
-    virtual array<T, 5> get_quintuple(int n_bits);
-    virtual array<T, 5> get_quintuple_no_count(int n_bits);
+    // virtual array<T, 5> get_quintuple(int n_bits);
+    // virtual array<T, 5> get_quintuple_no_count(int n_bits);
 
     void set_protocol(typename T::Protocol& protocol);
     // void set_mc(typename T::MAC_Check* MC);

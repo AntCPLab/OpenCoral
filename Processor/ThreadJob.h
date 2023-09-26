@@ -20,6 +20,7 @@ enum ThreadJobType
     SANITIZE_JOB,
     EDABIT_SACRIFICE_JOB,
     PERSONAL_TRIPLE_JOB,
+    PERSONAL_QUINTUPLE_JOB,
     TRIPLE_SACRIFICE_JOB,
     CHECK_JOB,
     FFT_JOB,
@@ -149,6 +150,17 @@ public:
     {
         type = PERSONAL_TRIPLE_JOB;
         output = triples;
+        arg = player;
+    }
+};
+
+class PersonalQuintupleJob : public ThreadJob
+{
+public:
+    PersonalQuintupleJob(void* quintuples, int player)
+    {
+        type = PERSONAL_QUINTUPLE_JOB;
+        output = quintuples;
         arg = player;
     }
 };

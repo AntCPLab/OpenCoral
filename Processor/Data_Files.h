@@ -211,6 +211,9 @@ public:
   virtual array<T, 5> get_quintuple(int n_bits);
   virtual array<T, 5> get_quintuple_no_count(int n_bits) { throw runtime_error("no quintuple (no count)"); }
 
+  virtual void push_quintuples(const vector<array<T, 5>>&)
+  { throw runtime_error("no pushing quintuples"); }
+
   void waste(Dtype dtype, int n = 1) 
   { usage.waste(dtype, n); }
 };

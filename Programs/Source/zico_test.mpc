@@ -29,24 +29,34 @@
 #print_ln('a^b: %s', (a^b).reveal())
 #print_ln('a&b: %s', (a&b).reveal())
 
-n = 16
-x = sint.Array(n)
-x.assign_vector(regint.inc(n))
-y = sint.Array(n)
-y.assign_vector(regint.inc(n, 2))
+n = 12
+a = sint.Array(n)
+a.assign_vector(regint.inc(n))
+a = a.get_vector()
+b = sint.Array(n)
+b.assign_vector(regint.inc(n, 2))
+b = b.get_vector()
+c = a < b
+print_ln('a < b: %s', c.reveal())
 
-@multithread(8, n)
-def _(base, size):
-    z = x.get_vector(base, size) > y.get_vector(base, size)
-    print_ln('%s', z.reveal())
+#n = 16
+#x = sint.Array(n)
+#x.assign_vector(regint.inc(n))
+#y = sint.Array(n)
+#y.assign_vector(regint.inc(n, 2))
+
+#@multithread(8, n)
+#def _(base, size):
+#    z = x.get_vector(base, size) > y.get_vector(base, size)
+#    print_ln('%s', z.reveal())
 
 #z = x.get_vector(0, n) > y.get_vector(0, n)
 #print_ln('%s', z.reveal())
     
-import ml
-x = ml.Tensor([3, 4, 4, 2], sint)
-x.assign_vector(regint.inc(3*4*4*2))
-y = x.get_vector_by_indices(None, 0, 0, 1)
-y = y * 2
-x.assign_vector_by_indices(y, None, 0, 0, 1)
-print_ln('Tensor x: %s', x.reveal_nested())
+#import ml
+#x = ml.Tensor([3, 4, 4, 2], sint)
+#x.assign_vector(regint.inc(3*4*4*2))
+#y = x.get_vector_by_indices(None, 0, 0, 1)
+#y = y * 2
+#x.assign_vector_by_indices(y, None, 0, 0, 1)
+#print_ln('Tensor x: %s', x.reveal_nested())

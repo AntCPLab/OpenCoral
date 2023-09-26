@@ -32,6 +32,8 @@ public:
 
     typedef Bit clear;
 
+    static const false_type tight_packed;
+
     static MAC_Check* new_mc(mac_key_type)
     {
         return new MAC_Check;

@@ -12,6 +12,7 @@
 #include "DabitSacrifice.hpp"
 #include "RingOnlyPrep.hpp"
 #include "Tools/debug.h"
+#include "Tools/performance.h"
 
 template<class T>
 Spdz2kPrep<T>::Spdz2kPrep(SubProcessor<T>* proc, DataPositions& usage) :

@@ -222,7 +222,7 @@ tiny-party.x: $(OT)
 tinier-party.x: $(OT)
 spdz2k-party.x: $(TINIER) $(patsubst %.cpp,%.o,$(wildcard Machines/SPDZ2*.cpp))
 static/spdz2k-party.x: $(patsubst %.cpp,%.o,$(wildcard Machines/SPDZ2*.cpp))
-coral-party.x: $(TINIER)
+coral-party.x: $(OT)
 semi-party.x: $(OT)  $(GC_SEMI)
 semi2k-party.x: $(OT) $(GC_SEMI)
 hemi-party.x: $(FHEOFFLINE) $(GC_SEMI) $(OT)
@@ -424,7 +424,7 @@ test_spdz2k_offline: test/test_spdz2k_offline.o $(COMMON) $(VM) $(OT) $(FHEOFFLI
 test_offline_binary: test/test_offline_binary.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE) GC/PostSacriBin.o $(GC_SEMI) GC/AtlasSecret.o
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
 
-test_rmfe_beaver: test/test_rmfe_beaver.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE) GC/PostSacriBin.o $(GC_SEMI)
+test_rmfe_beaver: test/test_rmfe_beaver.o $(COMMON) $(VM) $(OT)
 	$(CXX) -o $@ $(CFLAGS) $^ $(EMP_LIBS) $(LDLIBS)
 
 test_tinyot_to_rmfe: test/test_tinyot_to_rmfe.o $(COMMON) $(VM) $(OT) GC/PostSacriBin.o $(GC_SEMI)
@@ -445,8 +445,8 @@ test_silent_ole: test/test_silent_ole.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE) GC/P
 test_zico: test/test_zico.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE) GC/PostSacriBin.o $(GC_SEMI)
 	$(CXX) -o $@ $(CFLAGS) $^ $(EMP_LIBS) $(LDLIBS)
 
-mixed-coral-dabit-example.x: $(VM) $(OT) GC/PostSacriBin.o $(GC_SEMI) $(COMMON)
-mixed-coral-edabit-example.x: $(VM) $(OT) GC/PostSacriBin.o $(GC_SEMI) $(COMMON)
+mixed-coral-dabit-example.x: $(VM) $(OT) $(COMMON)
+mixed-coral-edabit-example.x: $(VM) $(OT) $(COMMON)
 
 
 zico: target1
