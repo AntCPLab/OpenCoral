@@ -204,18 +204,34 @@ void thread_info<sint, sgf2n>::Sub_Main_Func()
         }
       else if (job.type == SANITIZE_JOB)
         {
-          dynamic_cast<RingPrep<sint>&>(Proc.DataF.DataFp).template
-                  sanitize<0>(
-              *(vector<edabit<sint>>*) job.output, job.length, job.arg,
-              job.begin, job.end);
+          if (sint::bit_type::tight_packed) {
+            dynamic_cast<RingPrep<sint>&>(Proc.DataF.DataFp).template
+                    sanitize<0>(
+                *(vector<edabitpack<sint>>*) job.output, job.length, job.arg,
+                job.begin, job.end);
+          }
+          else {
+            dynamic_cast<RingPrep<sint>&>(Proc.DataF.DataFp).template
+                    sanitize<0>(
+                *(vector<edabit<sint>>*) job.output, job.length, job.arg,
+                job.begin, job.end);
+          }
           queues->finished(job);
         }
       else if (job.type == EDABIT_SACRIFICE_JOB)
         {
-          sint::LivePrep::edabit_sacrifice_buckets(
-              *(vector<edabit<sint>>*) job.output, job.length, job.prognum,
-              job.arg, Proc.Procp,
-              job.begin, job.end, job.supply);
+          if (sint::bit_type::tight_packed) {
+            sint::LivePrep::edabit_sacrifice_buckets(
+                *(vector<edabitpack<sint>>*) job.output, job.length, job.prognum,
+                job.arg, Proc.Procp,
+                job.begin, job.end, job.supply);
+          }
+          else {
+            sint::LivePrep::edabit_sacrifice_buckets(
+                *(vector<edabit<sint>>*) job.output, job.length, job.prognum,
+                job.arg, Proc.Procp,
+                job.begin, job.end, job.supply);
+          }
 #ifdef DEBUG_THREADS
           printf("\tSignalling I have finished with job %d in thread %d\n",
               job.type, num);

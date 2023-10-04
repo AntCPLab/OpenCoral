@@ -114,7 +114,13 @@ public:
     static void edabit_sacrifice_buckets(vector<edabit<T>>&, size_t, bool, int,
             SubProcessor<T>&, int, int, const void* = 0)
     {
-        throw runtime_error("sacrifice not available");
+        throw runtime_error("edabit sacrifice not available");
+    }
+
+    static void edabit_sacrifice_buckets(vector<edabitpack<T>>&, size_t, bool, int,
+            SubProcessor<T>&, int, int, const void* = 0)
+    {
+        throw runtime_error("edabitpack sacrifice not available");
     }
 
     static bool bits_from_dabits() { return false; }
@@ -388,6 +394,14 @@ protected:
 
 public:
     static void edabit_sacrifice_buckets(vector<edabit<T>>& to_check, size_t n_bits,
+            bool strict, int player, SubProcessor<T>& proc, int begin, int end,
+            const void* supply = 0)
+    {
+        EdabitShuffleSacrifice<T>(n_bits).edabit_sacrifice_buckets(to_check, strict,
+                player, proc, begin, end, supply);
+    }
+
+    static void edabit_sacrifice_buckets(vector<edabitpack<T>>& to_check, size_t n_bits,
             bool strict, int player, SubProcessor<T>& proc, int begin, int end,
             const void* supply = 0)
     {

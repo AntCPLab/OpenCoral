@@ -1385,6 +1385,10 @@ void Program::execute(Processor<sint, sgf2n>& Proc) const
   auto& processor = Proc.Procb;
   auto& Ci = Proc.get_Ci();
 
+#ifdef PRINT_PROGRESS
+  double current_progress = 0;
+#endif
+
   while (Proc.PC<size)
     {
       auto& instruction = p[Proc.PC];
@@ -1432,6 +1436,13 @@ void Program::execute(Processor<sint, sgf2n>& Proc) const
 
 #if defined(COUNT_INSTRUCTIONS) and defined(TIME_INSTRUCTIONS)
       Proc.stats[p[PC].get_opcode()] += timer.elapsed() * 1e9;
+#endif
+
+#ifdef PRINT_PROGRESS
+      if ((Proc.PC * 100.0 / size - current_progress) > 1.0) {
+        current_progress = Proc.PC * 100.0 / size;
+        cout << "[Program " << this->get_hash() << "] progress: " << current_progress << "%" << endl;
+      }
 #endif
 }
 }
