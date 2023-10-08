@@ -13,6 +13,10 @@
 #include <queue>
 #include <assert.h>
 
+#define USE_CACHE 1
+#define USE_PRECOMP 1
+#define USE_OPTIMIZED_MAPPING 1
+
 NTL::GF2X indices_to_gf2x(const std::vector<long>& indices);
 
 
@@ -187,7 +191,7 @@ NTL::GF2EX alpha_;
 NTL::vec_GF2EX basis_;
 NTL::vec_GF2E beta_;
 
-bool use_fast_basis_;
+bool use_fast_basis_ = USE_OPTIMIZED_MAPPING;
 
 void initialize();
 
@@ -233,7 +237,7 @@ unique_ptr<BasicMFE> internal_;
 long base_field_mod_ = 2;
 NTL::GF2XModulus ex_field_poly_;
 
-bool use_cache_ = true;
+bool use_cache_ = USE_CACHE;
 vector<NTL::vec_GF2> encode_table_;
 vector<bool> encode_table_cached_;
 vector<NTL::GF2X> decode_table_;
@@ -281,7 +285,7 @@ std::shared_ptr<Gf2eMFE> mfe2_;
 long base_field_mod_ = 2;
 NTL::GF2XModulus ex_field_poly_;
 
-bool use_cache_ = true;
+bool use_cache_ = USE_CACHE;
 vector<NTL::vec_GF2> encode_table_;
 vector<bool> encode_table_cached_;
 bool use_encode_table_ = false;
@@ -415,8 +419,8 @@ NTL::vec_GF2EX basis_;
 NTL::vec_GF2E beta_;
 
 NTL::mat_GF2E beta_matrix_;
-bool use_precompute_beta_matrix_;
-bool use_fast_basis_;
+bool use_precompute_beta_matrix_ = USE_PRECOMP;
+bool use_fast_basis_ = USE_OPTIMIZED_MAPPING;
 
 void initialize();
 
@@ -472,7 +476,7 @@ unique_ptr<BasicRMFE> internal_;
 long base_field_mod_ = 2;
 NTL::GF2XModulus ex_field_poly_;
 
-bool use_cache_ = true;
+bool use_cache_ = USE_CACHE;
 vector<NTL::GF2X> encode_table_;
 vector<bool> encode_table_cached_;
 vector<NTL::vec_GF2> decode_table_;
@@ -530,7 +534,7 @@ std::shared_ptr<Gf2eRMFE> rmfe2_;
 long base_field_mod_ = 2;
 NTL::GF2XModulus ex_field_poly_;
 
-bool use_cache_ = true;
+bool use_cache_ = USE_CACHE;
 vector<NTL::GF2X> encode_table_;
 vector<bool> encode_table_cached_;
 LRU<long, NTL::vec_GF2> decode_map_;

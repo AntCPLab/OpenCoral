@@ -49,4 +49,8 @@ inline void print_profiling(const std::string& tag="") {
     }
 }
 
+inline double get_acc_time_log(const std::string& tag) {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(profiling[tag]).count() * 1.0;
+}
+
 #endif // PERFORMANCE_H

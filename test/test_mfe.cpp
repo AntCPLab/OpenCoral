@@ -477,6 +477,11 @@ void benchmark_rmfe_then_mfe() {
     }
 
     print_profiling();
+    cout << "Throughput: " << endl;
+    cout << "RMFE encode (12 --> 48): " << n / (get_acc_time_log("RMFE encode (12 --> 48)") / 1000.0 + 1e-30) << endl;
+    cout << "RMFE decode (48 --> 12): " << n / (get_acc_time_log("RMFE decode (48 --> 12)") / 1000.0 + 1e-30) << endl;
+    cout << "MFE encode (48 --> 225): " << n / (get_acc_time_log("MFE encode (48 --> 225)") / 1000.0 + 1e-30) << endl;
+    cout << "MFE decode (225 --> 48): " << n / (get_acc_time_log("MFE decode (225 --> 48)") / 1000.0 + 1e-30) << endl;
 }
 
 int main() {

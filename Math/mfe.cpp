@@ -359,7 +359,6 @@ void BasicMFE::initialize() {
     // Hence mu_1 and inv_mu_1 are both just identity functions (just run them to verify)
     // So things can be simpfiled a lot. Keep algorithm code of mu_1 and inv_mu_1 here
     // in case we could not use "alpha = Y" in some setting.
-    use_fast_basis_ = true;
 
     // get 2m-2 distinct elements
     Enumerate_GF2E(beta_, 0, 2*m_-2);
@@ -862,7 +861,6 @@ void BasicRMFE::initialize() {
     // Hence mu_1 and inv_mu_1 are both just identity functions (just run them to verify)
     // So things can be simpfiled a lot. Keep algorithm code of mu_1 and inv_mu_1 here
     // in case we could not use "alpha = Y" in some setting.
-    use_fast_basis_ = true;
 
     // get k distinct elements
     Enumerate_GF2E(beta_, 0, k_);
@@ -875,7 +873,6 @@ void BasicRMFE::initialize() {
         }
     }
     MakeMatrix(beta_matrix_, beta_power);
-    use_precompute_beta_matrix_ = true;
 }
 
 void BasicRMFE::encode(GF2EX& g, const vec_GF2E& h) {
