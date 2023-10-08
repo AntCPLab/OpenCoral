@@ -7,13 +7,15 @@
  * If indeed necessary, can refer to `buffer_edabits_from_personal` in `Spdz2kPrep.hpp` for how it uses "GC/BitAdder.h".
  */
 
+#define VERBOSE_DEBUG_PRINT
+
 #include "Protocols/ProtocolSet.h"
 
 #include "Machines/SPDZ.hpp"
 #include "Machines/SPDZ2k.hpp"
 #include "Machines/Semi2k.hpp"
-#include "Machines/Rep.hpp"
-#include "Machines/Rep4.hpp"
+// #include "Machines/Rep.hpp"
+// #include "Machines/Rep4.hpp"
 #include "Machines/Atlas.hpp"
 
 template<class T>
@@ -38,12 +40,12 @@ int main(int argc, char** argv)
         run<Spdz2kShare<64, 64>>(argv);
     else if (protocol == "Semi2k")
         run<Semi2kShare<64>>(argv);
-    else if (protocol == "Rep3")
-        run<Rep3Share2<64>>(argv);
-    else if (protocol == "Rep4")
-        run<Rep4Share2<64>>(argv);
-    else if (protocol == "Atlas")
-        run<AtlasShare<gfp_<0, 2>>>(argv);
+    // else if (protocol == "Rep3")
+    //     run<Rep3Share2<64>>(argv);
+    // else if (protocol == "Rep4")
+    //     run<Rep4Share2<64>>(argv);
+    // else if (protocol == "Atlas")
+    //     run<AtlasShare<gfp_<0, 2>>>(argv);
     else
     {
         cerr << "Unknown protocol: " << protocol << endl;
@@ -79,7 +81,9 @@ void run(char** argv)
 
     int n_bits = 64;
     edabit<T> eb;
+    print_total_comm(P, "Before gen");
     prep.get_edabit_no_count(false, n_bits, eb);
+    print_total_comm(P, "After gen");
 
     bit_output.init_open(P, n_bits);
     for (int i = 0; i < n_bits; i++) {

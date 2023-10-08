@@ -74,12 +74,14 @@ void run(char** argv)
     int n_bits = 16;
 
     cout << endl << "LOOSE: " << endl;
+    print_total_comm(P, "Before gen");
     edabitpack<T> eb = prep.get_edabitpack_no_count(false, 64);
+    print_total_comm(P, "After gen");
     reveal(&P, eb, "loose eb");
 
-    cout << endl << "STRICT: " << endl;
-    edabitpack<T> eb2 = prep.get_edabitpack_no_count(true, 64);
-    reveal(&P, eb2, "strict eb");
+    // cout << endl << "STRICT: " << endl;
+    // edabitpack<T> eb2 = prep.get_edabitpack_no_count(true, 64);
+    // reveal(&P, eb2, "strict eb");
 
     set.check();
     print_profiling();
