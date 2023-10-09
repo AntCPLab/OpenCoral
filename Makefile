@@ -418,7 +418,7 @@ test_mfe: test/test_mfe.o Tools/performance.o $(mfe)
 test_tinyot: test/test_tinyot.o
 	$(CXX) -o $@ $(CFLAGS) $^ $(EMP_LIBS) $(LDLIBS)
 
-test_spdz2k_offline: test/test_spdz2k_offline.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE)
+test_spdz2k_offline: test/test_spdz2k_offline.o $(COMMON) $(VM) $(OT)
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
 
 test_offline_binary: test/test_offline_binary.o $(COMMON) $(VM) $(OT)

@@ -177,6 +177,10 @@ public:
     {
         fail();
     }
+    void buffer_personal_quintuples(size_t, ThreadQueues*)
+    {
+        fail();
+    }
     void shrink_to_fit()
     {
         fail();
@@ -240,7 +244,7 @@ public:
         (void) a, (void) b;
         throw not_implemented();
     }
-    void add_other(int)
+    void add_other(int, int = 0)
     {
         throw not_implemented();
     }

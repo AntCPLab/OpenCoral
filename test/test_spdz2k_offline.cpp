@@ -14,46 +14,6 @@
 
 typedef Spdz2kShare<64, 64> sint;
 
-// Machine<sint, sgf2n> get_machine(int argc, const char** argv) {
-//     ez::ezOptionParser opt;
-//     opt.add(
-//         "64", // Default.
-//         0, // Required?
-//         1, // Number of args expected.
-//         0, // Delimiter if expecting multiple args.
-//         "SPDZ2k security parameter (default: 64)", // Help description.
-//         "-SP", // Flag token.
-//         "--spdz2k-security" // Flag token.
-//     );
-//     opt.parse(argc, argv);
-//     int s;
-//     opt.get("-SP")->getInt(s);
-//     opt.resetArgs();
-//     RingOptions ring_options(opt, argc, argv);
-//     OnlineOptions& online_opts = OnlineOptions::singleton;
-//     online_opts = {opt, argc, argv, Spdz2kShare<64, 64>(), true};
-//     DishonestMajorityMachineExt machine(argc, argv, opt, online_opts, gf2n());
-
-//     return machine.get_internal_machine<sint, sgf2n>();
-// }
-
-// void test_input(Machine<sint, sgf2n>& machine) {
-
-//     SubProcessor<sint>* procp;
-//     SubProcessor<sgf2n>* proc2;
-//     DataPositions usage(2);
-
-//     Data_Files<sint, sgf2n> DataF(machine, procp, proc2);
-
-//     typename sint::mac_key_type sint_mac_key = machine.get_sint_mac_key();
-
-//     typename sint::MAC_Check* MCp = new typename sint::Direct_MC(sint_mac_key);
-
-//     procp = new SubProcessor<sint>(MCp, DataF.DataFp, P, 0);
-
-//     Spdz2kPrep<sint> prep(procp, usage);
-// }
-
 void test_dotprod(int argc, char** argv) {
     // set up networking on localhost
     int my_number = atoi(argv[1]);
@@ -132,28 +92,19 @@ void test_buffer_inputs(int argc, char** argv) {
     // set of protocols (input, multiplication, output)
     ProtocolSet<sint> set(P, setup);
     auto& input = set.input;
+    auto& prep = set.preprocessing;
 
-    int n = 10000;
-    vector<sint> a(n), b(n);
-    sint c;
-    typename sint::clear result;
-
+    print_total_comm(P, "Before Inputs");
     input.reset_all(P);
-    for (int i = 0; i < n; i++)
-        input.add_from_all(i);
-    input.exchange();
-    for (int i = 0; i < n; i++)
-    {
-        a[i] = input.finalize(0);
-        b[i] = input.finalize(1);
-    }
+    input.add_from_all(0);
+    print_total_comm(P, "After Inputs");
 
-    auto comm_stats = P.total_comm();
-    size_t rounds = 0;
-    for (auto& x : comm_stats)
-      rounds += x.second.rounds;
-    std::cerr << "Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
-        << " rounds (party " << my_number << std::endl;;
+    // auto comm_stats = P.total_comm();
+    // size_t rounds = 0;
+    // for (auto& x : comm_stats)
+    //   rounds += x.second.rounds;
+    // std::cerr << "Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
+    //     << " rounds (party " << my_number << std::endl;;
 }
 
 template <class T>
