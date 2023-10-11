@@ -1439,9 +1439,9 @@ void Program::execute(Processor<sint, sgf2n>& Proc) const
 #endif
 
 #ifdef PRINT_PROGRESS
-      if ((Proc.PC * 100.0 / size - current_progress) > 1.0) {
-        current_progress = Proc.PC * 100.0 / size;
-        cout << "[Program " << this->get_hash() << "] progress: " << current_progress << "%" << endl;
+      if ((Proc.PC * 100.0 / p.size() - current_progress) > 1.0) {
+        current_progress = Proc.PC * 100.0 / p.size();
+        cout << "[Program] progress: " << current_progress << "%" << endl;
       }
 #endif
 }
