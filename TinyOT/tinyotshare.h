@@ -66,6 +66,10 @@ public:
 		this->KEY = KEY;
 	}
 
+	static string type_string() {
+		return "TinyOT";
+	}
+
 	/**
 	 * This api exists to be compabible with the vectorized SS type.
 	*/
