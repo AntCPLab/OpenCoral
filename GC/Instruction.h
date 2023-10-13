@@ -82,6 +82,7 @@ enum
     SHRCBI = 0x21d,
     SHLCBI = 0x21e,
     CONVCINTVEC = 0x21f,
+    TRANSCBIT = 0x253, // [zico] New inst. Use this number so that its `get_reg_type` returns `CBIT`
     LDMCBI = 0x258,
     STMCBI = 0x259,
     // don't write
@@ -93,8 +94,6 @@ enum
     // write to regint
     CONVCBIT = 0x230,
     CONVCBITVEC = 0x231,
-
-    TRANSCBIT = 0x233,
 };
 
 #endif /* PROCESSOR_GC_INSTRUCTION_H_ */

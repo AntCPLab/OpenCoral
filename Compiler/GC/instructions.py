@@ -68,6 +68,7 @@ opcodes = dict(
     MULCBI = 0x21c,
     SHRCBI = 0x21d,
     SHLCBI = 0x21e,
+    TRANSCBIT = 0x253,
     LDMCBI = 0x258,
     STMCBI = 0x259,
     CONVCINTVEC = 0x21f,
@@ -78,8 +79,6 @@ opcodes = dict(
     CONDPRINTSTRB = 0x224,
     CONVCBIT = 0x230,
     CONVCBITVEC = 0x231,
-
-    TRANSCBIT = 0x233,
 )
 
 class BinaryVectorInstruction(base.Instruction):

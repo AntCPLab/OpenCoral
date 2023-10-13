@@ -360,6 +360,7 @@ public:
   void parse_operands(istream& s, int pos, int file_pos);
 
   bool is_gf2n_instruction() const { return ((opcode&0x100)!=0); }
+  // [zico] This seems to be the output reg type
   virtual int get_reg_type() const;
 
   bool is_direct_memory_access() const;
