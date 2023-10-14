@@ -41,6 +41,11 @@ public:
     void check();
 
     void and_(Processor<T>& processor, const vector<int>& args, bool repeat);
+    void buffering_and_(Processor<T>& processor,
+        const vector<int>& args, bool repeat);
+    void check_buffering_and_(int& ii, int& jj, int i, int j, 
+        Processor<T>& processor, const vector<int>& args);
+        
     void andrsvec(Processor<T>& processor, const vector<int>& args);
     void xors(Processor<T>& processor, const vector<int>& args);
 };

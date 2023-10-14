@@ -137,6 +137,10 @@ void RmfeShare::trans(Processor<U>& processor, int n_outputs, const vector<int>&
 }
 
 void RmfeShare::andm(Processor<RmfeShare>& processor, const BaseInstruction& instruction) {
+    /*
+    [zico] This might cause many rounds of comm because we observe that andm is called many times with small length.
+    Is there a way to batch these calls? Probably not, because it's hard to decide the dependency of these calls.
+    */
     // assert(instruction.get_n() % default_length == 0);
     auto& thread = ShareThread<RmfeShare>::s();
     auto& protocol = thread.protocol;

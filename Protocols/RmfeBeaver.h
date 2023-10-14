@@ -43,7 +43,6 @@ protected:
     typename vector<array<T, 2>>::iterator normal;
     typename vector<typename T::open_type>::iterator constant;
 
-
 public:
     static const bool uses_triples = true;
 
@@ -79,8 +78,11 @@ public:
 
     int get_n_relevant_players() { return 1 + T::threshold(P.num_players()); }
 
-    // int get_buffer_size() { return triples.size(); }
     int get_buffer_size() { return quintuples.size(); }
+
+    int buffer_size_per_round() {
+        return 1000000;
+    }
 
     Player* get_player() {
         return &P;

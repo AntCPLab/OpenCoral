@@ -91,6 +91,12 @@ void ShareThread<T>::and_(Processor<T>& processor,
         const vector<int>& args, bool repeat)
 {
     auto& protocol = this->protocol;
+
+    if (protocol->buffer_size_per_round() > 0) {
+        buffering_and_(processor, args, repeat);
+        return;
+    }
+
     processor.check_args(args, 4);
     protocol->init_mul();
     T x_ext, y_ext;
@@ -121,6 +127,108 @@ void ShareThread<T>::and_(Processor<T>& processor,
         {
             int n = min(T::default_length, n_bits - j * T::default_length);
             auto& res = processor.S[out + j];
+            protocol->finalize_mult(res, n);
+            res.mask(res, n);
+        }
+    }
+}
+
+template<class T>
+void ShareThread<T>::check_buffering_and_(int& ii, int& jj, int i, int j, 
+    Processor<T>& processor, const vector<int>& args) {
+    typename T::Protocol& protocol = *(this->protocol);
+    if (protocol.get_buffer_size() >= protocol.buffer_size_per_round()) {
+        protocol.exchange();
+        int ii_ = ii, jj_ = jj;
+        if (ii_ == i) {
+            int n_bits = args[ii_];
+            int out = args[ii_ + 1];
+            for (; jj_ <= j; jj_++) {
+                int n = min(T::default_length, n_bits - jj_ * T::default_length);
+                auto& res = processor.S[out + jj_];
+                protocol.finalize_mult(res, n);
+                res.mask(res, n);
+            }
+        }
+        else {
+            int n_bits = args[ii_];
+            int out = args[ii_ + 1];
+            for (; jj_ < DIV_CEIL(n_bits, T::default_length); jj_++) {
+                int n = min(T::default_length, n_bits - jj_ * T::default_length);
+                auto& res = processor.S[out + jj_];
+                protocol.finalize_mult(res, n);
+                res.mask(res, n);
+            }
+            for (ii_ += 4; ii_ < i; ii_ += 4) {
+                int n_bits = args[ii_];
+                int out = args[ii_ + 1];
+                for (jj_ = 0; jj_ < DIV_CEIL(n_bits, T::default_length); jj_++) {
+                    int n = min(T::default_length, n_bits - jj_ * T::default_length);
+                    auto& res = processor.S[out + jj_];
+                    protocol.finalize_mult(res, n);
+                    res.mask(res, n);
+                }
+            }
+            n_bits = args[ii_];
+            out = args[ii_ + 1];
+            for (jj_ = 0; jj_ <= j; jj_++) {
+                int n = min(T::default_length, n_bits - jj_ * T::default_length);
+                auto& res = processor.S[out + jj_];
+                protocol.finalize_mult(res, n);
+                res.mask(res, n);
+            }
+        }
+        protocol.init_mul();
+        ii = i;
+        jj = j + 1;
+    }
+}
+
+template<class T>
+void ShareThread<T>::buffering_and_(Processor<T>& processor,
+        const vector<int>& args, bool repeat)
+{
+    auto& protocol = this->protocol;
+    processor.check_args(args, 4);
+
+    int ii = 0, jj = 0;
+    protocol->init_mul();
+    T x_ext, y_ext;
+    for (size_t i = 0; i < args.size(); i += 4)
+    {
+        int n_bits = args[i];
+        int left = args[i + 2];
+        int right = args[i + 3];
+        for (int j = 0; j < DIV_CEIL(n_bits, T::default_length); j++)
+        {
+            int n = min(T::default_length, n_bits - j * T::default_length);
+            if (repeat)
+                processor.S[right].extend_bit(y_ext, n);
+            else
+                processor.S[right + j].mask(y_ext, n);
+            processor.S[left + j].mask(x_ext, n);
+            protocol->prepare_mult(x_ext, y_ext, n, repeat);
+
+            check_buffering_and_(ii, jj, i, j, processor, args);
+        }
+    }
+
+    protocol->exchange();
+
+    int n_bits = args[ii];
+    int out = args[ii + 1];
+    for (; jj < DIV_CEIL(n_bits, T::default_length); jj++) {
+        int n = min(T::default_length, n_bits - jj * T::default_length);
+        auto& res = processor.S[out + jj];
+        protocol->finalize_mult(res, n);
+        res.mask(res, n);
+    }
+    for (ii += 4; ii < (int) args.size(); ii += 4) {
+        int n_bits = args[ii];
+        int out = args[ii + 1];
+        for (jj = 0; jj < DIV_CEIL(n_bits, T::default_length); jj++) {
+            int n = min(T::default_length, n_bits - jj * T::default_length);
+            auto& res = processor.S[out + jj];
             protocol->finalize_mult(res, n);
             res.mask(res, n);
         }
