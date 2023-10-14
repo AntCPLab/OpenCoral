@@ -80,4 +80,21 @@ void print_general(const char* label1, const T1& x1,
 #endif
 }
 
+template<class T>
+void print_vector_mem_usage(const vector<T>& v, const char* tag) {
+    cout << "[" << tag << "] "
+        << "size: " << v.size() << ", "
+        << "capacity: " << v.capacity() << ", "
+        << "T: " << sizeof(T) << ", "
+        << "memory: " << v.capacity() * sizeof(T) * 1e-9 << " GB" << endl;
+}
+
+template<class T, int L>
+void print_vector_mem_usage(const array<T, L>& v, const char* tag) {
+    cout << "[" << tag << "] "
+        << "size: " << L << ", "
+        << "T: " << sizeof(T) << ", "
+        << "memory: " << L * sizeof(T) * 1e-9 << " GB" << endl;
+}
+
 #endif

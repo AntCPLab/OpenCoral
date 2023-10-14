@@ -39,5 +39,11 @@ void print_general(const char* label1, const T1& x1,
     const char* label3, const T3& x3,
     const char* tag="");
 
+template<class T>
+void print_vector_mem_usage(const vector<T>& v, const char* tag = "");
+
+template<class T, int L>
+void print_vector_mem_usage(const array<T, L>& v, const char* tag = "");
+
 
 #endif
