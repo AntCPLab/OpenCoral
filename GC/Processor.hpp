@@ -56,7 +56,9 @@ void Processor<T>::reset(const U& program, int arg)
     S.resize(program.num_reg(SBIT), "registers");
     C.resize(program.num_reg(CBIT), "registers");
     I.resize(program.num_reg(INT), "registers");
-    cout << "[zico] GC::Processor, S: " << S.size() << ", C: " << C.size() << ", I: " << I.size() << endl;
+    cout << "[zico] GC::Processor, S: " << S.size() << "(" << S.capacity_in_bytes() / 1000000.0 << " MB)"
+         << ", C: " << C.size() << "(" << C.capacity_in_bytes() / 1000000.0 << " MB)"
+         << ", I: " << I.size() << "(" << I.capacity_in_bytes() / 1000000.0 << " MB)" << endl;
     set_arg(arg);
     PC = 0;
 }
