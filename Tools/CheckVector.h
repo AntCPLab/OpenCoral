@@ -23,6 +23,7 @@ public:
     T& at(size_t i) { return (*this)[i]; }
     const T& at(size_t i) const { return (*this)[i]; }
 #endif
+    size_t capacity_in_bytes() const { return this->capacity() * sizeof(T); }
 };
 
 #endif /* TOOLS_CHECKVECTOR_H_ */
