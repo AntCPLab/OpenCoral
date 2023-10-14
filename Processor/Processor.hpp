@@ -160,6 +160,11 @@ void Processor<sint, sgf2n>::reset(const Program& program,int arg)
   Procp.get_S().resize(program.num_reg(SINT));
   Procp.get_C().resize(program.num_reg(CINT));
   Ci.resize(program.num_reg(INT));
+  {
+    print_vector_mem_usage(Procp.get_S(), "SINT registers");
+    print_vector_mem_usage(Procp.get_C(), "CINT registers");
+    print_vector_mem_usage(Ci, "INT registers");
+  }
   this->arg = arg;
   Procb.reset(program);
 }
@@ -484,8 +489,68 @@ void SubProcessor<T>::POpen(const Instruction& inst)
 }
 
 template<class T>
+void SubProcessor<T>::check_buffering_muls(int& ii, int& jj, int i, int j, const vector<int>& reg, int size) {
+    if (protocol.get_buffer_size() >= protocol.buffer_size_per_round()) {
+        SubProcessor<T>& proc = *this;
+        protocol.exchange();
+        int ii_ = ii, jj_ = jj;
+        if (ii_ == i) {
+            for (; jj_ <= j; jj_++)
+              proc.S[reg[3 * ii_] + jj_] = protocol.finalize_mul();
+        }
+        else {
+            for (; jj_ < size; jj_++)
+                proc.S[reg[3 * ii_] + jj_] = protocol.finalize_mul();
+            for (ii_++; ii_ < i; ii_++)
+                for (jj_ = 0; jj_ < size; jj_++) {
+                    proc.S[reg[3 * ii_] + jj_] = protocol.finalize_mul();
+                }
+            for (jj_ = 0; jj_ <= j; jj_++)
+                proc.S[reg[3 * ii_] + jj_] = protocol.finalize_mul();
+        }
+        protocol.init_mul();
+        ii = i;
+        jj = j + 1;
+    }
+}
+
+template<class T>
+void SubProcessor<T>::buffering_muls(const vector<int>& reg, int size)
+{
+    assert(reg.size() % 3 == 0);
+    int n = reg.size() / 3;
+
+    SubProcessor<T>& proc = *this;
+    int ii = 0, jj = 0; // [zico] Represents the smallest index that has not yet been finalized
+    protocol.init_mul();
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < size; j++)
+        {
+            auto& x = proc.S[reg[3 * i + 1] + j];
+            auto& y = proc.S[reg[3 * i + 2] + j];
+            protocol.prepare_mul(x, y);
+
+            check_buffering_muls(ii, jj, i, j, reg, size);
+        }
+    protocol.exchange();
+    for (; jj < size; jj++)
+        proc.S[reg[3 * ii] + jj] = protocol.finalize_mul();
+    for (ii++; ii < n; ii++)
+        for (jj = 0; jj < size; jj++) {
+            proc.S[reg[3 * ii] + jj] = protocol.finalize_mul();
+        }
+
+    protocol.counter += n * size;
+}
+
+template<class T>
 void SubProcessor<T>::muls(const vector<int>& reg, int size)
 {
+    if (protocol.buffer_size_per_round() > 0) {
+        buffering_muls(reg, size);
+        return;
+    }
+
     assert(reg.size() % 3 == 0);
     int n = reg.size() / 3;
 
@@ -509,8 +574,73 @@ void SubProcessor<T>::muls(const vector<int>& reg, int size)
 }
 
 template<class T>
+void SubProcessor<T>::check_buffering_mulrs(int& ii, int& jj, int i, int j, const vector<int>& reg) {
+    if (protocol.get_buffer_size() >= protocol.buffer_size_per_round()) {
+        SubProcessor<T>& proc = *this;
+        protocol.exchange();
+        int ii_ = ii, jj_ = jj;
+        if (ii_ == i) {
+            for (; jj_ <= j; jj_++)
+                proc.S[reg[4 * ii_ + 1] + jj_] = protocol.finalize_mul();
+        }
+        else {
+            for (; jj_ < reg[4 * ii_]; jj_++)
+                proc.S[reg[4 * ii_ + 1] + jj_] = protocol.finalize_mul();
+            protocol.counter += reg[4 * ii_];
+            for (ii_++; ii_ < i; ii_++) {
+                for (jj_ = 0; jj_ < reg[4 * ii_]; jj_++) {
+                    proc.S[reg[4 * ii_ + 1] + jj_] = protocol.finalize_mul();
+                }
+                protocol.counter += reg[4 * ii_];
+            }
+            for (jj_ = 0; jj_ <= j; jj_++)
+                proc.S[reg[4 * ii_ + 1] + jj_] = protocol.finalize_mul();
+        }
+        protocol.init_mul();
+        ii = i;
+        jj = j + 1;
+    }
+}
+
+template<class T>
+void SubProcessor<T>::buffering_mulrs(const vector<int>& reg)
+{
+    assert(reg.size() % 4 == 0);
+    int n = reg.size() / 4;
+
+    SubProcessor<T>& proc = *this;
+    int ii = 0, jj = 0;
+    protocol.init_mul();
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < reg[4 * i]; j++)
+        {
+            auto& x = proc.S[reg[4 * i + 2] + j];
+            auto& y = proc.S[reg[4 * i + 3]];
+            protocol.prepare_mul(x, y);
+
+            check_buffering_mulrs(ii, jj, i, j, reg);
+        }
+    protocol.exchange();
+
+    for (; jj < reg[4 * ii]; jj++)
+        proc.S[reg[4 * ii + 1] + jj] = protocol.finalize_mul();
+    protocol.counter += reg[4 * ii];
+    for (ii++; ii < n; ii++) {
+        for (jj = 0; jj < reg[4 * ii]; jj++) {
+            proc.S[reg[4 * ii + 1] + jj] = protocol.finalize_mul();
+        }
+        protocol.counter += reg[4 * ii];
+    }
+}
+
+template<class T>
 void SubProcessor<T>::mulrs(const vector<int>& reg)
 {
+    if (protocol.buffer_size_per_round() > 0) {
+        buffering_mulrs(reg);
+        return;
+    }
+
     assert(reg.size() % 4 == 0);
     int n = reg.size() / 4;
 
@@ -535,8 +665,76 @@ void SubProcessor<T>::mulrs(const vector<int>& reg)
 }
 
 template<class T>
+void SubProcessor<T>::check_buffering_dotprods(int& ii, int& jj, int i, int j, const vector<int>& reg, int size) {
+    if (protocol.get_buffer_size() >= protocol.buffer_size_per_round()) {
+        SubProcessor<T>& proc = *this;
+        protocol.exchange();
+        int ii_ = ii, jj_ = jj;
+        if (ii_ == i) {
+            for (; jj_ <= j; jj_ += reg[jj_]) {
+                int dotprod_len = (reg[jj_] - 1)/2;
+                proc.S[reg[jj_+1] + ii_] = protocol.finalize_dotprod(dotprod_len);
+            }
+        }
+        else {
+            for (; jj_ < (int) reg.size(); jj_ += reg[jj_]) {
+                int dotprod_len = (reg[jj_] - 1)/2;
+                proc.S[reg[jj_+1] + ii_] = protocol.finalize_dotprod(dotprod_len);
+            }
+            for (ii_++; ii_ < i; ii_++)
+                for (jj_ = 0; jj_ < (int) reg.size(); jj_ += reg[jj_]) {
+                    int dotprod_len = (reg[jj_] - 1)/2;
+                    proc.S[reg[jj_+1] + ii_] = protocol.finalize_dotprod(dotprod_len);
+                }
+            for (jj_ = 0; jj_ <= j; jj_ += reg[jj_]) {
+                int dotprod_len = (reg[jj_] - 1)/2;
+                proc.S[reg[jj_+1] + ii_] = protocol.finalize_dotprod(dotprod_len);
+            }
+        }
+        protocol.init_dotprod();
+        ii = i;
+        jj = j + reg[j];
+    }
+}
+
+template<class T>
+void SubProcessor<T>::buffering_dotprods(const vector<int>& reg, int size)
+{
+    int ii = 0, jj = 0;
+    protocol.init_dotprod();
+    for (int i = 0; i < size; i++)
+    {
+        for (size_t j = 0; j < reg.size(); j += reg[j]) {
+            int dotprod_len = (reg[j] - 1) / 2;
+            for (int k = 0; k < dotprod_len; k++) {
+               protocol.prepare_dotprod(S[reg[k*2 + 2] + i], S[reg[k*2 + 3] + i]);
+            }
+            protocol.next_dotprod();
+
+            check_buffering_dotprods(ii, jj, i, j, reg, size);
+        }
+    }
+    protocol.exchange();
+
+    for (; jj < (int) reg.size(); jj += reg[jj]) {
+        int dotprod_len = (reg[jj] - 1)/2;
+        S[reg[jj+1] + ii] = protocol.finalize_dotprod(dotprod_len);
+    }
+    for (ii++; ii < size; ii++)
+        for (jj = 0; jj < (int) reg.size(); jj += reg[jj]) {
+            int dotprod_len = (reg[jj] - 1)/2;
+            S[reg[jj+1] + ii] = protocol.finalize_dotprod(dotprod_len);
+        }
+}
+
+template<class T>
 void SubProcessor<T>::dotprods(const vector<int>& reg, int size)
 {
+    if (protocol.buffer_size_per_round() > 0) {
+        buffering_dotprods(reg, size);
+        return;
+    }
+
     protocol.init_dotprod();
     for (int i = 0; i < size; i++)
     {
@@ -568,9 +766,81 @@ void SubProcessor<T>::dotprods(const vector<int>& reg, int size)
 }
 
 template<class T>
+void SubProcessor<T>::check_buffering_matmuls(int& ii, int& jj, int i, int j, 
+    const vector<T>& source, const Instruction& instruction, size_t a, size_t b) {
+    if (protocol.get_buffer_size() >= protocol.buffer_size_per_round()) {
+        auto& dim = instruction.get_start();
+        auto C = S.begin() + (instruction.get_r(0));
+
+        protocol.exchange();
+        int ii_ = ii, jj_ = jj;
+
+        if (ii_ == i) {
+            for (; jj_ <= j; jj_++)
+                *(C + ii_ * dim[2] + jj_) = protocol.finalize_dotprod(dim[1]);
+        }
+        else {
+            for (; jj_ < dim[2]; jj_++) {
+                *(C + ii_ * dim[2] + jj_) = protocol.finalize_dotprod(dim[1]);
+            }
+            for (ii_++; ii_ < i; ii_++)
+                for (jj_ = 0; jj_ < dim[2]; jj_++) {
+                    *(C + ii_ * dim[2] + jj_) = protocol.finalize_dotprod(dim[1]);
+                }
+            for (jj_ = 0; jj_ <= j; jj_++) {
+                *(C + ii_ * dim[2] + jj_) = protocol.finalize_dotprod(dim[1]);
+            }
+        }
+        protocol.init_dotprod();
+        ii = i;
+        jj = j + 1;
+    }
+}
+
+template<class T>
+void SubProcessor<T>::buffering_matmuls(const vector<T>& source,
+        const Instruction& instruction, size_t a, size_t b)
+{
+    auto& dim = instruction.get_start();
+    auto A = source.begin() + a;
+    auto B = source.begin() + b;
+    auto C = S.begin() + (instruction.get_r(0));
+    assert(A + dim[0] * dim[1] <= source.end());
+    assert(B + dim[1] * dim[2] <= source.end());
+    assert(C + dim[0] * dim[2] <= S.end());
+
+    int ii = 0, jj = 0;
+    protocol.init_dotprod();
+    for (int i = 0; i < dim[0]; i++)
+        for (int j = 0; j < dim[2]; j++)
+        {
+            for (int k = 0; k < dim[1]; k++)
+                protocol.prepare_dotprod(*(A + i * dim[1] + k),
+                        *(B + k * dim[2] + j));
+            protocol.next_dotprod();
+            
+            check_buffering_matmuls(ii, jj, i, j, source, instruction, a, b);
+        }
+    protocol.exchange();
+
+    for (; jj< dim[2]; jj++) {
+        *(C + ii * dim[2] + jj) = protocol.finalize_dotprod(dim[1]);
+    }
+    for (ii++; ii < dim[0]; ii++)
+        for (jj = 0; jj < dim[2]; jj++) {
+            *(C + ii * dim[2] + jj) = protocol.finalize_dotprod(dim[1]);
+        }
+}
+
+template<class T>
 void SubProcessor<T>::matmuls(const vector<T>& source,
         const Instruction& instruction, size_t a, size_t b)
 {
+    if (protocol.buffer_size_per_round() > 0) {
+        buffering_matmuls(source, instruction, a, b);
+        return;
+    }
+
     auto& dim = instruction.get_start();
     auto A = source.begin() + a;
     auto B = source.begin() + b;
@@ -671,6 +941,11 @@ void SubProcessor<T>::matmulsm_finalize(int i, int j, const vector<int>& dim,
 template<class T>
 void SubProcessor<T>::conv2ds(const Instruction& instruction)
 {
+    if (protocol.buffer_size_per_round() > 0) {
+        buffering_conv2ds(instruction);
+        return;
+    }
+
     protocol.init_dotprod();
     auto& args = instruction.get_start();
     vector<Conv2dTuple> tuples;
@@ -769,6 +1044,153 @@ void Conv2dTuple::post(vector<T>& S, typename T::Protocol& protocol)
                 output_base[out_y * output_w + out_x] =
                         protocol.finalize_dotprod(
                                 lengths[i_batch][out_y][out_x]);
+            }
+    }
+}
+
+template<class T>
+void SubProcessor<T>::buffering_conv2ds(const Instruction& instruction)
+{
+    auto& args = instruction.get_start();
+    vector<Conv2dTuple> tuples;
+    for (size_t i = 0; i < args.size(); i += 15)
+        tuples.push_back(Conv2dTuple(args, i));
+
+    for (auto& tuple : tuples) {
+        protocol.init_dotprod();
+        auto index = tuple.buffering_pre(S, protocol);
+        protocol.exchange();
+        tuple.buffering_post(index.first, index.second, S, protocol);
+    }
+}
+
+template<class T>
+void Conv2dTuple::check_buffering_pre(int& ii, int& jj, int i, int j,
+    vector<T>& S, typename T::Protocol& protocol) {
+    if (protocol.get_buffer_size() >= protocol.buffer_size_per_round()) {
+        protocol.exchange();
+        int ii_ = ii, jj_ = jj;
+
+        if (ii_ == i) {
+            size_t base = r0 + ii_ * output_h * output_w;
+            assert(base + output_h * output_w <= S.size());
+            T* output_base = &S[base];
+            for (; jj_ <= j; jj_++)
+                for (int out_x = 0; out_x < output_w; out_x++)
+                {
+                    output_base[jj_ * output_w + out_x] =
+                            protocol.finalize_dotprod(
+                                    lengths[ii_][jj_][out_x]);
+                }
+        }
+        else {
+            size_t base = r0 + ii_ * output_h * output_w;
+            assert(base + output_h * output_w <= S.size());
+            T* output_base = &S[base];
+            for (; jj_ < output_h; jj_++) 
+                for (int out_x = 0; out_x < output_w; out_x++)
+                {
+                    output_base[jj_ * output_w + out_x] =
+                            protocol.finalize_dotprod(
+                                    lengths[ii_][jj_][out_x]);
+                }
+            for (ii_++; ii_ < i; ii_++) {
+                base = r0 + ii_ * output_h * output_w;
+                assert(base + output_h * output_w <= S.size());
+                output_base = &S[base];
+                for (jj_ = 0; jj_ < output_h; jj_++) 
+                    for (int out_x = 0; out_x < output_w; out_x++)
+                    {
+                        output_base[jj_ * output_w + out_x] =
+                                protocol.finalize_dotprod(
+                                        lengths[ii_][jj_][out_x]);
+                    }
+            }
+            base = r0 + ii_ * output_h * output_w;
+            assert(base + output_h * output_w <= S.size());
+            output_base = &S[base];
+            for (jj_ = 0; jj_ <= j; jj_++) 
+                for (int out_x = 0; out_x < output_w; out_x++)
+                {
+                    output_base[jj_ * output_w + out_x] =
+                            protocol.finalize_dotprod(
+                                    lengths[ii_][jj_][out_x]);
+                }
+        }
+        protocol.init_dotprod();
+        ii = i;
+        jj = j + 1;
+    }
+}
+
+template<class T>
+pair<int, int> Conv2dTuple::buffering_pre(vector<T>& S, typename T::Protocol& protocol)
+{
+    int ii = 0, jj = 0;
+    for (int i_batch = 0; i_batch < batch_size; i_batch ++)
+    {
+        size_t base = r1 + i_batch * inputs_w * inputs_h * n_channels_in;
+        assert(base + inputs_w * inputs_h * n_channels_in <= S.size());
+        T* input_base = &S[base];
+        for (int out_y = 0; out_y < output_h; out_y++) {
+            for (int out_x = 0; out_x < output_w; out_x++)
+            {
+                int in_x_origin = (out_x * stride_w) - padding_w;
+                int in_y_origin = (out_y * stride_h) - padding_h;
+
+                for (int filter_y = 0; filter_y < weights_h; filter_y++)
+                {
+                    int in_y = in_y_origin + filter_y * filter_stride_h;
+                    if ((0 <= in_y) and (in_y < inputs_h))
+                        for (int filter_x = 0; filter_x < weights_w; filter_x++)
+                        {
+                            int in_x = in_x_origin + filter_x * filter_stride_w;
+                            if ((0 <= in_x) and (in_x < inputs_w))
+                            {
+                                T* pixel_base = &input_base[(in_y * inputs_w
+                                        + in_x) * n_channels_in];
+                                T* weight_base = &S[r2
+                                        + (filter_y * weights_w + filter_x)
+                                                * n_channels_in];
+                                for (int in_c = 0; in_c < n_channels_in; in_c++)
+                                    protocol.prepare_dotprod(pixel_base[in_c],
+                                            weight_base[in_c]);
+                                lengths[i_batch][out_y][out_x] += n_channels_in;
+                            }
+                        }
+                }
+
+                protocol.next_dotprod();
+            }
+            check_buffering_pre(ii, jj, i_batch, out_y, S, protocol);
+        }
+    }
+    return {ii, jj};
+}
+
+template<class T>
+void Conv2dTuple::buffering_post(int ii, int jj, vector<T>& S, typename T::Protocol& protocol)
+{
+    size_t base = r0 + ii * output_h * output_w;
+    assert(base + output_h * output_w <= S.size());
+    T* output_base = &S[base];
+    for (; jj < output_h; jj++) 
+        for (int out_x = 0; out_x < output_w; out_x++)
+        {
+            output_base[jj * output_w + out_x] =
+                    protocol.finalize_dotprod(
+                            lengths[ii][jj][out_x]);
+        }
+    for (ii++; ii < batch_size; ii++) {
+        base = r0 + ii * output_h * output_w;
+        assert(base + output_h * output_w <= S.size());
+        output_base = &S[base];
+        for (jj = 0; jj < output_h; jj++) 
+            for (int out_x = 0; out_x < output_w; out_x++)
+            {
+                output_base[jj * output_w + out_x] =
+                        protocol.finalize_dotprod(
+                                lengths[ii][jj][out_x]);
             }
     }
 }

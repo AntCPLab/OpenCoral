@@ -35,6 +35,14 @@ public:
     void post(vector<T>& S, typename T::Protocol& protocol);
 
     template<class T>
+    void check_buffering_pre(int& ii, int& jj, int i, int j,
+        vector<T>& S, typename T::Protocol& protocol);
+    template<class T>
+    pair<int, int> buffering_pre(vector<T>& S, typename T::Protocol& protocol);
+    template<class T>
+    void buffering_post(int ii, int jj, vector<T>& S, typename T::Protocol& protocol);
+
+    template<class T>
     void run_matrix(SubProcessor<T>& processor);
 };
 

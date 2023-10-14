@@ -36,6 +36,15 @@ class SubProcessor
 
   void resize(size_t size)       { C.resize(size); S.resize(size); }
 
+  void check_buffering_muls(int& ii, int& jj, int i, int j, const vector<int>& reg, int size);
+
+  void check_buffering_mulrs(int& ii, int& jj, int i, int j, const vector<int>& reg);
+
+  void check_buffering_dotprods(int& ii, int& jj, int i, int j, const vector<int>& reg, int size);
+
+  void check_buffering_matmuls(int& ii, int& jj, int i, int j, 
+    const vector<T>& source, const Instruction& instruction, size_t a, size_t b);
+
   void matmulsm_prep(int ii, int j, const CheckVector<T>& source,
       const vector<int>& dim, size_t a, size_t b);
   void matmulsm_finalize(int i, int j, const vector<int>& dim,
@@ -72,13 +81,19 @@ public:
   void POpen(const Instruction& inst);
 
   void muls(const vector<int>& reg, int size);
+  void buffering_muls(const vector<int>& reg, int size);
   void mulrs(const vector<int>& reg);
+  void buffering_mulrs(const vector<int>& reg);
   void dotprods(const vector<int>& reg, int size);
+  void buffering_dotprods(const vector<int>& reg, int size);
   void matmuls(const vector<T>& source, const Instruction& instruction, size_t a,
+      size_t b);
+  void buffering_matmuls(const vector<T>& source, const Instruction& instruction, size_t a,
       size_t b);
   void matmulsm(const CheckVector<T>& source, const Instruction& instruction, size_t a,
       size_t b);
   void conv2ds(const Instruction& instruction);
+  void buffering_conv2ds(const Instruction& instruction);
 
   void secure_shuffle(const Instruction& instruction);
   size_t generate_secure_shuffle(const Instruction& instruction);

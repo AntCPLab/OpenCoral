@@ -24,6 +24,10 @@ public:
             SPDZ2k<T>(P)
     {
     }
+
+    int buffer_size_per_round() {
+        return 1000000;
+    }
 };
 
 #endif /* PROTOCOLS_CORAL_H_ */

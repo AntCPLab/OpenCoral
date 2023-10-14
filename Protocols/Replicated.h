@@ -131,6 +131,8 @@ public:
 
     virtual int get_buffer_size() { return 0; }
 
+    virtual int buffer_size_per_round() { return 0; }
+
     static void setup(Player&) {}
     static void teardown() {}
 };

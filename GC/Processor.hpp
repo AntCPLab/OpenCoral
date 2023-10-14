@@ -21,6 +21,7 @@ using namespace std;
 #include "Processor/ProcessorBase.hpp"
 #include "Processor/IntInput.hpp"
 #include "Math/bigint.hpp"
+#include "Tools/debug.hpp"
 
 namespace GC
 {
@@ -56,9 +57,11 @@ void Processor<T>::reset(const U& program, int arg)
     S.resize(program.num_reg(SBIT), "registers");
     C.resize(program.num_reg(CBIT), "registers");
     I.resize(program.num_reg(INT), "registers");
-    cout << "[zico] GC::Processor, S: " << S.size() << "(" << S.capacity_in_bytes() / 1000000.0 << " MB)"
-         << ", C: " << C.size() << "(" << C.capacity_in_bytes() / 1000000.0 << " MB)"
-         << ", I: " << I.size() << "(" << I.capacity_in_bytes() / 1000000.0 << " MB)" << endl;
+    {
+        print_vector_mem_usage(S, "SBIT registers");
+        print_vector_mem_usage(C, "CBIT registers");
+        print_vector_mem_usage(I, "GC INT registers");
+    }
     set_arg(arg);
     PC = 0;
 }
