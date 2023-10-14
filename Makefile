@@ -442,7 +442,7 @@ test_tinyot_prep: test/test_tinyot_prep.o $(COMMON) $(VM) $(OT) GC/PostSacriBin.
 test_silent_ole: test/test_silent_ole.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE) GC/PostSacriBin.o $(GC_SEMI)
 	$(CXX) -o $@ $(CFLAGS) $^ $(EMP_LIBS) $(LDLIBS)
 
-test_zico: test/test_zico.o $(COMMON) $(VM) $(OT) $(FHEOFFLINE) GC/PostSacriBin.o $(GC_SEMI)
+test_zico: test/test_zico.o
 	$(CXX) -o $@ $(CFLAGS) $^ $(EMP_LIBS) $(LDLIBS)
 
 mixed-coral-dabit-example.x: $(VM) $(OT) $(COMMON)
