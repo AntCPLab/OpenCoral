@@ -585,6 +585,7 @@ int BaseInstruction::get_reg_type() const
     case INTOUTPUT:
     case ACCEPTCLIENTCONNECTION:
     case GENSECSHUFFLE:
+    case CRASH:
       return INT;
     case PREP:
     case GPREP:
@@ -727,6 +728,7 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
   {
   case DOTPRODS:
   {
+    // [zico] The 'res' seems to be wrong, considering how `dotprods` is implemented in Processor.
       int res = 0;
       auto it = start.begin();
       while (it != start.end())
@@ -752,6 +754,14 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
       }
       return res;
   }
+  // [zico] New case. Otherwise `CINT` might be overestimated by the large number of `INT` registers
+  case CONVINT:
+  {
+    if (reg_type == CINT) return r[0] + size;
+    if (reg_type == INT) return r[1] + size;
+    else throw runtime_error("unexpected reg type in get_max_reg");
+  }
+
   case OPEN:
       skip = 2;
       break;
@@ -859,6 +869,7 @@ unsigned BaseInstruction::get_max_reg(int reg_type) const
       return m;
   }
 
+  // [zico] The following processing is very general and rough, it might greatly overestimated the max number of registers for a register type
   unsigned res = 0;
   for (auto x : start)
     res = max(res, (unsigned)x);
