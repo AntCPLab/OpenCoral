@@ -4,7 +4,7 @@
 #include "Tools/debug.h"
 
 template<class T>
-T reveal(Player* P, const T& share) {
+T reveal(Player* P, const T& share, bool print, const char* tag) {
     octetStream os;
     share.pack(os);
     P->exchange_relative(-1, os);
@@ -12,6 +12,10 @@ T reveal(Player* P, const T& share) {
     other_share.unpack(os);
 
     T revealed = share + other_share;
+
+    if (print) {
+        cout << "[zicod] " << tag << ": " << revealed.get_share() << endl;
+    }
 
     return revealed;
 }
@@ -82,19 +86,23 @@ void print_general(const char* label1, const T1& x1,
 
 template<class T>
 void print_vector_mem_usage(const vector<T>& v, const char* tag) {
+#ifdef VERBOSE_DEBUG_PRINT
     cout << "[" << tag << "] "
         << "size: " << v.size() << ", "
         << "capacity: " << v.capacity() << ", "
         << "T: " << sizeof(T) << ", "
         << "memory: " << v.capacity() * sizeof(T) * 1e-9 << " GB" << endl;
+#endif
 }
 
 template<class T, int L>
 void print_vector_mem_usage(const array<T, L>& v, const char* tag) {
+#ifdef VERBOSE_DEBUG_PRINT
     cout << "[" << tag << "] "
         << "size: " << L << ", "
         << "T: " << sizeof(T) << ", "
         << "memory: " << L * sizeof(T) * 1e-9 << " GB" << endl;
+#endif
 }
 
 #endif

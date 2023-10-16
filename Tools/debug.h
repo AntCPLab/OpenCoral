@@ -9,7 +9,7 @@
 #include "Protocols/dabit.h"
 
 template<class T>
-T reveal(Player* P, const T& share);
+T reveal(Player* P, const T& share, bool print=false, const char* tag="");
 
 template<class T>
 void reveal(Player* P, const edabitpack<T>& ep, const char* tag="");
