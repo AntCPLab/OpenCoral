@@ -1496,8 +1496,11 @@ void Preprocessing<T>::get_edabits(bool strict, size_t size, T* a,
 
     for (size_t i = 0; i < size; i++)
         this->usage.count_edabit(strict, n_bits);
-    for (size_t i = 0; i < (unit-size%unit) % unit; i++)
-        this->usage.waste_edabit(strict, n_bits);
+    if (T::bit_type::tight_packed) {
+        for (size_t i = 0; i < (unit-size%unit) % unit; i++) {
+            this->usage.waste_edabit(strict, n_bits);
+        }
+    }
 }
 
 template<class T>

@@ -370,7 +370,6 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice_buckets(vector<edabit<T>>& to_c
         bool strict, int player, SubProcessor<T>& proc, int begin,
         int end, LimitedPrep<BT>& personal_prep, const void* supply)
 {
-    cout << "[zico] enter edabit_sacrifice_buckets edabit" << endl;
     typedef typename T::bit_type::part_type BT;
     typedef typename BT::small_type ST;
 
