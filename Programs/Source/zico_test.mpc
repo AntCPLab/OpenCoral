@@ -36,8 +36,12 @@ a = a.get_vector()
 b = sint.Array(n)
 b.assign_vector(regint.inc(n, 2))
 b = b.get_vector()
+print_ln('a: %s', a.reveal())
+print_ln('b: %s', b.reveal())
 c = a < b
 print_ln('a < b: %s', c.reveal())
+d = a * b
+print_ln('a * b: %s', d.reveal())
 
 #n = 16
 #x = sint.Array(n)
