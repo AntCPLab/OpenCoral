@@ -67,10 +67,12 @@ for op in graph.get_operations():
         source(op)
     elif t == 'MatMul':
         #print (op.inputs[0].shape)
-        assert reduce(operator.mul, shape) == op.inputs[1].shape[0]
-        output(op, 'ml.Dense(1, %d, %d)' % (op.inputs[1].shape[0],
+        # assert reduce(operator.mul, shape) == op.inputs[1].shape[0]
+        assert shape[1] == op.inputs[1].shape[0]
+        output(op, 'ml.Dense(%d, %d, %d)' % (op.inputs[0].shape[0], 
+                                             op.inputs[1].shape[0],
                                          op.inputs[1].shape[1]))
-        shape = [1, int(op.inputs[1].shape[1])]
+        shape = [op.inputs[0].shape[0], int(op.inputs[1].shape[1])]
     elif t == 'Conv2D':
         strides = op.get_attr('strides')
         assert len(strides) == 4
