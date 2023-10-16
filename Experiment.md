@@ -10,7 +10,7 @@ cd ..
 
 # Run Deep Net Inference
 
-## SqueezeNet
+## SqueezeNet (15 layers)
 ```
 cd benchmarks/EzPC/Athos/Networks/SqueezeNetImgNet
 #axel -a -n 5 -c --output ./ https://github.com/avoroshilov/tf-squeezenet/raw/master/sqz_full.mat
@@ -22,6 +22,19 @@ Scripts/fixed-rep-to-float.py benchmarks/EzPC/Athos/Networks/SqueezeNetImgNet/Sq
 # 64-bit ring (-R 64), use edabits (-Y), 8 threads
 ./compile.py -R 64 -Y tf benchmarks/EzPC/Athos/Networks/SqueezeNetImgNet/graphDef.bin 8
 Scripts/spdz2k.sh tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graphDef.bin-8
+```
+
+## Lenet (5 layers)
+```
+cd benchmarks/EzPC/Athos/Networks/Lenet
+# Just to train a usable model (NOT fully trained on the entire mnist dataset)
+python3 LenetSmall_mnist_train.py
+python3 LenetSmall_mnist_inference.py 1
+cd ../../../../..
+Scripts/fixed-rep-to-float.py benchmarks/EzPC/Athos/Networks/Lenet/LenetSmall_mnist_img_1.inp
+# 64-bit ring (-R 64), use edabits (-Y), 8 threads
+./compile.py -R 64 -Y tf benchmarks/EzPC/Athos/Networks/Lenet/graphDef.bin 8
+Scripts/spdz2k.sh tf-benchmarks_EzPC_Athos_Networks_Lenet_graphDef.bin-8
 ```
 
 # Benchmarking
@@ -37,6 +50,7 @@ make clean
 make Fake-Offline.x spdz2k-party.x -j8
 # The '-e' option specifies the edabit length types we want to generate. Here they correspond to those used in SqueezeNet.
 ./Fake-Offline.x 2 -Z 64 -S 64 -e 9,12,31,32,64
+Scripts/fixed-rep-to-float.py benchmarks/EzPC/Athos/Networks/SqueezeNetImgNet/SqNetImgNet_img_input.inp
 ./compile.py -R 64 -Y tf benchmarks/EzPC/Athos/Networks/SqueezeNetImgNet/graphDef.bin 8
 Scripts/spdz2k.sh -F -v tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graphDef.bin-8
 ```
@@ -53,6 +67,36 @@ make Fake-Offline.x coral-party.x -j8
 ./Fake-Offline.x 2 -C 64 -S 64 -e 9,12,31,32,64
 ./compile.py -R 64 -Y --pack tf benchmarks/EzPC/Athos/Networks/SqueezeNetImgNet/graphDef.bin 8
 Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graphDef.bin-8
+```
+
+## Lenet
+
+### Spdz2k
+- Add `MY_CFLAGS = -DINSECURE` to `CONFIG.mine`.
+- Make sure `Compiler.GC.types.bits.unit = 64`
+```
+make clean
+make Fake-Offline.x spdz2k-party.x -j8
+# The '-e' option specifies the edabit length types we want to generate. Here they correspond to those used in Lenet.
+./Fake-Offline.x 2 -Z 64 -S 64 -e 9,12,31,32,64
+Scripts/fixed-rep-to-float.py benchmarks/EzPC/Athos/Networks/Lenet/LenetSmall_mnist_img_1.inp
+./compile.py -R 64 -Y tf benchmarks/EzPC/Athos/Networks/Lenet/graphDef.bin 8
+Scripts/spdz2k.sh -F -v tf-benchmarks_EzPC_Athos_Networks_Lenet_graphDef.bin-8
+```
+
+### Coral
+To evaluate Coral, we need to:
+- Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
+- enable the packing feature by passing the `--pack` option to the compiler.
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+- Printing has a large effect on the benchmarking. Remember to turn off them for accurate benchmark.
+```
+make clean
+make Fake-Offline.x coral-party.x -j8
+./Fake-Offline.x 2 -C 64 -S 64 -e 9,12,31,32,64
+Scripts/fixed-rep-to-float.py benchmarks/EzPC/Athos/Networks/Lenet/LenetSmall_mnist_img_1.inp
+./compile.py -R 64 -Y --pack tf benchmarks/EzPC/Athos/Networks/Lenet/graphDef.bin 8
+Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_Lenet_graphDef.bin-8
 ```
 
 ## AES
