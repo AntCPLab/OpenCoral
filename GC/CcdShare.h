@@ -35,6 +35,7 @@ public:
     typedef NoShare bit_type;
 
     static const int default_length = 1;
+    static const false_type tight_packed;
 
     static string name()
     {
@@ -77,6 +78,9 @@ public:
         return *this;
     }
 };
+
+template<class T>
+inline const false_type CcdShare<T>::tight_packed;
 
 }
 
