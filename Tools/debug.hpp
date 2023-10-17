@@ -13,10 +13,6 @@ T reveal(Player* P, const T& share, bool print, const char* tag) {
 
     T revealed = share + other_share;
 
-    if (print) {
-        cout << "[zicod] " << tag << ": " << revealed.get_share() << endl;
-    }
-
     return revealed;
 }
 

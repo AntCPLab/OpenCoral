@@ -14,12 +14,12 @@ public:
 		secrets.push_back(secret);
 	}
 
-	// [TODO] need to update for security and performanace (batch check)
+	// [zico] need to update for security and performanace (batch check)
 	void exchange(const Player& P) {
         vector<octetStream> oss;
         oss.resize(P.num_players());
         oss[P.my_num()].reset_write_head();
-		// [TODO] this needs to be updated accordingly with TinyOTShare::pack
+		// [zico] this needs to be updated accordingly with TinyOTShare::pack
         oss[P.my_num()].reserve(this->secrets.size() * sizeof(emp::block)); 
 
         for (auto& x : this->secrets)

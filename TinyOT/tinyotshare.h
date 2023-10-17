@@ -22,7 +22,7 @@ public:
 	}
 
 	static string type_short() {
-		return "BLK";
+		return "EMP-BLK";
 	}
 
 	void input(istream& s, bool = true) {
@@ -30,6 +30,11 @@ public:
 	}
 
 	static void init_field() {}
+
+	friend ostream& operator<<(ostream& s, const BlockType& x)
+    {
+      return emp::operator<<(s, x.value);
+    }
 };
 
 class TinyOTMC;

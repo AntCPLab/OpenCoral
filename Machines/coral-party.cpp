@@ -37,9 +37,6 @@ int main(int argc, const char** argv)
     opt.get("-SP")->getInt(s);
     opt.resetArgs();
 
-    // // RMFE setup
-    // RmfeShare::setup_rmfe(2, 6);
-
     RingOptions ring_options(opt, argc, argv);
     OnlineOptions& online_opts = OnlineOptions::singleton;
     online_opts = {opt, argc, argv, CoralShare<64, 64>(), true};
@@ -85,7 +82,4 @@ int main(int argc, const char** argv)
         }
         exit(1);
     }
-
-    // // RMFE setup
-    // RmfeShare::teardown_rmfe();
 }

@@ -232,6 +232,11 @@ public:
         return "T";
     }
 
+    static string type_string()
+    {
+        return "TinySecret(" + to_string(S) + ")";
+    }
+
     static MC* new_mc(typename super::mac_key_type mac_key)
     {
         return new MC(mac_key);
