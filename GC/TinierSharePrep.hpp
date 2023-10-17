@@ -70,10 +70,13 @@ void TinierSharePrep<T>::set_protocol(typename T::Protocol& protocol)
 template<class T>
 void TinierSharePrep<T>::buffer_triples()
 {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf("Tinier triples", ShareThread<secret_type>::s().P->total_comm().sent);
+#endif
+
     if (this->input_player != this->SECURE)
     {
         this->buffer_personal_triples();
-        return;
     }
     else {
 #ifdef SPDZ2K_SP
@@ -82,24 +85,47 @@ void TinierSharePrep<T>::buffer_triples()
         buffer_secret_triples();
 #endif
     }
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(ShareThread<secret_type>::s().P->total_comm().sent);
+    GlobalPerformance::s().add(perf);
+#endif
 }
 
 template<class T>
 void TinierSharePrep<T>::buffer_inputs(int player)
 {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf("Tinier inputs", ShareThread<secret_type>::s().P->total_comm().sent);
+#endif
+
     auto& inputs = this->inputs;
     assert(triple_generator);
     triple_generator->generateInputs(player);
     for (auto& x : triple_generator->inputs)
         inputs.at(player).push_back(x);
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(ShareThread<secret_type>::s().P->total_comm().sent);
+    GlobalPerformance::s().add(perf);
+#endif
 }
 
 template<class T>
 void GC::TinierSharePrep<T>::buffer_bits()
 {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf("Tinier bits", ShareThread<secret_type>::s().P->total_comm().sent);
+#endif
+
     auto& thread = ShareThread<secret_type>::s();
     this->bits.push_back(
             BufferPrep<T>::get_random_from_inputs(thread.P->num_players()));
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(ShareThread<secret_type>::s().P->total_comm().sent);
+    GlobalPerformance::s().add(perf);
+#endif
 }
 
 }

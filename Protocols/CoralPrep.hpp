@@ -50,7 +50,7 @@ void CoralPrep<T>::get_dabit(T& a, typename T::bit_type& b) {
 template<class T>
 void CoralPrep<T>::buffer_dabits(ThreadQueues* queues) {
 #ifdef DETAIL_BENCHMARK
-    ThreadPerformance perf("Rmfe buffer_dabits", this->protocol->P.total_comm().sent);
+    ThreadPerformance perf("Coral buffer_dabits", this->protocol->P.total_comm().sent);
 #endif
 
     int dl = T::bit_type::default_length;

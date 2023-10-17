@@ -78,7 +78,7 @@ template<class T>
 void Spdz2kPrep<T>::buffer_bits()
 {
 #ifdef DETAIL_BENCHMARK
-    ThreadPerformance perf("Spdz2krandbit", this->protocol->P.total_comm().sent);
+    ThreadPerformance perf("Spdz2k randbit", this->protocol->P.total_comm().sent);
 #endif
 
 #ifdef SPDZ2K_SIMPLE_BITS
@@ -139,6 +139,10 @@ void Spdz2kPrep<T>::get_dabit(T& a, GC::TinySecret<T::s>& b)
 template<class T>
 void Spdz2kPrep<T>::buffer_dabits(ThreadQueues* queues)
 {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf("Dabits", this->protocol->P.total_comm().sent);
+#endif
+
     assert(this->proc != 0);
     vector<dabit<T>> check_dabits;
     int buffer_size = BaseMachine::batch_size<T>(DATA_DABIT, this->buffer_size);
@@ -146,6 +150,11 @@ void Spdz2kPrep<T>::buffer_dabits(ThreadQueues* queues)
             dabit_sacrifice.minimum_n_inputs(buffer_size), queues);
     dabit_sacrifice.sacrifice_without_bit_check(this->dabits, check_dabits,
             *this->proc, queues);
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(this->protocol->P.total_comm().sent);
+    GlobalPerformance::s().add(perf);
+#endif
 }
 
 template<class T>
@@ -277,6 +286,10 @@ template<class T>
 void MaliciousRingPrep<T>::buffer_edabits(bool strict, int n_bits,
         ThreadQueues* queues)
 {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf("Edabits", this->protocol->P.total_comm().sent);
+#endif
+
     RunningTimer timer;
 #ifndef NONPERSONAL_EDA
     this->buffer_edabits_from_personal(strict, n_bits, queues);
@@ -296,6 +309,11 @@ void MaliciousRingPrep<T>::buffer_edabits(bool strict, int n_bits,
 #endif
 #ifdef VERBOSE_EDA
     cerr << "Total edaBit generation took " << timer.elapsed() << " seconds" << endl;
+#endif
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(this->protocol->P.total_comm().sent);
+    GlobalPerformance::s().add(perf);
 #endif
 }
 
