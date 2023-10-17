@@ -97,10 +97,10 @@ void RmfeShareConverter<T>::convert(vector<RmfeShare>& rmfe_shares, const vector
         RmfeShare::raw_type zk(z[k]);
         for(int h = 0; h < l; h++) {
             if(zk.get_bit(h) != z_prime[k*l + h].get_bit(0))
-                throw runtime_error("Inconsistency found between RMFE and TinyOT");
+                throw runtime_error("Inconsistency found between RMFE and " + T::type_string());
         }
     }
-
+    src_mc->Check(P);
     dst_mc->Check(P);
     delete dst_mc;
 
