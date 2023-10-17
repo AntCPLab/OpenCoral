@@ -107,7 +107,7 @@ public:
 
     void print_time(const std::string& tag="") {
         if (tag == "") {
-            for(const auto& e : profiling)
+            for(const auto& e : logs)
                 print_time(e.first);
         }
         else {
@@ -119,7 +119,7 @@ public:
 
     void print_comm(const std::string& tag="") {
         if (tag == "") {
-            for(const auto& e : profiling)
+            for(const auto& e : comm_logs)
                 print_comm(e.first);
         }
         else {

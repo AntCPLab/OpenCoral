@@ -105,6 +105,10 @@ void RmfeBeaver<T>::prepare_mul(const T& x, const T& y, int n)
 template<class T>
 void RmfeBeaver<T>::exchange()
 {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf(T::type_string() + " rmfebeaver exchange", P.total_comm().sent);
+#endif
+
     assert(shares.size() == 2 * lengths.size());
     MC->init_open(P, shares.size());
     for (size_t i = 0; i < shares.size(); i++) {
@@ -115,6 +119,11 @@ void RmfeBeaver<T>::exchange()
         opened.push_back(MC->finalize_raw());
     it = opened.begin();
     quintuple = quintuples.begin();
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(P.total_comm().sent);
+    GlobalPerformance::s().add(perf);
+#endif
 }
 
 template<class T>
@@ -134,6 +143,10 @@ void RmfeBeaver<T>::stop_exchange()
 template<class T>
 T RmfeBeaver<T>::finalize_mul(int n)
 {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf(T::type_string() + " rmfebeaver finalize", P.total_comm().sent);
+#endif
+
     (void) n;
     typename T::open_type masked[2], norm_masked[2];
     T& tmp = (*quintuple)[2];
@@ -152,6 +165,11 @@ T RmfeBeaver<T>::finalize_mul(int n)
     tmp += ((*quintuple)[3] * norm_masked[1]);
     tmp += T::constant(norm_masked[0] * norm_masked[1], P.my_num(), MC->get_alphai());
     quintuple++;
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(P.total_comm().sent);
+    GlobalPerformance::s().add(perf);
+#endif
 
     return tmp;
 }
@@ -183,6 +201,10 @@ void RmfeBeaver<T>::prepare_mul_constant(const T& x, const typename T::clear& y,
 template<class T>
 void RmfeBeaver<T>::exchange_mul_constant()
 {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf(T::type_string() + " rmfebeaver exchange-c", P.total_comm().sent);
+#endif
+
     MC->init_open(P, shares.size());
     for (size_t i = 0; i < shares.size(); i++) {
         MC->prepare_open(shares[i]);
@@ -193,11 +215,20 @@ void RmfeBeaver<T>::exchange_mul_constant()
     it = opened.begin();
     normal = normals.begin();
     constant = constants.begin();
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(P.total_comm().sent);
+    GlobalPerformance::s().add(perf);
+#endif
 }
 
 template<class T>
 T RmfeBeaver<T>::finalize_mul_constant(int n)
 {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf(T::type_string() + " rmfebeaver finalize-c", P.total_comm().sent);
+#endif
+
     (void) n;
     typename T::open_type masked = *it++;
     T norm_masked_T = T::constant(T::open_type::tau(masked), P.my_num(), MC->get_alphai());
@@ -205,6 +236,11 @@ T RmfeBeaver<T>::finalize_mul_constant(int n)
 
     normal++;
     constant++;
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(P.total_comm().sent);
+    GlobalPerformance::s().add(perf);
+#endif
 
     return tmp;
 }

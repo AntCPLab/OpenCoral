@@ -14,6 +14,9 @@
 #include "TinyOT/tinyotprep.hpp"
 #include "TinyOT/tinyotshare.hpp"
 #include "Protocols/ReplicatedPrep.hpp"
+#ifdef DETAIL_BENCHMARK
+#include "Tools/performance.h"
+#endif
 
 namespace GC
 {
@@ -77,15 +80,28 @@ void RmfeSharePrep<T>::set_protocol(typename T::Protocol& protocol)
 
 template<class T>
 void RmfeSharePrep<T>::buffer_inputs(int player) {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf("Rmfe buffer_inputs", this->P->total_comm().sent);
+#endif
+
     auto& inputs = this->inputs;
     assert(triple_generator);
     triple_generator->generateInputs(player);
     for (auto& x : triple_generator->inputs)
         inputs.at(player).push_back(x);
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(this->P->total_comm().sent);
+    GlobalPerformance::s().add(perf);
+#endif
 }
 
 template<class T>
 void RmfeSharePrep<T>::buffer_triples() {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf("Rmfe buffer_triples", this->P->total_comm().sent);
+#endif
+
     const int s = 40;
     auto n = triple_generator->nTriplesPerLoop + s;
     auto tinyot_prep = tinyot2rmfe->get_src_prep();
@@ -168,11 +184,20 @@ void RmfeSharePrep<T>::buffer_triples() {
     }
 
     print_general("Generate RMFE quintuples", n-s);
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(this->P->total_comm().sent);
+    GlobalPerformance::s().add(perf);
+#endif
 }
 
 template<class T>
 void RmfeSharePrep<T>::buffer_personal_quintuples(size_t batch_size, ThreadQueues* queues)
 {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf("Rmfe buffer_personal_quintuples", this->P->total_comm().sent);
+#endif
+
     TripleShuffleSacrifice<T> sacri;
     // [zico] `sacri.C` here might be able to optimize, because the # of bit triples is actually sacri.C * default_length
     batch_size = max(batch_size, (size_t)sacri.minimum_n_outputs()) + sacri.C;
@@ -225,6 +250,11 @@ void RmfeSharePrep<T>::buffer_personal_quintuples(size_t batch_size, ThreadQueue
     }
 
     this->quintuples.insert(this->quintuples.end(), quintuples.begin(), quintuples.end());
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(this->P->total_comm().sent);
+    GlobalPerformance::s().add(perf);
+#endif
 }
 
 template<class T>
@@ -274,6 +304,10 @@ void RmfeSharePrep<T>::buffer_personal_quintuples(vector<array<T, 5>>& quintuple
 
 template<class T>
 void RmfeSharePrep<T>::buffer_normals() {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf("Rmfe buffer_normals", P->total_comm().sent);
+#endif
+
     auto& party = ShareThread<typename T::whole_type>::s();
     auto& P = *party.P;
     auto MC = T::new_mc(party.MC->get_alphai());
@@ -333,6 +367,11 @@ void RmfeSharePrep<T>::buffer_normals() {
     delete MC;
 
     print_general("Generate random normal elements", u);
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(this->P->total_comm().sent);
+    GlobalPerformance::s().add(perf);
+#endif
 }
 
 // template<class T>

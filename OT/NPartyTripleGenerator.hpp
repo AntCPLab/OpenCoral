@@ -17,6 +17,7 @@
 #include "Protocols/SemiMC.hpp"
 #include "Protocols/mac_key.hpp"
 #include "Tools/debug.h"
+#include "Tools/performance.h"
 
 #include <sstream>
 #include <fstream>
@@ -365,6 +366,10 @@ void MascotTripleGenerator<T>::generateBits()
 template<class T>
 void Spdz2kTripleGenerator<T>::generateTriples()
 {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf("Spdz2k generate triples", this->globalPlayer.total_comm().sent);
+#endif
+
 	const int K = T::k;
 	const int S = T::s;
 	auto& uncheckedTriples = this->uncheckedTriples;
@@ -474,6 +479,11 @@ void Spdz2kTripleGenerator<T>::generateTriples()
 		sacrificeZ2k(MC, G);
 	}
     print_general("generate triples", nTriplesPerLoop, "Z2", K, "Spdz2kTripleGenerator");
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(this->globalPlayer.total_comm().sent);
+    GlobalPerformance::s().add(perf);
+#endif
 }
 
 template<class U>

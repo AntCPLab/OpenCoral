@@ -102,6 +102,10 @@ void MascotDabitOnlyPrep<T>::buffer_bits(false_type)
 template<class T>
 void MascotInputPrep<T>::buffer_inputs(int player)
 {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf("Mascot buffer_inputs(T=" + T::type_string() +")", this->protocol->P.total_comm().sent);
+#endif
+
     auto& triple_generator = this->triple_generator;
     assert(triple_generator);
     triple_generator->generateInputs(player);
@@ -109,6 +113,11 @@ void MascotInputPrep<T>::buffer_inputs(int player)
         this->inputs.resize(player + 1);
     for (auto& input : triple_generator->inputs)
         this->inputs[player].push_back(input);
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(this->protocol->P.total_comm().sent);
+    GlobalPerformance::s().add(perf);
+#endif
 }
 
 #endif

@@ -77,10 +77,19 @@ void MaliciousRingPrep<T>::buffer_bits()
 template<class T>
 void Spdz2kPrep<T>::buffer_bits()
 {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf("Spdz2krandbit", this->protocol->P.total_comm().sent);
+#endif
+
 #ifdef SPDZ2K_SIMPLE_BITS
     MaliciousRingPrep<T>::buffer_bits();
 #else
     bits_from_square_in_ring(this->bits, this->buffer_size, bit_prep);
+#endif
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(this->protocol->P.total_comm().sent);
+    GlobalPerformance::s().add(perf);
 #endif
 }
 

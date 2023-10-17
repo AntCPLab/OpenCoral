@@ -12,6 +12,9 @@
 #include "DabitSacrifice.hpp"
 #include "Tools/Exceptions.h"
 #include "Tools/debug.h"
+#ifdef DETAIL_BENCHMARK
+#include "Tools/performance.h"
+#endif
 
 template<class T>
 CoralPrep<T>::CoralPrep(SubProcessor<T>* proc, DataPositions& usage) :
@@ -46,6 +49,10 @@ void CoralPrep<T>::get_dabit(T& a, typename T::bit_type& b) {
 
 template<class T>
 void CoralPrep<T>::buffer_dabits(ThreadQueues* queues) {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf("Rmfe buffer_dabits", this->protocol->P.total_comm().sent);
+#endif
+
     int dl = T::bit_type::default_length;
     int buffer_size = OnlineOptions::singleton.batch_size;
     buffer_size = buffer_size / dl * dl;
@@ -55,7 +62,7 @@ void CoralPrep<T>::buffer_dabits(ThreadQueues* queues) {
     for (int i = 0; i < buffer_size; i++) {
         // Get random bit in the Z2k domain
         this->get_one(DATA_BIT, a_bits[i]);
-        // Spdz2k's loccal A2B
+        // Spdz2k's local A2B
         spdz2k_b_bits[i].resize_regs(1);
         spdz2k_b_bits[i].get_reg(0) = Spdz2kShare<1, T::s>(a_bits[i]);
     }
@@ -73,6 +80,11 @@ void CoralPrep<T>::buffer_dabits(ThreadQueues* queues) {
             dv.first.push_back(a_bits[i * dl + j]);
         this->dabitpacks.push_back(dv);
     }
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(this->protocol->P.total_comm().sent);
+    GlobalPerformance::s().add(perf);
+#endif
 }
 
 

@@ -74,6 +74,10 @@ void Beaver<T>::prepare_mul(const T& x, const T& y, int n)
 template<class T>
 void Beaver<T>::exchange()
 {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf(T::type_string() + " beaver exchange", P.total_comm().sent);
+#endif
+
     assert(shares.size() == 2 * lengths.size());
     MC->init_open(P, shares.size());
     for (size_t i = 0; i < shares.size(); i++)
@@ -83,6 +87,11 @@ void Beaver<T>::exchange()
         opened.push_back(MC->finalize_raw());
     it = opened.begin();
     triple = triples.begin();
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(P.total_comm().sent);
+    GlobalPerformance::s().add(perf);
+#endif
 }
 
 template<class T>
@@ -102,6 +111,10 @@ void Beaver<T>::stop_exchange()
 template<class T>
 T Beaver<T>::finalize_mul(int n)
 {
+#ifdef DETAIL_BENCHMARK
+    ThreadPerformance perf(T::type_string() + " beaver finalize", P.total_comm().sent);
+#endif
+
     (void) n;
     typename T::open_type masked[2];
     T& tmp = (*triple)[2];
@@ -113,6 +126,12 @@ T Beaver<T>::finalize_mul(int n)
     tmp += ((*triple)[0] * masked[1]);
     tmp += T::constant(masked[0] * masked[1], P.my_num(), MC->get_alphai());
     triple++;
+
+#ifdef DETAIL_BENCHMARK
+    perf.stop(P.total_comm().sent);
+    GlobalPerformance::s().add(perf);
+#endif
+
     return tmp;
 }
 
