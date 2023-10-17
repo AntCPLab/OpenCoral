@@ -591,7 +591,8 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabitpack<T> >& output,
 #endif
 
     int buffer_size = to_check.size();
-    int N = (buffer_size * dl - adjusted_C(dl)) / B;
+    // [zico] The following 'N' is a multiple of dl (i.e., has not yet been divided by dl)
+    int N = (buffer_size * dl - adjusted_C(dl)) / B; 
 
     // needs to happen before shuffling for security
     LimitedPrep<BT> personal_prep;
@@ -668,7 +669,7 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabitpack<T> >& output,
         {
             supplies[i] = &quintuples[i];
             for (size_t j = 0;
-                    j < n_per_thread * (B - 1) * n_bits_to_open / dl; j++)
+                    j < n_per_thread * (B - 1) * n_bits_to_open; j++)
                 if (player < 0)
                     quintuples[i].push_back(proc.bit_prep.get_quintuple(dl));
                 else
@@ -733,7 +734,7 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice_buckets(vector<edabitpack<T>>& 
     typedef typename T::bit_type::part_type BT;
 
     int dl = BT::default_length;
-    int N = end - begin;
+    int N = end - begin; // [zico] This 'N' is already divided by dl.
     size_t total_N = to_check.size() / B;
     assert(to_check.size() == B * total_N);
     size_t n_bits_to_open = to_check[begin].second.size();
