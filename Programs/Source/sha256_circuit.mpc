@@ -1,0 +1,9 @@
+from circuit import Circuit
+sb256 = sbits.get_type(256)
+sb512 = sbits.get_type(512)
+input1 = sb512(0x6bc1bee22e409f96e93d7e117393172a)
+input2 = sb256(0x2b7e151628aed2a6abf7158809cf4f3c)
+n = 120
+sha256 = Circuit('sha256')
+hashes = sha256(sbitvec([input1] * n), sbitvec([input2] * n))
+hashes.elements()[n - 1].reveal().print_reg()
