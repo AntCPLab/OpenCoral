@@ -57,7 +57,8 @@ public:
         auto& vals = this->vals;
         auto& macs = this->macs;
         auto& popen_cnt = this->popen_cnt;
-        assert(int(macs.size()) <= popen_cnt);
+        assert(int(macs.size()) == popen_cnt);
+        assert(int(vals.size()) == popen_cnt);
         assert(this->coordinator);
 
         this->vals.erase(this->vals.begin(), this->vals.begin() + this->popen_cnt);
