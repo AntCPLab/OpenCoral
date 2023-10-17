@@ -236,23 +236,36 @@ bool DataPositions::empty() const
 
 bool DataPositions::any_more(const DataPositions& other) const
 {
+  bool flag = false;
   for (unsigned int field_type = 0; field_type < N_DATA_FIELD_TYPE;
       field_type++)
     {
       for (unsigned int dtype = 0; dtype < N_DTYPE; dtype++)
-        if (files[field_type][dtype] > other.files[field_type][dtype])
-          return true;
+        if (files[field_type][dtype] > other.files[field_type][dtype]) {
+          cerr << "[Type: " << field_names[field_type] << ", " << dtype_names[dtype] << "] "
+            << "expected: " << other.files[field_type][dtype] << ", "
+            << "actual: " << files[field_type][dtype] << endl;
+          flag = true;
+        }
       for (unsigned int j = 0; j < min(inputs.size(), other.inputs.size()); j++)
-        if (inputs[j][field_type] > other.inputs[j][field_type])
-          return true;
+        if (inputs[j][field_type] > other.inputs[j][field_type]) {
+          cerr << "[Type: " << field_names[field_type] << "Input] "
+            << "expected: " << other.inputs[j][field_type] << ", "
+            << "actual: " << inputs[j][field_type] << endl;
+          flag = true;
+        }
 
       auto& ext = extended[field_type];
       auto& other_ext = other.extended[field_type];
       for (auto it = ext.begin(); it != ext.end(); it++)
         {
           auto x = other_ext.find(it->first);
-          if (x == other_ext.end() or it->second > x->second)
-            return true;
+          if (x == other_ext.end() or it->second > x->second) {
+            cerr << "[Type: " << field_names[field_type] << " extended] "
+              << "expected: " << (x == other_ext.end() ? 0 : (x->second)) << ", "
+              << "actual: " << it->second << endl;
+            flag = true;
+          }
         }
     }
 
@@ -260,11 +273,15 @@ bool DataPositions::any_more(const DataPositions& other) const
     {
       auto x = other.edabits.find(it->first);
       if ((x == other.edabits.end() or it->second > x->second)
-          and it->second > 0)
-        return true;
+          and it->second > 0) {
+        cerr << "[Type: edabit] "
+          << "expected: " << (x == other.edabits.end() ? 0 : (x->second)) << ", "
+          << "actual: " << it->second << endl;
+        flag = true;
+      }
     }
 
-  return false;
+  return flag;
 }
 
 long long DataPositions::total_edabits(int n_bits) const

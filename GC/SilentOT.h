@@ -9,11 +9,13 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <atomic>
 
     
 template <typename IO>
 class SilentOT {
  public:
+  static atomic<int> n_instances;
   emp::FerretCOT<IO>* ferret;
   emp::MITCCRH<8> mitccrh;
 
@@ -24,6 +26,7 @@ class SilentOT {
       emp::block tmp;
       ferret->rcot(&tmp, 1);
     }
+    n_instances++;
   }
 
   ~SilentOT() { delete ferret; }
@@ -266,5 +269,8 @@ class SilentOT {
     ferret->recv_cot(data, b, length);
   }
 };
+
+template <typename IO>
+atomic<int> SilentOT<IO>::n_instances = 0;
 
 #endif // SILENT_OT_H

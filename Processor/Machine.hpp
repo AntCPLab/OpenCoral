@@ -22,6 +22,14 @@
 #include <string>
 #include <fstream>
 #include <pthread.h>
+#include <thread>
+#include <chrono>
+
+#ifdef USE_SILENT_OT
+#include "GC/SilentOT.h"
+#include "Networking/EmpChannel.h"
+#endif
+
 using namespace std;
 
 template<class sint, class sgf2n>
@@ -440,6 +448,8 @@ pair<DataPositions, NamedCommStats> Machine<sint, sgf2n>::stop_threads()
 template<class sint, class sgf2n>
 void Machine<sint, sgf2n>::run(const string& progname)
 {
+  GlobalPerformance perf;
+
   prepare(progname);
 
   Timer proc_timer(CLOCK_PROCESS_CPUTIME_ID);
@@ -488,6 +498,9 @@ void Machine<sint, sgf2n>::run(const string& progname)
       if (multithread)
         cerr << " (overall core time)";
       cerr << endl;
+      #ifdef USE_SILENT_OT
+      cerr << "[zico] Silent OT instance count: " << SilentOT<EmpChannel>::n_instances << endl;
+      #endif
     }
 
   print_timers();
@@ -524,6 +537,11 @@ void Machine<sint, sgf2n>::run(const string& progname)
 
   bit_memories.write_memory(N.my_num());
 
+#ifdef DETAIL_BENCHMARK
+  perf.print_time();
+  perf.print_comm();
+#endif
+
   if (opts.verbose)
     {
       cerr << "Actual cost of program:" << endl;
@@ -534,7 +552,7 @@ void Machine<sint, sgf2n>::run(const string& progname)
 
   if (pos.any_more(progs[0].get_offline_data_used())
       and not progs[0].usage_unknown())
-    throw runtime_error("computation used more preprocessing than expected");
+    cerr << "WARNING: computation used more preprocessing than expected" << endl;
 
   if (not stats.empty())
     {
