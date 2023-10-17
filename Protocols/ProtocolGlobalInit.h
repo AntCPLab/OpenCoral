@@ -23,9 +23,9 @@ class BinaryProtocolThreadInit {
     static thread_local unique_ptr<BinaryProtocolSet<T>> thread_set;
 
 public:
-    static void setup(Player& P) {
+    static void setup(Player& P, string directory = "") {
         if (!setup_initialized.test_and_set()) {
-            global_setup = unique_ptr<BinaryProtocolSetup<T>>(new BinaryProtocolSetup<T>(P));
+            global_setup = unique_ptr<BinaryProtocolSetup<T>>(new BinaryProtocolSetup<T>(P, directory));
         }
         // Possible that another thread is still initializing `global_setup`
         while (!global_setup) std::this_thread::sleep_for(std::chrono::microseconds(1000));

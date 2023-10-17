@@ -14,7 +14,9 @@ class Coral : public SPDZ2k<T>
 {
 public:
     static void setup(Player& P) {
-        BinaryProtocolThreadInit<GC::Spdz2kBShare<T::s>>::setup(P);
+        // Use the same directory where arithmetic mac key is stored
+        string directory = get_prep_sub_dir<T>(P.num_players());
+        BinaryProtocolThreadInit<GC::Spdz2kBShare<T::s>>::setup(P, directory);
     }
     static void teardown() {
         BinaryProtocolThreadInit<GC::Spdz2kBShare<T::s>>::teardown();
