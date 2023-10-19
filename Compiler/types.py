@@ -2063,8 +2063,14 @@ class _secret(_arithmetic_register, _secret_structure):
             x = list(x)
             set_global_vector_size(x[0].size)
             res = cls()
-            dotprods(res, x, y)
-            reset_global_vector_size()
+            try:
+                dotprods(res, x, y)
+            except:
+                raise CompilerError("Fail to compile for dotprods")
+            finally:
+                # Always reset the size when there is a compilation error, so that the caller can 
+                # try other instructions with a correct state of the size stack
+                reset_global_vector_size()
         return res
 
     @classmethod
