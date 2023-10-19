@@ -208,6 +208,7 @@ public:
     typedef typename T::Square Square;
 
     static const bool is_real = true;
+    static const bool expensive_triples = true;
     static const true_type tight_packed;
     static const int default_length = bitvec_rmfe::DEFAULT_LENGTH;
 

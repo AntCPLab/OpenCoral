@@ -78,7 +78,7 @@ Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graphD
 make clean
 make Fake-Offline.x spdz2k-party.x -j8
 # The '-e' option specifies the edabit length types we want to generate. Here they correspond to those used in Lenet.
-./Fake-Offline.x 2 -Z 64 -S 64 -e 9,12,31,32,64
+./Fake-Offline.x 2 -Z 64 -S 64 -e 1,2,3,4,5,9,11,12,15,16,30,31,32,33,47,63,64
 Scripts/fixed-rep-to-float.py benchmarks/EzPC/Athos/Networks/Lenet/LenetSmall_mnist_img_1.inp
 ./compile.py -R 64 -Y tf benchmarks/EzPC/Athos/Networks/Lenet/graphDef.bin 8
 Scripts/spdz2k.sh -F -v tf-benchmarks_EzPC_Athos_Networks_Lenet_graphDef.bin-8
@@ -93,10 +93,67 @@ To evaluate Coral, we need to:
 ```
 make clean
 make Fake-Offline.x coral-party.x -j8
-./Fake-Offline.x 2 -C 64 -S 64 -e 9,12,31,32,64
+./Fake-Offline.x 2 -C 64 -S 64 -e 1,2,3,4,5,9,11,12,15,16,30,31,32,33,47,63,64
 Scripts/fixed-rep-to-float.py benchmarks/EzPC/Athos/Networks/Lenet/LenetSmall_mnist_img_1.inp
 ./compile.py -R 64 -Y --pack tf benchmarks/EzPC/Athos/Networks/Lenet/graphDef.bin 8
 Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_Lenet_graphDef.bin-8
+```
+
+## Decision Tree Prediction
+
+### Spdz2k
+- Add `MY_CFLAGS = -DINSECURE` to `CONFIG.mine`.
+- Make sure `Compiler.GC.types.bits.unit = 64`
+```
+make clean
+make Fake-Offline.x spdz2k-party.x -j8
+# The '-e' option specifies the edabit length types we want to generate. Here they correspond to those used in Lenet.
+./Fake-Offline.x 2 -Z 64 -S 64 -e 1,2,3,4,5,9,11,12,15,16,30,31,32,33,47,63,64
+./compile.py -R 64 -Y breast_tree_predict
+Scripts/spdz2k.sh -F -v breast_tree_predict
+```
+
+### Coral
+To evaluate Coral, we need to:
+- Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
+- enable the packing feature by passing the `--pack` option to the compiler.
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+- Printing has a large effect on the benchmarking. Remember to turn off them for accurate benchmark.
+```
+make clean
+make Fake-Offline.x coral-party.x -j8
+./Fake-Offline.x 2 -C 64 -S 64 -e 1,2,3,4,5,9,11,12,15,16,30,31,32,33,47,63,64
+./compile.py -R 64 -Y --pack breast_tree_predict
+Scripts/coral.sh -F -v breast_tree_predict
+```
+
+## Decision Tree Training
+
+### Spdz2k
+- Add `MY_CFLAGS = -DINSECURE` to `CONFIG.mine`.
+- Make sure `Compiler.GC.types.bits.unit = 64`
+```
+make clean
+make Fake-Offline.x spdz2k-party.x -j8
+# The '-e' option specifies the edabit length types we want to generate. Here they correspond to those used in Lenet.
+./Fake-Offline.x 2 -Z 64 -S 64 -e 1,2,3,4,5,9,11,12,15,16,30,31,32,33,47,63,64
+./compile.py -R 64 -Y breast_tree
+Scripts/spdz2k.sh -F -v breast_tree
+```
+
+### Coral
+To evaluate Coral, we need to:
+- Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
+- enable the packing feature by passing the `--pack` option to the compiler.
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+- Printing has a large effect on the benchmarking. Remember to turn off them for accurate benchmark.
+```
+make clean
+make Fake-Offline.x coral-party.x -j8
+./Fake-Offline.x 2 -C 64 -S 64 -e 1,2,3,4,5,9,11,12,15,16,30,31,32,33,47,63,64
+# `--pack` has no effect in decision tree training
+./compile.py -R 64 -Y --pack breast_tree
+Scripts/coral.sh -F -v breast_tree
 ```
 
 ## AES
