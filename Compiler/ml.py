@@ -1370,12 +1370,20 @@ class Add(NoVariableLayer):
         self.inputs = inputs
 
     def _forward(self, batch=[0]):
-        assert len(batch) == 1
+        # assert len(batch) == 1
+        # @multithread(self.n_threads, self.Y[0].total_size())
+        # def _(base, size):
+        #     tmp = sum(inp.Y[batch[0]].get_vector(base, size)
+        #               for inp in self.inputs)
+        #     self.Y[batch[0]].assign_vector(tmp, base)
+
         @multithread(self.n_threads, self.Y[0].total_size())
         def _(base, size):
-            tmp = sum(inp.Y[batch[0]].get_vector(base, size)
-                      for inp in self.inputs)
-            self.Y[batch[0]].assign_vector(tmp, base)
+            @for_range_opt(len(batch))
+            def _(k):
+                tmp = sum(inp.Y[batch[k]].get_vector(base, size)
+                        for inp in self.inputs)
+                self.Y[batch[k]].assign_vector(tmp, base)
 
 class FusedBatchNorm(Layer):
     """ Fixed-point fused batch normalization layer (inference only).
@@ -1398,12 +1406,18 @@ class FusedBatchNorm(Layer):
         tmp.input_from(player, **kwargs)
 
     def _forward(self, batch=[0]):
-        assert len(batch) == 1
-        @for_range_opt_multithread(self.n_threads, self.X.sizes[1:3])
-        def _(i, j):
-            self.Y[batch[0]][i][j].assign_vector(
-                self.X[batch[0]][i][j].get_vector() * self.weights.get_vector()
+        # assert len(batch) == 1
+        # @for_range_opt_multithread(self.n_threads, self.X.sizes[1:3])
+        # def _(i, j):
+        #     self.Y[batch[0]][i][j].assign_vector(
+        #         self.X[batch[0]][i][j].get_vector() * self.weights.get_vector()
+        #         + self.bias.get_vector())
+        @for_range_opt_multithread(self.n_threads, (len(batch),) + self.X.sizes[1:3])
+        def _(k, i, j):
+            self.Y[batch[k]][i][j].assign_vector(
+                self.X[batch[k]][i][j].get_vector() * self.weights.get_vector()
                 + self.bias.get_vector())
+        
 
 class BatchNorm(Layer):
     """ Fixed-point batch normalization layer.
