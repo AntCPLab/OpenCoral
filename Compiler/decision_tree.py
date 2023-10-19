@@ -5,6 +5,7 @@ from Compiler import util, oram
 
 from itertools import accumulate
 import math
+from Compiler.instructions_base import global_vector_size_stack
 
 debug = False
 debug_split = False
@@ -481,13 +482,38 @@ def output_decision_tree(layers):
     for j, x in enumerate(('NID', 'result')):
         print_ln(' %s: %s', x, util.reveal(layers[-1][j]))
 
-def pick(bits, x):
+def load_decision_tree(layers_text):
+    """ load the decision tree specified by layers_text, which can be output from `output_decision_tree`. """
+    import json
+    layers = json.loads(layers_text)
+    slayers = []
+    for i, layer  in enumerate(layers[:-1]):
+        slayer = []
+        for j, x in enumerate(('NID', 'AID', 'Thr')):
+            if x == 'NID' or x == 'AID':
+                slayer.append(sint.input_tensor_via(0, layer[j]))
+            else:
+                slayer.append(sfix.input_tensor_via(0, layer[j]))
+        slayers.append(slayer)
+    slayer = []
+    for j, x in enumerate(('NID', 'result')):
+        if x == 'NID':
+            slayer.append(sint.input_tensor_via(0, layers[-1][j]))
+        else:
+            slayer.append(sfix.input_tensor_via(0, layers[-1][j]))
+    slayers.append(slayer)
+    return slayers
+
+def pick(bits, x, try_dot_product=True):
     if len(bits) == 1:
         return bits[0] * x[0]
     else:
-        try:
-            return x[0].dot_product(bits, x)
-        except:
+        if try_dot_product:
+            try:
+                return x[0].dot_product(bits, x)
+            except:
+                return sum(aa * bb for aa, bb in zip(bits, x))
+        else:
             return sum(aa * bb for aa, bb in zip(bits, x))
 
 def run_decision_tree(layers, data):
@@ -517,6 +543,40 @@ def run_decision_tree(layers, data):
     bits = layers[h][0].equal(index, h)
     return pick(bits, layers[h][1])
 
+def run_decision_tree_simd(layers, data):
+    """ Run decision tree against a pack of multiple samples simultaneously.
+
+    :param layers: tree output by :py:class:`TreeTrainer`
+    :param data: sample data (:py:class:`~Compiler.types.Matrix`)
+    :returns: binary labels
+
+    """
+    h = len(layers) - 1
+    index = 1
+    
+    for k, layer in enumerate(layers[:-1]):
+        assert len(layer) == 3
+        for x in layer:
+            assert len(x) <= 2 ** k
+        layer0 = list(layer[0])
+        layer1 = list(layer[1])
+        layer2 = list(layer[2])
+        bits = [nid.equal(index, k) for nid in layer0]
+        # Don't use dot_product when two inputs' elements have different sizes, 
+        # because if one of them has size 1, it doesn't work correctly: it will just ignore the other one's size 
+        # and treat it as dot product of two size-1 elements
+        threshold = pick(bits, layer2, try_dot_product=False)
+        key_index = pick(bits, layer1, try_dot_product=False)
+        if key_index.is_clear:
+            key = data[key_index]
+        else:
+            key = pick(
+                oram.demux(key_index.bit_decompose(util.log2(len(data)))), data)
+        child = 2 * key < threshold
+        index += child * 2 ** k
+    bits = [nid.equal(index, h) for nid in list(layers[h][0])]
+    return pick(bits, list(layers[h][1]), try_dot_product=False)
+
 def test_decision_tree(name, layers, y, x, n_threads=None, time=False):
     if time:
         start_timer(100)
@@ -541,6 +601,31 @@ def test_decision_tree(name, layers, y, x, n_threads=None, time=False):
         correct[truth[i]] += c
     print_ln('%s for height %s: %s/%s (%s/%s, %s/%s)', name, len(layers) - 1,
              sum(correct), n, correct[0], parts[0], correct[1], parts[1])
+    if time:
+        stop_timer(100)
+
+def decision_tree_eval(layers, y, x, n_threads=None, time=False, packing=False):
+    if time:
+        start_timer(100)
+    batch = 1
+    if packing:
+        from Compiler.GC.types import bits
+        batch = bits.unit
+    n = len(y)
+    # Assert this to make sure the benchmark is accurate, otherwise n//batch will miss the last incomplete batch
+    assert(n % batch == 0)
+    guess = sint.Array(n)
+    @for_range_multithread(n_threads, 1, n//batch)
+    def _(i):
+        batch_idx = regint.Array(batch)
+        batch_idx.assign(regint.inc(batch, i*batch))
+        x_batch = MultiArray([batch, x.sizes[1]], x.value_type)
+        x_batch.assign_vector(x.get_slice_vector(batch_idx))
+        predict_batch = run_decision_tree_simd(layers, x_batch.transpose())
+        guess.set_range(i*batch, predict_batch)
+        # [zico] TODO: assign the results to guess
+    diff = guess.get_vector() - y.get_vector()
+    print_ln('Prediction diff: %s', diff.reveal())
     if time:
         stop_timer(100)
 

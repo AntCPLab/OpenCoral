@@ -14,11 +14,16 @@ y_test = sint.input_tensor_via(0, y_test)
 # otherwise the Gini coefficients vary slightly from run to run
 # resulting in different trees
 
+try:
+    n_threads = int(program.args[1])
+except:
+    n_threads = None
+
 sfix.set_precision_from_args(program)
 
 from Compiler.decision_tree import TreeClassifier
 
-tree = TreeClassifier(max_depth=5, n_threads=2)
+tree = TreeClassifier(max_depth=5, n_threads=n_threads)
 
 # plain training
 tree.fit(X_train, y_train)
@@ -30,4 +35,4 @@ print_ln('%s', (tree.predict(X_test) - y_test.get_vector()).reveal())
 tree.output()
 
 # training with level-wise accuracy output
-tree.fit_with_testing(X_train, y_train, X_test, y_test)
+# tree.fit_with_testing(X_train, y_train, X_test, y_test)

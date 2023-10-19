@@ -1,0 +1,35 @@
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+X, y = load_breast_cancer(return_X_y=True)
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
+# Repeat it to get a larger set of samples so that we have a more accurate amortized cost
+X_test = np.tile(X_test, (10, 1))
+y_test = np.tile(y_test, 10)
+
+X_train = sfix.input_tensor_via(0, X_train)
+X_test = sfix.input_tensor_via(0, X_test[:1200, :])
+
+y_train = sint.input_tensor_via(0, y_train)
+y_test = sint.input_tensor_via(0, y_test[:1200])
+
+# use "nearest" option for deterministic result
+# otherwise the Gini coefficients vary slightly from run to run
+# resulting in different trees
+
+try:
+    n_threads = int(program.args[1])
+except:
+    n_threads = None
+
+sfix.set_precision_from_args(program)
+
+import decision_tree
+from Compiler.decision_tree import TreeClassifier
+
+# This model is trained and output by `breast_tree.mpc`
+full_model = "[[[1], [7], [0.0978394]], [[1, 2], [23, 23], [1571.6, 1905.8]], [[1, 2, 3, 4], [13, 29, 21, 13], [33.76, 0.129852, 47.48, 84.38]], [[1, 2, 3, 4, 5, 6, 7, 8], [26, 0, 28, 19, 0, 0, 0, 25], [0.364105, -10000, 0.536407, 0.00698853, -10000, -10000, -10000, 0.907089]], [[1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 16, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 0, 0, 0, 0], [-10000, -10000, -10000, -10000, -10000, -10000, -10000, -10000, -10000, -10000, -10000, 60.29, 0, 0, 0, 0]], [[1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 16, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]]"
+tree_layers = decision_tree.load_decision_tree(full_model)
+
+prediction = decision_tree.decision_tree_eval(tree_layers, y_test, X_test, n_threads=n_threads, packing=program.options.use_packing)
