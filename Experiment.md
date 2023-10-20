@@ -56,11 +56,40 @@ python3 ResNet_main.py --runPrediction True --scalingFac 12 --saveImgAndWtData T
 make clean
 make Fake-Offline.x spdz2k-party.x -j8
 # The '-e' option specifies the edabit length types we want to generate. Here they correspond to those used in SqueezeNet.
-./Fake-Offline.x 2 -Z 64 -S 64 -e 9,12,31,32,64
+./Fake-Offline.x 2 -Z 64 -S 64 -e 9,10,12,31,32,64
 Scripts/fixed-rep-to-float.py benchmarks/EzPC/Athos/Networks/ResNet/ResNet_img_input.inp
-./compile.py -R 64 -Y tf benchmarks/EzPC/Athos/Networks/ResNet/graphDef.bin 8
-Scripts/spdz2k.sh -F -v tf-benchmarks_EzPC_Athos_Networks_ResNet_graphDef.bin-8
+./compile.py -R 64 -Y tf benchmarks/EzPC/Athos/Networks/ResNet/graphDef.bin 64
+Scripts/spdz2k.sh -F -v tf-benchmarks_EzPC_Athos_Networks_ResNet_graphDef.bin-64
 ```
+
+### LowGear
+- Add `MY_CFLAGS = -DINSECURE` to `CONFIG.mine`.
+- Make sure `Compiler.GC.types.bits.unit = 64`
+```
+make clean
+make Fake-Offline.x lowgear-party.x -j8
+# The '-e' option specifies the edabit length types we want to generate. Here they correspond to those used in SqueezeNet.
+./Fake-Offline.x 2 -lgp 128 -e 9,10,12,31,32,41,64,71
+Scripts/fixed-rep-to-float.py benchmarks/EzPC/Athos/Networks/ResNet/ResNet_img_input.inp
+# When compiling, '-F' is the bit length of the application integers, not the bit length of the prime modulus
+./compile.py -F 64 -Y tf benchmarks/EzPC/Athos/Networks/ResNet/graphDef.bin 64
+Scripts/lowgear.sh -F -v tf-benchmarks_EzPC_Athos_Networks_ResNet_graphDef.bin-64
+```
+
+### Mascot
+- Add `MY_CFLAGS = -DINSECURE` to `CONFIG.mine`.
+- Make sure `Compiler.GC.types.bits.unit = 64`
+```
+make clean
+make Fake-Offline.x mascot-party.x -j8
+# The '-e' option specifies the edabit length types we want to generate. Here they correspond to those used in SqueezeNet.
+./Fake-Offline.x 2 -lgp 128 -e 9,10,12,31,32,41,64,71
+Scripts/fixed-rep-to-float.py benchmarks/EzPC/Athos/Networks/ResNet/ResNet_img_input.inp
+# When compiling, '-F' is the bit length of the application integers, not the bit length of the prime modulus
+./compile.py -F 64 -Y tf benchmarks/EzPC/Athos/Networks/ResNet/graphDef.bin 64
+Scripts/mascot.sh -F -v tf-benchmarks_EzPC_Athos_Networks_ResNet_graphDef.bin-64
+```
+
 
 ### Coral
 To evaluate Coral, we need to:
@@ -72,8 +101,8 @@ To evaluate Coral, we need to:
 make clean
 make Fake-Offline.x coral-party.x -j8
 ./Fake-Offline.x 2 -C 64 -S 64 -e 9,12,31,32,64
-./compile.py -R 64 -Y --pack tf benchmarks/EzPC/Athos/Networks/ResNet/graphDef.bin 8
-Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_ResNet_graphDef.bin-8
+./compile.py -R 64 -Y --pack tf benchmarks/EzPC/Athos/Networks/ResNet/graphDef.bin 64
+Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_ResNet_graphDef.bin-64
 ```
 
 ## SqueezeNet
@@ -218,3 +247,5 @@ Scripts/coral.sh -F -v breast_tree
 - `USE_SILENT_OT`
 - `SPDZ2K_SP`
 - `BENCHMARK_MASCOT_APPROACH`
+- `PRINT_PROGRESS`
+- `DETAIL_BENCHMARK`
