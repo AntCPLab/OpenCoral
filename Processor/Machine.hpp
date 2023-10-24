@@ -64,8 +64,9 @@ template<class sint, class sgf2n>
 Machine<sint, sgf2n>::Machine(Names& playerNames, bool use_encryption,
     const OnlineOptions opts, int lg2)
   : my_number(playerNames.my_num()), N(playerNames),
-    use_encryption(use_encryption), live_prep(opts.live_prep), opts(opts),
-    external_clients(my_number)
+    use_encryption(use_encryption), live_prep(opts.live_prep),
+    live_prep_sint(opts.live_prep_sint),
+    opts(opts), external_clients(my_number)
 {
   OnlineOptions::singleton = opts;
 
@@ -91,7 +92,7 @@ Machine<sint, sgf2n>::Machine(Names& playerNames, bool use_encryption,
   else
     P = new PlainPlayer(N, id);
 
-  if (opts.live_prep)
+  if (opts.live_prep && opts.live_prep_sint)
     {
       sint::LivePrep::basic_setup(*P);
     }
@@ -104,7 +105,7 @@ Machine<sint, sgf2n>::Machine(Names& playerNames, bool use_encryption,
   sint::bit_type::MAC_Check::setup(*P);
   sgf2n::MAC_Check::setup(*P);
 
-  if (opts.live_prep)
+  if (opts.live_prep && opts.live_prep_sint)
     alphapi = read_generate_write_mac_key<sint>(*P);
   else
     {
@@ -373,7 +374,7 @@ DataPositions Machine<sint, sgf2n>::run_tape(int thread_number, int tape_number,
   //printf("Running line %d\n",exec);
   if (progs[tape_number].usage_unknown())
     {
-      if (not opts.live_prep and thread_number != 0)
+      if ((not opts.live_prep || not opts.live_prep_sint) and thread_number != 0)
         {
           insecure(
               "Internally called tape " + to_string(tape_number)

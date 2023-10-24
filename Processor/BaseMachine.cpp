@@ -165,11 +165,14 @@ void BaseMachine::stop(int n)
 void BaseMachine::print_timers()
 {
   cerr << "The following benchmarks are ";
-  if (OnlineOptions::singleton.live_prep)
-    cerr << "in";
+  if (OnlineOptions::singleton.live_prep) {
+      cerr << "including ";
+      if (!OnlineOptions::singleton.live_prep_sint)
+        cerr << "boolean ";
+  }
   else
-    cerr << "ex";
-  cerr << "cluding preprocessing (offline phase)." << endl;
+    cerr << "excluding ";
+  cerr << "preprocessing (offline phase)." << endl;
   cerr << "Time = " << timer[0].elapsed() << " seconds " << endl;
   timer.erase(0);
   for (auto it = timer.begin(); it != timer.end(); it++)

@@ -162,6 +162,8 @@ make Fake-Offline.x coral-party.x -j8
 Scripts/fixed-rep-to-float.py benchmarks/EzPC/Athos/Networks/Lenet/LenetSmall_mnist_img_1.inp
 ./compile.py -R 64 -Y --pack tf benchmarks/EzPC/Athos/Networks/Lenet/graphDef.bin 8
 Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_Lenet_graphDef.bin-8
+# To use only fake arithmetic prep data, run:
+# Scripts/coral.sh -AF -v tf-benchmarks_EzPC_Athos_Networks_Lenet_graphDef.bin-8
 ```
 
 ## Decision Tree Prediction

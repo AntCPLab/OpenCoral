@@ -18,7 +18,15 @@ public:
     bool interactive;
     int lgp;
     bigint prime;
+    /*
+    (live_prep, live_prep_sint) = :
+    (0, 0): File prep for both sint and sint::bit_type
+    (1, 0): Live prep for sint::bit_type, File prep for sint
+    (1, 1): Live prep for both sint and sint::bit_type
+    (0, 1): Invalid
+    */
     bool live_prep;
+    bool live_prep_sint;
     int playerno;
     std::string progname;
     int batch_size;

@@ -31,7 +31,7 @@ KeyGenProtocol<X, L>::KeyGenProtocol(Player& P, const FHE_Params& params,
     backup_batch_size = batch_size;
     batch_size = 100;
 
-    if (OnlineOptions::singleton.live_prep)
+    if (OnlineOptions::singleton.live_prep && OnlineOptions::singleton.live_prep_sint)
     {
         prep = new MascotDabitOnlyPrep<share_type>(0, usage);
         alphai.randomize(G);

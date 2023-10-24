@@ -63,6 +63,7 @@ class Machine : public BaseMachine
 
   bool use_encryption;
   bool live_prep;
+  bool live_prep_sint;
 
   OnlineOptions opts;
 

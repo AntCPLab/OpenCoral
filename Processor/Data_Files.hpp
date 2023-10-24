@@ -22,7 +22,7 @@ Preprocessing<T>* Preprocessing<T>::get_new(
     Machine<U, V>& machine,
     DataPositions& usage, SubProcessor<T>* proc)
 {
-  if (machine.live_prep)
+  if (machine.live_prep && machine.live_prep_sint)
     return get_live_prep(proc, usage);
   else
     return new Sub_Data_Files<T>(machine.get_N(),

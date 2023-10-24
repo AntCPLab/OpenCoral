@@ -21,7 +21,7 @@ OnlineOptions::OnlineOptions() : playerno(-1)
 {
     interactive = false;
     lgp = gfp0::MAX_N_BITS;
-    live_prep = true;
+    live_prep = live_prep_sint = true;
     batch_size = 10000;
     memtype = "empty";
     bits_from_squares = false;
@@ -180,7 +180,7 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
                 "--prime" // Flag token.
         );
     }
-    if (default_live_prep)
+    if (default_live_prep) {
         opt.add(
                 "", // Default.
                 0, // Required?
@@ -190,6 +190,16 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
                 "-F", // Flag token.
                 "--file-preprocessing" // Flag token.
         );
+        opt.add(
+                "", // Default.
+                0, // Required?
+                0, // Number of args expected.
+                0, // Delimiter if expecting multiple args.
+                "Preprocessing from files only for arithmetic", // Help description.
+                "-AF", // Flag token.
+                "--arithmetic-file-preprocessing" // Flag token.
+        );
+    }
     else
         opt.add(
                 "", // Default.
@@ -261,13 +271,20 @@ OnlineOptions::OnlineOptions(ez::ezOptionParser& opt, int argc,
         if (not p.empty())
             prime = bigint(p);
     }
-    if (default_live_prep)
+    if (default_live_prep) {
         live_prep = not opt.get("-F")->isSet;
-    else
-        live_prep = opt.get("-L")->isSet;
+        live_prep_sint = not opt.get("-AF")->isSet;
+        if (live_prep + live_prep_sint < 1)
+            throw runtime_error("Can only set at most one of the two options: -F, -AF");
+        if (!live_prep)
+            live_prep_sint = live_prep;
+    }
+    else {
+        live_prep = live_prep_sint = opt.get("-L")->isSet;
+    }
     if (opt.isSet("-f"))
     {
-        live_prep = false;
+        live_prep = live_prep_sint = false;
         file_prep_per_thread = true;
     }
     opt.get("-b")->getInt(batch_size);
