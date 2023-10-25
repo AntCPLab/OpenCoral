@@ -18,6 +18,9 @@
 #define USE_OPTIMIZED_MAPPING 1
 
 NTL::GF2X indices_to_gf2x(const std::vector<long>& indices);
+NTL::GF2E num_to_gf2e(unsigned long x);
+void num_to_gf2e(NTL::GF2E& res, unsigned long x);
+unsigned long gf2e_to_num(const NTL::GF2E& x);
 
 
 void sigma(NTL::vec_GF2E& h, const NTL::GF2EX& g, const NTL::vec_GF2EX& basis, const NTL::vec_GF2E& beta);
@@ -85,6 +88,38 @@ public:
     const TValue& get(const TKey& key) {
         return map_.at(key);
     }
+};
+
+class GF2EPrecomp {
+    // static std::unique_ptr<GF2EPrecomp> singleton;
+    static std::unordered_map<unsigned long, std::vector<std::vector<NTL::GF2E>>> mul_table_;
+    static std::unordered_map<unsigned long, std::vector<std::vector<NTL::GF2E>>> add_table_;
+    static std::mutex mtx_;
+public:
+    // static void set_singleton(std::unique_ptr<GF2EPrecomp> s) {
+    //     singleton = std::move(s);
+    // }
+    // static GF2EPrecomp& s() {
+    //     if (singleton)
+    //         return *singleton;
+    //     else
+    //         throw runtime_error("no singleton: " + std::string(typeid(GF2EPrecomp).name()));
+    // }
+    // static bool has_singleton() {
+    //     return bool(singleton);
+    // }
+    // static void reset_singleton() {
+    //     if (has_singleton())
+    //         singleton.reset(nullptr);
+    // }
+
+    // GF2EPrecomp() {}
+
+    static void generate_table(const NTL::GF2X& poly_mod);
+
+    static const std::vector<std::vector<NTL::GF2E>>& get_mul_table(const NTL::GF2X& poly_mod);
+    static const std::vector<std::vector<NTL::GF2E>>& get_add_table(const NTL::GF2X& poly_mod);
+
 };
 
 class FieldConverter {
@@ -422,6 +457,9 @@ NTL::mat_GF2E beta_matrix_;
 bool use_precompute_beta_matrix_ = USE_PRECOMP;
 bool use_fast_basis_ = USE_OPTIMIZED_MAPPING;
 
+// Using GF2E::init frequently is very expensive, so we should save the context here.
+NTL::GF2EContext base_field_context_;
+
 void initialize();
 
 public:
@@ -481,6 +519,9 @@ vector<NTL::GF2X> encode_table_;
 vector<bool> encode_table_cached_;
 vector<NTL::vec_GF2> decode_table_;
 vector<bool> decode_table_cached_;
+
+// Using GF2E::init frequently is very expensive, so we should save the context here.
+NTL::GF2EContext base_field_context_;
 
 public:
 using RMFE::encode;

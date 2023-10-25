@@ -308,32 +308,38 @@ void test_composite_gf2_rmfe() {
     cout << "a_:\t" << rmfe.decode(enc_a) << endl;
 }
 
-CompositeGf2RMFE test_composite_gf2_rmfe_type2(long k1, long k2) {
+void test_composite_gf2_rmfe_type2(long k1, long k2) {
     print_banner("test_composite_gf2_rmfe_type2");
     // long k1 = 2, k2 = 6;
-    long m1 = 2*k1, m2 = 2*k2;
-    shared_ptr<FieldConverter> converter = make_shared<FieldConverter>(m1 * m2, m1, m2);
-    shared_ptr<Gf2RMFE> rmfe1 = make_shared<BasicGf2RMFE>(k1, false);
-    shared_ptr<Gf2eRMFE> rmfe2 = make_shared<BasicRMFE>(converter->base_field_poly(), converter->composite_field_poly());
-    CompositeGf2RMFE rmfe(converter, rmfe1, rmfe2);
+    // long m1 = 2*k1, m2 = 2*k2;
+    // shared_ptr<FieldConverter> converter = make_shared<FieldConverter>(m1 * m2, m1, m2);
+    // shared_ptr<Gf2RMFE> rmfe1 = make_shared<BasicGf2RMFE>(k1, false);
+    // shared_ptr<Gf2eRMFE> rmfe2 = make_shared<BasicRMFE>(converter->base_field_poly(), converter->composite_field_poly());
+    // CompositeGf2RMFE rmfe(converter, rmfe1, rmfe2);
+    unique_ptr<Gf2RMFE> rmfe = get_composite_gf2_rmfe_type2(k1, k2);
+    cout << "after get instance" << endl;
 
-    vec_GF2 a = random_vec_GF2(rmfe.k()), b = random_vec_GF2(rmfe.k());
-    GF2X enc_a = rmfe.encode(a), enc_b = rmfe.encode(b);
+    vec_GF2 a = random_vec_GF2(rmfe->k()), b = random_vec_GF2(rmfe->k());
+    GF2X enc_a = rmfe->encode(a), enc_b = rmfe->encode(b);
+    cout << "after encode" << endl;
 
-    GF2X enc_c = MulMod(enc_a, enc_b, rmfe.ex_field_mod());
-    vec_GF2 c = rmfe.decode(enc_c);
+    GF2X enc_c = MulMod(enc_a, enc_b, rmfe->ex_field_mod());
+    vec_GF2 c = rmfe->decode(enc_c);
+    cout << "after decode" << endl;
 
     vec_GF2 c_({}, a.length());
     for (int i = 0; i < a.length(); i++) {
         c_[i] = a[i] * b[i];
     }
-    vec_GF2 d = rmfe.decode(enc_a + enc_b);
+    assert(c_ == c);
+    
+    vec_GF2 d = rmfe->decode(enc_a + enc_b);
     vec_GF2 d_({}, a.length());
     for (int i = 0; i < a.length(); i++) {
         d_[i] = a[i] + b[i];
     }
 
-    cout << "k:\t" << rmfe.k() << ", m:\t" << rmfe.m() << endl;
+    cout << "k:\t" << rmfe->k() << ", m:\t" << rmfe->m() << endl;
     cout << "a:\t" << a << endl;
     cout << "b:\t" << b << endl;
     cout << "c:\t" << c << endl;
@@ -344,18 +350,16 @@ CompositeGf2RMFE test_composite_gf2_rmfe_type2(long k1, long k2) {
     // mfe.encode(a);
     // mfe.decode(enc_a);
     cout << "a:\t" << a << endl;
-    cout << "a_:\t" << rmfe.decode(enc_a) << endl;
-
-    return rmfe;
+    cout << "a_:\t" << rmfe->decode(enc_a) << endl;
 }
 
 void test_rmfe_then_mfe() {
     print_banner("test_rmfe_then_mfe");
-    CompositeGf2RMFE rmfe = test_composite_gf2_rmfe_type2(2, 6);
+    unique_ptr<Gf2RMFE> rmfe = get_composite_gf2_rmfe_type2(2, 6);
     CompositeGf2MFE mfe = test_double_composite_gf2_mfe(2, 3, 8);
 
-    vec_GF2 a = random_vec_GF2(rmfe.k()), b = random_vec_GF2(rmfe.k());
-    GF2X enc_a = rmfe.encode(a), enc_b = rmfe.encode(b);
+    vec_GF2 a = random_vec_GF2(rmfe->k()), b = random_vec_GF2(rmfe->k());
+    GF2X enc_a = rmfe->encode(a), enc_b = rmfe->encode(b);
 
     vec_GF2 enc_enc_a = mfe.encode(enc_a), enc_enc_b = mfe.encode(enc_b);
 
@@ -365,14 +369,14 @@ void test_rmfe_then_mfe() {
     }
 
     GF2X enc_c = mfe.decode(enc_enc_c);
-    vec_GF2 c = rmfe.decode(enc_c);
+    vec_GF2 c = rmfe->decode(enc_c);
 
     vec_GF2 c_({}, a.length());
     for (int i = 0; i < a.length(); i++) {
         c_[i] = a[i] * b[i];
     }
 
-    cout << "k:\t" << rmfe.k() << ", m:\t" << rmfe.m() << ", t:\t" << mfe.t() << endl;
+    cout << "k:\t" << rmfe->k() << ", m:\t" << rmfe->m() << ", t:\t" << mfe.t() << endl;
     cout << "a:\t" << a << endl;
     cout << "b:\t" << b << endl;
     cout << "c:\t" << c << endl;
@@ -473,7 +477,11 @@ void benchmark_rmfe_then_mfe() {
             c_[i] = a[i] * b[i];
         }
 
-        assert(c_ == c);
+        // assert(c_ == c);
+
+        acc_time_log("RMFE preimage (48 --> 12)");
+        GF2X r = rmfe->random_preimage(c);
+        acc_time_log("RMFE preimage (48 --> 12)");
     }
 
     print_profiling();
@@ -482,6 +490,18 @@ void benchmark_rmfe_then_mfe() {
     cout << "RMFE decode (48 --> 12): " << n / (get_acc_time_log("RMFE decode (48 --> 12)") / 1000.0 + 1e-30) << endl;
     cout << "MFE encode (48 --> 225): " << n / (get_acc_time_log("MFE encode (48 --> 225)") / 1000.0 + 1e-30) << endl;
     cout << "MFE decode (225 --> 48): " << n / (get_acc_time_log("MFE decode (225 --> 48)") / 1000.0 + 1e-30) << endl;
+    cout << "RMFE preimage (12 --> 48): " << n / (get_acc_time_log("RMFE preimage (12 --> 48)") / 1000.0 + 1e-30) << endl;
+}
+
+void test_weird() {
+    time_log("test");
+    for (int i = 0; i < 10000000; i++) {
+        GF2E x;
+        // bool b = (x._GF2E__rep.xrep.length() == 0);
+        long b = IsZero(x);
+    }
+
+    time_log("test");
 }
 
 int main() {
@@ -490,15 +510,16 @@ int main() {
     // test_basic_mfe();
     // test_basic_gf2_mfe();
     // test_composite_gf2_mfe();
-    test_double_composite_gf2_mfe(2, 3, 8);
+    // test_double_composite_gf2_mfe(2, 3, 8);
     // test_basic_rmfe();
     // test_basic_gf2_rmfe();
     // test_basic_gf2_rmfe_type2();
     // test_composite_gf2_rmfe();
-    test_composite_gf2_rmfe_type2(2, 6);
+    // test_composite_gf2_rmfe_type2(2, 6);
     // test_rmfe_then_mfe();
     // test_rmfe_tau(2, 6);
-    test_basic_gf2_rmfe_type2_random_preimage();
-    test_composite_gf2_rmfe_type2_random_preimage(2, 6);
+    // test_basic_gf2_rmfe_type2_random_preimage();
+    // test_composite_gf2_rmfe_type2_random_preimage(2, 6);
     benchmark_rmfe_then_mfe();
+    test_weird();
 }
