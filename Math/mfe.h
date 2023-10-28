@@ -17,10 +17,12 @@
 #define USE_PRECOMP 1
 #define USE_OPTIMIZED_MAPPING 1
 
+NTL::GF2X shrink(const NTL::GF2EX& x);
+
 NTL::GF2X indices_to_gf2x(const std::vector<long>& indices);
-NTL::GF2E num_to_gf2e(unsigned long x);
-void num_to_gf2e(NTL::GF2E& res, unsigned long x);
-unsigned long gf2e_to_num(const NTL::GF2E& x);
+NTL::GF2E num_to_ntl_GF2E(unsigned long x);
+void num_to_ntl_GF2E(NTL::GF2E& res, unsigned long x);
+unsigned long ntl_GF2E_to_num(const NTL::GF2E& x);
 
 
 void sigma(NTL::vec_GF2E& h, const NTL::GF2EX& g, const NTL::vec_GF2EX& basis, const NTL::vec_GF2E& beta);
@@ -123,7 +125,7 @@ public:
 };
 
 class FieldConverter {
-private:
+protected:
 long k_, n_, m_;
 NTL::GF2X p_;
 NTL::GF2X u_;
@@ -137,6 +139,9 @@ NTL::mat_GF2 pre_isomorphic_mat_inv_;
 
 NTL::mat_GF2 combined_c2b_mat_;
 NTL::mat_GF2 combined_b2c_mat_;
+
+// Using GF2E::init frequently is very expensive, so we should save the context here.
+NTL::GF2EContext base_field_context_;
 
 public:
 FieldConverter(long binary_field_deg, long base_field_deg, long extension_deg, NTL::GF2X prespecified_base_field_poly=NTL::GF2X(0));
@@ -228,6 +233,9 @@ NTL::vec_GF2E beta_;
 
 bool use_fast_basis_ = USE_OPTIMIZED_MAPPING;
 
+// Using GF2E::init frequently is very expensive, so we should save the context here.
+NTL::GF2EContext base_field_context_;
+
 void initialize();
 
 public:
@@ -277,6 +285,9 @@ vector<NTL::vec_GF2> encode_table_;
 vector<bool> encode_table_cached_;
 vector<NTL::GF2X> decode_table_;
 vector<bool> decode_table_cached_;
+
+// Using GF2E::init frequently is very expensive, so we should save the context here.
+NTL::GF2EContext base_field_context_;
 
 public:
 using MFE::encode;
@@ -329,6 +340,9 @@ vector<bool> decode_table_cached_;
 bool use_decode_table_ = false;
 LRU<long, NTL::vec_GF2> encode_map_;
 bool use_encode_map_ = false;
+
+// Using GF2E::init frequently is very expensive, so we should save the context here.
+NTL::GF2EContext base_field_context_;
 
 public:
 using MFE::encode;
@@ -579,6 +593,9 @@ bool use_cache_ = USE_CACHE;
 vector<NTL::GF2X> encode_table_;
 vector<bool> encode_table_cached_;
 LRU<long, NTL::vec_GF2> decode_map_;
+
+// Using GF2E::init frequently is very expensive, so we should save the context here.
+NTL::GF2EContext base_field_context_;
 
 public:
 using RMFE::encode;

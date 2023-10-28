@@ -409,10 +409,14 @@ emp: libemp-tool libemp-ot
 EMP_LIBS = local/lib/libemp-tool.so
 
 
-mfe = Math/mfe.o
+mfe = Math/mfe.o Math/mfe64.o
 
 test_mfe: USE_NTL = 1 
 test_mfe: test/test_mfe.o Tools/performance.o $(mfe)
+	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
+
+test_mfe64: USE_NTL = 1 
+test_mfe64: test/test_mfe64.o Tools/performance.o $(mfe)
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
 
 test_tinyot: test/test_tinyot.o

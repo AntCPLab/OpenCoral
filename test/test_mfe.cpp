@@ -477,11 +477,11 @@ void benchmark_rmfe_then_mfe() {
             c_[i] = a[i] * b[i];
         }
 
-        // assert(c_ == c);
+        assert(c_ == c);
 
-        acc_time_log("RMFE preimage (48 --> 12)");
+        acc_time_log("RMFE preimage (12 --> 48)");
         GF2X r = rmfe->random_preimage(c);
-        acc_time_log("RMFE preimage (48 --> 12)");
+        acc_time_log("RMFE preimage (12 --> 48)");
     }
 
     print_profiling();
