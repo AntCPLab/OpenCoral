@@ -198,6 +198,14 @@ public:
         decode(g, h);
         return g;
     }
+
+    virtual void print_config() {
+        std::cout << "[MFE configuration]" << std::endl;
+        std::cout << "m: " << m() << ", t: " << t() << std::endl;
+        std::cout << "base field: " << base_field_mod() << std::endl;
+        std::cout << "ex field: " << ex_field_mod() << std::endl;
+        std::cout << "*******************" << std::endl;
+    }
 };
 
 template<class T1, class T2, class T3, class T4>
@@ -433,6 +441,14 @@ public:
         T2 h;
         random_preimage(h, g);
         return h;
+    }
+
+    virtual void print_config() {
+        std::cout << "[RMFE configuration]" << std::endl;
+        std::cout << "k: " << k() << ", m: " << m() << std::endl;
+        std::cout << "base field: " << base_field_mod() << std::endl;
+        std::cout << "ex field: " << ex_field_mod() << std::endl;
+        std::cout << "*******************" << std::endl;
     }
 
 };
