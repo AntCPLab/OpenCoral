@@ -105,7 +105,7 @@ void interpolate_precomp(GF2EX& f, const vec_GF2E& a, const vec_GF2E& b)
 
       const GF2E& aa = a[k];
 
-      set(t1);
+      NTL::set(t1);
       for (i = k-1; i >= 0; i--) {
          mul_precomp(t1, t1, aa);
          add_precomp(t1, t1, prod[i]);

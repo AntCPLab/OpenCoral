@@ -615,131 +615,128 @@ gf2x64 CompositeGf2MFE64::decode(vec_gf2_64 h) {
     return g;
 }
 
-// CompositeGf2MFEInternal64::CompositeGf2MFEInternal64(std::shared_ptr<FieldConverter64> converter, std::shared_ptr<Gf2MFE64> mfe1, std::shared_ptr<Gf2eMFE64> mfe2)
-//     : converter_(converter), mfe1_(mfe1), mfe2_(mfe2) {
-//     if (converter->base_field_poly() != mfe2->base_field_mod())
-//         NTL::LogicError("Converter and mfe2's base field polys are different");
-//     if (converter->composite_field_poly() != mfe2->ex_field_mod())
-//         NTL::LogicError("Converter and mfe2's composite field polys are different");
-//     if (mfe2->base_field_size() != (long) pow(mfe1->base_field_size(), mfe1->m()))
-//         NTL::LogicError("Cannot concatenate two MFEs with incompatible field sizes");
-//     if (mfe1->base_field_size() != 2)
-//         NTL::LogicError("mfe1's base field must be GF(2)");
+CompositeGf2MFEInternal64::CompositeGf2MFEInternal64(std::shared_ptr<FieldConverter64> converter, std::shared_ptr<Gf2MFE64> mfe1, std::shared_ptr<Gf2eMFE64> mfe2)
+    : converter_(converter), mfe1_(mfe1), mfe2_(mfe2) {
+    if (converter->base_field_poly() != mfe2->base_field_mod())
+        NTL::LogicError("Converter and mfe2's base field polys are different");
+    if (converter->composite_field_poly() != mfe2->ex_field_mod())
+        NTL::LogicError("Converter and mfe2's composite field polys are different");
+    if (mfe2->base_field_size() != (long) pow(mfe1->base_field_size(), mfe1->m()))
+        NTL::LogicError("Cannot concatenate two MFEs with incompatible field sizes");
+    if (mfe1->base_field_size() != 2)
+        NTL::LogicError("mfe1's base field must be GF(2)");
 
-//     m_ = mfe1->m() * mfe2->m();
-//     t_ = mfe1->t() * mfe2->t();
+    m_ = mfe1->m() * mfe2->m();
+    t_ = mfe1->t() * mfe2->t();
 
-//     if (m_ > 64)
-//         NTL::LogicError("Input field is larger than 64 bits");
+    if (m_ > 64)
+        NTL::LogicError("Input field is larger than 64 bits");
 
-//     ex_field_poly_ = converter_->binary_field_poly();
+    ex_field_poly_ = converter_->binary_field_poly();
 
-//     // To use cache, we need to constrain the input size.
-//     if (use_cache_) {
-//         if (this->m() < 22) {
-//             use_encode_table_ = true;
-//             encode_table_.resize(1 << this->m());
-//             encode_table_cached_.resize(1 << this->m());
-//         }
-//         else if (this->m() < 64) {
-//             use_encode_map_ = true;
-//         }
-//         if (this->t() < 22) {
-//             use_decode_table_ = true;
-//             decode_table_.resize(1 << this->t());
-//             decode_table_cached_.resize(1 << this->t());
-//         }
-//         else if (this->t() < 64) {
-//             use_decode_map_ = true;
-//         }
-//     }
+    // To use cache, we need to constrain the input size.
+    if (use_cache_) {
+        if (this->m() < 22) {
+            use_encode_table_ = true;
+            encode_table_.resize(1 << this->m());
+            encode_table_cached_.resize(1 << this->m());
+        }
+        else if (this->m() < 64) {
+            use_encode_map_ = true;
+        }
+        if (this->t() < 22) {
+            use_decode_table_ = true;
+            decode_table_.resize(1 << this->t());
+            decode_table_cached_.resize(1 << this->t());
+        }
+        else if (this->t() < 64) {
+            use_decode_map_ = true;
+        }
+    }
 
-//     base_field_context_ = NTL::GF2EContext(converter_->base_field_poly());
-// }
+    base_field_context_ = NTL::GF2EContext(converter_->base_field_poly());
+}
 
-// void CompositeGf2MFEInternal64::encode(NTL::vec_GF2& h, const NTL::GF2X& g) {
-//     if (deg(g) + 1 > m())
-//         NTL::LogicError("Input polynomial g has an invalid length");
+NTL::vec_GF2 CompositeGf2MFEInternal64::encode(gf2x64 g) {
 
-//     long idx = deg(g) == -1 ? 0 : g.xrep[0];
+    if (use_cache_) {
+        if (use_encode_table_ && encode_table_cached_[g]) {
+            return encode_table_[g];
+        }
+        if (use_encode_map_ && encode_map_.contains(g)) {
+            return encode_map_.get(g);
+        }
+    }
 
-//     if (use_cache_) {
-//         if (use_encode_table_ && encode_table_cached_[idx]) {
-//             h = encode_table_[idx];
-//             return;
-//         }
-//         if (use_encode_map_ && encode_map_.contains(idx)) {
-//             h = encode_map_.get(idx);
-//             return;
-//         }
-//     }
+    gf2ex g_comp = converter_->binary_to_composite(g);
 
-//     gf2x64 g_ = ntl_GF2X_to_gf2x64(g);
+    vec_gf2e y = mfe2_->encode(g_comp);
 
-//     gf2ex g_comp = converter_->binary_to_composite(g_);
+    NTL::vec_GF2 h({}, t());
+    auto h_it = h.begin();
+    for (size_t i = 0; i < y.size(); i++) {
+        vec_gf2_64 yi = mfe1_->encode(y.at(i));
+        for (int j = 0; j < mfe1_->t(); j++, h_it++)
+            *h_it = (yi >> j) & 1;
+    }
 
-//     vec_gf2e y = mfe2_->encode(g_comp);
+    if (use_cache_) {
+        if (use_encode_table_) {
+            encode_table_[g] = h;
+            encode_table_cached_[g] = true;
+        }
+        else if (use_encode_map_) {
+            encode_map_.insert(g, h);
+        }
+    }
+    return h;
+}
 
-//     vec_gf2_64 h = 0;
-//     for (size_t i = 0; i < y.size(); i++) {
-//         vec_gf2_64 yi = mfe1_->encode(y.at(i));
-//         h ^= (yi << (i * mfe1_->t()));
-//     }
+gf2x64 CompositeGf2MFEInternal64::decode(const NTL::vec_GF2& h) {
 
-//     if (use_cache_) {
-//         if (use_encode_table_) {
-//             encode_table_[g] = h;
-//             encode_table_cached_[g] = true;
-//         }
-//         else if (use_encode_map_) {
-//             encode_map_.insert(g, h);
-//         }
-//     }
-//     return h;
-// }
+    // if (use_cache_) {
+    //     if (use_decode_table_ && decode_table_cached_[h]) {
+    //         return decode_table_[h];
+    //     }
+    //     if (use_decode_map_ && decode_map_.contains(h)) {
+    //         return decode_map_.get(h);
+    //     }
+    // }
 
-// void CompositeGf2MFEInternal64::decode(NTL::GF2X& g, const NTL::vec_GF2& h) {
+    acc_time_log("MFE decode prep");
+    NTL::GF2EPush push;
+    base_field_context_.restore();
+    vec_gf2e y(mfe2_->t());
+    acc_time_log("MFE decode prep");
 
-//     if (use_cache_) {
-//         if (use_decode_table_ && decode_table_cached_[h]) {
-//             return decode_table_[h];
-//         }
-//         if (use_decode_map_ && decode_map_.contains(h)) {
-//             return decode_map_.get(h);
-//         }
-//     }
+    acc_time_log("CompositeGf2MFE64 mfe1 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
+    for (size_t i = 0; i < y.size(); i++) {
+        vec_gf2_64 yi = 0;
+        auto h_it = h.begin() + i*mfe1_->t();
+        for (int j = 0; j < mfe1_->t(); j++, h_it++)
+            yi ^= (*h_it)._GF2__rep << j;
 
-//     acc_time_log("MFE decode prep");
-//     NTL::GF2EPush push;
-//     base_field_context_.restore();
-//     vec_gf2e y(mfe2_->t());
-//     acc_time_log("MFE decode prep");
+        y.at(i) = mfe1_->decode(yi);
+    }
+    acc_time_log("CompositeGf2MFE64 mfe1 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
+    // acc_time_log("MFE 2 decode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
+    gf2ex g_comp = mfe2_->decode(y);
+    // acc_time_log("MFE 2 decode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
+    // acc_time_log("MFE c2b " + to_string(t()) + "," + to_string(m()));
+    gf2e g = converter_->composite_to_binary(g_comp);
+    // acc_time_log("MFE c2b " + to_string(t()) + "," + to_string(m()));
 
-//     acc_time_log("CompositeGf2MFE64 mfe1 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
-//     uint64_t mask = (1 << mfe1_->t()) - 1;
-//     for (size_t i = 0; i < y.size(); i++) {
-//         vec_gf2_64 yi = (h >> (i * mfe1_->t())) & mask;
-//         y.at(i) = mfe1_->decode(yi);
-//     }
-//     acc_time_log("CompositeGf2MFE64 mfe1 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
-//     // acc_time_log("MFE 2 decode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
-//     gf2ex g_comp = mfe2_->decode(y);
-//     // acc_time_log("MFE 2 decode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
-//     // acc_time_log("MFE c2b " + to_string(t()) + "," + to_string(m()));
-//     gf2e g = converter_->composite_to_binary(g_comp);
-//     // acc_time_log("MFE c2b " + to_string(t()) + "," + to_string(m()));
-
-//     acc_time_log("MFE cache update");
-//     if (use_cache_ && use_decode_table_) {
-//         decode_table_[h] = g;
-//         decode_table_cached_[h] = true;
-//     }
-//     if (use_cache_ && use_decode_map_) {
-//         decode_map_.insert(h, g);
-//     }
-//     acc_time_log("MFE cache update");
-//     return g;
-// }
+    // acc_time_log("MFE cache update");
+    // if (use_cache_ && use_decode_table_) {
+    //     decode_table_[h] = g;
+    //     decode_table_cached_[h] = true;
+    // }
+    // if (use_cache_ && use_decode_map_) {
+    //     decode_map_.insert(h, g);
+    // }
+    // acc_time_log("MFE cache update");
+    return g;
+}
 
 
 
@@ -1187,11 +1184,6 @@ std::unique_ptr<Gf2RMFE> get_composite_gf2_rmfe64_type2(long k1, long k2) {
     shared_ptr<FieldConverter64> converter = make_shared<FieldConverter64>(m1 * m2, m1, m2);
     shared_ptr<Gf2RMFE64> rmfe1 = make_shared<BasicGf2RMFE64>(k1, false);
     shared_ptr<Gf2eRMFE64> rmfe2 = make_shared<BasicRMFE64>(converter->base_field_poly(), converter->composite_field_poly());
-
-    // // Precompute small GF2E fields
-    // gf2e_precomp::generate_table(NTL::GF2X(1, 1));
-    // if (deg(converter->base_field_poly()) < 10)
-    //     gf2e_precomp::generate_table(converter->base_field_poly());
     
     return unique_ptr<Gf2RMFE>(new CompositeGf2RMFE64(converter, rmfe1, rmfe2));
 }
@@ -1202,11 +1194,6 @@ std::unique_ptr<Gf2MFE64> get_composite_gf2_mfe64(long m1, long m2) {
     shared_ptr<FieldConverter64> converter1 = make_shared<FieldConverter64>(m1 * m2, m1, m2);
     shared_ptr<Gf2MFE64> mfe1 = make_shared<BasicGf2MFE64>(m1);
     shared_ptr<Gf2eMFE64> mfe2 = make_shared<BasicMFE64>(converter1->base_field_poly(), converter1->composite_field_poly());
-    
-    // // Precompute small GF2E fields
-    // gf2e_precomp::generate_table(NTL::GF2X(1, 1));
-    // if (deg(converter1->base_field_poly()) < 10)
-    //     gf2e_precomp::generate_table(converter1->base_field_poly());
     
     return unique_ptr<Gf2MFE64>(new CompositeGf2MFE64(converter1, mfe1, mfe2));
 }
@@ -1221,16 +1208,11 @@ std::unique_ptr<Gf2MFE> get_composite_gf2_mfe64(long m1, long m2, long m3) {
     shared_ptr<Gf2eMFE64> mfe2 = make_shared<BasicMFE64>(converter1->base_field_poly(), converter1->composite_field_poly());
     shared_ptr<CompositeGf2MFE64> mfe3 = make_shared<CompositeGf2MFE64>(converter1, mfe1, mfe2);
     
-    shared_ptr<Gf2eMFE> mfe4 = shared_ptr<Gf2eMFE>(new BasicMFE64(converter2->base_field_poly(), converter2->composite_field_poly()));
+    shared_ptr<Gf2eMFE64> mfe4 = shared_ptr<Gf2eMFE64>(new BasicMFE64(converter2->base_field_poly(), converter2->composite_field_poly()));
 
-    // // Precompute small GF2E fields
-    // gf2e_precomp::generate_table(NTL::GF2X(1, 1));
-    // if (deg(converter1->base_field_poly()) < 10)
-    //     gf2e_precomp::generate_table(converter1->base_field_poly());
-    // if (deg(converter2->base_field_poly()) < 10)
-    //     gf2e_precomp::generate_table(converter2->base_field_poly());
+    // return unique_ptr<Gf2MFE>(new CompositeGf2MFE(converter2, mfe3, mfe4));
 
-    return unique_ptr<Gf2MFE>(new CompositeGf2MFE(converter2, mfe3, mfe4));
+    return unique_ptr<Gf2MFE>(new CompositeGf2MFEInternal64(converter2, mfe3, mfe4));
 }
 
 

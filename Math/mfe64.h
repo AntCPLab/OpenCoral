@@ -416,9 +416,40 @@ gf2e composite_to_binary(gf2ex x);
 };
 
 
-typedef MFE<gf2ex, vec_gf2e, NTL::GF2X, NTL::GF2EX> Gf2eMFE64;
+// typedef MFE<gf2ex, vec_gf2e, NTL::GF2X, NTL::GF2EX> Gf2eMFE64;
 
-class BasicMFE64: public mfe_precomp, public Gf2eMFE64, public Gf2eMFE {
+class Gf2eMFE64 : public Gf2eMFE {
+public:
+using MFE::encode;
+using MFE::decode;
+
+void encode(NTL::vec_GF2E& h, const NTL::GF2EX& g) {
+    gf2ex g_ = ntl_GF2EX_to_gf2ex(g);
+    vec_gf2e h_ = encode(g_);
+    h = vec_gf2e_to_ntl_vec_GF2E(h_);
+}
+void decode(NTL::GF2EX& g, const NTL::vec_GF2E& h) {
+    vec_gf2e h_ = ntl_vec_GF2E_to_vec_gf2e(h);
+    gf2ex g_ = decode(h_);
+    g = gf2ex_to_ntl_GF2EX(g_);
+}
+
+vec_gf2e encode(const gf2ex& g) {
+    vec_gf2e h;
+    encode(h, g);
+    return h;
+}
+gf2ex decode(const vec_gf2e& h) {
+    gf2ex g;
+    decode(g, h);
+    return g;
+}
+
+virtual void encode(vec_gf2e& h, const gf2ex& g) = 0;
+virtual void decode(gf2ex& g, const vec_gf2e& h) = 0;
+};
+
+class BasicMFE64: public mfe_precomp, public Gf2eMFE64 {
 private:
 long m_;
 long t_;
@@ -473,17 +504,6 @@ virtual void print_config() {
     std::cout << "base field: " << base_field_mod() << std::endl;
     std::cout << "ex field: " << ex_field_mod() << std::endl;
     std::cout << "*******************" << std::endl;
-}
-
-void encode(NTL::vec_GF2E& h, const NTL::GF2EX& g) {
-    gf2ex g_ = ntl_GF2EX_to_gf2ex(g);
-    vec_gf2e h_ = encode(g_);
-    h = vec_gf2e_to_ntl_vec_GF2E(h_);
-}
-void decode(NTL::GF2EX& g, const NTL::vec_GF2E& h) {
-    vec_gf2e h_ = ntl_vec_GF2E_to_vec_gf2e(h);
-    gf2ex g_ = decode(h_);
-    g = gf2ex_to_ntl_GF2EX(g_);
 }
 
 void encode(vec_gf2e& h, const gf2ex& g);
@@ -629,70 +649,95 @@ gf2x64 decode(vec_gf2_64 h);
 };
 
 /**
+ * This class restricts the field domain to be within 64 bits, while allowing
+ * the vector to be arbitrarily long.
+*/
+class Gf2MFE_F64 : public mfe_precomp, public Gf2MFE {
+public:
+using MFE::encode;
+using MFE::decode;
+
+Gf2MFE_F64() {
+    generate_table(NTL::GF2X(1, 1));
+}
+
+virtual NTL::vec_GF2 encode(gf2x64 g) = 0;
+virtual gf2x64 decode(const NTL::vec_GF2& h) = 0;
+
+};
+
+/**
  * This class requires the components (including field converter) to accept input and output of 64 bits.
  * We create this complexity in order to have the best performance.
  * This class is more efficient than `CompositeGf2MFE` in `mfe.h` because we avoid
  * many conversions between NTL's types and our 64-bit types.
 */
-// template <int L>
-// class CompositeGf2MFEInternal64 : public Gf2MFE {
-// private:
-// typedef array<uint64_t, (L+63)/64> vec_gf2;
+class CompositeGf2MFEInternal64 : public Gf2MFE_F64 {
+private:
 
-// long m_;
-// long t_;
+long m_;
+long t_;
 
-// std::shared_ptr<FieldConverter64> converter_;
-// std::shared_ptr<Gf2MFE64> mfe1_;
-// std::shared_ptr<Gf2eMFE64> mfe2_;
+std::shared_ptr<FieldConverter64> converter_;
+std::shared_ptr<Gf2MFE64> mfe1_;
+std::shared_ptr<Gf2eMFE64> mfe2_;
 
-// long base_field_mod_ = 2;
-// NTL::GF2XModulus ex_field_poly_;
+long base_field_mod_ = 2;
+NTL::GF2XModulus ex_field_poly_;
 
-// bool use_cache_ = USE_CACHE;
-// vector<NTL::vec_GF2> encode_table_;
-// vector<bool> encode_table_cached_;
-// bool use_encode_table_ = false;
-// vector<NTL::GF2X> decode_table_;
-// vector<bool> decode_table_cached_;
-// bool use_decode_table_ = false;
-// LRU<long, NTL::vec_GF2> encode_map_;
-// bool use_encode_map_ = false;
-// LRU<long, NTL::GF2X> decode_map_;
-// bool use_decode_map_ = false;
+bool use_cache_ = USE_CACHE;
+vector<NTL::vec_GF2> encode_table_;
+vector<bool> encode_table_cached_;
+bool use_encode_table_ = false;
+vector<NTL::GF2X> decode_table_;
+vector<bool> decode_table_cached_;
+bool use_decode_table_ = false;
+LRU<long, NTL::vec_GF2> encode_map_;
+bool use_encode_map_ = false;
+LRU<long, NTL::GF2X> decode_map_;
+bool use_decode_map_ = false;
 
-// // Using GF2E::init frequently is very expensive, so we should save the context here.
-// NTL::GF2EContext base_field_context_;
+// Using GF2E::init frequently is very expensive, so we should save the context here.
+NTL::GF2EContext base_field_context_;
 
-// public:
-// using MFE::encode;
-// using MFE::decode;
+public:
+using MFE::encode;
+using MFE::decode;
 
-// CompositeGf2MFEInternal64(std::shared_ptr<FieldConverter64> converter, std::shared_ptr<Gf2MFE64> mfe1, std::shared_ptr<Gf2eMFE64> mfe2);
+CompositeGf2MFEInternal64(std::shared_ptr<FieldConverter64> converter, std::shared_ptr<Gf2MFE64> mfe1, std::shared_ptr<Gf2eMFE64> mfe2);
 
-// long m() {
-//     return m_;
-// }
+long m() {
+    return m_;
+}
 
-// long t() {
-//     return t_;
-// }
+long t() {
+    return t_;
+}
 
-// const long& base_field_mod() {
-//     return base_field_mod_;
-// }
+const long& base_field_mod() {
+    return base_field_mod_;
+}
 
-// const NTL::GF2X& ex_field_mod() {
-//     return ex_field_poly_.val();
-// }
+const NTL::GF2X& ex_field_mod() {
+    return ex_field_poly_.val();
+}
 
-// long base_field_size() {
-//     return 2;
-// }
+long base_field_size() {
+    return 2;
+}
 
-// void encode(NTL::vec_GF2& h, const NTL::GF2X& g);
-// void decode(NTL::GF2X& g, const NTL::vec_GF2& h);
-// };
+void encode(NTL::vec_GF2& h, const NTL::GF2X& g) {
+    gf2x64 g_ = ntl_GF2X_to_gf2x64(g);
+    h = encode(g_);
+}
+void decode(NTL::GF2X& g, const NTL::vec_GF2& h) {
+    gf2x64 g_ = decode(h);
+    g = gf2x64_to_ntl_GF2X(g_);
+}
+
+virtual NTL::vec_GF2 encode(gf2x64 g);
+virtual gf2x64 decode(const NTL::vec_GF2& h);
+};
 
 
 /**
