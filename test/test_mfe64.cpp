@@ -101,116 +101,127 @@ inline void print_banner(std::string title)
 //     cout << "one_:\t" << one_ << endl;
 //  }
 
-// void test_basic_mfe() {
-//     print_banner("test_basic_mfe");
+void test_basic_mfe64() {
+    print_banner("test_basic_mfe64");
 
-//     long m = 3, n = 2;
-//     BasicMFE mfe(m, n);
-//     GF2E::init(mfe.base_field_mod());
-//     GF2EX a = random_GF2EX(m), b = random_GF2EX(m);
-//     vec_GF2E enc_a = mfe.encode(a), enc_b = mfe.encode(b);
+    long m = 3, n = 2;
+    BasicMFE64 mfe(m, n);
+    mfe.print_config();
+    gf2e_precomp::generate_table(mfe.base_field_mod());
+    GF2E::init(mfe.base_field_mod());
+    gf2ex a = random_gf2ex(m), b = random_gf2ex(m);
+    vec_gf2e enc_a = mfe.encode(a), enc_b = mfe.encode(b);
 
-//     vec_GF2E enc_c({}, enc_a.length());
-//     for (int i = 0; i < enc_a.length(); i++) {
-//         enc_c[i] = enc_a[i] * enc_b[i];
-//     }
+    vec_gf2e enc_c(enc_a.size());
+    for (size_t i = 0; i < enc_a.size(); i++) {
+        enc_c[i] = mul(enc_a[i], enc_b[i]);
+    }
 
-//     GF2EX c = mfe.decode(enc_c);
-//     GF2EX c_ = MulMod(a, b, mfe.ex_field_mod());
+    gf2ex c = mfe.decode(enc_c);
+    GF2EX a_ = gf2ex_to_ntl_GF2EX(a), b_ = gf2ex_to_ntl_GF2EX(b);
+    a_.normalize();
+    b_.normalize();
+    gf2ex c_ = ntl_GF2EX_to_gf2ex(MulMod(a_, b_, mfe.ex_field_mod()));
 
-//     cout << "c:\t" << c << endl;
-//     cout << "c_:\t" << c_ << endl;
-// }
+    normalize(c);
+    normalize(c_);
+    cout << "c:\t" << c << endl;
+    cout << "c_:\t" << c_ << endl;
 
-// void test_basic_gf2_mfe() {
-//     print_banner("test_basic_gf2_mfe");
-//     long m = 2;
-//     BasicGf2MFE mfe(m);
-//     GF2X a = random_GF2X(m), b = random_GF2X(m);
-//     vec_GF2 enc_a = mfe.encode(a), enc_b = mfe.encode(b);
+    assert(c == c_);
+}
 
-//     vec_GF2 enc_c({}, enc_a.length());
-//     for (int i = 0; i < enc_a.length(); i++) {
-//         enc_c[i] = enc_a[i] * enc_b[i];
-//     }
+void test_basic_gf2_mfe64() {
+    print_banner("test_basic_gf2_mfe64");
+    random_device rd;
+    long m = 2;
+    BasicGf2MFE64 mfe(m);
+    gf2e_precomp::generate_table(GF2X(1, 1));
+    gf2x64 a = rd() % (1<<m), b = rd() % (1<<m);
+    vec_gf2_64 enc_a = mfe.encode(a), enc_b = mfe.encode(b);
 
-//     GF2X c = mfe.decode(enc_c);
-//     GF2X c_ = MulMod(a, b, mfe.ex_field_mod());
+    vec_gf2_64 enc_c = enc_a & enc_b;
 
-//     cout << "c:\t" << c << endl;
-//     cout << "c_:\t" << c_ << endl;
-// }
+    gf2x64 c = mfe.decode(enc_c);
+    gf2x64 c_ = ntl_GF2X_to_gf2x64(MulMod(gf2x64_to_ntl_GF2X(a), gf2x64_to_ntl_GF2X(b), mfe.ex_field_mod()));
 
-// void test_composite_gf2_mfe() {
-//     print_banner("test_composite_gf2_mfe");
-//     long m1 = 2, m2 = 3;
-//     shared_ptr<FieldConverter> converter = make_shared<FieldConverter>(m1 * m2, m1, m2);
-//     shared_ptr<Gf2MFE> mfe1 = make_shared<BasicGf2MFE>(m1);
-//     shared_ptr<Gf2eMFE> mfe2 = make_shared<BasicMFE>(converter->base_field_poly(), converter->composite_field_poly());
-//     CompositeGf2MFE mfe(converter, mfe1, mfe2);
+    cout << "c:\t" << c << endl;
+    cout << "c_:\t" << c_ << endl;
 
-//     GF2X a = random_GF2X(mfe.m()), b = random_GF2X(mfe.m());
-//     vec_GF2 enc_a = mfe.encode(a), enc_b = mfe.encode(b);
+    assert(c == c_);
+}
 
-//     vec_GF2 enc_c({}, enc_a.length());
-//     for (int i = 0; i < enc_a.length(); i++) {
-//         enc_c[i] = enc_a[i] * enc_b[i];
-//     }
+void test_composite_gf2_mfe64() {
+    print_banner("test_composite_gf2_mfe64");
+    long m1 = 2, m2 = 3;
+    unique_ptr<Gf2MFE> mfe = get_composite_gf2_mfe64(m1, m2);
 
-//     GF2X c = mfe.decode(enc_c);
-//     GF2X c_ = MulMod(a, b, mfe.ex_field_mod());
+    GF2X a = random_GF2X(mfe->m()), b = random_GF2X(mfe->m());
+    vec_GF2 enc_a = mfe->encode(a), enc_b = mfe->encode(b);
 
-//     cout << "m:\t" << mfe.m() << ", t:\t" << mfe.t() << endl;
-//     cout << "c:\t" << c << endl;
-//     cout << "c_:\t" << c_ << endl;
-//     // cout << "field poly mod:\t" << mfe.ex_field_poly() << endl;
+    vec_GF2 enc_c({}, enc_a.length());
+    for (int i = 0; i < enc_a.length(); i++) {
+        enc_c[i] = enc_a[i] * enc_b[i];
+    }
 
-//     GF2E::init(mfe.ex_field_mod());
-//     cout << "a * b:\t" << to_GF2E(a) * to_GF2E(b) << endl;
+    GF2X c = mfe->decode(enc_c);
+    GF2X c_ = MulMod(a, b, mfe->ex_field_mod());
 
-//     // mfe.encode(a);
-//     // mfe.decode(enc_a);
-//     // cout << "a:\t" << a << endl;
-//     // cout << "a_:\t" <<  << endl;
-// }
-
-// CompositeGf2MFE test_double_composite_gf2_mfe(long m1, long m2, long m3) {
-//     print_banner("test_double_composite_gf2_mfe");
-//     // long m1 = 2, m2 = 3, m3 = 8;
-//     shared_ptr<FieldConverter> converter1 = make_shared<FieldConverter>(m1 * m2, m1, m2);
-//     shared_ptr<FieldConverter> converter2 = make_shared<FieldConverter>(m1 * m2 * m3, m1*m2, m3, converter1->binary_field_poly());
-//     shared_ptr<Gf2MFE> mfe1 = make_shared<BasicGf2MFE>(m1);
-//     shared_ptr<Gf2eMFE> mfe2 = make_shared<BasicMFE>(converter1->base_field_poly(), converter1->composite_field_poly());
-//     shared_ptr<CompositeGf2MFE> mfe3 = make_shared<CompositeGf2MFE>(converter1, mfe1, mfe2);
+    cout << "m:\t" << mfe->m() << ", t:\t" << mfe->t() << endl;
+    cout << "c:\t" << c << endl;
+    cout << "c_:\t" << c_ << endl;
     
-//     shared_ptr<Gf2eMFE> mfe4 = make_shared<BasicMFE>(converter2->base_field_poly(), converter2->composite_field_poly());
-//     CompositeGf2MFE mfe(converter2, mfe3, mfe4);
+    assert(c == c_);
 
-//     GF2X a = random_GF2X(mfe.m()), b = random_GF2X(mfe.m());
-//     vec_GF2 enc_a = mfe.encode(a), enc_b = mfe.encode(b);
+    GF2E::init(mfe->ex_field_mod());
+    cout << "a * b:\t" << to_GF2E(a) * to_GF2E(b) << endl;
 
-//     vec_GF2 enc_c({}, enc_a.length());
-//     for (int i = 0; i < enc_a.length(); i++) {
-//         enc_c[i] = enc_a[i] * enc_b[i];
-//     }
+    // mfe.encode(a);
+    // mfe.decode(enc_a);
+    // cout << "a:\t" << a << endl;
+    // cout << "a_:\t" <<  << endl;
+}
 
-//     GF2X c = mfe.decode(enc_c);
-//     GF2X c_ = MulMod(a, b, mfe.ex_field_mod());
+void test_double_composite_gf2_mfe64(long m1, long m2, long m3) {
+    print_banner("test_double_composite_gf2_mfe64");
+    unique_ptr<Gf2MFE> mfe = get_composite_gf2_mfe64(m1, m2, m3);
+    mfe->print_config();
 
-//     cout << "m:\t" << mfe.m() << ", t:\t" << mfe.t() << endl;
-//     cout << "c:\t" << c << endl;
-//     cout << "c_:\t" << c_ << endl;
-//     // cout << "field poly mod:\t" << mfe.ex_field_poly() << endl;
+    GF2X a = random_GF2X(mfe->m()), b = random_GF2X(mfe->m());
+    vector<int> tmpa = {0,0,0,1,1,1,1,1,0,1,0,1,1,1,1,1,0,0,1,0,0,0,1,1,1,0,0,0,0,0,1,0,1,1,0,0,0,1,1,1,1,1,0,0,0,0,0,1};
+    vector<int> tmpb = {0,0,1,0,1,0,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,1,1,0,0,0,1,1,0,0,1,0,0,1,1,1,0,1,1,0,0,0,0,1};
+    a.SetLength(tmpa.size());
+    b.SetLength(tmpb.size());
+    for (size_t i = 0; i < tmpa.size(); i++)
+        a[i] = tmpa[i];
+    for (size_t i = 0; i < tmpb.size(); i++)
+        b[i] = tmpb[i];
+    vec_GF2 enc_a = mfe->encode(a), enc_b = mfe->encode(b);
 
-//     GF2E::init(mfe.ex_field_mod());
-//     cout << "a * b:\t" << to_GF2E(a) * to_GF2E(b) << endl;
+    vec_GF2 enc_c({}, enc_a.length());
+    for (int i = 0; i < enc_a.length(); i++) {
+        enc_c[i] = enc_a[i] * enc_b[i];
+    }
 
-//     // mfe.encode(a);
-//     // mfe.decode(enc_a);
-//     // cout << "a:\t" << a << endl;
-//     // cout << "a_:\t" <<  << endl;
-//     return mfe;
-// }
+    GF2X c = mfe->decode(enc_c);
+    GF2X c_ = MulMod(a, b, mfe->ex_field_mod());
+
+    cout << "m:\t" << mfe->m() << ", t:\t" << mfe->t() << endl;
+    cout << "a: " << a << endl;
+    cout << "b: " << b << endl;
+    cout << "c:\t" << c << endl;
+    cout << "c_:\t" << c_ << endl;
+
+    assert(c == c_);
+
+    GF2E::init(mfe->ex_field_mod());
+    cout << "a * b:\t" << to_GF2E(a) * to_GF2E(b) << endl;
+
+    // mfe.encode(a);
+    // mfe.decode(enc_a);
+    // cout << "a:\t" << a << endl;
+    // cout << "a_:\t" <<  << endl;
+}
 
 void test_basic_rmfe64() {
     print_banner("test_basic_rmfe64");
@@ -227,12 +238,9 @@ void test_basic_rmfe64() {
     enc_b_.normalize();
     // Mul without normalization will result in a segmentation fault, not sure whether it's a bug of NTL
     GF2EX enc_c_ = MulMod(enc_a_, enc_b_, rmfe.ex_field_mod());
-    cout << "after Mulmod" << endl;
     gf2ex enc_c = ntl_GF2EX_to_gf2ex(enc_c_);
-    cout << "after convert to gf2ex" << endl;
 
     vec_gf2e c = rmfe.decode(enc_c);
-    cout << "after decode" << endl;
     vec_gf2e c_(a.size());
     for (size_t i = 0; i < a.size(); i++) {
         c_[i] = mul(a[i], b[i]);
@@ -370,11 +378,9 @@ void test_basic_gf2_rmfe64() {
 void test_composite_gf2_rmfe64_type2(long k1, long k2) {
     print_banner("test_composite_gf2_rmfe64_type2");
     unique_ptr<Gf2RMFE> rmfe = get_composite_gf2_rmfe64_type2(k1, k2);
-    cout << "after instance" << endl;
 
     vec_GF2 a = random_vec_GF2(rmfe->k()), b = random_vec_GF2(rmfe->k());
     GF2X enc_a = rmfe->encode(a), enc_b = rmfe->encode(b);
-    cout << "after encode" << endl;
 
     GF2X enc_c = MulMod(enc_a, enc_b, rmfe->ex_field_mod());
     vec_GF2 c = rmfe->decode(enc_c);
@@ -390,6 +396,7 @@ void test_composite_gf2_rmfe64_type2(long k1, long k2) {
     for (int i = 0; i < a.length(); i++) {
         d_[i] = a[i] + b[i];
     }
+    assert(d_ == d);
 
     cout << "k:\t" << rmfe->k() << ", m:\t" << rmfe->m() << endl;
     cout << "a:\t" << a << endl;
@@ -497,7 +504,7 @@ void test_composite_gf2_rmfe64_type2(long k1, long k2) {
 void benchmark_rmfe64_then_mfe64() {
     print_banner("test_benchmark_rmfe64_then_mfe64");
     auto rmfe = get_composite_gf2_rmfe64_type2(2, 6);
-    auto mfe = get_double_composite_gf2_mfe(2, 3, 8);
+    auto mfe = get_composite_gf2_mfe64(2, 3, 8);
 
     int n = 100000;
     for (int i = 0; i < n; i++) {
@@ -549,12 +556,12 @@ void benchmark_rmfe64_then_mfe64() {
 int main() {
     // test_composite_to_binary();
     // test_composite_to_binary_with_base_poly();
-    // test_basic_mfe();
-    // test_basic_gf2_mfe();
-    // test_composite_gf2_mfe();
-    // test_double_composite_gf2_mfe(2, 3, 8);
+    test_basic_mfe64();
+    test_basic_gf2_mfe64();
+    test_composite_gf2_mfe64();
+    test_double_composite_gf2_mfe64(2, 3, 8);
     test_basic_rmfe64();
-    test_basic_gf2_rmfe64();
+    // test_basic_gf2_rmfe64();
     // test_basic_gf2_rmfe_type2();
     // test_composite_gf2_rmfe();
     test_composite_gf2_rmfe64_type2(2, 6);

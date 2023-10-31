@@ -766,9 +766,9 @@ void CompositeGf2MFE::decode(NTL::GF2X& g, const NTL::vec_GF2& h) {
         mfe1_->decode(y.at(i)._GF2E__rep, yi);
     }
     acc_time_log("MFE 1 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
-    acc_time_log("MFE 2 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
+    acc_time_log("MFE 2 decode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
     GF2EX g_comp = mfe2_->decode(y);
-    acc_time_log("MFE 2 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
+    acc_time_log("MFE 2 decode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
     acc_time_log("MFE c2b " + to_string(t()) + "," + to_string(m()));
     g = rep(converter_->composite_to_binary(g_comp));
     acc_time_log("MFE c2b " + to_string(t()) + "," + to_string(m()));
