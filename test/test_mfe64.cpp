@@ -107,14 +107,14 @@ void test_basic_mfe64() {
     long m = 3, n = 2;
     BasicMFE64 mfe(m, n);
     mfe.print_config();
-    gf2e_precomp::generate_table(mfe.base_field_mod());
+    // gf2e_precomp::generate_table(mfe.base_field_mod());
     GF2E::init(mfe.base_field_mod());
     gf2ex a = random_gf2ex(m), b = random_gf2ex(m);
     vec_gf2e enc_a = mfe.encode(a), enc_b = mfe.encode(b);
 
     vec_gf2e enc_c(enc_a.size());
     for (size_t i = 0; i < enc_a.size(); i++) {
-        enc_c[i] = mul(enc_a[i], enc_b[i]);
+        enc_c[i] = mfe.mul(enc_a[i], enc_b[i]);
     }
 
     gf2ex c = mfe.decode(enc_c);
@@ -136,7 +136,7 @@ void test_basic_gf2_mfe64() {
     random_device rd;
     long m = 2;
     BasicGf2MFE64 mfe(m);
-    gf2e_precomp::generate_table(GF2X(1, 1));
+    // gf2e_precomp::generate_table(GF2X(1, 1));
     gf2x64 a = rd() % (1<<m), b = rd() % (1<<m);
     vec_gf2_64 enc_a = mfe.encode(a), enc_b = mfe.encode(b);
 
@@ -228,7 +228,7 @@ void test_basic_rmfe64() {
 
     long k = 7, n = 5;
     BasicRMFE64 rmfe(k, n);
-    gf2e_precomp::generate_table(rmfe.base_field_mod());
+    // gf2e_precomp::generate_table(rmfe.base_field_mod());
     GF2E::init(rmfe.base_field_mod());
     vec_gf2e a = random_vec_gf2e(k), b = random_vec_gf2e(k);
     gf2ex enc_a = rmfe.encode(a), enc_b = rmfe.encode(b);
@@ -243,7 +243,7 @@ void test_basic_rmfe64() {
     vec_gf2e c = rmfe.decode(enc_c);
     vec_gf2e c_(a.size());
     for (size_t i = 0; i < a.size(); i++) {
-        c_[i] = mul(a[i], b[i]);
+        c_[i] = rmfe.mul(a[i], b[i]);
     }
 
     cout << "c:\t" << c << endl;
@@ -260,7 +260,7 @@ void test_basic_gf2_rmfe64() {
     random_device rd;
     long k = 2;
     BasicGf2RMFE64 rmfe(k);
-    gf2e_precomp::generate_table(GF2X(1, 1));
+    // gf2e_precomp::generate_table(GF2X(1, 1));
     vec_gf2_64 a = rd() % (1<<k), b= rd() % (1<<k);
     gf2x64 enc_a = rmfe.encode(a), enc_b = rmfe.encode(b);
 

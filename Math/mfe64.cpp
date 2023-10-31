@@ -59,54 +59,51 @@ void enumerate_gf2e(vec_gf2e& x, size_t start, size_t n) {
 }
 
 
-std::unordered_map<unsigned long, std::vector<std::vector<gf2e>>> gf2e_precomp::mul_table_;
-std::unordered_map<unsigned long, std::vector<std::vector<gf2e>>> gf2e_precomp::add_table_;
-std::unordered_map<gf2x64, std::vector<gf2e>> gf2e_precomp::inv_table_;
-std::unordered_map<gf2x64, std::vector<std::vector<long>>> gf2e_precomp::pow_table_;
-std::mutex gf2e_precomp::mtx_;
+// std::unordered_map<unsigned long, std::vector<std::vector<gf2e>>> gf2e_precomp::mul_table_;
+// std::unordered_map<unsigned long, std::vector<std::vector<gf2e>>> gf2e_precomp::add_table_;
+// std::unordered_map<gf2x64, std::vector<gf2e>> gf2e_precomp::inv_table_;
+// std::unordered_map<gf2x64, std::vector<std::vector<long>>> gf2e_precomp::pow_table_;
+// std::mutex gf2e_precomp::mtx_;
 
-std::stack<const std::vector<std::vector<gf2e>>*> gf2e_precomp::mul_table_ptr_stack_;
+// std::stack<const std::vector<std::vector<gf2e>>*> gf2e_precomp::mul_table_ptr_stack_;
 
 void gf2e_precomp::generate_table(const NTL::GF2X& poly_mod) {
     if (deg(poly_mod) > 63)
         NTL::LogicError("Poly modulus degree > 63 for gf2e_precomp");
     if (deg(poly_mod) < 0)
         return;
-    mtx_.lock();
+    // mtx_.lock();
     NTL::GF2EPush push;
     NTL::GF2E::init(poly_mod);
     long idx = poly_mod.xrep[0];
-    if (mul_table_.count(idx) != 1) {
-        cout << "poly_mod: " << poly_mod << endl;
-        mul_table_[idx] = {};
-        add_table_[idx] = {};
-        inv_table_[idx] = {};
-        pow_table_[idx] = {};
-        size_t n = 1 << deg(poly_mod);
-        vector<vector<gf2e>>& t_mul = mul_table_[idx];
-        vector<vector<gf2e>>& t_add = add_table_[idx];
-        vector<gf2e>& t_inv = inv_table_[idx];
-        vector<vector<long>>& t_pow = pow_table_[idx];
-        t_mul.resize(n, vector<gf2e>(n));
-        t_add.resize(n, vector<gf2e>(n));
-        t_inv.resize(n);
-        t_pow.resize(n, vector<long>(MAX_POWER + 1));
-        for (size_t i = 0; i < n; i++) {
-            NTL::GF2E x = gf2e_to_ntl_GF2E(i);
-            for (size_t j = 0; j < n; j++) {
-                NTL::GF2E y = gf2e_to_ntl_GF2E(j);
-                t_mul[i][j] = ntl_GF2E_to_gf2e(x * y);
-                t_add[i][j] = ntl_GF2E_to_gf2e(x + y);
-            }
-            for (long j = 0; j <= MAX_POWER; j++)
-                t_pow[i][j] = ntl_GF2E_to_gf2e(power(x, j));
-            if (NTL::IsZero(x))
-                t_inv[i] = 0;
-            else
-                t_inv[i] = ntl_GF2E_to_gf2e(inv(x));
+    // if (mul_table_.count(idx) != 1) {
+    cout << "poly_mod: " << poly_mod << endl;
+    // mul_table_[idx] = {};
+    // add_table_[idx] = {};
+    // inv_table_[idx] = {};
+    // pow_table_[idx] = {};
+    size_t n = 1 << deg(poly_mod);
+    vector<vector<gf2e>>& t_mul = mul_table_;
+    vector<gf2e>& t_inv = inv_table_;
+    vector<vector<long>>& t_pow = pow_table_;
+    t_mul.resize(n, vector<gf2e>(n));
+    t_inv.resize(n);
+    t_pow.resize(n, vector<long>(MAX_POWER + 1));
+    for (size_t i = 0; i < n; i++) {
+        NTL::GF2E x = gf2e_to_ntl_GF2E(i);
+        for (size_t j = 0; j < n; j++) {
+            NTL::GF2E y = gf2e_to_ntl_GF2E(j);
+            t_mul[i][j] = ntl_GF2E_to_gf2e(x * y);
         }
+        for (long j = 0; j <= MAX_POWER; j++)
+            t_pow[i][j] = ntl_GF2E_to_gf2e(NTL::power(x, j));
+        if (NTL::IsZero(x))
+            t_inv[i] = 0;
+        else
+            t_inv[i] = ntl_GF2E_to_gf2e(NTL::inv(x));
     }
-    mtx_.unlock();
+    // }
+    // mtx_.unlock();
 }
 
 // const std::vector<std::vector<gf2e>>& gf2e_precomp::get_mul_table(const NTL::GF2X& poly_mod) {
@@ -125,50 +122,50 @@ void gf2e_precomp::generate_table(const NTL::GF2X& poly_mod) {
 // }
 
 
-const std::vector<std::vector<gf2e>>& gf2e_precomp::get_add_table(const NTL::GF2X& poly_mod) {
-    uint64_t idx = ntl_GF2X_to_gf2x64(poly_mod);
-    if (add_table_.count(idx) != 1)
-        NTL::LogicError(("Add table has not been generated: " + to_string(idx)).c_str());
+// const std::vector<std::vector<gf2e>>& gf2e_precomp::get_add_table(const NTL::GF2X& poly_mod) {
+//     uint64_t idx = ntl_GF2X_to_gf2x64(poly_mod);
+//     if (add_table_.count(idx) != 1)
+//         NTL::LogicError(("Add table has not been generated: " + to_string(idx)).c_str());
 
-    return add_table_[idx];
-}
+//     return add_table_[idx];
+// }
 
-const std::vector<gf2e>& gf2e_precomp::get_inv_table(const NTL::GF2X& poly_mod) {
-    uint64_t idx = ntl_GF2X_to_gf2x64(poly_mod);
-    if (inv_table_.count(idx) != 1)
-        NTL::LogicError(("Inv table has not been generated: " + to_string(idx)).c_str());
+// const std::vector<gf2e>& gf2e_precomp::get_inv_table(const NTL::GF2X& poly_mod) {
+//     uint64_t idx = ntl_GF2X_to_gf2x64(poly_mod);
+//     if (inv_table_.count(idx) != 1)
+//         NTL::LogicError(("Inv table has not been generated: " + to_string(idx)).c_str());
 
-    return inv_table_[idx];
-}
+//     return inv_table_[idx];
+// }
 
-const std::vector<std::vector<long>>& gf2e_precomp::get_pow_table(const NTL::GF2X& poly_mod) {
-    uint64_t idx = ntl_GF2X_to_gf2x64(poly_mod);
-    if (pow_table_.count(idx) != 1)
-        NTL::LogicError(("Pow table has not been generated: " + to_string(idx)).c_str());
+// const std::vector<std::vector<long>>& gf2e_precomp::get_pow_table(const NTL::GF2X& poly_mod) {
+//     uint64_t idx = ntl_GF2X_to_gf2x64(poly_mod);
+//     if (pow_table_.count(idx) != 1)
+//         NTL::LogicError(("Pow table has not been generated: " + to_string(idx)).c_str());
 
-    return pow_table_[idx];
-}
+//     return pow_table_[idx];
+// }
 
-gf2ex mul(const gf2ex& f, gf2e c) {
+gf2ex gf2e_precomp::mul(const gf2ex& f, gf2e c) {
     gf2ex h(f);
     for (auto it = h.begin(); it != h.end(); it++)
         *it = mul(*it, c);
     return h;
 }
 
-gf2e inv(gf2e a) {
-    if (a == 0)
-        NTL::LogicError("Inverse of 0 is undefined");
-    const vector<gf2e>& inv_table = gf2e_precomp::get_inv_table(NTL::GF2E::modulus().f);
-    return inv_table[a];
-}
+// gf2e gf2e_precomp::inv(gf2e a) {
+//     if (a == 0)
+//         NTL::LogicError("Inverse of 0 is undefined");
+//     const vector<gf2e>& inv_table = gf2e_precomp::get_inv_table(NTL::GF2E::modulus().f);
+//     return inv_table[a];
+// }
 
-gf2e power(gf2e a, long n) {
-    const vector<vector<long>>& pow_table = gf2e_precomp::get_pow_table(NTL::GF2E::modulus().f);
-    return power(a, n, pow_table);
-}
+// gf2e gf2e_precomp::power(gf2e a, long n) {
+//     const vector<vector<long>>& pow_table = gf2e_precomp::get_pow_table(NTL::GF2E::modulus().f);
+//     return power(a, n, pow_table);
+// }
 
-void interpolate(gf2ex& f, const vec_gf2e& a, const vec_gf2e& b)
+void gf2e_precomp::interpolate(gf2ex& f, const vec_gf2e& a, const vec_gf2e& b)
 {
    long m = a.size();
    if (b.size() != (size_t) m) NTL::LogicError("interpolate: vector length mismatch");
@@ -178,8 +175,8 @@ void interpolate(gf2ex& f, const vec_gf2e& a, const vec_gf2e& b)
       return;
    }
 
-   const vector<vector<gf2e>>& mul_table = gf2e_precomp::get_mul_table(NTL::GF2E::modulus().f);
-   const vector<gf2e>& inv_table = gf2e_precomp::get_inv_table(NTL::GF2E::modulus().f);
+//    const vector<vector<gf2e>>& mul_table = gf2e_precomp::get_mul_table(NTL::GF2E::modulus().f);
+//    const vector<gf2e>& inv_table = gf2e_precomp::get_inv_table(NTL::GF2E::modulus().f);
 
    vec_gf2e prod;
    prod = a;
@@ -197,22 +194,22 @@ void interpolate(gf2ex& f, const vec_gf2e& a, const vec_gf2e& b)
 
       t1 = 1;
       for (i = k-1; i >= 0; i--) {
-         t1 = mul_table[t1][aa];
+         t1 = mul(t1, aa);
          t1 = add(t1, prod[i]);
       }
 
       t2 = 0;
       for (i = k-1; i >= 0; i--) {
-         t2 = mul_table[t2][aa];
+         t2 = mul(t2, aa);
          t2 = add(t2, res[i]);
       }
       
-      t1 = inv_table[t1];
+      t1 = inv(t1);
       t2 = sub(b[k], t2);
-      t1 = mul_table[t1][t2];
+      t1 = mul(t1, t2);
 
       for (i = 0; i < k; i++) {
-         t2 = mul_table[prod[i]][t1];
+         t2 = mul(prod[i], t1);
          res[i] = add(res[i], t2);
       }
 
@@ -226,10 +223,10 @@ void interpolate(gf2ex& f, const vec_gf2e& a, const vec_gf2e& b)
             t1 = a[k];
             prod[k] = add(t1, prod[k-1]);
             for (i = k-1; i >= 1; i--) {
-               t2 = mul_table[prod[i]][t1];
+               t2 = mul(prod[i], t1);
                prod[i] = add(t2, prod[i-1]);
             }
-            prod[0] = mul_table[prod[0]][t1];
+            prod[0] = mul(prod[0], t1);
          }
       }
    }
@@ -239,15 +236,15 @@ void interpolate(gf2ex& f, const vec_gf2e& a, const vec_gf2e& b)
    f = std::move(res);
 }
 
-void eval(gf2e& b, const gf2ex& f, const gf2e& a)
+void gf2e_precomp::eval(gf2e& b, const gf2ex& f, const gf2e& a)
 // does a Horner evaluation
 {
     gf2e acc = 0;
     long i;
 
-    const vector<vector<gf2e>>& mul_table = gf2e_precomp::get_mul_table(NTL::GF2E::modulus().f);
+    // const vector<vector<gf2e>>& mul_table = gf2e_precomp::get_mul_table(NTL::GF2E::modulus().f);
     for (i = deg(f); i >= 0; i--) {
-        acc = mul_table[acc][a];
+        acc = mul(acc, a);
         acc = add(acc, f[i]);
     }
 
@@ -266,7 +263,7 @@ gf2ex& operator +=(gf2ex& a, const gf2ex& b) {
     return a;
 }
 
-void mu_1(gf2ex& g, const gf2ex& f, const vec_gf2ex& basis) {
+void mfe_precomp::mu_1(gf2ex& g, const gf2ex& f, const vec_gf2ex& basis) {
     g.clear();
     for(int i = 0; i <= deg(f); i++) {
         g += mul(basis.at(i), coeff(f, i));
@@ -304,7 +301,7 @@ void mu_1(gf2ex& g, const gf2ex& f, const vec_gf2ex& basis) {
  * beta[0] = 0
  * (f_{beta[0]}, f(beta[1]), f(beta[2]), ..., f(beta[m-1])) --> f
 */
-void inv_xi_1(gf2ex& f, const vec_gf2e& g, const vec_gf2e& beta) {
+void mfe_precomp::inv_xi_1(gf2ex& f, const vec_gf2e& g, const vec_gf2e& beta) {
     if (g.size() != beta.size())
         NTL::LogicError("Invalid input to inv_xi_1");
     // Make sure beta[0] is 0 so that we can map identity to identity in RMFE
@@ -320,7 +317,7 @@ void inv_xi_1(gf2ex& f, const vec_gf2e& g, const vec_gf2e& beta) {
  * beta[0] = 0
  * f --> (f(beta[0]), f(beta[1]), ..., f(beta[k-1]))
 */
-void xi_2(vec_gf2e& g, const gf2ex& f, const vec_gf2e& beta) {
+void mfe_precomp::xi_2(vec_gf2e& g, const gf2ex& f, const vec_gf2e& beta) {
     if (beta[0] != 0)
         NTL::LogicError("beta[0] must be zero in RMFE");
 
@@ -331,11 +328,11 @@ void xi_2(vec_gf2e& g, const gf2ex& f, const vec_gf2e& beta) {
     }
 }
 
-void pi_1(gf2ex& g, const gf2ex& f, const vec_gf2ex& basis) {
+void mfe_precomp::pi_1(gf2ex& g, const gf2ex& f, const vec_gf2ex& basis) {
     mu_1(g, f, basis);
 }
 
-void phi(gf2ex& g, const vec_gf2e& h, const vec_gf2ex& basis, const vec_gf2e& beta) {
+void mfe_precomp::phi(gf2ex& g, const vec_gf2e& h, const vec_gf2ex& basis, const vec_gf2e& beta) {
     gf2ex f;
     inv_xi_1(f, h, beta);
     pi_1(g, f, basis);
@@ -347,7 +344,7 @@ void phi(gf2ex& g, const vec_gf2e& h, const vec_gf2ex& basis, const vec_gf2e& be
 //     xi_2(h, f, beta);
 // }
 
-void psi_fast(vec_gf2e& h, const gf2ex& g, const vec_gf2e& beta) {
+void mfe_precomp::psi_fast(vec_gf2e& h, const gf2ex& g, const vec_gf2e& beta) {
     acc_time_log("psi_fast");
     xi_2(h, g, beta);
     acc_time_log("psi_fast");
@@ -358,7 +355,7 @@ void psi_fast(vec_gf2e& h, const gf2ex& g, const vec_gf2e& beta) {
  * len(beta) = 2m-2
  * f --> (f(beta[0]), f(beta[1]), ..., f(beta[2m-3]), f_{m-1})
 */ 
-void nu_1(vec_gf2e& g, const gf2ex& f, const vec_gf2e& beta) {
+void mfe_precomp::nu_1(vec_gf2e& g, const gf2ex& f, const vec_gf2e& beta) {
     g.resize(beta.size() + 1);
     for(size_t i = 0; i < beta.size(); i++) {
         eval(g[i], f, beta[i]);
@@ -373,15 +370,15 @@ void nu_1(vec_gf2e& g, const gf2ex& f, const vec_gf2e& beta) {
  * len(beta) = m-1
  * (f(beta[0]), f(beta[1]), ..., f(beta[m-2]), f_{m-1}) --> f
 */
-void inv_mu_2(gf2ex& f, const vec_gf2e& g, const vec_gf2e& beta) {
+void mfe_precomp::inv_mu_2(gf2ex& f, const vec_gf2e& g, const vec_gf2e& beta) {
     if (g.size() != beta.size() + 1)
         NTL::LogicError("Invalid input to inv_mu_2");
     // const vector<vector<gf2e>>& mul_table = gf2e_precomp::get_mul_table(NTL::GF2E::modulus().f);
-    const vector<vector<long>>& pow_table = gf2e_precomp::get_pow_table(NTL::GF2E::modulus().f);
+    // const vector<vector<long>>& pow_table = gf2e_precomp::get_pow_table(NTL::GF2E::modulus().f);
     vec_gf2e corrected_g(g.size() - 1);
     for(size_t i = 0; i < corrected_g.size(); i++) {
         // corrected_g[i] = sub(g[i], mul_table[g[g.size() - 1]][power(beta[i], corrected_g.size(), pow_table)]);
-        corrected_g[i] = sub(g[i], mul(g[g.size() - 1], power(beta[i], corrected_g.size(), pow_table)));
+        corrected_g[i] = sub(g[i], mul(g[g.size() - 1], power(beta[i], corrected_g.size())));
     }
     interpolate(f, beta, corrected_g);
     set_coeff(f, corrected_g.size(), g[g.size() - 1]);
@@ -392,18 +389,18 @@ void inv_mu_2(gf2ex& f, const vec_gf2e& g, const vec_gf2e& beta) {
  * len(alpha_power) = 2*m-1
  * deg(g) = m-1
 */
-void nu_2(gf2ex& g, const gf2ex& f, const vec_gf2ex& alpha_power) {
+void mfe_precomp::nu_2(gf2ex& g, const gf2ex& f, const vec_gf2ex& alpha_power) {
     g.clear();
     for(int i = 0; i <= deg(f); i++) {
         g += mul(alpha_power[i], coeff(f, i));
     }
 }
 
-void sigma_fast(vec_gf2e& h, const gf2ex& g, const vec_gf2e& beta) {
+void mfe_precomp::sigma_fast(vec_gf2e& h, const gf2ex& g, const vec_gf2e& beta) {
     nu_1(h, g, beta);
 }
 
-void rho(gf2ex& g, const vec_gf2e& h, const vec_gf2ex& alpha_power, const vec_gf2e& beta) {
+void mfe_precomp::rho(gf2ex& g, const vec_gf2e& h, const vec_gf2ex& alpha_power, const vec_gf2e& beta) {
     gf2ex f;
     // acc_time_log("inv_mu_2");
     inv_mu_2(f, h, beta);
@@ -455,23 +452,25 @@ void BasicMFE64::initialize() {
     enumerate_gf2e(beta_, 0, 2*m_-2);
 
     base_field_context_ = NTL::GF2EContext(base_field_poly_mod_);
+
+    generate_table(base_field_poly_mod_);
 }
 
 
 void BasicMFE64::encode(vec_gf2e& h, const gf2ex& g) {
     NTL::GF2EPush push;
     base_field_context_.restore();
-    gf2e_precomp::push_poly_mod(NTL::GF2E::modulus().f);
-    ::sigma_fast(h, g, beta_);
-    gf2e_precomp::pop_poly_mod();
+    // gf2e_precomp::push_poly_mod(NTL::GF2E::modulus().f);
+    sigma_fast(h, g, beta_);
+    // gf2e_precomp::pop_poly_mod();
 }
 
 void BasicMFE64::decode(gf2ex& g, const vec_gf2e& h) {
     NTL::GF2EPush push;
     base_field_context_.restore();
-    gf2e_precomp::push_poly_mod(NTL::GF2E::modulus().f);
-    ::rho(g, h, extented_alpha_power_, beta_);
-    gf2e_precomp::pop_poly_mod();
+    // gf2e_precomp::push_poly_mod(NTL::GF2E::modulus().f);
+    rho(g, h, extented_alpha_power_, beta_);
+    // gf2e_precomp::pop_poly_mod();
 }
 
 BasicGf2MFE64::BasicGf2MFE64(long m) {
@@ -682,6 +681,8 @@ void BasicRMFE64::initialize() {
     // MakeMatrix(beta_matrix_, beta_power);
 
     base_field_context_ = NTL::GF2EContext(base_field_poly_mod_);
+
+    generate_table(base_field_poly_mod_);
 }
 
 void BasicRMFE64::encode(gf2ex& g, const vec_gf2e& h) {
@@ -689,7 +690,7 @@ void BasicRMFE64::encode(gf2ex& g, const vec_gf2e& h) {
         NTL::LogicError("Invalid input length to encode");
     NTL::GF2EPush push;
     base_field_context_.restore();
-    ::phi(g, h, basis_, beta_);
+    phi(g, h, basis_, beta_);
     // // Expand g to have length m
     // g.resize(m(), 0);
 }
@@ -697,7 +698,7 @@ void BasicRMFE64::encode(gf2ex& g, const vec_gf2e& h) {
 void BasicRMFE64::decode(vec_gf2e& h, const gf2ex& g) {
     NTL::GF2EPush push;
     base_field_context_.restore();
-    ::psi_fast(h, g, beta_);
+    psi_fast(h, g, beta_);
 }
 
 void BasicRMFE64::random_preimage(gf2ex& h, const vec_gf2e& g) {
@@ -1060,10 +1061,10 @@ std::unique_ptr<Gf2RMFE> get_composite_gf2_rmfe64_type2(long k1, long k2) {
     shared_ptr<Gf2RMFE64> rmfe1 = make_shared<BasicGf2RMFE64>(k1, false);
     shared_ptr<Gf2eRMFE64> rmfe2 = make_shared<BasicRMFE64>(converter->base_field_poly(), converter->composite_field_poly());
 
-    // Precompute small GF2E fields
-    gf2e_precomp::generate_table(NTL::GF2X(1, 1));
-    if (deg(converter->base_field_poly()) < 10)
-        gf2e_precomp::generate_table(converter->base_field_poly());
+    // // Precompute small GF2E fields
+    // gf2e_precomp::generate_table(NTL::GF2X(1, 1));
+    // if (deg(converter->base_field_poly()) < 10)
+    //     gf2e_precomp::generate_table(converter->base_field_poly());
     
     return unique_ptr<Gf2RMFE>(new CompositeGf2RMFE64(converter, rmfe1, rmfe2));
 }
@@ -1075,10 +1076,10 @@ std::unique_ptr<Gf2MFE64> get_composite_gf2_mfe64(long m1, long m2) {
     shared_ptr<Gf2MFE64> mfe1 = make_shared<BasicGf2MFE64>(m1);
     shared_ptr<Gf2eMFE64> mfe2 = make_shared<BasicMFE64>(converter1->base_field_poly(), converter1->composite_field_poly());
     
-    // Precompute small GF2E fields
-    gf2e_precomp::generate_table(NTL::GF2X(1, 1));
-    if (deg(converter1->base_field_poly()) < 10)
-        gf2e_precomp::generate_table(converter1->base_field_poly());
+    // // Precompute small GF2E fields
+    // gf2e_precomp::generate_table(NTL::GF2X(1, 1));
+    // if (deg(converter1->base_field_poly()) < 10)
+    //     gf2e_precomp::generate_table(converter1->base_field_poly());
     
     return unique_ptr<Gf2MFE64>(new CompositeGf2MFE64(converter1, mfe1, mfe2));
 }
@@ -1094,12 +1095,12 @@ std::unique_ptr<Gf2MFE> get_composite_gf2_mfe64(long m1, long m2, long m3) {
     
     shared_ptr<Gf2eMFE> mfe4 = shared_ptr<Gf2eMFE>(new BasicMFE64(converter2->base_field_poly(), converter2->composite_field_poly()));
 
-    // Precompute small GF2E fields
-    gf2e_precomp::generate_table(NTL::GF2X(1, 1));
-    if (deg(converter1->base_field_poly()) < 10)
-        gf2e_precomp::generate_table(converter1->base_field_poly());
-    if (deg(converter2->base_field_poly()) < 10)
-        gf2e_precomp::generate_table(converter2->base_field_poly());
+    // // Precompute small GF2E fields
+    // gf2e_precomp::generate_table(NTL::GF2X(1, 1));
+    // if (deg(converter1->base_field_poly()) < 10)
+    //     gf2e_precomp::generate_table(converter1->base_field_poly());
+    // if (deg(converter2->base_field_poly()) < 10)
+    //     gf2e_precomp::generate_table(converter2->base_field_poly());
 
     return unique_ptr<Gf2MFE>(new CompositeGf2MFE(converter2, mfe3, mfe4));
 }

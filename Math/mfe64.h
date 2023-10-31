@@ -31,7 +31,7 @@ typedef vector<vec_gf2e> mat_gf2e;
 ostream& operator<<(ostream& s, const vec_gf2e& a);
 bool operator==(const vec_gf2e& a, const vec_gf2e& b);
 
-gf2e mul(gf2e a, gf2e b);
+// gf2e mul(gf2e a, gf2e b);
 
 inline long deg(const gf2ex& f) {
     return ((long) f.size()) - 1;
@@ -274,61 +274,133 @@ inline vec_gf2e random_vec_gf2e(int n) {
 }
 
 class gf2e_precomp {
-    static std::unordered_map<gf2x64, std::vector<std::vector<gf2e>>> mul_table_;
-    static std::unordered_map<gf2x64, std::vector<std::vector<gf2e>>> add_table_;
-    static std::unordered_map<gf2x64, std::vector<gf2e>> inv_table_;
-    static std::unordered_map<gf2x64, std::vector<std::vector<long>>> pow_table_;
-    static std::mutex mtx_;
+    // std::unordered_map<gf2x64, std::vector<std::vector<gf2e>>> mul_table_;
+    // std::unordered_map<gf2x64, std::vector<std::vector<gf2e>>> add_table_;
+    // std::unordered_map<gf2x64, std::vector<gf2e>> inv_table_;
+    // std::unordered_map<gf2x64, std::vector<std::vector<long>>> pow_table_;
+    // static std::mutex mtx_;
 
-    static std::stack<const std::vector<std::vector<gf2e>>*> mul_table_ptr_stack_;
+    // std::stack<const std::vector<std::vector<gf2e>>*> mul_table_ptr_stack_;
+
+    std::vector<std::vector<gf2e>> mul_table_;
+    std::vector<gf2e> inv_table_;
+    std::vector<std::vector<long>> pow_table_;
 public:
     /** Maximum precomputed power we consider in this algorithm. The
      * following number should be enough.
      */
     static const long MAX_POWER = 100;
 
-    static void generate_table(const NTL::GF2X& poly_mod);
+    gf2e_precomp() {}
 
-    static void push_poly_mod(const NTL::GF2X& poly_mod) {
-        mul_table_ptr_stack_.push(&get_mul_table(poly_mod));
+    void generate_table(const NTL::GF2X& poly_mod);
+
+    // void push_poly_mod(const NTL::GF2X& poly_mod) {
+    //     mul_table_ptr_stack_.push(&get_mul_table(poly_mod));
+    // }
+
+    // void pop_poly_mod() {
+    //     mul_table_ptr_stack_.pop();
+    // }
+
+    const std::vector<std::vector<gf2e>>& get_mul_table() {
+        return mul_table_;
+    }
+    const std::vector<gf2e>& get_inv_table() {
+        return inv_table_;
+    }
+    const std::vector<std::vector<long>>& get_pow_table() {
+        return pow_table_;
     }
 
-    static void pop_poly_mod() {
-        mul_table_ptr_stack_.pop();
+    // const std::vector<std::vector<gf2e>>& get_current_mul_table() {
+    //     if (mul_table_ptr_stack_.empty()) {
+    //         return get_mul_table(NTL::GF2E::modulus().f);
+    //     }
+    //     else
+    //         return *mul_table_ptr_stack_.top(); 
+    // }
+
+    gf2e mul(gf2e a, gf2e b) {
+        return mul_table_[a][b];
     }
 
-    static const std::vector<std::vector<gf2e>>& get_mul_table(const NTL::GF2X& poly_mod) {
-        uint64_t idx = ntl_GF2X_to_gf2x64(poly_mod);
-        if (mul_table_.count(idx) != 1)
-            NTL::LogicError(("Mul table has not been generated: " + to_string(idx)).c_str());
+    gf2ex mul(const gf2ex& f, gf2e c);
 
-        return mul_table_[idx];
+    gf2e inv(gf2e a) {
+        if (a == 0)
+            NTL::LogicError("Inverse of 0 is undefined");
+        return inv_table_[a];
     }
-    static const std::vector<std::vector<gf2e>>& get_add_table(const NTL::GF2X& poly_mod);
-    static const std::vector<gf2e>& get_inv_table(const NTL::GF2X& poly_mod);
-    static const std::vector<std::vector<long>>& get_pow_table(const NTL::GF2X& poly_mod);
 
-    static const std::vector<std::vector<gf2e>>& get_current_mul_table() {
-        if (mul_table_ptr_stack_.empty()) {
-            return get_mul_table(NTL::GF2E::modulus().f);
-        }
-        else
-            return *mul_table_ptr_stack_.top(); 
+    // gf2e power(gf2e a, long n);
+
+    gf2e power(gf2e a, long n) {
+        if (n > gf2e_precomp::MAX_POWER)
+            NTL::LogicError("Exponent is too large for precomputed table");
+        return pow_table_[a][n];
     }
+
+    void interpolate(gf2ex& f, const vec_gf2e& a, const vec_gf2e& b);
+
+    void eval(gf2e& b, const gf2ex& f, const gf2e& a);
 
 };
 
-inline gf2e mul(gf2e a, gf2e b) {
-    // const vector<vector<gf2e>>& mul_table = gf2e_precomp::get_mul_table(NTL::GF2E::modulus().f);
-    const vector<vector<gf2e>>& mul_table = gf2e_precomp::get_current_mul_table();
-    return mul_table[a][b];
-}
 
-inline gf2e power(gf2e a, long n, const vector<vector<long>>& pow_table) {
-    if (n > gf2e_precomp::MAX_POWER)
-        NTL::LogicError("Exponent is too large for precomputed table");
-    return pow_table[a][n];
-}
+class mfe_precomp : public gf2e_precomp {
+public:
+    void mu_1(gf2ex& g, const gf2ex& f, const vec_gf2ex& basis);
+
+    /**
+     * len(g) = m
+     * deg(f) = m-1
+     * len(beta) = m
+     * beta[0] = 0
+     * (f_{beta[0]}, f(beta[1]), f(beta[2]), ..., f(beta[m-1])) --> f
+    */
+    void inv_xi_1(gf2ex& f, const vec_gf2e& g, const vec_gf2e& beta);
+
+    /**
+     * deg(f) = 2k-2 (type1) for 2k-1 (type2)
+     * len(beta) = k
+     * beta[0] = 0
+     * f --> (f(beta[0]), f(beta[1]), ..., f(beta[k-1]))
+    */
+    void xi_2(vec_gf2e& g, const gf2ex& f, const vec_gf2e& beta);
+
+    void pi_1(gf2ex& g, const gf2ex& f, const vec_gf2ex& basis);
+
+    /**
+     * deg(f) = m-1
+     * len(beta) = 2m-2
+     * f --> (f(beta[0]), f(beta[1]), ..., f(beta[2m-3]), f_{m-1})
+    */ 
+    void nu_1(vec_gf2e& g, const gf2ex& f, const vec_gf2e& beta);
+
+    /**
+     * len(g) = m
+     * deg(f) = m-1
+     * len(beta) = m-1
+     * (f(beta[0]), f(beta[1]), ..., f(beta[m-2]), f_{m-1}) --> f
+    */
+    void inv_mu_2(gf2ex& f, const vec_gf2e& g, const vec_gf2e& beta);
+
+    /**
+     * deg(f) = 2*m-2
+     * len(alpha_power) = 2*m-1
+     * deg(g) = m-1
+    */
+    void nu_2(gf2ex& g, const gf2ex& f, const vec_gf2ex& alpha_power);
+
+    void phi(gf2ex& g, const vec_gf2e& h, const vec_gf2ex& basis, const vec_gf2e& beta);
+
+    void psi_fast(vec_gf2e& h, const gf2ex& g, const vec_gf2e& beta);
+
+    void sigma_fast(vec_gf2e& h, const gf2ex& g, const vec_gf2e& beta);
+
+    void rho(gf2ex& g, const vec_gf2e& h, const vec_gf2ex& alpha_power, const vec_gf2e& beta);
+};
 
 
 class FieldConverter64 : public FieldConverter {
@@ -343,7 +415,7 @@ gf2e composite_to_binary(gf2ex x);
 
 typedef MFE<gf2ex, vec_gf2e, NTL::GF2X, NTL::GF2EX> Gf2eMFE64;
 
-class BasicMFE64: public Gf2eMFE64, public Gf2eMFE {
+class BasicMFE64: public mfe_precomp, public Gf2eMFE64, public Gf2eMFE {
 private:
 long m_;
 long t_;
@@ -419,10 +491,14 @@ void decode(gf2ex& g, const vec_gf2e& h);
  * This class restricts input and output of the functionalities
  * to be within 64 bits.
 */
-class Gf2MFE64 : public Gf2MFE {
+class Gf2MFE64 : public mfe_precomp, public Gf2MFE {
 public:
 using MFE::encode;
 using MFE::decode;
+
+Gf2MFE64() {
+    generate_table(NTL::GF2X(1, 1));
+}
 
 virtual vec_gf2_64 encode(gf2x64 g) = 0;
 virtual gf2x64 decode(vec_gf2_64 h) = 0;
@@ -554,11 +630,15 @@ gf2x64 decode(vec_gf2_64 h);
  * This class restricts input and output of the functionalities
  * to be within 64 bits.
 */
-class Gf2RMFE64 : public Gf2RMFE {
+class Gf2RMFE64 : public mfe_precomp, public Gf2RMFE {
 public:
 using RMFE::encode;
 using RMFE::decode;
 using RMFE::random_preimage;
+
+Gf2RMFE64() {
+    generate_table(NTL::GF2X(1, 1));
+}
 
 virtual gf2x64 encode(vec_gf2_64 h) = 0;
 virtual vec_gf2_64 decode(gf2x64 g) = 0;
@@ -567,7 +647,7 @@ virtual gf2x64 random_preimage(vec_gf2_64 h) = 0;
 
 typedef RMFE<vec_gf2e, gf2ex, NTL::GF2X, NTL::GF2EX> Gf2eRMFE64;
 
-class BasicRMFE64 : public Gf2eRMFE64{
+class BasicRMFE64 : public mfe_precomp, public Gf2eRMFE64{
 private:
 long k_;
 long m_;
