@@ -31,8 +31,6 @@ typedef vector<vec_gf2e> mat_gf2e;
 ostream& operator<<(ostream& s, const vec_gf2e& a);
 bool operator==(const vec_gf2e& a, const vec_gf2e& b);
 
-// gf2e mul(gf2e a, gf2e b);
-
 inline long deg(const gf2ex& f) {
     return ((long) f.size()) - 1;
 }
@@ -325,7 +323,12 @@ public:
         return mul_table_[a][b];
     }
 
-    gf2ex mul(const gf2ex& f, gf2e c);
+    gf2ex mul(const gf2ex& f, gf2e c) {
+        gf2ex h(f);
+        for (auto it = h.begin(); it != h.end(); it++)
+            *it = mul(*it, c);
+        return h;
+    }
 
     gf2e inv(gf2e a) {
         if (a == 0)
@@ -624,6 +627,72 @@ void decode(NTL::GF2X& g, const NTL::vec_GF2& h) {
 vec_gf2_64 encode(gf2x64 g);
 gf2x64 decode(vec_gf2_64 h);
 };
+
+/**
+ * This class requires the components (including field converter) to accept input and output of 64 bits.
+ * We create this complexity in order to have the best performance.
+ * This class is more efficient than `CompositeGf2MFE` in `mfe.h` because we avoid
+ * many conversions between NTL's types and our 64-bit types.
+*/
+// template <int L>
+// class CompositeGf2MFEInternal64 : public Gf2MFE {
+// private:
+// typedef array<uint64_t, (L+63)/64> vec_gf2;
+
+// long m_;
+// long t_;
+
+// std::shared_ptr<FieldConverter64> converter_;
+// std::shared_ptr<Gf2MFE64> mfe1_;
+// std::shared_ptr<Gf2eMFE64> mfe2_;
+
+// long base_field_mod_ = 2;
+// NTL::GF2XModulus ex_field_poly_;
+
+// bool use_cache_ = USE_CACHE;
+// vector<NTL::vec_GF2> encode_table_;
+// vector<bool> encode_table_cached_;
+// bool use_encode_table_ = false;
+// vector<NTL::GF2X> decode_table_;
+// vector<bool> decode_table_cached_;
+// bool use_decode_table_ = false;
+// LRU<long, NTL::vec_GF2> encode_map_;
+// bool use_encode_map_ = false;
+// LRU<long, NTL::GF2X> decode_map_;
+// bool use_decode_map_ = false;
+
+// // Using GF2E::init frequently is very expensive, so we should save the context here.
+// NTL::GF2EContext base_field_context_;
+
+// public:
+// using MFE::encode;
+// using MFE::decode;
+
+// CompositeGf2MFEInternal64(std::shared_ptr<FieldConverter64> converter, std::shared_ptr<Gf2MFE64> mfe1, std::shared_ptr<Gf2eMFE64> mfe2);
+
+// long m() {
+//     return m_;
+// }
+
+// long t() {
+//     return t_;
+// }
+
+// const long& base_field_mod() {
+//     return base_field_mod_;
+// }
+
+// const NTL::GF2X& ex_field_mod() {
+//     return ex_field_poly_.val();
+// }
+
+// long base_field_size() {
+//     return 2;
+// }
+
+// void encode(NTL::vec_GF2& h, const NTL::GF2X& g);
+// void decode(NTL::GF2X& g, const NTL::vec_GF2& h);
+// };
 
 
 /**
