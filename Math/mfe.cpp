@@ -985,6 +985,7 @@ FieldConverter::FieldConverter(long binary_field_deg, long base_field_deg, long 
     }
 
     base_field_context_ = GF2EContext(base_field_poly());
+    binary_field_context_ = GF2EContext(binary_field_poly());
 }
 
 const GF2X& FieldConverter::binary_field_poly() {

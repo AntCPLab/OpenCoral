@@ -142,6 +142,7 @@ NTL::mat_GF2 combined_b2c_mat_;
 
 // Using GF2E::init frequently is very expensive, so we should save the context here.
 NTL::GF2EContext base_field_context_;
+NTL::GF2EContext binary_field_context_;
 
 public:
 FieldConverter(long binary_field_deg, long base_field_deg, long extension_deg, NTL::GF2X prespecified_base_field_poly=NTL::GF2X(0));
