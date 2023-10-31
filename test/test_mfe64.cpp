@@ -508,39 +508,50 @@ void benchmark_rmfe64_then_mfe64() {
 
     int n = 100000;
     for (int i = 0; i < n; i++) {
-        vec_GF2 a = random_vec_GF2(rmfe->k()), b = random_vec_GF2(rmfe->k());
-        acc_time_log("RMFE encode (12 --> 48)");
-        GF2X enc_a = rmfe->encode(a);
-        GF2X enc_b = rmfe->encode(b);
-        acc_time_log("RMFE encode (12 --> 48)");
+        {
+            vec_GF2 a = random_vec_GF2(rmfe->k()), b = random_vec_GF2(rmfe->k());
+            acc_time_log("RMFE encode (12 --> 48)");
+            GF2X enc_a = rmfe->encode(a);
+            GF2X enc_b = rmfe->encode(b);
+            acc_time_log("RMFE encode (12 --> 48)");
 
-        acc_time_log("MFE encode (48 --> 225)");
-        vec_GF2 enc_enc_a = mfe->encode(enc_a);
-        vec_GF2 enc_enc_b = mfe->encode(enc_b);
-        acc_time_log("MFE encode (48 --> 225)");
+            GF2X enc_c = MulMod(enc_a, enc_b, rmfe->ex_field_mod());
+            acc_time_log("RMFE decode (48 --> 12)");
+            vec_GF2 c = rmfe->decode(enc_c);
+            acc_time_log("RMFE decode (48 --> 12)");
 
-        vec_GF2 enc_enc_c({}, enc_enc_a.length());
-        for (int i = 0; i < enc_enc_a.length(); i++) {
-            enc_enc_c[i] = enc_enc_a[i] * enc_enc_b[i];
+            vec_GF2 c_({}, a.length());
+            for (int i = 0; i < a.length(); i++) {
+                c_[i] = a[i] * b[i];
+            }
+
+            assert(c_ == c);
+
+            acc_time_log("RMFE preimage (12 --> 48)");
+            GF2X r = rmfe->random_preimage(c);
+            acc_time_log("RMFE preimage (12 --> 48)");
         }
 
-        acc_time_log("MFE decode (225 --> 48)");
-        GF2X enc_c = mfe->decode(enc_enc_c);
-        acc_time_log("MFE decode (225 --> 48)");
-        acc_time_log("RMFE decode (48 --> 12)");
-        vec_GF2 c = rmfe->decode(enc_c);
-        acc_time_log("RMFE decode (48 --> 12)");
+        {
+            GF2X a = random_GF2X(mfe->m()), b = random_GF2X(mfe->m());
+            acc_time_log("MFE encode (48 --> 225)");
+            vec_GF2 enc_a = mfe->encode(a);
+            vec_GF2 enc_b = mfe->encode(b);
+            acc_time_log("MFE encode (48 --> 225)");
 
-        vec_GF2 c_({}, a.length());
-        for (int i = 0; i < a.length(); i++) {
-            c_[i] = a[i] * b[i];
+            vec_GF2 enc_c({}, enc_a.length());
+            for (int i = 0; i < enc_a.length(); i++) {
+                enc_c[i] = enc_a[i] * enc_b[i];
+            }
+
+            acc_time_log("MFE decode (225 --> 48)");
+            GF2X c = mfe->decode(enc_c);
+            acc_time_log("MFE decode (225 --> 48)");
+
+            GF2X c_ = MulMod(a, b, mfe->ex_field_mod());
+
+            assert(c_ == c);
         }
-
-        assert(c_ == c);
-
-        acc_time_log("RMFE preimage (12 --> 48)");
-        GF2X r = rmfe->random_preimage(c);
-        acc_time_log("RMFE preimage (12 --> 48)");
     }
 
     print_profiling();

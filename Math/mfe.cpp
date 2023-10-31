@@ -711,16 +711,22 @@ void CompositeGf2MFE::encode(NTL::vec_GF2& h, const NTL::GF2X& g) {
     }
 
     GF2E g_ = to_GF2E(g, converter_->binary_field_poly());
+    acc_time_log("MFE b2c " + to_string(t()) + "," + to_string(m()));
     GF2EX g_comp = converter_->binary_to_composite(g_);
+    acc_time_log("MFE b2c " + to_string(t()) + "," + to_string(m()));
 
+    acc_time_log("MFE 2 encode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
     vec_GF2E y = mfe2_->encode(g_comp);
+    acc_time_log("MFE 2 encode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
 
+    acc_time_log("MFE 1 encode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
     h.SetLength(t());
     for (int i = 0; i < y.length(); i++) {
         vec_GF2 yi = mfe1_->encode(rep(y.at(i)));
         for (int j = 0; j < yi.length(); j++)
             h.at(i * mfe1_->t() + j) = yi.at(j);
     }
+    acc_time_log("MFE 1 encode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
 
     if (use_cache_) {
         if (use_encode_table_) {
@@ -745,19 +751,11 @@ void CompositeGf2MFE::decode(NTL::GF2X& g, const NTL::vec_GF2& h) {
     }
 
     GF2EPush push;
-    // GF2E::init(converter_->base_field_poly());
     base_field_context_.restore();
     vec_GF2E y({}, mfe2_->t());
 
     acc_time_log("MFE 1 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
     for (int i = 0; i < y.length(); i++) {
-        
-        // vec_GF2 yi({}, mfe1_->t());
-        // for (int j = 0; j < yi.length(); j++)
-        //     yi.at(j) = h.at(i * mfe1_->t() + j);
-        // GF2X yi_dec = mfe1_->decode(yi);
-        // y.at(i) = to_GF2E(yi_dec, converter_->base_field_poly());
-
         vec_GF2 yi({}, mfe1_->t());
         auto h_it = h.begin() + i*mfe1_->t();
         auto yi_it = yi.begin();
