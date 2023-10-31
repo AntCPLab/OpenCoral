@@ -587,11 +587,9 @@ gf2x64 CompositeGf2MFE64::decode(vec_gf2_64 h) {
         }
     }
 
-    acc_time_log("MFE decode prep");
     NTL::GF2EPush push;
     base_field_context_.restore();
     vec_gf2e y(mfe2_->t());
-    acc_time_log("MFE decode prep");
 
     acc_time_log("CompositeGf2MFE64 mfe1 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
     uint64_t mask = (1 << mfe1_->t()) - 1;
@@ -607,7 +605,6 @@ gf2x64 CompositeGf2MFE64::decode(vec_gf2_64 h) {
     gf2e g = converter_->composite_to_binary(g_comp);
     // acc_time_log("MFE c2b " + to_string(t()) + "," + to_string(m()));
 
-    acc_time_log("MFE cache update");
     if (use_cache_ && use_decode_table_) {
         decode_table_[h] = g;
         decode_table_cached_[h] = true;
@@ -615,7 +612,6 @@ gf2x64 CompositeGf2MFE64::decode(vec_gf2_64 h) {
     if (use_cache_ && use_decode_map_) {
         decode_map_.insert(h, g);
     }
-    acc_time_log("MFE cache update");
     return g;
 }
 
