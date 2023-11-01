@@ -9,7 +9,6 @@
 
 // [zico] need to update
 #define NO_SECURITY_CHECK
-#define VERBOSE_DEBUG_PRINT
 
 #include "Protocols/ProtocolSet.h"
 #include "Machines/Coral.hpp"
@@ -71,16 +70,16 @@ void run(char** argv)
     cout << "Online options: batch_size = " << OnlineOptions::singleton.batch_size << endl;
 
     int dl = T::bit_type::default_length;
-    int n_bits = 16;
+
+    perf_log("edabit", P.total_comm().sent);
+    edabitpack<T> eb = prep.get_edabitpack_no_count(false, 64);
+    perf_log("edabit", P.total_comm().sent);
 
     cout << endl << "LOOSE: " << endl;
-    print_total_comm(P, "Before gen");
-    edabitpack<T> eb = prep.get_edabitpack_no_count(false, 64);
-    print_total_comm(P, "After gen");
     reveal(&P, eb, "loose eb");
 
-    // cout << endl << "STRICT: " << endl;
     // edabitpack<T> eb2 = prep.get_edabitpack_no_count(true, 64);
+    // cout << endl << "STRICT: " << endl;
     // reveal(&P, eb2, "strict eb");
 
     set.check();

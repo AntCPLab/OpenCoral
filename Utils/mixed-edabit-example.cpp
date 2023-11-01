@@ -7,8 +7,6 @@
  * If indeed necessary, can refer to `buffer_edabits_from_personal` in `Spdz2kPrep.hpp` for how it uses "GC/BitAdder.h".
  */
 
-#define VERBOSE_DEBUG_PRINT
-
 #include "Protocols/ProtocolSet.h"
 
 #include "Machines/SPDZ.hpp"
@@ -17,6 +15,7 @@
 // #include "Machines/Rep.hpp"
 // #include "Machines/Rep4.hpp"
 #include "Machines/Atlas.hpp"
+#include "Tools/performance.h"
 
 template<class T>
 void run(char** argv);
@@ -81,9 +80,10 @@ void run(char** argv)
 
     int n_bits = 64;
     edabit<T> eb;
-    print_total_comm(P, "Before gen");
+    
+    perf_log("edabit", P.total_comm().sent);
     prep.get_edabit_no_count(false, n_bits, eb);
-    print_total_comm(P, "After gen");
+    perf_log("edabit", P.total_comm().sent);
 
     bit_output.init_open(P, n_bits);
     for (int i = 0; i < n_bits; i++) {

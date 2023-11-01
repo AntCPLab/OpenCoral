@@ -84,7 +84,6 @@ void gf2e_precomp::generate_table(const NTL::GF2X& poly_mod) {
     NTL::GF2EPush push;
     NTL::GF2E::init(poly_mod);
     long idx = poly_mod.xrep[0];
-    cout << "poly_mod: " << poly_mod << endl;
     size_t n = 1 << deg(poly_mod);
     vector<vector<gf2e>>& t_mul = mul_table_;
     vector<gf2e>& t_inv = inv_table_;

@@ -54,6 +54,33 @@ inline double get_acc_time_log(const std::string& tag) {
     return std::chrono::duration_cast<std::chrono::milliseconds>(profiling[tag]).count() * 1.0;
 }
 
+inline size_t comm_log(const std::string& tag, size_t comm, bool print=true) {
+    static std::stack<std::pair<std::string, size_t>> sentinel;
+    
+    if (sentinel.empty() || sentinel.top().first != tag) {
+        auto start = comm;
+        sentinel.push(make_pair(tag, start));
+        return 0;
+    }
+
+    else {
+        auto start = sentinel.top().second;
+        auto end = comm;
+        if (print) {
+            std::cout << "[Comm] " << tag << ": " 
+                << (end-start) * 1.0 / 1e6
+                << " MB" << std::endl;
+        }
+        sentinel.pop();
+        return end-start;
+    }
+}
+
+inline void perf_log(const std::string& tag, size_t comm) {
+    time_log(tag);
+    comm_log(tag, comm);
+}
+
 class ThreadPerformance {
 public:
     std::string tag;
