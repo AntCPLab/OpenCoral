@@ -1021,13 +1021,11 @@ GF2E FieldConverter::composite_to_binary(const GF2EX& x) {
 }
 
 void FieldConverter::raw_binary_to_composite(vec_GF2& y, const vec_GF2& x) {
-    acc_time_log("raw_binary_to_composite");
     if (x.length() != k_) {
         LogicError("FielConverter b2c: Input vector has invalid length");
     }
 
     mul(y, combined_b2c_mat_, x);
-    acc_time_log("raw_binary_to_composite");
 }
 
 vec_GF2 FieldConverter::raw_binary_to_composite(const vec_GF2& x) {

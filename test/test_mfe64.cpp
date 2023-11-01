@@ -188,14 +188,6 @@ void test_double_composite_gf2_mfe64(long m1, long m2, long m3) {
     mfe->print_config();
 
     GF2X a = random_GF2X(mfe->m()), b = random_GF2X(mfe->m());
-    vector<int> tmpa = {0,0,0,1,1,1,1,1,0,1,0,1,1,1,1,1,0,0,1,0,0,0,1,1,1,0,0,0,0,0,1,0,1,1,0,0,0,1,1,1,1,1,0,0,0,0,0,1};
-    vector<int> tmpb = {0,0,1,0,1,0,0,0,0,0,0,0,1,1,0,1,0,0,0,0,0,1,0,1,0,1,1,0,0,0,1,1,0,0,1,0,0,1,1,1,0,1,1,0,0,0,0,1};
-    a.SetLength(tmpa.size());
-    b.SetLength(tmpb.size());
-    for (size_t i = 0; i < tmpa.size(); i++)
-        a[i] = tmpa[i];
-    for (size_t i = 0; i < tmpb.size(); i++)
-        b[i] = tmpb[i];
     vec_GF2 enc_a = mfe->encode(a), enc_b = mfe->encode(b);
 
     vec_GF2 enc_c({}, enc_a.length());

@@ -217,7 +217,6 @@ inline NTL::vec_GF2 vec_gf2_64_to_ntl_vec_GF2(vec_gf2_64 x, long target_len) {
 }
 
 inline gf2ex vec_gf2_64_to_gf2ex(vec_gf2_64 x, int x_len) {
-    acc_time_log("vec_gf2_64_to_gf2ex");
     long k = NTL::GF2E::degree();
     if (x_len % k != 0)
         NTL::LogicError("Input vector length is not a multiple of base field polynomial degree.");
@@ -227,7 +226,6 @@ inline gf2ex vec_gf2_64_to_gf2ex(vec_gf2_64 x, int x_len) {
     for (size_t i = 0; i < y.size(); i++) {
         y[i] = (x >> (i * k)) & mask;
     }
-    acc_time_log("vec_gf2_64_to_gf2ex");
     return y;
 }
 
@@ -301,16 +299,28 @@ inline vec_gf2e random_vec_gf2e(int n) {
     return res;
 }
 
+inline void update_ntl_word_vec_rep(NTL::WordVector& rep, int& rep_idx, int& word_bit_idx, 
+    vec_gf2_64 x, long x_len) {
+    if (word_bit_idx + x_len < 64) {
+        rep[rep_idx] ^= x << word_bit_idx;
+        word_bit_idx += x_len;
+    }
+    else if (word_bit_idx + x_len == 64) {
+        rep[rep_idx] ^= x << word_bit_idx;
+        rep_idx++;
+        word_bit_idx = 0;
+    }
+    else {
+        rep[rep_idx] ^= x << word_bit_idx;
+        rep_idx++;
+        rep[rep_idx] = x >> (64 - word_bit_idx);
+        word_bit_idx = word_bit_idx + x_len - 64;
+    }
+}
+
 void mul(vec_gf2_64& x, const mat_gf2_64& A, const vec_gf2_64& b);
 
 class gf2e_precomp {
-    // std::unordered_map<gf2x64, std::vector<std::vector<gf2e>>> mul_table_;
-    // std::unordered_map<gf2x64, std::vector<std::vector<gf2e>>> add_table_;
-    // std::unordered_map<gf2x64, std::vector<gf2e>> inv_table_;
-    // std::unordered_map<gf2x64, std::vector<std::vector<long>>> pow_table_;
-    // static std::mutex mtx_;
-
-    // std::stack<const std::vector<std::vector<gf2e>>*> mul_table_ptr_stack_;
 
     std::vector<std::vector<gf2e>> mul_table_;
     std::vector<gf2e> inv_table_;
@@ -325,14 +335,6 @@ public:
 
     void generate_table(const NTL::GF2X& poly_mod);
 
-    // void push_poly_mod(const NTL::GF2X& poly_mod) {
-    //     mul_table_ptr_stack_.push(&get_mul_table(poly_mod));
-    // }
-
-    // void pop_poly_mod() {
-    //     mul_table_ptr_stack_.pop();
-    // }
-
     const std::vector<std::vector<gf2e>>& get_mul_table() {
         return mul_table_;
     }
@@ -342,14 +344,6 @@ public:
     const std::vector<std::vector<long>>& get_pow_table() {
         return pow_table_;
     }
-
-    // const std::vector<std::vector<gf2e>>& get_current_mul_table() {
-    //     if (mul_table_ptr_stack_.empty()) {
-    //         return get_mul_table(NTL::GF2E::modulus().f);
-    //     }
-    //     else
-    //         return *mul_table_ptr_stack_.top(); 
-    // }
 
     gf2e mul(gf2e a, gf2e b) {
         return mul_table_[a][b];
@@ -367,8 +361,6 @@ public:
             NTL::LogicError("Inverse of 0 is undefined");
         return inv_table_[a];
     }
-
-    // gf2e power(gf2e a, long n);
 
     gf2e power(gf2e a, long n) {
         if (n > gf2e_precomp::MAX_POWER)
