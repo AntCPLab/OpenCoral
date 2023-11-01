@@ -32,7 +32,6 @@ void mul(vec_GF2E& x, const vec_GF2E& a, const vec_GF2E& b) {
 }
 
 void mul_precomp_aux(vec_GF2E& x, const mat_GF2E& A, const vec_GF2E& b) {
-    acc_time_log("mul_precomp_aux");
     long n = A.NumRows();  
     long l = A.NumCols();  
     
@@ -56,7 +55,6 @@ void mul_precomp_aux(vec_GF2E& x, const mat_GF2E& A, const vec_GF2E& b) {
         // [zico] Without the following assignment, it drops from 75 ms to 14 ms. Can we optimize this?
         x(i) = *acc;
     }
-    acc_time_log("mul_precomp_aux");
 }
 
 
@@ -711,22 +709,16 @@ void CompositeGf2MFE::encode(NTL::vec_GF2& h, const NTL::GF2X& g) {
     }
 
     GF2E g_ = to_GF2E(g, converter_->binary_field_poly());
-    acc_time_log("MFE b2c " + to_string(t()) + "," + to_string(m()));
     GF2EX g_comp = converter_->binary_to_composite(g_);
-    acc_time_log("MFE b2c " + to_string(t()) + "," + to_string(m()));
 
-    acc_time_log("MFE 2 encode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
     vec_GF2E y = mfe2_->encode(g_comp);
-    acc_time_log("MFE 2 encode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
 
-    acc_time_log("MFE 1 encode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
     h.SetLength(t());
     for (int i = 0; i < y.length(); i++) {
         vec_GF2 yi = mfe1_->encode(rep(y.at(i)));
         for (int j = 0; j < yi.length(); j++)
             h.at(i * mfe1_->t() + j) = yi.at(j);
     }
-    acc_time_log("MFE 1 encode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
 
     if (use_cache_) {
         if (use_encode_table_) {
@@ -754,7 +746,6 @@ void CompositeGf2MFE::decode(NTL::GF2X& g, const NTL::vec_GF2& h) {
     base_field_context_.restore();
     vec_GF2E y({}, mfe2_->t());
 
-    acc_time_log("MFE 1 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
     for (int i = 0; i < y.length(); i++) {
         vec_GF2 yi({}, mfe1_->t());
         auto h_it = h.begin() + i*mfe1_->t();
@@ -763,13 +754,8 @@ void CompositeGf2MFE::decode(NTL::GF2X& g, const NTL::vec_GF2& h) {
             *yi_it = *h_it;
         mfe1_->decode(y.at(i)._GF2E__rep, yi);
     }
-    acc_time_log("MFE 1 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
-    acc_time_log("MFE 2 decode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
     GF2EX g_comp = mfe2_->decode(y);
-    acc_time_log("MFE 2 decode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
-    acc_time_log("MFE c2b " + to_string(t()) + "," + to_string(m()));
     g = rep(converter_->composite_to_binary(g_comp));
-    acc_time_log("MFE c2b " + to_string(t()) + "," + to_string(m()));
     assert(deg(g) < m());
 
     if (use_cache_ && use_decode_table_) {
@@ -818,7 +804,6 @@ vec_GF2 to_vec_GF2(const GF2E& x, long target_len) {
 
 
 GF2EX to_GF2EX(const vec_GF2& x) {
-    acc_time_log("to_GF2EX");
     long k = GF2E::degree();
     if (x.length() % k != 0)
         LogicError("Input vector length is not a multiple of base field polynomial degree.");
@@ -832,7 +817,6 @@ GF2EX to_GF2EX(const vec_GF2& x) {
         y[i] = to_GF2E(to_GF2X(tmp));
     }
     GF2EX res = to_GF2EX(y);
-    acc_time_log("to_GF2EX");
     return res;
 }
 
@@ -1000,13 +984,11 @@ const GF2EX& FieldConverter::composite_field_poly() {
 }
 
 void FieldConverter::raw_composite_to_binary(vec_GF2& y, const vec_GF2& x) {
-    acc_time_log("raw_composite_to_binary");
     if (x.length() != k_) {
         LogicError("FieldConverter c2b: Input vector has invalid length");
     }
 
     mul(y, combined_c2b_mat_, x);
-    acc_time_log("raw_composite_to_binary");
 }
 
 vec_GF2 FieldConverter::raw_composite_to_binary(const vec_GF2& x) {
@@ -1110,7 +1092,6 @@ void BasicRMFE::encode(GF2EX& g, const vec_GF2E& h) {
 }
 
 void BasicRMFE::decode(vec_GF2E& h, const GF2EX& g) {
-    acc_time_log("BasicRMFE decode " + to_string(k_) + ", " + to_string(m_));
     GF2EPush push;
     // GF2E::init(base_field_poly_mod_);
     base_field_context_.restore();
@@ -1126,7 +1107,6 @@ void BasicRMFE::decode(vec_GF2E& h, const GF2EX& g) {
         else
             ::psi(h, g, basis_, beta_);
     }
-    acc_time_log("BasicRMFE decode " + to_string(k_) + ", " + to_string(m_));
 }
 
 void BasicRMFE::random_preimage(GF2EX& h, const vec_GF2E& g) {
@@ -1304,15 +1284,10 @@ void CompositeGf2RMFE::decode(NTL::vec_GF2& h, const NTL::GF2X& g) {
     }
 
     GF2E g_ = to_GF2E(g, converter_->binary_field_poly());
-    acc_time_log("RMFE b2c " + to_string(k()) + "," + to_string(m()));
     GF2EX g_comp = converter_->binary_to_composite(g_);
-    acc_time_log("RMFE b2c " + to_string(k()) + "," + to_string(m()));
 
-    acc_time_log("RMFE 2 decode " + to_string(rmfe2_->k()) + "," + to_string(rmfe2_->m()));
     vec_GF2E y = rmfe2_->decode(g_comp);
-    acc_time_log("RMFE 2 decode " + to_string(rmfe2_->k()) + "," + to_string(rmfe2_->m()));
 
-    acc_time_log("RMFE 1 decode " + to_string(rmfe1_->k()) + "," + to_string(rmfe1_->m()));
     h.SetLength(k());
     // for (int i = 0; i < y.length(); i++) {
     //     vec_GF2 yi = rmfe1_->decode(rep(y.at(i)));
@@ -1327,7 +1302,6 @@ void CompositeGf2RMFE::decode(NTL::vec_GF2& h, const NTL::GF2X& g) {
         for (; yi_it != yi.end(); yi_it++, h_it++)
             *h_it = *yi_it;
     }
-    acc_time_log("RMFE 1 decode " + to_string(rmfe1_->k()) + "," + to_string(rmfe1_->m()));
 
     if (use_cache_)
         decode_map_.insert(idx, h);
