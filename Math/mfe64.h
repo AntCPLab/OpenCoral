@@ -21,6 +21,7 @@
 #define USE_OPTIMIZED_MAPPING 1
 
 typedef uint64_t vec_gf2_64;
+typedef vector<vec_gf2_64> mat_gf2_64;
 typedef uint64_t gf2x64;
 typedef uint64_t gf2e;
 typedef vector<gf2e> vec_gf2e;
@@ -215,6 +216,35 @@ inline NTL::vec_GF2 vec_gf2_64_to_ntl_vec_GF2(vec_gf2_64 x, long target_len) {
     return y;
 }
 
+inline gf2ex vec_gf2_64_to_gf2ex(vec_gf2_64 x, int x_len) {
+    acc_time_log("vec_gf2_64_to_gf2ex");
+    long k = NTL::GF2E::degree();
+    if (x_len % k != 0)
+        NTL::LogicError("Input vector length is not a multiple of base field polynomial degree.");
+
+    gf2ex y(x_len / k);
+    uint64_t mask = (1 << k) - 1;
+    for (size_t i = 0; i < y.size(); i++) {
+        y[i] = (x >> (i * k)) & mask;
+    }
+    acc_time_log("vec_gf2_64_to_gf2ex");
+    return y;
+}
+
+/**
+ * Unroll the gf2ex and put all coefficients in a vector of GF2.
+*/
+inline vec_gf2_64 gf2ex_to_vec_gf2_64(gf2ex x, long target_len) {
+    long d = NTL::GF2E::degree();
+    if (target_len % d != 0 || (long)x.size() * d > target_len || target_len > 64)
+        NTL::LogicError("Invalid target length");
+    vec_gf2_64 y = 0;
+    for (size_t i = 0; i < x.size(); i++) {
+        y ^= (x[i] << (i * d));
+    }
+    return y;
+}
+
 inline void lift(gf2ex& y, const NTL::GF2X& x) {
     long d = deg(x);
     y.resize(d + 1);
@@ -270,6 +300,8 @@ inline vec_gf2e random_vec_gf2e(int n) {
     ntl_vec_GF2E_to_vec_gf2e(res, NTL::random_vec_GF2E(n));
     return res;
 }
+
+void mul(vec_gf2_64& x, const mat_gf2_64& A, const vec_gf2_64& b);
 
 class gf2e_precomp {
     // std::unordered_map<gf2x64, std::vector<std::vector<gf2e>>> mul_table_;
@@ -407,9 +439,12 @@ public:
 
 
 class FieldConverter64 : public FieldConverter {
+private: 
+mat_gf2_64 combined_c2b_mat_64_;
+mat_gf2_64 combined_b2c_mat_64_;
 public:
-FieldConverter64(long binary_field_deg, long base_field_deg, long extension_deg, NTL::GF2X prespecified_base_field_poly=NTL::GF2X(0))
-: FieldConverter(binary_field_deg, base_field_deg, extension_deg, prespecified_base_field_poly) {}
+FieldConverter64(long binary_field_deg, long base_field_deg, 
+    long extension_deg, NTL::GF2X prespecified_base_field_poly=NTL::GF2X(0));
 
 gf2ex binary_to_composite(gf2e x);
 gf2e composite_to_binary(gf2ex x);

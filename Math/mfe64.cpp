@@ -58,6 +58,20 @@ void enumerate_gf2e(vec_gf2e& x, size_t start, size_t n) {
     }
 }
 
+long count_ones(uint64_t x) {
+    int count;
+    for (count=0; x; count++)
+        x &= x - 1;
+    return count;
+}
+
+void mul(vec_gf2_64& x, const mat_gf2_64& A, const vec_gf2_64& b) {
+    x = 0;
+    for (size_t i = 0; i < A.size(); i++) {
+        x ^= (count_ones(A[i] & b) & 1) << i;
+    }
+}
+
 
 // std::unordered_map<unsigned long, std::vector<std::vector<gf2e>>> gf2e_precomp::mul_table_;
 // std::unordered_map<unsigned long, std::vector<std::vector<gf2e>>> gf2e_precomp::add_table_;
@@ -591,19 +605,13 @@ gf2x64 CompositeGf2MFE64::decode(vec_gf2_64 h) {
     base_field_context_.restore();
     vec_gf2e y(mfe2_->t());
 
-    acc_time_log("CompositeGf2MFE64 mfe1 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
     uint64_t mask = (1 << mfe1_->t()) - 1;
     for (size_t i = 0; i < y.size(); i++) {
         vec_gf2_64 yi = (h >> (i * mfe1_->t())) & mask;
         y.at(i) = mfe1_->decode(yi);
     }
-    acc_time_log("CompositeGf2MFE64 mfe1 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
-    // acc_time_log("MFE 2 decode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
     gf2ex g_comp = mfe2_->decode(y);
-    // acc_time_log("MFE 2 decode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
-    // acc_time_log("MFE c2b " + to_string(t()) + "," + to_string(m()));
     gf2e g = converter_->composite_to_binary(g_comp);
-    // acc_time_log("MFE c2b " + to_string(t()) + "," + to_string(m()));
 
     if (use_cache_ && use_decode_table_) {
         decode_table_[h] = g;
@@ -668,10 +676,15 @@ NTL::vec_GF2 CompositeGf2MFEInternal64::encode(gf2x64 g) {
         }
     }
 
+    acc_time_log("MFE encode b2c " + to_string(t()) + "," + to_string(m()));
     gf2ex g_comp = converter_->binary_to_composite(g);
+    acc_time_log("MFE encode b2c " + to_string(t()) + "," + to_string(m()));
 
+    acc_time_log("MFE 2 encode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
     vec_gf2e y = mfe2_->encode(g_comp);
+    acc_time_log("MFE 2 encode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
 
+    acc_time_log("MFE 1 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
     NTL::vec_GF2 h({}, t());
     auto h_it = h.begin();
     for (size_t i = 0; i < y.size(); i++) {
@@ -679,6 +692,7 @@ NTL::vec_GF2 CompositeGf2MFEInternal64::encode(gf2x64 g) {
         for (int j = 0; j < mfe1_->t(); j++, h_it++)
             *h_it = (yi >> j) & 1;
     }
+    acc_time_log("MFE 1 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
 
     if (use_cache_) {
         if (use_encode_table_) {
@@ -703,13 +717,11 @@ gf2x64 CompositeGf2MFEInternal64::decode(const NTL::vec_GF2& h) {
     //     }
     // }
 
-    acc_time_log("MFE decode prep");
     NTL::GF2EPush push;
     base_field_context_.restore();
     vec_gf2e y(mfe2_->t());
-    acc_time_log("MFE decode prep");
 
-    acc_time_log("CompositeGf2MFE64 mfe1 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
+    acc_time_log("MFE 1 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
     for (size_t i = 0; i < y.size(); i++) {
         vec_gf2_64 yi = 0;
         auto h_it = h.begin() + i*mfe1_->t();
@@ -718,13 +730,13 @@ gf2x64 CompositeGf2MFEInternal64::decode(const NTL::vec_GF2& h) {
 
         y.at(i) = mfe1_->decode(yi);
     }
-    acc_time_log("CompositeGf2MFE64 mfe1 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
-    // acc_time_log("MFE 2 decode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
+    acc_time_log("MFE 1 decode " + to_string(mfe1_->t()) + "," + to_string(mfe1_->m()));
+    acc_time_log("MFE 2 decode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
     gf2ex g_comp = mfe2_->decode(y);
-    // acc_time_log("MFE 2 decode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
-    // acc_time_log("MFE c2b " + to_string(t()) + "," + to_string(m()));
+    acc_time_log("MFE 2 decode " + to_string(mfe2_->t()) + "," + to_string(mfe2_->m()));
+    acc_time_log("MFE decode c2b " + to_string(t()) + "," + to_string(m()));
     gf2e g = converter_->composite_to_binary(g_comp);
-    // acc_time_log("MFE c2b " + to_string(t()) + "," + to_string(m()));
+    acc_time_log("MFE decode c2b " + to_string(t()) + "," + to_string(m()));
 
     // acc_time_log("MFE cache update");
     // if (use_cache_ && use_decode_table_) {
@@ -1161,21 +1173,48 @@ gf2x64 CompositeGf2RMFE64::random_preimage(vec_gf2_64 h) {
     return g;
 }
 
-gf2ex FieldConverter64::binary_to_composite(gf2e x) {
-    NTL::vec_GF2 b;
-    {
-        NTL::GF2EPush push;
-        binary_field_context_.restore();
-        b = raw_binary_to_composite(gf2e_to_ntl_vec_GF2(x, k_));
+FieldConverter64::FieldConverter64(long binary_field_deg, long base_field_deg, long extension_deg, NTL::GF2X prespecified_base_field_poly)
+: FieldConverter(binary_field_deg, base_field_deg, extension_deg, prespecified_base_field_poly) {
+    combined_c2b_mat_64_.resize(combined_c2b_mat_.NumRows());
+    for (long i = 0; i < combined_c2b_mat_.NumRows(); i++) {
+        combined_c2b_mat_64_[i] = ntl_vec_GF2_to_vec_gf2_64(combined_c2b_mat_[i]);
     }
+    combined_b2c_mat_64_.resize(combined_b2c_mat_.NumRows());
+    for (long i = 0; i < combined_b2c_mat_.NumRows(); i++) {
+        combined_b2c_mat_64_[i] = ntl_vec_GF2_to_vec_gf2_64(combined_b2c_mat_[i]);
+    }
+}
+
+// gf2ex FieldConverter64::binary_to_composite(gf2e x) {
+//     NTL::vec_GF2 b;
+//     {
+//         NTL::GF2EPush push;
+//         binary_field_context_.restore();
+//         b = raw_binary_to_composite(gf2e_to_ntl_vec_GF2(x, k_));
+//     }
+//     NTL::GF2EPush push;
+//     base_field_context_.restore();
+//     return to_gf2ex(b);
+// }
+
+// gf2e FieldConverter64::composite_to_binary(gf2ex x) {
+//     NTL::vec_GF2 b = raw_composite_to_binary(gf2ex_to_ntl_vec_GF2(x, k_));
+//     return ntl_vec_GF2_to_gf2e(b);
+// }
+
+gf2ex FieldConverter64::binary_to_composite(gf2e x) {
+    vec_gf2_64 b;
+    mul(b, combined_b2c_mat_64_, x);
     NTL::GF2EPush push;
     base_field_context_.restore();
-    return to_gf2ex(b);
+    return vec_gf2_64_to_gf2ex(b, k_);
 }
 
 gf2e FieldConverter64::composite_to_binary(gf2ex x) {
-    NTL::vec_GF2 b = raw_composite_to_binary(gf2ex_to_ntl_vec_GF2(x, k_));
-    return ntl_vec_GF2_to_gf2e(b);
+    vec_gf2_64 b = gf2ex_to_vec_gf2_64(x, k_);
+    vec_gf2_64 y;
+    mul(y, combined_c2b_mat_64_, b);
+    return y;
 }
 
 std::unique_ptr<Gf2RMFE> get_composite_gf2_rmfe64_type2(long k1, long k2) {
