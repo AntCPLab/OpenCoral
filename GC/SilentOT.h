@@ -11,10 +11,12 @@
 #include <stdexcept>
 #include <atomic>
 
+#include "Tools/performance.h"
+
     
 template <typename IO>
 class SilentOT {
- public:
+public:
   static atomic<int> n_instances;
   emp::FerretCOT<IO>* ferret;
   emp::MITCCRH<8> mitccrh;
@@ -23,9 +25,22 @@ class SilentOT {
            bool run_setup = true, std::string pre_file = "", bool warm_up = true) {
     ferret = new emp::FerretCOT<IO>(party, threads, ios, malicious, run_setup, emp::ferret_b13, pre_file);
     if (warm_up) {
-      emp::block tmp;
-      ferret->rcot(&tmp, 1);
+        emp::block tmp;
+        ferret->rcot(&tmp, 1);
     }
+    if (party == emp::ALICE) {
+        emp::block s;
+        ferret->prg.random_block(&s, 1);
+        ferret->io->send_block(&s, 1);
+        ferret->mitccrh.setS(s);
+        ferret->io->flush();
+    }
+    else {
+        emp::block s;
+        ferret->io->recv_block(&s, 1);
+        ferret->mitccrh.setS(s);
+    }
+
     n_instances++;
   }
 
@@ -38,12 +53,6 @@ class SilentOT {
   void send_ot_cxm_cc(emp::block* data0, const emp::block* corr, int64_t length) {
     emp::block* rcm_data = new emp::block[length];
     send_ot_rcm_cc(rcm_data, length);
-
-    emp::block s;
-    ferret->prg.random_block(&s, 1);
-    ferret->io->send_block(&s, 1);
-    ferret->mitccrh.setS(s);
-    ferret->io->flush();
 
     emp::block pad[2 * emp::ot_bsize];
     uint32_t corrected_bsize;
@@ -72,12 +81,8 @@ class SilentOT {
   // Receiver chooses a choice bit 'b', and
   // receives 'x' if b = 0, and 'x XOR corr' if b = 1
   void recv_ot_cxm_cc(emp::block* data, const bool* b, int64_t length) {
-
     emp::block* rcm_data = new emp::block[length];
     recv_ot_rcm_cc(rcm_data, b, length);
-    emp::block s;
-    ferret->io->recv_block(&s, 1);
-    ferret->mitccrh.setS(s);
 
     emp::block pad[emp::ot_bsize];
 
@@ -99,7 +104,6 @@ class SilentOT {
           data[j] = pad[j - i];
       }
     }
-
     delete[] rcm_data;
   }
 
@@ -107,12 +111,6 @@ class SilentOT {
   void send_ot_cm_cc(const emp::block* data0, const emp::block* data1, int64_t length) {
     emp::block* data = new emp::block[length];
     send_ot_rcm_cc(data, length);
-
-    emp::block s;
-    ferret->prg.random_block(&s, 1);
-    ferret->io->send_block(&s, 1);
-    ferret->mitccrh.setS(s);
-    ferret->io->flush();
 
     emp::block pad[2 * emp::ot_bsize];
     for (int64_t i = 0; i < length; i += emp::ot_bsize) {
@@ -137,11 +135,6 @@ class SilentOT {
   // chosen message, chosen choice
   void recv_ot_cm_cc(emp::block* data, const bool* r, int64_t length) {
     recv_ot_rcm_cc(data, r, length);
-
-    emp::block s;
-    ferret->io->recv_block(&s, 1);
-    ferret->mitccrh.setS(s);
-    // ferret->io->flush();
 
     emp::block res[2 * emp::ot_bsize];
     emp::block pad[emp::ot_bsize];
@@ -168,11 +161,6 @@ class SilentOT {
   // random message, chosen choice
   void send_ot_rm_cc(emp::block* data0, emp::block* data1, int64_t length) {
     send_ot_rcm_cc(data0, length);
-    emp::block s;
-    ferret->prg.random_block(&s, 1);
-    ferret->io->send_block(&s, 1);
-    ferret->mitccrh.setS(s);
-    ferret->io->flush();
 
     emp::block pad[emp::ot_bsize * 2];
     for (int64_t i = 0; i < length; i += emp::ot_bsize) {
@@ -191,10 +179,7 @@ class SilentOT {
   // random message, chosen choice
   void recv_ot_rm_cc(emp::block* data, const bool* r, int64_t length) {
     recv_ot_rcm_cc(data, r, length);
-    emp::block s;
-    ferret->io->recv_block(&s, 1);
-    ferret->mitccrh.setS(s);
-    // ferret->io->flush();
+
     emp::block pad[emp::ot_bsize];
     for (int64_t i = 0; i < length; i += emp::ot_bsize) {
 	  std::memcpy(pad, data + i, std::min(emp::ot_bsize, length - i) * sizeof(emp::block));
@@ -206,12 +191,6 @@ class SilentOT {
   // random message, random choice
   void send_ot_rm_rc(emp::block* data0, emp::block* data1, int64_t length) {
     ferret->rcot(data0, length);
-
-    emp::block s;
-    ferret->prg.random_block(&s, 1);
-    ferret->io->send_block(&s, 1);
-    ferret->mitccrh.setS(s);
-    ferret->io->flush();
 
     emp::block pad[emp::ot_bsize * 2];
     for (int64_t i = 0; i < length; i += emp::ot_bsize) {
@@ -234,10 +213,6 @@ class SilentOT {
       r[i] = emp::getLSB(data[i]);
     }
 
-    emp::block s;
-    ferret->io->recv_block(&s, 1);
-    ferret->mitccrh.setS(s);
-    // ferret->io->flush();
     emp::block pad[emp::ot_bsize];
     for (int64_t i = 0; i < length; i += emp::ot_bsize) {
 	  std::memcpy(pad, data + i, std::min(emp::ot_bsize, length - i) * sizeof(emp::block));

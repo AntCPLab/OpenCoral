@@ -15,6 +15,9 @@ public:
     SrcMC* src_mc;
     SrcLivePrep* src_prep;
 
+    GlobalPRNG shared_prng;
+
+
     // RmfeShareConverter(SrcMC* src_mc, SrcLivePrep* src_prep) {
     //     this->src_mc = src_mc;
     //     this->src_prep = src_prep;
@@ -23,7 +26,7 @@ public:
     /**
      * Assuming ShareThread singleton has been set, we take out the MC and prep from there.
     */
-    RmfeShareConverter(Player& P) {
+    RmfeShareConverter(Player& P) : shared_prng(P) {
         GC::ShareThread<T>& thread = GC::ShareThread<T>::s();
         this->src_mc = thread.MC;
         this->src_prep = dynamic_cast<SrcLivePrep*>(&thread.DataF);

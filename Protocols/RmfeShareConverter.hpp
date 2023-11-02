@@ -69,8 +69,6 @@ void RmfeShareConverter<T>::convert(vector<RmfeShare>& rmfe_shares, const vector
             y[i - s] = input.finalize(0) + input.finalize(1);
     }
 
-    GlobalPRNG prng(P);
-
     // Make a random linear combination
     vector<RmfeShare> z_share(s);
     vector<RmfeShare::open_type> z(s);
@@ -79,7 +77,7 @@ void RmfeShareConverter<T>::convert(vector<RmfeShare>& rmfe_shares, const vector
     for(int k = 0; k < s; k++) {
         z_share[k] = q[k];
         for(int j = 0; j < n; j++) {
-            RmfeShare::raw_type b = prng.get<RmfeShare::raw_type>();
+            RmfeShare::raw_type b = shared_prng.get<RmfeShare::raw_type>();
             z_share[k] += y[j] * RmfeShare::open_type(b);
 
             for(int h = 0; h < l; h++) {

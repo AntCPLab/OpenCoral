@@ -25,7 +25,8 @@ template<class T>
 RmfeSharePrep<T>::RmfeSharePrep(DataPositions& usage, int input_player) :
         PersonalPrep<T>(usage, input_player),
         triple_generator(0),
-        tinyot2rmfe(0)
+        tinyot2rmfe(0),
+        shared_prng(0)
 {
     prng.SetSeed((const unsigned char*) "insecure");
 }
@@ -43,6 +44,8 @@ RmfeSharePrep<T>::~RmfeSharePrep()
         delete triple_generator;
     if (tinyot2rmfe)
         delete tinyot2rmfe;
+    if (shared_prng)
+        delete shared_prng;
 }
 
 template<class T>
@@ -68,9 +71,11 @@ void RmfeSharePrep<T>::set_protocol(typename T::Protocol& protocol)
 
     P = protocol.get_player();
 
-    int tinyot_batch_size = triple_generator->nTriplesPerLoop * T::default_length;
+    int tinyot_batch_size = (triple_generator->nTriplesPerLoop + s) * T::default_length;
     tinyot2rmfe = new RmfeShareConverter<TinyOTShare>(*P);
     tinyot2rmfe->get_src_prep()->set_batch_size(tinyot_batch_size);
+
+    shared_prng = new GlobalPRNG(*P);
 }
 
 // template<class T>
@@ -102,7 +107,6 @@ void RmfeSharePrep<T>::buffer_triples() {
     ThreadPerformance perf("Rmfe buffer_triples", this->P->total_comm().sent);
 #endif
 
-    const int s = 40;
     auto n = triple_generator->nTriplesPerLoop + s;
     auto tinyot_prep = tinyot2rmfe->get_src_prep();
 
@@ -150,16 +154,26 @@ void RmfeSharePrep<T>::buffer_triples() {
     }
 
     // Sacrifice
-    GlobalPRNG prng(*P);
-    vector<T> y(s), y_prime(s), z(s), z_prime(s);
-    vector<typename T::open_type> y_open(s), y_prime_open(s), z_open(s), z_prime_open(s);
+    
+    // vector<T> y(s), y_prime(s), z(s), z_prime(s);
+    // vector<typename T::open_type> y_open(s), y_prime_open(s), z_open(s), z_prime_open(s);
+    vector<T> secrets(s * 4);
+    vector<typename T::open_type> opens(s * 4);
+    T *y = secrets.data(), 
+        *y_prime = secrets.data() + s, 
+        *z = secrets.data() + 2*s,
+        *z_prime = secrets.data() + 3*s;
+    typename T::open_type *y_open = opens.data(),
+        *y_prime_open = opens.data() + s,
+        *z_open = opens.data() + 2*s,
+        *z_prime_open = opens.data() + 3*s;
     for(int i = 0; i < s; i++) {
         y[i] = random_a[n - s + i];
         y_prime[i] = rmfe_shares[(n-s+i) * 3];
         z[i] = random_b[n - s + i];
         z_prime[i] = rmfe_shares[(n-s+i) * 3 + 1];
         for (int j = 0; j < n - s; j++) {
-            if (prng.get_bit()) {
+            if (shared_prng->get_bit()) {
                 y[i] += random_a[j];
                 y_prime[i] += rmfe_shares[j*3];
                 z[i] += random_b[j];
@@ -167,10 +181,12 @@ void RmfeSharePrep<T>::buffer_triples() {
             }
         }
     }
-    MC.POpen(y_open, y, *P);
-    MC.POpen(y_prime_open, y_prime, *P);
-    MC.POpen(z_open, z, *P);
-    MC.POpen(z_prime_open, z_prime, *P);
+    // MC.POpen(y_open, y, *P);
+    // MC.POpen(y_prime_open, y_prime, *P);
+    // MC.POpen(z_open, z, *P);
+    // MC.POpen(z_prime_open, z_prime, *P);
+    /* [zico] This way, we use only one open instead of the above 4, saving some network RTTs. */
+    MC.POpen(opens, secrets, *P);
 
     for (int i = 0; i < s; i++) {
         if (T::open_type::tau(y_open[i]) != y_prime_open[i])
@@ -219,11 +235,10 @@ void RmfeSharePrep<T>::buffer_personal_quintuples(size_t batch_size, ThreadQueue
     assert(party.MC != 0);
     auto& MC = party.MC->get_part_MC();
     auto& P = *party.P;
-    GlobalPRNG G(P);
     vector<T> shares;
     for (int i = 0; i < sacri.C; i++)
     {
-        int challenge = G.get_uint(quintuples.size());
+        int challenge = shared_prng->get_uint(quintuples.size());
         for (auto& x : quintuples[challenge])
             shares.push_back(x);
         quintuples.erase(quintuples.begin() + challenge);
@@ -338,12 +353,11 @@ void RmfeSharePrep<T>::buffer_normals() {
     // Step 2: Sacrifice
     vector<T> b(NORMAL_SACRIFICE);
     vector<T> c(NORMAL_SACRIFICE);
-    GlobalPRNG G(P);
     for (int i = 0; i < NORMAL_SACRIFICE; i++) {
         b[i] = randoms[u + i];
         c[i] = normals[u + i];
         for (int j = 0; j < u; j++) {
-            if (G.get_bit()) {
+            if (shared_prng->get_bit()) {
                 b[i] += randoms[j];
                 c[i] += normals[j];
             }

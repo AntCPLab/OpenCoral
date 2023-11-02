@@ -22,13 +22,16 @@ namespace GC
 
 template<class T>
 class RmfeSharePrep : public PersonalPrep<T> {
+    const int s = 40;
 
     typename T::TripleGenerator* triple_generator;
     // typename T::whole_type::TripleGenerator* real_triple_generator;
     MascotParams params;
 
     RmfeShareConverter<TinyOTShare>* tinyot2rmfe;
-    // RmfeShareConverter<Spdz2kBShare>* spdz2k2rmfe;
+
+    // Put it as an instance variable instead of function local variable to save some RTTs.
+    GlobalPRNG* shared_prng;
 
     typedef typename T::whole_type secret_type;
 

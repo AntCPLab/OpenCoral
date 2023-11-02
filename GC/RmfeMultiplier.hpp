@@ -158,6 +158,8 @@ void Fole<T>::correlate(vector<BitMatrix>& output, const vector<BitMatrix>& send
     for (size_t i = 0; i < keyBits.size(); i++)
         choices[i] = keyBits.get_bit(i);
 
+    /**
+     * The unpacked version with a lot of calls to OT.
     for (size_t i = 0; i < output.size(); i++) {
         int corr_size = std::min(128, (int)(this->keyBits.size() - i * 128));
         for (int j = 0; j < n / 128; j++) {
@@ -175,9 +177,51 @@ void Fole<T>::correlate(vector<BitMatrix>& output, const vector<BitMatrix>& send
             }
         }
     }
+    */
+
+    /**
+     * Put all the OTs together, otherwise there will be a huge cost for network RTTs.
+     */
+    int length = keyBits.size() * n / 128;
+    emp::block* packed_data_block = new emp::block[length], 
+        *packed_corr_block = new emp::block[length];
+    bool* packed_choices = new bool[length];
+    for (size_t i = 0; i < output.size(); i++) {
+        int corr_size = std::min(128, (int)(this->keyBits.size() - i * 128));
+        for (int j = 0; j < n / 128; j++) {
+            memcpy(packed_data_block + i*n + j*corr_size, output[i].squares[j].rows, corr_size * sizeof(emp::block));
+            if (role == SENDER) {
+                memcpy(packed_corr_block + i*n + j*corr_size, senderInput[i].squares[j].rows, corr_size * sizeof(emp::block));
+            }
+            else {
+                memcpy(packed_choices + i*n + j*corr_size, choices + i * 128, corr_size);
+            }
+        }
+    }
+    if (emp_party == emp::ALICE && role == SENDER) {
+        ot->send_ot_cxm_cc(packed_data_block, packed_corr_block, length);
+    }
+    else if (emp_party == emp::BOB && role == RECEIVER) {
+        ot->recv_ot_cxm_cc(packed_data_block, packed_choices, length);
+    }
+    else if (emp_party == emp::ALICE && role == RECEIVER) {
+        ot_reversed->recv_ot_cxm_cc(packed_data_block, packed_choices, length);
+    }
+    else if (emp_party == emp::BOB && role == SENDER) {
+        ot_reversed->send_ot_cxm_cc(packed_data_block, packed_corr_block, length);
+    }
+    
+    for (size_t i = 0; i < output.size(); i++) {
+        int corr_size = std::min(128, (int)(this->keyBits.size() - i * 128));
+        for (int j = 0; j < n / 128; j++) {
+            memcpy(output[i].squares[j].rows, packed_data_block + i*n + j*corr_size, corr_size * sizeof(emp::block));
+        }
+    }
 
     delete[] choices;
-
+    delete[] packed_choices;
+    delete[] packed_data_block;
+    delete[] packed_corr_block;
 }
 
 #endif

@@ -136,6 +136,9 @@ class NPartyTripleGenerator : public OTTripleGenerator<T>
     virtual void generateTriples() { throw not_implemented(); }
     virtual void generateBits() { throw not_implemented(); }
 
+private:
+    GlobalPRNG G;
+
 public:
     vector<InputTuple<typename T::input_type>> inputs;
 

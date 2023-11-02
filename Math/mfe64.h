@@ -318,6 +318,26 @@ inline void update_ntl_word_vec_rep(NTL::WordVector& rep, int& rep_idx, int& wor
     }
 }
 
+inline void get_ntl_word_vec_rep(const NTL::WordVector& rep, int& rep_idx, int& word_bit_idx, 
+    vec_gf2_64& x, long x_len) {
+    uint64_t mask = (1 << x_len) - 1;
+    if (word_bit_idx + x_len < 64) {
+        x = (rep[rep_idx] >> word_bit_idx) & mask;
+        word_bit_idx += x_len;
+    }
+    else if (word_bit_idx + x_len == 64) {
+        x = (rep[rep_idx] >> word_bit_idx) & mask;
+        rep_idx++;
+        word_bit_idx = 0;
+    }
+    else {
+        x = rep[rep_idx] >> word_bit_idx;
+        rep_idx++;
+        x ^= (rep[rep_idx] << (64 - word_bit_idx)) & mask;
+        word_bit_idx = word_bit_idx + x_len - 64;
+    }
+}
+
 void mul(vec_gf2_64& x, const mat_gf2_64& A, const vec_gf2_64& b);
 
 class gf2e_precomp {

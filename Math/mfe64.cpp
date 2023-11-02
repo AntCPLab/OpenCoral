@@ -623,22 +623,23 @@ NTL::vec_GF2 CompositeGf2MFEInternal64::encode(gf2x64 g) {
 }
 
 gf2x64 CompositeGf2MFEInternal64::decode(const NTL::vec_GF2& h) {
-
     NTL::GF2EPush push;
     base_field_context_.restore();
     vec_gf2e y(mfe2_->t());
 
+    const NTL::WordVector& rep = h.rep;
+    int rep_idx = 0, word_bit_idx = 0;
     for (size_t i = 0; i < y.size(); i++) {
         vec_gf2_64 yi = 0;
-        auto h_it = h.begin() + i*mfe1_->t();
-        for (int j = 0; j < mfe1_->t(); j++, h_it++)
-            yi ^= (*h_it)._GF2__rep << j;
+        get_ntl_word_vec_rep(rep, rep_idx, word_bit_idx, yi, mfe1_->t());
+        // auto h_it = h.begin() + i*mfe1_->t();
+        // for (int j = 0; j < mfe1_->t(); j++, h_it++)
+        //     yi ^= (*h_it)._GF2__rep << j;
 
         y.at(i) = mfe1_->decode(yi);
     }
     gf2ex g_comp = mfe2_->decode(y);
     gf2e g = converter_->composite_to_binary(g_comp);
-
     return g;
 }
 

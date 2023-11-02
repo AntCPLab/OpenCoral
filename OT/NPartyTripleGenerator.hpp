@@ -40,7 +40,8 @@ NPartyTripleGenerator<T>::NPartyTripleGenerator(const OTTripleSetup& setup,
         const Names& names, int thread_num, int _nTriples, int nloops,
         MascotParams& machine, mac_key_type mac_key, Player* parentPlayer) :
         OTTripleGenerator<T>(setup, names, thread_num, _nTriples, nloops,
-                machine, mac_key, parentPlayer)
+                machine, mac_key, parentPlayer),
+        G(OTTripleGenerator<T>::globalPlayer)
 {
 }
 
@@ -225,7 +226,7 @@ void NPartyTripleGenerator<W>::generateInputs(int player)
     typedef typename W::input_type::share_type::open_type T;
 
     int force_packing = W::input_type::tight_packed ? W::input_type::default_length : 1;
-    auto nTriplesPerLoop = this->nTriplesPerLoop * 10 / force_packing;
+    auto nTriplesPerLoop = this->nTriplesPerLoop * 10;
     auto& valueBits = this->valueBits;
     auto& share_prg = this->share_prg;
     auto& ot_multipliers = this->ot_multipliers;
@@ -249,7 +250,7 @@ void NPartyTripleGenerator<W>::generateInputs(int player)
 
     this->wait_for_multipliers();
 
-    GlobalPRNG G(globalPlayer);
+    // GlobalPRNG G(globalPlayer);
     typename W::input_check_type check_sum;
     inputs.resize(toCheck);
     auto mac_key = this->get_mac_key();
