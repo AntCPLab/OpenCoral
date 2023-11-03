@@ -17,6 +17,7 @@
 template<class T>
 class CoralPrep : public virtual Spdz2kPrep<T>
 {
+    RmfeShareConverter<GC::Spdz2kBShare<T::s>>* spdz2k2rmfe;
 
 public:
     CoralPrep(SubProcessor<T>* proc, DataPositions& usage);
