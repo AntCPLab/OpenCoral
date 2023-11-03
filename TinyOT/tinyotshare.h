@@ -88,11 +88,15 @@ public:
 	}
 
 	void pack(octetStream& o) const {
-		o.append((octet*) &MAC, sizeof(emp::block));
+		// o.append((octet*) &MAC, sizeof(emp::block));
+		get_share().pack(o);
 	}
 
 	void unpack(octetStream& o) { 
-		o.consume((octet*) &MAC, sizeof(emp::block)); 
+		// o.consume((octet*) &MAC, sizeof(emp::block));
+		Bit b;
+		b.unpack(o);
+		this->MAC = emp::makeBlock(0, b.get());
 	}
 
 	void mul(const TinyOTShare& S,const bool& c) {
