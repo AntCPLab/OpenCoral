@@ -388,6 +388,83 @@ void RmfeSharePrep<T>::buffer_normals() {
 #endif
 }
 
+template<class T>
+void RmfeSharePrep<T>::buffer_crypto2022_quintuples() {
+    auto& party = ShareThread<typename T::whole_type>::s();
+    auto& P = *party.P;
+    auto MC = T::new_mc(party.MC->get_alphai());
+    typename T::Input input(*MC, *this, P);
+    input.reset_all(P);
+
+    int T = triple_generator->nTriplesPerLoop;
+    const int r1 = 3, r2 = 3;
+    int N = r1 + r1*r2*r2*T;
+
+    // 1. Generate encoding pairs
+    vector<T> as(N), tas(N), bs(N), tbs(N);
+    for(int i = 0; i < N; i++) {
+        array<T, 2> x = this->get_normal_no_count(), y = this->get_normal_no_count();
+        as.push_back(x[0]);
+        tas.push_back(x[1]);
+        bs.push_back(y[0]);
+        tbs.push_back(y[1]);
+    }
+
+    // 2. Multiply
+    // Mock the calls to COPEe just to get the cost
+    uint64_t* data = new uint64_t[N * T::encoded_mac_type::DEFAULT_LENGTH],
+        *corr = new uint64_t[N * T::encoded_mac_type::DEFAULT_LENGTH],
+    bool *choices = new bool[N * T::encoded_mac_type::DEFAULT_LENGTH];
+    for (int i = 0; i < N; i++) {
+        typename T::encoded_mac_type ta(tas[i].get_share()), tb(tbs[i].get_share());
+        for (int j = 0; j < T::encoded_mac_type::DEFAULT_LENGTH; j++) {
+            corr[i * T::encoded_mac_type::DEFAULT_LENGTH + j] = ta.get_bit(j);
+            choices[i * T::encoded_mac_type::DEFAULT_LENGTH + j] = tb.get_bit(j);
+        }
+    }
+    if (P->my_num() == 0)
+        this->triple_generator->ot_multipliers[0]->auth_ot_ext.ot->send_ot_cam_cc(data, corr, N * T::encoded_mac_type::DEFAULT_LENGTH, 1);
+    else
+        this->triple_generator->ot_multipliers[0]->auth_ot_ext.ot->send_ot_cam_cc(data, choices, N * T::encoded_mac_type::DEFAULT_LENGTH, 1);
+
+    vector<typename T::open_type> c(N);
+    for (int i = 0; i < N; i++) {
+        typename T::encoded_mac_type t;
+        t.randomize(*G);
+        c[i] = typename T::open_type(t);
+
+        input.add_from_all_encoded(c[i]);
+    }
+    input.exchange();
+    vector<T> c_secrets(N);
+    for(int i = 0; i < N; i++) {
+        c_secrets[i] = input.finalize(0) + input.finalize(1);
+    }
+
+    // 3. Cut and choose
+    vector<T> sacri;
+    vector<typename T::open_type> sacri_open;
+    for (int i = 0; i < r1; i++) {
+        sacri.push_back(tas[i]);
+        sacri.push_back(tbs[i]);
+        sacri.push_back(c_secrets[i]);
+    }
+    MC.POpen(sacri_open, sacri, *P);
+    for (int i = 0; i < r1; i++) {
+        if (sacri_open[i] * sacri_open[i + r1] != sacri_open[i + 2*r1]) {
+            cout << "cut and choose failed" << endl;
+        }
+    }
+
+    // 4. Sacrifice
+    
+
+
+    delete [] data;
+    delete [] corr;
+    delete [] choices;
+}
+
 // template<class T>
 // array<T, 5> RmfeSharePrep<T>::get_quintuple(int n_bits) {
 //     // Treat quintuple as triple in counting

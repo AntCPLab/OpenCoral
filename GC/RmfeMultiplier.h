@@ -10,6 +10,7 @@
 */
 template<class T>
 class Fole {
+public:
     const int threads = 1;
     OT_ROLE role;
     TwoPartyPlayer* player;
@@ -18,7 +19,7 @@ class Fole {
     SilentOT<EmpChannel>* ot;
     SilentOT<EmpChannel>* ot_reversed;
     BitVector keyBits;
-public:
+
 
     Fole(TwoPartyPlayer* player, OT_ROLE role=BOTH, bool passive=false, int thread_num = -1);
     ~Fole();
@@ -41,13 +42,13 @@ public:
 template <class T>
 class RmfeMultiplier : public OTMultiplier<T>
 {
-    Fole<T> auth_ot_ext;
     void after_correlation();
     void init_authenticator(const BitVector& baseReceiverInput,
             const vector< array<BitVector, 2> >& baseSenderInput,
             const vector<BitVector>& baseReceiverOutput);
 
 public:
+    Fole<T> auth_ot_ext;
 
     RmfeMultiplier(OTTripleGenerator<T>& generator, int thread_num);
     ~RmfeMultiplier();
