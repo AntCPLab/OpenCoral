@@ -7,6 +7,8 @@
  * If indeed necessary, can refer to `buffer_edabits_from_personal` in `Spdz2kPrep.hpp` for how it uses "GC/BitAdder.h".
  */
 
+#define VERBOSE_DEBUG_PRINT
+
 #include "Protocols/ProtocolSet.h"
 
 #include "Machines/SPDZ.hpp"
@@ -57,7 +59,7 @@ void run(char** argv)
 {
     // reduce batch size
     // OnlineOptions::singleton.bucket_size = 5;
-    OnlineOptions::singleton.batch_size = 1000;
+    OnlineOptions::singleton.batch_size = 10000;
 
     // set up networking on localhost
     int my_number = atoi(argv[1]);
