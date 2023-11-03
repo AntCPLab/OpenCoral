@@ -6,6 +6,7 @@
 #ifndef PROTOCOLS_DABIT_H_
 #define PROTOCOLS_DABIT_H_
 
+#include "Tools/FixedVector.h"
 #include <array>
 using namespace std;
 
