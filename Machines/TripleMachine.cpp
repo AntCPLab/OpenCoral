@@ -21,6 +21,8 @@
 #include "Math/gfp.hpp"
 #include "OT/NPartyTripleGenerator.hpp"
 
+#include "Tools/debug.hpp"
+
 #include <iostream>
 #include <fstream>
 using namespace std;

@@ -9,6 +9,8 @@
 
 // [zico] need to update
 #define NO_SECURITY_CHECK
+#define DETAIL_BENCHMARK
+#define VERBOSE_DEBUG_PRINT
 
 #include "Protocols/ProtocolSet.h"
 #include "Machines/Coral.hpp"
@@ -44,9 +46,10 @@ int main(int argc, char** argv)
 template<class T>
 void run(char** argv)
 {
+    GlobalPerformance perf;
     // reduce batch size
     // OnlineOptions::singleton.bucket_size = 5;
-    OnlineOptions::singleton.batch_size = 1000;
+    OnlineOptions::singleton.batch_size = 10000;
 
     // set up networking on localhost
     int my_number = atoi(argv[1]);
@@ -84,4 +87,6 @@ void run(char** argv)
 
     set.check();
     print_profiling();
+
+    perf.print_time();
 }
