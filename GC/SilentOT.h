@@ -318,40 +318,34 @@ public:
                       int l) {
     uint64_t modulo_mask = (1ULL << l) - 1;
     if (l == 64) modulo_mask = -1;
-    block* rcm_data = new block[length];
+    emp::block* rcm_data = new emp::block[length];
     send_ot_rcm_cc(rcm_data, length);
 
-    block s;
-    ferret->prg.random_block(&s, 1);
-    ferret->io->send_block(&s, 1);
-    ferret->mitccrh.setS(s);
-    ferret->io->flush();
-
-    block pad[2 * ot_bsize];
-    uint32_t y_size = (uint32_t)ceil((ot_bsize * l) / (float(64)));
+    emp::block pad[2 * emp::ot_bsize];
+    uint32_t y_size = (uint32_t)ceil((emp::ot_bsize * l) / (float(64)));
     uint32_t corrected_y_size, corrected_bsize;
     uint64_t y[y_size];
-    uint64_t corr_data[ot_bsize];
+    uint64_t corr_data[emp::ot_bsize];
 
-    for (int64_t i = 0; i < length; i += ot_bsize) {
-      for (int64_t j = i; j < std::min(i + ot_bsize, length); ++j) {
+    for (int64_t i = 0; i < length; i += emp::ot_bsize) {
+      for (int64_t j = i; j < std::min(i + emp::ot_bsize, length); ++j) {
         pad[2 * (j - i)] = rcm_data[j];
         pad[2 * (j - i) + 1] = rcm_data[j] ^ ferret->Delta;
       }
 
-      ferret->mitccrh.template hash<ot_bsize, 2>(pad);
+      ferret->mitccrh.template hash<emp::ot_bsize, 2>(pad);
 
-      for (int j = i; j < i + ot_bsize and j < length; ++j) {
+      for (int j = i; j < i + emp::ot_bsize and j < length; ++j) {
         data0[j] = _mm_extract_epi64(pad[2 * (j - i)], 0) & modulo_mask;
         corr_data[j - i] =
             (corr[j] + data0[j] + _mm_extract_epi64(pad[2 * (j - i) + 1], 0)) &
             modulo_mask;
       }
-      corrected_y_size = (uint32_t)ceil((std::min(ot_bsize, length - i) * l) /
+      corrected_y_size = (uint32_t)ceil((std::min(emp::ot_bsize, length - i) * l) /
                                         ((float)sizeof(uint64_t) * 8));
-      corrected_bsize = std::min(ot_bsize, length - i);
+      corrected_bsize = std::min(emp::ot_bsize, length - i);
 
-      sci::pack_cot_messages(y, corr_data, corrected_y_size, corrected_bsize,
+      pack_cot_messages(y, corr_data, corrected_y_size, corrected_bsize,
                              l);
       ferret->io->send_data(y, sizeof(uint64_t) * (corrected_y_size));
     }
@@ -367,33 +361,29 @@ public:
     uint64_t modulo_mask = (1ULL << l) - 1;
     if (l == 64) modulo_mask = -1;
 
-    block* rcm_data = new block[length];
+    emp::block* rcm_data = new emp::block[length];
     recv_ot_rcm_cc(rcm_data, b, length);
-    block s;
-    ferret->io->recv_block(&s, 1);
-    ferret->mitccrh.setS(s);
-    // ferret->io->flush();
 
-    block pad[ot_bsize];
+    emp::block pad[emp::ot_bsize];
 
-    uint32_t recvd_size = (uint32_t)ceil((ot_bsize * l) / (float(64)));
+    uint32_t recvd_size = (uint32_t)ceil((emp::ot_bsize * l) / (float(64)));
     uint32_t corrected_recvd_size, corrected_bsize;
-    uint64_t corr_data[ot_bsize];
+    uint64_t corr_data[emp::ot_bsize];
     uint64_t recvd[recvd_size];
 
-    for (int64_t i = 0; i < length; i += ot_bsize) {
+    for (int64_t i = 0; i < length; i += emp::ot_bsize) {
       corrected_recvd_size =
-          (uint32_t)ceil((std::min(ot_bsize, length - i) * l) / (float(64)));
-      corrected_bsize = std::min(ot_bsize, length - i);
+          (uint32_t)ceil((std::min(emp::ot_bsize, length - i) * l) / (float(64)));
+      corrected_bsize = std::min(emp::ot_bsize, length - i);
 
-      memcpy(pad, rcm_data + i, std::min(ot_bsize, length - i) * sizeof(block));
-      ferret->mitccrh.template hash<ot_bsize, 1>(pad);
+      memcpy(pad, rcm_data + i, std::min(emp::ot_bsize, length - i) * sizeof(emp::block));
+      ferret->mitccrh.template hash<emp::ot_bsize, 1>(pad);
 
       ferret->io->recv_data(recvd, sizeof(uint64_t) * corrected_recvd_size);
 
-      sci::unpack_cot_messages(corr_data, recvd, corrected_bsize, l);
+      unpack_cot_messages(corr_data, recvd, corrected_bsize, l);
 
-      for (int j = i; j < i + ot_bsize and j < length; ++j) {
+      for (int j = i; j < i + emp::ot_bsize and j < length; ++j) {
         if (b[j])
           data[j] = (corr_data[j - i] - _mm_extract_epi64(pad[j - i], 0)) &
                     modulo_mask;

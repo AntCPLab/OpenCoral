@@ -396,9 +396,9 @@ void RmfeSharePrep<T>::buffer_crypto2022_quintuples() {
     typename T::Input input(*MC, *this, P);
     input.reset_all(P);
 
-    int T = triple_generator->nTriplesPerLoop;
+    int n = triple_generator->nTriplesPerLoop;
     const int r1 = 3, r2 = 3;
-    int N = r1 + r1*r2*r2*T;
+    int N = r1 + r1*r2*r2*n;
 
     // 1. Generate encoding pairs
     vector<T> as(N), tas(N), bs(N), tbs(N);
@@ -413,7 +413,7 @@ void RmfeSharePrep<T>::buffer_crypto2022_quintuples() {
     // 2. Multiply
     // Mock the calls to COPEe just to get the cost
     uint64_t* data = new uint64_t[N * T::encoded_mac_type::DEFAULT_LENGTH],
-        *corr = new uint64_t[N * T::encoded_mac_type::DEFAULT_LENGTH],
+        *corr = new uint64_t[N * T::encoded_mac_type::DEFAULT_LENGTH];
     bool *choices = new bool[N * T::encoded_mac_type::DEFAULT_LENGTH];
     for (int i = 0; i < N; i++) {
         typename T::encoded_mac_type ta(tas[i].get_share()), tb(tbs[i].get_share());
@@ -422,15 +422,18 @@ void RmfeSharePrep<T>::buffer_crypto2022_quintuples() {
             choices[i * T::encoded_mac_type::DEFAULT_LENGTH + j] = tb.get_bit(j);
         }
     }
-    if (P->my_num() == 0)
+    if (P.my_num() == 0)
         this->triple_generator->ot_multipliers[0]->auth_ot_ext.ot->send_ot_cam_cc(data, corr, N * T::encoded_mac_type::DEFAULT_LENGTH, 1);
     else
-        this->triple_generator->ot_multipliers[0]->auth_ot_ext.ot->send_ot_cam_cc(data, choices, N * T::encoded_mac_type::DEFAULT_LENGTH, 1);
+        this->triple_generator->ot_multipliers[0]->auth_ot_ext.ot->recv_ot_cam_cc(data, choices, N * T::encoded_mac_type::DEFAULT_LENGTH, 1);
 
     vector<typename T::open_type> c(N);
     for (int i = 0; i < N; i++) {
         typename T::encoded_mac_type t;
-        t.randomize(*G);
+        for (int j = 0; j < T::encoded_mac_type::DEFAULT_LENGTH; j++) {
+            t.set_bit(j, (unsigned int) data[i * T::encoded_mac_type::DEFAULT_LENGTH + j]);
+        }
+        // t.randomize(*G);
         c[i] = typename T::open_type(t);
 
         input.add_from_all_encoded(c[i]);
@@ -444,12 +447,12 @@ void RmfeSharePrep<T>::buffer_crypto2022_quintuples() {
     // 3. Cut and choose
     vector<T> sacri;
     vector<typename T::open_type> sacri_open;
-    for (int i = 0; i < r1; i++) {
+    for (int i = N-1; i >= N - r1; i--) {
         sacri.push_back(tas[i]);
         sacri.push_back(tbs[i]);
         sacri.push_back(c_secrets[i]);
     }
-    MC.POpen(sacri_open, sacri, *P);
+    MC->POpen(sacri_open, sacri, P);
     for (int i = 0; i < r1; i++) {
         if (sacri_open[i] * sacri_open[i + r1] != sacri_open[i + 2*r1]) {
             cout << "cut and choose failed" << endl;
@@ -457,12 +460,99 @@ void RmfeSharePrep<T>::buffer_crypto2022_quintuples() {
     }
 
     // 4. Sacrifice
-    
+    vector<T> alpha(r2*r2*n*(r1-1)), beta(r2*r2*n*(r1-1));
+    for (int i = 0; i < r2*r2*n; i++) {
+        for (int j = 0; j < r1-1; j++) {
+            alpha[i * (r1-1) + j] = tas[i*r1 + j + 1] - tas[i*r1];
+            beta[i* (r1-1) + j] = tbs[i*r1 + j + 1] - tbs[i*r1];
+        }
+    }
+    vector<typename T::open_type> alpha_open(alpha.size());
+    vector<typename T::open_type> beta_open(beta.size());
+    MC->POpen(alpha_open, alpha, P);
+    MC->POpen(beta_open, beta, P);
 
+    vector<T> rho(alpha.size());
+    for (int i = 0; i < r2*r2*n; i++) {
+        for (int j = 0; j < r1-1; j++) {
+            rho[i*(r1-1)+j] = c_secrets[i*r1+j+1] 
+                - alpha_open[i*(r1-1)+j] * tbs[i*r1]
+                - beta_open[i*(r1-1)] * tas[i*r1]
+                - T::constant(alpha_open[i*(r1-1)] * beta_open[i*(r1-1)], P.my_num(), MC->get_alphai())
+                - c_secrets[i*r1];
+        }
+    }
+    vector<typename T::open_type> rho_open(rho.size());
+    MC->POpen(rho_open, rho, P);
+    for (size_t i = 0; i < rho_open.size(); i++) {
+        if (rho_open[i] != 0) {
+            // fail
+        }
+    }
+
+    // 5. Combine
+    vector<T> as_(r2*r2*n), bs_(r2*r2*n), tas_(r2*r2*n), tbs_(r2*r2*n), c_(r2*r2*n);
+    for (int i = 0; i < r2*r2*n; i++) {
+        as_[i] = as[i*r1];
+        bs_[i] = bs[i*r1];
+        tas_[i] = tas[i*r1];
+        tbs_[i] = tbs[i*r1];
+        c_[i] = c_secrets[i*r1];
+    }
+    vector<T> a1(r2*n), b1(r2*n), ta1(r2*n), tb1(r2*n), c1(r2*n), sigma1(r2*n),
+        rho1(r2*n*(r2-1));
+    for (int i = 0; i < r2*n; i++) {
+        for (int j = 0; j < r2; j++) {
+            a1[i] += as_[i*r2 + j];
+            ta1[i] += tas_[i*r2 + j];
+        }
+        tb1[i] = tbs_[i*r2];
+        b1[i] = bs_[i*r2];
+        for (int j = 1; j < r2; j++) {
+            rho1[i*(r2-1) + j - 1] = tbs_[i*r2] - tbs_[i*r2 + j];
+        }
+    }
+    vector<typename T::open_type> rho1_open(rho1.size());
+    MC->POpen(rho1_open, rho1, P);
+    for (int i = 0; i < r2*n; i++) {
+        sigma1[i] = c_[i * r2];
+        for (int j = 1; j < r2; j++) {
+            sigma1[i] += rho1_open[i*(r2-1) + j - 1] * tas_[i*r2 + j] + c_[i*r2 + j];
+        }
+    }
+
+    vector<T> a2(n), b2(n), ta2(n), tb2(n), sigma2(n),
+        rho2(n*(r2-1));
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < r2; j++) {
+            b2[i] += b1[i*r2 + j];
+            tb2[i] += tb1[i*r2 + j];
+        }
+        ta2[i] = ta1[i*r2];
+        a2[i] = a1[i*r2];
+        for (int j = 1; j < r2; j++) {
+            rho2[i*(r2-1) + j - 1] = ta1[i*r2] - ta1[i*r2 + j];
+        }
+    }
+    vector<typename T::open_type> rho2_open(rho2.size());
+    MC->POpen(rho2_open, rho2, P);
+    for (int i = 0; i < n; i++) {
+        sigma2[i] = c1[i * r2];
+        for (int j = 1; j < r2; j++) {
+            sigma2[i] += rho2_open[i*(r2-1) + j - 1] * tb1[i*r2 + j] + c1[i*r2+j];
+        }
+    }
+    MC->Check(P);
+
+    for(int i = 0; i < n; i++) {
+        this->quintuples.push_back({{a2[i], ta2[i], b2[i], tb2[i], sigma2[i]}});
+    }
 
     delete [] data;
     delete [] corr;
     delete [] choices;
+
+    print_general("Generate Crypto2022 quintuples", n);
 }
 
 // template<class T>

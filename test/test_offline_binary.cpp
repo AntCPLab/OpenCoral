@@ -91,19 +91,53 @@ void test_buffer_inputs(int argc, char** argv)
     set.check();
 }
 
+template<class T>
+void test_buffer_crypto2022_quintuples(int argc, char** argv)
+{
+    OnlineOptions::singleton.batch_size = 10000;
+    cout << "[zico] batch size: " << OnlineOptions::singleton.batch_size << endl;
+    // set up networking on localhost
+    int my_number = atoi(argv[1]);
+    int n_parties = atoi(argv[2]);
+    int port_base = 9999;
+    Names N(my_number, n_parties, "localhost", port_base);
+    PlainPlayer P(N);
+
+    // protocol setup (domain, MAC key if needed etc)
+    BinaryProtocolSetup<T> setup(P);
+
+    // set of protocols (input, multiplication, output)
+    BinaryProtocolSet<T> set(P, setup);
+    auto& prep = set.prep;
+
+    perf_log("Crypto2022 quintuples", P.total_comm().sent);
+    prep.buffer_crypto2022_quintuples();
+    perf_log("Crypto2022 quintuples", P.total_comm().sent);
+    set.check();
+
+    // auto comm_stats = P.total_comm();
+    // size_t rounds = 0;
+    // for (auto& x : comm_stats)
+    //   rounds += x.second.rounds;
+    // std::cerr << "Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
+    //     << " rounds (party " << my_number << std::endl;;
+}
+
 int main(int argc, char** argv)
 {
     // Tinier
     // test_buffer_inputs<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
     // Tiny.
-    test_buffer_inputs<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
-    // Rmfe
+    // test_buffer_inputs<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
+    // Coral
     // test_buffer_inputs<GC::RmfeShare>(argc, argv);
 
     // Tinier
     // test_buffer_triples<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
     // Tiny.
     // test_buffer_triples<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
-    // Rmfe
+    // Coral
     // test_buffer_triples<GC::RmfeShare>(argc, argv);
+    // Crypto2022
+    test_buffer_crypto2022_quintuples<GC::RmfeShare>(argc, argv);
 }
