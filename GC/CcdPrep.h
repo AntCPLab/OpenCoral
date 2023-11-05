@@ -49,7 +49,6 @@ public:
         this->triples.push_back({});
         for (auto& x : this->triples.back())
             x.resize_regs(T::default_length);
-        std::cout << "CCD prep buffer triples" << std::endl;
         for (int i = 0; i < T::default_length; i++)
         {
             auto triple = part_prep.get_triple(1);
@@ -91,6 +90,17 @@ public:
             this->inputs[player].back().value ^=
                     (typename T::clear(tmp.get_bit(0)) << i);
         }
+    }
+
+using BufferPrep<T>::get_triples_size;
+using BufferPrep<T>::get_inputs_size;
+
+    size_t get_triples_size() {
+        return part_prep.get_triples_size() / T::default_length;
+    }
+
+    size_t get_inputs_size(int player) {
+        return part_prep.get_inputs_size(player) / T::default_length;
     }
 };
 

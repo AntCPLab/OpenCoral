@@ -58,7 +58,7 @@ void ShareThread<T>::pre_run(Player& P, typename T::mac_key_type mac_key)
 {
     this->P = &P;
     if (singleton)
-        throw runtime_error("there can only be one");
+        throw runtime_error("there can only be one ShareThread: " + T::type_string());
     singleton = this;
     protocol = new typename T::Protocol(*this->P);
     MC = this->new_mc(mac_key);

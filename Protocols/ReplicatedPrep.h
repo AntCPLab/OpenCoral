@@ -174,6 +174,16 @@ public:
     void buffer_personal_quintuples(vector<array<T, 5>>&, int, int) { throw runtime_error("no personal quintuples"); }
     array<T, 2> get_normal_no_count();
     array<T, 5> get_quintuple_no_count(int n_bits);
+
+    virtual void buffer_crypto2022_quintuples() {throw runtime_error("no crypto2022 quintuples");}
+
+    virtual size_t get_inputs_size(int player) {
+        return inputs[player].size();
+    }
+
+    virtual size_t get_triples_size() {
+        return triples.size();
+    }
 };
 
 /**

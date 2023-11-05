@@ -84,6 +84,10 @@ public:
     void get_input_no_count(T& r_share, typename T::open_type& r , int player);
     void get_three_no_count(Dtype dtype, T& a, T& b, T& c);
 #endif
+
+    size_t get_triples_size() {
+        return quintuples.size();
+    }
 };
 
 }

@@ -428,6 +428,9 @@ test_spdz2k_offline: test/test_spdz2k_offline.o $(COMMON) $(VM) $(OT)
 test_offline_binary: test/test_offline_binary.o $(COMMON) $(VM) $(OT)
 	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
 
+binary-offline-throughput: Utils/binary-offline-throughput.o $(COMMON) $(VM) $(OT)
+	$(CXX) -o $@ $(CFLAGS) $^ $(LDLIBS)
+
 test_rmfe_beaver: test/test_rmfe_beaver.o $(COMMON) $(VM) $(OT)
 	$(CXX) -o $@ $(CFLAGS) $^ $(EMP_LIBS) $(LDLIBS)
 
