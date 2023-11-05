@@ -79,6 +79,8 @@ public:
         return *this;
     }
 
+    void buffer_crypto2022_quintuples();
+
 #ifdef INSECURE_RMFE_PREP
 //// Debug APIs
     void get_input_no_count(T& r_share, typename T::open_type& r , int player);
