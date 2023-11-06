@@ -125,19 +125,39 @@ void test_buffer_crypto2022_quintuples(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-    // Tinier
-    // test_buffer_inputs<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
-    // Tiny.
-    // test_buffer_inputs<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
-    // Coral
-    // test_buffer_inputs<GC::RmfeShare>(argc, argv);
+    string protocol = "coral";
+    if (argc > 3)
+        protocol = argv[3]; // coral, tiny, tinier, crypto2022
 
-    // Tinier
-    // test_buffer_triples<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
-    // Tiny.
-    // test_buffer_triples<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
-    // Coral
-    // test_buffer_triples<GC::RmfeShare>(argc, argv);
-    // Crypto2022
-    test_buffer_crypto2022_quintuples<GC::RmfeShare>(argc, argv);
+    string type = "inputs";
+    if (argc > 4)
+        type = argv[4]; // inputs, triples
+    
+    /* inputs */
+    if (protocol == "coral" && type == "inputs") {
+        test_buffer_inputs<GC::RmfeShare>(argc, argv);
+    }
+    else if (protocol == "crypto2022" && type == "inputs") {
+        test_buffer_inputs<GC::RmfeShare>(argc, argv);
+    }
+    else if (protocol == "tinier" && type == "inputs") {
+        test_buffer_inputs<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
+    }
+    else if (protocol == "tiny" && type == "inputs") {
+        test_buffer_inputs<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
+    }
+    /* triples */
+    else if (protocol == "coral" && type == "triples") {
+        test_buffer_triples<GC::RmfeShare>(argc, argv);
+    }
+    else if (protocol == "crypto2022" && type == "triples") {
+        test_buffer_crypto2022_quintuples<GC::RmfeShare>(argc, argv);
+    }
+    else if (protocol == "tinier" && type == "triples") {
+        test_buffer_triples<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
+    }
+    else if (protocol == "tiny" && type == "triples") {
+        test_buffer_triples<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
+    }
+
 }

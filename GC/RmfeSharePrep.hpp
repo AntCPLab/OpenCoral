@@ -412,8 +412,8 @@ void RmfeSharePrep<T>::buffer_crypto2022_quintuples() {
 
     // 2. Multiply
     // Mock the calls to COPEe just to get the cost
-    uint64_t* data = new uint64_t[N * T::encoded_mac_type::DEFAULT_LENGTH],
-        *corr = new uint64_t[N * T::encoded_mac_type::DEFAULT_LENGTH];
+    uint8_t* data = new uint8_t[N * T::encoded_mac_type::DEFAULT_LENGTH],
+        *corr = new uint8_t[N * T::encoded_mac_type::DEFAULT_LENGTH];
     bool *choices = new bool[N * T::encoded_mac_type::DEFAULT_LENGTH];
     for (int i = 0; i < N; i++) {
         typename T::encoded_mac_type ta(tas[i].get_share()), tb(tbs[i].get_share());

@@ -4,6 +4,7 @@
  */
 
 #define VERBOSE_DEBUG_PRINT
+#define NO_SECURITY_CHECK
 
 #include "OT/NPartyTripleGenerator.h"
 #include "OT/TripleMachine.h"
@@ -140,6 +141,13 @@ BinaryOfflineMachine::BinaryOfflineMachine(int argc, const char** argv) :
 
     parse_options(argc, argv);
 
+    if (opt.isSet("--type"))
+    {
+        opt.get("--type")->getString(buffer_type);
+    }
+    else 
+        buffer_type = "inputs";
+
     if (opt.isSet("--prot"))
     {
         opt.get("--prot")->getString(prot);
@@ -147,12 +155,8 @@ BinaryOfflineMachine::BinaryOfflineMachine(int argc, const char** argv) :
     else 
         prot = "coral";
     
-    if (opt.isSet("--type"))
-    {
-        opt.get("--type")->getString(buffer_type);
-    }
-    else 
-        buffer_type = "inputs";
+    if (prot == "crypto2022")
+        buffer_type = "crypto2022";
 }
 
 template<class T>
@@ -163,14 +167,14 @@ BinaryPrepThread<T>* BinaryOfflineMachine::new_generator(int i)
 
 void BinaryOfflineMachine::run()
 {
-    cout << "my_num: " << my_num << ", nthreads: " << nthreads << endl;
+    cout << "my_num: " << my_num << ", nthreads: " << nthreads << ", batch size: " << OnlineOptions::singleton.batch_size << endl;
     network_opts.start_networking(N[0], my_num);
     nConnections = 1;
 
     PlainPlayer P(N[0], "base");
     player = &P;
 
-    if (prot == "coral") {
+    if (prot == "coral" || prot == "crypto2022") {
         BinaryProtocolThreadInit<GC::RmfeShare>::setup(P);
     }
     else if (prot == "tinier") {
@@ -188,7 +192,7 @@ void BinaryOfflineMachine::run()
 
     for (int i = 0; i < nthreads; i++)
     {
-        if (prot == "coral")
+        if (prot == "coral" || prot == "crypto2022")
             generators[i] = new_generator<GC::RmfeShare>(i);
         else if (prot == "tinier")
             generators[i] = new_generator<GC::TinierSecret<gf2n_mac_key>>(i);

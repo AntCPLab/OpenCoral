@@ -42,7 +42,7 @@ void GeneralShareConverter<SrcType, DstType>::convert(vector<DstType>& dst_share
             r[k] = src_prep->get_bit();
             raw ^= ((long) typename SrcType::clear(r[k].get_bit(0).get_share()).get_bit(0)) << j;
         }
-        input.add_from_all(BitVec(raw));
+        input.add_from_all(typename DstType::open_type(raw));
     }
 
     // Input param SrcType shares to DstType
@@ -51,7 +51,7 @@ void GeneralShareConverter<SrcType, DstType>::convert(vector<DstType>& dst_share
         for(int j = 0; j < l; j++) {
             raw ^= ((long) typename SrcType::clear(src_shares[i*l + j].get_bit(0).get_share()).get_bit(0)) << j;
         }
-        input.add_from_all(BitVec(raw));
+        input.add_from_all(typename DstType::open_type(raw));
     }
 
     input.exchange();

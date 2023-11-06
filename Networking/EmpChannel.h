@@ -31,6 +31,28 @@ public:
 		P->recv(PlayerBuffer((octet*) data, len), true);
 	}
 
+	void send_bool(bool * data, size_t length) {
+		uint8_t* packed_data = new uint8_t[(length + 7) / 8];
+		memset(packed_data, 0, (length + 7) / 8);
+		// pack bool
+		for (size_t i = 0; i < length; i++) {
+			packed_data[i / 8] ^= ((uint8_t)data[i]) << (i % 8);
+		}
+		send_data_internal(packed_data, (length+7)/8);
+		delete[] packed_data;
+	}
+
+	void recv_bool(bool * data, size_t length) {
+		uint8_t* packed_data = new uint8_t[(length + 7) / 8];
+		memset(packed_data, 0, (length + 7) / 8);
+		recv_data_internal(packed_data, (length+7)/8);
+		// unpack bool
+		for (size_t i = 0; i < length; i++) {
+			data[i] = (packed_data[i / 8] >> (i % 8)) & 1;
+		}
+		delete[] packed_data;
+	}
+
 };
 
 #endif

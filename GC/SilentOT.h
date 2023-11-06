@@ -13,7 +13,7 @@
 
 #include "Tools/performance.h"
 
-inline void pack_cot_messages(uint64_t *y, uint64_t *corr_data, int ysize,
+inline void pack_cot_messages(uint8_t *y, uint8_t *corr_data, int ysize,
                               int bsize, int bitsize) {
   assert(y != nullptr && corr_data != nullptr);
   uint64_t start_pos = 0;
@@ -21,11 +21,11 @@ inline void pack_cot_messages(uint64_t *y, uint64_t *corr_data, int ysize,
   uint64_t start_block = 0;
   uint64_t end_block = 0;
   uint64_t temp_bl = 0;
-  uint64_t mask = (1ULL << bitsize) - 1;
-  if (bitsize == 64)
+  uint8_t mask = (1ULL << bitsize) - 1;
+  if (bitsize == 8)
     mask = -1;
 
-  uint64_t carriersize = 64;
+  uint8_t carriersize = 8;
   for (int i = 0; i < ysize; i++) {
     y[i] = 0;
   }
@@ -35,7 +35,7 @@ inline void pack_cot_messages(uint64_t *y, uint64_t *corr_data, int ysize,
     end_pos -= 1; // inclusive
     start_block = start_pos / carriersize;
     end_block = end_pos / carriersize;
-    if (carriersize == 64) {
+    if (carriersize == 8) {
       if (start_block == end_block) {
         y[start_block] ^= (corr_data[i] & mask) << (start_pos % carriersize);
       } else {
@@ -47,24 +47,24 @@ inline void pack_cot_messages(uint64_t *y, uint64_t *corr_data, int ysize,
   }
 }
 
-inline void unpack_cot_messages(uint64_t *corr_data, uint64_t *recvd, int bsize,
+inline void unpack_cot_messages(uint8_t *corr_data, uint8_t *recvd, int bsize,
                                 int bitsize) {
   assert(corr_data != nullptr && recvd != nullptr);
   uint64_t start_pos = 0;
   uint64_t end_pos = 0;
   uint64_t start_block = 0;
   uint64_t end_block = 0;
-  uint64_t mask = (1ULL << bitsize) - 1;
-  if (bitsize == 64)
+  uint8_t mask = (1ULL << bitsize) - 1;
+  if (bitsize == 8)
     mask = -1;
-  uint64_t carriersize = 64;
+  uint8_t carriersize = 8;
 
   for (int i = 0; i < bsize; i++) {
     start_pos = i * bitsize;
     end_pos = start_pos + bitsize - 1; // inclusive
     start_block = start_pos / carriersize;
     end_block = end_pos / carriersize;
-    if (carriersize == 64) {
+    if (carriersize == 8) {
       if (start_block == end_block) {
         corr_data[i] = (recvd[start_block] >> (start_pos % carriersize)) & mask;
       } else {
@@ -121,6 +121,8 @@ public:
     emp::block pad[2 * emp::ot_bsize];
     uint32_t corrected_bsize;
     emp::block corr_data[emp::ot_bsize];
+    uint8_t* send_buf = new uint8_t[sizeof(emp::block) * length];
+    uint64_t to_sent = 0;
 
     for (int64_t i = 0; i < length; i += emp::ot_bsize) {
       for (int64_t j = i; j < std::min(i + emp::ot_bsize, length); ++j) {
@@ -135,8 +137,12 @@ public:
         corr_data[j - i] = corr[j] ^ data0[j] ^ pad[2 * (j - i) + 1];
       }
       corrected_bsize = std::min(emp::ot_bsize, length - i);
-      ferret->io->send_data(corr_data, sizeof(emp::block) * corrected_bsize);
+      // ferret->io->send_data(corr_data, sizeof(emp::block) * corrected_bsize);
+      memcpy(send_buf + to_sent, corr_data, sizeof(emp::block) * corrected_bsize);
+      to_sent += sizeof(emp::block) * corrected_bsize;
     }
+    ferret->io->send_data(send_buf, to_sent);
+    delete [] send_buf;
 
     delete[] rcm_data;
   }
@@ -314,18 +320,20 @@ public:
   // Sender chooses one message 'corr'. A correlation is defined by the addition
   // function: f(x) = x + corr Sender receives a random message 'x' as output
   // ('data0').
-  void send_ot_cam_cc(uint64_t* data0, const uint64_t* corr, int64_t length,
+  void send_ot_cam_cc(uint8_t* data0, const uint8_t* corr, int64_t length,
                       int l) {
-    uint64_t modulo_mask = (1ULL << l) - 1;
+    uint8_t modulo_mask = (1ULL << l) - 1;
     if (l == 64) modulo_mask = -1;
     emp::block* rcm_data = new emp::block[length];
     send_ot_rcm_cc(rcm_data, length);
 
     emp::block pad[2 * emp::ot_bsize];
-    uint32_t y_size = (uint32_t)ceil((emp::ot_bsize * l) / (float(64)));
+    uint32_t y_size = (uint32_t)ceil((emp::ot_bsize * l) / (float(8)));
     uint32_t corrected_y_size, corrected_bsize;
-    uint64_t y[y_size];
-    uint64_t corr_data[emp::ot_bsize];
+    uint8_t y[y_size];
+    uint8_t corr_data[emp::ot_bsize];
+    uint8_t* send_buf = new uint8_t[y_size * length];
+    uint64_t to_sent = 0;
 
     for (int64_t i = 0; i < length; i += emp::ot_bsize) {
       for (int64_t j = i; j < std::min(i + emp::ot_bsize, length); ++j) {
@@ -342,14 +350,18 @@ public:
             modulo_mask;
       }
       corrected_y_size = (uint32_t)ceil((std::min(emp::ot_bsize, length - i) * l) /
-                                        ((float)sizeof(uint64_t) * 8));
+                                        ((float)sizeof(uint8_t) * 8));
       corrected_bsize = std::min(emp::ot_bsize, length - i);
 
       pack_cot_messages(y, corr_data, corrected_y_size, corrected_bsize,
                              l);
-      ferret->io->send_data(y, sizeof(uint64_t) * (corrected_y_size));
+      // ferret->io->send_data(y, sizeof(uint8_t) * (corrected_y_size));
+      memcpy(send_buf + to_sent, y, corrected_y_size);
+      to_sent += corrected_y_size;
     }
+    ferret->io->send_data(send_buf, to_sent);
 
+    delete[] send_buf;
     delete[] rcm_data;
   }
 
@@ -357,8 +369,8 @@ public:
   // chosen additive message, chosen choice
   // Receiver chooses a choice bit 'b', and
   // receives 'x' if b = 0, and 'x + corr' if b = 1
-  void recv_ot_cam_cc(uint64_t* data, const bool* b, int64_t length, int l) {
-    uint64_t modulo_mask = (1ULL << l) - 1;
+  void recv_ot_cam_cc(uint8_t* data, const bool* b, int64_t length, int l) {
+    uint8_t modulo_mask = (1ULL << l) - 1;
     if (l == 64) modulo_mask = -1;
 
     emp::block* rcm_data = new emp::block[length];
@@ -366,20 +378,20 @@ public:
 
     emp::block pad[emp::ot_bsize];
 
-    uint32_t recvd_size = (uint32_t)ceil((emp::ot_bsize * l) / (float(64)));
+    uint32_t recvd_size = (uint32_t)ceil((emp::ot_bsize * l) / (float(8)));
     uint32_t corrected_recvd_size, corrected_bsize;
-    uint64_t corr_data[emp::ot_bsize];
-    uint64_t recvd[recvd_size];
+    uint8_t corr_data[emp::ot_bsize];
+    uint8_t recvd[recvd_size];
 
     for (int64_t i = 0; i < length; i += emp::ot_bsize) {
       corrected_recvd_size =
-          (uint32_t)ceil((std::min(emp::ot_bsize, length - i) * l) / (float(64)));
+          (uint32_t)ceil((std::min(emp::ot_bsize, length - i) * l) / (float(8)));
       corrected_bsize = std::min(emp::ot_bsize, length - i);
 
       memcpy(pad, rcm_data + i, std::min(emp::ot_bsize, length - i) * sizeof(emp::block));
       ferret->mitccrh.template hash<emp::ot_bsize, 1>(pad);
 
-      ferret->io->recv_data(recvd, sizeof(uint64_t) * corrected_recvd_size);
+      ferret->io->recv_data(recvd, sizeof(uint8_t) * corrected_recvd_size);
 
       unpack_cot_messages(corr_data, recvd, corrected_bsize, l);
 
