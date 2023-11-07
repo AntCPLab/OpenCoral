@@ -745,7 +745,6 @@ void BasicRMFE64::random_preimage(gf2ex& h, const vec_gf2e& g) {
     for(size_t i = 0; i < corrected_g.size(); i++) {
         gf2e q;
         eval(q, tmp, beta_[i + 1]);
-        // [zico] TODO: might be able to optimize by storing the inv
         gf2e inv_beta = inv(power(beta_[i+1], m()-k()+1));
         corrected_g[i] = mul(sub(g[i+1], q), inv_beta);
         tmp_beta[i] = beta_[i+1];
