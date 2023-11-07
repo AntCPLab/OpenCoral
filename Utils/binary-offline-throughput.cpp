@@ -46,10 +46,36 @@ string buffer_type = "inputs";
 
 class PrepThread {
 public:
+    pthread_mutex_t mutex;
+    pthread_cond_t ready;
+
+    PrepThread() {
+        pthread_mutex_init(&mutex, 0);
+        pthread_cond_init(&ready, 0);
+    }
+
     long generated;
     virtual void generate() = 0;
 
-    virtual ~PrepThread() {}
+    void lock() {
+        pthread_mutex_lock(&mutex);
+    }
+
+    void unlock() {
+        pthread_mutex_unlock(&mutex);
+    }
+
+    void signal() {
+        pthread_cond_signal(&ready);
+    }
+    void wait() {
+        pthread_cond_wait(&ready, &mutex);
+    }
+
+    virtual ~PrepThread() {
+        pthread_mutex_destroy(&mutex);
+        pthread_cond_destroy(&ready);
+    }
 };
 
 template<class T>
@@ -65,6 +91,10 @@ public:
     void generate() {
         T::Protocol::setup(*P);
         BinaryProtocolThreadInit<T>::setup(*P);
+
+        this->lock();
+        this->signal();
+        this->wait();
 
         typename T::LivePrep* prep = dynamic_cast<typename T::LivePrep*>(&GC::ShareThread<T>::s().DataF);
         if (buffer_type == "inputs")
@@ -206,21 +236,22 @@ void BinaryOfflineMachine::run()
     for (int i = 0; i < nthreads; i++)
     {
         // lock before starting thread to avoid race condition
-        // generators[i]->lock();
+        generators[i]->lock();
         pthread_create(&threads[i], 0, run_ngenerator_thread, generators[i]);
     }
 
     // wait for initialization, then start clock and computation
-    // for (int i = 0; i < nthreads; i++)
-    //     generators[i]->wait();
+    for (int i = 0; i < nthreads; i++) {
+        generators[i]->wait();
+    }
     cout << "Starting computation" << endl;
     struct timeval start, stop;
     gettimeofday(&start, 0);
-    // for (int i = 0; i < nthreads; i++)
-    // {
-    //     generators[i]->signal();
-    //     generators[i]->unlock();
-    // }
+    for (int i = 0; i < nthreads; i++)
+    {
+        generators[i]->signal();
+        generators[i]->unlock();
+    }
 
     // wait for threads to finish
     for (int i = 0; i < nthreads; i++)
