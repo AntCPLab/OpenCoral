@@ -243,6 +243,24 @@ Scripts/coral.sh -F -v breast_tree
 ./Scripts/coral.sh aes_circuit_rmfe
 ```
 
+## Boolean  benchmarks
+
+### Single thread cost
+
+```
+./test_offline_binary 0 2 tiny inputs
+./test_offline_binary 1 2 tiny inputs
+```
+
+### Throughput
+
+```
+# 16 threads, coral protocol, generate inputs
+./binary-offline-throughput -p 0 -x 16 --prot coral --type inputs
+./binary-offline-throughput -p 1 -x 16 --prot coral --type inputs
+```
+
+
 
 # Compile Options
 - `RMFE_UNIT`
