@@ -162,13 +162,19 @@ public:
     uint32_t corrected_bsize;
     emp::block corr_data[emp::ot_bsize];
 
+    uint8_t* recv_buf = new uint8_t[sizeof(emp::block) * length];
+    ferret->io->recv_data(recv_buf, sizeof(emp::block) * length);
+    uint64_t recv_buf_idx = 0;
+
     for (int64_t i = 0; i < length; i += emp::ot_bsize) {
       corrected_bsize = std::min(emp::ot_bsize, length - i);
 
       memcpy(pad, rcm_data + i, corrected_bsize * sizeof(emp::block));
       ferret->mitccrh.template hash<emp::ot_bsize, 1>(pad);
 
-      ferret->io->recv_data(corr_data, sizeof(emp::block) * corrected_bsize);
+      // ferret->io->recv_data(corr_data, sizeof(emp::block) * corrected_bsize);
+      memcpy(corr_data, recv_buf+recv_buf_idx, sizeof(emp::block) * corrected_bsize);
+      recv_buf_idx += sizeof(emp::block) * corrected_bsize;
 
       for (int j = i; j < i + emp::ot_bsize and j < length; ++j) {
         if (b[j])
@@ -177,6 +183,7 @@ public:
           data[j] = pad[j - i];
       }
     }
+    delete[] recv_buf;
     delete[] rcm_data;
   }
 
