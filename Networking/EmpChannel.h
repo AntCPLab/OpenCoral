@@ -1,7 +1,7 @@
 #ifndef EMP_CHANNEL_H_
 #define EMP_CHANNEL_H_
 
-#include <emp-tool/emp-tool.h>
+#include <emp-tool/io/io_channel.h>
 #include "Player.h"
 #include "PlayerBuffer.h"
 

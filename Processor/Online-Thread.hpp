@@ -14,7 +14,7 @@
 #include "Processor/Instruction.hpp"
 #include "Processor/Input.hpp"
 #include "Protocols/LimitedPrep.hpp"
-#include "GC/BitAdder.hpp"
+#include "GC/BitAdder.h"
 
 #include <iostream>
 #include <fstream>

@@ -31,11 +31,19 @@ template<int>
 void MaliciousDabitOnlyPrep<T>::buffer_dabits(ThreadQueues* queues, false_type, false_type)
 {
     assert(this->proc != 0);
-    vector<dabit<T>> check_dabits;
-    this->buffer_dabits_without_check(check_dabits,
-            dabit_sacrifice.minimum_n_inputs(this->buffer_size), queues);
-    dabit_sacrifice.sacrifice_and_check_bits(this->dabits, check_dabits,
-            *this->proc, queues);
+    if (T::bit_type::tight_packed) {
+        vector<dabitpack<T>> check_dabits;
+        this->buffer_dabits_without_check(check_dabits,
+            dabit_sacrifice.minimum_n_inputs(this->buffer_size, T::bit_type::default_length), queues);
+        dabit_sacrifice.sacrifice_and_check_bits(this->dabitpacks, check_dabits, *this->proc, queues);
+    }
+    else {
+        vector<dabit<T>> check_dabits;
+        this->buffer_dabits_without_check(check_dabits,
+                dabit_sacrifice.minimum_n_inputs(this->buffer_size), queues);
+        dabit_sacrifice.sacrifice_and_check_bits(this->dabits, check_dabits,
+                *this->proc, queues);
+    }
 }
 
 template<class T>
@@ -48,6 +56,8 @@ void MaliciousDabitOnlyPrep<T>::buffer_dabits(ThreadQueues* queues, false_type, 
         buffer_dabits<0>(queues, false_type(), false_type());
     else
     {
+        // [zico] TODO: This branch has NOT been updated to deal with `dabitpack`
+        // because our experiments never use primes of bit length smaller than 60
         assert(this->proc != 0);
         vector<dabit<T>> check_dabits;
         DabitShuffleSacrifice<T> shuffle_sacrifice;

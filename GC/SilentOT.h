@@ -2,6 +2,9 @@
 #ifndef SILENT_OT_H
 #define SILENT_OT_H
 
+// Just to fix the stupid bug of expanding the macro 'S0' that is defined in "GC/instructions.h"
+#undef S0
+
 #include <emp-ot/cot.h>
 #include <emp-ot/ferret/ferret_cot.h>
 #include <emp-tool/utils/mitccrh.h>

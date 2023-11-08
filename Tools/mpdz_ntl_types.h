@@ -6,7 +6,7 @@
 #include "Math/BitVec.h"
 #include "Tools/BitVector.h"
 
-void ntl_gf2x_to_mpdz_gf2n(gf2n_short& y, const NTL::GF2X& x) {
+inline void ntl_gf2x_to_mpdz_gf2n(gf2n_short& y, const NTL::GF2X& x) {
     if (deg(x) >= gf2n_short::degree())
         throw runtime_error("Cannot convert NTL::GF2X (deg: " + to_string(deg(x)) 
             + ") to a smaller gf2n element (deg: " + to_string(gf2n_short::degree()) + ")");
@@ -17,17 +17,17 @@ void ntl_gf2x_to_mpdz_gf2n(gf2n_short& y, const NTL::GF2X& x) {
         y = gf2n_short(x.xrep[0]);
 }
 
-void conv(gf2n_short& y, const NTL::GF2X& x) {
+inline void conv(gf2n_short& y, const NTL::GF2X& x) {
     ntl_gf2x_to_mpdz_gf2n(y, x);
 }
 
-gf2n_short ntl_gf2x_to_mpdz_gf2n(const NTL::GF2X& x) {
+inline gf2n_short ntl_gf2x_to_mpdz_gf2n(const NTL::GF2X& x) {
     gf2n_short y;
     ntl_gf2x_to_mpdz_gf2n(y, x);
     return y;
 }
 
-void mpdz_gf2n_to_ntl_gf2x(NTL::GF2X& y, const gf2n_short& x) {
+inline void mpdz_gf2n_to_ntl_gf2x(NTL::GF2X& y, const gf2n_short& x) {
     if (x.get_word() == 0) {
         clear(y);
     }
@@ -37,23 +37,23 @@ void mpdz_gf2n_to_ntl_gf2x(NTL::GF2X& y, const gf2n_short& x) {
     }
 }
 
-void conv(NTL::GF2X& y, const gf2n_short& x) {
+inline void conv(NTL::GF2X& y, const gf2n_short& x) {
     mpdz_gf2n_to_ntl_gf2x(y, x);
 }
 
-NTL::GF2X mpdz_gf2n_to_ntl_gf2x(const gf2n_short& x) {
+inline NTL::GF2X mpdz_gf2n_to_ntl_gf2x(const gf2n_short& x) {
     NTL::GF2X y;
     mpdz_gf2n_to_ntl_gf2x(y, x);
     return y;
 }
 
-void conv(BitVec& y, const NTL::vec_GF2& x) {
+inline void conv(BitVec& y, const NTL::vec_GF2& x) {
     if (x.length() > BitVec::MAX_N_BITS)
         throw runtime_error("Cannot convert NTL::vec_GF2 to a shorter BitVec");
     y = BitVec(x.rep[0]);
 }
 
-void conv(NTL::vec_GF2& y, const BitVec& x, int n_bits = -1) {
+inline void conv(NTL::vec_GF2& y, const BitVec& x, int n_bits = -1) {
     if (n_bits > BitVec::MAX_N_BITS)
         throw runtime_error("Cannot convert BitVec to NTL::vec_GF2");
     if (n_bits == -1)
@@ -62,7 +62,7 @@ void conv(NTL::vec_GF2& y, const BitVec& x, int n_bits = -1) {
     y.rep[0] = x.mask(n_bits).get();
 }
 
-void conv(BitVector& y, const NTL::vec_GF2& x) {
+inline void conv(BitVector& y, const NTL::vec_GF2& x) {
     if (x.length() == 0) {
         y.resize(0);
         return;
@@ -73,7 +73,7 @@ void conv(BitVector& y, const NTL::vec_GF2& x) {
         y.set_word(i, x.rep[i]);
 }
 
-void conv(NTL::vec_GF2& y, const BitVector& x) {
+inline void conv(NTL::vec_GF2& y, const BitVector& x) {
     if (x.size() == 0) {
         y.SetLength(0);
         return;
@@ -85,7 +85,7 @@ void conv(NTL::vec_GF2& y, const BitVector& x) {
 }
 
 
-void pad(NTL::vec_GF2& x, int L) {
+inline void pad(NTL::vec_GF2& x, int L) {
     if(x.length() >= L)
         return;
     x.SetLength(L);

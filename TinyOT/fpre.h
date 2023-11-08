@@ -4,6 +4,9 @@
 */
 #ifndef EMP_AG2PC_FPRE_H__
 #define EMP_AG2PC_FPRE_H__
+
+#undef S0
+
 #include <emp-tool/emp-tool.h>
 #include <emp-ot/emp-ot.h>
 #include <thread>
@@ -11,6 +14,7 @@
 #include "helper.h"
 #include "leaky_deltaot.h"
 #include "config.h"
+#include "Networking/Player.h"
 
 namespace emp {
 //#define __debug

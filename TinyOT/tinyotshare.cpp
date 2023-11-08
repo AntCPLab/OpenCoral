@@ -10,6 +10,7 @@
 #include "Protocols/fake-stuff.h"
 #include "tinyotmc.h"
 #include "tinyotshare.h"
+#include "Protocols/MAC_Check_Base.hpp"
 
 
 TinyOTShare::MC* TinyOTShare::new_mc(mac_key_type key) {

@@ -19,7 +19,7 @@
 #include "MaliciousRingPrep.hpp"
 #include "ShuffleSacrifice.hpp"
 #include "GC/ShareThread.hpp"
-#include "GC/BitAdder.hpp"
+// #include "GC/BitAdder.hpp"
 #include "Tools/debug.h"
 
 class InScope
@@ -717,6 +717,8 @@ void buffer_bits_from_players(vector<vector<T>>& player_bits,
         PRNG& G, SubProcessor<T>& proc, int base_player,
         int buffer_size, int n_bits)
 {
+    if (T::tight_packed)
+        assert(n_bits == -1);
     auto& protocol = proc.protocol;
     auto& P = protocol.P;
     int n_relevant_players = protocol.get_n_relevant_players();
@@ -731,9 +733,15 @@ void buffer_bits_from_players(vector<vector<T>>& player_bits,
             for (int i = 0; i < buffer_size; i++)
             {
                 typename T::clear tmp;
-                for (int j = 0; j < n_bits; j++)
-                    tmp += typename T::clear(G.get_bit()) << j;
-                input.add_mine(tmp, n_bits);
+                if (T::tight_packed) {
+                    tmp = G.get<typename T::clear>();
+                    input.add_mine(tmp, -1);
+                }
+                else {
+                    for (int j = 0; j < n_bits; j++)
+                        tmp += typename T::clear(G.get_bit()) << j;
+                    input.add_mine(tmp, n_bits);
+                }
             }
         }
         else
@@ -778,6 +786,31 @@ void RingPrep<T>::buffer_dabits_without_check(vector<dabit<T>>& dabits,
         int buffer_size, ThreadQueues* queues)
 {
     buffer_size = BaseMachine::batch_size<T>(DATA_DABIT, buffer_size);
+    int old_size = dabits.size();
+    dabits.resize(dabits.size() + buffer_size);
+    if (queues)
+    {
+        ThreadJob job(&dabits);
+        int start = queues->distribute(job, buffer_size, old_size);
+        this->buffer_dabits_without_check(dabits,
+                start, dabits.size());
+        if (start > old_size)
+            queues->wrap_up(job);
+    }
+    else
+        buffer_dabits_without_check(dabits, old_size, dabits.size());
+}
+
+template<class T>
+void RingPrep<T>::buffer_dabits_without_check(vector<dabitpack<T>>& dabits,
+        int buffer_size, ThreadQueues* queues)
+{
+    buffer_size = BaseMachine::batch_size<T>(DATA_DABIT, buffer_size);
+    typedef typename T::bit_type::part_type BT;
+    int dl = BT::default_length;
+    assert(buffer_size % dl == 0);
+
+    buffer_size = buffer_size / dl;
     int old_size = dabits.size();
     dabits.resize(dabits.size() + buffer_size);
     if (queues)
@@ -904,6 +937,56 @@ void RingPrep<T>::buffer_dabits_without_check(vector<dabit<T>>& dabits,
         for (int j = 1; j < this->protocol->get_n_relevant_players(); j++)
             bit ^= player_bits[j][i];
         dabits[begin + i] = {int_bits[i], bit};
+    }
+}
+
+template<class T>
+void RingPrep<T>::buffer_dabits_without_check(vector<dabitpack<T>>& dabits,
+        size_t begin, size_t end)
+{
+    auto proc = this->proc;
+    assert(proc != 0);
+    buffer_dabits_without_check<0>(dabits, begin, end, proc->bit_prep);
+}
+
+template<class T>
+template<int>
+void RingPrep<T>::buffer_dabits_without_check(vector<dabitpack<T>>& dabits,
+        size_t begin, size_t end,
+        Preprocessing<typename T::bit_type::part_type>& bit_prep)
+{
+#ifdef VERBOSE_DABIT
+    fprintf(stderr, "generate daBits %lu to %lu\n", begin, end);
+#endif
+
+    size_t buffer_size = end - begin;
+    auto proc = this->proc;
+    assert(this->protocol != 0);
+    assert(proc != 0);
+    SeededPRNG G;
+    PRNG G2 = G;
+    typedef typename T::bit_type::part_type bit_type;
+    int dl = bit_type::default_length;
+    vector<vector<bit_type>> player_bits;
+    auto& party = GC::ShareThread<typename T::bit_type>::s();
+    if (not bit_part_proc)
+        bit_part_proc = new SubProcessor<bit_type>(party.MC->get_part_MC(),
+                bit_prep, proc->P);
+    auto& bit_proc = *bit_part_proc;
+    buffer_bits_from_players(player_bits, G, bit_proc, this->base_player,
+            buffer_size, -1);
+    vector<T> int_bits;
+    this->buffer_ring_bits_without_check(int_bits, G2, buffer_size * dl);
+    for (auto& pb : player_bits)
+        assert(pb.size() * dl == int_bits.size());
+    for (size_t i = 0; i < buffer_size; i++)
+    {
+        bit_type bit = player_bits[0][i];
+        for (int j = 1; j < this->protocol->get_n_relevant_players(); j++)
+            bit ^= player_bits[j][i];
+        dabits[begin + i].second = bit;
+        for (int j = 0; j < dl; j++) 
+            dabits[begin + i].push_a(int_bits[i * dl + j]);
     }
 }
 

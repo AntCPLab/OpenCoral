@@ -12,8 +12,10 @@
 #include "Replicated.h"
 #include "Processor/Data_Files.h"
 #include "Math/mfe64.h"
-#include "Protocols/ProtocolGlobalInit.h"
 #include "TinyOT/tinyotshare.h"
+#include "TinyOT/tinyotprotocol.h"
+#include "Protocols/ProtocolGlobalInit.h"
+
 
 template<class T> class SubProcessor;
 template<class T> class MAC_Check_Base;

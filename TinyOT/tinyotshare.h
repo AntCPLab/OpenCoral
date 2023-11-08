@@ -2,7 +2,7 @@
 #ifndef TINYOT_TINYOTSHARE_H__
 #define TINYOT_TINYOTSHARE_H__
 
-#include <emp-tool/emp-tool.h>
+#include <emp-tool/utils/block.h>
 #include "Tools/octetStream.h"
 #include "Protocols/MAC_Check_Base.h"
 #include "Math/Bit.h"

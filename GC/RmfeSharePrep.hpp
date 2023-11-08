@@ -11,8 +11,8 @@
 #include "Protocols/TinyOt2Rmfe.h"
 #include "PersonalPrep.hpp"
 #include "Tools/debug.h"
-#include "TinyOT/tinyotprep.hpp"
-#include "TinyOT/tinyotshare.hpp"
+#include "TinyOT/tinyotprep.h"
+// #include "TinyOT/tinyotshare.hpp"
 #include "Protocols/ReplicatedPrep.hpp"
 #ifdef DETAIL_BENCHMARK
 #include "Tools/performance.h"

@@ -3,7 +3,8 @@
 
 // There is some compiling problem when not including this header first.
 // It might be a compiler bug for resolving macros and var names.
-#include <emp-tool/emp-tool.h>
+// [zico] updated: don't include this header, it includes an unnecesary header that leads to compiling bug
+// #include <emp-tool/emp-tool.h>
 
 // #include "GC/RmfeSecret.h"
 #include "GC/RmfeShare.h"

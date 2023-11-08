@@ -5,23 +5,24 @@
 #include "Tools/octetStream.h"
 #include "Protocols/MAC_Check_Base.h"
 #include "Math/Bit.h"
-#include "Tools/debug.h"
+#include "Tools/debug.hpp"
 #include "Protocols/fake-stuff.h"
 #include "TinyOT/tinyotshare.h"
 #include "tinyotprep.h"
 #include "tinyotprotocol.h"
+#include "Protocols/ReplicatedPrep.hpp"
 
-atomic<int> BufferTinyOTPrep::port_resource(20000);
+// atomic<int> BufferTinyOTPrep::port_resource(20000);
 
-int BufferTinyOTPrep::get_next_available_port() {
-	return ++port_resource;
-}
+// int BufferTinyOTPrep::get_next_available_port() {
+// 	return ++port_resource;
+// }
 
-BufferTinyOTPrep::BufferTinyOTPrep(DataPositions& usage, int port, int batch_size) :
+BufferTinyOTPrep::BufferTinyOTPrep(DataPositions& usage, int batch_size) :
 	Preprocessing<TinyOTShare>(usage), io(nullptr), fpre(nullptr), P(nullptr),
-	player_2pc(nullptr), port(port), batch_size(batch_size) {
-	if (this->port < 0)
-		this->port = get_next_available_port();
+	player_2pc(nullptr), batch_size(batch_size) {
+	// if (this->port < 0)
+	// 	this->port = get_next_available_port();
 }
 
 void BufferTinyOTPrep::set_protocol(TinyOTShare::Protocol& protocol) {

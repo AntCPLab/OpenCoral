@@ -14,10 +14,12 @@ FHEOBJS = $(patsubst %.cpp,%.o,$(wildcard FHEOffline/*.cpp FHE/*.cpp)) Protocols
 GC = $(patsubst %.cpp,%.o,$(wildcard GC/*.cpp)) $(PROCESSOR)
 GC_SEMI = GC/SemiPrep.o GC/square64.o GC/Semi.o
 
-OT = $(patsubst %.cpp,%.o,$(wildcard OT/*.cpp)) $(LIBSIMPLEOT)
+TINYOT = $(patsubst %.cpp,%.o,$(wildcard TinyOT/*.cpp))
+
+OT = $(patsubst %.cpp,%.o,$(wildcard OT/*.cpp)) $(LIBSIMPLEOT) $(TINYOT)
 OT_EXE = ot.x ot-offline.x
 
-COMMONOBJS = $(MATH) $(TOOLS) $(NETWORK) GC/square64.o Processor/OnlineOptions.o Processor/BaseMachine.o Processor/DataPositions.o Processor/ThreadQueues.o Processor/ThreadQueue.o
+COMMONOBJS = $(MATH) $(TOOLS) $(NETWORK) $(GC) GC/square64.o Processor/OnlineOptions.o Processor/BaseMachine.o Processor/DataPositions.o Processor/ThreadQueues.o Processor/ThreadQueue.o
 COMPLETE = $(COMMON) $(PROCESSOR) $(FHEOFFLINE) $(TINYOTOFFLINE) $(GC) $(OT)
 YAO = $(patsubst %.cpp,%.o,$(wildcard Yao/*.cpp)) $(OT) BMR/Key.o
 BMR = $(patsubst %.cpp,%.o,$(wildcard BMR/*.cpp BMR/network/*.cpp))
@@ -454,6 +456,8 @@ test_zico: test/test_zico.o
 
 mixed-coral-dabit-example.x: $(VM) $(OT) $(COMMON)
 mixed-coral-edabit-example.x: $(VM) $(OT) $(COMMON)
+
+mixed-offline-performance.x: $(VM) $(OT) $(COMMON) $(FHEOFFLINE) $(TINIER) Protocols/LowGearKeyGen.o 
 
 
 zico: target1

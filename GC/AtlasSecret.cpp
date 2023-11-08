@@ -7,6 +7,7 @@
 #include "TinyMC.h"
 
 #include "Protocols/Shamir.hpp"
+#include "Machines/ShamirMachine.hpp"
 #include "Protocols/ShamirMC.hpp"
 #include "Protocols/MAC_Check_Base.hpp"
 #include "Secret.hpp"

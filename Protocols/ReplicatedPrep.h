@@ -226,6 +226,8 @@ class RingPrep : public virtual BitPrep<T>
 protected:
     void buffer_dabits_without_check(vector<dabit<T>>& dabits,
             int buffer_size = -1, ThreadQueues* queues = 0);
+    void buffer_dabits_without_check(vector<dabitpack<T>>& dabits,
+            int buffer_size = -1, ThreadQueues* queues = 0);
     template<int>
     void buffer_edabits_without_check(int n_bits, vector<T>& sums,
             vector<vector<typename T::bit_type::part_type>>& bits, int buffer_size,
@@ -280,6 +282,13 @@ public:
             size_t begin, size_t end);
     template<int>
     void buffer_dabits_without_check(vector<dabit<T>>& dabits,
+            size_t begin, size_t end,
+            Preprocessing<typename T::bit_type::part_type>& bit_prep);
+
+    void buffer_dabits_without_check(vector<dabitpack<T>>& dabits,
+            size_t begin, size_t end);
+    template<int>
+    void buffer_dabits_without_check(vector<dabitpack<T>>& dabits,
             size_t begin, size_t end,
             Preprocessing<typename T::bit_type::part_type>& bit_prep);
 

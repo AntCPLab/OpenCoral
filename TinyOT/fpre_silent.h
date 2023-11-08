@@ -4,6 +4,9 @@
 */
 #ifndef EMP_AG2PC_FPRE_H__
 #define EMP_AG2PC_FPRE_H__
+
+#undef S0
+
 #include <emp-tool/emp-tool.h>
 #include <emp-ot/emp-ot.h>
 #include <thread>
@@ -15,7 +18,7 @@
 namespace emp {
 //#define __debug
 
-string get_ferret_filename(int my_num, int other_num, bool send, int thread_num)
+inline string get_ferret_filename(int my_num, int other_num, bool send, int thread_num)
 {
     return "Player-Data/TinyOT/Ferret-P" + std::to_string(my_num)
             + "-" + std::to_string(other_num) + "-" + (send? "Send" : "Recv") 

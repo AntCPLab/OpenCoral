@@ -16,6 +16,7 @@
 #include "Tools/debug.h"
 #include "Protocols/fake-stuff.h"
 #include "TinyOT/tinyotshare.h"
+#include "Protocols/ReplicatedPrep.h"
 
 class BufferTinyOTPrep : public Preprocessing<TinyOTShare> {
 
@@ -27,13 +28,13 @@ class BufferTinyOTPrep : public Preprocessing<TinyOTShare> {
 
 	Player* P;
 	TwoPartyPlayer* player_2pc;
-	int port;
+	// int port;
 	int batch_size;
 
 public:
 
-	static atomic<int> port_resource;
-	static int get_next_available_port();
+	// static atomic<int> port_resource;
+	// static int get_next_available_port();
 
 	// BufferTinyOTPrep(int party, int port = 12345, int batch_size = 1000) {
 	// 	io = new emp::NetIO(party==emp::ALICE ? nullptr:emp::IP, port);
@@ -44,7 +45,7 @@ public:
 	// 	random_abit_KEYs.reserve(fpre->batch_size);
 	// }
 
-	BufferTinyOTPrep(DataPositions& usage, int port = -1, int batch_size = 1000);
+	BufferTinyOTPrep(DataPositions& usage, int batch_size = 1000);
 
 	void set_protocol(TinyOTShare::Protocol& protocol);
 
