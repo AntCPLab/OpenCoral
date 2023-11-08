@@ -42,6 +42,8 @@ template<class T>
 template<int>
 void MaliciousDabitOnlyPrep<T>::buffer_dabits(ThreadQueues* queues, false_type, true_type)
 {
+    // [zico] This branch is because the `daBit check` protocol in Fig.16 of edabits paper
+    // requires the integer domain to have bit length > statiscial security parameter.
     if (T::clear::length() >= 60)
         buffer_dabits<0>(queues, false_type(), false_type());
     else
