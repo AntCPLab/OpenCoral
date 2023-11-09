@@ -23,7 +23,7 @@ public:
      * @param prime_length length of prime if computing modulo a prime
      * @param directory location to read MAC if needed
      */
-    ProtocolSetup(Player& P, int prime_length = 0, string directory = "")
+    ProtocolSetup(Player& P, int prime_length = 0, string directory = "", bool write_mac_key = false)
     {
         // initialize fields
         if (prime_length == 0)
@@ -33,7 +33,12 @@ public:
         T::clear::next::init_default(prime_length, false);
 
         // must initialize MAC key for security of some protocols
-        T::read_or_generate_mac_key(directory, P, mac_key);
+        if (write_mac_key) {
+            mac_key = read_generate_write_mac_key<T>(P, directory);
+        }
+        else {
+            T::read_or_generate_mac_key(directory, P, mac_key);
+        }
 
         T::MAC_Check::setup(P);
         T::Protocol::setup(P);
@@ -128,8 +133,8 @@ public:
      * @param prime_length length of prime if computing modulo a prime
      * @param directory location to read MAC if needed
      */
-    MixedProtocolSetup(Player& P, int prime_length = 0, string directory = "") :
-            ProtocolSetup<T>(P, prime_length, directory), binary(P, directory)
+    MixedProtocolSetup(Player& P, int prime_length = 0, string directory = "", bool write_mac_key = false) :
+            ProtocolSetup<T>(P, prime_length, directory, write_mac_key), binary(P, directory)
     {
     }
 };

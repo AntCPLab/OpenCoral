@@ -220,7 +220,7 @@ void DabitSacrifice<T>::sacrifice_without_bit_check(vector<dabitpack<T> >& dabit
             
             if (a != b.get_bit(j))
             {
-                cerr << a << " != " << b << endl;
+                cerr << a << " != " << b.get_bit(j) << endl;
                 throw Offline_Check_Error("daBit sacrifice");
             }
         }

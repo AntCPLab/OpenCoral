@@ -717,8 +717,6 @@ void buffer_bits_from_players(vector<vector<T>>& player_bits,
         PRNG& G, SubProcessor<T>& proc, int base_player,
         int buffer_size, int n_bits)
 {
-    if (T::tight_packed)
-        assert(n_bits == -1);
     auto& protocol = proc.protocol;
     auto& P = protocol.P;
     int n_relevant_players = protocol.get_n_relevant_players();
@@ -733,15 +731,9 @@ void buffer_bits_from_players(vector<vector<T>>& player_bits,
             for (int i = 0; i < buffer_size; i++)
             {
                 typename T::clear tmp;
-                if (T::tight_packed) {
-                    tmp = G.get<typename T::clear>();
-                    input.add_mine(tmp, -1);
-                }
-                else {
-                    for (int j = 0; j < n_bits; j++)
-                        tmp += typename T::clear(G.get_bit()) << j;
-                    input.add_mine(tmp, n_bits);
-                }
+                for (int j = 0; j < n_bits; j++)
+                    tmp += typename T::clear(G.get_bit()) << j;
+                input.add_mine(tmp, n_bits);
             }
         }
         else
@@ -974,7 +966,7 @@ void RingPrep<T>::buffer_dabits_without_check(vector<dabitpack<T>>& dabits,
                 bit_prep, proc->P);
     auto& bit_proc = *bit_part_proc;
     buffer_bits_from_players(player_bits, G, bit_proc, this->base_player,
-            buffer_size, -1);
+            buffer_size, dl);
     vector<T> int_bits;
     this->buffer_ring_bits_without_check(int_bits, G2, buffer_size * dl);
     for (auto& pb : player_bits)
