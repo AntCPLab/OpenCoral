@@ -60,7 +60,10 @@ void run(char** argv)
     PlainPlayer P(N);
 
     // protocol setup (domain, MAC key if needed etc)
-    MixedProtocolSetup<T> setup(P);
+    // Need to call this first so that a MAC key is generated and written to a directory
+    // And Spdz2k A and B sharings will read the same key
+    read_generate_write_mac_key<T>(P);
+    MixedProtocolSetup<T> setup(P, 0, get_prep_sub_dir<T>(P.num_players()));
 
     // set of protocols (bit_input, multiplication, output)
     MixedProtocolSet<T> set(P, setup);
@@ -75,7 +78,7 @@ void run(char** argv)
     int dl = T::bit_type::default_length;
 
     perf_log("edabit", P.total_comm().sent);
-    edabitpack<T> eb = prep.get_edabitpack_no_count(false, 64);
+    edabitpack<T> eb = prep.get_edabitpack_no_count(true, 64);
     perf_log("edabit", P.total_comm().sent);
 
     cout << endl << "LOOSE: " << endl;
