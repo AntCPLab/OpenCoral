@@ -8,7 +8,7 @@
 #include "Tools/performance.h"
 
 template<class T>
-void test_buffer_edabits(int argc, const char** argv, int prime_length = 0)
+void test_buffer_edabits(int argc, const char** argv, bool strict, int prime_length = 0)
 {
     OnlineOptions::singleton.batch_size = 10000;
     cout << "[zico] batch size: " << OnlineOptions::singleton.batch_size << endl;
@@ -29,13 +29,12 @@ void test_buffer_edabits(int argc, const char** argv, int prime_length = 0)
     MixedProtocolSet<T> set(P, setup);
     auto& prep = set.preprocessing;
 
-    perf_log("loose edabit", P.total_comm().sent);
-    prep.buffer_edabits(false, 64, 0);
-    perf_log("loose edabit", P.total_comm().sent);
-
-    perf_log("strict edabit", P.total_comm().sent);
-    prep.buffer_edabits(true, 64, 0);
-    perf_log("strict edabit", P.total_comm().sent);
+    auto start = perf_log((strict? "strict" : "loose") + string(" edabit"), P.total_comm().sent);
+    for (int i = 0; i < 2; i++)
+        prep.buffer_edabits(strict, 64, 0);
+    auto diff = perf_log((strict? "strict" : "loose") + string(" edabit"), P.total_comm().sent);
+    cout << "[Time/1000 ops] " << diff.first.count() * 1.0 / 1e6 / prep.get_edabit_size(strict, 64) * 1000 << " ms" << endl;
+    cout << "[Comm/1000 ops] " << diff.second * 1.0 / 1e6 / prep.get_edabit_size(strict, 64) * 1000 << " MB" << endl;
 
     set.check();
 }
@@ -43,7 +42,7 @@ void test_buffer_edabits(int argc, const char** argv, int prime_length = 0)
 int main(int argc, const char** argv)
 {
     cerr << "Usage: " << argv[0]
-        << "<my number: 0/1/...> <total number of players> [protocol] [buffer_type]"
+        << "<my number: 0/1/...> <total number of players> [protocol] [buffer_type] [strict|loose]"
         << endl;
 
     // bit length of prime
@@ -59,25 +58,34 @@ int main(int argc, const char** argv)
     string type = "edabit";
     if (argc > 4)
         type = argv[4]; // edabit, dabit
+
+    bool strict = false;
+    if (argc > 5)
+        strict = (string(argv[5]) == string("strict"));
     
     /* edabit */
     if (protocol == "coral" && type == "edabit") {
-        test_buffer_edabits<CoralShare<64, 64>>(argc, argv);
+        test_buffer_edabits<CoralShare<64, 64>>(argc, argv, strict);
     }
     else if (protocol == "corallowgear" && type == "edabit") {
         ez::ezOptionParser opt;
         CowGearOptions::singleton = CowGearOptions(opt, argc, argv, false);
-        test_buffer_edabits<CoralLowGearShare<gfp_<0, n_limbs>>>(argc, argv, prime_length);
+        test_buffer_edabits<CoralLowGearShare<gfp_<0, n_limbs>>>(argc, argv, strict, prime_length);
+    }
+    else if (protocol == "coralmascot" && type == "edabit") {
+        test_buffer_edabits<CoralMascotShare<gfp_<0, n_limbs>>>(argc, argv, strict, prime_length);
     }
     else if (protocol == "spdz2k" && type == "edabit") {
-        test_buffer_edabits<Spdz2kShare<64, 64>>(argc, argv);
+        test_buffer_edabits<Spdz2kShare<64, 64>>(argc, argv, strict);
     }
-    // else if (protocol == "coralmascot" && type == "inputs") {
-    //     test_buffer_edabits<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
-    // }
-    // else if (protocol == "spdz2k" && type == "inputs") {
-    //     test_buffer_edabits<GC::TinySecret<DEFAULT_SECURITY>>(argc, argv);
-    // }
+    else if (protocol == "mascot" && type == "edabit") {
+        test_buffer_edabits<Share<gfp_<0, n_limbs>>>(argc, argv, strict, prime_length);
+    }
+    else if (protocol == "lowgear" && type == "edabit") {
+        ez::ezOptionParser opt;
+        CowGearOptions::singleton = CowGearOptions(opt, argc, argv, false);
+        test_buffer_edabits<LowGearShare<gfp_<0, n_limbs>>>(argc, argv, strict, prime_length);
+    }
     /* dabit */
     // else if (protocol == "coral" && type == "triples") {
     //     test_buffer_triples<GC::RmfeShare>(argc, argv);

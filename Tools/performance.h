@@ -76,9 +76,10 @@ inline size_t comm_log(const std::string& tag, size_t comm, bool print=true) {
     }
 }
 
-inline void perf_log(const std::string& tag, size_t comm) {
-    time_log(tag);
-    comm_log(tag, comm);
+inline std::pair<std::chrono::nanoseconds, size_t> perf_log(const std::string& tag, size_t comm) {
+    auto t = time_log(tag);
+    auto c = comm_log(tag, comm);
+    return {t, c};
 }
 
 class ThreadPerformance {

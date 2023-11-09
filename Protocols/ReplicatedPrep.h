@@ -184,6 +184,15 @@ public:
     virtual size_t get_triples_size() {
         return triples.size();
     }
+
+    virtual size_t get_edabit_size(bool strict, int n_bits) {
+        if (T::bit_type::tight_packed) {
+            return edabitpacks[{strict, n_bits}].size() * T::bit_type::default_length;
+        }
+        else {
+            return edabits[{strict, n_bits}].size() * edabitvec<T>::MAX_SIZE;
+        }
+    }
 };
 
 /**

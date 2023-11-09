@@ -9,6 +9,7 @@
 #include "Protocols/CoralGfp.h"
 #include "Protocols/CoralLowGearShare.h"
 #include "Protocols/CowGearPrep.hpp"
+#include "Protocols/CoralMascotShare.h"
 
 
 #include "Machines/SPDZ2k.hpp"
