@@ -20,7 +20,10 @@ void test_buffer_edabits(int argc, char** argv)
     PlainPlayer P(N);
 
     // protocol setup (domain, MAC key if needed etc)
-    MixedProtocolSetup<T> setup(P);
+    // Need to call this first so that a MAC key is generated and written to a directory
+    // And Spdz2k A and B sharings will read the same key
+    read_generate_write_mac_key<T>(P);
+    MixedProtocolSetup<T> setup(P, T::clear::length(), get_prep_sub_dir<T>(P.num_players()));
 
     // set of protocols (input, multiplication, output)
     MixedProtocolSet<T> set(P, setup);
