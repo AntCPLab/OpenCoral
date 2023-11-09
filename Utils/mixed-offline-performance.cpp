@@ -69,6 +69,9 @@ int main(int argc, const char** argv)
         CowGearOptions::singleton = CowGearOptions(opt, argc, argv, false);
         test_buffer_edabits<CoralLowGearShare<gfp_<0, n_limbs>>>(argc, argv, prime_length);
     }
+    else if (protocol == "spdz2k" && type == "edabit") {
+        test_buffer_edabits<Spdz2kShare<64, 64>>(argc, argv);
+    }
     // else if (protocol == "coralmascot" && type == "inputs") {
     //     test_buffer_edabits<GC::TinierSecret<gf2n_mac_key>>(argc, argv);
     // }

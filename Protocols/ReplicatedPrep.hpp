@@ -19,7 +19,7 @@
 #include "MaliciousRingPrep.hpp"
 #include "ShuffleSacrifice.hpp"
 #include "GC/ShareThread.hpp"
-// #include "GC/BitAdder.hpp"
+#include "GC/BitAdder.hpp"
 #include "Tools/debug.h"
 
 class InScope
