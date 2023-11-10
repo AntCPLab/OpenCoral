@@ -260,6 +260,22 @@ Scripts/coral.sh -F -v breast_tree
 ./binary-offline-throughput -p 1 -x 16 --prot coral --type inputs
 ```
 
+## Mixed  benchmarks
+
+### Single thread cost
+
+```
+./mixed-offline-performance 0 2 coral edabit loose
+./mixed-offline-performance 1 2 coral edabit loose
+```
+
+### Throughput
+
+```
+# 16 threads, coral protocol, generate inputs
+./binary-offline-throughput -p 0 -x 16 --prot coral --type inputs
+./binary-offline-throughput -p 1 -x 16 --prot coral --type inputs
+```
 
 
 # Compile Options

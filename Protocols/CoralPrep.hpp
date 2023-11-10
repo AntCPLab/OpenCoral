@@ -101,6 +101,7 @@ void CoralPrep<T>::buffer_dabits(ThreadQueues* queues)
 #endif
 
     assert(this->proc != 0);
+    size_t prev_size = this->dabitpacks.size();
 
     /* Version 1: Same as in Spdz2kPrep.hpp. This is the most efficient one. */
     vector<dabitpack<T>> check_dabits;
@@ -115,6 +116,8 @@ void CoralPrep<T>::buffer_dabits(ThreadQueues* queues)
     // this->buffer_dabits_without_check(check_dabits,
     //     dabit_sacrifice.minimum_n_inputs(this->buffer_size, T::bit_type::default_length), queues);
     // dabit_sacrifice.sacrifice_and_check_bits(this->dabitpacks, check_dabits, *this->proc, queues);
+
+    print_general("Generate dabitpack", this->dabitpacks.size() - prev_size);
 
 #ifdef DETAIL_BENCHMARK
     perf.stop(this->protocol->P.total_comm().sent);

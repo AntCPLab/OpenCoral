@@ -193,6 +193,15 @@ public:
             return edabits[{strict, n_bits}].size() * edabitvec<T>::MAX_SIZE;
         }
     }
+
+    virtual size_t get_dabit_size() {
+        if (T::bit_type::tight_packed) {
+            return dabitpacks.size() * T::bit_type::default_length;
+        }
+        else {
+            return dabits.size();
+        }
+    }
 };
 
 /**

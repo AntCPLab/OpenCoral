@@ -32,17 +32,23 @@ void MaliciousDabitOnlyPrep<T>::buffer_dabits(ThreadQueues* queues, false_type, 
 {
     assert(this->proc != 0);
     if (T::bit_type::tight_packed) {
+        size_t prev_size = this->dabitpacks.size();
         vector<dabitpack<T>> check_dabits;
         this->buffer_dabits_without_check(check_dabits,
             dabit_sacrifice.minimum_n_inputs(this->buffer_size, T::bit_type::default_length), queues);
         dabit_sacrifice.sacrifice_and_check_bits(this->dabitpacks, check_dabits, *this->proc, queues);
+
+        print_general("Generate dabitpack", this->dabitpacks.size() - prev_size);
     }
     else {
+        size_t prev_size = this->dabits.size();
         vector<dabit<T>> check_dabits;
         this->buffer_dabits_without_check(check_dabits,
                 dabit_sacrifice.minimum_n_inputs(this->buffer_size), queues);
         dabit_sacrifice.sacrifice_and_check_bits(this->dabits, check_dabits,
                 *this->proc, queues);
+
+        print_general("Generate dabit", this->dabits.size() - prev_size);
     }
 }
 

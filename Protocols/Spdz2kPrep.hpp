@@ -144,12 +144,15 @@ void Spdz2kPrep<T>::buffer_dabits(ThreadQueues* queues)
 #endif
 
     assert(this->proc != 0);
+    size_t prev_size = this->dabits.size();
     vector<dabit<T>> check_dabits;
     int buffer_size = BaseMachine::batch_size<T>(DATA_DABIT, this->buffer_size);
     this->buffer_dabits_from_bits_without_check(check_dabits,
             dabit_sacrifice.minimum_n_inputs(buffer_size), queues);
     dabit_sacrifice.sacrifice_without_bit_check(this->dabits, check_dabits,
             *this->proc, queues);
+
+    print_general("Generate dabit", this->dabits.size() - prev_size);
 
 #ifdef DETAIL_BENCHMARK
     perf.stop(this->protocol->P.total_comm().sent);
