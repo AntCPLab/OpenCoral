@@ -215,7 +215,7 @@ void MixedOfflineMachine::run()
     else if (prot == "coralmascot") {
         MixedProtocolThreadInit<CoralMascotShare<gfp_<0, n_limbs>>>::setup(P, prime_length, get_prep_sub_dir<CoralMascotShare<gfp_<0, n_limbs>>>(P.num_players()), true);
     }
-    else if (prot == "tiny") {
+    else if (prot == "corallowgear") {
         ez::ezOptionParser opt;
         CowGearOptions::singleton = CowGearOptions(opt, argc, argv, false);
         MixedProtocolThreadInit<CoralLowGearShare<gfp_<0, n_limbs>>>::setup(P, prime_length, get_prep_sub_dir<CoralLowGearShare<gfp_<0, n_limbs>>>(P.num_players()), true);

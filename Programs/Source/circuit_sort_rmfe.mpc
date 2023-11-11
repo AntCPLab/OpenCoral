@@ -1,0 +1,18 @@
+from circuit import Circuit
+
+cb4096 = cbits.get_type(4096)
+input1 = cb4096(0x2b7e151628aed2a6abf7158809cf4f3c)
+input2 = cb4096(0x6bc1bee22e409f96e93d7e117393172a)
+n = 120
+x = cbits.trans([input1] * n)
+y = cbits.trans([input2] * n)
+
+sbn = sbits.get_type(n)
+sx = [sbn.conv(c) for c in x]
+sy = [sbn.conv(c) for c in y]
+
+sort_circuit = Circuit('sort')
+ciphertexts = sort_circuit(sx, sy)
+
+ct_cbs = cbits.trans([ciphertexts.v[i].reveal() for i in range(4096)])
+ct_cbs[n-1].print_reg()

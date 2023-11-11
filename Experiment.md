@@ -229,18 +229,18 @@ Scripts/coral.sh -F -v breast_tree
 - Add `MY_CFLAGS = -DINSECURE` to `CONFIG.mine`.
 - Make sure `Compiler.GC.types.bits.unit = 64`
 ```
-./compile.py aes_circuit
-./Scripts/spdz2k.sh aes_circuit
+./compile.py circuit_aes
+./Scripts/spdz2k.sh circuit_aes
 # OR
-./Scripts/tinier.sh aes_circuit
+./Scripts/tinier.sh circuit_aes
 ```
 
 ### Coral
 - Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
 - Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
 ```
-./compile.py aes_circuit_rmfe
-./Scripts/coral.sh aes_circuit_rmfe
+./compile.py circuit_aes_rmfe
+./Scripts/coral.sh circuit_aes_rmfe
 ```
 
 ## Boolean  benchmarks
