@@ -6,6 +6,8 @@
 #ifndef GC_BITADDER_H_
 #define GC_BITADDER_H_
 
+#include "Processor/Processor.h"
+#include "Processor/ThreadQueue.h"
 #include <vector>
 #ifdef RMFE_UNIT
 #include "RmfeShare.h"
