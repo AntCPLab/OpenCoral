@@ -134,6 +134,19 @@ make Fake-Offline.x coral-party.x -j8
 Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graphDef.bin-8
 ```
 
+### Coral-Lowgear
+To evaluate Coral, we need to:
+- Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
+- enable the packing feature by passing the `--pack` option to the compiler.
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+- Printing has a large effect on the benchmarking. Remember to turn off them for accurate benchmark.
+```
+make clean
+make corallowgear-party.x -j8
+./compile.py -F 64 -Y --pack tf benchmarks/EzPC/Athos/Networks/SqueezeNetImgNet/graphDef.bin 8
+Scripts/corallowgear.sh -v tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graphDef.bin-8
+```
+
 ## Lenet
 
 ### Spdz2k
@@ -164,6 +177,20 @@ Scripts/fixed-rep-to-float.py benchmarks/EzPC/Athos/Networks/Lenet/LenetSmall_mn
 Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_Lenet_graphDef.bin-8
 # To use only fake arithmetic prep data, run:
 # Scripts/coral.sh -AF -v tf-benchmarks_EzPC_Athos_Networks_Lenet_graphDef.bin-8
+```
+
+### Coral-Lowgear
+To evaluate Coral-Lowgear, we need to:
+- Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
+- enable the packing feature by passing the `--pack` option to the compiler.
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+- Printing has a large effect on the benchmarking. Remember to turn off them for accurate benchmark.
+```
+make clean
+make corallowgear-party.x -j8
+Scripts/fixed-rep-to-float.py benchmarks/EzPC/Athos/Networks/Lenet/LenetSmall_mnist_img_1.inp
+./compile.py -F 64 -Y --pack tf benchmarks/EzPC/Athos/Networks/Lenet/graphDef.bin 8
+Scripts/corallowgear.sh -v tf-benchmarks_EzPC_Athos_Networks_Lenet_graphDef.bin-8
 ```
 
 ## Decision Tree Prediction

@@ -7,6 +7,8 @@
 #define PROTOCOLS_CORALLOWGEARSHARE_H_
 
 #include "LowGearShare.h"
+#include "CoralGfp.h"
+#include "GC/RmfeShare.h"
 
 template<class T>
 class CoralLowGearShare : public LowGearShare<T>

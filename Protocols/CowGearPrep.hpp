@@ -3,6 +3,10 @@
  *
  */
 
+#ifndef PROTOCOLS_COWGEARPREP_HPP_
+#define PROTOCOLS_COWGEARPREP_HPP_
+
+
 #include "CowGearPrep.h"
 #include "FHEOffline/PairwiseMachine.h"
 #include "Tools/Bundle.h"
@@ -169,3 +173,5 @@ void CowGearPrep<T>::buffer_bits(true_type)
     for (auto& bit : this->bits)
         bit.force_to_bit();
 }
+
+#endif
