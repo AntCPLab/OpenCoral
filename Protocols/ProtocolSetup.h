@@ -8,6 +8,7 @@
 
 #include "Networking/Player.h"
 #include "Tools/debug.h"
+#include "Protocols/fake-stuff.h"
 
 /**
  * Global setup for an arithmetic share type

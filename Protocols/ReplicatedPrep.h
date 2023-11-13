@@ -182,6 +182,9 @@ public:
     }
 
     virtual size_t get_triples_size() {
+        if (T::bit_type::tight_packed) {
+                return quintuples.size();
+        }
         return triples.size();
     }
 
