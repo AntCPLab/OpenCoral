@@ -637,6 +637,7 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabitpack<T> >& output,
     MCB.POpen(bits, bit_shares, P);
 
     size_t n_bits_to_open = bits.size() / (adjusted_C(dl) / dl);
+    assert(n_bits_to_open == n_bits);
 
     vector<typename BT::clear> bits_clear(bits.size());
     for (size_t i = 0; i < bits.size(); i++)
@@ -661,12 +662,19 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabitpack<T> >& output,
     RunningTimer bucket_timer;
     if (queues)
     {
+        int n_items = N/dl;
         int n_available = queues->find_available();
-        int n_per_thread = queues->get_n_per_thread(N/dl, 1);
+        int n_per_thread = queues->get_n_per_thread(n_items, 1);
         vector<vector<array<BT, 5>>> quintuples(n_available);
         vector<void*> supplies(n_available);
         for (int i = 0; i < n_available; i++)
         {
+            // [zico] Solve very subtle bug: when n_available is large, it is very likely that we might run out of material in `personal_prep`.
+            // For example, when N/dl = 864, n_available = 63, then n_per_thread = 14, but 14 * 63 is much larger than 864, making `personal_prep` run out of quintuples.
+            // So, here, we check this, and the remaining part will be handled by current thread. This is the same way how `queues->distribute_no_setup` handles this case.
+            if ((i+1) * n_per_thread > (int) n_items)
+                break;
+
             supplies[i] = &quintuples[i];
             for (size_t j = 0;
                     j < n_per_thread * (B - 1) * n_bits_to_open; j++)
@@ -676,10 +684,10 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice(vector<edabitpack<T> >& output,
                     quintuples[i].push_back(personal_prep.get_quintuple(dl));
         }
         EdabitSacrificeJob job(&to_check, n_bits, strict, player);
-        int start = queues->distribute_no_setup(job, N/dl, 0, 1,
+        int start = queues->distribute_no_setup(job,n_items, 0, 1,
                 &supplies);
         edabit_sacrifice_buckets(to_check, strict, player, proc, start,
-                N/dl, personal_prep);
+                n_items, personal_prep);
         if (start)
             queues->wrap_up(job);
     }
@@ -792,6 +800,10 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice_buckets(vector<edabitpack<T>>& 
     }
     else
     {
+        if (personal_prep.get_triples_size() < (B-1)*N*n_bits_to_open) {
+            throw runtime_error("Not enough triples: expected " + to_string((B-1)*N*n_bits_to_open) + ", got " + to_string(personal_prep.get_triples_size()) + 
+                ", B: " + to_string(B) + ", N: " + to_string(N) + ", n_bits: " + to_string(n_bits_to_open));
+        }
         SubProcessor<BT> bit_proc(party.MC->get_part_MC(),
                 personal_prep, P);
         BitAdder().add(sums, summands, bit_proc, BT::default_length, queues,
@@ -844,7 +856,7 @@ void EdabitShuffleSacrifice<T>::edabit_sacrifice_buckets(vector<edabitpack<T>>& 
             }
         }
     }
-
+    
     if (strict)
     {
         (dynamic_cast<RingPrep<T>*>(&proc.DataF))->template
