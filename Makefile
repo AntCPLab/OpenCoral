@@ -461,6 +461,8 @@ mixed-coral-edabit-example.x: $(VM) $(OT) $(COMMON)
 mixed-offline-performance.x: $(VM) $(OT) $(COMMON) $(FHEOFFLINE) $(TINIER) Protocols/LowGearKeyGen.o 
 mixed-offline-throughput.x: $(VM) $(OT) $(COMMON) $(FHEOFFLINE) $(TINIER) Protocols/LowGearKeyGen.o 
 
+mixed-offline-queues-example.x: $(VM) $(OT) $(COMMON) $(FHEOFFLINE) $(TINIER) Protocols/LowGearKeyGen.o 
+
 
 zico: target1
 	echo "target1: $@; pre: $^"
