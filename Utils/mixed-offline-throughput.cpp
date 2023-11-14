@@ -46,6 +46,7 @@
 #include "Tools/performance.h"
 
 string buffer_type = "looseedabit";
+int n_bits = 64;
 
 class PrepThread {
 public:
@@ -57,6 +58,7 @@ public:
         pthread_cond_init(&ready, 0);
     }
 
+    long comm;
     long generated;
     virtual void generate() = 0;
 
@@ -104,13 +106,23 @@ public:
         this->signal();
         this->wait();
 
+        auto perf = ThreadPerformance(buffer_type, P->total_comm().sent);
         if (buffer_type == "looseedabit")
         {
             for (int i = 0; i < 2; i++)
-                prep.buffer_edabits(false, 64, 0);
-            generated = prep.get_edabit_size(false, 64);
-            cout << "Generated: " << generated << " edabits" << endl;
+                prep.buffer_edabits(false, n_bits, 0);
+            generated = prep.get_edabit_size(false, n_bits);
+            cout << "Generated: " << generated << " loose edabits" << endl;
         }
+        else if (buffer_type == "strictedabit")
+        {
+            for (int i = 0; i < 2; i++)
+                prep.buffer_edabits(true, n_bits, 0);
+            generated = prep.get_edabit_size(true, n_bits);
+            cout << "Generated: " << generated << " strict edabits" << endl;
+        }
+        perf.stop(P->total_comm().sent);
+        comm = perf.total_comm;
     }
 
     virtual ~MixedPrepThread() {
@@ -166,9 +178,19 @@ MixedOfflineMachine::MixedOfflineMachine(int argc, const char** argv) :
         0, // Required?
         1, // Number of args expected.
         0, // Delimiter if expecting multiple args.
-        "Buffer type (looseedabit)", // Help description.
+        "Buffer type (looseedabit, strictedabit)", // Help description.
         "-type", // Flag token.
         "--type" // Flag token.
+    );
+
+    opt.add(
+        "64", // Default.
+        0, // Required?
+        1, // Number of args expected.
+        0, // Delimiter if expecting multiple args.
+        "Bit length of edabit", // Help description.
+        "-nbits", // Flag token.
+        "--nbits" // Flag token.
     );
 
     parse_options(argc, argv);
@@ -179,6 +201,11 @@ MixedOfflineMachine::MixedOfflineMachine(int argc, const char** argv) :
     }
     else 
         buffer_type = "looseedabit";
+
+    if (opt.isSet("--nbits")) {
+        opt.get("--nbits")->getInt(n_bits);
+    }
+    else n_bits = 64;
 
     if (opt.isSet("--prot"))
     {
@@ -284,8 +311,11 @@ void MixedOfflineMachine::run()
         cout << "thread " << i+1 << " finished\n" << flush;
     }
     long generated = 0;
-    for (int i = 0; i < nthreads; i++)
+    long comm = 0;
+    for (int i = 0; i < nthreads; i++) {
         generated += generators[i]->generated;
+        comm += generators[i]->comm;
+    }
 
     // map<string,Timer>& timers = generators[0]->timers;
     // for (map<string,Timer>::iterator it = timers.begin(); it != timers.end(); it++)
@@ -300,6 +330,7 @@ void MixedOfflineMachine::run()
     gettimeofday(&stop, 0);
     double time = timeval_diff_in_seconds(&start, &stop);
     cout << "Time: " << time << endl;
+    cout << "Comm / per 1000 ops: " << comm * 1.0 / 1e6 / generated * 1000  << " MB" << endl;
     cout << "Throughput: " << generated / time << endl;
 
     for (size_t i = 0; i < generators.size(); i++)
