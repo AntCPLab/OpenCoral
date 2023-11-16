@@ -53,17 +53,18 @@ void test_buffer_triples(int argc, char** argv)
     BinaryProtocolSet<T> set(P, setup);
     auto& prep = set.prep;
 
-    perf_log("Triples", P.total_comm().sent);
-    prep.buffer_triples();
-    perf_log("Triples", P.total_comm().sent);
-    set.check();
+    // perf_log("Triples", P.total_comm().sent);
+    // prep.buffer_triples();
+    // perf_log("Triples", P.total_comm().sent);
 
-    // auto comm_stats = P.total_comm();
-    // size_t rounds = 0;
-    // for (auto& x : comm_stats)
-    //   rounds += x.second.rounds;
-    // std::cerr << "Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
-    //     << " rounds (party " << my_number << std::endl;;
+    auto start = perf_log("Triples", P.total_comm().sent);
+    for (int i = 0; i < 2; i++)
+        prep.buffer_triples();
+    auto diff = perf_log("Triples", P.total_comm().sent);
+    cout << "[Time/1000 ops] " << diff.first.count() * 1.0 / 1e6 / prep.get_triples_size() / T::default_length * 1000 << " ms" << endl;
+    cout << "[Comm/1000 ops] " << diff.second * 1.0 / 1e6 / prep.get_triples_size() / T::default_length * 1000 << " MB" << endl;
+
+    set.check();
 }
 
 template<class T>
@@ -84,9 +85,17 @@ void test_buffer_inputs(int argc, char** argv)
     BinaryProtocolSet<T> set(P, setup);
     auto& prep = set.prep;
 
-    perf_log("Inputs", P.total_comm().sent);
-    prep.buffer_inputs(0);
-    perf_log("Inputs", P.total_comm().sent);
+    // perf_log("Inputs", P.total_comm().sent);
+    // prep.buffer_inputs(0);
+    // perf_log("Inputs", P.total_comm().sent);
+
+    auto start = perf_log("Inputs", P.total_comm().sent);
+    for (int i = 0; i < 2; i++)
+        prep.buffer_inputs(0);
+    auto diff = perf_log("Inputs", P.total_comm().sent);
+    cout << "[Time/1000 ops] " << diff.first.count() * 1.0 / 1e6 / prep.get_inputs_size(0) / T::default_length * 1000 << " ms" << endl;
+    cout << "[Comm/1000 ops] " << diff.second * 1.0 / 1e6 / prep.get_inputs_size(0) / T::default_length * 1000 << " MB" << endl;
+
 
     set.check();
 }
@@ -114,13 +123,6 @@ void test_buffer_crypto2022_quintuples(int argc, char** argv)
     prep.buffer_crypto2022_quintuples();
     perf_log("Crypto2022 quintuples", P.total_comm().sent);
     set.check();
-
-    // auto comm_stats = P.total_comm();
-    // size_t rounds = 0;
-    // for (auto& x : comm_stats)
-    //   rounds += x.second.rounds;
-    // std::cerr << "Data sent = " << comm_stats.sent / 1e6 << " MB in ~" << rounds
-    //     << " rounds (party " << my_number << std::endl;;
 }
 
 int main(int argc, char** argv)

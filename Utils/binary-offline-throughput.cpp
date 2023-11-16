@@ -104,7 +104,8 @@ public:
             cout << "Generated: " << generated << " inputs" << endl;
         }
         else if (buffer_type == "triples") {
-            prep->buffer_triples();
+            for (int i = 0; i < 2; i++)
+                prep->buffer_triples();
             generated = prep->get_triples_size() * T::default_length;
             cout << "Generated: " << generated << " triples" << endl;
         }

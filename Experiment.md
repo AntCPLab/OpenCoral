@@ -349,7 +349,7 @@ To evaluate Coral-Lowgear, we need to:
 make clean
 make corallowgear-party.x -j8
 # `--pack` has no effect in decision tree training
-./compile.py -R 64 -Y --pack breast_tree 16
+./compile.py -F 64 -Y --pack breast_tree 16
 Scripts/corallowgear.sh -b 10000 -v breast_tree-16
 ```
 
@@ -404,8 +404,8 @@ Scripts/corallowgear.sh -b 10000 -v breast_tree-16
 
 ```
 # 16 threads, coral protocol, generate edabits
-./mixed-offline-throughput -p 0 -x 16 --prot coral --type strictedabit --nbits 32
-./mixed-offline-throughput -p 1 -x 16 --prot coral --type strictedabit --nbits 32
+./mixed-offline-throughput.x -p 0 -x 16 --prot coral --type strictedabit --nbits 32
+./mixed-offline-throughput.x -p 1 -x 16 --prot coral --type strictedabit --nbits 32
 ```
 
 

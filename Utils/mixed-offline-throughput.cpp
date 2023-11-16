@@ -121,6 +121,13 @@ public:
             generated = prep.get_edabit_size(true, n_bits);
             cout << "Generated: " << generated << " strict edabits" << endl;
         }
+        else if (buffer_type == "dabit")
+        {
+            for (int i = 0; i < 2; i++)
+                prep.buffer_dabits(0);
+            generated = prep.get_dabit_size();
+            cout << "Generated: " << generated << " dabits" << endl;
+        }
         perf.stop(P->total_comm().sent);
         comm = perf.total_comm;
     }
@@ -178,7 +185,7 @@ MixedOfflineMachine::MixedOfflineMachine(int argc, const char** argv) :
         0, // Required?
         1, // Number of args expected.
         0, // Delimiter if expecting multiple args.
-        "Buffer type (looseedabit, strictedabit)", // Help description.
+        "Buffer type (looseedabit, strictedabit, dabit)", // Help description.
         "-type", // Flag token.
         "--type" // Flag token.
     );
