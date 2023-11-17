@@ -12,7 +12,7 @@ namespace GC
 {
 
 #ifdef RMFE_UNIT
-#define GC_UNIT 12
+#define GC_UNIT 14
 #else
 #define GC_UNIT 64
 #endif

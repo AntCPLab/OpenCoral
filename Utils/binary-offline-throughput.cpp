@@ -99,7 +99,8 @@ public:
         typename T::LivePrep* prep = dynamic_cast<typename T::LivePrep*>(&GC::ShareThread<T>::s().DataF);
         if (buffer_type == "inputs")
         {
-            prep->buffer_inputs(0);
+            for (int i = 0; i < 2; i++)
+                prep->buffer_inputs(0);
             generated = prep->get_inputs_size(0) * T::default_length;
             cout << "Generated: " << generated << " inputs" << endl;
         }

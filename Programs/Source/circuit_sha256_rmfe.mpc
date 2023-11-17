@@ -4,7 +4,7 @@ cb512 = cbits.get_type(512)
 cb256 = cbits.get_type(256)
 input1 = cb512(0x2b7e151628aed2a6abf7158809cf4f3c)
 input2 = cb256(0x6bc1bee22e409f96e93d7e117393172a)
-n = 120
+n = 140
 x = cbits.trans([input1] * n)
 y = cbits.trans([input2] * n)
 

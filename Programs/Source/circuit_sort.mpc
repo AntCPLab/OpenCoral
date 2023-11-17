@@ -2,7 +2,7 @@ from circuit import Circuit
 sb4096 = sbits.get_type(4096)
 input1 = sb4096(0x6bc1bee22e409f96e93d7e117393172a)
 input2 = sb4096(0x2b7e151628aed2a6abf7158809cf4f3c)
-n = 120
+n = 140
 sort_circuit = Circuit('sort')
 outputs = sort_circuit(sbitvec([input1] * n), sbitvec([input2] * n))
 outputs.elements()[n - 1].reveal().print_reg()

@@ -3,7 +3,7 @@ from circuit import Circuit
 cb4096 = cbits.get_type(4096)
 input1 = cb4096(0x2b7e151628aed2a6abf7158809cf4f3c)
 input2 = cb4096(0x6bc1bee22e409f96e93d7e117393172a)
-n = 120
+n = 140
 x = cbits.trans([input1] * n)
 y = cbits.trans([input2] * n)
 

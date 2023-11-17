@@ -23,7 +23,7 @@ from functools import reduce
 class bits(Tape.Register, _structure, _bit):
     n = 40
     # unit = 64
-    unit = 12
+    unit = 14
     PreOp = staticmethod(floatingpoint.PreOpN)
     decomposed = None
     @staticmethod

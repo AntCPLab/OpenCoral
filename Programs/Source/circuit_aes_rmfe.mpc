@@ -3,7 +3,7 @@ from circuit import Circuit
 cb128 = cbits.get_type(128)
 key = cb128(0x2b7e151628aed2a6abf7158809cf4f3c)
 plaintext = cb128(0x6bc1bee22e409f96e93d7e117393172a)
-n = 120
+n = 140
 x = cbits.trans([key] * n)
 y = cbits.trans([plaintext] * n)
 

@@ -25,7 +25,7 @@ class bitvec_rmfe : public BitVec
 {
     typedef BitVec super;
 public:
-    static const int DEFAULT_LENGTH = 12;
+    static const int DEFAULT_LENGTH = 14;
 
     bitvec_rmfe() {
     }
@@ -105,7 +105,7 @@ public:
     // {
     // }
 
-    static const int DEFAULT_LENGTH = 48;
+    static const int DEFAULT_LENGTH = 42;
 
     static int length()         { return n == 0 ? DEFAULT_LENGTH : n; }
     static int default_degree() { return DEFAULT_LENGTH; }

@@ -95,7 +95,7 @@ Scripts/mascot.sh -F -v tf-benchmarks_EzPC_Athos_Networks_ResNet_graphDef.bin-64
 To evaluate Coral, we need to:
 - Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
 - enable the packing feature by passing the `--pack` option to the compiler.
-- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 14` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
 - Printing has a large effect on the benchmarking. Remember to turn off them for accurate benchmark.
 ```
 make clean
@@ -110,7 +110,7 @@ Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_ResNet_graphDef.bin-64
 To evaluate Coral, we need to:
 - Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
 - enable the packing feature by passing the `--pack` option to the compiler.
-- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 14` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
 - Printing has a large effect on the benchmarking. Remember to turn off them for accurate benchmark.
 ```
 make clean
@@ -139,7 +139,7 @@ Scripts/spdz2k.sh -F -v tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graph
 To evaluate Coral, we need to:
 - Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
 - enable the packing feature by passing the `--pack` option to the compiler.
-- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 14` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
 - Printing has a large effect on the benchmarking. Remember to turn off them for accurate benchmark.
 ```
 make clean
@@ -153,7 +153,7 @@ Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_SqueezeNetImgNet_graphD
 To evaluate Coral, we need to:
 - Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
 - enable the packing feature by passing the `--pack` option to the compiler.
-- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 14` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
 - Printing has a large effect on the benchmarking. Remember to turn off them for accurate benchmark.
 ```
 make clean
@@ -182,7 +182,7 @@ Scripts/spdz2k.sh -F -v tf-benchmarks_EzPC_Athos_Networks_Lenet_graphDef.bin-8
 To evaluate Coral, we need to:
 - Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
 - enable the packing feature by passing the `--pack` option to the compiler.
-- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 14` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
 - Printing has a large effect on the benchmarking. Remember to turn off them for accurate benchmark.
 ```
 make clean
@@ -199,7 +199,7 @@ Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_Lenet_graphDef.bin-8
 To evaluate Coral-Lowgear, we need to:
 - Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
 - enable the packing feature by passing the `--pack` option to the compiler.
-- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 14` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
 - Printing has a large effect on the benchmarking. Remember to turn off them for accurate benchmark.
 ```
 make clean
@@ -242,7 +242,7 @@ Scripts/lowgear.sh -F -v tf-benchmarks_EzPC_Athos_Networks_LenetLarge_graphDef.b
 To evaluate Coral, we need to:
 - Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
 - enable the packing feature by passing the `--pack` option to the compiler.
-- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 14` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
 - Printing has a large effect on the benchmarking. Remember to turn off them for accurate benchmark.
 ```
 make clean
@@ -259,7 +259,7 @@ Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_LenetLarge_graphDef.bin
 To evaluate Coral-Lowgear, we need to:
 - Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
 - enable the packing feature by passing the `--pack` option to the compiler.
-- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 14` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
 - Printing has a large effect on the benchmarking. Remember to turn off them for accurate benchmark.
 ```
 make clean
@@ -287,7 +287,7 @@ Scripts/spdz2k.sh -F -v breast_tree_predict-16
 To evaluate Coral, we need to:
 - Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
 - enable the packing feature by passing the `--pack` option to the compiler.
-- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 14` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
 - Printing has a large effect on the benchmarking. Remember to turn off them for accurate benchmark.
 ```
 make clean
@@ -301,7 +301,7 @@ Scripts/coral.sh -F -v breast_tree_predict-16
 To evaluate Coral, we need to:
 - Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
 - enable the packing feature by passing the `--pack` option to the compiler.
-- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 14` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
 - Printing has a large effect on the benchmarking. Remember to turn off them for accurate benchmark.
 ```
 make clean
@@ -328,7 +328,7 @@ Scripts/spdz2k.sh -F -v breast_tree
 To evaluate Coral, we need to:
 - Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
 - enable the packing feature by passing the `--pack` option to the compiler.
-- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 14` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
 - Printing has a large effect on the benchmarking. Remember to turn off them for accurate benchmark.
 ```
 make clean
@@ -343,7 +343,7 @@ Scripts/coral.sh -F -v breast_tree-16
 To evaluate Coral-Lowgear, we need to:
 - Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
 - enable the packing feature by passing the `--pack` option to the compiler.
-- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 14` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
 - Printing has a large effect on the benchmarking. Remember to turn off them for accurate benchmark.
 ```
 make clean
@@ -368,7 +368,7 @@ Scripts/corallowgear.sh -b 10000 -v breast_tree-16
 
 ### Coral
 - Add `MY_CFLAGS = -DINSECURE -DRMFE_UNIT` to `CONFIG.mine`.
-- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 12` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
+- Change the `Compiler.GC.types.bits.unit`: from `unit = 64` to `unit = 14` (changing this elsewhere, e.g., in the *.mpc file, is always not early enough because the bits class is already used during importing, such as the code line `sbitfix.set_precision(16, 31)` in `Compiler/GC/types/bits.py`).
 ```
 ./compile.py circuit_aes_rmfe
 ./Scripts/coral.sh circuit_aes_rmfe

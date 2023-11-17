@@ -44,7 +44,7 @@ void RmfeBeaver<T>::setup_rmfe() {
     // Setup RMFE
     if (Gf2RMFE::has_singleton())
         throw runtime_error("Can only setup RMFE once");
-    auto rmfe = get_composite_gf2_rmfe64_type2(2, 6);
+    auto rmfe = get_composite_gf2_rmfe64_type1_type2(2, 7);
     Gf2RMFE::set_singleton(std::move(rmfe));
 }
 
@@ -60,7 +60,7 @@ void RmfeBeaver<T>::setup_mfe() {
     // Setup MFE
     if (Gf2MFE::has_singleton())
         throw runtime_error("Can only setup MFE once");
-    auto mfe = get_composite_gf2_mfe64(2, 3, 8);
+    auto mfe = get_composite_gf2_mfe64(2, 3, 7);
     Gf2MFE::set_singleton(std::move(mfe));
 }
 

@@ -119,9 +119,12 @@ void test_buffer_crypto2022_quintuples(int argc, char** argv)
     BinaryProtocolSet<T> set(P, setup);
     auto& prep = set.prep;
 
-    perf_log("Crypto2022 quintuples", P.total_comm().sent);
-    prep.buffer_crypto2022_quintuples();
-    perf_log("Crypto2022 quintuples", P.total_comm().sent);
+    auto start = perf_log("Crypto2022 quintuples", P.total_comm().sent);
+    for (int i = 0; i < 2; i++)
+        prep.buffer_crypto2022_quintuples();
+    auto diff = perf_log("Crypto2022 quintuples", P.total_comm().sent);
+    cout << "[Time/1000 ops] " << diff.first.count() * 1.0 / 1e6 / prep.get_triples_size() / T::default_length * 1000 << " ms" << endl;
+    cout << "[Comm/1000 ops] " << diff.second * 1.0 / 1e6 / prep.get_triples_size() / T::default_length * 1000 << " MB" << endl;
     set.check();
 }
 
