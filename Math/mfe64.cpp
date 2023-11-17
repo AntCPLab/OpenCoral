@@ -957,6 +957,16 @@ std::unique_ptr<Gf2RMFE> get_composite_gf2_rmfe64_type2(long k1, long k2) {
     return unique_ptr<Gf2RMFE>(new CompositeGf2RMFE64(converter, rmfe1, rmfe2));
 }
 
+std::unique_ptr<Gf2RMFE> get_composite_gf2_rmfe64_type1_type2(long k1, long k2) {
+    long m1 = 2*k1-1, m2 = 2*k2;
+    assert(m1 * m2 < 64);
+    shared_ptr<FieldConverter64> converter = make_shared<FieldConverter64>(m1 * m2, m1, m2);
+    shared_ptr<Gf2RMFE64> rmfe1 = make_shared<BasicGf2RMFE64>(k1, true);
+    shared_ptr<Gf2eRMFE64> rmfe2 = make_shared<BasicRMFE64>(converter->base_field_poly(), converter->composite_field_poly());
+    
+    return unique_ptr<Gf2RMFE>(new CompositeGf2RMFE64(converter, rmfe1, rmfe2));
+}
+
 std::unique_ptr<Gf2MFE64> get_composite_gf2_mfe64(long m1, long m2) {
     long t1 = 2*m1 - 1, t2 = 2*m2 - 1;
     assert(t1 * t2 < 64);

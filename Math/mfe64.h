@@ -1024,6 +1024,7 @@ gf2x64 random_preimage(vec_gf2_64 h);
 
 
 std::unique_ptr<Gf2RMFE> get_composite_gf2_rmfe64_type2(long k1, long k2);
+std::unique_ptr<Gf2RMFE> get_composite_gf2_rmfe64_type1_type2(long k1, long k2);
 
 std::unique_ptr<Gf2MFE64> get_composite_gf2_mfe64(long m1, long m2);
 

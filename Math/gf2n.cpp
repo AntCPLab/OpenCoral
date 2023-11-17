@@ -18,7 +18,7 @@ bool gf2n_<U>::useC;
 
 word gf2n_short_table[256][256];
 
-#define num_2_fields 18
+#define num_2_fields 19
 
 /* Require
  *  2*(n-1)-64+l[1]<64
@@ -39,6 +39,7 @@ int fields_2[num_2_fields][4] =
     { 16, 5, 3, 1 },
     { 28, 1, 0, 0 },
     { 40, 20, 15, 10 },
+    { 42, 7, 4, 3},
     { 48, 9, 7, 4 }, // Primitive Poly from `primitive_polys.h`
     { 63, 1, 0, 0 },
     { 64, 4, 3, 1},

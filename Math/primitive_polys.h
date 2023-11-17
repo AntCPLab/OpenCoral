@@ -32,7 +32,7 @@ std::map<long, std::vector<long>> PRIMITIVE_POLYS  = {
     {26, {26, 23, 15, 13, 0}},
     {27, {27, 23, 22, 17, 0}},
     {28, {28, 3, 0}},
-
+    {42, {42, 7, 4, 3, 0}}, // Hansen and Mullen, "PRIMITIVE POLYNOMIALS OVER FINITE FIELDS".
     {45, {45, 39, 28, 4, 0}},
     // {48, {48, 19, 9, 1, 0}}, // This doesn't work for 'gf2n.cpp' because of violation of the requirement "2*(n-1)-64+l[1]<64"
     {48, {48, 9, 7, 4, 0}}, // Hansen and Mullen, "PRIMITIVE POLYNOMIALS OVER FINITE FIELDS".

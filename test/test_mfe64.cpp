@@ -404,6 +404,41 @@ void test_composite_gf2_rmfe64_type2(long k1, long k2) {
     cout << "a_:\t" << rmfe->decode(enc_a) << endl;
 }
 
+void test_composite_gf2_rmfe64_type1_type2(long k1, long k2) {
+    print_banner("test_composite_gf2_rmfe64_type1_type2");
+    unique_ptr<Gf2RMFE> rmfe = get_composite_gf2_rmfe64_type1_type2(k1, k2);
+
+    vec_GF2 a = random_vec_GF2(rmfe->k()), b = random_vec_GF2(rmfe->k());
+    GF2X enc_a = rmfe->encode(a), enc_b = rmfe->encode(b);
+
+    GF2X enc_c = MulMod(enc_a, enc_b, rmfe->ex_field_mod());
+    vec_GF2 c = rmfe->decode(enc_c);
+
+    vec_GF2 c_({}, a.length());
+    for (int i = 0; i < a.length(); i++) {
+        c_[i] = a[i] * b[i];
+    }
+    assert(c_ == c);
+    
+    vec_GF2 d = rmfe->decode(enc_a + enc_b);
+    vec_GF2 d_({}, a.length());
+    for (int i = 0; i < a.length(); i++) {
+        d_[i] = a[i] + b[i];
+    }
+    assert(d_ == d);
+
+    cout << "k:\t" << rmfe->k() << ", m:\t" << rmfe->m() << endl;
+    cout << "a:\t" << a << endl;
+    cout << "b:\t" << b << endl;
+    cout << "c:\t" << c << endl;
+    cout << "c_:\t" << c_ << endl;
+    cout << "d:\t" << d << endl;
+    cout << "d_:\t" << d_ << endl;
+
+    cout << "a:\t" << a << endl;
+    cout << "a_:\t" << rmfe->decode(enc_a) << endl;
+}
+
 // void test_rmfe_then_mfe() {
 //     print_banner("test_rmfe_then_mfe");
 //     unique_ptr<Gf2RMFE> rmfe = get_composite_gf2_rmfe_type2(2, 6);
@@ -493,8 +528,8 @@ void test_composite_gf2_rmfe64_type2(long k1, long k2) {
 //     return rmfe;
 // }
 
-void benchmark_rmfe64_then_mfe64() {
-    print_banner("test_benchmark_rmfe64_then_mfe64");
+void benchmark_rmfe64_then_mfe64_12_48_225() {
+    print_banner("test_benchmark_rmfe64_then_mfe64_12_48_225");
     auto rmfe = get_composite_gf2_rmfe64_type2(2, 6);
     auto mfe = get_composite_gf2_mfe64(2, 3, 8);
 
@@ -555,22 +590,86 @@ void benchmark_rmfe64_then_mfe64() {
     cout << "RMFE preimage (12 --> 48): " << n / (get_acc_time_log("RMFE preimage (12 --> 48)") / 1000.0 + 1e-30) << endl;
 }
 
+void benchmark_rmfe64_then_mfe64_14_42_195() {
+    print_banner("benchmark_rmfe64_then_mfe64_14_42_195");
+    auto rmfe = get_composite_gf2_rmfe64_type1_type2(2, 7);
+    auto mfe = get_composite_gf2_mfe64(2, 3, 7);
+
+    int n = 100000;
+    for (int i = 0; i < n; i++) {
+        {
+            vec_GF2 a = random_vec_GF2(rmfe->k()), b = random_vec_GF2(rmfe->k());
+            acc_time_log("RMFE encode (12 --> 42)");
+            GF2X enc_a = rmfe->encode(a);
+            GF2X enc_b = rmfe->encode(b);
+            acc_time_log("RMFE encode (12 --> 42)");
+
+            GF2X enc_c = MulMod(enc_a, enc_b, rmfe->ex_field_mod());
+            acc_time_log("RMFE decode (42 --> 12)");
+            vec_GF2 c = rmfe->decode(enc_c);
+            acc_time_log("RMFE decode (42 --> 12)");
+
+            vec_GF2 c_({}, a.length());
+            for (int i = 0; i < a.length(); i++) {
+                c_[i] = a[i] * b[i];
+            }
+
+            assert(c_ == c);
+
+            acc_time_log("RMFE preimage (12 --> 42)");
+            GF2X r = rmfe->random_preimage(c);
+            acc_time_log("RMFE preimage (12 --> 42)");
+        }
+
+        {
+            GF2X a = random_GF2X(mfe->m()), b = random_GF2X(mfe->m());
+            acc_time_log("MFE encode (42 --> 195)");
+            vec_GF2 enc_a = mfe->encode(a);
+            vec_GF2 enc_b = mfe->encode(b);
+            acc_time_log("MFE encode (42 --> 195)");
+
+            vec_GF2 enc_c({}, enc_a.length());
+            for (int i = 0; i < enc_a.length(); i++) {
+                enc_c[i] = enc_a[i] * enc_b[i];
+            }
+
+            acc_time_log("MFE decode (195 --> 42)");
+            GF2X c = mfe->decode(enc_c);
+            acc_time_log("MFE decode (195 --> 42)");
+
+            GF2X c_ = MulMod(a, b, mfe->ex_field_mod());
+
+            assert(c_ == c);
+        }
+    }
+
+    print_profiling();
+    cout << "Throughput: " << endl;
+    cout << "RMFE encode (12 --> 42): " << n / (get_acc_time_log("RMFE encode (12 --> 42)") / 1000.0 + 1e-30) << endl;
+    cout << "RMFE decode (42 --> 12): " << n / (get_acc_time_log("RMFE decode (42 --> 12)") / 1000.0 + 1e-30) << endl;
+    cout << "MFE encode (42 --> 195): " << n / (get_acc_time_log("MFE encode (42 --> 195)") / 1000.0 + 1e-30) << endl;
+    cout << "MFE decode (195 --> 42): " << n / (get_acc_time_log("MFE decode (195 --> 42)") / 1000.0 + 1e-30) << endl;
+    cout << "RMFE preimage (12 --> 42): " << n / (get_acc_time_log("RMFE preimage (12 --> 42)") / 1000.0 + 1e-30) << endl;
+}
+
 
 int main() {
     // test_composite_to_binary();
     // test_composite_to_binary_with_base_poly();
-    test_basic_mfe64();
-    test_basic_gf2_mfe64();
-    test_composite_gf2_mfe64();
-    test_double_composite_gf2_mfe64(2, 3, 8);
-    test_basic_rmfe64();
+    // test_basic_mfe64();
+    // test_basic_gf2_mfe64();
+    // test_composite_gf2_mfe64();
+    // test_double_composite_gf2_mfe64(2, 3, 8);
+    // test_basic_rmfe64();
     // test_basic_gf2_rmfe64();
     // test_basic_gf2_rmfe_type2();
     // test_composite_gf2_rmfe();
-    test_composite_gf2_rmfe64_type2(2, 6);
+    // test_composite_gf2_rmfe64_type2(2, 6);
+    test_composite_gf2_rmfe64_type1_type2(2, 7);
     // test_rmfe_then_mfe();
     // test_rmfe_tau(2, 6);
     // test_basic_gf2_rmfe_type2_random_preimage();
     // test_composite_gf2_rmfe_type2_random_preimage(2, 6);
-    benchmark_rmfe64_then_mfe64();
+    benchmark_rmfe64_then_mfe64_12_48_225();
+    benchmark_rmfe64_then_mfe64_14_42_195();
 }
