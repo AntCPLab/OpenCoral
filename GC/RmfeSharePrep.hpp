@@ -103,6 +103,9 @@ void RmfeSharePrep<T>::buffer_inputs(int player) {
 
 template<class T>
 void RmfeSharePrep<T>::buffer_triples() {
+#ifdef BENCH_CRYPTO2022
+    buffer_crypto2022_quintuples();
+#else
 #ifdef DETAIL_BENCHMARK
     ThreadPerformance perf("Rmfe buffer_triples", this->P->total_comm().sent);
 #endif
@@ -204,6 +207,7 @@ void RmfeSharePrep<T>::buffer_triples() {
 #ifdef DETAIL_BENCHMARK
     perf.stop(this->P->total_comm().sent);
     GlobalPerformance::s().add(perf);
+#endif
 #endif
 }
 
