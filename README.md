@@ -1,6 +1,6 @@
 # Coral: Maliciously Secure Computation Framework for Packed and Mixed Circuits
 
-This is the source code for our IEEE S&P 2024 submission, named ***Coral: Maliciously Secure Computation Framework for Packed and Mixed Circuits***.
+This is the source code for our CCS 2024 submission, named ***Coral: Maliciously Secure Computation Framework for Packed and Mixed Circuits***.
 
 Our implementation is based on the [MP-SPDZ](https://github.com/data61/MP-SPDZ/) library, so this repository is a heavily modified fork. You will have to first follow the instructions in MP-SPDZ in order to compile the library.
 
