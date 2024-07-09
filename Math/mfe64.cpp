@@ -69,6 +69,8 @@ long count_ones(uint64_t x) {
 }
 
 void mul(vec_gf2_64& x, const mat_gf2_64& A, const vec_gf2_64& b) {
+    if (A.size() > 64)
+        NTL::LogicError("Matrix row count is larger than 64.");
     x = 0;
     for (size_t i = 0; i < A.size(); i++) {
         x ^= (count_ones(A[i] & b) & 1) << i;

@@ -1,25 +1,27 @@
 #ifndef MFE64_H_
 #define MFE64_H_
 
+#include <memory>
+#include <vector>
+#include <unordered_map>
+#include <queue>
+#include <random>
+#include <assert.h>
 #include "NTL/GF2EX.h"
 #include "NTL/vec_GF2E.h"
 #include "NTL/mat_GF2.h"
 #include "NTL/mat_GF2E.h"
 #include "NTL/GF2X.h"
-#include "Tools/Exceptions.h"
-#include <memory>
-#include <vector>
-#include <unordered_map>
-#include <queue>
-#include <assert.h>
 #include "mfe.h"
 #include "Tools/performance.h"
-#include <random>
+#include "Tools/Exceptions.h"
+
 
 #define USE_CACHE 1
 #define USE_PRECOMP 1
 #define USE_OPTIMIZED_MAPPING 1
 
+/* Define some alias types that can fit into a 64-bit integer */
 typedef uint64_t vec_gf2_64;
 typedef vector<vec_gf2_64> mat_gf2_64;
 typedef uint64_t gf2x64;
@@ -230,7 +232,7 @@ inline gf2ex vec_gf2_64_to_gf2ex(vec_gf2_64 x, int x_len) {
 }
 
 /**
- * Unroll the gf2ex and put all coefficients in a vector of GF2.
+ * Unroll the gf2ex and put all coefficients in a vector of gf2 with length <= 64.
 */
 inline vec_gf2_64 gf2ex_to_vec_gf2_64(gf2ex x, long target_len) {
     long d = NTL::GF2E::degree();
@@ -338,8 +340,15 @@ inline void get_ntl_word_vec_rep(const NTL::WordVector& rep, int& rep_idx, int& 
     }
 }
 
+/* A more efficient implementation of matrix-vector multiplication for GF2,
+ * assuming A has no more than 64 rows.
+ */
 void mul(vec_gf2_64& x, const mat_gf2_64& A, const vec_gf2_64& b);
 
+/**
+ * A class that holds exhaustively precomputed operations for 
+ * small fields.
+*/
 class gf2e_precomp {
 
     std::vector<std::vector<gf2e>> mul_table_;
@@ -394,9 +403,22 @@ public:
 
 };
 
-
+/**
+ * (R)MFE functionalities that use precomputed tables.
+*/
 class mfe_precomp : public gf2e_precomp {
 public:
+    /**
+     * mu_1: f --> f(alpha)
+     * 
+     * deg(f) = m-1
+     * len(basis) = m
+     * 
+     * g = f[0] * alpha^0 + f[1] * alpha^1 + ... + f[m-1] * alpha^{m-1}
+     * 
+     * [TODO] With the basis that we use, `mu_1` is in fact just an identity function: g = f.
+     * So, for mfe/rmfe, we could just skip calling this for optimization.
+    */
     void mu_1(gf2ex& g, const gf2ex& f, const vec_gf2ex& basis);
 
     /**
@@ -416,6 +438,9 @@ public:
     */
     void xi_2(vec_gf2e& g, const gf2ex& f, const vec_gf2e& beta);
 
+    /**
+     * See `mu_1`.
+    */
     void pi_1(gf2ex& g, const gf2ex& f, const vec_gf2ex& basis);
 
     /**
@@ -440,259 +465,313 @@ public:
     */
     void nu_2(gf2ex& g, const gf2ex& f, const vec_gf2ex& alpha_power);
 
+    /**
+     * phi = pi_1 o inv_xi_1
+    */
     void phi(gf2ex& g, const vec_gf2e& h, const vec_gf2ex& basis, const vec_gf2e& beta);
 
+    /**
+     * psi = xi_2 o inv_pi_1
+     * 
+     * With the basis that we use, `inv_pi_1` is in fact just an identity function.
+     * So we skip calling it, which is what `fast` means.
+    */
     void psi_fast(vec_gf2e& h, const gf2ex& g, const vec_gf2e& beta);
 
+    /**
+     * sigma = nu_1 o inv_mu_1
+     * 
+     * With the basis that we use, `inv_mu_1` is in fact just an identity function.
+     * So we skip calling it, which is what `fast` means.
+    */
     void sigma_fast(vec_gf2e& h, const gf2ex& g, const vec_gf2e& beta);
 
+    /**
+     * rho = nu_2 o inv_mu_2
+    */
     void rho(gf2ex& g, const vec_gf2e& h, const vec_gf2ex& alpha_power, const vec_gf2e& beta);
 };
 
 
 class FieldConverter64 : public FieldConverter {
 private: 
-mat_gf2_64 combined_c2b_mat_64_;
-mat_gf2_64 combined_b2c_mat_64_;
+    mat_gf2_64 combined_c2b_mat_64_;
+    mat_gf2_64 combined_b2c_mat_64_;
 public:
-FieldConverter64(long binary_field_deg, long base_field_deg, 
-    long extension_deg, NTL::GF2X prespecified_base_field_poly=NTL::GF2X(0));
+    FieldConverter64(long binary_field_deg, long base_field_deg, 
+        long extension_deg, NTL::GF2X prespecified_base_field_poly=NTL::GF2X(0));
 
-gf2ex binary_to_composite(gf2e x);
-gf2e composite_to_binary(gf2ex x);
-};
+    /**
+     * Convert from binary field to composite field.
+    */
+    gf2ex binary_to_composite(gf2e x);
 
-
-// typedef MFE<gf2ex, vec_gf2e, NTL::GF2X, NTL::GF2EX> Gf2eMFE64;
-
-class Gf2eMFE64 : public Gf2eMFE {
-public:
-using MFE::encode;
-using MFE::decode;
-
-void encode(NTL::vec_GF2E& h, const NTL::GF2EX& g) {
-    gf2ex g_ = ntl_GF2EX_to_gf2ex(g);
-    vec_gf2e h_ = encode(g_);
-    h = vec_gf2e_to_ntl_vec_GF2E(h_);
-}
-void decode(NTL::GF2EX& g, const NTL::vec_GF2E& h) {
-    vec_gf2e h_ = ntl_vec_GF2E_to_vec_gf2e(h);
-    gf2ex g_ = decode(h_);
-    g = gf2ex_to_ntl_GF2EX(g_);
-}
-
-vec_gf2e encode(const gf2ex& g) {
-    vec_gf2e h;
-    encode(h, g);
-    return h;
-}
-gf2ex decode(const vec_gf2e& h) {
-    gf2ex g;
-    decode(g, h);
-    return g;
-}
-
-virtual void encode(vec_gf2e& h, const gf2ex& g) = 0;
-virtual void decode(gf2ex& g, const vec_gf2e& h) = 0;
-};
-
-class BasicMFE64: public mfe_precomp, public Gf2eMFE64 {
-private:
-long m_;
-long t_;
-NTL::GF2X base_field_poly_mod_;
-NTL::GF2EXModulus ex_field_poly_mod_;
-NTL::GF2EX alpha_;
-vec_gf2ex extented_alpha_power_;
-vec_gf2ex basis_;
-vec_gf2e beta_;
-
-// Using GF2E::init frequently is very expensive, so we should save the context here.
-NTL::GF2EContext base_field_context_;
-
-void initialize();
-
-public:
-// A fucntion named f in derived class will hide all other members named f in the base class, regardless of return types or arguments.
-// So should expose them with `using`.
-
-using Gf2eMFE::encode;
-using Gf2eMFE::decode;
-using Gf2eMFE64::encode;
-using Gf2eMFE64::decode;
-
-BasicMFE64(long m, long base_field_poly_mod_deg);
-
-BasicMFE64(NTL::GF2X base_field_poly, NTL::GF2EX ex_field_poly);
-
-long m() {
-    return m_;
-}
-
-long t() {
-    return t_;
-}
-
-const NTL::GF2X& base_field_mod() {
-    return base_field_poly_mod_;
-}
-
-const NTL::GF2EX& ex_field_mod() {
-    return ex_field_poly_mod_.val();
-}
-
-long base_field_size() {
-    return 1 << (deg(base_field_poly_mod_));
-}
-
-virtual void print_config() {
-    std::cout << "[MFE configuration]" << std::endl;
-    std::cout << "m: " << m() << ", t: " << t() << std::endl;
-    std::cout << "base field: " << base_field_mod() << std::endl;
-    std::cout << "ex field: " << ex_field_mod() << std::endl;
-    std::cout << "*******************" << std::endl;
-}
-
-void encode(vec_gf2e& h, const gf2ex& g);
-void decode(gf2ex& g, const vec_gf2e& h);
+    /**
+     * Convert from composite field to binary field.
+    */
+    gf2e composite_to_binary(gf2ex x);
 };
 
 /**
- * This class restricts input and output of the functionalities
- * to be within 64 bits.
+ * Abstract class for (t, m)_q MFE, where:
+ * F_q is a binary field with degree <= 64
+*/
+class Gf2eMFE64 : public Gf2eMFE {
+public:
+    using MFE::encode;
+    using MFE::decode;
+
+    void encode(NTL::vec_GF2E& h, const NTL::GF2EX& g) {
+        gf2ex g_ = ntl_GF2EX_to_gf2ex(g);
+        vec_gf2e h_ = encode(g_);
+        h = vec_gf2e_to_ntl_vec_GF2E(h_);
+    }
+    void decode(NTL::GF2EX& g, const NTL::vec_GF2E& h) {
+        vec_gf2e h_ = ntl_vec_GF2E_to_vec_gf2e(h);
+        gf2ex g_ = decode(h_);
+        g = gf2ex_to_ntl_GF2EX(g_);
+    }
+
+    vec_gf2e encode(const gf2ex& g) {
+        vec_gf2e h;
+        encode(h, g);
+        return h;
+    }
+    gf2ex decode(const vec_gf2e& h) {
+        gf2ex g;
+        decode(g, h);
+        return g;
+    }
+
+    virtual void encode(vec_gf2e& h, const gf2ex& g) = 0;
+    virtual void decode(gf2ex& g, const vec_gf2e& h) = 0;
+};
+
+/**
+ * Basic MFE for (t, m)_q MFE, where:
+ * F_q is a binary field with degree <= 64.
+ * 
+ * It is a bacic MFE constructed from mappings instead of concatenation.
+*/
+class BasicMFE64: public mfe_precomp, public Gf2eMFE64 {
+private:
+    // field degree for the input field `F_{2^m}`
+    long m_;
+
+    // vector length for the output `(F_2)^t`
+    long t_;
+
+    // poly modulus for the base binary field `F_q`
+    NTL::GF2X base_field_poly_mod_;
+
+    // poly modulus for the extension field `F_{q^m}`
+    NTL::GF2EXModulus ex_field_poly_mod_;
+
+    // the kernel element used to construct the basis
+    NTL::GF2EX alpha_;
+
+    // stores a series of alpha's power: alpha^0, alpha^1, ...
+    vec_gf2ex extented_alpha_power_;
+
+    vec_gf2ex basis_;
+
+    // the distinct elements in base field `F_q`
+    vec_gf2e beta_;
+
+    // Using GF2E::init frequently is very expensive, so we should save the context here.
+    NTL::GF2EContext base_field_context_;
+
+    void initialize();
+
+public:
+    // A fucntion named f in derived class will hide all other members named f in the base class, regardless of return types or arguments.
+    // So should expose them with `using`.
+
+    using Gf2eMFE::encode;
+    using Gf2eMFE::decode;
+    using Gf2eMFE64::encode;
+    using Gf2eMFE64::decode;
+
+    BasicMFE64(long m, long base_field_poly_mod_deg);
+
+    BasicMFE64(NTL::GF2X base_field_poly, NTL::GF2EX ex_field_poly);
+
+    long m() {
+        return m_;
+    }
+
+    long t() {
+        return t_;
+    }
+
+    const NTL::GF2X& base_field_mod() {
+        return base_field_poly_mod_;
+    }
+
+    const NTL::GF2EX& ex_field_mod() {
+        return ex_field_poly_mod_.val();
+    }
+
+    long base_field_size() {
+        return 1 << (deg(base_field_poly_mod_));
+    }
+
+    virtual void print_config() {
+        std::cout << "[MFE configuration]" << std::endl;
+        std::cout << "m: " << m() << ", t: " << t() << std::endl;
+        std::cout << "base field: " << base_field_mod() << std::endl;
+        std::cout << "ex field: " << ex_field_mod() << std::endl;
+        std::cout << "*******************" << std::endl;
+    }
+
+    void encode(vec_gf2e& h, const gf2ex& g);
+    void decode(gf2ex& g, const vec_gf2e& h);
+};
+
+/**
+ * Abstract class for (t, m)_2 MFE, where:
+ * m, t <= 64
 */
 class Gf2MFE64 : public mfe_precomp, public Gf2MFE {
 public:
-using MFE::encode;
-using MFE::decode;
+    using MFE::encode;
+    using MFE::decode;
 
-Gf2MFE64() {
-    generate_table(NTL::GF2X(1, 1));
-}
+    Gf2MFE64() {
+        generate_table(NTL::GF2X(1, 1));
+    }
 
-virtual vec_gf2_64 encode(gf2x64 g) = 0;
-virtual gf2x64 decode(vec_gf2_64 h) = 0;
+    virtual vec_gf2_64 encode(gf2x64 g) = 0;
+    virtual gf2x64 decode(vec_gf2_64 h) = 0;
 };
 
+/**
+ * Basic MFE for (t, m)_2 MFE, where:
+ * m, t <= 64
+ * 
+ * It is a bacic MFE constructed from mappings instead of concatenation.
+ * In fact, m can only be 1 or 2 due to MFE's construction theorem.
+ * So, this class is purely precomputed with lookup tables.
+*/
 class BasicGf2MFE64 : public Gf2MFE64 {
 private:
-// Now we simply use BasicMFE to implement the special case. Might be able to optimize.
-unique_ptr<BasicMFE64> internal_;
-long base_field_mod_ = 2;
-NTL::GF2XModulus ex_field_poly_;
+    // Now we simply use BasicMFE to implement the special case. Might be able to optimize.
+    unique_ptr<BasicMFE64> internal_;
+    long base_field_mod_ = 2;
+    NTL::GF2XModulus ex_field_poly_;
 
-vector<vec_gf2_64> encode_table_;
-vector<bool> encode_table_cached_;
-vector<gf2x64> decode_table_;
-vector<bool> decode_table_cached_;
+    vector<vec_gf2_64> encode_table_;
+    vector<bool> encode_table_cached_;
+    vector<gf2x64> decode_table_;
+    vector<bool> decode_table_cached_;
 
-// Using GF2E::init frequently is very expensive, so we should save the context here.
-NTL::GF2EContext base_field_context_;
+    // Using GF2E::init frequently is very expensive, so we should save the context here.
+    NTL::GF2EContext base_field_context_;
 
 public:
 
-BasicGf2MFE64(long m);
+    BasicGf2MFE64(long m);
 
-long m() {
-    return internal_->m();
-}
+    long m() {
+        return internal_->m();
+    }
 
-long t() {
-    return internal_->t();
-}
+    long t() {
+        return internal_->t();
+    }
 
-const long& base_field_mod() {
-    return base_field_mod_;
-}
+    const long& base_field_mod() {
+        return base_field_mod_;
+    }
 
-const NTL::GF2X& ex_field_mod() {
-    return ex_field_poly_.val();
-}
+    const NTL::GF2X& ex_field_mod() {
+        return ex_field_poly_.val();
+    }
 
-long base_field_size() {
-    return 2;
-}
+    long base_field_size() {
+        return 2;
+    }
 
-void encode(NTL::vec_GF2& h, const NTL::GF2X& g) {
-    // [zico] TODO: can redirect to the integer version of encode
-    NTL::LogicError("BasicGf2MFE64 encode not implemented");
-}
-void decode(NTL::GF2X& g, const NTL::vec_GF2& h) {
-    // [zico] TODO: can redirect to the integer version of encode
-    NTL::LogicError("BasicGf2MFE64 decode not implemented");
-}
+    void encode(NTL::vec_GF2& h, const NTL::GF2X& g) {
+        // [zico] TODO: can redirect to the integer version of encode
+        NTL::LogicError("BasicGf2MFE64 encode not implemented");
+    }
+    void decode(NTL::GF2X& g, const NTL::vec_GF2& h) {
+        // [zico] TODO: can redirect to the integer version of encode
+        NTL::LogicError("BasicGf2MFE64 decode not implemented");
+    }
 
-vec_gf2_64 encode(gf2x64 g);
-gf2x64 decode(vec_gf2_64 h);
+    vec_gf2_64 encode(gf2x64 g);
+    gf2x64 decode(vec_gf2_64 h);
 };
 
 
 class CompositeGf2MFE64: public Gf2MFE64 {
 private:
-long m_;
-long t_;
+    long m_;
+    long t_;
 
-std::shared_ptr<FieldConverter64> converter_;
-std::shared_ptr<Gf2MFE64> mfe1_;
-std::shared_ptr<Gf2eMFE64> mfe2_;
+    std::shared_ptr<FieldConverter64> converter_;
+    std::shared_ptr<Gf2MFE64> mfe1_;
+    std::shared_ptr<Gf2eMFE64> mfe2_;
 
-long base_field_mod_ = 2;
-NTL::GF2XModulus ex_field_poly_;
+    long base_field_mod_ = 2;
+    NTL::GF2XModulus ex_field_poly_;
 
-bool use_cache_ = USE_CACHE;
-vector<vec_gf2_64> encode_table_;
-vector<bool> encode_table_cached_;
-bool use_encode_table_ = false;
-vector<gf2x64> decode_table_;
-vector<bool> decode_table_cached_;
-bool use_decode_table_ = false;
-LRU<long, vec_gf2_64> encode_map_;
-bool use_encode_map_ = false;
-LRU<long, gf2x64> decode_map_;
-bool use_decode_map_ = false;
+    bool use_cache_ = USE_CACHE;
+    vector<vec_gf2_64> encode_table_;
+    vector<bool> encode_table_cached_;
+    bool use_encode_table_ = false;
+    vector<gf2x64> decode_table_;
+    vector<bool> decode_table_cached_;
+    bool use_decode_table_ = false;
+    LRU<long, vec_gf2_64> encode_map_;
+    bool use_encode_map_ = false;
+    LRU<long, gf2x64> decode_map_;
+    bool use_decode_map_ = false;
 
-// Using GF2E::init frequently is very expensive, so we should save the context here.
-NTL::GF2EContext base_field_context_;
+    // Using GF2E::init frequently is very expensive, so we should save the context here.
+    NTL::GF2EContext base_field_context_;
 
 public:
-using MFE::encode;
-using MFE::decode;
+    using MFE::encode;
+    using MFE::decode;
 
-CompositeGf2MFE64(std::shared_ptr<FieldConverter64> converter, std::shared_ptr<Gf2MFE64> mfe1, std::shared_ptr<Gf2eMFE64> mfe2);
+    CompositeGf2MFE64(std::shared_ptr<FieldConverter64> converter, std::shared_ptr<Gf2MFE64> mfe1, std::shared_ptr<Gf2eMFE64> mfe2);
 
-long m() {
-    return m_;
-}
+    long m() {
+        return m_;
+    }
 
-long t() {
-    return t_;
-}
+    long t() {
+        return t_;
+    }
 
-const long& base_field_mod() {
-    return base_field_mod_;
-}
+    const long& base_field_mod() {
+        return base_field_mod_;
+    }
 
-const NTL::GF2X& ex_field_mod() {
-    return ex_field_poly_.val();
-}
+    const NTL::GF2X& ex_field_mod() {
+        return ex_field_poly_.val();
+    }
 
-long base_field_size() {
-    return 2;
-}
+    long base_field_size() {
+        return 2;
+    }
 
-void encode(NTL::vec_GF2& h, const NTL::GF2X& g) {
-    gf2x64 g_ = ntl_GF2X_to_gf2x64(g);
-    vec_gf2_64 h_ = encode(g_);
-    h = vec_gf2_64_to_ntl_vec_GF2(h_, t());
-}
-void decode(NTL::GF2X& g, const NTL::vec_GF2& h) {
-    vec_gf2_64 h_ = ntl_vec_GF2_to_vec_gf2_64(h);
-    gf2x64 g_ = decode(h_);
-    g = gf2x64_to_ntl_GF2X(g_);
-}
+    void encode(NTL::vec_GF2& h, const NTL::GF2X& g) {
+        gf2x64 g_ = ntl_GF2X_to_gf2x64(g);
+        vec_gf2_64 h_ = encode(g_);
+        h = vec_gf2_64_to_ntl_vec_GF2(h_, t());
+    }
+    void decode(NTL::GF2X& g, const NTL::vec_GF2& h) {
+        vec_gf2_64 h_ = ntl_vec_GF2_to_vec_gf2_64(h);
+        gf2x64 g_ = decode(h_);
+        g = gf2x64_to_ntl_GF2X(g_);
+    }
 
-vec_gf2_64 encode(gf2x64 g);
-gf2x64 decode(vec_gf2_64 h);
+    vec_gf2_64 encode(gf2x64 g);
+    gf2x64 decode(vec_gf2_64 h);
 };
 
 /**
@@ -701,16 +780,15 @@ gf2x64 decode(vec_gf2_64 h);
 */
 class Gf2MFE_F64 : public mfe_precomp, public Gf2MFE {
 public:
-using MFE::encode;
-using MFE::decode;
+    using MFE::encode;
+    using MFE::decode;
 
-Gf2MFE_F64() {
-    generate_table(NTL::GF2X(1, 1));
-}
+    Gf2MFE_F64() {
+        generate_table(NTL::GF2X(1, 1));
+    }
 
-virtual NTL::vec_GF2 encode(gf2x64 g) = 0;
-virtual gf2x64 decode(const NTL::vec_GF2& h) = 0;
-
+    virtual NTL::vec_GF2 encode(gf2x64 g) = 0;
+    virtual gf2x64 decode(const NTL::vec_GF2& h) = 0;
 };
 
 /**
@@ -722,68 +800,68 @@ virtual gf2x64 decode(const NTL::vec_GF2& h) = 0;
 class CompositeGf2MFEInternal64 : public Gf2MFE_F64 {
 private:
 
-long m_;
-long t_;
+    long m_;
+    long t_;
 
-std::shared_ptr<FieldConverter64> converter_;
-std::shared_ptr<Gf2MFE64> mfe1_;
-std::shared_ptr<Gf2eMFE64> mfe2_;
+    std::shared_ptr<FieldConverter64> converter_;
+    std::shared_ptr<Gf2MFE64> mfe1_;
+    std::shared_ptr<Gf2eMFE64> mfe2_;
 
-long base_field_mod_ = 2;
-NTL::GF2XModulus ex_field_poly_;
+    long base_field_mod_ = 2;
+    NTL::GF2XModulus ex_field_poly_;
 
-bool use_cache_ = USE_CACHE;
-vector<NTL::vec_GF2> encode_table_;
-vector<bool> encode_table_cached_;
-bool use_encode_table_ = false;
-vector<NTL::GF2X> decode_table_;
-vector<bool> decode_table_cached_;
-bool use_decode_table_ = false;
-LRU<long, NTL::vec_GF2> encode_map_;
-bool use_encode_map_ = false;
-LRU<long, NTL::GF2X> decode_map_;
-bool use_decode_map_ = false;
+    bool use_cache_ = USE_CACHE;
+    vector<NTL::vec_GF2> encode_table_;
+    vector<bool> encode_table_cached_;
+    bool use_encode_table_ = false;
+    vector<NTL::GF2X> decode_table_;
+    vector<bool> decode_table_cached_;
+    bool use_decode_table_ = false;
+    LRU<long, NTL::vec_GF2> encode_map_;
+    bool use_encode_map_ = false;
+    LRU<long, NTL::GF2X> decode_map_;
+    bool use_decode_map_ = false;
 
-// Using GF2E::init frequently is very expensive, so we should save the context here.
-NTL::GF2EContext base_field_context_;
+    // Using GF2E::init frequently is very expensive, so we should save the context here.
+    NTL::GF2EContext base_field_context_;
 
 public:
-using MFE::encode;
-using MFE::decode;
+    using MFE::encode;
+    using MFE::decode;
 
-CompositeGf2MFEInternal64(std::shared_ptr<FieldConverter64> converter, std::shared_ptr<Gf2MFE64> mfe1, std::shared_ptr<Gf2eMFE64> mfe2);
+    CompositeGf2MFEInternal64(std::shared_ptr<FieldConverter64> converter, std::shared_ptr<Gf2MFE64> mfe1, std::shared_ptr<Gf2eMFE64> mfe2);
 
-long m() {
-    return m_;
-}
+    long m() {
+        return m_;
+    }
 
-long t() {
-    return t_;
-}
+    long t() {
+        return t_;
+    }
 
-const long& base_field_mod() {
-    return base_field_mod_;
-}
+    const long& base_field_mod() {
+        return base_field_mod_;
+    }
 
-const NTL::GF2X& ex_field_mod() {
-    return ex_field_poly_.val();
-}
+    const NTL::GF2X& ex_field_mod() {
+        return ex_field_poly_.val();
+    }
 
-long base_field_size() {
-    return 2;
-}
+    long base_field_size() {
+        return 2;
+    }
 
-void encode(NTL::vec_GF2& h, const NTL::GF2X& g) {
-    gf2x64 g_ = ntl_GF2X_to_gf2x64(g);
-    h = encode(g_);
-}
-void decode(NTL::GF2X& g, const NTL::vec_GF2& h) {
-    gf2x64 g_ = decode(h);
-    g = gf2x64_to_ntl_GF2X(g_);
-}
+    void encode(NTL::vec_GF2& h, const NTL::GF2X& g) {
+        gf2x64 g_ = ntl_GF2X_to_gf2x64(g);
+        h = encode(g_);
+    }
+    void decode(NTL::GF2X& g, const NTL::vec_GF2& h) {
+        gf2x64 g_ = decode(h);
+        g = gf2x64_to_ntl_GF2X(g_);
+    }
 
-virtual NTL::vec_GF2 encode(gf2x64 g);
-virtual gf2x64 decode(const NTL::vec_GF2& h);
+    virtual NTL::vec_GF2 encode(gf2x64 g);
+    virtual gf2x64 decode(const NTL::vec_GF2& h);
 };
 
 
@@ -793,233 +871,233 @@ virtual gf2x64 decode(const NTL::vec_GF2& h);
 */
 class Gf2RMFE64 : public mfe_precomp, public Gf2RMFE {
 public:
-using RMFE::encode;
-using RMFE::decode;
-using RMFE::random_preimage;
+    using RMFE::encode;
+    using RMFE::decode;
+    using RMFE::random_preimage;
 
-Gf2RMFE64() {
-    generate_table(NTL::GF2X(1, 1));
-}
+    Gf2RMFE64() {
+        generate_table(NTL::GF2X(1, 1));
+    }
 
-virtual gf2x64 encode(vec_gf2_64 h) = 0;
-virtual vec_gf2_64 decode(gf2x64 g) = 0;
-virtual gf2x64 random_preimage(vec_gf2_64 h) = 0;
+    virtual gf2x64 encode(vec_gf2_64 h) = 0;
+    virtual vec_gf2_64 decode(gf2x64 g) = 0;
+    virtual gf2x64 random_preimage(vec_gf2_64 h) = 0;
 };
 
 typedef RMFE<vec_gf2e, gf2ex, NTL::GF2X, NTL::GF2EX> Gf2eRMFE64;
 
 class BasicRMFE64 : public mfe_precomp, public Gf2eRMFE64{
 private:
-long k_;
-long m_;
-NTL::GF2X base_field_poly_mod_;
-NTL::GF2EXModulus ex_field_poly_mod_;
-NTL::GF2EX alpha_;
-vec_gf2ex basis_;
-vec_gf2e beta_;
+    long k_;
+    long m_;
+    NTL::GF2X base_field_poly_mod_;
+    NTL::GF2EXModulus ex_field_poly_mod_;
+    NTL::GF2EX alpha_;
+    vec_gf2ex basis_;
+    vec_gf2e beta_;
 
-mat_gf2e beta_matrix_;
-// bool use_precompute_beta_matrix_ = USE_PRECOMP;
-// bool use_fast_basis_ = USE_OPTIMIZED_MAPPING;
+    mat_gf2e beta_matrix_;
+    // bool use_precompute_beta_matrix_ = USE_PRECOMP;
+    // bool use_fast_basis_ = USE_OPTIMIZED_MAPPING;
 
-// Using GF2E::init frequently is very expensive, so we should save the context here.
-NTL::GF2EContext base_field_context_;
+    // Using GF2E::init frequently is very expensive, so we should save the context here.
+    NTL::GF2EContext base_field_context_;
 
-void initialize();
+    void initialize();
 
 public:
 
-/**
- * "type1" mapping uses m = 2*k-1, otherwise uses m = 2*k
-*/
-BasicRMFE64(long k, long base_field_poly_mod_deg, bool is_type1=true);
+    /** 
+     * "type1" mapping uses m = 2*k-1, otherwise uses m = 2*k
+    */
+    BasicRMFE64(long k, long base_field_poly_mod_deg, bool is_type1=true);
 
-BasicRMFE64(NTL::GF2X base_field_poly, NTL::GF2EX ex_field_poly);
+    BasicRMFE64(NTL::GF2X base_field_poly, NTL::GF2EX ex_field_poly);
 
-bool is_type1() {
-    return m_ == 2 * k_ - 1;
-}
+    bool is_type1() {
+        return m_ == 2 * k_ - 1;
+    }   
 
-long m() {
-    return m_;
-}
+    long m() {
+        return m_;
+    }
 
-long k() {
-    return k_;
-}
+    long k() {
+        return k_;
+    }
 
-const NTL::GF2X& base_field_mod() {
-    return base_field_poly_mod_;
-}
+    const NTL::GF2X& base_field_mod() {
+        return base_field_poly_mod_;
+    }
 
-const NTL::GF2EX& ex_field_mod() {
-    return ex_field_poly_mod_.val();
-}
+    const NTL::GF2EX& ex_field_mod() {
+        return ex_field_poly_mod_.val();
+    }
 
-long base_field_size() {
-    return 1 << (deg(base_field_poly_mod_));
-}
+    long base_field_size() {
+        return 1 << (deg(base_field_poly_mod_));
+    }
 
-void encode(gf2ex& g, const vec_gf2e& h);
-void decode(vec_gf2e& h, const gf2ex& g);
-void random_preimage(gf2ex& h, const vec_gf2e& g);
+    void encode(gf2ex& g, const vec_gf2e& h);
+    void decode(vec_gf2e& h, const gf2ex& g);
+    void random_preimage(gf2ex& h, const vec_gf2e& g);
 
-gf2ex encode(const vec_gf2e& h) {
-    gf2ex g;
-    encode(g, h);
-    return g;
-}
-vec_gf2e decode(const gf2ex& g) {
-    vec_gf2e h;
-    decode(h, g);
-    return h;
-}
+    gf2ex encode(const vec_gf2e& h) {
+        gf2ex g;
+        encode(g, h);
+        return g;
+    }
+    vec_gf2e decode(const gf2ex& g) {
+        vec_gf2e h;
+        decode(h, g);
+        return h;
+    }
 
-gf2ex random_preimage(const vec_gf2e& g) {
-    gf2ex h;
-    random_preimage(h, g);
-    return h;
-}
+    gf2ex random_preimage(const vec_gf2e& g) {
+        gf2ex h;
+        random_preimage(h, g);
+        return h;
+    }
 
 };
 
 class BasicGf2RMFE64 : public Gf2RMFE64 {
 private:
-// Now we simply use BasicRMFE to implement the special case. Might be able to optimize.
-unique_ptr<BasicRMFE64> internal_;
-long base_field_mod_ = 2;
-NTL::GF2XModulus ex_field_poly_;
+    // Now we simply use BasicRMFE to implement the special case. Might be able to optimize.
+    unique_ptr<BasicRMFE64> internal_;
+    long base_field_mod_ = 2;
+    NTL::GF2XModulus ex_field_poly_;
 
-bool use_cache_ = USE_CACHE;
-vector<gf2x64> encode_table_;
-vector<bool> encode_table_cached_;
-vector<vec_gf2_64> decode_table_;
-vector<bool> decode_table_cached_;
+    bool use_cache_ = USE_CACHE;
+    vector<gf2x64> encode_table_;
+    vector<bool> encode_table_cached_;
+    vector<vec_gf2_64> decode_table_;
+    vector<bool> decode_table_cached_;
 
-// Using GF2E::init frequently is very expensive, so we should save the context here.
-NTL::GF2EContext base_field_context_;
+    // Using GF2E::init frequently is very expensive, so we should save the context here.
+    NTL::GF2EContext base_field_context_;
 
-std::random_device rd;
+    std::random_device rd;
 
 public:
-using RMFE::encode;
-using RMFE::decode;
-using RMFE::random_preimage;
+    using RMFE::encode;
+    using RMFE::decode;
+    using RMFE::random_preimage;
 
-/**
- * "type1" mapping uses m = 2*k-1, otherwise uses m = 2*k
-*/
-BasicGf2RMFE64(long k, bool is_type1=true);
+    /**
+     * "type1" mapping uses m = 2*k-1, otherwise uses m = 2*k
+    */
+    BasicGf2RMFE64(long k, bool is_type1=true);
 
-bool is_type1() {
-    return internal_->is_type1();
-}
+    bool is_type1() {
+        return internal_->is_type1();
+    }
 
-long m() {
-    return internal_->m();
-}
+    long m() {
+        return internal_->m();
+    }
 
-long k() {
-    return internal_->k();
-}
+    long k() {
+        return internal_->k();
+    }
 
-const long& base_field_mod() {
-    return base_field_mod_;
-}
+    const long& base_field_mod() {
+        return base_field_mod_;
+    }
 
-const NTL::GF2X& ex_field_mod() {
-    return ex_field_poly_.val();
-}
+    const NTL::GF2X& ex_field_mod() {
+        return ex_field_poly_.val();
+    }
 
-long base_field_size() {
-    return 2;
-}
+    long base_field_size() {
+        return 2;
+    }
 
-void encode(NTL::GF2X& g, const NTL::vec_GF2& h) {
-    // [zico] TODO: can redirect to the integer version of encode
-}
-void decode(NTL::vec_GF2& h, const NTL::GF2X& g) {
-    // [zico] TODO: can redirect to the integer version of encode
-}
-void random_preimage(NTL::GF2X& g, const NTL::vec_GF2& h) {
-    // [zico] TODO: can redirect to the integer version of encode
-}
+    void encode(NTL::GF2X& g, const NTL::vec_GF2& h) {
+        // [zico] TODO: can redirect to the integer version of encode
+    }
+    void decode(NTL::vec_GF2& h, const NTL::GF2X& g) {
+        // [zico] TODO: can redirect to the integer version of encode
+    }
+    void random_preimage(NTL::GF2X& g, const NTL::vec_GF2& h) {
+        // [zico] TODO: can redirect to the integer version of encode
+    }
 
-gf2x64 encode(vec_gf2_64 h);
-vec_gf2_64 decode(gf2x64 g);
-gf2x64 random_preimage(vec_gf2_64 h);
+    gf2x64 encode(vec_gf2_64 h);
+    vec_gf2_64 decode(gf2x64 g);
+    gf2x64 random_preimage(vec_gf2_64 h);
 };
 
 class CompositeGf2RMFE64: public Gf2RMFE64 {
 private:
-long k_;
-long m_;
+    long k_;
+    long m_;
 
-std::shared_ptr<FieldConverter64> converter_;
-std::shared_ptr<Gf2RMFE64> rmfe1_;
-std::shared_ptr<Gf2eRMFE64> rmfe2_;
+    std::shared_ptr<FieldConverter64> converter_;
+    std::shared_ptr<Gf2RMFE64> rmfe1_;
+    std::shared_ptr<Gf2eRMFE64> rmfe2_;
 
-long base_field_mod_ = 2;
-NTL::GF2XModulus ex_field_poly_;
+    long base_field_mod_ = 2;
+    NTL::GF2XModulus ex_field_poly_;
 
-bool use_cache_ = USE_CACHE;
-// vector<NTL::GF2X> encode_table_;
-// vector<bool> encode_table_cached_;
-// LRU<long, NTL::vec_GF2> decode_map_;
+    bool use_cache_ = USE_CACHE;
+    // vector<NTL::GF2X> encode_table_;
+    // vector<bool> encode_table_cached_;
+    // LRU<long, NTL::vec_GF2> decode_map_;
 
-vector<gf2x64> encode_table_;
-vector<bool> encode_table_cached_;
-LRU<long, vec_gf2_64> decode_map_;
+    vector<gf2x64> encode_table_;
+    vector<bool> encode_table_cached_;
+    LRU<long, vec_gf2_64> decode_map_;
 
-// Using GF2E::init frequently is very expensive, so we should save the context here.
-NTL::GF2EContext base_field_context_;
+    // Using GF2E::init frequently is very expensive, so we should save the context here.
+    NTL::GF2EContext base_field_context_;
 
 public:
-using RMFE::encode;
-using RMFE::decode;
-using RMFE::random_preimage;
+    using RMFE::encode;
+    using RMFE::decode;
+    using RMFE::random_preimage;
 
-CompositeGf2RMFE64(std::shared_ptr<FieldConverter64> converter, std::shared_ptr<Gf2RMFE64> rmfe1, std::shared_ptr<Gf2eRMFE64> rmfe2);
+    CompositeGf2RMFE64(std::shared_ptr<FieldConverter64> converter, std::shared_ptr<Gf2RMFE64> rmfe1, std::shared_ptr<Gf2eRMFE64> rmfe2);
 
-long m() {
-    return m_;
-}
+    long m() {
+        return m_;
+    }
 
-long k() {
-    return k_;
-}
+    long k() {
+        return k_;
+    }
 
-const long& base_field_mod() {
-    return base_field_mod_;
-}
+    const long& base_field_mod() {
+        return base_field_mod_;
+    }
 
-const NTL::GF2X& ex_field_mod() {
-    return ex_field_poly_.val();
-}
+    const NTL::GF2X& ex_field_mod() {
+        return ex_field_poly_.val();
+    }
 
-long base_field_size() {
-    return 2;
-}
+    long base_field_size() {
+        return 2;
+    }
 
-void encode(NTL::GF2X& g, const NTL::vec_GF2& h) {
-    vec_gf2_64 h_ = ntl_vec_GF2_to_vec_gf2_64(h);
-    gf2x64 g_ = encode(h_);
-    g = gf2x64_to_ntl_GF2X(g_);
-}
-void decode(NTL::vec_GF2& h, const NTL::GF2X& g) {
-    gf2x64 g_ = ntl_GF2X_to_gf2x64(g);
-    vec_gf2_64 h_ = decode(g_);
-    h = vec_gf2_64_to_ntl_vec_GF2(h_, k());
-}
-void random_preimage(NTL::GF2X& g, const NTL::vec_GF2& h) {
-    vec_gf2_64 h_ = ntl_vec_GF2_to_vec_gf2_64(h);
-    gf2x64 g_ = random_preimage(h_);
-    g = gf2x64_to_ntl_GF2X(g_);
-}
+    void encode(NTL::GF2X& g, const NTL::vec_GF2& h) {
+        vec_gf2_64 h_ = ntl_vec_GF2_to_vec_gf2_64(h);
+        gf2x64 g_ = encode(h_);
+        g = gf2x64_to_ntl_GF2X(g_);
+    }
+    void decode(NTL::vec_GF2& h, const NTL::GF2X& g) {
+        gf2x64 g_ = ntl_GF2X_to_gf2x64(g);
+        vec_gf2_64 h_ = decode(g_);
+        h = vec_gf2_64_to_ntl_vec_GF2(h_, k());
+    }
+    void random_preimage(NTL::GF2X& g, const NTL::vec_GF2& h) {
+        vec_gf2_64 h_ = ntl_vec_GF2_to_vec_gf2_64(h);
+        gf2x64 g_ = random_preimage(h_);
+        g = gf2x64_to_ntl_GF2X(g_);
+    }
 
-gf2x64 encode(vec_gf2_64 h);
-vec_gf2_64 decode(gf2x64 g);
-gf2x64 random_preimage(vec_gf2_64 h);
+    gf2x64 encode(vec_gf2_64 h);
+    vec_gf2_64 decode(gf2x64 g);
+    gf2x64 random_preimage(vec_gf2_64 h);
 };
 
 
