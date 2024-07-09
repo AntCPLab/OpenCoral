@@ -492,12 +492,22 @@ public:
     void rho(gf2ex& g, const vec_gf2e& h, const vec_gf2ex& alpha_power, const vec_gf2e& beta);
 };
 
-
+/**
+ * Converter between
+ * composite field `F_{{2^m}^n}` and binary field `F_{2^{m*n}}`, where:
+ * m*n < 64
+*/
 class FieldConverter64 : public FieldConverter {
 private: 
     mat_gf2_64 combined_c2b_mat_64_;
     mat_gf2_64 combined_b2c_mat_64_;
 public:
+    /**
+     * @param binary_field_deg: m*n
+     * @param base_field_deg: m
+     * @param extension_deg: n
+     * @param prespecified_base_field_poly: a base field (`F_{2^m}`) poly modulus that we force to use
+    */
     FieldConverter64(long binary_field_deg, long base_field_deg, 
         long extension_deg, NTL::GF2X prespecified_base_field_poly=NTL::GF2X(0));
 
@@ -701,7 +711,12 @@ public:
     gf2x64 decode(vec_gf2_64 h);
 };
 
-
+/**
+ * Composite MFE for (t, m)_2 MFE, where:
+ * m, t <= 64
+ * 
+ * It is a composite MFE constructed from concatenation instead of mappings.
+*/
 class CompositeGf2MFE64: public Gf2MFE64 {
 private:
     long m_;

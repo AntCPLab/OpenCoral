@@ -124,6 +124,13 @@ public:
 
 };
 
+/**
+ * Converter between
+ * composite field `F_{{2^m}^n}` and binary field `F_{2^{m*n}}`.
+ * 
+ * Reference:
+ * Berk Sunar, Erkay Savas, and Çetin Kaya Koç. 2003. Constructing Composite Field Representations for Efficient Conversion. IEEE Trans. Computers 52, 11(2003), 1391–1398.
+*/
 class FieldConverter {
 protected:
 long k_, n_, m_;
