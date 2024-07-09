@@ -4,6 +4,7 @@
 #include "Math/Bit.h"
 #include "Machines/Rmfe.hpp"
 #include "Tools/debug.hpp"
+#include "Tools/performance.h"
 
 
 typedef TinyOTShare T;
@@ -27,10 +28,16 @@ void test_tinyot_prep(int argc, char** argv)
     auto& input = set.input;
     auto& protocol = set.protocol;
 
-    prep.set_batch_size(300 * 12);
+    prep.set_batch_size(20000 * 12);
+
+    auto start = perf_log("tinyot triples", P.total_comm().sent);
 
     T a, b, c;
     prep.get_tinyot_triple(a.MAC, a.KEY, b.MAC, b.KEY, c.MAC, c.KEY);
+
+    auto diff = perf_log("tinyot triples", P.total_comm().sent);
+    cout << "[Time/1000 ops] " << diff.first.count() * 1.0 / 1e6 / prep.get_batch_size() * 1000 << " ms" << endl;
+    cout << "[Comm/1000 ops] " << diff.second * 1.0 / 1e6 / prep.get_batch_size() * 1000 << " MB" << endl;
 }
 
 int main(int argc, char** argv)

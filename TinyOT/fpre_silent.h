@@ -14,6 +14,7 @@
 #include "helper.h"
 #include "leaky_deltaot_silent.h"
 #include "config.h"
+#include "Networking/Player.h"
 
 namespace emp {
 //#define __debug

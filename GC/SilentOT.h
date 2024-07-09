@@ -84,7 +84,7 @@ inline void unpack_cot_messages(uint8_t *corr_data, uint8_t *recvd, int bsize,
 template <typename IO>
 class SilentOT {
 public:
-  static atomic<int> n_instances;
+  static std::atomic<int> n_instances;
   emp::FerretCOT<IO>* ferret;
   emp::MITCCRH<8> mitccrh;
 
@@ -420,6 +420,6 @@ public:
 };
 
 template <typename IO>
-atomic<int> SilentOT<IO>::n_instances = 0;
+std::atomic<int> SilentOT<IO>::n_instances = 0;
 
 #endif // SILENT_OT_H
