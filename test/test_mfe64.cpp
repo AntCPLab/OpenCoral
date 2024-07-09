@@ -680,7 +680,7 @@ int main() {
     // test_composite_to_binary();
     // test_composite_to_binary_with_base_poly();
     // test_basic_mfe64();
-    // test_basic_gf2_mfe64();
+    test_basic_gf2_mfe64();
     // test_composite_gf2_mfe64();
     // test_double_composite_gf2_mfe64(2, 3, 8);
     // test_basic_rmfe64();

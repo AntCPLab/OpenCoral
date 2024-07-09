@@ -655,18 +655,14 @@ public:
 */
 class BasicGf2MFE64 : public Gf2MFE64 {
 private:
-    // Now we simply use BasicMFE to implement the special case. Might be able to optimize.
+    // an internal instance for delegating queries about some MFE information
     unique_ptr<BasicMFE64> internal_;
+
     long base_field_mod_ = 2;
     NTL::GF2XModulus ex_field_poly_;
 
     vector<vec_gf2_64> encode_table_;
-    vector<bool> encode_table_cached_;
     vector<gf2x64> decode_table_;
-    vector<bool> decode_table_cached_;
-
-    // Using GF2E::init frequently is very expensive, so we should save the context here.
-    NTL::GF2EContext base_field_context_;
 
 public:
 

@@ -418,8 +418,6 @@ BasicGf2MFE64::BasicGf2MFE64(long m) {
         encode_table_ = {0, 3, 6, 5};
         decode_table_ = {0, 3, 2, 1, 1, 2, 3, 0};
     }
-
-    base_field_context_ = NTL::GF2EContext(NTL::GF2X(1, 1));
 }
 
 gf2x64 BasicGf2MFE64::encode(vec_gf2_64 g) {
