@@ -772,9 +772,7 @@ BasicGf2RMFE64::BasicGf2RMFE64(long k, bool is_type1) {
         assert(internal_->m() < 22);
         
         encode_table_.resize(1 << internal_->k());
-        encode_table_cached_.resize(1 << internal_->k());
         decode_table_.resize(1 << internal_->m());
-        decode_table_cached_.resize(1 << internal_->m());
 
         // [zico] With q = 2, there is not that many choices for k, 
         // so we can just enumerate all cases here
@@ -800,10 +798,7 @@ BasicGf2RMFE64::BasicGf2RMFE64(long k, bool is_type1) {
         }
         
     }
-
-    base_field_context_ = NTL::GF2EContext(NTL::GF2X(1, 1));
 }
-
 
 gf2x64 BasicGf2RMFE64::encode(vec_gf2_64 h) {
     return encode_table_[h];

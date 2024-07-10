@@ -152,15 +152,32 @@ NTL::GF2EContext base_field_context_;
 NTL::GF2EContext binary_field_context_;
 
 public:
+/**
+ * @param binary_field_deg: m*n
+ * @param base_field_deg: m
+ * @param extension_deg: n
+ * @param prespecified_base_field_poly: a base field (`F_{2^m}`) poly modulus that we force to use
+*/
 FieldConverter(long binary_field_deg, long base_field_deg, long extension_deg, NTL::GF2X prespecified_base_field_poly=NTL::GF2X(0));
+
 const NTL::GF2X& binary_field_poly();
 const NTL::GF2X& base_field_poly();
 const NTL::GF2EX& composite_field_poly();
 void raw_composite_to_binary(NTL::vec_GF2& y, const NTL::vec_GF2& x);
 NTL::vec_GF2 raw_composite_to_binary(const NTL::vec_GF2& x);
+
+/**
+ * Convert from composite field to binary field.
+*/
 NTL::GF2E composite_to_binary(const NTL::GF2EX& x);
+
 void raw_binary_to_composite(NTL::vec_GF2& y, const NTL::vec_GF2& x);
+
 NTL::vec_GF2 raw_binary_to_composite(const NTL::vec_GF2& x);
+
+/**
+ * Convert from binary field to composite field.
+*/
 NTL::GF2EX binary_to_composite(const NTL::GF2E& x);
 };
 

@@ -748,6 +748,11 @@ public:
     using MFE::encode;
     using MFE::decode;
 
+    /**
+     * @param converter: field converter between `F_{2^{m1*m2}}` and `F_{{2^m1}^m2}`
+     * @param mfe1: (t1, m1)_2 MFE, where m1, t1 <= 64
+     * @param mfe2: (t2, m2)_{2^m1} MFE
+    */
     CompositeGf2MFE64(std::shared_ptr<FieldConverter64> converter, std::shared_ptr<Gf2MFE64> mfe1, std::shared_ptr<Gf2eMFE64> mfe2);
 
     long m() {
@@ -786,8 +791,8 @@ public:
 };
 
 /**
- * This class restricts the field domain to be within 64 bits, while allowing
- * the vector to be arbitrarily long.
+ * Abstract class for (t, m)_2 MFE, where:
+ * m <= 64
 */
 class Gf2MFE_F64 : public mfe_precomp, public Gf2MFE {
 public:
@@ -803,10 +808,14 @@ public:
 };
 
 /**
- * This class requires the components (including field converter) to accept input and output of 64 bits.
- * We create this complexity in order to have the best performance.
- * This class is more efficient than `CompositeGf2MFE` in `mfe.h` because we avoid
- * many conversions between NTL's types and our 64-bit types.
+ * Composite MFE for (t, m)_2 MFE, where:
+ * m <= 64
+ * 
+ * It is a composite MFE constructed from concatenation instead of mappings.
+ * 
+ * Requirement for the composition: suppose the 1st MFE is (t1, m1)_2, and the 2nd one is (t2, m2)_{2^m1}.
+ * Then we should have:
+ * m1, t1 <= 64, and m1*m2 = m <= 64
 */
 class CompositeGf2MFEInternal64 : public Gf2MFE_F64 {
 private:
@@ -840,6 +849,11 @@ public:
     using MFE::encode;
     using MFE::decode;
 
+    /**
+     * @param converter: field converter between `F_{2^{m1*m2}}` and `F_{{2^m1}^m2}`
+     * @param mfe1: (t1, m1)_2 MFE, where m1, t1 <= 64
+     * @param mfe2: (t2, m2)_{2^m1} MFE
+    */
     CompositeGf2MFEInternal64(std::shared_ptr<FieldConverter64> converter, std::shared_ptr<Gf2MFE64> mfe1, std::shared_ptr<Gf2eMFE64> mfe2);
 
     long m() {
@@ -877,8 +891,8 @@ public:
 
 
 /**
- * This class restricts input and output of the functionalities
- * to be within 64 bits.
+ * Abstract class for (k, m)_2 RMFE, where:
+ * k, m <= 64
 */
 class Gf2RMFE64 : public mfe_precomp, public Gf2RMFE {
 public:
@@ -897,6 +911,12 @@ public:
 
 typedef RMFE<vec_gf2e, gf2ex, NTL::GF2X, NTL::GF2EX> Gf2eRMFE64;
 
+/**
+ * Basic RMFE for (k, m)_q RMFE, where:
+ * F_q is a binary field with degree <= 64.
+ * 
+ * It is a bacic RMFE constructed from mappings instead of concatenation.
+*/
 class BasicRMFE64 : public mfe_precomp, public Gf2eRMFE64{
 private:
     long k_;
@@ -908,8 +928,6 @@ private:
     vec_gf2e beta_;
 
     mat_gf2e beta_matrix_;
-    // bool use_precompute_beta_matrix_ = USE_PRECOMP;
-    // bool use_fast_basis_ = USE_OPTIMIZED_MAPPING;
 
     // Using GF2E::init frequently is very expensive, so we should save the context here.
     NTL::GF2EContext base_field_context_;
@@ -919,10 +937,16 @@ private:
 public:
 
     /** 
-     * "type1" mapping uses m = 2*k-1, otherwise uses m = 2*k
+     * @param k: the input vector length
+     * @param base_field_poly_mod_deg: degree of the base field `F_q`
+     * @param is_type1: If true, the mapping uses m = 2*k-1, otherwise uses m = 2*k
     */
     BasicRMFE64(long k, long base_field_poly_mod_deg, bool is_type1=true);
 
+    /** 
+     * @param base_field_poly: irreducible poly modulus for the base field `F_q`
+     * @param ex_field_poly: irreducible poly modulus for the extension field `F_{q^m}`
+    */
     BasicRMFE64(NTL::GF2X base_field_poly, NTL::GF2EX ex_field_poly);
 
     bool is_type1() {
@@ -972,21 +996,24 @@ public:
 
 };
 
+/**
+ * Basic RMFE for (k, m)_2 RMFE, where:
+ * k, m <= 64
+ * 
+ * It is a bacic RMFE constructed from mappings instead of concatenation.
+ * In fact, k can only be 1 or 2 due to RMFEx's construction theorem.
+ * So, this class is purely precomputed with lookup tables.
+*/
 class BasicGf2RMFE64 : public Gf2RMFE64 {
 private:
-    // Now we simply use BasicRMFE to implement the special case. Might be able to optimize.
+    // an internal instance for delegating queries about some RMFE information
     unique_ptr<BasicRMFE64> internal_;
     long base_field_mod_ = 2;
     NTL::GF2XModulus ex_field_poly_;
 
     bool use_cache_ = USE_CACHE;
     vector<gf2x64> encode_table_;
-    vector<bool> encode_table_cached_;
     vector<vec_gf2_64> decode_table_;
-    vector<bool> decode_table_cached_;
-
-    // Using GF2E::init frequently is very expensive, so we should save the context here.
-    NTL::GF2EContext base_field_context_;
 
     std::random_device rd;
 
@@ -1039,6 +1066,12 @@ public:
     gf2x64 random_preimage(vec_gf2_64 h);
 };
 
+/**
+ * Composite RMFE for (k, m)_2 RMFE, where:
+ * k, m <= 64
+ * 
+ * It is a composite RMFE constructed from concatenation instead of mappings.
+*/
 class CompositeGf2RMFE64: public Gf2RMFE64 {
 private:
     long k_;
@@ -1052,9 +1085,6 @@ private:
     NTL::GF2XModulus ex_field_poly_;
 
     bool use_cache_ = USE_CACHE;
-    // vector<NTL::GF2X> encode_table_;
-    // vector<bool> encode_table_cached_;
-    // LRU<long, NTL::vec_GF2> decode_map_;
 
     vector<gf2x64> encode_table_;
     vector<bool> encode_table_cached_;
@@ -1068,6 +1098,11 @@ public:
     using RMFE::decode;
     using RMFE::random_preimage;
 
+    /**
+     * @param converter: field converter between `F_{2^{m1*m2}}` and `F_{{2^m1}^m2}`
+     * @param mfe1: (k1, m1)_2 RMFE, where k1, m1 <= 64
+     * @param mfe2: (k2, m2)_{2^m1} RMFE
+    */
     CompositeGf2RMFE64(std::shared_ptr<FieldConverter64> converter, std::shared_ptr<Gf2RMFE64> rmfe1, std::shared_ptr<Gf2eRMFE64> rmfe2);
 
     long m() {
@@ -1111,12 +1146,37 @@ public:
     gf2x64 random_preimage(vec_gf2_64 h);
 };
 
-
+/**
+ * Construct a `(k, m)_2` RMFE instance with one level of composition, where:
+ * The 1st basic RMFE is type2: (k1, 2*k1)_2, 
+ * the 2nd basic RMFE is type2: (k2, 2*k2)_{2^{2*k1}},
+ * k = k1 * k2, m = 4 * k1 * k2
+*/
 std::unique_ptr<Gf2RMFE> get_composite_gf2_rmfe64_type2(long k1, long k2);
+
+/**
+ * Construct a `(k, m)_2` RMFE instance with one level of composition, where:
+ * The 1st basic RMFE is type1: (k1, 2*k1-1)_2, 
+ * the 2nd basic RMFE is type2: (k2, 2*k2)_{2^{2*k1-1}},
+ * k = k1 * k2, m = 4 * k1 * k2 - 2*k2
+*/
 std::unique_ptr<Gf2RMFE> get_composite_gf2_rmfe64_type1_type2(long k1, long k2);
 
+/**
+ * Construct a `(t, m)_2` MFE instance with one level of composition, where:
+ * The 1st basic MFE is: (2*m1-1, m1)_2, 
+ * the 2nd basic MFE is: (2*m2-1, m2)_{2^m1},
+ * t = t1 * t2, m = m1 * m2
+*/
 std::unique_ptr<Gf2MFE64> get_composite_gf2_mfe64(long m1, long m2);
 
+/**
+ * Construct a `(t, m)_2` MFE instance with two levels of composition, where:
+ * The 1st basic MFE is: (2*m1-1, m1)_2, 
+ * the 2nd basic MFE is: (2*m2-1, m2)_{2^m1},
+ * the 3rd basic MFE is: (2*m3-1, m3)_{2^{m1*m2}},
+ * t = t1 * t2 * t3, m = m1 * m2 * m3
+*/
 std::unique_ptr<Gf2MFE> get_composite_gf2_mfe64(long m1, long m2, long m3);
 
 
