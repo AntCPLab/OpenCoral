@@ -67,18 +67,6 @@ public:
 
     gf2n_rmfe(const gf2n_<word>& x): gf2n_short(x) {}
 
-    // /**
-    //  * Only exists for compatibility with other parts of the code
-    // */
-    // explicit gf2n_rmfe(bool x) {
-    //     if (!x)
-    //         this->a = 0;
-    //     else
-    //         throw runtime_error("Pass in x=true, but we can only convert 'false' to gf2n_rmfe. Given 'true', \
-    //             it is unclear what the caller wants because gf2n_rmfe is an encoded type \
-    //             and 1 in bitvec_rmfe does not correspond to 1 in gf2n_rmfe.");
-    // }
-
     /**
      * Only exists for compatibility with other parts of the code
     */
@@ -227,30 +215,12 @@ public:
         return "Rf";
     }
 
-    // static ShareThread<TinierSecret<T>>& get_party()
-    // {
-    //     return ShareThread<TinierSecret<T>>::s();
-    // }
-
     static ShareThread<whole_type>& get_party();
 
     static MAC_Check* new_mc(mac_key_type mac_key)
     {
         return new MAC_Check(mac_key);
     }
-
-    // static void setup_rmfe(long k1, long k2) {
-    //     if (Gf2RMFE::has_singleton())
-    //         throw runtime_error("Can only setup RMFE once");
-    //     auto rmfe = get_composite_gf2_rmfe_type2(2, 6);
-    //     Gf2RMFE::set_singleton(std::move(rmfe));
-    // }
-
-    // static void teardown_rmfe() {
-    //     if (!Gf2RMFE::has_singleton())
-    //         return;
-    //     Gf2RMFE::reset_singleton();
-    // }
 
     RmfeShare()
     {
@@ -263,7 +233,6 @@ public:
             super(share, mac)
     {
     }
-    // RmfeShare(const RmfeSecret& other);
 
     void XOR(const This& a, const This& b)
     {
