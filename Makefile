@@ -464,21 +464,6 @@ mixed-offline-throughput.x: $(VM) $(OT) $(COMMON) $(FHEOFFLINE) $(TINIER) Protoc
 mixed-offline-queues-example.x: $(VM) $(OT) $(COMMON) $(FHEOFFLINE) $(TINIER) Protocols/LowGearKeyGen.o 
 
 
-zico: target1
-	echo "target1: $@; pre: $^"
-
-zico: target2
-	echo "target2: $@; pre: $^"
-	echo "USE_NTL: $(USE_NTL)"
-	echo "CFLAGS: $(CFLAGS)"
-	echo "LDLIBS: $(LDLIBS)"
-
-target1:
-	echo "hello"
-target2:
-	echo "world"
-
-
 clean-deps:
 	-rm -rf local/lib/liblibOTe.* deps/libOTe/out
 
