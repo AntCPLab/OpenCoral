@@ -46,7 +46,7 @@ Following the tradition in MP-SPDZ library, we create top-level parties for mixe
 If we want to simply use the RMFE-based boolean part, we can just run `coral-party.cpp` on the boolean circuit.
 
 #### Usage
-Check the test cases and microbenchmarks we create for boolean computation here:
+Check the test cases and microbenchmarks we create for boolean and mixed computation here:
 ```
 ./test/test_rmfe_beaver.cpp
 ./test/test_offline_binary.cpp

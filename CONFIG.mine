@@ -1,0 +1,13 @@
+USE_NTL = 1
+## For running SPDZ2k, Mascot, Lowgear
+# MY_CFLAGS = -DINSECURE -DPRINT_PROGRESS -DVERBOSE
+
+## For running Coral, CoralMascot, CoralLowgear
+MY_CFLAGS = -DINSECURE -DRMFE_UNIT -DUSE_SILENT_OT -DVERBOSE -DPRINT_PROGRESS
+
+## For benchmarking the quintuple generation cost of Crypto2022
+# MY_CFLAGS = -DINSECURE -DRMFE_UNIT -DUSE_SILENT_OT -DVERBOSE -DPRINT_PROGRESS -DBENCH_CRYPTO2022
+
+## For benchmarking the cost of the implementation of Spdz2k that appears in IEEE SP 2019. 
+## It converts TinyOT triples to Spdz2k triples.
+# MY_CFLAGS = -DINSECURE -DRMFE_UNIT -DSPDZ2K_SP
