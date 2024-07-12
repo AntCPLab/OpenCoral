@@ -106,7 +106,7 @@ Scripts/fixed-rep-to-float.py benchmarks/EzPC/Athos/Networks/Lenet/LenetSmall_mn
 # Compile to instructions: 64-bit ring (-R 64), use edabits (-Y), enable packing (necessary for Coral), 8 threads
 ./compile.py -R 64 -Y --pack tf benchmarks/EzPC/Athos/Networks/Lenet/graphDef.bin 8
 
-# Run the inference for Lenet with Coral protocols
+# Run the inference for Lenet with Coral protocols. This takes about 6 mintues to finish on a machine with 8 cores.
 Scripts/coral.sh -v tf-benchmarks_EzPC_Athos_Networks_Lenet_graphDef.bin-8
 ```
 
