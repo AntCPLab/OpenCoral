@@ -18,14 +18,11 @@
 namespace GC
 {
 
-// typedef TinySecret<DEFAULT_SECURITY> Spdz2kBShare;
-
 template<class T>
 class RmfeSharePrep : public PersonalPrep<T> {
     const int s = 40;
 
     typename T::TripleGenerator* triple_generator;
-    // typename T::whole_type::TripleGenerator* real_triple_generator;
     MascotParams params;
 
     RmfeShareConverter<TinyOTShare>* tinyot2rmfe;
@@ -34,8 +31,6 @@ class RmfeSharePrep : public PersonalPrep<T> {
     GlobalPRNG* shared_prng;
 
     typedef typename T::whole_type secret_type;
-
-    // void init_real(Player& P);
     
     using PersonalPrep<T>::input_player;
     using Preprocessing<T>::count;
@@ -55,9 +50,6 @@ public:
     const int NORMAL_SACRIFICE = 40;
 
     void buffer_triples();
-    // void buffer_squares() { throw not_implemented(); }
-    // void buffer_bits();
-    // void buffer_inverses() { throw not_implemented(); }
     void buffer_inputs(int player);
 
     void buffer_personal_triples(size_t n, ThreadQueues* queues = 0) { throw runtime_error("no personal triples"); }
@@ -68,11 +60,7 @@ public:
 
     void buffer_normals();
 
-    // virtual array<T, 5> get_quintuple(int n_bits);
-    // virtual array<T, 5> get_quintuple_no_count(int n_bits);
-
     void set_protocol(typename T::Protocol& protocol);
-    // void set_mc(typename T::MAC_Check* MC);
 
     Preprocessing<typename T::part_type>& get_part()
     {

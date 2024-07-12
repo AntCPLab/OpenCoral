@@ -123,3 +123,8 @@ _build/
 # temp doc files
 doc/readme.md
 doc/xml
+
+# temp log files
+*.log
+
+exp-logs/

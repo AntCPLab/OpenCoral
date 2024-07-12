@@ -892,7 +892,9 @@ FieldConverter::FieldConverter(long binary_field_deg, long base_field_deg, long 
         }
         u_[i] = coeff(rep(u[i]), 0);
     }
-
+    // If we force to use a specific poly modulus for the base field, we need to construct
+    // an isomorphic mapping between the field defined on this poly modulus and the field
+    // defined on `u_`.
     if (prespecified_base_field_poly != GF2X(0) && prespecified_base_field_poly != u_) {
         // The isomorphic mapping is calculated based on this post:
         // https://mathwiki.cs.ut.ee/finite_fields/04_isomorphisms
@@ -933,10 +935,6 @@ FieldConverter::FieldConverter(long binary_field_deg, long base_field_deg, long 
                 }
             }
         }
-
-        // MakeMatrix(pre_isomorphic_mat_, mat);
-        // transpose(pre_isomorphic_mat_, pre_isomorphic_mat_);
-        // pre_isomorphic_mat_inv_ = inv(pre_isomorphic_mat_);
     }
 
     combined_c2b_mat_ = mat_T_ * pre_isomorphic_mat_inv_;

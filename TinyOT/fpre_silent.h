@@ -14,12 +14,16 @@
 #include "helper.h"
 #include "leaky_deltaot_silent.h"
 #include "config.h"
+#include "Networking/Player.h"
+#include "Tools/mkpath.h"
 
 namespace emp {
 //#define __debug
 
 inline string get_ferret_filename(int my_num, int other_num, bool send, int thread_num)
 {
+	if (mkdir_p("Player-Data/TinyOT/") < 0)
+    	throw file_error("cannot create directory Player-Data/TinyOT/");
     return "Player-Data/TinyOT/Ferret-P" + std::to_string(my_num)
             + "-" + std::to_string(other_num) + "-" + (send? "Send" : "Recv") 
 			+ (thread_num >= 0? "-T" + std::to_string(thread_num) : "");

@@ -12,17 +12,9 @@
 #include "tinyotprotocol.h"
 #include "Protocols/ReplicatedPrep.hpp"
 
-// atomic<int> BufferTinyOTPrep::port_resource(20000);
-
-// int BufferTinyOTPrep::get_next_available_port() {
-// 	return ++port_resource;
-// }
-
 BufferTinyOTPrep::BufferTinyOTPrep(DataPositions& usage, int batch_size) :
 	Preprocessing<TinyOTShare>(usage), io(nullptr), fpre(nullptr), P(nullptr),
 	player_2pc(nullptr), batch_size(batch_size) {
-	// if (this->port < 0)
-	// 	this->port = get_next_available_port();
 }
 
 void BufferTinyOTPrep::set_protocol(TinyOTShare::Protocol& protocol) {

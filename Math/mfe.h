@@ -1,3 +1,8 @@
+/**
+ * This is a more general implementation of base-2 MFE and RMFE, which might have sub-optimal performance.
+ * For optimized implementation where some underlying spaces fit into 64 bits, please see `mfe64.h`.
+*/
+
 #ifndef MFE_H_
 #define MFE_H_
 
@@ -93,30 +98,10 @@ public:
 };
 
 class GF2EPrecomp {
-    // static std::unique_ptr<GF2EPrecomp> singleton;
     static std::unordered_map<unsigned long, std::vector<std::vector<NTL::GF2E>>> mul_table_;
     static std::unordered_map<unsigned long, std::vector<std::vector<NTL::GF2E>>> add_table_;
     static std::mutex mtx_;
 public:
-    // static void set_singleton(std::unique_ptr<GF2EPrecomp> s) {
-    //     singleton = std::move(s);
-    // }
-    // static GF2EPrecomp& s() {
-    //     if (singleton)
-    //         return *singleton;
-    //     else
-    //         throw runtime_error("no singleton: " + std::string(typeid(GF2EPrecomp).name()));
-    // }
-    // static bool has_singleton() {
-    //     return bool(singleton);
-    // }
-    // static void reset_singleton() {
-    //     if (has_singleton())
-    //         singleton.reset(nullptr);
-    // }
-
-    // GF2EPrecomp() {}
-
     static void generate_table(const NTL::GF2X& poly_mod);
 
     static const std::vector<std::vector<NTL::GF2E>>& get_mul_table(const NTL::GF2X& poly_mod);
@@ -124,41 +109,67 @@ public:
 
 };
 
+/**
+ * Converter between
+ * composite field `F_{{2^m}^n}` and binary field `F_{2^{m*n}}`.
+ * 
+ * Reference:
+ * Berk Sunar, Erkay Savas, and Çetin Kaya Koç. 2003. Constructing Composite Field Representations for Efficient Conversion. IEEE Trans. Computers 52, 11(2003), 1391–1398.
+*/
 class FieldConverter {
 protected:
-long k_, n_, m_;
-NTL::GF2X p_;
-NTL::GF2X u_;
-NTL::GF2EX q_;
-NTL::mat_GF2 mat_T_;
-NTL::mat_GF2 mat_T_inv_;
+    long k_, n_, m_;
+    NTL::GF2X p_;
+    NTL::GF2X u_;
+    NTL::GF2EX q_;
+    NTL::mat_GF2 mat_T_;
+    NTL::mat_GF2 mat_T_inv_;
 
-NTL::GF2X prespecified_base_field_poly_;
-NTL::mat_GF2 pre_isomorphic_mat_;
-NTL::mat_GF2 pre_isomorphic_mat_inv_;
+    NTL::GF2X prespecified_base_field_poly_;
+    NTL::mat_GF2 pre_isomorphic_mat_;
+    NTL::mat_GF2 pre_isomorphic_mat_inv_;
 
-NTL::mat_GF2 combined_c2b_mat_;
-NTL::mat_GF2 combined_b2c_mat_;
+    NTL::mat_GF2 combined_c2b_mat_;
+    NTL::mat_GF2 combined_b2c_mat_;
 
-// Using GF2E::init frequently is very expensive, so we should save the context here.
-NTL::GF2EContext base_field_context_;
-NTL::GF2EContext binary_field_context_;
+    // Using GF2E::init frequently is very expensive, so we should save the context here.
+    NTL::GF2EContext base_field_context_;
+    NTL::GF2EContext binary_field_context_;
 
 public:
-FieldConverter(long binary_field_deg, long base_field_deg, long extension_deg, NTL::GF2X prespecified_base_field_poly=NTL::GF2X(0));
-const NTL::GF2X& binary_field_poly();
-const NTL::GF2X& base_field_poly();
-const NTL::GF2EX& composite_field_poly();
-void raw_composite_to_binary(NTL::vec_GF2& y, const NTL::vec_GF2& x);
-NTL::vec_GF2 raw_composite_to_binary(const NTL::vec_GF2& x);
-NTL::GF2E composite_to_binary(const NTL::GF2EX& x);
-void raw_binary_to_composite(NTL::vec_GF2& y, const NTL::vec_GF2& x);
-NTL::vec_GF2 raw_binary_to_composite(const NTL::vec_GF2& x);
-NTL::GF2EX binary_to_composite(const NTL::GF2E& x);
+    /**
+     * @param binary_field_deg: m*n
+     * @param base_field_deg: m
+     * @param extension_deg: n
+     * @param prespecified_base_field_poly: a base field (`F_{2^m}`) poly modulus that we force to use
+    */
+    FieldConverter(long binary_field_deg, long base_field_deg, long extension_deg, NTL::GF2X prespecified_base_field_poly=NTL::GF2X(0));
+
+    const NTL::GF2X& binary_field_poly();
+    const NTL::GF2X& base_field_poly();
+    const NTL::GF2EX& composite_field_poly();
+    void raw_composite_to_binary(NTL::vec_GF2& y, const NTL::vec_GF2& x);
+    NTL::vec_GF2 raw_composite_to_binary(const NTL::vec_GF2& x);
+
+    /**
+     * Convert from composite field to binary field.
+    */
+    NTL::GF2E composite_to_binary(const NTL::GF2EX& x);
+
+    void raw_binary_to_composite(NTL::vec_GF2& y, const NTL::vec_GF2& x);
+
+    NTL::vec_GF2 raw_binary_to_composite(const NTL::vec_GF2& x);
+
+    /**
+     * Convert from binary field to composite field.
+    */
+    NTL::GF2EX binary_to_composite(const NTL::GF2E& x);
 };
 
 
 /**
+ * MFE interface.
+ * 
  * T1: Input type of encoding (Output type of decoding)
  * T2: Input type of decoding (Output type of encoding)
  * T3: Base field modulus type
@@ -232,155 +243,155 @@ typedef MFE<NTL::GF2X, NTL::vec_GF2, long, NTL::GF2X> Gf2MFE;
 
 class BasicMFE: public Gf2eMFE {
 private:
-long m_;
-long t_;
-NTL::GF2X base_field_poly_mod_;
-NTL::GF2EXModulus ex_field_poly_mod_;
-NTL::GF2EX alpha_;
-NTL::vec_GF2EX basis_;
-NTL::vec_GF2E beta_;
+    long m_;
+    long t_;
+    NTL::GF2X base_field_poly_mod_;
+    NTL::GF2EXModulus ex_field_poly_mod_;
+    NTL::GF2EX alpha_;
+    NTL::vec_GF2EX basis_;
+    NTL::vec_GF2E beta_;
 
-bool use_fast_basis_ = USE_OPTIMIZED_MAPPING;
+    bool use_fast_basis_ = USE_OPTIMIZED_MAPPING;
 
-// Using GF2E::init frequently is very expensive, so we should save the context here.
-NTL::GF2EContext base_field_context_;
+    // Using GF2E::init frequently is very expensive, so we should save the context here.
+    NTL::GF2EContext base_field_context_;
 
-void initialize();
+    void initialize();
 
 public:
-// A fucntion named f in derived class will hide all other members named f in the base class, regardless of return types or arguments.
-// So should expose them with `using`.
+    // A function named f in derived class will hide all other members named f in the base class, regardless of return types or arguments.
+    // So should expose them with `using`.
 
-using MFE::encode;
-using MFE::decode;
+    using MFE::encode;
+    using MFE::decode;
 
-BasicMFE(long m, long base_field_poly_mod_deg);
+    BasicMFE(long m, long base_field_poly_mod_deg);
 
-BasicMFE(NTL::GF2X base_field_poly, NTL::GF2EX ex_field_poly);
+    BasicMFE(NTL::GF2X base_field_poly, NTL::GF2EX ex_field_poly);
 
-long m() {
-    return m_;
-}
+    long m() {
+        return m_;
+    }
 
-long t() {
-    return t_;
-}
+    long t() {
+        return t_;
+    }
 
-const NTL::GF2X& base_field_mod() {
-    return base_field_poly_mod_;
-}
+    const NTL::GF2X& base_field_mod() {
+        return base_field_poly_mod_;
+    }
 
-const NTL::GF2EX& ex_field_mod() {
-    return ex_field_poly_mod_.val();
-}
+    const NTL::GF2EX& ex_field_mod() {
+        return ex_field_poly_mod_.val();
+    }
 
-long base_field_size() {
-    return 1 << (deg(base_field_poly_mod_));
-}
+    long base_field_size() {
+        return 1 << (deg(base_field_poly_mod_));
+    }
 
-void encode(NTL::vec_GF2E& h, const NTL::GF2EX& g);
-void decode(NTL::GF2EX& g, const NTL::vec_GF2E& h);
+    void encode(NTL::vec_GF2E& h, const NTL::GF2EX& g);
+    void decode(NTL::GF2EX& g, const NTL::vec_GF2E& h);
 };
 
 class BasicGf2MFE: public Gf2MFE {
 private:
-// Now we simply use BasicMFE to implement the special case. Might be able to optimize.
-unique_ptr<BasicMFE> internal_;
-long base_field_mod_ = 2;
-NTL::GF2XModulus ex_field_poly_;
+    // Now we simply use BasicMFE to implement the special case. Might be able to optimize.
+    unique_ptr<BasicMFE> internal_;
+    long base_field_mod_ = 2;
+    NTL::GF2XModulus ex_field_poly_;
 
-bool use_cache_ = USE_CACHE;
-vector<NTL::vec_GF2> encode_table_;
-vector<bool> encode_table_cached_;
-vector<NTL::GF2X> decode_table_;
-vector<bool> decode_table_cached_;
+    bool use_cache_ = USE_CACHE;
+    vector<NTL::vec_GF2> encode_table_;
+    vector<bool> encode_table_cached_;
+    vector<NTL::GF2X> decode_table_;
+    vector<bool> decode_table_cached_;
 
-// Using GF2E::init frequently is very expensive, so we should save the context here.
-NTL::GF2EContext base_field_context_;
+    // Using GF2E::init frequently is very expensive, so we should save the context here.
+    NTL::GF2EContext base_field_context_;
 
 public:
-using MFE::encode;
-using MFE::decode;
+    using MFE::encode;
+    using MFE::decode;
 
-BasicGf2MFE(long m);
+    BasicGf2MFE(long m);
 
-long m() {
-    return internal_->m();
-}
+    long m() {
+        return internal_->m();
+    }
 
-long t() {
-    return internal_->t();
-}
+    long t() {
+        return internal_->t();
+    }
 
-const long& base_field_mod() {
-    return base_field_mod_;
-}
+    const long& base_field_mod() {
+        return base_field_mod_;
+    }
 
-const NTL::GF2X& ex_field_mod() {
-    return ex_field_poly_.val();
-}
+    const NTL::GF2X& ex_field_mod() {
+        return ex_field_poly_.val();
+    }
 
-long base_field_size() {
-    return 2;
-}
+    long base_field_size() {
+        return 2;
+    }
 
-void encode(NTL::vec_GF2& h, const NTL::GF2X& g);
-void decode(NTL::GF2X& g, const NTL::vec_GF2& h);
+    void encode(NTL::vec_GF2& h, const NTL::GF2X& g);
+    void decode(NTL::GF2X& g, const NTL::vec_GF2& h);
 };
 
 class CompositeGf2MFE: public Gf2MFE {
 private:
-long m_;
-long t_;
+    long m_;
+    long t_;
 
-std::shared_ptr<FieldConverter> converter_;
-std::shared_ptr<Gf2MFE> mfe1_;
-std::shared_ptr<Gf2eMFE> mfe2_;
+    std::shared_ptr<FieldConverter> converter_;
+    std::shared_ptr<Gf2MFE> mfe1_;
+    std::shared_ptr<Gf2eMFE> mfe2_;
 
-long base_field_mod_ = 2;
-NTL::GF2XModulus ex_field_poly_;
+    long base_field_mod_ = 2;
+    NTL::GF2XModulus ex_field_poly_;
 
-bool use_cache_ = USE_CACHE;
-vector<NTL::vec_GF2> encode_table_;
-vector<bool> encode_table_cached_;
-bool use_encode_table_ = false;
-vector<NTL::GF2X> decode_table_;
-vector<bool> decode_table_cached_;
-bool use_decode_table_ = false;
-LRU<long, NTL::vec_GF2> encode_map_;
-bool use_encode_map_ = false;
+    bool use_cache_ = USE_CACHE;
+    vector<NTL::vec_GF2> encode_table_;
+    vector<bool> encode_table_cached_;
+    bool use_encode_table_ = false;
+    vector<NTL::GF2X> decode_table_;
+    vector<bool> decode_table_cached_;
+    bool use_decode_table_ = false;
+    LRU<long, NTL::vec_GF2> encode_map_;
+    bool use_encode_map_ = false;
 
-// Using GF2E::init frequently is very expensive, so we should save the context here.
-NTL::GF2EContext base_field_context_;
+    // Using GF2E::init frequently is very expensive, so we should save the context here.
+    NTL::GF2EContext base_field_context_;
 
 public:
-using MFE::encode;
-using MFE::decode;
+    using MFE::encode;
+    using MFE::decode;
 
-CompositeGf2MFE(std::shared_ptr<FieldConverter> converter, std::shared_ptr<Gf2MFE> mfe1, std::shared_ptr<Gf2eMFE> mfe2);
+    CompositeGf2MFE(std::shared_ptr<FieldConverter> converter, std::shared_ptr<Gf2MFE> mfe1, std::shared_ptr<Gf2eMFE> mfe2);
 
-long m() {
-    return m_;
-}
+    long m() {
+        return m_;
+    }
 
-long t() {
-    return t_;
-}
+    long t() {
+        return t_;
+    }
 
-const long& base_field_mod() {
-    return base_field_mod_;
-}
+    const long& base_field_mod() {
+        return base_field_mod_;
+    }
 
-const NTL::GF2X& ex_field_mod() {
-    return ex_field_poly_.val();
-}
+    const NTL::GF2X& ex_field_mod() {
+        return ex_field_poly_.val();
+    }
 
-long base_field_size() {
-    return 2;
-}
+    long base_field_size() {
+        return 2;
+    }
 
-void encode(NTL::vec_GF2& h, const NTL::GF2X& g);
-void decode(NTL::GF2X& g, const NTL::vec_GF2& h);
+    void encode(NTL::vec_GF2& h, const NTL::GF2X& g);
+    void decode(NTL::GF2X& g, const NTL::vec_GF2& h);
 };
 
 
@@ -476,178 +487,191 @@ typedef RMFE<NTL::vec_GF2, NTL::GF2X, long, NTL::GF2X> Gf2RMFE;
 
 class BasicRMFE : public Gf2eRMFE {
 private:
-long k_;
-long m_;
-NTL::GF2X base_field_poly_mod_;
-NTL::GF2EXModulus ex_field_poly_mod_;
-NTL::GF2EX alpha_;
-NTL::vec_GF2EX basis_;
-NTL::vec_GF2E beta_;
+    long k_;
+    long m_;
+    NTL::GF2X base_field_poly_mod_;
+    NTL::GF2EXModulus ex_field_poly_mod_;
+    NTL::GF2EX alpha_;
+    NTL::vec_GF2EX basis_;
+    NTL::vec_GF2E beta_;
 
-NTL::mat_GF2E beta_matrix_;
-bool use_precompute_beta_matrix_ = USE_PRECOMP;
-bool use_fast_basis_ = USE_OPTIMIZED_MAPPING;
+    NTL::mat_GF2E beta_matrix_;
+    bool use_precompute_beta_matrix_ = USE_PRECOMP;
+    bool use_fast_basis_ = USE_OPTIMIZED_MAPPING;
 
-// Using GF2E::init frequently is very expensive, so we should save the context here.
-NTL::GF2EContext base_field_context_;
+    // Using GF2E::init frequently is very expensive, so we should save the context here.
+    NTL::GF2EContext base_field_context_;
 
-void initialize();
+    void initialize();
 
 public:
-// A fucntion named f in derived class will hide all other members named f in the base class, regardless of return types or arguments.
-// So should expose them with `using`.
+    // A function named f in derived class will hide all other members named f in the base class, regardless of return types or arguments.
+    // So should expose them with `using`.
 
-using RMFE::encode;
-using RMFE::decode;
-using RMFE::random_preimage;
+    using RMFE::encode;
+    using RMFE::decode;
+    using RMFE::random_preimage;
 
-/**
- * "type1" mapping uses m = 2*k-1, otherwise uses m = 2*k
-*/
-BasicRMFE(long k, long base_field_poly_mod_deg, bool is_type1=true);
+    /**
+     * "type1" mapping uses m = 2*k-1, otherwise uses m = 2*k
+    */
+    BasicRMFE(long k, long base_field_poly_mod_deg, bool is_type1=true);
 
-BasicRMFE(NTL::GF2X base_field_poly, NTL::GF2EX ex_field_poly);
+    BasicRMFE(NTL::GF2X base_field_poly, NTL::GF2EX ex_field_poly);
 
-bool is_type1() {
-    return m_ == 2 * k_ - 1;
-}
+    bool is_type1() {
+        return m_ == 2 * k_ - 1;
+    }
 
-long m() {
-    return m_;
-}
+    long m() {
+        return m_;
+    }
 
-long k() {
-    return k_;
-}
+    long k() {
+        return k_;
+    }
 
-const NTL::GF2X& base_field_mod() {
-    return base_field_poly_mod_;
-}
+    const NTL::GF2X& base_field_mod() {
+        return base_field_poly_mod_;
+    }
 
-const NTL::GF2EX& ex_field_mod() {
-    return ex_field_poly_mod_.val();
-}
+    const NTL::GF2EX& ex_field_mod() {
+        return ex_field_poly_mod_.val();
+    }
 
-long base_field_size() {
-    return 1 << (deg(base_field_poly_mod_));
-}
+    long base_field_size() {
+        return 1 << (deg(base_field_poly_mod_));
+    }
 
-void encode(NTL::GF2EX& g, const NTL::vec_GF2E& h);
-void decode(NTL::vec_GF2E& h, const NTL::GF2EX& g);
+    void encode(NTL::GF2EX& g, const NTL::vec_GF2E& h);
+    void decode(NTL::vec_GF2E& h, const NTL::GF2EX& g);
 
-void random_preimage(NTL::GF2EX& h, const NTL::vec_GF2E& g);
+    void random_preimage(NTL::GF2EX& h, const NTL::vec_GF2E& g);
 };
 
 class BasicGf2RMFE: public Gf2RMFE {
 private:
-// Now we simply use BasicRMFE to implement the special case. Might be able to optimize.
-unique_ptr<BasicRMFE> internal_;
-long base_field_mod_ = 2;
-NTL::GF2XModulus ex_field_poly_;
+    // Now we simply use BasicRMFE to implement the special case. Might be able to optimize.
+    unique_ptr<BasicRMFE> internal_;
+    long base_field_mod_ = 2;
+    NTL::GF2XModulus ex_field_poly_;
 
-bool use_cache_ = USE_CACHE;
-vector<NTL::GF2X> encode_table_;
-vector<bool> encode_table_cached_;
-vector<NTL::vec_GF2> decode_table_;
-vector<bool> decode_table_cached_;
+    bool use_cache_ = USE_CACHE;
+    vector<NTL::GF2X> encode_table_;
+    vector<bool> encode_table_cached_;
+    vector<NTL::vec_GF2> decode_table_;
+    vector<bool> decode_table_cached_;
 
-// Using GF2E::init frequently is very expensive, so we should save the context here.
-NTL::GF2EContext base_field_context_;
+    // Using GF2E::init frequently is very expensive, so we should save the context here.
+    NTL::GF2EContext base_field_context_;
 
 public:
-using RMFE::encode;
-using RMFE::decode;
-using RMFE::random_preimage;
+    using RMFE::encode;
+    using RMFE::decode;
+    using RMFE::random_preimage;
 
-/**
- * "type1" mapping uses m = 2*k-1, otherwise uses m = 2*k
-*/
-BasicGf2RMFE(long k, bool is_type1=true);
+    /**
+     * "type1" mapping uses m = 2*k-1, otherwise uses m = 2*k
+    */
+    BasicGf2RMFE(long k, bool is_type1=true);
 
-bool is_type1() {
-    return internal_->is_type1();
-}
+    bool is_type1() {
+        return internal_->is_type1();
+    }
 
-long m() {
-    return internal_->m();
-}
+    long m() {
+        return internal_->m();
+    }
 
-long k() {
-    return internal_->k();
-}
+    long k() {
+        return internal_->k();
+    }
 
-const long& base_field_mod() {
-    return base_field_mod_;
-}
+    const long& base_field_mod() {
+        return base_field_mod_;
+    }
 
-const NTL::GF2X& ex_field_mod() {
-    return ex_field_poly_.val();
-}
+    const NTL::GF2X& ex_field_mod() {
+        return ex_field_poly_.val();
+    }
 
-long base_field_size() {
-    return 2;
-}
+    long base_field_size() {
+        return 2;
+    }
 
-void encode(NTL::GF2X& g, const NTL::vec_GF2& h);
-void decode(NTL::vec_GF2& h, const NTL::GF2X& g);
-void random_preimage(NTL::GF2X& g, const NTL::vec_GF2& h);
+    void encode(NTL::GF2X& g, const NTL::vec_GF2& h);
+    void decode(NTL::vec_GF2& h, const NTL::GF2X& g);
+    void random_preimage(NTL::GF2X& g, const NTL::vec_GF2& h);
 };
 
 
 class CompositeGf2RMFE: public Gf2RMFE {
 private:
-long k_;
-long m_;
+    long k_;
+    long m_;
 
-std::shared_ptr<FieldConverter> converter_;
-std::shared_ptr<Gf2RMFE> rmfe1_;
-std::shared_ptr<Gf2eRMFE> rmfe2_;
+    std::shared_ptr<FieldConverter> converter_;
+    std::shared_ptr<Gf2RMFE> rmfe1_;
+    std::shared_ptr<Gf2eRMFE> rmfe2_;
 
-long base_field_mod_ = 2;
-NTL::GF2XModulus ex_field_poly_;
+    long base_field_mod_ = 2;
+    NTL::GF2XModulus ex_field_poly_;
 
-bool use_cache_ = USE_CACHE;
-vector<NTL::GF2X> encode_table_;
-vector<bool> encode_table_cached_;
-LRU<long, NTL::vec_GF2> decode_map_;
+    bool use_cache_ = USE_CACHE;
+    vector<NTL::GF2X> encode_table_;
+    vector<bool> encode_table_cached_;
+    LRU<long, NTL::vec_GF2> decode_map_;
 
-// Using GF2E::init frequently is very expensive, so we should save the context here.
-NTL::GF2EContext base_field_context_;
+    // Using GF2E::init frequently is very expensive, so we should save the context here.
+    NTL::GF2EContext base_field_context_;
 
 public:
-using RMFE::encode;
-using RMFE::decode;
-using RMFE::random_preimage;
+    using RMFE::encode;
+    using RMFE::decode;
+    using RMFE::random_preimage;
 
-CompositeGf2RMFE(std::shared_ptr<FieldConverter> converter, std::shared_ptr<Gf2RMFE> rmfe1, std::shared_ptr<Gf2eRMFE> rmfe2);
+    CompositeGf2RMFE(std::shared_ptr<FieldConverter> converter, std::shared_ptr<Gf2RMFE> rmfe1, std::shared_ptr<Gf2eRMFE> rmfe2);
 
-long m() {
-    return m_;
-}
+    long m() {
+        return m_;
+    }
 
-long k() {
-    return k_;
-}
+    long k() {
+        return k_;
+    }
 
-const long& base_field_mod() {
-    return base_field_mod_;
-}
+    const long& base_field_mod() {
+        return base_field_mod_;
+    }
 
-const NTL::GF2X& ex_field_mod() {
-    return ex_field_poly_.val();
-}
+    const NTL::GF2X& ex_field_mod() {
+        return ex_field_poly_.val();
+    }
 
-long base_field_size() {
-    return 2;
-}
+    long base_field_size() {
+        return 2;
+    }
 
-void encode(NTL::GF2X& g, const NTL::vec_GF2& h);
-void decode(NTL::vec_GF2& h, const NTL::GF2X& g);
-void random_preimage(NTL::GF2X& g, const NTL::vec_GF2& h);
+    void encode(NTL::GF2X& g, const NTL::vec_GF2& h);
+    void decode(NTL::vec_GF2& h, const NTL::GF2X& g);
+    void random_preimage(NTL::GF2X& g, const NTL::vec_GF2& h);
 };
 
+/**
+ * Construct a `(k, m)_2` RMFE instance with one level of composition, where:
+ * The 1st basic RMFE is type2: (k1, 2*k1)_2, 
+ * the 2nd basic RMFE is type2: (k2, 2*k2)_{2^{2*k1}},
+ * k = k1 * k2, m = 4 * k1 * k2
+*/
 std::unique_ptr<Gf2RMFE> get_composite_gf2_rmfe_type2(long k1, long k2);
 
+/**
+ * Construct a `(t, m)_2` MFE instance with two levels of composition, where:
+ * The 1st basic MFE is: (2*m1-1, m1)_2, 
+ * the 2nd basic MFE is: (2*m2-1, m2)_{2^m1},
+ * the 3rd basic MFE is: (2*m3-1, m3)_{2^{m1*m2}},
+ * t = t1 * t2 * t3, m = m1 * m2 * m3
+*/
 std::unique_ptr<Gf2MFE> get_double_composite_gf2_mfe(long m1, long m2, long m3);
 
 

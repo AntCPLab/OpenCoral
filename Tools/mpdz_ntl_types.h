@@ -85,6 +85,9 @@ inline void conv(NTL::vec_GF2& y, const BitVector& x) {
 }
 
 
+/// @brief If the array has length smaller than specified length, pad it to the specified length.
+/// @param x array to pad
+/// @param L target length
 inline void pad(NTL::vec_GF2& x, int L) {
     if(x.length() >= L)
         return;

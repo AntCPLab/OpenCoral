@@ -19,7 +19,7 @@ void RmfeMultiplier<T>::init_authenticator(const BitVector& keyBits,
 
 template<class T>
 RmfeMultiplier<T>::RmfeMultiplier(OTTripleGenerator<T>& generator, int thread_num) :
-        OTMultiplier<T>(generator, thread_num),
+    OTMultiplier<T>(generator, thread_num),
     auth_ot_ext(generator.players[thread_num], BOTH, true, BaseMachine::thread_num) {
 }
 

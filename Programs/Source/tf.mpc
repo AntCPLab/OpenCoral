@@ -38,7 +38,7 @@ opt.time_layers = 'time_layers' in program.args
 
 start_timer(1)
 if program.options.use_packing:
-    opt.forward(12, keep_intermediate=False)
+    opt.forward(14, keep_intermediate=False)
 else:
     opt.forward(1, keep_intermediate=False)
 stop_timer(1)

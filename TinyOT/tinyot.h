@@ -8,7 +8,4 @@
 #include "tinyotprep.h"
 #include "tinyotinput.h"
 
-#include "tinyotprep.hpp"
-#include "tinyotshare.hpp"
-
 #endif 

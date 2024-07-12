@@ -12,7 +12,6 @@
 #include "PersonalPrep.hpp"
 #include "Tools/debug.h"
 #include "TinyOT/tinyotprep.h"
-// #include "TinyOT/tinyotshare.hpp"
 #include "Protocols/ReplicatedPrep.hpp"
 #ifdef DETAIL_BENCHMARK
 #include "Tools/performance.h"
@@ -67,7 +66,6 @@ void RmfeSharePrep<T>::set_protocol(typename T::Protocol& protocol)
             params, thread.MC->get_alphai(), &protocol.P);
     triple_generator->multi_threaded = false;
     this->inputs.resize(thread.P->num_players());
-    // init_real(protocol.P);
 
     P = protocol.get_player();
 
@@ -78,10 +76,6 @@ void RmfeSharePrep<T>::set_protocol(typename T::Protocol& protocol)
     shared_prng = new GlobalPRNG(*P);
 }
 
-// template<class T>
-// void RmfeSharePrep<T>::set_mc(typename T::MAC_Check* MC) {
-//     revealed_key = reveal(P, MC->get_alphai());
-// }
 
 template<class T>
 void RmfeSharePrep<T>::buffer_inputs(int player) {
@@ -158,8 +152,6 @@ void RmfeSharePrep<T>::buffer_triples() {
 
     // Sacrifice
     
-    // vector<T> y(s), y_prime(s), z(s), z_prime(s);
-    // vector<typename T::open_type> y_open(s), y_prime_open(s), z_open(s), z_prime_open(s);
     vector<T> secrets(s * 4);
     vector<typename T::open_type> opens(s * 4);
     T *y = secrets.data(), 
@@ -341,7 +333,6 @@ void RmfeSharePrep<T>::buffer_normals() {
 
     SeededPRNG prng;
     for(int i = 0; i < n; i++) {
-        // typename T::clear r = prng.get<typename T::clear>();
         typename T::open_type r = prng.get<typename T::open_type>();
         typename T::open_type normal = T::open_type::tau(r);
         input.add_from_all_encoded(r);
@@ -381,7 +372,6 @@ void RmfeSharePrep<T>::buffer_normals() {
 
     for (int i = 0; i < u; i++)
         this->normals.push_back({{randoms[i], normals[i]}});
-    // this->normals.insert(this->normals.end(), normals.begin(), normals.begin() + u);
     delete MC;
 
     print_general("Generate random normal elements", u);
@@ -558,32 +548,6 @@ void RmfeSharePrep<T>::buffer_crypto2022_quintuples() {
 
     print_general("Generate Crypto2022 quintuples", n);
 }
-
-// template<class T>
-// array<T, 5> RmfeSharePrep<T>::get_quintuple(int n_bits) {
-//     // Treat quintuple as triple in counting
-//     count(DATA_TRIPLE, n_bits);
-//     waste(DATA_TRIPLE, T::default_length - n_bits);
-//     n_bits = T::default_length;
-//     return get_quintuple_no_count(n_bits);
-// }
-
-// template<class T>
-// array<T, 5> RmfeSharePrep<T>::get_quintuple_no_count(int n_bits) {
-//     assert(T::default_length == n_bits or not do_count);
-
-//     if (quintuples.empty())
-//     {
-//         InScope in_scope(this->do_count, false, *this);
-//         // [zico] We reuse the buffer_triples API, but actually it is buffering quintuples
-//         buffer_triples();
-//         assert(not quintuples.empty());
-//     }
-
-//     array<T, 5> res = quintuples.back();
-//     quintuples.pop_back();
-//     return res;
-// }
 
 #ifdef INSECURE_RMFE_PREP
 template<class T>

@@ -679,15 +679,13 @@ void rmfe64_then_mfe64_demo() {
 int main() {
     // test_composite_to_binary();
     // test_composite_to_binary_with_base_poly();
-    // test_basic_mfe64();
-    // test_basic_gf2_mfe64();
-    // test_composite_gf2_mfe64();
-    // test_double_composite_gf2_mfe64(2, 3, 8);
-    // test_basic_rmfe64();
-    // test_basic_gf2_rmfe64();
-    // test_basic_gf2_rmfe_type2();
-    // test_composite_gf2_rmfe();
-    // test_composite_gf2_rmfe64_type2(2, 6);
+    test_basic_mfe64();
+    test_basic_gf2_mfe64();
+    test_composite_gf2_mfe64();
+    test_double_composite_gf2_mfe64(2, 3, 8);
+    test_basic_rmfe64();
+    test_basic_gf2_rmfe64();
+    test_composite_gf2_rmfe64_type2(2, 6);
     test_composite_gf2_rmfe64_type1_type2(2, 7);
     // test_rmfe_then_mfe();
     // test_rmfe_tau(2, 6);

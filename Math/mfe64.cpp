@@ -69,6 +69,8 @@ long count_ones(uint64_t x) {
 }
 
 void mul(vec_gf2_64& x, const mat_gf2_64& A, const vec_gf2_64& b) {
+    if (A.size() > 64)
+        NTL::LogicError("Matrix row count is larger than 64.");
     x = 0;
     for (size_t i = 0; i < A.size(); i++) {
         x ^= (count_ones(A[i] & b) & 1) << i;
@@ -416,8 +418,6 @@ BasicGf2MFE64::BasicGf2MFE64(long m) {
         encode_table_ = {0, 3, 6, 5};
         decode_table_ = {0, 3, 2, 1, 1, 2, 3, 0};
     }
-
-    base_field_context_ = NTL::GF2EContext(NTL::GF2X(1, 1));
 }
 
 gf2x64 BasicGf2MFE64::encode(vec_gf2_64 g) {
@@ -772,9 +772,7 @@ BasicGf2RMFE64::BasicGf2RMFE64(long k, bool is_type1) {
         assert(internal_->m() < 22);
         
         encode_table_.resize(1 << internal_->k());
-        encode_table_cached_.resize(1 << internal_->k());
         decode_table_.resize(1 << internal_->m());
-        decode_table_cached_.resize(1 << internal_->m());
 
         // [zico] With q = 2, there is not that many choices for k, 
         // so we can just enumerate all cases here
@@ -800,10 +798,7 @@ BasicGf2RMFE64::BasicGf2RMFE64(long k, bool is_type1) {
         }
         
     }
-
-    base_field_context_ = NTL::GF2EContext(NTL::GF2X(1, 1));
 }
-
 
 gf2x64 BasicGf2RMFE64::encode(vec_gf2_64 h) {
     return encode_table_[h];

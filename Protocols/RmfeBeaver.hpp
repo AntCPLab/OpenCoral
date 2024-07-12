@@ -14,16 +14,6 @@
 
 #include <array>
 
-// template<class T>
-// typename T::Protocol Beaver<T>::branch()
-// {
-//     typename T::Protocol res(P);
-//     res.prep = prep;
-//     res.MC = MC;
-//     res.init_mul();
-//     return res;
-// }
-
 template<class T>
 void RmfeBeaver<T>::setup(Player& P) {
     BinaryProtocolThreadInit<TinyOTShare>::setup(P);

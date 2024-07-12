@@ -9,12 +9,6 @@
 #include "RmfeInput.h"
 #include "Processor.h"
 
-// template<class T>
-// Input<T>::Input(SubProcessor<T>& proc) :
-//         Input(proc, proc.MC)
-// {
-// }
-
 namespace GC {
 
 template<class T>
@@ -23,14 +17,6 @@ RmfeInput<T>::RmfeInput(SubProcessor<T>& proc, MAC_Check& mc) :
         shares(proc.P.num_players())
 {
 }
-
-// template<class T>
-// RmfeInput<T>::RmfeInput(SubProcessor<T>* proc, Player& P) :
-//         InputBase<T>(proc->Proc), proc(proc), MC(proc->MC), prep(proc->DataF), P(
-//                 proc->P), shares(P.num_players())
-// {
-//     assert (proc != 0);
-// }
 
 template<class T>
 RmfeInput<T>::RmfeInput(MAC_Check& MC, Preprocessing<T>& prep, Player& P) :
@@ -81,21 +67,6 @@ void RmfeInput<T>::add_mine(const BitVec& input, int n_bits)
     add_mine(encoded_input, n_bits);
 }
 
-// template<class T>
-// void RmfeInput<T>::add_mine_decoded(const BitVec& input, int n_bits)
-// {
-//     if (n_bits > T::default_length)
-//         throw runtime_error("Cannot handle bits more than rmfe packing size");
-//     if (n_bits == -1)
-//         n_bits = T::default_length;
-//     NTL::vec_GF2 ntl_input;
-//     open_type encoded_input;
-//     conv(ntl_input, input, n_bits);
-//     pad(ntl_input, Gf2RMFE::s().k());
-//     conv(encoded_input, Gf2RMFE::s().encode(ntl_input));
-
-//     add_mine(encoded_input, n_bits);
-// }
 
 template<class T>
 void RmfeInput<T>::add_other(int player, int)

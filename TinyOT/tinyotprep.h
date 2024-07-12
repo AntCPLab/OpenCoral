@@ -28,28 +28,18 @@ class BufferTinyOTPrep : public Preprocessing<TinyOTShare> {
 
 	Player* P;
 	TwoPartyPlayer* player_2pc;
-	// int port;
 	int batch_size;
 
 public:
-
-	// static atomic<int> port_resource;
-	// static int get_next_available_port();
-
-	// BufferTinyOTPrep(int party, int port = 12345, int batch_size = 1000) {
-	// 	io = new emp::NetIO(party==emp::ALICE ? nullptr:emp::IP, port);
-	// 	fpre = new emp::Fpre<emp::NetIO>(io, party, batch_size);
-	// 	triple_buf_idx = batch_size;
-
-	// 	random_abit_MACs.reserve(fpre->batch_size);
-	// 	random_abit_KEYs.reserve(fpre->batch_size);
-	// }
 
 	BufferTinyOTPrep(DataPositions& usage, int batch_size = 1000);
 
 	void set_protocol(TinyOTShare::Protocol& protocol);
 
 	void set_batch_size(int batch_size);
+	int get_batch_size() {
+		return fpre->batch_size;
+	}
 	void get_random_abit(emp::block& MAC, emp::block& KEY);
 
 	TinyOTShare get_bit();
