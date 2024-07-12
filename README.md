@@ -58,7 +58,7 @@ Check the test cases and microbenchmarks we create for boolean and mixed computa
 ```
 
 ## Pre-requisite
-The codebase is only tested on Ubuntu. We will have to follow the instructions in MP-SPDZ in order to compile the library. 
+The codebase is only tested on Ubuntu (22.04 64 bits). We will have to follow the instructions in MP-SPDZ in order to compile the library. 
 
 Install the toolchain:
 ```bash
