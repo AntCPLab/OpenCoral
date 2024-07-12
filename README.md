@@ -57,6 +57,16 @@ Check the test cases and microbenchmarks we create for boolean and mixed computa
 ./Utils/mixed-offline-performance.cpp
 ```
 
+## Pre-requisite
+The codebase is only tested on Ubuntu. We will have to follow the instructions in MP-SPDZ in order to compile the library. 
+
+Install the toolchain:
+```bash
+sudo apt-get update
+
+sudo apt-get install automake build-essential clang cmake git libboost-dev libboost-iostreams-dev libboost-thread-dev libgmp-dev libntl-dev libsodium-dev libssl-dev libtool python3
+```
+
 ## (R)MFE Tests
 
 Run the following to compile and test the 64-bit implementation:
@@ -72,12 +82,6 @@ make test_mfe
 ```
 
 ## Compile and Run Coral
-The codebase is only tested on Ubuntu. We will have to follow the instructions in MP-SPDZ in order to compile the library. 
-
-Install the toolchain:
-```bash
-sudo apt-get install automake build-essential clang cmake git libboost-dev libboost-iostreams-dev libboost-thread-dev libgmp-dev libntl-dev libsodium-dev libssl-dev libtool python3
-```
 
 As an example, we compile and run Coral (paired with SPDZ2k) for Lenet inference below:
 ```bash
