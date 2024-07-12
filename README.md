@@ -107,7 +107,7 @@ Scripts/fixed-rep-to-float.py benchmarks/EzPC/Athos/Networks/Lenet/LenetSmall_mn
 ./compile.py -R 64 -Y --pack tf benchmarks/EzPC/Athos/Networks/Lenet/graphDef.bin 8
 
 # Run the inference for Lenet with Coral protocols
-Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_Lenet_graphDef.bin-8
+Scripts/coral.sh -v tf-benchmarks_EzPC_Athos_Networks_Lenet_graphDef.bin-8
 ```
 
 ### TroubleShooting
