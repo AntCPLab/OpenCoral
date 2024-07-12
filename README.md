@@ -65,6 +65,8 @@ Install the toolchain:
 sudo apt-get update
 
 sudo apt-get install automake build-essential clang cmake git libboost-dev libboost-iostreams-dev libboost-thread-dev libgmp-dev libntl-dev libsodium-dev libssl-dev libtool python3
+
+pip3 install -r requirements.txt
 ```
 
 ## (R)MFE Tests
@@ -92,12 +94,13 @@ make -j8 coral-party.x
 # Download the NN examples from EzPC
 git submodule update --init benchmarks/EzPC || git clone https://github.com/zicofish/MP-SPDZ-EzPC benchmarks/EzPC
 cd benchmarks/EzPC/Athos/Networks/Lenet
-# Just to train a usable Lenet model (NOT fully trained on the entire mnist dataset)
+# Just to train a usable Lenet model (NOT fully trained on the entire mnist dataset). See TroubleShooting below for any network issue.
 python3 lenetSmall_mnist_train.py
 python3 lenetSmall_mnist_inference.py 1
 cd ../../../../..
 
 # Convert input representation for MP SPDZ
+mkdir Player-Data
 Scripts/fixed-rep-to-float.py benchmarks/EzPC/Athos/Networks/Lenet/LenetSmall_mnist_img_1.inp
 
 # Compile to instructions: 64-bit ring (-R 64), use edabits (-Y), enable packing (necessary for Coral), 8 threads
@@ -105,6 +108,14 @@ Scripts/fixed-rep-to-float.py benchmarks/EzPC/Athos/Networks/Lenet/LenetSmall_mn
 
 # Run the inference for Lenet with Coral protocols
 Scripts/coral.sh -F -v tf-benchmarks_EzPC_Athos_Networks_Lenet_graphDef.bin-8
+```
+
+### TroubleShooting
+Some users might have a problem when running `python3 lenetSmall_mnist_train.py` because it might fail to download mnist dataset due to network issues. To solve this problem:
+```bash
+wget https://s3.amazonaws.com/img-datasets/mnist.npz
+mkdir -p ~/.keras/datasets/
+mv mnist.npz ~/.keras/datasets/
 ```
 
 ### Tests and Benchmarking
