@@ -93,8 +93,8 @@ make -j8 coral-party.x
 git submodule update --init benchmarks/EzPC || git clone https://github.com/zicofish/MP-SPDZ-EzPC benchmarks/EzPC
 cd benchmarks/EzPC/Athos/Networks/Lenet
 # Just to train a usable Lenet model (NOT fully trained on the entire mnist dataset)
-python3 LenetSmall_mnist_train.py
-python3 LenetSmall_mnist_inference.py 1
+python3 lenetSmall_mnist_train.py
+python3 lenetSmall_mnist_inference.py 1
 cd ../../../../..
 
 # Convert input representation for MP SPDZ
